@@ -2,160 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { GameCard, games } from '../../components/GameCard';
 import "../../styles/SeriesWinner.css";
 import Swal from 'sweetalert2';
+import { nbaTeamColors } from "../../constants/nbaTeamColors";
 function SeriesWinner() {
-  const nbaTeamColors = {
-  "Atlanta Hawks": {
-    primary: "#E03A3E",
-    secondary: "#C1D32F",
-    tertiary: "#26282A"
-  },
-  "Boston Celtics": {
-    primary: "#007A33",
-    secondary: "#BA9653",
-    tertiary: "#000000"
-  },
-  "Brooklyn Nets": {
-    primary: "#000000",
-    secondary: "#FFFFFF",
-    tertiary: "#B8C4CA"
-  },
-  "Charlotte Hornets": {
-    primary: "#1D1160",
-    secondary: "#00788C",
-    tertiary: "#A1A1A4"
-  },
-  "Chicago Bulls": {
-    primary: "#CE1141",
-    secondary: "#000000",
-    tertiary: "#FFFFFF"
-  },
-  "Cleveland Cavaliers": {
-    primary: "#860038",
-    secondary: "#041E42",
-    tertiary: "#FDBB30"
-  },
-  "Dallas Mavericks": {
-    primary: "#00538C",
-    secondary: "#002B5E",
-    tertiary: "#B8C4CA"
-  },
-  "Denver Nuggets": {
-    primary: "#0E2240",
-    secondary: "#FEC524",
-    tertiary: "#8B2131"
-  },
-  "Detroit Pistons": {
-    primary: "#C8102E",
-    secondary: "#1D42BA",
-    tertiary: "#BEC0C2"
-  },
-  "Golden State Warriors": {
-    primary: "#1D428A",
-    secondary: "#FFC72C",
-    tertiary: "#FFFFFF"
-  },
-  "Houston Rockets": {
-    primary: "#CE1141",
-    secondary: "#000000",
-    tertiary: "#C4CED4"
-  },
-  "Indiana Pacers": {
-    primary: "#002D62",
-    secondary: "#FDBB30",
-    tertiary: "#BEC0C2"
-  },
-  "LA Clippers": {
-    primary: "#C8102E",
-    secondary: "#1D428A",
-    tertiary: "#BEC0C2"
-  },
-  "Los Angeles Lakers": {
-    primary: "#552583",
-    secondary: "#FDB927",
-    tertiary: "#000000"
-  },
-  "Memphis Grizzlies": {
-    primary: "#5D76A9",
-    secondary: "#12173F",
-    tertiary: "#707271"
-  },
-  "Miami Heat": {
-    primary: "#98002E",
-    secondary: "#000000",
-    tertiary: "#F9A01B"
-  },
-  "Milwaukee Bucks": {
-    primary: "#00471B",
-    secondary: "#EEE1C6",
-    tertiary: "#0077C0"
-  },
-  "Minnesota Timberwolves": {
-    primary: "#0C2340",
-    secondary: "#236192",
-    tertiary: "#78BE20"
-  },
-  "New Orleans Pelicans": {
-    primary: "#0C2340",
-    secondary: "#85714D",
-    tertiary: "#C8102E"
-  },
-  "New York Knicks": {
-    primary: "#006BB6",
-    secondary: "#F58426",
-    tertiary: "#BEC0C2"
-  },
-  "Oklahoma City Thunder": {
-    primary: "#007AC1",
-    secondary: "#EF3B24",
-    tertiary: "#002D62"
-  },
-  "Orlando Magic": {
-    primary: "#0077C0",
-    secondary: "#C4CED4",
-    tertiary: "#000000"
-  },
-  "Philadelphia 76ers": {
-    primary: "#006BB6",
-    secondary: "#ED174C",
-    tertiary: "#002B5C"
-  },
-  "Phoenix Suns": {
-    primary: "#1D1160",
-    secondary: "#E56020",
-    tertiary: "#000000"
-  },
-  "Portland Trail Blazers": {
-    primary: "#E03A3E",
-    secondary: "#000000",
-    tertiary: "#FFFFFF"
-  },
-  "Sacramento Kings": {
-    primary: "#5A2D81",
-    secondary: "#63727A",
-    tertiary: "#000000"
-  },
-  "San Antonio Spurs": {
-    primary: "#C4CED4",
-    secondary: "#000000",
-    tertiary: "#FFFFFF"
-  },
-  "Toronto Raptors": {
-    primary: "#CE1141",
-    secondary: "#000000",
-    tertiary: "#A1A1A4"
-  },
-  "Utah Jazz": {
-    primary: "#002B5C",
-    secondary: "#00471B",
-    tertiary: "#F9A01B"
-  },
-  "Washington Wizards": {
-    primary: "#002B5C",
-    secondary: "#E31837",
-    tertiary: "#C4CED4"
-  }
-  };
-
+  
   function getContrastColor(hexColor) {
     if (!hexColor) return '#000';
     
@@ -190,40 +39,59 @@ function SeriesWinner() {
     setShowResult(false);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/trivia/playoff-series/", {
-        method: "GET",
-        credentials: "include",
-      });
+  const res = await fetch("http://127.0.0.1:8000/trivia/playoff-series/", {
+    method: "GET",
+    credentials: "include",
+  });
 
-      const data = await res.json();
-      if (res.ok) {
-        console.log(data);
-        setGameData(data.series || []);
-      } else {
-        Swal.fire({
-                  icon: 'error',
-                  title: 'Failed to fetch series data',
-                  background: '#1f1f1f',
-                  color: '#ffffff',
-                  confirmButtonText: 'Try Again',
-                  confirmButtonColor: '#EA750E',
-                  customClass: {
-                    popup: 'swal2-custom-popup',
-                    confirmButton: 'swal2-custom-button'
-                  },
-                  buttonsStyling: false,
-                  allowOutsideClick: false,
-                  allowEscapeKey: true,
-                  iconColor: '#ff4d4d',
-                });
-        console.error("Failed to fetch series data");
-      }
-    } catch (err) {
-      console.error("Error while fetching series data:", err);
-      setGameData([]);
-    } finally {
-      setLoading(false);
-    }
+  const data = await res.json();
+  if (res.ok) {
+    console.log(data);
+    setGameData(data.series || []);
+  } else {
+    Swal.fire({
+      icon: 'error',
+      title: 'Failed to fetch series data',
+      background: '#1f1f1f',
+      color: '#ffffff',
+      confirmButtonText: 'Try Again',
+      confirmButtonColor: '#EA750E',
+      customClass: {
+        popup: 'swal2-custom-popup',
+        confirmButton: 'swal2-custom-button'
+      },
+      buttonsStyling: false,
+      allowOutsideClick: false,
+      allowEscapeKey: true,
+      iconColor: '#ff4d4d',
+    });
+    console.error("Failed to fetch series data");
+  }
+} catch (err) {
+  console.error("Error while fetching series data:", err);
+  
+  Swal.fire({
+    icon: 'error',
+    title: 'Unable to connect to the server',
+    text: 'Please check your internet connection or try again later.',
+    background: '#1f1f1f',
+    color: '#ffffff',
+    confirmButtonText: 'Retry',
+    confirmButtonColor: '#EA750E',
+    customClass: {
+      popup: 'swal2-custom-popup',
+      confirmButton: 'swal2-custom-button'
+    },
+    buttonsStyling: false,
+    allowOutsideClick: false,
+    allowEscapeKey: true,
+    iconColor: '#ff4d4d',
+  });
+  setGameStarted(false);
+} finally {
+  setLoading(false);
+}
+
   };
 
   const handleRestart = async () => {
