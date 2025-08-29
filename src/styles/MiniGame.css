@@ -1,0 +1,63 @@
+#minigame-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  background-color: #292929;
+  padding: 1rem;
+  gap: 2rem;
+  color: white;
+}
+
+
+#game-list {
+  flex: 1 1 250px;          /* container can shrink/grow naturally */
+  min-width: 200px;         /* prevents collapsing too much */
+  max-width: 100%;          /* never exceed parent width */
+  background-color: #1e1e1e;
+  padding: 1rem;
+  border-radius: 10px;
+  min-height: 400px;
+  max-height: 80vh;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+
+#game-box {
+  flex: 2 1 500px;
+  background-color: #1e1e1e;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  text-align: center;
+  min-height: 400px;
+}
+
+
+/* Container */
+#side-features {
+  flex: 1 1 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 7rem;
+}
+
+/* Card styling (used for both cards) */
+.side-card {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 1rem; /* assuming your sideCardStyle had padding */
+  border-radius: 8px; /* optional, match your sideCardStyle */
+}
+
+/* Card text styling */
+.side-card h4 {
+  color: #fff;
+}
+
+.side-card p {
+  /* Assuming sideTextStyle has font-size or color */
+  color: #ba620fff;
+  font-size: 0.9rem; /* adjust to match sideTextStyle */
+}

@@ -52,3 +52,106 @@ html {
 ::-webkit-scrollbar-thumb:hover {
   background: #c25f0c; /* Slightly darker on hover */
 }
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr); /* max 4 columns */
+  gap: 1.5rem;
+  justify-items: center;
+}
+
+/* Mobile screens: 1 column */
+@media (max-width: 768px) {
+  .games-grid {
+    grid-template-columns: 1fr; 
+  }
+}
+
+
+p{
+  font-weight: bold;
+}
+
+
+.loader {
+  border: 5px solid #555;
+          border-top: 5px solid #ea750e;
+          border-radius: 50%;
+          width: 40px;
+          height: 40px;
+          animation: spin 0.8s linear infinite;
+          margin: auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 430px){
+    .logos-info{
+      font-size: 0.6rem;
+    }
+}
+
+#main-container {
+  font-family: "Inter";
+  background-color: #1e1e1e;
+  color: white;
+  width: 100%;
+}
+
+#play {
+  text-align: center;
+  width: 100%;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+#login {
+  background-color: #292929;
+  width: 100%;
+  padding-top: 4rem;
+  padding-bottom: 2rem;
+  text-align: center;
+  color: white;
+}
+
+.auth-form {
+  max-width: 400px;
+  margin: 2rem auto;
+  display: flex;
+  padding: 1rem 1rem;
+  flex-direction: column;
+  gap: 1rem;
+  transition: all 0.3s ease-in-out;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #1e1e1e;
+}
+
+
+#leaderboard {
+  width: 100%;
+  background-color: #1e1e1e;
+  text-align: center;
+  padding-top: 4rem;
+  padding-bottom: 2rem;
+}
+
+#contact {
+  width: 100%;
+  background-color: #292929;
+  text-align: center;
+  padding-top: 4rem;
+  padding-bottom: 2rem;
+}
+
+
+  

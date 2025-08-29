@@ -1,0 +1,26 @@
+.leaderboard-table{
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.leaderboard-wrapper {
+  margin: 0 auto;
+  width: 500px;       /* default width */
+}
+
+@media (max-width: 450px) {
+  .leaderboard-wrapper {
+    width: 320px;
+  }
+}
+
+.leaderboard-data-table th,
+.leaderboard-data-table td {
+  text-align: center;
+  padding: 10px 60px;
+}
+
+.highlighted-row{
+    background-color: rgba(255, 122, 0, 0.2); /* subtle orange highlight */
+    font-weight: bold;
+}
