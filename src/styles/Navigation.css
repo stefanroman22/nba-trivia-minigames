@@ -1,0 +1,28 @@
+#navigation-container {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  padding-left: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  background-color: #222;
+}
+
+#logo-img {
+  height: 40px;
+  margin-right: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+#logo-img:hover {
+  transform: scale(1.1);
+}
+
+
+@media (max-width: 400px) {
+  .navigation-container ul {
+    font-size: 0.8rem; /* shrink text so it fits */
+  }
+}

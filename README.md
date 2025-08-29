@@ -6,7 +6,7 @@ This project is a fun and interactive web-based tool that lets users test their 
 
 ##  Project Overview
 
-The project make user of the data  provided by [link](https://pypi.org/project/nba_api/) (nba_api).
+The project make user of the data  provided by [](https://pypi.org/project/nba_api/) (nba_api).
 
 The project's frontend has been developed using Typescript while the backend has been build up using Django.
 
