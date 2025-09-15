@@ -2,6 +2,15 @@
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+    { "path": "./tsconfig.node.json" },
+  ],
+  "compilerOptions": {
+    "allowJs": true,       // allows importing .js files
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "module": "ESNext",
+    "target": "ES6",
+    "moduleResolution": "node",
+    "jsx": "react-jsx"
+  }
 }

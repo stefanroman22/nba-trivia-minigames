@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { showErrorAlert } from "../utils/Alerts";
-import type User from "../types/types";
+import socket from "../socket";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../store";
+import { updateProfilePhoto, updateUsername } from "../store/userSlice";
 
 
 
+function UserProfile(){
+  const dispatch = useDispatch<AppDispatch>();
+  const { user } = useSelector((state: RootState) => state.user);
 
-
-interface UserProfileProps {
-  user: User;
-  setUser: React.Dispatch<React.SetStateAction<User>>;
-}
-
-function UserProfile({ user, setUser}: UserProfileProps){
   const [isEditing, setIsEditing] = useState(false);
-  const [tempUsername, setTempUsername] = useState(user.username);
-  const [tempProfilePhoto, setTempProfilePhoto] = useState(user.profile_photo);
+  const [tempUsername, setTempUsername] = useState(user?.username || "");
+  const [tempProfilePhoto, setTempProfilePhoto] = useState(user?.profile_photo || "");
+
 
   const handleSave = async () => {
     const response = await fetch("http://127.0.0.1:8000/api/update-profile/", {
@@ -27,10 +27,11 @@ function UserProfile({ user, setUser}: UserProfileProps){
     if (data.error) {
         showErrorAlert(data.error, "Username change failed")
       }else{
-        setUser({ ...user, username: tempUsername });
+        dispatch(updateUsername(tempUsername));
         setIsEditing(false);
       }
   };
+
 
   return (
     <div style={{margin: "auto", padding: "2rem" }}>
@@ -42,7 +43,7 @@ function UserProfile({ user, setUser}: UserProfileProps){
           textAlign: "center",
         }}
       >
-        Welcome {user.username}!
+        Welcome {user?.username}!
       </h2>
 
       {/* Profile Photo + Change */}
@@ -66,7 +67,7 @@ function UserProfile({ user, setUser}: UserProfileProps){
           }}
         >
           <img
-            src={ user.profile_photo}
+            src={ user?.profile_photo}
             alt="Profile"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
@@ -113,10 +114,7 @@ function UserProfile({ user, setUser}: UserProfileProps){
             if (response.ok) {
               const previewURL = URL.createObjectURL(file);
               setTempProfilePhoto(previewURL);
-              setUser((prev) => ({
-                ...prev,
-                profile_photo: previewURL
-              }));
+              dispatch(updateProfilePhoto(previewURL));
             }
           }}
         />
@@ -148,7 +146,7 @@ function UserProfile({ user, setUser}: UserProfileProps){
                 if (isEditing) {
                   handleSave();
                 } else {
-                  setTempUsername(user.username);
+                  setTempUsername(user?.username || "");
                   setIsEditing(true);
                 }
               }}
@@ -211,7 +209,7 @@ function UserProfile({ user, setUser}: UserProfileProps){
                 textAlign: "center",
               }}
             >
-              {user.username}
+              {user?.username}
             </div>
           )}
         </div>
@@ -244,7 +242,7 @@ function UserProfile({ user, setUser}: UserProfileProps){
               textAlign: "center",
             }}
           >
-            {user.email}
+            {user?.email}
           </div>
         </div>
       </div>

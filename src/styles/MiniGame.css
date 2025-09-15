@@ -61,3 +61,65 @@
   color: #ba620fff;
   font-size: 0.9rem; /* adjust to match sideTextStyle */
 }
+
+.copy-overlay {
+  position: absolute;
+  top: -20px; /* adjust above the icon */
+  left: 50%;
+  transform: translateX(-55%);
+  color: limegreen;
+  font-size: 0.9rem;
+  font-weight: bold;
+  animation: fadeOut 1.5s forwards;
+  pointer-events: none; /* don’t block clicks */
+}
+
+@keyframes fadeOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+button{
+  font-size: 1rem;
+}
+
+button:disabled {
+  background-color: #555;
+  color: #888;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Container for both buttons */
+.button-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  gap: 10px; /* space between buttons */
+}
+
+/* Styling for the buttons */
+.button-container button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background-color: #0077ff;
+  color: white;
+}
+
+/* When there are two buttons, slightly shrink the text */
+.button-container.two-buttons button {
+  font-size: 0.9rem;
+}
+
+/* Disabled button styling */
+.button-container button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}

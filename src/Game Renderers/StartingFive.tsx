@@ -20,7 +20,6 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd}) {
 
   const [guesses, setGuesses] = useState({}); // { PG: "", SG: "", PF: "", SF: "", C: "" }
   const [correctGuesses, setCorrectGuesses] = useState({}); 
-  const [foundPlayers, setFoundPlayers] = useState([]); // names of correctly guessed
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [score, setScore] = useState(0);
   const [allPlayers, setAllPlayers] = useState([]);
@@ -108,10 +107,28 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd}) {
       setNumberLifes(prev => prev - 1);
       
       if (numberLifes - 1 <= 0) {
+        //Make all answer show up 
+        const revealAll = {};
+        currentGame.starting_5.forEach((p) => {
+        const normPos = normalizePosition(p.position);
+
+        if (normPos === "C") {
+          revealAll["C"] = p.name;
+        } else if (normPos === "F") {
+          // reveal in whichever forward slot (PF/SF) is still empty
+          if (!revealAll["PF"]) revealAll["PF"] = p.name;
+          else revealAll["SF"] = p.name;
+        } else if (normPos === "G") {
+          // reveal in whichever guard slot (PG/SG) is still empty
+          if (!revealAll["PG"]) revealAll["PG"] = p.name;
+          else revealAll["SG"] = p.name;
+        }
+      });
+        setCorrectGuesses(revealAll);
         setTimeout(() => {
           setShowPointsAnimation(false);
           onGameEnd?.(score);
-        }, 1500); // match your animation duration
+        }, 3000); // match your animation duration
       } else {
         // Hide animation normally after 1.5s
         setTimeout(() => setShowPointsAnimation(false), 1500);
