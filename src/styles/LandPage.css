@@ -129,11 +129,11 @@ p{
 
 .password-toggle-icon {
   position: absolute;
-  right: 10px;
+  right: 0px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
-  color: #1e1e1e;
+  color: #f4f4f4;
 }
 
 
@@ -152,6 +152,45 @@ p{
   padding-top: 4rem;
   padding-bottom: 2rem;
 }
+
+
+.login-signup-box {
+  display: flex;
+  flex-direction: column;   /* stack children vertically */
+  align-items: center;      /* center inputs/buttons */
+  justify-content: center;
+  padding: 2rem;            /* spacing inside */
+  margin: 2rem auto;        /* spacing outside, centered */
+  border-radius: 12px;      /* rounded corners */
+  background-color: #1e1e1e;  /* card look */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* subtle shadow */
+
+  width: fit-content;       /* shrink/grow to fit content */
+  max-width: 400px;         /* but don’t let it get too wide */
+}
+
+.login-signup-box input {
+  width: 90%;
+  background-color: #3a3a3a;    /* darker gray for contrast */
+  color: white;
+  padding: 0.6rem 1rem;         /* more breathing room */
+  border: none;                 /* remove harsh borders */
+  border-radius: 12px;          /* smooth but not too pill-like */
+  outline: none;                /* remove default blue outline */
+  font-size: 0.95rem;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-signup-box input::placeholder {
+  color: #bbb;                  /* lighter gray placeholder */
+}
+
+.login-signup-box input:focus {
+  background-color: #505050;    /* slightly lighter on focus */
+  box-shadow: 0 0 0 2px rgba(255, 116, 0, 0.6); /* subtle orange glow */
+}
+
+
 
 
   

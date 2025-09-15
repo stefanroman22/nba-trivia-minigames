@@ -1,5 +1,5 @@
 from nba_api.stats.endpoints import CommonPlayoffSeries, LeagueGameLog
-from nba_api.stats.static import teams
+from nba_api.stats.static import teams, players
 from nba_api.stats.endpoints import leaguegamefinder, boxscoretraditionalv2
 from datetime import datetime
 from django.http import JsonResponse
@@ -174,7 +174,6 @@ def get_mvps(request):
             status=500
         )
     
-
 def get_starting_five(request):
     try:
         # Step 1: Pick a random season with known NBA API data
@@ -184,7 +183,20 @@ def get_starting_five(request):
         random_season = random.choice(available_seasons)
 
         # Step 2: Fetch all games for that season
-        all_games_df = leaguegamefinder.LeagueGameFinder(season_nullable=random_season).get_data_frames()[0]
+        regular_df = leaguegamefinder.LeagueGameFinder(
+            season_nullable=random_season,
+            league_id_nullable='00',
+            season_type_nullable='Regular Season'
+        ).get_data_frames()[0]
+
+        playoffs_df = leaguegamefinder.LeagueGameFinder(
+            season_nullable=random_season,
+            league_id_nullable='00',
+            season_type_nullable='Playoffs'
+        ).get_data_frames()[0]
+
+        # Combine both
+        all_games_df = pd.concat([regular_df, playoffs_df], ignore_index=True)
         if all_games_df.empty:
             return JsonResponse([{"error": f"No games found in season {random_season}."}], safe=False)
 
@@ -249,6 +261,8 @@ def get_starting_five(request):
 
         all_teams = {t["id"]: t for t in teams.get_teams()}
         print("all_teams keys:", list(all_teams.keys())[:10])  # show some ID
+        print("team_a:", int(team_a_id))
+        print("team_b:", int(team_b_id))
         print("team_a:", all_teams.get(int(team_a_id)))
         print("team_b:", all_teams.get(int(team_b_id)))
         print("winning:", all_teams.get(int(winning_team_id)))
@@ -275,3 +289,21 @@ def get_starting_five(request):
         return JsonResponse(
             {'error': str(e), 'message': "Error fetching game data"},
             status=500)
+
+
+cached_players_data = None
+def get_wordle(request):
+    global cached_players_data
+    try:
+        if cached_players_data is None:
+            all_players = players.get_players()
+            players_last_names = [player['last_name'] for player in all_players]
+            cached_players_data = list(filter(lambda name: len(name) == 5, players_last_names))
+        
+        
+        sample_player = random.choice(cached_players_data)
+        result = [sample_player]
+        return JsonResponse({'series': result}, status=200)
+    except Exception as e:
+        return JsonResponse({'error', str(e)}, status=500)
+    

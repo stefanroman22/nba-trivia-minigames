@@ -1,0 +1,69 @@
+.wordle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.line {
+  display: flex;
+  gap: 8px;
+}
+
+.tile {
+  width: 45px;
+  height: 45px;
+  border: 2px solid #FF8C00; /* darker orange border */
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: bold;
+  text-transform: uppercase;
+  background-color: #F5F5F5;  /* slightly darker default tile */
+  color: #222;                /* darker text */
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15); /* deeper shadow */
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Correct letter (green) */
+.tile.correct {
+  background-color: #4F8A55; /* darker green */
+  border-color: #4F8A55;
+  color: #fff;
+}
+
+/* Present letter (orange) */
+.tile.present {
+  background-color: #FF8C00; /* darker orange */
+  border-color: #FF7F00;     /* slightly brighter border */
+  color: #fff;
+}
+
+/* Absent letter (gray) */
+.tile.absent {
+  background-color: #B0B0B0; /* darker gray */
+  border-color: #8C8C8C;
+  color: #fff;               /* keep text white for contrast */
+}
+
+/* Flip animation for submitted tiles */
+.tile.correct,
+.tile.present,
+.tile.absent {
+  animation: flipTile 0.4s ease forwards;
+}
+
+/* Keyframes for flip effect */
+@keyframes flipTile {
+  0% {
+    transform: rotateX(90deg);
+    opacity: 0.5;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}

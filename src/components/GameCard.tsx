@@ -1,12 +1,27 @@
+
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
-export const GameCard = ({ game, customStyle = {} }) => {
+export const GameCard = ({ game, gameStarted, customStyle = {} }) => {
   const navigate = useNavigate();
+
   const handleClick = () => {
+    if (gameStarted) {
+      Swal.fire({
+        icon: "warning",
+        title: "Game already in progress",
+        text: "Finish your current game before starting a new one.",
+        confirmButtonText: "OK",
+        confirmButtonColor: "#EA750E",
+        background: "#1f1f1f",
+        color: "#ffffff",
+      });
+      return; // prevent navigation
+    }
+
     if (game.urlPath) {
-    navigate(game.urlPath, { state: { id: game.id } });
-    } else {
-      console.warn("No urlPath provided for this game");
+      
+      console.log("Selected game:", game); 
+      navigate(game.urlPath, { state: { id: game.id } });
     }
   };
 
@@ -30,7 +45,9 @@ export const GameCard = ({ game, customStyle = {} }) => {
   }}
       onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.03)"}
       onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-      onClick={() => handleClick()}
+      onClick={() => handleClick()
+      
+      }
     >
       <div 
   style={{ 
@@ -168,6 +185,21 @@ export const games = [
     pointsPerCorrect: 10,
     maxPoints: 100,
     fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/starting-five/"),
+    handleError: handleErrorDefault,
+  },
+  {
+    id: "wordle",
+    name: "NBA Wordle",
+    description: "Guess the NBA player using wordle rules.",
+    instruction:
+      "For Singleplayer use simply press the start button below. Each round consists of 1 NBA player for which you need to guess their last name. You have 5 attempts and the sonner you get it right the more points you get!",
+    loadingMessage: "Fetching NBA game...",
+    backgroundImage:
+      "url('/src/assets/Games Backrounds/wordle.jpg')",
+    urlPath: "/wordle",
+    pointsPerCorrect: 10,
+    maxPoints: 600,
+    fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/wordle/"),
     handleError: handleErrorDefault,
   },
   {

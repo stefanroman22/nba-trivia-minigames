@@ -11,6 +11,10 @@ import { showErrorAlert } from "../utils/Alerts";
 import UserProfile from "../components/UserProfile";
 import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import Leaderboard from "../components/Leaderboard";
+import socket from "../socket";
+import { useDispatch, useSelector } from "react-redux";
+import type { RootState, AppDispatch } from "../store";
+import { login, logout } from "../store/userSlice";
 
 const Landpage = () => {
   const [isSignup, setIsSignup] = useState(false);
@@ -18,24 +22,24 @@ const Landpage = () => {
   const [userPassword, setUserPassword] = useState("");
   const [signupUsername, setSignupUsername] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
-  const [user, setUser] = useState<any>(null);;
   const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMatchError, setPasswordMatchError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoggedIn, user } = useSelector((state: RootState) => state.user);
 
 
   useEffect(() => {
   const checkLogin = async () => {
     const res = await fetch("http://127.0.0.1:8000/api/me/", {
       method: "GET",
-      credentials: "include", // Keep session
+      credentials: "include", 
     });
     if (res.ok) {
       const data = await res.json();
-      setUser(data.user); // Save user to context or local state
-    } else {
-      setUser(null); 
+      dispatch(login(data.user));
     }
   };
 
@@ -61,8 +65,7 @@ const Landpage = () => {
       }else{
         setIsLoading(true);
         setTimeout(() => {
-          
-          setUser(data.user);
+          dispatch(login(data.user));
           setIsLoading(false);
         }, 2000);
         console.log(data.user);
@@ -105,7 +108,7 @@ const Landpage = () => {
       } else {
         setIsLoading(true);
         setTimeout(() => {
-          setUser(data.user);
+          dispatch(login(data.user));
           Swal.fire({
             icon: 'success',
             title: 'Account Created!',
@@ -148,8 +151,7 @@ const Landpage = () => {
       }else{
         setIsLoading(true);
           setTimeout(() => {
-            
-            setUser(data.user);
+            dispatch(login(data.user));
             setIsLoading(false);
           }, 2000);
           console.log(data.user);
@@ -173,7 +175,7 @@ const Landpage = () => {
     <div id="main-container" className="main-container">
       
       {/* Navigation */}
-      <Navigation type="full" navItems={["Games", "Log in", "Leaderboard", "Contact",]} user={user}/>
+      <Navigation type="full" navItems={["Games", "Log in", "Leaderboard", "Contact",]}/>
 
       {/* Play Section */}
       <div id="play" className="play-section">
@@ -194,7 +196,7 @@ const Landpage = () => {
           (user ? (
           <>
 
-            <UserProfile user={user} setUser={setUser}/>
+            <UserProfile/>
             <button
                       style={buttonStyle}
                       onMouseEnter={handleMouseEnter}
@@ -209,8 +211,12 @@ const Landpage = () => {
                           showErrorAlert(data.error, "Unable to Log Out!")
                         }else{
                           setIsLoading(true);
+                          if (socket.connected) {
+                            socket.emit("setUserInfo", null);
+                            console.log("Logout emit sent");
+                          }
                           setTimeout(() => {
-                            setUser(null);
+                            dispatch(logout())
                             setIsLoading(false);
                           }, 2000)
                         }
@@ -221,13 +227,13 @@ const Landpage = () => {
           </>
               ) : 
               (
-          <>
+          <div className="login-signup-box">
               <h2>{isSignup ? "Sign Up" : "Log In"}</h2>
                 <form id="auth-from" className="auth-form" onSubmit={(e) => isSignup ? handleSignUp(e) : handleLogin(e)}>
                 <input 
                     type="text" 
                     placeholder={isSignup ? "Username" : "Username or email"} 
-                    style={inputStyle}
+                    
                     value={isSignup ? signupUsername : userId} 
                     onChange={(e) =>
                       isSignup ? setSignupUsername(e.target.value) : setUserId(e.target.value)
@@ -243,7 +249,7 @@ const Landpage = () => {
                 <input
                   type="email"
                   placeholder="Email"
-                  style={{ ...inputStyle, opacity: 1, transition: "opacity 0.3s ease" }}
+                  
                   value={signupEmail}
                   onChange={(e) => setSignupEmail(e.target.value)}
                   required
@@ -254,10 +260,6 @@ const Landpage = () => {
                   type={showPassword ? "text" : "password"}
                   name="password"
                   placeholder="Password"
-                  style={{
-                    ...inputStyle,
-                    width: "91%",
-                  }}
                   value={userPassword}
                   onChange={(e) => setUserPassword(e.target.value)}
                   required
@@ -276,7 +278,7 @@ const Landpage = () => {
               <input
                 type="password"
                 placeholder="Confirm Password"
-                style={{ ...inputStyle, opacity: 1, transition: "opacity 0.3s ease" }}
+                
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
@@ -357,12 +359,12 @@ const Landpage = () => {
                 e.currentTarget.style.color = "#ff7400";
               }}
             />
-          </>))}
+          </div>))}
       </div>
     
       {/* Leaderboard Section */}
       <div id="leaderboard" className="leaderboard-section">
-              <Leaderboard user={user}/>
+              <Leaderboard/>
       </div>
 
       {/* Contact Section */}

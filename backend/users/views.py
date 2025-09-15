@@ -227,7 +227,7 @@ def google_login(request):
                     email=email,
                     password=None  # password not needed for Google users
                 )
-                created = True
+                
 
             # Log the user in
             login(request, user)
@@ -243,7 +243,6 @@ def google_login(request):
                     "rank": getattr(user, "rank", None),
                     "points": getattr(user, "points", 0),
                     "profile_photo": profile_photo_url,
-                    "new_account": created  
                 }
             })
 

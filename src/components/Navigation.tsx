@@ -1,24 +1,41 @@
-import React from "react";
+
 import logo from "../assets/basketballLogo.webp";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserCircle } from "@fortawesome/free-solid-svg-icons";
-import { handleHoverEnter, handleHoverLeave, linkStyle} from "../constants/styles";
+import { handleHoverEnter, handleHoverLeave, linkStyle } from "../constants/styles";
 import "../styles/Navigation.css";
+import type { RootState, AppDispatch } from "../store";
+import { useSelector } from "react-redux";
+import socket from "../socket";
+import type { RoomState } from "../types/types";
+import { leaveMultiplayer } from "../utils/LeaveMultiplayer";
 
 interface NavigationProps {
   type?: "full" | "back";
   navItems?: string[];
-  user?: any;
+  roomState: RoomState;
+  setRoomState: React.Dispatch<React.SetStateAction<RoomState>>;
 }
 
-function Navigation({type, navItems, user} : NavigationProps){
+function Navigation({ type, navItems, roomState, setRoomState }: NavigationProps) {
 
   const navigate = useNavigate();
+  const { isLoggedIn, user } = useSelector((state: RootState) => state.user)
 
   return (
     <div id="navigation-container" className="navigation-container">
-      <img src={logo} alt="Logo" id="logo-img" className="logo-img" onClick={() => navigate("/")}/>
+      <img
+        src={logo}
+        alt="Logo"
+        id="logo-img"
+        className="logo-img"
+        onClick={() => {
+          leaveMultiplayer({ socket, user, setRoomState}); 
+          navigate('/');
+        }}
+      />
+
 
       {type === "full" && (
         <ul style={{ display: "flex", listStyle: "none", padding: 0, margin: 0 }}>
