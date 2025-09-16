@@ -42,7 +42,7 @@ function MiniGame() {
 
   useEffect(() => {
     const checkLogin = async () => {
-      const response = await fetch("http://127.0.0.1:8000/api/me/", {
+      const response = await fetch("http://localhost:8000/api/me/", {
         method: "GET",
         credentials: "include",
       })
@@ -106,7 +106,7 @@ function MiniGame() {
 
         try {
           if (score > 0) {
-            const response = await fetch("http://127.0.0.1:8000/api/update-profile/", {
+            const response = await fetch("http://localhost:8000/api/update-profile/", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               credentials: "include", // Ensures session cookie is sent
