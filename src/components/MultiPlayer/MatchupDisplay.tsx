@@ -1,87 +1,162 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import PlayerCard from "./PlayerCard";
 import { renderGame } from "../../Game Renderers/RenderGame";
+import "../../styles/MatcupDisplay.css";
+import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../../constants/styles";
+
+const INTRO_DISPLAY_TIME = 3000; // 3 seconds
 
 const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore }) => {
-  const [showResult, setShowResult] = useState(false);
-  const [opponentScore, setOpponentScore] = useState(null);
+  const [showIntro, setShowIntro] = useState(true);           // Show Host vs Opponent intro
+  const [opponentScore, setOpponentScore] = useState(null);   // Opponent final score
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [bothFinished, setBothFinished] = useState(false);
+  const [opponentLeft, setOpponentLeft] = useState(false);    // Track opponent disconnection
+  const [gameData, setGameData] = useState(null);             // Loaded game data
+  const [localStatus, setLocalStatus] = useState("intro");    // intro | loading | ready | finished
+  const [hasFinished, setHasFinished] = useState(false);
+  const [rematchWaiting, setRematchWaiting] = useState(false);
+  const [rematchTimeout, setRematchTimeout] = useState(false);
+  const [rematchData, setRematchData] = useState(null); // store incoming game data
+  const [introTimerActive, setIntroTimerActive] = useState(false);
 
-  // Request game data when a room is ready
+  // ====== 1. Intro display, then request game data ======
   useEffect(() => {
-    if (!roomState.code || !roomState.game) return;
-    socket.emit("requestGameData", {
-      code: roomState.code,
-      gameId: roomState.game.id,
-    });
+    console.log("Intro effect running for role:", roomState.role, "code:", roomState.code);
 
+    if (!roomState.code || !roomState.game) {
+      console.log("Missing code or game, skipping intro effect.");
+      return;
+    }
+
+    const introTimer = setTimeout(() => {
+      console.log("Intro timer finished, setting showIntro=false for role:", roomState.role);
+      setShowIntro(false);
+
+      // Only set to "loading" if game isn't ready yet
+      setLocalStatus((prev) => (prev === "intro" ? "loading" : prev));
+
+      if (roomState.role === "host") {
+        console.log("Host emitting requestGameData");
+        socket.emit("requestGameData", {
+          code: roomState.code,
+          gameId: roomState.game.id,
+        });
+      }
+    }, INTRO_DISPLAY_TIME);
+
+    return () => {
+      console.log("Cleaning up intro timer");
+      clearTimeout(introTimer);
+    };
+  }, [roomState.code, roomState.game, roomState.role, socket]);
+
+  // ====== 2. Listen for game data response ======
+  useEffect(() => {
     const handleGameData = (data) => {
       console.log("Received game data:", data);
-
-      setRoomState({
-        ...roomState,
-        gameData: data.series,
-        status: "ready",
-      });
+      setGameData(data.series);
+      setLocalStatus("ready");
     };
 
     socket.on("gameData", handleGameData);
+    return () => socket.off("gameData", handleGameData);
+  }, [socket]);
+
+  useEffect(() => {
+    socket.on("rematchWaiting", ({ message }) => {
+      console.log(message);
+      setShowIntro(true);
+      setRematchWaiting(true);
+    });
+
+    socket.on("rematchTimeout", ({ message }) => {
+      console.log(message);
+      setShowIntro(false);
+      setRematchWaiting(false);
+      setRematchTimeout(true);
+    });
+
+    socket.on("rematchStart", (newGameData) => {
+      console.log("Rematch starting with new data:", newGameData);
+
+      // Reset relevant game state
+      setOpponentScore(null);
+      setBothFinished(false);
+      setOpponentLeft(false);
+      setHasFinished(false);
+      setRematchWaiting(false);
+      setRematchTimeout(false);
+
+      // Store new data and show intro
+      setRematchData(newGameData.series);
+      setShowIntro(true);
+      setLocalStatus("intro");
+
+      // Trigger timer
+      setIntroTimerActive(true);
+    });
 
     return () => {
-      socket.off("gameData", handleGameData);
+      socket.off("rematchWaiting");
+      socket.off("rematchTimeout");
+      socket.off("rematchStart");
     };
-  }, [roomState.code, roomState.game, socket, setRoomState]); 
+  }, [socket]);
 
-
-
-  // Handle multiplayer game lifecycle
   useEffect(() => {
-    // Waiting for opponent
+    if (!introTimerActive) return;
+
+    console.log("Starting 3-second intro timer...");
+
+    const timer = setTimeout(() => {
+      console.log("Intro finished, loading game...");
+      setShowIntro(false);
+      setLocalStatus("ready");
+      setGameData(rematchData); // load new data for rendering
+      setIntroTimerActive(false);
+    }, INTRO_DISPLAY_TIME);
+
+    return () => clearTimeout(timer);
+  }, [introTimerActive, rematchData]);
+
+  // ====== 3. Handle multiplayer game lifecycle ======
+  useEffect(() => {
     socket.on("waitingForOpponent", ({ message }) => {
       console.log(message);
       setWaitingForOpponent(true);
     });
 
-    // When both players finish
     socket.on("matchComplete", ({ yourScore, opponentScore }) => {
-      console.log("Match complete! Your score:", yourScore, "Opponent score:", opponentScore);
+      console.log("Match complete! Score:", yourScore, "Score:", opponentScore);
+
       setOpponentScore(opponentScore);
       setWaitingForOpponent(false);
       setBothFinished(true);
-
-      setRoomState((prev) => ({
-        ...prev,
-        status: "finished",
-      }));
+      setLocalStatus("finished");
     });
 
-    // Rematch starts
-    socket.on("rematchStart", (newGameData) => {
-      console.log("Rematch starting...");
-      setShowResult(false);
-      setOpponentScore(null);
-      setBothFinished(false);
-      setWaitingForOpponent(false);
-
-      setRoomState((prev) => ({
-        ...prev,
-        status: "ready",
-        gameData: newGameData,
-      }));
+    socket.on("opponentLeft", () => {
+      console.log("Opponent has left the game.");
+      setOpponentLeft(true);
+      setLocalStatus("finished");
     });
 
     return () => {
       socket.off("waitingForOpponent");
       socket.off("matchComplete");
-      socket.off("rematchStart");
+      socket.off("opponentLeft");
     };
-  }, [socket, setRoomState]);
+  }, [socket]);
 
-  // Emit when this player finishes
+
+  // ====== 4. Emit when this player finishes ======
   const handleGameEnd = (finalScore) => {
+    if (hasFinished) return; // ✅ Prevent duplicate calls
+    setHasFinished(true);
+
     setScore(finalScore);
-    setShowResult(true);
+    setLocalStatus("finished");
 
     socket.emit("playerFinished", {
       code: roomState.code,
@@ -89,12 +164,69 @@ const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore
     });
 
     console.log("Player finished with score:", finalScore);
+    setWaitingForOpponent(true);
+  };
+  // ====== 5. Emit rematch request ======
+  const handleRematch = () => {
+    setRematchTimeout(false); // clear old timeout message
+    setShowIntro(true);       // Show intro/waiting screen immediately
+    setLocalStatus("intro");  // Hide results screen right away
+    socket.emit("rematchRequest", { code: roomState.code, gameId: roomState.game.id });
   };
 
-  // Emit rematch request
-  const handleRematch = () => {
-    socket.emit("rematchRequest", { code: roomState.code });
-  };
+
+  // ====== UI Components ======
+  const renderPlayerCards = (showScores = false) => (
+    <div className="matchup-container">
+      {/* Host Card */}
+      <div className={`player-card-container ${score > opponentScore && bothFinished ? 'winner' : ''}`}>
+        <PlayerCard
+          username={hostInfo.username}
+          profilePhoto={hostInfo.profile_photo}
+          rank={hostInfo.rank}
+          points={hostInfo.points}
+          role="You"
+        />
+        {showScores && (
+          <p className="player-score">Score: {score}</p>
+        )}
+      </div>
+
+      {/* VS Text */}
+      <span className="vs-text">VS</span>
+
+      {/* Opponent Card */}
+      <div className={`player-card-container ${opponentScore > score && bothFinished ? 'winner' : ''}`}>
+        <PlayerCard
+          username={opponent.username}
+          profilePhoto={opponent.profile_photo}
+          rank={opponent.rank}
+          points={opponent.points}
+          role="Opponent"
+        />
+
+        {/* Overlay if opponent disconnected */}
+        {opponentLeft && (
+          <div className="opponent-overlay">
+            Opponent Disconnected
+          </div>
+        )}
+
+        {showScores && (
+          <>
+            {bothFinished ? (
+              <p className="player-score">Score: {opponentScore}</p>
+            ) : (
+              <p className="waiting-text">
+                {opponentLeft ? "Opponent Left" : "Waiting for opponent..."}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
 
   return (
     <>
@@ -104,129 +236,57 @@ const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          marginTop: "50px",
-          gap: "20px",
+
         }}
       >
-        {/* Top Section: Host, VS, Opponent */}
-        {roomState.status !== 'ready' && (<div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "flex-start",
-            gap: "30px",
-            width: "100%",
-            maxWidth: "600px",
-          }}
-        >
-          {/* Host Card */}
-          <div style={{ textAlign: "center" }}>
-            <PlayerCard
-              username={hostInfo.username}
-              profilePhoto={hostInfo.profile_photo}
-              rank={hostInfo.rank}
-              points={hostInfo.points}
-              role="You"
-            />
-            {showResult && (
-              <p style={{ color: "#fff", marginTop: "8px", fontWeight: "bold" }}>
-                Your Score: {score}
-              </p>
-            )}
-          </div>
-
-          {/* VS text */}
-          <span
-            style={{
-              fontSize: "1.5rem",
-              fontWeight: "bold",
-              color: "#ff7400",
-              textShadow: "0 2px 8px rgba(0,0,0,0.6)",
-              alignSelf: "center",
-              animation: "pulse 1.5s infinite ease-in-out",
-            }}
-          >
-            VS
-          </span>
-
-          <style>
-            {`
-              @keyframes pulse {
-                0%, 100% {
-                  transform: scale(1);
-                  opacity: 1;
-                }
-                50% {
-                  transform: scale(1.2);
-                  opacity: 0.7;
-                }
-              }
-            `}
-          </style>
-
-          {/* Opponent Card */}
-          <div style={{ textAlign: "center" }}>
-            <PlayerCard
-              username={opponent.username}
-              profilePhoto={opponent.profile_photo}
-              rank={opponent.rank}
-              points={opponent.points}
-              role="Opponent"
-            />
-
-            {showResult && (
-              <>
-                {bothFinished ? (
-                  <p style={{ color: "#fff", marginTop: "8px", fontWeight: "bold" }}>
-                    Opponent Score: {opponentScore}
-                  </p>
-                ) : (
-                  <p style={{ color: "#ff7400", marginTop: "8px", fontWeight: "bold" }}>
-                    Waiting for opponent...
-                  </p>
-                )}
-              </>
-            )}
-          </div>
-        </div>)}
-
-        {/* Loader while fetching game data */}
-        {roomState.status === "loading" && (
+        {/* ====== 1. Intro or Waiting Screen ====== */}
+        {showIntro && (
           <div style={{ marginTop: "20px", textAlign: "center" }}>
-            <div className="loader" />
-            <p style={{ color: "#fff", marginTop: "10px" }}>Loading Game Data...</p>
+            {renderPlayerCards(false)}
+            <p className="loading-text">
+              {!opponentLeft ? (rematchWaiting ? "Waiting for Opponent to Confirm..." : "Starting new game...") : ''}
+            </p>
           </div>
         )}
+
+
+
+        {/* ====== 3. Results Screen ====== */}
+        {localStatus === "finished" && !rematchWaiting && (
+          <>
+            {renderPlayerCards(true)}
+            <div style={{ textAlign: "center", marginTop: "20px" }}>
+              <button
+                onClick={handleRematch}
+                disabled={opponentLeft || rematchWaiting}
+                style={buttonStyle}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                {rematchWaiting ? "Waiting for Opponent..." : "Play Again"}
+              </button>
+
+              {/* Show timeout message if opponent never confirmed */}
+              {rematchTimeout && (
+                <p style={{ color: "red", marginTop: "10px" }}>
+                  Opponent did not confirm in time.
+                </p>
+              )}
+            </div>
+          </>
+        )}
+
+
       </div>
 
-      {/* Game Section */}
-      {roomState.status === "ready" && !showResult && (
-          renderGame({
-            gameId: roomState.game.id,
-            gameData: roomState.gameData,
-            pointsPerCorrect: roomState.game.pointsPerCorrect,
-            onGameEnd: handleGameEnd,
-          })
-)}
-
-      {/* After both finish: Rematch Button */}
-      {roomState.status === "finished" && bothFinished && (
-        <div style={{ textAlign: "center", marginTop: "20px" }}>
-          <button
-            onClick={handleRematch}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#ff7400",
-              color: "#fff",
-              border: "none",
-              borderRadius: "8px",
-              fontWeight: "bold",
-              cursor: "pointer",
-            }}
-          >
-            Play Again
-          </button>
-        </div>
+      {/* ====== 2. Game Screen ====== */}
+      {localStatus === "ready" && !bothFinished && gameData && (
+        renderGame({
+          gameId: roomState.game.id,
+          gameData,
+          pointsPerCorrect: roomState.game.pointsPerCorrect,
+          onGameEnd: handleGameEnd,
+        })
       )}
     </>
   );

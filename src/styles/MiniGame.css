@@ -33,6 +33,29 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   text-align: center;
   min-height: 400px;
+
+  /* Smooth transition when resizing */
+  transition: all 0.3s ease;
+}
+
+/* For screens smaller than 768px (tablets & phones) */
+@media (max-width: 768px) {
+  #game-box {
+    flex: 1 1 280px;
+    padding: 0.5rem;
+    min-height: 400px;
+    transform: scale(0.95);
+  }
+}
+
+/* For very small screens, like phones in portrait */
+@media (max-width: 480px) {
+  #game-box {
+    flex: 1 1 250px;
+    padding: 0.4rem;
+    min-height: 250px;
+    transform: scale(0.92);
+  }
 }
 
 
@@ -122,4 +145,9 @@ button:disabled {
 .button-container button:disabled {
   background-color: #cccccc;
   cursor: not-allowed;
+}
+
+.stop-playing-button{
+  margin-top: 20px;
+  margin-bottom: 10px;
 }

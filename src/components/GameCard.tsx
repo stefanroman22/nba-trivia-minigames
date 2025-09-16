@@ -19,8 +19,6 @@ export const GameCard = ({ game, gameStarted, customStyle = {} }) => {
     }
 
     if (game.urlPath) {
-      
-      console.log("Selected game:", game); 
       navigate(game.urlPath, { state: { id: game.id } });
     }
   };

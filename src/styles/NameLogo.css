@@ -1,0 +1,70 @@
+/* ===== Guess Container ===== */
+.guess-container {
+  margin-top: 1.5rem;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 30px;
+  width: 100%;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 10px;
+  transition: all 0.3s ease;
+}
+
+/* Confirm Button */
+.confirm-button {
+  margin-left: 10px;
+  background-color: #ff7400;
+  color: #fff;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.confirm-button:hover:not(:disabled) {
+  background-color: #e56500;
+  transform: translateY(-2px);
+}
+
+.confirm-button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+/* ============================= */
+/* Responsive Adjustments */
+/* ============================= */
+
+/* Tablets and smaller devices */
+@media (max-width: 768px) {
+  .guess-container {
+    gap: 100px;
+    max-width: 100%;
+  }
+
+  .confirm-button {
+    padding: 0.1rem 0.1rem;
+    font-size: 0.95rem;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+  .guess-container {
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .confirm-button {
+    width: 90%;
+    margin-left: 10px; /* no extra spacing in column layout */
+    margin-right: 10px;
+  }
+}

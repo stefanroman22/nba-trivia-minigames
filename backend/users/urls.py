@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import login_view, get_current_user, update_profile, logout_view, signup_view, google_login, get_users
+from .views import login_view, get_current_user, update_profile, logout_view, signup_view, google_login, get_users, csrf_cookie
 
 
 urlpatterns = [
@@ -10,4 +10,6 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('login/google/', google_login, name='google_login'),
     path('get-users/', get_users, name='get-users'),
+    path("csrf/", csrf_cookie, name="csrf-cookie"),
+
 ]

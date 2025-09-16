@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
-import { buttonStyle } from "../constants/styles";
 import { handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import CorrectAnswer from "../components/CorrectAnswer";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
+import "../styles/NameLogo.css";
 
 function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -17,25 +17,25 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
   const currentTeam = seriesList[currentIndex];
 
   const handleGuessSubmit = (teamName) => {
-  if (!teamName || typeof teamName !== "string" || teamName.trim() === "") {
-    return; // don't run if no valid team
-  }
+    if (!teamName || typeof teamName !== "string" || teamName.trim() === "") {
+      return; // don't run if no valid team
+    }
 
-  const isCorrect =
-    teamName.trim().toLowerCase() === (currentTeam?.full_name || "").toLowerCase();
+    const isCorrect =
+      teamName.trim().toLowerCase() === (currentTeam?.full_name || "").toLowerCase();
 
-  if (isCorrect) {
-    setScore((prev) => prev + pointsPerCorrect);
-    setShowPointsAnimation(true);
-    setTimeout(() => {
-      moveToNext(true);
-    }, 1500);
-  } else {
-    setShowAnswer(true);
-    setTimeout(() => {
-      moveToNext(false);
-    }, 1800);
-  }
+    if (isCorrect) {
+      setScore((prev) => prev + pointsPerCorrect);
+      setShowPointsAnimation(true);
+      setTimeout(() => {
+        moveToNext(true);
+      }, 1500);
+    } else {
+      setShowAnswer(true);
+      setTimeout(() => {
+        moveToNext(false);
+      }, 1800);
+    }
   };
 
 
@@ -57,49 +57,50 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
 
   return (
     <>
-    <div style={{ textAlign: "center", marginTop: "2rem", position: "relative" }}>
-      {/* Logo */}
-      <img
-        key={currentTeam?.full_name} 
-        src={currentTeam.logo}
-        alt="NBA Team"
-        width="180"
-        style={{
-          filter:
-            showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase()
-              ? "grayscale(100%)"
-              : "",
-          opacity: showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase() ? 0.4 : 1,
-          transition: "opacity 0.5s ease-in-out, filter 1s ease-in-out",
-        }}
-      />
-
-      {/* Autocomplete Input and Confirm Button */}
-      <div style={{ marginTop: "1.5rem", position: "relative", display: "flex", justifyContent: "center", alignItems: "center", gap: "30px"}}>
-              <AutocompleteInput
-                    placeholder="Guess the Team..."
-                    value={guess}
-                    setValue={setGuess}
-                    suggestions={allTeams}
-                    onSubmit={handleGuessSubmit}
-              />
-        <button
-          style={{marginLeft: "10px", ...buttonStyle}}
-          onClick={() => {
-            if (guess.trim() !== "") {
-              handleGuessSubmit(guess);
-            }
+      <div style={{ textAlign: "center", marginTop: "2rem", position: "relative" }}>
+        {/* Logo */}
+        <img
+          key={currentTeam?.full_name}
+          src={currentTeam.logo}
+          alt="NBA Team"
+          width="180"
+          style={{
+            filter:
+              showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase()
+                ? "grayscale(100%)"
+                : "",
+            opacity: showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase() ? 0.4 : 1,
+            transition: "opacity 0.5s ease-in-out, filter 1s ease-in-out",
           }}
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          disabled={guess.trim() === ""}
-        >
-          Confirm
-        </button>
+        />
+
+        {/* Autocomplete Input and Confirm Button */}
+        <div className="guess-container">
+          <AutocompleteInput
+            placeholder="Guess the Team..."
+            value={guess}
+            setValue={setGuess}
+            suggestions={allTeams}
+            onSubmit={handleGuessSubmit}
+          />
+
+          <button
+            className="confirm-button"
+            onClick={() => {
+              if (guess.trim() !== "") {
+                handleGuessSubmit(guess);
+              }
+            }}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            disabled={guess.trim() === ""}
+          >
+            Confirm
+          </button>
+        </div>
+        {showAnswer && (<CorrectAnswer label="answer" value={currentTeam?.full_name || "Unknown"} />)}
       </div>
-      {showAnswer && ( <CorrectAnswer label="answer" value={currentTeam?.full_name || "Unknown"} />)}
-    </div>
-    {showPointsAnimation && (<SubmitGuessPopup text={`+${pointsPerCorrect}`} color={"#25a602ff"}/>)}
+      {showPointsAnimation && (<SubmitGuessPopup text={`+${pointsPerCorrect}`} color={"#25a602ff"} />)}
     </>
   );
 }

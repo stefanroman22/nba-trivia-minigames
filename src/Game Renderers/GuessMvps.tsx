@@ -5,6 +5,7 @@ import AutocompleteInput from "../components/AutoCompleteInput";
 import { handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import CorrectAnswer from "../components/CorrectAnswer";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
+import "../styles/NameLogo.css";
 
 function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,7 +74,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
       </h2>
 
       {/* Autocomplete Input and Confirm Button */}
-      <div style={{ marginTop: "1.5rem", position: "relative", display: "flex", justifyContent: "center", alignItems: "center", gap: "30px"}}>
+      <div className="guess-container">
         
           <AutocompleteInput
             placeholder="Guess the Player..."
@@ -83,7 +84,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
             onSubmit={handleGuessSubmit}
           />
 
-        <button
+        <button className="confirm-button"
           style={{marginLeft: "10px", ...buttonStyle}}
           onClick={() => {
             if (guess.trim() !== "") {

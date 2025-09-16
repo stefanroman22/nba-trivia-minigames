@@ -25,6 +25,7 @@ function MiniGame() {
   let game = games.find(g => g.id === gameId);
   const [loading, setLoading] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [multiplayerMode, setMultiPlayerMode] = useState(false);
   const [gameData, setGameData] = useState([]);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -32,9 +33,11 @@ function MiniGame() {
   const [roomState, setRoomState] = useState({
     status: "idle", // "idle" | "loading" | "ready" | "active" | "complete" | "playing"
     code: null,
-    opponent: null,
     game: null,
+    opponent: null,
     gameData: null,
+    selfSocketId: null,
+    role: null,
   });
 
   useEffect(() => {
@@ -91,7 +94,6 @@ function MiniGame() {
     setScore(0);
     setShowResult(false);
     game = games.find(g => g.id === gameId);
-    console.log(game);
   }, [gameId]);
 
   useEffect(() => {
@@ -156,7 +158,9 @@ function MiniGame() {
         status: "matched",      // <-- Update status here
         code: data.roomCode,    // <-- Save room code
         opponent: data.opponent, // <-- Opponent info
-        game: data.game         // <-- The selected game
+        game: data.game,         // <-- The selected game
+        selfSocketId: data.selfSocketId,
+        role: data.role,
       }));
     });
 
@@ -249,6 +253,12 @@ function MiniGame() {
           {/* Game Result */}
           {showResult && <GameResult showFinalResult={showFinalResult} score={score} maxPoints={game?.maxPoints ?? 0} handleRestart={handleRestart} />}
 
+          {!multiplayerMode && gameStarted && <button className='stop-playing-button' style={buttonStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onClick={() => {
+            setGameData([]);
+            setGameStarted(false);
+            setLoading(false);
+          }}>Exit</button>}
+
         </div>
 
         {/* RIGHT SIDE: Multiplayer cards (unchanged) */}
@@ -263,6 +273,7 @@ function MiniGame() {
                 disabled={gameStarted || roomState.status !== "idle" || !isLoggedIn}
                 onClick={async () => {
                   setGameStarted(true);
+                  setMultiPlayerMode(true);
                   setRoomState({ ...roomState, status: "loading" });
                   socket.emit("playOnline", { game });
                   console.log("Searching for opponent in:", game);
@@ -273,7 +284,7 @@ function MiniGame() {
                 {roomState.status === "loading" ? "Searching..." : "Play Online"}
               </button>
 
-              {roomState.status === "loading" && (
+              {(roomState.status === "loading" || roomState.status === "matched") && (
                 <button
                   style={buttonStyle}
                   onClick={() => {
