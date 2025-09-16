@@ -19,7 +19,7 @@ function Leaderboard() {
 
     const getUsers = async () => {
         setIsLoading(true);
-        const response = await fetch("https://127.0.0.1:8000/api/get-users/", {
+        const response = await fetch("http://localhost:8000/api/get-users/", {
             method: "GET",
             credentials: "include", // very important
             headers: {

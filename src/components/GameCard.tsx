@@ -137,7 +137,7 @@ export const games = [
     urlPath: "/series-winner",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/playoff-series/"),
+    fetchData: () => fetchGameData("http://localhost:8000/trivia/playoff-series/"),
     handleError: handleErrorDefault,
   },
   {

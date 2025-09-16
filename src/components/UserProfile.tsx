@@ -7,7 +7,7 @@ import { updateProfilePhoto, updateUsername } from "../store/userSlice";
 
 
 
-function UserProfile(){
+function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
 
@@ -17,24 +17,26 @@ function UserProfile(){
 
 
   const handleSave = async () => {
-    const response = await fetch("http://127.0.0.1:8000/api/update-profile/", {
+    const response = await fetch("http://localhost:8000/api/update-profile/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // REQUIRED
       body: JSON.stringify({ username: tempUsername }),
     });
     const data = await response.json();
     if (data.error) {
-        showErrorAlert(data.error, "Username change failed")
-      }else{
-        dispatch(updateUsername(tempUsername));
-        setIsEditing(false);
-      }
+      showErrorAlert(data.error, "Username change failed")
+    } else {
+      dispatch(updateUsername(tempUsername));
+      setIsEditing(false);
+    }
   };
 
 
   return (
-    <div style={{margin: "auto", padding: "2rem" }}>
+    <div style={{ margin: "auto", padding: "2rem" }}>
       <h2
         style={{
           marginBottom: "2rem",
@@ -67,7 +69,7 @@ function UserProfile(){
           }}
         >
           <img
-            src={ user?.profile_photo}
+            src={user?.profile_photo}
             alt="Profile"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
@@ -102,15 +104,11 @@ function UserProfile(){
             const formData = new FormData();
             formData.append("profile_photo", file);
 
-            const response = await fetch(
-              "http://127.0.0.1:8000/api/update-profile/",
-              {
-                method: "POST",
-                credentials: "include",
-                body: formData,
-              }
-            );
-
+            const response = await fetch("http://localhost:8000/api/update-profile/", {
+              method: "POST",
+              credentials: "include",  
+              body: formData,          
+            });
             if (response.ok) {
               const previewURL = URL.createObjectURL(file);
               setTempProfilePhoto(previewURL);
@@ -248,43 +246,43 @@ function UserProfile(){
       </div>
 
       {/* Points & Rank */}
-    <div
-  style={{
-    display: "flex",
-    gap: "10px",       // space between boxes
-    margin: "0 10px",  // margin on left/right to avoid touching edges
-  }}
->
-  <div
-    style={{
-      flex: 1, 
-      background: "#2d2d2d",
-      padding: "1rem",
-      borderRadius: "10px",
-      textAlign: "center",
-    }}
-  >
-    <p style={{ fontSize: "0.85rem", color: "#aaa" }}>Points</p>
-    <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
-      {user?.points}
-    </p>
-  </div>
+      <div
+        style={{
+          display: "flex",
+          gap: "10px",       // space between boxes
+          margin: "0 10px",  // margin on left/right to avoid touching edges
+        }}
+      >
+        <div
+          style={{
+            flex: 1,
+            background: "#2d2d2d",
+            padding: "1rem",
+            borderRadius: "10px",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontSize: "0.85rem", color: "#aaa" }}>Points</p>
+          <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
+            {user?.points}
+          </p>
+        </div>
 
-  <div
-    style={{
-      flex: 1,
-      background: "#2d2d2d",
-      padding: "1rem",
-      borderRadius: "10px",
-      textAlign: "center",
-    }}
-  >
-    <p style={{ fontSize: "0.85rem", color: "#aaa" }}>Rank</p>
-    <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
-      {user?.rank}
-    </p>
-  </div>
-</div>
+        <div
+          style={{
+            flex: 1,
+            background: "#2d2d2d",
+            padding: "1rem",
+            borderRadius: "10px",
+            textAlign: "center",
+          }}
+        >
+          <p style={{ fontSize: "0.85rem", color: "#aaa" }}>Rank</p>
+          <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
+            {user?.rank}
+          </p>
+        </div>
+      </div>
 
     </div>
   );

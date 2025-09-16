@@ -32,30 +32,14 @@ const Landpage = () => {
 
 
   useEffect(() => {
-    const initCSRF = async () => {
-      try {
-        const res = await fetch("https://127.0.0.1:8000/api/csrf/", {
-          method: "GET",
-          credentials: "include", // VERY important for setting cookies
-        });
-
-        if (!res.ok) {
-          console.error("Failed to fetch CSRF cookie");
-        } else {
-          console.log("CSRF cookie initialized");
-        }
-      } catch (err) {
-        console.error("Error initializing CSRF:", err);
-      }
-    };
-
-    initCSRF();
-
     const checkLogin = async () => {
-      const res = await fetch("https://127.0.0.1:8000/api/me/", {
+      const res = await fetch("http://localhost:8000/api/me/", {
         method: "GET",
-        credentials: "include",
-      });
+        credentials: "include",  // <-- REQUIRED to send cookies
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
       if (res.ok) {
         const data = await res.json();
         dispatch(login(data.user));
@@ -65,31 +49,14 @@ const Landpage = () => {
     checkLogin();
   }, []);
 
-
-
-  function getCookie(name: string) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(";").shift();
-  }
-
-
   const handleLogin = async (e: React.FormEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    const csrftoken = getCookie("csrftoken");
-    const response = await fetch("https://127.0.0.1:8000/api/login/", {
+    const response = await fetch("http://localhost:8000/api/login/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": csrftoken || "", // CSRF token must be sent here
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        id: userId,
-        password: userPassword,
-      }),
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",  //  very important here too
+      body: JSON.stringify({ id: userId, password: userPassword }),
     });
-
     const data = await response.json();
     if (data.error) {
       showErrorAlert(data.error, "Authentication Failed");
@@ -118,7 +85,7 @@ const Landpage = () => {
     }
 
     try {
-      const response = await fetch("https://127.0.0.1:8000/api/signup/", {
+      const response = await fetch("http://localhost:8000/api/signup/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -161,12 +128,12 @@ const Landpage = () => {
   };
 
   const googleLogin = useGoogleLogin({
-    flow: 'auth-code',
+    flow: 'auth-code', // 👈 important
     onSuccess: async (codeResponse) => {
       console.log("Google codeResponse:", codeResponse);
 
       try {
-        const response = await fetch("https://127.0.0.1:8000/api/login/google/", {
+        const response = await fetch("http://localhost:8000/api/login/google/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -233,7 +200,7 @@ const Landpage = () => {
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onClick={async () => {
-                const res = await fetch("https://127.0.0.1:8000/api/logout/", {
+                const res = await fetch("http://localhost:8000/api/logout/", {
                   method: "POST",
                   credentials: "include",
                 });
