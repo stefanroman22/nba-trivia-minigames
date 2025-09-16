@@ -30,6 +30,7 @@ const rooms = {}; // { code: { status, host, timeout, startTime } }
 // =========================
 
 const waitingPlayers = {};
+const rematchRequests = {};
 
 // Add helper to remove a player from queue if they disconnect or cancel
 function removeFromQueue(socketId) {
@@ -56,7 +57,7 @@ function leaveMultiplayer(socket, io, waitingPlayers) {
   // 1. Remove user from any waiting queue
   for (const gameId in waitingPlayers) {
     const queue = waitingPlayers[gameId];
-    const index = queue.findIndex(player => player.socketId === socket.id);
+    const index = queue.findIndex((player) => player.socketId === socket.id);
 
     if (index !== -1) {
       const [player] = queue.splice(index, 1);
@@ -66,33 +67,40 @@ function leaveMultiplayer(socket, io, waitingPlayers) {
         clearTimeout(player.timeout);
       }
 
-      console.log(`User ${socket.id} removed from waiting queue for game ${gameId}`);
+      console.log(
+        `User ${socket.id} removed from waiting queue for game ${gameId}`
+      );
       removedFromQueue = true;
     }
   }
 
-  if (removedFromQueue) return; // ✅ Done if user was just waiting, not matched yet
+  if (removedFromQueue) return; // Done if user was just waiting, not matched yet
 
   // 2. User is in a match → notify opponent and leave room
-  const userRooms = Array.from(socket.rooms).filter(r => r !== socket.id); 
+  const userRooms = Array.from(socket.rooms).filter((r) => r !== socket.id);
   if (userRooms.length === 0) return; // No active game room found
 
   const currentRoom = userRooms[0];
 
   // Find opponent in this room
-  const roomMembers = Array.from(io.sockets.adapter.rooms.get(currentRoom) || []);
-  const opponentId = roomMembers.find(id => id !== socket.id);
+  const roomMembers = Array.from(
+    io.sockets.adapter.rooms.get(currentRoom) || []
+  );
+  const opponentId = roomMembers.find((id) => id !== socket.id);
 
   if (opponentId) {
-    console.log(`User ${socket.id} left match. Notifying opponent ${opponentId}`);
-    io.to(opponentId).emit("opponentLeft", { message: "Your opponent has left the match." });
+    console.log(
+      `User ${socket.id} left match. Notifying opponent ${opponentId}`
+    );
+    io.to(opponentId).emit("opponentLeft", {
+      message: "Your opponent has left the match.",
+    });
   }
 
   // Leave the room
   socket.leave(currentRoom);
   console.log(`User ${socket.id} has left room ${currentRoom}`);
 }
-
 
 // =========================
 //  Main Socket Logic
@@ -116,60 +124,63 @@ io.on("connection", (socket) => {
   socket.on("playOnline", ({ game }) => {
     console.log(`${socket.id} clicked Play Online for game: ${game.id}`);
 
-    // Ensure queue for this game exists
     if (!waitingPlayers[game.id]) {
       waitingPlayers[game.id] = [];
     }
 
     const queue = waitingPlayers[game.id];
 
-    // Check if there's someone already waiting in this game's queue
     if (queue.length > 0) {
-      const opponent = queue.shift(); // remove first player in queue
+      const opponent = queue.shift();
+      const roomCode =
+        Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
 
       console.log(
         `Match found in ${game.id}: ${socket.id} vs ${opponent.socketId}`
       );
 
-      // Create a room
-      const roomCode =
-        Math.floor(Math.random() * (999999 - 100000 + 1)) + 100000;
-
-      // Join both players to the room
       socket.join(roomCode);
       io.sockets.sockets.get(opponent.socketId)?.join(roomCode);
 
-      // Notify both players
+      // ✅ Create room object
+      rooms[roomCode] = {
+        host: socket.id,
+        opponent: opponent.socketId,
+        scores: {},
+        status: "active",
+        gameId: game.id,
+        gameData: null,
+      };
+
+      // ✅ Send info about roles to both players
       io.to(socket.id).emit("matchFound", {
         roomCode,
         opponent: opponent.userInfo,
         game,
+        role: "host", // Mark this player as host
+        selfSocketId: socket.id, // Include this player's socket ID
       });
 
       io.to(opponent.socketId).emit("matchFound", {
         roomCode,
         opponent: socket.user,
         game,
+        role: "opponent", // Mark this player as opponent
+        selfSocketId: opponent.socketId,
       });
 
-      // Cancel opponent's timeout if it's still running
-      if (opponent.timeout) {
-        clearTimeout(opponent.timeout);
-      }
+      if (opponent.timeout) clearTimeout(opponent.timeout);
     } else {
-      // No opponent waiting → add this player to queue
       const playerData = { socketId: socket.id, userInfo: socket.user };
 
-      // Create a 30-second timeout
       playerData.timeout = setTimeout(() => {
-        // Timeout reached → remove player from queue
         const index = queue.findIndex((p) => p.socketId === socket.id);
         if (index !== -1) {
           queue.splice(index, 1);
           console.log(`Removed ${socket.id} from queue due to timeout`);
           io.to(socket.id).emit("opponentNotFound", { game });
         }
-      }, 5000); // 30 seconds
+      }, 30000);
 
       queue.push(playerData);
       console.log(`Added ${socket.id} to waiting queue for ${game.id}`);
@@ -179,23 +190,31 @@ io.on("connection", (socket) => {
   socket.on("requestGameData", async ({ code, gameId }) => {
     console.log(`Fetching game data for game: ${gameId} in room: ${code}`);
 
+    // Fetch from external source
     try {
-      // 1️⃣ Get the correct URL for this game
       const endpoint = gameEndpoints[gameId];
       if (!endpoint) {
         throw new Error(`No endpoint configured for game ID: ${gameId}`);
       }
 
-      // 2️⃣ Fetch data directly from Django
       const response = await fetch(endpoint);
-
       if (!response.ok) {
         throw new Error(`Failed to fetch data: ${response.statusText}`);
       }
 
       const gameData = await response.json();
 
-      // 3️⃣ Send identical game data to both players
+      if (!rooms[code]) {
+        rooms[code] = {
+          host: null,
+          opponent: null,
+          scores: {},
+          status: "active",
+          gameId,
+        };
+      }
+
+      rooms[code].gameData = gameData;
       io.to(code).emit("gameData", gameData);
 
       console.log("Game data sent to both players:", gameData);
@@ -214,11 +233,21 @@ io.on("connection", (socket) => {
       return;
     }
 
+    // ✅ If this player already finished, ignore duplicate submissions
+    if (
+      room.scores[socket.id] !== undefined &&
+      room.scores[socket.id] !== null
+    ) {
+      console.log(
+        `Player ${socket.id} already finished, ignoring duplicate event`
+      );
+      return;
+    }
+
     // Save this player's score
     room.scores[socket.id] = score;
     console.log(`Player ${socket.id} finished with score: ${score}`);
 
-    const playerIds = [room.host, room.opponent];
     const player1 = room.host;
     const player2 = room.opponent;
 
@@ -261,6 +290,99 @@ io.on("connection", (socket) => {
       console.log(
         `Player ${socket.id} is waiting for opponent in room ${code}`
       );
+    }
+  });
+
+  socket.on("rematchRequest", ({ code, gameId }) => {
+    console.log(`Rematch requested by ${socket.id} for room: ${code}`);
+
+    // Initialize rematch request if none exists
+    if (!rematchRequests[code]) {
+      rematchRequests[code] = {
+        players: [],
+        gameId,
+        timeout: null,
+      };
+    }
+
+    const rematchState = rematchRequests[code];
+
+    // Prevent duplicates
+    if (!rematchState.players.includes(socket.id)) {
+      rematchState.players.push(socket.id);
+    }
+
+    // If first player, start timeout
+    if (rematchState.players.length === 1) {
+      console.log(`First player waiting for rematch in room ${code}`);
+
+      // Notify first player
+      io.to(socket.id).emit("rematchWaiting", {
+        message: "Waiting for opponent to confirm rematch...",
+      });
+
+      // Set timeout to cancel after 30 seconds
+      rematchState.timeout = setTimeout(() => {
+        console.log(`Rematch timeout expired for room ${code}`);
+        rematchState.players.forEach((playerId) => {
+          io.to(playerId).emit("rematchTimeout", {
+            message: "Opponent did not confirm rematch in time.",
+          });
+        });
+        delete rematchRequests[code]; // Clean up
+      }, 30000);
+    }
+    // If second player joins → start new game
+    else if (rematchState.players.length === 2) {
+      console.log(`Both players confirmed rematch in room ${code}`);
+
+      // Clear timeout
+      if (rematchState.timeout) clearTimeout(rematchState.timeout);
+
+      // Reset scores in existing room
+      if (rooms[code]) {
+        rooms[code].scores = {};
+        rooms[code].status = "active";
+      } else {
+        rooms[code] = {
+          host: rematchState.players[0],
+          opponent: rematchState.players[1],
+          scores: {},
+          status: "active",
+          gameId,
+        };
+      }
+
+      // Fetch new game data automatically
+      const endpoint = gameEndpoints[gameId];
+      if (!endpoint) {
+        console.error(`No endpoint for game ID: ${gameId}`);
+        return;
+      }
+
+      fetch(endpoint)
+        .then((res) => res.json())
+        .then((newGameData) => {
+          console.log("Fetched new game data for rematch:", newGameData);
+
+          // Update room gameData
+          rooms[code].gameData = newGameData;
+
+          // Notify both players
+          rematchState.players.forEach((playerId) => {
+            io.to(playerId).emit("rematchStart", newGameData);
+          });
+
+          delete rematchRequests[code]; // Cleanup
+        })
+        .catch((err) => {
+          console.error("Error fetching new game data for rematch:", err);
+          rematchState.players.forEach((playerId) => {
+            io.to(playerId).emit("gameDataError", {
+              message: "Failed to load rematch data.",
+            });
+          });
+        });
     }
   });
 
@@ -357,7 +479,7 @@ io.on("connection", (socket) => {
   // Leaving a room
   // =========================
 
-  // Explicit leave room
+  // Explicit leave room/multiplayer
   socket.on("leaveRoom", ({ code }, callback) => {
     console.log(`🚪 User ${socket.id} leaving room ${code}`);
     if (!rooms[code]) return callback?.({ ok: false, error: "Room not found" });
@@ -372,10 +494,15 @@ io.on("connection", (socket) => {
     callback?.({ ok: true });
   });
 
+  socket.on("leaveMultiplayer", () => {
+    console.log(`User disconnected: ${socket.id}`);
+    leaveMultiplayer(socket, io, waitingPlayers);
+  });
+
   // =========================
   //  Disconnect
   // =========================
-  socket.on("leaveMultiplayer", () => {
+  socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
     leaveMultiplayer(socket, io, waitingPlayers);
   });
