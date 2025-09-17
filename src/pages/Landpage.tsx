@@ -4,7 +4,8 @@ import Swal from 'sweetalert2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEyeSlash, faEye } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
-import { GameCard, games } from "../components/GameCard"; // adjust the path as necessary
+import { GameCard } from "../components/GameCard";
+import { games } from "../utils/GameUtils";
 import Navigation from "../components/Navigation";
 import { useGoogleLogin } from '@react-oauth/google';
 import { showErrorAlert } from "../utils/Alerts";
@@ -15,6 +16,7 @@ import socket from "../socket";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { login, logout } from "../store/userSlice";
+import { apiFetch, setTokens } from "../utils/Api";
 
 const Landpage = () => {
   const [isSignup, setIsSignup] = useState(false);
@@ -28,33 +30,39 @@ const Landpage = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
-  const { isLoggedIn, user } = useSelector((state: RootState) => state.user);
-
+  const { user } = useSelector((state: RootState) => state.user);
 
   useEffect(() => {
     const checkLogin = async () => {
-      const res = await fetch("http://localhost:8000/api/me/", {
-        method: "GET",
-        credentials: "include",  // <-- REQUIRED to send cookies
-        headers: {
-          "Content-Type": "application/json",
-        },
-      })
-      if (res.ok) {
-        const data = await res.json();
+      const accessToken = localStorage.getItem("accessToken");
+
+      if (!accessToken) {
+        // No token, clear state
+        dispatch(logout());
+        return;
+      }
+
+      const response = await apiFetch("http://localhost:8000/api/me/");
+
+      if (response.ok) {
+        const data = await response.json();
         dispatch(login(data.user));
+      } else {
+        // Token invalid or expired
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        dispatch(logout());
       }
     };
 
     checkLogin();
-  }, []);
+  }, [dispatch]);
 
-  const handleLogin = async (e: React.FormEvent<HTMLButtonElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const response = await fetch("http://localhost:8000/api/login/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      credentials: "include",  //  very important here too
       body: JSON.stringify({ id: userId, password: userPassword }),
     });
     const data = await response.json();
@@ -64,6 +72,7 @@ const Landpage = () => {
       setIsLoading(true);
       setTimeout(() => {
         dispatch(login(data.user));
+        setTokens(data.access, data.refresh);
         setIsLoading(false);
       }, 2000);
       console.log(data.user);
@@ -71,64 +80,69 @@ const Landpage = () => {
     console.log(data);
   }
 
-  const handleSignUp = async (e: React.FormEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
 
-    if (!signupUsername || !signupEmail || !userPassword || !confirmPassword) {
-      showErrorAlert("Please fill in all required fields.", "Missing Fields");
-      return;
+  if (!signupUsername || !signupEmail || !userPassword || !confirmPassword) {
+    showErrorAlert("Please fill in all required fields.", "Missing Fields");
+    return;
+  }
+
+  if (userPassword !== confirmPassword) {
+    showErrorAlert("Passwords do not match. Please try again.", "Password Mismatch");
+    return;
+  }
+
+  try {
+    const response = await fetch("http://localhost:8000/api/signup/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: signupUsername,
+        email: signupEmail,
+        password: userPassword,
+      }),
+    });
+
+    const data = await response.json();
+    console.log("Signup response:", data);
+
+    if (!response.ok || data.error) {
+      showErrorAlert(data.error || "Signup failed", "Authentication Failed");
+    } else {
+      // Save tokens in localStorage
+      localStorage.setItem("accessToken", data.access);
+      localStorage.setItem("refreshToken", data.refresh);
+
+      // Update Redux state
+      setIsLoading(true);
+      setTimeout(() => {
+        dispatch(login(data.user));
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Account Created!',
+          text: `Welcome, ${data.user.username}! Glad to have you here!`,
+          background: '#1f1f1f',
+          color: '#ffffff',
+          confirmButtonColor: '#EA750E',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+
+        setIsLoading(false);
+      }, 2000);
     }
-
-    if (userPassword !== confirmPassword) {
-      showErrorAlert("Passwords do not match. Please try again.", "Password Mismatch");
-      return;
-    }
-
-    try {
-      const response = await fetch("http://localhost:8000/api/signup/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          username: signupUsername,
-          email: signupEmail,
-          password: userPassword,
-        }),
-      });
-
-      const data = await response.json();
-      console.log(data);
-
-      if (!response.ok || data.error) {
-        showErrorAlert(data.error, "Authentication Failed");
-      } else {
-        setIsLoading(true);
-        setTimeout(() => {
-          dispatch(login(data.user));
-          Swal.fire({
-            icon: 'success',
-            title: 'Account Created!',
-            text: `Welcome, ${data.user.username}! Glad to have you here!`,
-            background: '#1f1f1f',
-            color: '#ffffff',
-            confirmButtonColor: '#EA750E',
-            timer: 1500,
-            showConfirmButton: false,
-          })
-          setIsLoading(false);
-        }, 2000)
-      }
-      console.log(data);
-    } catch (err) {
-      console.error("Signup error:", err);
-      showErrorAlert("Unable to contact the server. Please try again later.", "Network error");
-    }
-  };
+  } catch (err) {
+    console.error("Signup error:", err);
+    showErrorAlert("Unable to contact the server. Please try again later.", "Network Error");
+  }
+};
 
   const googleLogin = useGoogleLogin({
-    flow: 'auth-code', // 👈 important
+    flow: 'auth-code',
     onSuccess: async (codeResponse) => {
       console.log("Google codeResponse:", codeResponse);
 
@@ -136,24 +150,26 @@ const Landpage = () => {
         const response = await fetch("http://localhost:8000/api/login/google/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ code: codeResponse.code }) // send auth code
+          body: JSON.stringify({ code: codeResponse.code }),
         });
 
         const data = await response.json();
         console.log("Backend response:", data);
 
-        if (!response.ok) {
-          showErrorAlert(data.error, "Google Authentication Failed");
+        if (!response.ok || data.error) {
+          showErrorAlert(data.error || "Google Authentication Failed", "Login Failed");
           return;
-        } else {
-          setIsLoading(true);
-          setTimeout(() => {
-            dispatch(login(data.user));
-            setIsLoading(false);
-          }, 2000);
-          console.log(data.user);
         }
+
+        // Save tokens like normal login
+        localStorage.setItem("accessToken", data.access);
+        localStorage.setItem("refreshToken", data.refresh);
+
+        setIsLoading(true);
+        setTimeout(() => {
+          dispatch(login(data.user));
+          setIsLoading(false);
+        }, 2000);
 
       } catch (err) {
         console.error("Unexpected error during Google login:", err);
@@ -200,25 +216,40 @@ const Landpage = () => {
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               onClick={async () => {
+                const refreshToken = localStorage.getItem("refreshToken");
+                console.log("Logging out with refresh token:", refreshToken);
+
+                // Immediately clear local tokens to prevent accidental reuse
+                localStorage.removeItem("accessToken");
+                localStorage.removeItem("refreshToken");
+
                 const res = await fetch("http://localhost:8000/api/logout/", {
                   method: "POST",
-                  credentials: "include",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ refresh: refreshToken }),
                 });
+
                 const data = await res.json();
+
                 if (data.error) {
-                  showErrorAlert(data.error, "Unable to Log Out!")
+                  showErrorAlert(data.error, "Unable to Log Out!");
                 } else {
                   setIsLoading(true);
+
                   if (socket.connected) {
                     socket.emit("setUserInfo", null);
                     console.log("Logout emit sent");
                   }
+
                   setTimeout(() => {
-                    dispatch(logout())
+                    dispatch(logout()); // Clear Redux state
                     setIsLoading(false);
-                  }, 2000)
+                  }, 2000);
                 }
               }}
+
             >
               Log Out
             </button>

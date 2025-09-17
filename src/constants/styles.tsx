@@ -58,21 +58,25 @@ export const suggestionBoxStyle = {
   boxShadow: "0 2px 8px rgba(0,0,0,0.3)", 
   borderRadius: "4px", };
 
-export const handleMouseEnter = (e) => {
+export const handleMouseEnter = (e: { currentTarget: { style: { backgroundColor: string; transform: string; }; }; }) => {
   e.currentTarget.style.backgroundColor = "#a14c07";
   e.currentTarget.style.transform = "scale(1.03)";
 };
 
-export const handleMouseLeave = (e) => {
+export const handleMouseLeave = (e: { currentTarget: { style: { backgroundColor: string; transform: string; }; }; }) => {
   e.currentTarget.style.backgroundColor = "#ea750e";
   e.currentTarget.style.transform = "scale(1)";
 };
 
-export const handleHoverEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {
+export const handleHoverEnter = (
+  e: React.MouseEvent<HTMLAnchorElement | SVGSVGElement>
+) => {
   e.currentTarget.style.color = "#ea750e"; // orange on hover
 };
 
-export const handleHoverLeave = (e: React.MouseEvent<HTMLAnchorElement>) => {
+export const handleHoverLeave = (
+  e: React.MouseEvent<HTMLAnchorElement | SVGSVGElement>
+) => {
   e.currentTarget.style.color = "white"; // white by default
 };
 
@@ -94,12 +98,12 @@ export const introTextStyle = {
   opacity: 0.7,
 };
 
-export const sideCardStyle = {
+export const sideCardStyle: React.CSSProperties = {
   backgroundColor: "#1e1e1e",
   padding: "1.5rem",
   borderRadius: "10px",
-  boxShadow: "0 4px 10px rgba(0,0,0,0.4)",
-  textAlign: "center",
+  boxShadow: "0 4px 10px rgba(42, 41, 41, 0.4)",
+  textAlign: "center"
 };
 
 export const sideTextStyle = {

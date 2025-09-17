@@ -1,8 +1,10 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, type SetStateAction } from 'react';
-import { GameCard, games } from '../../components/GameCard';
+import { GameCard } from '../../components/GameCard';
+import { games } from '../../utils/GameUtils';
 import "../../styles/SeriesWinner.css";
 import Navigation from '../../components/Navigation';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import "../../styles/MiniGame.css";
 import { buttonStyle, handleMouseEnter, handleMouseLeave, introTextStyle, sideCardStyle } from '../../constants/styles';
 import GameResult from '../../components/GameResult';
@@ -14,6 +16,7 @@ import MatchupDisplay from '../../components/MultiPlayer/MatchupDisplay';
 import { renderGame } from '../../Game Renderers/RenderGame';
 import { showErrorAlert } from '../../utils/Alerts';
 import { leaveMultiplayer } from '../../utils/LeaveMultiplayer';
+import type { RoomState } from '../../types/types';
 
 function MiniGame() {
 
@@ -30,8 +33,8 @@ function MiniGame() {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [showFinalResult, setShowFinalResult] = useState(false);
-  const [roomState, setRoomState] = useState({
-    status: "idle", // "idle" | "loading" | "ready" | "active" | "complete" | "playing"
+  const [roomState, setRoomState] = useState<RoomState>({
+    status: "idle",
     code: null,
     game: null,
     opponent: null,
@@ -39,7 +42,6 @@ function MiniGame() {
     selfSocketId: null,
     role: null,
   });
-
   useEffect(() => {
     const checkLogin = async () => {
       const response = await fetch("http://localhost:8000/api/me/", {
@@ -185,7 +187,7 @@ function MiniGame() {
           {games.map((game, index) => (
             <div key={index} style={{ marginBottom: "1rem" }}>
               <GameCard
-                game={game} gameStarted={gameStarted} roomState={roomState}
+                game={game} gameStarted={gameStarted}
               />
             </div>
           ))}

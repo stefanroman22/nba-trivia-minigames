@@ -1,5 +1,3 @@
-
-
 export const nbaTeams = [
   "Atlanta Hawks",
   "Boston Celtics",
