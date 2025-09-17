@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { showErrorAlert } from "../utils/Alerts";
-import socket from "../socket";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { updateProfilePhoto, updateUsername } from "../store/userSlice";
+import { apiFetch } from "../utils/Api";
 
 
 
@@ -13,26 +13,41 @@ function UserProfile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempUsername, setTempUsername] = useState(user?.username || "");
-  const [tempProfilePhoto, setTempProfilePhoto] = useState(user?.profile_photo || "");
+  const [, setTempProfilePhoto] = useState(user?.profile_photo || "");
 
+  const validateUsername = (username: string) => {
+    const regex = /^(?=(?:.*[A-Za-z]){3,})(?=(?:.*[0-9]){2,})[A-Za-z0-9_]+$/;
+    return regex.test(username);
+  };
 
   const handleSave = async () => {
-    const response = await fetch("http://localhost:8000/api/update-profile/", {
+    if (!validateUsername(tempUsername)) {
+      showErrorAlert(
+        "Username must contain at least 3 letters, 2 digits, and can only include letters, digits, or underscores.",
+        "Invalid Username"
+      );
+      return; // Stop if invalid
+    }
+    if (user?.username === tempUsername) {
+      setIsEditing(false);
+      return;
+    }
+   
+    const response = await apiFetch("http://localhost:8000/api/update-profile/", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include", // REQUIRED
       body: JSON.stringify({ username: tempUsername }),
     });
+
     const data = await response.json();
+
     if (data.error) {
-      showErrorAlert(data.error, "Username change failed")
+      showErrorAlert(data.error, "Username change failed");
     } else {
       dispatch(updateUsername(tempUsername));
       setIsEditing(false);
     }
   };
+
 
 
   return (
@@ -69,7 +84,7 @@ function UserProfile() {
           }}
         >
           <img
-            src={user?.profile_photo}
+            src={user?.profile_photo || '../assets/default.png'}
             alt="Profile"
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
@@ -104,17 +119,21 @@ function UserProfile() {
             const formData = new FormData();
             formData.append("profile_photo", file);
 
-            const response = await fetch("http://localhost:8000/api/update-profile/", {
+            const response = await apiFetch("http://localhost:8000/api/update-profile/", {
               method: "POST",
-              credentials: "include",  
-              body: formData,          
+              body: formData, // no need to set headers here
             });
+
             if (response.ok) {
               const previewURL = URL.createObjectURL(file);
               setTempProfilePhoto(previewURL);
               dispatch(updateProfilePhoto(previewURL));
+            } else {
+              const errorData = await response.json();
+              showErrorAlert(errorData.error || "Photo upload failed", "Upload Error");
             }
           }}
+
         />
       </div>
 
@@ -166,6 +185,7 @@ function UserProfile() {
               onMouseLeave={(e) => {
                 e.currentTarget.style.color = "#ff7400";
               }}
+
             >
               {isEditing ? "Confirm" : "Change"}
             </button>

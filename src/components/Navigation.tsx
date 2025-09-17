@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserCircle } from "@fortawesome/free-solid-svg-icons";
 import { handleHoverEnter, handleHoverLeave, linkStyle } from "../constants/styles";
 import "../styles/Navigation.css";
-import type { RootState, AppDispatch } from "../store";
+import type { RootState } from "../store";
 import { useSelector } from "react-redux";
 import socket from "../socket";
 import type { RoomState } from "../types/types";
@@ -14,14 +14,13 @@ import { leaveMultiplayer } from "../utils/LeaveMultiplayer";
 interface NavigationProps {
   type?: "full" | "back";
   navItems?: string[];
-  roomState: RoomState;
-  setRoomState: React.Dispatch<React.SetStateAction<RoomState>>;
+  setRoomState?: React.Dispatch<React.SetStateAction<RoomState>>;
 }
 
-function Navigation({ type, navItems, roomState, setRoomState }: NavigationProps) {
+function Navigation({ type, navItems, setRoomState }: NavigationProps) {
 
   const navigate = useNavigate();
-  const { isLoggedIn, user } = useSelector((state: RootState) => state.user)
+  const {user } = useSelector((state: RootState) => state.user)
 
   return (
     <div id="navigation-container" className="navigation-container">
@@ -31,7 +30,9 @@ function Navigation({ type, navItems, roomState, setRoomState }: NavigationProps
         id="logo-img"
         className="logo-img"
         onClick={() => {
-          leaveMultiplayer({ socket, user, setRoomState}); 
+          if(type !== "full")
+            leaveMultiplayer({ socket, user, setRoomState}); 
+          
           navigate('/');
         }}
       />

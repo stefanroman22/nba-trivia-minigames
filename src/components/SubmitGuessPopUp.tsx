@@ -1,8 +1,12 @@
-// PointsPopup.jsx
-import React from "react";
-import PropTypes from "prop-types";
 
-const SubmitGuessPopup = ({ text, color, duration = 2 }) => {
+
+
+interface SubmitGuessPopupProps{
+  text: string,
+  color: string,
+  duration: number,
+}
+const SubmitGuessPopup = ({ text, color, duration = 2 } : SubmitGuessPopupProps) => {
   return (
     <div
       style={{
@@ -28,10 +32,6 @@ const SubmitGuessPopup = ({ text, color, duration = 2 }) => {
   );
 };
 
-SubmitGuessPopup.propTypes = {
-  text: PropTypes.string.isRequired,
-  color: PropTypes.string,
-  duration: PropTypes.number,
-};
+
 
 export default SubmitGuessPopup;

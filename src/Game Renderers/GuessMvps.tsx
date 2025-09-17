@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { buttonStyle } from "../constants/styles"; 
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -27,7 +27,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
   }, []);
 
 
-  const handleGuessSubmit = (playerName : String) => {
+  const handleGuessSubmit = (playerName : string) => {
   if (!playerName || typeof playerName !== "string" || playerName.trim() === "") {
     return; // don't run if no valid team
   }

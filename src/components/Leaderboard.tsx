@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import "../styles/Leaderboard.css"
 import { buttonStyle, handleMouseEnter, handleMouseLeave } from '../constants/styles'
-import { useSelector, useDispatch } from "react-redux";
-import type { RootState, AppDispatch } from "../store";
+import { useSelector} from "react-redux";
+import type { RootState } from "../store";
 import type { User } from '../types/types';
 
 
 
 
 function Leaderboard() {
-    const dispatch = useDispatch<AppDispatch>();
     const { user } = useSelector((state: RootState) => state.user);
 
     const [isLoading, setIsLoading] = useState(true);
@@ -45,12 +44,12 @@ function Leaderboard() {
     useEffect(() => {
         getUsers();
     }, []);
-    var userIndex = -1;
+    let userIndex = -1;
     if (user != null)
         userIndex = usersData.findIndex((u: User) => u.username === user.username) + 1;
     return (
         <div>
-            <h2>Global Leaderboard</h2>
+            <h2>TOP 100 Global Leaderboard</h2>
             <div className="leaderboard-wrapper">
                 {
                     isLoading ? <div className="loader" /> : (leaderboardError ? <p>Failed to retrieve leaderboard</p> :

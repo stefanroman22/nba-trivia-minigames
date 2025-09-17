@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import type { ReactNode } from 'react';
 import './App.css';
 
 import Landpage from './pages/Landpage';
@@ -88,7 +89,7 @@ function AnimatedRoutes() {
 /**
  * Simple fade-in/fade-out transition wrapper
  */
-function PageTransition({ children }) {
+function PageTransition({ children }: { children: ReactNode }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }} // start slightly smaller and faded

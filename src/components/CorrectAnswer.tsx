@@ -1,8 +1,9 @@
-// CorrectAnswer.js
-import React from "react";
-import PropTypes from "prop-types";
+interface CorrectAnswerProps {
+  label: string;   // e.g., "answer" or "team"
+  value?: string;  // optional
+}
 
-const CorrectAnswer = ({ label, value }) => {
+const CorrectAnswer = ({ label, value } : CorrectAnswerProps) => {
   if (!value) return null; // don't render if no value
 
   return (
@@ -12,9 +13,6 @@ const CorrectAnswer = ({ label, value }) => {
   );
 };
 
-CorrectAnswer.propTypes = {
-  label: PropTypes.string.isRequired, // e.g. "answer" or "team"
-  value: PropTypes.string,            // the actual text to display
-};
+
 
 export default CorrectAnswer;
