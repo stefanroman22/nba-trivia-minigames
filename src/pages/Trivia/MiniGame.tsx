@@ -17,6 +17,7 @@ import { renderGame } from '../../Game Renderers/RenderGame';
 import { showErrorAlert } from '../../utils/Alerts';
 import { leaveMultiplayer } from '../../utils/LeaveMultiplayer';
 import type { RoomState } from '../../types/types';
+import { apiFetch } from '../../utils/Api';
 
 function MiniGame() {
 
@@ -43,21 +44,16 @@ function MiniGame() {
     role: null,
   });
   useEffect(() => {
-    const checkLogin = async () => {
-      const response = await fetch("http://localhost:8000/api/me/", {
-        method: "GET",
-        credentials: "include",
-      })
-      if (response.ok) {
-        const data = await response.json()
-        const userInfo = { username: data.user.username, profile_photo: data.user.profile_photo, rank: data.user.rank, points: data.user.points };
-        dispatch(login(data.user));
-        socket.emit("setUserInfo", userInfo);
-      }
-
-    };
-    checkLogin();
-  }, []);
+    if (isLoggedIn && user) {
+      const userInfo = {
+        username: user.username,
+        profile_photo: user.profile_photo,
+        rank: user.rank,
+        points: user.points,
+      };
+      socket.emit("setUserInfo", userInfo);
+    }
+  }, [isLoggedIn, user]);
 
 
   const handleStart = async () => {
@@ -108,15 +104,13 @@ function MiniGame() {
 
         try {
           if (score > 0) {
-            const response = await fetch("http://localhost:8000/api/update-profile/", {
+            const response = await apiFetch("http://localhost:8000/api/update-profile/", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include", // Ensures session cookie is sent
               body: JSON.stringify({ points: score }),
             });
             const data = await response.json();
             if (data.error) {
-              console.error("Error:", data.error);
+              showErrorAlert(data.error, "Updating profile failed!")
             } else {
               dispatch(updatePoints(score));
               console.log(`Success: Your profile has been awarded with ${score} points!`);
@@ -255,7 +249,7 @@ function MiniGame() {
           {/* Game Result */}
           {showResult && <GameResult showFinalResult={showFinalResult} score={score} maxPoints={game?.maxPoints ?? 0} handleRestart={handleRestart} />}
 
-          {!multiplayerMode && gameStarted && <button className='stop-playing-button' style={buttonStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onClick={() => {
+          {!multiplayerMode && gameStarted && !showResult && <button className='stop-playing-button' style={buttonStyle} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} onClick={() => {
             setGameData([]);
             setGameStarted(false);
             setLoading(false);
@@ -274,6 +268,11 @@ function MiniGame() {
                 style={buttonStyle}
                 disabled={gameStarted || roomState.status !== "idle" || !isLoggedIn}
                 onClick={async () => {
+                  if (!socket.connected) {
+                    console.error("Socket is not connected");
+                    showErrorAlert("Unable to connect to server. Please try again.", "Connection Error");
+                    return;
+                  }
                   setGameStarted(true);
                   setMultiPlayerMode(true);
                   setRoomState({ ...roomState, status: "loading" });
@@ -292,6 +291,7 @@ function MiniGame() {
                   onClick={() => {
                     leaveMultiplayer({ socket, user, setRoomState });
                     setGameStarted(false);
+                    setMultiPlayerMode(false);
                   }}
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}

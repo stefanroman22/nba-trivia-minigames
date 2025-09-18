@@ -2,13 +2,44 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import './App.css';
-
+import { login, logout } from "./store/userSlice";
 import Landpage from './pages/Landpage';
 import MiniGame from './pages/Trivia/MiniGame';
 import NoPageFound from './pages/NoPageFound';
+import { useDispatch } from "react-redux";
+import { useEffect } from "react";
+import { apiFetch } from './utils/Api';
 
 
 function App() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const accessToken = localStorage.getItem("accessToken");
+
+      if (!accessToken) {
+        // No token, clear state
+        dispatch(logout());
+        return;
+      }
+
+      const response = await apiFetch("http://localhost:8000/api/me/");
+
+      if (response.ok) {
+        const data = await response.json();
+        dispatch(login(data.user));
+      } else {
+        // Token invalid or expired
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        dispatch(logout());
+      }
+    };
+
+    checkLogin();
+  }, []);
+
   return (
     <BrowserRouter>
       <AnimatedRoutes />
@@ -21,7 +52,6 @@ function App() {
  */
 function AnimatedRoutes() {
   const location = useLocation();
-
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
