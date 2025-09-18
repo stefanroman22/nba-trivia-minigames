@@ -32,31 +32,7 @@ const Landpage = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
 
-  useEffect(() => {
-    const checkLogin = async () => {
-      const accessToken = localStorage.getItem("accessToken");
 
-      if (!accessToken) {
-        // No token, clear state
-        dispatch(logout());
-        return;
-      }
-
-      const response = await apiFetch("http://localhost:8000/api/me/");
-
-      if (response.ok) {
-        const data = await response.json();
-        dispatch(login(data.user));
-      } else {
-        // Token invalid or expired
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        dispatch(logout());
-      }
-    };
-
-    checkLogin();
-  }, [dispatch]);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -81,65 +57,65 @@ const Landpage = () => {
   }
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!signupUsername || !signupEmail || !userPassword || !confirmPassword) {
-    showErrorAlert("Please fill in all required fields.", "Missing Fields");
-    return;
-  }
-
-  if (userPassword !== confirmPassword) {
-    showErrorAlert("Passwords do not match. Please try again.", "Password Mismatch");
-    return;
-  }
-
-  try {
-    const response = await fetch("http://localhost:8000/api/signup/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: signupUsername,
-        email: signupEmail,
-        password: userPassword,
-      }),
-    });
-
-    const data = await response.json();
-    console.log("Signup response:", data);
-
-    if (!response.ok || data.error) {
-      showErrorAlert(data.error || "Signup failed", "Authentication Failed");
-    } else {
-      // Save tokens in localStorage
-      localStorage.setItem("accessToken", data.access);
-      localStorage.setItem("refreshToken", data.refresh);
-
-      // Update Redux state
-      setIsLoading(true);
-      setTimeout(() => {
-        dispatch(login(data.user));
-
-        Swal.fire({
-          icon: 'success',
-          title: 'Account Created!',
-          text: `Welcome, ${data.user.username}! Glad to have you here!`,
-          background: '#1f1f1f',
-          color: '#ffffff',
-          confirmButtonColor: '#EA750E',
-          timer: 1500,
-          showConfirmButton: false,
-        });
-
-        setIsLoading(false);
-      }, 2000);
+    if (!signupUsername || !signupEmail || !userPassword || !confirmPassword) {
+      showErrorAlert("Please fill in all required fields.", "Missing Fields");
+      return;
     }
-  } catch (err) {
-    console.error("Signup error:", err);
-    showErrorAlert("Unable to contact the server. Please try again later.", "Network Error");
-  }
-};
+
+    if (userPassword !== confirmPassword) {
+      showErrorAlert("Passwords do not match. Please try again.", "Password Mismatch");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://localhost:8000/api/signup/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: signupUsername,
+          email: signupEmail,
+          password: userPassword,
+        }),
+      });
+
+      const data = await response.json();
+      console.log("Signup response:", data);
+
+      if (!response.ok || data.error) {
+        showErrorAlert(data.error || "Signup failed", "Authentication Failed");
+      } else {
+        // Save tokens in localStorage
+        localStorage.setItem("accessToken", data.access);
+        localStorage.setItem("refreshToken", data.refresh);
+
+        // Update Redux state
+        setIsLoading(true);
+        setTimeout(() => {
+          dispatch(login(data.user));
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Account Created!',
+            text: `Welcome, ${data.user.username}! Glad to have you here!`,
+            background: '#1f1f1f',
+            color: '#ffffff',
+            confirmButtonColor: '#EA750E',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          setIsLoading(false);
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Signup error:", err);
+      showErrorAlert("Unable to contact the server. Please try again later.", "Network Error");
+    }
+  };
 
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
