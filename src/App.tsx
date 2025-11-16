@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { ReactNode } from 'react';
 import './App.css';
+import './index.css';
 import { login, logout } from "./store/userSlice";
 import Landpage from './pages/Landpage';
 import MiniGame from './pages/Trivia/MiniGame';
@@ -43,6 +44,7 @@ function App() {
   return (
     <BrowserRouter>
       <AnimatedRoutes />
+    
     </BrowserRouter>
   );
 }

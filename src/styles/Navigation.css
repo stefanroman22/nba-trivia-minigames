@@ -1,6 +1,6 @@
 #navigation-container {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   padding-top: 1rem;
   padding-bottom: 1rem;
   padding-left: 1rem;
@@ -23,6 +23,6 @@
 
 @media (max-width: 400px) {
   .navigation-container ul {
-    font-size: 0.8rem; /* shrink text so it fits */
+    font-size: 0.60rem; /* shrink text so it fits */
   }
 }

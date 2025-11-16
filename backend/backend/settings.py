@@ -53,6 +53,15 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://<your-redis-host>:6379/1",
+        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "TIMEOUT": 60 * 60 * 24,  # 24h
+    }
+}
+
 
 # For development only - restrict in production!
 CORS_ALLOW_CREDENTIALS = True

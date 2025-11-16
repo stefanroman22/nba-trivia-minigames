@@ -1,7 +1,9 @@
+const API_BASE_URL = "http://localhost:8000"
+
 module.exports = {
-  "series-winner": "http://127.0.0.1:8000/trivia/playoff-series/",
-  "name-logo": "http://127.0.0.1:8000/trivia/name-logo/",
-  "guess-mvps": "http://127.0.0.1:8000/trivia/guess-mvps/",
-  "starting-five": "http://127.0.0.1:8000/trivia/starting-five/",
-  "wordle": "http://127.0.0.1:8000/trivia/wordle/",
+  "series-winner": `${API_BASE_URL}/trivia/playoff-series/`,
+  "name-logo": `${API_BASE_URL}/trivia/name-logo/`,
+  "guess-mvps": `${API_BASE_URL}/trivia/guess-mvps/`,
+  "starting-five": `${API_BASE_URL}/trivia/starting-five/`,
+  "wordle": `${API_BASE_URL}/trivia/wordle/`,
 };

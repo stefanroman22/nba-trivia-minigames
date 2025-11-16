@@ -176,8 +176,8 @@ function MiniGame() {
       <div id='minigame-container' className='minigame-container'>
 
         {/* LEFT: Game List */}
-        <div id="game-list" className="game-list">
-          <h3 style={{ color: "#ea750e", marginBottom: "1rem" }}>All Games</h3>
+        <div id="game-list" className="game-list" >
+          <h3 style={{ color: "#ea750e", marginBottom: "1rem" }} className='text-3xl font-bold'>All Games</h3>
           {games.map((game, index) => (
             <div key={index} style={{ marginBottom: "1rem" }}>
               <GameCard
@@ -189,7 +189,7 @@ function MiniGame() {
 
         <div id="game-box" className="game-box" >
           {
-            <h2 style={{ color: "#ffffffff", marginBottom: "1rem" }}>
+            <h2 style={{ color: "#ffffffff", marginBottom: "1rem", fontWeight: "bold"}} className='text-2xl sm:text-3xl align-middle' >
               {game?.name}
             </h2>}
 
@@ -205,9 +205,7 @@ function MiniGame() {
                 Play
               </button>
 
-              <p style={introTextStyle}>
-                {game?.instruction + " For Multiplayer access make sure you are logged in!"}
-              </p>
+              
 
             </>
           )}
@@ -260,13 +258,15 @@ function MiniGame() {
         {/* RIGHT SIDE: Multiplayer cards (unchanged) */}
         <div id="side-features" className='side-features'>
           <div className="side-card" style={{ ...sideCardStyle, backgroundColor: "rgba(0,0,0,0.6)" }}>
-            <h4>Multiplayer</h4>
+            <h4 className='font-bold'>Multiplayer</h4>
+
             <div
               className={`button-container ${roomState.status === "loading" ? "two-buttons" : ""}`}
             >
-              <button
+              {!isLoggedIn && <p>Please log in to play online</p>}
+              {isLoggedIn && <button
                 style={buttonStyle}
-                disabled={gameStarted || roomState.status !== "idle" || !isLoggedIn}
+                disabled={gameStarted || roomState.status !== "idle"}
                 onClick={async () => {
                   if (!socket.connected) {
                     console.error("Socket is not connected");
@@ -283,7 +283,7 @@ function MiniGame() {
                 onMouseLeave={handleMouseLeave}
               >
                 {roomState.status === "loading" ? "Searching..." : "Play Online"}
-              </button>
+              </button>}
 
               {(roomState.status === "loading" || roomState.status === "matched") && (
                 <button
@@ -302,8 +302,12 @@ function MiniGame() {
             </div>
           </div>
           <div className="side-card" style={{ ...sideCardStyle, backgroundColor: "rgba(0,0,0,0.6)" }}>
-            <h4>Play with a Friend</h4>
-            <p>Comming Soon</p>
+            <h4 className='font-bold'>Play with a Friend</h4>
+
+            <div className='button-container'>
+               <p>Comming Soon</p>
+            </div>
+           
           </div>
         </div>
 

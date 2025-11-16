@@ -159,12 +159,13 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd }) {
       {/* Teams & Score */}
       <div style={{ position: "relative", display: "flex", justifyContent: "center", gap: "1rem", alignItems: "center" }}>
         {/* Team A */}
-        <div style={{ textAlign: "center", }}>
+        <div className="flex flex-col justify-center items-center">
           <img
             src={currentGame.team_a_logo}
             width="60"
             alt={currentGame.team_a}
             style={{ filter: currentGame.winning_team !== currentGame.team_a ? "grayscale(100%)" : "none" }}
+            className="align-center"
           />
           <p style={{ color: "#fff", marginTop: "0.5rem", fontWeight: "bold", fontSize: "0.8rem" }}>
             {currentGame.team_a}
@@ -172,55 +173,58 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd }) {
         </div>
 
         {/* VS or Score */}
-        <div style={{
-          position: 'relative',
-          display: 'flex', // Changed to flex
-          flexDirection: 'column', // Stack vertically
-          alignItems: 'center', // Center horizontally
-          gap: '0.5rem', // Space between items
-          width: '8em',
-          height: '3em',
-        }}>
+        <div
+          className="
+    relative 
+    flex flex-col items-center 
+    gap-2 
+    w-32 h-auto
+    sm:w-36
+  "
+        >
+          {/* Score */}
           <span
-            style={{
-              fontWeight: "bold",
-              fontSize: "1.2rem",
-              color: "#fff",
-              padding: "0.25rem 0.5rem",
-              backgroundColor: "rgba(0, 0, 0, 0.3)", // semi-transparent dark background
-              borderRadius: "8px",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.5)", // subtle shadow for depth
-              textShadow: "1px 1px 2px rgba(0,0,0,0.7)", // makes text pop
-              letterSpacing: "0.5px",
-            }}
+            className="
+      font-bold 
+      text-lg sm:text-xl   /* Smaller on phone, bigger on desktop */
+      text-white 
+      px-2 py-1 
+      bg-black/30 
+      rounded-lg 
+      shadow-md 
+      whitespace-nowrap   /* VERY IMPORTANT: prevents wrapping */
+    "
           >
             {currentGame.final_score}
           </span>
-          <span style={{
-            color: "rgba(255, 255, 255, 0.8)",
-            fontSize: "0.85rem",
-            fontFamily: "'Segoe UI', Roboto, sans-serif",
-            letterSpacing: "0.3px",
-            backgroundColor: "rgba(38, 36, 36, 0.2)",
-            padding: "0.25rem 0.75rem",
-            borderRadius: "12px",
-            display: "inline-block",
-            marginTop: "0.25rem",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
-            backdropFilter: "blur(2px)",
-            border: "1px solid rgba(255,255,255,0.1)"
-          }}>
-            {new Date(currentGame.game_date).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric'
+
+          {/* Date */}
+          <span
+            className="
+      text-[0.65rem] sm:text-sm   /* responsive date size */
+      text-white/80
+      mt-1 
+      px-3 py-1 
+      rounded-xl 
+      bg-black/20 
+      border border-white/10 
+      shadow-sm 
+      backdrop-blur-sm
+      whitespace-nowrap          /* prevents wrapping */
+    "
+          >
+            {new Date(currentGame.game_date).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
             })}
           </span>
         </div>
 
 
+
         {/* Team B */}
-        <div style={{ textAlign: "center" }}>
+        <div className="flex flex-col justify-center items-center">
           <img
             src={currentGame.team_b_logo}
             width="60"
@@ -233,7 +237,8 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd }) {
         </div>
       </div>
 
-      <div style={{ position: "relative", display: "flex", flexDirection: "row", gap: "0.5rem" }}>
+      <div style={{ position: "relative", display: "flex", flexDirection: "row", gap: "0.5rem" }}
+        className="mt-2 sm:mt-0">
         {[...Array(3)].map((_, index) => (
           <FontAwesomeIcon
             key={index}
@@ -260,7 +265,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd }) {
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
-          height: "50vh", // fills 70% of screen height
+          height: "60vh", // fills 70% of screen height
         }}>
 
 
@@ -330,7 +335,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd }) {
               ) : (
                 <>
                   <AutocompleteInput
-                    placeholder="Guess the Player..."
+                    placeholder={window.innerWidth <= 732 ? "Player..." : "Enter player..."}
                     value={guesses[pos.key] || ""}
                     setValue={(val) =>
                       setGuesses(prev => ({ ...prev, [pos.key]: val }))

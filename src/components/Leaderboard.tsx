@@ -4,6 +4,8 @@ import { buttonStyle, handleMouseEnter, handleMouseLeave } from '../constants/st
 import { useSelector} from "react-redux";
 import type { RootState } from "../store";
 import type { User } from '../types/types';
+import { BACKEND_URL } from '../configurations/backend';
+
 
 
 
@@ -18,7 +20,7 @@ function Leaderboard() {
 
     const getUsers = async () => {
         setIsLoading(true);
-        const response = await fetch("http://localhost:8000/api/get-users/", {
+        const response = await fetch(`${BACKEND_URL}/get-users/`, {
             method: "GET",
             credentials: "include", // very important
             headers: {
@@ -26,6 +28,7 @@ function Leaderboard() {
             },
         })
         const data = await response.json();
+        console.log(BACKEND_URL);
         if (data.error) {
             setTimeout(() => {
                 setLeaderboardError(true);
@@ -42,6 +45,8 @@ function Leaderboard() {
     }
 
     useEffect(() => {
+        console.log("BACKEND_URL:", BACKEND_URL);
+console.log("ENV raw:", import.meta.env.VITE_BACKEND_URL);
         getUsers();
     }, []);
     let userIndex = -1;
@@ -49,7 +54,7 @@ function Leaderboard() {
         userIndex = usersData.findIndex((u: User) => u.username === user.username) + 1;
     return (
         <div>
-            <h2>TOP 100 Global Leaderboard</h2>
+            <h2 className='text-2xl font-bold mb-2 gradient-orange'>TOP 100 Global Leaderboard</h2>
             <div className="leaderboard-wrapper">
                 {
                     isLoading ? <div className="loader" /> : (leaderboardError ? <p>Failed to retrieve leaderboard</p> :
@@ -97,7 +102,7 @@ function Leaderboard() {
                         </>)}
             </div>
 
-            {user && !isLoading ? <p>Your rank: {userIndex}/{usersData.length}</p> : ""}
+            {user && !isLoading ? <p className='mt-4 sm:mt-1'>Your rank: {userIndex}/{usersData.length}</p> : ""}
             <button onClick={getUsers} style={{ ...buttonStyle, marginTop: "20px" }} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>Refresh</button>
 
         </div>

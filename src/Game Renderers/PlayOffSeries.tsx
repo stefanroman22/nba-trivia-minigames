@@ -141,6 +141,7 @@ function PlayOffSeries({
     gap: "2vw", // responsive spacing based on viewport width
     flexWrap: "wrap", // allows wrapping on very small screens
   }}
+  className="flex flex-col gap-2 sm:flex-row"
 >
   <button
     className="scaling-button"

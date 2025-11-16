@@ -85,7 +85,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
           />
 
         <button className="confirm-button"
-          style={{marginLeft: "10px", ...buttonStyle}}
+          
           onClick={() => {
             if (guess.trim() !== "") {
               handleGuessSubmit(guess);

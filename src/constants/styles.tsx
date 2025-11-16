@@ -2,19 +2,39 @@
 // styles.tsx
 import type { CSSProperties } from "react";
 
+
+export const colors = {
+  orange: "#ff7400"
+}
 export const inputStyle: CSSProperties = {
-  padding: "0.75rem 1.25rem",
-  borderRadius: "8px",
+  width: "clamp(200px, 30vw, 320px)",
+  padding: "12px 16px",
+  borderRadius: "12px",
+   // bright orange border
+  background: "linear-gradient(145deg, #1f1f1f 0%, #2a2a2a 100%)", // dark textured background
+  color: "#f9f9f9", // light text
   fontSize: "1rem",
-  width: "clamp(180px, 30vw, 300px)", // min 180px, max 300px, scales with viewport
-  border: "1px solid #ea750e",
+  fontWeight: 500,
   outline: "none",
-  transition: "border-color 0.3s",
+  transition: "all 0.3s ease",
+  boxShadow:
+    "inset 0 2px 4px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.3)", // subtle 3D feel
+  letterSpacing: "0.5px",
 };
 
 export const inputFocusStyle: CSSProperties = {
-  borderColor: "#a14c07",
+  borderColor: "#ff8c1a", // brighter orange
+  border: "2px solid rgba(234, 117, 14, 0.6)",
+  boxShadow:
+    "0 0 10px rgba(255,140,26,0.6), inset 0 1px 2px rgba(255,140,26,0.3)", // glowing orange effect
+  background:
+    "linear-gradient(145deg, #262626 0%, #333333 100%)", // slightly lighter when focused
 };
+
+
+export const inputWholeStyles: CSSProperties = {
+  ...inputStyle, ...inputFocusStyle
+}
 
 export const suggestionItemStyle: CSSProperties = {
   padding: "0.75rem 1rem",
@@ -30,33 +50,40 @@ export const suggestionItemHoverStyle = {
 export const suggestionsStyles: CSSProperties = {
   position: "absolute",
   top: "100%", // directly under the input
-                  left: "0.5%",
-                  width: "112%",
-                  maxHeight: "200px", // limit height
-                  overflowY: "auto",  // make it scrollable
-                  backgroundColor: "#303030ff",
-                  listStyle: "none",
-                  padding: 0,
-                  margin: 0,
-                  zIndex: 1000,
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)", // optional: add shadow
-                  borderRadius: "4px" // optional: round corners
+  left: "0.5%",
+  width: "112%",
+  maxHeight: "200px", // limit height
+  overflowY: "auto",  // make it scrollable
+  backgroundColor: "#303030ff",
+  listStyle: "none",
+  padding: 0,
+  margin: 0,
+  zIndex: 1000,
+  boxShadow: "0 2px 8px rgba(0,0,0,0.3)", // optional: add shadow
+  borderRadius: "4px" // optional: round corners
 }
 
-export const suggestionBoxStyle = { 
-  position: "absolute", 
-  top: "100%", 
-  left: "0", 
-  width: "100%", 
-  maxHeight: "200px", 
-  overflowY: "auto", 
-  backgroundColor: "#303030ff", 
-  listStyle: "none", 
-  padding: 0, 
-  margin: 0, 
-  zIndex: 1000, 
-  boxShadow: "0 2px 8px rgba(0,0,0,0.3)", 
-  borderRadius: "4px", };
+export const suggestionBoxStyle = {
+  position: "absolute",
+  top: "100%",
+  left: "0",
+  width: "100%",
+  maxHeight: "200px",            // Restrict height for scrollability
+  overflowY: "auto",             // Enable vertical scrolling
+  WebkitOverflowScrolling: "touch", // Smooth momentum scrolling on iOS
+
+  backgroundColor: "#303030ff",
+  listStyle: "none",
+  padding: 0,
+  margin: 0,
+  zIndex: 1000,
+
+  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+  borderRadius: "4px",
+
+  /* Prevent scrolling from affecting the whole page */
+  overscrollBehavior: "contain",
+};
 
 export const handleMouseEnter = (e: { currentTarget: { style: { backgroundColor: string; transform: string; }; }; }) => {
   e.currentTarget.style.backgroundColor = "#a14c07";
@@ -123,10 +150,16 @@ export const buttonTeamStyle = {
 };
 
 export const linkStyle: React.CSSProperties = {
-    color: "white",
-    textDecoration: "none",
-    cursor: "pointer",
-    fontWeight: "bold",
-    transition: "color 0.3s ease",
-  };
+  color: "white",
+  textDecoration: "none",
+  cursor: "pointer",
+  fontWeight: "bold",
+  transition: "color 0.3s ease",
+};
+
+export const animationStyle = {
+  transition: "all 0.3s ease-in-out",
+  transformOrigin: "center",
+};
+
 

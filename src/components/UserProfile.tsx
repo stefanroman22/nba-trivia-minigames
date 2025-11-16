@@ -86,7 +86,8 @@ function UserProfile() {
           <img
             src={user?.profile_photo || '../assets/default.png'}
             alt="Profile"
-            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            style={{ width: "100%", height: "100%", objectFit: "cover" , imageOrientation: "from-image" as any}}
           />
         </div>
         <label

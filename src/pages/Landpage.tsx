@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "../styles/LandPage.css";
 import Swal from 'sweetalert2';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEyeSlash, faEye } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from "@fortawesome/free-brands-svg-icons";
 import { GameCard } from "../components/GameCard";
 import { games } from "../utils/GameUtils";
@@ -11,12 +10,20 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { showErrorAlert } from "../utils/Alerts";
 import UserProfile from "../components/UserProfile";
 import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../constants/styles";
+import "../styles/GlobalStyles.css";
 import Leaderboard from "../components/Leaderboard";
 import socket from "../socket";
 import { useDispatch, useSelector } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { login, logout } from "../store/userSlice";
-import { apiFetch, setTokens } from "../utils/Api";
+import { setTokens } from "../utils/Api";
+import { colors } from "../constants/styles";
+import { faEye, faEyeSlash } from "@fortawesome/free-solid-svg-icons";
+import Footer from "../components/Footer";
+import { navItemsLeft } from "../constants/navigation";
+import { navItemsRight } from "../constants/navigation";
+import { BACKEND_URL } from "../configurations/backend";
+
 
 const Landpage = () => {
   const [isSignup, setIsSignup] = useState(false);
@@ -36,7 +43,7 @@ const Landpage = () => {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const response = await fetch("http://localhost:8000/api/login/", {
+    const response = await fetch(`${BACKEND_URL}/api/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: userId, password: userPassword }),
@@ -165,11 +172,13 @@ const Landpage = () => {
     <div id="main-container" className="main-container">
 
       {/* Navigation */}
-      <Navigation type="full" navItems={["Games", "Log in", "Leaderboard", "Contact",]} />
+      <Navigation type="full" navItemsLeft={navItemsLeft} navItemsRight={navItemsRight} />
 
       {/* Play Section */}
       <div id="play" className="play-section">
-        <h2 style={{ marginBottom: "2rem", fontWeight: "bold" }}>NBA Trivia Minigames</h2>
+        <h1 className="text-3xl font-extrabold mb-8 text-center text-transparent bg-clip-text bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400 tracking-wide drop-shadow-lg">
+          NBA Trivia Minigames
+        </h1>
         <div className="games-grid">
           {games.map((game, index) => (
             <GameCard key={index} game={game} />
@@ -188,6 +197,7 @@ const Landpage = () => {
 
             <UserProfile />
             <button
+
               style={buttonStyle}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
@@ -232,112 +242,52 @@ const Landpage = () => {
           </>
         ) :
           (
-            <div className="login-signup-box">
-              <h2>{isSignup ? "Sign Up" : "Log In"}</h2>
-              <form id="auth-from" className="auth-form" onSubmit={(e) => isSignup ? handleSignUp(e) : handleLogin(e)}>
+            <div className="login-signup-box flex flex-col items-center justify-center">
+              <h2 className="text-2xl font-extrabold">
+                {isSignup ? "Sign Up" : "Log In"}
+              </h2>
+
+              <form className="mt-4 flex flex-col gap-4 items-center justify-center">
                 <input
-                  type="text"
-                  placeholder={isSignup ? "Username" : "Username or email"}
-
-                  value={isSignup ? signupUsername : userId}
-                  onChange={(e) =>
-                    isSignup ? setSignupUsername(e.target.value) : setUserId(e.target.value)
-                  }
-                  required
-                  {...(isSignup && {
-                    pattern: "^(?=(?:.*[a-zA-Z]){3,})(?=(?:.*\\d){2,})[a-zA-Z0-9_]{5,}$",
-                    title:
-                      "Username must contain at least 3 letters and 2 digits, and only letters, digits, or underscores",
-                  })}
+                  type="email"
+                  className="basketball-input"
+                  placeholder={isSignup ? "Email" : "Username or Email"}
                 />
-                {isSignup && (
-                  <input
-                    type="email"
-                    placeholder="Email"
 
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                  />
+                {isSignup && (
+                  <input type="text" className="basketball-input" placeholder="Username" />
                 )}
-                <div style={{ position: "relative" }}>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    placeholder="Password"
-                    value={userPassword}
-                    onChange={(e) => setUserPassword(e.target.value)}
-                    required
-                    minLength={isSignup ? 8 : undefined}
-                    pattern={isSignup ? "(?=.*\\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[\\W_]).{8,}" : undefined}
-                    title={
-                      isSignup
-                        ? "Password must be at least 8 characters and include one uppercase letter, one lowercase letter, one number, and one special character."
-                        : undefined
-                    }
-                  />
-                  <FontAwesomeIcon icon={showPassword ? faEye : faEyeSlash} onClick={togglePasswordVisibility} className="password-toggle-icon" />
+
+                <div style={{position:"relative"}}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  className="basketball-input password"
+                  placeholder="Password"
+                  style={{paddingRight: "40px"}}
+                />
+
+                <FontAwesomeIcon
+                icon={showPassword ? faEyeSlash : faEye}
+                style={{position: "absolute", top: "15px", right: "20px"}}
+                
+                onClick={() => setShowPassword(!showPassword)}
+                />
                 </div>
 
                 {isSignup && (
                   <input
                     type="password"
+                    className="basketball-input"
                     placeholder="Confirm Password"
-
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (userPassword && e.target.value !== userPassword) {
-                        setPasswordMatchError("Passwords do not match");
-
-                      } else {
-                        setPasswordMatchError("");
-                      }
-                    }}
-                    required
                   />
                 )}
-                {isSignup && passwordMatchError && (
-                  <p style={{ color: "red", fontSize: "0.9em", fontWeight: "bold" }}>{passwordMatchError}</p>
-                )}
-                <button
-                  type="submit"
-                  style={{
-                    ...inputStyle,
-                    backgroundColor: isSignup && passwordMatchError
-                      ? "#999999"  // gray color when disabled
-                      : "rgba(234, 117, 14, 0.78)", // orange when enabled
-                    color: "white",
-                    cursor: isSignup && passwordMatchError ? "not-allowed" : "pointer",
-                    fontWeight: "bold",
-                    border: "none",
-                    borderRadius: "8px",
-                    transition: "background-color 0.4s ease, transform 0.2s ease",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!(isSignup && passwordMatchError)) {
-                      e.currentTarget.style.backgroundColor = "rgba(95, 48, 7, 0.88)";
-                      e.currentTarget.style.transform = "scale(1.02)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = isSignup && passwordMatchError
-                      ? "#999999"
-                      : "rgba(234, 117, 14, 0.78)";
-                    e.currentTarget.style.transform = "scale(1)";
-                  }}
-                  disabled={isSignup && passwordMatchError !== ""}
-                >
-                  {isSignup ? "Create Account" : "Log In"}
-                </button>
-
-
               </form>
 
-              <p style={{ marginTop: "1rem", fontSize: "0.9rem" }}>
+
+              <p style={{ marginTop: "1rem", fontSize: "1rem" }}>
                 {isSignup ? "Already have an account?" : "Don't have an account?"}{" "}
                 <span
-                  style={{ color: "#ff7400", cursor: "pointer", fontWeight: "bold", transition: 'color 0.3s ease', }}
+                  style={{ color: colors.orange, cursor: "pointer", fontWeight: "bold", transition: 'color 0.3s ease', }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.color = "white";
                   }}
@@ -349,20 +299,15 @@ const Landpage = () => {
                   {isSignup ? "Log In" : "Sign Up"}
                 </span>
               </p>
+              <p className="mt-2 opacity-75">Or use</p>
               <FontAwesomeIcon
                 icon={faGoogle}
                 onClick={googleLogin}
-                style={{
-                  transition: 'color 0.3s ease',
-                  cursor: "pointer",
-                }}
                 size="2x"
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "white";
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "#ff7400";
-                }}
+                cursor="pointer"
+                onMouseEnter={(e) => (e.currentTarget.style.color = "#ea750e")} // orange
+                onMouseLeave={(e) => (e.currentTarget.style.color = "")} // reset
+                className="mt-2 transition-transform duration-300 hover:scale-110"
               />
             </div>))}
       </div>
@@ -373,37 +318,15 @@ const Landpage = () => {
       </div>
 
       {/* Contact Section */}
-      <div id="contact" className="contact-section">
-        <h2>Contact Us</h2>
-        <p style={{ color: "#aaa", marginTop: "1rem" }}>
-          Need help or have feedback? Email us at <a href="mailto:stefanromanpers@gmail.com" style={{ color: 'inherit' }}>
-            stefanromanpers@gmail.com</a>
-        </p>
-
-        <p className="logos-info" style={{
-          marginTop: "1rem",
-          fontSize: "0.75rem",       // smaller font
-          color: "#aaaaaa",          // light gray
-          fontWeight: "normal",      // de-emphasized
-          opacity: 0.7,              // subtle fade
-        }}>
-
-          All logos and brands are property of their respective owners and are used for identification purposes only.
-        </p>
-      </div>
+      <section id="contact">
+              <Footer/>
+      </section>
 
     </div>
   );
 };
 
-// Shared input styling
-const inputStyle = {
-  padding: "0.75rem 1rem",
-  borderRadius: "8px",
-  border: "none",
-  outline: "none",
-  fontSize: "1rem",
-};
+
 
 
 export default Landpage;

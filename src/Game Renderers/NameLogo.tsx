@@ -57,22 +57,28 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
 
   return (
     <>
-      <div style={{ textAlign: "center", marginTop: "2rem", position: "relative" }}>
+      <div className="game-box" style={{ textAlign: "center", marginTop: "2rem", position: "relative" }}>
         {/* Logo */}
         <img
           key={currentTeam?.full_name}
           src={currentTeam.logo}
           alt="NBA Team"
-          width="180"
           style={{
+            display: "block",
+            margin: "0 auto",
+            width: "180px",
             filter:
               showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase()
                 ? "grayscale(100%)"
                 : "",
-            opacity: showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase() ? 0.4 : 1,
+            opacity:
+              showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase()
+                ? 0.4
+                : 1,
             transition: "opacity 0.5s ease-in-out, filter 1s ease-in-out",
           }}
         />
+
 
         {/* Autocomplete Input and Confirm Button */}
         <div className="guess-container">
@@ -85,7 +91,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
           />
 
           <button
-            className="confirm-button"
+            className="confirm-button text-sm"
             onClick={() => {
               if (guess.trim() !== "") {
                 handleGuessSubmit(guess);

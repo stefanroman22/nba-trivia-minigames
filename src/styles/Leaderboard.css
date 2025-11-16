@@ -5,7 +5,7 @@
 
 .leaderboard-wrapper {
   margin: 0 auto;
-  width: 500px;       /* default width */
+  width: 600px;       /* default width */
 }
 
 @media (max-width: 450px) {
