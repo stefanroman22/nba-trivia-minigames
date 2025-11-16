@@ -22,11 +22,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
-
+import os
 User = get_user_model()
-CLIENT_ID = "504454176332-ut7po2glf32fv3dajltgnb5aho65er7i.apps.googleusercontent.com"
-CLIENT_SECRET = "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"
+
+
+GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = "postmessage"  # special value for SPA
+
 
 @csrf_exempt
 def login_view(request):
@@ -248,8 +251,8 @@ def google_login(request):
         token_url = "https://oauth2.googleapis.com/token"
         token_data = {
             "code": code,
-            "client_id": CLIENT_ID,
-            "client_secret": CLIENT_SECRET,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
             "redirect_uri": REDIRECT_URI,
             "grant_type": "authorization_code",
         }
@@ -263,7 +266,7 @@ def google_login(request):
 
         # Verify id_token
         idinfo = id_token.verify_oauth2_token(
-            token_json["id_token"], google_requests.Request(), CLIENT_ID
+            token_json["id_token"], google_requests.Request(), GOOGLE_CLIENT_ID
         )
 
         email = idinfo.get("email")

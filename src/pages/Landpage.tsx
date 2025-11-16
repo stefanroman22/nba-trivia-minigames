@@ -43,7 +43,7 @@ const Landpage = () => {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const response = await fetch(`${BACKEND_URL}/api/login/`, {
+    const response = await fetch(`${BACKEND_URL}/login/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: userId, password: userPassword }),
@@ -163,9 +163,6 @@ const Landpage = () => {
     }
   });
 
-  const togglePasswordVisibility = () => {
-    setShowPassword((prev) => !prev);
-  };
 
 
   return (
@@ -247,40 +244,83 @@ const Landpage = () => {
                 {isSignup ? "Sign Up" : "Log In"}
               </h2>
 
-              <form className="mt-4 flex flex-col gap-4 items-center justify-center">
+              <form className="mt-4 flex flex-col gap-4 items-center justify-center" onSubmit={isSignup ? handleSignUp : handleLogin}>
                 <input
-                  type="email"
+                  type="text"
                   className="basketball-input"
+                  value={isSignup ? signupEmail : userId}
+                  onChange={(e) => isSignup ? setSignupEmail(e.target.value) : setUserId(e.target.value)}
                   placeholder={isSignup ? "Email" : "Username or Email"}
                 />
-
                 {isSignup && (
-                  <input type="text" className="basketball-input" placeholder="Username" />
+                  <input
+                    type="text"
+                    className="basketball-input"
+                    placeholder="Username"
+                    value={signupUsername}
+                    onChange={(e) => setSignupUsername(e.target.value)}
+                  />
                 )}
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="basketball-input password"
+                    placeholder="Password"
+                    style={{ paddingRight: "40px" }}
+                    value={userPassword}
+                    onChange={(e) => {
+                      setUserPassword(e.target.value);
+                      if (isSignup && confirmPassword && e.target.value !== confirmPassword) {
+                        setPasswordMatchError("Passwords do not match");
+                      } else {
+                        setPasswordMatchError("");
+                      }
+                    }}
+                  />
 
-                <div style={{position:"relative"}}>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  className="basketball-input password"
-                  placeholder="Password"
-                  style={{paddingRight: "40px"}}
-                />
 
-                <FontAwesomeIcon
-                icon={showPassword ? faEyeSlash : faEye}
-                style={{position: "absolute", top: "15px", right: "20px"}}
-                
-                onClick={() => setShowPassword(!showPassword)}
-                />
+                  <FontAwesomeIcon
+                    icon={showPassword ? faEyeSlash : faEye}
+                    style={{ position: "absolute", top: "15px", right: "20px" }}
+
+                    onClick={() => setShowPassword(!showPassword)}
+                  />
                 </div>
 
                 {isSignup && (
-                  <input
-                    type="password"
-                    className="basketball-input"
-                    placeholder="Confirm Password"
-                  />
+                  <div style={{ width: "100%" }}>
+                    <input
+                      type="password"
+                      className="basketball-input"
+                      placeholder="Confirm Password"
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+
+                        if (e.target.value !== userPassword) {
+                          setPasswordMatchError("Passwords do not match");
+                        } else {
+                          setPasswordMatchError("");
+                        }
+                      }}
+                      style={{
+                        border: passwordMatchError ? "2px solid #ff4d4d" : undefined,
+                      }}
+                    />
+
+                    {passwordMatchError && (
+                      <p style={{ color: "#ff4d4d", marginTop: "20px", fontSize: "1rem", font: "bold"}}>
+                        {passwordMatchError}
+                      </p>
+                    )}
+                  </div>
                 )}
+
+
+                <button type="submit" style={{ ...buttonStyle }} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}
+                >
+                  {isSignup ? "Sign Up" : "Log In"}
+                </button>
               </form>
 
 
@@ -319,7 +359,7 @@ const Landpage = () => {
 
       {/* Contact Section */}
       <section id="contact">
-              <Footer/>
+        <Footer />
       </section>
 
     </div>
