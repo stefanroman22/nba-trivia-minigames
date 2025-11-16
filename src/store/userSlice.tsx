@@ -33,7 +33,7 @@ const userSlice = createSlice({
     },
     updatePoints: (state, action: PayloadAction<number>) => {
       if (state.user) {
-        state.user.points = action.payload;
+        state.user.points += action.payload;
       }
     },
     updateRank: (state, action: PayloadAction<string>) => {

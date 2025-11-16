@@ -1,9 +1,7 @@
-// src/socket.js
 import { io } from "socket.io-client";
 
-// point this to where your Node.js server runs
-// for local dev: http://localhost:4000
-const socket = io("http://localhost:4000", {
+const API_BASE_URL = "http://localhost"; // base host for local dev
+const socket = io(`${API_BASE_URL}:4000`, {
   transports: ["websocket"], // force WebSocket for consistency
 });
 

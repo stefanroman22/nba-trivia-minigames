@@ -56,6 +56,10 @@
     min-height: 250px;
     transform: scale(0.92);
   }
+
+  #game-list{
+    max-height: 100px;
+  }
 }
 
 

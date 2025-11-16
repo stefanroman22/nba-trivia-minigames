@@ -13,17 +13,17 @@ function GameResult({showFinalResult, score, maxPoints, handleRestart} : GameRes
                   {!showFinalResult ? (
                     // Loading state
                     <div className="flex flex-col items-center">
-                      <h3 className="text-xl font-semibold animate-pulse">Calculating Score...</h3>
+                      <h3 className="text-xl font-semibold animate-pulse mb-1">Calculating Score...</h3>
                       <div className="loader"></div> {/* spinner */}
                     </div>
                   ) : (
                     // Actual result with fade-in
                     <div className="result-container fade-in">
-                      <h3>
+                      <h3 className='font-bold'>
                         Your Score: {score} / {maxPoints}
                       </h3>
                       {score > 0 && (
-                        <h4>
+                        <h4 className='font-semibold'>
                           In case you are logged in {score} points have been awarded to your
                           profile
                         </h4>

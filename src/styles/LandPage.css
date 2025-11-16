@@ -88,9 +88,12 @@ p{
   100% { transform: rotate(360deg); }
 }
 
-@media (max-width: 430px){
+@media (max-width: 480px){
+    .mail-ifno{
+      font-size: 0.8rem;
+    }
     .logos-info{
-      font-size: 0.6rem;
+      font-size: 0.5rem;
     }
 }
 
@@ -145,13 +148,7 @@ p{
   padding-bottom: 2rem;
 }
 
-#contact {
-  width: 100%;
-  background-color: #292929;
-  text-align: center;
-  padding-top: 4rem;
-  padding-bottom: 2rem;
-}
+
 
 
 .login-signup-box {

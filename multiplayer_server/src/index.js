@@ -1,3 +1,5 @@
+//multiplayer_server/src/index.js
+const fs = require("fs");
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -9,7 +11,7 @@ const app = express();
 // CORS
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://nba-trivia-minigames.online"],
     methods: ["GET", "POST"],
   })
 );
@@ -18,7 +20,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://nba-trivia-minigames.online"],
     methods: ["GET", "POST"],
   },
 });
@@ -392,11 +394,6 @@ io.on("connection", (socket) => {
     console.log(`${socket.id} cancelled matchmaking`);
   });
 
-  // Handle disconnect
-  socket.on("disconnect", () => {
-    removeFromQueue(socket.id);
-    console.log("User disconnected:", socket.id);
-  });
 
   // Create a room
   socket.on("createRoom", (callback) => {
@@ -497,6 +494,7 @@ io.on("connection", (socket) => {
   socket.on("leaveMultiplayer", () => {
     console.log(`User disconnected: ${socket.id}`);
     leaveMultiplayer(socket, io, waitingPlayers);
+    removeFromQueue(socket.id);
   });
 
   // =========================
@@ -505,13 +503,15 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);
     leaveMultiplayer(socket, io, waitingPlayers);
+    removeFromQueue(socket.id);
   });
 });
 
 // =========================
 // Start server
 // =========================
-const PORT = 4000;
-server.listen(PORT, () => {
-  console.log(` Server running on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 4000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
+

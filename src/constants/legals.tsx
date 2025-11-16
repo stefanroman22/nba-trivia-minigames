@@ -1,0 +1,1 @@
+export const legalItems = ["Privacy Policy", "Terms of Service"]
