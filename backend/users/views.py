@@ -1,42 +1,35 @@
-from django.contrib.auth import authenticate, login
+import random
+from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 import json
 import requests
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
+import requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
 from django.contrib.auth import authenticate
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 import os
 User = get_user_model()
 
 
 GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-REDIRECT_URI = "postmessage"  # special value for SPA
+REDIRECT_URI = "postmessage"  
 
-
-@csrf_exempt
+@api_view(["POST"])
 def login_view(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=400)
 
-    data = json.loads(request.body)
+    data = request.data 
     user_id = data.get("id")
     password = data.get("password")
 
@@ -60,8 +53,6 @@ def login_view(request):
     access_token = str(refresh.access_token) #used str() because refresh.access_token is actually an object
     refresh_token = str(refresh)
 
-    print(access_token)
-    print(refresh_token)
     
     #Get the profile_photo
     profile_photo_url = (
@@ -80,17 +71,11 @@ def login_view(request):
         }
     })
 
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework import status
-
 @api_view(["POST"])
-@permission_classes([AllowAny])
+@permission_classes([AllowAny]) #used to allow users with certain classes: AllowAny => any user, IsAuthenticated => must be logegd in, IsAdminUser => user.is_staff == true
 def signup_view(request):
     try:
-        data = request.data  # DRF automatically parses JSON body
+        data = request.data 
         username = data.get("username")
         email = data.get("email")
         password = data.get("password")
@@ -148,24 +133,18 @@ def get_current_user(request): # before the above code is exectuted the request 
     try: 
         user = request.user
         profile_photo_url = user.profile_photo.url if user.profile_photo else None
-        return JsonResponse({
-        "user": {
-            "username": user.username,
-            "email": user.email,
-            "rank": user.rank,
-            "points": user.points,
-            "profile_photo": request.build_absolute_uri(profile_photo_url) if profile_photo_url else None
-        }
-    })
+        return Response({
+            "user": {
+                "username": user.username,
+                "email": user.email,
+                "rank": user.rank,
+                "points": user.points,
+                "profile_photo": request.build_absolute_uri(profile_photo_url) if profile_photo_url else None
+            }
+        })
     except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
         
-
-from rest_framework.decorators import api_view, permission_classes, parser_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.response import Response
-from rest_framework import status
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])  # Require valid JWT
@@ -270,6 +249,7 @@ def google_login(request):
         )
 
         email = idinfo.get("email")
+        new_account = False
         if not email:
             return Response({"error": "Invalid token: no email"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -279,17 +259,33 @@ def google_login(request):
         except User.DoesNotExist:
             # Create new user
             base_username = email.split("@")[0]
-            username = base_username
-            if User.objects.filter(username=username).exists():
-                username = email
+            final_username = None
+            new_account = True
+            min_range = 10
+            max_range = 99
+            attempt_count = 0
+            while True:
+                suffix = random.randint(min_range, max_range)
+                candidate = f"{base_username}{suffix}"
+                if not User.objects.filter(username=candidate).exists():
+                    final_username = candidate
+                    break 
+                attempt_count += 1
+                if attempt_count > 5:
+                    min_range = 100
+                    max_range = 999
+                if attempt_count > 20:
+                    min_range = 1000
+                    max_range = 9999
+            
 
             user = User.objects.create_user(
-                username=username,
+                username=final_username,
                 email=email,
-                password=None  # No password needed for Google users
+                password=None  
             )
 
-        # Instead of session login, issue JWT tokens
+        
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
@@ -299,6 +295,7 @@ def google_login(request):
             if user.profile_photo else None
         )
 
+        
         return Response({
             "access": access_token,
             "refresh": refresh_token,
@@ -308,7 +305,8 @@ def google_login(request):
                 "rank": getattr(user, "rank", None),
                 "points": getattr(user, "points", 0),
                 "profile_photo": profile_photo_url,
-            }
+            },
+            "new_account": new_account
         }, status=status.HTTP_200_OK)
 
     except Exception as e:
@@ -322,3 +320,4 @@ def get_users(request):
         return JsonResponse({"users": users_list}, status=200)
     except Exception as e:
         return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=400)
+    

@@ -2,15 +2,19 @@
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import type { Game } from '../types/types';
+import "../styles/GameCard.css";
+import { useEffect, useRef } from 'react';
 
 
 interface GameCardProps {
   game: Game;
   gameStarted?: boolean;
   customStyle?: React.CSSProperties;
+  index: number;
 }
-export const GameCard = ({ game, gameStarted = false, customStyle = {} }: GameCardProps) => {
+export const GameCard = ({ game, gameStarted = false, customStyle = {}, index }: GameCardProps) => {
   const navigate = useNavigate();
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const handleClick = () => {
     if (gameStarted) {
@@ -31,30 +35,42 @@ export const GameCard = ({ game, gameStarted = false, customStyle = {} }: GameCa
     }
   };
 
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.5
+    });
+
+    if (wrapperRef.current) {
+      observer.observe(wrapperRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div
+    ref={wrapperRef}
+    className="game-card-wrapper"
+    style={{ "--delay": `${index * 0.15 + 0.1}s` } as React.CSSProperties}
+  >
+    <div
       style={{
-        width: "100%",             // fill available space
-        maxWidth: "285px",         // optional max width
-        aspectRatio: "4 / 2",      // width:height ratio (2:1 here)
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), ${game.backgroundImage}`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        borderRadius: "12px",
-        boxShadow: "0 4px 10px rgba(0,0,0,0.3)",
-        cursor: "pointer",
-        transition: "transform 0.2s ease",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-end",
+        "--delay": `${index * 0.15}s`,
         ...customStyle,
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.03)"}
-      onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-      onClick={() => handleClick()
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), ${game.backgroundImage}`,
+      } as React.CSSProperties}
 
-      }
+      className="game-card"
+      onClick={handleClick}
     >
+
       <div
         style={{
           textAlign: 'center',       // Horizontal centering
@@ -66,7 +82,7 @@ export const GameCard = ({ game, gameStarted = false, customStyle = {} }: GameCa
           padding: '20px',           // Add breathing room
         }}
       >
-        <h3 style={{ margin: '0 0 10px 0', fontWeight: "bold"}}>{game.name}</h3>
+        <h3 style={{ margin: '0 0 10px 0', fontWeight: "bold" }}>{game.name}</h3>
         <p style={{
           fontSize: "0.8rem",
           color: "#ba620fff",
@@ -76,6 +92,7 @@ export const GameCard = ({ game, gameStarted = false, customStyle = {} }: GameCa
           {game.description}
         </p>
       </div>
+    </div>
     </div>
   );
 };

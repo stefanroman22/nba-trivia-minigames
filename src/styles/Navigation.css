@@ -21,8 +21,29 @@
 }
 
 
-@media (max-width: 400px) {
+.navigation-container .mobile-nav {
+  display: none;
+}
+
+
+
+@media (max-width: 768px) {
   .navigation-container ul {
-    font-size: 0.60rem; /* shrink text so it fits */
+    font-size: 0.60rem;
+    /* shrink text so it fits */
   }
+
+  .navigation-container .icon {
+    font-size: 1.2rem;
+  }
+
+  .navigation-container .left-items,
+  .navigation-container .right-items {
+    display: none;
+  }
+
+  .navigation-container .mobile-nav {
+    display: block;
+  }
+
 }

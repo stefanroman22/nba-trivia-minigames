@@ -6,5 +6,11 @@ body{
   font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
 }
 
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden; /* Good practice to prevent horizontal scrollbars */
+}
+
 
 

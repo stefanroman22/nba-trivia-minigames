@@ -118,6 +118,8 @@ p{
   padding-bottom: 2rem;
   text-align: center;
   color: white;
+  display: flex;
+  justify-content: center;
 }
 
 .auth-form {
@@ -187,6 +189,16 @@ p{
   box-shadow: 0 0 0 2px rgba(255, 116, 0, 0.6); /* subtle orange glow */
 }
 
+
+
+@media (max-width: 768px){
+  .login-signup-box{
+    max-width: none;
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 1rem;
+  }
+}
 
 
 

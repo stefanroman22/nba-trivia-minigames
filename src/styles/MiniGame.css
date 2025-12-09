@@ -155,3 +155,67 @@ button:disabled {
   margin-top: 20px;
   margin-bottom: 10px;
 }
+
+.info-box {
+  /* Default Desktop State (Hidden) */
+  position: absolute;
+  top: 100%;       /* Push it below the icon */
+  left: 50%;       /* Center horizontally */
+  margin-top: 12px; /* Replaces 'mt-3' */
+  
+  /* Centering & Animation Start State */
+  transform: translateX(-50%) translateY(10px); 
+  
+  /* Visuals */
+  background: rgba(40, 40, 40, 0.95); /* Darker bg for better readability */
+  color: #f0f0f0;
+  padding: 15px;
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  width: max-content;
+  max-width: 250px;
+  z-index: 9999;
+  font-size: 0.9rem;
+  text-align: left;
+  pointer-events: none; /* Desktop: clicks pass through while hidden */
+
+  /* Fade Animation */
+  opacity: 0;
+  visibility: hidden; /* Prevents accidental clicks when hidden */
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
+}
+
+/* Desktop Active State */
+.info-box.show {
+  opacity: 1;
+  visibility: visible;
+  /* Keep X centered, move Y to final position */
+  transform: translateX(-50%) translateY(0);
+}
+
+/* MOBILE OVERRIDE */
+@media (max-width: 768px) {
+  /* We target .info-box.show to ensure we beat the specificity of the desktop rule */
+  .info-box, .info-box.show {
+    position: fixed; /* Lock to screen */
+    left: 95%;
+    top: 15%;
+    margin-top: 0;
+    
+    
+    width: 90%;
+    max-width: 320px;
+    
+   
+    pointer-events: auto; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+  }
+
+  #side-features {
+  flex: 1 1 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+}
