@@ -6,24 +6,26 @@ import "../../styles/SeriesWinner.css";
 import Navigation from '../../components/Navigation';
 import { useLocation } from 'react-router-dom';
 import "../../styles/MiniGame.css";
-import { buttonStyle, handleMouseEnter, handleMouseLeave, introTextStyle, sideCardStyle } from '../../constants/styles';
+import { buttonStyle, handleMouseEnter, handleMouseLeave, sideCardStyle } from '../../constants/styles';
 import GameResult from '../../components/GameResult';
 import socket from "../../socket";
 import type { RootState, AppDispatch } from '../../store';
 import { useSelector, useDispatch } from 'react-redux';
-import { login, updatePoints } from '../../store/userSlice';
+import { updatePoints } from '../../store/userSlice';
 import MatchupDisplay from '../../components/MultiPlayer/MatchupDisplay';
 import { renderGame } from '../../Game Renderers/RenderGame';
 import { showErrorAlert } from '../../utils/Alerts';
 import { leaveMultiplayer } from '../../utils/LeaveMultiplayer';
 import type { RoomState } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircleInfo } from '@fortawesome/free-solid-svg-icons';
 
 function MiniGame() {
 
   const dispatch = useDispatch<AppDispatch>();
   const { isLoggedIn, user } = useSelector((state: RootState) => state.user);
-
+  const [showInfo, setShowInfo] = useState(false);
   const location = useLocation();
   const gameId = location.state?.id;
   let game = games.find(g => g.id === gameId);
@@ -43,17 +45,6 @@ function MiniGame() {
     selfSocketId: null,
     role: null,
   });
-  useEffect(() => {
-    if (isLoggedIn && user) {
-      const userInfo = {
-        username: user.username,
-        profile_photo: user.profile_photo,
-        rank: user.rank,
-        points: user.points,
-      };
-      socket.emit("setUserInfo", userInfo);
-    }
-  }, [isLoggedIn, user]);
 
 
   const handleStart = async () => {
@@ -167,11 +158,22 @@ function MiniGame() {
     };
   }, [socket]);
 
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      const userInfo = {
+        username: user.username,
+        profile_photo: user.profile_photo,
+        rank: user.rank,
+        points: user.points,
+      };
+      socket.emit("setUserInfo", userInfo);
+    }
+  }, [isLoggedIn, user]);
 
   return (
     <>
 
-      <Navigation roomState={roomState} setRoomState={setRoomState} />
+      <Navigation roomState={roomState} setRoomState={setRoomState} type='back'/>
 
       <div id='minigame-container' className='minigame-container'>
 
@@ -189,9 +191,34 @@ function MiniGame() {
 
         <div id="game-box" className="game-box" >
           {
-            <h2 style={{ color: "#ffffffff", marginBottom: "1rem", fontWeight: "bold"}} className='text-2xl sm:text-3xl align-middle' >
-              {game?.name}
-            </h2>}
+
+            <div className='flex gap-2 justify-center items-center mb-4'>
+              <h2 style={{ color: "#ffffffff", fontWeight: "bold" }} className='text-1xl sm:text-3xl align-middle' >
+                {game?.name}
+              </h2>
+              <div className="relative inline-block">
+                <FontAwesomeIcon
+                  icon={faCircleInfo}
+                  onMouseEnter={() => setShowInfo(true)}
+                  onMouseLeave={() => setShowInfo(false)}
+                  onClick={() => setShowInfo(!showInfo)}
+                  className="
+                    hover:text-orange-500 
+                    transition-colors 
+                    duration-300 
+                    ease-in-out
+                    cursor-pointer
+                  "
+                />
+
+                <div className={`info-box ${showInfo ? "show" : ""}`}>
+                  <div
+                    className="instruction-content"
+                    dangerouslySetInnerHTML={{ __html: game?.instruction }}
+                  />
+                </div>
+              </div>
+            </div>}
 
           {/* Before game starts */}
           {roomState.status === "idle" && !gameStarted && (
@@ -205,7 +232,7 @@ function MiniGame() {
                 Play
               </button>
 
-              
+
 
             </>
           )}
@@ -305,9 +332,9 @@ function MiniGame() {
             <h4 className='font-bold'>Play with a Friend</h4>
 
             <div className='button-container'>
-               <p>Comming Soon</p>
+              <p>Comming Soon</p>
             </div>
-           
+
           </div>
         </div>
 

@@ -58,13 +58,20 @@ export const games: Game[] = [
   {
     id: "series-winner",
     name: "Guess the Series Winner",
-    description:
-      "Pick the winner between two teams from a real NBA playoff series.",
-    instruction:
-      "For Singleplayer use simply press the start button below. Each round consists of 5 playoff series for which you need to guess the winner. Each correct answer will give you 10 points.",
+    description: "Pick the winner between two teams from a real NBA playoff series.",
+    instruction: `
+      <div class="space-y-2">
+        <p>Travel back in time and test your knowledge of historic NBA playoff matchups.</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Goal:</strong> Select the team that won the specific playoff series displayed.</li>
+          <li><strong>Format:</strong> 5 rounds per game.</li>
+          <li><strong>Reward:</strong> 10 points for every correct prediction.</li>
+        </ul>
+        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
     loadingMessage: "Fetching playoff series...",
-    backgroundImage:
-      "url('/src/assets/Games Backrounds/playoff_series.jpg')",
+    backgroundImage: "url('/src/assets/Games Backrounds/playoff_series.jpg')",
     urlPath: "/series-winner",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -73,13 +80,21 @@ export const games: Game[] = [
   },
   {
     id: "name-logo",
-    name: "Name the NBA club",
-    description: "Based on the logo name the NBA team.",
-    instruction:
-      "For Singleplayer use simply press the start button below. Each round consists of 5 logos for which you need to guess the NBA team. Each correct answer will give you 10 points.",
+    name: "Name the NBA Club",
+    description: "Based on the logo, name the NBA team.",
+    instruction: `
+      <div class="space-y-2">
+        <p>How well do you know NBA branding? Identify the franchise belonging to the logo shown.</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Goal:</strong> Correctly identify the team name associated with the logo.</li>
+          <li><strong>Format:</strong> 5 rounds per game.</li>
+          <li><strong>Reward:</strong> 10 points per correct answer.</li>
+        </ul>
+        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
     loadingMessage: "Fetching logos...",
-    backgroundImage:
-      "url('/src/assets/Games Backrounds/guess_the_logo.jpg')",
+    backgroundImage: "url('/src/assets/Games Backrounds/guess_the_logo.jpg')",
     urlPath: "/name-logo",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -89,12 +104,20 @@ export const games: Game[] = [
   {
     id: "guess-mvps",
     name: "Guess the MVP",
-    description: "Name the MVP for a specific NBA season",
-    instruction:
-      "For Singleplayer use simply press the start button below. Each round consists of 5 seasons for which you need to guess the MVP. Each correct answer will give you 10 points.",
+    description: "Name the MVP for a specific NBA season.",
+    instruction: `
+      <div class="space-y-2">
+        <p>Legends are made in the regular season. Can you recall who dominated the league?</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Goal:</strong> Select the player who won the MVP award for the specific year displayed.</li>
+          <li><strong>Format:</strong> 5 seasons per game.</li>
+          <li><strong>Reward:</strong> 10 points per correct answer.</li>
+        </ul>
+        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
     loadingMessage: "Fetching seasons...",
-    backgroundImage:
-      "url('/src/assets/Games Backrounds/mvp.jpg')",
+    backgroundImage: "url('/src/assets/Games Backrounds/mvp.jpg')",
     urlPath: "/guess-mvps",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -103,13 +126,22 @@ export const games: Game[] = [
   },
   {
     id: "starting-five",
-    name: "Fill in the starting 5",
-    description: "Name the staring lineup of the winning team from a random NBA game.",
-    instruction:
-      "For Singleplayer use simply press the start button below. Each round consists of 1 NBA game for which you need to guess the starting 5. You have 3 lifes and each mistake costs you 1 life. For completing a round you get 100 points.",
+    name: "Fill in the Starting 5",
+    description: "Name the starting lineup of the winning team from a random NBA game.",
+    instruction: `
+      <div class="space-y-2">
+        <p>You are the coach's memory. Recall the full starting lineup for the winning team of a specific match.</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Goal:</strong> Fill in all 5 positions (PG, SG, SF, PF, C).</li>
+          <li><strong>Lives:</strong> You have 3 lives. Each wrong guess costs 1 life.</li>
+          <li><strong>High Stakes:</strong> Complete the full lineup to win the round.</li>
+          <li><strong>Reward:</strong> 100 points for a perfect completion.</li>
+        </ul>
+        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage:
-      "url('/src/assets/Games Backrounds/starting_five.jpg')",
+    backgroundImage: "url('/src/assets/Games Backrounds/starting_five.jpg')",
     urlPath: "/starting-five",
     pointsPerCorrect: 10,
     maxPoints: 100,
@@ -119,30 +151,41 @@ export const games: Game[] = [
   {
     id: "wordle",
     name: "NBA Wordle",
-    description: "Guess the NBA player using wordle rules.",
-    instruction:
-      "For Singleplayer use simply press the start button below. Each round consists of 1 NBA player for which you need to guess their last name. You have 5 attempts and the sonner you get it right the more points you get!",
+    description: "Guess the NBA player using Wordle rules.",
+    instruction: `
+      <div class="space-y-2">
+        <p>The classic word game for NBA fanatics. Guess the mystery player's <strong>Last Name</strong>.</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Color Clues:</strong> Green (correct spot), Yellow (wrong spot), Gray (wrong letter).</li>
+          <li><strong>Challenge:</strong> You have <strong>5 attempts</strong> to solve the puzzle.</li>
+          <li><strong>Jackpot:</strong> Guess correctly on the first try to win <strong>500 points</strong>!</li>
+          <li> For each wrong attempt you get a 100 points deduction.</li>
+        </ul>
+         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage:
-      "url('/src/assets/Games Backrounds/wordle.jpg')",
+    backgroundImage: "url('/src/assets/Games Backrounds/wordle.jpg')",
     urlPath: "/wordle",
     pointsPerCorrect: 10,
-    maxPoints: 600,
+    maxPoints: 500,
     fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/wordle/"),
     handleError: handleErrorDefault,
   },
   {
     id: "coming-soon",
-    name: "Mistery Game",
-    description: "Coming Soon",
-    instruction:
-      "Coming Soon",
-    loadingMessage: "Fetching...",
-    backgroundImage:
-      "url('/src/assets/Games Backrounds/coming_soon.jpg')",
+    name: "Coming Soon",
+    description: "A new game is currently in development.",
+    instruction: `
+      <div class="text-center italic">
+        <p>Stay tuned! Our developers are warming up on the sidelines to bring you new challenges.</p>
+      </div>
+    `,
+    loadingMessage: "Fetching NBA game...",
+    backgroundImage: "url('/src/assets/Games Backrounds/coming_soon.jpg')",
     urlPath: "/coming-soon",
-    pointsPerCorrect: 10,
-    maxPoints: 100,
+    pointsPerCorrect: 0,
+    maxPoints: 0,
     fetchData: () => fetchGameData(""),
     handleError: handleErrorDefault,
   },

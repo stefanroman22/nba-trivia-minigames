@@ -20,3 +20,16 @@ export function showErrorAlert(message: string, title: string = "Error") {
     iconColor: "#ff4d4d",
   });
 }
+
+export function showNewUserAlert(username: string) {
+  Swal.fire({
+    icon: 'success',
+    title: 'Account Created!',
+    text: `Welcome, ${username}! Glad to have you here!`,
+    background: '#1f1f1f',
+    color: '#ffffff',
+    confirmButtonColor: '#EA750E',
+    timer: 1500,
+    showConfirmButton: false,
+  });
+}

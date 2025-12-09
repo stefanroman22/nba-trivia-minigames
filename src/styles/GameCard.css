@@ -1,0 +1,32 @@
+.game-card {
+    width: 100%;
+    max-width: 285px;
+    aspect-ratio: 4 / 2;
+    background-size: cover;
+    background-position: center;
+
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+     transition: transform 0.2s ease;
+}
+
+.game-card:hover {
+    transform: scale(1.03);
+}
+
+.game-card-wrapper {
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.6s ease-out var(--delay),
+                transform 0.6s ease-out var(--delay);
+}
+
+.game-card-wrapper.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
