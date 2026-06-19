@@ -11,6 +11,8 @@ import { buttonStyle, colors, handleMouseEnter, handleMouseLeave } from '../cons
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { useGoogleLogin } from '@react-oauth/google';
 import { scrollToSection } from '../utils/ScrolllToSection';
+import { AnimatePresence, motion } from 'framer-motion';
+import Spinner from './motion/Spinner';
 
 function LogInSignUp() {
   const [isSignup, setIsSignup] = useState(false);
@@ -109,6 +111,7 @@ function LogInSignUp() {
     } catch (err) {
       console.error("Signup error:", err);
       showErrorAlert("Unable to contact the server. Please try again later.", "Network Error");
+      setIsSubmitting(false);
     }
   };
 
@@ -118,13 +121,13 @@ function LogInSignUp() {
     onSuccess: async (codeResponse: { code: any; }) => {
       
 
+      setIsSubmitting(true);
       try {
         const response = await fetch(`${BACKEND_URL}/login/google/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code: codeResponse.code }),
         });
-        setIsSubmitting(true);
         const data = await response.json();
         
 
@@ -153,10 +156,14 @@ function LogInSignUp() {
 
       } catch (err) {
         console.error("Unexpected error during Google login:", err);
+        showErrorAlert("Unable to contact the server. Please try again later.", "Network Error");
+        setIsSubmitting(false);
+        setIsLoading(false);
       }
     },
     onError: () => {
       console.error("Google login failed");
+      setIsSubmitting(false);
     }
   });
 
@@ -164,7 +171,7 @@ function LogInSignUp() {
 
   return (
     <>
-      {isLoading ? <div className='loader self-center'></div> : <div className="login-signup-box flex flex-col items-center justify-center" id='login-signup-box'>
+      {isLoading ? <div className='self-center' style={{ padding: "2rem 0" }}><Spinner size={48} showLabel label="Signing you in…" /></div> : <div className="login-signup-box flex flex-col items-center justify-center" id='login-signup-box'>
 
         <h2 className="text-2xl font-extrabold">
           {isSignup ? "Sign Up" : "Log In"}
@@ -179,18 +186,25 @@ function LogInSignUp() {
             onChange={(e) => isSignup ? setSignupEmail(e.target.value) : setUserId(e.target.value)}
             placeholder={isSignup ? "Email" : "Username or Email"}
           />
-          {isSignup && (
-            <input
-              type="text"
-              className="basketball-input"
-              required
-              pattern="[A-Za-z]{3,}[0-9]{2,}"
-              title="Username must start with at least 3 letters followed by at least 2 numbers (e.g., 'Baller23')"
-              placeholder="Username"
-              value={signupUsername}
-              onChange={(e) => setSignupUsername(e.target.value)}
-            />
-          )}
+          <AnimatePresence>
+            {isSignup && (
+              <motion.input
+                key="signup-username"
+                type="text"
+                className="basketball-input"
+                required
+                pattern="[A-Za-z]{3,}[0-9]{2,}"
+                title="Username must start with at least 3 letters followed by at least 2 numbers (e.g., 'Baller23')"
+                placeholder="Username"
+                value={signupUsername}
+                onChange={(e) => setSignupUsername(e.target.value)}
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.25 }}
+              />
+            )}
+          </AnimatePresence>
           <div style={{ position: "relative" }}>
             <input
               type={showPassword ? "text" : "password"}
@@ -215,8 +229,16 @@ function LogInSignUp() {
             />
           </div>
 
+          <AnimatePresence>
           {isSignup && (
-            <div style={{ width: "100%" }}>
+            <motion.div
+              key="signup-confirm"
+              style={{ width: "100%" }}
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
               <input
                 type="password"
                 className="basketball-input"
@@ -244,8 +266,9 @@ function LogInSignUp() {
                   {passwordMatchError}
                 </p>
               )}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
 
 
           <button type="submit" id="submit-button" style={{ ...buttonStyle }} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} disabled={isSubmitting}

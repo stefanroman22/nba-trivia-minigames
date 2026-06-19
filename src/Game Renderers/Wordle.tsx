@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GameRender } from '../types/types';
 import "../styles/Wordle.css";
 import SubmitGuessPopup from '../components/SubmitGuessPopUp';
+import type { OnGameEnd } from '../types/types';
 
 const WORD_LENGTH = 5;
-const MAX_GUESSES = 6;
+const MAX_GUESSES = 5;       // matches the in-game instructions ("5 attempts")
+const POINTS_PER_GUESS = 100; // first try = 500, then -100 per used attempt
 
-function Wordle({ gameInfo, pointsPerCorrect, onGameEnd }: GameRender) {
+interface WordleProps {
+  gameInfo: string[];
+  onGameEnd: OnGameEnd;
+}
+
+function Wordle({ gameInfo, onGameEnd }: WordleProps) {
   const [solution, setSolution] = useState('');
   const [guesses, setGuesses] = useState<Array<string | null>>(Array(MAX_GUESSES).fill(null));
   const [currentGuess, setCurrentGuess] = useState('');
@@ -15,95 +21,70 @@ function Wordle({ gameInfo, pointsPerCorrect, onGameEnd }: GameRender) {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize solution and auto-focus input
+  // Initialize solution and auto-focus input (guarded against empty payloads)
   useEffect(() => {
-    setSolution(gameInfo[0].toUpperCase() || '');
+    const word = gameInfo?.[0];
+    if (!word) return;
+    setSolution(String(word).toUpperCase());
     if (inputRef.current) {
       inputRef.current.focus();
     }
   }, [gameInfo]);
 
   useEffect(() => {
-  if (inputRef.current) {
-    const len = currentGuess.length;
-    inputRef.current.setSelectionRange(len, len);
-  }
-}, [currentGuess]);
+    if (inputRef.current) {
+      const len = currentGuess.length;
+      inputRef.current.setSelectionRange(len, len);
+    }
+  }, [currentGuess]);
 
   const submitGuess = () => {
     if (currentGuess.length !== WORD_LENGTH) return;
 
-    setGuesses(prevGuesses => {
-      const nextGuesses = [...prevGuesses];
-      const firstNullIndex = nextGuesses.findIndex(g => g === null);
-      if (firstNullIndex === -1) return prevGuesses;
+    const firstNullIndex = guesses.findIndex((g) => g === null);
+    if (firstNullIndex === -1) return;
 
-      nextGuesses[firstNullIndex] = currentGuess;
+    const nextGuesses = [...guesses];
+    nextGuesses[firstNullIndex] = currentGuess;
+    setGuesses(nextGuesses);
 
-      // Mark this row as submitted
-      setSubmitted(prev => {
-        const newSubmitted = [...prev];
-        newSubmitted[firstNullIndex] = true;
-        return newSubmitted;
-      });
-
-      // Game end logic
-      if (currentGuess === solution) {
-        setTimeout(() => {
-          onGameEnd((MAX_GUESSES - firstNullIndex) * 100);
-        }, 2000);
-      } else if (firstNullIndex === MAX_GUESSES - 1) {
-        setTimeout(() => setShowAnimation(true), 1500);
-        setTimeout(() => {
-          setShowAnimation(false);
-          onGameEnd(0);
-        }, 3000);
-      }
-      setCurrentGuess('');
-
-      return nextGuesses;
+    setSubmitted((prev) => {
+      const next = [...prev];
+      next[firstNullIndex] = true;
+      return next;
     });
+
+    const solved = currentGuess === solution;
+    if (solved) {
+      setTimeout(() => onGameEnd((MAX_GUESSES - firstNullIndex) * POINTS_PER_GUESS), 1800);
+    } else if (firstNullIndex === MAX_GUESSES - 1) {
+      setTimeout(() => setShowAnimation(true), 1200);
+      setTimeout(() => {
+        setShowAnimation(false);
+        onGameEnd(0);
+      }, 3000);
+    }
 
     setCurrentGuess('');
   };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-
-    // If user is deleting
-    if (rawValue.length < currentGuess.length) {
-      setCurrentGuess(rawValue);
-      return;
-    }
-
-    // If user is typing new character
-    const lastChar = rawValue[rawValue.length - 1];
-    if (currentGuess.length < WORD_LENGTH) {
-      setCurrentGuess(prev => prev + lastChar);
-    }
-  };
-
-
 
   return (
     <div
       className="wordle-container"
       onClick={() => inputRef.current?.focus()} // Focus input when container clicked
     >
-      {showAnimation && (
-        <SubmitGuessPopup text={`Correct answer: ${solution}`} color={"#C8102E"} />
-      )}
+      <SubmitGuessPopup show={showAnimation} text={`Correct answer: ${solution}`} color={"#C8102E"} />
 
       {/* Hidden input captures all keystrokes for both desktop and mobile */}
       <input
         ref={inputRef}
         type="text"
+        inputMode="text"
+        autoCapitalize="characters"
         value={currentGuess}
         onChange={(e) => {
           // Always clean input and limit to WORD_LENGTH
           const rawValue = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
-
-          // Limit to max WORD_LENGTH
           setCurrentGuess(rawValue.slice(0, WORD_LENGTH));
         }}
         onKeyDown={(e) => {
@@ -111,7 +92,6 @@ function Wordle({ gameInfo, pointsPerCorrect, onGameEnd }: GameRender) {
             e.preventDefault();
             submitGuess();
           }
-          // ⚡ Remove Backspace handling here — handled by onChange automatically
         }}
         style={{
           opacity: 0,
@@ -124,7 +104,7 @@ function Wordle({ gameInfo, pointsPerCorrect, onGameEnd }: GameRender) {
       />
 
       {guesses.map((guess, index) => {
-        const isActive = index === guesses.findIndex(g => g === null);
+        const isActive = index === guesses.findIndex((g) => g === null);
         const displayWord = isActive ? currentGuess : guess || '';
         return (
           <Line
@@ -140,22 +120,40 @@ function Wordle({ gameInfo, pointsPerCorrect, onGameEnd }: GameRender) {
 }
 
 function Line({ guess, solution, isSubmitted }: { guess: string; solution: string; isSubmitted: boolean }) {
+  const status: string[] = Array(WORD_LENGTH).fill('');
+
+  // Two-pass Wordle coloring so duplicate letters are graded correctly
+  if (isSubmitted && guess.length === WORD_LENGTH) {
+    const remaining: Record<string, number> = {};
+    for (const ch of solution) remaining[ch] = (remaining[ch] || 0) + 1;
+
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      if (guess[i] === solution[i]) {
+        status[i] = 'correct';
+        remaining[guess[i]]--;
+      }
+    }
+    for (let i = 0; i < WORD_LENGTH; i++) {
+      if (status[i]) continue;
+      const ch = guess[i];
+      if (remaining[ch] > 0) {
+        status[i] = 'present';
+        remaining[ch]--;
+      } else {
+        status[i] = 'absent';
+      }
+    }
+  }
+
   const tiles = [];
   for (let i = 0; i < WORD_LENGTH; i++) {
     const char = guess[i] || '';
-    let className = 'tile';
-
-    if (isSubmitted && guess.length === WORD_LENGTH) {
-      if (char === solution[i]) className += ' correct';
-      else if (solution.includes(char)) className += ' present';
-      else className += ' absent';
-    }
-
+    const className = `tile ${status[i]}`.trim();
     tiles.push(
       <div
         key={i}
         className={className}
-        style={{ transitionDelay: `${i * 250}ms` }}
+        style={{ transitionDelay: `${i * 200}ms` }}
       >
         {char}
       </div>

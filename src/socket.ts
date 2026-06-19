@@ -1,8 +1,11 @@
 import { io } from "socket.io-client";
 
-const API_BASE_URL = "http://localhost"; // base host for local dev
-const socket = io(`${API_BASE_URL}:4000`, {
-  transports: ["websocket"], // force WebSocket for consistency
+// Multiplayer socket server URL. Configurable via env for non-local deploys,
+// with a localhost dev fallback. Allows polling fallback if WS upgrade is blocked.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:4000";
+
+const socket = io(SOCKET_URL, {
+  transports: ["websocket", "polling"],
 });
 
 export default socket;

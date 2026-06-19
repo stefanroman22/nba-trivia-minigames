@@ -147,7 +147,7 @@ def get_current_user(request): # before the above code is exectuted the request 
         
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])  # Require valid JWT
+@permission_classes([IsAuthenticated])  
 @parser_classes([JSONParser, MultiPartParser, FormParser])
 def update_profile(request):
     """
@@ -199,7 +199,7 @@ def update_profile(request):
 
 
 @api_view(["POST"])
-@permission_classes([AllowAny])  # Allow any user to hit logout
+@permission_classes([AllowAny])  
 def logout_view(request):
     """
     Logout by blacklisting the refresh token.
@@ -226,7 +226,7 @@ def google_login(request):
         if not code:
             return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Exchange code for tokens
+        
         token_url = "https://oauth2.googleapis.com/token"
         token_data = {
             "code": code,
@@ -243,7 +243,7 @@ def google_login(request):
         if "id_token" not in token_json:
             return Response({"error": "Failed to obtain id_token"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Verify id_token
+        
         idinfo = id_token.verify_oauth2_token(
             token_json["id_token"], google_requests.Request(), GOOGLE_CLIENT_ID
         )
@@ -253,11 +253,10 @@ def google_login(request):
         if not email:
             return Response({"error": "Invalid token: no email"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if user exists
+        
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # Create new user
             base_username = email.split("@")[0]
             final_username = None
             new_account = True
@@ -312,12 +311,29 @@ def google_login(request):
     except Exception as e:
         return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
-@csrf_exempt
+
+@api_view(['GET'])
 def get_users(request):
     try:
-        users = User.objects.order_by("-points")
-        users_list = list(users.values("username", "points"))
-        return JsonResponse({"users": users_list}, status=200)
+        number_users = User.objects.count()
+        top_100_users_list = list(
+            User.objects.order_by("-points")[:100]
+            .values("username", "points") # Selects only the needed fields
+        )
+        user_rank = None
+        if request.user.is_authenticated: 
+            higher_rank_count = User.objects.filter(
+                points__gt=request.user.points
+            ).count()
+            user_rank = higher_rank_count + 1
+        return Response(
+            {
+                "top_100_users": top_100_users_list,
+                "user_rank": user_rank,
+                "number_users": number_users
+            }, 
+            status=200
+        )
     except Exception as e:
         return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=400)
     

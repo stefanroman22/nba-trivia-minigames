@@ -11,6 +11,7 @@ import { navItemsLeft } from "../constants/navigation";
 import { navItemsRight } from "../constants/navigation";
 import RevealText from "../components/RevealText";
 import LogInSignUp from "../components/LogInSignUp";
+import Reveal from "../components/motion/Reveal";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 
@@ -34,8 +35,9 @@ const Landpage = () => {
 
           // 2. Gradient, Font, Size stuff goes here
           textClassName="
-            text-3xl font-extrabold 
-            bg-clip-text text-transparent 
+            font-display
+            text-3xl sm:text-4xl font-extrabold
+            bg-clip-text text-transparent
             bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-400
             drop-shadow-sm
           "
@@ -53,19 +55,24 @@ const Landpage = () => {
       <div
         id="login"
         className="login-section"
-      > 
-        
-        {user ? <UserProfile /> : <LogInSignUp />}
+      >
+        <Reveal>
+          {user ? <UserProfile /> : <LogInSignUp />}
+        </Reveal>
       </div>
 
       {/* Leaderboard Section */}
       <div id="leaderboard" className="leaderboard-section">
-        <Leaderboard />
+        <Reveal>
+          <Leaderboard />
+        </Reveal>
       </div>
 
       {/* Contact Section */}
       <section id="contact">
-        <Footer />
+        <Reveal amount={0.1}>
+          <Footer />
+        </Reveal>
       </section>
 
     </div>

@@ -1,22 +1,31 @@
-import React, { useState } from "react";
-import PropTypes from "prop-types";
+import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import CorrectAnswer from "../components/CorrectAnswer";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
+import type { NbaTeamLogo, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
 
-function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
+interface NameLogoProps {
+  seriesList: NbaTeamLogo[];
+  pointsPerCorrect: number;
+  onGameEnd: OnGameEnd;
+  allTeams: string[];
+}
+
+function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLogoProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [guess, setGuess] = useState("");
-  const [suggestions, setSuggestions] = useState([]);
+  const [, setSuggestions] = useState([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [score, setScore] = useState(0);
+  const reduce = useReducedMotion();
 
   const currentTeam = seriesList[currentIndex];
 
-  const handleGuessSubmit = (teamName) => {
+  const handleGuessSubmit = (teamName: string) => {
     if (!teamName || typeof teamName !== "string" || teamName.trim() === "") {
       return; // don't run if no valid team
     }
@@ -39,7 +48,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
   };
 
 
-  const moveToNext = (wasCorrect) => {
+  const moveToNext = (wasCorrect: boolean) => {
     setShowPointsAnimation(false);
     setShowAnswer(false);
     setGuess("");
@@ -59,25 +68,24 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
     <>
       <div className="game-box" style={{ textAlign: "center", marginTop: "2rem", position: "relative" }}>
         {/* Logo */}
-        <img
-          key={currentTeam?.full_name}
-          src={currentTeam.logo}
-          alt="NBA Team"
-          style={{
-            display: "block",
-            margin: "0 auto",
-            width: "180px",
-            filter:
-              showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase()
-                ? "grayscale(100%)"
-                : "",
-            opacity:
-              showAnswer && guess.toLowerCase() !== (currentTeam?.name || "").toLowerCase()
-                ? 0.4
-                : 1,
-            transition: "opacity 0.5s ease-in-out, filter 1s ease-in-out",
-          }}
-        />
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentTeam?.full_name}
+            src={currentTeam.logo}
+            alt="NBA Team"
+            initial={reduce ? false : { opacity: 0, scale: 0.8, y: 10 }}
+            animate={{ opacity: showAnswer ? 0.4 : 1, scale: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, scale: 0.85 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              display: "block",
+              margin: "0 auto",
+              width: "clamp(120px, 40vw, 180px)",
+              height: "auto",
+              filter: showAnswer ? "grayscale(100%)" : "none",
+            }}
+          />
+        </AnimatePresence>
 
 
         {/* Autocomplete Input and Confirm Button */}
@@ -104,18 +112,11 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }) {
             Confirm
           </button>
         </div>
-        {showAnswer && (<CorrectAnswer label="answer" value={currentTeam?.full_name || "Unknown"} />)}
+        <CorrectAnswer label="answer" value={showAnswer ? (currentTeam?.full_name || "Unknown") : undefined} />
       </div>
-      {showPointsAnimation && (<SubmitGuessPopup text={`+${pointsPerCorrect}`} color={"#25a602ff"} />)}
+      <SubmitGuessPopup show={showPointsAnimation} text={`+${pointsPerCorrect}`} color={"#25a602"} />
     </>
   );
 }
-
-NameLogo.propTypes = {
-  seriesList: PropTypes.array.isRequired, // [{ name, logo }]
-  pointsPerCorrect: PropTypes.number.isRequired,
-  onGameEnd: PropTypes.func,
-  allTeams: PropTypes.array.isRequired // ["Boston Celtics", "LA Lakers", ...]
-};
 
 export default NameLogo;

@@ -7,18 +7,18 @@
 
 .line {
   display: flex;
-  gap: 8px;
+  gap: clamp(6px, 2vw, 8px);
 }
 
 .tile {
-  width: 45px;
-  height: 45px;
+  width: clamp(46px, 13vw, 58px);
+  height: clamp(46px, 13vw, 58px);
   border: 2px solid #FF8C00; /* darker orange border */
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: clamp(20px, 6vw, 26px);
   font-weight: bold;
   text-transform: uppercase;
   background-color: #F5F5F5;  /* slightly darker default tile */

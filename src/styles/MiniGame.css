@@ -11,9 +11,12 @@
 
 
 #game-list {
-  flex: 1 1 250px;          /* container can shrink/grow naturally */
-  min-width: 200px;         /* prevents collapsing too much */
-  max-width: 100%;          /* never exceed parent width */
+  flex: 1 1 250px;
+  /* container can shrink/grow naturally */
+  min-width: 200px;
+  /* prevents collapsing too much */
+  max-width: 100%;
+  /* never exceed parent width */
   background-color: #1e1e1e;
   padding: 1rem;
   border-radius: 10px;
@@ -33,9 +36,26 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
   text-align: center;
   min-height: 400px;
-
+  box-sizing: border-box;
   /* Smooth transition when resizing */
   transition: all 0.3s ease;
+}
+
+/* Animated stage that swaps Play / loader / game / matchup / result */
+.stage-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  width: 100%;
+}
+
+.stage-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
 /* For screens smaller than 768px (tablets & phones) */
@@ -44,7 +64,8 @@
     flex: 1 1 280px;
     padding: 0.5rem;
     min-height: 400px;
-    transform: scale(0.95);
+    width: 95%;
+    margin: 0 auto;
   }
 }
 
@@ -54,11 +75,15 @@
     flex: 1 1 250px;
     padding: 0.4rem;
     min-height: 250px;
-    transform: scale(0.92);
+    width: 100%;
   }
 
-  #game-list{
-    max-height: 100px;
+  #game-list {
+    max-height: 42vh;
+  }
+
+  .stage-area {
+    min-height: 240px;
   }
 }
 
@@ -68,14 +93,16 @@
   flex: 1 1 250px;
   display: flex;
   flex-direction: column;
-  gap: 7rem;
+  gap: 1.5rem;
 }
 
 /* Card styling (used for both cards) */
 .side-card {
   background-color: rgba(0, 0, 0, 0.6);
-  padding: 1rem; /* assuming your sideCardStyle had padding */
-  border-radius: 8px; /* optional, match your sideCardStyle */
+  padding: 1rem;
+  /* assuming your sideCardStyle had padding */
+  border-radius: 8px;
+  /* optional, match your sideCardStyle */
 }
 
 /* Card text styling */
@@ -86,29 +113,11 @@
 .side-card p {
   /* Assuming sideTextStyle has font-size or color */
   color: #ba620fff;
-  font-size: 0.9rem; /* adjust to match sideTextStyle */
-}
-
-.copy-overlay {
-  position: absolute;
-  top: -20px; /* adjust above the icon */
-  left: 50%;
-  transform: translateX(-55%);
-  color: limegreen;
   font-size: 0.9rem;
-  font-weight: bold;
-  animation: fadeOut 1.5s forwards;
-  pointer-events: none; /* don’t block clicks */
+  /* adjust to match sideTextStyle */
 }
 
-@keyframes fadeOut {
-  0% { opacity: 0; }
-  20% { opacity: 1; }
-  80% { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-button{
+button {
   font-size: 1rem;
 }
 
@@ -125,7 +134,8 @@ button:disabled {
   justify-content: center;
   align-items: center;
   margin-top: 20px;
-  gap: 10px; /* space between buttons */
+  gap: 10px;
+  /* space between buttons */
 }
 
 /* Styling for the buttons */
@@ -151,7 +161,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-.stop-playing-button{
+.stop-playing-button {
   margin-top: 20px;
   margin-bottom: 10px;
 }
@@ -159,15 +169,19 @@ button:disabled {
 .info-box {
   /* Default Desktop State (Hidden) */
   position: absolute;
-  top: 100%;       /* Push it below the icon */
-  left: 50%;       /* Center horizontally */
-  margin-top: 12px; /* Replaces 'mt-3' */
-  
+  top: 100%;
+  /* Push it below the icon */
+  left: 50%;
+  /* Center horizontally */
+  margin-top: 12px;
+  /* Replaces 'mt-3' */
+
   /* Centering & Animation Start State */
-  transform: translateX(-50%) translateY(10px); 
-  
+  transform: translateX(-50%) translateY(10px);
+
   /* Visuals */
-  background: rgba(40, 40, 40, 0.95); /* Darker bg for better readability */
+  background: rgba(40, 40, 40, 0.95);
+  /* Darker bg for better readability */
   color: #f0f0f0;
   padding: 15px;
   border-radius: 10px;
@@ -178,11 +192,13 @@ button:disabled {
   z-index: 9999;
   font-size: 0.9rem;
   text-align: left;
-  pointer-events: none; /* Desktop: clicks pass through while hidden */
+  pointer-events: none;
+  /* Desktop: clicks pass through while hidden */
 
   /* Fade Animation */
   opacity: 0;
-  visibility: hidden; /* Prevents accidental clicks when hidden */
+  visibility: hidden;
+  /* Prevents accidental clicks when hidden */
   transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
 }
 
@@ -190,32 +206,89 @@ button:disabled {
 .info-box.show {
   opacity: 1;
   visibility: visible;
-  /* Keep X centered, move Y to final position */
+
   transform: translateX(-50%) translateY(0);
 }
 
-/* MOBILE OVERRIDE */
+@media (max-width: 1024px) {
+  #side-features {
+    flex: 1 1 250px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+
+
+.info-trigger h1 {
+  font-size: 12px;
+  align-self: flex-start;
+  text-align: left;
+}
+
 @media (max-width: 768px) {
-  /* We target .info-box.show to ensure we beat the specificity of the desktop rule */
-  .info-box, .info-box.show {
-    position: fixed; /* Lock to screen */
-    left: 95%;
-    top: 15%;
-    margin-top: 0;
-    
-    
-    width: 90%;
-    max-width: 320px;
-    
-   
-    pointer-events: auto; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+  
+  .info-icon {
+    display: none;
   }
 
-  #side-features {
-  flex: 1 1 250px;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  .info-box {
+    display: none;
+  }
+
+  .mobile-info-box {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: 100%;
+    padding: 0.8rem;
+  margin-top: calc(10px - 2rem);     
+  margin-bottom: calc(10px - 2rem);  
+ background-color: #1e1e1e;
+  border-radius: 10px;
+  
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  .mobile-info-box .instruction-content {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+
+  
+  padding-top: 0;
+  padding-bottom: 0;
+
+  padding-left: 0; 
+  padding-right: 0;
+
+  
+  transition: 
+    max-height 0.7s ease-in-out,
+    opacity 0.7s ease-in-out,
+    padding 0.7s ease;
 }
+
+.mobile-info-box .info-trigger h1{
+    color: #dad9d9;
+}
+
+.mobile-info-box .instruction-content.show {
+ 
+  max-height: 500px; 
+  
+  opacity: 1;
+
+}
+
+
+.mobile-info-box .instruction-content p {
+  font-size: 12px;
+  text-align: left;
+  
+    margin-top: 10px;
+}
+
 }

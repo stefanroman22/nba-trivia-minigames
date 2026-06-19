@@ -63,7 +63,7 @@ function Navigation({ type, navItemsLeft, navItemsRight, setRoomState }: Navigat
       id="logo-img"
       className={`logo-img cursor-pointer mr-6 ${className}`}
       onClick={() => {
-        if (type !== "full") leaveMultiplayer({ socket, user, setRoomState });
+        if (type !== "full" && setRoomState) leaveMultiplayer({ socket, user, setRoomState });
         navigate("/");
       }}
     />

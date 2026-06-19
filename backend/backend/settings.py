@@ -56,11 +56,12 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
+# Local-friendly cache. Swap to RedisCache (django_redis) in production by
+# setting a real Redis LOCATION; the in-memory cache needs no external service.
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://<your-redis-host>:6379/1",
-        "OPTIONS": {"CLIENT_CLASS": "django_redis.client.DefaultClient"},
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "nba-minigames-local",
         "TIMEOUT": 60 * 60 * 24,  # 24h
     }
 }
@@ -71,14 +72,16 @@ CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",  # ONLY JWT
+        "rest_framework_simplejwt.authentication.JWTAuthentication",  
     ),
 }
 

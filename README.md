@@ -74,7 +74,44 @@ Up until now this code version supports: Log-in, sign-up for users so they can t
 
 ##  How to Run the Project Locally
 
-Not advised until final version published!
+The app has three parts, each in its own terminal: the **Django API** (port 8000),
+the **Socket.IO multiplayer server** (port 4000), and the **Vite + React frontend**
+(port 5173). Requires Node.js and Python 3.10+.
+
+> Make sure ports **8000**, **4000** and **5173** are free before starting.
+
+### 1. Backend — Django API (port 8000)
+
+```bash
+cd nba-minigames/backend
+python -m venv venv
+venv\Scripts\activate          # Windows  (macOS/Linux: source venv/bin/activate)
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py runserver 8000
+```
+
+### 2. Multiplayer server — Socket.IO (port 4000)
+
+```bash
+cd nba-minigames/multiplayer_server
+npm install
+node src/index.js
+```
+
+### 3. Frontend — Vite + React (port 5173)
+
+```bash
+cd nba-minigames
+npm install
+npm run dev
+```
+
+Then open **http://localhost:5173**.
+
+The frontend reads the backend URL from `.env` (`VITE_BACKEND_URL=http://localhost:8000/api`)
+and the socket URL from `VITE_SOCKET_URL` (defaults to `http://localhost:4000`). Single-player
+games work with just the backend running; the multiplayer server is only needed for "Play Online".
 
 ##  Technologies Used
 

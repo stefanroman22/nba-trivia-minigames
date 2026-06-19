@@ -37,6 +37,12 @@
   animation: winnerPulse 1.5s infinite ease-in-out;
 }
 
+/* Tie state */
+.player-card-container.tie {
+  border: 2px solid #c4cad4;
+  box-shadow: 0 0 12px rgba(196, 202, 212, 0.45);
+}
+
 @keyframes winnerPulse {
   0%, 100% {
     transform: scale(1);
@@ -162,9 +168,8 @@
 
   .player-card-container {
     width: 90%;
-    max-width: 178px;
+    max-width: 200px;
     padding: 8px;
-    transform: scale(0.95);
   }
 
   .vs-text {
