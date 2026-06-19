@@ -1,85 +1,87 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import type { Socket } from "socket.io-client";
 import PlayerCard from "./PlayerCard";
 import { renderGame } from "../../Game Renderers/RenderGame";
 import "../../styles/MatcupDisplay.css";
-import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../../constants/styles";
+import MotionButton from "../motion/MotionButton";
+import AnimatedNumber from "../motion/AnimatedNumber";
+import type { User, PlayerInfo, RoomState, GameData } from "../../types/types";
 
 const INTRO_DISPLAY_TIME = 3000; // 3 seconds
 
-const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore }) => {
-  const [showIntro, setShowIntro] = useState(true);           // Show Host vs Opponent intro
-  const [opponentScore, setOpponentScore] = useState(null);   // Opponent final score
-  const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+interface MatchupDisplayProps {
+  hostInfo: User | null;
+  opponent: PlayerInfo | null;
+  socket: Socket;
+  roomState: RoomState;
+  score: number;
+  setScore: Dispatch<SetStateAction<number>>;
+}
+
+const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore }: MatchupDisplayProps) => {
+  const [showIntro, setShowIntro] = useState(true);                       // Show Host vs Opponent intro
+  const [opponentScore, setOpponentScore] = useState<number | null>(null); // Opponent final score
+  const [, setWaitingForOpponent] = useState(false);
   const [bothFinished, setBothFinished] = useState(false);
-  const [opponentLeft, setOpponentLeft] = useState(false);    // Track opponent disconnection
-  const [gameData, setGameData] = useState(null);             // Loaded game data
-  const [localStatus, setLocalStatus] = useState("intro");    // intro | loading | ready | finished
+  const [opponentLeft, setOpponentLeft] = useState(false);               // Track opponent disconnection
+  const [gameData, setGameData] = useState<GameData[] | null>(null);     // Loaded game data
+  const [localStatus, setLocalStatus] = useState("intro");               // intro | loading | ready | finished
   const [hasFinished, setHasFinished] = useState(false);
   const [rematchWaiting, setRematchWaiting] = useState(false);
   const [rematchTimeout, setRematchTimeout] = useState(false);
-  const [rematchData, setRematchData] = useState(null); // store incoming game data
+  const [rematchData, setRematchData] = useState<GameData[] | null>(null); // store incoming game data
   const [introTimerActive, setIntroTimerActive] = useState(false);
 
   // ====== 1. Intro display, then request game data ======
   useEffect(() => {
-    console.log("Intro effect running for role:", roomState.role, "code:", roomState.code);
-
-    if (!roomState.code || !roomState.game) {
-      console.log("Missing code or game, skipping intro effect.");
-      return;
-    }
+    if (!roomState.code || !roomState.game) return;
 
     const introTimer = setTimeout(() => {
-      console.log("Intro timer finished, setting showIntro=false for role:", roomState.role);
       setShowIntro(false);
-
       // Only set to "loading" if game isn't ready yet
       setLocalStatus((prev) => (prev === "intro" ? "loading" : prev));
 
       if (roomState.role === "host") {
-        console.log("Host emitting requestGameData");
         socket.emit("requestGameData", {
           code: roomState.code,
-          gameId: roomState.game.id,
+          gameId: roomState.game?.id,
         });
       }
     }, INTRO_DISPLAY_TIME);
 
-    return () => {
-      console.log("Cleaning up intro timer");
-      clearTimeout(introTimer);
-    };
+    return () => clearTimeout(introTimer);
   }, [roomState.code, roomState.game, roomState.role, socket]);
 
   // ====== 2. Listen for game data response ======
   useEffect(() => {
-    const handleGameData = (data) => {
-      console.log("Received game data:", data);
+    const handleGameData = (data: { series: GameData[] }) => {
       setGameData(data.series);
       setLocalStatus("ready");
     };
 
     socket.on("gameData", handleGameData);
-    return () => socket.off("gameData", handleGameData);
+    return () => {
+      socket.off("gameData", handleGameData);
+    };
   }, [socket]);
 
+  // ====== 3. Rematch lifecycle ======
   useEffect(() => {
-    socket.on("rematchWaiting", ({ message }) => {
+    const handleRematchWaiting = ({ message }: { message: string }) => {
       console.log(message);
       setShowIntro(true);
       setRematchWaiting(true);
-    });
+    };
 
-    socket.on("rematchTimeout", ({ message }) => {
+    const handleRematchTimeout = ({ message }: { message: string }) => {
       console.log(message);
       setShowIntro(false);
       setRematchWaiting(false);
       setRematchTimeout(true);
-    });
+    };
 
-    socket.on("rematchStart", (newGameData) => {
-      console.log("Rematch starting with new data:", newGameData);
-
+    const handleRematchStart = (newGameData: { series: GameData[] }) => {
       // Reset relevant game state
       setOpponentScore(null);
       setBothFinished(false);
@@ -87,30 +89,31 @@ const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore
       setHasFinished(false);
       setRematchWaiting(false);
       setRematchTimeout(false);
+      setWaitingForOpponent(false);
+      setScore(0);
 
       // Store new data and show intro
       setRematchData(newGameData.series);
       setShowIntro(true);
       setLocalStatus("intro");
-
-      // Trigger timer
       setIntroTimerActive(true);
-    });
+    };
+
+    socket.on("rematchWaiting", handleRematchWaiting);
+    socket.on("rematchTimeout", handleRematchTimeout);
+    socket.on("rematchStart", handleRematchStart);
 
     return () => {
-      socket.off("rematchWaiting");
-      socket.off("rematchTimeout");
-      socket.off("rematchStart");
+      socket.off("rematchWaiting", handleRematchWaiting);
+      socket.off("rematchTimeout", handleRematchTimeout);
+      socket.off("rematchStart", handleRematchStart);
     };
-  }, [socket]);
+  }, [socket, setScore]);
 
   useEffect(() => {
     if (!introTimerActive) return;
 
-    console.log("Starting 3-second intro timer...");
-
     const timer = setTimeout(() => {
-      console.log("Intro finished, loading game...");
       setShowIntro(false);
       setLocalStatus("ready");
       setGameData(rematchData); // load new data for rendering
@@ -120,39 +123,40 @@ const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore
     return () => clearTimeout(timer);
   }, [introTimerActive, rematchData]);
 
-  // ====== 3. Handle multiplayer game lifecycle ======
+  // ====== 4. Handle multiplayer game lifecycle ======
   useEffect(() => {
-    socket.on("waitingForOpponent", ({ message }) => {
+    const handleWaiting = ({ message }: { message: string }) => {
       console.log(message);
       setWaitingForOpponent(true);
-    });
+    };
 
-    socket.on("matchComplete", ({ yourScore, opponentScore }) => {
-      console.log("Match complete! Score:", yourScore, "Score:", opponentScore);
-
+    const handleMatchComplete = ({ opponentScore }: { opponentScore: number }) => {
       setOpponentScore(opponentScore);
       setWaitingForOpponent(false);
       setBothFinished(true);
       setLocalStatus("finished");
-    });
+    };
 
-    socket.on("opponentLeft", () => {
-      console.log("Opponent has left the game.");
+    const handleOpponentLeft = () => {
       setOpponentLeft(true);
       setLocalStatus("finished");
-    });
+    };
+
+    socket.on("waitingForOpponent", handleWaiting);
+    socket.on("matchComplete", handleMatchComplete);
+    socket.on("opponentLeft", handleOpponentLeft);
 
     return () => {
-      socket.off("waitingForOpponent");
-      socket.off("matchComplete");
-      socket.off("opponentLeft");
+      socket.off("waitingForOpponent", handleWaiting);
+      socket.off("matchComplete", handleMatchComplete);
+      socket.off("opponentLeft", handleOpponentLeft);
     };
   }, [socket]);
 
 
-  // ====== 4. Emit when this player finishes ======
-  const handleGameEnd = (finalScore) => {
-    if (hasFinished) return; // ✅ Prevent duplicate calls
+  // ====== 5. Emit when this player finishes ======
+  const handleGameEnd = (finalScore: number) => {
+    if (hasFinished) return; // Prevent duplicate calls
     setHasFinished(true);
 
     setScore(finalScore);
@@ -163,128 +167,153 @@ const MatchupDisplay = ({ hostInfo, opponent, socket, roomState, score, setScore
       score: finalScore,
     });
 
-    console.log("Player finished with score:", finalScore);
     setWaitingForOpponent(true);
   };
-  // ====== 5. Emit rematch request ======
+
+  // ====== 6. Emit rematch request ======
   const handleRematch = () => {
-    setRematchTimeout(false); // clear old timeout message
-    setShowIntro(true);       // Show intro/waiting screen immediately
-    setLocalStatus("intro");  // Hide results screen right away
-    socket.emit("rematchRequest", { code: roomState.code, gameId: roomState.game.id });
+    setRematchTimeout(false);
+    setShowIntro(true);
+    setLocalStatus("intro");
+    socket.emit("rematchRequest", { code: roomState.code, gameId: roomState.game?.id });
   };
 
 
   // ====== UI Components ======
-  const renderPlayerCards = (showScores = false) => (
-    <div className="matchup-container">
-      {/* Host Card */}
-      <div className={`player-card-container ${score > opponentScore && bothFinished ? 'winner' : ''}`}>
-        <PlayerCard
-          username={hostInfo.username}
-          profilePhoto={hostInfo.profile_photo}
-          rank={hostInfo.rank}
-          points={hostInfo.points}
-          role="You"
-        />
-        {showScores && (
-          <p className="player-score">Score: {score}</p>
-        )}
-      </div>
+  const renderPlayerCards = (showScores = false) => {
+    const myScore = Number(score);
+    const oppScore = Number(opponentScore);
+    const hostWins = bothFinished && myScore > oppScore;
+    const oppWins = bothFinished && oppScore > myScore;
+    const isTie = bothFinished && myScore === oppScore;
 
-      {/* VS Text */}
-      <span className="vs-text">VS</span>
+    return (
+      <div className="matchup-container">
+        {/* Host Card */}
+        <div className={`player-card-container ${hostWins ? "winner" : ""} ${isTie ? "tie" : ""}`}>
+          <PlayerCard
+            username={hostInfo?.username}
+            profilePhoto={hostInfo?.profile_photo}
+            rank={hostInfo?.rank}
+            points={hostInfo?.points}
+            role="You"
+            delay={0}
+          />
+          {showScores && (
+            <p className="player-score tnum">Score: <AnimatedNumber value={myScore} /></p>
+          )}
+        </div>
 
-      {/* Opponent Card */}
-      <div className={`player-card-container ${opponentScore > score && bothFinished ? 'winner' : ''}`}>
-        <PlayerCard
-          username={opponent.username}
-          profilePhoto={opponent.profile_photo}
-          rank={opponent.rank}
-          points={opponent.points}
-          role="Opponent"
-        />
+        {/* VS Text */}
+        <span className="vs-text font-display">VS</span>
 
-        {/* Overlay if opponent disconnected */}
-        {opponentLeft && (
-          <div className="opponent-overlay">
-            Opponent Disconnected
-          </div>
-        )}
+        {/* Opponent Card */}
+        <div className={`player-card-container ${oppWins ? "winner" : ""} ${isTie ? "tie" : ""}`}>
+          <PlayerCard
+            username={opponent?.username}
+            profilePhoto={opponent?.profile_photo}
+            rank={opponent?.rank}
+            points={opponent?.points}
+            role="Opponent"
+            delay={0.12}
+          />
 
-        {showScores && (
-          <>
-            {bothFinished ? (
-              <p className="player-score">Score: {opponentScore}</p>
-            ) : (
-              <p className="waiting-text">
-                {opponentLeft ? "Opponent Left" : "Waiting for opponent..."}
-              </p>
+          {/* Overlay if opponent disconnected */}
+          <AnimatePresence>
+            {opponentLeft && (
+              <motion.div
+                className="opponent-overlay"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                Opponent Disconnected
+              </motion.div>
             )}
-          </>
-        )}
-      </div>
-    </div>
-  );
+          </AnimatePresence>
 
+          {showScores && (
+            <>
+              {bothFinished ? (
+                <p className="player-score tnum">Score: <AnimatedNumber value={oppScore} /></p>
+              ) : (
+                <p className="waiting-text">
+                  {opponentLeft ? "Opponent Left" : "Waiting for opponent..."}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const isTie = bothFinished && Number(score) === Number(opponentScore);
 
   return (
     <>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-
-        }}
-      >
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         {/* ====== 1. Intro or Waiting Screen ====== */}
-        {showIntro && (
-          <div style={{ marginTop: "20px", textAlign: "center" }}>
-            {renderPlayerCards(false)}
-            <p className="loading-text">
-              {!opponentLeft ? (rematchWaiting ? "Waiting for Opponent to Confirm..." : "Starting new game...") : ''}
-            </p>
-          </div>
-        )}
-
-
+        <AnimatePresence mode="wait">
+          {showIntro && (
+            <motion.div
+              key="intro"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              style={{ marginTop: "20px", textAlign: "center" }}
+            >
+              {renderPlayerCards(false)}
+              <p className="loading-text">
+                {!opponentLeft ? (rematchWaiting ? "Waiting for Opponent to Confirm..." : "Starting new game...") : ""}
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ====== 3. Results Screen ====== */}
-        {localStatus === "finished" && !rematchWaiting && (
-          <>
-            {renderPlayerCards(true)}
-            <div style={{ textAlign: "center", marginTop: "20px" }}>
-              <button
-                onClick={handleRematch}
-                disabled={opponentLeft || rematchWaiting}
-                style={buttonStyle}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                {rematchWaiting ? "Waiting for Opponent..." : "Play Again"}
-              </button>
+        <AnimatePresence mode="wait">
+          {localStatus === "finished" && !rematchWaiting && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              style={{ width: "100%" }}
+            >
+              {renderPlayerCards(true)}
+              <div style={{ textAlign: "center", marginTop: "20px" }}>
+                {isTie && (
+                  <p className="font-display" style={{ color: "var(--brand, #ff7a1a)", marginBottom: "0.5rem" }}>
+                    It's a draw!
+                  </p>
+                )}
+                <MotionButton
+                  onClick={handleRematch}
+                  disabled={opponentLeft || rematchWaiting}
+                >
+                  {rematchWaiting ? "Waiting for Opponent..." : "Play Again"}
+                </MotionButton>
 
-              {/* Show timeout message if opponent never confirmed */}
-              {rematchTimeout && (
-                <p style={{ color: "red", marginTop: "10px" }}>
-                  Opponent did not confirm in time.
-                </p>
-              )}
-            </div>
-          </>
-        )}
-
-
+                {rematchTimeout && (
+                  <p style={{ color: "#ff5a5a", marginTop: "10px" }}>
+                    Opponent did not confirm in time.
+                  </p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ====== 2. Game Screen ====== */}
       {localStatus === "ready" && !bothFinished && gameData && (
         renderGame({
-          gameId: roomState.game.id,
+          gameId: roomState.game?.id,
           gameData,
-          pointsPerCorrect: roomState.game.pointsPerCorrect,
+          pointsPerCorrect: roomState.game?.pointsPerCorrect,
           onGameEnd: handleGameEnd,
         })
       )}

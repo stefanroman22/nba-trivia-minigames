@@ -27,3 +27,8 @@ dist-ssr
 .env
 backend/.env
 frontend/.env
+
+# Python / Django backend
+backend/venv/
+__pycache__/
+*.pyc

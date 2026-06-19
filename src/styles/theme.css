@@ -1,0 +1,65 @@
+/* ===========================================================================
+   Design tokens + gaming typography for the whole app.
+   Anchored on the existing NBA orange brand, with a dark "arena" surface scale.
+   =========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Russo+One&display=swap');
+
+:root {
+  /* Brand */
+  --brand: #ff7a1a;
+  --brand-strong: #ea750e;
+  --brand-deep: #a14c07;
+  --brand-glow: rgba(255, 122, 26, 0.45);
+
+  /* Surfaces (dark arena) */
+  --bg: #161616;
+  --surface: #1e1e1e;
+  --surface-2: #262626;
+  --surface-3: #2d2d2d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+
+  /* Text */
+  --text: #f5f5f5;
+  --text-muted: #a8a8a8;
+
+  /* Semantic */
+  --success: #28c24a;
+  --danger: #ff4d4d;
+
+  /* Shape & motion */
+  --radius: 14px;
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 22px var(--brand-glow);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Display / accent type helpers */
+.font-display {
+  font-family: 'Russo One', 'Inter', system-ui, sans-serif;
+  letter-spacing: 0.5px;
+}
+.font-accent {
+  font-family: 'Chakra Petch', 'Inter', system-ui, sans-serif;
+}
+
+/* Orange gradient text (used by section headings & leaderboard title) */
+.gradient-orange {
+  background: linear-gradient(90deg, #ff8c1a, #ea750e, #ffb347);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Tabular figures for scores/timers so numbers don't jitter while animating */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Keyboard focus visibility (accessibility) */
+:where(button, a, input, [tabindex]):focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}

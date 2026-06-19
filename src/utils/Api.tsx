@@ -1,3 +1,5 @@
+import { BACKEND_URL } from "../configurations/backend";
+
 // Add a simple token refresh queue to prevent multiple simultaneous refreshes
 let isRefreshing = false;
 let refreshSubscribers: Array<(token: string | null) => void> = [];
@@ -54,7 +56,7 @@ async function refreshAccessToken() {
   }
 
   try {
-    const res = await fetch("http://localhost:8000/api/token/refresh/", {
+    const res = await fetch(`${BACKEND_URL}/token/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
@@ -90,9 +92,9 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   // Detect if body is FormData
   const isFormData = options.body instanceof FormData;
 
-  const makeRequest = async (token?: string) => {
+  const makeRequest = async (token?: string | null) => {
     const headers: Record<string, string> = {
-      ...(options.headers || {}),
+      ...((options.headers as Record<string, string>) || {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
@@ -127,8 +129,8 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
           errorText.includes("expired") || 
           errorText.includes("invalid") ||
           errorData.code === "token_not_valid" ||
-          (errorData.messages && 
-           errorData.messages.some((msg: any) => 
+          (errorData.messages &&
+           errorData.messages.some((msg: { message?: string }) =>
              msg.message?.toLowerCase().includes("expired")
            ));
       }

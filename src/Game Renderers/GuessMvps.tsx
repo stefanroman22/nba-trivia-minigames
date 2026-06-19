@@ -1,29 +1,44 @@
 import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import { buttonStyle } from "../constants/styles"; 
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import { handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import CorrectAnswer from "../components/CorrectAnswer";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
+import { BACKEND_ORIGIN } from "../configurations/backend";
+import type { MvpSeason, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
 
-function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
+interface GuessMvpsProps {
+  seasonsList: MvpSeason[];
+  pointsPerCorrect: number;
+  onGameEnd: OnGameEnd;
+}
+
+function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [guess, setGuess] = useState("");
   const [showAnswer, setShowAnswer] = useState(false);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [score, setScore] = useState(0);
   const [allPlayers, setAllPlayers] = useState([]);
+  const [playersError, setPlayersError] = useState(false);
+  const reduce = useReducedMotion();
 
   const currentSeason = seasonsList[currentIndex];
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/trivia/all-players/")
-      .then((res) => res.json())
+    fetch(`${BACKEND_ORIGIN}/trivia/all-players/`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (data.players) setAllPlayers(data.players);
       })
-      .catch((err) => console.error("Failed to fetch players:", err));
+      .catch((err) => {
+        console.error("Failed to fetch players:", err);
+        setPlayersError(true);
+      });
   }, []);
 
 
@@ -67,15 +82,27 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
 
   return (
     <>
-    <div style={{ textAlign: "center", marginTop: "2rem", position: "relative" }}>
-      {/* Logo */}
-      <h2 style={{ color: "#b1a9a9ff", marginBottom: "1.5rem" }}>
-          Season: <span style={{ fontWeight: "800" }}>{currentSeason.season}</span>
+    <div style={{ textAlign: "center", marginTop: "2rem", position: "relative", width: "100%" }}>
+      <h2 style={{ color: "#cfc9c9", marginBottom: "1.5rem" }}>
+          Season:{" "}
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={currentSeason.season}
+              className="font-display"
+              initial={reduce ? false : { opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? undefined : { opacity: 0, y: -12 }}
+              transition={{ duration: 0.3 }}
+              style={{ fontWeight: "800", color: "#ff9d3c", display: "inline-block" }}
+            >
+              {currentSeason.season}
+            </motion.span>
+          </AnimatePresence>
       </h2>
 
       {/* Autocomplete Input and Confirm Button */}
       <div className="guess-container">
-        
+
           <AutocompleteInput
             placeholder="Guess the Player..."
             value={guess}
@@ -85,7 +112,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
           />
 
         <button className="confirm-button"
-          
+
           onClick={() => {
             if (guess.trim() !== "") {
               handleGuessSubmit(guess);
@@ -98,20 +125,17 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd}) {
           Confirm
         </button>
       </div>
-      {/* Show correct team on wrong guess */}
-      {showAnswer && ( <CorrectAnswer label="answer" value={currentSeason?.mvp || "Unknown"} />)}
-    </div>
-    {showPointsAnimation && (
-          <SubmitGuessPopup text={`+${pointsPerCorrect}`} color={"#25a602ff"}/>
+      {playersError && (
+        <p style={{ color: "#ff9d3c", fontSize: "0.8rem", marginTop: "0.5rem" }}>
+          Couldn't load player suggestions — you can still type a name and submit.
+        </p>
       )}
+      {/* Show correct player on wrong guess */}
+      <CorrectAnswer label="answer" value={showAnswer ? (currentSeason?.mvp || "Unknown") : undefined} />
+    </div>
+    <SubmitGuessPopup show={showPointsAnimation} text={`+${pointsPerCorrect}`} color={"#25a602"} />
     </>
   );
 }
-
-GuessMvps.propTypes = {
-  seasonsList: PropTypes.array.isRequired, // [{ season, player, team, team_logo_url}]
-  pointsPerCorrect: PropTypes.number.isRequired,
-  onGameEnd: PropTypes.func,
-};
 
 export default GuessMvps;

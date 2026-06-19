@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import type { ReactNode } from 'react';
 import './App.css';
 import './index.css';
@@ -10,6 +10,7 @@ import NoPageFound from './pages/NoPageFound';
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import { apiFetch } from './utils/Api';
+import { BACKEND_URL } from './configurations/backend';
 
 
 function App() {
@@ -25,7 +26,7 @@ function App() {
         return;
       }
 
-      const response = await apiFetch("http://localhost:8000/api/me/");
+      const response = await apiFetch(`${BACKEND_URL}/me/`);
 
       if (response.ok) {
         const data = await response.json();
@@ -39,13 +40,14 @@ function App() {
     };
 
     checkLogin();
-  }, []);
+  }, [dispatch]);
 
   return (
-    <BrowserRouter>
-      <AnimatedRoutes />
-    
-    </BrowserRouter>
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <AnimatedRoutes />
+      </BrowserRouter>
+    </MotionConfig>
   );
 }
 

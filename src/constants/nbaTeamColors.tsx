@@ -67,7 +67,7 @@ export const nbaTeamColors: Record<string, TeamColor> = {
     secondary: "#FDBB30",
     tertiary: "#BEC0C2",
   },
-  "LA Clippers": {
+  "Los Angeles Clippers": {
     primary: "#C8102E",
     secondary: "#1D428A",
     tertiary: "#BEC0C2",
@@ -161,16 +161,24 @@ export const nbaTeamColors: Record<string, TeamColor> = {
 
 
 export function getContrastColor(hexColor: string) {
-    if (!hexColor) return '#000';
-    
-    // Convert hex to RGB
-    const r = parseInt(hexColor.substr(1, 2), 16);
-    const g = parseInt(hexColor.substr(3, 2), 16);
-    const b = parseInt(hexColor.substr(5, 2), 16);
-    
+    if (!hexColor) return '#000000';
+
+    // Normalize: strip leading '#', expand 3-digit shorthand to 6 digits
+    let hex = hexColor.replace('#', '').trim();
+    if (hex.length === 3) {
+      hex = hex.split('').map((c) => c + c).join('');
+    }
+    if (hex.length !== 6) return '#000000'; // not a hex we can parse — safe default
+
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+
+    if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return '#000000';
+
     // Calculate luminance
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
+
     // Return black for light colors, white for dark colors
     return luminance > 0.5 ? '#000000' : '#FFFFFF';
   }

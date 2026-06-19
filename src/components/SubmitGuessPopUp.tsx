@@ -1,37 +1,50 @@
+import { AnimatePresence, motion } from "framer-motion";
 
-
-
-interface SubmitGuessPopupProps{
-  text: string,
-  color: string,
-  duration: number,
+interface SubmitGuessPopupProps {
+  /** controls mount/unmount so the exit animation actually plays */
+  show: boolean;
+  text: string;
+  color: string;
 }
-const SubmitGuessPopup = ({ text, color, duration = 2 } : SubmitGuessPopupProps) => {
+
+/**
+ * Floating score / feedback popup shown by every game renderer.
+ * Springs in and fades out via AnimatePresence (no fragile cross-file keyframe).
+ */
+const SubmitGuessPopup = ({ show, text, color }: SubmitGuessPopupProps) => {
   return (
-    <div
-      style={{
-        position: "fixed", // stays visible on mobile scroll
-        top: "15%", // safer than 20px on small screens
-        left: "50%",
-        transform: "translateX(-50%)",
-        backgroundColor: color,
-        padding: "0.75rem 1.5rem",
-        borderRadius: "8px",
-        fontWeight: "bold",
-        color: "#fff",
-        fontSize: "1rem",
-        maxWidth: "90%", // prevents overflow
-        textAlign: "center",
-        zIndex: 9999, // ensures visibility
-        animation: `fadeInOut ${duration}s ease-in-out`,
-        boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-      }}
-    >
-      {text}
-    </div>
+    <AnimatePresence>
+      {show && (
+        <motion.div
+          key="score-popup"
+          initial={{ opacity: 0, scale: 0.55, x: "-50%", y: -18 }}
+          animate={{ opacity: 1, scale: 1, x: "-50%", y: 0 }}
+          exit={{ opacity: 0, scale: 0.7, x: "-50%", y: -18 }}
+          transition={{ type: "spring", stiffness: 420, damping: 18, mass: 0.6 }}
+          className="font-accent tnum"
+          style={{
+            position: "fixed",
+            top: "15%",
+            left: "50%",
+            backgroundColor: color,
+            padding: "0.85rem 1.7rem",
+            borderRadius: "12px",
+            fontWeight: 800,
+            color: "#fff",
+            fontSize: "clamp(1rem, 4vw, 1.25rem)",
+            maxWidth: "90vw",
+            textAlign: "center",
+            zIndex: 9999,
+            boxShadow: "0 10px 28px rgba(0,0,0,0.45), 0 0 20px rgba(255,255,255,0.08)",
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {text}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
-
-
 
 export default SubmitGuessPopup;

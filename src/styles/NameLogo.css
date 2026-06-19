@@ -45,26 +45,28 @@
 /* Tablets and smaller devices */
 @media (max-width: 768px) {
   .guess-container {
-    gap: 100px;
+    gap: 16px;
     max-width: 100%;
   }
 
   .confirm-button {
-    padding: 5px 5px;
-    font-size: 0.7rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.8rem;
+    min-height: 44px;
   }
 }
 
-/* Mobile phones */
+/* Mobile phones: stack input + button vertically */
 @media (max-width: 480px) {
   .guess-container {
+    flex-direction: column;
     align-items: stretch;
-    gap: 10px;
+    gap: 12px;
   }
 
   .confirm-button {
-    width: 90%;
-    margin-left: 10px; /* no extra spacing in column layout */
-    margin-right: 10px;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
   }
 }

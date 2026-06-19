@@ -5,28 +5,24 @@
     background-size: cover;
     background-position: center;
 
-    border-radius: 12px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
     cursor: pointer;
-    transition: transform 0.2s ease;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-     transition: transform 0.2s ease;
+    /* hover/press handled by framer-motion; only animate the glow here */
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .game-card:hover {
-    transform: scale(1.03);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--brand, #ff7a1a), 0 0 22px var(--brand-glow, rgba(255, 122, 26, 0.4));
+    border-color: var(--brand, #ff7a1a);
 }
 
 .game-card-wrapper {
-    opacity: 0;
-    transform: translateY(-20px);
-    transition: opacity 0.6s ease-out var(--delay),
-                transform 0.6s ease-out var(--delay);
-}
-
-.game-card-wrapper.visible {
-    opacity: 1;
-    transform: translateY(0);
+    display: flex;
+    justify-content: center;
+    width: 100%;
 }

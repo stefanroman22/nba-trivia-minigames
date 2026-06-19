@@ -1,0 +1,10 @@
+Django>=5.1,<5.2
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+python-dotenv
+pandas
+nba_api
+requests
+google-auth
+Pillow

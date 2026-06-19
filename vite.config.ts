@@ -8,6 +8,11 @@ export default defineConfig({
             tailwindcss()
   ],
   server: {
+    // The Django backend + its virtualenv live inside this repo; don't let the
+    // dev server watch them (thousands of files → constant reloads).
+    watch: {
+      ignored: ['**/backend/**', '**/multiplayer_server/node_modules/**'],
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8000',  // Point to your Django server

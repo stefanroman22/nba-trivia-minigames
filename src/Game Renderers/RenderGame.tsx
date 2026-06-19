@@ -8,19 +8,33 @@ import NoPageFound from "../pages/NoPageFound";
 import { nbaTeamColors, getContrastColor } from "../constants/nbaTeamColors";
 import { buttonTeamStyle } from "../constants/styles";
 import { nbaTeams } from "../constants/nbaTeams";
+import type {
+  GameData,
+  OnGameEnd,
+  PlayoffSeries,
+  NbaTeamLogo,
+  MvpSeason,
+  StartingFiveGame,
+} from "../types/types";
 
+interface RenderGameArgs {
+  gameId?: string;
+  gameData: GameData[];
+  pointsPerCorrect?: number;
+  onGameEnd: OnGameEnd;
+}
 
 export const renderGame = ({
   gameId,
   gameData,
-  pointsPerCorrect,
+  pointsPerCorrect = 0,
   onGameEnd,
-}) => {
+}: RenderGameArgs) => {
   switch (gameId) {
     case "series-winner":
       return (
         <PlayOffSeries
-          seriesList={gameData}
+          seriesList={gameData as PlayoffSeries[]}
           pointsPerCorrect={pointsPerCorrect}
           buttonTeamStyle={buttonTeamStyle}
           nbaTeamColors={nbaTeamColors}
@@ -32,7 +46,7 @@ export const renderGame = ({
     case "name-logo":
       return (
         <NameLogo
-          seriesList={gameData}
+          seriesList={gameData as NbaTeamLogo[]}
           pointsPerCorrect={pointsPerCorrect}
           onGameEnd={onGameEnd}
           allTeams={nbaTeams}
@@ -42,7 +56,7 @@ export const renderGame = ({
     case "guess-mvps":
       return (
         <GuessMvps
-          seasonsList={gameData}
+          seasonsList={gameData as MvpSeason[]}
           pointsPerCorrect={pointsPerCorrect}
           onGameEnd={onGameEnd}
         />
@@ -51,7 +65,7 @@ export const renderGame = ({
     case "starting-five":
       return (
         <StartingFive
-          gameInfo={gameData}
+          gameInfo={gameData as StartingFiveGame[]}
           pointsPerCorrect={pointsPerCorrect}
           onGameEnd={onGameEnd}
         />
@@ -60,8 +74,7 @@ export const renderGame = ({
     case "wordle":
       return (
         <Wordle
-          gameInfo={gameData}
-          pointsPerCorrect={Number(pointsPerCorrect)}
+          gameInfo={gameData as string[]}
           onGameEnd={onGameEnd}
         />
       );

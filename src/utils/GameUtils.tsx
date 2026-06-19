@@ -1,6 +1,13 @@
 
 import type { Game } from "../types/types";
 import Swal from "sweetalert2";
+import { BACKEND_ORIGIN } from "../configurations/backend";
+import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
+import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
+import mvpBg from "../assets/Games Backrounds/mvp.jpg";
+import startingFiveBg from "../assets/Games Backrounds/starting_five.jpg";
+import wordleBg from "../assets/Games Backrounds/wordle.jpg";
+import comingSoonBg from "../assets/Games Backrounds/coming_soon.jpg";
 
 export const handleErrorDefault = (error: { title: string; message: string }) => {
   Swal.fire({
@@ -71,11 +78,11 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching playoff series...",
-    backgroundImage: "url('/src/assets/Games Backrounds/playoff_series.jpg')",
+    backgroundImage: `url('${playoffSeriesBg}')`,
     urlPath: "/series-winner",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData("http://localhost:8000/trivia/playoff-series/"),
+    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/playoff-series/`),
     handleError: handleErrorDefault,
   },
   {
@@ -94,11 +101,11 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching logos...",
-    backgroundImage: "url('/src/assets/Games Backrounds/guess_the_logo.jpg')",
+    backgroundImage: `url('${guessLogoBg}')`,
     urlPath: "/name-logo",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/name-logo/"),
+    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/name-logo/`),
     handleError: handleErrorDefault,
   },
   {
@@ -117,11 +124,11 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching seasons...",
-    backgroundImage: "url('/src/assets/Games Backrounds/mvp.jpg')",
+    backgroundImage: `url('${mvpBg}')`,
     urlPath: "/guess-mvps",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/guess-mvps/"),
+    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/guess-mvps/`),
     handleError: handleErrorDefault,
   },
   {
@@ -141,11 +148,11 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: "url('/src/assets/Games Backrounds/starting_five.jpg')",
+    backgroundImage: `url('${startingFiveBg}')`,
     urlPath: "/starting-five",
     pointsPerCorrect: 10,
     maxPoints: 100,
-    fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/starting-five/"),
+    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/starting-five/`),
     handleError: handleErrorDefault,
   },
   {
@@ -165,11 +172,11 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: "url('/src/assets/Games Backrounds/wordle.jpg')",
+    backgroundImage: `url('${wordleBg}')`,
     urlPath: "/wordle",
     pointsPerCorrect: 10,
     maxPoints: 500,
-    fetchData: () => fetchGameData("http://127.0.0.1:8000/trivia/wordle/"),
+    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/wordle/`),
     handleError: handleErrorDefault,
   },
   {
@@ -182,7 +189,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: "url('/src/assets/Games Backrounds/coming_soon.jpg')",
+    backgroundImage: `url('${comingSoonBg}')`,
     urlPath: "/coming-soon",
     pointsPerCorrect: 0,
     maxPoints: 0,

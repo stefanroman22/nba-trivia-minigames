@@ -27,10 +27,9 @@
 
 
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .navigation-container ul {
-    font-size: 0.60rem;
-    /* shrink text so it fits */
+    font-size: 0.85rem;
   }
 
   .navigation-container .icon {

@@ -1,26 +1,50 @@
-.leaderboard-table{
-    margin-left: auto;
-    margin-right: auto;
+.leaderboard-table {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .leaderboard-wrapper {
   margin: 0 auto;
-  width: 600px;       /* default width */
+  width: 100%;
+  max-width: 600px;
+  padding: 0 0.75rem;
+  box-sizing: border-box;
 }
 
-@media (max-width: 450px) {
-  .leaderboard-wrapper {
-    width: 320px;
-  }
+/* Fixed layout so the header table columns line up with the body table */
+.leaderboard-table,
+.leaderboard-data-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.leaderboard-table th:nth-child(1),
+.leaderboard-data-table td:nth-child(1) {
+  width: 22%;
+}
+.leaderboard-table th:nth-child(2),
+.leaderboard-data-table td:nth-child(2) {
+  width: 52%;
+}
+.leaderboard-table th:nth-child(3),
+.leaderboard-data-table td:nth-child(3) {
+  width: 26%;
 }
 
 .leaderboard-data-table th,
 .leaderboard-data-table td {
   text-align: center;
-  padding: 10px 60px;
+  padding: 10px clamp(6px, 4vw, 28px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.highlighted-row{
-    background-color: rgba(255, 122, 0, 0.2); /* subtle orange highlight */
-    font-weight: bold;
+.leaderboard-data-table tr {
+  transition: background-color 0.2s ease;
+}
+
+.highlighted-row {
+  background-color: rgba(255, 122, 0, 0.22); /* subtle orange highlight */
+  font-weight: bold;
 }

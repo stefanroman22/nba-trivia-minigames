@@ -1,7 +1,12 @@
-import React from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 
-const containerVariants = {
+interface RevealTextProps {
+  text: string;
+  className?: string;
+  textClassName?: string;
+}
+
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: (i = 1) => ({
     opacity: 1,
@@ -9,7 +14,7 @@ const containerVariants = {
   }),
 };
 
-const childVariants = {
+const childVariants: Variants = {
   visible: {
     opacity: 1,
     y: 0,
@@ -31,7 +36,7 @@ const childVariants = {
 };
 
 // We split classes into 'className' (for the container) and 'textClassName' (for the words)
-const RevealText = ({ text, className = "", textClassName = "" }) => {
+const RevealText = ({ text, className = "", textClassName = "" }: RevealTextProps) => {
   const words = text.split(" ");
 
   return (

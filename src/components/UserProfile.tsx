@@ -8,6 +8,8 @@ import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../constants/st
 import socket from "../socket";
 import { motion } from "framer-motion";
 import { scrollToSection } from "../utils/ScrolllToSection";
+import { BACKEND_URL } from "../configurations/backend";
+import defaultAvatar from "../assets/default.png";
 
 
 
@@ -38,7 +40,7 @@ function UserProfile() {
       return;
     }
 
-    const response = await apiFetch("http://localhost:8000/api/update-profile/", {
+    const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
       method: "POST",
       body: JSON.stringify({ username: tempUsername }),
     });
@@ -98,7 +100,8 @@ function UserProfile() {
             }}
           >
             <img
-              src={user?.profile_photo || '../assets/default.png'}
+              src={user?.profile_photo || defaultAvatar}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
               alt="Profile"
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               style={{ width: "100%", height: "100%", objectFit: "cover", imageOrientation: "from-image" as any }}
@@ -134,9 +137,9 @@ function UserProfile() {
               const formData = new FormData();
               formData.append("profile_photo", file);
 
-              const response = await apiFetch("http://localhost:8000/api/update-profile/", {
+              const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
                 method: "POST",
-                body: formData, // no need to set headers here
+                body: formData, 
               });
 
               if (response.ok) {
@@ -187,9 +190,9 @@ function UserProfile() {
                   color: "#ff7400",
                   border: "none",
                   cursor: "pointer",
-                  fontSize: "0.8rem",
-                  padding: "0.2rem 0.5rem",
-                  borderRadius: "4px",
+                  fontSize: "0.85rem",
+                  padding: "0.5rem 0.8rem",
+                  borderRadius: "6px",
                   marginLeft: "auto",
                   fontWeight: "bold",
                   transition: "color 0.3s ease",
@@ -333,7 +336,7 @@ function UserProfile() {
               localStorage.removeItem("accessToken");
               localStorage.removeItem("refreshToken");
 
-              const res = await fetch("http://localhost:8000/api/logout/", {
+              const res = await fetch(`${BACKEND_URL}/logout/`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
