@@ -7,7 +7,6 @@ import { apiFetch } from "../utils/Api";
 import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import socket from "../socket";
 import { motion } from "framer-motion";
-import { scrollToSection } from "../utils/ScrolllToSection";
 import { BACKEND_URL } from "../configurations/backend";
 import defaultAvatar from "../assets/default.png";
 
@@ -95,7 +94,7 @@ function UserProfile() {
               borderRadius: "50%",
               overflow: "hidden",
               marginBottom: "0.75rem",
-              border: "3px solid #ff7a00",
+              border: "3px solid var(--brand)",
               boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
             }}
           >
@@ -111,7 +110,7 @@ function UserProfile() {
             htmlFor="photo-upload"
             style={{
               cursor: "pointer",
-              color: "#ff7a00",
+              color: "var(--brand)",
               fontWeight: "bold",
               fontSize: "0.9rem",
               transition: "color 0.3s ease",
@@ -120,7 +119,7 @@ function UserProfile() {
               e.currentTarget.style.color = "white";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = "#ff7400";
+              e.currentTarget.style.color = "var(--brand)";
             }}
           >
             Change Photo
@@ -170,7 +169,7 @@ function UserProfile() {
                 style={{
                   display: "block",
                   fontSize: "0.9rem",
-                  color: "#aaa",
+                  color: "var(--muted)",
                   marginBottom: "0.3rem",
                 }}
               >
@@ -187,7 +186,7 @@ function UserProfile() {
                 }}
                 style={{
                   backgroundColor: "transparent",
-                  color: "#ff7400",
+                  color: "var(--brand)",
                   border: "none",
                   cursor: "pointer",
                   fontSize: "0.85rem",
@@ -201,7 +200,7 @@ function UserProfile() {
                   e.currentTarget.style.color = "white";
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "#ff7400";
+                  e.currentTarget.style.color = "var(--brand)";
                 }}
 
               >
@@ -219,7 +218,7 @@ function UserProfile() {
                 style={{
                   fontSize: "1rem",
                   lineHeight: "1.2rem",
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: "var(--surface2)",
                   color: "#fff",
                   borderRadius: "6px",
                   padding: "0.2rem 0.4rem",
@@ -235,9 +234,9 @@ function UserProfile() {
                 style={{
                   fontSize: "1rem",
                   lineHeight: "1.2rem",
-                  backgroundColor: "#2a2a2a",
-                  color: "#aaa",
-                  border: "1px solid #444",
+                  backgroundColor: "var(--surface2)",
+                  color: "var(--muted)",
+                  border: "1px solid var(--line2)",
                   borderRadius: "6px",
                   padding: "0.2rem 0.4rem",
                   width: "auto",
@@ -256,7 +255,7 @@ function UserProfile() {
               style={{
                 display: "block",
                 fontSize: "0.9rem",
-                color: "#aaa",
+                color: "var(--muted)",
                 marginBottom: "0.3rem",
                 textAlign: "center",
               }}
@@ -267,9 +266,9 @@ function UserProfile() {
               style={{
                 fontSize: "1rem",
                 lineHeight: "1.2rem",
-                backgroundColor: "#2a2a2a",
-                color: "#888",
-                border: "1px solid #444",
+                backgroundColor: "var(--surface2)",
+                color: "var(--muted)",
+                border: "1px solid var(--line2)",
                 borderRadius: "6px",
                 padding: "0.2rem 0.4rem",
                 cursor: "not-allowed",
@@ -294,13 +293,13 @@ function UserProfile() {
           <div
             style={{
               flex: 1,
-              background: "#2d2d2d",
+              background: "var(--surface3)",
               padding: "1rem",
               borderRadius: "10px",
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: "0.85rem", color: "#aaa" }}>Points</p>
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Points</p>
             <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
               {user?.points}
             </p>
@@ -309,13 +308,13 @@ function UserProfile() {
           <div
             style={{
               flex: 1,
-              background: "#2d2d2d",
+              background: "var(--surface3)",
               padding: "1rem",
               borderRadius: "10px",
               textAlign: "center",
             }}
           >
-            <p style={{ fontSize: "0.85rem", color: "#aaa" }}>Rank</p>
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Rank</p>
             <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
               {user?.rank}
             </p>
@@ -349,7 +348,6 @@ function UserProfile() {
               if (data.error) {
                 showErrorAlert(data.error, "Unable to Log Out!");
               } else {
-                scrollToSection("login");
                 setIsLoading(true);
                 if (socket.connected) {
                   socket.emit("setUserInfo", null);

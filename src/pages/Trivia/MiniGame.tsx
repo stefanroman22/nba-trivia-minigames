@@ -1,38 +1,33 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { GameCard } from '../../components/GameCard';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import { games } from '../../utils/GameUtils';
 import Navigation from '../../components/Navigation';
-import { useLocation } from 'react-router-dom';
-import "../../styles/MiniGame.css";
-import { sideCardStyle } from '../../constants/styles';
+import { useModal } from '../../context/ModalContext';
 import GameResult from '../../components/GameResult';
-import socket from "../../socket";
-import type { RootState, AppDispatch } from '../../store';
-import { useSelector, useDispatch } from 'react-redux';
-import { updatePoints } from '../../store/userSlice';
 import MatchupDisplay from '../../components/MultiPlayer/MatchupDisplay';
 import { renderGame } from '../../Game Renderers/RenderGame';
+import socket from "../../socket";
+import type { RootState, AppDispatch } from '../../store';
+import { updatePoints } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import { leaveMultiplayer } from '../../utils/LeaveMultiplayer';
 import type { RoomState, Game, PlayerInfo, GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
 import { BACKEND_URL } from '../../configurations/backend';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCaretDown, faCircleInfo } from '@fortawesome/free-solid-svg-icons';
-import Loader from '../../components/Loader';
-import Spinner from '../../components/motion/Spinner';
-import MotionButton from '../../components/motion/MotionButton';
-import { swap } from '../../motion/variants';
+import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
+import "../../styles/MiniGame.css";
 
 function MiniGame() {
-
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
   const { isLoggedIn, user } = useSelector((state: RootState) => state.user);
-  const [showInfo, setShowInfo] = useState(false);
+  const { open } = useModal();
   const location = useLocation();
-  const gameId = location.state?.id;
+  // Prefer the id passed via router state, but fall back to the URL path so
+  // deep-links and reloads still resolve the right game.
+  const gameId = location.state?.id ?? games.find(g => g.urlPath === location.pathname)?.id;
   let game = games.find(g => g.id === gameId);
   const [loading, setLoading] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
@@ -42,40 +37,26 @@ function MiniGame() {
   const [showResult, setShowResult] = useState(false);
   const [showFinalResult, setShowFinalResult] = useState(false);
   const [roomState, setRoomState] = useState<RoomState>({
-    status: "idle",
-    code: null,
-    game: null,
-    opponent: null,
-    gameData: null,
-    selfSocketId: null,
-    role: null,
+    status: "idle", code: null, game: null, opponent: null, gameData: null, selfSocketId: null, role: null,
   });
-
 
   const handleStart = async () => {
     if (!game) return;
-
     setLoading(true);
     setGameStarted(true);
     setScore(0);
     setShowResult(false);
-
     setTimeout(async () => {
       if (!game) return;
       const result = await game.fetchData();
-
       if (result.success) {
         setGameData(result.data ?? []);
-
       } else {
         game.handleError(result.error ?? { title: "Something went wrong", message: "Please try again." });
         setGameStarted(false);
       }
-
       setLoading(false);
-    }, 2000)
-
-
+    }, 2000);
   };
 
   const handleRestart = async () => {
@@ -85,8 +66,13 @@ function MiniGame() {
     setShowResult(false);
   };
 
+  const handleExit = () => {
+    setGameData([]);
+    setGameStarted(false);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    // Reset all game-related state whenever the game changes
     setLoading(false);
     setGameStarted(false);
     setGameData([]);
@@ -98,11 +84,8 @@ function MiniGame() {
   useEffect(() => {
     const awardPoints = async () => {
       if (showResult) {
-        setShowFinalResult(false); // reset to "calculating"
-
-        // fake delay in case score = 0 (so it still shows "Calculating...")
-        const wait = (ms: number | undefined) => new Promise((res) => setTimeout(res, ms));
-
+        setShowFinalResult(false);
+        const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
         try {
           if (score > 0) {
             const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
@@ -111,57 +94,39 @@ function MiniGame() {
             });
             const data = await response.json();
             if (data.error) {
-              showErrorAlert(data.error, "Updating profile failed!")
+              showErrorAlert(data.error, "Updating profile failed!");
             } else {
               dispatch(updatePoints(score));
-              console.log(`Success: Your profile has been awarded with ${score} points!`);
             }
           }
-
-          // wait at least 2 seconds so user sees "Calculating..."
           await wait(2000);
-
         } catch (err) {
           console.error("Network error:", err);
         } finally {
-          setShowFinalResult(true); // show result after done
+          setShowFinalResult(true);
         }
       }
     };
-
     awardPoints();
   }, [showResult, score]);
 
-
   useEffect(() => {
-    // When the server does not find opponent in 30s
-    const onOpponentNotFound = (game: unknown) => {
-      console.log("Opponent not found for game:", game);
+    const onOpponentNotFound = (g: unknown) => {
+      console.log("Opponent not found for game:", g);
       setRoomState(prev => ({ ...prev, status: "idle" }));
       setGameStarted(false);
       showErrorAlert("Please try again", "Opponent not found");
     };
-
-    // When the server finds a match
     const onMatchFound = (data: {
       roomCode: number; opponent: PlayerInfo; game: Game; selfSocketId: string; role: "host" | "guest";
     }) => {
-      console.log("Match found!", data);
       setRoomState(prev => ({
-        ...prev,
-        status: "matched",
-        code: data.roomCode,
-        opponent: data.opponent,
-        game: data.game,
-        selfSocketId: data.selfSocketId,
-        role: data.role,
+        ...prev, status: "matched", code: data.roomCode, opponent: data.opponent,
+        game: data.game, selfSocketId: data.selfSocketId, role: data.role,
       }));
     };
-
     socket.on("opponentNotFound", onOpponentNotFound);
     socket.on("matchFound", onMatchFound);
-
-    // Cleanup with the exact handler refs so we don't strip app-wide listeners
     return () => {
       socket.off("matchFound", onMatchFound);
       socket.off("opponentNotFound", onOpponentNotFound);
@@ -170,17 +135,13 @@ function MiniGame() {
 
   useEffect(() => {
     if (isLoggedIn && user) {
-      const userInfo = {
-        username: user.username,
-        profile_photo: user.profile_photo,
-        rank: user.rank,
-        points: user.points,
-      };
-      socket.emit("setUserInfo", userInfo);
+      socket.emit("setUserInfo", {
+        username: user.username, profile_photo: user.profile_photo, rank: user.rank, points: user.points,
+      });
     }
   }, [isLoggedIn, user]);
 
-  // ---- Derive a single "stage" for clean animated transitions ----
+  // ---- Derive the stage phase ----
   let stage: "idle" | "loading" | "playing" | "searching" | "matched" | "result";
   if (showResult) stage = "result";
   else if (roomState.status === "matched") stage = "matched";
@@ -189,215 +150,159 @@ function MiniGame() {
   else if (gameStarted && gameData.length > 0) stage = "playing";
   else stage = "idle";
 
+  const startOnline = async () => {
+    if (!socket.connected) {
+      showErrorAlert("Unable to connect to server. Please try again.", "Connection Error");
+      return;
+    }
+    setGameStarted(true);
+    setMultiPlayerMode(true);
+    setRoomState({ ...roomState, status: "loading" });
+    socket.emit("playOnline", { game });
+  };
+
+  const cancelOnline = () => {
+    leaveMultiplayer({ socket, user, setRoomState });
+    setGameStarted(false);
+    setMultiPlayerMode(false);
+  };
+
   const renderStage = () => {
     switch (stage) {
       case "idle":
         return (
-          <MotionButton onClick={handleStart}>Play</MotionButton>
+          <div className="idle">
+            <div className="idle-thumb" style={{ backgroundImage: game?.backgroundImage }} />
+            <div className="idle-head">
+              <h2 className="font-display" style={{ fontSize: 23 }}>{game?.name}</h2>
+              <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.5 }}>{game?.description}</p>
+            </div>
+            <div className="idle-chips">
+              <Chip>5 rounds</Chip>
+              <Chip>~1 min</Chip>
+              <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>
+            </div>
+            <Button size="lg" onClick={handleStart}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg> Play
+            </Button>
+          </div>
         );
-
       case "loading":
-        return <Loader />;
-
+        return <CourtLoader label="Warming up the court…" />;
       case "searching":
-        return <Spinner size={56} label="Searching for an opponent…" showLabel />;
-
+        return (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+            <CourtLoader label="Searching for an opponent…" />
+            <Button variant="secondary" size="sm" onClick={cancelOnline}>Cancel</Button>
+          </div>
+        );
       case "playing":
         return (
-          <div className="flex flex-col items-center w-full">
+          <div className="playing-wrap">
             {renderGame({
               gameId: game?.id,
               gameData,
               pointsPerCorrect: game?.pointsPerCorrect,
-              onGameEnd: (finalScore: number) => {
-                setScore(finalScore);
-                setShowResult(true);
-              },
+              onGameEnd: (finalScore: number) => { setScore(finalScore); setShowResult(true); },
             })}
             {!multiplayerMode && (
-              <MotionButton
-                className="stop-playing-button"
-                onClick={() => {
-                  setGameData([]);
-                  setGameStarted(false);
-                  setLoading(false);
-                }}
-              >
-                Exit
-              </MotionButton>
+              <button className="exit-link" onClick={handleExit}>Exit game</button>
             )}
           </div>
         );
-
       case "matched":
         return (
-          <MatchupDisplay
-            hostInfo={user}
-            opponent={roomState.opponent}
-            socket={socket}
-            roomState={roomState}
-            score={score}
-            setScore={setScore}
-          />
+          <MatchupDisplay hostInfo={user} opponent={roomState.opponent} socket={socket} roomState={roomState} score={score} setScore={setScore} />
         );
-
       case "result":
-        return (
-          <GameResult
-            showFinalResult={showFinalResult}
-            score={score}
-            maxPoints={game?.maxPoints ?? 0}
-            handleRestart={handleRestart}
-          />
-        );
+        return <GameResult showFinalResult={showFinalResult} score={score} maxPoints={game?.maxPoints ?? 0} handleRestart={handleRestart} />;
     }
   };
 
   return (
-    <>
+    <div className="app-shell">
+      <Navigation setRoomState={setRoomState} type="back" />
 
-      <Navigation setRoomState={setRoomState} type='back' />
-
-      <div id='minigame-container' className='minigame-container'>
-
-        {/* LEFT: Game List */}
-        <div id="game-list" className="game-list" >
-          <h3 className='font-display text-2xl' style={{ color: "#ea750e", marginBottom: "1rem" }}>All Games</h3>
-          {games.map((game, index) => (
-            <div key={index} style={{ marginBottom: "1rem" }}>
-              <GameCard
-                game={game} gameStarted={gameStarted} index={index}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div id="game-box" className="game-box" >
-
-          <div className='flex gap-2 justify-center items-center mb-4'>
-            <h2 className='font-display text-xl sm:text-3xl align-middle' style={{ color: "#ffffff" }} >
-              {game?.name}
-            </h2>
-            <div className="relative inline-block">
-              <FontAwesomeIcon
-                icon={faCircleInfo}
-                onMouseEnter={() => setShowInfo(true)}
-                onMouseLeave={() => setShowInfo(false)}
-                onClick={() => setShowInfo(!showInfo)}
-                className="
-                    hover:text-orange-500
-                    transition-colors
-                    duration-300
-                    ease-in-out
-                    cursor-pointer
-                    info-icon
-                  "
-              />
-
-              <div className={`info-box ${showInfo ? "show" : ""}`}>
-                <div
-                  className="instruction-content"
-                  dangerouslySetInnerHTML={{ __html: game?.instruction ?? "" }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Animated stage: Play / loader / game / matchup / result */}
-          <div className="stage-area">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={stage}
-                className="stage-content"
-                variants={swap}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
+      <main className="page game-page">
+        <div className="game-grid">
+          {/* Mobile game strip */}
+          <div className="rail-strip">
+            {games.map((g) => (
+              <button
+                key={g.id}
+                className={`rail-chip${g.id === game?.id ? " is-active" : ""}`}
+                disabled={gameStarted}
+                onClick={() => navigate(g.urlPath, { state: { id: g.id } })}
               >
-                {renderStage()}
-              </motion.div>
-            </AnimatePresence>
+                {g.name}
+              </button>
+            ))}
           </div>
 
-        </div>
-
-        <div id="mobile-info-box" className='mobile-info-box sm:hidden'>
-          <div className='flex flex-row gap-1 justify-center align-middle info-trigger' onClick={() => {
-            setShowInfo(!showInfo);
-          }}>
-            <h1 className='font-bold'>How to play {game?.name}?</h1>
-            <FontAwesomeIcon
-              icon={faCaretDown}
-              className={`
-    cursor-pointer
-    top-1.5
-    transition-transform
-    duration-300
-    ease-in-out
-    ${showInfo ? "rotate-180" : ""}
-  `}
-            />
-          </div>
-
-          <div
-            className={`instruction-content ${showInfo ? 'show' : ''}`}
-            dangerouslySetInnerHTML={{ __html: game?.instruction ?? "" }}
-          />
-        </div>
-
-        {/* RIGHT SIDE: Multiplayer cards */}
-        <div id="side-features" className='side-features'>
-          <div className="side-card" style={{ ...sideCardStyle, backgroundColor: "rgba(0,0,0,0.6)" }}>
-            <h4 className='font-bold'>Multiplayer</h4>
-
-            <div
-              className={`button-container ${roomState.status === "loading" ? "two-buttons" : ""}`}
-            >
-              {!isLoggedIn && <p>Please log in to play online</p>}
-              {isLoggedIn && <MotionButton
-                disabled={gameStarted || roomState.status !== "idle"}
-                onClick={async () => {
-                  if (!socket.connected) {
-                    console.error("Socket is not connected");
-                    showErrorAlert("Unable to connect to server. Please try again.", "Connection Error");
-                    return;
-                  }
-                  setGameStarted(true);
-                  setMultiPlayerMode(true);
-                  setRoomState({ ...roomState, status: "loading" });
-                  socket.emit("playOnline", { game });
-                  console.log("Searching for opponent in:", game);
-                }}
-              >
-                {roomState.status === "loading" ? "Searching..." : "Play Online"}
-              </MotionButton>}
-
-              {(roomState.status === "loading" || roomState.status === "matched") && (
-                <MotionButton
+          {/* Desktop rail */}
+          <aside className="rail">
+            <div className="rail-head"><span>ALL GAMES</span><span>{games.length}</span></div>
+            <div className="rail-list">
+              {games.map((g) => (
+                <button
+                  key={g.id}
                   onClick={() => {
-                    leaveMultiplayer({ socket, user, setRoomState });
-                    setGameStarted(false);
-                    setMultiPlayerMode(false);
+                    if (gameStarted) { showErrorAlert("Finish your current game first.", "Game in progress"); return; }
+                    navigate(g.urlPath, { state: { id: g.id } });
                   }}
+                  className={`rail-item${g.id === game?.id ? " is-active" : ""}`}
                 >
-                  Cancel
-                </MotionButton>
+                  <span className="rail-thumb" style={{ backgroundImage: g.backgroundImage }} />
+                  <span className="rail-meta">
+                    <span className="rail-name">{g.name}</span>
+                    <span className="rail-sub">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : "soon"}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          {/* Center stage */}
+          <section className="stage-col">
+            <div className="stage-title">
+              <h1 className="font-display" style={{ fontSize: "clamp(19px,2.6vw,26px)" }}>{game?.name}</h1>
+              <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" ? handleStart : undefined })}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+              </button>
+              <Chip variant="brand" dot style={{ marginLeft: "auto" }}>{game?.tag}</Chip>
+            </div>
+
+            <Stage phaseKey={stage}>{renderStage()}</Stage>
+          </section>
+
+          {/* Aside */}
+          <aside className="game-aside">
+            <div className="aside-card">
+              <div className="aside-card-head">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 .01M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                <h3 className="font-display" style={{ fontSize: 15 }}>Multiplayer</h3>
+              </div>
+              {!isLoggedIn ? (
+                <>
+                  <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>Challenge a random opponent in real time. You'll need an account to matchmake.</p>
+                  <Button variant="secondary" block size="md" onClick={() => open("login")}>Log in to play online</Button>
+                </>
+              ) : (
+                <Button block size="md" disabled={gameStarted || roomState.status !== "idle"} onClick={startOnline}>
+                  {roomState.status === "loading" ? "Searching…" : "Play online 1v1"}
+                </Button>
               )}
             </div>
-          </div>
-          <div className="side-card" style={{ ...sideCardStyle, backgroundColor: "rgba(0,0,0,0.6)" }}>
-            <h4 className='font-bold'>Play with a Friend</h4>
 
-            <div className='button-container'>
-              <p>Comming Soon</p>
+            <div className="aside-card">
+              <h3 className="font-display" style={{ fontSize: 15 }}>Play with a friend</h3>
+              <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>Private rooms with a share code are coming soon.</p>
+              <Chip variant="brand" style={{ alignSelf: "flex-start" }}>SOON</Chip>
             </div>
-
-          </div>
+          </aside>
         </div>
-
-      </div>
-
-    </>
+      </main>
+    </div>
   );
 }
 
