@@ -1,65 +1,142 @@
 /* ===========================================================================
-   Design tokens + gaming typography for the whole app.
-   Anchored on the existing NBA orange brand, with a dark "arena" surface scale.
+   MBA Trivium / NBA 3VIA design system — tokens, type, motion.
+   Ported from the Claude Design comp (MBA Trivium.dc.html).
    =========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Russo+One&display=swap');
 
 :root {
-  /* Brand */
-  --brand: #ff7a1a;
-  --brand-strong: #ea750e;
-  --brand-deep: #a14c07;
-  --brand-glow: rgba(255, 122, 26, 0.45);
-
-  /* Surfaces (dark arena) */
-  --bg: #161616;
-  --surface: #1e1e1e;
-  --surface-2: #262626;
-  --surface-3: #2d2d2d;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  /* Surfaces (dark, default) */
+  --bg: #101010;
+  --bg2: #161616;
+  --surface: #1c1c1e;
+  --surface2: #232327;
+  --surface3: #2b2b30;
+  --line: rgba(255, 255, 255, 0.09);
+  --line2: rgba(255, 255, 255, 0.17);
 
   /* Text */
-  --text: #f5f5f5;
-  --text-muted: #a8a8a8;
+  --text: #f5f3ef;
+  --muted: #9c9a95;
+
+  /* Brand */
+  --brand: #ff6a1a;
+  --brand2: #ff8a3d;
+  --brand-deep: #c2510a;
+  --brand-soft: rgba(255, 106, 26, 0.14);
 
   /* Semantic */
-  --success: #28c24a;
-  --danger: #ff4d4d;
+  --good: #2fc762;
+  --good-soft: rgba(47, 199, 98, 0.16);
+  --bad: #ff4d4d;
+  --bad-soft: rgba(255, 77, 77, 0.16);
 
-  /* Shape & motion */
+  /* Effects */
+  --shadow: 0 22px 60px -18px rgba(0, 0, 0, 0.65);
   --radius: 14px;
-  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 22px var(--brand-glow);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Back-compat aliases (older components reference these names) */
+  --brand-strong: #ff7a1a;
+  --brand-glow: var(--brand-soft);
+  --text-muted: var(--muted);
+  --border: var(--line);
+  --border-strong: var(--line2);
+  --success: var(--good);
+  --danger: var(--bad);
+  --shadow-card: var(--shadow);
+  --shadow-glow: 0 0 22px var(--brand-soft);
+
+  color-scheme: dark;
 }
 
-/* Display / accent type helpers */
+/* Light theme — toggled by adding .light to <html> (or any ancestor). */
+.light {
+  --bg: #f3f0ea;
+  --bg2: #ffffff;
+  --surface: #ffffff;
+  --surface2: #f4f1ea;
+  --surface3: #e9e4da;
+  --line: rgba(20, 18, 15, 0.10);
+  --line2: rgba(20, 18, 15, 0.18);
+  --text: #1a1714;
+  --muted: #6c685f;
+  --brand-soft: rgba(255, 106, 26, 0.12);
+  --good-soft: rgba(47, 199, 98, 0.14);
+  --bad-soft: rgba(255, 77, 77, 0.12);
+  --shadow: 0 22px 60px -22px rgba(40, 30, 15, 0.22);
+  --shadow-card: var(--shadow);
+
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+}
+
+body {
+  font-family: 'Chakra Petch', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Display / accent type */
+.disp,
 .font-display {
-  font-family: 'Russo One', 'Inter', system-ui, sans-serif;
-  letter-spacing: 0.5px;
+  font-family: 'Russo One', system-ui, sans-serif;
+  letter-spacing: 0.4px;
 }
-.font-accent {
-  font-family: 'Chakra Petch', 'Inter', system-ui, sans-serif;
-}
+.font-accent { font-family: 'Chakra Petch', system-ui, sans-serif; }
 
-/* Orange gradient text (used by section headings & leaderboard title) */
-.gradient-orange {
-  background: linear-gradient(90deg, #ff8c1a, #ea750e, #ffb347);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-/* Tabular figures for scores/timers so numbers don't jitter while animating */
+/* Tabular figures for scores/timers/ranks */
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* Keyboard focus visibility (accessibility) */
-:where(button, a, input, [tabindex]):focus-visible {
+::selection { background: var(--brand); color: #fff; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.85; }
+
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 20px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* Orange gradient text helper */
+.gradient-orange {
+  background: linear-gradient(90deg, var(--brand2), var(--brand), #ffb347);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Keyboard focus visibility */
+:where(button, a, input, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
+}
+
+/* ---- Motion keyframes from the comp ---- */
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes popIn { 0% { opacity: 0; transform: scale(.8); } 60% { transform: scale(1.04); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes heat { 0%, 100% { opacity: .9; } 50% { opacity: .55; } }
+@keyframes loaderPulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+/* ball launches from below-left, arcs over the rim, drops straight through the net (a swish) */
+@keyframes shoot {
+  0% { transform: translate(-46px,46px) rotate(0deg); opacity: 0; }
+  9% { opacity: 1; }
+  40% { transform: translate(-8px,-54px) rotate(220deg); }
+  56% { transform: translate(0,-16px) rotate(300deg); }
+  68% { transform: translate(0,2px) rotate(338deg); opacity: 1; }
+  84% { transform: translate(0,32px) rotate(360deg); opacity: .85; }
+  100% { transform: translate(0,66px) rotate(382deg); opacity: 0; }
+}
+@keyframes netSway { 0%, 58%, 100% { transform: scaleY(1); } 70% { transform: scaleY(1.22); } 84% { transform: scaleY(1.05); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }

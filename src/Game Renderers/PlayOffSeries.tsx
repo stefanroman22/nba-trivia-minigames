@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { swap } from "../motion/variants";
+import ProgressBar from "../components/ui/ProgressBar";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
 import type { TeamColor } from "../constants/nbaTeamColors";
 
@@ -18,9 +18,7 @@ interface PlayOffSeriesProps {
 function PlayOffSeries({
   seriesList,
   pointsPerCorrect,
-  buttonTeamStyle,
   nbaTeamColors,
-  getContrastColor,
   onGameEnd,
 }: PlayOffSeriesProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -32,14 +30,12 @@ function PlayOffSeries({
   const reduce = useReducedMotion();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Avoid setState/onGameEnd firing on an unmounted component
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
   }, []);
 
   const handlePickWinner = (picked: string) => {
-    if (showWinner) return; // re-entrancy guard against rapid double-clicks
-
+    if (showWinner) return;
     setSelectedTeam(picked);
     setShowWinner(true);
 
@@ -53,151 +49,120 @@ function PlayOffSeries({
       setShowPointsAnimation(false);
       setShowWinner(false);
       setSelectedTeam(null);
-
       if (currentIndex < seriesList.length - 1) {
         setCurrentIndex((prev) => prev + 1);
-      } else {
-        // Tournament complete
-        if (onGameEnd) onGameEnd(score + (isCorrect ? pointsPerCorrect : 0));
+      } else if (onGameEnd) {
+        onGameEnd(score + (isCorrect ? pointsPerCorrect : 0));
       }
     }, 1800);
   };
 
   if (!currentSeries) return null;
 
-  const logoStyle = (teamName: string): CSSProperties => ({
-    width: "clamp(84px, 26vw, 150px)",
-    height: "auto",
-    filter: showWinner && teamName !== currentSeries.winner ? "grayscale(100%)" : "none",
-    opacity: showWinner && teamName !== currentSeries.winner ? 0.4 : 1,
-    transition: "all 0.8s ease-in-out",
-  });
+  const teams = [
+    { name: currentSeries.team_a, logo: currentSeries.team_a_logo, wins: currentSeries.team_a_wins },
+    { name: currentSeries.team_b, logo: currentSeries.team_b_logo, wins: currentSeries.team_b_wins },
+  ];
+
+  const pickStyle = (teamName: string): CSSProperties => {
+    const isWinner = teamName === currentSeries.winner;
+    const isPicked = selectedTeam === teamName;
+    let border = "var(--line2)";
+    let background = "var(--surface2)";
+    if (showWinner) {
+      if (isWinner) { border = "var(--good)"; background = "var(--good-soft)"; }
+      else if (isPicked) { border = "var(--bad)"; background = "var(--bad-soft)"; }
+    }
+    return {
+      display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+      padding: "18px 14px", borderRadius: 14, border: `1px solid ${border}`,
+      background, cursor: showWinner ? "default" : "pointer", minHeight: 44,
+      transition: "background 0.35s ease, border-color 0.35s ease, opacity 0.35s ease",
+      opacity: showWinner && !isWinner && !isPicked ? 0.55 : 1,
+    };
+  };
+
+  const feedback = !showWinner
+    ? null
+    : selectedTeam === currentSeries.winner
+      ? { text: `Correct! +${pointsPerCorrect}`, color: "var(--good)" }
+      : { text: `It was the ${currentSeries.winner}`, color: "var(--bad)" };
 
   return (
-    <div style={{ marginTop: "2rem", width: "100%" }}>
+    <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* progress + score */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
+        <span style={{ fontSize: 11, letterSpacing: 1, color: "var(--muted)", fontWeight: 600 }}>
+          ROUND {currentIndex + 1}/{seriesList.length}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
+          <span style={{ color: "var(--muted)", fontWeight: 500, fontSize: 11, letterSpacing: 0.5 }}>SCORE</span>
+          <span className="tnum" style={{ color: "var(--brand)", fontSize: 16 }}>{score}</span>
+        </span>
+      </div>
+      <ProgressBar value={currentIndex + (showWinner ? 1 : 0)} max={seriesList.length} />
+
+      {/* round header */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
-          variants={swap}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          style={{
-            marginBottom: "1.5rem",
-            padding: "1rem",
-            borderRadius: "10px",
-            textAlign: "center",
-          }}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? undefined : { opacity: 0, y: -10 }}
+          transition={{ duration: 0.25 }}
+          style={{ display: "flex", flexDirection: "column", gap: 18 }}
         >
-          {/* Teams & Score */}
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-start", gap: "1rem", flexWrap: "nowrap" }}>
-            {/* Team A */}
-            <div style={{ textAlign: "center", flex: "0 1 auto" }}>
-              <motion.img
-                src={currentSeries.team_a_logo}
-                alt={currentSeries.team_a}
-                style={logoStyle(currentSeries.team_a)}
-                animate={!reduce && showWinner && currentSeries.team_a === currentSeries.winner ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                transition={{ duration: 0.5 }}
-              />
-              <p style={{ color: "#fff", marginTop: "0.5rem", fontWeight: "bold" }}>
-                {currentSeries.team_a}
-              </p>
-            </div>
-
-            {/* VS or Score */}
-            <motion.span
-              key={showWinner ? "score" : "vs"}
-              className="font-display tnum"
-              animate={!reduce ? { scale: showWinner ? [1, 1.3, 1] : 1 } : undefined}
-              transition={{ duration: 0.45 }}
-              style={{
-                marginTop: "3rem",
-                fontWeight: "bold",
-                color:
-                  selectedTeam != null
-                    ? selectedTeam === currentSeries.winner
-                      ? "limegreen"
-                      : "#ff5a5a"
-                    : "white",
-                fontSize: "1.4rem",
-                display: "inline-block",
-                minWidth: "60px",
-                textAlign: "center",
-              }}
-            >
-              {showWinner
-                ? `${currentSeries.team_a_wins}:${currentSeries.team_b_wins}`
-                : "vs"}
-            </motion.span>
-
-            {/* Team B */}
-            <div style={{ textAlign: "center", flex: "0 1 auto" }}>
-              <motion.img
-                src={currentSeries.team_b_logo}
-                alt={currentSeries.team_b}
-                style={logoStyle(currentSeries.team_b)}
-                animate={!reduce && showWinner && currentSeries.team_b === currentSeries.winner ? { scale: [1, 1.12, 1] } : { scale: 1 }}
-                transition={{ duration: 0.5 }}
-              />
-              <p style={{ color: "#fff", marginTop: "0.5rem", fontWeight: "bold" }}>
-                {currentSeries.team_b}
-              </p>
-            </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", textAlign: "center" }}>
+            <span style={{ fontSize: 11, letterSpacing: 1.5, color: "var(--brand)", fontWeight: 600 }}>
+              {currentSeries.round} · {currentSeries.season}
+            </span>
+            <h3 className="font-display" style={{ fontSize: 19 }}>Who won the series?</h3>
           </div>
 
-          {/* Round & Season */}
-          <p style={{ fontWeight: "bold", marginTop: "0.5rem" }}>
-            {currentSeries.round}
-            <br />
-            {currentSeries.season}
-          </p>
-
-          {/* Buttons */}
-          <div
-            style={{
-              marginTop: "1rem",
-              display: "flex",
-              justifyContent: "center",
-              gap: "1rem",
-              flexWrap: "wrap",
-            }}
-            className="flex flex-col gap-2 sm:flex-row"
-          >
-            {[currentSeries.team_a, currentSeries.team_b].map((team) => (
-              <motion.button
-                key={team}
-                onClick={() => handlePickWinner(team)}
-                disabled={showWinner}
-                whileHover={!reduce && !showWinner ? { scale: 1.04 } : undefined}
-                whileTap={!reduce && !showWinner ? { scale: 0.96 } : undefined}
-                style={{
-                  ...buttonTeamStyle,
-                  flex: "1 1 140px",
-                  minWidth: "120px",
-                  maxWidth: "260px",
-                  minHeight: "44px",
-                  cursor: showWinner ? "default" : "pointer",
-                  backgroundColor:
-                    showWinner && team !== currentSeries.winner
-                      ? "#999"
-                      : nbaTeamColors[team]?.primary || "#ccc",
-                  color:
-                    showWinner && team !== currentSeries.winner
-                      ? "#fff"
-                      : getContrastColor(nbaTeamColors[team]?.primary || "#ccc"),
-                  opacity: showWinner && team !== currentSeries.winner ? 0.5 : 1,
-                  transition: "background-color 0.4s ease, opacity 0.4s ease",
-                }}
-              >
-                {team}
-              </motion.button>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
+            {teams.map((t, i) => (
+              <div key={t.name} style={{ display: "contents" }}>
+                {i === 1 && (
+                  <span className="font-display" style={{ fontSize: 13, color: "var(--muted)" }}>VS</span>
+                )}
+                <motion.button
+                  onClick={() => handlePickWinner(t.name)}
+                  disabled={showWinner}
+                  whileHover={!reduce && !showWinner ? { y: -2 } : undefined}
+                  whileTap={!reduce && !showWinner ? { scale: 0.96 } : undefined}
+                  style={pickStyle(t.name)}
+                >
+                  <span style={{
+                    width: 54, height: 54, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
+                    background: nbaTeamColors[t.name]?.primary || "var(--surface3)",
+                    boxShadow: "0 6px 16px -6px rgba(0,0,0,.5)", overflow: "hidden",
+                  }}>
+                    <img src={t.logo} alt={t.name} style={{ width: 40, height: 40, objectFit: "contain" }} />
+                  </span>
+                  <span className="font-display" style={{ fontSize: 15, textAlign: "center" }}>{t.name}</span>
+                  {showWinner && (
+                    <span className="tnum" style={{ fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
+                      {t.wins} wins
+                    </span>
+                  )}
+                </motion.button>
+              </div>
             ))}
+          </div>
+
+          <div style={{ height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {feedback && (
+              <motion.span
+                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className="font-accent" style={{ fontSize: 14, fontWeight: 700, color: feedback.color }}
+              >
+                {feedback.text}
+              </motion.span>
+            )}
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Points Animation */}
       <SubmitGuessPopup show={showPointsAnimation} text={`+${pointsPerCorrect}`} color={"#25a602"} />
     </div>
   );

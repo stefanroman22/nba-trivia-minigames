@@ -1,50 +1,50 @@
-.leaderboard-table {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.leaderboard-wrapper {
-  margin: 0 auto;
+.lb-card {
   width: 100%;
-  max-width: 600px;
-  padding: 0 0.75rem;
-  box-sizing: border-box;
-}
-
-/* Fixed layout so the header table columns line up with the body table */
-.leaderboard-table,
-.leaderboard-data-table {
-  table-layout: fixed;
-  width: 100%;
-}
-
-.leaderboard-table th:nth-child(1),
-.leaderboard-data-table td:nth-child(1) {
-  width: 22%;
-}
-.leaderboard-table th:nth-child(2),
-.leaderboard-data-table td:nth-child(2) {
-  width: 52%;
-}
-.leaderboard-table th:nth-child(3),
-.leaderboard-data-table td:nth-child(3) {
-  width: 26%;
-}
-
-.leaderboard-data-table th,
-.leaderboard-data-table td {
-  text-align: center;
-  padding: 10px clamp(6px, 4vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: left;
 }
-
-.leaderboard-data-table tr {
-  transition: background-color 0.2s ease;
+.lb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
 }
-
-.highlighted-row {
-  background-color: rgba(255, 122, 0, 0.22); /* subtle orange highlight */
-  font-weight: bold;
+.lb-viewall {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+  background: none;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+}
+.lb-viewall:hover { text-decoration: underline; }
+.lb-body {
+  padding: 8px 10px;
+  max-height: 268px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  margin-bottom: 2px;
+}
+.lb-row:hover { background: var(--surface2); }
+.lb-row.is-self { background: var(--brand-soft); border-color: var(--brand); }
+.lb-self {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line2);
+  background: var(--brand-soft);
 }

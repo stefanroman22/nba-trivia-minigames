@@ -65,7 +65,14 @@ export const games: Game[] = [
   {
     id: "series-winner",
     name: "Guess the Series Winner",
+    tag: "PREDICT",
     description: "Pick the winner between two teams from a real NBA playoff series.",
+    intro: "Travel back through historic NBA Finals and prove your memory of who lifted the trophy.",
+    rules: [
+      { n: "1", t: "Two teams from a real playoff series are shown each round." },
+      { n: "2", t: "Tap the team you think won that series." },
+      { n: "3", t: "5 rounds per game — 10 points for every correct call." },
+    ],
     instruction: `
       <div class="space-y-2">
         <p>Travel back in time and test your knowledge of historic NBA playoff matchups.</p>
@@ -88,7 +95,14 @@ export const games: Game[] = [
   {
     id: "name-logo",
     name: "Name the NBA Club",
+    tag: "LOGOS",
     description: "Based on the logo, name the NBA team.",
+    intro: "How sharp is your eye for NBA branding? Name the team behind the badge.",
+    rules: [
+      { n: "1", t: "A team logo appears each round." },
+      { n: "2", t: "Type or pick the matching franchise." },
+      { n: "3", t: "5 rounds — 10 points per correct answer." },
+    ],
     instruction: `
       <div class="space-y-2">
         <p>How well do you know NBA branding? Identify the franchise belonging to the logo shown.</p>
@@ -111,7 +125,14 @@ export const games: Game[] = [
   {
     id: "guess-mvps",
     name: "Guess the MVP",
+    tag: "LEGENDS",
     description: "Name the MVP for a specific NBA season.",
+    intro: "Legends are made in the regular season. Recall who dominated each year.",
+    rules: [
+      { n: "1", t: "A specific season is shown." },
+      { n: "2", t: "Choose the player who won MVP that year." },
+      { n: "3", t: "5 seasons — 10 points per correct answer." },
+    ],
     instruction: `
       <div class="space-y-2">
         <p>Legends are made in the regular season. Can you recall who dominated the league?</p>
@@ -134,7 +155,14 @@ export const games: Game[] = [
   {
     id: "starting-five",
     name: "Fill in the Starting 5",
+    tag: "LINEUPS",
     description: "Name the starting lineup of the winning team from a random NBA game.",
+    intro: "Be the coach's memory — name the full starting five of the winning team.",
+    rules: [
+      { n: "1", t: "A real game and its winner are shown." },
+      { n: "2", t: "Fill all 5 positions (PG, SG, SF, PF, C)." },
+      { n: "3", t: "3 lives. Complete the lineup for 100 points." },
+    ],
     instruction: `
       <div class="space-y-2">
         <p>You are the coach's memory. Recall the full starting lineup for the winning team of a specific match.</p>
@@ -158,7 +186,14 @@ export const games: Game[] = [
   {
     id: "wordle",
     name: "NBA Wordle",
+    tag: "DAILY",
     description: "Guess the NBA player using Wordle rules.",
+    intro: "The classic word game for hoops fans — guess the player's last name.",
+    rules: [
+      { n: "1", t: "Green = right letter & spot, yellow = wrong spot, gray = not in name." },
+      { n: "2", t: "You have 5 attempts to solve it." },
+      { n: "3", t: "First-try solve scores a 500-point jackpot." },
+    ],
     instruction: `
       <div class="space-y-2">
         <p>The classic word game for NBA fanatics. Guess the mystery player's <strong>Last Name</strong>.</p>
@@ -182,7 +217,13 @@ export const games: Game[] = [
   {
     id: "coming-soon",
     name: "Coming Soon",
+    tag: "NEW",
     description: "A new game is currently in development.",
+    intro: "Something new is in the works.",
+    rules: [
+      { n: "1", t: "New games drop regularly." },
+      { n: "2", t: "Log in to be notified first." },
+    ],
     instruction: `
       <div class="text-center italic">
         <p>Stay tuned! Our developers are warming up on the sidelines to bring you new challenges.</p>

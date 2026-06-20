@@ -11,10 +11,18 @@ import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import { apiFetch } from './utils/Api';
 import { BACKEND_URL } from './configurations/backend';
+import { ModalProvider } from './context/ModalContext';
+import ModalHost from './components/ModalHost';
 
 
 function App() {
   const dispatch = useDispatch();
+
+  // Dark-only theme: drop any previously saved light preference.
+  useEffect(() => {
+    document.documentElement.classList.remove("light");
+    try { localStorage.setItem("nba3via-theme", "dark"); } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     const checkLogin = async () => {
@@ -45,7 +53,10 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
-        <AnimatedRoutes />
+        <ModalProvider>
+          <AnimatedRoutes />
+          <ModalHost />
+        </ModalProvider>
       </BrowserRouter>
     </MotionConfig>
   );

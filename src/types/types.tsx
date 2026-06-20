@@ -79,7 +79,13 @@ export interface Game {
   id: string;
   name: string;
   description: string;
+  /** Short uppercase category label shown on the card pill and game chip. */
+  tag: string;
   instruction: string;
+  /** Short lead-in shown at the top of the "How to play" modal. */
+  intro: string;
+  /** Numbered rules shown in the "How to play" modal. */
+  rules: { n: string; t: string }[];
   loadingMessage: string;
   backgroundImage: string;
   urlPath: string;

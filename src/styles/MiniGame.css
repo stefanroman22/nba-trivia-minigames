@@ -1,294 +1,108 @@
-#minigame-container {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  background-color: #292929;
-  padding: 1rem;
-  gap: 2rem;
-  color: white;
+.game-page { padding-top: 22px; }
+
+/* ===== Layout: rail + stage + aside ===== */
+.game-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+@media (min-width: 820px) {
+  .game-grid { grid-template-columns: 240px minmax(0, 1fr); }
+  .game-aside { grid-column: 1 / -1; flex-direction: row; }
+}
+@media (min-width: 1200px) {
+  .game-grid { grid-template-columns: 240px minmax(0, 1fr) 290px; }
+  .game-aside { grid-column: auto; flex-direction: column; position: sticky; top: 84px; }
 }
 
-
-#game-list {
-  flex: 1 1 250px;
-  /* container can shrink/grow naturally */
-  min-width: 200px;
-  /* prevents collapsing too much */
-  max-width: 100%;
-  /* never exceed parent width */
-  background-color: #1e1e1e;
-  padding: 1rem;
-  border-radius: 10px;
-  min-height: 400px;
-  max-height: 80vh;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  overflow-y: auto;
-  box-sizing: border-box;
+/* ===== Mobile game strip ===== */
+.rail-strip { display: none; }
+@media (max-width: 819px) {
+  .rail-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .rail-strip::-webkit-scrollbar { display: none; }
 }
-
-
-#game-box {
-  flex: 2 1 500px;
-  background-color: #1e1e1e;
-  padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  text-align: center;
-  min-height: 400px;
-  box-sizing: border-box;
-  /* Smooth transition when resizing */
-  transition: all 0.3s ease;
-}
-
-/* Animated stage that swaps Play / loader / game / matchup / result */
-.stage-area {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 320px;
-  width: 100%;
-}
-
-.stage-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
-
-/* For screens smaller than 768px (tablets & phones) */
-@media (max-width: 768px) {
-  #game-box {
-    flex: 1 1 280px;
-    padding: 0.5rem;
-    min-height: 400px;
-    width: 95%;
-    margin: 0 auto;
-  }
-}
-
-/* For very small screens, like phones in portrait */
-@media (max-width: 480px) {
-  #game-box {
-    flex: 1 1 250px;
-    padding: 0.4rem;
-    min-height: 250px;
-    width: 100%;
-  }
-
-  #game-list {
-    max-height: 42vh;
-  }
-
-  .stage-area {
-    min-height: 240px;
-  }
-}
-
-
-/* Container */
-#side-features {
-  flex: 1 1 250px;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-/* Card styling (used for both cards) */
-.side-card {
-  background-color: rgba(0, 0, 0, 0.6);
-  padding: 1rem;
-  /* assuming your sideCardStyle had padding */
-  border-radius: 8px;
-  /* optional, match your sideCardStyle */
-}
-
-/* Card text styling */
-.side-card h4 {
-  color: #fff;
-}
-
-.side-card p {
-  /* Assuming sideTextStyle has font-size or color */
-  color: #ba620fff;
-  font-size: 0.9rem;
-  /* adjust to match sideTextStyle */
-}
-
-button {
-  font-size: 1rem;
-}
-
-button:disabled {
-  background-color: #555;
-  color: #888;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-/* Container for both buttons */
-.button-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-top: 20px;
-  gap: 10px;
-  /* space between buttons */
-}
-
-/* Styling for the buttons */
-.button-container button {
-  padding: 10px 20px;
-  font-size: 1rem;
-  transition: all 0.2s ease-in-out;
+.rail-chip {
+  flex: none;
+  padding: 9px 15px;
+  border: 1px solid var(--line2);
+  border-radius: 30px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  border: none;
-  border-radius: 8px;
-  background-color: #0077ff;
-  color: white;
+  white-space: nowrap;
+  transition: all 0.2s ease;
 }
+.rail-chip:disabled { opacity: 0.5; cursor: not-allowed; }
+.rail-chip.is-active { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
 
-/* When there are two buttons, slightly shrink the text */
-.button-container.two-buttons button {
-  font-size: 0.9rem;
-}
-
-/* Disabled button styling */
-.button-container button:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
-}
-
-.stop-playing-button {
-  margin-top: 20px;
-  margin-bottom: 10px;
-}
-
-.info-box {
-  /* Default Desktop State (Hidden) */
-  position: absolute;
-  top: 100%;
-  /* Push it below the icon */
-  left: 50%;
-  /* Center horizontally */
-  margin-top: 12px;
-  /* Replaces 'mt-3' */
-
-  /* Centering & Animation Start State */
-  transform: translateX(-50%) translateY(10px);
-
-  /* Visuals */
-  background: rgba(40, 40, 40, 0.95);
-  /* Darker bg for better readability */
-  color: #f0f0f0;
-  padding: 15px;
-  border-radius: 10px;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  width: max-content;
-  max-width: 250px;
-  z-index: 9999;
-  font-size: 0.9rem;
-  text-align: left;
-  pointer-events: none;
-  /* Desktop: clicks pass through while hidden */
-
-  /* Fade Animation */
-  opacity: 0;
-  visibility: hidden;
-  /* Prevents accidental clicks when hidden */
-  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s;
-}
-
-/* Desktop Active State */
-.info-box.show {
-  opacity: 1;
-  visibility: visible;
-
-  transform: translateX(-50%) translateY(0);
-}
-
-@media (max-width: 1024px) {
-  #side-features {
-    flex: 1 1 250px;
+/* ===== Desktop rail ===== */
+.rail { display: none; }
+@media (min-width: 820px) {
+  .rail {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 8px;
+    position: sticky;
+    top: 84px;
+    align-self: start;
+    max-height: calc(100dvh - 104px);
   }
 }
-
-
-
-.info-trigger h1 {
-  font-size: 12px;
-  align-self: flex-start;
+.rail-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; font-size: 10px; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; }
+.rail-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding: 2px 2px 6px; }
+.rail-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  cursor: pointer;
   text-align: left;
+  transition: all 0.2s ease;
 }
+.rail-item:hover { border-color: var(--brand); }
+.rail-item.is-active { border-color: var(--brand); background: var(--brand-soft); }
+.rail-thumb { width: 40px; height: 40px; border-radius: 9px; background-size: cover; background-position: center; flex: none; }
+.rail-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rail-name { font-weight: 700; font-size: 13.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-sub { font-size: 11px; color: var(--muted); }
 
-@media (max-width: 768px) {
-  
-  .info-icon {
-    display: none;
-  }
-
-  .info-box {
-    display: none;
-  }
-
-  .mobile-info-box {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    width: 100%;
-    padding: 0.8rem;
-  margin-top: calc(10px - 2rem);     
-  margin-bottom: calc(10px - 2rem);  
- background-color: #1e1e1e;
-  border-radius: 10px;
-  
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-  }
-
-  .mobile-info-box .instruction-content {
-  max-height: 0;
-  opacity: 0;
-  overflow: hidden;
-
-  
-  padding-top: 0;
-  padding-bottom: 0;
-
-  padding-left: 0; 
-  padding-right: 0;
-
-  
-  transition: 
-    max-height 0.7s ease-in-out,
-    opacity 0.7s ease-in-out,
-    padding 0.7s ease;
+/* ===== Stage column ===== */
+.stage-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.stage-title { display: flex; align-items: center; gap: 11px; }
+.info-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: 1px solid var(--line2);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
+.info-btn:hover { color: var(--brand); border-color: var(--brand); }
 
-.mobile-info-box .info-trigger h1{
-    color: #dad9d9;
-}
+/* ===== Stage states ===== */
+.idle { display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.idle-thumb { width: 104px; height: 104px; border-radius: 18px; background-size: cover; background-position: center; border: 1px solid var(--line2); box-shadow: var(--shadow); }
+.idle-head { display: flex; flex-direction: column; gap: 7px; max-width: 420px; }
+.idle-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
-.mobile-info-box .instruction-content.show {
- 
-  max-height: 500px; 
-  
-  opacity: 1;
+.playing-wrap { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.exit-link { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.exit-link:hover { color: var(--text); }
 
-}
-
-
-.mobile-info-box .instruction-content p {
-  font-size: 12px;
-  text-align: left;
-  
-    margin-top: 10px;
-}
-
-}
+/* ===== Aside ===== */
+.game-aside { display: flex; flex-direction: column; gap: 14px; align-self: start; }
+.aside-card { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 11px; }
+.aside-card-head { display: flex; align-items: center; gap: 9px; }
