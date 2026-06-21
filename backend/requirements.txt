@@ -11,3 +11,5 @@ Pillow
 # Production database (used only when DATABASE_URL is set, e.g. Supabase Postgres):
 dj-database-url
 psycopg2-binary
+# Redis leaderboard (used only when REDIS_URL is set, e.g. Upstash):
+redis
