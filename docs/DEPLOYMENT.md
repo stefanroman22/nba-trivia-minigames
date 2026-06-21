@@ -2,7 +2,7 @@
 
 This is the single checklist to take the app from "works locally" to "scales to lots of
 users." Everything below is **optional and incremental** — the app runs today with none of
-it (sqlite, in-memory cache, Django-served pools, single multiplayer instance). Each step
+it (sqlite, in-memory cache, static `/data/` pools, single multiplayer instance). Each step
 "lights up" a piece of the scalable architecture by adding an account + a few env vars.
 
 Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-design.md`.
@@ -18,10 +18,10 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 
 | Service | Runs on | Repo location |
 |---|---|---|
-| Frontend (React/Vite) | Static host / CDN (Cloudflare Pages, Vercel, …) | repo root `src/` |
+| Frontend + game content | **Vercel** (serves the app *and* the game-data JSON at `/data/` from its CDN) | repo root `src/` |
 | Django API | Render web service | `backend/` |
 | Multiplayer (Socket.IO) | Render / any Node host | `multiplayer_server/` |
-| Data refresh + publish | **Your home machine** (residential IP) | `backend/` management commands |
+| Data refresh | **Your home machine** (residential IP) | `backend/` management commands |
 
 > The NBA blocks data-center IPs, so the data **refresh** must run from home. The cloud only
 > ever serves pre-built data.
@@ -29,7 +29,9 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 ## One-time accounts (create as you need each phase)
 
 1. **GitHub** — already done (repo pushed).
-2. **Cloudflare R2 + custom domain** (Phase 2 — content CDN).
+2. **Vercel** (Phase 2 — hosts the frontend, which also serves the game-data JSON from its CDN;
+   the data ships with the build, so **no separate object store is needed**). Cloudflare R2 stays
+   an optional alternative for a dedicated data domain — see the R2 note under "Home machine".
 3. **Supabase Postgres** (Phase 4 — user DB).
 4. **Upstash Redis** (Phase 5 — leaderboard + multiplayer scaling).
 
@@ -56,13 +58,18 @@ REDIS_URL=rediss://...                               # optional: enables the Soc
 PORT=4000
 ```
 
-### Frontend build (host's build env)
+### Frontend build (Vercel project env)
 ```
 VITE_BACKEND_URL=https://<your-backend>.onrender.com/api
 VITE_SOCKET_URL=https://<your-multiplayer-host>
+# VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
+# Set it only to serve pools from an external CDN/domain instead.
 ```
 
-### Home machine (data refresh + publish) — see `backend/trivia/data_pipeline/README.md`
+### Home machine (data refresh) — see `backend/trivia/data_pipeline/README.md`
+No env vars needed for the default Vercel path — the data ships with the frontend build.
+
+**Optional — only if you publish to Cloudflare R2 instead of Vercel static:**
 ```
 R2_ACCOUNT_ID=...
 R2_BUCKET=nba-minigames
@@ -75,24 +82,26 @@ R2_PUBLIC_BASE_URL=https://data.<your-domain>        # the R2 bucket's custom do
 
 ```bash
 cd backend
-venv/Scripts/python.exe manage.py refresh_game_data            # fetch via nba_api (residential IP)
-pip install -r requirements-publish.txt                        # one-time (boto3)
-venv/Scripts/python.exe manage.py publish_game_data            # upload to R2 (needs R2_* vars)
+venv/Scripts/python.exe manage.py refresh_game_data   # fetch via nba_api (residential IP)
 ```
-Schedule weekly via Windows Task Scheduler (`backend/scripts/refresh_game_data.ps1`).
-Until R2 is set up, just commit `backend/trivia/data/` and let Render serve it.
+Then commit `backend/trivia/data/` and push. Vercel rebuilds the frontend, the build copies the
+data into `/data/`, and the new version goes live on the CDN. Schedule weekly via Windows Task
+Scheduler (`backend/scripts/refresh_game_data.ps1`).
+
+_Optional (R2 alternative): `pip install -r requirements-publish.txt` then
+`manage.py publish_game_data` to upload to R2 instead._
 
 ## Recommended activation order
 
-1. **Now / no accounts:** app already serves pools from Django + samples client-side; single
-   multiplayer instance; sqlite; Postgres leaderboard. Fully working.
-2. **Harden prod (Phase 4):** set Supabase `DATABASE_URL` + the `DJANGO_*` / CORS vars on Render;
+1. **Now / no accounts:** app serves pools as static `/data/` files (bundled at build) + samples
+   client-side; single multiplayer instance; sqlite; Postgres leaderboard. Fully working.
+2. **CDN content (Phase 2 + 3):** deploy the frontend to **Vercel** — the build bundles the game
+   data into `/data/` and `pool.ts` reads it from there, so content is served by Vercel's CDN
+   automatically. No object store or extra account. (R2 stays an optional alternative via
+   `publish_game_data` + `VITE_DATA_BASE`.)
+3. **Harden prod (Phase 4):** set Supabase `DATABASE_URL` + the `DJANGO_*` / CORS vars on Render;
    run `manage.py migrate`. Fixes DEBUG/secret/hosts.
-3. **Fix prod multiplayer (Phase 5a):** set `API_BASE_URL` + `CORS_ORIGINS` on the multiplayer host.
-4. **CDN content (Phase 2 + 3):** set up R2; run `publish_game_data`; repoint the frontend at the
-   CDN. This is a small `loadPool` refactor in `src/utils/pool.ts`: the published R2 manifest is
-   `{version, games:{key: url}}`, so read `games[key]` and fetch that URL directly instead of the
-   Django `/trivia/manifest/` + `/trivia/pool/<key>/` pair.
+4. **Fix prod multiplayer (Phase 5a):** set `API_BASE_URL` + `CORS_ORIGINS` on the multiplayer host.
 5. **Scale the leaderboard + realtime (Phase 5b):** set `REDIS_URL` (Upstash) on Django + the
    multiplayer host; run `manage.py sync_leaderboard` once to backfill.
 

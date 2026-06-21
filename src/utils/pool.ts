@@ -1,7 +1,9 @@
-import { BACKEND_ORIGIN } from "../configurations/backend";
 import type { FetchResult, GameData } from "../types/types";
 
-const TRIVIA_BASE = `${BACKEND_ORIGIN}/trivia`;
+// Game pools are served as static JSON from the same origin: the build copies
+// backend/trivia/data into the deployment, served by the CDN at /data/. Override
+// with VITE_DATA_BASE to point at an external CDN (e.g. a dedicated data domain).
+const DATA_BASE = import.meta.env.VITE_DATA_BASE || "/data";
 
 // In-memory pool cache keyed by "<gameKey>:<version>" (survives within a session).
 const memCache = new Map<string, GameData[]>();
@@ -11,7 +13,7 @@ let versionPromise: Promise<string> | null = null;
 async function getVersion(): Promise<string> {
   if (cachedVersion) return cachedVersion;
   if (!versionPromise) {
-    versionPromise = fetch(`${TRIVIA_BASE}/manifest/`)
+    versionPromise = fetch(`${DATA_BASE}/manifest.json`)
       .then((r) => {
         if (!r.ok) throw new Error(`manifest ${r.status}`);
         return r.json();
@@ -83,10 +85,11 @@ async function loadPool(gameKey: string): Promise<GameData[]> {
     }
   }
 
-  const res = await fetch(`${TRIVIA_BASE}/pool/${gameKey}/`);
+  const res = await fetch(`${DATA_BASE}/${gameKey}.json`);
   if (!res.ok) throw new Error(`pool ${gameKey} ${res.status}`);
-  const body = (await res.json()) as { pool?: GameData[] };
-  const pool = body.pool ?? [];
+  // Static files are a raw array; the Django /trivia/pool/ endpoint wraps it as { pool }.
+  const body = (await res.json()) as GameData[] | { pool?: GameData[] };
+  const pool = Array.isArray(body) ? body : body.pool ?? [];
   memCache.set(cacheKey, pool);
   try {
     localStorage.setItem(lsKey, JSON.stringify(pool));
@@ -116,9 +119,8 @@ export function sampleN<T>(pool: T[], n: number): T[] {
 
 /**
  * Fetch a game's whole pool once (cached in memory + localStorage, keyed by the
- * data version from /trivia/manifest/) and sample `rounds` items locally. Replaces
- * the per-request random API call so the pool is CDN/edge-cacheable and each play
- * needs no network round-trip.
+ * data version from the static /data/manifest.json) and sample `rounds` items locally.
+ * The pool is served from the CDN, so each play needs no network round-trip.
  */
 export async function fetchGamePool(
   gameKey: string,
