@@ -35,3 +35,9 @@ __pycache__/
 
 # Claude Code personal overrides
 .claude/settings.local.json
+
+# Generated at build from backend/trivia/data (served by the CDN at /data/)
+public/data/
+
+# Vercel
+.vercel
