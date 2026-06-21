@@ -1,7 +1,7 @@
 
 import type { Game } from "../types/types";
 import Swal from "sweetalert2";
-import { BACKEND_ORIGIN } from "../configurations/backend";
+import { fetchGamePool } from "./pool";
 import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
 import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
 import mvpBg from "../assets/Games Backrounds/mvp.jpg";
@@ -89,7 +89,7 @@ export const games: Game[] = [
     urlPath: "/series-winner",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/playoff-series/`),
+    fetchData: () => fetchGamePool("playoff", 5),
     handleError: handleErrorDefault,
   },
   {
@@ -119,7 +119,7 @@ export const games: Game[] = [
     urlPath: "/name-logo",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/name-logo/`),
+    fetchData: () => fetchGamePool("name-logo", 5),
     handleError: handleErrorDefault,
   },
   {
@@ -149,7 +149,7 @@ export const games: Game[] = [
     urlPath: "/guess-mvps",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/guess-mvps/`),
+    fetchData: () => fetchGamePool("mvps", 5),
     handleError: handleErrorDefault,
   },
   {
@@ -180,7 +180,7 @@ export const games: Game[] = [
     urlPath: "/starting-five",
     pointsPerCorrect: 10,
     maxPoints: 100,
-    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/starting-five/`),
+    fetchData: () => fetchGamePool("starting-five", 1),
     handleError: handleErrorDefault,
   },
   {
@@ -211,7 +211,7 @@ export const games: Game[] = [
     urlPath: "/wordle",
     pointsPerCorrect: 10,
     maxPoints: 500,
-    fetchData: () => fetchGameData(`${BACKEND_ORIGIN}/trivia/wordle/`),
+    fetchData: () => fetchGamePool("wordle", 1),
     handleError: handleErrorDefault,
   },
   {
