@@ -90,3 +90,30 @@ def get_wordle(request):
         return JsonResponse({'series': [random.choice(_cached_wordle_names)]}, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def _game_data_dir():
+    return getattr(
+        settings, "GAME_DATA_DIR", os.path.join(settings.BASE_DIR, "trivia", "data")
+    )
+
+
+def get_manifest(request):
+    """Serve the versioned manifest of all published pools."""
+    data = load_dataset(os.path.join(_game_data_dir(), "manifest.json"))
+    if data is None:
+        return JsonResponse(
+            {"error": "manifest not found; run: manage.py refresh_game_data"}, status=404
+        )
+    return JsonResponse(data)
+
+
+def get_pool(request, game):
+    """Serve a whole game pool so the client can randomize locally / cache it."""
+    safe = os.path.basename(game)  # block path traversal
+    data = load_dataset(os.path.join(_game_data_dir(), f"{safe}.json"))
+    if data is None:
+        return JsonResponse({"error": f"pool '{game}' not found"}, status=404)
+    return JsonResponse(
+        {"pool": data, "count": len(data) if isinstance(data, list) else None}
+    )
