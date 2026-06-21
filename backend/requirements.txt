@@ -8,6 +8,8 @@ nba_api
 requests
 google-auth
 Pillow
+# Serve static (admin/DRF) on serverless (Vercel) without a separate static host:
+whitenoise[brotli]>=6.0
 # Production database (used only when DATABASE_URL is set, e.g. Supabase Postgres):
 dj-database-url
 psycopg2-binary
