@@ -5,7 +5,12 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const gameEndpoints = require("./gameEndpoints");
 
-const CORS_ORIGINS = ["http://localhost:5173", "https://nba-trivia-minigames.online"];
+const CORS_ORIGINS = (
+  process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
+)
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 const MATCH_TIMEOUT_MS = 30000;
 
 const app = express();
@@ -189,5 +194,27 @@ io.on("connection", (socket) => {
   });
 });
 
+// Optional Redis adapter: lets multiple server instances share Socket.IO rooms/broadcasts.
+// Enable by setting REDIS_URL (e.g. Upstash). NOTE: the in-memory `rooms` / `waitingPlayers`
+// / `rematchRequests` matchmaking state is still per-instance — full multi-instance
+// matchmaking also requires moving that state into Redis (follow-up). The adapter is the
+// necessary first step and the dependencies are lazy-required, so without REDIS_URL the
+// server runs single-instance exactly as before.
+async function setupRedisAdapter() {
+  const url = process.env.REDIS_URL;
+  if (!url) return;
+  const { createAdapter } = require("@socket.io/redis-adapter");
+  const { createClient } = require("redis");
+  const pubClient = createClient({ url });
+  const subClient = pubClient.duplicate();
+  await Promise.all([pubClient.connect(), subClient.connect()]);
+  io.adapter(createAdapter(pubClient, subClient));
+  console.log("Socket.IO Redis adapter enabled");
+}
+
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+setupRedisAdapter()
+  .catch((err) => console.error("Redis adapter setup failed:", err))
+  .finally(() =>
+    server.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`)),
+  );
