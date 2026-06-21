@@ -9,7 +9,7 @@ The Socket.IO server already does server-authoritative selection: on `requestGam
 
 **Backend leaderboard (account-independent, tested):**
 - `users/leaderboard.py` — `top(n)`, `rank_of(user)`, `total()`, `record_score(user)`, `rename(old, user)`. Uses a Redis ZSET (`ZADD`/`ZREVRANGE`/`ZREVRANK`/`ZCARD`) when `REDIS_URL` is set; otherwise the **exact original Postgres queries**. `redis` is lazy-imported.
-- `users/views.py` — `get_users` delegates to the service; `update_profile` syncs the ZSET after `save()` (`record_score`, or `rename` on username change). No behavior change without Redis.
+- `users/views.py` — `get_users` delegates to the service; `update_profile` syncs the ZSET after `save()` (`record_score`, or `rename` on username change); **new accounts** (`signup_view` + `google_login`) call `record_score` on creation so the ZSET is complete and `total()`/ranks never diverge from Postgres. `total()` is ZSET-authoritative (no Postgres fallback that would hide drift). No behavior change without Redis.
 - `users/management/commands/sync_leaderboard.py` — one-shot backfill of the ZSET from Postgres.
 - `requirements.txt` — `redis` (used only when `REDIS_URL` set).
 

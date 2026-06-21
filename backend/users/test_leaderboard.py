@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 
 from users import leaderboard
 
@@ -127,3 +128,23 @@ class LeaderboardRedisTests(TestCase):
         names = [r["username"] for r in leaderboard.top(10)]
         self.assertIn("bobby", names)
         self.assertNotIn("bob", names)
+
+
+class SignupSyncsLeaderboardTests(TestCase):
+    """New accounts must enter the ZSET on creation, so total()/ranks stay consistent."""
+
+    def test_new_signup_enters_zset(self):
+        fake = FakeRedis()
+        with patch("users.leaderboard._redis", return_value=fake):
+            resp = self.client.post(
+                reverse("signup"),
+                data={
+                    "username": "dave",
+                    "email": "dave@example.com",
+                    "password": "Testpass123!",
+                },
+                content_type="application/json",
+            )
+            self.assertIn(resp.status_code, (200, 201))
+            self.assertEqual(leaderboard.total(), 1)
+            self.assertEqual([r["username"] for r in leaderboard.top(10)], ["dave"])

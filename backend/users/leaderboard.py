@@ -50,11 +50,13 @@ def rank_of(user):
 
 
 def total():
-    """Total number of ranked players."""
+    """Total number of ranked players. With Redis, the ZSET is authoritative (every
+    account is added on creation + via `sync_leaderboard`), so we don't mix in a
+    Postgres count, which would hide drift."""
     r = _redis()
     if r is None:
         return User.objects.count()
-    return r.zcard(ZKEY) or User.objects.count()
+    return r.zcard(ZKEY)
 
 
 def record_score(user):

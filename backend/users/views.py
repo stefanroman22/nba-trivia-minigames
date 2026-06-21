@@ -110,6 +110,7 @@ def signup_view(request):
             return Response({"error": "Email already in use! Please use a different email address."}, status=status.HTTP_409_CONFLICT)
 
         user = User.objects.create_user(username=username, email=email, password=password)
+        leaderboard.record_score(user)
         return auth_response(request, user, status_code=status.HTTP_201_CREATED)
 
     except Exception as e:
@@ -222,6 +223,7 @@ def google_login(request):
                 email=email,
                 password=None,
             )
+            leaderboard.record_score(user)
 
         return auth_response(request, user, new_account=new_account)
 
