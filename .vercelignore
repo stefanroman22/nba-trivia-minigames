@@ -1,9 +1,15 @@
-# Keep the Vercel upload lean. NOTE: do NOT ignore backend/trivia/data — the build
-# (npm run copy:data) reads it to publish /data/. Only the heavy, irrelevant parts:
+# Vercel deploys ONLY the Vite frontend. Strip everything that signals a Python
+# service (so Vercel doesn't try to build the Django backend as a separate service),
+# but KEEP the JSON under backend/trivia/data — the build (npm run copy:data) reads
+# it to publish /data/.
+backend/**/*.py
+backend/**/__pycache__
+backend/manage.py
+backend/requirements.txt
+backend/requirements-publish.txt
 backend/venv
 backend/staticfiles
 backend/media
 backend/db.sqlite3
-backend/**/__pycache__
 multiplayer_server
 docs
