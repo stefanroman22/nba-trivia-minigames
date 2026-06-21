@@ -1,11 +1,13 @@
 import os
 import json
 import random
-import pandas as pd
 from django.conf import settings
 from django.http import JsonResponse
-from nba_api.stats.static import teams, players
 from trivia.utils.logo_utils import logo
+
+# NOTE: pandas and nba_api are imported lazily inside the views that use them.
+# On Vercel serverless they are heavy; lazy imports keep them off the cold-start
+# boot path (only loaded when their specific endpoint is hit).
 
 PLAYOFF_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'playoff_data.json')
 STARTING_FIVE_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'starting_five_data.json')
@@ -42,6 +44,7 @@ def get_random_nba_teams(request):
     global _cached_teams
     try:
         if _cached_teams is None:
+            from nba_api.stats.static import teams
             _cached_teams = [
                 {
                     "team_id": t["id"],
@@ -58,6 +61,7 @@ def get_random_nba_teams(request):
 
 def get_mvps(request):
     try:
+        import pandas as pd
         mvp_df = pd.read_csv(MVP_DATA_PATH)
         if mvp_df.empty:
             return JsonResponse({'error': 'MVP data is empty.'}, status=500)
@@ -84,6 +88,7 @@ def get_wordle(request):
     global _cached_wordle_names
     try:
         if _cached_wordle_names is None:
+            from nba_api.stats.static import players
             _cached_wordle_names = [
                 p['last_name'] for p in players.get_players() if len(p['last_name']) == 5
             ]
