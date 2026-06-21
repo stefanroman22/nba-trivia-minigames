@@ -21,3 +21,7 @@ class PoolEndpointTests(TestCase):
 
                 missing = self.client.get(reverse("pool", args=["nope"]))
                 self.assertEqual(missing.status_code, 404)
+
+                # 'manifest' is not a pool; it must 404 (use /trivia/manifest/).
+                manifest_as_pool = self.client.get(reverse("pool", args=["manifest"]))
+                self.assertEqual(manifest_as_pool.status_code, 404)

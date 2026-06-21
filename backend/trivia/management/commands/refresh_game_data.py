@@ -1,5 +1,6 @@
 import json
 import os
+import tempfile
 from datetime import datetime, timezone
 
 from django.conf import settings
@@ -67,12 +68,16 @@ class Command(BaseCommand):
             from trivia.utils.playoff_games_utils import build_local_playoff_database
             from trivia.utils.starting_five_utils import build_starting_five_database
 
-            playoff_path = os.path.join(data_dir, "playoff.json")
-            sf_path = os.path.join(data_dir, "starting-five.json")
-            build_local_playoff_database(output_path=playoff_path, num_seasons=20)
-            build_starting_five_database(output_path=sf_path, max_games_per_season=50)
-            pools["playoff"] = _load_json(playoff_path)
-            pools["starting-five"] = _load_json(sf_path)
+            # Build live pools into a temp dir, then load into memory. Nothing is
+            # written to data_dir until ALL pools pass validation below, so a bad
+            # live fetch can never clobber the published data.
+            with tempfile.TemporaryDirectory() as tmp:
+                playoff_path = os.path.join(tmp, "playoff.json")
+                sf_path = os.path.join(tmp, "starting-five.json")
+                build_local_playoff_database(output_path=playoff_path, num_seasons=20)
+                build_starting_five_database(output_path=sf_path, max_games_per_season=50)
+                pools["playoff"] = _load_json(playoff_path)
+                pools["starting-five"] = _load_json(sf_path)
 
         problems = []
         for key, data in pools.items():

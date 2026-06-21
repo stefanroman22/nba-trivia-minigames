@@ -111,6 +111,8 @@ def get_manifest(request):
 def get_pool(request, game):
     """Serve a whole game pool so the client can randomize locally / cache it."""
     safe = os.path.basename(game)  # block path traversal
+    if safe == "manifest":
+        return JsonResponse({"error": "use /trivia/manifest/"}, status=404)
     data = load_dataset(os.path.join(_game_data_dir(), f"{safe}.json"))
     if data is None:
         return JsonResponse({"error": f"pool '{game}' not found"}, status=404)
