@@ -1,0 +1,12 @@
+{
+  "model": "opus",
+  "availableModels": [
+    "opus",
+    "sonnet",
+    "haiku"
+  ],
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
+    "CLAUDE_CODE_EFFORT_LEVEL": "high"
+  }
+}

@@ -32,3 +32,6 @@ frontend/.env
 backend/venv/
 __pycache__/
 *.pyc
+
+# Claude Code personal overrides
+.claude/settings.local.json
