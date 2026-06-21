@@ -5,8 +5,9 @@
   "type": "module",
   "proxy": "http://127.0.0.1:8000",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "copy:data": "node scripts/copy-data.mjs",
+    "dev": "npm run copy:data && vite",
+    "build": "npm run copy:data && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "engine": "node .claude/use-profile.mjs"
