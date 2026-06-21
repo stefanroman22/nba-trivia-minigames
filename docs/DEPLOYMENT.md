@@ -89,8 +89,10 @@ Until R2 is set up, just commit `backend/trivia/data/` and let Render serve it.
 2. **Harden prod (Phase 4):** set Supabase `DATABASE_URL` + the `DJANGO_*` / CORS vars on Render;
    run `manage.py migrate`. Fixes DEBUG/secret/hosts.
 3. **Fix prod multiplayer (Phase 5a):** set `API_BASE_URL` + `CORS_ORIGINS` on the multiplayer host.
-4. **CDN content (Phase 2 + 3):** set up R2; run `publish_game_data`; point the frontend's pool
-   source at the CDN manifest URL (localized change in `src/utils/pool.ts`).
+4. **CDN content (Phase 2 + 3):** set up R2; run `publish_game_data`; repoint the frontend at the
+   CDN. This is a small `loadPool` refactor in `src/utils/pool.ts`: the published R2 manifest is
+   `{version, games:{key: url}}`, so read `games[key]` and fetch that URL directly instead of the
+   Django `/trivia/manifest/` + `/trivia/pool/<key>/` pair.
 5. **Scale the leaderboard + realtime (Phase 5b):** set `REDIS_URL` (Upstash) on Django + the
    multiplayer host; run `manage.py sync_leaderboard` once to backfill.
 
