@@ -8,3 +8,6 @@ nba_api
 requests
 google-auth
 Pillow
+# Production database (used only when DATABASE_URL is set, e.g. Supabase Postgres):
+dj-database-url
+psycopg2-binary
