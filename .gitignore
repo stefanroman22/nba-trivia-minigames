@@ -32,6 +32,9 @@ frontend/.env
 backend/venv/
 __pycache__/
 *.pyc
+# Local dev database — must NOT be committed (contains password hashes + user PII)
+backend/db.sqlite3
+*.sqlite3
 
 # Claude Code personal overrides
 .claude/settings.local.json
