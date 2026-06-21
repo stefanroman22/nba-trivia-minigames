@@ -1,0 +1,9 @@
+{
+  "default": "balanced",
+  "profiles": {
+    "fast":     { "subagentModel": "haiku",  "effort": "low" },
+    "balanced": { "subagentModel": "sonnet", "effort": "high" },
+    "deep":     { "subagentModel": "opus",   "effort": "xhigh" },
+    "max":      { "subagentModel": "opus",   "effort": "max" }
+  }
+}
