@@ -39,6 +39,13 @@ ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
 _render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
 if _render_host and _render_host not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_render_host)
+# Vercel injects VERCEL_URL (host, no scheme) per deployment; trust it + all
+# *.vercel.app aliases so the backend domain need not be hardcoded.
+_vercel_url = os.environ.get("VERCEL_URL")
+if _vercel_url and _vercel_url not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(_vercel_url)
+if ".vercel.app" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(".vercel.app")
 
 
 # Application definition
@@ -59,7 +66,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",              # 1. CORS headers
-    "django.middleware.security.SecurityMiddleware",      
+    "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",         # serve static on serverless
     "django.contrib.sessions.middleware.SessionMiddleware", # 2. Required for sessions
     "django.middleware.common.CommonMiddleware",          
     "django.middleware.csrf.CsrfViewMiddleware",          
@@ -90,6 +98,14 @@ CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
     ["http://localhost:5173", "http://127.0.0.1:5173"],
 )
+# Trust the per-deployment Vercel HTTPS origin + all *.vercel.app aliases (CSRF origins
+# need a scheme, so build it from the bare VERCEL_URL host).
+if _vercel_url:
+    _vercel_origin = f"https://{_vercel_url}"
+    if _vercel_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_vercel_origin)
+if "https://*.vercel.app" not in CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS.append("https://*.vercel.app")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -189,6 +205,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Serve admin/DRF static on serverless via WhiteNoise. USE_FINDERS lets it serve
+# straight from the apps even if collectstatic didn't run; the non-manifest storage
+# won't 500 on a missing referenced asset. (Django 5.1 uses the STORAGES dict.)
+WHITENOISE_USE_FINDERS = True
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedStaticFilesStorage"},
+}
 
 # Default primary key field types
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

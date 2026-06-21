@@ -1,11 +1,14 @@
 from django.http import JsonResponse
-from nba_api.stats.static import players
+
 
 def get_all_players(request):
     """
     Returns all NBA players as JSON with their full names.
     """
     try:
+        # Lazy import: keep nba_api off the serverless cold-start boot path.
+        from nba_api.stats.static import players
+
         # Get all players (current + historical)
         all_players = players.get_players()
 
