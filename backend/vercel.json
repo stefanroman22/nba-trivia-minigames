@@ -1,10 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "python manage.py collectstatic --noinput",
-  "functions": {
-    "api/index.py": {
-      "excludeFiles": "{**/__pycache__/**,**/*.pyc,**/tests/**,**/test_*.py,media/**,db.sqlite3,.env,.env.*}"
-    }
-  },
-  "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]
+  "buildCommand": "python manage.py collectstatic --noinput"
 }
