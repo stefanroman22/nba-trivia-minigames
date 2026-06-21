@@ -33,7 +33,7 @@ class Command(BaseCommand):
         with open(local_manifest, "r", encoding="utf-8") as f:
             version = json.load(f)["version"]
 
-        public_base = os.environ.get("R2_PUBLIC_BASE_URL")
+        public_base = (os.environ.get("R2_PUBLIC_BASE_URL") or "").strip()
         if not public_base:
             raise CommandError("R2_PUBLIC_BASE_URL is not set.")
         plan = build_publish_plan(data_dir, version, public_base)
@@ -52,7 +52,8 @@ class Command(BaseCommand):
             return
 
         required = ["R2_ACCOUNT_ID", "R2_BUCKET", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY"]
-        missing = [k for k in required if not os.environ.get(k)]
+        env = {k: (os.environ.get(k) or "").strip() for k in required}
+        missing = [k for k, v in env.items() if not v]
         if missing:
             raise CommandError(f"Missing R2 env vars: {', '.join(missing)}")
 
@@ -60,12 +61,12 @@ class Command(BaseCommand):
 
         client = boto3.client(
             "s3",
-            endpoint_url=f"https://{os.environ['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
-            aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+            endpoint_url=f"https://{env['R2_ACCOUNT_ID']}.r2.cloudflarestorage.com",
+            aws_access_key_id=env["R2_ACCESS_KEY_ID"],
+            aws_secret_access_key=env["R2_SECRET_ACCESS_KEY"],
             region_name="auto",
         )
-        written = upload_plan(plan, client, os.environ["R2_BUCKET"])
+        written = upload_plan(plan, client, env["R2_BUCKET"])
         self.stdout.write(
             self.style.SUCCESS(f"Published {len(written)} objects for version {version}")
         )

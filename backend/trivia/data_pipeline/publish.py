@@ -14,6 +14,10 @@ def build_publish_plan(data_dir, version, public_base_url):
              "manifest": {"version", "games": {key: public_url}},
              "manifest_key": "manifest.json", "manifest_cache": str}.
     """
+    # NOTE: the published manifest is intentionally a DIFFERENT shape from the on-disk
+    # manifest (see manifest.py) — here games[key] is the public CDN URL string for clients
+    # to fetch. Version-prefixed paths (v/<version>/...), not content-hashed filenames, are the
+    # cache-bust key; this is safe because refresh_game_data bumps the version on every run.
     base = public_base_url.rstrip("/")
     objects = []
     games = {}
@@ -53,6 +57,10 @@ def upload_plan(plan, client, bucket):
             CacheControl=obj["cache_control"],
         )
         written.append(obj["key"])
+    # INVARIANT: write the manifest LAST, after every immutable pool object. The manifest
+    # is the version pointer clients read; writing it last means a partial pool-upload
+    # failure aborts before the pointer flips, so clients never see a version whose files
+    # aren't all present. Do NOT wrap the per-pool loop above in error-swallowing try/except.
     client.put_object(
         Bucket=bucket,
         Key=plan["manifest_key"],

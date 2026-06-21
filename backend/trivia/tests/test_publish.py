@@ -4,6 +4,7 @@ import tempfile
 from io import StringIO
 
 from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 
 from trivia.data_pipeline.publish import (
@@ -73,3 +74,19 @@ class PublishCommandDryRunTests(TestCase):
             output = out.getvalue()
             self.assertIn("v/v9/wordle.json", output)
             self.assertIn("Dry run: 7 objects for version v9", output)
+
+
+class PublishCommandErrorTests(TestCase):
+    def test_missing_manifest_errors(self):
+        with tempfile.TemporaryDirectory() as d:
+            with override_settings(GAME_DATA_DIR=d):
+                with self.assertRaises(CommandError):
+                    call_command("publish_game_data", "--dry-run")
+
+    def test_missing_public_base_url_errors(self):
+        with tempfile.TemporaryDirectory() as d:
+            with override_settings(GAME_DATA_DIR=d):
+                call_command("refresh_game_data", "--skip-live", "--label", "v1")
+                os.environ.pop("R2_PUBLIC_BASE_URL", None)
+                with self.assertRaises(CommandError):
+                    call_command("publish_game_data", "--dry-run")
