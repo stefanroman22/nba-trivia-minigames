@@ -1,0 +1,73 @@
+name: Dev CI and Promote
+
+# Triggers ONLY on pushes to dev. The promote job pushes to main, which does NOT
+# match this filter, so the workflow cannot retrigger itself.
+on:
+  push:
+    branches: [dev]
+
+concurrency:
+  group: dev-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Frontend lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  security:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Scan the WORKING TREE (current committed files) for exposed secrets/keys/tokens.
+      # --no-git avoids failing on secrets that only exist in old history (use a history
+      # purge / .gitleaks.toml allowlist for those). Runs the gitleaks binary via Docker
+      # so there is no marketplace-action license gating on a personal repo.
+      - name: Run gitleaks
+        run: |
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
+            detect --source=/repo --no-git --redact --verbose --exit-code 1
+
+  promote:
+    name: Promote dev to main
+    needs: [lint, security]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Merge dev into main and push
+        run: |
+          set -euo pipefail
+          git fetch origin main dev
+          git checkout -B main origin/main
+          if git merge --ff-only origin/dev; then
+            echo "Fast-forwarded main to dev."
+          else
+            echo "Fast-forward not possible; creating a merge commit."
+            git merge --no-ff origin/dev -m "Auto-merge dev into main [skip ci]"
+          fi
+          git push origin main
