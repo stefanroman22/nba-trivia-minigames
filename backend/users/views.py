@@ -13,6 +13,8 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
+from users import leaderboard
+
 User = get_user_model()
 
 GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")
@@ -134,11 +136,14 @@ def update_profile(request):
         username = request.data.get("username")
         points = request.data.get("points")
         updated = False
+        old_username = user.username
+        username_changed = False
 
         if username and username != user.username:
             if User.objects.filter(username=username).exists():
                 return Response({"error": "Username already in use!"}, status=status.HTTP_409_CONFLICT)
             user.username = username
+            username_changed = True
             updated = True
 
         if points is not None:
@@ -148,6 +153,10 @@ def update_profile(request):
 
         if updated:
             user.save()
+            if username_changed:
+                leaderboard.rename(old_username, user)
+            else:
+                leaderboard.record_score(user)
             return Response({"status": "success"}, status=status.HTTP_200_OK)
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -223,14 +232,16 @@ def google_login(request):
 @api_view(['GET'])
 def get_users(request):
     try:
-        user_rank = None
-        if request.user.is_authenticated:
-            user_rank = User.objects.filter(points__gt=request.user.points).count() + 1
+        user_rank = (
+            leaderboard.rank_of(request.user)
+            if request.user.is_authenticated
+            else None
+        )
         return Response(
             {
-                "top_100_users": list(User.objects.order_by("-points")[:100].values("username", "points")),
+                "top_100_users": leaderboard.top(100),
                 "user_rank": user_rank,
-                "number_users": User.objects.count(),
+                "number_users": leaderboard.total(),
             },
             status=200,
         )
