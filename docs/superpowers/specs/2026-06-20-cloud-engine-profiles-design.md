@@ -142,7 +142,9 @@ Works once the repo is on GitHub with `.claude/` committed. The `env` block appl
 No extra files. `.claude/README.md` documents opening the repo at claude.ai/code.
 
 ### 7.3 GitHub Actions — `.github/workflows/claude.yml`
-- Triggers: `issue_comment` (`@claude`) and `pull_request`.
+- Triggers: `issue_comment` and `pull_request_review_comment`, gated on an `@claude` mention
+  (mention-driven; deliberately no run on bare PR pushes — `claude-code-action@v1` no-ops without
+  a prompt, so an unconditional `pull_request` trigger would only burn Actions minutes).
 - A pre-step reads `CLAUDE_CODE_SUBAGENT_MODEL` and `CLAUDE_CODE_EFFORT_LEVEL` out of
   `.claude/settings.json` (via `node -e`) and exports them to the job `env`, and passes effort to
   `claude_args`. This keeps the workflow on the **same single source of truth** — flip the profile,

@@ -1,19 +1,17 @@
 name: Claude Code
 
+# Mention-driven: comment "@claude ..." on a PR or issue to run the agent.
+# The active engine profile (subagent model + reasoning effort) is read from
+# .claude/settings.json so CI honors the same switch as local/web/routines.
 on:
   issue_comment:
     types: [created]
   pull_request_review_comment:
     types: [created]
-  pull_request:
-    types: [opened, synchronize]
 
 jobs:
   claude:
-    if: |
-      github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-      (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude'))
+    if: contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -26,8 +24,8 @@ jobs:
         id: profile
         run: |
           MAIN=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).model || 'opus')")
-          MODEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).env.CLAUDE_CODE_SUBAGENT_MODEL || 'sonnet')")
-          EFFORT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).env.CLAUDE_CODE_EFFORT_LEVEL || 'high')")
+          MODEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).env?.CLAUDE_CODE_SUBAGENT_MODEL || 'sonnet')")
+          EFFORT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).env?.CLAUDE_CODE_EFFORT_LEVEL || 'high')")
           echo "main_model=$MAIN" >> "$GITHUB_OUTPUT"
           echo "subagent_model=$MODEL" >> "$GITHUB_OUTPUT"
           echo "effort=$EFFORT" >> "$GITHUB_OUTPUT"
@@ -36,7 +34,7 @@ jobs:
       - uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          claude_args: --model ${{ steps.profile.outputs.main_model }} --effort ${{ steps.profile.outputs.effort }}
+          claude_args: --model ${{ steps.profile.outputs.main_model }}
         env:
           CLAUDE_CODE_SUBAGENT_MODEL: ${{ steps.profile.outputs.subagent_model }}
           CLAUDE_CODE_EFFORT_LEVEL: ${{ steps.profile.outputs.effort }}
