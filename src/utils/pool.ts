@@ -39,8 +39,33 @@ function pruneOldVersions(gameKey: string, keep: string): void {
   }
 }
 
+// Return any cached pool for a game (we prune to at most one version). Used as a
+// graceful-staleness fallback when the manifest can't be fetched.
+function cachedPool(gameKey: string): GameData[] | null {
+  const prefix = `pool:${gameKey}:`;
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(prefix)) {
+      try {
+        return JSON.parse(localStorage.getItem(k) as string) as GameData[];
+      } catch {
+        localStorage.removeItem(k);
+      }
+    }
+  }
+  return null;
+}
+
 async function loadPool(gameKey: string): Promise<GameData[]> {
-  const version = await getVersion();
+  let version: string;
+  try {
+    version = await getVersion();
+  } catch (err) {
+    // Manifest unreachable — serve the last cached pool for this game if we have one.
+    const stale = cachedPool(gameKey);
+    if (stale) return stale;
+    throw err;
+  }
   const cacheKey = `${gameKey}:${version}`;
 
   const inMem = memCache.get(cacheKey);

@@ -74,6 +74,10 @@ Up until now this code version supports: Log-in, sign-up for users so they can t
 
 ##  How to Run the Project Locally
 
+> **Deploying / scaling?** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full activation
+> runbook (CDN content, Postgres, Redis, env vars) and
+> [backend/trivia/data_pipeline/README.md](backend/trivia/data_pipeline/README.md) for the weekly data refresh.
+
 The app has three parts, each in its own terminal: the **Django API** (port 8000),
 the **Socket.IO multiplayer server** (port 4000), and the **Vite + React frontend**
 (port 5173). Requires Node.js and Python 3.10+.
