@@ -49,9 +49,13 @@ async function loadPool(gameKey: string): Promise<GameData[]> {
   const lsKey = `pool:${cacheKey}`;
   const stored = localStorage.getItem(lsKey);
   if (stored) {
-    const parsed = JSON.parse(stored) as GameData[];
-    memCache.set(cacheKey, parsed);
-    return parsed;
+    try {
+      const parsed = JSON.parse(stored) as GameData[];
+      memCache.set(cacheKey, parsed);
+      return parsed;
+    } catch {
+      localStorage.removeItem(lsKey); // drop a corrupt entry and fall through to a refetch
+    }
   }
 
   const res = await fetch(`${TRIVIA_BASE}/pool/${gameKey}/`);
