@@ -59,15 +59,17 @@ target (Supabase) and serving (Vercel) are cloud. The fetch runs on a home machi
 
 ## The schedule (autonomous)
 
-Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.ps1`
+Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.cmd`
 monthly (1st, 04:00). It: sync → regenerate pools → commit/push to `dev`
-(CI promotes to `main`) → `vercel deploy` to publish the pools.
+(CI promotes to `main`) → `vercel deploy` to publish the pools. (A `.ps1`
+equivalent exists too, but the task uses the `.cmd` — more reliable under Task
+Scheduler. Verified end-to-end on 2026-06-22.)
 
 `DATABASE_URL` is read from the gitignored `backend/.env` (no secret in the repo).
 
 ```powershell
 # Run it on demand:
-powershell -ExecutionPolicy Bypass -File backend\scripts\refresh_nba_data.ps1
+backend\scripts\refresh_nba_data.cmd
 # Inspect / change / remove the schedule:
 schtasks /Query  /TN "NBA Data Refresh" /V /FO LIST
 schtasks /Change /TN "NBA Data Refresh" /SC WEEKLY /D MON     # e.g. weekly instead
