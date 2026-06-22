@@ -21,7 +21,10 @@ Start-Transcript -Path (Join-Path $logDir "last_refresh.log") -Force | Out-Null
 try {
     Set-Location $backend
     Write-Host "=== [1/4] sync_nba_data (NBA API -> Supabase) ==="
-    & $py manage.py sync_nba_data
+    # Routine refresh: live players + last 2 seasons of playoff/starting-five + teams + mvps.
+    # Non-destructive upsert keeps the full backfilled history; --max-games keeps the
+    # box-score-heavy starting-five fetch light; --timeout cushions occasional throttling.
+    & $py manage.py sync_nba_data --max-games 20 --timeout 20
 
     Write-Host "=== [2/4] build_pools_from_db (Supabase -> /data/) ==="
     & $py manage.py build_pools_from_db
