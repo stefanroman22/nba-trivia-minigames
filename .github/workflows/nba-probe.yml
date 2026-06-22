@@ -1,0 +1,29 @@
+name: NBA API reachability probe (temporary)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install nba_api
+        run: pip install nba_api
+      - name: Probe stats.nba.com from GitHub Actions (datacenter IP)
+        run: |
+          python - <<'PY'
+          import time
+          t0 = time.time()
+          ok = False
+          try:
+              from nba_api.stats.endpoints import CommonPlayoffSeries
+              df = CommonPlayoffSeries(season="2024-25", timeout=20).get_data_frames()[0]
+              print(f"SUCCESS: CommonPlayoffSeries returned {len(df)} rows in {time.time()-t0:.1f}s")
+              ok = True
+          except Exception as e:
+              print(f"FAILED after {time.time()-t0:.1f}s: {type(e).__name__}: {str(e)[:200]}")
+          print("REACHABLE" if ok else "BLOCKED_OR_TIMEOUT")
+          PY
