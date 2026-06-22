@@ -1,21 +1,18 @@
 from django.http import JsonResponse
 
+from trivia.models import Player
+
 
 def get_all_players(request):
-    """
-    Returns all NBA players as JSON with their full names.
-    """
+    """Returns all NBA player full names from the central store (fallback: bundled list)."""
     try:
-        # Lazy import: keep nba_api off the serverless cold-start boot path.
+        names = list(Player.objects.values_list("full_name", flat=True))
+        if names:
+            return JsonResponse({"players": names})
+
+        # Fallback: bundled static list (lazy import keeps nba_api off cold start).
         from nba_api.stats.static import players
 
-        # Get all players (current + historical)
-        all_players = players.get_players()
-
-        # Extract full names
-        player_names = [player['full_name'] for player in all_players]
-
-        return JsonResponse({'players': player_names})
-
+        return JsonResponse({"players": [p["full_name"] for p in players.get_players()]})
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        return JsonResponse({"error": str(e)}, status=500)

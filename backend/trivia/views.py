@@ -2,18 +2,23 @@ import os
 import json
 import random
 from django.conf import settings
+from django.db.models.functions import Length
 from django.http import JsonResponse
+
+from trivia.models import Mvp, Player, PlayoffSeries, StartingFiveGame, Team
 from trivia.utils.logo_utils import logo
 
-# NOTE: pandas and nba_api are imported lazily inside the views that use them.
-# On Vercel serverless they are heavy; lazy imports keep them off the cold-start
-# boot path (only loaded when their specific endpoint is hit).
+# Games read from the central Supabase store (populated by `sync_nba_data`). Each
+# endpoint falls back to the bundled JSON/CSV/static source if its table is empty
+# or the DB is unreachable, so players never receive an error or stale-empty pool.
+#
+# NOTE: pandas and nba_api are imported lazily inside the fallbacks that use them.
 
 PLAYOFF_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'playoff_data.json')
 STARTING_FIVE_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'starting_five_data.json')
 MVP_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'nba_mvps.csv')
 
-# In-memory cache for the pre-generated datasets (each file is read from disk once).
+# In-memory cache for the fallback datasets (each file is read from disk once).
 _dataset_cache = {}
 
 
@@ -27,13 +32,32 @@ def load_dataset(path):
     return _dataset_cache[path]
 
 
+def _playoff_row(s):
+    """Serialize a PlayoffSeries, randomizing which side is team_a/team_b."""
+    winner = (s.winner_name, s.winner_abbreviation, s.winner_team_id, s.total_games - s.loser_wins)
+    loser = (s.loser_name, s.loser_abbreviation, s.loser_team_id, s.loser_wins)
+    a, b = (winner, loser) if random.choice([True, False]) else (loser, winner)
+    return {
+        'season': s.season,
+        'team_a': a[0], 'team_b': b[0],
+        'team_a_abbreviation': a[1], 'team_b_abbreviation': b[1],
+        'team_a_logo': logo(a[2]), 'team_b_logo': logo(b[2]),
+        'team_a_wins': a[3], 'team_b_wins': b[3],
+        'winner': s.winner_name,
+        'round': s.round,
+        'match_id': s.series_id,
+        'total_games': s.total_games,
+    }
+
+
 def get_random_playoff_series(request):
+    qs = list(PlayoffSeries.objects.order_by('?')[:5])
+    if qs:
+        return JsonResponse({'series': [_playoff_row(s) for s in qs]})
+    # Fallback: bundled JSON (already in the team_a/team_b shape).
     data = load_dataset(PLAYOFF_DATA_PATH)
-    if data is None:
-        return JsonResponse(
-            {'error': f'Data file not found at {PLAYOFF_DATA_PATH}. Run the data generation script first.'},
-            status=500,
-        )
+    if not data:
+        return JsonResponse({'error': 'No playoff data available.'}, status=500)
     return JsonResponse({'series': random.sample(data, min(5, len(data)))})
 
 
@@ -43,24 +67,35 @@ _cached_teams = None
 def get_random_nba_teams(request):
     global _cached_teams
     try:
-        if _cached_teams is None:
-            from nba_api.stats.static import teams
-            _cached_teams = [
-                {
-                    "team_id": t["id"],
-                    "full_name": t["full_name"],
-                    "abbreviation": t["abbreviation"],
-                    "logo": logo(t["id"]),
-                }
-                for t in teams.get_teams()
+        qs = list(Team.objects.all())
+        if qs:
+            pool = [
+                {"team_id": t.team_id, "full_name": t.full_name,
+                 "abbreviation": t.abbreviation, "logo": t.logo or logo(t.team_id)}
+                for t in qs
             ]
-        return JsonResponse({"series": random.sample(_cached_teams, min(5, len(_cached_teams)))})
+        else:
+            if _cached_teams is None:
+                from nba_api.stats.static import teams
+                _cached_teams = [
+                    {"team_id": t["id"], "full_name": t["full_name"],
+                     "abbreviation": t["abbreviation"], "logo": logo(t["id"])}
+                    for t in teams.get_teams()
+                ]
+            pool = _cached_teams
+        return JsonResponse({"series": random.sample(pool, min(5, len(pool)))})
     except Exception as e:
         return JsonResponse({"error": str(e), "message": "Error fetching NBA team logos"}, status=500)
 
 
 def get_mvps(request):
     try:
+        qs = list(Mvp.objects.order_by('?')[:5])
+        if qs:
+            return JsonResponse({'series': [
+                {'season': m.season, 'mvp': m.mvp, 'team': m.team, 'team_logo_url': m.team_logo_url}
+                for m in qs
+            ]})
         import pandas as pd
         mvp_df = pd.read_csv(MVP_DATA_PATH)
         if mvp_df.empty:
@@ -71,13 +106,24 @@ def get_mvps(request):
         return JsonResponse({'error': str(e), 'message': "Error fetching MVP data"}, status=500)
 
 
+def _starting_five_row(g):
+    return {
+        'game_id': g.game_id, 'game_date': g.game_date,
+        'team_a': g.team_a, 'team_b': g.team_b,
+        'team_a_logo': g.team_a_logo, 'team_b_logo': g.team_b_logo,
+        'final_score': g.final_score, 'winning_team': g.winning_team,
+        'starting_5': g.starting_5,
+    }
+
+
 def get_starting_five(request):
-    """Return a random game with its starting five from the pre-generated dataset."""
+    """Return a random game with its starting five."""
+    g = StartingFiveGame.objects.order_by('?').first()
+    if g:
+        return JsonResponse({"series": [_starting_five_row(g)]})
     data = load_dataset(STARTING_FIVE_DATA_PATH)
-    if data is None:
-        return JsonResponse({'error': 'Data file not found. Run the data generation script first.'}, status=500)
     if not data:
-        return JsonResponse({'error': 'No games available in the local dataset.'}, status=404)
+        return JsonResponse({'error': 'No games available.'}, status=404)
     return JsonResponse({"series": [random.choice(data)]})
 
 
@@ -87,10 +133,16 @@ _cached_wordle_names = None
 def get_wordle(request):
     global _cached_wordle_names
     try:
+        p = (
+            Player.objects.annotate(ln=Length('last_name')).filter(ln=5)
+            .order_by('?').values_list('last_name', flat=True).first()
+        )
+        if p:
+            return JsonResponse({'series': [p]}, status=200)
         if _cached_wordle_names is None:
             from nba_api.stats.static import players
             _cached_wordle_names = [
-                p['last_name'] for p in players.get_players() if len(p['last_name']) == 5
+                pl['last_name'] for pl in players.get_players() if len(pl['last_name']) == 5
             ]
         return JsonResponse({'series': [random.choice(_cached_wordle_names)]}, status=200)
     except Exception as e:
@@ -108,7 +160,7 @@ def get_manifest(request):
     data = load_dataset(os.path.join(_game_data_dir(), "manifest.json"))
     if data is None:
         return JsonResponse(
-            {"error": "manifest not found; run: manage.py refresh_game_data"}, status=404
+            {"error": "manifest not found; run: manage.py build_pools_from_db"}, status=404
         )
     return JsonResponse(data)
 
