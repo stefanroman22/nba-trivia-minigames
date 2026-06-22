@@ -3,7 +3,7 @@
   "games": {
     "all-players": {
       "file": "all-players.json",
-      "sha256": "c4859cc8adc4dab0290f118859547217b65ce753fa95a4491cd349e1b8b9cefb",
+      "sha256": "7328e20c17235dd6fe5dee53fddbc7a38b23f54c57784d5a45543dfaf0358f6d",
       "count": 5126
     },
     "mvps": {
@@ -18,13 +18,13 @@
     },
     "playoff": {
       "file": "playoff.json",
-      "sha256": "a7377050fed16f8fca256884c199a31c1a7522c25f8fe0bfd4b537252e7818cf",
+      "sha256": "42c5e6b7d03a1794788233e0043ae13815552deb81b8cb7fda5332d7eca552c9",
       "count": 912
     },
     "starting-five": {
       "file": "starting-five.json",
-      "sha256": "892559baf14f5ffc906f4899ca0c8a1991c1ca755a1a2856116b92471985a06b",
-      "count": 578
+      "sha256": "802b847f3efac31d36aaece3edec89e5891b345ff87d77229739d49795315a12",
+      "count": 600
     },
     "wordle": {
       "file": "wordle.json",
