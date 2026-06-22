@@ -7,6 +7,28 @@ it (sqlite, in-memory cache, static `/data/` pools, single multiplayer instance)
 
 Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-design.md`.
 
+## Current live state
+
+| Piece | Status | Where |
+|---|---|---|
+| Django API (auth, leaderboard, game data) | **LIVE** | Vercel serverless — `https://backend-kappa-one-42.vercel.app` |
+| User database | **LIVE** | Supabase Postgres (migrated; signup/login/leaderboard verified) |
+| Frontend + game content | **LIVE** | Vercel CDN (`/data/` pools) |
+| Multiplayer ("Play Online") | **Not yet hosted** | needs a persistent Node host (see note) |
+
+**Supabase connection (important):** the project's *direct* host `db.<ref>.supabase.co` is
+**IPv6-only and unreachable from Vercel (IPv4)**. You must use the **session pooler**:
+```
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
+```
+(region `eu-central-1`, `aws-1` prefix, user `postgres.<ref>`). This URL is set on the backend
+Vercel project; `vercel.json`'s `buildCommand` runs `migrate` on each deploy.
+
+**Multiplayer note:** Vercel serverless functions are short-lived and can't hold the persistent
+WebSocket connections / in-memory room state Socket.IO needs, so the multiplayer server in
+`multiplayer_server/` must run on a small always-on Node host (Railway/Render/Fly). Once deployed,
+set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the host) and redeploy.
+
 ## The two lanes (why this scales)
 
 - **Game content** — tiny (<1 MB), identical for everyone, changes weekly. Built off-cloud,
@@ -19,8 +41,8 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 | Service | Runs on | Repo location |
 |---|---|---|
 | Frontend + game content | **Vercel** (serves the app *and* the game-data JSON at `/data/` from its CDN) | repo root `src/` |
-| Django API | Render web service | `backend/` |
-| Multiplayer (Socket.IO) | Render / any Node host | `multiplayer_server/` |
+| Django API | **Vercel** (serverless, Django auto-detected) | `backend/` |
+| Multiplayer (Socket.IO) | small always-on Node host (Railway/Render/Fly — **not** Vercel) | `multiplayer_server/` |
 | Data refresh | **Your home machine** (residential IP) | `backend/` management commands |
 
 > The NBA blocks data-center IPs, so the data **refresh** must run from home. The cloud only
@@ -37,14 +59,14 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 
 ## Environment variables by service
 
-### Django API (Render) — see `backend/.env.example`
+### Django API (Vercel) — see `backend/.env.example`
 ```
 DJANGO_SECRET_KEY=<long random secret>
 DJANGO_DEBUG=False
-DJANGO_ALLOWED_HOSTS=<your-backend>.onrender.com      # RENDER_EXTERNAL_HOSTNAME is auto-added
+DJANGO_ALLOWED_HOSTS=<your-backend>.vercel.app         # *.vercel.app + VERCEL_URL are auto-trusted
 CORS_ALLOWED_ORIGINS=https://<your-frontend-domain>
 CSRF_TRUSTED_ORIGINS=https://<your-frontend-domain>
-DATABASE_URL=postgresql://USER:PASSWORD@HOST:5432/postgres   # Supabase (unset -> sqlite)
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres   # MUST be the Supabase POOLER, not the IPv6 direct host (unset -> sqlite)
 REDIS_URL=rediss://...                                       # Upstash (unset -> Postgres leaderboard)
 CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
@@ -52,7 +74,7 @@ CLIENT_SECRET=...
 
 ### Multiplayer server (Render / Node host)
 ```
-API_BASE_URL=https://<your-backend>.onrender.com     # REQUIRED in prod (else it tries localhost)
+API_BASE_URL=https://backend-kappa-one-42.vercel.app # REQUIRED in prod (else it tries localhost)
 CORS_ORIGINS=http://localhost:5173,https://<your-frontend-domain>
 REDIS_URL=rediss://...                               # optional: enables the Socket.IO adapter
 PORT=4000
@@ -60,8 +82,8 @@ PORT=4000
 
 ### Frontend build (Vercel project env)
 ```
-VITE_BACKEND_URL=https://<your-backend>.onrender.com/api
-VITE_SOCKET_URL=https://<your-multiplayer-host>
+VITE_BACKEND_URL=https://backend-kappa-one-42.vercel.app/api
+VITE_SOCKET_URL=https://<your-multiplayer-host>     # set once the Node host is deployed
 # VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
 # Set it only to serve pools from an external CDN/domain instead.
 ```
@@ -99,9 +121,10 @@ _Optional (R2 alternative): `pip install -r requirements-publish.txt` then
    data into `/data/` and `pool.ts` reads it from there, so content is served by Vercel's CDN
    automatically. No object store or extra account. (R2 stays an optional alternative via
    `publish_game_data` + `VITE_DATA_BASE`.)
-3. **Harden prod (Phase 4):** set Supabase `DATABASE_URL` + the `DJANGO_*` / CORS vars on Render;
-   run `manage.py migrate`. Fixes DEBUG/secret/hosts.
-4. **Fix prod multiplayer (Phase 5a):** set `API_BASE_URL` + `CORS_ORIGINS` on the multiplayer host.
+3. **Harden prod (Phase 4) — DONE:** Supabase `DATABASE_URL` (pooler) + `DJANGO_*` / CORS vars are
+   set on the Vercel backend project; `migrate` runs in the build. Auth + leaderboard verified live.
+4. **Fix prod multiplayer (Phase 5a) — PENDING host:** deploy `multiplayer_server/` to an always-on
+   Node host, then set `API_BASE_URL` + `CORS_ORIGINS` on it and `VITE_SOCKET_URL` on the frontend.
 5. **Scale the leaderboard + realtime (Phase 5b):** set `REDIS_URL` (Upstash) on Django + the
    multiplayer host; run `manage.py sync_leaderboard` once to backfill.
 
