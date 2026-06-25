@@ -1,15 +1,15 @@
 {
-  "version": "2026-06-22",
+  "version": "2026-06-25",
   "games": {
     "all-players": {
       "file": "all-players.json",
-      "sha256": "7328e20c17235dd6fe5dee53fddbc7a38b23f54c57784d5a45543dfaf0358f6d",
-      "count": 5126
+      "sha256": "c3f852c449a5f860acef6e4075fae147b90778d7f87db85e8d10798b20881798",
+      "count": 5186
     },
     "mvps": {
       "file": "mvps.json",
-      "sha256": "f5d14b904e31c9a295cc5bfa2236d703816368c07de4d3c08a826e25ee6c290a",
-      "count": 70
+      "sha256": "7a616c739470ac16751fc9ee60d5d5ba3ee76e434b7a152fa8ceac2c4ed82c61",
+      "count": 71
     },
     "name-logo": {
       "file": "name-logo.json",
@@ -18,7 +18,7 @@
     },
     "playoff": {
       "file": "playoff.json",
-      "sha256": "42c5e6b7d03a1794788233e0043ae13815552deb81b8cb7fda5332d7eca552c9",
+      "sha256": "544f45d5663d8c076f538ba29a597a62684e52fdf16c2b699aad815bdfe3cf86",
       "count": 912
     },
     "starting-five": {
@@ -28,8 +28,8 @@
     },
     "wordle": {
       "file": "wordle.json",
-      "sha256": "fa48ed5a6e852ffe60f8e31d8faf068f52694d274e64a318f8788101c51ecc88",
-      "count": 1049
+      "sha256": "802482ce2bf46bebbe75eb879296dd73ef7929eb626e195f1b062e2608b05181",
+      "count": 526
     }
   }
 }
