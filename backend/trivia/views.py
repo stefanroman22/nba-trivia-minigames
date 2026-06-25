@@ -7,6 +7,7 @@ from django.http import JsonResponse
 
 from trivia.models import Mvp, Player, PlayoffSeries, StartingFiveGame, Team
 from trivia.utils.logo_utils import logo
+from trivia.utils.text_utils import wordle_word
 
 # Games read from the central Supabase store (populated by `sync_nba_data`). Each
 # endpoint falls back to the bundled JSON/CSV/static source if its table is empty
@@ -133,18 +134,23 @@ _cached_wordle_names = None
 def get_wordle(request):
     global _cached_wordle_names
     try:
-        p = (
+        # Sample a few random 5-letter surnames; return the first that cleans to
+        # exactly five ASCII letters (accents stripped, e.g. Jokić -> Jokic).
+        for ln in (
             Player.objects.annotate(ln=Length('last_name')).filter(ln=5)
-            .order_by('?').values_list('last_name', flat=True).first()
-        )
-        if p:
-            return JsonResponse({'series': [p]}, status=200)
+            .order_by('?').values_list('last_name', flat=True)[:20]
+        ):
+            w = wordle_word(ln)
+            if w:
+                return JsonResponse({'series': [w]}, status=200)
         if _cached_wordle_names is None:
             from nba_api.stats.static import players
             _cached_wordle_names = [
-                pl['last_name'] for pl in players.get_players() if len(pl['last_name']) == 5
+                w for pl in players.get_players() if (w := wordle_word(pl['last_name']))
             ]
-        return JsonResponse({'series': [random.choice(_cached_wordle_names)]}, status=200)
+        if _cached_wordle_names:
+            return JsonResponse({'series': [random.choice(_cached_wordle_names)]}, status=200)
+        return JsonResponse({'error': 'no wordle words available'}, status=500)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

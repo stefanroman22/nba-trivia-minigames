@@ -16,12 +16,11 @@ from datetime import datetime, timezone
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
-from django.db.models.functions import Length
-
 from trivia.data_pipeline.manifest import build_manifest
 from trivia.data_pipeline.validate import validate_pool
 from trivia.models import Mvp, Player, PlayoffSeries, StartingFiveGame, Team
 from trivia.utils.logo_utils import logo
+from trivia.utils.text_utils import wordle_word
 
 
 def _data_dir():
@@ -41,10 +40,13 @@ def build_all_players():
 
 
 def build_wordle():
-    return list(
-        Player.objects.annotate(ln=Length("last_name")).filter(ln=5)
-        .values_list("last_name", flat=True)
-    )
+    # Clean, de-duplicated 5-letter ASCII surnames (accents stripped, e.g. Jokić->Jokic).
+    words = set()
+    for ln in Player.objects.values_list("last_name", flat=True):
+        w = wordle_word(ln)
+        if w:
+            words.add(w)
+    return sorted(words)
 
 
 def build_mvps():

@@ -11,12 +11,14 @@ import time
 
 from trivia.utils.logo_utils import logo
 
-ROUND_MAP = {
-    "1": "First Round",
-    "2": "Conference Semifinals",
-    "3": "Conference Finals",
-    "4": "NBA Finals",
-}
+
+def current_season():
+    """Most-recent NBA season label, e.g. '2025-26' (rolls over each October)."""
+    from datetime import datetime
+
+    now = datetime.now()
+    start = now.year if now.month >= 10 else now.year - 1
+    return f"{start}-{str(start + 1)[-2:]}"
 
 
 def retry(fn, *, attempts=4, base_delay=1.5, label=""):
@@ -68,8 +70,13 @@ def fetch_teams():
 # ---------------------------------------------------------------------------
 #  Players  (LIVE CommonAllPlayers, all-time; falls back to bundled static)
 # ---------------------------------------------------------------------------
-def fetch_players(season="2025-26", per_call_timeout=20):
-    """All players (historical + active) with roster status, freshest available."""
+def fetch_players(season=None, per_call_timeout=20):
+    """All players (historical + active) with roster status, freshest available.
+
+    Uses the current season so new draftees/signings are picked up (roster status
+    is computed for that season); the all-time list itself includes everyone.
+    """
+    season = season or current_season()
     try:
         def _call():
             from nba_api.stats.endpoints import CommonAllPlayers
@@ -129,21 +136,55 @@ def fetch_players(season="2025-26", per_call_timeout=20):
 
 
 # ---------------------------------------------------------------------------
-#  Playoff series  (CommonPlayoffSeries + LeagueGameLog, stored canonically)
+#  Playoff series  (derived entirely from the playoff game log)
 # ---------------------------------------------------------------------------
+def _reconstruct_rounds(series):
+    """Assign a round label to every series by reconstructing the bracket.
+
+    The Finals is the series whose clinching game is latest; each team entered a
+    series by winning its previous (earlier) series, so we walk backward from the
+    Finals assigning increasing depth (0 = Finals). Era-independent, and never
+    yields "Unknown". `series` items have: teams(frozenset), winner_id, latest(date).
+    """
+    n = len(series)
+    by_date = sorted(range(n), key=lambda i: series[i]["latest"])
+    tser = {}  # team_id -> sorted [(date, series_index)]
+    for i, s in enumerate(series):
+        for t in s["teams"]:
+            tser.setdefault(t, []).append((s["latest"], i))
+    for t in tser:
+        tser[t].sort()
+
+    depth = {by_date[-1]: 0}  # latest-clinching series = Finals
+    for i in reversed(by_date):  # latest -> earliest
+        if i not in depth:
+            continue
+        for t in series[i]["teams"]:
+            prev = None
+            for _, j in tser[t]:
+                if j == i:
+                    break
+                if series[j]["winner_id"] == t:
+                    prev = j  # latest earlier series this team won = its feeder
+            if prev is not None and prev not in depth:
+                depth[prev] = depth[i] + 1
+
+    labels = {0: "NBA Finals", 1: "Conference Finals", 2: "Conference Semifinals", 3: "First Round"}
+    return {i: labels.get(depth.get(i, 99), "First Round") for i in range(n)}
+
+
 def _fetch_playoff_season(season, per_call_timeout=15):
     """All completed playoff series for a season, derived from the playoff game log.
 
     Games are grouped into team-vs-team matchups (two teams meet exactly once per
-    playoff), which captures every series in every era (best-of-3/5/7). Keying on
-    CommonPlayoffSeries.SERIES_ID instead drops series for older seasons because
-    its GAME_IDs don't align with the game log. Team names come straight from the
-    log (historically accurate, incl. relocated/defunct franchises); round labels
-    are a best-effort lookup from CommonPlayoffSeries.
+    playoff), capturing every series in every era (best-of-3/5/7). Team names come
+    straight from the log (historically accurate, incl. relocated/defunct teams);
+    round labels come from bracket reconstruction (see _reconstruct_rounds) — no
+    "Unknown" and no dependency on CommonPlayoffSeries' unaligned GAME_IDs.
     """
     from collections import defaultdict
 
-    from nba_api.stats.endpoints import CommonPlayoffSeries, LeagueGameLog
+    from nba_api.stats.endpoints import LeagueGameLog
 
     log = retry(
         lambda: LeagueGameLog(
@@ -154,68 +195,61 @@ def _fetch_playoff_season(season, per_call_timeout=15):
     if log.empty:
         return []
 
-    # Best-effort GAME_ID -> round label.
-    game_round = {}
-    try:
-        ps = retry(
-            lambda: CommonPlayoffSeries(season=season, timeout=per_call_timeout).get_data_frames()[0],
-            label=f"PlayoffSeries {season}",
-        )
-        for _, r in ps.iterrows():
-            sid = str(r["SERIES_ID"])
-            game_round[str(r["GAME_ID"])] = ROUND_MAP.get(sid[7] if len(sid) > 7 else "", "Unknown")
-    except Exception:  # noqa: BLE001 - round label is optional
-        pass
-
     games = defaultdict(list)
-    for _, r in log[["GAME_ID", "TEAM_ID", "TEAM_ABBREVIATION", "TEAM_NAME", "WL"]].iterrows():
+    for _, r in log[["GAME_ID", "TEAM_ID", "TEAM_ABBREVIATION", "TEAM_NAME", "WL", "GAME_DATE"]].iterrows():
         games[str(r["GAME_ID"])].append(r)
 
-    matchups = {}  # frozenset(team_ids) -> {team_id: wins}
-    info = {}      # team_id -> (abbreviation, name)
-    rounds = {}    # frozenset -> round label
-    for gid, rows in games.items():
+    # frozenset(team_ids) -> {"wins": {tid: n}, "latest": date, "info": {tid: (abbr, name)}}
+    matchups = {}
+    for rows in games.values():
         tids = {int(rr["TEAM_ID"]) for rr in rows}
         if len(tids) != 2:
             continue
-        key = frozenset(tids)
-        m = matchups.setdefault(key, {})
+        m = matchups.setdefault(frozenset(tids), {"wins": {}, "latest": "", "info": {}})
         for rr in rows:
             tid = int(rr["TEAM_ID"])
-            info[tid] = (rr["TEAM_ABBREVIATION"] or "", rr["TEAM_NAME"] or "")
-            m.setdefault(tid, 0)  # ensure both teams present (so sweeps count)
+            m["info"][tid] = (rr["TEAM_ABBREVIATION"] or "", rr["TEAM_NAME"] or "")
+            m["wins"].setdefault(tid, 0)  # ensure both teams present (so sweeps count)
             if rr["WL"] == "W":
-                m[tid] += 1
-        if key not in rounds and gid in game_round:
-            rounds[key] = game_round[gid]
+                m["wins"][tid] += 1
+            d = str(rr["GAME_DATE"])
+            if d > m["latest"]:
+                m["latest"] = d
 
-    out = []
-    for key, wins in matchups.items():
-        if len(wins) != 2:
+    series = []
+    for m in matchups.values():
+        if len(m["wins"]) != 2:
             continue
-        (win_id, winner_wins), (lose_id, loser_wins) = sorted(
-            wins.items(), key=lambda kv: kv[1], reverse=True
-        )
-        # Completed series only: winner clinched (>=2 in any format), and led
+        (win_id, ww), (lose_id, lw) = sorted(m["wins"].items(), key=lambda kv: kv[1], reverse=True)
+        # Completed series only: winner clinched (>=2 in any format) and led
         # (drops single play-in games, which leave a 1-0 "matchup").
-        if winner_wins < 2 or winner_wins <= loser_wins:
+        if ww < 2 or ww <= lw:
             continue
-        w_abbr, w_name = info.get(win_id, ("", str(win_id)))
-        l_abbr, l_name = info.get(lose_id, ("", str(lose_id)))
+        series.append({"teams": frozenset((win_id, lose_id)), "winner_id": win_id,
+                       "loser_id": lose_id, "ww": ww, "lw": lw, "latest": m["latest"], "info": m["info"]})
+    if not series:
+        return []
+
+    rounds = _reconstruct_rounds(series)
+    out = []
+    for i, s in enumerate(series):
+        win_id, lose_id = s["winner_id"], s["loser_id"]
+        w_abbr, w_name = s["info"].get(win_id, ("", str(win_id)))
+        l_abbr, l_name = s["info"].get(lose_id, ("", str(lose_id)))
         lo, hi = sorted((win_id, lose_id))
         out.append(
             {
                 "season": season,
                 "series_id": f"{season}-{lo}-{hi}",  # stable per matchup -> idempotent upsert
-                "round": rounds.get(key, "Unknown"),
+                "round": rounds[i],
                 "winner_team_id": win_id,
                 "winner_name": w_name or w_abbr,
                 "winner_abbreviation": w_abbr,
                 "loser_team_id": lose_id,
                 "loser_name": l_name or l_abbr,
                 "loser_abbreviation": l_abbr,
-                "loser_wins": loser_wins,
-                "total_games": winner_wins + loser_wins,
+                "loser_wins": s["lw"],
+                "total_games": s["ww"] + s["lw"],
             }
         )
     return out
