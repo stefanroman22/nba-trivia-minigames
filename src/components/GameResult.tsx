@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import Button from './ui/Button'
@@ -10,12 +9,14 @@ interface GameResultProps {
   showFinalResult: boolean,
   score: number,
   maxPoints: number,
-  handleRestart: () => void,
+  /** Restarts and auto-launches the same game (no extra Play press). */
+  onPlayAgain: () => void,
+  /** Closes the game and returns to the generic no-game screen. */
+  onClose: () => void,
 }
 
-function GameResult({ showFinalResult, score, maxPoints, handleRestart }: GameResultProps) {
+function GameResult({ showFinalResult, score, maxPoints, onPlayAgain, onClose }: GameResultProps) {
   const reduce = useReducedMotion();
-  const navigate = useNavigate();
   const [size, setSize] = useState({ w: 0, h: 0 });
 
   useEffect(() => {
@@ -72,8 +73,8 @@ function GameResult({ showFinalResult, score, maxPoints, handleRestart }: GameRe
             </div>
             <p style={{ fontSize: 13.5, color: "var(--muted)", maxWidth: 300, lineHeight: 1.5 }}>{message}</p>
             <div style={{ display: "flex", gap: 10, marginTop: 14, width: "100%" }}>
-              <Button block onClick={handleRestart}>Play again</Button>
-              <Button block variant="secondary" onClick={() => navigate("/")}>Another game</Button>
+              <Button block onClick={onPlayAgain}>Play again</Button>
+              <Button block variant="secondary" onClick={onClose}>Close game</Button>
             </div>
           </motion.div>
         )}

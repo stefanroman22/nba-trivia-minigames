@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
+import TeamCrest from "../components/ui/TeamCrest";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
 import type { TeamColor } from "../constants/nbaTeamColors";
 
@@ -24,7 +24,6 @@ function PlayOffSeries({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [showWinner, setShowWinner] = useState(false);
-  const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [score, setScore] = useState(0);
   const currentSeries = seriesList[currentIndex];
   const reduce = useReducedMotion();
@@ -42,11 +41,9 @@ function PlayOffSeries({
     const isCorrect = picked === currentSeries.winner;
     if (isCorrect) {
       setScore((prev) => prev + pointsPerCorrect);
-      setShowPointsAnimation(true);
     }
 
     timeoutRef.current = setTimeout(() => {
-      setShowPointsAnimation(false);
       setShowWinner(false);
       setSelectedTeam(null);
       if (currentIndex < seriesList.length - 1) {
@@ -76,7 +73,8 @@ function PlayOffSeries({
     return {
       display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
       padding: "18px 14px", borderRadius: 14, border: `1px solid ${border}`,
-      background, cursor: showWinner ? "default" : "pointer", minHeight: 44,
+      background, cursor: showWinner ? "default" : "pointer",
+      height: "100%", justifyContent: "flex-start",
       transition: "background 0.35s ease, border-color 0.35s ease, opacity 0.35s ease",
       opacity: showWinner && !isWinner && !isPicked ? 0.55 : 1,
     };
@@ -89,7 +87,7 @@ function PlayOffSeries({
       : { text: `It was the ${currentSeries.winner}`, color: "var(--bad)" };
 
   return (
-    <div style={{ width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ position: "relative", width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20 }}>
       {/* progress + score */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
         <span style={{ fontSize: 11, letterSpacing: 1, color: "var(--muted)", fontWeight: 600 }}>
@@ -119,11 +117,11 @@ function PlayOffSeries({
             <h3 className="font-display" style={{ fontSize: 19 }}>Who won the series?</h3>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "center" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "stretch" }}>
             {teams.map((t, i) => (
               <div key={t.name} style={{ display: "contents" }}>
                 {i === 1 && (
-                  <span className="font-display" style={{ fontSize: 13, color: "var(--muted)" }}>VS</span>
+                  <span className="font-display" style={{ fontSize: 13, color: "var(--muted)", alignSelf: "center" }}>VS</span>
                 )}
                 <motion.button
                   onClick={() => handlePickWinner(t.name)}
@@ -137,11 +135,11 @@ function PlayOffSeries({
                     background: nbaTeamColors[t.name]?.primary || "var(--surface3)",
                     boxShadow: "0 6px 16px -6px rgba(0,0,0,.5)", overflow: "hidden",
                   }}>
-                    <img src={t.logo} alt={t.name} style={{ width: 40, height: 40, objectFit: "contain" }} />
+                    <TeamCrest src={t.logo} name={t.name} size={40} />
                   </span>
-                  <span className="font-display" style={{ fontSize: 15, textAlign: "center" }}>{t.name}</span>
+                  <span className="font-display" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>{t.name}</span>
                   {showWinner && (
-                    <span className="tnum" style={{ fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
+                    <span className="tnum" style={{ marginTop: "auto", paddingTop: 6, fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
                       {t.wins} wins
                     </span>
                   )}
@@ -162,8 +160,6 @@ function PlayOffSeries({
           </div>
         </motion.div>
       </AnimatePresence>
-
-      <SubmitGuessPopup show={showPointsAnimation} text={`+${pointsPerCorrect}`} color={"#25a602"} />
     </div>
   );
 }

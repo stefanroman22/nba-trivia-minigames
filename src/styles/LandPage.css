@@ -36,6 +36,11 @@ html { scroll-behavior: smooth; }
   mask-image: linear-gradient(120deg, #000, transparent 70%);
   animation: heat 7s ease-in-out infinite;
   pointer-events: none;
+  will-change: opacity;
+  transform: translateZ(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-grain { animation: none; }
 }
 .hero-inner { position: relative; display: flex; flex-direction: column; gap: 20px; max-width: 660px; }
 .hero-badge {
@@ -88,7 +93,7 @@ html { scroll-behavior: smooth; }
   display: grid;
   grid-template-columns: 1.25fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 @media (max-width: 900px) {
   .engage-strip { grid-template-columns: 1fr; }
@@ -100,12 +105,116 @@ html { scroll-behavior: smooth; }
   border-radius: 16px;
   background: var(--surface);
   overflow: hidden;
+  height: 100%;
 }
+
+/* ===== Profile overview ===== */
+.profile-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px;
+}
+.profile-head { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.profile-avatar {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  overflow: hidden;
+  
+}
+.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.profile-avatar-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+.profile-welcome { font-size: 19px; text-align: center; }
+.profile-photo-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 15px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.profile-photo-btn:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
+
+.profile-fields { display: flex; flex-direction: column; gap: 12px; }
+.profile-field { display: flex; flex-direction: column; gap: 6px; }
+.profile-field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.profile-edit-btn {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: filter 0.2s;
+}
+.profile-edit-btn:hover { filter: brightness(1.2); }
+.profile-value,
+.profile-input {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 14.5px;
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+}
+.profile-value--muted { color: var(--muted); }
+.profile-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+
+.profile-stats { display: flex; gap: 12px; }
+.profile-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.profile-stat-lbl { font-size: 12px; color: var(--muted); }
+.profile-stat-num { font-size: 22px; color: var(--text); }
+.profile-stat:first-child .profile-stat-num { color: var(--brand); }
+
+.profile-logout { margin-top: auto; display: flex; justify-content: center; padding-top: 4px; }
 
 /* ===== Guest teaser ===== */
 .guest-panel {
   position: relative;
   overflow: hidden;
+  height: 100%;
   border: 1px solid var(--line2);
   border-radius: 16px;
   padding: 24px;
@@ -128,6 +237,7 @@ html { scroll-behavior: smooth; }
 .guest-panel-eyebrow { font-size: 11px; letter-spacing: 1.5px; font-weight: 600; color: var(--brand); }
 .guest-panel-cta {
   position: relative;
+  margin-top: auto;
   height: 44px;
   border: none;
   border-radius: 9px;
@@ -204,20 +314,57 @@ html { scroll-behavior: smooth; }
   .games-search { max-width: none; width: 100%; }
   .hero-stats { gap: 16px; }
   .hero-stat-num { font-size: 19px; }
+
+  /* Smaller cards in a 2-up grid that scrolls internally, so the long game
+     list doesn't push the leaderboard / login far down the page. */
+  .games-grid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    max-height: 62vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 2px 4px 4px 2px;
+    scrollbar-width: thin;
+  }
+  .games-grid3 .gtile { height: 158px; padding: 12px; }
+  .games-grid3 .gtile h3 { font-size: 15px; }
+  .games-grid3 .gtile p { display: none; }
 }
 
-/* ===== SweetAlert overrides ===== */
-.swal2-custom-popup { border-radius: 14px; padding: 2rem; box-shadow: var(--shadow); }
+/* ===== SweetAlert overrides — overlay + design-matched popup ===== */
+.swal2-container.swal2-backdrop-show,
+.swal2-container.swal2-backdrop-show > .swal2-popup ~ * {
+  background: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.swal2-custom-popup {
+  border: 1px solid var(--line2) !important;
+  border-radius: 18px !important;
+  padding: 2rem 1.75rem !important;
+  box-shadow: var(--shadow) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-family: 'Chakra Petch', system-ui, sans-serif !important;
+}
+.swal2-custom-popup .swal2-title {
+  font-family: 'Russo One', system-ui, sans-serif !important;
+  font-size: 1.25rem !important;
+  color: var(--text) !important;
+}
+.swal2-custom-popup .swal2-html-container { color: var(--muted) !important; }
 .swal2-custom-button {
   background-color: var(--brand) !important;
   color: #fff !important;
-  border-radius: 8px !important;
-  padding: 0.6rem 1.5rem !important;
+  border-radius: 10px !important;
+  padding: 0.7rem 1.6rem !important;
   font-weight: 700 !important;
-  font-size: 1rem !important;
-  transition: filter 0.2s ease;
+  font-size: 0.95rem !important;
+  box-shadow: 0 12px 30px -12px var(--brand) !important;
+  transition: filter 0.2s ease, transform 0.2s ease;
 }
-.swal2-custom-button:hover { filter: brightness(1.08); }
+.swal2-custom-button:hover { filter: brightness(1.08); transform: translateY(-1px); }
 
 /* ===== Loader spinner (used by profile/logout) ===== */
 .loader {

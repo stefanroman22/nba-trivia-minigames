@@ -39,17 +39,17 @@ const Landpage = () => {
         <section id="play" className="hero">
           <div className="hero-grain" aria-hidden="true" />
           <div className="hero-inner">
-            <motion.div className="hero-badge" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <motion.div className="hero-badge" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
               <span className="hero-badge-dot" />
               {playableCount} GAMES · NO SIGN-UP NEEDED
             </motion.div>
-            <motion.h1 className="font-display hero-h1" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.05 }}>
+            <motion.h1 className="font-display hero-h1" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}>
               Test your <span style={{ color: "var(--brand)" }}>hoops IQ.</span><br />One quick game at a time.
             </motion.h1>
-            <motion.p className="hero-lead" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+            <motion.p className="hero-lead" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>
               Bite-sized NBA trivia you can play in under a minute. Build a streak, climb the global board, and challenge friends when you're ready.
             </motion.p>
-            <motion.div className="hero-cta-row" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.15 }}>
+            <motion.div className="hero-cta-row" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>
               <Button size="lg" onClick={() => openGame(games[0].id, games[0].urlPath)}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 Play today's game
@@ -58,7 +58,7 @@ const Landpage = () => {
                 Browse all games
               </Button>
             </motion.div>
-            <motion.div className="hero-stats" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+            <motion.div className="hero-stats" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}>
               <div className="hero-stat">
                 <span className="tnum font-display hero-stat-num" style={{ color: "var(--brand)" }}>{playableCount}</span>
                 <span className="hero-stat-lbl">GAMES</span>
@@ -103,6 +103,7 @@ const Landpage = () => {
                   pointLabel={game.id === "coming-soon" ? "SOON" : `${game.maxPoints} pts`}
                   cta={game.id === "coming-soon" ? "Coming soon" : "Play now"}
                   index={index}
+                  disabled={game.id === "coming-soon"}
                   onClick={() => openGame(game.id, game.urlPath)}
                 />
               ))}

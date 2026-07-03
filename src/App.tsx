@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import { apiFetch } from './utils/Api';
 import { BACKEND_URL } from './configurations/backend';
 import { ModalProvider } from './context/ModalContext';
+import { MultiplayerProvider } from './context/MultiplayerContext';
 import ModalHost from './components/ModalHost';
 
 
@@ -53,10 +54,12 @@ function App() {
   return (
     <MotionConfig reducedMotion="user">
       <BrowserRouter>
-        <ModalProvider>
-          <AnimatedRoutes />
-          <ModalHost />
-        </ModalProvider>
+        <MultiplayerProvider>
+          <ModalProvider>
+            <AnimatedRoutes />
+            <ModalHost />
+          </ModalProvider>
+        </MultiplayerProvider>
       </BrowserRouter>
     </MotionConfig>
   );

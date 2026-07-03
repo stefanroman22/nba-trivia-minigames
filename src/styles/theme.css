@@ -75,6 +75,12 @@ html, body {
   background: var(--bg);
 }
 
+/* Reserve the scrollbar gutter so locking body scroll (modals / menus) doesn't
+   reflow the page and shift fixed elements like the feedback button. */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   font-family: 'Chakra Petch', system-ui, -apple-system, sans-serif;
   color: var(--text);

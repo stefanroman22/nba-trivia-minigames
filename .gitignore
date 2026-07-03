@@ -46,3 +46,9 @@ public/data/
 
 # Vercel
 .vercel
+
+# Local run cheatsheet
+RUN.md
+
+# Player data field wishlist
+players_extensive_data.md

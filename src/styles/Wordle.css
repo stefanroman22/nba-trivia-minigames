@@ -1,69 +1,136 @@
 .wordle-container {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: clamp(8px, 1.3dvh, 16px);
+  width: 100%;
+}
+
+.wordle-board {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.8vh, 7px);
 }
 
 .line {
   display: flex;
-  gap: clamp(6px, 2vw, 8px);
+  gap: clamp(4px, 0.8vh, 7px);
 }
 
 .tile {
-  width: clamp(46px, 13vw, 58px);
-  height: clamp(46px, 13vw, 58px);
-  border: 2px solid #FF8C00; /* darker orange border */
-  border-radius: 8px;
+  width: clamp(36px, 5.7dvh, 54px);
+  height: clamp(36px, 5.7dvh, 54px);
+  border: 2px solid var(--line2);
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: 'Russo One', system-ui, sans-serif;
   font-size: clamp(20px, 6vw, 26px);
   font-weight: bold;
   text-transform: uppercase;
-  background-color: #F5F5F5;  /* slightly darker default tile */
-  color: #222;                /* darker text */
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15); /* deeper shadow */
-  transform-style: preserve-3d;
-  perspective: 1000px;
+  background-color: var(--surface2);
+  color: var(--text);
+  transition: border-color 0.15s ease, transform 0.12s ease;
+}
+
+/* A typed-but-not-submitted tile pops slightly. */
+.tile.filled {
+  border-color: var(--line2);
+  animation: tilePop 0.12s ease;
+}
+@keyframes tilePop {
+  0% { transform: scale(0.92); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Progressive reveal ----
+   Each submitted tile flips in sequence (staggered by its column index --i),
+   and its color is held back until the tile is edge-on at the flip midpoint —
+   so the row reveals one letter at a time instead of all at once. */
+.tile.correct,
+.tile.present,
+.tile.absent {
+  --reveal-step: 0.3s;          /* delay between consecutive tiles */
+  --flip-dur: 0.55s;            /* one tile's full flip */
+  animation: flipTile var(--flip-dur) ease forwards;
+  animation-delay: calc(var(--i, 0) * var(--reveal-step));
+  /* Color change waits ~half a flip after this tile starts turning, then
+     eases in smoothly. transition-delay holds the neutral color until then. */
+  transition:
+    background-color 0.25s ease calc(var(--i, 0) * var(--reveal-step) + 0.24s),
+    border-color 0.25s ease calc(var(--i, 0) * var(--reveal-step) + 0.24s),
+    color 0.25s ease calc(var(--i, 0) * var(--reveal-step) + 0.24s);
 }
 
 /* Correct letter (green) */
 .tile.correct {
-  background-color: #4F8A55; /* darker green */
-  border-color: #4F8A55;
+  background-color: var(--good);
+  border-color: var(--good);
   color: #fff;
 }
 
 /* Present letter (orange) */
 .tile.present {
-  background-color: #FF8C00; /* darker orange */
-  border-color: #FF7F00;     /* slightly brighter border */
+  background-color: var(--brand);
+  border-color: var(--brand);
   color: #fff;
 }
 
-/* Absent letter (gray) */
+/* Absent letter (muted) */
 .tile.absent {
-  background-color: #B0B0B0; /* darker gray */
-  border-color: #8C8C8C;
-  color: #fff;               /* keep text white for contrast */
+  background-color: var(--surface3);
+  border-color: var(--surface3);
+  color: var(--muted);
 }
 
-/* Flip animation for submitted tiles */
-.tile.correct,
-.tile.present,
-.tile.absent {
-  animation: flipTile 0.4s ease forwards;
-}
-
-/* Keyframes for flip effect */
 @keyframes flipTile {
-  0% {
-    transform: rotateX(90deg);
-    opacity: 0.5;
-  }
-  100% {
-    transform: rotateX(0deg);
-    opacity: 1;
-  }
+  0% { transform: rotateX(0deg); }
+  50% { transform: rotateX(-90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+/* ===== On-screen keyboard ===== */
+.wk {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(5px, 0.9dvh, 7px);
+  width: 100%;
+  max-width: 460px;
+}
+.wk-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+.wk-key {
+  flex: 1 1 0;
+  min-width: 0;
+  height: clamp(36px, 4.9dvh, 50px);
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  background: var(--surface3);
+  color: var(--text);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s ease, transform 0.1s ease, background 0.2s ease, border-color 0.2s ease;
+}
+.wk-key:hover { filter: brightness(1.12); }
+.wk-key:active { transform: scale(0.94); }
+.wk-key--wide { flex: 1.6 1 0; font-size: 11px; letter-spacing: 0.3px; padding: 0 2px; white-space: nowrap; }
+.wk-key.correct { background: var(--good); border-color: var(--good); color: #fff; }
+.wk-key.present { background: var(--brand); border-color: var(--brand); color: #fff; }
+.wk-key.absent { background: var(--bg2); border-color: var(--line); color: var(--muted); }
+
+@media (max-width: 480px) {
+  .wk-key { height: 46px; font-size: 13px; border-radius: 8px; }
+  /* keep ENTER/DEL from overflowing their narrower keys */
+  .wk-key--wide { font-size: 10px; flex: 1.7 1 0; }
 }

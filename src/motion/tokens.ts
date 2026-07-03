@@ -2,9 +2,9 @@
 import type { Transition } from "framer-motion";
 
 export const durations = {
-  fast: 0.18,
-  base: 0.28,
-  slow: 0.42,
+  fast: 0.14,
+  base: 0.2,
+  slow: 0.3,
 } as const;
 
 // ease-out for entrances, ease-in for exits (see UX motion guidelines)

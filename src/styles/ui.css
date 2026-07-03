@@ -105,13 +105,16 @@
   transition: transform 0.4s var(--ease-out);
 }
 .gtile:hover .gtile-img { transform: scale(1.08); }
+.gtile.is-disabled { cursor: not-allowed; }
+.gtile.is-disabled:hover .gtile-img { transform: none; }
+.gtile.is-disabled:hover .gtile-cta { gap: 6px; }
 .gtile-scrim {
   position: absolute;
   inset: 0;
   z-index: 1;
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.25), rgba(8, 8, 8, 0.55) 45%, rgba(8, 8, 8, 0.9));
 }
-.gtile-body { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%; justify-content: space-between; }
+.gtile-body { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%; justify-content: flex-end }
 .gtile-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--brand2); transition: gap 0.25s ease; }
 .gtile:hover .gtile-cta { gap: 11px; }
 
@@ -122,11 +125,14 @@
   border-radius: 16px;
   background: radial-gradient(130% 120% at 50% -10%, var(--brand-soft), transparent 50%), var(--surface);
   box-shadow: var(--shadow);
-  overflow: hidden;
+  /* visible so in-game dropdowns (autocomplete) can extend past the shell */
+  overflow: visible;
 }
 .stage-dots {
   position: absolute;
   inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
   opacity: 0.4;
   background-image: radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0);
   background-size: 24px 24px;
@@ -134,13 +140,16 @@
   mask-image: radial-gradient(120% 90% at 50% 0%, #000, transparent 75%);
   pointer-events: none;
 }
+/* RULE: every game must fit inside this shell without page scroll. The shell is
+   capped to the viewport height (minus nav + title chrome); game renderers size
+   their content with dvh-aware units so they shrink to fit on short screens. */
 .stage-inner {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: clamp(20px, 4vw, 40px);
-  min-height: clamp(360px, 52vh, 520px);
+  padding: clamp(14px, 2.6vw, 30px);
+  min-height: clamp(280px, 44dvh, 430px);
 }
 
 /* ---------- Progress bar ---------- */

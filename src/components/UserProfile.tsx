@@ -4,13 +4,10 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { logout, updateProfilePhoto, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
-import { buttonStyle, handleMouseEnter, handleMouseLeave } from "../constants/styles";
 import socket from "../socket";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { BACKEND_URL } from "../configurations/backend";
 import defaultAvatar from "../assets/default.png";
-
-
 
 function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
@@ -18,7 +15,7 @@ function UserProfile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempUsername, setTempUsername] = useState(user?.username || "");
-  const [, setTempProfilePhoto] = useState(user?.profile_photo || "");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const validateUsername = (username: string) => {
@@ -32,7 +29,7 @@ function UserProfile() {
         "Username must contain at least 3 letters, 2 digits, and can only include letters, digits, or underscores.",
         "Invalid Username"
       );
-      return; // Stop if invalid
+      return;
     }
     if (user?.username === tempUsername) {
       setIsEditing(false);
@@ -43,7 +40,6 @@ function UserProfile() {
       method: "POST",
       body: JSON.stringify({ username: tempUsername }),
     });
-
     const data = await response.json();
 
     if (data.error) {
@@ -54,320 +50,166 @@ function UserProfile() {
     }
   };
 
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
+    setUploadingPhoto(true);
+    const formData = new FormData();
+    formData.append("profile_photo", file);
+
+    try {
+      const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        const previewURL = URL.createObjectURL(file);
+        dispatch(updateProfilePhoto(previewURL));
+      } else {
+        const errorData = await response.json();
+        showErrorAlert(errorData.error || "Photo upload failed", "Upload Error");
+      }
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleLogout = async () => {
+    const refreshToken = localStorage.getItem("refreshToken");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+
+    const res = await fetch(`${BACKEND_URL}/logout/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      showErrorAlert(data.error, "Unable to Log Out!");
+    } else {
+      setIsLoading(true);
+      if (socket.connected) socket.emit("setUserInfo", null);
+      setTimeout(() => {
+        dispatch(logout());
+        setIsLoading(false);
+      }, 1200);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="profile-wrap" style={{ minHeight: 280, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div className="loader" />
+      </div>
+    );
+  }
 
   return (
-
-    <div style={{ margin: "auto", padding: "2rem" }} className="flex flex-col  w-full ">
-
-      {isLoading ? <div className="loader"></div> : <motion.div 
-  className="profile"
-  initial={{ opacity: 0, y: 50 }}
-  whileInView={{ opacity: 1, y: 0 }}
-  viewport={{ once: true }}
-  transition={{ duration: 0.5 }}
-> <div className="profile flex flex-col gap-4">
-        <h2
-          style={{
-            marginBottom: "2rem",
-            fontSize: "1.5rem",
-            fontWeight: "600",
-            textAlign: "center",
-          }}
-        >
-          Welcome {user?.username}!
-        </h2>
-
-        {/* Profile Photo + Change */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <div
-            style={{
-              width: "100px",
-              height: "100px",
-              borderRadius: "50%",
-              overflow: "hidden",
-              marginBottom: "0.75rem",
-              border: "3px solid var(--brand)",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-            }}
-          >
-            <img
+    <motion.div
+      className="profile-wrap"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Header: avatar + welcome */}
+      <div className="profile-head">
+        <div className="profile-avatar">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={user?.profile_photo || "default"}
               src={user?.profile_photo || defaultAvatar}
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
               alt="Profile"
+              initial={{ opacity: 0, scale: 1.06 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              style={{ width: "100%", height: "100%", objectFit: "cover", imageOrientation: "from-image" as any }}
+              style={{ imageOrientation: "from-image" as any }}
             />
-          </div>
-          <label
-            htmlFor="photo-upload"
-            style={{
-              cursor: "pointer",
-              color: "var(--brand)",
-              fontWeight: "bold",
-              fontSize: "0.9rem",
-              transition: "color 0.3s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = "white";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = "var(--brand)";
-            }}
-          >
-            Change Photo
-          </label>
-          <input
-            id="photo-upload"
-            type="file"
-            accept="image/*"
-            style={{ display: "none" }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
+          </AnimatePresence>
 
-              const formData = new FormData();
-              formData.append("profile_photo", file);
-
-              const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
-                method: "POST",
-                body: formData, 
-              });
-
-              if (response.ok) {
-                const previewURL = URL.createObjectURL(file);
-                setTempProfilePhoto(previewURL);
-                dispatch(updateProfilePhoto(previewURL));
-              } else {
-                const errorData = await response.json();
-                showErrorAlert(errorData.error || "Photo upload failed", "Upload Error");
-              }
-            }}
-
-          />
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          {/* Editable Username */}
-          <div style={{ marginBottom: "1.2rem", width: "fit-content" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <label
-                htmlFor="username"
-                style={{
-                  display: "block",
-                  fontSize: "0.9rem",
-                  color: "var(--muted)",
-                  marginBottom: "0.3rem",
-                }}
+          <AnimatePresence>
+            {uploadingPhoto && (
+              <motion.div
+                className="profile-avatar-loading"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
               >
-                Username
-              </label>
-              <button
-                onClick={() => {
-                  if (isEditing) {
-                    handleSave();
-                  } else {
-                    setTempUsername(user?.username || "");
-                    setIsEditing(true);
-                  }
-                }}
-                style={{
-                  backgroundColor: "transparent",
-                  color: "var(--brand)",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "0.85rem",
-                  padding: "0.5rem 0.8rem",
-                  borderRadius: "6px",
-                  marginLeft: "auto",
-                  fontWeight: "bold",
-                  transition: "color 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "white";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--brand)";
-                }}
-
-              >
-                {isEditing ? "Confirm" : "Change"}
-              </button>
-            </div>
-
-            {isEditing ? (
-              <input
-                id="username"
-                type="text"
-                maxLength={20}
-                value={tempUsername}
-                onChange={(e) => setTempUsername(e.target.value)}
-                style={{
-                  fontSize: "1rem",
-                  lineHeight: "1.2rem",
-                  backgroundColor: "var(--surface2)",
-                  color: "#fff",
-                  borderRadius: "6px",
-                  padding: "0.2rem 0.4rem",
-                  cursor: "text",
-                  width: "auto",
-                  minWidth: "200px",
-                  textAlign: "center",
-                }}
-                autoFocus
-              />
-            ) : (
-              <div
-                style={{
-                  fontSize: "1rem",
-                  lineHeight: "1.2rem",
-                  backgroundColor: "var(--surface2)",
-                  color: "var(--muted)",
-                  border: "1px solid var(--line2)",
-                  borderRadius: "6px",
-                  padding: "0.2rem 0.4rem",
-                  width: "auto",
-                  minWidth: "200px",
-                  textAlign: "center",
-                }}
-              >
-                {user?.username}
-              </div>
+                <span className="loader" style={{ width: 26, height: 26, borderWidth: 3 }} />
+              </motion.div>
             )}
-          </div>
-
-          {/* Email (Fixed) */}
-          <div style={{ marginBottom: "1.2rem", width: "fit-content" }}>
-            <label
-              style={{
-                display: "block",
-                fontSize: "0.9rem",
-                color: "var(--muted)",
-                marginBottom: "0.3rem",
-                textAlign: "center",
-              }}
-            >
-              Email
-            </label>
-            <div
-              style={{
-                fontSize: "1rem",
-                lineHeight: "1.2rem",
-                backgroundColor: "var(--surface2)",
-                color: "var(--muted)",
-                border: "1px solid var(--line2)",
-                borderRadius: "6px",
-                padding: "0.2rem 0.4rem",
-                cursor: "not-allowed",
-                width: "auto",
-                minWidth: "200px",
-                textAlign: "center",
-              }}
-            >
-              {user?.email}
-            </div>
-          </div>
+          </AnimatePresence>
         </div>
 
-        {/* Points & Rank */}
-        <div
-          style={{
-            display: "flex",
-            gap: "10px",       // space between boxes
-            margin: "0 10px",  // margin on left/right to avoid touching edges
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              background: "var(--surface3)",
-              padding: "1rem",
-              borderRadius: "10px",
-              textAlign: "center",
-            }}
-          >
-            <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Points</p>
-            <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
-              {user?.points}
-            </p>
-          </div>
+        <h2 className="font-display profile-welcome">Welcome, {user?.username}</h2>
 
-          <div
-            style={{
-              flex: 1,
-              background: "var(--surface3)",
-              padding: "1rem",
-              borderRadius: "10px",
-              textAlign: "center",
-            }}
-          >
-            <p style={{ fontSize: "0.85rem", color: "var(--muted)" }}>Rank</p>
-            <p style={{ fontSize: "1.25rem", fontWeight: "bold", color: "#fff" }}>
-              {user?.rank}
-            </p>
+        <label htmlFor="photo-upload" className="profile-photo-btn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+          Change photo
+        </label>
+        <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+      </div>
+
+      {/* Username + email */}
+      <div className="profile-fields">
+        <div className="profile-field">
+          <div className="profile-field-label">
+            <span>Username</span>
+            <button
+              className="profile-edit-btn"
+              onClick={() => {
+                if (isEditing) handleSave();
+                else { setTempUsername(user?.username || ""); setIsEditing(true); }
+              }}
+            >
+              {isEditing ? "Confirm" : "Change"}
+            </button>
           </div>
+          {isEditing ? (
+            <input
+              type="text"
+              maxLength={20}
+              value={tempUsername}
+              onChange={(e) => setTempUsername(e.target.value)}
+              className="profile-input"
+              autoFocus
+            />
+          ) : (
+            <div className="profile-value">{user?.username}</div>
+          )}
+        </div>
+
+        <div className="profile-field">
+          <div className="profile-field-label"><span>Email</span></div>
+          <div className="profile-value profile-value--muted">{user?.email}</div>
         </div>
       </div>
-        <div className="logout mt-4">
-          <button
 
-            style={buttonStyle}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            onClick={async () => {
-              const refreshToken = localStorage.getItem("refreshToken");
-              console.log("Logging out with refresh token:", refreshToken);
+      {/* Points & rank */}
+      <div className="profile-stats">
+        <div className="profile-stat">
+          <span className="profile-stat-lbl">Points</span>
+          <span className="font-display tnum profile-stat-num">{user?.points}</span>
+        </div>
+        <div className="profile-stat">
+          <span className="profile-stat-lbl">Rank</span>
+          <span className="font-display tnum profile-stat-num">{user?.rank}</span>
+        </div>
+      </div>
 
-              // Immediately clear local tokens to prevent accidental reuse
-              localStorage.removeItem("accessToken");
-              localStorage.removeItem("refreshToken");
-
-              const res = await fetch(`${BACKEND_URL}/logout/`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ refresh: refreshToken }),
-              });
-
-              const data = await res.json();
-
-              if (data.error) {
-                showErrorAlert(data.error, "Unable to Log Out!");
-              } else {
-                setIsLoading(true);
-                if (socket.connected) {
-                  socket.emit("setUserInfo", null);
-                  console.log("Logout emit sent");
-                }
-
-                setTimeout(() => {
-                  dispatch(logout()); // Clear Redux state
-                  setIsLoading(false);
-                }, 2000);
-              }
-            }}
-
-          >
-            Log Out
-          </button>
-        </div></motion.div>}
-
-    </div>
+      {/* Logout — centered, same style as the Share feedback button */}
+      <div className="profile-logout">
+        <button className="feedback-band-btn" onClick={handleLogout}>Log out</button>
+      </div>
+    </motion.div>
   );
-};
+}
 
 export default UserProfile;
