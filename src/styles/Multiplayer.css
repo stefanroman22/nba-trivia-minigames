@@ -1,0 +1,397 @@
+/* ===== Online 1v1 match — app-native, single orange accent, stable container ===== */
+.om {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Every non-playing stage shares one min-height so swaps don't resize the box. */
+.om-stage {
+  width: 100%;
+  min-height: clamp(264px, 42dvh, 380px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  text-align: center;
+}
+/* Playing view sizes to its content (no min-height dead space) and keeps the
+   game → opponent-chip → exit spacing tight (~10px) for every game. */
+.om-stage--play { justify-content: flex-start; gap: 10px; min-height: auto; }
+.om-stage--play .om-exit { margin-top: 0; }
+
+.om-eyebrow {
+  font-size: 11px;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: var(--brand);
+  text-transform: uppercase;
+}
+
+/* ---- Matchup (VS) ---- */
+.om-matchup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 4vw, 24px);
+  width: 100%;
+}
+.om-vs {
+  font-size: clamp(15px, 4vw, 19px);
+  color: var(--muted);
+  letter-spacing: 1px;
+  flex: none;
+}
+/* 3-player rooms: three tighter cards, no VS divider. */
+.om-matchup.is-trio { gap: clamp(8px, 2.5vw, 14px); }
+.om-matchup.is-trio .om-pc { padding: 13px 8px; max-width: 148px; }
+
+/* ---- Final scoreboard (3-player rooms) ---- */
+.om-standings {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.om-strow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 14px;
+  border: 1px solid var(--line2);
+  border-radius: 13px;
+  background: var(--surface2);
+  min-width: 0;
+}
+.om-strow.is-win { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand), 0 10px 30px -14px var(--brand); }
+.om-strow.is-you { background: var(--surface3); }
+.om-st-place { width: 20px; flex: none; font-size: 13px; color: var(--muted); text-align: center; }
+.om-strow.is-win .om-st-place { color: var(--brand); }
+.om-st-av { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex: none; border: 1.5px solid var(--line2); }
+.om-st-name {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.om-st-you {
+  flex: none;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.om-st-crown {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+}
+.om-st-score { flex: none; font-size: 18px; font-weight: 800; color: var(--brand); }
+
+/* ---- Player card ---- */
+.om-pc {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  background: var(--surface2);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.om-pc.is-win { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand), 0 10px 30px -12px var(--brand); }
+.om-pc.is-tie { border-color: var(--line2); }
+.om-pc-avatar {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: visible;
+  margin-bottom: 4px;
+}
+.om-pc-avatar img {
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--brand);
+  box-shadow: 0 0 0 4px var(--brand-soft);
+}
+.om-pc-crown {
+  position: absolute;
+  top: -10px; right: -8px;
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 4px 10px -3px var(--brand);
+}
+.om-pc-name {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.om-pc-side { font-size: 11px; color: var(--muted); }
+.om-pc-score { font-size: 24px; font-weight: 800; color: var(--brand); margin-top: 4px; }
+.om-pc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: var(--surface3);
+  color: var(--muted);
+}
+.om-pc-status.is-playing { color: var(--brand); background: var(--brand-soft); }
+.om-pc-status.is-finished { color: var(--good); }
+.om-pc-status.is-offline { color: var(--bad); }
+
+.om-introline { font-size: 13px; color: var(--muted); }
+
+/* ---- Result headline ---- */
+.om-headline { font-size: clamp(22px, 6vw, 30px); }
+.om-headline.is-win { color: var(--brand); }
+.om-headline.is-loss { color: var(--muted); }
+.om-headline.is-tie { color: var(--text); }
+
+/* ---- Waiting ---- */
+.om-yourscore { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.om-yourscore-lbl { font-size: 11px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+.om-yourscore-num { font-size: 34px; color: var(--brand); line-height: 1; }
+
+/* ---- Actions / buttons ---- */
+.om-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.om-btn {
+  height: 42px;
+  padding: 0 20px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s ease, filter 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.om-btn:active { transform: scale(0.97); }
+.om-btn--primary { background: var(--brand); color: #fff; box-shadow: 0 10px 24px -10px var(--brand); }
+.om-btn--primary:hover { filter: brightness(1.06); }
+.om-btn--secondary { background: transparent; border-color: var(--brand); color: var(--brand); }
+.om-btn--secondary:hover { background: var(--brand-soft); }
+.om-btn--ghost { background: transparent; color: var(--muted); border-color: var(--line2); }
+.om-btn--ghost:hover { color: var(--text); border-color: var(--line); }
+
+.om-exit {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.om-exit:hover { color: var(--text); }
+
+/* ---- Proposal prompt (incoming / outgoing) ---- */
+.om-prompt {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line2);
+  border-radius: 14px;
+  background: var(--surface2);
+}
+.om-prompt-text { font-size: 13.5px; color: var(--text); line-height: 1.45; }
+.om-prompt-text strong { color: var(--brand); }
+
+/* ---- Switch-game picker ---- */
+.om-switch {
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid var(--line2);
+  border-radius: 14px;
+  background: var(--surface2);
+  overflow: hidden;
+}
+.om-switch-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.om-switch-x { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
+.om-switch-x:hover { color: var(--brand); }
+/* Search filter */
+.om-switch-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 10px 4px;
+  padding: 0 10px;
+  height: 38px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--surface3);
+  color: var(--muted);
+}
+.om-switch-search:focus-within { border-color: var(--brand); }
+.om-switch-search svg { flex: none; }
+.om-switch-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+}
+.om-switch-search input::placeholder { color: var(--muted); }
+/* Caps the visible list to ~4 rows; anything more scrolls. */
+.om-switch-list { display: flex; flex-direction: column; padding: 6px; gap: 4px; max-height: 216px; overflow-y: auto; overscroll-behavior: contain; }
+.om-switch-empty { padding: 18px 12px; text-align: center; font-size: 12.5px; color: var(--muted); }
+.om-switch-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.om-switch-item:hover { background: var(--surface3); border-color: var(--line2); }
+.om-switch-thumb { width: 34px; height: 34px; border-radius: 8px; background-size: cover; background-position: center; flex: none; }
+.om-switch-name { flex: 1; font-size: 13.5px; font-weight: 600; }
+.om-switch-item svg { color: var(--muted); }
+
+/* ---- Opponent presence chip (in-match) ----
+   Sits in normal flow (centered, below the game's progress line) so it never
+   covers the round/score/progress header. */
+.om-playbar {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;      /* 3-player rooms show one chip per opponent */
+  gap: 8px;
+  margin-top: 0;
+}
+.om-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: var(--surface2);
+  max-width: 100%;
+}
+.om-chip.is-offline { border-color: var(--bad); }
+.om-chip-av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; border: 1px solid var(--line2); }
+.om-chip-meta { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+.om-chip-name { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.om-chip-state { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--muted); }
+.om-chip.is-finished .om-chip-state { color: var(--good); }
+.om-chip.is-offline .om-chip-state { color: var(--bad); }
+
+/* ---- Animated "playing" dots ---- */
+.om-dots { display: inline-flex; gap: 3px; }
+.om-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: omDot 1s infinite ease-in-out; }
+.om-dots i:nth-child(2) { animation-delay: 0.15s; }
+.om-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes omDot { 0%, 100% { opacity: 0.3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+
+/* ---- Notice banner ---- */
+.om-notice {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 94%;
+  padding: 9px 14px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid var(--line2);
+  background: var(--surface3);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+.om-notice.is-info { border-color: var(--brand); }
+.om-notice.is-warn { border-color: var(--bad); color: var(--text); }
+.om-notice.is-error { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, var(--surface3)); }
+.om-notice-x { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
+.om-notice-x:hover { color: var(--text); }
+
+/* ---- Ended ---- */
+.om-ended-icon {
+  width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--bad) 16%, transparent);
+  color: var(--bad);
+}
+.om-ended-title { font-size: 20px; }
+.om-ended-msg { font-size: 13.5px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+
+@media (max-width: 480px) {
+  .om-matchup { gap: 12px; }
+  .om-pc { padding: 13px 9px; max-width: none; }
+  .om-chip { padding: 5px 12px 5px 5px; }
+  .om-chip-name { max-width: 150px; }
+  /* Trio fits phones: slimmer cards + smaller avatars, no horizontal scroll. */
+  .om-matchup.is-trio { gap: 8px; }
+  .om-matchup.is-trio .om-pc { padding: 11px 6px; }
+  .om-matchup.is-trio .om-pc-avatar { width: 46px; height: 46px; }
+  .om-matchup.is-trio .om-pc-name { font-size: 12.5px; }
+  .om-playbar .om-chip-name { max-width: 110px; }
+  .om-strow { padding: 9px 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .om-dots i { animation: none; opacity: 0.7; }
+}
