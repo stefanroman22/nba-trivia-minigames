@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-25",
+  "version": "2026-06-28",
   "games": {
     "all-players": {
       "file": "all-players.json",
@@ -18,7 +18,7 @@
     },
     "playoff": {
       "file": "playoff.json",
-      "sha256": "544f45d5663d8c076f538ba29a597a62684e52fdf16c2b699aad815bdfe3cf86",
+      "sha256": "b45317e8bdafb302913c0cbe6d724505447cb2bdfed2fe7954cf1f3cbb9f36d2",
       "count": 912
     },
     "starting-five": {
