@@ -156,11 +156,20 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if DATABASE_URL:
     import dj_database_url
 
+    # Serverless-safe DB config. conn_max_age must be 0 on Vercel: a persistent
+    # connection pins one of the Supabase pooler's 15 session slots per warm
+    # lambda until it's recycled, exhausting the pool (EMAXCONNSESSION) and
+    # 500-ing every DB endpoint. The pooler holds warm server-side connections,
+    # so per-request connects stay cheap.
     DATABASES = {
         "default": dj_database_url.parse(
-            DATABASE_URL, conn_max_age=600, ssl_require=True
+            DATABASE_URL, conn_max_age=0, ssl_require=True
         )
     }
+    # Lets DATABASE_URL point at the transaction pooler (port 6543), which
+    # multiplexes far more clients than session mode but can't host
+    # server-side cursors. (.iterator() falls back to client-side chunks.)
+    DISABLE_SERVER_SIDE_CURSORS = True
 else:
     DATABASES = {
         "default": {
