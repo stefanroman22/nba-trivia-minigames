@@ -1,0 +1,117 @@
+/* ===== Play with a friend — private room card (aside) ===== */
+.fp { width: 100%; }
+.fp-body { display: flex; flex-direction: column; gap: 11px; }
+.fp-sub { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+.fp-actions { display: flex; flex-direction: column; gap: 8px; align-items: stretch; }
+.fp-link {
+  align-self: center;
+  background: none; border: none;
+  color: var(--muted);
+  font-size: 12px; font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.fp-link:hover { color: var(--text); }
+
+/* ---- Code tiles (host display + entry input share the look) ----
+   Tiles flex-shrink to their row, so the card never overflows: they're compact
+   in the 290px desktop aside and grow (to a cap) on full-width mobile. */
+.fp-code-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.fp-tiles { display: flex; gap: 5px; flex: 1; min-width: 0; max-width: 236px; }
+.fp-tile {
+  flex: 1 1 0; min-width: 0; height: 46px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--surface2);
+  font-size: 18px; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+.fp-tile.is-code {
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--line2));
+  font-family: 'Russo One', system-ui, sans-serif;
+  font-weight: 400;
+}
+.fp-copy {
+  width: 42px; height: 46px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line2); border-radius: 10px;
+  background: var(--surface2); color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.fp-copy:hover { color: var(--brand); border-color: var(--brand); }
+.fp-copy.is-copied { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+
+/* ---- Code entry (one hidden input drives the boxes) ---- */
+.fp-codein { position: relative; display: flex; gap: 6px; justify-content: center; cursor: text; }
+.fp-codein .fp-tile { max-width: 44px; height: 50px; }
+.fp-codein-input {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  opacity: 0;
+  border: none; background: none;
+  color: transparent; caret-color: transparent;
+  cursor: text;
+}
+.fp-codein .fp-tile.is-active { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.fp-codein .fp-tile.is-filled { background: var(--surface3); }
+.fp-codein.is-error .fp-tile { border-color: var(--bad); animation: fpShake 0.28s ease; }
+.fp-codein.is-disabled { opacity: 0.6; pointer-events: none; }
+@keyframes fpShake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.fp-err { font-size: 12px; color: var(--bad); text-align: center; }
+
+/* ---- Lobby seats ---- */
+.fp-seats { display: flex; flex-direction: column; gap: 7px; }
+.fp-seat {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; min-width: 0;
+  border: 1px solid var(--line); border-radius: 11px;
+  background: var(--surface2);
+}
+.fp-seat.is-empty { border-style: dashed; background: transparent; color: var(--muted); }
+.fp-seat-av { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none; border: 1.5px solid var(--brand); }
+.fp-seat-name { font-size: 13px; font-weight: 700; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-host-chip {
+  flex: none;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.6px;
+  padding: 2px 7px; border-radius: 999px;
+  background: var(--brand-soft); color: var(--brand);
+}
+.fp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-left: auto; flex: none; }
+.fp-dot.is-off { background: var(--bad); }
+.fp-seat-hole {
+  width: 28px; height: 28px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--line2); border-radius: 50%;
+}
+.fp-seat-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+
+.fp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
+.fp-meta strong { color: var(--text); font-weight: 700; }
+
+/* ---- Compact game picker (host: change game) ---- */
+.fp-picker { border: 1px solid var(--line2); border-radius: 12px; background: var(--surface2); overflow: hidden; }
+.fp-picker-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 11px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.fp-picker-x { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
+.fp-picker-x:hover { color: var(--brand); }
+.fp-picker-list { display: flex; flex-direction: column; padding: 5px; gap: 3px; max-height: 168px; overflow-y: auto; overscroll-behavior: contain; }
+.fp-picker-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 6px;
+  border: 1px solid transparent; border-radius: 9px;
+  background: none; cursor: pointer; text-align: left; color: var(--text);
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+.fp-picker-item:hover { background: var(--surface3); border-color: var(--line2); }
+.fp-picker-thumb { width: 28px; height: 28px; border-radius: 7px; background-size: cover; background-position: center; flex: none; }
+.fp-picker-name { font-size: 12.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
