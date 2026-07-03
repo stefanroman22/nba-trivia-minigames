@@ -8,42 +8,29 @@ interface SubmitGuessPopupProps {
 }
 
 /**
- * Floating score / feedback popup shown by every game renderer.
- * Springs in and fades out via AnimatePresence (no fragile cross-file keyframe).
+ * In-container feedback line shown by the game renderers. It sits *inside* the
+ * game container, below the play area, and fades up into place — matching the
+ * winner feedback in PlayOffSeries (never a popup coming from the top). A small
+ * reserved row keeps the layout from jumping when it appears.
  */
 const SubmitGuessPopup = ({ show, text, color }: SubmitGuessPopupProps) => {
   return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          key="score-popup"
-          initial={{ opacity: 0, scale: 0.55, x: "-50%", y: -18 }}
-          animate={{ opacity: 1, scale: 1, x: "-50%", y: 0 }}
-          exit={{ opacity: 0, scale: 0.7, x: "-50%", y: -18 }}
-          transition={{ type: "spring", stiffness: 420, damping: 18, mass: 0.6 }}
-          className="font-accent tnum"
-          style={{
-            position: "fixed",
-            top: "15%",
-            left: "50%",
-            backgroundColor: color,
-            padding: "0.85rem 1.7rem",
-            borderRadius: "12px",
-            fontWeight: 800,
-            color: "#fff",
-            fontSize: "clamp(1rem, 4vw, 1.25rem)",
-            maxWidth: "90vw",
-            textAlign: "center",
-            zIndex: 9999,
-            boxShadow: "0 10px 28px rgba(0,0,0,0.45), 0 0 20px rgba(255,255,255,0.08)",
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {text}
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div style={{ minHeight: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <AnimatePresence>
+        {show && (
+          <motion.span
+            key="score-feedback"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 6 }}
+            className="font-accent"
+            style={{ fontSize: 14, fontWeight: 700, color }}
+          >
+            {text}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

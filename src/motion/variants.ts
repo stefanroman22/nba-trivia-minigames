@@ -9,7 +9,7 @@ export const fadeIn: Variants = {
 };
 
 export const fadeInUp: Variants = {
-  hidden: { opacity: 0, y: 26 },
+  hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0, transition: { duration: durations.slow, ease: easing.out } },
   exit: { opacity: 0, y: -16, transition: { duration: durations.fast, ease: easing.in } },
 };
@@ -30,12 +30,12 @@ export const popIn: Variants = {
 // Container + item for staggered lists / grids
 export const staggerContainer: Variants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.05 } },
+  visible: { transition: { staggerChildren: 0.04, delayChildren: 0.02 } },
   exit: {},
 };
 
 export const staggerItem: Variants = {
-  hidden: { opacity: 0, y: 22 },
+  hidden: { opacity: 0, y: 14 },
   visible: { opacity: 1, y: 0, transition: { duration: durations.slow, ease: easing.out } },
   exit: { opacity: 0, y: -12, transition: { duration: durations.fast, ease: easing.in } },
 };

@@ -1,0 +1,153 @@
+/* ===== Fill in the Starting 5 — position cards ===== */
+.s5-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 1.8dvh, 18px);
+}
+
+/* Scoreboard */
+.s5-board {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 4vw, 26px);
+}
+.s5-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: clamp(72px, 22vw, 104px);
+  opacity: 0.5;
+  filter: grayscale(80%);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+}
+.s5-team.is-winner { opacity: 1; filter: none; }
+.s5-team img { width: clamp(34px, 8dvh, 48px); height: clamp(34px, 8dvh, 48px); object-fit: contain; }
+.s5-team-badge { width: clamp(34px, 8dvh, 48px); height: clamp(34px, 8dvh, 48px); object-fit: contain; }
+.s5-team-name { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.2; }
+
+.s5-score { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.s5-score-num {
+  font-size: clamp(18px, 4.4vw, 24px);
+  color: var(--text);
+  padding: 4px 12px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.s5-score-date {
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 2px 9px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Lives */
+.s5-lives { display: flex; gap: 8px; }
+
+/* ===== Position cards ===== */
+.s5-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: clamp(8px, 1.6vw, 14px);
+  width: 100%;
+}
+.s5-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* lift the active card so its autocomplete dropdown is never covered */
+.s5-card:focus-within { position: relative; z-index: 5; }
+.s5-card-pos {
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.s5-card.is-correct .s5-card-pos { color: var(--brand); }
+
+/* Flip stage */
+.s5-card-stage { position: relative; width: 100%; aspect-ratio: 1 / 1; perspective: 900px; }
+.s5-flip {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.s5-flip.is-flipped { transform: rotateY(180deg); }
+.s5-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 1px solid var(--line2);
+}
+.s5-face--front { background: linear-gradient(165deg, var(--surface2), var(--bg2)); }
+.s5-face--back { transform: rotateY(180deg); background: var(--surface3); }
+.s5-card.is-correct .s5-face--back { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+
+/* Unknown player (front) */
+.s5-unknown { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.s5-unknown-fig { width: 62%; height: 62%; fill: color-mix(in srgb, var(--muted) 42%, transparent); }
+.s5-unknown-q {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Russo One', system-ui, sans-serif;
+  font-size: clamp(26px, 6vw, 42px);
+  color: color-mix(in srgb, var(--brand) 88%, #fff);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+/* Revealed photo (back) — app-toned via overlay */
+.s5-photo { width: 100%; height: 100%; object-fit: cover; filter: grayscale(0.3) contrast(1.04) brightness(0.96); }
+.s5-revealed-fallback { width: 100%; height: 100%; background: var(--surface3); }
+.s5-photo-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, transparent 38%, rgba(8, 7, 6, 0.62) 100%),
+    linear-gradient(150deg, color-mix(in srgb, var(--brand) 34%, transparent), transparent 58%);
+}
+
+/* Footer: input + confirm, or the revealed name (fixed height = stable cards) */
+.s5-card-foot { display: flex; flex-direction: column; justify-content: flex-start; }
+.s5-card-input { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.s5-card-name {
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.25;
+  padding-top: 6px;
+  word-break: break-word;
+}
+
+/* Game-over choices (single-player) */
+.s5-gameover { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.s5-gameover-text { font-size: 13px; color: var(--muted); }
+.s5-gameover-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .s5-flip { transition: none; }
+}

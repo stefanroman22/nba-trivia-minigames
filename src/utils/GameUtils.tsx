@@ -13,11 +13,10 @@ export const handleErrorDefault = (error: { title: string; message: string }) =>
   Swal.fire({
     icon: "error",
     title: error.title,
-    text: error.message,
-    background: "#1f1f1f",
-    color: "#ffffff",
+    html: `<p style="font-size: 0.95rem; margin-top: 0.5rem;">${error.message}</p>`,
+    background: "#1c1c1e",
+    color: "#f5f3ef",
     confirmButtonText: "Retry",
-    confirmButtonColor: "#EA750E",
     customClass: {
       popup: "swal2-custom-popup",
       confirmButton: "swal2-custom-button",
