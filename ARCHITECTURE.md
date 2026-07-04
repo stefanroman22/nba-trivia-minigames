@@ -119,13 +119,27 @@ It has two parts ("apps"):
 **Game data** (`/trivia/...`): returns random rounds for each game (playoff series, logos,
 MVPs, starting fives, wordle words) and a `manifest` + `pool/<game>` for the frontend cache.
 
+### Player identity (built for millions of accounts)
+- Every account gets a **permanent 6-character public ID** (e.g. `#K7F3QD`) generated from
+  an unambiguous alphabet (no 0/O or 1/I) — about **1.07 billion** combinations.
+- **Usernames don't have to be unique** — any number of players can be called "Baller23";
+  the ID is what tells them apart, and it's shown in the leaderboard, the profile, the
+  navbar, and every multiplayer screen (VS cards, lobby seats, scoreboards).
+- The **email is the unique login identifier**. You can sign in with your email, with your
+  username (while it's unambiguous), or with `Name#ID`.
+- The leaderboard and the multiplayer server key everything by the ID, so renames are free
+  and same-named players never collide.
+
 ### How authentication works (in simple terms)
 - It uses **JWT tokens** (JSON Web Tokens) — no server-side sessions for the API.
 - When you log in, the backend gives the browser **two tokens**: a short-lived **access
-  token** (valid 15 minutes) used on every request, and a longer **refresh token** (valid
-  7 days) used to silently get a new access token.
+  token** (valid 15 minutes) used on every request, and a **refresh token** used to
+  silently get a new access token.
 - Refresh tokens **rotate** (each refresh issues a new one and **blacklists** the old one),
   so a stolen old token can't be reused. Logging out blacklists your refresh token.
+- Sessions last **up to 3 months**: every login stamps its start time into the token, and
+  refreshing is refused once that stamp is older than 90 days — so you stay signed in
+  seamlessly, but after 3 months you must log in again no matter how active you were.
 - **Passwords** are never stored in plain text — Django hashes them with **PBKDF2-SHA256**.
 - **Google login**: the browser sends a Google authorization code; the backend exchanges it
   with Google, verifies the identity, then creates/looks-up the user and returns the same
@@ -156,9 +170,12 @@ Vercel's serverless functions are short-lived and can't keep a live connection o
 Node host instead.
 
 ### What it does (in simple terms)
-1. **Matchmaking** — when you click Play Online you join a queue. The server pairs you with
-   the next waiting player and puts you both in a private "room". If no one shows up within
-   30 seconds, it tells you no opponent was found.
+1. **Matchmaking** — when you click Play Online you join a queue. Pairing is
+   **fair by skill**: the server matches you with the waiting player whose
+   points are closest to yours, only accepting gaps both sides' "fairness
+   windows" allow — and those windows widen the longer you wait, so nobody
+   queues forever. If no one shows up within 30 seconds, it tells you no
+   opponent was found.
 2. **Same questions for everyone** — the server fetches the round's data **from the Django
    backend** and sends the *same* questions to every player in the room, so it's fair.
 3. **Scoring** — players submit their scores; once everyone's is in, the server sends each
@@ -168,13 +185,14 @@ Node host instead.
 5. **Leaving/disconnecting** — if anyone quits, the others are told immediately.
 
 ### "Play with a friend" (private rooms)
-Logged-in players can also skip matchmaking and play with friends:
+Logged-in players can also skip matchmaking and play with a friend:
 - The host presses **Generate code** and gets a **6-digit room code** to share (codes are
   crypto-random, so they can't be guessed in order).
-- Friends press **Enter code** and type it in. A room holds **exactly 3 players** — the
-  match starts automatically the moment the third one joins.
-- While waiting, the host can **change the game** (everyone's lobby follows) or **cancel
-  the room**. If any member leaves or drops out, the room closes for everyone.
+- The friend presses **Enter code** and types it in. A room holds **exactly 2 players** —
+  the match starts automatically the moment the friend joins.
+- While waiting, the host can **change the game** or **cancel the room**. If either player
+  leaves or drops out, the room closes for both. On phones the room card can collapse to a
+  slim overview so the game stage stays in view.
 - Housekeeping keeps the code space healthy at scale: every lookup is O(1) by code,
   unfilled lobbies **expire after 15 minutes** (freeing their code), join attempts are
   **rate-limited per connection** (max 8 tries / 10 s) so codes can't be brute-forced, and
@@ -216,7 +234,7 @@ There are **two kinds of data**, handled very differently:
 **User side (`users` app):**
 | Table | What it holds |
 |---|---|
-| `users_customuser` | accounts: username, email, hashed password, points, rank, profile photo |
+| `users_customuser` | accounts: public id (#K7F3QD), display username, unique email, hashed password, points, rank, profile photo |
 | `token_blacklist_*` | revoked/expired refresh tokens (for secure logout) |
 
 **Game-data side (`trivia` app):**
