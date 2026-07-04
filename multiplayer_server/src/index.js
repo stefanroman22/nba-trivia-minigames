@@ -56,12 +56,21 @@ const MATCH_TIMEOUT_MS = 30000;    // how long to wait in the matchmaking queue
 const GRACE_MS = 30000;            // reconnect window before a dropped player forfeits
 const PROPOSAL_TIMEOUT_MS = 30000; // how long a play-again / switch request stays open
 
-const FRIEND_ROOM_SIZE = 3;        // a friend room starts the moment exactly this many players are in
+const FRIEND_ROOM_SIZE = 2;        // a friend room starts the moment exactly this many players are in
 const LOBBY_TTL_MS = 15 * 60000;   // unfilled lobbies self-destruct after this long
 const LOBBY_GRACE_MS = 10000;      // reconnect window for a player who drops while in a lobby
 const JOIN_WINDOW_MS = 10000;      // join-attempt rate limit window…
 const JOIN_MAX_TRIES = 8;          // …and how many tries a socket gets per window (anti brute-force)
 const CODE_ALLOC_TRIES = 8;        // bounded retries against the 900k active-code space
+
+// Fair matchmaking: pair players whose POINTS are close, widening the accepted
+// gap the longer someone waits so nobody queues forever. Both sides' windows
+// must accept the gap.
+const MATCH_WINDOW_BASE = 200;     // points gap considered fair immediately
+const MATCH_WINDOW_GROWTH = 400;   // extra tolerance gained per step below
+const MATCH_WINDOW_STEP_MS = 5000;
+const MATCH_WINDOW_UNCAP_MS = 25000; // after this, any opponent is acceptable
+const MATCH_SWEEP_MS = 3000;       // re-check waiting players this often
 
 const app = express();
 app.use(cors({ origin: CORS_ORIGINS, methods: ["GET", "POST"] }));
@@ -130,12 +139,16 @@ function toUid(uid, event, payload) {
 const publicUser = (user) =>
   user
     ? {
+        id: user.id ?? null,                    // permanent public id (#K7F3QD)
         username: user.username,
         profile_photo: user.profile_photo ?? null,
         rank: user.rank,
         points: user.points,
       }
-    : { username: "Player" };
+    : { id: null, username: "Player" };
+
+/** Display name for log lines / "X left" messages. */
+const nameOf = (uid) => players.get(uid)?.user?.username || "A player";
 
 // Fetch a fresh round of game data for a game id from the Django backend.
 async function fetchRound(gameId) {
@@ -175,7 +188,7 @@ function settleMatch(room) {
   // Shared scoreboard, best score first — the client renders this for 3-player rooms.
   const standings = [...entries]
     .sort((a, b) => b.score - a.score)
-    .map((e) => ({ ...publicUser(players.get(e.uid)?.user), score: e.score, outcome: outcomeOf(e) }));
+    .map((e) => ({ ...publicUser(players.get(e.uid)?.user), id: e.uid, score: e.score, outcome: outcomeOf(e) }));
   entries.forEach((e) => {
     const bestOther = Math.max(...entries.filter((o) => o.uid !== e.uid).map((o) => o.score));
     toUid(e.uid, "matchResult", {
@@ -217,7 +230,7 @@ function lobbySnapshot(room) {
     hostUid: room.members[0],
     members: room.members.map((uid) => ({
       ...publicUser(players.get(uid)?.user),
-      username: uid,
+      id: uid,
       isHost: uid === room.members[0],
       online: !!socketIdOf(uid),
     })),
@@ -255,6 +268,7 @@ function snapshotFor(room, uid) {
           .sort((a, b) => b.score - a.score)
           .map((e) => ({
             ...publicUser(players.get(e.uid)?.user),
+            id: e.uid,
             score: e.score,
             outcome: e.score !== top ? "loss" : winners.length > 1 ? "tie" : "win",
           }))
@@ -268,6 +282,7 @@ function snapshotFor(room, uid) {
     role: room.members[0] === uid ? "host" : "guest",
     opponents: opps.map((m) => ({
       ...publicUser(players.get(m)?.user),
+      id: m,
       online: !!socketIdOf(m),
       finished: room.scores[m] != null,
     })),
@@ -294,6 +309,107 @@ function dropFromQueues(uid) {
   }
   return false;
 }
+
+// =========================
+//  Fair matchmaking
+// =========================
+const pointsOf = (user) => Number(user?.points) || 0;
+
+/** How large a points gap this queue entry accepts right now (grows while waiting). */
+function windowFor(entry, now) {
+  const waited = now - entry.since;
+  if (waited >= MATCH_WINDOW_UNCAP_MS) return Infinity;
+  return MATCH_WINDOW_BASE + MATCH_WINDOW_GROWTH * Math.floor(waited / MATCH_WINDOW_STEP_MS);
+}
+
+/** The fairest (smallest points gap) waiting opponent BOTH windows accept. */
+function bestCandidate(queue, uid, myPoints, myWindow, now) {
+  let best = null;
+  let bestGap = Infinity;
+  for (const p of queue) {
+    if (p.uid === uid || !socketIdOf(p.uid)) continue;
+    const gap = Math.abs(pointsOf(p.user) - myPoints);
+    if (gap <= myWindow && gap <= windowFor(p, now) && gap < bestGap) {
+      best = p;
+      bestGap = gap;
+    }
+  }
+  return best;
+}
+
+/** Seat two queue entries in a fresh 1v1 room and deal the first round. */
+function createMatchRoom(game, entryA, entryB) {
+  const code = allocateRoomCode();
+  if (code == null) {
+    [entryA.uid, entryB.uid].forEach((u) => toUid(u, "matchError", { message: "Servers are busy. Please try again." }));
+    return false;
+  }
+  const room = makeRoom(code, game.id, game, [entryA.uid, entryB.uid]);
+  rooms.set(code, room);
+  [entryA.uid, entryB.uid].forEach((u) => {
+    const p = players.get(u);
+    if (p) p.roomCode = code;
+    io.sockets.sockets.get(socketIdOf(u))?.join(code);
+    const sock = io.sockets.sockets.get(socketIdOf(u));
+    if (sock?._findTimeout) clearTimeout(sock._findTimeout);
+  });
+
+  const [host, guest] = [entryA.uid, entryB.uid];
+  toUid(host, "matchFound", {
+    code, role: "host", roomType: "match", roomSize: 2,
+    you: publicUser(players.get(host)?.user),
+    opponent: publicUser(players.get(guest)?.user),
+    opponents: [publicUser(players.get(guest)?.user)], game,
+  });
+  toUid(guest, "matchFound", {
+    code, role: "guest", roomType: "match", roomSize: 2,
+    you: publicUser(players.get(guest)?.user),
+    opponent: publicUser(players.get(host)?.user),
+    opponents: [publicUser(players.get(host)?.user)], game,
+  });
+  console.log(`Match ${code}: ${nameOf(host)}#${host} vs ${nameOf(guest)}#${guest} (${game.id})`);
+
+  // Pre-load the first round during the VS intro.
+  dealRound(room);
+  return true;
+}
+
+/** Tell everyone still waiting where they stand in the queue. */
+function broadcastQueueState(gameId) {
+  const q = queues.get(gameId);
+  if (!q) return;
+  q.forEach((entry, i) => {
+    toUid(entry.uid, "searching", { inQueue: q.length, position: i + 1 });
+  });
+}
+
+/** Longest-waiting first, pair everyone whose widened windows now overlap. */
+function sweepQueue(gameId) {
+  const q = queues.get(gameId);
+  if (!q || q.length < 2) return;
+  const now = Date.now();
+  let paired = false;
+  let i = 0;
+  while (q.length >= 2 && i < q.length) {
+    const entry = q[i];
+    const candidate = bestCandidate(q, entry.uid, pointsOf(entry.user), windowFor(entry, now), now);
+    if (!candidate) {
+      i += 1;
+      continue;
+    }
+    q.splice(q.indexOf(candidate), 1);
+    q.splice(q.indexOf(entry), 1);
+    createMatchRoom(entry.game, entry, candidate);
+    paired = true;
+  }
+  if (q.length === 0) queues.delete(gameId);
+  else if (paired) broadcastQueueState(gameId);
+}
+
+// One cheap global sweep keeps widening windows effective for waiting players.
+setInterval(() => {
+  for (const gameId of [...queues.keys()]) sweepQueue(gameId);
+}, MATCH_SWEEP_MS).unref();
 
 /** Sliding-window rate limit on join attempts per socket (stops code brute-forcing). */
 function joinThrottled(socket) {
@@ -346,8 +462,10 @@ io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
   // --- Identity (sent on every (re)connect) ---
+  // Players are keyed by their permanent public id; the username fallback
+  // keeps not-yet-updated clients working (they can't share names anyway).
   socket.on("identify", ({ user } = {}) => {
-    const uid = user?.username;
+    const uid = user?.id || user?.username;
     if (!uid) return;
     socket.uid = uid;
     const prev = players.get(uid);
@@ -366,13 +484,15 @@ io.on("connection", (socket) => {
         const snap = lobbySnapshot(room);
         othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
       } else {
-        othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { username: uid }));
+        othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { id: uid, username: nameOf(uid) }));
       }
       console.log(`${uid} resumed room ${room.code} (${room.phase})`);
     }
   });
 
   // --- Matchmaking ---
+  // Skill-aware: pair with the closest-points opponent whose fairness window
+  // (and ours) accepts the gap; the sweep interval re-tries as windows widen.
   socket.on("findMatch", ({ game } = {}) => {
     const uid = uidOf(socket);
     if (!uid || !game?.id) {
@@ -388,52 +508,25 @@ io.on("connection", (socket) => {
 
     if (!queues.has(game.id)) queues.set(game.id, []);
     const queue = queues.get(game.id);
-    // Drop any stale self entry, then look for a different opponent.
-    const oppEntry = queue.find((p) => p.uid !== uid && socketIdOf(p.uid));
-    if (oppEntry) {
-      queue.splice(queue.indexOf(oppEntry), 1);
+    const me = { uid, user: players.get(uid)?.user, game, since: Date.now() };
+
+    const candidate = bestCandidate(queue, uid, pointsOf(me.user), windowFor(me, me.since), me.since);
+    if (candidate) {
+      queue.splice(queue.indexOf(candidate), 1);
       if (queue.length === 0) queues.delete(game.id);
-
-      const code = allocateRoomCode();
-      if (code == null) {
-        queue.push(oppEntry); // put the opponent back; neither player loses their spot
-        socket.emit("matchError", { message: "Servers are busy. Please try again." });
-        return;
+      if (!createMatchRoom(game, candidate, me)) {
+        queue.unshift(candidate); // "busy" — the waiting player keeps their spot
       }
-      const room = makeRoom(code, game.id, game, [oppEntry.uid, uid]);
-      rooms.set(code, room);
-      [oppEntry.uid, uid].forEach((u) => {
-        const p = players.get(u);
-        if (p) p.roomCode = code;
-        io.sockets.sockets.get(socketIdOf(u))?.join(code);
-      });
-
-      const host = oppEntry.uid;
-      const guest = uid;
-      toUid(host, "matchFound", {
-        code, role: "host", roomType: "match", roomSize: 2,
-        you: publicUser(players.get(host)?.user),
-        opponent: publicUser(players.get(guest)?.user),
-        opponents: [publicUser(players.get(guest)?.user)], game,
-      });
-      toUid(guest, "matchFound", {
-        code, role: "guest", roomType: "match", roomSize: 2,
-        you: publicUser(players.get(guest)?.user),
-        opponent: publicUser(players.get(host)?.user),
-        opponents: [publicUser(players.get(host)?.user)], game,
-      });
-      console.log(`Match ${code}: ${host} vs ${guest} (${game.id})`);
-
-      // Pre-load the first round during the VS intro.
-      dealRound(room);
-    } else {
-      queue.push({ uid, user: players.get(uid)?.user });
-      socket.emit("searching", {});
-      socket._findTimeout = setTimeout(() => {
-        if (dropFromQueues(uid)) toUid(uid, "noOpponent", { game });
-      }, MATCH_TIMEOUT_MS);
-      console.log(`${uid} queued for ${game.id}`);
+      broadcastQueueState(game.id);
+      return;
     }
+
+    queue.push(me);
+    socket.emit("searching", { inQueue: queue.length, position: queue.length });
+    socket._findTimeout = setTimeout(() => {
+      if (dropFromQueues(uid)) toUid(uid, "noOpponent", { game });
+    }, MATCH_TIMEOUT_MS);
+    console.log(`${nameOf(uid)}#${uid} queued for ${game.id} (${pointsOf(me.user)} pts)`);
   });
 
   socket.on("cancelFind", () => {
@@ -546,7 +639,7 @@ io.on("connection", (socket) => {
       room.phase = "waiting";
       socket.emit("waitingForOpponent", {});
       // let the still-playing sides show "finished"
-      othersOf(room, uid).forEach((m) => toUid(m, "opponentFinished", { username: uid }));
+      othersOf(room, uid).forEach((m) => toUid(m, "opponentFinished", { id: uid, username: nameOf(uid) }));
     }
   });
 
@@ -555,7 +648,7 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentProgress", { username: uid, round, total }));
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentProgress", { id: uid, username: nameOf(uid), round, total }));
   });
 
   // --- Play-again / switch-game proposals ---
@@ -601,7 +694,7 @@ io.on("connection", (socket) => {
     if (prop.accepted.size < room.members.length - 1) {
       // Still waiting on someone — tell the rest who's in.
       room.members.forEach((u) => {
-        if (u !== byUid) toUid(u, "proposalProgress", { username: byUid, accepted: prop.accepted.size, needed: room.members.length - 1 });
+        if (u !== byUid) toUid(u, "proposalProgress", { id: byUid, username: nameOf(byUid), accepted: prop.accepted.size, needed: room.members.length - 1 });
       });
       return;
     }
@@ -627,7 +720,7 @@ io.on("connection", (socket) => {
     } else {
       const decliner = uid;
       clearProposal(room);
-      othersOf(room, decliner).forEach((m) => toUid(m, "proposalDeclined", { username: decliner }));
+      othersOf(room, decliner).forEach((m) => toUid(m, "proposalDeclined", { id: decliner, username: nameOf(decliner) }));
     }
   });
 
@@ -691,7 +784,7 @@ io.on("connection", (socket) => {
       }, LOBBY_GRACE_MS);
       return;
     }
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { username: uid, graceMs: GRACE_MS }));
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: nameOf(uid), graceMs: GRACE_MS }));
     room.graceTimers[uid] = setTimeout(() => {
       const message = room.members.length > 2
         ? `${name} didn't reconnect, so the match ended.`
