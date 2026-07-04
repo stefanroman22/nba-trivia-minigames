@@ -87,7 +87,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
         localStorage.setItem("accessToken", data.access);
         localStorage.setItem("refreshToken", data.refresh);
         dispatch(login(data.user));
-        showNewUserAlert(data.user.username);
+        showNewUserAlert(data.user.id ? `${data.user.username} #${data.user.id}` : data.user.username);
         onClose();
       }
     } catch (err) {
@@ -157,9 +157,9 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
                 type="text"
                 className="modal-input"
                 required
-                pattern="[A-Za-z]{3,}[0-9]{2,}"
-                title="Username must start with at least 3 letters followed by at least 2 numbers (e.g., 'Baller23')"
-                placeholder="Username"
+                pattern="[A-Za-z0-9_]{3,20}"
+                title="3-20 characters: letters, numbers or underscores. Names don't have to be unique — you'll get a permanent #ID that tells players apart."
+                placeholder="Username (any name — you'll get a unique #ID)"
                 value={signupUsername}
                 onChange={(e) => setSignupUsername(e.target.value)}
                 initial={{ opacity: 0, y: -8 }}
@@ -174,7 +174,8 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
             type="text"
             className="modal-input"
             required
-            placeholder="Username or email"
+            placeholder="Email or username"
+            title="Use your email, your username, or Name#ID if several players share your name."
             value={userId}
             onChange={(e) => setUserId(e.target.value)}
           />
@@ -186,6 +187,8 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
             className="modal-input"
             placeholder="Password"
             required
+            minLength={isSignup ? 8 : undefined}
+            title={isSignup ? "At least 8 characters; not too common or all numbers." : undefined}
             style={{ paddingRight: 44 }}
             value={userPassword}
             onChange={(e) => {
@@ -217,9 +220,8 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
                 className="modal-input"
                 placeholder="Confirm password"
                 required
-                minLength={6}
-                pattern=".*\d.*"
-                title="Password must be at least 6 characters long and contain at least one number."
+                minLength={8}
+                title="At least 8 characters; not too common or all numbers."
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);

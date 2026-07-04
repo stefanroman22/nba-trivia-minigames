@@ -9,6 +9,10 @@ interface PlayerCardProps {
   photo?: string | null;
   /** Label under the name ("You", "Opponent", "Friend"…). */
   side: string;
+  /** Public player id, rendered as a #ID chip next to the name. */
+  tag?: string | null;
+  /** Small context line under the side label, e.g. "All-Star · 740 pts". */
+  sub?: string | null;
   /** Final score, shown only once the match resolves. */
   score?: number | null;
   /** Live status pill (in-match). Omit to hide. */
@@ -24,7 +28,7 @@ const STATUS_LABEL: Record<CardState, string> = {
 
 /** Compact player tile used in the VS intro and the results matchup. */
 export default function PlayerCard({
-  name, photo, side, score = null, state, result = null, delay = 0,
+  name, photo, side, tag = null, sub = null, score = null, state, result = null, delay = 0,
 }: PlayerCardProps) {
   return (
     <motion.div
@@ -46,8 +50,10 @@ export default function PlayerCard({
         )}
       </div>
 
-      <span className="om-pc-name" title={name}>{name || "Player"}</span>
+      <span className="om-pc-name" title={tag ? `${name} #${tag}` : name}>{name || "Player"}</span>
+      {tag && <span className="om-pc-tag tnum">#{tag}</span>}
       <span className="om-pc-side">{side}</span>
+      {sub && <span className="om-pc-sub">{sub}</span>}
 
       {state && (
         <span className={`om-pc-status is-${state}`}>

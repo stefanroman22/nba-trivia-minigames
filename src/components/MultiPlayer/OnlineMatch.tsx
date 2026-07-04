@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import "../../styles/Multiplayer.css";
-import { useMultiplayer } from "../../context/MultiplayerContext";
+import { playerKey, useMultiplayer } from "../../context/MultiplayerContext";
 import { renderGame } from "../../Game Renderers/RenderGame";
 import { games } from "../../utils/GameUtils";
 import { CourtLoader } from "../ui";
@@ -10,7 +10,7 @@ import PlayerCard from "./PlayerCard";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import defaultAvatar from "../../assets/default.png";
 import type { RootState } from "../../store";
-import type { Game } from "../../types/types";
+import type { Game, PlayerInfo } from "../../types/types";
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -24,11 +24,18 @@ const swap = {
 type Mp = ReturnType<typeof useMultiplayer>["mp"];
 
 /** Presence-pill state for one opponent, from the live status map. */
-function chipStateOf(mp: Mp, username?: string): "playing" | "finished" | "offline" {
-  const st = username ? mp.oppStatus[username] : undefined;
+function chipStateOf(mp: Mp, opponent?: PlayerInfo): "playing" | "finished" | "offline" {
+  const st = opponent ? mp.oppStatus[playerKey(opponent)] : undefined;
   if (!st) return "playing";
   if (!st.online) return "offline";
   return st.done ? "finished" : "playing";
+}
+
+/** "All-Star · 740 pts" context line for the VS cards. */
+function skillLine(p?: { rank?: string | number; points?: string | number } | null): string | null {
+  if (!p) return null;
+  const bits = [p.rank, p.points != null ? `${Number(p.points).toLocaleString()} pts` : null].filter(Boolean);
+  return bits.length ? bits.join(" · ") : null;
 }
 
 /** The full online-match experience, driven entirely by the multiplayer store. */
@@ -36,7 +43,7 @@ export default function OnlineMatch() {
   const { mp, submitScore, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice } = useMultiplayer();
   const [switching, setSwitching] = useState(false);
 
-  const stillPlaying = mp.opponents.filter((o) => !(o.username && mp.oppStatus[o.username]?.done));
+  const stillPlaying = mp.opponents.filter((o) => !mp.oppStatus[playerKey(o)]?.done);
   const waitingLabel = stillPlaying.length
     ? `Waiting for ${stillPlaying.map((o) => o.username || "Opponent").join(" & ")}...`
     : "Crunching the numbers...";
@@ -51,8 +58,13 @@ export default function OnlineMatch() {
   if (mp.phase === "searching") {
     body = (
       <motion.div key="searching" {...swap} className="om-stage">
-        <CourtLoader label="Finding an opponent..." scale={0.8} />
-        <button className="om-btn om-btn--ghost" onClick={leaveMatch} style={{ marginTop: 18 }}>Cancel</button>
+        <CourtLoader label="Finding an opponent near your rank..." scale={0.8} />
+        <p className="om-queue-note">
+          {mp.queueInfo && mp.queueInfo.inQueue > 1
+            ? `#${mp.queueInfo.position} in queue · the match widens the longer you wait`
+            : "Fair matches first — the search widens the longer you wait"}
+        </p>
+        <button className="om-btn om-btn--ghost" onClick={leaveMatch} style={{ marginTop: 6 }}>Cancel</button>
       </motion.div>
     );
   } else if (mp.phase === "intro") {
@@ -78,7 +90,7 @@ export default function OnlineMatch() {
         )}
         <div className="om-playbar">
           {mp.opponents.map((o, i) => (
-            <OpponentChip key={o.username || i} name={o.username || "Player"} photo={o.profile_photo} state={chipStateOf(mp, o.username)} />
+            <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} tag={o.id} photo={o.profile_photo} state={chipStateOf(mp, o)} />
           ))}
         </div>
         {ExitLink}
@@ -89,7 +101,7 @@ export default function OnlineMatch() {
       <motion.div key="waiting" {...swap} className="om-stage">
         <div className="om-playbar">
           {mp.opponents.map((o, i) => (
-            <OpponentChip key={o.username || i} name={o.username || "Player"} photo={o.profile_photo} state={chipStateOf(mp, o.username)} />
+            <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} tag={o.id} photo={o.profile_photo} state={chipStateOf(mp, o)} />
           ))}
         </div>
         <div className="om-yourscore">
@@ -152,18 +164,20 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
   const tie = mp.outcome === "tie";
   const opp0 = mp.opponents[0];
 
-  // 3-player rooms: a row of everyone in the room (scores come via Standings).
+  // Rooms of 3+ (not used by the 2-player friend rooms, kept for flexibility):
+  // a row of everyone in the room (scores come via Standings).
   if (mp.opponents.length > 1) {
     return (
       <div className="om-matchup is-trio">
-        <PlayerCard side="You" name={user?.username || "You"} photo={user?.profile_photo} delay={0} />
+        <PlayerCard side="You" name={user?.username || "You"} tag={user?.id} photo={user?.profile_photo} delay={0} />
         {mp.opponents.map((o, i) => (
           <PlayerCard
-            key={o.username || i}
+            key={playerKey(o) || i}
             side="Friend"
             name={o.username}
+            tag={o.id}
             photo={o.profile_photo}
-            state={chipStateOf(mp, o.username) === "offline" ? "offline" : undefined}
+            state={chipStateOf(mp, o) === "offline" ? "offline" : undefined}
             delay={0.08 * (i + 1)}
           />
         ))}
@@ -176,6 +190,8 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
       <PlayerCard
         side="You"
         name={user?.username || "You"}
+        tag={user?.id}
+        sub={showScores ? null : skillLine(user)}
         photo={user?.profile_photo}
         score={showScores ? mp.yourScore : null}
         result={showScores ? (youWin ? "win" : tie ? "tie" : null) : null}
@@ -185,9 +201,11 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
       <PlayerCard
         side="Opponent"
         name={opp0?.username}
+        tag={opp0?.id}
+        sub={showScores ? null : skillLine(opp0)}
         photo={opp0?.profile_photo}
         score={showScores ? mp.opponentScore : null}
-        state={!showScores && chipStateOf(mp, opp0?.username) === "offline" ? "offline" : undefined}
+        state={!showScores && chipStateOf(mp, opp0) === "offline" ? "offline" : undefined}
         result={showScores ? (oppWin ? "win" : tie ? "tie" : null) : null}
         delay={0.1}
       />
@@ -202,10 +220,10 @@ function Standings({ mp }: { mp: Mp }) {
   return (
     <div className="om-standings">
       {mp.standings.map((row, i) => {
-        const isYou = row.username === user?.username;
+        const isYou = row.id ? row.id === user?.id : row.username === user?.username;
         return (
           <motion.div
-            key={row.username || i}
+            key={playerKey(row) || i}
             className={`om-strow${row.outcome === "win" ? " is-win" : ""}${isYou ? " is-you" : ""}`}
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
@@ -218,8 +236,9 @@ function Standings({ mp }: { mp: Mp }) {
               alt=""
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
             />
-            <span className="om-st-name" title={row.username}>
+            <span className="om-st-name" title={row.id ? `${row.username} #${row.id}` : row.username}>
               {row.username || "Player"}
+              {row.id && <span className="om-st-id tnum">#{row.id}</span>}
               {isYou && <span className="om-st-you">YOU</span>}
             </span>
             {row.outcome === "win" && (
@@ -369,13 +388,13 @@ function ResultActions({
   );
 }
 
-function OpponentChip({ name, photo, state }: { name: string; photo?: string | null; state: "playing" | "finished" | "offline" }) {
+function OpponentChip({ name, tag, photo, state }: { name: string; tag?: string | null; photo?: string | null; state: "playing" | "finished" | "offline" }) {
   const label = state === "offline" ? "Reconnecting" : state === "finished" ? "Finished" : "Playing";
   return (
     <div className={`om-chip is-${state}`}>
       <img className="om-chip-av" src={photo || defaultAvatar} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }} />
       <span className="om-chip-meta">
-        <span className="om-chip-name" title={name}>{name}</span>
+        <span className="om-chip-name" title={tag ? `${name} #${tag}` : name}>{name}</span>
         <span className="om-chip-state">
           {state === "playing" && <span className="om-dots"><i /><i /><i /></span>}
           {label}

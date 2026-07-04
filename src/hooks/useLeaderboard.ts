@@ -56,9 +56,10 @@ async function fetchBoard(userKey: string | null): Promise<void> {
       cache = { leaders: FALLBACK_LEADERS, isFallback: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
     } else {
       cache = {
-        leaders: live.map((u: { username: string; points: number }, i: number) => ({
+        leaders: live.map((u: { username: string; id?: string; points: number }, i: number) => ({
           rank: i + 1,
           name: u.username,
+          id: u.id ?? null,
           points: u.points,
         })),
         isFallback: false,
@@ -85,7 +86,7 @@ async function fetchBoard(userKey: string | null): Promise<void> {
  */
 export function useLeaderboard(): LeaderboardData {
   const { user } = useSelector((state: RootState) => state.user);
-  const userKey = user?.username ?? null;
+  const userKey = user?.id ?? user?.username ?? null;
 
   const [, forceRender] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -118,6 +119,7 @@ export function useLeaderboard(): LeaderboardData {
     ? {
         rank: cache?.userRank ?? (Number(user.rank) || FALLBACK_SELF.rank),
         name: user.username,
+        id: user.id ?? null,
         points: user.points,
         total: cache?.numberUsers ?? FALLBACK_SELF.total,
       }

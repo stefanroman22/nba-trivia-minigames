@@ -10,6 +10,8 @@ export interface User {
 
 /** Lightweight player info exchanged over the multiplayer socket. */
 export interface PlayerInfo {
+  /** Permanent public player id (#K7F3QD) — usernames may repeat. */
+  id?: string | null;
   username?: string;
   profile_photo?: string | null;
   rank?: string | number;

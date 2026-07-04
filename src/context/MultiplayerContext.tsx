@@ -39,14 +39,20 @@ export interface Proposal {
   fromName?: string;
 }
 
-/** Live per-opponent presence/progress, keyed by username. */
+/** Live per-opponent presence/progress, keyed by public id (username fallback). */
 export interface OppStatus {
   online: boolean;
   done: boolean;
   progress: { round: number; total: number } | null;
 }
 
+/** Stable key for a player: public id when present, else display name. */
+// eslint-disable-next-line react-refresh/only-export-components
+export const playerKey = (p?: { id?: string | null; username?: string } | null): string =>
+  p?.id || p?.username || "?";
+
 export interface LobbyMember extends PlayerInfo {
+  id: string;
   username: string;
   isHost: boolean;
   online: boolean;
@@ -73,6 +79,8 @@ export interface MpState {
   roomType: RoomType | null;
   roomSize: number;
   role: "host" | "guest" | null;
+  /** Where you stand in the matchmaking queue while searching. */
+  queueInfo: { inQueue: number; position: number } | null;
   opponents: PlayerInfo[];
   oppStatus: Record<string, OppStatus>;
   lobby: FriendLobby | null;
@@ -94,9 +102,10 @@ export interface MpState {
 
 const initial: MpState = {
   phase: "idle", code: null, game: null, roomType: null, roomSize: 2, role: null,
-  opponents: [], oppStatus: {}, lobby: null, friendPending: null, friendJoinError: null,
-  gameData: null, introElapsed: false, yourScore: null, opponentScore: null,
-  standings: null, outcome: null, proposal: null, ended: null, notice: null, error: null,
+  queueInfo: null, opponents: [], oppStatus: {}, lobby: null, friendPending: null,
+  friendJoinError: null, gameData: null, introElapsed: false, yourScore: null,
+  opponentScore: null, standings: null, outcome: null, proposal: null, ended: null,
+  notice: null, error: null,
 };
 
 interface LobbySnapshot {
@@ -109,7 +118,7 @@ interface LobbySnapshot {
 
 type Action =
   | { t: "FIND"; game: Game }
-  | { t: "SEARCHING" }
+  | { t: "SEARCHING"; inQueue?: number; position?: number }
   | { t: "NO_OPPONENT" }
   | { t: "MATCH_FOUND"; code: number; role: "host" | "guest"; opponents: PlayerInfo[]; game: Game; roomType: RoomType; roomSize: number }
   | { t: "ROUND_DATA"; gameData: GameData[]; game?: Game }
@@ -125,10 +134,10 @@ type Action =
   | { t: "FRIEND_ERROR"; message: string }
   | { t: "FRIEND_JOIN_ERROR"; message: string }
   | { t: "FRIEND_JOIN_RESET" }
-  | { t: "OPP_PROGRESS"; username?: string; round: number; total: number }
-  | { t: "OPP_FINISHED"; username?: string }
-  | { t: "OPP_DISCONNECTED"; username?: string }
-  | { t: "OPP_RECONNECTED"; username?: string }
+  | { t: "OPP_PROGRESS"; id?: string; username?: string; round: number; total: number }
+  | { t: "OPP_FINISHED"; id?: string; username?: string }
+  | { t: "OPP_DISCONNECTED"; id?: string; username?: string }
+  | { t: "OPP_RECONNECTED"; id?: string; username?: string }
   | { t: "OPP_LEFT"; message: string }
   | { t: "PROPOSAL_PENDING"; ptype: "again" | "switch"; gameId?: string; gameName?: string }
   | { t: "PROPOSAL_RECEIVED"; ptype: "again" | "switch"; gameId?: string; gameName?: string; fromName?: string }
@@ -164,16 +173,16 @@ const firstOppName = (s: MpState) => s.opponents[0]?.username || "Opponent";
 /** Fresh presence map for a set of opponents (everyone online, nobody done). */
 function freshStatus(opponents: PlayerInfo[]): Record<string, OppStatus> {
   return Object.fromEntries(
-    opponents.map((o) => [o.username || "?", { online: true, done: false, progress: null }])
+    opponents.map((o) => [playerKey(o), { online: true, done: false, progress: null }])
   );
 }
 
 function patchStatus(
-  state: MpState, username: string | undefined, patch: Partial<OppStatus>
+  state: MpState, who: { id?: string; username?: string }, patch: Partial<OppStatus>
 ): Record<string, OppStatus> {
-  // 1v1 events may omit the username — fall back to the single opponent.
-  const key = username || state.opponents[0]?.username;
-  if (!key) return state.oppStatus;
+  // Older servers may omit the id — fall back to name, then the single opponent.
+  const key = who.id || who.username || playerKey(state.opponents[0]);
+  if (key === "?") return state.oppStatus;
   const prev = state.oppStatus[key] || { online: true, done: false, progress: null };
   return { ...state.oppStatus, [key]: { ...prev, ...patch } };
 }
@@ -182,8 +191,11 @@ function reducer(state: MpState, a: Action): MpState {
   switch (a.t) {
     case "FIND":
       return { ...initial, phase: "searching", game: a.game };
-    case "SEARCHING":
-      return state.phase === "searching" ? state : { ...state, phase: "searching" };
+    case "SEARCHING": {
+      const queueInfo = a.inQueue != null && a.position != null ? { inQueue: a.inQueue, position: a.position } : state.queueInfo;
+      if (state.phase === "searching" && queueInfo === state.queueInfo) return state;
+      return { ...state, phase: "searching", queueInfo };
+    }
     case "NO_OPPONENT":
       return { ...initial, notice: { kind: "warn", text: "No opponent found. Please try again." } };
     case "MATCH_FOUND":
@@ -235,14 +247,14 @@ function reducer(state: MpState, a: Action): MpState {
     case "FRIEND_JOIN_RESET":
       return state.friendJoinError ? { ...state, friendJoinError: null } : state;
     case "OPP_PROGRESS":
-      return { ...state, oppStatus: patchStatus(state, a.username, { progress: { round: a.round, total: a.total } }) };
+      return { ...state, oppStatus: patchStatus(state, a, { progress: { round: a.round, total: a.total } }) };
     case "OPP_FINISHED":
-      return { ...state, oppStatus: patchStatus(state, a.username, { done: true }) };
+      return { ...state, oppStatus: patchStatus(state, a, { done: true }) };
     case "OPP_DISCONNECTED": {
       const name = a.username || firstOppName(state);
       return {
         ...state,
-        oppStatus: patchStatus(state, a.username, { online: false }),
+        oppStatus: patchStatus(state, a, { online: false }),
         notice: { kind: "warn", text: `${name} disconnected. Trying to reconnect...` },
       };
     }
@@ -250,7 +262,7 @@ function reducer(state: MpState, a: Action): MpState {
       const name = a.username || firstOppName(state);
       return {
         ...state,
-        oppStatus: patchStatus(state, a.username, { online: true }),
+        oppStatus: patchStatus(state, a, { online: true }),
         notice: { kind: "info", text: `${name} reconnected.` },
       };
     }
@@ -290,10 +302,10 @@ function reducer(state: MpState, a: Action): MpState {
         ...initial, phase, code: s.code, game: s.game, roomType: s.roomType ?? "match",
         roomSize: s.roomSize ?? 2, role: s.role,
         opponents: s.opponents.map((o) => ({
-          username: o.username, profile_photo: o.profile_photo, rank: o.rank, points: o.points,
+          id: o.id, username: o.username, profile_photo: o.profile_photo, rank: o.rank, points: o.points,
         })),
         oppStatus: Object.fromEntries(s.opponents.map((o) => [
-          o.username || "?",
+          playerKey(o),
           { online: o.online !== false, done: !!o.finished, progress: null },
         ])),
         gameData: s.gameData, introElapsed: false,
@@ -364,7 +376,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   // ---- Socket event wiring ----
   useEffect(() => {
     const on = {
-      searching: () => dispatch({ t: "SEARCHING" }),
+      searching: (d: { inQueue?: number; position?: number } = {}) =>
+        dispatch({ t: "SEARCHING", inQueue: d?.inQueue, position: d?.position }),
       noOpponent: () => dispatch({ t: "NO_OPPONENT" }),
       matchFound: (d: { code: number; role: "host" | "guest"; opponent: PlayerInfo; opponents?: PlayerInfo[]; game: Game; roomType?: RoomType; roomSize?: number }) =>
         dispatch({
@@ -388,11 +401,11 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         dispatch({ t: "FRIEND_ERROR", message: d?.message || "Something went wrong. Please try again." }),
       friendJoinError: (d: { message: string }) =>
         dispatch({ t: "FRIEND_JOIN_ERROR", message: d?.message || "Couldn't join that room." }),
-      opponentProgress: (d: { username?: string; round: number; total: number }) =>
-        dispatch({ t: "OPP_PROGRESS", username: d.username, round: d.round, total: d.total }),
-      opponentFinished: (d: { username?: string } = {}) => dispatch({ t: "OPP_FINISHED", username: d?.username }),
-      opponentDisconnected: (d: { username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", username: d?.username }),
-      opponentReconnected: (d: { username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", username: d?.username }),
+      opponentProgress: (d: { id?: string; username?: string; round: number; total: number }) =>
+        dispatch({ t: "OPP_PROGRESS", id: d.id, username: d.username, round: d.round, total: d.total }),
+      opponentFinished: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_FINISHED", id: d?.id, username: d?.username }),
+      opponentDisconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", id: d?.id, username: d?.username }),
+      opponentReconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", id: d?.id, username: d?.username }),
       opponentLeft: (d: { message: string }) => dispatch({ t: "OPP_LEFT", message: d?.message || "Your opponent left." }),
       proposalPending: (d: { type: "again" | "switch"; gameId?: string; gameName?: string }) =>
         dispatch({ t: "PROPOSAL_PENDING", ptype: d.type, gameId: d.gameId, gameName: d.gameName }),
