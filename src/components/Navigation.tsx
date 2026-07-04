@@ -94,7 +94,9 @@ function Navigation({ type = "full" }: NavigationProps) {
           <button onClick={() => go("leaderboard")} className="nav3-user">
             <UserAvatar photo={user.profile_photo} name={user.username} />
             <span className="nav3-user-meta hide-sm">
-              <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
+              <span style={{ fontSize: 12, fontWeight: 700 }}>
+                {user.username} <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
+              </span>
               <span className="tnum" style={{ fontSize: 10, color: "var(--brand)", fontWeight: 600 }}>{user.points} pts</span>
             </span>
           </button>
@@ -151,7 +153,9 @@ function Navigation({ type = "full" }: NavigationProps) {
                 <div className="nav3-user" style={{ width: "100%", justifyContent: "center" }}>
                   <UserAvatar photo={user.profile_photo} name={user.username} size={34} />
                   <span className="nav3-user-meta">
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{user.username}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700 }}>
+                      {user.username} <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
+                    </span>
                     <span className="tnum" style={{ fontSize: 11, color: "var(--brand)", fontWeight: 600 }}>{user.points} pts</span>
                   </span>
                 </div>

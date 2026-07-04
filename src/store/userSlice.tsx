@@ -2,6 +2,8 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 type User = {
+  /** Permanent public player id (#K7F3QD) — usernames may repeat. */
+  id: string;
   username: string;
   email: string;
   rank: string;

@@ -88,6 +88,7 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.om-st-id { flex: none; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.4px; }
 .om-st-you {
   flex: none;
   font-size: 9px;
@@ -162,7 +163,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.om-pc-tag { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.4px; }
 .om-pc-side { font-size: 11px; color: var(--muted); }
+.om-pc-sub { font-size: 10.5px; color: var(--muted); }
 .om-pc-score { font-size: 24px; font-weight: 800; color: var(--brand); margin-top: 4px; }
 .om-pc-status {
   display: inline-flex;
@@ -182,6 +185,7 @@
 .om-pc-status.is-offline { color: var(--bad); }
 
 .om-introline { font-size: 13px; color: var(--muted); }
+.om-queue-note { font-size: 12px; color: var(--muted); max-width: 300px; line-height: 1.45; }
 
 /* ---- Result headline ---- */
 .om-headline { font-size: clamp(22px, 6vw, 30px); }

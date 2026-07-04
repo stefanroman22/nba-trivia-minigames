@@ -91,8 +91,53 @@
 }
 .fp-seat-wait { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
 
+.fp-seat-id { flex: none; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.4px; }
+
 .fp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--muted); }
 .fp-meta strong { color: var(--text); font-weight: 700; }
+
+/* ---- Mobile collapse: slim overview keeps the game stage in view ----
+   The toggle only exists below the desktop 3-column layout; on desktop the
+   card lives in the sidebar and never needs to shrink. */
+.fp-toggle {
+  align-self: flex-end;
+  display: none;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: -4px;
+  padding: 3px 8px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
+.fp-toggle:hover { color: var(--text); border-color: var(--line); }
+.fp-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--line2);
+  border-radius: 11px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-align: left;
+}
+.fp-mini:hover { border-color: var(--brand); }
+.fp-mini-code { font-weight: 800; font-size: 14px; color: var(--brand); letter-spacing: 1px; }
+.fp-mini-meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-mini-meta .tnum { color: var(--text); font-weight: 700; }
+@media (max-width: 1199px) {
+  .fp-toggle { display: inline-flex; }
+}
 
 /* ---- Compact game picker (host: change game) ---- */
 .fp-picker { border: 1px solid var(--line2); border-radius: 12px; background: var(--surface2); overflow: hidden; }

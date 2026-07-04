@@ -36,19 +36,23 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [picking, setPicking] = useState(false);
+  // Mobile: the open room can collapse to a slim overview so the game stage
+  // stays in view (the toggle is hidden on desktop widths via CSS).
+  const [collapsed, setCollapsed] = useState(false);
   const copyTimer = useRef<number | null>(null);
 
   const lobby = mp.phase === "lobby" ? mp.lobby : null;
   const searching = mp.phase === "searching";
   const inMatch = mp.phase !== "idle" && mp.phase !== "lobby" && !searching;
-  const isHost = !!lobby && lobby.hostUid === user?.username;
+  // Host is identified by public id (usernames may repeat).
+  const isHost = !!lobby && (user?.id ? lobby.hostUid === user.id : lobby.hostUid === user?.username);
   const creating = mp.friendPending === "create";
   const joining = mp.friendPending === "join";
 
   // Leaving the flow (room closed, match started…) resets the card's local state.
   useEffect(() => {
     if (mp.phase !== "idle") { setMode("menu"); setCode(""); }
-    if (mp.phase !== "lobby") { setPicking(false); setCopied(false); }
+    if (mp.phase !== "lobby") { setPicking(false); setCopied(false); setCollapsed(false); }
   }, [mp.phase]);
 
   useEffect(() => () => { if (copyTimer.current) window.clearTimeout(copyTimer.current); }, []);
@@ -87,11 +91,28 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
         {mp.roomType === "friend" ? "Private match in progress." : "You're in a match — finish it to open a room."}
       </p>
     );
+  } else if (lobby && collapsed) {
+    // Slim overview: code, fill state and game at a glance; tap to expand.
+    key = "lobby-mini";
+    body = (
+      <button className="fp-mini" onClick={() => setCollapsed(false)} aria-label="Expand room details">
+        <span className="fp-mini-code tnum">#{lobby.code}</span>
+        <span className="fp-mini-meta">
+          <span className="tnum">{lobby.members.length}/{lobby.capacity}</span> in · {mp.game?.name}
+        </span>
+        <span className={`fp-dot${lobby.members.every((m) => m.online) ? "" : " is-off"}`} />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+      </button>
+    );
   } else if (lobby) {
     const empties = Math.max(0, lobby.capacity - lobby.members.length);
     key = "lobby";
     body = (
       <>
+        <button className="fp-toggle" onClick={() => setCollapsed(true)} aria-label="Collapse room details">
+          Hide
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M18 15l-6-6-6 6" /></svg>
+        </button>
         <div className="fp-code-row" aria-label="Room code">
           <div className="fp-tiles">
             {String(lobby.code).split("").map((d, i) => (
@@ -112,25 +133,33 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
           </button>
         </div>
         <p className="fp-sub" style={{ textAlign: "center" }}>
-          {copied ? "Copied — send it to your friends!" : `Share this code. The game starts when ${lobby.capacity} players are in.`}
+          {copied
+            ? "Copied — send it to your friend!"
+            : lobby.capacity === 2
+              ? "Send this code to your friend — the match starts the moment they join."
+              : `Share this code. The game starts when ${lobby.capacity} players are in.`}
         </p>
 
         <div className="fp-seats">
-          {lobby.members.map((m) => (
-            <div key={m.username} className="fp-seat">
-              <img
-                className="fp-seat-av"
-                src={m.profile_photo || defaultAvatar}
-                alt=""
-                onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
-              />
-              <span className="fp-seat-name" title={m.username}>
-                {m.username}{m.username === user?.username ? " (you)" : ""}
-              </span>
-              {m.isHost && <span className="fp-host-chip">HOST</span>}
-              <span className={`fp-dot${m.online ? "" : " is-off"}`} aria-label={m.online ? "Online" : "Reconnecting"} />
-            </div>
-          ))}
+          {lobby.members.map((m) => {
+            const isMe = user?.id ? m.id === user.id : m.username === user?.username;
+            return (
+              <div key={m.id || m.username} className="fp-seat">
+                <img
+                  className="fp-seat-av"
+                  src={m.profile_photo || defaultAvatar}
+                  alt=""
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+                />
+                <span className="fp-seat-name" title={`${m.username} #${m.id}`}>
+                  {m.username}{isMe ? " (you)" : ""}
+                </span>
+                <span className="fp-seat-id tnum">#{m.id}</span>
+                {m.isHost && <span className="fp-host-chip">HOST</span>}
+                <span className={`fp-dot${m.online ? "" : " is-off"}`} aria-label={m.online ? "Online" : "Reconnecting"} />
+              </div>
+            );
+          })}
           {Array.from({ length: empties }).map((_, i) => (
             <div key={`empty-${i}`} className="fp-seat is-empty">
               <span className="fp-seat-hole" aria-hidden="true">
@@ -206,7 +235,7 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
     key = "menu";
     body = (
       <>
-        <p className="fp-sub">Private room for 3 players. Generate a code, or join with one.</p>
+        <p className="fp-sub">Challenge a friend 1v1 in a private room. Generate a code, or join with one.</p>
         <div className="fp-actions">
           <Button block size="md" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game)}>
             {creating ? "Creating room…" : "Generate code"}

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import copy from "copy-to-clipboard";
 import { showErrorAlert } from "../utils/Alerts";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
@@ -17,16 +18,25 @@ function UserProfile() {
   const [tempUsername, setTempUsername] = useState(user?.username || "");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [idCopied, setIdCopied] = useState(false);
+  const idCopyTimer = useRef<number | null>(null);
 
-  const validateUsername = (username: string) => {
-    const regex = /^(?=(?:.*[A-Za-z]){3,})(?=(?:.*[0-9]){2,})[A-Za-z0-9_]+$/;
-    return regex.test(username);
+  // Display names don't need to be unique — the public ID keeps players
+  // distinct — so the only rule is the format.
+  const validateUsername = (username: string) => /^[A-Za-z0-9_]{3,20}$/.test(username);
+
+  const copyPlayerId = () => {
+    if (!user?.id) return;
+    copy(user.id);
+    setIdCopied(true);
+    if (idCopyTimer.current) window.clearTimeout(idCopyTimer.current);
+    idCopyTimer.current = window.setTimeout(() => setIdCopied(false), 1600);
   };
 
   const handleSave = async () => {
     if (!validateUsername(tempUsername)) {
       showErrorAlert(
-        "Username must contain at least 3 letters, 2 digits, and can only include letters, digits, or underscores.",
+        "Username must be 3-20 characters using letters, numbers or underscores.",
         "Invalid Username"
       );
       return;
@@ -148,7 +158,10 @@ function UserProfile() {
           </AnimatePresence>
         </div>
 
-        <h2 className="font-display profile-welcome">Welcome, {user?.username}</h2>
+        <h2 className="font-display profile-welcome">
+          Welcome, {user?.username}
+          {user?.id && <span className="tnum" style={{ fontSize: 13, fontWeight: 400, color: "var(--muted)", marginLeft: 8 }}>#{user.id}</span>}
+        </h2>
 
         <label htmlFor="photo-upload" className="profile-photo-btn">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
@@ -184,6 +197,18 @@ function UserProfile() {
           ) : (
             <div className="profile-value">{user?.username}</div>
           )}
+        </div>
+
+        <div className="profile-field">
+          <div className="profile-field-label">
+            <span>Player ID</span>
+            <button className="profile-edit-btn" onClick={copyPlayerId}>
+              {idCopied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <div className="profile-value tnum" title="Your permanent ID — share it so friends can tell you apart from same-named players.">
+            #{user?.id}
+          </div>
         </div>
 
         <div className="profile-field">
