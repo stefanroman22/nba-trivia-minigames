@@ -116,7 +116,11 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # Sessions last up to 3 months: tokens rotate on every refresh (with the
+    # old one blacklisted), and users.tokens.SessionRefreshSerializer refuses
+    # refreshes once the ORIGINAL sign-in (`auth_time` claim) is >90 days old —
+    # so rotation can't extend a session forever.
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=90),
     "ROTATE_REFRESH_TOKENS": True,              # good with blacklist
     "BLACKLIST_AFTER_ROTATION": True,
     "ALGORITHM": "HS256",
@@ -163,7 +167,10 @@ if DATABASE_URL:
     # so per-request connects stay cheap.
     DATABASES = {
         "default": dj_database_url.parse(
-            DATABASE_URL, conn_max_age=0, ssl_require=True
+            DATABASE_URL,
+            conn_max_age=0,
+            # sqlite URLs (tests/dev) can't take sslmode.
+            ssl_require=DATABASE_URL.startswith("postgres"),
         )
     }
     # Lets DATABASE_URL point at the transaction pooler (port 6543), which

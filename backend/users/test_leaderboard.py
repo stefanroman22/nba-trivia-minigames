@@ -39,35 +39,11 @@ class FakeRedis:
         order = [m for m, _ in self._sorted(key)]
         return order.index(member) if member in order else None
 
-    def pipeline(self):
-        return _FakePipe(self)
-
-
-class _FakePipe:
-    def __init__(self, r):
-        self.r = r
-        self.ops = []
-
-    def zrem(self, key, member):
-        self.ops.append(("zrem", key, member))
-        return self
-
-    def zadd(self, key, mapping):
-        self.ops.append(("zadd", key, mapping))
-        return self
-
-    def execute(self):
-        for op in self.ops:
-            if op[0] == "zrem":
-                self.r.zrem(op[1], op[2])
-            else:
-                self.r.zadd(op[1], op[2])
-
 
 def _make_users():
-    User.objects.create_user(username="alice", password="x", points=300)
-    User.objects.create_user(username="bob", password="x", points=100)
-    User.objects.create_user(username="carol", password="x", points=200)
+    User.objects.create_user(username="alice", email="alice@example.com", password="x", points=300)
+    User.objects.create_user(username="bob", email="bob@example.com", password="x", points=100)
+    User.objects.create_user(username="carol", email="carol@example.com", password="x", points=200)
 
 
 class LeaderboardPostgresFallbackTests(TestCase):
@@ -81,16 +57,20 @@ class LeaderboardPostgresFallbackTests(TestCase):
             [r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"]
         )
 
+    def test_top_rows_carry_public_ids(self):
+        rows = leaderboard.top(10)
+        expected = {u.username: u.public_id for u in User.objects.all()}
+        for row in rows:
+            self.assertEqual(row["id"], expected[row["username"]])
+
     def test_rank_of(self):
         self.assertEqual(leaderboard.rank_of(User.objects.get(username="bob")), 3)
 
     def test_total(self):
         self.assertEqual(leaderboard.total(), 3)
 
-    def test_record_and_rename_are_noops_without_redis(self):
-        bob = User.objects.get(username="bob")
-        leaderboard.record_score(bob)
-        leaderboard.rename("bob", bob)  # must not raise
+    def test_record_is_noop_without_redis(self):
+        leaderboard.record_score(User.objects.get(username="bob"))  # must not raise
 
 
 class LeaderboardRedisTests(TestCase):
@@ -106,7 +86,8 @@ class LeaderboardRedisTests(TestCase):
     def test_top_from_zset(self):
         rows = leaderboard.top(10)
         self.assertEqual([r["username"] for r in rows], ["alice", "carol", "bob"])
-        self.assertEqual(rows[0], {"username": "alice", "points": 300})
+        alice = User.objects.get(username="alice")
+        self.assertEqual(rows[0], {"id": alice.public_id, "username": "alice", "points": 300})
 
     def test_rank_from_zset(self):
         self.assertEqual(leaderboard.rank_of(User.objects.get(username="alice")), 1)
@@ -121,13 +102,23 @@ class LeaderboardRedisTests(TestCase):
         leaderboard.record_score(bob)
         self.assertEqual(leaderboard.rank_of(bob), 1)
 
-    def test_rename_moves_entry(self):
+    def test_rename_needs_no_board_update(self):
+        """Entries are keyed by public id, so a display-name change just works."""
         bob = User.objects.get(username="bob")
         bob.username = "bobby"
-        leaderboard.rename("bob", bob)
+        bob.save()
         names = [r["username"] for r in leaderboard.top(10)]
         self.assertIn("bobby", names)
         self.assertNotIn("bob", names)
+
+    def test_same_display_name_stays_distinct(self):
+        """Two players named identically keep separate rows (distinct ids)."""
+        for u in User.objects.all():
+            u.username = "SameName"
+            u.save()
+        rows = leaderboard.top(10)
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(len({r["id"] for r in rows}), 3)
 
 
 class SignupSyncsLeaderboardTests(TestCase):

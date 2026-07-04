@@ -14,7 +14,7 @@ class Command(BaseCommand):
         if r is None:
             raise CommandError("REDIS_URL is not set; nothing to sync.")
         mapping = {
-            u.username: u.points for u in User.objects.all().only("username", "points")
+            u.public_id: u.points for u in User.objects.all().only("public_id", "points")
         }
         r.delete(leaderboard.ZKEY)
         if mapping:
