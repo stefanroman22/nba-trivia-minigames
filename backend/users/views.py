@@ -1,8 +1,12 @@
 import os
 import json
-import random
+import re
 import requests
 from django.contrib.auth import authenticate, get_user_model
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
+from django.contrib.auth.password_validation import validate_password
+from django.db import IntegrityError
 from django.http import JsonResponse
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
@@ -14,8 +18,14 @@ from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
 from users import leaderboard
+from users.tokens import issue_session_tokens
 
 User = get_user_model()
+
+# Display names: 3-20 letters/digits/underscores. NOT unique — the public id
+# (#K7F3QD) is what tells two players with the same name apart.
+USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
+USERNAME_RULES = "Username must be 3-20 characters using letters, numbers or underscores."
 
 GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
@@ -33,6 +43,7 @@ def profile_photo_url(request, user):
 def user_payload(request, user):
     """The user object shape the frontend expects."""
     return {
+        "id": user.public_id,
         "username": user.username,
         "email": user.email,
         "rank": user.rank,
@@ -42,8 +53,12 @@ def user_payload(request, user):
 
 
 def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
-    """A fresh JWT access/refresh pair plus the user payload (and any extra fields)."""
-    refresh = RefreshToken.for_user(user)
+    """A fresh JWT access/refresh pair plus the user payload (and any extra fields).
+
+    The refresh token is stamped with the session's start time so rotation can't
+    extend a session past MAX_SESSION_AGE (see users.tokens).
+    """
+    refresh = issue_session_tokens(user)
     return Response(
         {
             "access": str(refresh.access_token),
@@ -55,37 +70,41 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
     )
 
 
-def unique_username(base):
-    """Build a username from `base` that isn't already taken, widening the random range as needed."""
-    ranges = [(10, 99), (100, 999), (1000, 9999)]
-    attempt = 0
-    while True:
-        low, high = ranges[min(attempt // 8, len(ranges) - 1)]
-        candidate = f"{base}{random.randint(low, high)}"
-        if not User.objects.filter(username=candidate).exists():
-            return candidate
-        attempt += 1
-
-
 # ---------------------------------------------------------------------------
 #  Auth views
 # ---------------------------------------------------------------------------
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_view(request):
-    user_id = request.data.get("id")
+    """Sign in with email, username, or username#ID.
+
+    Usernames aren't unique, so a bare username only works while exactly one
+    account carries it; otherwise the caller is asked to use their email or
+    qualified name (e.g. Baller23#K7F3QD).
+    """
+    user_id = str(request.data.get("id") or "").strip()
     password = request.data.get("password")
+    if not user_id or not password:
+        return JsonResponse({"error": "Email/username and password are required."}, status=400)
 
-    # Allow logging in with either username or email.
-    try:
-        user = User.objects.get(username=user_id)
-    except User.DoesNotExist:
-        try:
-            user = User.objects.get(email=user_id)
-        except User.DoesNotExist:
-            return JsonResponse({"error": "Invalid username/email"}, status=401)
+    if "@" in user_id:
+        matches = User.objects.filter(email__iexact=user_id)
+    elif "#" in user_id:
+        name, _, pid = user_id.rpartition("#")
+        matches = User.objects.filter(username__iexact=name, public_id__iexact=pid)
+    else:
+        matches = User.objects.filter(username__iexact=user_id)
 
-    authenticated_user = authenticate(request, username=user.username, password=password)
+    users = list(matches[:2])
+    if not users:
+        return JsonResponse({"error": "No account matches that email/username."}, status=401)
+    if len(users) > 1:
+        return JsonResponse(
+            {"error": "Several players use that name. Log in with your email, or add your ID like Name#K7F3QD."},
+            status=401,
+        )
+
+    authenticated_user = authenticate(request, username=users[0].email, password=password)
     if authenticated_user is None:
         return JsonResponse({"error": "Incorrect password"}, status=401)
 
@@ -96,20 +115,37 @@ def login_view(request):
 @permission_classes([AllowAny])
 def signup_view(request):
     try:
-        username = request.data.get("username")
-        email = request.data.get("email")
+        username = str(request.data.get("username") or "").strip()
+        email = str(request.data.get("email") or "").strip().lower()
         password = request.data.get("password")
 
         if not username or not email or not password:
             return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(username=username).exists():
-            return Response({"error": "Username already in use! Please try a different one!"}, status=status.HTTP_409_CONFLICT)
+        if not USERNAME_RE.match(username):
+            return Response({"error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
 
-        if User.objects.filter(email=email).exists():
+        try:
+            validate_email(email)
+        except ValidationError:
+            return Response({"error": "That email address doesn't look valid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(password)
+        except ValidationError as e:
+            return Response({"error": " ".join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Usernames may repeat (players are distinguished by public id) — only
+        # the email has to be unique.
+        if User.objects.filter(email__iexact=email).exists():
             return Response({"error": "Email already in use! Please use a different email address."}, status=status.HTTP_409_CONFLICT)
 
-        user = User.objects.create_user(username=username, email=email, password=password)
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+        except IntegrityError:
+            # Race with a concurrent signup on the same email.
+            return Response({"error": "Email already in use! Please use a different email address."}, status=status.HTTP_409_CONFLICT)
+
         leaderboard.record_score(user)
         return auth_response(request, user, status_code=status.HTTP_201_CREATED)
 
@@ -137,14 +173,13 @@ def update_profile(request):
         username = request.data.get("username")
         points = request.data.get("points")
         updated = False
-        old_username = user.username
-        username_changed = False
 
         if username and username != user.username:
-            if User.objects.filter(username=username).exists():
-                return Response({"error": "Username already in use!"}, status=status.HTTP_409_CONFLICT)
+            # Names may repeat — the public id keeps players distinct — so the
+            # only gate is the format rule.
+            if not USERNAME_RE.match(username):
+                return Response({"error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
             user.username = username
-            username_changed = True
             updated = True
 
         if points is not None:
@@ -154,10 +189,7 @@ def update_profile(request):
 
         if updated:
             user.save()
-            if username_changed:
-                leaderboard.rename(old_username, user)
-            else:
-                leaderboard.record_score(user)
+            leaderboard.record_score(user)
             return Response({"status": "success"}, status=status.HTTP_200_OK)
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -215,12 +247,17 @@ def google_login(request):
 
         new_account = False
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(email__iexact=email)
         except User.DoesNotExist:
             new_account = True
+            # Names may repeat (public id disambiguates) — use the address's
+            # local part directly, trimmed to the allowed charset/length.
+            base = re.sub(r"[^A-Za-z0-9_]", "", email.split("@")[0])[:20] or "Player"
+            if len(base) < 3:
+                base = f"{base}NBA"[:20]
             user = User.objects.create_user(
-                username=unique_username(email.split("@")[0]),
-                email=email,
+                username=base,
+                email=email.lower(),
                 password=None,
             )
             leaderboard.record_score(user)
