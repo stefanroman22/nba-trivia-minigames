@@ -15,4 +15,25 @@ def validate_pool(key, data):
             if not isinstance(s, dict) or "season" not in s or "winner" not in s:
                 problems.append(f"{key}[{i}]: missing season/winner")
                 break
+    if key == "fan-favorites":
+        for i, q in enumerate(data):
+            if not isinstance(q, dict) or not q.get("qid") or not q.get("prompt"):
+                problems.append(f"{key}[{i}]: missing qid/prompt")
+                break
+            if not isinstance(q.get("answers"), list) or len(q["answers"]) < 6:
+                problems.append(f"{key}[{i}]: needs >= 6 answers")
+                break
+            counts = [a.get("count", 0) for a in q["answers"]]
+            if counts != sorted(counts, reverse=True):
+                problems.append(f"{key}[{i}]: answers not in descending count order")
+                break
+    # Per-game validators from the modular games package (lazy import so this
+    # module stays usable outside a fully-wired Django app).
+    try:
+        from trivia.games import VALIDATORS
+    except Exception:
+        VALIDATORS = {}
+    extra = VALIDATORS.get(key)
+    if extra:
+        problems.extend(extra(data))
     return problems

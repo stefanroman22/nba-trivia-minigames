@@ -1,0 +1,1194 @@
+[
+  {
+    "slug": "heatmap",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Give up",
+          "cls": "btn btn-secondary btn-sm",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "USA-born",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "USA-born",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "USA-born",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "USA-born",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "All-NBA",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Stars",
+          "cls": "hm-hex",
+          "dis": false
+        },
+        {
+          "t": "Guess",
+          "cls": "btn btn-primary btn-md",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [
+        {
+          "ph": "Tap a hex first…",
+          "cls": "",
+          "type": "text"
+        }
+      ],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "hm-wrap",
+        "hm-hud",
+        "hm-score",
+        "hm-score-num tnum font-display",
+        "hm-score-cap",
+        "btn btn-secondary btn-sm",
+        "hm-board",
+        "hm-row",
+        "hm-hex",
+        "hm-hex-label",
+        "hm-row is-indent",
+        "hm-center",
+        "hm-center-num tnum font-display",
+        "hm-center-cap",
+        "hm-inputrow",
+        "btn btn-primary btn-md",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1153,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": 150,
+        "w": 349,
+        "h": 557,
+        "bottom": 706
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "connections",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Ricky Rubio",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Eric Gordon",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Mike Conley",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Al Horford",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Stephen Curry",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Deron Williams",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Joakim Noah",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Kevin Durant",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Chris Paul",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Blake Griffin",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Derrick Rose",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Russell Westbrook",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "James Harden",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Kevin Love",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Danny Granger",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Andrew Bynum",
+          "cls": "cn-tile",
+          "dis": false
+        },
+        {
+          "t": "Shuffle",
+          "cls": "btn btn-secondary btn-sm",
+          "dis": false
+        },
+        {
+          "t": "Deselect",
+          "cls": "btn btn-secondary btn-sm",
+          "dis": true
+        },
+        {
+          "t": "Submit",
+          "cls": "btn btn-primary btn-sm",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "cn-wrap",
+        "cn-head",
+        "cn-title font-display",
+        "cn-sub",
+        "cn-hearts",
+        "cn-grid",
+        "cn-tile",
+        "cn-controls",
+        "btn btn-secondary btn-sm",
+        "btn btn-primary btn-sm",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1140,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 543,
+        "bottom": 533
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "career-path",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Confirm",
+          "cls": "btn btn-primary btn-md",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [
+        {
+          "ph": "Who is it?…",
+          "cls": "",
+          "type": "text"
+        }
+      ],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "cp-wrap",
+        "cp-head",
+        "cp-eyebrow",
+        "cp-counter tnum",
+        "cp-rail",
+        "cp-card",
+        "cp-flip is-flipped",
+        "cp-face cp-face--back",
+        "cp-court",
+        "cp-back-num tnum",
+        "cp-face cp-face--front",
+        "cp-card-years tnum",
+        "cp-card-team",
+        "cp-card-stats",
+        "cp-stat",
+        "cp-flip",
+        "cp-inputrow",
+        "btn btn-primary btn-md",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1154,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": 150,
+        "w": 349,
+        "h": 558,
+        "bottom": 707
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR"
+    ]
+  },
+  {
+    "slug": "nba-grid",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "+",
+          "cls": "ng-cell",
+          "dis": false
+        },
+        {
+          "t": "Finish grid →",
+          "cls": "ng-finish",
+          "dis": false
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "ng-wrap",
+        "ng-head",
+        "ng-meter",
+        "ng-meter-label",
+        "ng-meter-bar",
+        "progress",
+        "ng-meter-num tnum",
+        "ng-solved tnum",
+        "ng-board",
+        "ng-corner",
+        "ng-head-cell ng-col-head",
+        "ng-board-row",
+        "ng-head-cell ng-row-head",
+        "ng-cell",
+        "ng-cell-plus",
+        "ng-bottom",
+        "ng-hintbar",
+        "ng-hint",
+        "ng-finish",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1184,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 588,
+        "bottom": 577
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "who-are-ya",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Hide photo",
+          "cls": "btn btn-secondary btn-sm",
+          "dis": false
+        },
+        {
+          "t": "Guess",
+          "cls": "btn btn-primary btn-sm",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [
+        {
+          "ph": "Who are ya…?",
+          "cls": "",
+          "type": "text"
+        }
+      ],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "waya-wrap",
+        "waya-photo-card",
+        "waya-photo-meta",
+        "waya-left tnum",
+        "btn btn-secondary btn-sm",
+        "waya-feed",
+        "waya-feed-empty",
+        "waya-inputrow",
+        "btn btn-primary btn-sm",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1115,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 519,
+        "bottom": 508
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR"
+    ]
+  },
+  {
+    "slug": "tictactoe",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Warriors and Won MVP",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Warriors and 20+ PPG career",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Warriors and Played in the 2010s",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Thunder and Won MVP",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Thunder and 20+ PPG career",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Thunder and Played in the 2010s",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Rockets and Won MVP",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Rockets and 20+ PPG career",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Rockets and Played in the 2010s",
+          "cls": "ttt-cell",
+          "dis": false
+        },
+        {
+          "t": "Confirm",
+          "cls": "btn btn-primary btn-sm",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [
+        {
+          "ph": "Pick a square first…",
+          "cls": "",
+          "type": "text"
+        }
+      ],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "ttt-wrap",
+        "ttt-head",
+        "ttt-clock tnum",
+        "ttt-score tnum",
+        "ttt-grid",
+        "ttt-corner",
+        "ttt-crit ttt-crit--col",
+        "ttt-rowgroup",
+        "ttt-crit ttt-crit--row",
+        "ttt-cell",
+        "ttt-cell-blank",
+        "ttt-inputrow",
+        "btn btn-primary btn-sm",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1131,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 534,
+        "bottom": 524
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "bingo",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Skip",
+          "cls": "btn btn-secondary btn-sm",
+          "dis": false
+        },
+        {
+          "t": "Played for the Spurs",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played for the Knicks",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played for the Pistons",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played for the Suns",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played for the Bucks",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played for the Blazers",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Won a championship",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Won league MVP",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "5+ All-Star nods",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Born in the USA",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Lottery pick (top 14)",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Skipped college",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "10+ RPG career",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "15+ NBA seasons",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played in the '80s",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Played in the 2010s",
+          "cls": "bng-cell",
+          "dis": false
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "bng-wrap",
+        "bng-top",
+        "bng-meter",
+        "bng-meter-label",
+        "progress",
+        "chip chip-brand tnum",
+        "btn btn-secondary btn-sm",
+        "bng-deal",
+        "bng-deal-card",
+        "bng-deal-name",
+        "bng-deal-hint",
+        "bng-grid",
+        "bng-cell",
+        "bng-cell-label",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1205,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 609,
+        "bottom": 598
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR"
+    ]
+  },
+  {
+    "slug": "contexto",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Guess",
+          "cls": "btn btn-primary btn-md",
+          "dis": true
+        },
+        {
+          "t": "Give up",
+          "cls": "cx-giveup",
+          "dis": false
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [
+        {
+          "ph": "Guess a player…",
+          "cls": "",
+          "type": "text"
+        }
+      ],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "cx-wrap",
+        "cx-head",
+        "cx-eyebrow",
+        "cx-meta",
+        "cx-count tnum",
+        "cx-count-label",
+        "cx-list",
+        "cx-empty",
+        "cx-empty-title",
+        "cx-empty-sub",
+        "cx-inputrow",
+        "btn btn-primary btn-md",
+        "cx-giveup",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1217,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 621,
+        "bottom": 610
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "who-would-win",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "'91 Bulls Jordan's first title",
+          "cls": "www-card",
+          "dis": false
+        },
+        {
+          "t": "'85 Lakers finally beat Boston in the Ga",
+          "cls": "www-card",
+          "dis": false
+        },
+        {
+          "t": "Next matchup",
+          "cls": "btn btn-primary btn-md btn-block",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "www-wrap",
+        "www-head",
+        "www-eyebrow",
+        "www-progress tnum",
+        "www-arena",
+        "www-card",
+        "www-card-label font-display",
+        "www-card-sub",
+        "www-split",
+        "www-vs font-display",
+        "www-status",
+        "www-status-text",
+        "www-foot",
+        "btn btn-primary btn-md btn-block",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1324,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -10,
+        "w": 349,
+        "h": 727,
+        "bottom": 717
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "pack-five",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "PPG 25.0",
+          "cls": "pf-stat",
+          "dis": false
+        },
+        {
+          "t": "RPG 4.3",
+          "cls": "pf-stat",
+          "dis": false
+        },
+        {
+          "t": "APG 6.7",
+          "cls": "pf-stat",
+          "dis": false
+        },
+        {
+          "t": "RINGS 0",
+          "cls": "pf-stat",
+          "dis": false
+        },
+        {
+          "t": "ALL-STAR 9",
+          "cls": "pf-stat",
+          "dis": false
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "pf-wrap",
+        "pf-hud",
+        "pf-hud-block",
+        "pf-hud-label",
+        "pf-hud-value tnum font-display",
+        "pf-hud-block pf-hud-block--center",
+        "pf-hud-value tnum",
+        "pf-hud-of",
+        "pf-hud-block pf-hud-block--right",
+        "pf-lives",
+        "pf-life is-on",
+        "pf-banner pf-banner--neutral",
+        "pf-arena",
+        "pf-card",
+        "pf-photo-frame",
+        "pf-photo-scrim",
+        "pf-name-plate",
+        "pf-name",
+        "pf-team",
+        "pf-stats",
+        "pf-stat",
+        "pf-stat-label",
+        "pf-stat-val tnum",
+        "pf-next",
+        "pf-next-head",
+        "pf-next-eyebrow",
+        "pf-next-name",
+        "pf-next-team",
+        "pf-next-stats",
+        "pf-next-stat",
+        "pf-next-stat-label",
+        "pf-next-stat-val tnum",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1016,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -22,
+        "w": 349,
+        "h": 419,
+        "bottom": 397
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: net::ERR_HTTP2_PROTOCOL_ERROR"
+    ]
+  },
+  {
+    "slug": "superdraft",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Re-roll ×1",
+          "cls": "sd-reroll",
+          "dis": false
+        },
+        {
+          "t": "Draft",
+          "cls": "btn btn-primary btn-md",
+          "dis": true
+        },
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [
+        {
+          "ph": "Memphis Grizzlies player…",
+          "cls": "",
+          "type": "text"
+        }
+      ],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "sd-wrap",
+        "sd-obj",
+        "sd-obj-eyebrow",
+        "sd-obj-row",
+        "sd-obj-title font-display",
+        "sd-obj-progress tnum",
+        "sd-slots",
+        "sd-slot is-active",
+        "sd-slot-no tnum",
+        "sd-slot-body",
+        "sd-slot-head",
+        "sd-slot-label",
+        "sd-slot-sub sd-slot-sub--team",
+        "sd-slot-pick",
+        "sd-slot-right",
+        "sd-slot-face sd-slot-face--empty",
+        "sd-slot",
+        "sd-slot-sub sd-slot-sub--draft",
+        "sd-slot-sub sd-slot-sub--country",
+        "sd-draftbar",
+        "sd-draftbar-head",
+        "sd-draftbar-hint",
+        "sd-reroll",
+        "sd-draftbar-input",
+        "btn btn-primary btn-md",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1338,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -76,
+        "w": 349,
+        "h": 741,
+        "bottom": 665
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  },
+  {
+    "slug": "imposter",
+    "idle": true,
+    "playing": true,
+    "dom": {
+      "buttons": [
+        {
+          "t": "Exit game",
+          "cls": "exit-link",
+          "dis": false
+        }
+      ],
+      "inputs": [],
+      "marks": [
+        "playing-topbar",
+        "tnum",
+        "imp-wrap imp-wrap--explain",
+        "imp-explain",
+        "imp-explain-tag",
+        "imp-explain-title font-display",
+        "imp-explain-lead",
+        "imp-steps",
+        "imp-step-n font-display",
+        "imp-explain-cta",
+        "exit-link"
+      ]
+    },
+    "metrics": {
+      "winW": 390,
+      "winH": 844,
+      "docScrollW": 381,
+      "docClientW": 390,
+      "bodyScrollH": 1197,
+      "horizOverflow": -9,
+      "stageRect": {
+        "x": 16,
+        "y": -76,
+        "w": 349,
+        "h": 601,
+        "bottom": 524
+      }
+    },
+    "consoleErrors": [
+      "WebSocket connection to 'ws://localhost:4000/socket.io/?EIO=4&transport=websocket' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED"
+    ]
+  }
+]

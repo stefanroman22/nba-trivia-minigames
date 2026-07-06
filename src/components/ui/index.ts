@@ -9,3 +9,4 @@ export { default as Avatar } from "./Avatar";
 export { default as CourtLoader } from "./CourtLoader";
 export { default as GameTile } from "./GameTile";
 export { default as Stage } from "./Stage";
+export { default as SessionTimer } from "./SessionTimer";

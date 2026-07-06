@@ -1,0 +1,179 @@
+/* ===== NBA Grid — immaculate 3x3 (prefix: ng-) =====
+   theme.css tokens only, clamp() sizing, fits 390x844 with no page scroll.
+   Height budget @390x844: head ~32 + board ~233 + popup 20 + bottom ~118
+   + 3 gaps ~39 = ~442px content (well within the stage area). */
+.ng-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(8px, 1.5dvh, 14px);
+}
+.ng-center {
+  align-items: center;
+  justify-content: center;
+  min-height: clamp(260px, 40dvh, 400px);
+}
+
+/* ---- states ---- */
+.ng-state { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.ng-state-msg { font-size: 14px; color: var(--muted); text-align: center; line-height: 1.5; }
+
+/* ---- header ---- */
+.ng-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+}
+.ng-meter { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.ng-meter-label {
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.ng-meter-bar { width: clamp(80px, 26vw, 150px); }
+.ng-meter-num { font-size: 12.5px; color: var(--muted); font-weight: 700; }
+.ng-meter.is-low .ng-meter-num { color: var(--bad); }
+.ng-solved { font-size: 13px; color: var(--brand); font-weight: 700; }
+
+.ng-score { display: flex; align-items: baseline; }
+.ng-score > .tnum { font-size: clamp(19px, 3dvh, 26px); color: var(--brand); font-weight: 700; }
+.ng-score-max { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+
+/* ---- board ---- */
+.ng-board {
+  display: grid;
+  grid-template-columns: clamp(52px, 20vw, 84px) repeat(3, minmax(0, 1fr));
+  grid-template-rows: clamp(34px, 5.4dvh, 46px) repeat(3, clamp(46px, 7.2dvh, 58px));
+  gap: clamp(4px, 1.1vw, 7px);
+  width: 100%;
+}
+.ng-corner { background: transparent; }
+
+.ng-head-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3px 5px;
+  min-width: 0;
+  font-size: clamp(9.5px, 1.5dvh, 11.5px);
+  font-weight: 700;
+  line-height: 1.14;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.ng-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  min-height: 44px;
+  padding: 4px 3px;
+  min-width: 0;
+  font-family: inherit;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, transform 0.08s ease;
+}
+.ng-cell:hover:not(.is-solved):not(.is-missed) { border-color: var(--brand); }
+.ng-cell:active { transform: scale(0.96); }
+.ng-cell:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.ng-cell.is-active { border-color: var(--brand); background: var(--brand-soft); }
+.ng-cell.is-solved {
+  color: var(--text);
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  animation: ngPop 0.3s var(--ease-out);
+}
+@keyframes ngPop {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.09); }
+  100% { transform: scale(1); }
+}
+.ng-cell.is-missed { color: var(--muted); background: var(--surface); opacity: 0.72; cursor: pointer; }
+.ng-cell.is-detail { outline: 2px solid var(--brand); outline-offset: 1px; }
+
+.ng-cell-plus { font-size: clamp(16px, 2.4dvh, 20px); color: var(--muted); line-height: 1; }
+.ng-cell:hover:not(.is-solved):not(.is-missed) .ng-cell-plus { color: var(--brand); }
+.ng-check { width: clamp(12px, 1.8dvh, 15px); height: clamp(12px, 1.8dvh, 15px); color: var(--brand); flex: none; }
+.ng-cell-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: clamp(8.5px, 1.35dvh, 10.5px);
+  line-height: 1.08;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+/* ---- bottom region (dock / hint / summary) — stable height, no shift ---- */
+.ng-bottom {
+  min-height: clamp(96px, 14dvh, 124px);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+}
+.ng-bottom > * { width: 100%; }
+
+.ng-hintbar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ng-hint { font-size: 12.5px; color: var(--muted); }
+.ng-finish {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 6px 8px;
+}
+.ng-finish:hover { color: var(--text); }
+
+.ng-dock { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+.ng-dock-hint { font-size: 12px; color: var(--text); text-align: center; font-weight: 600; }
+.ng-dock-hint .ng-x { color: var(--brand); }
+.ng-dock-row { display: flex; gap: 8px; width: 100%; align-items: center; justify-content: center; }
+
+.ng-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: center;
+}
+.ng-detail-head { font-size: 11.5px; font-weight: 700; color: var(--text); }
+.ng-detail-pick { font-size: 11.5px; color: var(--muted); }
+.ng-detail-pick .ng-pick { color: var(--good); font-weight: 700; }
+.ng-detail-pick .ng-miss { color: var(--muted); font-style: italic; }
+.ng-detail-ex { font-size: 10.5px; color: var(--muted); line-height: 1.25; }
+.ng-detail-rarity { font-size: 10.5px; color: var(--text); margin-bottom: 2px; }
+.ng-detail-rarity .tnum { color: var(--brand); font-weight: 700; }
+
+@media (max-width: 480px) {
+  .ng-board { gap: 4px; }
+}

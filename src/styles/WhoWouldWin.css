@@ -1,0 +1,175 @@
+/* ===== Who Would Win — opinion matchups (prefix: www-) ===== */
+.www-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 1.8dvh, 18px);
+}
+
+/* Header */
+.www-head { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.www-eyebrow {
+  font-size: clamp(10.5px, 1.5dvh, 12px);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.www-progress { font-size: clamp(12px, 1.8dvh, 14px); font-weight: 700; color: var(--text); }
+
+/* ===== Arena: two stacked half-cards, VS badge between; fills height ===== */
+.www-arena { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: clamp(4px, 0.8dvh, 8px); width: 100%; }
+.www-vs {
+  flex: none;
+  align-self: center;
+  font-size: clamp(13px, 2dvh, 17px);
+  letter-spacing: 1.5px;
+  color: var(--brand);
+}
+
+/* Whole half-card is the tap target; shares arena height, shrinks on short screens */
+.www-card {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: clamp(88px, 16dvh, 210px);
+  padding: clamp(12px, 2dvh, 20px);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+}
+.www-card:not(:disabled):hover { border-color: var(--brand); transform: translateY(-1px); }
+.www-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.www-card:disabled { cursor: default; }
+.www-card.is-mine { border-color: var(--brand); background: var(--brand-soft); }
+.www-card.is-other { opacity: 0.72; }
+
+.www-card-label {
+  font-size: clamp(17px, 2.6dvh, 24px);
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.www-card.is-mine .www-card-label { color: var(--brand); }
+.www-card-sub {
+  min-height: 1.2em; /* reserved even when empty — no shift between cards */
+  font-size: clamp(11px, 1.7dvh, 13px);
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Split area: fixed height reserved BEFORE the vote so the reveal never shifts layout */
+.www-split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: min(100%, 300px);
+  min-height: 34px;
+}
+.www-bar-track {
+  display: block;
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  overflow: hidden;
+}
+.www-bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--muted); }
+.www-bar-fill.is-mine { background: var(--brand); }
+.www-split-nums { font-size: 12px; font-weight: 700; color: var(--text); }
+.www-card.is-other .www-split-nums { color: var(--muted); }
+
+/* Status line (loader / early-votes note / error + retry) — fixed height, no shift */
+.www-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 40px;
+  width: 100%;
+  text-align: center;
+}
+.www-status-text { font-size: clamp(11.5px, 1.7dvh, 13px); color: var(--muted); }
+
+/* Bottom-anchored action (mobile: input/CTA lives at the bottom of the play area) */
+.www-foot { width: 100%; max-width: 420px; margin-top: auto; }
+
+/* ===== Summary screen ===== */
+.www-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 1.8dvh, 16px);
+  width: 100%;
+}
+.www-summary-title { font-size: clamp(18px, 2.8dvh, 26px); text-align: center; line-height: 1.25; }
+.www-summary-title .tnum { color: var(--brand); }
+.www-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-height: 46dvh;      /* in-component scroll only — page never scrolls */
+  overflow-y: auto;
+}
+.www-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.www-summary-row.is-agreed { border-color: var(--brand); }
+.www-summary-num {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.www-summary-row.is-agreed .www-summary-num { background: var(--brand); border-color: var(--brand); color: #fff; }
+.www-summary-pick {
+  flex: 1;
+  min-width: 0;
+  font-size: clamp(11px, 1.7dvh, 12.5px);
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.www-summary-crowd { flex: none; font-size: 11px; color: var(--muted); }
+
+/* Empty state */
+.www-empty { font-size: clamp(12px, 1.8dvh, 14px); color: var(--muted); text-align: center; }
+
+/* Small phones (390x844): tighter cards so both fit without page scroll */
+@media (max-width: 480px) {
+  .www-card { min-height: clamp(140px, 22dvh, 190px); padding: 10px 12px; }
+  .www-arena { gap: 4px; }
+}

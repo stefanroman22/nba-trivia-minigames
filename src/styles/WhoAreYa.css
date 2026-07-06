@@ -1,0 +1,134 @@
+/* ===== Who Are Ya — de-blur mystery player (prefix: waya-) ===== */
+.waya-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(8px, 1.4dvh, 14px);
+}
+
+/* ===== Photo card — fixed frame, blur changes never shift layout ===== */
+.waya-photo-card {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: clamp(8px, 1.2dvh, 12px);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden; /* clips blur halo */
+}
+.waya-photo,
+.waya-silhouette {
+  display: block;
+  width: 100%;
+  height: clamp(120px, 22dvh, 190px); /* fixed height: img and silhouette swap without shift */
+  object-fit: cover;
+  object-position: top center;
+  border-radius: calc(var(--radius) - 6px);
+  background: var(--surface3);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.waya-silhouette { fill: var(--surface3); stroke: var(--line2); padding: 8px 0; }
+.waya-photo-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.waya-left { font-size: clamp(11px, 1.6dvh, 12.5px); font-weight: 700; color: var(--muted); }
+/* Keep interactive controls >= 44px tall regardless of the shared btn-sm size. */
+.waya-photo-meta .btn { min-height: 44px; }
+
+/* ===== Reveal card ===== */
+.waya-reveal {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  text-align: center;
+  background: var(--surface2);
+  border: 1px solid var(--bad);
+  border-radius: var(--radius);
+}
+.waya-reveal.is-won { border-color: var(--good); }
+.waya-reveal-name { font-size: clamp(15px, 2.2dvh, 19px); color: var(--text); }
+.waya-reveal-sub { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
+
+/* ===== Feedback list — the ONLY scrolling region ===== */
+.waya-feed {
+  flex: 1 1 auto;
+  min-height: 0;           /* lets the flex child actually shrink + scroll */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+  overscroll-behavior: contain;
+}
+.waya-feed-empty {
+  margin: auto;
+  padding: 0 16px;
+  text-align: center;
+  font-size: clamp(11px, 1.6dvh, 13px);
+  color: var(--muted);
+}
+.waya-row {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 7px 9px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.waya-row.is-correct { border-color: var(--good); }
+.waya-row-name { font-size: clamp(11.5px, 1.7dvh, 13px); font-weight: 700; color: var(--text); }
+
+/* Chips: 7 per row on one wrapping line; states = green hit / ORANGE close / neutral miss */
+.waya-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.waya-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 42px;
+  padding: 3px 6px;
+  border-radius: 8px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+}
+.waya-chip-label { font-size: 8.5px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); }
+.waya-chip-val { font-size: 11px; font-weight: 700; color: var(--text); }
+.waya-chip.is-hit   { background: var(--good-soft); border-color: var(--good); }
+.waya-chip.is-hit .waya-chip-val { color: var(--good); }
+.waya-chip.is-close { background: var(--brand-soft); border-color: var(--brand); }
+.waya-chip.is-close .waya-chip-val { color: var(--brand); }
+.waya-chip.is-miss  { opacity: 0.75; }
+.waya-chip.is-na    { opacity: 0.5; }
+
+/* ===== Input row — anchored at the bottom of the play area ===== */
+.waya-inputrow { flex: none; display: flex; gap: 8px; width: 100%; align-items: flex-start; }
+.waya-inputrow .btn { min-height: 44px; }
+
+/* ===== Loading / error / empty states ===== */
+.waya-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 16px;
+  text-align: center;
+}
+.waya-state-title { font-weight: 700; color: var(--text); }
+.waya-state-msg { font-size: 0.85rem; color: var(--muted); }
+
+/* Small phones (390x844): tighter photo + rows so everything fits, feed scrolls */
+@media (max-width: 480px) {
+  .waya-photo, .waya-silhouette { height: clamp(110px, 20dvh, 160px); }
+  .waya-row { padding: 6px 8px; }
+  .waya-chip { min-width: 40px; }
+}

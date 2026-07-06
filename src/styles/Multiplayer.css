@@ -111,6 +111,7 @@
   color: #fff;
 }
 .om-st-score { flex: none; font-size: 18px; font-weight: 800; color: var(--brand); }
+.om-st-time { flex: none; font-size: 11px; font-weight: 600; color: var(--muted); }
 
 /* ---- Player card ---- */
 .om-pc {
@@ -192,6 +193,8 @@
 .om-headline.is-win { color: var(--brand); }
 .om-headline.is-loss { color: var(--muted); }
 .om-headline.is-tie { color: var(--text); }
+/* Play-time lines on results (tiebreak note + "You 1:23 · Opp 1:45"). */
+.om-time-note { font-size: 12px; color: var(--muted); }
 
 /* ---- Waiting ---- */
 .om-yourscore { display: flex; flex-direction: column; align-items: center; gap: 2px; }

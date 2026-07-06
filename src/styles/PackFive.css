@@ -1,0 +1,297 @@
+/* ===== Pack 5 — stat-trumps card pack (prefix: pf-) =====
+   Theme tokens only, clamp() sizing. The play area fits a 390x844 viewport with
+   NO page scroll: the wrap is height:100% of the bounded play stage, a flex
+   column of fixed-height chrome (HUD + banner + next card) plus one flexible
+   card arena. Height budget proven at the bottom of this file. */
+.pf-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(8px, 1.4dvh, 14px);
+}
+.pf-wrap--center {
+  justify-content: center;
+  align-items: center;
+}
+
+/* ===== HUD: score · progress · lives ===== */
+.pf-hud {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: clamp(6px, 1dvh, 10px) clamp(10px, 3vw, 14px);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.pf-hud-block { display: flex; flex-direction: column; gap: 1px; }
+.pf-hud-block--center { align-items: center; }
+.pf-hud-block--right { align-items: flex-end; }
+.pf-hud-label {
+  font-size: 9.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pf-hud-value { font-size: clamp(15px, 2.4dvh, 20px); color: var(--text); line-height: 1.1; }
+.pf-hud-of { font-size: 0.72em; color: var(--muted); }
+.pf-lives { display: flex; gap: 5px; padding-top: 2px; }
+.pf-life {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line2);
+  background: transparent;
+  transition: background 200ms ease, border-color 200ms ease, transform 200ms ease;
+}
+.pf-life.is-on { background: var(--brand); border-color: var(--brand); box-shadow: 0 0 8px var(--brand-soft); }
+
+/* ===== Status banner — fixed height, tone-coded, never shifts layout ===== */
+.pf-banner {
+  flex: none;
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 12px;
+  text-align: center;
+  font-size: clamp(10.5px, 1.6dvh, 12.5px);
+  font-weight: 600;
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+.pf-banner--warn { background: var(--brand-soft); border-color: var(--brand); color: var(--brand2); }
+.pf-banner--bad { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+
+/* ===== Arena — holds the current (foil) card; cards overlap during slide ===== */
+.pf-arena {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  perspective: 1000px;
+}
+
+/* Panini-style premium frame: dark card, orange foil gradient border. */
+.pf-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4dvh, 12px);
+  padding: clamp(8px, 1.4dvh, 12px);
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  background:
+    linear-gradient(var(--surface2), var(--surface2)) padding-box,
+    linear-gradient(140deg, var(--brand2), var(--brand) 45%, var(--brand-deep)) border-box;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+/* Headshot fills the available height above the stats; frame never resizes. */
+.pf-photo-frame {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-radius: calc(var(--radius) - 5px);
+  overflow: hidden;
+  background: var(--surface3);
+}
+.pf-photo,
+.pf-silhouette {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.pf-silhouette { fill: var(--brand-deep); stroke: none; padding: 12px 0 0; background: var(--surface3); }
+.pf-photo-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16, 16, 16, 0) 45%, rgba(16, 16, 16, 0.85) 100%);
+  pointer-events: none;
+}
+.pf-name-plate {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 12px;
+}
+.pf-name {
+  font-size: clamp(15px, 2.4dvh, 20px);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.05;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+}
+.pf-team {
+  font-size: clamp(10px, 1.5dvh, 12px);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--brand2);
+}
+
+/* Five trump stats — tappable tiles, each a >=44px touch target. */
+.pf-stats {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(4px, 1vw, 6px);
+}
+.pf-stat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  border: 1px solid var(--line2);
+  background: var(--surface3);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 120ms ease;
+}
+.pf-stat:hover:not(:disabled) { border-color: var(--brand); }
+.pf-stat:active:not(:disabled) { transform: scale(0.96); }
+.pf-stat:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.pf-stat:disabled { cursor: default; }
+.pf-stat-label {
+  font-size: 8.5px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pf-stat-val { font-size: clamp(13px, 2dvh, 16px); font-weight: 700; line-height: 1; }
+.pf-stat.is-picked { border-color: var(--brand); background: var(--brand-soft); }
+.pf-stat.is-hit { border-color: var(--good); background: var(--good-soft); }
+.pf-stat.is-hit .pf-stat-val { color: var(--good); }
+.pf-stat.is-miss { border-color: var(--bad); background: var(--bad-soft); }
+.pf-stat.is-miss .pf-stat-val { color: var(--bad); }
+/* Non-color cue for the resolved pick (color-not-only). */
+.pf-stat.is-hit::after,
+.pf-stat.is-miss::after {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+.pf-stat.is-hit::after { content: "\2713"; color: var(--good); }
+.pf-stat.is-miss::after { content: "\2715"; color: var(--bad); }
+
+/* ===== Mystery "next" card — name + team; picked stat reveals here ===== */
+.pf-next {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: clamp(7px, 1.2dvh, 10px) clamp(10px, 3vw, 14px);
+  border-radius: var(--radius);
+  border: 1px dashed var(--line2);
+  background: var(--surface);
+  transition: border-color 200ms ease;
+}
+.pf-next.is-revealing { border-style: solid; border-color: var(--brand); }
+.pf-next-head { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1 1 auto; }
+.pf-next-eyebrow {
+  font-size: 8.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pf-next-name {
+  font-size: clamp(12.5px, 1.9dvh, 15px);
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pf-next-team { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.pf-next-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; flex: 0 0 auto; }
+.pf-next-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  min-width: 34px;
+  padding: 3px 2px;
+  border-radius: 8px;
+  background: var(--surface3);
+  border: 1px solid transparent;
+  opacity: 0.55;
+  transition: opacity 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+.pf-next-stat.is-picked { opacity: 1; }
+.pf-next-stat.is-win { border-color: var(--bad); background: var(--bad-soft); } /* their stat beat ours */
+.pf-next-stat.is-lose { border-color: var(--good); background: var(--good-soft); } /* our card held */
+.pf-next-stat-label { font-size: 7.5px; letter-spacing: 0.3px; text-transform: uppercase; color: var(--muted); }
+.pf-next-stat-val { font-size: 12px; font-weight: 700; color: var(--text); }
+
+/* ===== Loading / error state ===== */
+.pf-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 18px;
+  text-align: center;
+}
+.pf-state-title { font-weight: 700; color: var(--text); }
+.pf-state-msg { font-size: 0.85rem; color: var(--muted); max-width: 34ch; }
+
+/* Small phones (<=400px, e.g. 390x844): trim the mystery stat grid to keep the
+   next-card row on one line and the whole board within the viewport. */
+@media (max-width: 400px) {
+  .pf-next-stats { gap: 3px; }
+  .pf-next-stat { min-width: 30px; padding: 3px 1px; }
+  .pf-next-stat-label { font-size: 7px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-card,
+  .pf-life,
+  .pf-stat,
+  .pf-banner,
+  .pf-next,
+  .pf-next-stat { transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   HEIGHT BUDGET — 390x844 device, worst case (min clamp values):
+     HUD .................. ~40px   (6+6 padding + ~28 content)
+     gap .................. 8px
+     banner ............... 34px
+     gap .................. 8px
+     arena (flex 1 1 auto)  fills remainder — min useful ~230px
+       card padding 2x8 ... photo-frame >=96px + stats row 52px fit inside
+     gap .................. 8px
+     next card ............ ~58px  (7+7 padding + ~44 content, one line)
+   Fixed chrome = 40+34+58 + 3*8 gaps = 156px. On the ~700px play stage the
+   arena gets ~544px; on a tight 560px stage it still gets ~404px — the card
+   (photo-frame min 96 + stats 52 + 2*8 padding = 164px) always fits with room
+   to spare, and nothing scrolls. --------------------------------------------- */

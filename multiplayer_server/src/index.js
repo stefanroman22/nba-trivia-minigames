@@ -44,6 +44,7 @@ const crypto = require("crypto");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const gameEndpoints = require("./gameEndpoints");
+const turnGames = require("./turnGames");
 
 const CORS_ORIGINS = (
   process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
@@ -56,7 +57,11 @@ const MATCH_TIMEOUT_MS = 30000;    // how long to wait in the matchmaking queue
 const GRACE_MS = 30000;            // reconnect window before a dropped player forfeits
 const PROPOSAL_TIMEOUT_MS = 30000; // how long a play-again / switch request stays open
 
-const FRIEND_ROOM_SIZE = 2;        // a friend room starts the moment exactly this many players are in
+// Turn-based games run their own server-authoritative state machine (see
+// turnGames.js) instead of the "everyone plays a round, submit a score" flow.
+const TURN_GAMES = new Set(["tictactoe", "imposter"]);
+
+const FRIEND_ROOM_SIZE = 2;        // default friend-room size; turn games override via turnGames.roomConfigFor
 const LOBBY_TTL_MS = 15 * 60000;   // unfilled lobbies self-destruct after this long
 const LOBBY_GRACE_MS = 10000;      // reconnect window for a player who drops while in a lobby
 const JOIN_WINDOW_MS = 10000;      // join-attempt rate limit window…
@@ -111,14 +116,17 @@ function makeRoom(code, gameId, game, members, type = "match") {
     type,                                    // "match" (random 1v1) | "friend" (code lobby)
     gameId,
     game,                                    // full Game object (carries pointsPerCorrect, name…)
-    capacity: type === "friend" ? FRIEND_ROOM_SIZE : 2,
+    capacity: type === "friend" ? turnGames.roomConfigFor(gameId).capacity : 2,
     members: [...members],                   // members[0] is the host
     scores: Object.fromEntries(members.map((m) => [m, null])), // final scores, null until submitted
+    times: Object.fromEntries(members.map((m) => [m, null])),  // final elapsed ms per member, null until submitted
     gameData: null,                          // current round payload (array)
     phase: type === "friend" ? "lobby" : "intro", // lobby | intro | playing | waiting | results
     proposal: null,                          // { type:"again"|"switch", fromUid, gameId, game, accepted:Set, timeout }
     graceTimers: {},                         // uid -> setTimeout handle
     lobbyTimer: null,                        // TTL handle while a friend lobby waits to fill
+    turn: null,                              // turnGames per-room state (turn-based games only)
+    turnTimer: null,                         // turnGames per-turn/phase timeout handle
   };
 }
 
@@ -163,11 +171,30 @@ async function fetchRound(gameId) {
 
 /** Load a round and broadcast it to both members; resolves the room into "playing". */
 async function dealRound(room) {
+  // Starting a fresh round: cancel any turn timer and clear stale turn state
+  // from a previous game (e.g. after a play-again/switch off a turn game).
+  if (room.turnTimer) clearTimeout(room.turnTimer);
+  room.turnTimer = null;
+  room.turn = null;
+  // Turn-based games don't fetch a shared round — they boot a server-authoritative
+  // state machine that broadcasts turnState instead of roundData.
+  if (TURN_GAMES.has(room.gameId)) {
+    try {
+      await turnGames.init(room, turnHelpers);
+    } catch (err) {
+      console.error(`Turn game init failed for room ${room.code}:`, err.message);
+      room.members.forEach((uid) =>
+        toUid(uid, "roundDataError", { message: "Couldn't start the game. Please try again." })
+      );
+    }
+    return;
+  }
   try {
     const gameData = await fetchRound(room.gameId);
     if (!gameData || gameData.length === 0) throw new Error("empty round");
     room.gameData = gameData;
     room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
+    room.times = Object.fromEntries(room.members.map((m) => [m, null]));
     room.phase = "playing";
     room.members.forEach((uid) => toUid(uid, "roundData", { gameData, game: room.game }));
   } catch (err) {
@@ -178,33 +205,62 @@ async function dealRound(room) {
   }
 }
 
+/**
+ * Rank a room's members for the final scoreboard: score DESC, then elapsed
+ * time ASC (a null time counts as slowest). "tie" only when score AND time
+ * both match (or both times are null); slower equal-scorers get "loss". Rows
+ * carry elapsedMs so clients can show how a tie was broken. Shared by
+ * settleMatch AND snapshotFor so live results and resumes can never disagree.
+ */
+function rankRoom(room) {
+  const timeKey = (uid) => (room.times[uid] == null ? Infinity : room.times[uid]);
+  const ranked = room.members
+    .map((uid) => ({ uid, score: room.scores[uid] ?? 0, elapsedMs: room.times[uid] ?? null }))
+    .sort((a, b) => b.score - a.score || timeKey(a.uid) - timeKey(b.uid));
+  const best = ranked[0];
+  const sameAsBest = (e) => e.score === best.score && timeKey(e.uid) === timeKey(best.uid);
+  const winners = ranked.filter(sameAsBest);
+  return ranked.map((e) => ({
+    ...publicUser(players.get(e.uid)?.user),
+    id: e.uid,
+    score: e.score,
+    elapsedMs: e.elapsedMs,
+    outcome: !sameAsBest(e) ? "loss" : winners.length > 1 ? "tie" : "win",
+  }));
+}
+
 /** Compute and send the final result to every player (any room size). */
 function settleMatch(room) {
   room.phase = "results";
-  const entries = room.members.map((uid) => ({ uid, score: room.scores[uid] ?? 0 }));
-  const top = Math.max(...entries.map((e) => e.score));
-  const winners = entries.filter((e) => e.score === top);
-  const outcomeOf = (e) => (e.score !== top ? "loss" : winners.length > 1 ? "tie" : "win");
   // Shared scoreboard, best score first — the client renders this for 3-player rooms.
-  const standings = [...entries]
-    .sort((a, b) => b.score - a.score)
-    .map((e) => ({ ...publicUser(players.get(e.uid)?.user), id: e.uid, score: e.score, outcome: outcomeOf(e) }));
-  entries.forEach((e) => {
-    const bestOther = Math.max(...entries.filter((o) => o.uid !== e.uid).map((o) => o.score));
-    toUid(e.uid, "matchResult", {
-      yourScore: e.score,
+  const standings = rankRoom(room);
+  standings.forEach((row) => {
+    const bestOther = Math.max(...standings.filter((o) => o.id !== row.id).map((o) => o.score));
+    toUid(row.id, "matchResult", {
+      yourScore: row.score,
       opponentScore: bestOther, // legacy 1v1 shape (the single opponent's score)
-      outcome: outcomeOf(e),
+      outcome: row.outcome,
       standings,
     });
   });
 }
+
+// Plumbing lent to turnGames.js so it can drive turn-based rooms without
+// reaching into this module's private maps. (Defined after its dependencies.)
+const turnHelpers = {
+  toUid,
+  reject: (uid, message) => toUid(uid, "turnReject", { message }),
+  settleMatch,
+  nameOf,
+  isOnline: (uid) => !!socketIdOf(uid),
+};
 
 /** Tear a room down completely and free all members. */
 function destroyRoom(room, reason) {
   if (!room) return;
   if (room.proposal?.timeout) clearTimeout(room.proposal.timeout);
   if (room.lobbyTimer) clearTimeout(room.lobbyTimer);
+  if (room.turnTimer) clearTimeout(room.turnTimer); // turn-game per-turn/phase timer
   Object.values(room.graceTimers).forEach((t) => clearTimeout(t));
   room.members.forEach((uid) => {
     const p = players.get(uid);
@@ -259,20 +315,7 @@ function snapshotFor(room, uid) {
   if (phase === "playing" || phase === "waiting") {
     phase = room.scores[uid] != null ? "waiting" : "playing";
   }
-  const entries = room.members.map((m) => ({ uid: m, score: room.scores[m] ?? 0 }));
-  const top = Math.max(...entries.map((e) => e.score));
-  const winners = entries.filter((e) => e.score === top);
-  const standings =
-    phase === "results"
-      ? [...entries]
-          .sort((a, b) => b.score - a.score)
-          .map((e) => ({
-            ...publicUser(players.get(e.uid)?.user),
-            id: e.uid,
-            score: e.score,
-            outcome: e.score !== top ? "loss" : winners.length > 1 ? "tie" : "win",
-          }))
-      : null;
+  const standings = phase === "results" ? rankRoom(room) : null;
   return {
     code: room.code,
     game: room.game,
@@ -480,6 +523,8 @@ io.on("connection", (socket) => {
       }
       socket.join(room.code);
       socket.emit("resumeMatch", snapshotFor(room, uid));
+      // Turn games carry live state outside the resume snapshot — re-push it.
+      if (room.turn) turnGames.resumeFor(room, uid, turnHelpers);
       if (room.phase === "lobby") {
         const snap = lobbySnapshot(room);
         othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
@@ -505,6 +550,8 @@ io.on("connection", (socket) => {
       return;
     }
     dropFromQueues(uid);
+    // A previous search's timer must not fire against this fresh queue entry.
+    if (socket._findTimeout) clearTimeout(socket._findTimeout);
 
     if (!queues.has(game.id)) queues.set(game.id, []);
     const queue = queues.get(game.id);
@@ -514,11 +561,15 @@ io.on("connection", (socket) => {
     if (candidate) {
       queue.splice(queue.indexOf(candidate), 1);
       if (queue.length === 0) queues.delete(game.id);
-      if (!createMatchRoom(game, candidate, me)) {
-        queue.unshift(candidate); // "busy" — the waiting player keeps their spot
+      if (createMatchRoom(game, candidate, me)) {
+        broadcastQueueState(game.id);
+        return;
       }
+      // "busy" — put the waiting player back (re-registering the queue if it
+      // was just deleted) and fall through so `me` queues with a timeout too.
+      queues.set(game.id, queue);
+      queue.unshift(candidate);
       broadcastQueueState(game.id);
-      return;
     }
 
     queue.push(me);
@@ -597,6 +648,7 @@ io.on("connection", (socket) => {
     if (socket._findTimeout) clearTimeout(socket._findTimeout);
     room.members.push(uid);
     room.scores[uid] = null;
+    room.times[uid] = null;
     const p = players.get(uid);
     if (p) p.roomCode = room.code;
     socket.join(room.code);
@@ -619,19 +671,50 @@ io.on("connection", (socket) => {
     if (!uid || room.members[0] !== uid || !game?.id) return;
     room.gameId = game.id;
     room.game = game;
+    // Capacity follows the game (imposter seats 5, everything else 2). Never
+    // shrink below who's already seated.
+    room.capacity = Math.max(room.members.length, turnGames.roomConfigFor(game.id).capacity);
     const snap = lobbySnapshot(room);
     room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
     console.log(`Friend room ${room.code} game -> ${game.id}`);
   });
 
+  // Host-only: launch a friend room early once at least `min` players are in
+  // (e.g. start Imposter with 3 of a possible 5 rather than waiting to fill).
+  socket.on("startRoomNow", ({ code } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase !== "lobby") return;
+    if (!uid || room.members[0] !== uid) return;
+    const { min } = turnGames.roomConfigFor(room.gameId);
+    if (room.members.length < min) {
+      socket.emit("friendError", { message: `Need at least ${min} players to start.` });
+      return;
+    }
+    startFriendMatch(room);
+  });
+
+  // --- Turn-based game actions (tictactoe / imposter) ---
+  // The client emits turnAction; turnGames validates it against the authoritative
+  // room state and broadcasts the resulting turnState (per-uid redaction inside).
+  socket.on("turnAction", ({ code, action } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || !uid || !room.members.includes(uid) || !room.turn) return;
+    turnGames.handleAction(room, uid, action, turnHelpers);
+  });
+
   // --- Score submission ---
-  socket.on("submitScore", ({ code, score } = {}) => {
+  socket.on("submitScore", ({ code, score, elapsedMs } = {}) => {
     const room = rooms.get(code);
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
     if (room.scores[uid] != null) return; // ignore duplicate submissions
 
     room.scores[uid] = Number(score) || 0;
+    // Play time breaks equal-score ties (fastest wins); junk values count as slowest.
+    const ms = Number(elapsedMs);
+    room.times[uid] = Number.isFinite(ms) && ms >= 0 ? ms : null;
     const stillPlaying = room.members.filter((m) => room.scores[m] == null);
     if (stillPlaying.length === 0) {
       settleMatch(room);
@@ -737,6 +820,8 @@ io.on("connection", (socket) => {
   // lobby members get `friendRoomCancelled`, in-match members get `opponentLeft`.
   socket.on("leaveMatch", ({ code } = {}) => {
     const uid = uidOf(socket);
+    // The search-cancel path funnels through here too — kill any queue timer.
+    if (socket._findTimeout) clearTimeout(socket._findTimeout);
     const room = rooms.get(code) || (players.get(uid)?.roomCode && rooms.get(players.get(uid).roomCode));
     if (!room || !room.members.includes(uid)) {
       if (uid) dropFromQueues(uid);
@@ -785,6 +870,9 @@ io.on("connection", (socket) => {
       return;
     }
     othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: nameOf(uid), graceMs: GRACE_MS }));
+    // Turn games: don't stall the round waiting out the grace window — a dropped
+    // player's turn auto-passes (they can still reconnect and resume mid-game).
+    if (room.turn) turnGames.onDisconnect(room, uid, turnHelpers);
     room.graceTimers[uid] = setTimeout(() => {
       const message = room.members.length > 2
         ? `${name} didn't reconnect, so the match ended.`

@@ -1,0 +1,155 @@
+/* src/styles/HeatmapGame.css — The Heatmap (hex category board).
+   Tokens only (theme.css); all sizing via clamp()/dvh so the whole board + HUD +
+   input fit a 390x844 viewport with no page scroll. Pointy-top hexagons in a
+   row-offset honeycomb (odd rows indented half a hex, 25% vertical overlap) —
+   this interlock matches the neighbour graph in heatmap_criteria.compute_neighbors. */
+
+.hm-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.4dvh, 12px);
+}
+
+/* HUD: raw score + give up */
+.hm-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 440px;
+  gap: 12px;
+}
+.hm-score { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.05; }
+.hm-score-num { font-size: clamp(20px, 3dvh, 28px); color: var(--brand); line-height: 1; }
+.hm-score-cap { font-size: 10.5px; color: var(--muted); }
+
+/* Board: rows of hexes, honeycomb overlap */
+.hm-board {
+  --hex-w: clamp(40px, min(12.6vw, 6.9dvh), 58px);
+  --hex-h: calc(var(--hex-w) * 1.1547);   /* regular pointy-top hex height */
+  --hex-gap: clamp(3px, 0.9vw, 6px);
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+}
+.hm-row {
+  display: flex;
+  gap: var(--hex-gap);
+  /* rows overlap by 25% so the pointy hexes interlock */
+  margin-top: calc(var(--hex-h) * -0.25);
+}
+.hm-row:first-child { margin-top: 0; }
+.hm-row.is-indent { margin-left: calc((var(--hex-w) + var(--hex-gap)) * 0.5); }
+
+/* One hexagon (pointy-top) */
+.hm-hex {
+  position: relative;
+  width: var(--hex-w);
+  height: var(--hex-h);
+  flex: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  background: var(--surface2);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  transition: background 0.18s ease, filter 0.15s ease;
+}
+.hm-hex:disabled { cursor: default; }
+.hm-hex:not(:disabled):hover { filter: brightness(1.12); }
+.hm-hex:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.hm-hex.is-active { background: var(--brand-soft); box-shadow: inset 0 0 0 2px var(--brand); }
+.hm-hex.is-claimed { background: var(--brand); }
+
+/* criterion stays visible: logo (team) or short label */
+.hm-hex-logo { width: 52%; height: 52%; object-fit: contain; pointer-events: none; }
+.hm-hex-label {
+  padding: 0 9%;
+  font-size: clamp(7px, 1.45dvh, 9.5px);
+  font-weight: 700;
+  line-height: 1.03;
+  text-align: center;
+  color: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hm-hex.is-claimed { color: #fff; }
+.hm-hex.is-claimed .hm-hex-logo { filter: brightness(0) invert(1); opacity: 0.92; }
+
+/* center score overlay (non-playable, decorative) */
+.hm-center {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--hex-w);
+  height: var(--hex-h);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: var(--surface3);
+  box-shadow: inset 0 0 0 1px var(--line2);
+  pointer-events: none;
+  z-index: 2;
+}
+.hm-center-num { font-size: clamp(14px, 2.2dvh, 18px); color: var(--brand); line-height: 1; }
+.hm-center-cap { font-size: 8px; color: var(--muted); letter-spacing: 0.5px; }
+
+/* solvability hint */
+.hm-hint {
+  width: 100%;
+  max-width: 440px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  font-size: clamp(10.5px, 1.6dvh, 12px);
+  color: var(--muted);
+  text-align: center;
+}
+.hm-hint b { color: var(--text); }
+
+/* input row — anchored at the bottom of the play area */
+.hm-inputrow { display: flex; gap: 8px; width: 100%; max-width: 440px; align-items: stretch; }
+
+/* states */
+.hm-msg { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 24px 12px; }
+.hm-note { color: var(--muted); font-size: 0.9rem; text-align: center; }
+
+/* end card overlay */
+.hm-endcard {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: min(88%, 340px);
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 6;
+}
+.hm-end-title { font-size: clamp(18px, 2.6dvh, 22px); color: var(--text); }
+.hm-end-line { font-size: clamp(12px, 1.8dvh, 14px); color: var(--muted); }
+.hm-end-line b { color: var(--brand); }
+.hm-end-cap { font-size: 10.5px; }

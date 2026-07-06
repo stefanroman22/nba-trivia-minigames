@@ -1,0 +1,95 @@
+/* ===== NBA Connections — game renderer (prefix: cn-) =====
+   theme.css tokens only + spec-mandated difficulty-tier colors (orange family).
+   Play area fits 390x844 with no page scroll; the tile grid shrinks as groups
+   collapse into full-width bars, so total height only ever decreases. */
+.cn-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.4dvh, 14px);
+}
+
+/* Header */
+.cn-head { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
+.cn-title { font-size: clamp(15px, 2.2dvh, 20px); color: var(--text); }
+.cn-sub { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
+
+/* Hearts */
+.cn-hearts { display: flex; gap: 7px; align-items: center; }
+
+/* ===== Solved group bars (the grid-collapse target) =====
+   --tier = fill (difficulty color); --tier-ink = text color chosen per tier so
+   contrast stays >= 4.5:1 on both the lightest and darkest fill. */
+.cn-solved { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.cn-solved-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  background: var(--tier, var(--brand));
+  color: var(--tier-ink, #1a1206);
+  text-align: center;
+}
+.cn-solved-bar.is-missed { opacity: 0.9; }
+.cn-solved-label { font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px; }
+.cn-solved-members { font-size: 11px; font-weight: 600; line-height: 1.2; }
+
+/* ===== Tile grid — 4 columns of the remaining tiles ===== */
+.cn-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(5px, 1.1vw, 8px);
+  width: 100%;
+}
+.cn-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 56px;
+  padding: 4px 5px;
+  min-width: 0;
+  font-family: inherit;
+  font-size: clamp(9.5px, 1.35dvh, 12px);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+}
+.cn-tile:hover { border-color: var(--line2); }
+.cn-tile:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cn-tile.is-selected {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand);
+  transform: translateY(-1px);
+}
+.cn-tile:disabled { cursor: default; }
+
+/* ===== Controls ===== */
+.cn-controls { display: flex; gap: 10px; justify-content: center; width: 100%; }
+
+.cn-note { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 4px; }
+
+/* Small phones (390x844): tighter tiles so 16 fit with no scroll and the
+   longest single-word surnames (e.g. Antetokounmpo) never clip. */
+@media (max-width: 480px) {
+  .cn-grid { gap: 5px; }
+  .cn-tile { min-height: 52px; padding: 3px 4px; font-size: clamp(9px, 1.25dvh, 11px); letter-spacing: -0.2px; }
+  .cn-solved-bar { min-height: 38px; }
+}

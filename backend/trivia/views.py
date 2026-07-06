@@ -4,8 +4,20 @@ import random
 from django.conf import settings
 from django.db.models.functions import Length
 from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
 
-from trivia.models import Mvp, Player, PlayoffSeries, StartingFiveGame, Team
+from trivia.models import (
+    FanFavoritesQuestion,
+    GameSession,
+    GuessLog,
+    Mvp,
+    Player,
+    PlayoffSeries,
+    StartingFiveGame,
+    Team,
+)
+from trivia.utils.fan_favorites import load_seed as load_fan_favorites_seed
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
 
@@ -153,6 +165,95 @@ def get_wordle(request):
         return JsonResponse({'error': 'no wordle words available'}, status=500)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def _fan_favorites_row(q):
+    return {
+        'qid': q.qid,
+        'prompt': q.prompt,
+        'survey_date': q.survey_date,
+        'answers': q.answers,
+    }
+
+
+def get_fan_favorites(request):
+    """Return one random survey board (DB first, bundled seed as fallback)."""
+    try:
+        # A board needs >= 6 answers to be playable — skip malformed rows so
+        # multiplayer gets the same guarantee the validated static pool has.
+        for q in FanFavoritesQuestion.objects.filter(live=True).order_by('?')[:5]:
+            if isinstance(q.answers, list) and len(q.answers) >= 6:
+                return JsonResponse({'series': [_fan_favorites_row(q)]})
+        seed = load_fan_favorites_seed()
+        if not seed:
+            return JsonResponse({'error': 'No fan favorites questions available.'}, status=500)
+        return JsonResponse({'series': [random.choice(seed)]})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# A day in ms — sanity ceiling for client-reported durations.
+_MAX_DURATION_MS = 86_400_000
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def log_guesses(request):
+    """Batch-log the answers of a finished round (the data flywheel: survey
+    standings, rarity scores, difficulty tuning). Guests log anonymously."""
+    body = request.data or {}
+    game = str(body.get('game', ''))[:40]
+    entries = body.get('entries')
+    if not game or not isinstance(entries, list):
+        return JsonResponse({'error': 'game and entries are required'}, status=400)
+    user = request.user if request.user.is_authenticated else None
+    rows = []
+    for e in entries[:100]:
+        if not isinstance(e, dict):
+            continue
+        answer = str(e.get('answer', '')).strip()[:120]
+        if not answer:
+            continue
+        elapsed = e.get('elapsed_ms')
+        ok_elapsed = isinstance(elapsed, (int, float)) and 0 <= elapsed < _MAX_DURATION_MS
+        rows.append(GuessLog(
+            user=user,
+            game=game,
+            question_id=str(e.get('question_id', ''))[:60],
+            answer=answer,
+            correct=bool(e.get('correct')),
+            elapsed_ms=int(elapsed) if ok_elapsed else None,
+        ))
+    if rows:
+        GuessLog.objects.bulk_create(rows)
+    return JsonResponse({'logged': len(rows)})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def log_session(request):
+    """Record one finished play (game, mode, score, duration) for stats/history."""
+    body = request.data or {}
+    game = str(body.get('game', ''))[:40]
+    if not game:
+        return JsonResponse({'error': 'game is required'}, status=400)
+    mode = str(body.get('mode', 'single'))
+    try:
+        score = max(0, int(body.get('score', 0)))
+    except (TypeError, ValueError):
+        score = 0
+    try:
+        duration = max(0, min(int(body.get('duration_ms', 0)), _MAX_DURATION_MS))
+    except (TypeError, ValueError):
+        duration = 0
+    GameSession.objects.create(
+        user=request.user if request.user.is_authenticated else None,
+        game=game,
+        mode=mode if mode in ('single', 'match', 'friend') else 'single',
+        score=score,
+        duration_ms=duration,
+    )
+    return JsonResponse({'ok': True})
 
 
 def _game_data_dir():

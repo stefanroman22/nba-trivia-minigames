@@ -1,0 +1,2287 @@
+[
+  {
+    "person_id": 2544,
+    "full_name": "LeBron James",
+    "aliases": [
+      "lebron",
+      "king james",
+      "bron"
+    ],
+    "fame_tier": 1,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "LAL",
+        "name": "Los Angeles Lakers",
+        "start_year": 2003,
+        "end_year": null,
+        "gp": 1656,
+        "ppg": 27.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 21,
+      "allnba_count": 0,
+      "rings": [
+        2012,
+        2013,
+        2016,
+        2020
+      ]
+    },
+    "career": {
+      "pts": 44712,
+      "reb": 12420,
+      "ast": 12254,
+      "ppg": 27.0,
+      "rpg": 7.5,
+      "apg": 7.4,
+      "seasons": 23
+    }
+  },
+  {
+    "person_id": 201939,
+    "full_name": "Stephen Curry",
+    "aliases": [
+      "steph curry",
+      "steph",
+      "chef curry"
+    ],
+    "fame_tier": 1,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "GSW",
+        "name": "Golden State Warriors",
+        "start_year": 2009,
+        "end_year": null,
+        "gp": 1224,
+        "ppg": 24.8
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 11,
+      "allnba_count": 0,
+      "rings": [
+        2015,
+        2017,
+        2018,
+        2022
+      ]
+    },
+    "career": {
+      "pts": 30355,
+      "reb": 5753,
+      "ast": 7834,
+      "ppg": 24.8,
+      "rpg": 4.7,
+      "apg": 6.4,
+      "seasons": 17
+    }
+  },
+  {
+    "person_id": 201142,
+    "full_name": "Kevin Durant",
+    "aliases": [
+      "kd",
+      "durantula"
+    ],
+    "fame_tier": 1,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "PHX",
+        "name": "Phoenix Suns",
+        "start_year": 2007,
+        "end_year": null,
+        "gp": 1368,
+        "ppg": 27.3
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 15,
+      "allnba_count": 0,
+      "rings": [
+        2017,
+        2018
+      ]
+    },
+    "career": {
+      "pts": 37346,
+      "reb": 9713,
+      "ast": 6019,
+      "ppg": 27.3,
+      "rpg": 7.1,
+      "apg": 4.4,
+      "seasons": 19
+    }
+  },
+  {
+    "person_id": 203507,
+    "full_name": "Giannis Antetokounmpo",
+    "aliases": [
+      "giannis",
+      "greek freak"
+    ],
+    "fame_tier": 1,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Greece",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIL",
+        "name": "Milwaukee Bucks",
+        "start_year": 2013,
+        "end_year": null,
+        "gp": 936,
+        "ppg": 23.5
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 9,
+      "allnba_count": 0,
+      "rings": [
+        2021
+      ]
+    },
+    "career": {
+      "pts": 21996,
+      "reb": 9266,
+      "ast": 4586,
+      "ppg": 23.5,
+      "rpg": 9.9,
+      "apg": 4.9,
+      "seasons": 13
+    }
+  },
+  {
+    "person_id": 203999,
+    "full_name": "Nikola Jokic",
+    "aliases": [
+      "jokic",
+      "joker"
+    ],
+    "fame_tier": 1,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Serbia",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "DEN",
+        "name": "Denver Nuggets",
+        "start_year": 2015,
+        "end_year": null,
+        "gp": 792,
+        "ppg": 21.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": [
+        2023
+      ]
+    },
+    "career": {
+      "pts": 16632,
+      "reb": 8633,
+      "ast": 5623,
+      "ppg": 21.0,
+      "rpg": 10.9,
+      "apg": 7.1,
+      "seasons": 11
+    }
+  },
+  {
+    "person_id": 203954,
+    "full_name": "Joel Embiid",
+    "aliases": [
+      "embiid",
+      "the process"
+    ],
+    "fame_tier": 1,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Cameroon",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "PHI",
+        "name": "Philadelphia 76ers",
+        "start_year": 2016,
+        "end_year": null,
+        "gp": 720,
+        "ppg": 27.9
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 7,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 20088,
+      "reb": 8064,
+      "ast": 2736,
+      "ppg": 27.9,
+      "rpg": 11.2,
+      "apg": 3.8,
+      "seasons": 10
+    }
+  },
+  {
+    "person_id": 1629029,
+    "full_name": "Luka Doncic",
+    "aliases": [
+      "luka",
+      "doncic"
+    ],
+    "fame_tier": 1,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Slovenia",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "LAL",
+        "name": "Los Angeles Lakers",
+        "start_year": 2018,
+        "end_year": null,
+        "gp": 576,
+        "ppg": 28.6
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 5,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 16474,
+      "reb": 5011,
+      "ast": 4723,
+      "ppg": 28.6,
+      "rpg": 8.7,
+      "apg": 8.2,
+      "seasons": 8
+    }
+  },
+  {
+    "person_id": 1628369,
+    "full_name": "Jayson Tatum",
+    "aliases": [
+      "tatum",
+      "jt"
+    ],
+    "fame_tier": 1,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "BOS",
+        "name": "Boston Celtics",
+        "start_year": 2017,
+        "end_year": null,
+        "gp": 648,
+        "ppg": 23.6
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": [
+        2024
+      ]
+    },
+    "career": {
+      "pts": 15293,
+      "reb": 4601,
+      "ast": 2592,
+      "ppg": 23.6,
+      "rpg": 7.1,
+      "apg": 4.0,
+      "seasons": 9
+    }
+  },
+  {
+    "person_id": 203081,
+    "full_name": "Damian Lillard",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIL",
+        "name": "Milwaukee Bucks",
+        "start_year": 2012,
+        "end_year": null,
+        "gp": 1008,
+        "ppg": 25.1
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 9,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 25301,
+      "reb": 4234,
+      "ast": 6754,
+      "ppg": 25.1,
+      "rpg": 4.2,
+      "apg": 6.7,
+      "seasons": 14
+    }
+  },
+  {
+    "person_id": 201935,
+    "full_name": "James Harden",
+    "aliases": [
+      "harden",
+      "the beard"
+    ],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "LAC",
+        "name": "Los Angeles Clippers",
+        "start_year": 2009,
+        "end_year": null,
+        "gp": 1224,
+        "ppg": 24.1
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 11,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 29498,
+      "reb": 6854,
+      "ast": 8568,
+      "ppg": 24.1,
+      "rpg": 5.6,
+      "apg": 7.0,
+      "seasons": 17
+    }
+  },
+  {
+    "person_id": 201566,
+    "full_name": "Russell Westbrook",
+    "aliases": [
+      "russ",
+      "westbrook",
+      "brodie"
+    ],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "DEN",
+        "name": "Denver Nuggets",
+        "start_year": 2008,
+        "end_year": null,
+        "gp": 1296,
+        "ppg": 21.4
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 9,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 27734,
+      "reb": 9072,
+      "ast": 10498,
+      "ppg": 21.4,
+      "rpg": 7.0,
+      "apg": 8.1,
+      "seasons": 18
+    }
+  },
+  {
+    "person_id": 101108,
+    "full_name": "Chris Paul",
+    "aliases": [
+      "cp3",
+      "chris paul"
+    ],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "SAS",
+        "name": "San Antonio Spurs",
+        "start_year": 2005,
+        "end_year": null,
+        "gp": 1512,
+        "ppg": 17.5
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 12,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 26460,
+      "reb": 6804,
+      "ast": 14213,
+      "ppg": 17.5,
+      "rpg": 4.5,
+      "apg": 9.4,
+      "seasons": 21
+    }
+  },
+  {
+    "person_id": 203076,
+    "full_name": "Anthony Davis",
+    "aliases": [
+      "ad",
+      "the brow"
+    ],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "DAL",
+        "name": "Dallas Mavericks",
+        "start_year": 2012,
+        "end_year": null,
+        "gp": 1008,
+        "ppg": 24.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 10,
+      "allnba_count": 0,
+      "rings": [
+        2020
+      ]
+    },
+    "career": {
+      "pts": 24192,
+      "reb": 10483,
+      "ast": 2621,
+      "ppg": 24.0,
+      "rpg": 10.4,
+      "apg": 2.6,
+      "seasons": 14
+    }
+  },
+  {
+    "person_id": 202695,
+    "full_name": "Kawhi Leonard",
+    "aliases": [
+      "kawhi",
+      "the klaw"
+    ],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "LAC",
+        "name": "Los Angeles Clippers",
+        "start_year": 2011,
+        "end_year": null,
+        "gp": 1080,
+        "ppg": 19.9
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": [
+        2014,
+        2019
+      ]
+    },
+    "career": {
+      "pts": 21492,
+      "reb": 6804,
+      "ast": 3240,
+      "ppg": 19.9,
+      "rpg": 6.3,
+      "apg": 3.0,
+      "seasons": 15
+    }
+  },
+  {
+    "person_id": 202331,
+    "full_name": "Paul George",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "PHI",
+        "name": "Philadelphia 76ers",
+        "start_year": 2010,
+        "end_year": null,
+        "gp": 1152,
+        "ppg": 20.8
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 9,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 23962,
+      "reb": 7258,
+      "ast": 4147,
+      "ppg": 20.8,
+      "rpg": 6.3,
+      "apg": 3.6,
+      "seasons": 16
+    }
+  },
+  {
+    "person_id": 202710,
+    "full_name": "Jimmy Butler",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIA",
+        "name": "Miami Heat",
+        "start_year": 2011,
+        "end_year": null,
+        "gp": 1080,
+        "ppg": 18.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 19440,
+      "reb": 5724,
+      "ast": 4536,
+      "ppg": 18.0,
+      "rpg": 5.3,
+      "apg": 4.2,
+      "seasons": 15
+    }
+  },
+  {
+    "person_id": 202681,
+    "full_name": "Kyrie Irving",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "DAL",
+        "name": "Dallas Mavericks",
+        "start_year": 2011,
+        "end_year": null,
+        "gp": 1080,
+        "ppg": 23.6
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 9,
+      "allnba_count": 0,
+      "rings": [
+        2016
+      ]
+    },
+    "career": {
+      "pts": 25488,
+      "reb": 4212,
+      "ast": 6156,
+      "ppg": 23.6,
+      "rpg": 3.9,
+      "apg": 5.7,
+      "seasons": 15
+    }
+  },
+  {
+    "person_id": 202691,
+    "full_name": "Klay Thompson",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "DAL",
+        "name": "Dallas Mavericks",
+        "start_year": 2011,
+        "end_year": null,
+        "gp": 1080,
+        "ppg": 19.2
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 5,
+      "allnba_count": 0,
+      "rings": [
+        2015,
+        2017,
+        2018,
+        2022
+      ]
+    },
+    "career": {
+      "pts": 20736,
+      "reb": 3672,
+      "ast": 2484,
+      "ppg": 19.2,
+      "rpg": 3.4,
+      "apg": 2.3,
+      "seasons": 15
+    }
+  },
+  {
+    "person_id": 203110,
+    "full_name": "Draymond Green",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "GSW",
+        "name": "Golden State Warriors",
+        "start_year": 2012,
+        "end_year": null,
+        "gp": 1008,
+        "ppg": 8.7
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 4,
+      "allnba_count": 0,
+      "rings": [
+        2015,
+        2017,
+        2018,
+        2022
+      ]
+    },
+    "career": {
+      "pts": 8770,
+      "reb": 6955,
+      "ast": 5645,
+      "ppg": 8.7,
+      "rpg": 6.9,
+      "apg": 5.6,
+      "seasons": 14
+    }
+  },
+  {
+    "person_id": 1626164,
+    "full_name": "Devin Booker",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "PHX",
+        "name": "Phoenix Suns",
+        "start_year": 2015,
+        "end_year": null,
+        "gp": 792,
+        "ppg": 24.3
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 4,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 19246,
+      "reb": 3326,
+      "ast": 3960,
+      "ppg": 24.3,
+      "rpg": 4.2,
+      "apg": 5.0,
+      "seasons": 11
+    }
+  },
+  {
+    "person_id": 1626157,
+    "full_name": "Karl-Anthony Towns",
+    "aliases": [
+      "kat",
+      "towns"
+    ],
+    "fame_tier": 2,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "NYK",
+        "name": "New York Knicks",
+        "start_year": 2015,
+        "end_year": null,
+        "gp": 792,
+        "ppg": 23.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 5,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 18216,
+      "reb": 8554,
+      "ast": 2534,
+      "ppg": 23.0,
+      "rpg": 10.8,
+      "apg": 3.2,
+      "seasons": 11
+    }
+  },
+  {
+    "person_id": 203497,
+    "full_name": "Rudy Gobert",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "France",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIN",
+        "name": "Minnesota Timberwolves",
+        "start_year": 2013,
+        "end_year": null,
+        "gp": 936,
+        "ppg": 12.6
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 3,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 11794,
+      "reb": 10858,
+      "ast": 1217,
+      "ppg": 12.6,
+      "rpg": 11.6,
+      "apg": 1.3,
+      "seasons": 13
+    }
+  },
+  {
+    "person_id": 1629630,
+    "full_name": "Ja Morant",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MEM",
+        "name": "Memphis Grizzlies",
+        "start_year": 2019,
+        "end_year": null,
+        "gp": 504,
+        "ppg": 22.5
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 2,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 11340,
+      "reb": 2470,
+      "ast": 3730,
+      "ppg": 22.5,
+      "rpg": 4.9,
+      "apg": 7.4,
+      "seasons": 7
+    }
+  },
+  {
+    "person_id": 1629027,
+    "full_name": "Trae Young",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "ATL",
+        "name": "Atlanta Hawks",
+        "start_year": 2018,
+        "end_year": null,
+        "gp": 576,
+        "ppg": 25.3
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 3,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 14573,
+      "reb": 1728,
+      "ast": 5645,
+      "ppg": 25.3,
+      "rpg": 3.0,
+      "apg": 9.8,
+      "seasons": 8
+    }
+  },
+  {
+    "person_id": 1629627,
+    "full_name": "Zion Williamson",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "NOP",
+        "name": "New Orleans Pelicans",
+        "start_year": 2019,
+        "end_year": null,
+        "gp": 504,
+        "ppg": 24.7
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 2,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 12449,
+      "reb": 3427,
+      "ast": 2318,
+      "ppg": 24.7,
+      "rpg": 6.8,
+      "apg": 4.6,
+      "seasons": 7
+    }
+  },
+  {
+    "person_id": 1628389,
+    "full_name": "Bam Adebayo",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIA",
+        "name": "Miami Heat",
+        "start_year": 2017,
+        "end_year": null,
+        "gp": 648,
+        "ppg": 15.9
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 3,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 10303,
+      "reb": 5962,
+      "ast": 2398,
+      "ppg": 15.9,
+      "rpg": 9.2,
+      "apg": 3.7,
+      "seasons": 9
+    }
+  },
+  {
+    "person_id": 1628378,
+    "full_name": "Donovan Mitchell",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "CLE",
+        "name": "Cleveland Cavaliers",
+        "start_year": 2017,
+        "end_year": null,
+        "gp": 648,
+        "ppg": 24.4
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 15811,
+      "reb": 2786,
+      "ast": 2981,
+      "ppg": 24.4,
+      "rpg": 4.3,
+      "apg": 4.6,
+      "seasons": 9
+    }
+  },
+  {
+    "person_id": 1628983,
+    "full_name": "Shai Gilgeous-Alexander",
+    "aliases": [
+      "shai",
+      "sga",
+      "gilgeous-alexander"
+    ],
+    "fame_tier": 1,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Canada",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "OKC",
+        "name": "Oklahoma City Thunder",
+        "start_year": 2018,
+        "end_year": null,
+        "gp": 576,
+        "ppg": 24.2
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 5,
+      "allnba_count": 0,
+      "rings": [
+        2025
+      ]
+    },
+    "career": {
+      "pts": 13939,
+      "reb": 2822,
+      "ast": 3168,
+      "ppg": 24.2,
+      "rpg": 4.9,
+      "apg": 5.5,
+      "seasons": 8
+    }
+  },
+  {
+    "person_id": 1628368,
+    "full_name": "De'Aaron Fox",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "SAS",
+        "name": "San Antonio Spurs",
+        "start_year": 2017,
+        "end_year": null,
+        "gp": 648,
+        "ppg": 22.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 1,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 14256,
+      "reb": 2592,
+      "ast": 3953,
+      "ppg": 22.0,
+      "rpg": 4.0,
+      "apg": 6.1,
+      "seasons": 9
+    }
+  },
+  {
+    "person_id": 201942,
+    "full_name": "DeMar DeRozan",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "SAC",
+        "name": "Sacramento Kings",
+        "start_year": 2009,
+        "end_year": null,
+        "gp": 1224,
+        "ppg": 20.8
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 25459,
+      "reb": 5263,
+      "ast": 4896,
+      "ppg": 20.8,
+      "rpg": 4.3,
+      "apg": 4.0,
+      "seasons": 17
+    }
+  },
+  {
+    "person_id": 977,
+    "full_name": "Kobe Bryant",
+    "aliases": [
+      "kobe",
+      "black mamba",
+      "mamba"
+    ],
+    "fame_tier": 1,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "LAL",
+        "name": "Los Angeles Lakers",
+        "start_year": 1996,
+        "end_year": 2016,
+        "gp": 1512,
+        "ppg": 25.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 18,
+      "allnba_count": 0,
+      "rings": [
+        2000,
+        2001,
+        2002,
+        2009,
+        2010
+      ]
+    },
+    "career": {
+      "pts": 37800,
+      "reb": 7862,
+      "ast": 7106,
+      "ppg": 25.0,
+      "rpg": 5.2,
+      "apg": 4.7,
+      "seasons": 21
+    }
+  },
+  {
+    "person_id": 1495,
+    "full_name": "Tim Duncan",
+    "aliases": [
+      "duncan",
+      "the big fundamental"
+    ],
+    "fame_tier": 1,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "US Virgin Islands",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "SAS",
+        "name": "San Antonio Spurs",
+        "start_year": 1997,
+        "end_year": 2016,
+        "gp": 1440,
+        "ppg": 19.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 15,
+      "allnba_count": 0,
+      "rings": [
+        1999,
+        2003,
+        2005,
+        2007,
+        2014
+      ]
+    },
+    "career": {
+      "pts": 27360,
+      "reb": 15552,
+      "ast": 4320,
+      "ppg": 19.0,
+      "rpg": 10.8,
+      "apg": 3.0,
+      "seasons": 20
+    }
+  },
+  {
+    "person_id": 2548,
+    "full_name": "Dwyane Wade",
+    "aliases": [
+      "dwyane wade",
+      "d-wade",
+      "flash"
+    ],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "MIA",
+        "name": "Miami Heat",
+        "start_year": 2003,
+        "end_year": 2019,
+        "gp": 1224,
+        "ppg": 22.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 13,
+      "allnba_count": 0,
+      "rings": [
+        2006,
+        2012,
+        2013
+      ]
+    },
+    "career": {
+      "pts": 26928,
+      "reb": 5753,
+      "ast": 6610,
+      "ppg": 22.0,
+      "rpg": 4.7,
+      "apg": 5.4,
+      "seasons": 17
+    }
+  },
+  {
+    "person_id": 708,
+    "full_name": "Kevin Garnett",
+    "aliases": [
+      "kg",
+      "the big ticket"
+    ],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "MIN",
+        "name": "Minnesota Timberwolves",
+        "start_year": 1995,
+        "end_year": 2016,
+        "gp": 1584,
+        "ppg": 17.8
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 15,
+      "allnba_count": 0,
+      "rings": [
+        2008
+      ]
+    },
+    "career": {
+      "pts": 28195,
+      "reb": 15840,
+      "ast": 5861,
+      "ppg": 17.8,
+      "rpg": 10.0,
+      "apg": 3.7,
+      "seasons": 22
+    }
+  },
+  {
+    "person_id": 1718,
+    "full_name": "Paul Pierce",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "BOS",
+        "name": "Boston Celtics",
+        "start_year": 1998,
+        "end_year": 2017,
+        "gp": 1440,
+        "ppg": 19.7
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 10,
+      "allnba_count": 0,
+      "rings": [
+        2008
+      ]
+    },
+    "career": {
+      "pts": 28368,
+      "reb": 8064,
+      "ast": 5040,
+      "ppg": 19.7,
+      "rpg": 5.6,
+      "apg": 3.5,
+      "seasons": 20
+    }
+  },
+  {
+    "person_id": 951,
+    "full_name": "Ray Allen",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "MIA",
+        "name": "Miami Heat",
+        "start_year": 1996,
+        "end_year": 2014,
+        "gp": 1368,
+        "ppg": 18.9
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 10,
+      "allnba_count": 0,
+      "rings": [
+        2008,
+        2013
+      ]
+    },
+    "career": {
+      "pts": 25855,
+      "reb": 5609,
+      "ast": 4651,
+      "ppg": 18.9,
+      "rpg": 4.1,
+      "apg": 3.4,
+      "seasons": 19
+    }
+  },
+  {
+    "person_id": 406,
+    "full_name": "Shaquille O'Neal",
+    "aliases": [
+      "shaq",
+      "shaquille oneal"
+    ],
+    "fame_tier": 1,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "LAL",
+        "name": "Los Angeles Lakers",
+        "start_year": 1992,
+        "end_year": 2011,
+        "gp": 1440,
+        "ppg": 23.7
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 15,
+      "allnba_count": 0,
+      "rings": [
+        2000,
+        2001,
+        2002,
+        2006
+      ]
+    },
+    "career": {
+      "pts": 34128,
+      "reb": 15696,
+      "ast": 3600,
+      "ppg": 23.7,
+      "rpg": 10.9,
+      "apg": 2.5,
+      "seasons": 20
+    }
+  },
+  {
+    "person_id": 1717,
+    "full_name": "Dirk Nowitzki",
+    "aliases": [],
+    "fame_tier": 1,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Germany",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "DAL",
+        "name": "Dallas Mavericks",
+        "start_year": 1998,
+        "end_year": 2019,
+        "gp": 1584,
+        "ppg": 20.7
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 14,
+      "allnba_count": 0,
+      "rings": [
+        2011
+      ]
+    },
+    "career": {
+      "pts": 32789,
+      "reb": 11880,
+      "ast": 3802,
+      "ppg": 20.7,
+      "rpg": 7.5,
+      "apg": 2.4,
+      "seasons": 22
+    }
+  },
+  {
+    "person_id": 2546,
+    "full_name": "Carmelo Anthony",
+    "aliases": [
+      "melo",
+      "carmelo"
+    ],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "POR",
+        "name": "Portland Trail Blazers",
+        "start_year": 2003,
+        "end_year": 2022,
+        "gp": 1440,
+        "ppg": 22.5
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 10,
+      "allnba_count": 0,
+      "rings": []
+    },
+    "career": {
+      "pts": 32400,
+      "reb": 8928,
+      "ast": 3888,
+      "ppg": 22.5,
+      "rpg": 6.2,
+      "apg": 2.7,
+      "seasons": 20
+    }
+  },
+  {
+    "person_id": 2547,
+    "full_name": "Chris Bosh",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "MIA",
+        "name": "Miami Heat",
+        "start_year": 2003,
+        "end_year": 2016,
+        "gp": 1008,
+        "ppg": 19.2
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 11,
+      "allnba_count": 0,
+      "rings": [
+        2012,
+        2013
+      ]
+    },
+    "career": {
+      "pts": 19354,
+      "reb": 8568,
+      "ast": 2016,
+      "ppg": 19.2,
+      "rpg": 8.5,
+      "apg": 2.0,
+      "seasons": 14
+    }
+  },
+  {
+    "person_id": 201567,
+    "full_name": "Kevin Love",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIA",
+        "name": "Miami Heat",
+        "start_year": 2008,
+        "end_year": null,
+        "gp": 1296,
+        "ppg": 16.2
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 5,
+      "allnba_count": 0,
+      "rings": [
+        2016
+      ]
+    },
+    "career": {
+      "pts": 20995,
+      "reb": 12830,
+      "ast": 3110,
+      "ppg": 16.2,
+      "rpg": 9.9,
+      "apg": 2.4,
+      "seasons": 18
+    }
+  },
+  {
+    "person_id": 201143,
+    "full_name": "Al Horford",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "C",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Dominican Republic",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "BOS",
+        "name": "Boston Celtics",
+        "start_year": 2007,
+        "end_year": null,
+        "gp": 1368,
+        "ppg": 13.2
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 5,
+      "allnba_count": 0,
+      "rings": [
+        2024
+      ]
+    },
+    "career": {
+      "pts": 18058,
+      "reb": 11218,
+      "ast": 4378,
+      "ppg": 13.2,
+      "rpg": 8.2,
+      "apg": 3.2,
+      "seasons": 19
+    }
+  },
+  {
+    "person_id": 2200,
+    "full_name": "Pau Gasol",
+    "aliases": [],
+    "fame_tier": 2,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Spain",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "LAL",
+        "name": "Los Angeles Lakers",
+        "start_year": 2001,
+        "end_year": 2019,
+        "gp": 1368,
+        "ppg": 17.0
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": [
+        2009,
+        2010
+      ]
+    },
+    "career": {
+      "pts": 23256,
+      "reb": 12586,
+      "ast": 4378,
+      "ppg": 17.0,
+      "rpg": 9.2,
+      "apg": 3.2,
+      "seasons": 19
+    }
+  },
+  {
+    "person_id": 2225,
+    "full_name": "Tony Parker",
+    "aliases": [
+      "tony parker",
+      "tp"
+    ],
+    "fame_tier": 2,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "France",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "SAS",
+        "name": "San Antonio Spurs",
+        "start_year": 2001,
+        "end_year": 2019,
+        "gp": 1368,
+        "ppg": 15.5
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 6,
+      "allnba_count": 0,
+      "rings": [
+        2003,
+        2005,
+        2007,
+        2014
+      ]
+    },
+    "career": {
+      "pts": 21204,
+      "reb": 3694,
+      "ast": 7661,
+      "ppg": 15.5,
+      "rpg": 2.7,
+      "apg": 5.6,
+      "seasons": 19
+    }
+  },
+  {
+    "person_id": 1938,
+    "full_name": "Manu Ginobili",
+    "aliases": [
+      "manu",
+      "ginobili"
+    ],
+    "fame_tier": 3,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "Argentina",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "SAS",
+        "name": "San Antonio Spurs",
+        "start_year": 2002,
+        "end_year": 2018,
+        "gp": 1224,
+        "ppg": 13.3
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 2,
+      "allnba_count": 0,
+      "rings": [
+        2003,
+        2005,
+        2007,
+        2014
+      ]
+    },
+    "career": {
+      "pts": 16279,
+      "reb": 4284,
+      "ast": 4651,
+      "ppg": 13.3,
+      "rpg": 3.5,
+      "apg": 3.8,
+      "seasons": 17
+    }
+  },
+  {
+    "person_id": 201950,
+    "full_name": "Jrue Holiday",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "G",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "BOS",
+        "name": "Boston Celtics",
+        "start_year": 2009,
+        "end_year": null,
+        "gp": 1224,
+        "ppg": 15.1
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 2,
+      "allnba_count": 0,
+      "rings": [
+        2021,
+        2024
+      ]
+    },
+    "career": {
+      "pts": 18482,
+      "reb": 5386,
+      "ast": 7344,
+      "ppg": 15.1,
+      "rpg": 4.4,
+      "apg": 6.0,
+      "seasons": 17
+    }
+  },
+  {
+    "person_id": 203114,
+    "full_name": "Khris Middleton",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": true,
+    "teams": [
+      {
+        "abbr": "MIL",
+        "name": "Milwaukee Bucks",
+        "start_year": 2012,
+        "end_year": null,
+        "gp": 1008,
+        "ppg": 15.9
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 3,
+      "allnba_count": 0,
+      "rings": [
+        2021
+      ]
+    },
+    "career": {
+      "pts": 16027,
+      "reb": 4637,
+      "ast": 3730,
+      "ppg": 15.9,
+      "rpg": 4.6,
+      "apg": 3.7,
+      "seasons": 14
+    }
+  },
+  {
+    "person_id": 2738,
+    "full_name": "Andre Iguodala",
+    "aliases": [],
+    "fame_tier": 3,
+    "position": "F",
+    "height_in": null,
+    "weight_lb": null,
+    "birth_year": null,
+    "country": "USA",
+    "college": null,
+    "draft": null,
+    "jersey": null,
+    "is_active": false,
+    "teams": [
+      {
+        "abbr": "GSW",
+        "name": "Golden State Warriors",
+        "start_year": 2004,
+        "end_year": 2023,
+        "gp": 1440,
+        "ppg": 11.3
+      }
+    ],
+    "awards": {
+      "mvp": [],
+      "fmvp": [],
+      "dpoy": [],
+      "roty": null,
+      "smoy": [],
+      "allstar_count": 1,
+      "allnba_count": 0,
+      "rings": [
+        2015,
+        2017,
+        2018,
+        2022
+      ]
+    },
+    "career": {
+      "pts": 16272,
+      "reb": 7056,
+      "ast": 6048,
+      "ppg": 11.3,
+      "rpg": 4.9,
+      "apg": 4.2,
+      "seasons": 20
+    }
+  }
+]

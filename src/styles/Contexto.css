@@ -1,0 +1,128 @@
+/* ===== LeContexto — similarity radar (prefix: cx-) ===== */
+/* The play area is a single fixed-height column: header + input + give-up are
+   flex:none, and the guess list is the ONLY scroll region. Height is dvh-bounded
+   so it shrinks on short screens (no page scroll) — the parent .stage-inner has
+   no definite height, so a percentage height here would collapse to auto. */
+.cx-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  height: clamp(300px, 56dvh, 500px);
+  min-height: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.4dvh, 14px);
+}
+.cx-center { align-items: center; justify-content: center; }
+
+/* Header — fixed */
+.cx-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cx-eyebrow {
+  font-size: clamp(10.5px, 1.5dvh, 12px);
+  letter-spacing: 0.3px;
+  color: var(--muted);
+}
+.cx-meta { display: flex; align-items: baseline; gap: 5px; flex: none; }
+.cx-count { font-size: clamp(18px, 2.6dvh, 24px); font-weight: 700; color: var(--brand); }
+.cx-count-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+
+/* Guess list — the ONLY scroll region */
+.cx-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 2px;
+}
+.cx-empty {
+  margin: auto;
+  text-align: center;
+  color: var(--muted);
+  padding: 24px 12px;
+}
+.cx-empty-title { font-size: 0.95rem; color: var(--text); margin-bottom: 4px; }
+.cx-empty-sub { font-size: 0.8rem; }
+
+/* Rows */
+.cx-row,
+.cx-reveal {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(70px, 34%) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.cx-reveal { flex: none; }
+.cx-row-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(12px, 1.7dvh, 14px);
+  font-weight: 700;
+  color: var(--text);
+}
+.cx-row-rank { flex: none; font-size: 0.85rem; font-weight: 700; color: var(--muted); }
+
+.cx-bar-track {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--surface3);
+  overflow: hidden;
+}
+.cx-bar-fill { display: block; height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+
+.cx-row.is-good .cx-bar-fill { background: var(--good); }
+.cx-row.is-good .cx-row-rank { color: var(--good); }
+.cx-row.is-brand .cx-bar-fill { background: var(--brand); }
+.cx-row.is-brand .cx-row-rank { color: var(--brand); }
+.cx-row.is-bad .cx-bar-fill { background: var(--bad); }
+.cx-row.is-bad .cx-row-rank { color: var(--bad); }
+.cx-row.is-win { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--surface2)); }
+
+.cx-reveal.is-brand { border-color: var(--brand); background: var(--brand-soft); }
+.cx-reveal .cx-row-name { color: var(--brand); }
+
+/* Input row — anchored at the bottom of the play area */
+.cx-inputrow { flex: none; display: flex; gap: 8px; align-items: flex-start; }
+.cx-inputrow > div { flex: 1; min-width: 0; }
+
+.cx-giveup {
+  flex: none;
+  align-self: center;
+  min-height: 44px;
+  padding: 4px 18px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.cx-giveup:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); }
+.cx-giveup:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.cx-giveup:disabled { opacity: 0.45; cursor: default; }
+
+.cx-note { color: var(--muted); font-size: 0.85rem; text-align: center; margin-top: 8px; }
+
+/* Small phones (390x844): tighter rows, still no page scroll */
+@media (max-width: 480px) {
+  .cx-row, .cx-reveal { min-height: 42px; padding: 5px 8px; gap: 6px; }
+  .cx-eyebrow { max-width: 60%; }
+}

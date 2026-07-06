@@ -6,6 +6,7 @@ from a residential IP — the NBA blocks datacenter IPs) and upserted here. The
 game views/pool builders read from these tables; no game owns its own storage.
 """
 
+from django.conf import settings
 from django.db import models
 
 
@@ -108,6 +109,76 @@ class StartingFiveGame(models.Model):
 
     def __str__(self):
         return f"{self.game_date} {self.team_a} vs {self.team_b}"
+
+
+class FanFavoritesQuestion(models.Model):
+    """A Fan Favorites survey board: prompt + ranked answers. Feeds Fan-Favorites.
+
+    Answers are seeded editorially; once a question has enough real guesses in
+    GuessLog the board auto-switches to the live player-derived counts.
+    """
+
+    qid = models.CharField(max_length=20, primary_key=True)  # "ff-001"
+    prompt = models.CharField(max_length=200)
+    survey_date = models.CharField(max_length=10, blank=True)  # "2026-07-01"
+    answers = models.JSONField(default=list)  # [{"answer", "count", "aliases": [...]}]
+    live = models.BooleanField(default=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["live"])]
+
+    def __str__(self):
+        return f"{self.qid}: {self.prompt}"
+
+
+class GameSession(models.Model):
+    """One finished play of any game (who, what, score, how long).
+
+    Powers the always-visible session timer stats, profile history and
+    score+time tiebreaks. Guests log with user=None.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    game = models.CharField(max_length=40)
+    mode = models.CharField(max_length=10, default="single")  # single | match | friend
+    score = models.IntegerField(default=0)
+    duration_ms = models.BigIntegerField(default=0)
+    finished_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["game", "-finished_at"])]
+
+    def __str__(self):
+        return f"{self.game} {self.score}pts ({self.duration_ms}ms)"
+
+
+class GuessLog(models.Model):
+    """Every answer submitted in guess games — the data flywheel.
+
+    Feeds survey-question standings (Fan Favorites auto-transition), future
+    rarity scores and difficulty tuning. Guests log with user=None.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    game = models.CharField(max_length=40)
+    question_id = models.CharField(max_length=60, blank=True)
+    answer = models.CharField(max_length=120)
+    correct = models.BooleanField(default=False)
+    elapsed_ms = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["game", "question_id"]),
+            models.Index(fields=["-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.game}/{self.question_id}: {self.answer}"
 
 
 class SyncRun(models.Model):
