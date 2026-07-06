@@ -1,10 +1,45 @@
 {
-  "version": "2026-06-28",
+  "version": "2026-07-06",
   "games": {
     "all-players": {
       "file": "all-players.json",
       "sha256": "c3f852c449a5f860acef6e4075fae147b90778d7f87db85e8d10798b20881798",
       "count": 5186
+    },
+    "bingo": {
+      "file": "bingo.json",
+      "sha256": "99344d82e9104d23e7aafa9d50fc54fa28eba698261c6545537404909c55dafb",
+      "count": 10
+    },
+    "career-path": {
+      "file": "career-path.json",
+      "sha256": "37de1a5bbeef7fdff2b0eed011a98df07fc5ee3f928f0008202d93e89dc5d437",
+      "count": 24
+    },
+    "connections": {
+      "file": "connections.json",
+      "sha256": "56311932a9232b96fc4200606cbfb2a0c49cf65148ba714acec3fc70536ec8de",
+      "count": 40
+    },
+    "contexto": {
+      "file": "contexto.json",
+      "sha256": "93903f56766c22a1e210c494b036c75ccb983edd48a4e8a4d93ba1f71f4e0122",
+      "count": 55
+    },
+    "fan-favorites": {
+      "file": "fan-favorites.json",
+      "sha256": "d0caefba2dd2989884fb59f0049b93d1aded7ffbedb84a5b33449b76d4cc705f",
+      "count": 24
+    },
+    "heatmap": {
+      "file": "heatmap.json",
+      "sha256": "e12c160223ccbed1969eba0066c4c41049fdff090a2aaddce5c17a2f50838e74",
+      "count": 6
+    },
+    "imposter": {
+      "file": "imposter.json",
+      "sha256": "13cb02e679eb292279b5f66a723b27155b9e04ff9caaa2acdd75306c9d6984ec",
+      "count": 48
     },
     "mvps": {
       "file": "mvps.json",
@@ -16,6 +51,21 @@
       "sha256": "d2c0114afc05f4314b29bdb12af6b21611c9e407cdd78e4fde8e4c21463f6805",
       "count": 30
     },
+    "nba-grid": {
+      "file": "nba-grid.json",
+      "sha256": "649ff11cbcfda9c61d97b7d51b78f376a97236c0853cb992d27c5835177fde13",
+      "count": 12
+    },
+    "pack-five": {
+      "file": "pack-five.json",
+      "sha256": "4e7ddef818d916fa0b24ffd4fc70797026e831addce17f693440f2ec1db45404",
+      "count": 48
+    },
+    "players-index": {
+      "file": "players-index.json",
+      "sha256": "56d5b9f4bb46c9d4679e2d9fbd2296fb07f5418db5bdd0cc73a47234bd2d2d09",
+      "count": 159
+    },
     "playoff": {
       "file": "playoff.json",
       "sha256": "b45317e8bdafb302913c0cbe6d724505447cb2bdfed2fe7954cf1f3cbb9f36d2",
@@ -25,6 +75,26 @@
       "file": "starting-five.json",
       "sha256": "802b847f3efac31d36aaece3edec89e5891b345ff87d77229739d49795315a12",
       "count": 600
+    },
+    "superdraft": {
+      "file": "superdraft.json",
+      "sha256": "95f16f4cbb52a1f8536e7ad50be39537ca05892d161a69f2c46dcba55b12c262",
+      "count": 1
+    },
+    "tictactoe": {
+      "file": "tictactoe.json",
+      "sha256": "cc3fe13b6012f6a346c1e0f527497284aa1e089de337f97db1549cc427939742",
+      "count": 8
+    },
+    "who-are-ya": {
+      "file": "who-are-ya.json",
+      "sha256": "ea2f34af447804d2f3a1507b9a61cc39f3aba5ff05d2d044c3106aa9759477e1",
+      "count": 24
+    },
+    "who-would-win": {
+      "file": "who-would-win.json",
+      "sha256": "f28b0c38199f3d70bbdb3c9f299da8315cfc379356a675c6af04f0a9b7441687",
+      "count": 30
     },
     "wordle": {
       "file": "wordle.json",

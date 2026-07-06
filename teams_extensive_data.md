@@ -1,6 +1,9 @@
 # Teams — Extensive Data Fields
 
 Wishlist of fields to collect for each NBA team (30 teams). Main sources: `nba_api` (stats.nba.com — `teamdetails`, `teaminfocommon`, `franchisehistory` endpoints), balldontlie API, Wikipedia/Basketball-Reference for historical facts.
+Updated 2026-07-04 after the games research — see [games_master_plan.md](games_master_plan.md) §7
+for storage (extends the existing `trivia_team` table). Fields marked **(new)** were added because
+a planned game needs them.
 
 ## Identity
 - **Team name** — full name, e.g. "Los Angeles Lakers"
@@ -25,6 +28,8 @@ Wishlist of fields to collect for each NBA team (30 teams). Main sources: `nba_a
 - **Arena capacity** — basketball configuration
 - **Arena opening year**
 - **Former arena names** — e.g. Staples Center → Crypto.com Arena — "what was this arena called before?" questions
+- **Arena coordinates (lat/lng)** (new) — powers ArenaGuessr map-pin scoring and the Guess-the-Franchise distance + compass feedback
+- **Arena / court photos** (new) — rights-cleared exterior + court shots for ArenaGuessr and the arena-photo quiz; skip a photo question when no cleared image exists (safe fallback)
 
 ## History
 - **Founding year** — year the franchise was established
@@ -51,6 +56,20 @@ Wishlist of fields to collect for each NBA team (30 teams). Main sources: `nba_a
 - **Current season wins / losses**
 - **Conference standing**
 - **Last season result** — e.g. "Lost 1st round", "Won Finals"
+- **Season schedule + tip-off times + final scores** (new) — powers the Slate Predictor (locks at tip-off) and its settlement job
+- **Team-season strength rating** (new, derived) — simple composite per historical season; powers the "the sim says…" verdict in Who Would Win
+
+## Which games consume this data
+- Logos (current + historical) → Name the Logo (live), Pixel Reveal, Guess the Franchise, Career Path cards
+- Founding year / capacity / lat-lng → Guess the Franchise feedback arrows, ArenaGuessr (the map game in the tracker)
+- Championships years / finals appearances → Fan Favorites & Top-10 questions, Timeline, Heatmap criteria
+- Relocations / former names → Career Path flavor, Timeline events, hard-mode franchise questions
+- Retired numbers → Connections groups ("had their number retired by the Lakers") + Fan Favorites / Top-10 questions; a dedicated "Jersey Vault" game stays in the ideas list below, not yet in the master tracker
+- Colors → per-team UI theming on cards + "guess by colors" rounds
+- Schedule/standings → Slate Predictor, Standings Predictor
+
+**Clean-data rule (blocking):** a team missing a required field for a game is excluded from that
+game's pool (e.g. no historical logo file → that logo era question is never generated).
 
 ## Minigame ideas this data enables
 - **Logo quiz** — show logo (or blurred/partial logo), guess the team

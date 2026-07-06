@@ -1,0 +1,458 @@
+/* NBA Imposter — friend-room party game (prefix: imp-). Tokens only; orange is
+   the sole accent (green/red reserved for good/bad). Fits a 390x844 viewport
+   with no page scroll: the wrap is a fixed flex column and only the player ring
+   / scoreboard scrolls internally. */
+
+.imp-wrap {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 430px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  padding: clamp(8px, 2.4vw, 12px);
+  gap: clamp(8px, 2vw, 12px);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.imp-wrap--center {
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------------- Explainer (out of a room) ---------------- */
+.imp-wrap--explain {
+  justify-content: center;
+}
+.imp-explain {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: clamp(16px, 5vw, 24px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+.imp-explain-tag {
+  align-self: flex-start;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.imp-explain-title {
+  font-size: clamp(1.5rem, 6vw, 2rem);
+  line-height: 1.05;
+  margin: 2px 0 0;
+}
+.imp-explain-lead {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.imp-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 4px 0 0;
+  padding: 0;
+}
+.imp-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+.imp-steps strong {
+  color: var(--text);
+}
+.imp-step-n {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid var(--line2);
+}
+.imp-explain-cta {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* ---------------- Top: phase banner + deadline ---------------- */
+.imp-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.imp-phaserow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.imp-phase {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 5px 11px;
+  border-radius: 999px;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid var(--line2);
+}
+.imp-phase--reveal {
+  color: var(--text);
+}
+.imp-clock {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.imp-clock[data-low] {
+  color: var(--bad);
+}
+.imp-bar {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface3);
+  overflow: hidden;
+}
+.imp-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--brand);
+  transition: width 0.5s linear;
+}
+.imp-bar-fill[data-low] {
+  background: var(--bad);
+}
+.imp-turn {
+  font-size: 0.82rem;
+  color: var(--muted);
+  min-height: 1.1em;
+}
+
+/* ---------------- Role / mystery strip ---------------- */
+.imp-role {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: clamp(10px, 3vw, 14px);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--surface2), var(--surface));
+  border: 1px solid var(--line);
+  text-align: center;
+  flex: 0 0 auto;
+}
+.imp-role.is-imposter {
+  background: linear-gradient(180deg, var(--brand-soft), var(--surface));
+  border-color: var(--brand-deep);
+}
+.imp-role-eyebrow {
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.imp-role-main {
+  font-size: clamp(1.05rem, 4.6vw, 1.4rem);
+  line-height: 1.1;
+}
+.imp-role.is-imposter .imp-role-main {
+  color: var(--brand);
+}
+.imp-role-sub {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+/* ---------------- Player ring (clue / vote) ---------------- */
+.imp-ring {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: clamp(8px, 2.4vw, 12px);
+  align-content: start;
+  padding: 2px;
+}
+
+.imp-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: clamp(10px, 3vw, 14px) 8px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--text);
+  min-height: 118px;
+  text-align: center;
+  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+.imp-card.is-turn {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 1px var(--brand), 0 0 18px var(--brand-soft);
+}
+.imp-card.is-votable {
+  cursor: pointer;
+  border-color: var(--line2);
+}
+.imp-card.is-votable:hover {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+}
+.imp-card.is-votable:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.imp-card.is-picked {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.imp-card:disabled {
+  cursor: default;
+}
+
+.imp-card-head {
+  position: relative;
+}
+.imp-av {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  display: block;
+}
+.imp-av--initials {
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--brand);
+}
+.imp-voted {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--bg);
+  background: var(--good);
+  border: 2px solid var(--surface);
+}
+.imp-card-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.imp-bubble {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border-radius: 999px;
+  padding: 4px 12px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.imp-bubble--empty {
+  color: var(--muted);
+  background: transparent;
+  min-height: 1.3em;
+}
+
+.imp-you-tag {
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--brand);
+  background: var(--brand-soft);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ---------------- Reveal: verdict + scoreboard ---------------- */
+.imp-reveal {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px;
+}
+.imp-verdict {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 14px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+}
+.imp-verdict-name {
+  font-size: clamp(1.15rem, 5vw, 1.5rem);
+  color: var(--brand);
+  line-height: 1.05;
+}
+.imp-verdict-tag {
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.imp-verdict-guess {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.imp-verdict-guess.is-right {
+  color: var(--good);
+}
+.imp-verdict-guess.is-wrong {
+  color: var(--bad);
+}
+
+.imp-score {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.imp-score-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.imp-score-row.is-you {
+  border-color: var(--line2);
+}
+.imp-score-row.is-imposter {
+  border-color: var(--brand-deep);
+  background: var(--brand-soft);
+}
+.imp-score-row .imp-av {
+  width: 34px;
+  height: 34px;
+}
+.imp-score-place {
+  width: 18px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.imp-score-name {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.imp-imp-tag {
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--brand);
+  border: 1px solid var(--brand-deep);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+.imp-score-num {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+/* ---------------- Bottom action bar ---------------- */
+.imp-action {
+  flex: 0 0 auto;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.imp-inputrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.imp-inputrow--guess {
+  align-items: stretch;
+}
+.imp-input {
+  flex: 1 1 auto;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  outline: none;
+}
+.imp-input::placeholder {
+  color: var(--muted);
+}
+.imp-input:focus-visible {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px var(--brand-soft);
+}
+.imp-hint {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imp-card,
+  .imp-bar-fill {
+    transition: none;
+  }
+}

@@ -1,0 +1,2480 @@
+[
+  {
+    "qid": "hm-board-1",
+    "hexes": [
+      {
+        "id": 0,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 1,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          0,
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 2,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          3,
+          5,
+          6
+        ]
+      },
+      {
+        "id": 3,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          2,
+          6,
+          7
+        ]
+      },
+      {
+        "id": 4,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          0,
+          1,
+          5,
+          9,
+          10
+        ]
+      },
+      {
+        "id": 5,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          1,
+          2,
+          4,
+          6,
+          10,
+          11
+        ]
+      },
+      {
+        "id": 6,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          12
+        ]
+      },
+      {
+        "id": 7,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          3,
+          6,
+          8,
+          12,
+          13
+        ]
+      },
+      {
+        "id": 8,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          7,
+          13
+        ]
+      },
+      {
+        "id": 9,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          4,
+          10,
+          14
+        ]
+      },
+      {
+        "id": 10,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          4,
+          5,
+          9,
+          11,
+          14,
+          15
+        ]
+      },
+      {
+        "id": 11,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          5,
+          6,
+          10,
+          12,
+          15,
+          16
+        ]
+      },
+      {
+        "id": 12,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          6,
+          7,
+          11,
+          13,
+          16,
+          17
+        ]
+      },
+      {
+        "id": 13,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          7,
+          8,
+          12,
+          17,
+          18
+        ]
+      },
+      {
+        "id": 14,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          9,
+          10,
+          15,
+          19,
+          20
+        ]
+      },
+      {
+        "id": 15,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          10,
+          11,
+          14,
+          16,
+          20,
+          21
+        ]
+      },
+      {
+        "id": 16,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          11,
+          12,
+          15,
+          17,
+          21,
+          22
+        ]
+      },
+      {
+        "id": 17,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          12,
+          13,
+          16,
+          18,
+          22,
+          23
+        ]
+      },
+      {
+        "id": 18,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          13,
+          17,
+          23
+        ]
+      },
+      {
+        "id": 19,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          14,
+          20,
+          24
+        ]
+      },
+      {
+        "id": 20,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          14,
+          15,
+          19,
+          21,
+          24,
+          25
+        ]
+      },
+      {
+        "id": 21,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          15,
+          16,
+          20,
+          22,
+          25,
+          26
+        ]
+      },
+      {
+        "id": 22,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          16,
+          17,
+          21,
+          23,
+          26,
+          27
+        ]
+      },
+      {
+        "id": 23,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          17,
+          18,
+          22,
+          27
+        ]
+      },
+      {
+        "id": 24,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          19,
+          20,
+          25
+        ]
+      },
+      {
+        "id": 25,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          20,
+          21,
+          24,
+          26
+        ]
+      },
+      {
+        "id": 26,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          21,
+          22,
+          25,
+          27
+        ]
+      },
+      {
+        "id": 27,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          22,
+          23,
+          26
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "hm-board-2",
+    "hexes": [
+      {
+        "id": 0,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 1,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          0,
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 2,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          3,
+          5,
+          6
+        ]
+      },
+      {
+        "id": 3,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          2,
+          6,
+          7
+        ]
+      },
+      {
+        "id": 4,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          0,
+          1,
+          5,
+          9,
+          10
+        ]
+      },
+      {
+        "id": 5,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          1,
+          2,
+          4,
+          6,
+          10,
+          11
+        ]
+      },
+      {
+        "id": 6,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          12
+        ]
+      },
+      {
+        "id": 7,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          3,
+          6,
+          8,
+          12,
+          13
+        ]
+      },
+      {
+        "id": 8,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          7,
+          13
+        ]
+      },
+      {
+        "id": 9,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          4,
+          10,
+          14
+        ]
+      },
+      {
+        "id": 10,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          4,
+          5,
+          9,
+          11,
+          14,
+          15
+        ]
+      },
+      {
+        "id": 11,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          5,
+          6,
+          10,
+          12,
+          15,
+          16
+        ]
+      },
+      {
+        "id": 12,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          6,
+          7,
+          11,
+          13,
+          16,
+          17
+        ]
+      },
+      {
+        "id": 13,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          7,
+          8,
+          12,
+          17,
+          18
+        ]
+      },
+      {
+        "id": 14,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          9,
+          10,
+          15,
+          19,
+          20
+        ]
+      },
+      {
+        "id": 15,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          10,
+          11,
+          14,
+          16,
+          20,
+          21
+        ]
+      },
+      {
+        "id": 16,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          11,
+          12,
+          15,
+          17,
+          21,
+          22
+        ]
+      },
+      {
+        "id": 17,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          12,
+          13,
+          16,
+          18,
+          22,
+          23
+        ]
+      },
+      {
+        "id": 18,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          13,
+          17,
+          23
+        ]
+      },
+      {
+        "id": 19,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          14,
+          20,
+          24
+        ]
+      },
+      {
+        "id": 20,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          14,
+          15,
+          19,
+          21,
+          24,
+          25
+        ]
+      },
+      {
+        "id": 21,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          15,
+          16,
+          20,
+          22,
+          25,
+          26
+        ]
+      },
+      {
+        "id": 22,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          16,
+          17,
+          21,
+          23,
+          26,
+          27
+        ]
+      },
+      {
+        "id": 23,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          17,
+          18,
+          22,
+          27
+        ]
+      },
+      {
+        "id": 24,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          19,
+          20,
+          25
+        ]
+      },
+      {
+        "id": 25,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          20,
+          21,
+          24,
+          26
+        ]
+      },
+      {
+        "id": 26,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          21,
+          22,
+          25,
+          27
+        ]
+      },
+      {
+        "id": 27,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          22,
+          23,
+          26
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "hm-board-3",
+    "hexes": [
+      {
+        "id": 0,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 1,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          0,
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 2,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          3,
+          5,
+          6
+        ]
+      },
+      {
+        "id": 3,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          2,
+          6,
+          7
+        ]
+      },
+      {
+        "id": 4,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          0,
+          1,
+          5,
+          9,
+          10
+        ]
+      },
+      {
+        "id": 5,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          1,
+          2,
+          4,
+          6,
+          10,
+          11
+        ]
+      },
+      {
+        "id": 6,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          12
+        ]
+      },
+      {
+        "id": 7,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          3,
+          6,
+          8,
+          12,
+          13
+        ]
+      },
+      {
+        "id": 8,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          7,
+          13
+        ]
+      },
+      {
+        "id": 9,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          4,
+          10,
+          14
+        ]
+      },
+      {
+        "id": 10,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          4,
+          5,
+          9,
+          11,
+          14,
+          15
+        ]
+      },
+      {
+        "id": 11,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          5,
+          6,
+          10,
+          12,
+          15,
+          16
+        ]
+      },
+      {
+        "id": 12,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          6,
+          7,
+          11,
+          13,
+          16,
+          17
+        ]
+      },
+      {
+        "id": 13,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          7,
+          8,
+          12,
+          17,
+          18
+        ]
+      },
+      {
+        "id": 14,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          9,
+          10,
+          15,
+          19,
+          20
+        ]
+      },
+      {
+        "id": 15,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          10,
+          11,
+          14,
+          16,
+          20,
+          21
+        ]
+      },
+      {
+        "id": 16,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          11,
+          12,
+          15,
+          17,
+          21,
+          22
+        ]
+      },
+      {
+        "id": 17,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          12,
+          13,
+          16,
+          18,
+          22,
+          23
+        ]
+      },
+      {
+        "id": 18,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          13,
+          17,
+          23
+        ]
+      },
+      {
+        "id": 19,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          14,
+          20,
+          24
+        ]
+      },
+      {
+        "id": 20,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          14,
+          15,
+          19,
+          21,
+          24,
+          25
+        ]
+      },
+      {
+        "id": 21,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          15,
+          16,
+          20,
+          22,
+          25,
+          26
+        ]
+      },
+      {
+        "id": 22,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          16,
+          17,
+          21,
+          23,
+          26,
+          27
+        ]
+      },
+      {
+        "id": 23,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          17,
+          18,
+          22,
+          27
+        ]
+      },
+      {
+        "id": 24,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          19,
+          20,
+          25
+        ]
+      },
+      {
+        "id": 25,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          20,
+          21,
+          24,
+          26
+        ]
+      },
+      {
+        "id": 26,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          21,
+          22,
+          25,
+          27
+        ]
+      },
+      {
+        "id": 27,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          22,
+          23,
+          26
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "hm-board-4",
+    "hexes": [
+      {
+        "id": 0,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 1,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          0,
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 2,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          3,
+          5,
+          6
+        ]
+      },
+      {
+        "id": 3,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          2,
+          6,
+          7
+        ]
+      },
+      {
+        "id": 4,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          0,
+          1,
+          5,
+          9,
+          10
+        ]
+      },
+      {
+        "id": 5,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          1,
+          2,
+          4,
+          6,
+          10,
+          11
+        ]
+      },
+      {
+        "id": 6,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          12
+        ]
+      },
+      {
+        "id": 7,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          3,
+          6,
+          8,
+          12,
+          13
+        ]
+      },
+      {
+        "id": 8,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          7,
+          13
+        ]
+      },
+      {
+        "id": 9,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          4,
+          10,
+          14
+        ]
+      },
+      {
+        "id": 10,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          4,
+          5,
+          9,
+          11,
+          14,
+          15
+        ]
+      },
+      {
+        "id": 11,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          5,
+          6,
+          10,
+          12,
+          15,
+          16
+        ]
+      },
+      {
+        "id": 12,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          6,
+          7,
+          11,
+          13,
+          16,
+          17
+        ]
+      },
+      {
+        "id": 13,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          7,
+          8,
+          12,
+          17,
+          18
+        ]
+      },
+      {
+        "id": 14,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          9,
+          10,
+          15,
+          19,
+          20
+        ]
+      },
+      {
+        "id": 15,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          10,
+          11,
+          14,
+          16,
+          20,
+          21
+        ]
+      },
+      {
+        "id": 16,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          11,
+          12,
+          15,
+          17,
+          21,
+          22
+        ]
+      },
+      {
+        "id": 17,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          12,
+          13,
+          16,
+          18,
+          22,
+          23
+        ]
+      },
+      {
+        "id": 18,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          13,
+          17,
+          23
+        ]
+      },
+      {
+        "id": 19,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          14,
+          20,
+          24
+        ]
+      },
+      {
+        "id": 20,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          14,
+          15,
+          19,
+          21,
+          24,
+          25
+        ]
+      },
+      {
+        "id": 21,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          15,
+          16,
+          20,
+          22,
+          25,
+          26
+        ]
+      },
+      {
+        "id": 22,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          16,
+          17,
+          21,
+          23,
+          26,
+          27
+        ]
+      },
+      {
+        "id": 23,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          17,
+          18,
+          22,
+          27
+        ]
+      },
+      {
+        "id": 24,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          19,
+          20,
+          25
+        ]
+      },
+      {
+        "id": 25,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          20,
+          21,
+          24,
+          26
+        ]
+      },
+      {
+        "id": 26,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          21,
+          22,
+          25,
+          27
+        ]
+      },
+      {
+        "id": 27,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          22,
+          23,
+          26
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "hm-board-5",
+    "hexes": [
+      {
+        "id": 0,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 1,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          0,
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 2,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          3,
+          5,
+          6
+        ]
+      },
+      {
+        "id": 3,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          2,
+          6,
+          7
+        ]
+      },
+      {
+        "id": 4,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          0,
+          1,
+          5,
+          9,
+          10
+        ]
+      },
+      {
+        "id": 5,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          1,
+          2,
+          4,
+          6,
+          10,
+          11
+        ]
+      },
+      {
+        "id": 6,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          12
+        ]
+      },
+      {
+        "id": 7,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          3,
+          6,
+          8,
+          12,
+          13
+        ]
+      },
+      {
+        "id": 8,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          7,
+          13
+        ]
+      },
+      {
+        "id": 9,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          4,
+          10,
+          14
+        ]
+      },
+      {
+        "id": 10,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          4,
+          5,
+          9,
+          11,
+          14,
+          15
+        ]
+      },
+      {
+        "id": 11,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          5,
+          6,
+          10,
+          12,
+          15,
+          16
+        ]
+      },
+      {
+        "id": 12,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          6,
+          7,
+          11,
+          13,
+          16,
+          17
+        ]
+      },
+      {
+        "id": 13,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          7,
+          8,
+          12,
+          17,
+          18
+        ]
+      },
+      {
+        "id": 14,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          9,
+          10,
+          15,
+          19,
+          20
+        ]
+      },
+      {
+        "id": 15,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          10,
+          11,
+          14,
+          16,
+          20,
+          21
+        ]
+      },
+      {
+        "id": 16,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          11,
+          12,
+          15,
+          17,
+          21,
+          22
+        ]
+      },
+      {
+        "id": 17,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          12,
+          13,
+          16,
+          18,
+          22,
+          23
+        ]
+      },
+      {
+        "id": 18,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          13,
+          17,
+          23
+        ]
+      },
+      {
+        "id": 19,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          14,
+          20,
+          24
+        ]
+      },
+      {
+        "id": 20,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          14,
+          15,
+          19,
+          21,
+          24,
+          25
+        ]
+      },
+      {
+        "id": 21,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          15,
+          16,
+          20,
+          22,
+          25,
+          26
+        ]
+      },
+      {
+        "id": 22,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          16,
+          17,
+          21,
+          23,
+          26,
+          27
+        ]
+      },
+      {
+        "id": 23,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          17,
+          18,
+          22,
+          27
+        ]
+      },
+      {
+        "id": 24,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          19,
+          20,
+          25
+        ]
+      },
+      {
+        "id": 25,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          20,
+          21,
+          24,
+          26
+        ]
+      },
+      {
+        "id": 26,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          21,
+          22,
+          25,
+          27
+        ]
+      },
+      {
+        "id": 27,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          22,
+          23,
+          26
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "hm-board-6",
+    "hexes": [
+      {
+        "id": 0,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          4
+        ]
+      },
+      {
+        "id": 1,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          0,
+          2,
+          4,
+          5
+        ]
+      },
+      {
+        "id": 2,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          1,
+          3,
+          5,
+          6
+        ]
+      },
+      {
+        "id": 3,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          2,
+          6,
+          7
+        ]
+      },
+      {
+        "id": 4,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          0,
+          1,
+          5,
+          9,
+          10
+        ]
+      },
+      {
+        "id": 5,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          1,
+          2,
+          4,
+          6,
+          10,
+          11
+        ]
+      },
+      {
+        "id": 6,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          12
+        ]
+      },
+      {
+        "id": 7,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          3,
+          6,
+          8,
+          12,
+          13
+        ]
+      },
+      {
+        "id": 8,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          7,
+          13
+        ]
+      },
+      {
+        "id": 9,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          4,
+          10,
+          14
+        ]
+      },
+      {
+        "id": 10,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          4,
+          5,
+          9,
+          11,
+          14,
+          15
+        ]
+      },
+      {
+        "id": 11,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          5,
+          6,
+          10,
+          12,
+          15,
+          16
+        ]
+      },
+      {
+        "id": 12,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          6,
+          7,
+          11,
+          13,
+          16,
+          17
+        ]
+      },
+      {
+        "id": 13,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          7,
+          8,
+          12,
+          17,
+          18
+        ]
+      },
+      {
+        "id": 14,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          9,
+          10,
+          15,
+          19,
+          20
+        ]
+      },
+      {
+        "id": 15,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          10,
+          11,
+          14,
+          16,
+          20,
+          21
+        ]
+      },
+      {
+        "id": 16,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          11,
+          12,
+          15,
+          17,
+          21,
+          22
+        ]
+      },
+      {
+        "id": 17,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          12,
+          13,
+          16,
+          18,
+          22,
+          23
+        ]
+      },
+      {
+        "id": 18,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          13,
+          17,
+          23
+        ]
+      },
+      {
+        "id": 19,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          14,
+          20,
+          24
+        ]
+      },
+      {
+        "id": 20,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          14,
+          15,
+          19,
+          21,
+          24,
+          25
+        ]
+      },
+      {
+        "id": 21,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          15,
+          16,
+          20,
+          22,
+          25,
+          26
+        ]
+      },
+      {
+        "id": 22,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          16,
+          17,
+          21,
+          23,
+          26,
+          27
+        ]
+      },
+      {
+        "id": 23,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          17,
+          18,
+          22,
+          27
+        ]
+      },
+      {
+        "id": 24,
+        "criterion": {
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
+        },
+        "neighbors": [
+          19,
+          20,
+          25
+        ]
+      },
+      {
+        "id": 25,
+        "criterion": {
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
+        },
+        "neighbors": [
+          20,
+          21,
+          24,
+          26
+        ]
+      },
+      {
+        "id": 26,
+        "criterion": {
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
+        },
+        "neighbors": [
+          21,
+          22,
+          25,
+          27
+        ]
+      },
+      {
+        "id": 27,
+        "criterion": {
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
+        },
+        "neighbors": [
+          22,
+          23,
+          26
+        ]
+      }
+    ]
+  }
+]

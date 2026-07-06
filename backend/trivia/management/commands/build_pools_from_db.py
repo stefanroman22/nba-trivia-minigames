@@ -18,7 +18,9 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 from trivia.data_pipeline.manifest import build_manifest
 from trivia.data_pipeline.validate import validate_pool
-from trivia.models import Mvp, Player, PlayoffSeries, StartingFiveGame, Team
+from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
+from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
+from trivia.utils.fan_favorites import refresh_live_standings
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
 
@@ -86,6 +88,15 @@ def build_starting_five():
     ]
 
 
+def build_fan_favorites():
+    # Auto seed->live transition: boards with enough real guesses re-rank first.
+    refresh_live_standings()
+    return [
+        {"qid": q.qid, "prompt": q.prompt, "survey_date": q.survey_date, "answers": q.answers}
+        for q in FanFavoritesQuestion.objects.filter(live=True).order_by("qid")
+    ]
+
+
 BUILDERS = {
     "name-logo": build_name_logo,
     "all-players": build_all_players,
@@ -93,6 +104,10 @@ BUILDERS = {
     "mvps": build_mvps,
     "playoff": build_playoff,
     "starting-five": build_starting_five,
+    "fan-favorites": build_fan_favorites,
+    # Modular game builders (trivia/games/<module>.build_pool) — includes the
+    # "players-index" pool published from the curated dataset.
+    **GAME_POOL_BUILDERS,
 }
 
 

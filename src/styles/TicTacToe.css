@@ -1,0 +1,226 @@
+/* ===== NBA Tic-Tac-Toe — criteria duel grid (prefix: ttt-) ===== */
+.ttt-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(8px, 1.6dvh, 14px);
+}
+
+/* Header: clock + score (solo) / turn pill + clock + steal (duel) */
+.ttt-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 36px;
+}
+.ttt-clock {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+  font-size: clamp(13px, 2dvh, 15px);
+  font-weight: 700;
+  color: var(--text);
+}
+.ttt-clock[data-low] {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+.ttt-score {
+  font-size: clamp(12px, 1.8dvh, 14px);
+  color: var(--muted);
+  font-weight: 700;
+}
+.ttt-turnpill {
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+  font-size: clamp(11px, 1.7dvh, 12.5px);
+  color: var(--muted);
+}
+.ttt-turnpill.is-you {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand);
+}
+.ttt-steal {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: clamp(11px, 1.7dvh, 12.5px);
+  font-weight: 700;
+  cursor: pointer;
+}
+.ttt-steal.is-on {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.ttt-steal:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ===== Grid: header column ~0.62fr + 3 equal cell columns; fills height ===== */
+.ttt-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(52px, 0.62fr) repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto repeat(3, minmax(0, 1fr));
+  gap: clamp(5px, 1vw, 8px);
+  width: 100%;
+}
+.ttt-rowgroup {
+  display: contents;
+} /* row header + cells live on the parent grid */
+.ttt-corner {
+  min-height: 34px;
+}
+.ttt-crit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 5px;
+  border-radius: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  font-size: clamp(9.5px, 1.5dvh, 11.5px);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--muted);
+}
+.ttt-crit--col {
+  min-height: 34px;
+}
+
+.ttt-cell {
+  position: relative;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ttt-cell:focus-visible,
+.ttt-steal:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+.ttt-cell:disabled {
+  cursor: default;
+}
+.ttt-cell.is-selected {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+/* YOUR cells: orange. Opponent cells: surface3 + outline (no new hue). */
+.ttt-cell.is-mine {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+.ttt-cell.is-mine .ttt-cell-name {
+  color: #fff;
+}
+.ttt-cell.is-theirs {
+  background: var(--surface3);
+  border-color: var(--line2);
+  outline: 2px solid var(--line2);
+  outline-offset: -4px;
+}
+.ttt-cell.is-theirs .ttt-cell-name {
+  color: var(--muted);
+}
+.ttt-cell.is-stealable {
+  border-style: dashed;
+  border-color: var(--brand);
+}
+
+.ttt-cell-name {
+  font-size: clamp(9.5px, 1.5dvh, 11.5px);
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.ttt-cell-blank {
+  width: 40%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface3);
+}
+
+/* Winner banner (reserves no space until terminal — appears above the input) */
+.ttt-banner {
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+  font-size: clamp(15px, 2.4dvh, 19px);
+  color: var(--text);
+}
+.ttt-banner.is-win {
+  border-color: var(--good);
+  color: var(--good);
+}
+.ttt-banner.is-loss {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* Input row anchored at the bottom of the play area */
+.ttt-inputrow {
+  flex: none;
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-top: auto;
+}
+
+/* Pool fetch error state */
+.ttt-fetchfail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Small phones (390x844): tighter gaps so grid + input never scroll */
+@media (max-width: 480px) {
+  .ttt-grid {
+    gap: 5px;
+  }
+  .ttt-cell {
+    aspect-ratio: 1 / 0.78;
+  }
+  .ttt-crit {
+    font-size: 9.5px;
+  }
+}

@@ -1,0 +1,158 @@
+[
+  {
+    "qid": "grid-001",
+    "rows": [
+      { "type": "team",  "value": "LAL",   "label": "Lakers" },
+      { "type": "award", "value": "mvp",   "label": "MVP" },
+      { "type": "era",   "value": "2010s", "label": "Played in 2010s" }
+    ],
+    "cols": [
+      { "type": "country", "value": "USA",    "label": "USA" },
+      { "type": "stat",    "value": "25kpts", "label": "25k+ points" },
+      { "type": "award",   "value": "ring",   "label": "Won a ring" }
+    ]
+  },
+  {
+    "qid": "grid-002",
+    "rows": [
+      { "type": "team", "value": "BOS", "label": "Celtics" },
+      { "type": "team", "value": "GSW", "label": "Warriors" },
+      { "type": "team", "value": "SAS", "label": "Spurs" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "ring",  "label": "Won a ring" },
+      { "type": "era",     "value": "2010s", "label": "Played in 2010s" },
+      { "type": "country", "value": "USA",   "label": "USA" }
+    ]
+  },
+  {
+    "qid": "grid-003",
+    "rows": [
+      { "type": "country", "value": "INTL",  "label": "International" },
+      { "type": "award",   "value": "mvp",   "label": "MVP" },
+      { "type": "era",     "value": "2020s", "label": "Played in 2020s" }
+    ],
+    "cols": [
+      { "type": "team",  "value": "LAL",    "label": "Lakers" },
+      { "type": "stat",  "value": "ppg20",  "label": "20+ PPG" },
+      { "type": "award", "value": "allnba", "label": "All-NBA" }
+    ]
+  },
+  {
+    "qid": "grid-004",
+    "rows": [
+      { "type": "draft", "value": "round2",    "label": "2nd-round pick" },
+      { "type": "draft", "value": "top5",      "label": "Top-5 pick" },
+      { "type": "draft", "value": "undrafted", "label": "Undrafted" }
+    ],
+    "cols": [
+      { "type": "era",     "value": "2010s", "label": "Played in 2010s" },
+      { "type": "country", "value": "USA",   "label": "USA" },
+      { "type": "award",   "value": "ring",  "label": "Won a ring" }
+    ]
+  },
+  {
+    "qid": "grid-005",
+    "rows": [
+      { "type": "stat", "value": "20kpts", "label": "20k+ points" },
+      { "type": "stat", "value": "apg8",   "label": "8+ APG" },
+      { "type": "stat", "value": "rpg10",  "label": "10+ RPG" }
+    ],
+    "cols": [
+      { "type": "era",     "value": "2000s",        "label": "Played in 2000s" },
+      { "type": "country", "value": "USA",          "label": "USA" },
+      { "type": "award",   "value": "allstar5plus", "label": "5x+ All-Star" }
+    ]
+  },
+  {
+    "qid": "grid-006",
+    "rows": [
+      { "type": "era", "value": "1990s", "label": "Played in 1990s" },
+      { "type": "era", "value": "2000s", "label": "Played in 2000s" },
+      { "type": "era", "value": "2010s", "label": "Played in 2010s" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "ring", "label": "Won a ring" },
+      { "type": "award",   "value": "mvp",  "label": "MVP" },
+      { "type": "country", "value": "USA",  "label": "USA" }
+    ]
+  },
+  {
+    "qid": "grid-007",
+    "rows": [
+      { "type": "college", "value": "none",          "label": "No college" },
+      { "type": "draft",   "value": "lottery",       "label": "Lottery pick" },
+      { "type": "stat",    "value": "seasons15plus", "label": "15+ seasons" }
+    ],
+    "cols": [
+      { "type": "era",     "value": "2010s", "label": "Played in 2010s" },
+      { "type": "country", "value": "USA",   "label": "USA" },
+      { "type": "award",   "value": "ring",  "label": "Won a ring" }
+    ]
+  },
+  {
+    "qid": "grid-008",
+    "rows": [
+      { "type": "team", "value": "MIA", "label": "Heat" },
+      { "type": "team", "value": "CHI", "label": "Bulls" },
+      { "type": "team", "value": "BOS", "label": "Celtics" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "ring",         "label": "Won a ring" },
+      { "type": "country", "value": "USA",          "label": "USA" },
+      { "type": "award",   "value": "allstar5plus", "label": "5x+ All-Star" }
+    ]
+  },
+  {
+    "qid": "grid-009",
+    "rows": [
+      { "type": "draft", "value": "decade-2000s", "label": "Drafted 2000s" },
+      { "type": "draft", "value": "decade-2010s", "label": "Drafted 2010s" },
+      { "type": "draft", "value": "decade-1990s", "label": "Drafted 1990s" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "mvp",    "label": "MVP" },
+      { "type": "award",   "value": "allnba", "label": "All-NBA" },
+      { "type": "country", "value": "USA",    "label": "USA" }
+    ]
+  },
+  {
+    "qid": "grid-010",
+    "rows": [
+      { "type": "award", "value": "dpoy",         "label": "DPOY" },
+      { "type": "award", "value": "allstar5plus", "label": "5x+ All-Star" },
+      { "type": "award", "value": "roty",         "label": "Rookie of Year" }
+    ],
+    "cols": [
+      { "type": "era",     "value": "2000s", "label": "Played in 2000s" },
+      { "type": "country", "value": "USA",   "label": "USA" },
+      { "type": "award",   "value": "ring",  "label": "Won a ring" }
+    ]
+  },
+  {
+    "qid": "grid-011",
+    "rows": [
+      { "type": "award", "value": "fmvp",  "label": "Finals MVP" },
+      { "type": "stat",  "value": "ppg20", "label": "20+ PPG" },
+      { "type": "era",   "value": "2020s", "label": "Played in 2020s" }
+    ],
+    "cols": [
+      { "type": "country", "value": "USA",    "label": "USA" },
+      { "type": "award",   "value": "ring",   "label": "Won a ring" },
+      { "type": "award",   "value": "allnba", "label": "All-NBA" }
+    ]
+  },
+  {
+    "qid": "grid-012",
+    "rows": [
+      { "type": "team", "value": "HOU", "label": "Rockets" },
+      { "type": "team", "value": "PHX", "label": "Suns" },
+      { "type": "team", "value": "DAL", "label": "Mavericks" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "allstar5plus", "label": "5x+ All-Star" },
+      { "type": "country", "value": "USA",          "label": "USA" },
+      { "type": "era",     "value": "2000s",        "label": "Played in 2000s" }
+    ]
+  }
+]

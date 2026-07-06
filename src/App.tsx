@@ -122,6 +122,110 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/fan-favorites"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/heatmap"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/connections"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/career-path"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/nba-grid"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/who-are-ya"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/tictactoe"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/bingo"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/contexto"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/who-would-win"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/pack-five"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/superdraft"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/imposter"
+          element={
+            <PageTransition>
+              <MiniGame />
+            </PageTransition>
+          }
+        />
+        <Route
           path="/coming-soon"
           element={
             <PageTransition>

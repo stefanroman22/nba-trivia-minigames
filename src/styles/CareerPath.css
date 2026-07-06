@@ -1,0 +1,158 @@
+/* ===== Career Path Challenge — stint card rail (prefix: cp-) =====
+   Conventions per FanFavorites.css: theme.css tokens only, clamp() sizing,
+   play area fits 390x844 with no page scroll (the rail pans inside itself). */
+.cp-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(10px, 1.8dvh, 18px);
+}
+
+/* Header */
+.cp-head { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.cp-eyebrow { font-size: clamp(10.5px, 1.5dvh, 12px); letter-spacing: 0.4px; color: var(--muted); }
+.cp-counter { font-size: clamp(12px, 1.9dvh, 14px); font-weight: 700; color: var(--brand); }
+
+/* ===== Card rail: horizontal pan INSIDE the container ===== */
+.cp-rail {
+  display: flex;
+  gap: clamp(8px, 2vw, 12px);
+  width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  padding: 4px 2px 10px; /* room under cards for the scrollbar */
+  -webkit-overflow-scrolling: touch;
+}
+.cp-card {
+  flex: none;
+  width: clamp(148px, 42vw, 178px);
+  aspect-ratio: 5 / 7;
+  scroll-snap-align: center;
+  perspective: 900px;
+}
+
+/* 3D flip (same mechanic as StartingFive's s5-flip) */
+.cp-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.55s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.cp-flip.is-flipped { transform: rotateY(180deg); }
+@media (prefers-reduced-motion: reduce) {
+  .cp-flip { transition: none; }
+}
+.cp-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(4px, 0.9dvh, 8px);
+  padding: clamp(8px, 1.4dvh, 12px);
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  backface-visibility: hidden;
+  overflow: hidden;
+}
+
+/* Face-down back: CSS court pattern (center circle, halfcourt line, two arcs) */
+.cp-face--back { background: var(--surface2); }
+.cp-court {
+  position: absolute;
+  inset: 0;
+  opacity: 0.5;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 17%, var(--line2) 17.5%, var(--line2) 19%, transparent 19.5%),
+    radial-gradient(circle at 50% -12%, transparent 30%, var(--line2) 30.5%, var(--line2) 32%, transparent 32.5%),
+    radial-gradient(circle at 50% 112%, transparent 30%, var(--line2) 30.5%, var(--line2) 32%, transparent 32.5%),
+    linear-gradient(to bottom, transparent calc(50% - 1px), var(--line2) calc(50% - 1px), var(--line2) calc(50% + 1px), transparent calc(50% + 1px));
+}
+.cp-back-num {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* Face-up front: the stint */
+.cp-face--front { background: var(--surface); transform: rotateY(180deg); }
+.cp-card-years { font-size: clamp(11px, 1.6dvh, 12.5px); font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
+.cp-card-logo { width: clamp(44px, 7dvh, 64px); height: clamp(44px, 7dvh, 64px); object-fit: contain; }
+.cp-card-team {
+  font-size: clamp(11px, 1.6dvh, 12.5px);
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  line-height: 1.2;
+  min-height: 2.4em; /* two lines reserved: no shift between 1/2-line names */
+  display: flex;
+  align-items: center;
+}
+.cp-card-stats { display: flex; gap: 10px; }
+.cp-stat { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
+.cp-stat b { color: var(--text); font-weight: 700; }
+.cp-card-draft {
+  font-size: clamp(9.5px, 1.4dvh, 11px);
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.25;
+  padding-top: 2px;
+  border-top: 1px solid var(--line);
+}
+
+/* ===== Input row (bottom-anchored in the play area) ===== */
+.cp-inputrow {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  max-width: 420px;
+  margin-top: auto;
+}
+.cp-inputrow > :first-child { flex: 1; min-width: 0; }
+
+/* ===== Loss reveal container ===== */
+.cp-reveal {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 420px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--brand);
+  border-radius: var(--radius);
+}
+.cp-reveal-photo,
+.cp-reveal-fallback {
+  flex: none;
+  width: 64px;
+  height: 47px; /* matches the 1040x760 headshot aspect */
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--surface3);
+}
+.cp-reveal-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cp-reveal-label { font-size: 10.5px; color: var(--muted); letter-spacing: 0.4px; }
+.cp-reveal-name { font-size: clamp(15px, 2.2dvh, 19px); color: var(--text); }
+
+/* Small phones (390x844): tighter cards so rail + input + reveal all fit */
+@media (max-width: 480px) {
+  .cp-card { width: clamp(138px, 40vw, 156px); }
+  .cp-rail { padding-bottom: 6px; }
+}

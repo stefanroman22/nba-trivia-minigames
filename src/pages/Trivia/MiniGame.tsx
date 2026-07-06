@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { games } from '../../utils/GameUtils';
@@ -15,7 +15,7 @@ import { updatePoints } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
-import { BACKEND_URL } from '../../configurations/backend';
+import { BACKEND_URL, BACKEND_ORIGIN } from '../../configurations/backend';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import "../../styles/MiniGame.css";
 
@@ -36,6 +36,10 @@ function MiniGame() {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [showFinalResult, setShowFinalResult] = useState(false);
+  // Epoch ms the current single-player play started (set when the stage
+  // enters "playing") — feeds the session timer + duration logging.
+  const playStartRef = useRef(0);
+  const prevStageRef = useRef("idle");
 
   // An online match takes over the whole stage area. A friend-room lobby does
   // NOT — the stage stays idle (with Play disabled) while the room card waits.
@@ -86,6 +90,19 @@ function MiniGame() {
     const awardPoints = async () => {
       if (showResult) {
         setShowFinalResult(false);
+        // Fire-and-forget play log — apiFetch only attaches the JWT when one
+        // exists, so guests log anonymously too. Never blocks the points flow.
+        if (game) {
+          apiFetch(`${BACKEND_ORIGIN}/trivia/log-session/`, {
+            method: "POST",
+            body: JSON.stringify({
+              game: game.id,
+              mode: "single",
+              score,
+              duration_ms: playStartRef.current ? Date.now() - playStartRef.current : 0,
+            }),
+          }).catch(() => { /* stats only */ });
+        }
         const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
         try {
           if (score > 0) {
@@ -123,6 +140,12 @@ function MiniGame() {
   else if (loading) stage = "loading";
   else if (gameStarted && gameData.length > 0) stage = "playing";
   else stage = "idle";
+
+  // Stamp the play start whenever the stage transitions into "playing".
+  useEffect(() => {
+    if (stage === "playing" && prevStageRef.current !== "playing") playStartRef.current = Date.now();
+    prevStageRef.current = stage;
+  }, [stage]);
 
   const renderStage = () => {
     switch (stage) {

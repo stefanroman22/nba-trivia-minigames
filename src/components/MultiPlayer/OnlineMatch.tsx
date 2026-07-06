@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import "../../styles/Multiplayer.css";
@@ -6,6 +6,7 @@ import { playerKey, useMultiplayer } from "../../context/MultiplayerContext";
 import { renderGame } from "../../Game Renderers/RenderGame";
 import { games } from "../../utils/GameUtils";
 import { CourtLoader } from "../ui";
+import SessionTimer from "../ui/SessionTimer";
 import PlayerCard from "./PlayerCard";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import defaultAvatar from "../../assets/default.png";
@@ -38,10 +39,28 @@ function skillLine(p?: { rank?: string | number; points?: string | number } | nu
   return bits.length ? bits.join(" · ") : null;
 }
 
+/** 83000 -> "1:23" (m:ss, zero-padded seconds) for the results time lines. */
+function fmtElapsed(ms: number): string {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
 /** The full online-match experience, driven entirely by the multiplayer store. */
 export default function OnlineMatch() {
-  const { mp, submitScore, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice } = useMultiplayer();
+  const { mp, submitScore, sendTurnAction, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice } = useMultiplayer();
   const [switching, setSwitching] = useState(false);
+
+  // Wall-clock start of the current round, re-armed on every transition INTO
+  // "playing" (a matchRestart re-enters playing, so rematches re-arm too).
+  // Feeds the score-then-time tiebreak and the on-screen session timer.
+  const startRef = useRef<number>(Date.now());
+  const [playStartedAt, setPlayStartedAt] = useState<number>();
+  useEffect(() => {
+    if (mp.phase === "playing") {
+      startRef.current = Date.now();
+      setPlayStartedAt(startRef.current);
+    }
+  }, [mp.phase]);
 
   const stillPlaying = mp.opponents.filter((o) => !mp.oppStatus[playerKey(o)]?.done);
   const waitingLabel = stillPlaying.length
@@ -83,12 +102,16 @@ export default function OnlineMatch() {
             gameId: mp.game?.id,
             gameData: mp.gameData,
             pointsPerCorrect: mp.game?.pointsPerCorrect,
-            onGameEnd: (score: number) => submitScore(score),
+            onGameEnd: (score: number) => submitScore(score, Date.now() - startRef.current),
+            turn: mp.turnState,
+            onTurnAction: sendTurnAction,
+            multiplayer: true,
           })
         ) : (
           <CourtLoader label="Loading the game..." scale={0.8} />
         )}
         <div className="om-playbar">
+          <SessionTimer startedAt={playStartedAt} />
           {mp.opponents.map((o, i) => (
             <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} tag={o.id} photo={o.profile_photo} state={chipStateOf(mp, o)} />
           ))}
@@ -113,10 +136,23 @@ export default function OnlineMatch() {
       </motion.div>
     );
   } else if (mp.phase === "results") {
+    // A win/loss with the top two scores equal means the clock decided it.
+    const timeBrokeTie = !!(
+      mp.outcome && mp.outcome !== "tie" && mp.standings && mp.standings.length > 1 &&
+      mp.standings[0].score === mp.standings[1].score && mp.standings[0].outcome === "win"
+    );
     body = (
       <motion.div key="results" {...swap} className="om-stage">
         <ResultHeadline outcome={mp.outcome} />
-        {mp.roomSize > 2 && mp.standings ? <Standings mp={mp} /> : <Matchup mp={mp} showScores />}
+        {timeBrokeTie && <p className="om-time-note">Same score — faster time wins</p>}
+        {mp.roomSize > 2 && mp.standings ? (
+          <Standings mp={mp} />
+        ) : (
+          <>
+            <Matchup mp={mp} showScores />
+            <MatchupTimes mp={mp} />
+          </>
+        )}
         <ResultActions
           mp={mp}
           switching={switching}
@@ -213,6 +249,22 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
   );
 }
 
+/** 1v1 results: "You 1:23 · Opp 1:45" play-time line (only when both times exist). */
+function MatchupTimes({ mp }: { mp: Mp }) {
+  const { user } = useSelector((state: RootState) => state.user);
+  const opp0 = mp.opponents[0];
+  const rowOf = (p?: { id?: string | null; username?: string } | null) =>
+    mp.standings?.find((r) => (p?.id ? r.id === p.id : p?.username != null && r.username === p.username));
+  const yours = rowOf(user);
+  const theirs = rowOf(opp0);
+  if (yours?.elapsedMs == null || theirs?.elapsedMs == null) return null;
+  return (
+    <p className="om-time-note tnum">
+      You {fmtElapsed(yours.elapsedMs)} · {opp0?.username || "Opponent"} {fmtElapsed(theirs.elapsedMs)}
+    </p>
+  );
+}
+
 /** Final scoreboard for 3-player rooms — ranked rows, winner highlighted. */
 function Standings({ mp }: { mp: Mp }) {
   const { user } = useSelector((state: RootState) => state.user);
@@ -246,6 +298,7 @@ function Standings({ mp }: { mp: Mp }) {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16l-2-9 5.5 4L12 5l3.5 6L21 7l-2 9H5zm0 2h14v2H5v-2z" /></svg>
               </span>
             )}
+            {row.elapsedMs != null && <span className="om-st-time tnum">{fmtElapsed(row.elapsedMs)}</span>}
             <span className="om-st-score tnum"><AnimatedNumber value={row.score} /></span>
           </motion.div>
         );

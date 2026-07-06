@@ -145,3 +145,29 @@ export async function fetchGamePool(
     };
   }
 }
+
+/**
+ * Fetch a game's FULL pool, unshuffled (same cache path as fetchGamePool).
+ * Used by games that pick/deal locally from a whole dataset (e.g. the
+ * "players-index" curated pool for Career Path / Who Are Ya / Contexto…).
+ */
+export async function fetchWholePool(gameKey: string): Promise<FetchResult> {
+  try {
+    const pool = await loadPool(gameKey);
+    if (!pool.length) {
+      return {
+        success: false,
+        error: { title: "No data available", message: "Please try again later." },
+      };
+    }
+    return { success: true, data: pool };
+  } catch {
+    return {
+      success: false,
+      error: {
+        title: "Unable to connect to the server",
+        message: "Please check your internet connection or try again later.",
+      },
+    };
+  }
+}

@@ -142,7 +142,9 @@
 }
 /* RULE: every game must fit inside this shell without page scroll. The shell is
    capped to the viewport height (minus nav + title chrome); game renderers size
-   their content with dvh-aware units so they shrink to fit on short screens. */
+   their content with dvh-aware units so they shrink to fit on short screens.
+   --stage-max is the height budget a game's root can consume (via max-height:100%
+   / 100% + min() sizing) so boards shrink to the viewport instead of scrolling. */
 .stage-inner {
   position: relative;
   display: flex;
@@ -150,7 +152,16 @@
   justify-content: center;
   padding: clamp(14px, 2.6vw, 30px);
   min-height: clamp(280px, 44dvh, 430px);
+  --stage-max: calc(100dvh - 188px);
+  max-height: var(--stage-max);
 }
+@media (max-width: 819px) {
+  /* mobile adds the horizontal game-chip strip above the stage */
+  .stage-inner { --stage-max: calc(100dvh - 216px); }
+}
+/* The motion wrapper and playing container inherit the budget so a game's root
+   can rely on height:100% / max-height:100% resolving to the viewport. */
+.stage-inner > * { max-height: 100%; min-height: 0; }
 
 /* ---------- Progress bar ---------- */
 .progress { height: 5px; border-radius: 5px; background: var(--surface3); overflow: hidden; }

@@ -69,6 +69,8 @@ export interface FriendLobby {
 /** One row of the final scoreboard (any room size), best score first. */
 export interface Standing extends PlayerInfo {
   score: number;
+  /** Play time in ms — breaks equal-score ties (fastest wins); null if unknown. */
+  elapsedMs?: number | null;
   outcome: Outcome;
 }
 
@@ -89,6 +91,9 @@ export interface MpState {
   /** Inline error for the code-entry UI (kept out of the global notice bar). */
   friendJoinError: string | null;
   gameData: GameData[] | null;
+  /** Authoritative turn-engine state broadcast by the server (contract #6);
+   *  shape is game-specific — renderers cast it. Null outside turn games. */
+  turnState: unknown;
   introElapsed: boolean;
   yourScore: number | null;
   opponentScore: number | null;
@@ -103,7 +108,7 @@ export interface MpState {
 const initial: MpState = {
   phase: "idle", code: null, game: null, roomType: null, roomSize: 2, role: null,
   queueInfo: null, opponents: [], oppStatus: {}, lobby: null, friendPending: null,
-  friendJoinError: null, gameData: null, introElapsed: false, yourScore: null,
+  friendJoinError: null, gameData: null, turnState: null, introElapsed: false, yourScore: null,
   opponentScore: null, standings: null, outcome: null, proposal: null, ended: null,
   notice: null, error: null,
 };
@@ -122,6 +127,7 @@ type Action =
   | { t: "NO_OPPONENT" }
   | { t: "MATCH_FOUND"; code: number; role: "host" | "guest"; opponents: PlayerInfo[]; game: Game; roomType: RoomType; roomSize: number }
   | { t: "ROUND_DATA"; gameData: GameData[]; game?: Game }
+  | { t: "TURN_STATE"; state: unknown }
   | { t: "ROUND_ERROR"; message: string }
   | { t: "INTRO_ELAPSED" }
   | { t: "SUBMITTED"; score: number }
@@ -208,18 +214,24 @@ function reducer(state: MpState, a: Action): MpState {
       const play = state.phase === "intro" && state.introElapsed;
       return { ...state, gameData: a.gameData, game: a.game ?? state.game, error: null, phase: play ? "playing" : state.phase };
     }
+    case "TURN_STATE":
+      return { ...state, turnState: a.state };
     case "ROUND_ERROR":
       return { ...state, error: a.message };
     case "INTRO_ELAPSED":
       if (state.phase !== "intro") return state;
       return state.gameData ? { ...state, phase: "playing" } : { ...state, introElapsed: true };
     case "SUBMITTED":
+      // Only a live game can move to waiting — a stale onGameEnd (e.g. a
+      // renderer's delayed end firing after leave/opponent-left) is ignored.
+      if (state.phase !== "playing") return state;
       return { ...state, phase: "waiting", yourScore: a.score };
     case "MATCH_RESULT":
       return { ...state, phase: "results", yourScore: a.yourScore, opponentScore: a.opponentScore, outcome: a.outcome, standings: a.standings };
     case "MATCH_RESTART":
       return {
-        ...state, phase: "intro", introElapsed: false, gameData: null, game: a.game ?? state.game,
+        ...state, phase: "intro", introElapsed: false, gameData: null, turnState: null,
+        game: a.game ?? state.game,
         yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null,
         ended: null, oppStatus: freshStatus(state.opponents), error: null,
       };
@@ -338,7 +350,9 @@ interface MultiplayerContextValue {
   joinFriendRoom: (code: string) => void;
   changeFriendGame: (game: Game) => void;
   resetFriendJoinError: () => void;
-  submitScore: (score: number) => void;
+  submitScore: (score: number, elapsedMs?: number) => void;
+  /** Turn-engine games: send a player action to the authoritative server. */
+  sendTurnAction: (action: unknown) => void;
   proposeAgain: () => void;
   proposeSwitch: (game: Game) => void;
   respondProposal: (accept: boolean) => void;
@@ -387,6 +401,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         }),
       roundData: (d: { gameData: GameData[]; game?: Game }) =>
         dispatch({ t: "ROUND_DATA", gameData: d.gameData, game: d.game }),
+      turnState: (d: { code: number; game?: string; state: unknown }) =>
+        dispatch({ t: "TURN_STATE", state: d?.state ?? null }),
       roundDataError: (d: { message: string }) => dispatch({ t: "ROUND_ERROR", message: d.message }),
       waitingForOpponent: () => {/* local SUBMITTED already moved us to waiting */},
       matchResult: (d: { yourScore: number; opponentScore: number; outcome: Outcome; standings?: Standing[] }) =>
@@ -484,9 +500,14 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   const resetFriendJoinError = useCallback(() => dispatch({ t: "FRIEND_JOIN_RESET" }), []);
   const cancelFind = useCallback(() => { socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
-  const submitScore = useCallback((score: number) => {
+  const submitScore = useCallback((score: number, elapsedMs?: number) => {
+    if (codeRef.current == null) return; // no live room — stale end-call, drop it
     dispatch({ t: "SUBMITTED", score });
-    socket.emit("submitScore", { code: codeRef.current, score });
+    socket.emit("submitScore", { code: codeRef.current, score, elapsedMs });
+  }, []);
+  const sendTurnAction = useCallback((action: unknown) => {
+    if (codeRef.current == null) return; // no live room — drop the action
+    socket.emit("turnAction", { code: codeRef.current, action });
   }, []);
   const proposeAgain = useCallback(() => socket.emit("proposeAgain", { code: codeRef.current }), []);
   const proposeSwitch = useCallback((game: Game) => socket.emit("proposeSwitch", { code: codeRef.current, game: serializeGame(game) }), []);
@@ -501,9 +522,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<MultiplayerContextValue>(() => ({
     mp, findMatch, cancelFind, createFriendRoom, joinFriendRoom, changeFriendGame,
-    resetFriendJoinError, submitScore, proposeAgain, proposeSwitch,
+    resetFriendJoinError, submitScore, sendTurnAction, proposeAgain, proposeSwitch,
     respondProposal, cancelProposal, leaveMatch, reportProgress, clearNotice,
-  }), [mp, findMatch, cancelFind, createFriendRoom, joinFriendRoom, changeFriendGame, resetFriendJoinError, submitScore, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, reportProgress, clearNotice]);
+  }), [mp, findMatch, cancelFind, createFriendRoom, joinFriendRoom, changeFriendGame, resetFriendJoinError, submitScore, sendTurnAction, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, reportProgress, clearNotice]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

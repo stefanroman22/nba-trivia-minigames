@@ -1,0 +1,137 @@
+/* ===== NBA Bingo — game renderer (prefix: bng-) ===== */
+.bng-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: clamp(8px, 1.6dvh, 16px);
+}
+
+/* ===== Top row: deals meter + progress chip + skip ===== */
+.bng-top { display: flex; align-items: center; gap: 10px; flex: none; }
+.bng-meter { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bng-meter-label {
+  font-size: clamp(10.5px, 1.5dvh, 12px);
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+.bng-meter-label b { color: var(--text); font-weight: 700; }
+
+/* ===== Dealt-player strip (fixed height: zero layout shift) ===== */
+.bng-deal {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(56px, 8dvh, 68px);
+  padding: 0 12px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.bng-deal-card { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.bng-deal-photo,
+.bng-deal-fallback {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  object-fit: cover;
+  object-position: top;
+  background: var(--surface3);
+  border: 1px solid var(--brand);
+}
+.bng-deal-card > div { display: flex; flex-direction: column; min-width: 0; }
+.bng-deal-name {
+  font-size: clamp(13px, 2dvh, 16px);
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bng-deal-hint { font-size: clamp(10px, 1.4dvh, 11.5px); color: var(--muted); }
+.bng-penalty {
+  font-size: clamp(12px, 1.8dvh, 14px);
+  font-weight: 700;
+  color: var(--bad);
+}
+
+/* ===== The 4x4 card — fills remaining height so cells shrink to fit ===== */
+.bng-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+  gap: clamp(5px, 1vw, 8px);
+  width: 100%;
+}
+.bng-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 0; /* rows share the flex height; no fixed aspect */
+  padding: 4px 5px;
+  text-align: center;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.bng-cell:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.bng-cell:disabled { cursor: default; }
+.bng-cell:not(.is-claimed):disabled { opacity: 0.6; }
+.bng-cell.is-claimed {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+.bng-cell-label {
+  font-size: clamp(9px, 1.35dvh, 11px);
+  font-weight: 700;
+  line-height: 1.2;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.bng-cell.is-claimed .bng-cell-label { color: var(--brand); }
+.bng-cell-claimer {
+  font-size: clamp(8px, 1.2dvh, 9.5px);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ===== Loading / error states ===== */
+.bng-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: clamp(16px, 4dvh, 32px) 16px;
+  text-align: center;
+}
+.bng-state-title { font-size: clamp(15px, 2.2dvh, 18px); color: var(--text); }
+.bng-state-msg { font-size: clamp(11px, 1.6dvh, 13px); color: var(--muted); }
+
+/* Small phones (390x844): tighten so card + strip fit with zero page scroll */
+@media (max-width: 480px) {
+  .bng-grid { gap: 5px; }
+  .bng-cell { padding: 3px 4px; }
+  .bng-top { gap: 8px; }
+}
