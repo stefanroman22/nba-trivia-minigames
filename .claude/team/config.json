@@ -1,0 +1,8 @@
+{
+  "notionDbId": "",
+  "notionUserId": "",
+  "maxTasksPerRun": 3,
+  "maxRunMinutes": 90,
+  "worktreeRoot": "C:\\Users\\stefa\\.team-worktrees",
+  "qaPorts": { "django": 8100, "socket": 4100, "vite": 5273 }
+}
