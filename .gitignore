@@ -47,11 +47,11 @@ public/data/
 # Vercel
 .vercel
 
-# Local admin credentials (contains real password)
-local deployment/
+# Local run cheatsheet
+RUN.md
 
 # Player data field wishlist
-docs/games/PLAYERS_DATA.md
+players_extensive_data.md
 
 # team pipeline runtime
 .claude/team/journal.json
