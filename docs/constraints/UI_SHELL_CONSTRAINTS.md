@@ -267,12 +267,10 @@ are plain `<button className="…">` elements styled by the owning page's CSS fi
 
 ## Rule UI-11: Icons in shell chrome are hand-written inline SVG, not an icon library
 
-Every icon actually rendered in the shell (`Navigation.tsx`'s hamburger/close, `Modal.tsx`'s
-close button, `Landpage.tsx`'s play/search icons) is an inline `<svg>` with
+Every icon in the app-shell/navigation/modal chrome proper (`Navigation.tsx`'s hamburger/close,
+`Modal.tsx`'s close button, `Landpage.tsx`'s play/search icons) is an inline `<svg>` with
 `viewBox="0 0 24 24"`, `stroke="currentColor"`, `strokeWidth` in the 2–2.4 range, and
-`strokeLinecap="round"`. `@fortawesome/react-fontawesome` only appears in
-`src/components/Footer.tsx`, which (per Rule UI-5) is not mounted anywhere — it is not a second
-icon convention to follow.
+`strokeLinecap="round"`. This is the convention for new icons anywhere in the shell.
 
 ```tsx
 ❌ WRONG — pulling in an icon library for a new shell button
@@ -284,6 +282,16 @@ import { faBell } from "@fortawesome/free-solid-svg-icons";
   <path d="M18 6L6 18M6 6l12 12" />
 </svg>
 ```
+
+**Exceptions — two files import `@fortawesome/react-fontawesome`, and only one is dead:**
+`src/components/Footer.tsx` is unmounted (see Rule UI-5) and doesn't count. But
+`src/components/LogInSignUp.tsx` imports `FontAwesomeIcon` plus `faEye`/`faEyeSlash`
+(`@fortawesome/free-solid-svg-icons`, the password show/hide toggle) and `faGoogle`
+(`@fortawesome/free-brands-svg-icons`, the Google OAuth button) — and it is live: `ModalHost.tsx`
+renders it for the `"login"` `ModalKind`. This is a genuine second icon convention, scoped to the
+auth form. Don't extend FontAwesome into new shell chrome and don't rewrite
+`LogInSignUp.tsx`'s existing icons as a drive-by fix — but do grep for `LogInSignUp` (not just
+`Footer`) before claiming "no FontAwesome in the live app."
 
 ## Rule UI-12: Fixed/sticky shell chrome uses a fixed z-index scale — don't pick an arbitrary number
 
@@ -409,15 +417,20 @@ Open the mobile drawer (viewport ≤900px, tap the hamburger) and check
 900px). Resize to 819px then 821px on a game page and diff
 `getComputedStyle(document.querySelector('.rail')).display` / `.rail-strip` visibility.
 
-**5. No icon library in wired shell code (Rule UI-11).** From the repo root:
+**5. Icon-library usage matches the documented exceptions, no more (Rule UI-11).** From the repo
+root — note `src/components/*.tsx` (bare files, not just the named ones) is included, or this
+check silently misses live components like `LogInSignUp.tsx`:
 ```bash
-grep -rl "@fortawesome\|react-icons\|lucide-react" src/App.tsx src/components/Navigation.tsx src/pages src/components/modals src/components/ui
+grep -rl "@fortawesome\|react-icons\|lucide-react" src/App.tsx src/components/*.tsx src/components/Navigation.tsx src/pages src/components/modals src/components/ui
 ```
-Expect no output (the only hit repo-wide is the unused `src/components/Footer.tsx`).
+Expect exactly two hits: `src/components/Footer.tsx` (unmounted, doesn't count — Rule UI-5) and
+`src/components/LogInSignUp.tsx` (the documented live exception). Any *other* file appearing here
+is a new violation of Rule UI-11.
 
-**6. No Tailwind utilities in wired shell code (Rule UI-5).**
+**6. No Tailwind utilities in wired shell code (Rule UI-5).** Same bare-file scoping as check 5:
 ```bash
-grep -rnE 'className="[^"]*\b(flex|grid|px-[0-9]|py-[0-9]|text-(sm|lg|white)|bg-\[)' src/App.tsx src/components/Navigation.tsx src/pages src/components/modals
+grep -rnE 'className="[^"]*\b(flex|grid|px-[0-9]|py-[0-9]|text-(sm|lg|white)|bg-\[)' src/App.tsx src/components/*.tsx src/components/Navigation.tsx src/pages src/components/modals
 ```
-Expect no output outside `src/pages/Landpage.tsx`'s single incidental `games-grid3` class name
-(which is not a Tailwind utility — it's a page-CSS class that happens to contain a digit).
+Expect no output outside `src/components/Footer.tsx` (unmounted) and
+`src/pages/Landpage.tsx`'s single incidental `games-grid3` class name (which is not a Tailwind
+utility — it's a page-CSS class that happens to contain a digit).
