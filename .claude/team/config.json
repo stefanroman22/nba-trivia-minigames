@@ -1,6 +1,6 @@
 {
-  "notionDbId": "",
-  "notionUserId": "",
+  "notionDbId": "3be2cfb1-c595-816e-9ff8-fa0909d3641f",
+  "notionUserId": "2fcd872b-594c-81a1-a343-00022e136a11",
   "maxTasksPerRun": 3,
   "maxRunMinutes": 90,
   "worktreeRoot": "C:\\Users\\stefa\\.team-worktrees",
