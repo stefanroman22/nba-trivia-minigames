@@ -48,5 +48,5 @@ persistent profile and escalate to max at runtime with `/effort max` in that ses
 ## One-time account setup
 
 1. Push this repo to GitHub (needed for web, routines, and Actions).
-2. GitHub Actions: add the `ANTHROPIC_API_KEY` repo secret — easiest via `claude /install-github-app`.
+2. GitHub Actions: add the `CLAUDE_CODE_OAUTH_TOKEN` repo secret (run `claude setup-token`, then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`) — subscription usage, no API key.
 3. Create routines: see `.claude/routines/README.md`.

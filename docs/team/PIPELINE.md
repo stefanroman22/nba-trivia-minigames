@@ -1,0 +1,122 @@
+# Autonomous Team Pipeline — Operator Manual
+
+## 1. What it is
+
+An autonomous coding pipeline: you write task cards on a Notion board, and unattended
+agent runs pick them up, build them (classify → design → build → verify → QA → review),
+open a PR, get an independent cloud CTO review, and merge to `dev` on approval. You
+mostly interact with it through Notion, not the terminal.
+
+## 2. Daily use
+
+Write cards in the Notion board with a clear title/spec and set `Status = Ready` when
+they're ready to be picked up. You don't need to trigger anything — the next scheduled
+run (or `npm run team`) claims Ready cards and works them. Results notify you via Notion
+@mentions, which show up on both phone and desktop Notion. The `CONTROL` row's `Paused`
+checkbox is the global kill switch — check it and no run will claim any card until it's
+unchecked (`node scripts/notion.mjs check-pause` exits 3 and the run stops immediately).
+
+## 3. Triggers
+
+- **Windows scheduled task** `nba-team-pipeline` — runs every 2 hours, 08:00–24:00 daily
+  (registered via `scripts/register-team-cron.ps1`).
+- **Manual**: `npm run team` from the repo root, any time.
+- **From your phone**: add or edit a card and set it to Ready — no run needed on your
+  end, it's picked up by the next scheduled run.
+
+## 4. Status meanings
+
+- **Backlog** — not ready yet; the pipeline ignores it.
+- **Ready** — queued; the next run will claim it.
+- **In Progress** — a run has claimed it and is actively working it.
+- **In Review** — PR opened, pushed to GitHub, waiting on (or in) CTO review.
+- **Blocked** — the pipeline gave up on it; read the post-mortem comment before touching it.
+- **Blocked-approval** — a PR needing your manual review/merge (protected path — see §6).
+- **Done** — merged to `dev`; nothing left to do.
+
+## 5. When a card goes Blocked
+
+Read the post-mortem comment the pipeline left on the card (what was tried, why it
+failed, suggested next step) and the corresponding entry in `docs/team/RETRO.md`. Fix
+the spec (clarify scope, add missing context) or split the task into smaller cards, then
+set the card back to `Ready`. Don't just flip it back to Ready without addressing the
+cause — it will likely fail the same way again.
+
+## 6. Blocked-approval
+
+The CTO's deterministic `cto-act` job flags a PR `Blocked-approval` when its diff touches
+a protected path: `.github/workflows/`, `vercel.json`, `package.json`,
+`package-lock.json`, or `backend/requirements.txt`. These never auto-merge, regardless of
+CTO verdict. Review the PR yourself on GitHub and merge it manually when you're satisfied.
+
+## 7. Where things live
+
+- **Skills** — `.claude/skills/` (e.g. `team-run`, `cto-review`, `ship`, `qa-protocol`).
+- **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
+  `browser-qa`, `code-reviewer`, `test-qa-engine`).
+- **Journal** — `.claude/team/journal.json`: mid-flight task state, resumed by the next run.
+- **Logs** — `.claude/team/logs/` (one file per run). Written by PowerShell's
+  `Tee-Object`, which defaults to **UTF-16LE** — open with a UTF-16-aware viewer, not a
+  plain `cat`/UTF-8 tool, or the text will look mangled.
+- **QA evidence** — `.claude/team/qa/<slug>/` (screenshots + `verdict.json` per task).
+- **Worktrees** — `C:\Users\stefa\.team-worktrees\<slug>` — isolated checkouts the
+  pipeline builds in; your main checkout's working tree is never touched by pipeline git
+  commands beyond `fetch`/`worktree add|remove`.
+
+## 8. Prerequisites / environment gotchas (read before troubleshooting anything else)
+
+a. **gh CLI account.** This machine has two `gh` accounts. Ship/merge steps need
+   `gh` authenticated as **`stefanroman22`** (ADMIN on origin) —
+   `gh auth switch --user stefanroman22`. If the active account is
+   **`jimmedeknatel8`** (READ-only), pushes, PR creation, and merges will fail. Check
+   `gh auth status` if any ship/merge step errors out.
+
+b. **PowerShell PATH gap.** This machine's PATH does not include the WindowsPowerShell
+   directory, so bare `powershell` fails when spawned from a plain child process (e.g.
+   npm → cmd.exe). Both the npm `"team"` script and the registered scheduled task
+   call PowerShell by its full path,
+   `%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe`, to work around this.
+   Don't "simplify" either back to bare `powershell` — it will break non-interactive runs.
+
+c. **`package.json`'s `"team"` script edit is intentionally uncommitted.** `package.json`
+   is a protected path (see §6), so the local fix in (b) is applied to the working tree
+   only and deliberately never committed/pushed — committing it would route it through
+   manual `Blocked-approval` review every time. It must stay uncommitted, working-tree-only.
+
+## 9. Secrets rotation
+
+- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the cloud CTO jobs and the
+  `@claude` mention responder. Mint it with `claude setup-token` (browser flow), then
+  `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (paste when prompted). It expires
+  periodically — when cloud runs start failing auth, re-run both commands.
+- **`NOTION_TOKEN`** — used by `scripts/notion.mjs` both locally and in CI. Update via
+  `gh secret set NOTION_TOKEN`. Locally, the same value lives in `.env.team`
+  (`scripts/team-run.ps1` loads it into the process before invoking `claude`).
+
+## 10. Security model (from the CTO review design)
+
+The CTO gate is split into two GitHub Actions jobs on purpose. `cto-review` runs the LLM
+(`/cto-review`) with a **read-only** token — it can read the diff, read the spec, and
+post a PR comment, but it cannot merge, push, label, or edit the PR. It writes its
+verdict to `cto-verdict.json` and uploads it as an artifact. `cto-act`, gated on
+`cto-review` via `needs:`, is pure deterministic Bash (no LLM) with the **write-capable**
+token — it downloads the verdict artifact and is the only place `gh pr merge`, `gh pr
+edit --add-label`, and Notion status writes happen. Practically: a prompt-injected PR
+(e.g. malicious text in a file trying to manipulate the reviewing LLM) can at most get
+`cto-review` to post a misleading comment or attempt a relabel via its own limited scope
+— it can never merge or push, because the job actually holding merge/push power runs no
+LLM step at all. Auto-merge only lands changes on `dev`; the existing `dev-ci.yml`
+promotion (dev → main → production) is unchanged by any of this.
+
+## 11. Troubleshooting
+
+- **Lockfile stuck** (`team-run already running` but no run is actually happening):
+  delete `.claude/team/run.lock`, then retry.
+- **Card stuck In Progress with an empty journal** (`.claude/team/journal.json` is `{}`
+  or has no entry for it): the run that claimed it died or was killed. Set the card back
+  to `Ready`.
+- **Scheduled run appears to have done nothing**: check the newest file in
+  `.claude/team/logs/` (remember it's UTF-16LE) for what happened, and confirm the
+  active `gh` account is `stefanroman22`, not `jimmedeknatel8` (see §8a) — a wrong
+  account fails silently from Notion's point of view since the card never gets past
+  ship.
