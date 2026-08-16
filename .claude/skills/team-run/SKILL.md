@@ -17,7 +17,7 @@ Notion MCP connector (absent in headless runs).
 ## 1. Fix-tasks first (changes-requested PRs)
 `gh pr list --base dev --label cto-changes-requested --json number,headRefName,title,url`
 Each is a fix task: recreate the worktree from its branch
-(`git worktree add <cfg.worktreeRoot>\<slug> <branch>`), fetch CTO review comments
+(`git worktree add <cfg.worktreeRoot>\<slug> <branch>` (slug = headRefName with the team/ prefix stripped)), fetch CTO review comments
 (`gh pr view <n> --json reviews,comments`), dispatch the matching engine agent(s) to fix,
 then verify → QA → ship stages as below (ship = push to same branch, comment on PR
 `CTO findings addressed: <summary>`, remove label `cto-changes-requested`). Counts toward
@@ -63,8 +63,8 @@ park. journal stage=qa.
 Fail → build (counts toward fixCycles). journal stage=review.
 
 **review** → spawn code-reviewer (model opus) on the worktree diff
-(`git -C <worktree> diff dev...HEAD`). Findings of severity "must-fix" → build
-(counts toward fixCycles). journal stage=ship.
+(`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build
+(counts toward fixCycles). "minor"/"nit" findings are noted in the PR body but do not block ship. journal stage=ship.
 
 **ship** → follow ship skill. On success: remove journal entry.
 
