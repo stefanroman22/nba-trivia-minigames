@@ -1,9 +1,12 @@
 name: Dev CI and Promote
 
-# Triggers ONLY on pushes to dev. The promote job pushes to main, which does NOT
-# match this filter, so the workflow cannot retrigger itself.
+# Runs on pushes to dev (full pipeline, including promote) and on PRs targeting
+# dev (test-only: promote is gated to the push path). The promote job pushes to
+# main, which does NOT match either filter, so the workflow cannot retrigger itself.
 on:
   push:
+    branches: [dev]
+  pull_request:
     branches: [dev]
 
 concurrency:
@@ -47,6 +50,7 @@ jobs:
   promote:
     name: Promote dev to main
     needs: [lint, security]
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
