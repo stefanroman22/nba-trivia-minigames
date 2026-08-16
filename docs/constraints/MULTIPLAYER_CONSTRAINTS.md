@@ -103,16 +103,19 @@ if (room.gameId === "tictactoe") return initTTT(room, helpers);   // turnGames.j
 if (room.gameId === "imposter") return initImposter(room, helpers);
 ```
 
-## Rule MP-4: Socket event names are camelCase verbs (client→server) paired with a `<stem><Result|Error>` pair (server→client)
+## Rule MP-4: Socket event names are camelCase verbs (client→server) paired with a matching success/error sibling (server→client)
 
 Client emits are bare action verbs: `identify`, `findMatch`, `cancelFind`, `createFriendRoom`,
 `joinFriendRoom`, `changeFriendGame`, `startRoomNow`, `turnAction`, `submitScore`,
 `reportProgress`, `proposeAgain`, `proposeSwitch`, `respondProposal`, `cancelProposal`,
-`leaveMatch`. Server emits pair a success event with an `*Error` sibling sharing the same stem:
-`matchFound`/`matchError`, `friendRoomCreated`/`friendError`, `friendRoomJoined`/`friendJoinError`,
-`roundData`/`roundDataError`, `turnState`/`turnReject`. Multi-step flows use one shared stem with
-a suffix per step: `proposalPending` (mine) / `proposalReceived` (theirs) / `proposalProgress` /
-`proposalDeclined` / `proposalCancelled` / `proposalTimeout`.
+`leaveMatch`. Server emits pair a success event with a recognizably-related `*Error`/failure
+sibling from the same feature — not always the identical literal stem: `matchFound`/`matchError`
+and `roundData`/`roundDataError` do share one exactly, while `friendRoomCreated`/`friendError`,
+`friendRoomJoined`/`friendJoinError`, and `turnState`/`turnReject` pair a feature-scoped success
+event with a shorter or differently-suffixed failure event instead of a mechanical
+`<stem>+Error`. Multi-step flows use one shared stem with a suffix per step: `proposalPending`
+(mine) / `proposalReceived` (theirs) / `proposalProgress` / `proposalDeclined` /
+`proposalCancelled` / `proposalTimeout`.
 
 ```js
 ❌ WRONG — a new feature inventing its own error-naming shape
@@ -264,18 +267,51 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "https://nba-multiplayer-p
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:4000";
 ```
 
-## Rule MP-12: SP-first-but-MP-ready — a game needs zero multiplayer code to be playable online; only 3 of 18 renderers actually branch on it
+## Rule MP-12: SP-first-but-MP-ready — SP *gameplay logic* needs zero socket code, but the socket *transport* connects on every app load regardless
 
-Every game renderer is driven purely by its `gameData`/`onGameEnd` props; single-player
-(`MiniGame.tsx`) and multiplayer (`OnlineMatch.tsx`) both call the same `renderGame()` switch —
-the server deals the room the identical round and `submitScore` on end works exactly like solo
-scoring. `RenderGame.tsx` only forwards the extra `turn`/`onTurnAction`/`multiplayer` props to
-the 3 cases whose behavior actually changes in a room: `ConnectionsGame` (hides the Shuffle
-control), `TicTacToe` and `ImposterGame` (full server-authoritative turn engine, MP-2/MP-3). Seven
-other renderers (`BingoGame`, `CareerPath`, `Contexto`, `NbaGrid`, `PackFive`, `SuperDraft`,
-`WhoAreYa`) declare an unused `multiplayer?: boolean` prop in their own TypeScript interface that
-`RenderGame.tsx` never actually passes — that's dead scaffolding, not a wiring template; a game
-that plays identically solo or online needs no such prop at all.
+**Gameplay data flow (the "SP-first" half):** every game renderer is driven purely by its
+`gameData`/`onGameEnd` props; single-player (`MiniGame.tsx`) and multiplayer (`OnlineMatch.tsx`)
+both call the same `renderGame()` switch in `RenderGame.tsx` — itself a dispatcher, not a
+renderer, that maps a `gameId` to one of 18 `case` branches (17 real games plus `"coming-soon"`)
+and returns the matching renderer component. The server deals the room the identical round and
+`submitScore` on end works exactly like solo scoring. `RenderGame.tsx` only forwards the extra
+`turn`/`onTurnAction`/`multiplayer` props to the 3 branches whose behavior actually changes in a
+room: `ConnectionsGame` (hides the Shuffle control), `TicTacToe` and `ImposterGame` (full
+server-authoritative turn engine, MP-2/MP-3). Seven other renderer components (`BingoGame`,
+`CareerPath`, `Contexto`, `NbaGrid`, `PackFive`, `SuperDraft`, `WhoAreYa`) declare an unused
+`multiplayer?: boolean` prop in their own TypeScript interface that `RenderGame.tsx` never
+actually passes — that's dead scaffolding, not a wiring template; a game that plays identically
+solo or online needs no such prop at all.
+
+**Transport connection (the important caveat — don't over-read the above as "no socket activity
+in single-player"):** `MultiplayerProvider` is mounted globally and unconditionally in
+`src/App.tsx` (~line 57, wrapping every route, not just multiplayer screens), `src/socket.ts`
+calls `io(SOCKET_URL, { transports: [...] })` at module load with Socket.IO's default
+`autoConnect: true` (no `autoConnect: false` override anywhere in the file), and
+`MultiplayerContext.tsx`'s identity effect (~lines 381-388) emits `identify` on every `"connect"`
+event for *any* logged-in user, not just one who opened a multiplayer screen. So a solo player
+still opens a live WebSocket to `multiplayer_server` and announces themselves the moment the app
+loads — "works single-player" in this doc means **the game's own logic and rendering function
+correctly with the socket server down or unreachable** (no `gameData`/`onGameEnd` path depends on
+`socket`/`useMultiplayer`, per MP-13), not that zero connection attempt happens. A task judging
+"does this touch the multiplayer surface" by checking whether a game renderer imports `socket`
+will miss changes to `App.tsx`'s provider mount, `socket.ts`'s connection options, or the
+`identify` effect — those affect every user, solo or not.
+
+```tsx
+❌ WRONG — inferring from MP-12's SP-first half that single-player never talks to the socket server
+// "This game only reads gameData/onGameEnd, so removing VITE_SOCKET_URL / killing the socket
+// server can't affect single-player at all" — the connection + identify() still fire on load,
+// even though this game's own rendering path is unaffected by them.
+
+✅ RIGHT — App.tsx mounts the provider (and therefore the connection) for every route
+<MultiplayerProvider>      {/* connects + identifies regardless of which page is active */}
+  <ModalProvider>
+    <AnimatedRoutes />      {/* includes every single-player-only game route */}
+    <ModalHost />
+  </ModalProvider>
+</MultiplayerProvider>
+```
 
 ```tsx
 ❌ WRONG — a new renderer adding `multiplayer?: boolean` "just in case", copying the unwired 7
