@@ -85,7 +85,7 @@ c. **`package.json`'s `"team"` script edit is intentionally uncommitted.** `pack
 
 ## 9. Secrets rotation
 
-- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the cloud CTO jobs and the
+- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the `cto-review` job and the
   `@claude` mention responder. Mint it with `claude setup-token` (browser flow), then
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (paste when prompted). It expires
   periodically — when cloud runs start failing auth, re-run both commands.
@@ -108,6 +108,15 @@ edit --add-label`, and Notion status writes happen. Practically: a prompt-inject
 LLM step at all. Auto-merge only lands changes on `dev`; the existing `dev-ci.yml`
 promotion (dev → main → production) is unchanged by any of this.
 
+**Known limitation:** auto-merges performed by the pipeline use the GitHub Actions token
+(`GITHUB_TOKEN`). GitHub deliberately does not fire `on: push` workflows from a
+`GITHUB_TOKEN` push (infinite-loop prevention), so the pipeline's own merge into `dev`
+does NOT automatically trigger the dev → main promote job in `dev-ci.yml`. Code the
+pipeline merges to `dev` reaches `main` on the next manual push to `dev` (or a human "Run
+workflow" on the promote job). To make pipeline merges auto-promote to production, mint a
+fine-grained PAT with `contents:write` and use it for the merge step in `cto-act` instead
+of `GITHUB_TOKEN` — a deliberate security tradeoff. Left human-gated by default.
+
 ## 11. Troubleshooting
 
 - **Lockfile stuck** (`team-run already running` but no run is actually happening):
@@ -120,3 +129,8 @@ promotion (dev → main → production) is unchanged by any of this.
   active `gh` account is `stefanroman22`, not `jimmedeknatel8` (see §8a) — a wrong
   account fails silently from Notion's point of view since the card never gets past
   ship.
+- **In-Review orphan** (card stuck `In Review` with a failed CTO GitHub Actions run): the
+  `cto-review` job didn't produce `cto-verdict.json`, so `cto-act` was skipped and no
+  label was set. Re-run the failed workflow from the GitHub Actions tab; if it keeps
+  failing, read the run log, and as a fallback set the card back to `Ready` to re-ship
+  from a fresh run.
