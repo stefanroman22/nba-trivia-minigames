@@ -14,7 +14,7 @@ on:
 
 jobs:
   claude:
-    if: (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '@claude')
+    if: (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') && contains(github.event.comment.body, '@claude') && github.event.comment.user.type != 'Bot'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -42,6 +42,7 @@ jobs:
           CLAUDE_CODE_SUBAGENT_MODEL: ${{ steps.profile.outputs.subagent_model }}
           CLAUDE_CODE_EFFORT_LEVEL: ${{ steps.profile.outputs.effort }}
 
+  # Trust model: team/* branches are pushed only by the owner's automation pipeline.
   cto-review:
     if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'team/')
     runs-on: ubuntu-latest
@@ -49,10 +50,42 @@ jobs:
       group: cto-${{ github.event.pull_request.number }}
       cancel-in-progress: true
     permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      PR: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: CTO review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: "/cto-review ${{ github.event.pull_request.number }}"
+          claude_args: '--allowedTools "Bash,Read,Grep,Glob,Write"'
+
+      - name: Upload verdict artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cto-verdict
+          path: cto-verdict.json
+
+  cto-act:
+    needs: cto-review
+    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'team/')
+    runs-on: ubuntu-latest
+    permissions:
       contents: write
       pull-requests: write
       issues: write
-      id-token: write
+      checks: read
+      statuses: read
       actions: read
     env:
       GH_TOKEN: ${{ github.token }}
@@ -62,6 +95,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download verdict artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cto-verdict
 
       - name: Extract Notion task id
         id: meta
@@ -79,21 +117,17 @@ jobs:
             echo "hit=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: CTO review
-        uses: anthropics/claude-code-action@v1
-        with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          prompt: "/cto-review ${{ github.event.pull_request.number }}"
-          claude_args: '--allowedTools "Bash,Read,Grep,Glob,Write"'
-
       - name: Act on verdict
         run: |
           VERDICT=$(jq -r .verdict cto-verdict.json)
           NOTION_TASK="${{ steps.meta.outputs.notion_task }}"
           if [ "${{ steps.protected.outputs.hit }}" = "true" ]; then
             gh pr edit "$PR" --add-label "needs-human-approval"
-            [ -n "$NOTION_TASK" ] && node scripts/notion.mjs set-status "$NOTION_TASK" "Blocked-approval" \
-              && node scripts/notion.mjs comment "$NOTION_TASK" "PR touches protected paths — needs your tap: $(gh pr view $PR --json url -q .url)" --mention
+            if [ -n "$NOTION_TASK" ]; then
+              ( node scripts/notion.mjs set-status "$NOTION_TASK" "Blocked-approval" \
+                && node scripts/notion.mjs comment "$NOTION_TASK" "PR touches protected paths — needs your tap: $(gh pr view $PR --json url -q .url)" --mention ) \
+                || echo "notion update failed (non-fatal)"
+            fi
             exit 0
           fi
           if [ "$VERDICT" = "APPROVE" ]; then
@@ -104,9 +138,15 @@ jobs:
           fi
           if [ "$VERDICT" = "APPROVE" ]; then
             gh pr merge "$PR" --squash --delete-branch
-            [ -n "$NOTION_TASK" ] && node scripts/notion.mjs set-status "$NOTION_TASK" "Done" \
-              && node scripts/notion.mjs comment "$NOTION_TASK" "Merged to dev 🎉 $(gh pr view $PR --json url -q .url)" --mention
+            if [ -n "$NOTION_TASK" ]; then
+              ( node scripts/notion.mjs set-status "$NOTION_TASK" "Done" \
+                && node scripts/notion.mjs comment "$NOTION_TASK" "Merged to dev 🎉 $(gh pr view $PR --json url -q .url)" --mention ) \
+                || echo "notion update failed (non-fatal)"
+            fi
           else
             gh pr edit "$PR" --add-label "cto-changes-requested"
-            [ -n "$NOTION_TASK" ] && node scripts/notion.mjs comment "$NOTION_TASK" "CTO requested changes — next local run will fix. $(gh pr view $PR --json url -q .url)"
+            if [ -n "$NOTION_TASK" ]; then
+              node scripts/notion.mjs comment "$NOTION_TASK" "CTO requested changes — next local run will fix. $(gh pr view $PR --json url -q .url)" \
+                || echo "notion update failed (non-fatal)"
+            fi
           fi
