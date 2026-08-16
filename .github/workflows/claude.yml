@@ -80,6 +80,9 @@ jobs:
     needs: cto-review
     if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'team/')
     runs-on: ubuntu-latest
+    concurrency:
+      group: cto-act-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     permissions:
       contents: write
       pull-requests: write
