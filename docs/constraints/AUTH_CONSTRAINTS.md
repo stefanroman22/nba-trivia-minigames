@@ -20,6 +20,7 @@ not touch without being classified `risk: high`.
 | Public player ID generation | `backend/users/identity.py` |
 | Session/refresh-token lifetime | `backend/users/tokens.py` |
 | Auth endpoints (login/signup/google/logout/me/update-profile) | `backend/users/views.py` |
+| Leaderboard (public_id-keyed reads/writes) | `backend/users/leaderboard.py` |
 | URL mounting | `backend/users/urls.py` (mounted at `api/` — see BE-13) |
 | JWT + custom-user Django settings | `backend/backend/settings.py` (`AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`) |
 | Token storage + refresh-on-401 | `src/utils/Api.tsx` |
@@ -41,8 +42,8 @@ out explicitly — nothing here is an aspirational convention the code doesn't a
 called Baller23"). The permanent, unambiguous 6-character `public_id`
 (`identity.py`'s `generate_public_id()`, alphabet drops `0/O`/`1/I`, collision-retried up to 8x in
 `CustomUser.save()`) is what every consumer actually keys by: `user_payload()`'s `"id":
-user.public_id` (`views.py`), `leaderboard.py`'s `top()`/`rank_of()`/`record_score()` (all keyed
-by `public_id`), and the multiplayer server's `players` Map (`user.id`, which is the frontend's
+user.public_id` (`views.py`), `backend/users/leaderboard.py`'s `top()`/`rank_of()`/`record_score()`
+(all keyed by `public_id`), and the multiplayer server's `players` Map (`user.id`, which is the frontend's
 `public_id` — see `MULTIPLAYER_CONSTRAINTS.md` MP-1). A task must never treat `username` as a
 unique lookup key or a stable identity.
 
@@ -51,7 +52,7 @@ unique lookup key or a stable identity.
 def get_profile(request, username):
     return CustomUser.objects.get(username=username)  # multiple accounts can share this name
 
-✅ RIGHT — leaderboard.py, keyed by the permanent public_id everywhere
+✅ RIGHT — backend/users/leaderboard.py, keyed by the permanent public_id everywhere
 names = dict(User.objects.filter(public_id__in=ids).values_list("public_id", "username"))
 ```
 
