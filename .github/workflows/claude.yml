@@ -20,6 +20,8 @@ jobs:
       contents: read
       pull-requests: write
       issues: write
+      id-token: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
 
@@ -135,10 +137,23 @@ jobs:
             exit 0
           fi
           if [ "$VERDICT" = "APPROVE" ]; then
-            # --required only: this cto job is itself a check on the PR, so watching ALL
-            # checks would deadlock waiting on ourselves. dev-ci should be marked required
-            # on dev PRs in branch protection; if no required checks exist this returns fast.
-            gh pr checks "$PR" --required --watch || { echo "required checks failed"; VERDICT="REQUEST_CHANGES"; }
+            # Gate on the dev-ci checks BY NAME (lint + gitleaks). Self-contained: no
+            # dependency on branch-protection "required" config, and we never watch the
+            # CTO jobs themselves, which would self-deadlock (cto-act waiting on cto-act).
+            echo "Waiting up to 10 min for dev-ci checks (lint, gitleaks) to pass..."
+            DEADLINE=$((SECONDS + 600))
+            while :; do
+              CHECKS=$(gh pr checks "$PR" --json name,bucket 2>/dev/null || echo '[]')
+              LINT=$(echo "$CHECKS" | jq -r 'map(select(.name|test("lint";"i")) | .bucket)[0] // "wait"')
+              SEC=$(echo "$CHECKS"  | jq -r 'map(select(.name|test("secret|gitleak";"i")) | .bucket)[0] // "wait"')
+              echo "  lint=$LINT  security=$SEC"
+              case "$LINT" in fail|cancel) LINT=FAIL;; pass|skipping) LINT=OK;; *) LINT=WAIT;; esac
+              case "$SEC"  in fail|cancel) SEC=FAIL;;  pass|skipping) SEC=OK;;  *) SEC=WAIT;; esac
+              if [ "$LINT" = FAIL ] || [ "$SEC" = FAIL ]; then echo "a required check failed"; VERDICT="REQUEST_CHANGES"; break; fi
+              if [ "$LINT" = OK ] && [ "$SEC" = OK ]; then echo "dev-ci checks green"; break; fi
+              if [ "$SECONDS" -ge "$DEADLINE" ]; then echo "timed out waiting for checks"; VERDICT="REQUEST_CHANGES"; break; fi
+              sleep 15
+            done
           fi
           if [ "$VERDICT" = "APPROVE" ]; then
             gh pr merge "$PR" --squash --delete-branch
