@@ -198,6 +198,42 @@ async function cmdDailyDigests(day) {
   }
 }
 
+async function cmdDigestWindow(startISO, endISO, label) {
+  const start = Date.parse(startISO), end = Date.parse(endISO);
+  const chan = cfg.slack?.generalChannel;
+  const nameMap = { "frontend-engine": "frontend", "backend-engine": "backend" };
+  const buckets = { frontend: [], backend: [] };
+  const shipped = [];
+  const prs = JSON.parse(sh(`gh pr list --state merged --base dev --json number,title,url,body,headRefName,mergedAt --limit 200`));
+  for (const pr of prs) {
+    if (!pr.headRefName?.startsWith("team/")) continue;
+    const m = Date.parse(pr.mergedAt || "");
+    if (!(m >= start && m < end)) continue;
+    shipped.push(`• ${pr.title} (<${pr.url}|PR#${pr.number}>)`);
+    for (const n of parseAgentNotes(pr.body || "")) {
+      const ch = nameMap[n.agent];
+      if (ch) buckets[ch].push(`• ${pr.title} (PR#${pr.number}): ${n.did}\n  assumed: ${n.assumed}`);
+    }
+  }
+  // Always post a session line to #pipeline (reflect reality even when empty).
+  if (chan) {
+    const head = `📋 *${label}* — merges ${startISO.slice(11,16)}–${endISO.slice(11,16)}`;
+    const text = shipped.length
+      ? `${head}: ${shipped.length} task(s) shipped\n${shipped.join("\n")}`
+      : `${head}: no work this session.`;
+    const r = await apiTry("chat.postMessage", { channel: chan, text }, true);
+    console.log(r.ok ? `posted session line (${shipped.length} shipped)` : `session line failed (non-fatal): ${r.error}`);
+  }
+  // Per-engine detail only when there is work.
+  for (const [agent, lines] of Object.entries(buckets)) {
+    const ac = cfg.slack?.agentChannels?.[agent];
+    if (!ac || !lines.length) continue;
+    const text = `📆 ${agent} · ${label} · ${lines.length} shipped\n${lines.join("\n")}`;
+    const r = await apiTry("chat.postMessage", { channel: ac, text }, true);
+    console.log(r.ok ? `posted ${agent} detail` : `${agent} detail failed (non-fatal): ${r.error}`);
+  }
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "ping": () => cmdPing(args[0], ...args.slice(1)),
@@ -205,6 +241,7 @@ const run = {
   "post-batch": () => cmdPostBatch(args[0]),
   "poll-reactions": cmdPollReactions,
   "daily-digests": () => cmdDailyDigests(args[0]),
+  "digest-window": () => cmdDigestWindow(args[0], args[1], args.slice(2).join(" ")),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();
