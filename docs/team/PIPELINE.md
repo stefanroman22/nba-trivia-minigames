@@ -205,7 +205,7 @@ a worktree, the
 browser-QA stage is skipped entirely (no Chrome in the cloud — verify + code-review are
 the gate instead), and `NOTION_TOKEN`/`SLACK_BOT_TOKEN` are read from the environment
 instead of `.env.team`. Everything else — classify, build, verify, review, ship, park,
-the Slack batch post, reaction ingestion — is unchanged from local runs.
+the Slack batch post — is unchanged from local runs.
 
 The **CTO** review/merge gate (§10) is unaffected by any of this — it already runs in
 GitHub Actions and doesn't care where the worker ran.
