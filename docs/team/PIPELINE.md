@@ -193,3 +193,47 @@ prints `MISSING: ...` for any channel name it couldn't resolve, usually because 
 isn't in it). Slack failures anywhere in the pipeline (batch post, digest post, reaction
 poll) are non-fatal — logged and skipped; a batch that fails to post to Slack is still
 merged to `dev`.
+
+## Cloud operation
+
+The worker no longer depends on this PC being on. It now runs as an **Anthropic
+Routine** (cloud), firing at **01:00** and **10:00** with `TEAM_CLOUD=1` set in its
+environment. That env var flips the `team-run` skill into its cloud mode (see
+`.claude/skills/team-run/SKILL.md` → `## Environment: local vs cloud`): each task works
+on a branch (`team/<slug>`) inside the routine's single clone instead of a worktree, the
+browser-QA stage is skipped entirely (no Chrome in the cloud — verify + code-review are
+the gate instead), and `NOTION_TOKEN`/`SLACK_BOT_TOKEN` are read from the environment
+instead of `.env.team`. Everything else — classify, build, verify, review, ship, park,
+the Slack batch post, reaction ingestion — is unchanged from local runs.
+
+The **CTO** review/merge gate (§10) is unaffected by any of this — it already runs in
+GitHub Actions and doesn't care where the worker ran.
+
+**Reports.** The nightly/daytime Slack summary is now the `Team Reports` GitHub Actions
+workflow (`.github/workflows/team-reports.yml`), on a cron at **05:30 and 15:30 UTC**
+(07:30 / 17:30 local in summer). It calls `node scripts/slack.mjs digest-window <start>
+<end> <label>`, which lists PRs merged to `dev` with `mergedAt` inside `[start, end)`,
+posts one session line to `#pipeline` (`N task(s) shipped` + titles/links, or "no work
+this session" when the window was empty), and — only when there's something to say — a
+per-engine detail post to `#agent-frontend`/`#agent-backend` from each PR's `## Agent
+notes` block. The window for each run is read from `github.event.schedule`, not guessed
+from the clock, and the two windows are back-to-back (`[prev report, this report)`) so no
+merge falls in a gap or gets reported twice.
+
+**Local scheduled tasks are retired.** `scripts/unregister-team-cron.ps1` unregisters the
+old `nba-team-pipeline` and `nba-team-digest` Windows scheduled tasks (idempotent — safe
+to re-run). The cloud routine and the report workflow replace what they did. `npm run
+team` still works exactly as before for a manual local run: no `TEAM_CLOUD` env var means
+local mode, worktrees, and full browser QA.
+
+**Routine configuration.** The routine's environment needs three variables —
+`TEAM_CLOUD=1`, `NOTION_TOKEN`, `SLACK_BOT_TOKEN` — and its network access must allow
+`api.notion.com` and `slack.com`, or Notion/Slack calls will fail from the cloud
+sandbox. The report workflow needs its own copy of the token as a GitHub repo secret,
+`SLACK_BOT_TOKEN` (`gh secret set SLACK_BOT_TOKEN`), separate from the routine's env var.
+
+**DST caveat.** The report crons are fixed UTC times (`30 5` / `30 15`), tuned for
+07:30/17:30 local at the current UTC+2 (summer) offset. Once the clocks fall back to
+UTC+1 (winter), both reports will fire an hour later than the label says (e.g. the
+"07:30" report lands at 08:30 local) until the cron lines are manually adjusted for the
+season.
