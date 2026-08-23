@@ -134,3 +134,61 @@ of `GITHUB_TOKEN` — a deliberate security tradeoff. Left human-gated by defaul
   label was set. Re-run the failed workflow from the GitHub Actions tab; if it keeps
   failing, read the run log, and as a fallback set the card back to `Ready` to re-ship
   from a fresh run.
+
+## 12. Slack layer
+
+The pipeline mirrors its work into Slack via `scripts/slack.mjs` (zero-dep, Node 18+
+fetch; commands: `ping`, `resolve-channels`, `post-batch`, `poll-reactions`,
+`daily-digests`). The app is installed as **`hoops-24-team`** in the **Roman
+Technologies** workspace.
+
+**Channels.** Five channels: **#pipeline** gets one post per run — the batch overview
+below. **#agent-frontend** and **#agent-backend** get a real nightly digest each, because
+`## Agent notes` blocks are only ever written by `frontend-engine` and `backend-engine`.
+**#agent-qa** and **#agent-review** exist and are wired the same way, but since no engine
+writes agent notes tagged for QA or review, in v1 they only ever receive the digest job's
+fallback bucket (PRs with no parsed agent notes) — treat empty/near-empty QA and review
+channels as expected, not broken.
+
+**Batch overview format.** At end of run (§5), if any tasks shipped, `slack.mjs
+post-batch` posts to #pipeline: a parent message — `🟢 Batch complete — <count> shipped
+to dev · <HH:MM>` plus the Dev link (`cfg.devSiteUrl`) — followed by **one top-level
+message per shipped task** (not a thread reply under the parent). Each task gets its own
+message so a reply threads unambiguously under that task, not the whole batch:
+`<n>.  *_<title>_*   ·   *<areas>*` (title bold-italic, areas bold), then `*Check:*
+<look>` (the orchestrator's explicit navigate → action → expected-result line), then the
+react legend `✅ approve · 🔄 needs work — reply to say what`.
+
+**Feedback loop.** React 🔄 on a task's message (optionally with a thread reply giving
+detail) → the next run's `## 0b` step (`slack.mjs poll-reactions`) creates a Notion card
+`Follow-up: <title>`, status Ready, body = your reply text (or a generic "reviewer
+flagged 🔄 with no note — re-examine" if you didn't reply); that card drains in the same
+run's queue. React ✅ alone (no 🔄) → the task's Notion card is archived. A thread reply
+with no 🔄 does nothing by itself — the reply is only ever detail attached to a 🔄'd card,
+never a trigger on its own, so a stray note can't reopen a task. Only reactions from the
+user configured as `slack.slackUserId` in config count; anyone else's reactions on the
+same message are ignored. Reactions are **polled, not pushed** — `poll-reactions` only
+runs at the start of the next pipeline run, so there's up to ~2h of latency (the
+`nba-team-pipeline` interval, §3) between reacting and the follow-up card appearing.
+
+**Daily digests.** The `nba-team-digest` Windows scheduled task (daily at 23:30,
+registered by `scripts/register-team-digest-cron.ps1`) runs `scripts/team-digest.ps1`,
+which loads `.env.team` and calls `node scripts/slack.mjs daily-digests`. That command
+lists the day's merged `team/*` PRs into `dev`, parses each PR body's `## Agent notes`
+block, buckets the notes by agent channel, and posts one digest message per non-empty
+channel.
+
+**Secrets & config.** `SLACK_BOT_TOKEN` lives in `.env.team`. Channel ids
+(`slack.generalChannel`, `slack.agentChannels.{frontend,backend,qa,review}`), the
+approver's `slack.slackUserId`, and `devSiteUrl` live in `.claude/team/config.json` —
+`node scripts/slack.mjs resolve-channels` fills the channel ids in automatically by
+channel name, but `slackUserId` must be entered by hand. Runtime state (posted task
+cards awaiting a reaction) lives in `.claude/team/slack-state.json`, which is gitignored.
+
+**Troubleshooting.** No Slack posts at all → confirm the bot is invited to the target
+channel and that `slack.slackUserId`/the channel ids are set in
+`.claude/team/config.json`, then re-run `node scripts/slack.mjs resolve-channels` (it
+prints `MISSING: ...` for any channel name it couldn't resolve, usually because the bot
+isn't in it). Slack failures anywhere in the pipeline (batch post, digest post, reaction
+poll) are non-fatal — logged and skipped; a batch that fails to post to Slack is still
+merged to `dev`.
