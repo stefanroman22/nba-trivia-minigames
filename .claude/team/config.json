@@ -4,11 +4,20 @@
   "maxTasksPerRun": 3,
   "maxRunMinutes": 90,
   "worktreeRoot": "C:\\Users\\stefa\\.team-worktrees",
-  "qaPorts": { "django": 8100, "socket": 4100, "vite": 5273 },
-  "slack": {
-    "generalChannel": "",
-    "agentChannels": { "frontend": "", "backend": "", "qa": "", "review": "" },
-    "slackUserId": ""
+  "qaPorts": {
+    "django": 8100,
+    "socket": 4100,
+    "vite": 5273
   },
-  "devSiteUrl": ""
+  "slack": {
+    "generalChannel": "C0BS1F0PVSA",
+    "agentChannels": {
+      "frontend": "C0BS3CM7E4A",
+      "backend": "C0BSXQ4SVQ8",
+      "qa": "C0BS73VNT0U",
+      "review": "C0BRN2GFGBH"
+    },
+    "slackUserId": "U0B421ZJDU4"
+  },
+  "devSiteUrl": "https://nba-minigames-em0b1vs8i-stefanromanpers-5412s-projects.vercel.app"
 }
