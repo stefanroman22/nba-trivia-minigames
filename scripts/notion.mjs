@@ -147,6 +147,28 @@ async function cmdSetProps(pageId, args) {
   console.log("props set");
 }
 
+async function cmdCreateCard(title, args) {
+  const props = {
+    Name: { title: text(title) },
+    Status: { select: { name: "Ready" } },
+    Priority: { select: { name: "P1" } },
+  };
+  const ai = args.indexOf("--area");
+  if (ai > -1 && args[ai + 1]) props.Area = { multi_select: args[ai + 1].split(",").map(n => ({ name: n.trim() })) };
+  const page = { parent: { database_id: DB }, properties: props };
+  const bi = args.indexOf("--body");
+  if (bi > -1 && args[bi + 1]) {
+    page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(args[bi + 1]) } }];
+  }
+  const r = await api("pages", "POST", page);
+  console.log(r.id);
+}
+
+async function cmdArchiveCard(pageId) {
+  await api(`pages/${pageId}`, "PATCH", { archived: true });
+  console.log("archived");
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "setup": () => cmdSetup(args[0]),
@@ -158,6 +180,8 @@ const run = {
   "set-status": () => setStatus(args[0], args[1]),
   "set-props": () => cmdSetProps(args[0], args.slice(1)),
   "comment": () => cmdComment(args[0], args.filter(a => a !== "--mention").slice(1).join(" "), args.includes("--mention")),
+  "create-card": () => cmdCreateCard(args[0], args.slice(1)),
+  "archive-card": () => cmdArchiveCard(args[0]),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();
