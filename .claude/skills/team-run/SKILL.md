@@ -17,7 +17,7 @@ Notion MCP connector (absent in headless runs).
 ## 0b. Slack feedback ingestion
 Run `node scripts/slack.mjs poll-reactions` (non-fatal: on error, log and skip to §1).
 Parse the JSON array. For each item:
-- `action:"followup"` → `node scripts/notion.mjs create-card "Follow-up: <title>" --body "Slack feedback on <pr>: <note>"` (omit `--area`; classify re-derives areas from the spec). This new Ready card is picked up in this same run's queue (§2 reads Ready after this).
+- `action:"followup"` → `node scripts/notion.mjs create-card "Follow-up: <title>" --body "Slack feedback on <pr>: <note>"`. If the item has a non-empty `areas`, pass `--area <areas joined by comma>` to route it directly (e.g. `create-card "Follow-up: <title>" --area <areas.join(",")> --body "Slack feedback on <pr>: <note>"`); if `areas` is empty, omit `--area` as before and classify re-derives areas from the spec. This new Ready card is picked up in this same run's queue (§2 reads Ready after this).
 - `action:"ack"` and the item has a pageId → `node scripts/notion.mjs archive-card <pageId>`.
 This runs BEFORE §2 so follow-ups drain in the same batch.
 

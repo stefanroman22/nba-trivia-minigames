@@ -43,12 +43,14 @@ async function api(method, params = {}, post = false) {
   return json;
 }
 
-// Non-fatal read: returns the json even on ok:false, never exits — so one bad
-// card (deleted message, etc.) can't abort the whole poll.
-async function apiTry(method, params = {}) {
+// Non-fatal Slack call (GET-style by default, POST when post=true): returns the
+// json even on ok:false, never exits — so one bad call can't abort a loop.
+async function apiTry(method, params = {}, post = false) {
   try {
-    const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`https://slack.com/api/${method}?${qs}`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    const url = `https://slack.com/api/${method}`;
+    const res = post
+      ? await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json; charset=utf-8" }, body: JSON.stringify(params) })
+      : await fetch(`${url}?${new URLSearchParams(params).toString()}`, { headers: { Authorization: `Bearer ${TOKEN}` } });
     return await res.json();
   } catch { return { ok: false, error: "fetch_failed" }; }
 }
@@ -104,9 +106,9 @@ async function cmdPostBatch(jsonPath) {
     // Top-level (no thread_ts) so a human reply threads under THIS task, making
     // notes unambiguously per-task even when a batch has several tasks.
     const card = await api("chat.postMessage", { channel: chan, text: body }, true);
-    state.cards.push({ ts: card.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, resolved: false });
+    state.cards.push({ ts: card.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, areas: t.areas || [], resolved: false });
+    writeState(state);
   }
-  writeState(state);
   console.log(`posted batch: parent ts=${parent.ts}, ${batch.shipped.length} cards`);
 }
 
@@ -147,7 +149,7 @@ async function cmdPollReactions() {
     if (reacted.fix) {
       const note = await noteFor(card.ts, card.channel);
       items.push({ action: "followup", pageId: card.pageId, pr: card.pr, prNum: card.prNum, title: card.title,
-        note: note || "reviewer flagged 🔄 with no note — re-examine" });
+        areas: card.areas || [], note: note || "reviewer flagged 🔄 with no note — re-examine" });
       card.resolved = true;
     } else if (reacted.ok) {
       items.push({ action: "ack", pageId: card.pageId, pr: card.pr, prNum: card.prNum, title: card.title, note: "" });
@@ -194,8 +196,9 @@ async function cmdDailyDigests(day) {
     const chan = cfg.slack?.agentChannels?.[agent];
     if (!chan || !lines.length) continue;
     const text = `📆 ${agent} · ${date} · ${lines.length} shipped\n${lines.join("\n")}`;
-    try { await api("chat.postMessage", { channel: chan, text }, true); console.log(`posted digest to ${agent}`); }
-    catch { console.error(`digest post to ${agent} failed (non-fatal)`); }
+    const r = await apiTry("chat.postMessage", { channel: chan, text }, true);
+    if (r.ok) console.log(`posted digest to ${agent}`);
+    else console.error(`digest post to ${agent} failed (non-fatal): ${r.error}`);
   }
 }
 
