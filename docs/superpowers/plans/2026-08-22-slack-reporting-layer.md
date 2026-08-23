@@ -180,7 +180,7 @@ git commit -m "feat(team): slack.mjs skeleton, channel resolution, config block"
 - Modify: `scripts/slack.mjs`
 
 **Interfaces:**
-- Consumes: a batch JSON file: `{ "shipped": [ { "n": 1, "title": "...", "areas": ["frontend"], "pr": "https://.../pull/34", "prNum": 34, "cto": "✅CTO", "checkUrl": "https://dev.../leaderboard", "look": "top-10 orders by wins desc", "pageId": "<notion-page-id>" } ], "count": 3 }`
+- Consumes: a batch JSON file: `{ "shipped": [ { "n": 1, "title": "...", "areas": ["frontend"], "pr": "https://.../pull/34", "prNum": 34, "look": "<explicit navigate→action→expected verification line>", "pageId": "<notion-page-id>" } ], "count": 3 }`. (`cto`/`checkUrl` are NOT used — final format shows one Dev link at the parent from `cfg.devSiteUrl`, no per-card PR/CTO/deep-link.)
 - Produces: `post-batch <batchJsonPath>` — posts parent + one threaded card per task; appends each card `{ts, channel, pageId, pr, prNum, title, resolved:false}` to `slack-state.json` `cards[]`. Adds `chat.postMessage` calls.
 
 - [ ] **Step 1: Add `cmdPostBatch` and register it**
@@ -193,13 +193,15 @@ async function cmdPostBatch(jsonPath) {
   if (!chan) { console.error("no generalChannel in config"); process.exit(1); }
   if (!batch.shipped?.length) { console.log("empty batch, nothing to post"); return; }
   const now = new Date().toISOString().slice(11, 16);
+  const devLine = cfg.devSiteUrl ? `\nDev: ${cfg.devSiteUrl}` : "";
   const parent = await api("chat.postMessage",
-    { channel: chan, text: `🟢 Batch complete — ${batch.count} shipped to dev · ${now}` }, true);
+    { channel: chan, text: `🟢 Batch complete — ${batch.count} shipped to dev · ${now}${devLine}` }, true);
   const state = readState();
   for (const t of batch.shipped) {
-    const check = t.checkUrl ? `check: ${t.checkUrl} — ${t.look || "verify the change"}` : `check: ${t.pr}`;
-    const body = `${t.n} · ${t.title} · ${(t.areas || []).join("+")} · <${t.pr}|PR #${t.prNum}> ${t.cto || ""}\n` +
-      `${check}\nreact: ✅ good · 🔄 needs work (reply what) · 💬 note`;
+    const body =
+      `${t.n}.  *_${t.title}_*   ·   *${(t.areas || []).join("+")}*\n\n` +
+      `*Check:*  ${t.look || "verify the change"}\n\n` +
+      `✅ approve      ·      🔄 needs work — reply to say what\n​`;
     const card = await api("chat.postMessage", { channel: chan, thread_ts: parent.ts, text: body }, true);
     state.cards.push({ ts: card.ts, parentTs: parent.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, resolved: false });
   }
@@ -224,39 +226,36 @@ git add scripts/slack.mjs
 git commit -m "feat(team): slack post-batch (parent + threaded task cards)"
 ```
 
-### Task 3: Wire post-batch into team-run + classify checkPath
+### Task 3: Wire post-batch into team-run
 
 **Files:**
-- Modify: `.claude/skills/team-run/SKILL.md`, `.claude/skills/classify/SKILL.md`
+- Modify: `.claude/skills/team-run/SKILL.md`
 
 **Interfaces:**
-- Consumes: `slack.mjs post-batch`, classify JSON.
-- Produces: team-run composes the batch JSON at run end and posts it; classify emits an optional `checkPath`.
+- Consumes: `slack.mjs post-batch`.
+- Produces: team-run composes the batch JSON at run end and posts it.
 
-- [ ] **Step 1: classify emits `checkPath`**
+(Note: an earlier draft added a `classify.checkPath` field for per-card deep-links. The final format dropped per-card links in favor of one Dev link at the parent, so classify is NOT modified — the navigation lives in the `look` line the orchestrator writes at ship time.)
 
-In `.claude/skills/classify/SKILL.md`, add `checkPath` to the output JSON contract (a URL path hint for eyeballing the change, or `null`). Update the `## Output` example object to include: `"checkPath": "/leaderboard"`. Add one rubric line: "checkPath: the app route where the change is visible (e.g. `/profile`, `/` for a game hub), or null for backend/data-only tasks."
-
-- [ ] **Step 2: team-run accumulates shipped tasks and posts at run end**
+- [ ] **Step 1: team-run accumulates shipped tasks and posts at run end**
 
 In `.claude/skills/team-run/SKILL.md`:
-- In `## 3` per-task state machine, at the **ship** step, add: "On success, append to an in-run `shipped[]` list: `{n, title, areas, pr, prNum, cto:'✅CTO'? (pending until CTO; use '' at ship time), checkUrl: cfg.devSiteUrl + classify.checkPath (or '' if either missing), look: <one-line what-to-look-for from the task spec>, pageId}`."
-- In `## 5. End of run`, add: "If `shipped[]` is non-empty, write it to `.claude/team/last-batch.json` as `{count: shipped.length, shipped}` and run `node scripts/slack.mjs post-batch .claude/team/last-batch.json` (wrap in a try/catch equivalent — if it fails, log 'slack post failed (non-fatal)' and continue). This is the batch overview to Slack."
-- Note in the step: the `cto` field is `''` at ship time (the CTO merges later in the cloud); v1 posts the batch at local-run end with PR links, and the CTO ✅ is visible on the PR itself. (Keeping Slack composition in the local run per spec §7.)
+- In `## 3` per-task state machine, at the **ship** step, add: "On success, append to an in-run `shipped[]` list: `{n, title, areas, pr, prNum, look, pageId}`. `look` is an EXPLICIT verification line the orchestrator writes: where to navigate → what to do → the expected result, pitched for someone who knows the app (e.g. 'Open the Leaderboard from the nav; rows should be ordered by total wins, highest first; ties break by most recent win'). Not just the expected end-state — include the navigate/action. The card shows one Dev link at the parent (from `cfg.devSiteUrl`); no per-card PR/CTO/deep-link. `pr`/`prNum` are stored for the feedback loop's follow-up context, not displayed."
+- In `## 5. End of run`, add: "If `shipped[]` is non-empty, write it to `.claude/team/last-batch.json` as `{count: shipped.length, shipped}` and run `node scripts/slack.mjs post-batch .claude/team/last-batch.json` (wrap in a try/catch equivalent — if it fails, log 'slack post failed (non-fatal)' and continue). This is the batch overview to Slack. Composition happens in the local run per spec §7; the CTO merges later in the cloud, so the CTO ✅ is visible on the PR, not the card."
 
-- [ ] **Step 3: Add last-batch.json to gitignore**
+- [ ] **Step 2: Add last-batch.json to gitignore (WITHOUT re-sweeping user WIP)**
 
-Append to `.gitignore`: `.claude/team/last-batch.json`
+The working tree has the user's persistent uncommitted `.gitignore` edits (`local deployment/`, `docs/games/PLAYERS_DATA.md`). A plain `git add .gitignore` would sweep those into this commit. Instead: append `.claude/team/last-batch.json` to `.gitignore` in the working tree, then commit ONLY that one added line by reconstructing the committed baseline — `git show HEAD:.gitignore > /tmp/base`, append the new line to `/tmp/base`, `cp` it over `.gitignore`, `git add .gitignore`, commit; then restore the user's WIP working-tree version (`cp` the saved working copy back, leave unstaged). Verify `git diff HEAD~1 HEAD -- .gitignore` shows ONLY the last-batch.json line and `git status` shows `.gitignore` still modified (user WIP intact).
 
-- [ ] **Step 4: Verify**
+- [ ] **Step 3: Verify**
 
-Run: `head -4 .claude/skills/classify/SKILL.md` and confirm both skills still parse (frontmatter intact). Grep team-run for `post-batch` and `shipped` → present. `git check-ignore .claude/team/last-batch.json` → prints the path.
+`head -4 .claude/skills/team-run/SKILL.md` (frontmatter intact). Grep team-run for `post-batch` and `shipped` → present. `git check-ignore .claude/team/last-batch.json` → prints the path.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit** (team-run only; .gitignore already committed in Step 2)
 
 ```bash
-git add .claude/skills/team-run/SKILL.md .claude/skills/classify/SKILL.md .gitignore
-git commit -m "feat(team): team-run posts batch overview to Slack; classify emits checkPath"
+git add .claude/skills/team-run/SKILL.md
+git commit -m "feat(team): team-run composes and posts batch overview to Slack at run end"
 ```
 
 ---
