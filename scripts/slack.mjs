@@ -64,10 +64,10 @@ async function cmdPing(channel, ...text) {
 }
 
 async function cmdResolveChannels() {
-  // Map the 5 channel names to ids and write them into config.
+  // Map the channel names to ids and write them into config. Only the pipeline
+  // channel + the implementation-agent channels (frontend, backend) are used.
   const want = { "pipeline": ["slack", "generalChannel"], "agent-frontend": ["slack", "agentChannels", "frontend"],
-    "agent-backend": ["slack", "agentChannels", "backend"], "agent-qa": ["slack", "agentChannels", "qa"],
-    "agent-review": ["slack", "agentChannels", "review"] };
+    "agent-backend": ["slack", "agentChannels", "backend"] };
   const found = {};
   let cursor;
   do {
@@ -177,19 +177,15 @@ function parseAgentNotes(body) {
 
 async function cmdDailyDigests(day) {
   const date = day || sh(`git log -1 --format=%cs`).trim(); // fallback: latest commit date (no argless Date())
+  // Only the implementation agents that actually write Agent notes get a digest.
   const nameMap = { "frontend-engine": "frontend", "backend-engine": "backend" };
-  const buckets = { frontend: [], backend: [], qa: [], review: [] };
+  const buckets = { frontend: [], backend: [] };
   const prs = JSON.parse(sh(`gh pr list --state merged --base dev --search "merged:${date}" --json number,title,body,url,headRefName --limit 100`));
   for (const pr of prs) {
     if (!pr.headRefName.startsWith("team/")) continue;
-    const notes = parseAgentNotes(pr.body || "");
-    if (notes.length) {
-      for (const n of notes) {
-        const ch = nameMap[n.agent] || "review";
-        buckets[ch].push(`• ${pr.title} (PR#${pr.number}): ${n.did}\n  assumed: ${n.assumed}`);
-      }
-    } else {
-      buckets.review.push(`• ${pr.title} (PR#${pr.number}): (no agent notes)`);
+    for (const n of parseAgentNotes(pr.body || "")) {
+      const ch = nameMap[n.agent];
+      if (ch) buckets[ch].push(`• ${pr.title} (PR#${pr.number}): ${n.did}\n  assumed: ${n.assumed}`);
     }
   }
   for (const [agent, lines] of Object.entries(buckets)) {

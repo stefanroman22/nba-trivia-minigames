@@ -13,9 +13,7 @@
     "generalChannel": "C0BS1F0PVSA",
     "agentChannels": {
       "frontend": "C0BS3CM7E4A",
-      "backend": "C0BSXQ4SVQ8",
-      "qa": "C0BS73VNT0U",
-      "review": "C0BRN2GFGBH"
+      "backend": "C0BSXQ4SVQ8"
     },
     "slackUserId": "U0B421ZJDU4"
   },
