@@ -9,6 +9,16 @@ You are the orchestrator. You delegate ALL heavy work to subagents; you never wr
 product code yourself. Notion I/O ONLY via `node scripts/notion.mjs ...` — never the
 Notion MCP connector (absent in headless runs).
 
+## Environment: local vs cloud
+Check the `TEAM_CLOUD` environment variable once at the start.
+- **`TEAM_CLOUD` unset (local, Windows):** behave exactly as the sections below describe —
+  git worktrees under `cfg.worktreeRoot`, browser QA via Chrome, `.env.team` for tokens.
+- **`TEAM_CLOUD=1` (cloud routine, Linux):** apply the cloud overrides marked
+  **[CLOUD]** below. In short: work on a branch inside the current clone instead of a
+  worktree, skip the browser-QA stage, and rely on `NOTION_TOKEN`/`SLACK_BOT_TOKEN` from the
+  environment (no `.env.team`). Everything else — classify, build, verify, review, ship, park,
+  post-batch, Slack feedback ingestion — is identical.
+
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
 - `node scripts/notion.mjs check-pause` — exit code 3 → say "paused" and STOP.
@@ -50,6 +60,11 @@ title/areas, and `get-spec` output. Parse its JSON. journal stage=workspace.
 In worktree: `npm ci`. If areas include backend/data/auth:
 `cd backend && python -m venv .venv && .venv\Scripts\pip install -r requirements.txt`.
 journal stage=design|build.
+   **[CLOUD]** Do NOT create a worktree. Instead, in the single clone:
+   `git fetch origin dev` then `git checkout -B team/<slug> origin/dev`. Build/verify/review
+   happen in the clone on this branch. After ship (or park), `git checkout dev` before the next
+   task so each task starts clean from `origin/dev`. There is no `cfg.worktreeRoot` and no
+   worktree to remove in cloud mode.
 
 **design** (only if classify.needsDesignRound) → spawn planner-architect with
 design-round skill. If it parks (design deadlock) → park procedure. journal stage=build.
@@ -68,6 +83,9 @@ park. journal stage=qa.
 
 **qa** → if diff touches src/ or backend/: spawn browser-qa with qa-protocol skill.
 Fail → build (counts toward fixCycles). journal stage=review.
+   **[CLOUD]** Skip the browser-QA stage entirely (no Chrome in the cloud). Rely on the
+   verify stage (lint/tsc/build/Django tests) and code-review; the human reviews the shipped
+   result via the Slack `#pipeline` card and the dev link. Do not spawn browser-qa in cloud mode.
 
 **review** → spawn code-reviewer (model opus) on the worktree diff
 (`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build
@@ -81,6 +99,9 @@ from the nav; rows should be ordered by total wins, highest first; ties break by
 recent win"). Not just the expected end-state — include the navigate/action. The card
 shows one Dev link at the parent (from `cfg.devSiteUrl`); no per-card PR/CTO/deep-link.
 `pr`/`prNum` are stored for the feedback loop's follow-up context, not displayed.
+   **[CLOUD]** Ship is unchanged (commit → `git push -u origin team/<slug>` → `gh pr create
+   --base dev`), but there is no worktree to remove — just `git checkout dev` for the next task.
+   Tokens for the Notion/Slack calls in the ship + post-batch steps come from the environment.
 
 ## 4. Park procedure (any stage)
 1. `node scripts/notion.mjs set-status <id> Blocked`
