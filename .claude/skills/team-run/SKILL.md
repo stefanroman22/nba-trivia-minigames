@@ -66,7 +66,14 @@ Fail → build (counts toward fixCycles). journal stage=review.
 (`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build
 (counts toward fixCycles). "minor"/"nit" findings are noted in the PR body but do not block ship. journal stage=ship.
 
-**ship** → follow ship skill. On success: remove journal entry.
+**ship** → follow ship skill. On success: remove journal entry. On success, append to
+an in-run `shipped[]` list: `{n, title, areas, pr, prNum, look, pageId}`. `look` is an
+EXPLICIT verification line the orchestrator writes: where to navigate → what to do →
+the expected result, pitched for someone who knows the app (e.g. "Open the Leaderboard
+from the nav; rows should be ordered by total wins, highest first; ties break by most
+recent win"). Not just the expected end-state — include the navigate/action. The card
+shows one Dev link at the parent (from `cfg.devSiteUrl`); no per-card PR/CTO/deep-link.
+`pr`/`prNum` are stored for the feedback loop's follow-up context, not displayed.
 
 ## 4. Park procedure (any stage)
 1. `node scripts/notion.mjs set-status <id> Blocked`
@@ -77,7 +84,13 @@ Fail → build (counts toward fixCycles). journal stage=review.
 
 ## 5. End of run
 Log a one-line summary per task (shipped/parked/deferred). If nothing was in the queue,
-exit silently. Never touch cards that are not Ready/In Progress-by-you.
+exit silently. Never touch cards that are not Ready/In Progress-by-you. If `shipped[]`
+is non-empty, write it to `.claude/team/last-batch.json` as `{count: shipped.length,
+shipped}` and run `node scripts/slack.mjs post-batch .claude/team/last-batch.json`
+(wrap in a try/catch equivalent — if it fails, log "slack post failed (non-fatal)" and
+continue). This is the batch overview to Slack. Composition happens in the local run
+per spec §7; the CTO merges later in the cloud, so the CTO ✅ is visible on the PR, not
+the card.
 
 ## Hard rules
 - NEVER run git commands in the main checkout except: committing RETRO.md/DECISIONS.md
