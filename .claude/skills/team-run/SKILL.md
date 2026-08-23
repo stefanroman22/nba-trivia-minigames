@@ -109,6 +109,7 @@ shows one Dev link at the parent (from `cfg.devSiteUrl`); no per-card PR/CTO/dee
 3. Append the same post-mortem to `docs/team/RETRO.md` in the MAIN checkout, commit it
    there on dev: `docs(team): retro for <slug>`.
 4. Leave the branch pushed if any commits exist; remove the worktree; remove journal entry.
+   **[CLOUD]** No worktree to remove — just `git checkout dev` for the next task; the branch stays pushed if it has commits.
 
 ## 5. End of run
 Log a one-line summary per task (shipped/parked/deferred). If nothing was in the queue,
