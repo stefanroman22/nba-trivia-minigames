@@ -194,13 +194,14 @@ isn't in it). Slack failures anywhere in the pipeline (batch post, digest post, 
 poll) are non-fatal — logged and skipped; a batch that fails to post to Slack is still
 merged to `dev`.
 
-## Cloud operation
+## 13. Cloud operation
 
-The worker no longer depends on this PC being on. It now runs as an **Anthropic
-Routine** (cloud), firing at **01:00** and **10:00** with `TEAM_CLOUD=1` set in its
-environment. That env var flips the `team-run` skill into its cloud mode (see
-`.claude/skills/team-run/SKILL.md` → `## Environment: local vs cloud`): each task works
-on a branch (`team/<slug>`) inside the routine's single clone instead of a worktree, the
+Once set up (see the go-live steps below), the worker no longer depends on this PC being
+on: it runs as an **Anthropic Routine** (cloud), firing at **01:00** and **10:00** with
+`TEAM_CLOUD=1` set in its environment. That env var flips the `team-run` skill into its
+cloud mode (see `.claude/skills/team-run/SKILL.md` → `## Environment: local vs cloud`):
+each task works on a branch (`team/<slug>`) inside the routine's single clone instead of
+a worktree, the
 browser-QA stage is skipped entirely (no Chrome in the cloud — verify + code-review are
 the gate instead), and `NOTION_TOKEN`/`SLACK_BOT_TOKEN` are read from the environment
 instead of `.env.team`. Everything else — classify, build, verify, review, ship, park,
@@ -220,11 +221,13 @@ notes` block. The window for each run is read from `github.event.schedule`, not 
 from the clock, and the two windows are back-to-back (`[prev report, this report)`) so no
 merge falls in a gap or gets reported twice.
 
-**Local scheduled tasks are retired.** `scripts/unregister-team-cron.ps1` unregisters the
-old `nba-team-pipeline` and `nba-team-digest` Windows scheduled tasks (idempotent — safe
-to re-run). The cloud routine and the report workflow replace what they did. `npm run
-team` still works exactly as before for a manual local run: no `TEAM_CLOUD` env var means
-local mode, worktrees, and full browser QA.
+**Local scheduled tasks — retire only after cutover.** To switch fully to cloud, run
+`scripts/unregister-team-cron.ps1` to retire the local `nba-team-pipeline` /
+`nba-team-digest` Windows scheduled tasks (idempotent — safe to re-run) — do this ONLY
+after a routine run is confirmed working; until then the local scheduled task is still
+the live trigger and must keep running, or the pipeline stops entirely. `npm run team`
+still works exactly as before for a manual local run, before or after cutover: no
+`TEAM_CLOUD` env var means local mode, worktrees, and full browser QA.
 
 **Routine configuration.** The routine's environment needs three variables —
 `TEAM_CLOUD=1`, `NOTION_TOKEN`, `SLACK_BOT_TOKEN` — and its network access must allow
@@ -237,3 +240,12 @@ sandbox. The report workflow needs its own copy of the token as a GitHub repo se
 UTC+1 (winter), both reports will fire an hour later than the label says (e.g. the
 "07:30" report lands at 08:30 local) until the cron lines are manually adjusted for the
 season.
+
+**Go-live (one-time).** None of the above is live yet — until these steps are done, the
+pipeline keeps running exactly as before, on the local scheduled tasks:
+1. `gh secret set SLACK_BOT_TOKEN` — the report workflow's own copy of the token.
+2. Create the routine at claude.ai/code/routines: prompt `/team-run`, this repo, cron
+   01:00 & 10:00, env vars `TEAM_CLOUD=1` / `NOTION_TOKEN` / `SLACK_BOT_TOKEN`, network
+   access allowing `api.notion.com` + `slack.com`.
+3. Confirm one routine "Run now" ships → merges → reports cleanly end to end.
+4. Only then run `scripts/unregister-team-cron.ps1` to retire the local scheduled tasks.
