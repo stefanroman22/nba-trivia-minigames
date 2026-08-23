@@ -202,8 +202,10 @@ async function cmdPostBatch(jsonPath) {
       `${t.n}.  *_${t.title}_*   ·   *${(t.areas || []).join("+")}*\n\n` +
       `*Check:*  ${t.look || "verify the change"}\n\n` +
       `✅ approve      ·      🔄 needs work — reply to say what\n​`;
-    const card = await api("chat.postMessage", { channel: chan, thread_ts: parent.ts, text: body }, true);
-    state.cards.push({ ts: card.ts, parentTs: parent.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, resolved: false });
+    // Top-level (no thread_ts) so a human reply threads under THIS task — notes
+    // stay unambiguously per-task even when a batch has several tasks.
+    const card = await api("chat.postMessage", { channel: chan, text: body }, true);
+    state.cards.push({ ts: card.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, resolved: false });
   }
   writeState(state);
   console.log(`posted batch: parent ts=${parent.ts}, ${batch.shipped.length} cards`);
@@ -332,42 +334,40 @@ async function cmdPollReactions() {
   const me = cfg.slack?.slackUserId;
   const state = readState();
   const items = [];
-  // Slack threads are one level deep: a human reply to any card lands in the PARENT
-  // thread, not under the specific card. So reactions are read PER CARD (reliable,
-  // per-message), but the note text is read ONCE per parent thread and shared as
-  // context across the flagged cards in that batch. Cache replies by parentTs.
+  // Each task is its own top-level message, so a human reply threads under THAT
+  // task. Read replies on the card's OWN ts → the note is per-task, not shared.
+  // (apiTry never throws; guard on rep.ok — see fix round 1.)
   const noteCache = {};
-  async function noteFor(parentTs, channel) {
-    if (parentTs in noteCache) return noteCache[parentTs];
+  async function noteFor(cardTs, channel) {
+    if (cardTs in noteCache) return noteCache[cardTs];
     let note = "";
-    try {
-      const rep = await api("conversations.replies", { channel, ts: parentTs });
-      // The bot authored the parent + all cards; only the human's replies have user === me.
+    const rep = await apiTry("conversations.replies", { channel, ts: cardTs });
+    if (rep.ok) {
       const mineReplies = (rep.messages || []).filter(m => m.user === me);
       if (mineReplies.length) note = mineReplies.map(m => m.text).join(" | ");
-    } catch { /* non-fatal */ }
-    noteCache[parentTs] = note;
+    }
+    noteCache[cardTs] = note;
     return note;
   }
   for (const card of state.cards) {
     if (card.resolved) continue;
-    // Reactions on this specific card (per-message, reliable).
+    // Reactions on this specific card (per-message, reliable). apiTry is non-fatal
+    // (fix round 1): one deleted card can't abort the whole poll. Regexes anchored.
     let reacted = { fix: false, ok: false };
-    try {
-      const r = await api("reactions.get", { channel: card.channel, timestamp: card.ts, full: "true" });
-      const reactions = r.message?.reactions || [];
-      for (const rx of reactions) {
+    const rr = await apiTry("reactions.get", { channel: card.channel, timestamp: card.ts, full: "true" });
+    if (rr.ok) {
+      for (const rx of (rr.message?.reactions || [])) {
         const mine = !me || (rx.users || []).includes(me);
         if (!mine) continue;
-        if (/x|repeat|arrows_counterclockwise|no_entry|hammer/.test(rx.name)) reacted.fix = true;
-        if (/white_check_mark|heavy_check_mark|\+1|ok_hand/.test(rx.name)) reacted.ok = true;
+        if (/^(x|heavy_multiplication_x|repeat|arrows_counterclockwise|no_entry|hammer)$/.test(rx.name)) reacted.fix = true;
+        if (/^(white_check_mark|heavy_check_mark|\+1|ok_hand)$/.test(rx.name)) reacted.ok = true;
       }
-    } catch { /* non-fatal per card */ }
-    // TRIGGER is the per-card 🔄 reaction (unambiguous). A thread note is DETAIL
-    // attached to the flagged card — a note alone never spawns follow-ups (else one
-    // note would re-open every task in the batch). ✅ (without 🔄) acknowledges.
+    }
+    // TRIGGER is the per-card 🔄 reaction (unambiguous). The reply note is DETAIL
+    // attached to the flagged card — a note alone never spawns a follow-up.
+    // ✅ (without 🔄) acknowledges.
     if (reacted.fix) {
-      const note = await noteFor(card.parentTs || card.ts, card.channel);
+      const note = await noteFor(card.ts, card.channel);
       items.push({ action: "followup", pageId: card.pageId, pr: card.pr, prNum: card.prNum, title: card.title,
         note: note || "reviewer flagged 🔄 with no note — re-examine" });
       card.resolved = true;
