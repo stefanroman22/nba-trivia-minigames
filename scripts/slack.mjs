@@ -75,10 +75,31 @@ async function cmdResolveChannels() {
   if (missing.length) console.error(`MISSING (invite the bot to these): ${missing.join(", ")}`);
 }
 
+async function cmdPostBatch(jsonPath) {
+  const batch = JSON.parse(readFileSync(jsonPath, "utf8"));
+  const chan = cfg.slack?.generalChannel;
+  if (!chan) { console.error("no generalChannel in config"); process.exit(1); }
+  if (!batch.shipped?.length) { console.log("empty batch, nothing to post"); return; }
+  const now = new Date().toISOString().slice(11, 16);
+  const parent = await api("chat.postMessage",
+    { channel: chan, text: `🟢 Batch complete — ${batch.count} shipped to dev · ${now}` }, true);
+  const state = readState();
+  for (const t of batch.shipped) {
+    const check = t.checkUrl ? `check: ${t.checkUrl} — ${t.look || "verify the change"}` : `check: ${t.pr}`;
+    const body = `${t.n} · ${t.title} · ${(t.areas || []).join("+")} · <${t.pr}|PR #${t.prNum}> ${t.cto || ""}\n` +
+      `${check}\nreact: ✅ good · 🔄 needs work (reply what) · 💬 note`;
+    const card = await api("chat.postMessage", { channel: chan, thread_ts: parent.ts, text: body }, true);
+    state.cards.push({ ts: card.ts, parentTs: parent.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, resolved: false });
+  }
+  writeState(state);
+  console.log(`posted batch: parent ts=${parent.ts}, ${batch.shipped.length} cards`);
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "ping": () => cmdPing(args[0], ...args.slice(1)),
   "resolve-channels": cmdResolveChannels,
+  "post-batch": () => cmdPostBatch(args[0]),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();
