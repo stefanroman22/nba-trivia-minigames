@@ -4,6 +4,7 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = resolve(ROOT, ".claude/team/config.json");
@@ -159,12 +160,52 @@ async function cmdPollReactions() {
   console.log(JSON.stringify(items, null, 2));
 }
 
+function sh(c) { return execSync(c, { encoding: "utf8" }); }
+
+function parseAgentNotes(body) {
+  // Returns [{agent, did, assumed}] from the "## Agent notes" block, or [].
+  const out = [];
+  const m = body.match(/## Agent notes([\s\S]*?)(?:\n## |\n*$)/);
+  if (!m) return out;
+  const re = /- agent:\s*(\S+)[\s\S]*?did:\s*(.*?)\s*(?:\n\s*assumed:\s*(.*?))?(?=\n\s*- agent:|\n*$)/g;
+  let x;
+  while ((x = re.exec(m[1]))) out.push({ agent: x[1].trim(), did: (x[2] || "").trim(), assumed: (x[3] || "none").trim() });
+  return out;
+}
+
+async function cmdDailyDigests(day) {
+  const date = day || sh(`git log -1 --format=%cs`).trim(); // fallback: latest commit date (no argless Date())
+  const nameMap = { "frontend-engine": "frontend", "backend-engine": "backend" };
+  const buckets = { frontend: [], backend: [], qa: [], review: [] };
+  const prs = JSON.parse(sh(`gh pr list --state merged --base dev --search "merged:${date}" --json number,title,body,url,headRefName --limit 100`));
+  for (const pr of prs) {
+    if (!pr.headRefName.startsWith("team/")) continue;
+    const notes = parseAgentNotes(pr.body || "");
+    if (notes.length) {
+      for (const n of notes) {
+        const ch = nameMap[n.agent] || "review";
+        buckets[ch].push(`• ${pr.title} (PR#${pr.number}): ${n.did}\n  assumed: ${n.assumed}`);
+      }
+    } else {
+      buckets.review.push(`• ${pr.title} (PR#${pr.number}): (no agent notes)`);
+    }
+  }
+  for (const [agent, lines] of Object.entries(buckets)) {
+    const chan = cfg.slack?.agentChannels?.[agent];
+    if (!chan || !lines.length) continue;
+    const text = `📆 ${agent} · ${date} · ${lines.length} shipped\n${lines.join("\n")}`;
+    try { await api("chat.postMessage", { channel: chan, text }, true); console.log(`posted digest to ${agent}`); }
+    catch { console.error(`digest post to ${agent} failed (non-fatal)`); }
+  }
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "ping": () => cmdPing(args[0], ...args.slice(1)),
   "resolve-channels": cmdResolveChannels,
   "post-batch": () => cmdPostBatch(args[0]),
   "poll-reactions": cmdPollReactions,
+  "daily-digests": () => cmdDailyDigests(args[0]),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();
