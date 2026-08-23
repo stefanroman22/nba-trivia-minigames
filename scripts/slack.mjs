@@ -42,6 +42,16 @@ async function api(method, params = {}, post = false) {
   return json;
 }
 
+// Non-fatal read: returns the json even on ok:false, never exits — so one bad
+// card (deleted message, etc.) can't abort the whole poll.
+async function apiTry(method, params = {}) {
+  try {
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`https://slack.com/api/${method}?${qs}`, { headers: { Authorization: `Bearer ${TOKEN}` } });
+    return await res.json();
+  } catch { return { ok: false, error: "fetch_failed" }; }
+}
+
 function readState() { return existsSync(STATE_PATH) ? JSON.parse(readFileSync(STATE_PATH, "utf8")) : { cards: [], lastPoll: null }; }
 function writeState(s) { writeFileSync(STATE_PATH, JSON.stringify(s, null, 2)); }
 
@@ -109,12 +119,11 @@ async function cmdPollReactions() {
   async function noteFor(parentTs, channel) {
     if (parentTs in noteCache) return noteCache[parentTs];
     let note = "";
-    try {
-      const rep = await api("conversations.replies", { channel, ts: parentTs });
-      // The bot authored the parent + all cards; only the human's replies have user === me.
+    const rep = await apiTry("conversations.replies", { channel, ts: parentTs });
+    if (rep.ok) {
       const mineReplies = (rep.messages || []).filter(m => m.user === me);
       if (mineReplies.length) note = mineReplies.map(m => m.text).join(" | ");
-    } catch { /* non-fatal */ }
+    }
     noteCache[parentTs] = note;
     return note;
   }
@@ -122,16 +131,15 @@ async function cmdPollReactions() {
     if (card.resolved) continue;
     // Reactions on this specific card (per-message, reliable).
     let reacted = { fix: false, ok: false };
-    try {
-      const r = await api("reactions.get", { channel: card.channel, timestamp: card.ts, full: "true" });
-      const reactions = r.message?.reactions || [];
-      for (const rx of reactions) {
+    const rr = await apiTry("reactions.get", { channel: card.channel, timestamp: card.ts, full: "true" });
+    if (rr.ok) {
+      for (const rx of (rr.message?.reactions || [])) {
         const mine = !me || (rx.users || []).includes(me);
         if (!mine) continue;
-        if (/x|repeat|arrows_counterclockwise|no_entry|hammer/.test(rx.name)) reacted.fix = true;
-        if (/white_check_mark|heavy_check_mark|\+1|ok_hand/.test(rx.name)) reacted.ok = true;
+        if (/^(x|heavy_multiplication_x|repeat|arrows_counterclockwise|no_entry|hammer)$/.test(rx.name)) reacted.fix = true;
+        if (/^(white_check_mark|heavy_check_mark|\+1|ok_hand)$/.test(rx.name)) reacted.ok = true;
       }
-    } catch { /* non-fatal per card */ }
+    }
     // TRIGGER is the per-card 🔄 reaction (unambiguous). A thread note is DETAIL
     // attached to the flagged card — a note alone never spawns follow-ups (else one
     // note would re-open every task in the batch). ✅ (without 🔄) acknowledges.
