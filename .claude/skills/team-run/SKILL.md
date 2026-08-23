@@ -14,6 +14,13 @@ Notion MCP connector (absent in headless runs).
 - `node scripts/notion.mjs check-pause` — exit code 3 → say "paused" and STOP.
 - Read `.claude/team/journal.json` (may be absent → `{}`).
 
+## 0b. Slack feedback ingestion
+Run `node scripts/slack.mjs poll-reactions` (non-fatal: on error, log and skip to §1).
+Parse the JSON array. For each item:
+- `action:"followup"` → `node scripts/notion.mjs create-card "Follow-up: <title>" --body "Slack feedback on <pr>: <note>"` (omit `--area`; classify re-derives areas from the spec). This new Ready card is picked up in this same run's queue (§2 reads Ready after this).
+- `action:"ack"` and the item has a pageId → `node scripts/notion.mjs archive-card <pageId>`.
+This runs BEFORE §2 so follow-ups drain in the same batch.
+
 ## 1. Fix-tasks first (changes-requested PRs)
 `gh pr list --base dev --label cto-changes-requested --json number,headRefName,title,url`
 Each is a fix task: recreate the worktree from its branch
