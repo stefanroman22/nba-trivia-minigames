@@ -143,12 +143,13 @@ fetch; commands: `ping`, `resolve-channels`, `post-batch`, `poll-reactions`,
 Technologies** workspace.
 
 **Channels.** Five channels: **#pipeline** gets one post per run — the batch overview
-below. **#agent-frontend** and **#agent-backend** get a real nightly digest each, because
-`## Agent notes` blocks are only ever written by `frontend-engine` and `backend-engine`.
-**#agent-qa** and **#agent-review** exist and are wired the same way, but since no engine
-writes agent notes tagged for QA or review, in v1 they only ever receive the digest job's
-fallback bucket (PRs with no parsed agent notes) — treat empty/near-empty QA and review
-channels as expected, not broken.
+below. In v1, `## Agent notes` blocks are written only by `frontend-engine` and
+`backend-engine`, so only **#agent-frontend** and **#agent-backend** receive real
+nightly digests. The digest job's fallback for PRs with no parsed notes goes to
+**#agent-review**. **#agent-qa** is wired (its channel is resolved in config) but no code
+path posts to it in v1 — expect it to be permanently silent, not merely empty.
+(Enriching #agent-qa/#agent-review would require the QA/review agents to emit their own
+notes — a future enhancement.)
 
 **Batch overview format.** At end of run (§5), if any tasks shipped, `slack.mjs
 post-batch` posts to #pipeline: a parent message — `🟢 Batch complete — <count> shipped
