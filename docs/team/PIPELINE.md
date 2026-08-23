@@ -241,6 +241,13 @@ UTC+1 (winter), both reports will fire an hour later than the label says (e.g. t
 "07:30" report lands at 08:30 local) until the cron lines are manually adjusted for the
 season.
 
+**Known limitation.** The Slack reaction→follow-up loop is local-state-only: cloud runs
+use a fresh clone per firing, so `.claude/team/slack-state.json` (gitignored) doesn't
+persist between them, and reactions on cloud-posted cards never get ingested into
+follow-up Notion cards. The batch cards and the reports above still post normally in
+cloud mode. To process a 🔄 reaction, run a local `npm run team`, or wait for a future
+stateless redesign of the polling step.
+
 **Go-live (one-time).** None of the above is live yet — until these steps are done, the
 pipeline keeps running exactly as before, on the local scheduled tasks:
 1. `gh secret set SLACK_BOT_TOKEN` — the report workflow's own copy of the token.
