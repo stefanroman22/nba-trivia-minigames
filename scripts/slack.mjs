@@ -97,11 +97,66 @@ async function cmdPostBatch(jsonPath) {
   console.log(`posted batch: parent ts=${parent.ts}, ${batch.shipped.length} cards`);
 }
 
+async function cmdPollReactions() {
+  const me = cfg.slack?.slackUserId;
+  const state = readState();
+  const items = [];
+  // Slack threads are one level deep: a human reply to any card lands in the PARENT
+  // thread, not under the specific card. So reactions are read PER CARD (reliable,
+  // per-message), but the note text is read ONCE per parent thread and shared as
+  // context across the flagged cards in that batch. Cache replies by parentTs.
+  const noteCache = {};
+  async function noteFor(parentTs, channel) {
+    if (parentTs in noteCache) return noteCache[parentTs];
+    let note = "";
+    try {
+      const rep = await api("conversations.replies", { channel, ts: parentTs });
+      // The bot authored the parent + all cards; only the human's replies have user === me.
+      const mineReplies = (rep.messages || []).filter(m => m.user === me);
+      if (mineReplies.length) note = mineReplies.map(m => m.text).join(" | ");
+    } catch { /* non-fatal */ }
+    noteCache[parentTs] = note;
+    return note;
+  }
+  for (const card of state.cards) {
+    if (card.resolved) continue;
+    // Reactions on this specific card (per-message, reliable).
+    let reacted = { fix: false, ok: false };
+    try {
+      const r = await api("reactions.get", { channel: card.channel, timestamp: card.ts, full: "true" });
+      const reactions = r.message?.reactions || [];
+      for (const rx of reactions) {
+        const mine = !me || (rx.users || []).includes(me);
+        if (!mine) continue;
+        if (/x|repeat|arrows_counterclockwise|no_entry|hammer/.test(rx.name)) reacted.fix = true;
+        if (/white_check_mark|heavy_check_mark|\+1|ok_hand/.test(rx.name)) reacted.ok = true;
+      }
+    } catch { /* non-fatal per card */ }
+    // TRIGGER is the per-card 🔄 reaction (unambiguous). A thread note is DETAIL
+    // attached to the flagged card — a note alone never spawns follow-ups (else one
+    // note would re-open every task in the batch). ✅ (without 🔄) acknowledges.
+    if (reacted.fix) {
+      const note = await noteFor(card.parentTs || card.ts, card.channel);
+      items.push({ action: "followup", pageId: card.pageId, pr: card.pr, prNum: card.prNum, title: card.title,
+        note: note || "reviewer flagged 🔄 with no note — re-examine" });
+      card.resolved = true;
+    } else if (reacted.ok) {
+      items.push({ action: "ack", pageId: card.pageId, pr: card.pr, prNum: card.prNum, title: card.title, note: "" });
+      card.resolved = true;
+    }
+  }
+  // Prune: drop acted cards, bound growth (unreacted cards linger up to 100).
+  state.cards = state.cards.filter(c => !c.resolved).slice(-100);
+  writeState(state);
+  console.log(JSON.stringify(items, null, 2));
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "ping": () => cmdPing(args[0], ...args.slice(1)),
   "resolve-channels": cmdResolveChannels,
   "post-batch": () => cmdPostBatch(args[0]),
+  "poll-reactions": cmdPollReactions,
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();
