@@ -60,3 +60,4 @@ players_extensive_data.md
 .claude/team/qa/
 .env.team
 .claude/team/slack-state.json
+.claude/team/last-batch.json
