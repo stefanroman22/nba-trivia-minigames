@@ -1,0 +1,39 @@
+name: Team Reports
+# Posts a gapless per-session Slack report. Deterministic node script, no Claude.
+on:
+  workflow_dispatch:
+    inputs:
+      label: { description: "Session label", required: false, default: "Manual" }
+  schedule:
+    - cron: "30 5 * * *"   # 07:30 local (UTC+2) — Night session
+    - cron: "30 15 * * *"  # 17:30 local (UTC+2) — Day session
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute window and post report
+        run: |
+          set -euo pipefail
+          # Windows are gapless: [previous report, this report), local times carry an explicit
+          # +02:00 offset so Date.parse yields the correct UTC instant to compare against
+          # mergedAt. Which report fired is read from github.event.schedule (robust to cron
+          # delay — never guessed from the clock). At 05:30/15:30 UTC the UTC calendar date
+          # equals the local date, so `date -u` gives the right day for these report times.
+          SCHED="${{ github.event.schedule }}"
+          TODAY=$(date -u +%Y-%m-%d)
+          YEST=$(date -u -d "yesterday" +%Y-%m-%d)
+          if [ "$SCHED" = "30 15 * * *" ]; then
+            START="${TODAY}T07:30+02:00"; END="${TODAY}T17:30+02:00"; LABEL="Day session (10:00-17:00 work)"
+          else
+            # 05:30 cron (Night) or a manual workflow_dispatch (defaults to Night)
+            START="${YEST}T17:30+02:00"; END="${TODAY}T07:30+02:00"; LABEL="Night session (01:00-07:00 work)"
+          fi
+          echo "schedule=[$SCHED]  window: $START .. $END  ($LABEL)"
+          node scripts/slack.mjs digest-window "$START" "$END" "$LABEL"
