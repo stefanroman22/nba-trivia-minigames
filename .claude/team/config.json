@@ -4,5 +4,11 @@
   "maxTasksPerRun": 3,
   "maxRunMinutes": 90,
   "worktreeRoot": "C:\\Users\\stefa\\.team-worktrees",
-  "qaPorts": { "django": 8100, "socket": 4100, "vite": 5273 }
+  "qaPorts": { "django": 8100, "socket": 4100, "vite": 5273 },
+  "slack": {
+    "generalChannel": "",
+    "agentChannels": { "frontend": "", "backend": "", "qa": "", "review": "" },
+    "slackUserId": ""
+  },
+  "devSiteUrl": ""
 }
