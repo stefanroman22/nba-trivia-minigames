@@ -27,6 +27,13 @@ description: Commit, push, open the PR to dev, update Notion. Final pipeline sta
    Design-Doc: <docs/team/designs/... or "none">
    Risk: <low|medium|high>
 
+   ## Agent notes
+   - agent: <frontend-engine|backend-engine>
+     did: <≤20 words on what changed>
+     assumed: <≤20 words on any assumption, or "none">
+
+   Emit one `- agent:` bullet per engine that contributed (a frontend+backend task has two). The orchestrator fills `did`/`assumed` from each engine's build report.
+
 4. Notion: `node scripts/notion.mjs set-props <pageId> --branch team/<slug> --pr <prUrl>`
    then `set-status <pageId> "In Review"` then
    `comment <pageId> "PR ready for CTO review: <prUrl>" --mention`.
