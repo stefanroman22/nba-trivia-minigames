@@ -81,13 +81,15 @@ async function cmdPostBatch(jsonPath) {
   if (!chan) { console.error("no generalChannel in config"); process.exit(1); }
   if (!batch.shipped?.length) { console.log("empty batch, nothing to post"); return; }
   const now = new Date().toISOString().slice(11, 16);
+  const devLine = cfg.devSiteUrl ? `\nDev: ${cfg.devSiteUrl}` : "";
   const parent = await api("chat.postMessage",
-    { channel: chan, text: `🟢 Batch complete — ${batch.count} shipped to dev · ${now}` }, true);
+    { channel: chan, text: `🟢 Batch complete — ${batch.count} shipped to dev · ${now}${devLine}` }, true);
   const state = readState();
   for (const t of batch.shipped) {
-    const check = t.checkUrl ? `check: ${t.checkUrl} — ${t.look || "verify the change"}` : `check: ${t.pr}`;
-    const body = `${t.n} · ${t.title} · ${(t.areas || []).join("+")} · <${t.pr}|PR #${t.prNum}> ${t.cto || ""}\n` +
-      `${check}\nreact: ✅ good · 🔄 needs work (reply what) · 💬 note`;
+    const body =
+      `${t.n}.  *_${t.title}_*   ·   *${(t.areas || []).join("+")}*\n\n` +
+      `*Check:*  ${t.look || "verify the change"}\n\n` +
+      `✅ approve      ·      🔄 needs work — reply to say what\n​`;
     const card = await api("chat.postMessage", { channel: chan, thread_ts: parent.ts, text: body }, true);
     state.cards.push({ ts: card.ts, parentTs: parent.ts, channel: chan, pageId: t.pageId || null, pr: t.pr, prNum: t.prNum, title: t.title, resolved: false });
   }
