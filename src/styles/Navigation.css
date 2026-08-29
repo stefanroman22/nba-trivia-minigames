@@ -36,6 +36,8 @@
   font-family: inherit;
 }
 .nav-link:hover { color: var(--text); background: var(--surface2); }
+.nav-link--admin { color: var(--brand); }
+.nav-link--admin:hover { color: var(--brand2); background: var(--brand-soft); }
 
 .nav3-right { display: flex; align-items: center; gap: 10px; }
 

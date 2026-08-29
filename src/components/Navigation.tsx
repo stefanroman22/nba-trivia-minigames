@@ -65,11 +65,20 @@ function Navigation({ type = "full" }: NavigationProps) {
     open(kind);
   };
 
+  // Route to a page (closes the mobile drawer if it's open).
+  const goPage = (path: string) => {
+    setDrawer(false);
+    navigate(path);
+  };
+
   const navLinks = (
     <>
       <button type="button" onClick={() => go("play")} className="nav-link">Games</button>
       <button type="button" onClick={() => openModal("leaderboard")} className="nav-link">Leaderboard</button>
       <button type="button" onClick={() => openModal("feedback")} className="nav-link">Feedback</button>
+      {user?.is_admin && (
+        <button type="button" onClick={() => goPage("/admin")} className="nav-link nav-link--admin">Admin</button>
+      )}
     </>
   );
 
@@ -145,6 +154,12 @@ function Navigation({ type = "full" }: NavigationProps) {
                 <span>Feedback</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
               </button>
+              {user?.is_admin && (
+                <button onClick={() => goPage("/admin")} className="drawer-link">
+                  <span>Admin</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+                </button>
+              )}
             </div>
 
             <div className="drawer-foot">
