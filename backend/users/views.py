@@ -49,6 +49,8 @@ def user_payload(request, user):
         "rank": user.rank,
         "points": user.points,
         "profile_photo": profile_photo_url(request, user),
+        # UI hint only — every admin endpoint re-checks is_staff server-side.
+        "is_admin": bool(user.is_staff),
     }
 
 
@@ -166,13 +168,24 @@ def get_current_user(request):
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
 def update_profile(request):
-    """Update username/points (JSON) or the profile photo (multipart/form-data)."""
+    """Update the username (JSON) or the profile photo (multipart/form-data).
+
+    Points are deliberately NOT settable here — see the guard below.
+    """
     user = request.user
 
     if request.content_type.startswith("application/json"):
         username = request.data.get("username")
-        points = request.data.get("points")
         updated = False
+
+        # Points are never client-supplied. They are granted only by
+        # trivia.views.log_session, against a recorded GameSession and a clamped
+        # score; accepting them here let any signed-in player name their own total.
+        if request.data.get("points") is not None:
+            return Response(
+                {"error": "Points are awarded from finished games, not set directly."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         if username and username != user.username:
             # Names may repeat — the public id keeps players distinct — so the
@@ -180,11 +193,6 @@ def update_profile(request):
             if not USERNAME_RE.match(username):
                 return Response({"error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
             user.username = username
-            updated = True
-
-        if points is not None:
-            user.points += points
-            user.update_rank()
             updated = True
 
         if updated:

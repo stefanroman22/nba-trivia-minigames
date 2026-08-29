@@ -15,7 +15,7 @@ import { updatePoints } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
-import { BACKEND_URL, BACKEND_ORIGIN } from '../../configurations/backend';
+import { BACKEND_ORIGIN } from '../../configurations/backend';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import "../../styles/MiniGame.css";
@@ -101,15 +101,19 @@ function MiniGame() {
     awardedRef.current = false;
   }, [gameId]);
 
-  // Award profile points for a finished single-player game exactly once (guarded
-  // by awardedRef): fire-and-forget play log + POST points + update redux.
-  // Called directly by the in-place end path, or by the overview effect below.
+  // Log a finished single-player game exactly once (guarded by awardedRef).
+  // The session log is also what awards the points: the server records the
+  // GameSession, clamps the score and credits the account in one step, then
+  // reports back what it actually granted. We trust that number, not ours —
+  // the client no longer tells the backend how many points it deserves.
   const awardPoints = async (finalScore: number) => {
     if (awardedRef.current) return;
     awardedRef.current = true;
-    // apiFetch only attaches the JWT when one exists, so guests log anonymously.
-    if (game) {
-      apiFetch(`${BACKEND_ORIGIN}/trivia/log-session/`, {
+    if (!game) return;
+    try {
+      // apiFetch only attaches the JWT when one exists, so guests log anonymously
+      // and are simply awarded nothing.
+      const response = await apiFetch(`${BACKEND_ORIGIN}/trivia/log-session/`, {
         method: "POST",
         body: JSON.stringify({
           game: game.id,
@@ -117,20 +121,12 @@ function MiniGame() {
           score: finalScore,
           duration_ms: playStartRef.current ? Date.now() - playStartRef.current : 0,
         }),
-      }).catch(() => { /* stats only */ });
-    }
-    if (finalScore > 0) {
-      try {
-        const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
-          method: "POST",
-          body: JSON.stringify({ points: finalScore }),
-        });
-        const data = await response.json();
-        if (data.error) showErrorAlert(data.error, "Updating profile failed!");
-        else dispatch(updatePoints(finalScore));
-      } catch (err) {
-        console.error("Network error:", err);
-      }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (data.error) showErrorAlert(data.error, "Saving your score failed!");
+      else if (data.awarded > 0) dispatch(updatePoints(data.awarded));
+    } catch (err) {
+      console.error("Network error:", err);
     }
   };
 
