@@ -1,0 +1,25 @@
+[
+  {
+    "id": "heatmap",
+    "mounted": true,
+    "isContent": true,
+    "shellTop": 28.6,
+    "gameToExit": 28,
+    "exitToBottom": 28.6,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 560,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "absoluteOverlays": [],
+    "screenshot": "heatmap.png"
+  }
+]

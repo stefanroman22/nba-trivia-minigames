@@ -8,7 +8,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import ScorePanel from "../components/ScorePanel";
+import { Button, GameFrame, Spinner } from "../components/ui";
 import { currentLogoUrl } from "../constants/teamLogos";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -21,6 +23,8 @@ import "../styles/HeatmapGame.css";
 interface HeatmapGameProps {
   gameInfo: HeatmapBoard[];
   onGameEnd: OnGameEnd;
+  onPlayAgain?: () => void;
+  onClose?: () => void;
 }
 
 const ROW_WIDTHS = [4, 5, 5, 5, 5, 4];
@@ -38,7 +42,7 @@ function rowsOf<T extends { id: number }>(hexes: T[]): T[][] {
   return rows;
 }
 
-export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
+export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose }: HeatmapGameProps) {
   const [players, setPlayers] = useState<PlayerIndexEntry[]>([]);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error" | "empty">("loading");
   const [claimed, setClaimed] = useState<Record<number, boolean>>({});
@@ -46,10 +50,13 @@ export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
   const [guess, setGuess] = useState("");
   const [raw, setRaw] = useState(0);
   const [finished, setFinished] = useState(false);
-  const [showEnd, setShowEnd] = useState(false);
+  // End-state: the board stays in view; the bottom slot fades input → loader → score (§7b).
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [showPopup, setShowPopup] = useState(false);
   const [popup, setPopup] = useState({ text: "", color: "" });
   const [hintFor, setHintFor] = useState<number | null>(null);
+  // Mirrors `raw` so a delayed endGame() never scores off a stale render closure.
+  const rawRef = useRef(0);
   const failsRef = useRef<Record<number, number>>({});
   const guessLogRef = useRef<GuessEntry[]>([]);
   const startRef = useRef(Date.now());
@@ -99,8 +106,8 @@ export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
   // Fresh state whenever a new board loads (play-again).
   useEffect(() => {
     clearTimers();
-    setClaimed({}); setActiveId(null); setGuess(""); setRaw(0);
-    setFinished(false); setShowEnd(false); setShowPopup(false);
+    setClaimed({}); setActiveId(null); setGuess(""); setRaw(0); rawRef.current = 0;
+    setFinished(false); setBottomPhase("input"); setShowPopup(false);
     failsRef.current = {}; setHintFor(null);
     guessLogRef.current = []; startRef.current = Date.now();
     endedRef.current = false;
@@ -125,17 +132,23 @@ export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
     setGuess("");
   };
 
+  const finish = (capped: number) => {
+    if (endedRef.current) return;
+    endedRef.current = true;
+    onGameEnd(capped, { inPlace: true });
+  };
+
+  // In-place end (§7b): the board stays on screen while the bottom slot swaps the
+  // input for a 1.5s loader, then the score panel.
   const endGame = () => {
     if (finished) return;
     setFinished(true);
     sendGuessLog();
-    setShowEnd(true);
-  };
-
-  const finish = (capped: number) => {
-    if (endedRef.current) return;
-    endedRef.current = true;
-    onGameEnd(capped);
+    setBottomPhase("loader");
+    later(() => {
+      finish(Math.min(PROFILE_CAP, rawRef.current));
+      setBottomPhase("score");
+    }, 1500);
   };
 
   const handleGuessSubmit = (submitted?: string) => {
@@ -169,12 +182,13 @@ export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
     guessLogRef.current.push({ question_id: `${board.qid}:${id}`, answer: player.full_name, correct: ok, elapsed_ms: elapsed });
 
     if (ok) {
+      rawRef.current += POINTS_PER_HEX;
       setRaw((prev) => prev + POINTS_PER_HEX);
       const nextClaimed = { ...claimed, [id]: true };
       setClaimed(nextClaimed);
       setActiveId(null);
       setHintFor(null);
-      flashPopup(`Claimed! +${POINTS_PER_HEX}`, "var(--good)");
+      flashPopup(`Correct! +${POINTS_PER_HEX}`, "var(--good)");
       if (Object.keys(nextClaimed).length === board.hexes.length) {
         later(() => endGame(), 900);
       }
@@ -186,22 +200,20 @@ export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
   };
 
   if (!board) return <p className="hm-msg">No board data available.</p>;
-  if (loadState === "loading") return <CourtLoader label="Heating up the hexes…" />;
+  if (loadState === "loading") return <Spinner label="Heating up the hexes…" />;
   if (loadState === "error") return <p className="hm-msg">Couldn't load players. Please try again later.</p>;
   if (loadState === "empty") return <p className="hm-msg">No player data available.</p>;
 
   const capped = Math.min(PROFILE_CAP, raw);
+  const cleared = board.hexes.length > 0 && Object.keys(claimed).length === board.hexes.length;
   const hintCrits = hintFor != null ? neighborCriteria(hintFor) : [];
 
   return (
-    <div className="hm-wrap">
-      <div className="hm-hud">
-        <div className="hm-score">
-          <span className="hm-score-num tnum font-display">{raw}</span>
-          <span className="hm-score-cap">raw · profile caps at <span className="tnum">{PROFILE_CAP}</span></span>
-        </div>
-        <Button size="sm" variant="secondary" onClick={endGame} disabled={finished}>Give up</Button>
-      </div>
+    <GameFrame>
+      <GameFrame.Status
+        left={<GameFrame.Label>CLAIM THE HEXES</GameFrame.Label>}
+        right={<GameFrame.Score value={raw} />}
+      />
 
       <div className="hm-board">
         {rows.map((row, r) => (
@@ -237,50 +249,58 @@ export default function HeatmapGame({ gameInfo, onGameEnd }: HeatmapGameProps) {
             })}
           </div>
         ))}
-        <div className="hm-center">
-          <span className="hm-center-num tnum font-display">{raw}</span>
-          <span className="hm-center-cap">SCORE</span>
-        </div>
       </div>
 
+      <GameFrame.Action>
       {hintFor != null && (
         <div className="hm-hint">
           Also needs to fit: <b>{hintCrits.map((c) => c.label).join(", ") || "no neighbours"}</b>
         </div>
       )}
 
-      <div className="hm-inputrow">
-        <AutocompleteInput
-          placeholder={activeId == null ? "Tap a hex first…" : "Name a player…"}
-          value={guess}
-          setValue={setGuess}
-          suggestions={playerNames}
-          onSubmit={handleGuessSubmit}
-          customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
-          customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
-        />
-        <Button size="md" onClick={() => handleGuessSubmit()} disabled={finished || activeId == null || guess.trim() === ""}>
-          Guess
-        </Button>
-      </div>
+      {/* Submission → loader → score, cross-faded in place (§7b) */}
+      <EndSequence
+        phase={bottomPhase}
+        input={
+          <GameFrame.InputRow>
+            <AutocompleteInput
+              placeholder={activeId == null ? "Tap a hex first…" : "Name a player…"}
+              value={guess}
+              setValue={setGuess}
+              suggestions={playerNames}
+              onSubmit={handleGuessSubmit}
+              customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
+              customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
+            />
+            <Button size="md" onClick={() => handleGuessSubmit()} disabled={finished || activeId == null || guess.trim() === ""}>
+              Guess
+            </Button>
+            <Button size="md" variant="secondary" onClick={endGame} disabled={finished}>
+              Give up
+            </Button>
+          </GameFrame.InputRow>
+        }
+        score={
+          <>
+            <ScorePanel
+              score={capped}
+              label={cleared ? "Board cleared!" : "Board done"}
+              won={cleared}
+              onPlayAgain={onPlayAgain}
+              onClose={onClose}
+            />
+            {raw > capped && (
+              <span className="hm-end-cap">
+                Raw <span className="tnum">{raw}</span> · capped at <span className="tnum">{PROFILE_CAP}</span>
+              </span>
+            )}
+          </>
+        }
+      />
 
-      {showEnd && (
-        <motion.div
-          className="hm-endcard"
-          initial={reduce ? false : { opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <span className="hm-end-title font-display">Board done</span>
-          <span className="hm-end-line">Raw score <b className="tnum">{raw}</b></span>
-          <span className="hm-end-line">
-            Profile points <b className="tnum">{capped}</b>{" "}
-            <span className="hm-end-cap">(capped at {PROFILE_CAP})</span>
-          </span>
-          <Button size="md" onClick={() => finish(capped)}>Continue</Button>
-        </motion.div>
-      )}
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popup.text} color={popup.color} />
-    </div>
+    </GameFrame>
   );
 }

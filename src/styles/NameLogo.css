@@ -1,47 +1,9 @@
-/* ===== Guess Container ===== */
-.guess-container {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 30px;
-  width: 100%;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-  padding: 0 10px;
-  transition: all 0.3s ease;
-}
+/* src/styles/NameLogo.css — Name the Logo (also imported by Guess the MVPs).
 
-/* ============================= */
-/* Responsive Adjustments */
-/* ============================= */
-
-/* Tablets and smaller devices */
-@media (max-width: 768px) {
-  .guess-container {
-    gap: 16px;
-    max-width: 100%;
-  }
-}
-
-/* Mobile phones: stack input + button vertically, centered and equal width */
-@media (max-width: 480px) {
-  .guess-container {
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  /* the input wrapper and the Confirm button share one centered column width
-     (!important overrides the wrapper's inline max-width so both line up) */
-  .guess-container > * {
-    width: 100%;
-    max-width: 280px !important;
-  }
-  /* the bare <input> carries a fixed clamp width inline — fill the column so it
-     lines up with the Confirm button instead of sitting narrower than it */
-  .guess-container input {
-    width: 100% !important;
-    max-width: 100%;
-  }
-}
+   Intentionally empty. The root, status row and submission row now come from
+   <GameFrame> (ui.css): the old `.guess-container` was a hand-rolled input row
+   with its own width, gap and mobile stacking rules — that is exactly the kind
+   of per-game divergence RULE 0 exists to remove. Use
+   <GameFrame.Action> + <GameFrame.InputRow> instead; do not re-add a root or
+   input-row rule here. Only genuinely game-specific board markup belongs in
+   this file. */

@@ -2,7 +2,9 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button } from "../components/ui";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import ScorePanel from "../components/ScorePanel";
+import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
@@ -12,9 +14,11 @@ interface StartingFiveProps {
   gameInfo: StartingFiveGame[];
   pointsPerCorrect: number;
   onGameEnd: OnGameEnd;
-  /** Single-player only: lets the loss screen offer exit / play-again in place. */
+  /** Passed by RenderGame; the shell owns the exit control (spec §4). */
   onExit?: () => void;
   onPlayAgain?: () => void;
+  /** Closes the game and returns to the idle screen (spec §7b). */
+  onClose?: () => void;
 }
 
 const COMPLETION_BONUS = 50; // perfect lineup → 5 * pointsPerCorrect + bonus = maxPoints
@@ -47,7 +51,7 @@ function UnknownFigure() {
         <circle cx="32" cy="26" r="13" />
         <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
       </svg>
-      <span className="s5-unknown-q" aria-hidden="true">?</span>
+      <span className="s5-unknown-q font-display" aria-hidden="true">?</span>
     </div>
   );
 }
@@ -77,11 +81,14 @@ function RevealedFace({ name }: { name: string }) {
   );
 }
 
-function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAgain }: StartingFiveProps) {
+function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onClose }: StartingFiveProps) {
   const [guesses, setGuesses] = useState<Record<string, string>>({});
   const [correctGuesses, setCorrectGuesses] = useState<Record<string, string>>({});
   const [lostReveal, setLostReveal] = useState<Record<string, string>>({});
-  const [showLossControls, setShowLossControls] = useState(false);
+  // End-state: the lineup stays on screen while the bottom slot swaps
+  // submission → loader → score (spec §7b — see EndSequence).
+  const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [score, setScore] = useState(0);
   const [allPlayers, setAllPlayers] = useState([]);
@@ -106,12 +113,14 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
     setGuesses({});
     setCorrectGuesses({});
     setLostReveal({});
-    setShowLossControls(false);
+    setEndState(null);
+    setBottomPhase("input");
     setNumberLifes(3);
     setScore(0);
   }, [gameInfo]);
 
   const currentGame = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
+  const maxPoints = 5 * pointsPerCorrect + COMPLETION_BONUS;
 
   const handleGuessSubmit = (posKey: string) => {
     if (!currentGame?.starting_5) return;
@@ -147,9 +156,15 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
       setShowPointsAnimation(true);
 
       if (Object.keys(correctGuesses).length + 1 === 5) {
-        const finalScore = 5 * pointsPerCorrect + COMPLETION_BONUS;
         setTimeout(() => setShowPointsAnimation(false), 1500);
-        setTimeout(() => onGameEnd?.(finalScore), 1600);
+        // Win → in-place (spec §7b): the completed lineup stays in view while the
+        // bottom slot runs loader → score.
+        setBottomPhase("loader");
+        setTimeout(() => {
+          onGameEnd?.(maxPoints, { inPlace: true });
+          setEndState({ score: maxPoints, won: true });
+          setBottomPhase("score");
+        }, 1500);
       } else {
         setTimeout(() => setShowPointsAnimation(false), 1500);
       }
@@ -168,23 +183,30 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
           else if (normPos === "G") { if (!revealAll["PG"]) revealAll["PG"] = p.name; else revealAll["SG"] = p.name; }
         });
 
-        setPopUpInfo({ Text: "Game Over", Color: "var(--bad)" });
+        setPopUpInfo({ Text: "Out of lives", Color: "var(--bad)" });
         setShowPointsAnimation(true);
         setTimeout(() => setShowPointsAnimation(false), 1400);
 
+        const finalScore = score;
+        // Only the players the user never found are staggered — the ones they got
+        // are already face-up from play, so they cost no reveal time. The wait
+        // therefore scales with how much they missed, not with lineup size.
         const toReveal = SLOTS.map((s) => s.key).filter((k) => !correctGuesses[k]);
+        // Submission fades to a loader the moment the lineup begins revealing…
+        setBottomPhase("loader");
         toReveal.forEach((key, i) => {
-          setTimeout(() => setLostReveal((prev) => ({ ...prev, [key]: revealAll[key] })), 450 + i * 480);
+          setTimeout(() => setLostReveal((prev) => ({ ...prev, [key]: revealAll[key] })), 300 + i * 260);
         });
-        const finishedAt = 450 + toReveal.length * 480 + 300;
+        const finishedAt = 300 + toReveal.length * 260 + 300;
+        // …then the score settles in place (spec §7b), awarding what was earned
+        // and logging the session — a loss used to award nothing at all.
         setTimeout(() => {
-          // Single-player: let the player linger on the reveal and choose.
-          // Multiplayer (no handlers): hand the score back so results can show.
-          if (onPlayAgain || onExit) setShowLossControls(true);
-          else onGameEnd?.(score);
+          onGameEnd?.(finalScore, { inPlace: true });
+          setEndState({ score: finalScore, won: false });
+          setBottomPhase("score");
         }, finishedAt);
       } else {
-        setPopUpInfo({ Text: "Incorrect Answer", Color: "var(--bad)" });
+        setPopUpInfo({ Text: "Not in this lineup", Color: "var(--bad)" });
         setShowPointsAnimation(true);
         setTimeout(() => setShowPointsAnimation(false), 1500);
       }
@@ -193,7 +215,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
     setGuesses((prev) => ({ ...prev, [posKey]: "" }));
   };
 
-  if (!currentGame) return <p style={{ color: "var(--muted)" }}>Loading lineup…</p>;
+  if (!currentGame) return <Spinner label="Loading lineup…" />;
   if (!currentGame.starting_5) return <p style={{ color: "var(--muted)" }}>No lineup data available.</p>;
 
   const teamBlock = (name: string, logo: string) => {
@@ -201,13 +223,19 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
     return (
       <div className={`s5-team${isWinner ? " is-winner" : ""}`}>
         <TeamCrest src={logo} name={name} className="s5-team-badge" />
-        <span className="s5-team-name">{name}</span>
+        <span className="s5-team-name font-display">{name}</span>
       </div>
     );
   };
 
   return (
-    <div className="s5-wrap">
+    <GameFrame>
+      <GameFrame.Status
+        left={<GameFrame.Label>FILL THE LINEUP</GameFrame.Label>}
+        right={<GameFrame.Score value={score} />}
+      />
+
+      <GameFrame.Board>
       {/* Scoreboard */}
       <div className="s5-board">
         {teamBlock(currentGame.team_a, currentGame.team_a_logo)}
@@ -284,8 +312,8 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
                         setValue={(val: string) => setGuesses((prev) => ({ ...prev, [slot.key]: val }))}
                         suggestions={allPlayers}
                         onSubmit={() => handleGuessSubmit(slot.key)}
-                        customStyleInput={{ width: "100%", height: "38px", padding: "0 12px", fontSize: "0.82rem" }}
-                        customStyleSuggestion={{ fontSize: "0.78rem", maxHeight: "150px", minWidth: "100%" }}
+                        customStyleInput={{ width: "100%", height: "38px", padding: "0 clamp(5px, 1.8vw, 12px)", fontSize: "clamp(0.68rem, 2.1vw, 0.82rem)" }}
+                        customStyleSuggestion={{ fontSize: "0.78rem", maxHeight: "150px", minWidth: "max(100%, 150px)" }}
                       />
                       <Button
                         block
@@ -305,27 +333,34 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onExit, onPlayAga
         })}
       </div>
 
-      {/* Game-over choices (single-player) */}
-      <AnimatePresence>
-        {showLossControls && (
-          <motion.div
-            className="s5-gameover"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <span className="s5-gameover-text">That's the lineup. Stay and study it, or:</span>
-            <div className="s5-gameover-actions">
-              <Button size="md" onClick={() => onPlayAgain?.()}>Play again</Button>
-              <Button size="md" variant="secondary" onClick={() => onExit?.()}>Exit game</Button>
-            </div>
-          </motion.div>
+      </GameFrame.Board>
+
+      {/* Loader → score, in place beneath the lineup (shared answers-shown pattern).
+          The submission controls live inside each card, so this slot holds nothing
+          until the end sequence starts — GameFrame.Action renders nothing while
+          empty, so no space is reserved during play. */}
+      <GameFrame.Action>
+        {bottomPhase !== "input" && (
+          <EndSequence
+            phase={bottomPhase}
+            input={null}
+            score={
+              // No found-count label — the green/red player names already say who
+              // was got and who wasn't.
+              <ScorePanel
+                score={endState?.score ?? 0}
+                outOf={maxPoints}
+                won={endState?.won}
+                onPlayAgain={onPlayAgain}
+                onClose={onClose}
+              />
+            }
+          />
         )}
-      </AnimatePresence>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPointsAnimation} text={popUpInfo.Text} color={popUpInfo.Color} />
-    </div>
+    </GameFrame>
   );
 }
 

@@ -148,13 +148,29 @@
 .stage-inner {
   position: relative;
   display: flex;
-  align-items: center;
+  /* `safe` centring: when a child is taller than the stage it falls back to
+     flex-start instead of overflowing equally in BOTH directions. Plain `center`
+     let content spill out past the TOP border, which is how the status label and
+     Exit button ended up sitting on/outside the shell's edge. */
+  align-items: safe center;
   justify-content: center;
-  padding: clamp(14px, 2.6vw, 30px);
+  --stage-pad: clamp(14px, 2.6vw, 30px);
+  padding: var(--stage-pad);
   min-height: clamp(280px, 44dvh, 430px);
   --stage-max: calc(100dvh - 188px);
+  /* The height a CHILD may actually occupy. --stage-max is a border-box cap, so
+     a child sized against it directly would consume this element's own padding
+     and sit flush to the border. Always size children against --stage-avail. */
+  --stage-avail: calc(var(--stage-max) - 2 * var(--stage-pad));
   max-height: var(--stage-max);
 }
+/* A content game hugs its content by definition, so the stage must NOT impose a
+   height floor on it. With the floor, any game whose content is shorter than it
+   (no big image/board) gets the leftover split evenly by align-items:center and
+   floats with a larger top AND bottom offset than every other game — Guess the
+   MVP sat at 82px instead of 28.6px purely because it has no logo to fill the
+   space. The floor still applies to idle/loading and to fill games, which need it. */
+.stage-inner:has(.gf:not(.gf--fill)) { min-height: 0; max-height: none; }
 @media (max-width: 819px) {
   /* mobile adds the horizontal game-chip strip above the stage */
   .stage-inner { --stage-max: calc(100dvh - 216px); }
@@ -162,6 +178,103 @@
 /* The motion wrapper and playing container inherit the budget so a game's root
    can rely on height:100% / max-height:100% resolving to the viewport. */
 .stage-inner > * { max-height: 100%; min-height: 0; }
+
+/* ---------- End-of-game sequence slot (EndSequence) ---------- */
+/* Bottom slot that cross-fades submission → loader → score for answers-shown
+   games. min-height keeps the swap from collapsing the stage height. */
+.endseq { width: 100%; display: flex; justify-content: center; min-height: 44px; }
+.endseq-slot { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+/* Compact brand-orange ring spinner (Spinner.tsx) — faint orange track, solid
+   orange arc, reusing the shared `spin` keyframe. */
+.spinner-ring {
+  display: inline-block;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 3px solid var(--brand-soft);
+  border-top-color: var(--brand);
+  animation: spin 0.75s linear infinite;
+}
+
+/* Shared end-of-game score line + Play again / Close game (ScorePanel.tsx).
+   Column, never a row: the score always sits ABOVE the buttons so the result is
+   read before the actions, identically in every game and at every width. */
+.scorepanel {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; width: 100%; max-width: 420px; min-height: 40px;
+}
+.scorepanel-line { display: flex; align-items: baseline; gap: 9px; }
+.scorepanel-label { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+.scorepanel-pts { font-size: 1.15rem; font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
+
+/* ---------- GameFrame: the shared game layout (GameFrame.tsx) ----------
+   ONE rhythm for every game. Games must not set gap/margin/padding on their own
+   top-level nodes — this owns all of it, so "same top margin, same distance to
+   Exit, same bottom margin" is structural rather than 18 coincidences. */
+.gf {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;            /* the rhythm — do not override per game */
+}
+/* Only for boards that genuinely scroll internally (Rule 4.1). A fixed-size
+   board must NOT be a fill game: flex:1 strands it in dead space. */
+.gf--fill { height: 100%; max-height: 100%; }
+
+.gf-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  min-height: 22px;     /* reserved so a game without a status row keeps the rhythm */
+}
+.gf-status-left, .gf-status-right { display: inline-flex; align-items: center; gap: 8px; }
+/* One slot only: a lone label centres in the row (it reads as a heading, not as
+   something pinned to the left edge of an otherwise empty bar), while a lone
+   score group keeps its right alignment so it never jumps sides when a game
+   gains or loses its left label mid-run. Both slots present → space-between. */
+.gf-status > .gf-status-left:only-child { margin-inline: auto; }
+.gf-status > .gf-status-right:only-child { margin-inline-start: auto; }
+.gf-status-label { font-size: 11px; letter-spacing: 1px; color: var(--muted); font-weight: 600; }
+.gf-score { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.gf-score-label { color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: 0.5px; }
+.gf-score-value { color: var(--brand); font-size: 16px; }
+
+.gf-prompt {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; width: 100%; text-align: center;
+}
+.gf-eyebrow { font-size: 11px; letter-spacing: 1.5px; color: var(--brand); font-weight: 600; }
+.gf-title { font-size: 19px; }
+
+.gf-board {
+  width: 100%; min-height: 0;
+  display: flex; flex-direction: column; align-items: center;
+}
+.gf--fill .gf-board { flex: 1 1 auto; }
+
+/* Bottom slot. Renders only when it has content (GameFrame.Action returns null
+   when empty) so games WITHOUT an input row don't inherit a phantom root gap and
+   drift out of alignment with each other. */
+.gf-action { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.gf-action:empty { display: none; }
+
+/* The one submission row. Every game that takes a typed answer uses this, so the
+   with-input family shares one width, one gap and one control height. */
+.gf-inputrow {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  max-width: 440px;
+}
+.gf-inputrow > :first-child { flex: 1 1 auto; min-width: 0; }
+.gf-inputrow .btn { flex: none; }
 
 /* ---------- Progress bar ---------- */
 .progress { height: 5px; border-radius: 5px; background: var(--surface3); overflow: hidden; }

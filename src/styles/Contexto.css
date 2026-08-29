@@ -1,42 +1,29 @@
 /* ===== LeContexto — similarity radar (prefix: cx-) ===== */
-/* The play area is a single fixed-height column: header + input + give-up are
-   flex:none, and the guess list is the ONLY scroll region. Height is dvh-bounded
-   so it shrinks on short screens (no page scroll) — the parent .stage-inner has
-   no definite height, so a percentage height here would collapse to auto. */
-.cx-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 620px;
-  height: clamp(300px, 56dvh, 500px);
-  min-height: 0;
-  margin: 0 auto;
+/* The root, status row and action row come from <GameFrame> (ui.css) — do not
+   re-add a .cx-wrap/.cx-head here. This is a FILL game: the guess list
+   (.cx-list, flex:1 1 auto + overflow-y:auto) is a genuine internal scroller, so
+   the root is <GameFrame fill> and the board grows to the stage height
+   (Rule 4.1). The board stacks the scrolling list above the give-up reveal, so
+   it needs a gap of its own (.gf-board is gapless by default). */
+.gf-board:has(.cx-list) { gap: 8px; }
+
+/* Loading / empty-pool state (not the game root — GameFrame owns that) */
+.cx-center {
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.4dvh, 14px);
-}
-.cx-center { align-items: center; justify-content: center; }
-
-/* Header — fixed */
-.cx-head {
-  flex: none;
-  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: center;
+  gap: 10px;
 }
-.cx-eyebrow {
-  font-size: clamp(10.5px, 1.5dvh, 12px);
-  letter-spacing: 0.3px;
-  color: var(--muted);
-}
-.cx-meta { display: flex; align-items: baseline; gap: 5px; flex: none; }
-.cx-count { font-size: clamp(18px, 2.6dvh, 24px); font-weight: 700; color: var(--brand); }
-.cx-count-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
 
 /* Guess list — the ONLY scroll region */
+/* Sizes to its rows instead of claiming the leftover height — an empty list used
+   to hold open a large blank band under the prompt. Capped so a long guess trail
+   scrolls inside itself rather than pushing the page down. */
 .cx-list {
-  flex: 1 1 auto;
   min-height: 0;
+  max-height: clamp(180px, 42dvh, 420px);
+  width: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: flex;
@@ -66,7 +53,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
-.cx-reveal { flex: none; }
+.cx-reveal { flex: none; width: 100%; }
 .cx-row-name {
   min-width: 0;
   overflow: hidden;
@@ -92,14 +79,12 @@
 .cx-row.is-brand .cx-row-rank { color: var(--brand); }
 .cx-row.is-bad .cx-bar-fill { background: var(--bad); }
 .cx-row.is-bad .cx-row-rank { color: var(--bad); }
-.cx-row.is-win { border-color: var(--good); background: color-mix(in srgb, var(--good) 14%, var(--surface2)); }
+.cx-row.is-win { border-color: var(--good); background: var(--good-soft); }
 
 .cx-reveal.is-brand { border-color: var(--brand); background: var(--brand-soft); }
 .cx-reveal .cx-row-name { color: var(--brand); }
 
-/* Input row — anchored at the bottom of the play area */
-.cx-inputrow { flex: none; display: flex; gap: 8px; align-items: flex-start; }
-.cx-inputrow > div { flex: 1; min-width: 0; }
+/* Input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
 .cx-giveup {
   flex: none;
@@ -124,5 +109,4 @@
 /* Small phones (390x844): tighter rows, still no page scroll */
 @media (max-width: 480px) {
   .cx-row, .cx-reveal { min-height: 42px; padding: 5px 8px; gap: 6px; }
-  .cx-eyebrow { max-width: 60%; }
 }

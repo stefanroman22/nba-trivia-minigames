@@ -1,19 +1,13 @@
 /* ===== Career Path Challenge — stint card rail (prefix: cp-) =====
    Conventions per FanFavorites.css: theme.css tokens only, clamp() sizing,
-   play area fits 390x844 with no page scroll (the rail pans inside itself). */
-.cp-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 620px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(10px, 1.8dvh, 18px);
-}
+   play area fits 390x844 with no page scroll (the rail pans inside itself).
 
-/* Header */
-.cp-head { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
-.cp-eyebrow { font-size: clamp(10.5px, 1.5dvh, 12px); letter-spacing: 0.4px; color: var(--muted); }
+   The root, status row, prompt and action row come from <GameFrame> (ui.css) —
+   this file only styles the card rail itself. Do not re-add a .cp-wrap/.cp-head.
+   Not a fill game: the rail pans on overflow-x, nothing scrolls vertically
+   (Rule 4.1). */
+
+/* Guesses-left counter — the status row's right-hand group */
 .cp-counter { font-size: clamp(12px, 1.9dvh, 14px); font-weight: 700; color: var(--brand); }
 
 /* ===== Card rail: horizontal pan INSIDE the container ===== */
@@ -113,18 +107,12 @@
   line-height: 1.25;
   padding-top: 2px;
   border-top: 1px solid var(--line);
+  min-height: 2.5em; /* reserve ~2 lines on every card so the final card's extra
+                         row doesn't shift its centered content vs. other cards */
 }
+.cp-card-draft.is-hidden { visibility: hidden; }
 
-/* ===== Input row (bottom-anchored in the play area) ===== */
-.cp-inputrow {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
-  max-width: 420px;
-  margin-top: auto;
-}
-.cp-inputrow > :first-child { flex: 1; min-width: 0; }
+/* Input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
 /* ===== Loss reveal container ===== */
 .cp-reveal {

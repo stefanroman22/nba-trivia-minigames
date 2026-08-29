@@ -60,13 +60,29 @@ does, where it lives, where it's hosted, and how safe it is.
   **Play with a friend** (private 3-player rooms with a share code).
 
 ### The games available
+18 live games (`src/utils/GameUtils.tsx` is the source of truth — update this table when a game
+ships or its blurb changes). Full design/build history: [docs/games/MASTER_PLAN.md](games/MASTER_PLAN.md).
+
 | Game | What you do |
 |---|---|
-| **Guess the Series Winner** | Pick who won a playoff series |
+| **Guess the Series Winner** | Pick who won a real NBA playoff series |
 | **Name the NBA Club** | Identify a team from its logo |
-| **Guess the MVP** | Name the MVP for a season |
-| **Fill in the Starting 5** | Name the 5 starters of a real game |
-| **NBA Wordle** | Guess a 5-letter player surname |
+| **Guess the MVP** | Name the MVP for a specific season |
+| **Fill in the Starting 5** | Name the starting lineup of the winning team from a random game |
+| **NBA Wordle** | Guess an NBA player using Wordle rules |
+| **Fan Favorites** | Guess what 100 fans answered — find every answer on the board |
+| **The Heatmap** | Claim hexes by naming players who fit a criterion and its neighbours |
+| **NBA Connections** | 16 players hide 4 secret groups of 4 — find every link |
+| **Career Path Challenge** | Guess the mystery player from his team-by-team career path |
+| **NBA Grid** | Fill a 3×3 grid with players matching both their row and column |
+| **Who Are Ya?** | A blurred mystery player — every miss sharpens the photo |
+| **NBA Tic-Tac-Toe** | Head-to-head 3×3: claim cells by naming valid players |
+| **NBA Bingo** | Dealt player cards, a 16-category board — dab the right cell |
+| **LeContexto** | Unlimited guesses — each one shows how close you are to the secret player |
+| **Who Would Win?** | Daily hypothetical matchup — one tap, see the community split |
+| **Pack 5** | Flip through player cards — pick the stat that beats the hidden next card |
+| **SuperDraft Five** | Draft a starting five from randomized pools under today's objective |
+| **NBA Imposter** | Party game for friend rooms: find who's bluffing about the mystery player |
 
 ### Client-side caching — **yes, the app caches a lot on purpose**
 The actual game content (questions, players, teams) is **static** — it's the same for
@@ -296,5 +312,5 @@ There are **two kinds of data**, handled very differently:
 | Game content | Static JSON | **Vercel CDN** (`/data/`) | bundled with the frontend build |
 | Data refresh | Python (`nba_api`) | **Home PC** (monthly) | residential IP required |
 
-For deployment/runbook details see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
-For local run commands see [RUN.md](RUN.md).
+For deployment/runbook details see [DEPLOYMENT.md](DEPLOYMENT.md).
+For local run commands see [README.md](../README.md#running-locally).

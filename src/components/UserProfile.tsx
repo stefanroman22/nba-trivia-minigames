@@ -160,7 +160,7 @@ function UserProfile() {
 
         <h2 className="font-display profile-welcome">
           Welcome, {user?.username}
-          {user?.id && <span className="tnum" style={{ fontSize: 13, fontWeight: 400, color: "var(--muted)", marginLeft: 8 }}>#{user.id}</span>}
+          {user?.id && <span className="tnum" style={{ display: "block", fontSize: 13, fontWeight: 400, color: "var(--muted)" }}>#{user.id}</span>}
         </h2>
 
         <label htmlFor="photo-upload" className="profile-photo-btn">

@@ -27,6 +27,7 @@ def load_seed():
             "qid": q.get("qid") or q.get("id"),
             "prompt": q.get("prompt", ""),
             "survey_date": q.get("survey_date", ""),
+            "category": q.get("category", "player"),
             # Self-healing: the board contract is rank 1 = most popular, so the
             # seed is always served in descending-count order regardless of how
             # it was authored.

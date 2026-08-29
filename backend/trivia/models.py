@@ -121,6 +121,9 @@ class FanFavoritesQuestion(models.Model):
     qid = models.CharField(max_length=20, primary_key=True)  # "ff-001"
     prompt = models.CharField(max_length=200)
     survey_date = models.CharField(max_length=10, blank=True)  # "2026-07-01"
+    # Answer entity type — drives the client's autocomplete source (players /
+    # teams / seasons / coaches). Unknown values fall back to free-text input.
+    category = models.CharField(max_length=12, default="player")  # player|team|season|coach
     answers = models.JSONField(default=list)  # [{"answer", "count", "aliases": [...]}]
     live = models.BooleanField(default=True)
 

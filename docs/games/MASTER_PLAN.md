@@ -6,7 +6,7 @@ playfootball.games (23 games), premierleague.com/en/games (9), hoopgoat.com (16)
 market (Poeltl, Immaculate Grid, HoopGrids, Crossover Grid, Dribble Game, Sporcle, NBA Play…), and
 generic daily-puzzle mechanics (Wordle, Connections, higher/lower, Contexto…).
 
-Reference screenshots live in [docs/game-research/](docs/game-research/). **Images are mechanic/layout
+Reference screenshots live in [../game-research/](../game-research/). **Images are mechanic/layout
 references only — never copy their visual style.** Every game must be re-skinned to the app's own
 design system (see §2).
 
@@ -144,7 +144,7 @@ contribution at ≈300 per session.
   for that game (e.g. a player without a headshot never becomes a Pixel Reveal answer).
 - Every image has a fallback: player photo → grey silhouette asset; team logo → `TeamCrest`
   fallback initials; college logo missing → that university question is never asked (per
-  players_extensive_data.md).
+  PLAYERS_DATA.md).
 - Name matching is alias-aware everywhere (last-name-only, accents, nicknames: "AI" → Iverson).
   Build the alias matcher once as a shared util.
 
@@ -172,9 +172,9 @@ process before starting the next game.
 
 ### W1-1 · Fan Favorites — "We asked 100 NBA fans…"
 
-![Fan Favourites reference (from spec)](docs/game-research/fan-favourites-ref-gameplay.png)
-*Also: [full desktop layout](docs/game-research/fan-favourites-ref-full.png) ·
-[live site capture](docs/game-research/fan-favourites.png)*
+![Fan Favourites reference (from spec)](../game-research/fan-favourites-ref-gameplay.png)
+*Also: [full desktop layout](../game-research/fan-favourites-ref-full.png) ·
+[live site capture](../game-research/fan-favourites.png)*
 
 Family-Feud-style: a question with ≥6 hidden popular answers; type answers to reveal them on the board.
 
@@ -206,10 +206,10 @@ Family-Feud-style: a question with ≥6 hidden popular answers; type answers to 
 
 ### W1-2 · The Heatmap — hex-grid category board
 
-![Heatmap board reference (from spec)](docs/game-research/heatmap-ref-board.png)
-*Also: [selection state](docs/game-research/heatmap-ref-selection.png) ·
-[solved-orange state](docs/game-research/heatmap-ref-solved-orange.png) ·
-[live site capture](docs/game-research/the-heatmap.png)*
+![Heatmap board reference (from spec)](../game-research/heatmap-ref-board.png)
+*Also: [selection state](../game-research/heatmap-ref-selection.png) ·
+[solved-orange state](../game-research/heatmap-ref-solved-orange.png) ·
+[live site capture](../game-research/the-heatmap.png)*
 
 Hex board (~30 hexes, center hex = score display) where each hex is an NBA criterion: a franchise
 logo, an award ("Won MVP"), a stat feat ("10k+ career points"), a draft fact ("Drafted in a top-5
@@ -243,9 +243,9 @@ module — Possession Play (W3-17) is the same engine in PvP territory mode.
 
 ### W1-3 · NBA Connections — find the four groups
 
-![Connections reference (from spec)](docs/game-research/connections-ref.png)
-*Also: [live football version](docs/game-research/football-connections.png) ·
-[NYT original](docs/game-research/nyt-connections-group-of-four-sorting.png)*
+![Connections reference (from spec)](../game-research/connections-ref.png)
+*Also: [live football version](../game-research/football-connections.png) ·
+[NYT original](../game-research/nyt-connections-group-of-four-sorting.png)*
 
 16 NBA players hide 4 groups of 4 sharing a link ("Won a ring with the Spurs", "Drafted 2011",
 "Kentucky alumni", "Played with LeBron"). Never position-based (spec keeps the football rule).
@@ -278,8 +278,8 @@ awards, jersey numbers, nicknames) + curated/generated puzzle bank + validator t
 
 ### W1-4 · Career Path Challenge
 
-![Career Path reference (from spec)](docs/game-research/career-path-ref.png)
-*Also: [live site capture](docs/game-research/career-path-challenge.png)*
+![Career Path reference (from spec)](../game-research/career-path-ref.png)
+*Also: [live site capture](../game-research/career-path-challenge.png)*
 
 Guess the mystery player from his team-by-team career path.
 
@@ -304,9 +304,9 @@ stint, draft data, headshots. Pool rule: only players with ≥2 team stints and 
 ## 4. Wave 2 — market-validated headliners
 
 ### W2-1 · NBA Grid — 3×3 criteria grid with rarity score
-![Immaculate Grid](docs/game-research/immaculate-grid-men-s-basketball.png)
-*Also: [HoopGrids](docs/game-research/hoopgrids-nba-connections-i-called-game-.png) ·
-[Crossover Grid](docs/game-research/crossover-grid.png)*
+![Immaculate Grid](../game-research/immaculate-grid-men-s-basketball.png)
+*Also: [HoopGrids](../game-research/hoopgrids-nba-connections-i-called-game-.png) ·
+[Crossover Grid](../game-research/crossover-grid.png)*
 
 Rows/columns carry criteria (franchise × franchise, franchise × award, × stat threshold, × draft
 fact); fill all 9 cells with players matching both. **9 guesses total; wrong guesses burn one.**
@@ -319,10 +319,10 @@ extra valid answers = bonus) nobody serves for NBA. Multiplayer: same grid, scor
 counts; guess-frequency aggregation. Generator must guarantee ≥3 valid answers per cell.
 
 ### W2-2 · Who Are Ya: NBA — photo de-blur + attribute feedback
-![Poeltl official](docs/game-research/poeltl-official-nbpa-edition.png)
-*Also: [Who Are Ya](docs/game-research/who-are-ya-independent-variants.png) ·
-[Poeltl Unlimited clone](docs/game-research/poeltl-unlimited-clone-ecosystem.png) ·
-[HoopGoat's 3-mystery variant](docs/game-research/daily-trivia.png)*
+![Poeltl official](../game-research/poeltl-official-nbpa-edition.png)
+*Also: [Who Are Ya](../game-research/who-are-ya-independent-variants.png) ·
+[Poeltl Unlimited clone](../game-research/poeltl-unlimited-clone-ecosystem.png) ·
+[HoopGoat's 3-mystery variant](../game-research/daily-trivia.png)*
 
 Merge the two best guessers: heavily blurred headshot that sharpens each miss (Who Are Ya) +
 attribute feedback columns (Poeltl): conference, division, team, position, age, jersey #, draft year
@@ -334,7 +334,7 @@ free demand the official game refuses to serve. **Time:** 1–3 min.
 (difficulty pools).
 
 ### W2-3 · Higher / Lower — stat streak
-![Higher/Lower reference](docs/game-research/higher-lower.png)
+![Higher/Lower reference](../game-research/higher-lower.png)
 
 Two player cards; left shows the value (career points, salary, rings, triple-doubles, IG followers),
 right shows only the name — call higher or lower. Correct: value animates up (`AnimatedNumber`),
@@ -345,7 +345,7 @@ same 10-card seed, tie → time. **Time:** 1–2 min daily. **Data:** career/sea
 follower counts (refresh monthly), headshots.
 
 ### W2-4 · Top-10 Board — Tenable for the NBA
-![Football Tenable reference](docs/game-research/football-tenable.png)
+![Football Tenable reference](../game-research/football-tenable.png)
 
 Daily board: "Top 10 all-time scorers", "Top 10 picks of the 2003 draft", "Kobe's 10 highest-scoring
 games — vs which teams". Type answers; hits flip open at their rank slot. 3 hearts.
@@ -355,7 +355,7 @@ same board, tie → time. **Time:** 2–4 min. **Data:** ranked stat lists with 
 game/draft/salary leaderboards), alias matcher, 10-day archive.
 
 ### W2-5 · NBA Tic-Tac-Toe — the PvP flagship
-![Footy Tic-Tac-Toe reference](docs/game-research/footy-tic-tac-toe.png)
+![Footy Tic-Tac-Toe reference](../game-research/footy-tic-tac-toe.png)
 
 Head-to-head 3×3: criteria on rows/columns; on your turn claim a cell by naming a valid player;
 **25s turn timer; 3 steals each** (retake an occupied cell with a *different* valid player); three
@@ -366,7 +366,7 @@ engine in the socket server (first truly turn-based game — build the turn/time
 once, Possession Play and Imposter reuse it).
 
 ### W2-6 · Teammate Chain — six degrees of the NBA
-![Dribble Game](docs/game-research/dribble-game-swipeball-griddy-faceball.png)
+![Dribble Game](../game-research/dribble-game-swipeball-griddy-faceball.png)
 
 Connect Player A to Player B through shared *teammates* (overlapping team-season stints) in ≤6
 links. **Score: 250 − 50 per link beyond the shortest possible path** (shortest-path solver
@@ -387,7 +387,7 @@ Complete the card before the deck runs out; 200 pts scaled by turns used. Friend
 best**; find a 0-point answer (nobody else said it) for the Zero Shield. Shares the Fan Favorites
 survey dataset with inverted scoring — two games, one data pipeline. 300-pt normalization. ⏱ 2–3 min.
 
-**W3-3 · LeContexto** — [reference](docs/game-research/futbol11-goltexto-football-contexto.png).
+**W3-3 · LeContexto** — [reference](../game-research/futbol11-goltexto-football-contexto.png).
 Secret player; unlimited guesses; every guess shows a similarity rank (#1 = answer) from a
 franchise/era/position/draft/stats/awards vector. No fail state — beginner-friendly. 200 pts −5 per
 guess past 10. ⏱ 2–5 min. *Data: similarity index over player vectors.*
@@ -405,7 +405,7 @@ historical logos.*
 become the Thunder", "LeBron passes Kareem") into chronological order; 3 lives; daily 10-card deck;
 20 pts/card. ⏱ 2–3 min. *Data: dated events table (also feeds Quiz Library).*
 
-**W3-7 · Blind Rank suite** — [reference](docs/game-research/blind-tier-list-blind-rank.png).
+**W3-7 · Blind Rank suite** — [reference](../game-research/blind-tier-list-blind-rank.png).
 One engine, three skins: Blind Tier List (10 players revealed one at a time → S/A/B/C, locked once
 placed, graded 0–100 vs reference rating), Keep 4 / Cut 4, Start·Bench·Cut (no answer key — payoff
 is the community split %, cheapest content in existence). Always show the grading math afterwards
@@ -433,7 +433,7 @@ All-Stars) beats-or-equals the hidden next card. Yellow warning on first miss, r
 card cleared (220). NBA card culture makes this land visually — design cards like premium
 Panini-style frames in app colors. ⏱ 2–3 min. *Data: comparable stat lines, headshots.*
 
-**W3-12 · Slate Predictor** — [reference](docs/game-research/matchweek-predictor-incl-final-day-score.png).
+**W3-12 · Slate Predictor** — [reference](../game-research/matchweek-predictor-incl-final-day-score.png).
 Tonight's slate: pick every winner + margin bucket; each game locks at tip-off; 5 pts winner,
 10 with margin. Weekly leaderboard; "beat the ghost" celebrity/analyst entry; Playoffs/Finals
 special editions. Needs a results-settlement job. ⏱ <1 min to enter picks. Mode note: S-only at
@@ -441,18 +441,18 @@ launch (picks settle against real games, not an opponent); friend leagues (compa
 in a room) are the natural F-mode later. *Data: schedule + tip-off times + finals
 (`trivia_gameschedule`).*
 
-**W3-13 · Standings Predictor** — [reference](docs/game-research/table-predictor-season-run-in-table-pred.png).
+**W3-13 · Standings Predictor** — [reference](../game-research/table-predictor-season-run-in-table-pred.png).
 Pre-season: drag all 30 teams into predicted final order; 25 pts exact, decaying by distance
 (500 max); tiebreak = champion's win total. Re-run at All-Star break. Seasonal bookend event.
 ⏱ 3–5 min once per season. S-only by nature (season-long settlement); friend-league comparison
 later.
 
-**W3-14 · List Blitz** — [reference](docs/game-research/daily-quiz-community-quizzes.png).
+**W3-14 · List Blitz** — [reference](../game-research/daily-quiz-community-quizzes.png).
 100 seconds: "name every #1 overall pick since 2000" — +5s per hit, 5 pts/answer. Sporcle's 6.8M
 plays on *one* NBA quiz prove the evergreen demand; near-zero build cost once the alias matcher
 exists. Daily featured list + library. ⏱ ~2 min. *Data: entity lists (reuses Top-10 data).*
 
-**W3-15 · NBA Imposter** — [reference](docs/game-research/rondo-ringer-football-imposter.png).
+**W3-15 · NBA Imposter** — [reference](../game-research/rondo-ringer-football-imposter.png).
 Party game, 3+ in a friend room: all but the Imposter see the mystery player; take turns giving
 one-word clues; vote; Imposter survives = 1 pt per wrong voter, caught = final guess for 3.
 Reuses the W2-5 turn-room primitive. **F mode only** (needs 3+ humans by design). ⏱ 5–10 min.
@@ -462,7 +462,7 @@ Reuses the W2-5 turn-room primitive. **F mode only** (needs 3+ humans by design)
 silhouette + distance/direction feedback. ⏱ 3–4 min. *Data: arena lat/lng (already in teams spec)
 + rights-cleared photos.*
 
-**W3-17 · Possession Play** — [reference](docs/game-research/possession-play.png). PvP territory
+**W3-17 · Possession Play** — [reference](../game-research/possession-play.png). PvP territory
 battle on the W1-2 hex engine: alternate turns claiming hexes; an answer matching neighbouring
 hexes claims (or **steals**) them too; most hexes when the board fills wins. Chess-style
 individual clocks. Ship after Heatmap proves the engine. ⏱ 4–6 min. **M/F only** (territory needs
@@ -511,7 +511,7 @@ Supabase" = add Django models + migrations; the tables land in the same Supabase
   from `trivia_playeraward` (award='Championship'); career totals + triple-doubles aggregate from
   `trivia_playerseasonstat`.
 - **trivia_team** (exists: team_id, full_name, abbreviation, logo) → add the fields from
-  teams_extensive_data.md: `nickname`, `conference`, `division`, `city`, `state`, `country`,
+  TEAMS_DATA.md: `nickname`, `conference`, `division`, `city`, `state`, `country`,
   `founded`, `joined_nba`, `arena_name`, `arena_capacity`, `arena_lat`, `arena_lng`,
   `championships` (JSONB years), `finals_appearances`, `retired_numbers` (JSONB),
   `colors` (JSONB), `historical_logos` (JSONB), `relocations` (JSONB), `rivals` (JSONB),
@@ -563,7 +563,7 @@ the multiplayer path. The guess-log table is the natural first step (server sees
    `GameSession` + `GuessLog` + endpoints `/trivia/log-session/`, `/trivia/log-guesses/`;
    alias matcher at `src/utils/answerMatch.ts`.
 2. **W1-1 Fan Favorites** — ✅ BUILT 2026-07-04, verified (lint/tsc/build, 69 backend tests,
-   live headless-browser playthrough at 390×844 — screenshots in docs/game-research/ff-verify-*.png).
+   live headless-browser playthrough at 390×844 — screenshots in ../game-research/ff-verify-*.png).
    Remaining deploy steps: apply `trivia/migrations/0003` + run `manage.py seed_fan_favorites`
    against Supabase, then `build_pools_from_db` on the next data refresh.
 3. **W1-3 Connections** (pure frontend board + bank validator).

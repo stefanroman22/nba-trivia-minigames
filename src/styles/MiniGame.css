@@ -127,21 +127,57 @@
    fill it and shrink to fit; compact games size to content and center. Bounded
    so it never exceeds the viewport (no page scroll) nor balloons on big monitors. */
 .playing-wrap {
+  position: relative;
   width: 100%;
-  height: min(var(--stage-max, 620px), 600px);
+  /* --stage-avail, NOT --stage-max: the latter is .stage-inner's border-box cap,
+     so sizing against it consumes the stage's own padding and pins the game flush
+     to the shell border (NBA Grid's status label sat at offset 0 because of this). */
+  height: min(var(--stage-avail, 620px), 600px);
   max-height: 100%;
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  /* Board/feed games fill the height and are tuned to fit at this tight gap —
+     a larger one overflows the viewport. The feedback popup floats above Exit
+     via .feedback-slot regardless of the gap. */
   gap: 12px;
 }
+/* Content-sized games (which hug their content and have viewport room to spare)
+   use Fan Favorites' roomier submission → Exit distance. */
+/* Content vs fill is derived from what the game itself declared via
+   <GameFrame fill>. There is deliberately NO hand-maintained id list here — that
+   list existed before and silently drifted out of sync, which is how games ended
+   up with 100–230px of dead space above Exit. One source of truth: the prop. */
+.playing-wrap:has(> .gf:not(.gf--fill)) { gap: 28px; }
+/* Shell-owned slot the game feedback popups portal into — floats centered in the
+   gap above Exit, takes no layout space (absolute + pointer-events:none). */
+.feedback-slot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 22px;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 5;
+}
+/* Compact games (VS cards, single prompt + input, survey board…) hug their
+   content so the stage sits snug with the stage-inner clamp padding above and
+   below + a small gap to the exit, instead of stretching into the tall board
+   budget. Board games (which grow a flex:1 area to fill) keep the height above. */
+.playing-wrap:has(> .gf:not(.gf--fill)) { height: auto; }
 /* the game root manages its own internal layout so header + board + input all
    stay visible without page scroll; boards opt into filling via height:100% */
 .playing-wrap > :first-child { max-height: 100%; min-height: 0; width: 100%; }
 .playing-topbar { width: 100%; display: flex; justify-content: flex-end; flex: none; }
-.playing-wrap .exit-link { flex: none; }
+/* Exit always ends the play column (margin-top:auto), so the space beneath it is
+   ALWAYS the stage-inner clamp padding — identical across every game. On
+   content-sized (is-content) games there's no slack, so it sits snug under the
+   game (the 12px gap) exactly like Series Winner; on filling games it rests at
+   the bottom of the filled area. Same Exit→bottom distance everywhere. */
+.playing-wrap .exit-link { flex: none; margin-top: auto; }
 .exit-link { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .exit-link:hover { color: var(--text); }
 

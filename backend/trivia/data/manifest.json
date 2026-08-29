@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-06",
+  "version": "2026-07-09",
   "games": {
     "all-players": {
       "file": "all-players.json",
@@ -28,7 +28,7 @@
     },
     "fan-favorites": {
       "file": "fan-favorites.json",
-      "sha256": "d0caefba2dd2989884fb59f0049b93d1aded7ffbedb84a5b33449b76d4cc705f",
+      "sha256": "eab4a4fe6e474061433216a514661a43def05d43c71a1e3cad39d8a9a0049c2f",
       "count": 24
     },
     "heatmap": {

@@ -194,14 +194,6 @@ function AnimatedRoutes() {
           }
         />
         <Route
-          path="/who-would-win"
-          element={
-            <PageTransition>
-              <MiniGame />
-            </PageTransition>
-          }
-        />
-        <Route
           path="/pack-five"
           element={
             <PageTransition>

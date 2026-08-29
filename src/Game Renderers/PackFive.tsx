@@ -11,7 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { CourtLoader } from "../components/ui";
+import { GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { sampleN } from "../utils/pool";
@@ -227,7 +227,7 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
     if (hit) {
       correctRef.current += 1;
       setCorrect(correctRef.current);
-      flashPopup(`Beats it! +${POINTS}`, "var(--good)");
+      flashPopup(`Correct! +${POINTS}`, "var(--good)");
       later(() => (isLastComparison ? finish(true) : nextCard()), REVEAL_MS);
       return;
     }
@@ -239,26 +239,20 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
       flashPopup("Two misses — run over", "var(--bad)");
       later(() => finish(false), REVEAL_MS);
     } else {
-      flashPopup("Missed — one life left", "var(--brand)");
+      flashPopup("Missed — one life left", "var(--bad)");
       later(() => (isLastComparison ? finish(true) : nextCard()), REVEAL_MS);
     }
   };
 
   // ----- States: loading / error (no valid pool) -----
   if (dealState === "loading") {
-    return (
-      <div className="pf-wrap pf-wrap--center">
-        <CourtLoader label="Opening the pack…" />
-      </div>
-    );
+    return <Spinner label="Opening the pack…" />;
   }
   if (dealState === "error" || pack.length < 2) {
     return (
-      <div className="pf-wrap pf-wrap--center">
-        <div className="pf-state" role="alert">
-          <span className="pf-state-title">Pack unavailable</span>
-          <span className="pf-state-msg">Not enough players to build a pack right now. Please try again later.</span>
-        </div>
+      <div className="pf-state" role="alert">
+        <span className="pf-state-title">Pack unavailable</span>
+        <span className="pf-state-msg">Not enough players to build a pack right now. Please try again later.</span>
       </div>
     );
   }
@@ -276,29 +270,25 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
         : "Pick a stat where your card beats the mystery card (ties win).";
 
   return (
-    <div className="pf-wrap">
-      {/* HUD: score · progress · lives */}
-      <div className="pf-hud">
-        <div className="pf-hud-block">
-          <span className="pf-hud-label">Score</span>
-          <span className="pf-hud-value tnum font-display">{POINTS * correct}</span>
-        </div>
-        <div className="pf-hud-block pf-hud-block--center">
-          <span className="pf-hud-label">Card</span>
-          <span className="pf-hud-value tnum">
-            {comparisonNo}<span className="pf-hud-of">/{totalComparisons}</span>
-          </span>
-        </div>
-        <div className="pf-hud-block pf-hud-block--right" aria-label={`${Math.max(0, 2 - misses)} lives left`}>
-          <span className="pf-hud-label">Lives</span>
-          <div className="pf-lives">
-            {[0, 1].map((i) => (
-              <span key={i} className={`pf-life${i < 2 - misses ? " is-on" : ""}`} aria-hidden="true" />
-            ))}
-          </div>
-        </div>
-      </div>
+    <GameFrame>
+      {/* Card count + lives on the left, running score on the right */}
+      <GameFrame.Status
+        left={
+          <>
+            <GameFrame.Label>CARD <span className="tnum">{comparisonNo}/{totalComparisons}</span></GameFrame.Label>
+            <span className="pf-lives" aria-label={`${Math.max(0, 2 - misses)} lives left`}>
+              {[0, 1].map((i) => (
+                <span key={i} className={`pf-life${i < 2 - misses ? " is-on" : ""}`} aria-hidden="true" />
+              ))}
+            </span>
+          </>
+        }
+        right={<GameFrame.Score value={POINTS * correct} />}
+      />
 
+      <ProgressBar value={comparisonNo} max={totalComparisons} />
+
+      <GameFrame.Board>
       {/* Status banner — fixed height so reveals never shift layout */}
       <div className={`pf-banner pf-banner--${bannerTone}`} role="status">
         {bannerText}
@@ -319,7 +309,7 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
               <Headshot player={cur} />
               <div className="pf-photo-scrim" />
               <div className="pf-name-plate">
-                <span className="pf-name">{cur.full_name}</span>
+                <span className="pf-name font-display">{cur.full_name}</span>
                 <span className="pf-team">{currentTeam(cur)}{cur.is_active ? "" : " · retired"}</span>
               </div>
             </div>
@@ -351,7 +341,7 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
       <div className={`pf-next${phase === "reveal" ? " is-revealing" : ""}`}>
         <div className="pf-next-head">
           <span className="pf-next-eyebrow">Next up</span>
-          <span className="pf-next-name">{nxt.full_name}</span>
+          <span className="pf-next-name font-display">{nxt.full_name}</span>
           <span className="pf-next-team">{currentTeam(nxt)}</span>
         </div>
         <div className="pf-next-stats" aria-hidden={phase !== "reveal"}>
@@ -368,8 +358,13 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
           })}
         </div>
       </div>
+      </GameFrame.Board>
+
+      {/* No input row: the stats are tapped on the card itself, so the slot
+          renders nothing (see GameFrame.Action's doc comment). */}
+      <GameFrame.Action>{null}</GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popup.Text} color={popup.Color} />
-    </div>
+    </GameFrame>
   );
 }

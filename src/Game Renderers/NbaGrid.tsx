@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import AutocompleteInput from "../components/AutoCompleteInput";
-import { Button, CourtLoader, ProgressBar } from "../components/ui";
+import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { fetchWholePool } from "../utils/pool";
@@ -14,6 +14,8 @@ import "../styles/NbaGrid.css";
 export interface NbaGridProps {
   gameInfo: GridConfig[];
   onGameEnd: OnGameEnd;
+  onPlayAgain?: () => void;
+  onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
@@ -35,7 +37,7 @@ const fetchTally = (qid: string): Promise<Tally> =>
     .then((r) => (r.ok ? (r.json() as Promise<Tally>) : {}))
     .catch(() => ({}));
 
-export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
+export default function NbaGrid({ gameInfo, onGameEnd, onPlayAgain, onClose }: NbaGridProps) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [players, setPlayers] = useState<PlayerIndexEntry[]>([]);
   const [solved, setSolved] = useState<Record<string, CellState>>({});
@@ -159,22 +161,22 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
     later(() => setShowPopup(false), 1400);
   };
 
+  // The grid stays in place at the end (spec §7b): the breakdown strip IS the
+  // end screen, so points are awarded the moment the grid finishes.
   const finish = () => {
     if (overRef.current) return;
     overRef.current = true;
     const cells = Object.keys(solvedRef.current).length;
-    setFinalScore(POINTS_PER_CELL * cells);
+    const score = POINTS_PER_CELL * cells;
+    setFinalScore(score);
     setActiveCell(null);
     setEntry("");
     setDetailCell({ r: 0, c: 0 });
     setPhase("finished");
     sendGuessLog();
-  };
-
-  const seeResults = () => {
     if (endedRef.current) return;
     endedRef.current = true;
-    onGameEnd?.(finalScore);
+    onGameEnd?.(score, { inPlace: true });
   };
 
   const openCell = (r: number, c: number) => {
@@ -258,30 +260,20 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
 
   // ---- States: loading / error / empty ----
   if (phase === "loading") {
-    return (
-      <div className="ng-wrap ng-center">
-        <CourtLoader label="Drawing the grid…" />
-      </div>
-    );
+    return <Spinner label="Drawing the grid…" />;
   }
   if (phase === "error") {
     return (
-      <div className="ng-wrap ng-center">
-        <div className="ng-state">
-          <p className="ng-state-msg">Couldn’t load the player list.</p>
-          <Button size="sm" onClick={() => setReloadKey((k) => k + 1)}>
-            Retry
-          </Button>
-        </div>
+      <div className="ng-state">
+        <p className="ng-state-msg">Couldn’t load the player list.</p>
+        <Button size="sm" onClick={() => setReloadKey((k) => k + 1)}>
+          Retry
+        </Button>
       </div>
     );
   }
   if (phase === "empty" || !config) {
-    return (
-      <div className="ng-wrap ng-center">
-        <p className="ng-state-msg">No grid available. Please try again later.</p>
-      </div>
-    );
+    return <p className="ng-state-msg">No grid available. Please try again later.</p>;
   }
 
   const solvedCount = Object.keys(solved).length;
@@ -310,27 +302,36 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
   }
 
   return (
-    <div className="ng-wrap">
-      {/* Header: score (finished) or guesses meter, + solved count */}
-      <div className="ng-head">
-        {finished ? (
-          <div className="ng-score">
-            <span className="tnum">{finalScore}</span>
-            <span className="ng-score-max tnum"> / {MAX_POINTS} pts</span>
-          </div>
-        ) : (
-          <div className={`ng-meter${guessesLeft <= 2 ? " is-low" : ""}`}>
-            <span className="ng-meter-label">GUESSES</span>
-            <span className="ng-meter-bar">
-              <ProgressBar value={guessesLeft} max={TOTAL_GUESSES} />
+    <GameFrame>
+      {/* Status: what you're doing + solved count, with the guesses meter on the
+          right until the grid is over, when the final score takes that slot. */}
+      <GameFrame.Status
+        left={
+          <>
+            <GameFrame.Label>FILL THE GRID</GameFrame.Label>
+            {!finished && <span className="ng-solved tnum">{solvedCount}/9</span>}
+          </>
+        }
+        right={
+          finished ? (
+            <>
+              <GameFrame.Score value={finalScore} />
+              <span className="ng-score-max tnum">/ {MAX_POINTS} pts</span>
+            </>
+          ) : (
+            <span className={`ng-meter${guessesLeft <= 2 ? " is-low" : ""}`}>
+              <span className="ng-meter-label">GUESSES</span>
+              <span className="ng-meter-num tnum">{guessesLeft}/{TOTAL_GUESSES}</span>
             </span>
-            <span className="ng-meter-num tnum">{guessesLeft}/{TOTAL_GUESSES}</span>
-          </div>
-        )}
-        <span className="ng-solved tnum">{solvedCount}/9</span>
-      </div>
+          )
+        }
+      />
+
+      {/* Progress — spec §5: always the root's 2nd child, full width */}
+      <ProgressBar value={guessesLeft} max={TOTAL_GUESSES} />
 
       {/* Board: 4x4 (blank corner + 3 col chips + 3 row chips + 9 cells) */}
+      <GameFrame.Board>
       <div className="ng-board" role="grid" aria-label="Immaculate grid">
         <div className="ng-corner" aria-hidden="true" />
         {config.cols.map((c, i) => (
@@ -381,10 +382,10 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
           </div>
         ))}
       </div>
-
-      <SubmitGuessPopup show={showPopup} text={popup.Text} color={popup.Color} />
+      </GameFrame.Board>
 
       {/* Bottom region — stable min-height so reveals never shift the board */}
+      <GameFrame.Action>
       <div className="ng-bottom">
         <AnimatePresence mode="wait" initial={false}>
           {finished && detail ? (
@@ -396,7 +397,7 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
               exit={reduce ? undefined : { opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="ng-detail-head">{detail.label}</div>
+              <div className="ng-detail-head font-display">{detail.label}</div>
               <div className="ng-detail-pick">
                 {detail.pick ? (
                   <>Your pick: <span className="ng-pick">{detail.pick}</span></>
@@ -416,7 +417,12 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
                   "Be the first — community stats build as people play."
                 )}
               </div>
-              <Button size="sm" block onClick={seeResults}>See results</Button>
+              {(onPlayAgain || onClose) && (
+                <div className="ng-detail-actions">
+                  {onPlayAgain && <Button size="sm" onClick={onPlayAgain}>Play again</Button>}
+                  {onClose && <Button size="sm" variant="secondary" onClick={onClose}>Close game</Button>}
+                </div>
+              )}
             </motion.div>
           ) : activeCell ? (
             <motion.div
@@ -430,7 +436,7 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
               <div className="ng-dock-hint">
                 {config.rows[activeCell.r].label} <span className="ng-x">×</span> {config.cols[activeCell.c].label}
               </div>
-              <div className="ng-dock-row">
+              <GameFrame.InputRow>
                 <AutocompleteInput
                   placeholder="Name a player…"
                   value={entry}
@@ -442,7 +448,7 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
                 <Button size="sm" onClick={() => submitGuess()} disabled={entry.trim() === ""}>
                   Place
                 </Button>
-              </div>
+              </GameFrame.InputRow>
             </motion.div>
           ) : (
             <motion.div
@@ -461,6 +467,9 @@ export default function NbaGrid({ gameInfo, onGameEnd }: NbaGridProps) {
           )}
         </AnimatePresence>
       </div>
-    </div>
+      </GameFrame.Action>
+
+      <SubmitGuessPopup show={showPopup} text={popup.Text} color={popup.Color} />
+    </GameFrame>
   );
 }

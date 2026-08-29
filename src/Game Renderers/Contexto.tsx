@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
@@ -310,7 +310,7 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
   const handleGiveUp = () => {
     if (!secret || won || gaveUp) return;
     setGaveUp(true);
-    flash(`It was ${secret.full_name}`, "var(--muted)");
+    flash(`It was ${secret.full_name}`, "var(--bad)");
     sendGuessLog();
     later(() => endOnce(0), 1900);
   };
@@ -318,8 +318,8 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
   // Loading / empty-invalid pool state.
   if (!secret || !ranking) {
     return (
-      <div className="cx-wrap cx-center">
-        <CourtLoader label="Calibrating the radar…" />
+      <div className="cx-center">
+        <Spinner label="Calibrating the radar…" />
         {gameInfo && gameInfo.length === 0 && (
           <p className="cx-note">No player data available. Please try again later.</p>
         )}
@@ -332,19 +332,17 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     `${Math.max(5, Math.round(100 * (1 - (rank - 1) / Math.max(1, poolSize - 1))))}%`;
 
   return (
-    <div className="cx-wrap">
-      <div className="cx-head">
-        <span className="cx-eyebrow">Daily secret player — home in by similarity</span>
-        <div className="cx-meta">
-          <span className="cx-count tnum">{guessedIds.size}</span>
-          <span className="cx-count-label">guesses</span>
-        </div>
-      </div>
+    <GameFrame>
+      <GameFrame.Status
+        left={<GameFrame.Label>HOME IN BY SIMILARITY</GameFrame.Label>}
+        right={<GameFrame.Score value={guessedIds.size} label="GUESSES" />}
+      />
 
+      <GameFrame.Board>
       <div className="cx-list" role="log" aria-live="polite">
         {rows.length === 0 ? (
           <div className="cx-empty">
-            <p className="cx-empty-title">Name any player to begin.</p>
+            <p className="cx-empty-title font-display">Name any player to begin.</p>
             <p className="cx-empty-sub">#1 is the secret. Green is close, red is cold.</p>
           </div>
         ) : (
@@ -360,7 +358,7 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
                   transition={{ duration: 0.25 }}
                   className={`cx-row is-${color}${r.rank === 1 ? " is-win" : ""}`}
                 >
-                  <span className="cx-row-name">{r.name}</span>
+                  <span className="cx-row-name font-display">{r.name}</span>
                   <span className="cx-bar-track">
                     <span className="cx-bar-fill" style={{ width: barWidth(r.rank) }} />
                   </span>
@@ -374,41 +372,44 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
 
       {gaveUp && (
         <div className="cx-reveal is-brand">
-          <span className="cx-row-name">{secret.full_name}</span>
+          <span className="cx-row-name font-display">{secret.full_name}</span>
           <span className="cx-row-rank tnum">#1</span>
         </div>
       )}
+      </GameFrame.Board>
 
-      <div className="cx-inputrow">
-        <AutocompleteInput
-          placeholder="Guess a player…"
-          value={guess}
-          setValue={setGuess}
-          suggestions={suggestions}
-          onSubmit={(v) => handleGuess(v)}
-          customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.9rem" }}
-          customStyleSuggestion={{ fontSize: "0.82rem", maxHeight: "180px", minWidth: "100%" }}
-        />
-        <Button
-          size="md"
-          aria-label="Submit guess"
-          onClick={() => handleGuess(guess)}
-          disabled={won || gaveUp || guess.trim() === ""}
+      <GameFrame.Action>
+        <GameFrame.InputRow>
+          <AutocompleteInput
+            placeholder="Guess a player…"
+            value={guess}
+            setValue={setGuess}
+            suggestions={suggestions}
+            onSubmit={(v) => handleGuess(v)}
+            customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.9rem" }}
+            customStyleSuggestion={{ fontSize: "0.82rem", maxHeight: "180px", minWidth: "100%" }}
+          />
+          <Button
+            size="md"
+            aria-label="Submit guess"
+            onClick={() => handleGuess(guess)}
+            disabled={won || gaveUp || guess.trim() === ""}
+          >
+            Guess
+          </Button>
+        </GameFrame.InputRow>
+
+        <button
+          type="button"
+          className="cx-giveup"
+          onClick={handleGiveUp}
+          disabled={won || gaveUp}
         >
-          Guess
-        </Button>
-      </div>
-
-      <button
-        type="button"
-        className="cx-giveup"
-        onClick={handleGiveUp}
-        disabled={won || gaveUp}
-      >
-        Give up
-      </button>
+          Give up
+        </button>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popup.Text} color={popup.Color} />
-    </div>
+    </GameFrame>
   );
 }

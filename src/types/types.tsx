@@ -64,10 +64,15 @@ export interface FanFavoritesAnswer {
   aliases?: string[];
 }
 
+// Answer entity type — selects the client's autocomplete source. Unknown /
+// missing values fall back to free-text input.
+export type FanFavoritesCategory = "player" | "team" | "season" | "coach";
+
 export interface FanFavoritesQuestion {
   qid: string;
   prompt: string;
   survey_date?: string;
+  category?: FanFavoritesCategory;
   answers: FanFavoritesAnswer[];
 }
 
@@ -155,12 +160,6 @@ export interface BingoCard {
   cells: Criterion[];
 }
 
-export interface WwwMatchup {
-  qid: string;
-  a: { label: string; sub?: string };
-  b: { label: string; sub?: string };
-}
-
 /** A game's payload is an array of one of these shapes (Wordle = string[]). */
 export type GameData =
   | PlayoffSeries
@@ -172,7 +171,6 @@ export type GameData =
   | ConnectionsBoard
   | GridConfig
   | BingoCard
-  | WwwMatchup
   | PlayerIndexEntry
   | string;
 
@@ -207,8 +205,11 @@ export interface Game {
   handleError: (error: GameError) => void;
 }
 
-/** Called by a renderer when a game finishes, with the final score. */
-export type OnGameEnd = (finalScore: number) => void;
+/** Called by a renderer when a game finishes, with the final score.
+ *  `inPlace` (single-player) awards points but keeps the renderer mounted so it
+ *  can show its own end panel (answers-in-view games) instead of the full-screen
+ *  result overview. Omitted = today's overview flow. */
+export type OnGameEnd = (finalScore: number, opts?: { inPlace?: boolean }) => void;
 
 export interface RoomState {
   status: "idle" | "loading" | "ready" | "active" | "complete" | "playing" | "matched";

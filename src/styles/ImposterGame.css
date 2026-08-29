@@ -1,31 +1,20 @@
 /* NBA Imposter — friend-room party game (prefix: imp-). Tokens only; orange is
    the sole accent (green/red reserved for good/bad). Fits a 390x844 viewport
-   with no page scroll: the wrap is a fixed flex column and only the player ring
-   / scoreboard scrolls internally. */
+   with no page scroll: only the player ring / scoreboard scrolls internally.
 
-.imp-wrap {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  max-width: 430px;
-  height: 100%;
-  min-height: 0;
-  margin: 0 auto;
-  padding: clamp(8px, 2.4vw, 12px);
-  gap: clamp(8px, 2vw, 12px);
-  color: var(--text);
-  box-sizing: border-box;
-}
-.imp-wrap--center {
-  align-items: center;
-  justify-content: center;
-}
+   The root, status row, phase label, role prompt and action row now come from
+   <GameFrame> (ui.css) — this file only styles the play area, the reveal
+   scoreboard and the explainer. Do not re-add an .imp-wrap/.imp-phase here.
+   NOTE: in a room this renders inside OnlineMatch's .om-stage--play, NOT the
+   usual .playing-wrap — don't assume that ancestor exists. */
 
-/* ---------------- Explainer (out of a room) ---------------- */
-.imp-wrap--explain {
-  justify-content: center;
-}
+/* ---------------- Explainer (out of a room) ----------------
+   Now inside <GameFrame>, so it inherits the shared width and top offset. It
+   keeps its card treatment (border/background) because it is a rules card, not
+   a board — but the width and outer rhythm come from the frame. */
 .imp-explain {
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -33,18 +22,7 @@
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
-}
-.imp-explain-tag {
-  align-self: flex-start;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--brand);
-  background: var(--brand-soft);
-  padding: 4px 10px;
-  border-radius: 999px;
+  box-shadow: var(--shadow);
 }
 .imp-explain-title {
   font-size: clamp(1.5rem, 6vw, 2rem);
@@ -93,33 +71,7 @@
   color: var(--muted);
 }
 
-/* ---------------- Top: phase banner + deadline ---------------- */
-.imp-top {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 0 0 auto;
-}
-.imp-phaserow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.imp-phase {
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 5px 11px;
-  border-radius: 999px;
-  color: var(--brand);
-  background: var(--brand-soft);
-  border: 1px solid var(--line2);
-}
-.imp-phase--reveal {
-  color: var(--text);
-}
+/* ---------------- Countdown clock (GameFrame.Status right slot) ---------------- */
 .imp-clock {
   font-size: 1rem;
   font-weight: 700;
@@ -128,59 +80,32 @@
 .imp-clock[data-low] {
   color: var(--bad);
 }
-.imp-bar {
-  height: 5px;
-  border-radius: 999px;
-  background: var(--surface3);
-  overflow: hidden;
+
+/* ---------------- Play area (inside GameFrame.Board) ----------------
+   Two muted note lines, then the ring / scoreboard which is the scroller. */
+.imp-play {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.imp-bar-fill {
-  height: 100%;
-  border-radius: 999px;
-  background: var(--brand);
-  transition: width 0.5s linear;
+.imp-notes {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
 }
-.imp-bar-fill[data-low] {
-  background: var(--bad);
+.imp-role-sub {
+  font-size: 0.74rem;
+  color: var(--muted);
 }
 .imp-turn {
   font-size: 0.82rem;
   color: var(--muted);
   min-height: 1.1em;
-}
-
-/* ---------------- Role / mystery strip ---------------- */
-.imp-role {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: clamp(10px, 3vw, 14px);
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--surface2), var(--surface));
-  border: 1px solid var(--line);
-  text-align: center;
-  flex: 0 0 auto;
-}
-.imp-role.is-imposter {
-  background: linear-gradient(180deg, var(--brand-soft), var(--surface));
-  border-color: var(--brand-deep);
-}
-.imp-role-eyebrow {
-  font-size: 0.64rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.imp-role-main {
-  font-size: clamp(1.05rem, 4.6vw, 1.4rem);
-  line-height: 1.1;
-}
-.imp-role.is-imposter .imp-role-main {
-  color: var(--brand);
-}
-.imp-role-sub {
-  font-size: 0.74rem;
-  color: var(--muted);
 }
 
 /* ---------------- Player ring (clue / vote) ---------------- */
@@ -194,6 +119,13 @@
   gap: clamp(8px, 2.4vw, 12px);
   align-content: start;
   padding: 2px;
+}
+/* 3 or 5 players (odd counts) leave the last card alone on its row — centre it
+   instead of letting it sit dangling in column 1 (spec Rule 4.3). */
+.imp-ring > .imp-card:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: calc(50% - 6px);
 }
 
 .imp-card {
@@ -340,7 +272,7 @@
 }
 .imp-verdict-guess {
   margin-top: 4px;
-  font-size: 0.8rem;
+  font-size: 14px;
   font-weight: 700;
 }
 .imp-verdict-guess.is-right {
@@ -409,23 +341,9 @@
   font-weight: 800;
 }
 
-/* ---------------- Bottom action bar ---------------- */
-.imp-action {
-  flex: 0 0 auto;
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.imp-inputrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-}
-.imp-inputrow--guess {
-  align-items: stretch;
-}
+/* ---------------- Bottom action slot (GameFrame.Action) ----------------
+   The row itself is GameFrame.InputRow; only the clue field and the standing
+   hint are game-specific. */
 .imp-input {
   flex: 1 1 auto;
   height: 44px;
@@ -444,15 +362,19 @@
   border-color: var(--brand);
   box-shadow: 0 0 0 2px var(--brand-soft);
 }
+/* Matches the 44px input row so the action slot keeps one height across phases. */
 .imp-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
   font-size: 0.82rem;
   color: var(--muted);
   text-align: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .imp-card,
-  .imp-bar-fill {
+  .imp-card {
     transition: none;
   }
 }

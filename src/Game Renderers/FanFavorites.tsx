@@ -1,16 +1,25 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button } from "../components/ui";
+import AutoCompleteInput from "../components/AutoCompleteInput";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import ScorePanel from "../components/ScorePanel";
+import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
+import { fetchWholePool } from "../utils/pool";
 import { matchAnswer, normalizeAnswer } from "../utils/answerMatch";
+import { nbaTeams } from "../constants/nbaTeams";
+import { nbaCoaches } from "../constants/nbaCoaches";
+import { nbaSeasons } from "../utils/seasons";
 import type { FanFavoritesQuestion, OnGameEnd } from "../types/types";
 import "../styles/FanFavorites.css";
 
 interface FanFavoritesProps {
   gameInfo: FanFavoritesQuestion[];
   onGameEnd: OnGameEnd;
+  onPlayAgain?: () => void;
+  onClose?: () => void;
 }
 
 const MAX_SCORE = 300;
@@ -22,7 +31,7 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
+function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavoritesProps) {
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const [lostReveal, setLostReveal] = useState<Record<number, boolean>>({});
   const [numberLifes, setNumberLifes] = useState(3);
@@ -30,12 +39,19 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
   const [finished, setFinished] = useState(false);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
+  // End-state: the board stays in view; the bottom slot fades submission → loader
+  // → score (win and loss both play this in-place sequence — see EndSequence).
+  const [endState, setEndState] = useState<{ score: number; found: number; total: number; win: boolean } | null>(null);
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
+  // Full ~5k NBA player names, loaded on demand for player-category boards.
+  const [playerPool, setPlayerPool] = useState<string[]>([]);
   const wrongTriesRef = useRef<Set<string>>(new Set());
   const guessLogRef = useRef<GuessEntry[]>([]);
   const startRef = useRef(Date.now());
-  const inputRef = useRef<HTMLInputElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const reduce = useReducedMotion();
+
+  const question = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
 
   // All delayed work goes through these so an exit/unmount can never fire a
   // stale onGameEnd (or setState) for an abandoned game.
@@ -56,10 +72,25 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
     setGuess("");
     setFinished(false);
     setShowPointsAnimation(false);
+    setEndState(null);
+    setBottomPhase("input");
     wrongTriesRef.current = new Set();
     guessLogRef.current = [];
     startRef.current = Date.now();
   }, [gameInfo]);
+
+  // Player-category boards autocomplete from the full ~5k NBA player list;
+  // other categories use small in-app lists (see `suggestions`).
+  useEffect(() => {
+    if (question?.category !== "player") return;
+    let cancelled = false;
+    fetchWholePool("all-players")
+      .then((res) => {
+        if (!cancelled && res.success) setPlayerPool((res.data as string[]) || []);
+      })
+      .catch(() => { /* falls back to free-text until/if it loads */ });
+    return () => { cancelled = true; };
+  }, [question?.category]);
 
   // Unmount: cancel pending reveals/end-calls and flush any un-sent guesses
   // (abandoned sessions still feed the flywheel; no-op when already flushed).
@@ -70,7 +101,20 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
     };
   }, []);
 
-  const question = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
+  // Category-aware autocomplete pool. Always union this board's own answer
+  // names so every correct answer is findable (covers relocated teams, etc.).
+  // Unknown category — or the player pool still loading — falls back to
+  // free-text (empty list => AutoCompleteInput shows no dropdown).
+  const suggestions = useMemo(() => {
+    if (!question) return [];
+    let base: string[] | null = null;
+    if (question.category === "player") base = playerPool.length ? playerPool : null;
+    else if (question.category === "team") base = nbaTeams;
+    else if (question.category === "coach") base = nbaCoaches;
+    else if (question.category === "season") base = nbaSeasons;
+    if (!base) return [];
+    return Array.from(new Set([...base, ...question.answers.map((a) => a.answer)]));
+  }, [question, playerPool]);
 
   const flashPopup = (text: string, color: string) => {
     setPopUpInfo({ Text: text, Color: color });
@@ -94,7 +138,6 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
     if (!question?.answers?.length || finished) return;
     const raw = guess;
     setGuess("");
-    inputRef.current?.focus();
     const normalized = normalizeAnswer(raw);
     if (!normalized) return;
 
@@ -116,7 +159,14 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
         setFinished(true);
         sendGuessLog();
         flashPopup("Board cleared! +300", "var(--good)");
-        later(() => onGameEnd?.(MAX_SCORE), 1600);
+        // Win → in-place: submission fades out, a loader shows, then the score
+        // + Play again fade in (same sequence as the loss).
+        setBottomPhase("loader");
+        later(() => {
+          onGameEnd?.(MAX_SCORE, { inPlace: true });
+          setEndState({ score: MAX_SCORE, found: question.answers.length, total: question.answers.length, win: true });
+          setBottomPhase("score");
+        }, 700);
       } else {
         flashPopup(`+${hit.count} fans said it!`, "var(--good)");
       }
@@ -137,21 +187,29 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
     if (newLifes <= 0) {
       setFinished(true);
       sendGuessLog();
-      const finalScore = Math.round((MAX_SCORE * Object.keys(revealed).length) / question.answers.length);
+      const found = Object.keys(revealed).length;
+      const total = question.answers.length;
+      const finalScore = Math.round((MAX_SCORE * found) / total);
       flashPopup("Not on the board", "var(--bad)");
 
-      // Reveal the remaining answers one after another, muted.
+      // Submission fades to a loader the moment the answers begin revealing…
+      setBottomPhase("loader");
       const toReveal = question.answers.map((_, i) => i).filter((i) => !revealed[i]);
       toReveal.forEach((slot, i) => {
-        later(() => setLostReveal((prev) => ({ ...prev, [slot]: true })), 450 + i * 450);
+        later(() => setLostReveal((prev) => ({ ...prev, [slot]: true })), 260 + i * 260);
       });
-      later(() => onGameEnd?.(finalScore), 450 + toReveal.length * 450 + 600);
+      // …then the score + Play again fade in once they've all shown.
+      later(() => {
+        onGameEnd?.(finalScore, { inPlace: true });
+        setEndState({ score: finalScore, found, total, win: false });
+        setBottomPhase("score");
+      }, 260 + toReveal.length * 260 + 380);
     } else {
       flashPopup("Not on the board", "var(--bad)");
     }
   };
 
-  if (!question) return <p style={{ color: "var(--muted)" }}>Loading survey…</p>;
+  if (!question) return <Spinner label="Loading survey…" />;
   if (!question.answers || question.answers.length === 0)
     return <p style={{ color: "var(--muted)" }}>No survey data available.</p>;
 
@@ -160,13 +218,15 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
     : "survey day";
 
   return (
-    <div className="ff-wrap">
-      {/* Prompt */}
-      <div className="ff-head">
-        <span className="ff-eyebrow">On {surveyLabel}, we asked 100 NBA fans to name…</span>
-        <h2 className="ff-prompt font-display">{question.prompt}</h2>
-      </div>
+    <GameFrame>
+      <GameFrame.Status left={<GameFrame.Label>NAME THE TOP ANSWERS</GameFrame.Label>} />
 
+      <GameFrame.Prompt
+        eyebrow={`On ${surveyLabel}, we asked 100 NBA fans to name…`}
+        title={question.prompt}
+      />
+
+      <GameFrame.Board>
       {/* Lives */}
       <div className="ff-lives" aria-label={`${numberLifes} lives left`}>
         {[...Array(3)].map((_, i) => {
@@ -214,36 +274,48 @@ function FanFavorites({ gameInfo, onGameEnd }: FanFavoritesProps) {
           );
         })}
       </div>
+      </GameFrame.Board>
 
-      {/* Free-text guess input — no autocomplete, recall is the game */}
-      <div className="ff-inputrow">
-        <input
-          ref={inputRef}
-          className="ff-input"
-          type="text"
-          value={guess}
-          onChange={(e) => setGuess(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.nativeEvent.isComposing) handleGuessSubmit(); }}
-          placeholder="Type an answer…"
-          autoComplete="off"
-          autoCorrect="off"
-          autoCapitalize="off"
-          spellCheck={false}
-          disabled={finished}
-          aria-label="Your answer"
-        />
-        <Button
-          size="sm"
-          aria-label="Confirm answer"
-          onClick={handleGuessSubmit}
-          disabled={finished || guess.trim() === ""}
-        >
-          Confirm
-        </Button>
-      </div>
+      <GameFrame.Action>
+      {/* Submission → loader → score, cross-faded (shared answers-shown pattern) */}
+      <EndSequence
+        phase={bottomPhase}
+        input={
+          <GameFrame.InputRow>
+            <AutoCompleteInput
+              value={guess}
+              setValue={setGuess}
+              suggestions={suggestions}
+              maxResults={8}
+              onSubmit={() => handleGuessSubmit()}
+              placeholder="Type an answer…"
+              customStyleInput={{ height: "40px", width: "100%", fontSize: "0.85rem" }}
+            />
+            <Button
+              size="sm"
+              aria-label="Confirm answer"
+              onClick={handleGuessSubmit}
+              disabled={finished || guess.trim() === ""}
+            >
+              Confirm
+            </Button>
+          </GameFrame.InputRow>
+        }
+        score={
+          <ScorePanel
+            score={endState?.score ?? 0}
+            outOf={MAX_SCORE}
+            label={endState?.win ? "Board cleared!" : `Found ${endState?.found ?? 0}/${endState?.total ?? 0}`}
+            won={endState?.win}
+            onPlayAgain={onPlayAgain}
+            onClose={onClose}
+          />
+        }
+      />
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPointsAnimation} text={popUpInfo.Text} color={popUpInfo.Color} />
-    </div>
+    </GameFrame>
   );
 }
 

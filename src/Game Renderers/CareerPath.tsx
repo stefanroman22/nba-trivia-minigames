@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -14,6 +16,8 @@ import "../styles/CareerPath.css";
 export interface CareerPathProps {
   gameInfo: PlayerIndexEntry[];
   onGameEnd: OnGameEnd;
+  onPlayAgain?: () => void;
+  onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
@@ -82,12 +86,14 @@ function RevealHeadshot({ personId, name }: { personId: number; name: string }) 
   );
 }
 
-function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
+function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathProps) {
   const [player, setPlayer] = useState<PlayerIndexEntry | null>(null);
   const [flipped, setFlipped] = useState(1); // cards face-up (card 1 starts revealed)
   const [wrong, setWrong] = useState(0);
   const [guess, setGuess] = useState("");
   const [phase, setPhase] = useState<"playing" | "won" | "lost">("playing");
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
+  const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
@@ -128,6 +134,8 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
     setWrong(0);
     setGuess("");
     setPhase("playing");
+    setBottomPhase("input");
+    setEndState(null);
     setShowPointsAnimation(false);
     guessLogRef.current = [];
     startRef.current = Date.now();
@@ -205,14 +213,19 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
     if (correct) {
       const finalScore = (stints - wrong) * POINTS_PER_CARD;
       setPhase("won");
+      setBottomPhase("loader");
       sendGuessLog();
-      flashPopup(`That's him! +${finalScore}`, "var(--good)");
-      // Reveal the rest of the trail as a cascade, then hand the score back.
+      flashPopup(`Correct! +${finalScore}`, "var(--good)");
+      // Reveal the rest of the trail as a cascade, then the score fades in.
       const remaining = stints - flipped;
       for (let i = 0; i < remaining; i++) {
-        later(() => setFlipped((f) => f + 1), 450 + i * 380);
+        later(() => setFlipped((f) => f + 1), 260 + i * 260);
       }
-      later(() => onGameEnd?.(finalScore), 450 + remaining * 380 + 1200);
+      later(() => {
+        onGameEnd?.(finalScore, { inPlace: true });
+        setEndState({ score: finalScore, won: true });
+        setBottomPhase("score");
+      }, 260 + remaining * 260 + 700);
       return;
     }
 
@@ -220,11 +233,16 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
     setWrong(newWrong);
 
     if (newWrong >= stints) {
-      // Out of guesses: 0 points, full reveal at the bottom.
+      // Out of guesses: 0 points, full reveal at the bottom, then the score.
       setPhase("lost");
+      setBottomPhase("loader");
       sendGuessLog();
       flashPopup("Out of guesses", "var(--bad)");
-      later(() => onGameEnd?.(0), 3200);
+      later(() => {
+        onGameEnd?.(0, { inPlace: true });
+        setEndState({ score: 0, won: false });
+        setBottomPhase("score");
+      }, 1500);
     } else {
       setFlipped(1 + newWrong); // each miss flips the next card
       flashPopup("Not him — next stop revealed", "var(--bad)");
@@ -233,12 +251,7 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
 
   if (!gameInfo || gameInfo.length === 0)
     return <p style={{ color: "var(--muted)" }}>No career data available.</p>;
-  if (!player)
-    return (
-      <div className="cp-wrap">
-        <CourtLoader label="Tracing the career path…" />
-      </div>
-    );
+  if (!player) return <Spinner label="Tracing the career path…" />;
 
   const stints = player.teams.length;
   const guessesLeft = stints - wrong;
@@ -248,16 +261,24 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
     : "Undrafted";
 
   return (
-    <div className="cp-wrap">
-      {/* Header: guesses left + stop count */}
-      <div className="cp-head">
-        <span className="cp-eyebrow">One career, card by card</span>
-        <span className="cp-counter tnum" aria-live="polite">
-          {guessesLeft} {guessesLeft === 1 ? "guess" : "guesses"} left · {stints} stops
-        </span>
-      </div>
+    <GameFrame>
+      {/* Status: what you're doing + guesses left / stop count */}
+      <GameFrame.Status
+        left={<GameFrame.Label>TRACE THE CAREER</GameFrame.Label>}
+        right={
+          <span className="cp-counter tnum" aria-live="polite">
+            {guessesLeft} {guessesLeft === 1 ? "guess" : "guesses"} left · {stints} stops
+          </span>
+        }
+      />
+
+      {/* Progress: career stops revealed so far */}
+      <ProgressBar value={Math.min(flipped, stints)} max={stints} />
+
+      <GameFrame.Prompt eyebrow="One career, card by card" />
 
       {/* Card rail — pans horizontally INSIDE this container (no page scroll) */}
+      <GameFrame.Board>
       <div className="cp-rail" ref={railRef} role="list" aria-label="Career stops">
         {player.teams.map((stint, i) => {
           const faceUp = i < flipped;
@@ -276,7 +297,7 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
                     <>
                       <span className="cp-card-years tnum">{stintYears(stint)}</span>
                       <TeamCrest name={stint.name} className="cp-card-logo" />
-                      <span className="cp-card-team">{stint.name}</span>
+                      <span className="cp-card-team font-display">{stint.name}</span>
                       <div className="cp-card-stats">
                         <span className="cp-stat">
                           <b className="tnum">{stint.gp ?? "—"}</b> GP
@@ -285,7 +306,10 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
                           <b className="tnum">{stint.ppg != null ? stint.ppg.toFixed(1) : "—"}</b> PPG
                         </span>
                       </div>
-                      {isFinal && <span className="cp-card-draft">{draftLabel}</span>}
+                      {/* Always rendered (hidden when not final) so every card reserves the
+                          same content height — otherwise the draft line only on the last card
+                          shifts that card's centered content relative to its siblings (Rule 4.4). */}
+                      <span className={`cp-card-draft tnum${isFinal ? "" : " is-hidden"}`}>{draftLabel}</span>
                     </>
                   )}
                 </div>
@@ -294,27 +318,44 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
           );
         })}
       </div>
+      </GameFrame.Board>
 
-      {/* Input anchored at the bottom of the play area */}
-      <div className="cp-inputrow">
-        <AutocompleteInput
-          placeholder="Who is it?…"
-          value={guess}
-          setValue={(val: string) => setGuess(val)}
-          suggestions={suggestions}
-          onSubmit={handleGuessSubmit}
-          customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.88rem" }}
-          customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "160px", minWidth: "100%" }}
-        />
-        <Button
-          size="md"
-          aria-label="Confirm guess"
-          onClick={handleGuessSubmit}
-          disabled={ended || guess.trim() === ""}
-        >
-          Confirm
-        </Button>
-      </div>
+      <GameFrame.Action>
+      {/* Input → spinner → score (shared answers-shown end sequence) */}
+      <EndSequence
+        phase={bottomPhase}
+        input={
+          <GameFrame.InputRow>
+            <AutocompleteInput
+              placeholder="Who is it?…"
+              value={guess}
+              setValue={(val: string) => setGuess(val)}
+              suggestions={suggestions}
+              onSubmit={handleGuessSubmit}
+              customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.88rem" }}
+              customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "160px", minWidth: "100%" }}
+            />
+            <Button
+              size="md"
+              aria-label="Confirm guess"
+              onClick={handleGuessSubmit}
+              disabled={ended || guess.trim() === ""}
+            >
+              Confirm
+            </Button>
+          </GameFrame.InputRow>
+        }
+        score={
+          <ScorePanel
+            score={endState?.score ?? 0}
+            outOf={stints * POINTS_PER_CARD}
+            label={endState?.won ? "That's him!" : "Out of guesses"}
+            won={endState?.won}
+            onPlayAgain={onPlayAgain}
+            onClose={onClose}
+          />
+        }
+      />
 
       {/* Loss reveal: name + headshot at the bottom */}
       <AnimatePresence>
@@ -334,9 +375,10 @@ function CareerPath({ gameInfo, onGameEnd }: CareerPathProps) {
           </motion.div>
         )}
       </AnimatePresence>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPointsAnimation} text={popUpInfo.Text} color={popUpInfo.Color} />
-    </div>
+    </GameFrame>
   );
 }
 

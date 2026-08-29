@@ -1,35 +1,19 @@
 /* ===== NBA Grid — immaculate 3x3 (prefix: ng-) =====
    theme.css tokens only, clamp() sizing, fits 390x844 with no page scroll.
-   Height budget @390x844: head ~32 + board ~233 + popup 20 + bottom ~118
-   + 3 gaps ~39 = ~442px content (well within the stage area). */
-.ng-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 460px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: clamp(8px, 1.5dvh, 14px);
-}
-.ng-center {
-  align-items: center;
-  justify-content: center;
-  min-height: clamp(260px, 40dvh, 400px);
-}
+
+   The root, status row and action row come from <GameFrame> (ui.css) — this file
+   only styles the board and the bottom region. Do not re-add a .ng-wrap/.ng-head.
+
+   This is a CONTENT game, not a fill game. The 3x3 board is a fixed size and the
+   bottom dock is a hint + button, so nothing here genuinely needs to scroll.
+   Declaring `fill` grew the dock into ~200px of dead space between the grid and
+   the Finish button while pinning the status label to the shell border. */
 
 /* ---- states ---- */
 .ng-state { display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .ng-state-msg { font-size: 14px; color: var(--muted); text-align: center; line-height: 1.5; }
 
-/* ---- header ---- */
-.ng-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  min-height: 32px;
-}
+/* ---- status row content (lives in <GameFrame.Status>) ---- */
 .ng-meter { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ng-meter-label {
   font-size: 10.5px;
@@ -37,13 +21,11 @@
   color: var(--muted);
   font-weight: 700;
 }
-.ng-meter-bar { width: clamp(80px, 26vw, 150px); }
 .ng-meter-num { font-size: 12.5px; color: var(--muted); font-weight: 700; }
 .ng-meter.is-low .ng-meter-num { color: var(--bad); }
 .ng-solved { font-size: 13px; color: var(--brand); font-weight: 700; }
 
-.ng-score { display: flex; align-items: baseline; }
-.ng-score > .tnum { font-size: clamp(19px, 3dvh, 26px); color: var(--brand); font-weight: 700; }
+/* the score itself is <GameFrame.Score>; this is only its "out of" suffix */
 .ng-score-max { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 
 /* ---- board ---- */
@@ -107,6 +89,7 @@
   100% { transform: scale(1); }
 }
 .ng-cell.is-missed { color: var(--muted); background: var(--surface); opacity: 0.72; cursor: pointer; }
+.ng-cell.is-missed .ng-cell-plus { color: var(--bad); }
 .ng-cell.is-detail { outline: 2px solid var(--brand); outline-offset: 1px; }
 
 .ng-cell-plus { font-size: clamp(16px, 2.4dvh, 20px); color: var(--muted); line-height: 1; }
@@ -124,9 +107,14 @@
   word-break: break-word;
 }
 
-/* ---- bottom region (dock / hint / summary) — stable height, no shift ---- */
+/* ---- bottom region (dock / hint / summary) — stable min-height, no shift.
+   flex:1 + overflow-y:auto (Rule 4.1): this is the fill/scroll child so the
+   board never gets pinned to the top with a dead gap before Exit. width:100%
+   because <GameFrame.Action> centres its children rather than stretching them. */
+/* Sizes to its content — it holds a hint line + a button, not a scroll region.
+   `flex:1 + overflow-y:auto` here is what produced the dead space. */
 .ng-bottom {
-  min-height: clamp(96px, 14dvh, 124px);
+  width: 100%;
   display: flex;
   align-items: stretch;
   justify-content: center;
@@ -141,28 +129,35 @@
   gap: 8px;
 }
 .ng-hint { font-size: 12.5px; color: var(--muted); }
+/* A game action, not an exit — bordered secondary button so it can never be
+   mistaken for the shell's underlined .exit-link sitting right below it. */
 .ng-finish {
-  background: none;
-  border: none;
+  align-self: center;
+  padding: 6px 14px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: transparent;
   color: var(--muted);
   font-family: inherit;
   font-size: 12.5px;
+  font-weight: 700;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  padding: 6px 8px;
+  transition: color 0.2s ease, border-color 0.2s ease;
 }
-.ng-finish:hover { color: var(--text); }
+.ng-finish:hover { color: var(--text); border-color: var(--brand); }
 
-.ng-dock { display: flex; flex-direction: column; gap: 8px; justify-content: center; }
+/* align-items:center so the shared GameFrame.InputRow (max-width 440px) centres
+   under the hint instead of hugging the left edge. */
+.ng-dock { display: flex; flex-direction: column; align-items: center; gap: 8px; justify-content: center; }
 .ng-dock-hint { font-size: 12px; color: var(--text); text-align: center; font-weight: 600; }
 .ng-dock-hint .ng-x { color: var(--brand); }
-.ng-dock-row { display: flex; gap: 8px; width: 100%; align-items: center; justify-content: center; }
+/* the guess row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
 .ng-detail {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  justify-content: center;
   gap: 4px;
   text-align: center;
 }
@@ -173,6 +168,7 @@
 .ng-detail-ex { font-size: 10.5px; color: var(--muted); line-height: 1.25; }
 .ng-detail-rarity { font-size: 10.5px; color: var(--text); margin-bottom: 2px; }
 .ng-detail-rarity .tnum { color: var(--brand); font-weight: 700; }
+.ng-detail-actions { display: flex; gap: 10px; justify-content: center; margin-top: 2px; }
 
 @media (max-width: 480px) {
   .ng-board { gap: 4px; }

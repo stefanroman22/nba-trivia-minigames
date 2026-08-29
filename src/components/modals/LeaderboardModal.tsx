@@ -5,7 +5,7 @@ import { initials, avatarBg, SELF_AVATAR_BG } from "../../constants/leaderboard"
 /** Full "Global Top 100" list shown inside the leaderboard modal. */
 export default function LeaderboardModal() {
   const { loading, leaders, self } = useLeaderboard();
-  const selfInList = leaders.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name));
+  const selfInList = self ? leaders.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
   if (loading) {
     return (
@@ -19,32 +19,44 @@ export default function LeaderboardModal() {
     <div>
       <div className="lbf-head">
         <span style={{ color: "var(--muted)" }}>Top players worldwide</span>
-        <span style={{ color: "var(--brand)", fontWeight: 700 }}>
-          You: #{self.rank.toLocaleString()} / {self.total.toLocaleString()}
-        </span>
+        {self && (
+          <span style={{ color: "var(--brand)", fontWeight: 700 }}>
+            You: #{self.rank.toLocaleString()} / {self.total.toLocaleString()}
+          </span>
+        )}
       </div>
+
+      {leaders.length === 0 && (
+        <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
+          No players yet.
+        </div>
+      )}
 
       <div className="lbf-list">
         {leaders.map((u) => {
-          const isSelf = self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name;
+          const isSelf = self ? (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name) : false;
           return (
             <div key={u.id ?? `${u.rank}-${u.name}`} className={`lbf-row${isSelf ? " is-self" : ""}`}>
               <span className="tnum lbf-rank" style={{ color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
               <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} />
-              <span className="lbf-name" title={u.id ? `${u.name} #${u.id}` : u.name}>{u.name}{u.id && <span className="tnum" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}</span>
+              <span className="lbf-name" style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
+                {u.id && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
+              </span>
               <span className="tnum lbf-pts">{u.points.toLocaleString()}</span>
             </div>
           );
         })}
       </div>
 
-      {!selfInList && (
+      {self && !selfInList && (
         <div className="lbf-selfbar">
           <div className="lbf-selfbar-inner">
             <span className="tnum lbf-rank" style={{ width: "auto", minWidth: 34, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
             <Avatar initials={initials(self.name)} size={30} bg={SELF_AVATAR_BG} />
             <span style={{ flex: 1, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-              <span style={{ fontWeight: 700, fontSize: 14 }}>{self.name}{self.id && <span className="tnum" style={{ marginLeft: 6, fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{self.id}</span>}</span>
+              <span style={{ fontWeight: 700, fontSize: 14 }}>{self.name}</span>
+              {self.id && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{self.id}</span>}
               <span style={{ fontSize: 11, color: "var(--muted)" }}>Keep playing to break into the top 100</span>
             </span>
             <span className="tnum lbf-pts">{self.points.toLocaleString()}</span>

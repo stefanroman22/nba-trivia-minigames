@@ -7,6 +7,7 @@
       "id": "ff-001",
       "prompt": "Name a player who won 3 or more NBA MVP awards",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Michael Jordan",
@@ -95,6 +96,7 @@
       "id": "ff-002",
       "prompt": "Name a franchise with 3 or more NBA championships",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Los Angeles Lakers",
@@ -177,6 +179,7 @@
       "id": "ff-003",
       "prompt": "Name a player who won a Finals MVP in the 2010s (2010-2019)",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "LeBron James",
@@ -241,6 +244,7 @@
       "id": "ff-004",
       "prompt": "Name a #1 overall draft pick since 2010",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Zion Williamson",
@@ -338,6 +342,7 @@
       "id": "ff-005",
       "prompt": "Name a player with 30,000+ career NBA points",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "LeBron James",
@@ -420,6 +425,7 @@
       "id": "ff-006",
       "prompt": "Name a current franchise that has never won an NBA championship",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Phoenix Suns",
@@ -523,6 +529,7 @@
       "id": "ff-007",
       "prompt": "Name a player who scored 70+ points in a single NBA game",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Kobe Bryant",
@@ -618,6 +625,7 @@
       "id": "ff-008",
       "prompt": "Name a player who won a ring with the 2015-2018 Warriors",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Stephen Curry",
@@ -713,6 +721,7 @@
       "id": "ff-009",
       "prompt": "Name an MVP winner born outside the USA",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Giannis Antetokounmpo",
@@ -785,6 +794,7 @@
       "id": "ff-010",
       "prompt": "Name a team Shaquille O'Neal played for",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Los Angeles Lakers",
@@ -847,6 +857,7 @@
       "id": "ff-011",
       "prompt": "Name a team that won the NBA title between 2000 and 2011",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Los Angeles Lakers",
@@ -909,6 +920,7 @@
       "id": "ff-012",
       "prompt": "Name a Rookie of the Year winner since 2015",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Victor Wembanyama",
@@ -996,6 +1008,7 @@
       "id": "ff-013",
       "prompt": "Name a Slam Dunk Contest winner",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Vince Carter",
@@ -1093,6 +1106,7 @@
       "id": "ff-014",
       "prompt": "Name a player who won Defensive Player of the Year more than once",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Rudy Gobert",
@@ -1181,6 +1195,7 @@
       "id": "ff-015",
       "prompt": "Name a franchise that moved cities at some point in its history",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Oklahoma City Thunder",
@@ -1294,6 +1309,7 @@
       "id": "ff-016",
       "prompt": "Name a team Vince Carter played for",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Toronto Raptors",
@@ -1376,6 +1392,7 @@
       "id": "ff-017",
       "prompt": "Name a player with 15 or more All-Star selections",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "LeBron James",
@@ -1443,6 +1460,7 @@
       "id": "ff-018",
       "prompt": "Name a #1 overall pick who went on to win MVP",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "LeBron James",
@@ -1546,6 +1564,7 @@
       "id": "ff-019",
       "prompt": "Name a player who played 20 or more NBA seasons",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Vince Carter",
@@ -1635,6 +1654,7 @@
       "id": "ff-020",
       "prompt": "Name a guard who won MVP since 2000",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Stephen Curry",
@@ -1719,6 +1739,7 @@
       "id": "ff-021",
       "prompt": "Name a Sixth Man of the Year winner since 2010",
       "survey_date": "2026-07-01",
+      "category": "player",
       "answers": [
         {
           "answer": "Lou Williams",
@@ -1821,6 +1842,7 @@
       "id": "ff-022",
       "prompt": "Name a head coach who won multiple NBA championships",
       "survey_date": "2026-07-01",
+      "category": "coach",
       "answers": [
         {
           "answer": "Phil Jackson",
@@ -1914,6 +1936,7 @@
       "id": "ff-023",
       "prompt": "Name a team that won an NBA championship in the 2020s",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Denver Nuggets",
@@ -1977,6 +2000,7 @@
       "id": "ff-024",
       "prompt": "Name a team Chris Paul played for",
       "survey_date": "2026-07-01",
+      "category": "team",
       "answers": [
         {
           "answer": "Phoenix Suns",
