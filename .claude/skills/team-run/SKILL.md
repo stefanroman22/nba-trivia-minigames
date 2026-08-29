@@ -19,7 +19,7 @@ Check the `TEAM_CLOUD` environment variable once at the start.
   environment (no `.env.team`). Everything else — classify, build, verify, review, ship, park,
   post-batch — is identical.
   **[CLOUD] caveat:** the Slack reaction→follow-up loop (§0b) depends on
-  `.claude/team/slack-state.json`, which does not persist across fresh-clone routine
+  `.team/slack-state.json`, which does not persist across fresh-clone routine
   firings, so in cloud mode reactions on cloud-posted cards are NOT ingested into
   follow-up Notion cards. The reports still work (they read merged PRs, not local state).
   To act on a 🔄 reaction in cloud-only operation, run a manual local `npm run team`
@@ -29,7 +29,7 @@ Check the `TEAM_CLOUD` environment variable once at the start.
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
 - `node scripts/notion.mjs check-pause` — exit code 3 → say "paused" and STOP.
-- Read `.claude/team/journal.json` (may be absent → `{}`).
+- Read `.team/journal.json` (may be absent → `{}`).
 
 ## 0b. Slack feedback ingestion
 Run `node scripts/slack.mjs poll-reactions` (non-fatal: on error, log and skip to §1).
@@ -130,8 +130,8 @@ shows one Dev link at the parent (from `cfg.devSiteUrl`); no per-card PR/CTO/dee
 ## 5. End of run
 Log a one-line summary per task (shipped/parked/deferred). If nothing was in the queue,
 exit silently. Never touch cards that are not Ready/In Progress-by-you. If `shipped[]`
-is non-empty, write it to `.claude/team/last-batch.json` as `{count: shipped.length,
-shipped}` and run `node scripts/slack.mjs post-batch .claude/team/last-batch.json`
+is non-empty, write it to `.team/last-batch.json` as `{count: shipped.length,
+shipped}` and run `node scripts/slack.mjs post-batch .team/last-batch.json`
 (wrap in a try/catch equivalent — if it fails, log "slack post failed (non-fatal)" and
 continue). This is the batch overview to Slack. Composition happens in the local run
 per spec §7; the CTO merges later in the cloud, so the CTO ✅ is visible on the PR, not

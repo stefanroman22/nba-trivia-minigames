@@ -21,7 +21,7 @@ description: Commit, push, open the PR to dev, update Notion. Final pipeline sta
    ## Test evidence
    - lint/tsc/build: pass
    - Django tests: pass|n/a
-   - Browser QA: pass|skipped (<link to .claude/team/qa/<slug>/ evidence if run>)
+   - Browser QA: pass|skipped (<link to .team/qa/<slug>/ evidence if run>)
 
    Notion-Task: <pageId>
    Design-Doc: <docs/team/designs/... or "none">
