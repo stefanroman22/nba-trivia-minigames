@@ -9,6 +9,8 @@ NBA trivia minigames. Frontend: React 19 + TypeScript + Vite + Tailwind 4. Backe
 
 Single-player needs only the Django API; "Play Online" also needs the socket server.
 
+`npm run dev` probes :8000/:4000 first and falls back to the deployed backend when they're down — see `docs/DEPLOYMENT.md` → Environments.
+
 ## Live UI testing in the real browser
 `npm run chrome:debug` starts a Chrome with CDP on port 9222 using a dedicated
 profile at `~/.chrome-claude-debug` (Chrome 136+ ignores the debug port on the
