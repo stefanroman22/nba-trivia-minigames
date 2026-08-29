@@ -9,16 +9,21 @@ type User = {
   rank: string;
   points: number;
   profile_photo: string | null; // match backend
+  /** UI hint only — admin API endpoints re-check is_staff server-side. */
+  is_admin?: boolean;
 };
 
 type UserState = {
   isLoggedIn: boolean;
   user: User | null;
+  /** True once the initial /me/ session check has resolved (either way). */
+  authChecked: boolean;
 };
 
 const initialState: UserState = {
   isLoggedIn: false,
   user: null,
+  authChecked: false,
 };
 
 const userSlice = createSlice({
@@ -28,10 +33,12 @@ const userSlice = createSlice({
     login: (state, action: PayloadAction<User>) => {
       state.isLoggedIn = true;
       state.user = action.payload;
+      state.authChecked = true;
     },
     logout: (state) => {
       state.isLoggedIn = false;
       state.user = null;
+      state.authChecked = true;
     },
     updatePoints: (state, action: PayloadAction<number>) => {
       if (state.user) {

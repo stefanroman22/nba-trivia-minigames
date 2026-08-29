@@ -7,6 +7,7 @@ import { login, logout } from "./store/userSlice";
 import Landpage from './pages/Landpage';
 import MiniGame from './pages/Trivia/MiniGame';
 import NoPageFound from './pages/NoPageFound';
+import Admin from './pages/Admin';
 import { useDispatch } from "react-redux";
 import { useEffect } from "react";
 import { apiFetch } from './utils/Api';
@@ -224,6 +225,14 @@ function AnimatedRoutes() {
           element={
             <PageTransition>
               <NoPageFound />
+            </PageTransition>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <PageTransition>
+              <Admin />
             </PageTransition>
           }
         />
