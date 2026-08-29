@@ -184,7 +184,8 @@ channel.
 approver's `slack.slackUserId`, and `devSiteUrl` live in `.claude/team/config.json` —
 `node scripts/slack.mjs resolve-channels` fills the channel ids in automatically by
 channel name, but `slackUserId` must be entered by hand. Runtime state (posted task
-cards awaiting a reaction) lives in `.team/slack-state.json`, which is gitignored.
+cards awaiting a reaction) lives on each card's `SlackTs` Notion property — no local
+state file.
 
 **Troubleshooting.** No Slack posts at all → confirm the bot is invited to the target
 channel and that `slack.slackUserId`/the channel ids are set in
@@ -235,18 +236,14 @@ still works exactly as before for a manual local run, before or after cutover: n
 sandbox. The report workflow needs its own copy of the token as a GitHub repo secret,
 `SLACK_BOT_TOKEN` (`gh secret set SLACK_BOT_TOKEN`), separate from the routine's env var.
 
-**DST caveat.** The report crons are fixed UTC times (`30 5` / `30 15`), tuned for
-07:30/17:30 local at the current UTC+2 (summer) offset. Once the clocks fall back to
-UTC+1 (winter), both reports will fire an hour later than the label says (e.g. the
-"07:30" report lands at 08:30 local) until the cron lines are manually adjusted for the
-season.
+**All crons are UTC.** The report crons (`30 5` / `30 15`) and the routine's schedule are
+expressed in UTC, not local time — at UTC+2 that is 07:30/17:30 local for the reports and
+01:00/10:00 local for the worker (`0 8,23 * * *`). Shift the numbers if you want different
+local times.
 
-**Known limitation.** The Slack reaction→follow-up loop is local-state-only: cloud runs
-use a fresh clone per firing, so `.team/slack-state.json` (gitignored) doesn't
-persist between them, and reactions on cloud-posted cards never get ingested into
-follow-up Notion cards. The batch cards and the reports above still post normally in
-cloud mode. To process a 🔄 reaction, run a local `npm run team`, or wait for a future
-stateless redesign of the polling step.
+**Stateless Slack loop.** The Slack reaction→follow-up loop stores each posted card's
+Slack message id on its Notion card (`SlackTs`), so reactions are ingested by any run,
+cloud or local — no local state file is involved.
 
 **Go-live (one-time).** None of the above is live yet — until these steps are done, the
 pipeline keeps running exactly as before, on the local scheduled tasks:
