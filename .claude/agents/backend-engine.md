@@ -22,8 +22,13 @@ Read only the docs for the areas your current task touches:
 - `users/` auth endpoints, tokens, rank, identity → `docs/constraints/AUTH_CONSTRAINTS.md`
 
 ## Reuse-first
-Search `docs/team/CODE_MAP.md`'s "Backend utilities" section before writing a new management
-command or util — duplicating a catalogued one is a review-reject.
+**Never assume something doesn't already exist — verify, then build.** Before writing any new
+management command, util, model field, or endpoint: (1) search `docs/team/CODE_MAP.md`'s
+"Backend utilities" section; (2) also grep `backend/` and `multiplayer_server/` directly for the
+concept by name/purpose, since CODE_MAP can lag a recent change. Only write new code once both
+checks come back empty. Duplicating a catalogued (or merely existing-but-uncatalogued) unit is a
+review-reject. Extending an existing view/serializer/util beats a parallel implementation, even
+if it isn't a perfect fit — adapt it first.
 
 ## Database skills (use when available — optional; `BACKEND_CONSTRAINTS.md` is not)
 This app's Postgres is hosted on Supabase (see `docs/DEPLOYMENT.md`), so if your environment's skill
