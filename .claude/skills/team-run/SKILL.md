@@ -12,12 +12,15 @@ Notion MCP connector (absent in headless runs).
 ## Environment: local vs cloud
 Check the `TEAM_CLOUD` environment variable once at the start.
 - **`TEAM_CLOUD` unset (local, Windows):** behave exactly as the sections below describe —
-  git worktrees under `cfg.worktreeRoot`, browser QA via Chrome, `.env.team` for tokens.
+  git worktrees under `cfg.worktreeRoot`, `.env.team` for tokens.
 - **`TEAM_CLOUD=1` (cloud routine, Linux):** apply the cloud overrides marked
   **[CLOUD]** below. In short: work on a branch inside the current clone instead of a
-  worktree, skip the browser-QA stage, and rely on `NOTION_TOKEN`/`SLACK_BOT_TOKEN` from the
-  environment (no `.env.team`). Everything else — classify, build, verify, review, ship, park,
-  post-batch, Slack feedback ingestion — is identical.
+  worktree, install your own dependencies, and rely on `NOTION_TOKEN`/`SLACK_BOT_TOKEN` from
+  the environment (no `.env.team`). Everything else — classify, build, verify, QA, review,
+  ship, park, post-batch, Slack feedback ingestion — is identical.
+- **Browser QA runs in BOTH modes.** It is headless Playwright via
+  `scripts/qa-browser.mjs`, never the user's Chrome, so it is not a local-only stage. The
+  only cloud difference is that the deps step installs the browser first.
 
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
@@ -40,7 +43,7 @@ then verify → QA → ship stages as below (ship = push to same branch, comment
 `CTO findings addressed: <summary>`, remove label `cto-changes-requested`). Counts toward
 cfg.maxTasksPerRun.
    **[CLOUD]** No worktree — recreate the branch in the clone: `git fetch origin <branch>`
-   then `git checkout -B <branch> origin/<branch>`; run verify/QA(skip)/ship as in cloud
+   then `git checkout -B <branch> origin/<branch>`; run verify/QA/ship as in cloud
    mode; `git checkout dev` before the next task.
 
 ## 2. Queue
