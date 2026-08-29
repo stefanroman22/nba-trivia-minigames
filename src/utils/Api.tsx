@@ -1,16 +1,35 @@
 import { BACKEND_URL } from "../configurations/backend";
 
-// Add a simple token refresh queue to prevent multiple simultaneous refreshes
+// Token-refresh queue: many requests can 401 at once, but only one refresh should
+// run. The rest wait here and are settled with the outcome.
+//
+// Each waiter keeps BOTH resolve and reject. An earlier version kept only resolve
+// and threw from inside the notify loop on failure — which stranded every queued
+// promise unsettled (their `await` never returned, so those requests hung forever)
+// and skipped the remaining subscribers. Rejecting is what lets a failed refresh
+// surface as "session expired" instead of a spinner that never stops.
 let isRefreshing = false;
-let refreshSubscribers: Array<(token: string | null) => void> = [];
+type RefreshWaiter = { resolve: (token: string) => void; reject: (err: Error) => void };
+let refreshSubscribers: RefreshWaiter[] = [];
 
-function subscribeTokenRefresh(callback: (token: string | null) => void) {
-  refreshSubscribers.push(callback);
+function subscribeTokenRefresh(waiter: RefreshWaiter) {
+  refreshSubscribers.push(waiter);
 }
 
 function onRefreshed(token: string | null) {
-  refreshSubscribers.forEach(callback => callback(token));
+  // Take the list first: settling a waiter can synchronously queue more work, and
+  // no waiter may be notified twice.
+  const waiters = refreshSubscribers;
   refreshSubscribers = [];
+  for (const waiter of waiters) {
+    // One waiter's exception must not strand the others.
+    try {
+      if (token) waiter.resolve(token);
+      else waiter.reject(new Error("Session expired. Please log in again."));
+    } catch (err) {
+      console.error("Token refresh subscriber failed:", err);
+    }
+  }
 }
 
 export function getAccessToken() {
@@ -32,17 +51,11 @@ export function clearTokens() {
 }
 
 async function refreshAccessToken() {
-  // Prevent multiple simultaneous refresh attempts
+  // A refresh is already in flight — wait for its outcome rather than starting
+  // a second one. Tokens are cleared by the refresher itself on failure.
   if (isRefreshing) {
-    return new Promise<string>((resolve) => {
-      subscribeTokenRefresh((token) => {
-        if (token) resolve(token);
-        else {
-          // Refresh failed
-          clearTokens();
-          throw new Error("Session expired. Please log in again.");
-        }
-      });
+    return new Promise<string>((resolve, reject) => {
+      subscribeTokenRefresh({ resolve, reject });
     });
   }
 
@@ -115,24 +128,26 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
   // --- 2. If unauthorized, attempt to refresh token ---
   if (response.status === 401 && getRefreshToken()) {
     try {
-      // Check if this is a token-related error (not another authentication issue)
+      // Is this 401 about the token, or a genuine permission failure?
+      //
+      // simplejwt answers this precisely: it sets code "token_not_valid" on the
+      // body. Prefer that over scanning the text for words like "invalid", which
+      // both false-positives on unrelated 401s and misses differently-worded
+      // token errors. A body we can't read is treated as a token error so the
+      // refresh path still runs behind a bare 401.
       const contentType = response.headers.get("content-type");
       let isTokenError = true;
-      
+
       if (contentType?.includes("application/json")) {
-        const errorData = await response.clone().json().catch(() => ({}));
-        
-        // Check for common token error indicators
-        const errorText = JSON.stringify(errorData).toLowerCase();
-        isTokenError = 
-          errorText.includes("token") || 
-          errorText.includes("expired") || 
-          errorText.includes("invalid") ||
-          errorData.code === "token_not_valid" ||
-          (errorData.messages &&
-           errorData.messages.some((msg: { message?: string }) =>
-             msg.message?.toLowerCase().includes("expired")
-           ));
+        const errorData = await response.clone().json().catch(() => null);
+        if (errorData) {
+          isTokenError =
+            errorData.code === "token_not_valid" ||
+            (Array.isArray(errorData.messages) &&
+              errorData.messages.some(
+                (msg: { message?: string }) => msg?.message?.toLowerCase().includes("token")
+              ));
+        }
       }
 
       if (isTokenError) {
