@@ -36,6 +36,12 @@ a blank throwaway profile and cannot see logged-in state.
 - Surgical changes only — match existing style; don't refactor unrelated code.
 - TypeScript strict; build must pass `tsc -b`.
 - URLs/secrets come from env (`.env`, `backend/.env`); never hardcode or commit them.
+- **Don't run lint/typecheck/build/tests routinely.** They cost time and context, and for a
+  small or obvious edit they tell you nothing you didn't already know. Run them when it
+  actually matters: before committing, when explicitly asked, or when the change is one you
+  can't verify by reading (tricky types, models/migrations, build or settings config). In the
+  autonomous pipeline the verify stage runs them on the diff anyway, so an engine repeating
+  them is pure duplication.
 
 ## Building or touching any game's UI — read this first
 **`docs/GAME_DESIGN_CONSTRAINTS.md` is mandatory reading before writing or reviewing any game

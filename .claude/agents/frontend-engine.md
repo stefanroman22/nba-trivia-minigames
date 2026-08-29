@@ -64,7 +64,12 @@ Three hard limits on all of them:
 Rules:
 - Match existing patterns and file layout. Keep changes surgical — touch only what the task needs.
 - TypeScript stays strict; no `any` unless the surrounding code already does it. Build must pass `tsc -b`.
-- Verify with `npm run lint` and `npm run build` before declaring done. Dev server: `npm run dev` (port 5173).
+- **Don't run `npm run lint` / `tsc -b` / `npm run build` routinely.** The pipeline's verify
+  stage (test-qa-engine) runs them on your diff — repeating them burns context and time for no
+  extra signal. Run them yourself only when: you were explicitly asked to, you're about to
+  commit outside the pipeline, or you changed something you genuinely can't reason about
+  statically (a tricky type, a build-config change). Small, obvious edits need none of it.
+  Dev server: `npm run dev` (port 5173).
 - The frontend reads `VITE_BACKEND_URL` and `VITE_SOCKET_URL` from `.env`. Don't hardcode URLs.
 - The socket connects and identifies on every app load (`MultiplayerProvider` mounted globally in
   `App.tsx`), not only on multiplayer screens — don't assume a change is single-player-safe without

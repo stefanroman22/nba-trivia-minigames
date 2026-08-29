@@ -70,7 +70,9 @@ html { scroll-behavior: smooth; }
 .hero-stat-sep { width: 1px; align-self: stretch; background: var(--line); }
 
 /* ===== Games section ===== */
-.games-section { margin-top: 44px; display: flex; flex-direction: column; gap: 18px; }
+/* scroll-margin-top = sticky .nav3 height (64px) + a 12px gap, so "Browse all
+   games" lands "Pick a game" just below the header instead of behind it. */
+.games-section { margin-top: 44px; display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 76px; }
 .games-search { position: relative; flex: 1 1 200px; min-width: 180px; max-width: 340px; }
 .games-search svg { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); pointer-events: none; z-index: 1; }
 .games-grid3 {
