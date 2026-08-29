@@ -26,8 +26,9 @@ Search `docs/team/CODE_MAP.md`'s "Backend utilities" section before writing a ne
 command or util — duplicating a catalogued one is a review-reject.
 
 ## Database skills (use when available — optional; `BACKEND_CONSTRAINTS.md` is not)
-This app's Postgres is hosted on Supabase (see `docs/DEPLOYMENT.md`), so if the environment offers
-`supabase-postgres-best-practices`, invoke it **before** any schema change — new tables or columns,
+This app's Postgres is hosted on Supabase (see `docs/DEPLOYMENT.md`), so if your environment's skill
+listing offers `supabase:supabase-postgres-best-practices` (it is plugin-hosted — use that exact
+namespaced form, not a bare guess), invoke it **before** any schema change — new tables or columns,
 column types, migrations, indexes, or a query you expect to be hot. Use it for what it is good at:
 choosing column types, index shape, avoiding N+1 and sequential scans, and migration safety.
 

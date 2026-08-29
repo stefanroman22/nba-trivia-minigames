@@ -33,12 +33,15 @@ existing one and which are already dead. Duplicating a catalogued unit is a revi
 If the environment offers any of these skills, invoke the relevant one **before** writing UI, and
 follow it for visual judgment the constraint docs don't cover (hierarchy, spacing rhythm, type
 scale, colour, motion):
+Invoke a skill by the exact name in your environment's skill listing — plugin-hosted skills are
+namespaced `plugin:skill`, so use the listed form, not a guess:
 - `design-taste-frontend` — overall direction for a page or a redesign; keeps output from looking
   templated.
 - `high-end-visual-design` — concrete fonts/spacing/shadow/animation values when a surface needs
   to feel polished rather than merely correct.
-- `ui-ux-pro-max` — layout systems, palettes, font pairings, UX patterns.
-- `dataviz` — any chart, leaderboard table, stat tile, or score panel.
+- `ui-ux-pro-max:ui-ux-pro-max` — layout systems, palettes, font pairings, UX patterns.
+- `dataviz` — any chart, leaderboard table, stat tile, or score panel. (Bundled with Claude Code
+  rather than machine-local, so unlike the three above it is normally available in cloud runs too.)
 
 Three hard limits on all of them:
 1. **The repo's constraint docs always win.** A skill's advice never overrides
@@ -48,9 +51,10 @@ Three hard limits on all of them:
    `GAME_DESIGN_CONSTRAINTS.md` (shared shell, exact tokens); "improving" a game's look against
    that spec is a review-reject. Design skills are for non-game surfaces — landing, profile,
    leaderboard, modals, nav.
-3. **They may be absent — that is fine.** These are machine-local skills, so they exist in local
-   runs but not in cloud routine runs. If a skill isn't available, say so in one line and proceed
-   using the constraint docs; never block, never fabricate its guidance.
+3. **They may be absent — that is fine.** The first three are machine-local, so they exist in local
+   runs but not in cloud routine runs (a routine clones only this repo). If a skill isn't in your
+   listing, say so in one line and proceed using the constraint docs; never block, never guess at a
+   skill name, and never fabricate its guidance.
 
 Rules:
 - Match existing patterns and file layout. Keep changes surgical — touch only what the task needs.
