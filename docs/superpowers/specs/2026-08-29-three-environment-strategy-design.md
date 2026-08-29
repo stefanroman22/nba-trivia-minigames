@@ -65,8 +65,9 @@ cold-starting. Consequences:
   This is a pre-existing defect surfaced by this work, not caused by it.
 - There is therefore **nothing to fall back to** for the socket.
 
-**This spec does not fix production multiplayer** (redeploying the Node server is separate work).
-It handles the reality instead: see §5.3.
+**This spec now fixes it** — redeploying the multiplayer server to Railway is in scope (§5.7),
+added at the owner's request so the end state has working production multiplayer. Until that
+deploy lands, §5.3 governs the socket's behaviour.
 
 ## 5. Design
 
@@ -128,13 +129,50 @@ A small fixed-corner badge, rendered **only** when `import.meta.env.DEV` is true
 `VITE_ENV_SOURCE_BACKEND === "remote"`. Dev-only by construction — the condition is statically
 false in a production build, so it cannot ship. Purely visual; it blocks nothing (decision 4).
 
-### 5.5 Local Postgres (optional, parity only)
+### 5.5 Production multiplayer server (Railway)
+Socket.IO needs a persistent process holding long-lived connections, so Vercel serverless — where
+the frontend and Django backend live — cannot host it. It goes on **Railway** (~$5/month Hobby),
+chosen over Render's free tier because Render free sleeps after 15 minutes and takes ~1 minute to
+wake, which a player clicking "Play Online" would feel, and because Render's own docs say not to
+use free instances for production.
+
+The repo is already deploy-ready for Railway: `multiplayer_server/Procfile`
+(`web: node src/index.js`), `.railwayignore`, and `engines.node >= 18` all exist from the previous
+deployment. **No application code changes are required.**
+
+Configuration on the Railway service:
+
+| Var | Value |
+|---|---|
+| `API_BASE_URL` | `https://backend-kappa-one-42.vercel.app` (Django backend) |
+| `CORS_ORIGINS` | production frontend origin, the dev-branch Vercel origin, and `http://localhost:5173` |
+| `PORT` | injected by Railway — do not set |
+| `REDIS_URL` | **unset** — the Redis adapter is optional and only needed for multi-instance broadcasting; one instance needs none, and omitting it avoids a paid Redis add-on |
+
+Root directory must be set to `multiplayer_server/` so Railway builds the server, not the repo root.
+
+**This step is owner-gated**: it requires their Railway account, billing, and dashboard access.
+The implementation prepares config and verification; the owner performs the deploy and supplies
+the resulting URL.
+
+Once the URL exists, three places consume it — and nothing else:
+1. `REMOTE_SOCKET_URL` in `scripts/dev-env.mjs` (§5.3), enabling the socket fallback
+2. `VITE_SOCKET_URL` in `.env.production` (deployed frontends)
+3. `CORS_ORIGINS` on the Railway service (above)
+
+**Verification** (all three must pass before the task is complete):
+- `curl "<url>/socket.io/?EIO=4&transport=polling"` returns a Socket.IO handshake payload
+  (currently this returns Railway's `Application not found`)
+- The deployed production frontend can open a multiplayer room
+- `npm run dev` with local `:4000` down reports `socket : REMOTE` rather than `UNAVAILABLE`
+
+### 5.6 Local Postgres (optional, parity only)
 A `docker-compose.yml` providing Postgres 16 on `:5432`, plus a documented
 `DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres` line for `backend/.env`.
 sqlite remains the default and nothing requires Docker; this exists for when a task touches
 models or migrations and sqlite's looser typing could mask a real Postgres error.
 
-### 5.6 Backend CORS for local frontends
+### 5.7 Backend CORS for local frontends
 `settings.py` already defaults to allowing `localhost:5173`, so a **local** backend accepts a
 local frontend today. No code change; only the production env vars of §4.1.
 
@@ -150,11 +188,16 @@ every existing endpoint contract. `src/configurations/backend.tsx`, `src/socket.
 |---|---|---|
 | E0 | `scripts/dev-env.mjs` + `predev` wiring + `.gitignore` entry | `npm run dev` with backend down writes `.env.local` pointing at prod and prints the banner |
 | E1 | `PROD DATA` badge | Badge visible in fallback mode, absent when local, absent from `npm run build` output |
-| E2 | **User-gated:** production CORS/CSRF env vars (§4.1) + redeploy | Local frontend fetches real data from the production backend without a CORS error |
-| E3 | `docker-compose.yml` + docs (`DEPLOYMENT.md`, `CLAUDE.md`) | `docker compose up` serves Postgres; documented switch works |
+| E2 | **Owner-gated:** production CORS/CSRF env vars (§4.1) + redeploy | Local frontend fetches real data from the production backend without a CORS error |
+| E3 | **Owner-gated:** Railway multiplayer deploy (§5.5), then wire the URL into the three consumers | All three §5.5 verification checks pass — handshake responds, a room opens on the deployed frontend, and the probe reports `socket : REMOTE` |
+| E4 | `docker-compose.yml` + docs (`DEPLOYMENT.md`, `CLAUDE.md`) | `docker compose up` serves Postgres; documented switch works |
+
+The two owner-gated stages (E2, E3) both change production and both need money or dashboard
+access the implementation cannot supply. Everything else is fully automatable, and E0/E1 deliver
+a working fallback on their own — E3 only upgrades the socket from `UNAVAILABLE` to `REMOTE`.
 
 ## 8. Out of scope
 
-Redeploying the production multiplayer server (§4.2) — surfaced here, tracked separately.
-A second Supabase project, a deployed dev backend, write-blocking or test-data tagging
-(decisions 1–4 exclude them).
+A second Supabase project, a deployed dev backend, write-blocking, and test-data tagging
+(decisions 1–4 exclude them). Redis for the multiplayer server — the adapter is optional and a
+single instance does not need it (§5.5).
