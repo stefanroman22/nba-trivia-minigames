@@ -179,7 +179,6 @@ function MiniGame() {
             </div>
             <div className="idle-chips">
               <Chip>5 rounds</Chip>
-              <Chip>~1 min</Chip>
               <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>
             </div>
             {inLobby ? (

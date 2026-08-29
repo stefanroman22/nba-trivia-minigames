@@ -47,7 +47,7 @@ const Landpage = () => {
               Test your <span style={{ color: "var(--brand)" }}>hoops IQ.</span><br />One quick game at a time.
             </motion.h1>
             <motion.p className="hero-lead" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>
-              Bite-sized NBA trivia you can play in under a minute. Build a streak, climb the global board, and challenge friends when you're ready.
+              Bite-sized NBA trivia. Build a streak, climb the global board, and challenge friends when you're ready.
             </motion.p>
             <motion.div className="hero-cta-row" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>
               <Button size="lg" onClick={() => openGame(games[0].id, games[0].urlPath)}>
@@ -67,11 +67,6 @@ const Landpage = () => {
               <div className="hero-stat">
                 <span className="tnum font-display hero-stat-num">{user ? user.points : "0"}</span>
                 <span className="hero-stat-lbl">{user ? "YOUR POINTS" : "FREE TO PLAY"}</span>
-              </div>
-              <div className="hero-stat-sep" />
-              <div className="hero-stat">
-                <span className="font-display hero-stat-num">~1<span style={{ fontSize: "0.5em" }}>min</span></span>
-                <span className="hero-stat-lbl">PER GAME</span>
               </div>
             </motion.div>
           </div>
