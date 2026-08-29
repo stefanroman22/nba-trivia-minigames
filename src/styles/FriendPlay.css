@@ -75,7 +75,8 @@
 }
 .fp-seat.is-empty { border-style: dashed; background: transparent; color: var(--muted); }
 .fp-seat-av { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; flex: none; border: 1.5px solid var(--brand); }
-.fp-seat-name { font-size: 13px; font-weight: 700; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-seat-col { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.fp-seat-name { font-size: 13px; font-weight: 700; color: var(--text); min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fp-host-chip {
   flex: none;
   font-size: 9px; font-weight: 700; letter-spacing: 0.6px;

@@ -1,93 +1,25 @@
 # NBA Trivia Minigames
 
-This project is a fun and interactive web-based tool that lets users test their NBA knowledge through a variety of engaging mini-games.
+A web app where people play short NBA trivia minigames, earn points, climb a leaderboard, and
+optionally play head-to-head against another person online. 18 games are live today — playoff
+series, logos, MVPs, starting fives, Wordle, Connections, a hex-grid heatmap, a 3×3 criteria grid,
+a party bluffing game, and more. See [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md) for
+the full roster and what's still planned.
+
+Data comes from [`nba_api`](https://pypi.org/project/nba_api/). Frontend is TypeScript/React,
+backend is Django, multiplayer is a Node/Socket.IO server.
 
 ---
 
-##  Project Overview
+## Running locally
 
-The project make user of the data  provided by [](https://pypi.org/project/nba_api/) (nba_api).
-
-The project's frontend has been developed using Typescript while the backend has been build up using Django.
-
-This project is currently in development, therefore some features might not be able to function at this moment.
-
-Up until now this code version supports: Log-in, sign-up for users so they can track their progress and the Guess Playoff Series winner game has been developed. 
-
-
----
-
-## Project Folder Structure
-
-###  1. General Project Root
-
-| Folder            | Description |
-|-------------------|-------------|
-| `src/`            | React + TypeScript frontend code, including all UI components. |
-| `backend/`        | Django backend project, including all apps and API logic. |
-| `README.md`       | Project documentation file. |
-
----
-
-### 2. Frontend – `src/`
-
-| Folder              | Description |
-|---------------------|-------------|
-| `components/`       | Reusable React components such as game cards |
-| `pages/`            | Page-level .tsx components (e.g., SeriesWinner, LandPage). |
-| `styles/`           | All .css files for all .tsx filed from  `pages/`  |
-| `constats/`         | All constant data used withing the project |
-
----
-
-### 3. Backend – `django-backend/`
-
-####  `backend/`
-| File/Folder       | Description |
-|-------------------|-------------|
-| `settings.py`     | Django configuration (apps, database, middleware). |
-| `urls.py`         | Root URL routing for the entire backend. |
-| `wsgi.py` / `asgi.py` | Entry points for WSGI/ASGI servers. |
-
-####  `users/` – Django app for user management
-| File/Folder       | Description |
-|-------------------|-------------|
-| `models.py`       | Defines the database models for users. |
-| `views.py`        | Handles API logic for login, signup and update profile |
-| `urls.py`         | URL routing specific to the user requirement. |
-| `migrations/`     | Auto-generated files to manage database schema changes. |
-
-####  `trivia/` – Django app for collecting user feedback
-| File/Folder       | Description |
-|-------------------|-------------|
-| `models.py`       | Database model for different minigames data. |
-| `views.py`        | Handles user request for minigames. |
-| `migrations/`     | Schema history for the feedback app. |
-
-####  `media/`
-| Folder            | Description |
-|-------------------|-------------|
-| `media/`          | Stores uploaded files (e.g., if users upload a profile picture). |
-
-
----
-
-##  How to Run the Project Locally
-
-> **Deploying / scaling?** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full activation
-> runbook (CDN content, Postgres, Redis, env vars) and
-> [backend/trivia/data_pipeline/README.md](backend/trivia/data_pipeline/README.md) for the weekly data refresh.
-
-The app has three parts, each in its own terminal: the **Django API** (port 8000),
-the **Socket.IO multiplayer server** (port 4000), and the **Vite + React frontend**
-(port 5173). Requires Node.js and Python 3.10+.
-
-> Make sure ports **8000**, **4000** and **5173** are free before starting.
+The app has **three parts**, each in its own terminal — paste each block into a separate shell.
+Requires Node.js and Python 3.10+. Make sure ports **8000**, **4000** and **5173** are free first.
+Single-player games only need the backend running; **multiplayer needs all three.**
 
 ### 1. Backend — Django API (port 8000)
-
 ```bash
-cd nba-minigames/backend
+cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows  (macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt
@@ -96,51 +28,89 @@ python manage.py runserver 8000
 ```
 
 ### 2. Multiplayer server — Socket.IO (port 4000)
-
 ```bash
-cd nba-minigames/multiplayer_server
+cd multiplayer_server
 npm install
-node src/index.js
+npm start
 ```
 
 ### 3. Frontend — Vite + React (port 5173)
-
 ```bash
-cd nba-minigames
 npm install
 npm run dev
 ```
 
 Then open **http://localhost:5173**.
 
-The frontend reads the backend URL from `.env` (`VITE_BACKEND_URL=http://localhost:8000/api`)
-and the socket URL from `VITE_SOCKET_URL` (defaults to `http://localhost:4000`). Single-player
-games work with just the backend running; the multiplayer server is only needed for "Play Online".
+The frontend reads the backend URL from `.env` (`VITE_BACKEND_URL=http://localhost:8000/api`) and
+the socket URL from `VITE_SOCKET_URL` (defaults to `http://localhost:4000`). Local dev needs no
+other env vars — the backend falls back to sqlite when `DATABASE_URL` is unset.
 
-##  Technologies Used
+**Everyday commands** (from the repo root unless noted):
+| | |
+|---|---|
+| Frontend lint | `npm run lint` |
+| Frontend typecheck + build | `npx tsc -b && npm run build` |
+| Backend tests | `cd backend && python manage.py test` |
+| Backend sanity check | `cd backend && python manage.py check` |
 
-###  **Frontend**
-- **HTML/CSS** – For structure and layout.
-- **TypeScript + React.js** – Enables component-based UI and type safety.
-
-###  **Backend**
-- **Django (Python)** – Handles user management, minigames logic, and stores persistent data via REST APIs.
-- **Django REST Framework** – Simplifies API development and user authentication.
-
-These technologies were chosen for:
-- Ease of integration between React and Django.
-- Strong typing (TypeScript) for large-scale frontend.
-- Rapid API development and user/session management (Django).
+> **Deploying / scaling to production?** See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for the full
+> activation runbook (CDN content, Postgres, Redis, env vars) and
+> [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md) for how game data is refreshed.
 
 ---
 
+## Documentation map
 
-##  Contributions and Development
-
-Soon to come!
+| Doc | What's in it |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the three services + database + data pipeline fit together, in plain language |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Runbook for taking this from "works locally" to hosted at scale |
+| [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md) | How NBA data is gathered, stored, refreshed, and served |
+| [docs/GAME_DESIGN_CONSTRAINTS.md](docs/GAME_DESIGN_CONSTRAINTS.md) | The UI/UX rules every game (current and new) must follow |
+| [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md) | Every game the app has, is building, or should build — status tracker |
+| [docs/games/DATA_REQUIREMENTS.md](docs/games/DATA_REQUIREMENTS.md), [PLAYERS_DATA.md](docs/games/PLAYERS_DATA.md), [TEAMS_DATA.md](docs/games/TEAMS_DATA.md) | Data-field wishlists the games above draw on |
+| [docs/game-research/](docs/game-research/) | Reference screenshots from other trivia games (mechanics only — never copy visual style) |
+| [CLAUDE.md](CLAUDE.md) | Instructions for AI coding agents working in this repo |
+| [.claude/README.md](.claude/README.md) | How the coding-agent model/effort profile is configured and switched |
 
 ---
 
-##  Contact
+## Project folder structure
+
+| Path | What's in it |
+|---|---|
+| `src/` | React + TypeScript frontend — `components/`, `pages/`, `Game Renderers/`, `styles/`, `store/` (Redux Toolkit), `hooks/`, `context/`, `constants/` |
+| `backend/` | Django project. Apps: `users/` (auth, custom user, rank), `trivia/` (minigame data + pipeline) |
+| `multiplayer_server/` | Node Socket.IO server for "Play Online" and friend rooms |
+| `docs/` | All project documentation (see the map above) |
+| `.claude/` | Coding-agent configuration (subagent definitions, engine profiles, scheduled routines) |
+
+### Backend — `backend/`
+| File/Folder | Description |
+|---|---|
+| `backend/settings.py` | Django configuration (apps, database, middleware) |
+| `backend/urls.py` | Root URL routing |
+| `users/` | Accounts: models, login/signup/update-profile views, migrations |
+| `trivia/` | Minigame data: models, views, data pipeline, migrations |
+| `media/` | Uploaded files (e.g. profile photos) |
+
+---
+
+## Technologies used
+
+**Frontend** — React 19 + TypeScript, Vite, Tailwind CSS 4, Redux Toolkit, framer-motion,
+socket.io-client.
+
+**Backend** — Django 5 + Django REST Framework, `djangorestframework-simplejwt` for auth,
+Supabase Postgres in production (sqlite locally).
+
+**Multiplayer** — Node.js + Socket.IO.
+
+Full rationale and how the pieces talk to each other: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+---
+
+## Contact
 
 If you have questions or want to collaborate, feel free to open an issue or reach out via GitHub.

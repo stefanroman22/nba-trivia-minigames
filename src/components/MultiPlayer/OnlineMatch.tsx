@@ -289,8 +289,10 @@ function Standings({ mp }: { mp: Mp }) {
               onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
             />
             <span className="om-st-name" title={row.id ? `${row.username} #${row.id}` : row.username}>
-              {row.username || "Player"}
-              {row.id && <span className="om-st-id tnum">#{row.id}</span>}
+              <span className="om-st-namecol">
+                <span className="om-st-uname">{row.username || "Player"}</span>
+                {row.id && <span className="om-st-id tnum">#{row.id}</span>}
+              </span>
               {isYou && <span className="om-st-you">YOU</span>}
             </span>
             {row.outcome === "win" && (
@@ -448,6 +450,7 @@ function OpponentChip({ name, tag, photo, state }: { name: string; tag?: string 
       <img className="om-chip-av" src={photo || defaultAvatar} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }} />
       <span className="om-chip-meta">
         <span className="om-chip-name" title={tag ? `${name} #${tag}` : name}>{name}</span>
+        {tag && <span className="om-chip-id tnum">#{tag}</span>}
         <span className="om-chip-state">
           {state === "playing" && <span className="om-dots"><i /><i /><i /></span>}
           {label}

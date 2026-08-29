@@ -10,6 +10,9 @@ interface AutocompleteInputProps {
   onSubmit: (value: string) => void;
   customStyleInput?: CSSProperties;
   customStyleSuggestion?: CSSProperties;
+  // Cap the dropdown (prefix matches first) — needed for large pools like the
+  // ~5k player list. Omitted = show every match (existing behavior).
+  maxResults?: number;
 }
 
 export default function AutocompleteInput({
@@ -20,6 +23,7 @@ export default function AutocompleteInput({
   onSubmit,
   customStyleInput = {},
   customStyleSuggestion = {},
+  maxResults,
 }: AutocompleteInputProps) {
   const [localSuggestions, setLocalSuggestions] = useState<string[]>([]);
 
@@ -29,11 +33,22 @@ export default function AutocompleteInput({
 
     // Filter suggestions based on input (guard against non-string entries)
     if (inputValue.trim().length >= 2) {
-      setLocalSuggestions(
-        (suggestions || []).filter(
-          (s) => typeof s === "string" && s.toLowerCase().includes(inputValue.toLowerCase())
-        )
+      const q = inputValue.toLowerCase();
+      const matches = (suggestions || []).filter(
+        (s) => typeof s === "string" && s.toLowerCase().includes(q)
       );
+      if (maxResults && maxResults > 0) {
+        // Prefer prefix matches, then shorter (closer) names, then cap — keeps
+        // the dropdown tight and relevant for large pools.
+        matches.sort((a, b) => {
+          const ap = a.toLowerCase().startsWith(q) ? 0 : 1;
+          const bp = b.toLowerCase().startsWith(q) ? 0 : 1;
+          return ap !== bp ? ap - bp : a.length - b.length;
+        });
+        setLocalSuggestions(matches.slice(0, maxResults));
+      } else {
+        setLocalSuggestions(matches);
+      }
     } else {
       setLocalSuggestions([]);
     }

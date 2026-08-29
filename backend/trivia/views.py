@@ -172,6 +172,7 @@ def _fan_favorites_row(q):
         'qid': q.qid,
         'prompt': q.prompt,
         'survey_date': q.survey_date,
+        'category': q.category,
         'answers': q.answers,
     }
 

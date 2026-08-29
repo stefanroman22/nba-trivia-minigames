@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { fetchWholePool } from "../utils/pool";
@@ -13,6 +15,8 @@ import "../styles/WhoAreYa.css";
 export interface WhoAreYaProps {
   gameInfo: PlayerIndexEntry[];
   onGameEnd: OnGameEnd;
+  onPlayAgain?: () => void;
+  onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
@@ -134,7 +138,7 @@ const isEligible = (p: PlayerIndexEntry) =>
 
 interface GuessEntry { question_id: string; answer: string; correct: boolean; elapsed_ms: number }
 
-function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
+function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) {
   const [pool, setPool] = useState<PlayerIndexEntry[] | null>(null);
   const [poolError, setPoolError] = useState<GameError | null>(null);
   const [mystery, setMystery] = useState<PlayerIndexEntry | null>(null);
@@ -147,6 +151,8 @@ function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
   const [won, setWon] = useState(false);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
+  const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
   const guessLogRef = useRef<GuessEntry[]>([]);
   const startRef = useRef(Date.now());
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -198,6 +204,8 @@ function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
     setFinished(false);
     setWon(false);
     setShowPointsAnimation(false);
+    setBottomPhase("input");
+    setEndState(null);
     guessLogRef.current = [];
     startRef.current = Date.now();
   }, [gameInfo]);
@@ -240,8 +248,13 @@ function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
       setFinished(true);
       setWon(true);
       sendGuessLog();
-      flashPopup(`That's ${mystery.full_name}! +${finalScore}`, "var(--good)");
-      later(() => onGameEnd?.(finalScore), 2200);
+      flashPopup(`Correct! +${finalScore}`, "var(--good)");
+      setBottomPhase("loader");
+      later(() => {
+        onGameEnd?.(finalScore, { inPlace: true });
+        setEndState({ score: finalScore, won: true });
+        setBottomPhase("score");
+      }, 1500);
       return;
     }
 
@@ -251,7 +264,12 @@ function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
       setFinished(true);
       sendGuessLog();
       flashPopup("Out of guesses", "var(--bad)");
-      later(() => onGameEnd?.(0), 3200); // linger on the reveal card
+      setBottomPhase("loader");
+      later(() => {
+        onGameEnd?.(0, { inPlace: true });
+        setEndState({ score: 0, won: false });
+        setBottomPhase("score");
+      }, 1500); // linger on the reveal card, then show the score
     } else {
       flashPopup(`Not ${guessed.full_name} — photo sharpened`, "var(--bad)");
     }
@@ -265,7 +283,7 @@ function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
         <p className="waya-state-msg">{poolError.message}</p>
       </div>
     );
-  if (!pool) return <CourtLoader label="Loading players…" />;
+  if (!pool) return <Spinner label="Loading players…" />;
   if (!mystery)
     return (
       <div className="waya-state">
@@ -289,96 +307,126 @@ function WhoAreYa({ gameInfo, onGameEnd }: WhoAreYaProps) {
   );
 
   return (
-    <div className="waya-wrap">
-      {/* Photo card — fixed frame so sharpening never shifts layout */}
-      <div className="waya-photo-card">
-        {(hidePhoto && !finished) || photoFailed ? (
-          <svg viewBox="0 0 64 72" className="waya-silhouette"
-            aria-label={hidePhoto ? "Photo hidden (hard mode)" : "Player photo unavailable"}>
-            <circle cx="32" cy="26" r="13" />
-            <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
-          </svg>
-        ) : (
-          <img
-            className="waya-photo"
-            src={headshotUrl(mystery.person_id)}
-            alt="Mystery player headshot"
-            style={{ filter: `blur(${blurPx}px)`, transition: reduce ? "none" : "filter 0.6s ease" }}
-            onError={() => setPhotoFailed(true)}
-            draggable={false}
-          />
-        )}
-        <div className="waya-photo-meta">
-          <span className="waya-left tnum" aria-live="polite">{guessesLeft} guesses left</span>
-          <Button size="sm" variant="secondary" aria-pressed={hidePhoto}
-            onClick={() => setHidePhoto((h) => !h)} disabled={finished}>
-            {hidePhoto ? "Show photo" : "Hide photo"}
-          </Button>
+    <GameFrame>
+      <GameFrame.Status
+        left={<GameFrame.Label>NAME THE PLAYER</GameFrame.Label>}
+        right={
+          <span aria-live="polite">
+            <GameFrame.Score value={guessesLeft} label="GUESSES LEFT" />
+          </span>
+        }
+      />
+
+      <GameFrame.Board>
+        <div className="waya-board">
+          {/* Photo card — fixed frame so sharpening never shifts layout */}
+          <div className="waya-photo-card">
+            {(hidePhoto && !finished) || photoFailed ? (
+              <svg viewBox="0 0 64 72" className="waya-silhouette"
+                aria-label={hidePhoto ? "Photo hidden (hard mode)" : "Player photo unavailable"}>
+                <circle cx="32" cy="26" r="13" />
+                <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
+              </svg>
+            ) : (
+              <img
+                className="waya-photo"
+                src={headshotUrl(mystery.person_id)}
+                alt="Mystery player headshot"
+                style={{ filter: `blur(${blurPx}px)`, transition: reduce ? "none" : "filter 0.6s ease" }}
+                onError={() => setPhotoFailed(true)}
+                draggable={false}
+              />
+            )}
+            <div className="waya-photo-meta">
+              <Button size="sm" variant="secondary" aria-pressed={hidePhoto}
+                onClick={() => setHidePhoto((h) => !h)} disabled={finished}>
+                {hidePhoto ? "Show photo" : "Hide photo"}
+              </Button>
+            </div>
+          </div>
+
+          {/* Reveal card (win or fail) */}
+          <AnimatePresence>
+            {finished && (
+              <motion.div
+                className={`waya-reveal${won ? " is-won" : ""}`}
+                initial={reduce ? false : { opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+              >
+                <span className="waya-reveal-name font-display">{mystery.full_name}</span>
+                <span className="waya-reveal-sub tnum">
+                  {mysteryStint.name} · {mystery.position}
+                  {mystery.jersey != null ? ` · #${mystery.jersey}` : ""}
+                  {mystery.draft ? ` · Draft ${mystery.draft.year} #${mystery.draft.pick}` : " · Undrafted"}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Feedback rows — newest on top. Only mounted once there is something to
+              show: an empty feed with a placeholder claimed a large blank band in
+              the middle of the game (it was flex:1). No rows → no node → no gap. */}
+          {rows.length > 0 && (
+          <div className="waya-feed" role="log" aria-label="Guess feedback">
+            <AnimatePresence initial={false}>
+              {rows.map((r) => (
+                <motion.div
+                  key={r.key}
+                  className={`waya-row${r.correct ? " is-correct" : ""}`}
+                  initial={reduce ? false : { opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <span className="waya-row-name">{r.name}</span>
+                  <div className="waya-chips">
+                    {chip("Conf", r.conf)}{chip("Div", r.div)}{chip("Team", r.team)}
+                    {chip("Pos", r.pos)}{chip("Age", r.age)}{chip("No.", r.jersey)}{chip("Draft", r.draft)}
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+          )}
         </div>
-      </div>
+      </GameFrame.Board>
 
-      {/* Reveal card (win or fail) */}
-      <AnimatePresence>
-        {finished && (
-          <motion.div
-            className={`waya-reveal${won ? " is-won" : ""}`}
-            initial={reduce ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35 }}
-          >
-            <span className="waya-reveal-name font-display">{mystery.full_name}</span>
-            <span className="waya-reveal-sub">
-              {mysteryStint.name} · {mystery.position}
-              {mystery.jersey != null ? ` · #${mystery.jersey}` : ""}
-              {mystery.draft ? ` · Draft ${mystery.draft.year} #${mystery.draft.pick}` : " · Undrafted"}
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Feedback rows — newest on top, scrolls inside itself (page never scrolls) */}
-      <div className="waya-feed" role="log" aria-label="Guess feedback">
-        {rows.length === 0 && !finished && (
-          <p className="waya-feed-empty">Guess a player — every miss sharpens the photo and drops a clue trail here.</p>
-        )}
-        <AnimatePresence initial={false}>
-          {rows.map((r) => (
-            <motion.div
-              key={r.key}
-              className={`waya-row${r.correct ? " is-correct" : ""}`}
-              initial={reduce ? false : { opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-            >
-              <span className="waya-row-name">{r.name}</span>
-              <div className="waya-chips">
-                {chip("Conf", r.conf)}{chip("Div", r.div)}{chip("Team", r.team)}
-                {chip("Pos", r.pos)}{chip("Age", r.age)}{chip("No.", r.jersey)}{chip("Draft", r.draft)}
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Input — anchored at the bottom of the play area */}
-      <div className="waya-inputrow">
-        <AutocompleteInput
-          placeholder="Who are ya…?"
-          value={guess}
-          setValue={setGuess}
-          suggestions={suggestions}
-          onSubmit={handleGuessSubmit}
-          customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
-          customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "160px", minWidth: "100%" }}
+      <GameFrame.Action>
+        {/* Input → spinner → score (shared answers-shown end sequence) */}
+        <EndSequence
+          phase={bottomPhase}
+          input={
+            <GameFrame.InputRow>
+              <AutocompleteInput
+                placeholder="Who are ya…?"
+                value={guess}
+                setValue={setGuess}
+                suggestions={suggestions}
+                onSubmit={handleGuessSubmit}
+                customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
+                customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "160px", minWidth: "100%" }}
+              />
+              <Button size="md" aria-label="Confirm guess" onClick={handleGuessSubmit}
+                disabled={finished || guess.trim() === ""}>
+                Guess
+              </Button>
+            </GameFrame.InputRow>
+          }
+          score={
+            <ScorePanel
+              score={endState?.score ?? 0}
+              outOf={MAX_SCORE}
+              label={endState?.won ? "Nailed it!" : "Out of guesses"}
+              won={endState?.won}
+              onPlayAgain={onPlayAgain}
+              onClose={onClose}
+            />
+          }
         />
-        <Button size="sm" aria-label="Confirm guess" onClick={handleGuessSubmit}
-          disabled={finished || guess.trim() === ""}>
-          Guess
-        </Button>
-      </div>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPointsAnimation} text={popUpInfo.Text} color={popUpInfo.Color} />
-    </div>
+    </GameFrame>
   );
 }
 

@@ -20,7 +20,6 @@ import thumb_who_are_ya from "../assets/Games Backrounds/thumb_who_are_ya.jpg";
 import thumb_tictactoe from "../assets/Games Backrounds/thumb_tictactoe.jpg";
 import thumb_bingo from "../assets/Games Backrounds/thumb_bingo.jpg";
 import thumb_contexto from "../assets/Games Backrounds/thumb_contexto.jpg";
-import thumb_who_would_win from "../assets/Games Backrounds/thumb_who_would_win.jpg";
 import thumb_pack_five from "../assets/Games Backrounds/thumb_pack_five.jpg";
 import thumb_superdraft from "../assets/Games Backrounds/thumb_superdraft.jpg";
 import thumb_imposter from "../assets/Games Backrounds/thumb_imposter.jpg";
@@ -497,36 +496,6 @@ export const games: Game[] = [
     pointsPerCorrect: 5,
     maxPoints: 200,
     fetchData: () => fetchWholePool("players-index"),
-    handleError: handleErrorDefault,
-  },
-  {
-    id: "who-would-win",
-    name: "Who Would Win?",
-    tag: "DEBATE",
-    description: "Daily hypothetical matchup — one tap, then see how the community split.",
-    intro: "The barbershop debate, settled by the crowd. No points, all opinions.",
-    rules: [
-      { n: "1", t: "Two all-time teams or players face off — tap your pick." },
-      { n: "2", t: "The community split reveals instantly." },
-      { n: "3", t: "No points — come back tomorrow for the verdict and a new debate." },
-    ],
-    instruction: `
-      <div class="space-y-2">
-        <p>The eternal debates: 2016 Cavs or 2011 Mavs? Tap a side and see where the fans stand.</p>
-        <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Goal:</strong> Cast your vote in each hypothetical matchup.</li>
-          <li><strong>Reveal:</strong> The live community split shows after you vote.</li>
-          <li><strong>Points:</strong> None — this one is for the debate.</li>
-        </ul>
-        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
-      </div>
-    `,
-    loadingMessage: "Setting up the debate...",
-    backgroundImage: `url('${thumb_who_would_win}')`,
-    urlPath: "/who-would-win",
-    pointsPerCorrect: 0,
-    maxPoints: 0,
-    fetchData: () => fetchGamePool("who-would-win", 10),
     handleError: handleErrorDefault,
   },
   {

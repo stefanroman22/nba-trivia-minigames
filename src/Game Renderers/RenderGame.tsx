@@ -13,7 +13,6 @@ import WhoAreYa from "../Game Renderers/WhoAreYa";
 import TicTacToe from "../Game Renderers/TicTacToe";
 import BingoGame from "../Game Renderers/BingoGame";
 import Contexto from "../Game Renderers/Contexto";
-import WhoWouldWin from "../Game Renderers/WhoWouldWin";
 import PackFive from "../Game Renderers/PackFive";
 import SuperDraft from "../Game Renderers/SuperDraft";
 import ImposterGame from "../Game Renderers/ImposterGame";
@@ -33,7 +32,6 @@ import type {
   ConnectionsBoard,
   GridConfig,
   BingoCard,
-  WwwMatchup,
   PlayerIndexEntry,
 } from "../types/types";
 
@@ -46,6 +44,8 @@ interface RenderGameArgs {
    *  in-place "play again" / "exit" choices. */
   onExit?: () => void;
   onPlayAgain?: () => void;
+  /** Closes the game and returns to idle — the in-place end panels' "Close game". */
+  onClose?: () => void;
   /** Turn-engine games only (tictactoe/imposter/connections, contract #6):
    *  authoritative server state + action sender, wired by OnlineMatch. */
   turn?: unknown;
@@ -60,6 +60,7 @@ export const renderGame = ({
   onGameEnd,
   onExit,
   onPlayAgain,
+  onClose,
   turn,
   onTurnAction,
   multiplayer,
@@ -104,6 +105,7 @@ export const renderGame = ({
           onGameEnd={onGameEnd}
           onExit={onExit}
           onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
@@ -120,6 +122,8 @@ export const renderGame = ({
         <FanFavorites
           gameInfo={gameData as FanFavoritesQuestion[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
@@ -128,6 +132,8 @@ export const renderGame = ({
         <HeatmapGame
           gameInfo={gameData as HeatmapBoard[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
@@ -147,6 +153,8 @@ export const renderGame = ({
         <CareerPath
           gameInfo={gameData as PlayerIndexEntry[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
@@ -155,6 +163,8 @@ export const renderGame = ({
         <NbaGrid
           gameInfo={gameData as GridConfig[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
@@ -163,6 +173,8 @@ export const renderGame = ({
         <WhoAreYa
           gameInfo={gameData as PlayerIndexEntry[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
@@ -193,13 +205,6 @@ export const renderGame = ({
         />
       );
 
-    case "who-would-win":
-      return (
-        <WhoWouldWin
-          gameInfo={gameData as WwwMatchup[]}
-          onGameEnd={onGameEnd}
-        />
-      );
 
     case "pack-five":
       return (
@@ -214,6 +219,8 @@ export const renderGame = ({
         <SuperDraft
           gameInfo={gameData as PlayerIndexEntry[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 

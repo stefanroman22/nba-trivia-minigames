@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { useSelector } from "react-redux";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import { Button, GameFrame, Spinner } from "../components/ui";
 import { playerKey } from "../context/MultiplayerContext";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -224,7 +224,7 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     setSelectedCell(null);
     const n = Object.keys(nextSolved).length;
     if (n === 9) finishSolo(9 * CELL_POINTS, "Board cleared! +225", "var(--good)");
-    else flashPopup(`+${CELL_POINTS}`, "var(--good)");
+    else flashPopup(`Correct! +${CELL_POINTS}`, "var(--good)");
   };
 
   // ---------- MULTIPLAYER (server authoritative) ----------
@@ -285,123 +285,136 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
 
   // ---- Multiplayer duel ----
   if (isMultiplayer) {
-    if (!mpState || !mpBoard) return <CourtLoader label="Waiting for the match…" />;
+    if (!mpState || !mpBoard) return <Spinner label="Waiting for the match…" />;
     const winnerIsMe = mpState.winnerUid === selfUid;
     return (
-      <div className="ttt-wrap">
-        <div className="ttt-head">
-          <span className={`ttt-turnpill${myTurn ? " is-you" : ""}`}>
-            {terminal ? "Final" : myTurn ? "Your turn" : "Opponent's turn"}
-          </span>
-          <span
-            className="ttt-clock tnum"
-            role="timer"
-            aria-label={`${mpSecondsLeft} seconds left`}
-            data-low={mpSecondsLeft <= 5 || undefined}
-          >
-            0:{String(mpSecondsLeft).padStart(2, "0")}
-          </span>
-          <button
-            type="button"
-            className={`ttt-steal${stealMode ? " is-on" : ""}`}
-            disabled={!myTurn || myStealsLeft <= 0 || terminal}
-            aria-pressed={stealMode}
-            onClick={() => {
-              setStealMode((s) => !s);
-              setSelectedCell(null);
-            }}
-          >
-            Steal <span className="tnum">x{myStealsLeft}</span>
-          </button>
-        </div>
+      <GameFrame>
+        <GameFrame.Status
+          left={
+            <>
+              <GameFrame.Label>
+                <span className={`ttt-turn${myTurn ? " is-you" : ""}`}>
+                  {terminal ? "FINAL" : myTurn ? "YOUR TURN" : "OPPONENT'S TURN"}
+                </span>
+              </GameFrame.Label>
+              <span
+                className="ttt-clock tnum"
+                role="timer"
+                aria-label={`${mpSecondsLeft} seconds left`}
+                data-low={mpSecondsLeft <= 5 || undefined}
+              >
+                0:{String(mpSecondsLeft).padStart(2, "0")}
+              </span>
+            </>
+          }
+          right={<GameFrame.Score value={myCells * CELL_POINTS} />}
+        />
 
-        <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe duel board">
-          <span className="ttt-corner" aria-hidden="true" />
-          {mpBoard.cols.map((c, i) => (
-            <span key={`c${i}`} className="ttt-crit ttt-crit--col">
-              {c.label}
-            </span>
-          ))}
-          {mpBoard.rows.map((r, ri) => (
-            <div key={`r${ri}`} className="ttt-rowgroup" role="row">
-              <span className="ttt-crit ttt-crit--row">{r.label}</span>
-              {[0, 1, 2].map((ci) => {
-                const cell = ri * 3 + ci;
-                const occ = mpState.board[cell];
-                const mine = occ?.ownerUid === selfUid;
-                const selectable = myTurn && !terminal && (stealMode ? !!occ && !mine : !occ);
-                const selected = selectedCell === cell;
-                return (
-                  <button
-                    key={cell}
-                    type="button"
-                    role="gridcell"
-                    className={`ttt-cell${mine ? " is-mine" : occ ? " is-theirs" : ""}${
-                      selected ? " is-selected" : ""
-                    }${stealMode && selectable ? " is-stealable" : ""}`}
-                    disabled={!selectable}
-                    aria-label={`${r.label} and ${mpBoard.cols[ci].label}${occ ? `: ${occ.playerName}` : ""}`}
-                    onClick={() => setSelectedCell(selected ? null : cell)}
-                  >
-                    {occ ? (
-                      <span className="ttt-cell-name">{occ.playerName}</span>
-                    ) : (
-                      <span className="ttt-cell-blank" aria-hidden="true" />
-                    )}
-                  </button>
-                );
-              })}
+        <GameFrame.Board>
+          <div className="ttt-board">
+            <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe duel board">
+              <span className="ttt-corner" aria-hidden="true" />
+              {mpBoard.cols.map((c, i) => (
+                <span key={`c${i}`} className="ttt-crit ttt-crit--col">
+                  {c.label}
+                </span>
+              ))}
+              {mpBoard.rows.map((r, ri) => (
+                <div key={`r${ri}`} className="ttt-rowgroup" role="row">
+                  <span className="ttt-crit ttt-crit--row">{r.label}</span>
+                  {[0, 1, 2].map((ci) => {
+                    const cell = ri * 3 + ci;
+                    const occ = mpState.board[cell];
+                    const mine = occ?.ownerUid === selfUid;
+                    const selectable = myTurn && !terminal && (stealMode ? !!occ && !mine : !occ);
+                    const selected = selectedCell === cell;
+                    return (
+                      <button
+                        key={cell}
+                        type="button"
+                        role="gridcell"
+                        className={`ttt-cell${mine ? " is-mine" : occ ? " is-theirs" : ""}${
+                          selected ? " is-selected" : ""
+                        }${stealMode && selectable ? " is-stealable" : ""}`}
+                        disabled={!selectable}
+                        aria-label={`${r.label} and ${mpBoard.cols[ci].label}${occ ? `: ${occ.playerName}` : ""}`}
+                        onClick={() => setSelectedCell(selected ? null : cell)}
+                      >
+                        {occ ? (
+                          <span className="ttt-cell-name">{occ.playerName}</span>
+                        ) : (
+                          <span className="ttt-cell-blank" aria-hidden="true" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {terminal && (
-          <div
-            className={`ttt-banner${mpState.draw ? "" : winnerIsMe ? " is-win" : " is-loss"}`}
-            role="status"
-          >
-            <span className="font-display">
-              {mpState.draw ? "Draw!" : winnerIsMe ? "You win!" : "Opponent wins"}
-            </span>
+            {terminal && (
+              <div
+                className={`ttt-banner${mpState.draw ? "" : winnerIsMe ? " is-win" : " is-loss"}`}
+                role="status"
+              >
+                <span className="font-display">
+                  {mpState.draw ? "Draw!" : winnerIsMe ? "You win!" : "Opponent wins"}
+                </span>
+              </div>
+            )}
           </div>
-        )}
+        </GameFrame.Board>
 
-        <div className="ttt-inputrow">
-          <AutocompleteInput
-            placeholder={
-              !myTurn
-                ? "Waiting…"
-                : selectedCell == null
-                  ? stealMode
-                    ? "Pick a cell to steal…"
-                    : "Pick a square…"
-                  : "Name a player…"
-            }
-            value={guess}
-            setValue={setGuess}
-            suggestions={suggestions}
-            onSubmit={handleMpSubmit}
-            customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
-            customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
-          />
-          <Button
-            size="sm"
-            aria-label="Confirm move"
-            onClick={handleMpSubmit}
-            disabled={!myTurn || terminal || selectedCell == null || guess.trim() === ""}
-          >
-            {stealMode ? "Steal" : "Claim"}
-          </Button>
-        </div>
+        <GameFrame.Action>
+          <GameFrame.InputRow>
+            <AutocompleteInput
+              placeholder={
+                !myTurn
+                  ? "Waiting…"
+                  : selectedCell == null
+                    ? stealMode
+                      ? "Pick a cell to steal…"
+                      : "Pick a square…"
+                    : "Name a player…"
+              }
+              value={guess}
+              setValue={setGuess}
+              suggestions={suggestions}
+              onSubmit={handleMpSubmit}
+              customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
+              customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
+            />
+            <button
+              type="button"
+              className={`ttt-steal${stealMode ? " is-on" : ""}`}
+              disabled={!myTurn || myStealsLeft <= 0 || terminal}
+              aria-pressed={stealMode}
+              onClick={() => {
+                setStealMode((s) => !s);
+                setSelectedCell(null);
+              }}
+            >
+              Steal <span className="tnum">x{myStealsLeft}</span>
+            </button>
+            <Button
+              size="md"
+              aria-label="Confirm move"
+              onClick={handleMpSubmit}
+              disabled={!myTurn || terminal || selectedCell == null || guess.trim() === ""}
+            >
+              {stealMode ? "Steal" : "Claim"}
+            </Button>
+          </GameFrame.InputRow>
+        </GameFrame.Action>
 
         <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} />
-      </div>
+      </GameFrame>
     );
   }
 
   // ---- Solo: loading / empty / error states ----
   if (!board) return <p style={{ color: "var(--muted)" }}>No board available.</p>;
-  if (pool.status === "loading") return <CourtLoader />;
+  if (pool.status === "loading") return <Spinner label="Loading the board…" />;
   if (pool.status === "error")
     return (
       <div className="ttt-fetchfail">
@@ -423,79 +436,90 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
 
   // ---- Solo board ----
   return (
-    <div className="ttt-wrap">
-      <div className="ttt-head">
-        <span
-          className="ttt-clock tnum"
-          role="timer"
-          aria-label={`${soloSecondsLeft} seconds left`}
-          data-low={soloSecondsLeft <= 30 || undefined}
-        >
-          {Math.floor(soloSecondsLeft / 60)}:{String(soloSecondsLeft % 60).padStart(2, "0")}
-        </span>
-        <span className="ttt-score tnum">{soloScore} / 225</span>
-      </div>
+    <GameFrame>
+      <GameFrame.Status
+        left={
+          <>
+            <GameFrame.Label>CLAIM THREE IN A ROW</GameFrame.Label>
+            <span
+              className="ttt-clock tnum"
+              role="timer"
+              aria-label={`${soloSecondsLeft} seconds left`}
+              data-low={soloSecondsLeft <= 30 || undefined}
+            >
+              {Math.floor(soloSecondsLeft / 60)}:{String(soloSecondsLeft % 60).padStart(2, "0")}
+            </span>
+          </>
+        }
+        right={<GameFrame.Score value={soloScore} />}
+      />
 
-      <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe criteria board">
-        <span className="ttt-corner" aria-hidden="true" />
-        {board.cols.map((c, i) => (
-          <span key={`c${i}`} className="ttt-crit ttt-crit--col">
-            {c.label}
-          </span>
-        ))}
-        {board.rows.map((r, ri) => (
-          <div key={`r${ri}`} className="ttt-rowgroup" role="row">
-            <span className="ttt-crit ttt-crit--row">{r.label}</span>
-            {[0, 1, 2].map((ci) => {
-              const cell = ri * 3 + ci;
-              const name = solved[cell];
-              const selected = selectedCell === cell;
-              return (
-                <motion.button
-                  key={cell}
-                  type="button"
-                  role="gridcell"
-                  className={`ttt-cell${name ? " is-mine" : ""}${selected ? " is-selected" : ""}`}
-                  disabled={!!name || finished}
-                  aria-label={`${r.label} and ${board.cols[ci].label}${name ? `: ${name}` : ""}`}
-                  onClick={() => setSelectedCell(selected ? null : cell)}
-                  animate={reduce ? undefined : { scale: name ? [1, 1.06, 1] : 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {name ? (
-                    <span className="ttt-cell-name">{name}</span>
-                  ) : (
-                    <span className="ttt-cell-blank" aria-hidden="true" />
-                  )}
-                </motion.button>
-              );
-            })}
+      <GameFrame.Board>
+        <div className="ttt-board">
+          <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe criteria board">
+            <span className="ttt-corner" aria-hidden="true" />
+            {board.cols.map((c, i) => (
+              <span key={`c${i}`} className="ttt-crit ttt-crit--col">
+                {c.label}
+              </span>
+            ))}
+            {board.rows.map((r, ri) => (
+              <div key={`r${ri}`} className="ttt-rowgroup" role="row">
+                <span className="ttt-crit ttt-crit--row">{r.label}</span>
+                {[0, 1, 2].map((ci) => {
+                  const cell = ri * 3 + ci;
+                  const name = solved[cell];
+                  const selected = selectedCell === cell;
+                  return (
+                    <motion.button
+                      key={cell}
+                      type="button"
+                      role="gridcell"
+                      className={`ttt-cell${name ? " is-mine" : ""}${selected ? " is-selected" : ""}`}
+                      disabled={!!name || finished}
+                      aria-label={`${r.label} and ${board.cols[ci].label}${name ? `: ${name}` : ""}`}
+                      onClick={() => setSelectedCell(selected ? null : cell)}
+                      animate={reduce ? undefined : { scale: name ? [1, 1.06, 1] : 1 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {name ? (
+                        <span className="ttt-cell-name">{name}</span>
+                      ) : (
+                        <span className="ttt-cell-blank" aria-hidden="true" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      </GameFrame.Board>
 
-      <div className="ttt-inputrow">
-        <AutocompleteInput
-          placeholder={selectedCell == null ? "Pick a square first…" : "Name a player…"}
-          value={guess}
-          setValue={setGuess}
-          suggestions={suggestions}
-          onSubmit={handleSoloSubmit}
-          customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
-          customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
-        />
-        <Button
-          size="sm"
-          aria-label="Confirm player"
-          onClick={handleSoloSubmit}
-          disabled={finished || selectedCell == null || guess.trim() === ""}
-        >
-          Confirm
-        </Button>
-      </div>
+      <GameFrame.Action>
+        <GameFrame.InputRow>
+          <AutocompleteInput
+            placeholder={selectedCell == null ? "Pick a square first…" : "Name a player…"}
+            value={guess}
+            setValue={setGuess}
+            suggestions={suggestions}
+            onSubmit={handleSoloSubmit}
+            customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
+            customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
+          />
+          <Button
+            size="md"
+            aria-label="Confirm player"
+            onClick={handleSoloSubmit}
+            disabled={finished || selectedCell == null || guess.trim() === ""}
+          >
+            Confirm
+          </Button>
+        </GameFrame.InputRow>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} />
-    </div>
+    </GameFrame>
   );
 }
 

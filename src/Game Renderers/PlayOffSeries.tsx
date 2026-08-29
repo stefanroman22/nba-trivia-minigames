@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import ProgressBar from "../components/ui/ProgressBar";
+import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import TeamCrest from "../components/ui/TeamCrest";
+import { GameFrame } from "../components/ui";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
 import type { TeamColor } from "../constants/nbaTeamColors";
 
@@ -87,20 +89,15 @@ function PlayOffSeries({
       : { text: `It was the ${currentSeries.winner}`, color: "var(--bad)" };
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* progress + score */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
-        <span style={{ fontSize: 11, letterSpacing: 1, color: "var(--muted)", fontWeight: 600 }}>
-          ROUND {currentIndex + 1}/{seriesList.length}
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
-          <span style={{ color: "var(--muted)", fontWeight: 500, fontSize: 11, letterSpacing: 0.5 }}>SCORE</span>
-          <span className="tnum" style={{ color: "var(--brand)", fontSize: 16 }}>{score}</span>
-        </span>
-      </div>
+    <GameFrame>
+      <GameFrame.Status
+        left={<GameFrame.Label>ROUND <span className="tnum">{currentIndex + 1}/{seriesList.length}</span></GameFrame.Label>}
+        right={<GameFrame.Score value={score} />}
+      />
       <ProgressBar value={currentIndex + (showWinner ? 1 : 0)} max={seriesList.length} />
 
-      {/* round header */}
+      {/* round body — keyed so the prompt + VS cards cross-fade together */}
+      <GameFrame.Board>
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
@@ -108,14 +105,12 @@ function PlayOffSeries({
           animate={{ opacity: 1, y: 0 }}
           exit={reduce ? undefined : { opacity: 0, y: -10 }}
           transition={{ duration: 0.25 }}
-          style={{ display: "flex", flexDirection: "column", gap: 18 }}
+          style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "center", textAlign: "center" }}>
-            <span style={{ fontSize: 11, letterSpacing: 1.5, color: "var(--brand)", fontWeight: 600 }}>
-              {currentSeries.round} · {currentSeries.season}
-            </span>
-            <h3 className="font-display" style={{ fontSize: 19 }}>Who won the series?</h3>
-          </div>
+          <GameFrame.Prompt
+            eyebrow={`${currentSeries.round} · ${currentSeries.season}`}
+            title="Who won the series?"
+          />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "stretch" }}>
             {teams.map((t, i) => (
@@ -138,29 +133,29 @@ function PlayOffSeries({
                     <TeamCrest src={t.logo} name={t.name} size={40} />
                   </span>
                   <span className="font-display" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>{t.name}</span>
-                  {showWinner && (
-                    <span className="tnum" style={{ marginTop: "auto", paddingTop: 6, fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
-                      {t.wins} wins
-                    </span>
-                  )}
+                  {/* always rendered so the reveal cannot resize the card (Rule 6.2);
+                      a non-breaking space reserves the exact line box without spoiling the winner */}
+                  <span aria-hidden={!showWinner} className="tnum" style={{ marginTop: "auto", paddingTop: 6, fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
+                    {showWinner ? `${t.wins} wins` : " "}
+                  </span>
                 </motion.button>
               </div>
             ))}
           </div>
-
-          <div style={{ height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {feedback && (
-              <motion.span
-                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className="font-accent" style={{ fontSize: 14, fontWeight: 700, color: feedback.color }}
-              >
-                {feedback.text}
-              </motion.span>
-            )}
-          </div>
         </motion.div>
       </AnimatePresence>
-    </div>
+      </GameFrame.Board>
+
+      {/* No input row: the slot renders nothing so this game stays aligned with
+          the other no-input games (see GameFrame.Action's doc comment). */}
+      <GameFrame.Action>{null}</GameFrame.Action>
+
+      <SubmitGuessPopup
+        show={!!feedback}
+        text={feedback?.text ?? ""}
+        color={feedback?.color ?? "var(--good)"}
+      />
+    </GameFrame>
   );
 }
 

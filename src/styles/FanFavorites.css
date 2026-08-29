@@ -1,26 +1,8 @@
 /* ===== Fan Favorites — survey board ===== */
-.ff-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 620px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(8px, 1.6dvh, 16px);
-}
-
-/* Prompt */
-.ff-head { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
-.ff-eyebrow {
-  font-size: clamp(10.5px, 1.5dvh, 12px);
-  letter-spacing: 0.4px;
-  color: var(--muted);
-}
-.ff-prompt {
-  font-size: clamp(15px, 2.3dvh, 20px);
-  color: var(--text);
-  line-height: 1.3;
-}
+/* The root, status row, prompt and action row come from <GameFrame> (ui.css) —
+   do not re-add a .ff-wrap/.ff-head here. The board stacks the lives row over
+   the survey grid, so it owns the gap between them (.gf-board is gapless). */
+.gf-board:has(.ff-board) { gap: clamp(8px, 1.6dvh, 16px); }
 
 /* Lives */
 .ff-lives { display: flex; gap: 8px; }
@@ -90,7 +72,7 @@
 .ff-slot.is-missed .ff-count { background: var(--surface3); color: var(--muted); }
 
 /* ===== Input row ===== */
-.ff-inputrow { display: flex; gap: 8px; width: 100%; max-width: 420px; }
+/* The submission row now comes from GameFrame.InputRow (ui.css .gf-inputrow). */
 .ff-input {
   flex: 1;
   min-width: 0;

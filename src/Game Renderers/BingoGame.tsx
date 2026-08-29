@@ -5,7 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, Chip, CourtLoader, ProgressBar } from "../components/ui";
+import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { fetchWholePool, sampleN } from "../utils/pool";
@@ -223,7 +223,7 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
     // Wrong dab: current player is gone AND the next deal is burned.
     setDealt(null);
     setPenalty(true);
-    flashPopup("Wrong dab!", "var(--bad)");
+    flashPopup("Doesn’t fit that square", "var(--bad)");
     dealsLeftRef.current -= 1; // the skipped next deal
     setDealsLeft(Math.max(0, dealsLeftRef.current));
     later(() => {
@@ -238,47 +238,93 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
   };
 
   /* ---- loading / error / empty states ---- */
-  if (!card) {
-    return (
-      <div className="bng-wrap">
-        <p className="bng-state-msg">No bingo card available.</p>
-      </div>
-    );
-  }
+  if (!card) return <p className="bng-state-msg">No bingo card available.</p>;
   if (poolError) {
     return (
-      <div className="bng-wrap">
-        <div className="bng-state" role="alert">
-          <span className="bng-state-title font-display">{poolError.title}</span>
-          <p className="bng-state-msg">{poolError.message}</p>
-          <Button size="sm" onClick={() => onGameEnd?.(0)}>Exit game</Button>
-        </div>
+      <div className="bng-state" role="alert">
+        <span className="bng-state-title font-display">{poolError.title}</span>
+        <p className="bng-state-msg">{poolError.message}</p>
       </div>
     );
   }
-  if (!deckReady) {
-    return (
-      <div className="bng-wrap">
-        <CourtLoader label="Shuffling the deck…" />
-      </div>
-    );
-  }
+  if (!deckReady) return <Spinner label="Shuffling the deck…" />;
 
   const claimedCount = Object.keys(claimed).length;
 
   return (
-    <div className="bng-wrap">
-      {/* Deals meter + skip */}
-      <div className="bng-top">
-        <div className="bng-meter">
-          <span className="bng-meter-label">
-            Deals left <b className="tnum">{dealsLeft}</b><span className="tnum">/{DECK_SIZE}</span>
-          </span>
-          <ProgressBar value={dealsLeft} max={DECK_SIZE} />
+    <GameFrame>
+      <GameFrame.Status
+        left={
+          <>
+            <GameFrame.Label>DAB THE CARD</GameFrame.Label>
+            <span className="bng-meter-label">
+              Deals left <b className="tnum">{dealsLeft}</b><span className="tnum">/{DECK_SIZE}</span>
+            </span>
+          </>
+        }
+        right={<GameFrame.Score value={claimedCount} label="DABBED" />}
+      />
+
+      {/* Progress — spec §5: always the root's 2nd child, full width */}
+      <ProgressBar value={DECK_SIZE - dealsLeft} max={DECK_SIZE} />
+
+      <GameFrame.Board>
+        <div className="bng-board">
+          {/* Dealt player — fixed-height strip, no layout shift. Wrong-dab feedback
+              lives only in SubmitGuessPopup (spec §6: one placement per game). */}
+          <div className="bng-deal" aria-live="polite">
+            <AnimatePresence mode="wait">
+              {dealt ? (
+                <motion.div
+                  key={dealt.person_id}
+                  className="bng-deal-card"
+                  initial={reduce ? false : { opacity: 0, x: 24 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={reduce ? undefined : { opacity: 0, x: -24 }}
+                  transition={{ duration: 0.25 }}
+                >
+                  <DealPhoto player={dealt} />
+                  <div>
+                    <span className="bng-deal-name font-display">{dealt.full_name}</span>
+                    <span className="bng-deal-hint">Tap the category this player fits</span>
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div key="idle" className="bng-deal-hint" initial={false} animate={{ opacity: 1 }}>
+                  {finished ? "Card closed" : "Dealing…"}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* The 4x4 card */}
+          <div className="bng-grid" role="grid" aria-label="Bingo card, 16 categories">
+            {card.cells.map((c, idx) => {
+              const claim = claimed[idx];
+              return (
+                <motion.button
+                  key={idx}
+                  type="button"
+                  className={`bng-cell${claim ? " is-claimed" : ""}`}
+                  onClick={() => handleDab(idx)}
+                  disabled={!!claim || !dealt || finished || penalty}
+                  aria-pressed={!!claim}
+                  aria-label={claim ? `${c.label} — claimed by ${claim.name}` : c.label}
+                  animate={reduce ? undefined : { scale: claim ? [1, 1.06, 1] : 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <span className="bng-cell-label">{c.label}</span>
+                  {claim && <span className="bng-cell-claimer">{claim.name}</span>}
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
-        <Chip variant="brand" className="tnum">{claimedCount}/16</Chip>
+      </GameFrame.Board>
+
+      <GameFrame.Action>
         <Button
-          size="sm"
+          size="md"
           variant="secondary"
           onClick={handleSkip}
           disabled={!dealt || finished || penalty}
@@ -286,71 +332,10 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
         >
           Skip
         </Button>
-      </div>
-
-      {/* Dealt player / penalty banner — fixed-height strip, no layout shift */}
-      <div className="bng-deal" aria-live="polite">
-        <AnimatePresence mode="wait">
-          {penalty ? (
-            <motion.div
-              key="penalty"
-              className="bng-penalty"
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={reduce ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              role="status"
-            >
-              Wrong dab — next deal burned
-            </motion.div>
-          ) : dealt ? (
-            <motion.div
-              key={dealt.person_id}
-              className="bng-deal-card"
-              initial={reduce ? false : { opacity: 0, x: 24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={reduce ? undefined : { opacity: 0, x: -24 }}
-              transition={{ duration: 0.25 }}
-            >
-              <DealPhoto player={dealt} />
-              <div>
-                <span className="bng-deal-name">{dealt.full_name}</span>
-                <span className="bng-deal-hint">Tap the category this player fits</span>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key="idle" className="bng-deal-hint" initial={false} animate={{ opacity: 1 }}>
-              {finished ? "Card closed" : "Dealing…"}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* The 4x4 card */}
-      <div className="bng-grid" role="grid" aria-label="Bingo card, 16 categories">
-        {card.cells.map((c, idx) => {
-          const claim = claimed[idx];
-          return (
-            <motion.button
-              key={idx}
-              type="button"
-              className={`bng-cell${claim ? " is-claimed" : ""}`}
-              onClick={() => handleDab(idx)}
-              disabled={!!claim || !dealt || finished || penalty}
-              aria-pressed={!!claim}
-              aria-label={claim ? `${c.label} — claimed by ${claim.name}` : c.label}
-              animate={reduce ? undefined : { scale: claim ? [1, 1.06, 1] : 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <span className="bng-cell-label">{c.label}</span>
-              {claim && <span className="bng-cell-claimer">{claim.name}</span>}
-            </motion.button>
-          );
-        })}
-      </div>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPointsAnimation} text={popUpInfo.Text} color={popUpInfo.Color} />
-    </div>
+    </GameFrame>
   );
 }
 

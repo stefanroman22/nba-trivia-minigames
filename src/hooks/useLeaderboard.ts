@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
-import { FALLBACK_LEADERS, FALLBACK_SELF, type LeaderRow, type SelfRow } from "../constants/leaderboard";
+import type { LeaderRow, SelfRow } from "../constants/leaderboard";
 
 /** How long cached leaderboard data stays fresh before it auto-refreshes. */
 export const LEADERBOARD_TTL_MS = 5 * 60 * 1000;
@@ -14,10 +14,10 @@ interface LeaderboardData {
   loading: boolean;
   /** A refresh is running while we already have data on screen. */
   refreshing: boolean;
-  /** True when showing dummy data because the backend was empty/unreachable. */
-  isFallback: boolean;
+  /** True when the last fetch errored (leaders reflects the last good data, if any). */
+  error: boolean;
   leaders: LeaderRow[];
-  self: SelfRow;
+  self: SelfRow | null;
   /** Epoch ms of the last completed load, or null before the first load. */
   lastUpdated: number | null;
   /** Current epoch ms, re-rendered on each tick so relative times stay live. */
@@ -27,7 +27,7 @@ interface LeaderboardData {
 
 interface CacheEntry {
   leaders: LeaderRow[];
-  isFallback: boolean;
+  error: boolean;
   userRank: number | null;
   numberUsers: number | null;
   /** Which signed-in user this data's rank belongs to (null = signed out). */
@@ -52,8 +52,8 @@ async function fetchBoard(userKey: string | null): Promise<void> {
     const data = await response.json();
     const live = Array.isArray(data?.top_100_users) ? data.top_100_users : [];
 
-    if (data?.error || live.length === 0) {
-      cache = { leaders: FALLBACK_LEADERS, isFallback: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
+    if (data?.error) {
+      cache = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
     } else {
       cache = {
         leaders: live.map((u: { username: string; id?: string; points: number }, i: number) => ({
@@ -62,7 +62,7 @@ async function fetchBoard(userKey: string | null): Promise<void> {
           id: u.id ?? null,
           points: u.points,
         })),
-        isFallback: false,
+        error: false,
         userRank: typeof data?.user_rank === "number" ? data.user_rank : null,
         numberUsers: typeof data?.number_users === "number" ? data.number_users : null,
         userKey,
@@ -71,7 +71,7 @@ async function fetchBoard(userKey: string | null): Promise<void> {
     }
   } catch (err) {
     console.error("Failed to load leaderboard:", err);
-    cache = { leaders: FALLBACK_LEADERS, isFallback: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
+    cache = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
   } finally {
     isFetching = false;
     notify();
@@ -79,10 +79,8 @@ async function fetchBoard(userKey: string | null): Promise<void> {
 }
 
 /**
- * Loads the leaderboard from /get-users/, falling back to the design's dummy
- * players whenever the backend is unreachable or returns nothing. The signed-in
- * player's row uses live data; a signed-out visitor sees the illustrative self
- * row. Results are cached client-side and auto-refresh every 5 minutes.
+ * Loads the leaderboard from /get-users/. Results are cached client-side and
+ * auto-refresh every 5 minutes.
  */
 export function useLeaderboard(): LeaderboardData {
   const { user } = useSelector((state: RootState) => state.user);
@@ -115,21 +113,21 @@ export function useLeaderboard(): LeaderboardData {
 
   const refresh = useCallback(() => { fetchBoard(userKey); }, [userKey]);
 
-  const self: SelfRow = user
+  const self: SelfRow | null = user
     ? {
-        rank: cache?.userRank ?? (Number(user.rank) || FALLBACK_SELF.rank),
+        rank: cache?.userRank ?? (Number(user.rank) || 0),
         name: user.username,
         id: user.id ?? null,
         points: user.points,
-        total: cache?.numberUsers ?? FALLBACK_SELF.total,
+        total: cache?.numberUsers ?? 0,
       }
-    : FALLBACK_SELF;
+    : null;
 
   return {
     loading: !cache,
     refreshing: isFetching && !!cache,
-    isFallback: cache?.isFallback ?? false,
-    leaders: cache?.leaders ?? FALLBACK_LEADERS,
+    error: cache?.error ?? false,
+    leaders: cache?.leaders ?? [],
     self,
     lastUpdated: cache?.fetchedAt ?? null,
     now,

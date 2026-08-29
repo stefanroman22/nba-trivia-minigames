@@ -1,7 +1,7 @@
 # Teams — Extensive Data Fields
 
 Wishlist of fields to collect for each NBA team (30 teams). Main sources: `nba_api` (stats.nba.com — `teamdetails`, `teaminfocommon`, `franchisehistory` endpoints), balldontlie API, Wikipedia/Basketball-Reference for historical facts.
-Updated 2026-07-04 after the games research — see [games_master_plan.md](games_master_plan.md) §7
+Updated 2026-07-04 after the games research — see [MASTER_PLAN.md](MASTER_PLAN.md) §7
 for storage (extends the existing `trivia_team` table). Fields marked **(new)** were added because
 a planned game needs them.
 

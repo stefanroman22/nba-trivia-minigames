@@ -1,24 +1,23 @@
 /* ===== NBA Connections — game renderer (prefix: cn-) =====
    theme.css tokens only + spec-mandated difficulty-tier colors (orange family).
    Play area fits 390x844 with no page scroll; the tile grid shrinks as groups
-   collapse into full-width bars, so total height only ever decreases. */
-.cn-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 560px;
-  margin: 0 auto;
+   collapse into full-width bars, so total height only ever decreases.
+
+   The root, status row and action row come from <GameFrame> (ui.css) — this file
+   only styles the board itself. Do not re-add a .cn-wrap/.cn-head here.
+   Not a fill game: nothing in this board scrolls internally (Rule 4.1). */
+
+/* Board interior: the solved bars stacked above the remaining tiles. The stack
+   lives INSIDE GameFrame.Board (the only free-form region), so its gap is the
+   board's own rhythm, not the root's. */
+.cn-board {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: clamp(8px, 1.4dvh, 14px);
+  width: 100%;
 }
 
-/* Header */
-.cn-head { display: flex; flex-direction: column; align-items: center; gap: 3px; text-align: center; }
-.cn-title { font-size: clamp(15px, 2.2dvh, 20px); color: var(--text); }
-.cn-sub { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
-
-/* Hearts */
+/* Hearts — the status row's right-hand group */
 .cn-hearts { display: flex; gap: 7px; align-items: center; }
 
 /* ===== Solved group bars (the grid-collapse target) =====
@@ -38,7 +37,9 @@
   color: var(--tier-ink, #1a1206);
   text-align: center;
 }
-.cn-solved-bar.is-missed { opacity: 0.9; }
+/* Missed groups need their own signal beyond the shared tier color, or a missed
+   reveal reads identically to one the player solved (Rule 7.1). */
+.cn-solved-bar.is-missed { opacity: 0.75; box-shadow: inset 0 0 0 2px var(--bad); }
 .cn-solved-label { font-size: 12.5px; font-weight: 800; letter-spacing: 0.3px; }
 .cn-solved-members { font-size: 11px; font-weight: 600; line-height: 1.2; }
 

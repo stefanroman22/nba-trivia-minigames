@@ -1,13 +1,12 @@
 /* ===== Fill in the Starting 5 — position cards ===== */
-.s5-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 720px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: clamp(10px, 1.8dvh, 18px);
-}
+/* The root, status row and end slot come from <GameFrame> (ui.css) — do not
+   re-add a .s5-wrap here. Two scoped overrides remain:
+   1. the five-card lineup needs more width than the shared 560px (an accepted
+      deviation, so it is scoped to this game instead of loosening .gf);
+   2. the board stacks scoreboard → lives → cards at the house 20px rhythm
+      (.gf-board itself is gapless). */
+.gf:has(.s5-cards) { max-width: 720px; }
+.gf-board:has(.s5-cards) { gap: 20px; }
 
 /* Scoreboard */
 .s5-board {
@@ -55,10 +54,13 @@
 .s5-lives { display: flex; gap: 8px; }
 
 /* ===== Position cards ===== */
+/* Always 5 across — the lineup must read as one starting five at every width.
+   auto-fit/minmax used to wrap to 2x3 on phones, which (with the 1:1 card stage)
+   overflowed the viewport by ~427px at 390x844. The cards shrink instead. */
 .s5-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: clamp(8px, 1.6vw, 14px);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: clamp(6px, 1.6vw, 14px);
   width: 100%;
 }
 .s5-card {
@@ -112,7 +114,6 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  font-family: 'Russo One', system-ui, sans-serif;
   font-size: clamp(26px, 6vw, 42px);
   color: color-mix(in srgb, var(--brand) 88%, #fff);
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
@@ -142,11 +143,39 @@
   padding-top: 6px;
   word-break: break-word;
 }
+/* The result reads off the names themselves: green = the player you got,
+   red = the one you missed. No separate found-count is shown. */
+.s5-card.is-correct .s5-card-name { color: var(--good); }
+.s5-card.is-revealed .s5-card-name { color: var(--bad); }
 
-/* Game-over choices (single-player) */
-.s5-gameover { display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
-.s5-gameover-text { font-size: 13px; color: var(--muted); }
-.s5-gameover-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+/* Narrow screens: two cards per row so each is wide enough to show a full player
+   name. That means three rows, so the vertical budget is tight — the photo stage
+   drops to a dvh-scaled height and the foot goes horizontal (input beside Confirm)
+   to keep the whole play area inside one 390x844 viewport (Rule 1.1). */
+@media (max-width: 620px) {
+  /* NOTE: this game used to opt out of the stage height cap here. That is now the
+     default for every content game (ui.css: .stage-inner:has(.gf:not(.gf--fill))),
+     so the per-game override was removed — one source of truth. */
+  .s5-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* The 5th card would sit alone in a half-width column — centre it instead. */
+  .s5-card:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 5px);
+  }
+  /* The card stage keeps its 1:1 ratio at every width — the player photo is the
+     point of the card, so it is never letterboxed to save height. Two-per-row
+     makes each card ~157px, i.e. LARGER than the ~133px it gets on desktop. */
+  .s5-card-pos { font-size: 10px; }
+  /* Three card rows need the headline scoreboard to give some height back. */
+  .s5-team img,
+  .s5-team-badge { width: 34px; height: 34px; }
+  .s5-score-num { font-size: 18px; padding: 3px 10px; }
+  /* Input and Confirm share one line to save ~44px per row. */
+  .s5-card-input { flex-direction: row; align-items: center; gap: 6px; }
+  .s5-card-input > *:first-child { flex: 1 1 auto; min-width: 0; }
+  .s5-card-input .btn { flex: none; width: auto; padding: 0 12px; font-size: 11px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .s5-flip { transition: none; }

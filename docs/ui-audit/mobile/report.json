@@ -1,0 +1,584 @@
+[
+  {
+    "id": "series-winner",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "series-winner.png"
+  },
+  {
+    "id": "name-logo",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20
+    ],
+    "childCount": 4,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "name-logo.png"
+  },
+  {
+    "id": "guess-mvps",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20
+    ],
+    "childCount": 4,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "guess-mvps.png"
+  },
+  {
+    "id": "starting-five",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": false,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "720px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20
+    ],
+    "childCount": 2,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [
+      "s5-flip",
+      "s5-face s5-face--front",
+      "s5-unknown",
+      "s5-unknown-q font-display",
+      "s5-face s5-face--back",
+      "s5-flip"
+    ],
+    "screenshot": "starting-five.png"
+  },
+  {
+    "id": "wordle",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20
+    ],
+    "childCount": 2,
+    "status": {
+      "slots": [
+        "left"
+      ],
+      "loneOffsetFromCentre": 0,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "wordle.png"
+  },
+  {
+    "id": "fan-favorites",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20
+    ],
+    "childCount": 4,
+    "status": {
+      "slots": [
+        "left"
+      ],
+      "loneOffsetFromCentre": 0,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "fan-favorites.png"
+  },
+  {
+    "id": "heatmap",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "heatmap.png"
+  },
+  {
+    "id": "connections",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "connections.png"
+  },
+  {
+    "id": "career-path",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "childCount": 5,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [
+      "cp-face cp-face--back",
+      "cp-court",
+      "cp-face cp-face--front",
+      "cp-face cp-face--back",
+      "cp-court",
+      "cp-face cp-face--front"
+    ],
+    "screenshot": "career-path.png"
+  },
+  {
+    "id": "nba-grid",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20
+    ],
+    "childCount": 4,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "nba-grid.png"
+  },
+  {
+    "id": "who-are-ya",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "who-are-ya.png"
+  },
+  {
+    "id": "tictactoe",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "tictactoe.png"
+  },
+  {
+    "id": "bingo",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20
+    ],
+    "childCount": 4,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "bingo.png"
+  },
+  {
+    "id": "contexto",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "contexto.png"
+  },
+  {
+    "id": "pack-five",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20
+    ],
+    "childCount": 3,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [
+      "pf-card",
+      "pf-photo-scrim",
+      "pf-name-plate"
+    ],
+    "screenshot": "pack-five.png"
+  },
+  {
+    "id": "superdraft",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": false,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 12,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf gf--fill",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "childCount": 5,
+    "status": {
+      "slots": [
+        "left",
+        "right"
+      ],
+      "loneOffsetFromCentre": null,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "superdraft.png"
+  },
+  {
+    "id": "imposter",
+    "mounted": true,
+    "stagePad": 14,
+    "isContent": true,
+    "usesGameFrame": true,
+    "shellTop": 14,
+    "gameToExit": 28,
+    "exitToBottom": 14,
+    "playAreaFitsViewport": true,
+    "shellContainsGame": true,
+    "rootClass": "gf",
+    "rootMaxWidth": "560px",
+    "rootGap": "20px",
+    "rootAlign": "normal",
+    "rootWidth": 319,
+    "firstChildOffset": 0,
+    "childGaps": [
+      20
+    ],
+    "childCount": 2,
+    "status": {
+      "slots": [
+        "left"
+      ],
+      "loneOffsetFromCentre": 0,
+      "loneRightIsFlush": null
+    },
+    "absoluteOverlays": [],
+    "screenshot": "imposter.png"
+  }
+]

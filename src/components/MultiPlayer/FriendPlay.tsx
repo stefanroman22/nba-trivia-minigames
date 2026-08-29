@@ -151,10 +151,12 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
                   alt=""
                   onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
                 />
-                <span className="fp-seat-name" title={`${m.username} #${m.id}`}>
-                  {m.username}{isMe ? " (you)" : ""}
+                <span className="fp-seat-col">
+                  <span className="fp-seat-name" title={`${m.username} #${m.id}`}>
+                    {m.username}{isMe ? " (you)" : ""}
+                  </span>
+                  <span className="fp-seat-id tnum">#{m.id}</span>
                 </span>
-                <span className="fp-seat-id tnum">#{m.id}</span>
                 {m.isHost && <span className="fp-host-chip">HOST</span>}
                 <span className={`fp-dot${m.online ? "" : " is-off"}`} aria-label={m.online ? "Online" : "Reconnecting"} />
               </div>

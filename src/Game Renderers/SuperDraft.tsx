@@ -16,7 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
@@ -26,6 +26,10 @@ import "../styles/SuperDraft.css";
 export interface SuperDraftProps {
   gameInfo: PlayerIndexEntry[];
   onGameEnd: OnGameEnd;
+  /** Restarts the game from the result panel (spec §7). */
+  onPlayAgain?: () => void;
+  /** Closes the game and returns to the idle screen (spec §7). */
+  onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
@@ -34,7 +38,8 @@ export interface SuperDraftProps {
 const SLOT_COUNT = 5;
 const MIN_ELIGIBLE = 8; // every slot constraint must offer at least this many players
 const SIM_LINEUPS = 300; // random valid lineups graded against
-const REVEAL_STEP_MS = 420; // stagger between per-slot metric reveals
+const REVEAL_STEP_MS = 260; // stagger between per-slot metric reveals (spec Rule 7.2)
+const REVEAL_LEAD_MS = 300; // lead-in before the first reveal (spec Rule 7.2)
 const END_DELAY = 1200; // let the grade land before handing back the score
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -261,7 +266,7 @@ function Headshot({ player }: { player: PlayerIndexEntry }) {
 
 type Phase = "loading" | "error" | "draft" | "reveal";
 
-export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
+export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }: SuperDraftProps) {
   const objective = useMemo(() => dailyObjective(), []);
   const [phase, setPhase] = useState<Phase>("loading");
   const [slots, setSlots] = useState<SlotConstraint[]>([]);
@@ -399,11 +404,14 @@ export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
     sendGuessLog();
 
     // Stagger the per-slot metric reveals, then the headline, then hand back.
-    for (let i = 1; i <= SLOT_COUNT; i++) {
-      later(() => setRevealCount(i), i * REVEAL_STEP_MS);
+    // Every slot's metric is hidden until now (none are "already solved" during
+    // the draft), so all five are legitimately staggered — spec Rule 7.2.
+    for (let i = 0; i < SLOT_COUNT; i++) {
+      later(() => setRevealCount(i + 1), REVEAL_LEAD_MS + i * REVEAL_STEP_MS);
     }
-    later(() => setShowResult(true), SLOT_COUNT * REVEAL_STEP_MS + 200);
-    later(() => onGameEnd?.(pct), SLOT_COUNT * REVEAL_STEP_MS + 200 + END_DELAY);
+    later(() => setShowResult(true), REVEAL_LEAD_MS + SLOT_COUNT * REVEAL_STEP_MS + 200);
+    // inPlace: the bespoke .sd-result panel below IS the end screen (spec §7).
+    later(() => onGameEnd?.(pct, { inPlace: true }), REVEAL_LEAD_MS + SLOT_COUNT * REVEAL_STEP_MS + 200 + END_DELAY);
   };
 
   const submitPick = (raw: string) => {
@@ -464,7 +472,7 @@ export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
     setDraftValue("");
     guessLogRef.current = [];
     startRef.current = Date.now();
-    flashPopup("Pools re-rolled", "var(--brand)");
+    flashPopup("Pools re-rolled", "var(--muted)");
   };
 
   const shareText = () => {
@@ -495,45 +503,57 @@ export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
     }
   };
 
-  // ----- Loading / error states -----
+  // ----- Loading / error states (no frame: the shell already centres them) -----
   if (phase === "loading") {
-    return (
-      <div className="sd-wrap sd-wrap--center">
-        <CourtLoader label="Opening the draft room…" />
-      </div>
-    );
+    return <Spinner label="Opening the draft room…" />;
   }
   if (phase === "error") {
     return (
-      <div className="sd-wrap sd-wrap--center">
-        <div className="sd-state" role="alert">
-          <span className="sd-state-title">Draft room unavailable</span>
-          <span className="sd-state-msg">
-            Not enough player pools to build a draft right now. Please try again later.
-          </span>
-        </div>
+      <div className="sd-state" role="alert">
+        <span className="sd-state-title font-display">Draft room unavailable</span>
+        <span className="sd-state-msg">
+          Not enough player pools to build a draft right now. Please try again later.
+        </span>
       </div>
     );
   }
 
   const filledCount = picks.filter(Boolean).length;
   const revealing = phase === "reveal";
+  const drafting = !revealing && currentSlotIndex >= 0;
   const filledValues = (picks.filter(Boolean) as PlayerIndexEntry[]).map((p) => objective.perPick(p));
 
   return (
-    <div className="sd-wrap">
-      {/* Objective header */}
-      <header className="sd-obj">
-        <span className="sd-obj-eyebrow">{objective.eyebrow}</span>
-        <div className="sd-obj-row">
-          <span className="sd-obj-title font-display">{objective.label}</span>
-          <span className="sd-obj-progress tnum" aria-label={`${filledCount} of ${SLOT_COUNT} drafted`}>
-            {filledCount}/{SLOT_COUNT}
-          </span>
-        </div>
-      </header>
+    // fill: the slot list is the scroller (`.sd-slots` is flex:1 1 auto + overflow-y:auto).
+    <GameFrame fill>
+      <GameFrame.Status
+        left={<GameFrame.Label>DRAFT YOUR FIVE</GameFrame.Label>}
+        right={<GameFrame.Score value={filledCount} label="DRAFTED" />}
+      />
 
-      {/* Slot list */}
+      <ProgressBar value={filledCount} max={SLOT_COUNT} />
+
+      <GameFrame.Prompt eyebrow={objective.eyebrow} title={objective.label} />
+
+      {/* Slot list. The re-roll sits in its own right-aligned row directly above
+          the first card so it lines up with the cards' right edge. It is reserved
+          at a fixed height/width so swapping "Re-roll x1" → "Re-roll used" (or the
+          row disappearing once drafting ends) never shifts the cards. */}
+      <GameFrame.Board>
+      <div className="sd-tools">
+        {drafting && (
+          <Button
+            size="sm"
+            variant="secondary"
+            className="sd-reroll"
+            onClick={reroll}
+            disabled={rerollUsed}
+            aria-label={rerollUsed ? "Re-roll already used" : "Re-roll all pools (one per game)"}
+          >
+            {rerollUsed ? "Re-roll used" : "Re-roll ×1"}
+          </Button>
+        )}
+      </div>
       <ul className="sd-slots">
         {slots.map((slot, i) => {
           const p = picks[i];
@@ -549,10 +569,10 @@ export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
               </span>
               <div className="sd-slot-body">
                 <div className="sd-slot-head">
-                  <span className="sd-slot-label">{slot.label}</span>
+                  <span className="sd-slot-label font-display">{slot.label}</span>
                   <span className={`sd-slot-sub sd-slot-sub--${slot.kind}`}>{slot.sub}</span>
                 </div>
-                <span className="sd-slot-pick">
+                <span className="sd-slot-pick font-display">
                   {p ? p.full_name : isActive ? "Drafting…" : "Empty"}
                 </span>
               </div>
@@ -583,44 +603,31 @@ export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
           );
         })}
       </ul>
+      </GameFrame.Board>
 
-      {/* Draft bar (bottom-anchored) or result panel */}
-      {!revealing && currentSlotIndex >= 0 && (
-        <div className="sd-draftbar">
-          <div className="sd-draftbar-head">
-            <span className="sd-draftbar-hint">
-              Draft a <strong>{slots[currentSlotIndex].label}</strong> player
-            </span>
-            <button
-              type="button"
-              className="sd-reroll"
-              onClick={reroll}
-              disabled={rerollUsed}
-              aria-label={rerollUsed ? "Re-roll already used" : "Re-roll all pools (one per game)"}
-            >
-              {rerollUsed ? "Re-roll used" : "Re-roll ×1"}
-            </button>
-          </div>
-          <div className="sd-draftbar-input">
-            <AutocompleteInput
-              placeholder={`${slots[currentSlotIndex].label} player…`}
-              value={draftValue}
-              setValue={setDraftValue}
-              suggestions={activeSuggestions}
-              onSubmit={() => submitPick(draftValue)}
-              customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.9rem" }}
-              customStyleSuggestion={{ fontSize: "0.82rem", maxHeight: "168px", minWidth: "100%" }}
-            />
-            <Button
-              size="md"
-              aria-label="Confirm pick"
-              onClick={() => submitPick(draftValue)}
-              disabled={!draftValue.trim()}
-            >
-              Draft
-            </Button>
-          </div>
-        </div>
+      {/* Draft row, then the bespoke result panel (accepted deviation — it owns
+          the Share action). Always mounted; Action renders nothing when empty. */}
+      <GameFrame.Action>
+      {drafting && (
+        <GameFrame.InputRow>
+          <AutocompleteInput
+            placeholder={`${slots[currentSlotIndex].label} player…`}
+            value={draftValue}
+            setValue={setDraftValue}
+            suggestions={activeSuggestions}
+            onSubmit={() => submitPick(draftValue)}
+            customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.9rem" }}
+            customStyleSuggestion={{ fontSize: "0.82rem", maxHeight: "168px", minWidth: "100%" }}
+          />
+          <Button
+            size="md"
+            aria-label="Confirm pick"
+            onClick={() => submitPick(draftValue)}
+            disabled={!draftValue.trim()}
+          >
+            Draft
+          </Button>
+        </GameFrame.InputRow>
       )}
 
       <AnimatePresence>
@@ -631,24 +638,41 @@ export default function SuperDraft({ gameInfo, onGameEnd }: SuperDraftProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.32 }}
           >
-            <div className="sd-result-grade">
-              <span className="sd-result-pct tnum font-display">{percentile}</span>
-              <span className="sd-result-pct-of">/100</span>
-            </div>
-            <div className="sd-result-meta">
-              <span className="sd-result-agg">
-                {objective.aggLabel}: <strong className="tnum">{objective.fmtAgg(filledValues)}</strong>
-              </span>
-              <span className="sd-result-rank">Beats {percentile}% of random lineups</span>
+            <div className="sd-result-top">
+              <div className="sd-result-grade">
+                <span className="sd-result-pct tnum font-display">{percentile}</span>
+                <span className="sd-result-pct-of tnum">/100</span>
+              </div>
+              <div className="sd-result-meta">
+                <span className="sd-result-agg">
+                  {objective.aggLabel}: <strong className="tnum">{objective.fmtAgg(filledValues)}</strong>
+                </span>
+                <span className="sd-result-rank tnum">Beats {percentile}% of random lineups</span>
+              </div>
             </div>
             <button type="button" className="sd-share" onClick={copyShare}>
               {copied ? "Copied!" : "Share result"}
             </button>
+            {(onPlayAgain || onClose) && (
+              <div className="sd-result-actions">
+                {onPlayAgain && (
+                  <Button size="sm" block onClick={onPlayAgain}>
+                    Play again
+                  </Button>
+                )}
+                {onClose && (
+                  <Button size="sm" block variant="secondary" onClick={onClose}>
+                    Close game
+                  </Button>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popup.Text} color={popup.Color} />
-    </div>
+    </GameFrame>
   );
 }

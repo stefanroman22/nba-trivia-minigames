@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
-import CorrectAnswer from "../components/CorrectAnswer";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
-import { Button } from "../components/ui";
+import { Button, GameFrame } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import type { MvpSeason, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
@@ -82,71 +81,69 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
 
 
   return (
-    <div style={{ position: "relative", width: "100%", maxWidth: 560, display: "flex", flexDirection: "column", gap: "clamp(10px, 2.2dvh, 20px)" }}>
-      {/* progress + score */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
-        <span style={{ fontSize: 11, letterSpacing: 1, color: "var(--muted)", fontWeight: 600 }}>
-          ROUND {currentIndex + 1}/{seasonsList.length}
-        </span>
-        <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 700 }}>
-          <span style={{ color: "var(--muted)", fontWeight: 500, fontSize: 11, letterSpacing: 0.5 }}>SCORE</span>
-          <span className="tnum" style={{ color: "var(--brand)", fontSize: 16 }}>{score}</span>
-        </span>
-      </div>
+    <GameFrame>
+      <GameFrame.Status
+        left={<GameFrame.Label>ROUND <span className="tnum">{currentIndex + 1}/{seasonsList.length}</span></GameFrame.Label>}
+        right={<GameFrame.Score value={score} />}
+      />
       <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seasonsList.length} />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center", textAlign: "center" }}>
-        <span style={{ fontSize: 11, letterSpacing: 1.5, color: "var(--brand)", fontWeight: 600 }}>WHO WON MVP?</span>
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={currentSeason.season}
-            className="font-display"
-            initial={reduce ? false : { opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={reduce ? undefined : { opacity: 0, y: -12 }}
-            transition={{ duration: 0.3 }}
-            style={{ fontWeight: 800, fontSize: 30, color: "var(--text)", display: "inline-block" }}
-          >
-            {currentSeason.season}
-          </motion.span>
-        </AnimatePresence>
-      </div>
+      <GameFrame.Board>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentIndex}
+          initial={reduce ? false : { opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? undefined : { opacity: 0, y: -10 }}
+          transition={{ duration: 0.25 }}
+          style={{ width: "100%" }}
+        >
+          <GameFrame.Prompt
+            eyebrow={<span className="tnum">{currentSeason.season}</span>}
+            title="Who won MVP?"
+          />
+        </motion.div>
+      </AnimatePresence>
+      </GameFrame.Board>
 
       {/* Autocomplete Input and Confirm Button */}
-      <div className="guess-container">
-        <AutocompleteInput
-          placeholder="Guess the Player..."
-          value={guess}
-          setValue={setGuess}
-          suggestions={allPlayers}
-          onSubmit={handleGuessSubmit}
-        />
+      <GameFrame.Action>
+        <GameFrame.InputRow>
+          <AutocompleteInput
+            placeholder="Guess the Player..."
+            value={guess}
+            setValue={setGuess}
+            suggestions={allPlayers}
+            onSubmit={handleGuessSubmit}
+            customStyleInput={{ width: "100%" }}
+          />
 
-        <Button
-          size="md"
-          onClick={() => {
-            if (guess.trim() !== "") {
-              handleGuessSubmit(guess);
-            }
-          }}
-          disabled={guess.trim() === ""}
-        >
-          Confirm
-        </Button>
-      </div>
+          <Button
+            size="md"
+            onClick={() => {
+              if (guess.trim() !== "") {
+                handleGuessSubmit(guess);
+              }
+            }}
+            disabled={guess.trim() === ""}
+          >
+            Confirm
+          </Button>
+        </GameFrame.InputRow>
 
-      {playersError && (
-        <p style={{ color: "var(--brand)", fontSize: "0.8rem", textAlign: "center" }}>
-          Couldn't load player suggestions — you can still type a name and submit.
-        </p>
-      )}
+        {playersError && (
+          <p style={{ color: "var(--brand)", fontSize: "0.8rem", textAlign: "center" }}>
+            Couldn't load player suggestions — you can still type a name and submit.
+          </p>
+        )}
+      </GameFrame.Action>
 
-      <div style={{ minHeight: 34, display: "flex", justifyContent: "center" }}>
-        <CorrectAnswer label="answer" value={showAnswer ? (currentSeason?.mvp || "Unknown") : undefined} />
-      </div>
-
-      <SubmitGuessPopup show={showPointsAnimation} text={`Correct! +${pointsPerCorrect}`} color={"var(--good)"} />
-    </div>
+      <SubmitGuessPopup
+        show={showPointsAnimation || showAnswer}
+        text={showAnswer ? `It was ${currentSeason?.mvp || "Unknown"}` : `Correct! +${pointsPerCorrect}`}
+        color={showAnswer ? "var(--bad)" : "var(--good)"}
+      />
+    </GameFrame>
   );
 }
 

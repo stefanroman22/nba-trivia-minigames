@@ -88,30 +88,15 @@ VITE_SOCKET_URL=https://<your-multiplayer-host>     # set once the Node host is 
 # Set it only to serve pools from an external CDN/domain instead.
 ```
 
-### Home machine (data refresh) — see `backend/trivia/data_pipeline/README.md`
+### Home machine (data refresh) — see [DATA_PIPELINE.md](DATA_PIPELINE.md)
 No env vars needed for the default Vercel path — the data ships with the frontend build.
+R2 env vars (optional CDN alternative) are documented there, not repeated here.
 
-**Optional — only if you publish to Cloudflare R2 instead of Vercel static:**
-```
-R2_ACCOUNT_ID=...
-R2_BUCKET=nba-minigames
-R2_ACCESS_KEY_ID=...
-R2_SECRET_ACCESS_KEY=...
-R2_PUBLIC_BASE_URL=https://data.<your-domain>        # the R2 bucket's custom domain
-```
+## Data workflow (home machine)
 
-## Weekly data workflow (home machine)
-
-```bash
-cd backend
-venv/Scripts/python.exe manage.py refresh_game_data   # fetch via nba_api (residential IP)
-```
-Then commit `backend/trivia/data/` and push. Vercel rebuilds the frontend, the build copies the
-data into `/data/`, and the new version goes live on the CDN. Schedule weekly via Windows Task
-Scheduler (`backend/scripts/refresh_game_data.ps1`).
-
-_Optional (R2 alternative): `pip install -r requirements-publish.txt` then
-`manage.py publish_game_data` to upload to R2 instead._
+The scheduled refresh (`sync_nba_data` → `build_pools_from_db` → commit/push → `vercel deploy`)
+is fully documented in [DATA_PIPELINE.md](DATA_PIPELINE.md) — that's the single source of truth
+for how, how often, and how it's monitored.
 
 ## Recommended activation order
 

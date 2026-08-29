@@ -7,6 +7,8 @@ export { default as SectionHeader } from "./SectionHeader";
 export { default as ProgressBar } from "./ProgressBar";
 export { default as Avatar } from "./Avatar";
 export { default as CourtLoader } from "./CourtLoader";
+export { default as Spinner } from "./Spinner";
 export { default as GameTile } from "./GameTile";
 export { default as Stage } from "./Stage";
+export { default as GameFrame } from "./GameFrame";
 export { default as SessionTimer } from "./SessionTimer";

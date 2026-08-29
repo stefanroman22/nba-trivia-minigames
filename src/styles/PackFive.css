@@ -1,50 +1,19 @@
 /* ===== Pack 5 — stat-trumps card pack (prefix: pf-) =====
-   Theme tokens only, clamp() sizing. The play area fits a 390x844 viewport with
-   NO page scroll: the wrap is height:100% of the bounded play stage, a flex
-   column of fixed-height chrome (HUD + banner + next card) plus one flexible
-   card arena. Height budget proven at the bottom of this file. */
-.pf-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 520px;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: clamp(8px, 1.4dvh, 14px);
-}
-.pf-wrap--center {
-  justify-content: center;
-  align-items: center;
-}
+   Theme tokens only, clamp() sizing. The root, status row, progress slot and
+   (empty) action slot come from <GameFrame> (ui.css) — do not re-add a
+   .pf-wrap/.pf-hud here. The old HUD was a carded row; the shared status row is
+   bare, so that card treatment is gone and only the lives dots survive, sitting
+   beside the CARD n/10 label. This is a CONTENT game — nothing scrolls — so the
+   board is NOT flex:1; the arena carries its own resolved height instead (see
+   .pf-arena). Height budget proven at the bottom of this file. */
 
-/* ===== HUD: score · progress · lives ===== */
-.pf-hud {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: clamp(6px, 1dvh, 10px) clamp(10px, 3vw, 14px);
-  background: var(--surface2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-}
-.pf-hud-block { display: flex; flex-direction: column; gap: 1px; }
-.pf-hud-block--center { align-items: center; }
-.pf-hud-block--right { align-items: flex-end; }
-.pf-hud-label {
-  font-size: 9.5px;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.pf-hud-value { font-size: clamp(15px, 2.4dvh, 20px); color: var(--text); line-height: 1.1; }
-.pf-hud-of { font-size: 0.72em; color: var(--muted); }
-.pf-lives { display: flex; gap: 5px; padding-top: 2px; }
+/* The board stacks banner → card arena → mystery row; .gf-board is gapless by
+   default, so the board-local rhythm is declared here (same pattern as
+   StartingFive's .gf-board:has(.s5-cards)). */
+.gf-board:has(.pf-arena) { gap: clamp(8px, 1.4dvh, 14px); }
+
+/* Lives — two dots in GameFrame.Status, beside the CARD n/10 label */
+.pf-lives { display: flex; gap: 5px; }
 .pf-life {
   width: 13px;
   height: 13px;
@@ -58,6 +27,7 @@
 /* ===== Status banner — fixed height, tone-coded, never shifts layout ===== */
 .pf-banner {
   flex: none;
+  width: 100%;
   min-height: 34px;
   display: flex;
   align-items: center;
@@ -75,10 +45,17 @@
 .pf-banner--warn { background: var(--brand-soft); border-color: var(--brand); color: var(--brand2); }
 .pf-banner--bad { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
 
-/* ===== Arena — holds the current (foil) card; cards overlap during slide ===== */
+/* ===== Arena — holds the current (foil) card; cards overlap during slide =====
+   .pf-card is position:absolute/inset:0 for the slide, so the arena has NO
+   in-flow content and would collapse to zero the moment it stopped being
+   flex:1. It carries an explicit dvh-clamped height instead: ~371px at 844dvh,
+   i.e. the same size flex:1 used to resolve to on a 390x844 phone. Default
+   flex-shrink still applies, so on a height-capped stage it gives ground
+   gracefully instead of overflowing. */
 .pf-arena {
   position: relative;
-  flex: 1 1 auto;
+  width: 100%;
+  height: clamp(200px, 44dvh, 400px);
   min-height: 0;
   perspective: 1000px;
 }
@@ -96,7 +73,7 @@
   background:
     linear-gradient(var(--surface2), var(--surface2)) padding-box,
     linear-gradient(140deg, var(--brand2), var(--brand) 45%, var(--brand-deep)) border-box;
-  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(0, 0, 0, 0.25) inset;
   transform-style: preserve-3d;
   will-change: transform, opacity;
 }
@@ -124,7 +101,7 @@
 .pf-photo-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(16, 16, 16, 0) 45%, rgba(16, 16, 16, 0.85) 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 45%, rgba(0, 0, 0, 0.85) 100%);
   pointer-events: none;
 }
 .pf-name-plate {
@@ -206,6 +183,7 @@
 /* ===== Mystery "next" card — name + team; picked stat reveals here ===== */
 .pf-next {
   flex: none;
+  width: 100%;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -282,16 +260,22 @@
 }
 
 /* ---------------------------------------------------------------------------
-   HEIGHT BUDGET — 390x844 device, worst case (min clamp values):
-     HUD .................. ~40px   (6+6 padding + ~28 content)
-     gap .................. 8px
-     banner ............... 34px
-     gap .................. 8px
-     arena (flex 1 1 auto)  fills remainder — min useful ~230px
-       card padding 2x8 ... photo-frame >=96px + stats row 52px fit inside
-     gap .................. 8px
-     next card ............ ~58px  (7+7 padding + ~44 content, one line)
-   Fixed chrome = 40+34+58 + 3*8 gaps = 156px. On the ~700px play stage the
-   arena gets ~544px; on a tight 560px stage it still gets ~404px — the card
-   (photo-frame min 96 + stats 52 + 2*8 padding = 164px) always fits with room
-   to spare, and nothing scrolls. --------------------------------------------- */
+   HEIGHT BUDGET — 390x844 device, measured against <GameFrame>'s fixed 20px
+   root gap (the game no longer sets its own):
+     status row ........... 22px   (.gf-status min-height)
+     root gap ............. 20px
+     progress bar ......... 5px
+     root gap ............. 20px
+     board:
+       banner ............. 34px
+       board gap .......... 8px
+       arena .............. 371px  (44dvh of 844, within the 200..400 clamp)
+         card padding 2x8 . photo-frame ~283px + stats row 52px fit inside
+       board gap .......... 8px
+       next card .......... ~63px  (7+7 padding + ~49 content, one line)
+     action slot .......... 0px    (renders nothing — no input row)
+   Total = 22+20+5+20+ (34+8+371+8+63) = 551px. The play stage gives the game
+   ~570px (600px .playing-wrap cap minus its 12px gap and the exit link), so it
+   fits with ~19px to spare and nothing scrolls. On shorter stages the arena's
+   flex-shrink takes the hit and .pf-photo-frame (flex:1 1 auto, min-height:0)
+   absorbs it. --------------------------------------------------------------- */

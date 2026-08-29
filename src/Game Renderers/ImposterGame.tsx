@@ -19,7 +19,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useSelector } from "react-redux";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import { Button, CourtLoader } from "../components/ui";
+import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { playerKey, useMultiplayer } from "../context/MultiplayerContext";
 import type { RootState } from "../store";
 import type { OnGameEnd, PlayerIndexEntry } from "../types/types";
@@ -180,43 +180,44 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
   }, [isRoom, finalized]);
 
   // ---------- OUT OF A ROOM → EXPLAINER (never scores) ----------
+  // The rules card is still a game surface, so it goes in <GameFrame> like every
+  // other screen — same width, same top offset, same distance to Exit.
   if (!isRoom) {
     return (
-      <div className="imp-wrap imp-wrap--explain">
-        <div className="imp-explain">
-          <span className="imp-explain-tag">Party · 3–5 players</span>
-          <h2 className="imp-explain-title font-display">NBA Imposter</h2>
-          <p className="imp-explain-lead">
-            Grab 2–4 friends and create a private room to play. There's no solo mode — this one only
-            comes alive with a crew.
-          </p>
-          <ol className="imp-steps">
-            <li>
-              <span className="imp-step-n font-display">1</span>
-              <span>Everyone gets the same mystery NBA player — except one secret <strong>Imposter</strong>.</span>
-            </li>
-            <li>
-              <span className="imp-step-n font-display">2</span>
-              <span>Take turns dropping <strong>one-word clues</strong>. The Imposter has to fake it.</span>
-            </li>
-            <li>
-              <span className="imp-step-n font-display">3</span>
-              <span><strong>Vote</strong> out who you think is bluffing. Caught Imposters get one guess to steal it back.</span>
-            </li>
-          </ol>
-          <p className="imp-explain-cta">Open “Play Online → Private room” to start a game.</p>
-        </div>
+      <GameFrame>
+        <GameFrame.Status left={<GameFrame.Label>PARTY · 3–5 PLAYERS</GameFrame.Label>} />
+        <GameFrame.Board>
+      <div className="imp-explain">
+        <h2 className="imp-explain-title font-display">NBA Imposter</h2>
+        <p className="imp-explain-lead">
+          Grab 2–4 friends and create a private room to play. There's no solo mode — this one only
+          comes alive with a crew.
+        </p>
+        <ol className="imp-steps">
+          <li>
+            <span className="imp-step-n font-display">1</span>
+            <span>Everyone gets the same mystery NBA player — except one secret <strong>Imposter</strong>.</span>
+          </li>
+          <li>
+            <span className="imp-step-n font-display">2</span>
+            <span>Take turns dropping <strong>one-word clues</strong>. The Imposter has to fake it.</span>
+          </li>
+          <li>
+            <span className="imp-step-n font-display">3</span>
+            <span><strong>Vote</strong> out who you think is bluffing. Caught Imposters get one guess to steal it back.</span>
+          </li>
+        </ol>
+        <p className="imp-explain-cta">Open “Play Online → Private room” to start a game.</p>
       </div>
+        </GameFrame.Board>
+        <GameFrame.Action>{null}</GameFrame.Action>
+      </GameFrame>
     );
   }
 
   // ---------- IN A ROOM, awaiting the first server snapshot ----------
   if (!state) {
-    return (
-      <div className="imp-wrap imp-wrap--center">
-        <CourtLoader label="Setting up the room…" scale={0.8} />
-      </div>
-    );
+    return <Spinner label="Setting up the room…" />;
   }
 
   // ---------- Derived room view ----------
@@ -226,19 +227,38 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
   const myVote = state.votes[selfUid] ?? null;
   const votedCount = Object.keys(state.votes).length;
   const secondsLeft = state.deadlineTs ? Math.max(0, Math.ceil((state.deadlineTs - now) / 1000)) : 0;
-  const barPct = state.deadlineTs ? Math.max(0, Math.min(1, (state.deadlineTs - now) / (STEP_SECONDS * 1000))) : 0;
   const showDeadline = state.phase === "clue" || state.phase === "vote";
 
   // Latest clue per uid (bubbles show the most recent word each player gave).
   const lastClueByUid = new Map<string, string>();
   state.clues.forEach((c) => lastClueByUid.set(c.uid, c.text));
 
+  // Status-row descriptor — the phase, as plain uppercase text (no pill).
   const phaseLabel =
     state.phase === "clue"
-      ? `Clue round ${Math.min(state.round, 2)} of 2`
+      ? (
+          <>
+            CLUE ROUND <span className="tnum">{Math.min(state.round, 2)}</span> OF{" "}
+            <span className="tnum">2</span>
+          </>
+        )
       : state.phase === "vote"
-        ? "Vote out the imposter"
-        : "The reveal";
+        ? "VOTE OUT THE IMPOSTER"
+        : "THE REVEAL";
+
+  // Role / mystery strip → GameFrame.Prompt (eyebrow + title) plus one muted sub-line.
+  const imposterView = isImposter && state.phase !== "reveal";
+  const roleEyebrow = imposterView
+    ? "Your secret"
+    : state.phase === "reveal"
+      ? "The mystery player was"
+      : "Mystery player";
+  const roleTitle = imposterView ? "YOU ARE THE IMPOSTER" : (state.mysteryPlayer?.full_name ?? "—");
+  const roleSub = imposterView
+    ? "Bluff a clue and blend in — you don't know the player."
+    : state.phase !== "reveal"
+      ? "Everyone sees this — except the imposter."
+      : null;
 
   const turnLabel =
     state.phase === "clue"
@@ -267,7 +287,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
   const castVote = (targetUid: string) => {
     if (state.phase !== "vote" || myVote || targetUid === selfUid) return;
     emit({ type: "vote", targetUid });
-    flashPopup(`Voted ${seatOf(targetUid).name}`, "var(--brand)");
+    flashPopup(`Voted ${seatOf(targetUid).name}`, "var(--muted)");
   };
 
   const submitGuess = (raw: string) => {
@@ -283,12 +303,12 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
     .sort((a, b) => b.score - a.score);
 
   return (
-    <div className="imp-wrap">
-      {/* Phase banner + deadline */}
-      <div className="imp-top">
-        <div className="imp-phaserow">
-          <span className={`imp-phase imp-phase--${state.phase}`}>{phaseLabel}</span>
-          {showDeadline && (
+    // fill: the ring and the scoreboard are the scrollers (flex:1 1 auto + overflow-y:auto).
+    <GameFrame fill>
+      <GameFrame.Status
+        left={<GameFrame.Label>{phaseLabel}</GameFrame.Label>}
+        right={
+          showDeadline ? (
             <span
               className="imp-clock tnum"
               role="timer"
@@ -297,42 +317,37 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
             >
               0:{String(secondsLeft).padStart(2, "0")}
             </span>
-          )}
-        </div>
-        {showDeadline && (
-          <div className="imp-bar" aria-hidden="true">
-            <div className="imp-bar-fill" style={{ width: `${barPct * 100}%` }} data-low={secondsLeft <= 10 || undefined} />
-          </div>
-        )}
+          ) : null
+        }
+      />
+
+      {showDeadline && <ProgressBar value={secondsLeft} max={STEP_SECONDS} />}
+
+      <GameFrame.Prompt eyebrow={roleEyebrow} title={roleTitle} />
+
+      {/* Main area: player ring (clue/vote) or scoreboard (reveal) */}
+      <GameFrame.Board>
+      <div className="imp-play">
+      <div className="imp-notes" role="status">
+        {roleSub && <span className="imp-role-sub">{roleSub}</span>}
         <span className="imp-turn">{turnLabel}</span>
       </div>
 
-      {/* Role / mystery strip */}
-      <div className={`imp-role${isImposter ? " is-imposter" : ""}`} role="status">
-        {isImposter && state.phase !== "reveal" ? (
-          <>
-            <span className="imp-role-eyebrow">Your secret</span>
-            <span className="imp-role-main font-display">YOU ARE THE IMPOSTER</span>
-            <span className="imp-role-sub">Bluff a clue and blend in — you don't know the player.</span>
-          </>
-        ) : (
-          <>
-            <span className="imp-role-eyebrow">{state.phase === "reveal" ? "The mystery player was" : "Mystery player"}</span>
-            <span className="imp-role-main font-display">{state.mysteryPlayer?.full_name ?? "—"}</span>
-            {state.phase !== "reveal" && <span className="imp-role-sub">Everyone sees this — except the imposter.</span>}
-          </>
-        )}
-      </div>
-
-      {/* Main area: player ring (clue/vote) or scoreboard (reveal) */}
       {state.phase === "reveal" ? (
         <div className="imp-reveal">
           <div className="imp-verdict">
             <span className="imp-verdict-name font-display">{seatOf(state.imposterUid ?? "").name}</span>
             <span className="imp-verdict-tag">was the Imposter</span>
             {state.imposterGuess != null && (
-              <span className={`imp-verdict-guess${state.guessCorrect ? " is-right" : " is-wrong"}`}>
-                Guessed “{state.imposterGuess}” — {state.guessCorrect ? "nailed it, +3" : "missed"}
+              <span className={`imp-verdict-guess font-accent${state.guessCorrect ? " is-right" : " is-wrong"}`}>
+                Guessed “{state.imposterGuess}” —{" "}
+                {state.guessCorrect ? (
+                  <>
+                    nailed it, <span className="tnum">+3</span>
+                  </>
+                ) : (
+                  "missed"
+                )}
               </span>
             )}
           </div>
@@ -344,7 +359,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
               >
                 <span className="imp-score-place tnum font-display">{i + 1}</span>
                 <SeatAvatar seat={seat} />
-                <span className="imp-score-name">
+                <span className="imp-score-name font-display">
                   {seat.name}
                   {seat.isSelf && <span className="imp-you-tag">YOU</span>}
                   {seat.uid === state.imposterUid && <span className="imp-imp-tag">IMPOSTER</span>}
@@ -381,7 +396,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
                   <SeatAvatar seat={seat} />
                   {state.phase === "vote" && hasVoted && <span className="imp-voted" aria-label="has voted">✓</span>}
                 </div>
-                <span className="imp-card-name">
+                <span className="imp-card-name font-display">
                   {seat.name}
                   {seat.isSelf && <span className="imp-you-tag">YOU</span>}
                 </span>
@@ -405,12 +420,14 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
           })}
         </div>
       )}
+      </div>
+      </GameFrame.Board>
 
-      {/* Bottom action bar */}
-      <div className="imp-action">
+      {/* Bottom action slot — always mounted (it renders nothing when empty) */}
+      <GameFrame.Action>
         {state.phase === "clue" && (
           myTurn ? (
-            <div className="imp-inputrow">
+            <GameFrame.InputRow>
               <input
                 className="imp-input"
                 type="text"
@@ -427,7 +444,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
               <Button size="sm" onClick={submitClue} disabled={clueText.trim() === ""}>
                 Send
               </Button>
-            </div>
+            </GameFrame.InputRow>
           ) : (
             <p className="imp-hint">Watch the clues — trust nobody.</p>
           )
@@ -441,7 +458,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
 
         {state.phase === "reveal" && (
           isImposter && state.awaitingGuess ? (
-            <div className="imp-inputrow imp-inputrow--guess">
+            <GameFrame.InputRow>
               <AutocompleteInput
                 placeholder="Name the mystery player to steal it…"
                 value={guessText}
@@ -454,16 +471,16 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
               <Button size="sm" onClick={() => submitGuess(guessText)} disabled={guessText.trim() === ""}>
                 Guess
               </Button>
-            </div>
+            </GameFrame.InputRow>
           ) : (
             <p className="imp-hint">
               {state.awaitingGuess ? "The imposter is guessing the mystery player…" : "Final scores are in."}
             </p>
           )
         )}
-      </div>
+      </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popup.text} color={popup.color} />
-    </div>
+    </GameFrame>
   );
 }

@@ -1,21 +1,17 @@
 /* ===== NBA Bingo — game renderer (prefix: bng-) ===== */
-.bng-wrap {
-  position: relative;
+/* The root, status row, progress slot and action row come from <GameFrame>
+   (ui.css) — this file only styles the board. Do not re-add a .bng-wrap/.bng-top
+   here. The ProgressBar stays GameFrame's 2nd child (spec §5).
+
+   Board stack: the dealt-player strip above the 4x4 card. */
+.bng-board {
   width: 100%;
-  max-width: 560px;
-  height: 100%;
-  max-height: 100%;
-  min-height: 0;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
   gap: clamp(8px, 1.6dvh, 16px);
 }
 
-/* ===== Top row: deals meter + progress chip + skip ===== */
-.bng-top { display: flex; align-items: center; gap: 10px; flex: none; }
-.bng-meter { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* Deals-left meter — a status bit passed into <GameFrame.Status> beside the label */
 .bng-meter-label {
   font-size: clamp(10.5px, 1.5dvh, 12px);
   letter-spacing: 0.4px;
@@ -58,19 +54,15 @@
   text-overflow: ellipsis;
 }
 .bng-deal-hint { font-size: clamp(10px, 1.4dvh, 11.5px); color: var(--muted); }
-.bng-penalty {
-  font-size: clamp(12px, 1.8dvh, 14px);
-  font-weight: 700;
-  color: var(--bad);
-}
 
-/* ===== The 4x4 card — fills remaining height so cells shrink to fit ===== */
+/* ===== The 4x4 card =====
+   NOT flex:1 — a fixed 4x4 grid never scrolls, so this is a content game
+   (Rule 4.1) and the rows carry their own dvh-scaled height instead of
+   stretching into whatever is left of the stage. */
 .bng-grid {
-  flex: 1 1 auto;
-  min-height: 0;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(4, clamp(52px, 9dvh, 92px));
   gap: clamp(5px, 1vw, 8px);
   width: 100%;
 }
@@ -80,7 +72,7 @@
   align-items: center;
   justify-content: center;
   gap: 3px;
-  min-height: 0; /* rows share the flex height; no fixed aspect */
+  min-height: 0; /* cells fill their grid row; no fixed aspect */
   padding: 4px 5px;
   text-align: center;
   background: var(--surface2);
@@ -133,5 +125,4 @@
 @media (max-width: 480px) {
   .bng-grid { gap: 5px; }
   .bng-cell { padding: 3px 4px; }
-  .bng-top { gap: 8px; }
 }

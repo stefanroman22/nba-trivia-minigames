@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import "../styles/Wordle.css";
 import SubmitGuessPopup from '../components/SubmitGuessPopUp';
+import { GameFrame } from '../components/ui';
 import type { OnGameEnd } from '../types/types';
 
 const WORD_LENGTH = 5;
@@ -23,7 +24,7 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
   const [guesses, setGuesses] = useState<Array<string | null>>(Array(MAX_GUESSES).fill(null));
   const [currentGuess, setCurrentGuess] = useState('');
   const [submitted, setSubmitted] = useState<boolean[]>(Array(MAX_GUESSES).fill(false));
-  const [showAnimation, setShowAnimation] = useState(false);
+  const [feedback, setFeedback] = useState<{ text: string; color: string } | null>(null);
   const lockedRef = useRef(false);
 
   // Initialize solution (guarded against empty payloads)
@@ -53,12 +54,14 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
     const solved = currentGuess === solution;
     if (solved) {
       lockedRef.current = true;
-      setTimeout(() => onGameEnd((MAX_GUESSES - firstNullIndex) * POINTS_PER_GUESS), 1800);
+      const points = (MAX_GUESSES - firstNullIndex) * POINTS_PER_GUESS;
+      setFeedback({ text: `Correct! +${points}`, color: "var(--good)" });
+      setTimeout(() => onGameEnd(points), 1800);
     } else if (firstNullIndex === MAX_GUESSES - 1) {
       lockedRef.current = true;
-      setTimeout(() => setShowAnimation(true), 1200);
+      setTimeout(() => setFeedback({ text: `Correct answer: ${solution}`, color: "var(--bad)" }), 1200);
       setTimeout(() => {
-        setShowAnimation(false);
+        setFeedback(null);
         onGameEnd(0);
       }, 3000);
     }
@@ -93,11 +96,10 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
   const activeRow = guesses.findIndex((g) => g === null);
 
   return (
-    <div className="wordle-container">
-      <span style={{ fontSize: 11, letterSpacing: 1.5, color: "var(--brand)", fontWeight: 600 }}>
-        GUESS THE PLAYER&rsquo;S LAST NAME
-      </span>
+    <GameFrame>
+      <GameFrame.Status left={<GameFrame.Label>GUESS THE PLAYER&rsquo;S LAST NAME</GameFrame.Label>} />
 
+      <GameFrame.Board>
       <div className="wordle-board">
         {guesses.map((guess, index) => {
           const isActive = index === activeRow;
@@ -136,9 +138,14 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
           </div>
         ))}
       </div>
+      </GameFrame.Board>
 
-      <SubmitGuessPopup show={showAnimation} text={`Correct answer: ${solution}`} color={"var(--bad)"} />
-    </div>
+      {/* The on-screen keyboard IS this game's input, and it lives in the board
+          with the tiles — so the action slot stays empty and renders nothing. */}
+      <GameFrame.Action>{null}</GameFrame.Action>
+
+      <SubmitGuessPopup show={!!feedback} text={feedback?.text ?? ""} color={feedback?.color ?? "var(--bad)"} />
+    </GameFrame>
   );
 }
 
@@ -193,7 +200,7 @@ function Line({ guess, solution, isSubmitted }: { guess: string; solution: strin
   const tiles = [];
   for (let i = 0; i < WORD_LENGTH; i++) {
     const char = guess[i] || '';
-    const className = `tile ${status[i]}${char && !isSubmitted ? ' filled' : ''}`.trim();
+    const className = `tile font-display ${status[i]}${char && !isSubmitted ? ' filled' : ''}`.trim();
     tiles.push(
       <div
         key={i}

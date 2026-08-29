@@ -24,7 +24,7 @@ function Leaderboard() {
   const { loading, leaders, self, refresh, refreshing, lastUpdated, now } = useLeaderboard();
   const { open } = useModal();
   const preview = leaders.slice(0, PREVIEW_COUNT);
-  const selfInList = preview.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name));
+  const selfInList = self ? preview.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
   return (
     <div className="lb-card">
@@ -42,15 +42,19 @@ function Leaderboard() {
             <motion.div key="load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
               <CourtLoader label="Loading the board…" scale={0.7} />
             </motion.div>
+          ) : preview.length === 0 ? (
+            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
+              No players yet.
+            </motion.div>
           ) : (
             <motion.div key={`rows-${preview.length}`} variants={staggerContainer} initial="hidden" animate="visible">
               {preview.map((u) => (
                 <motion.div key={u.id ?? `${u.rank}-${u.name}`} variants={staggerItem} className="lb-row">
                   <span className="tnum" style={{ minWidth: 24, textAlign: "center", fontWeight: 700, fontSize: 13, color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
                   <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} />
-                  <span style={{ flex: 1, fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={u.id ? `${u.name} #${u.id}` : u.name}>
-                    {u.name}
-                    {u.id && <span className="tnum" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
+                  <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
+                    <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
+                    {u.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
                   </span>
                   <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{u.points.toLocaleString()}</span>
                 </motion.div>
@@ -60,14 +64,16 @@ function Leaderboard() {
         </AnimatePresence>
       </div>
 
-      {!loading && !selfInList && (
+      {!loading && self && !selfInList && (
         <div className="lb-self">
           <span className="tnum" style={{ minWidth: 34, textAlign: "center", fontWeight: 700, fontSize: 13, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
           <Avatar initials={initials(self.name)} size={26} bg={SELF_AVATAR_BG} />
-          <span style={{ flex: 1, fontWeight: 700, fontSize: 13.5 }}>
-            {self.name}
-            {self.id && <span className="tnum" style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>#{self.id}</span>}
-            {" "}<span style={{ fontWeight: 500, color: "var(--muted)", fontSize: 11.5 }}>· of {self.total.toLocaleString()}</span>
+          <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+            <span style={{ fontWeight: 700, fontSize: 13.5 }}>{self.name}</span>
+            <span style={{ fontWeight: 500, color: "var(--muted)", fontSize: 11.5 }}>
+              {self.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600 }}>#{self.id} · </span>}
+              of {self.total.toLocaleString()}
+            </span>
           </span>
           <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{self.points.toLocaleString()}</span>
         </div>

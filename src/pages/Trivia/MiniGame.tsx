@@ -17,7 +17,14 @@ import type { GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
 import { BACKEND_URL, BACKEND_ORIGIN } from '../../configurations/backend';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
+import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import "../../styles/MiniGame.css";
+
+// NOTE: there is deliberately no CONTENT_STAGE_GAMES list here any more.
+// Whether a game hugs its content or fills the stage is declared by the game
+// itself via <GameFrame fill>, and `.playing-wrap` reads that with :has() (see
+// MiniGame.css). The old hand-maintained id list drifted out of sync and left
+// several games with 100-230px of dead space above the Exit button.
 
 function MiniGame() {
   const dispatch = useDispatch<AppDispatch>();
@@ -36,10 +43,16 @@ function MiniGame() {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [showFinalResult, setShowFinalResult] = useState(false);
+  // The shell feedback slot node (in .playing-wrap, above Exit) that every game's
+  // "Correct! +10" popup portals into — one consistent spot across all games.
+  const [feedbackSlot, setFeedbackSlot] = useState<HTMLDivElement | null>(null);
   // Epoch ms the current single-player play started (set when the stage
   // enters "playing") — feeds the session timer + duration logging.
   const playStartRef = useRef(0);
   const prevStageRef = useRef("idle");
+  // Guarantees a finished game awards profile points exactly once — shared by
+  // the result-overview effect and the in-place (answers-in-view) end path.
+  const awardedRef = useRef(false);
 
   // An online match takes over the whole stage area. A friend-room lobby does
   // NOT — the stage stays idle (with Play disabled) while the room card waits.
@@ -52,6 +65,7 @@ function MiniGame() {
     setGameStarted(true);
     setScore(0);
     setShowResult(false);
+    awardedRef.current = false;
     setTimeout(async () => {
       if (!game) return;
       const result = await game.fetchData();
@@ -84,49 +98,55 @@ function MiniGame() {
     setGameData([]);
     setScore(0);
     setShowResult(false);
+    awardedRef.current = false;
   }, [gameId]);
 
-  useEffect(() => {
-    const awardPoints = async () => {
-      if (showResult) {
-        setShowFinalResult(false);
-        // Fire-and-forget play log — apiFetch only attaches the JWT when one
-        // exists, so guests log anonymously too. Never blocks the points flow.
-        if (game) {
-          apiFetch(`${BACKEND_ORIGIN}/trivia/log-session/`, {
-            method: "POST",
-            body: JSON.stringify({
-              game: game.id,
-              mode: "single",
-              score,
-              duration_ms: playStartRef.current ? Date.now() - playStartRef.current : 0,
-            }),
-          }).catch(() => { /* stats only */ });
-        }
-        const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
-        try {
-          if (score > 0) {
-            const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
-              method: "POST",
-              body: JSON.stringify({ points: score }),
-            });
-            const data = await response.json();
-            if (data.error) {
-              showErrorAlert(data.error, "Updating profile failed!");
-            } else {
-              dispatch(updatePoints(score));
-            }
-          }
-          await wait(2000);
-        } catch (err) {
-          console.error("Network error:", err);
-        } finally {
-          setShowFinalResult(true);
-        }
+  // Award profile points for a finished single-player game exactly once (guarded
+  // by awardedRef): fire-and-forget play log + POST points + update redux.
+  // Called directly by the in-place end path, or by the overview effect below.
+  const awardPoints = async (finalScore: number) => {
+    if (awardedRef.current) return;
+    awardedRef.current = true;
+    // apiFetch only attaches the JWT when one exists, so guests log anonymously.
+    if (game) {
+      apiFetch(`${BACKEND_ORIGIN}/trivia/log-session/`, {
+        method: "POST",
+        body: JSON.stringify({
+          game: game.id,
+          mode: "single",
+          score: finalScore,
+          duration_ms: playStartRef.current ? Date.now() - playStartRef.current : 0,
+        }),
+      }).catch(() => { /* stats only */ });
+    }
+    if (finalScore > 0) {
+      try {
+        const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
+          method: "POST",
+          body: JSON.stringify({ points: finalScore }),
+        });
+        const data = await response.json();
+        if (data.error) showErrorAlert(data.error, "Updating profile failed!");
+        else dispatch(updatePoints(finalScore));
+      } catch (err) {
+        console.error("Network error:", err);
       }
-    };
-    awardPoints();
-  }, [showResult, score]);
+    }
+  };
+
+  // Result-overview flow: award points, then flip GameResult from "Calculating…"
+  // to the animated final screen after a beat.
+  useEffect(() => {
+    if (!showResult) return;
+    let cancelled = false;
+    (async () => {
+      setShowFinalResult(false);
+      await awardPoints(score);
+      await new Promise((res) => setTimeout(res, 1500));
+      if (!cancelled) setShowFinalResult(true);
+    })();
+    return () => { cancelled = true; };
+  }, [showResult]);
 
   // A game is "locked in" while actively playing single-player, in an online
   // match, or waiting in a friend room — the player can't hop games from the
@@ -178,14 +198,24 @@ function MiniGame() {
       case "playing":
         return (
           <div className="playing-wrap">
-            {renderGame({
-              gameId: game?.id,
-              gameData,
-              pointsPerCorrect: game?.pointsPerCorrect,
-              onGameEnd: (finalScore: number) => { setScore(finalScore); setShowResult(true); },
-              onExit: handleExit,
-              onPlayAgain: handleStart,
-            })}
+            <FeedbackSlotContext.Provider value={feedbackSlot}>
+              {renderGame({
+                gameId: game?.id,
+                gameData,
+                pointsPerCorrect: game?.pointsPerCorrect,
+                onGameEnd: (finalScore: number, opts?: { inPlace?: boolean }) => {
+                  setScore(finalScore);
+                  if (opts?.inPlace) awardPoints(finalScore);
+                  else setShowResult(true);
+                },
+                onExit: handleExit,
+                onPlayAgain: handleStart,
+                onClose: handleRestart,
+              })}
+            </FeedbackSlotContext.Provider>
+            {/* Shell-owned feedback slot: game popups portal here so "Correct! +10"
+                shows in one consistent spot in the gap above Exit for every game. */}
+            <div className="feedback-slot" ref={setFeedbackSlot} aria-hidden="true" />
             <button className="exit-link" onClick={handleExit}>Exit game</button>
           </div>
         );

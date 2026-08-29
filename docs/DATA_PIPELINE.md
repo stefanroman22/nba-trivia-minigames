@@ -82,3 +82,40 @@ schtasks /Delete /TN "NBA Data Refresh" /F
 - `SyncRun` table — one row per dataset per run (status/rows/error). The task
   only requires the PC to be on at run time (Task Scheduler runs a missed job at
   next logon). For pure-cloud scheduling you'd need a residential proxy (paid).
+
+## Optional: publish to Cloudflare R2 instead of the Vercel CDN
+
+The default path above needs nothing extra — the pools ship inside the frontend build and
+Vercel's CDN serves them from `/data/`. R2 is an **alternative** for a dedicated data domain
+(e.g. serving the same pools to a future mobile app without shipping them in that app's bundle):
+
+```bash
+pip install -r requirements-publish.txt          # one-time (boto3; home machine only)
+venv/Scripts/python.exe manage.py publish_game_data --dry-run   # preview the upload plan, no creds
+venv/Scripts/python.exe manage.py publish_game_data             # real upload (needs R2 env vars)
+```
+
+`publish_game_data` reads `trivia/data/manifest.json` for the version, uploads each pool to
+`v/<version>/<key>.json` (immutable, cached forever) plus a small `manifest.json` (60s TTL)
+pointing at the public CDN URLs. Clients see the new `version` and fetch new immutable files;
+old versions stay cached, so updates are instant and never stale.
+
+**One-time R2 setup:** create a bucket + an S3 API token (Access Key ID + Secret), attach a
+**custom domain** to the bucket (required for CDN caching — the `r2.dev` URL is not cached), then
+set on the home machine / scheduled task:
+
+```
+R2_ACCOUNT_ID=...
+R2_BUCKET=nba-minigames
+R2_ACCESS_KEY_ID=...
+R2_SECRET_ACCESS_KEY=...
+R2_PUBLIC_BASE_URL=https://data.<your-domain>        # the bucket's custom domain
+```
+
+The Vercel backend needs none of these — only set them where you run `publish_game_data`.
+
+## Superseded command (do not use)
+
+`manage.py refresh_game_data` and `backend/scripts/refresh_game_data.ps1` predate `sync_nba_data` /
+`build_pools_from_db` and are **not** what the scheduled task runs (see `refresh_nba_data.cmd`/`.ps1`
+above). Left in the codebase but undocumented elsewhere; use `sync_nba_data` for anything new.

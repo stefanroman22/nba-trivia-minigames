@@ -92,7 +92,8 @@ def build_fan_favorites():
     # Auto seed->live transition: boards with enough real guesses re-rank first.
     refresh_live_standings()
     return [
-        {"qid": q.qid, "prompt": q.prompt, "survey_date": q.survey_date, "answers": q.answers}
+        {"qid": q.qid, "prompt": q.prompt, "survey_date": q.survey_date,
+         "category": q.category, "answers": q.answers}
         for q in FanFavoritesQuestion.objects.filter(live=True).order_by("qid")
     ]
 

@@ -1,8 +1,8 @@
 # Other Game Data — Extensive Data Fields
 
-Companion to [players_extensive_data.md](players_extensive_data.md) and
-[teams_extensive_data.md](teams_extensive_data.md): the data that belongs to neither players nor
-teams but that the games in [games_master_plan.md](games_master_plan.md) need. Storage details in
+Companion to [PLAYERS_DATA.md](PLAYERS_DATA.md) and
+[TEAMS_DATA.md](TEAMS_DATA.md): the data that belongs to neither players nor
+teams but that the games in [MASTER_PLAN.md](MASTER_PLAN.md) need. Storage details in
 the master plan §7 (everything is Django models in the existing Supabase Postgres — no new stack).
 
 ## Question / puzzle bank (`trivia_question`)
