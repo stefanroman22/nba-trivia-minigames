@@ -170,7 +170,7 @@ export const games: Game[] = [
     id: "starting-five",
     name: "Fill in the Starting 5",
     tag: "LINEUPS",
-    description: "Name the starting lineup of the winning team from a random NBA game.",
+    description: "Name the starting lineup of the winning team.",
     intro: "Be the coach's memory — name the full starting five of the winning team.",
     rules: [
       { n: "1", t: "A real game and its winner are shown." },
@@ -442,7 +442,7 @@ export const games: Game[] = [
     id: "bingo",
     name: "NBA Bingo",
     tag: "DAB",
-    description: "Dealt player cards, a 16-category board — dab each player on the right cell.",
+    description: "Match each player to the right category.",
     intro: "Allocation is the tension: a superstar fits six cells but can only dab one.",
     rules: [
       { n: "1", t: "Players are dealt one at a time — dab each onto exactly one matching cell." },
