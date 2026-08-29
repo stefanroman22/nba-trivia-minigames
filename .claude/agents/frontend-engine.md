@@ -26,8 +26,13 @@ Read only the docs for the areas your current task touches:
 - `utils/Api.tsx`, `LogInSignUp.tsx`, `App.tsx`'s login bootstrap, `store/userSlice.tsx` → `docs/constraints/AUTH_CONSTRAINTS.md`
 
 ## Reuse-first
-Search `docs/team/CODE_MAP.md` before writing any new component/hook/util — it catalogs every
-existing one and which are already dead. Duplicating a catalogued unit is a review-reject.
+**Never assume something doesn't already exist — verify, then build.** Before writing any new
+component/hook/util: (1) search `docs/team/CODE_MAP.md` — it catalogs every existing one and
+which are already dead; (2) also grep `src/` directly for the concept by name/purpose, since
+CODE_MAP can lag a recent change. Only write new code once both checks come back empty.
+Duplicating a catalogued (or merely existing-but-uncatalogued) unit is a review-reject. Building
+on top of what's already there — extending a hook, composing an existing component — beats a
+parallel implementation every time, even if the existing one isn't a perfect fit; adapt it first.
 
 ## Design skills (use when available — they are optional, the docs above are not)
 If the environment offers any of these skills, invoke the relevant one **before** writing UI, and
