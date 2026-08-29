@@ -17,6 +17,7 @@ from trivia.models import (
     StartingFiveGame,
     Team,
 )
+from users import leaderboard
 from trivia.utils.fan_favorites import load_seed as load_fan_favorites_seed
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
@@ -196,6 +197,12 @@ def get_fan_favorites(request):
 # A day in ms — sanity ceiling for client-reported durations.
 _MAX_DURATION_MS = 86_400_000
 
+# Ceiling on the points one finished game may grant. The highest score any renderer
+# can produce is MAX_SCORE = 300, so real play never reaches this; it exists so a
+# forged submission can't inflate an account. Per-game caps derived from real
+# GameSession data should eventually replace this single global number.
+MAX_SESSION_POINTS = 1000
+
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -233,28 +240,57 @@ def log_guesses(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def log_session(request):
-    """Record one finished play (game, mode, score, duration) for stats/history."""
+    """Record one finished play (game, mode, score, duration) and award its points.
+
+    This is the ONLY path that grants account points. It used to log stats while
+    `users.update_profile` awarded whatever `points` the client asked for, which let
+    any signed-in player POST an arbitrary total. Awarding here instead means every
+    award has a GameSession row behind it, and the score passes the same clamping
+    the log already applied.
+    """
     body = request.data or {}
     game = str(body.get('game', ''))[:40]
     if not game:
         return JsonResponse({'error': 'game is required'}, status=400)
     mode = str(body.get('mode', 'single'))
+    mode = mode if mode in ('single', 'match', 'friend') else 'single'
     try:
         score = max(0, int(body.get('score', 0)))
     except (TypeError, ValueError):
         score = 0
+    # The largest score any renderer can produce is MAX_SCORE = 300, so this is >3x
+    # headroom for real play while making an inflated submission worthless.
+    score = min(score, MAX_SESSION_POINTS)
     try:
         duration = max(0, min(int(body.get('duration_ms', 0)), _MAX_DURATION_MS))
     except (TypeError, ValueError):
         duration = 0
+
+    user = request.user if request.user.is_authenticated else None
     GameSession.objects.create(
-        user=request.user if request.user.is_authenticated else None,
+        user=user,
         game=game,
-        mode=mode if mode in ('single', 'match', 'friend') else 'single',
+        mode=mode,
         score=score,
         duration_ms=duration,
     )
-    return JsonResponse({'ok': True})
+
+    # Multiplayer results deliberately never touch account points (AUTH-7), and
+    # guests have no account to credit.
+    awarded = 0
+    if user is not None and mode == 'single' and score > 0:
+        awarded = score
+        user.points += awarded
+        user.update_rank()
+        user.save(update_fields=['points', 'rank'])
+        leaderboard.record_score(user)
+
+    return JsonResponse({
+        'ok': True,
+        'awarded': awarded,
+        'points': user.points if user is not None else 0,
+        'rank': user.rank if user is not None else None,
+    })
 
 
 def _game_data_dir():
