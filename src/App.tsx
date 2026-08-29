@@ -14,6 +14,7 @@ import { BACKEND_URL } from './configurations/backend';
 import { ModalProvider } from './context/ModalContext';
 import { MultiplayerProvider } from './context/MultiplayerContext';
 import ModalHost from './components/ModalHost';
+import EnvBadge from './components/EnvBadge';
 
 
 function App() {
@@ -58,6 +59,7 @@ function App() {
           <ModalProvider>
             <AnimatedRoutes />
             <ModalHost />
+            <EnvBadge />
           </ModalProvider>
         </MultiplayerProvider>
       </BrowserRouter>
