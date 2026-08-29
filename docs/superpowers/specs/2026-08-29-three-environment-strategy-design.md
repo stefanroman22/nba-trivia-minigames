@@ -72,7 +72,12 @@ deploy lands, §5.3 governs the socket's behaviour.
 ## 5. Design
 
 ### 5.1 Env-file layering
-Vite precedence, highest first: `.env.local` → `.env.<mode>` → `.env`.
+Vite loads `.env`, `.env.local`, `.env.${mode}`, `.env.${mode}.local` and merges them with
+**later winning** — so `.env.local` only beats `.env` because nothing later exists today.
+`.env.production` outranks `.env.local` in a production build, which is what makes E0/E1 safe:
+a stray `.env.local` can never override a deployed build. The same rule cuts the other way for
+local dev, though: **if anyone ever adds a `.env.development` file, it will silently outrank the
+probe's `.env.local` and the whole fallback stops working with no error anywhere.**
 
 | File | Committed? | Role |
 |---|---|---|

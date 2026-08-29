@@ -46,6 +46,10 @@ The frontend reads the backend URL from `.env` (`VITE_BACKEND_URL=http://localho
 the socket URL from `VITE_SOCKET_URL` (defaults to `http://localhost:4000`). Local dev needs no
 other env vars — the backend falls back to sqlite when `DATABASE_URL` is unset.
 
+`npm run dev` first runs a probe (`scripts/dev-env.mjs`) that checks whether the local backend
+and socket server are actually up, and writes a gitignored `.env.local` that falls back to the
+deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) → Environments.
+
 **Everyday commands** (from the repo root unless noted):
 | | |
 |---|---|
