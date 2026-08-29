@@ -114,7 +114,7 @@ DJANGO_ALLOWED_HOSTS=<your-backend>.vercel.app         # *.vercel.app + VERCEL_U
 CORS_ALLOWED_ORIGINS=https://<extra-origin>              # ADDITIVE — merged onto settings.FRONTEND_ORIGINS, never replaces it. Leave unset unless adding a domain.
 CSRF_TRUSTED_ORIGINS=https://<extra-origin>              # same; *.vercel.app is auto-trusted for CSRF regardless
 DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:6543/postgres   # MUST be the Supabase POOLER (transaction, 6543), not the IPv6 direct host (unset -> sqlite)
-REDIS_URL=rediss://...                                       # Upstash (unset -> Postgres leaderboard)
+REDIS_URL=rediss://...                                       # Upstash. Unset -> Postgres leaderboard AND DatabaseCache for rate limiting (see below)
 CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
 ```

@@ -286,6 +286,17 @@ There are **two kinds of data**, handled very differently:
   sensitive to leak there.
 - **Secrets** (database URL, Django secret key, Google OAuth keys) come from environment
   variables and are kept out of git (`.env` files are gitignored).
+- **Points can only be earned, not claimed.** Finishing a game posts to `/trivia/log-session/`,
+  which records what was played *and* awards the points in one step, capped at 1000 per game.
+  The browser can no longer tell the backend how many points it deserves, and every award has a
+  `GameSession` row behind it. (Until 2026-08-29 it could: the client sent its own total and the
+  server added it, so anyone could have topped the leaderboard with a single request.)
+- **Rate limits** on the endpoints worth abusing: sign-in 30/hour, sign-up 10/hour, token refresh
+  60/hour, score submission 60/hour — counted per account when signed in, per IP when not.
+  Password guessing used to be unlimited.
+- **Sessions can't be extended forever.** Refresh tokens rotate, but each carries the *original*
+  sign-in time, and refreshing is refused 90 days after that first sign-in no matter how active
+  the player has been.
 
 **Worth being aware of (normal trade-offs, not bugs):**
 
@@ -296,8 +307,21 @@ There are **two kinds of data**, handled very differently:
   a client ID is public by design; the secret stays on the backend.
 - `DEBUG` defaults to **on** locally, so it's important `DJANGO_DEBUG=False` is set in
   production (it is, per the deployment docs).
-- There's no rate limiting on the API endpoints — fine at current scale, something to add if
-  abuse becomes a concern.
+- Rate limiting counts requests in Django's **cache**, and the cache backend decides whether it
+  actually works: an in-memory cache is per-process, and each serverless function is its own
+  process, so limits would quietly stop applying. The app picks Redis when `REDIS_URL` is set and
+  a database-backed cache otherwise — never in-memory in production. This is the one setting here
+  whose failure mode is invisible, so don't "simplify" it.
+- **Score farming is bounded, not eliminated.** The cap and the rate limit together allow at most
+  60,000 points/hour on one account (versus unbounded before), and every submission leaves an
+  audit row. Closing the gap fully means scoring games on the server rather than trusting a
+  finished score — a bigger project, deliberately not done yet.
+- Sign-in tells you whether an account exists ("no account matches" vs "incorrect password"),
+  which leaks which emails are registered. Kept because the *"Several players use that name"*
+  message genuinely needs to say that; the rate limit is what makes it hard to exploit.
+- The **multiplayer server does not verify JWTs** — it trusts the identity the browser sends it.
+  Today that only affects the name and avatar shown in a match (match results never touch account
+  points), but it must be fixed before multiplayer ever awards anything.
 
 ---
 
