@@ -61,3 +61,6 @@ players_extensive_data.md
 .env.team
 .claude/team/slack-state.json
 .claude/team/last-batch.json
+
+.team/*
+!.team/.gitkeep

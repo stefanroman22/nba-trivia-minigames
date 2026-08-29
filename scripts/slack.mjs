@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Deterministic Slack I/O for the team pipeline. Zero deps (Node 18+ fetch).
 // Env: SLACK_BOT_TOKEN (from .env.team or process env). Config: .claude/team/config.json
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
@@ -9,7 +9,7 @@ import { execSync } from "node:child_process";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG_PATH = resolve(ROOT, ".claude/team/config.json");
 const ENV_PATH = resolve(ROOT, ".env.team");
-const STATE_PATH = resolve(ROOT, ".claude/team/slack-state.json");
+const STATE_PATH = resolve(ROOT, ".team/slack-state.json");
 
 function loadEnvTeam() {
   if (!process.env.SLACK_BOT_TOKEN && existsSync(ENV_PATH)) {
@@ -56,7 +56,7 @@ async function apiTry(method, params = {}, post = false) {
 }
 
 function readState() { return existsSync(STATE_PATH) ? JSON.parse(readFileSync(STATE_PATH, "utf8")) : { cards: [], lastPoll: null }; }
-function writeState(s) { writeFileSync(STATE_PATH, JSON.stringify(s, null, 2)); }
+function writeState(s) { mkdirSync(dirname(STATE_PATH), { recursive: true }); writeFileSync(STATE_PATH, JSON.stringify(s, null, 2)); }
 
 async function cmdPing(channel, ...text) {
   const r = await api("chat.postMessage", { channel, text: text.join(" ") || "ping from nba-team-pipeline" }, true);

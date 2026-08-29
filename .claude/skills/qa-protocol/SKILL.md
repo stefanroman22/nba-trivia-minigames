@@ -21,9 +21,9 @@ socket 4100) so the user's own dev servers (8000/5173/4000) are never disturbed.
    For game tasks, run the GAME_DESIGN_CONSTRAINTS DevTools acceptance tests verbatim.
 3. Exercise the task's own spec: does the feature do what the card says? Test the happy path
    plus one edge (empty state, wrong input, or refresh mid-flow — whichever applies).
-4. Screenshot evidence at each key state → `.claude/team/qa/<slug>/`.
+4. Screenshot evidence at each key state → `.team/qa/<slug>/`.
 
 ## Verdict
-- Write `.claude/team/qa/<slug>/verdict.json`: `{"pass": true|false, "failures": ["..."]}`.
+- Write `.team/qa/<slug>/verdict.json`: `{"pass": true|false, "failures": ["..."]}`.
 - ALWAYS kill the servers you started (find pids by port, stop them) — even on failure.
 - Failures go back to the build stage (they count toward the 2-fix-cycle cap).

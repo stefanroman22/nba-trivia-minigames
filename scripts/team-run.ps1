@@ -1,8 +1,8 @@
 # Launches one queue-drain pipeline run. Safe under cron: lockfile prevents overlap.
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
-$lock = Join-Path $repo ".claude\team\run.lock"
-$logDir = Join-Path $repo ".claude\team\logs"
+$lock = Join-Path $repo ".team\run.lock"
+$logDir = Join-Path $repo ".team\logs"
 New-Item -ItemType Directory -Force $logDir | Out-Null
 
 # Lockfile: skip if a previous run is still alive
