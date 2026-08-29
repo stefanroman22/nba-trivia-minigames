@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": { "node": ">=20" },
   "proxy": "http://127.0.0.1:8000",
   "scripts": {
     "copy:data": "node scripts/copy-data.mjs",

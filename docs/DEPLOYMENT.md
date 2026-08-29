@@ -14,7 +14,7 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 | Django API (auth, leaderboard, game data) | **LIVE** | Vercel serverless — `https://backend-kappa-one-42.vercel.app` |
 | User database | **LIVE** | Supabase Postgres (migrated; signup/login/leaderboard verified) |
 | Frontend + game content | **LIVE** | Vercel CDN (`/data/` pools) |
-| Multiplayer ("Play Online") | **Not yet hosted** | needs a persistent Node host (see note) |
+| Multiplayer ("Play Online") | **Dead** — old Railway host is gone, nothing currently deployed | needs a persistent Node host (see note) |
 
 **Supabase connection (important):** the project's *direct* host `db.<ref>.supabase.co` is
 **IPv6-only and unreachable from Vercel (IPv4)**. You must use the **session pooler**:
