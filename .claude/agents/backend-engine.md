@@ -54,9 +54,13 @@ Rules:
 - Use the venv at `backend/venv`. Run the API with `python manage.py runserver 8000`.
 - After model changes: `python manage.py makemigrations` then `migrate`. Never edit applied
   migrations by hand.
-- Verify with `python manage.py check` and `python manage.py test users trivia` before declaring
-  done. A bare `manage.py test` silently skips all 91 `trivia` tests (no `trivia/__init__.py`) and
-  still reports `OK` — always name both apps (BE-18).
+- **Don't run `manage.py check` / the test suite routinely.** The pipeline's verify stage
+  (test-qa-engine) runs them on your diff — repeating them burns context and time for no extra
+  signal. Run them yourself only when: you were explicitly asked to, you're about to commit
+  outside the pipeline, or you touched models/migrations/settings where a static read genuinely
+  can't tell you if it's sound. When you do run tests, always name both apps —
+  `python manage.py test users trivia` — because a bare `manage.py test` silently skips all 91
+  `trivia` tests (no `trivia/__init__.py`) and still reports `OK` (BE-18).
 - Secrets come from env (`backend/.env`); never commit keys. Keep CORS/URLs working for the
   frontend (port 5173).
 - `sync_nba_data` (the NBA-API fetch) must run only offline from a residential IP — never call it

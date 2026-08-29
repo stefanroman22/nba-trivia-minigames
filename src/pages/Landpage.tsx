@@ -41,7 +41,7 @@ const Landpage = () => {
           <div className="hero-inner">
             <motion.div className="hero-badge" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
               <span className="hero-badge-dot" />
-              {playableCount} GAMES · NO SIGN-UP NEEDED
+              {playableCount} GAMES · FREE · NO SIGN-UP NEEDED
             </motion.div>
             <motion.h1 className="font-display hero-h1" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}>
               Test your <span style={{ color: "var(--brand)" }}>hoops IQ.</span><br />One quick game at a time.
@@ -63,11 +63,15 @@ const Landpage = () => {
                 <span className="tnum font-display hero-stat-num" style={{ color: "var(--brand)" }}>{playableCount}</span>
                 <span className="hero-stat-lbl">GAMES</span>
               </div>
-              <div className="hero-stat-sep" />
-              <div className="hero-stat">
-                <span className="tnum font-display hero-stat-num">{user ? user.points : "0"}</span>
-                <span className="hero-stat-lbl">{user ? "YOUR POINTS" : "FREE TO PLAY"}</span>
-              </div>
+              {user && (
+                <>
+                  <div className="hero-stat-sep" />
+                  <div className="hero-stat">
+                    <span className="tnum font-display hero-stat-num">{user.points}</span>
+                    <span className="hero-stat-lbl">YOUR POINTS</span>
+                  </div>
+                </>
+              )}
             </motion.div>
           </div>
         </section>
