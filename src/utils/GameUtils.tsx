@@ -110,7 +110,7 @@ export const games: Game[] = [
     id: "name-logo",
     name: "Name the NBA Club",
     tag: "LOGOS",
-    description: "How many NBA logos do you actually know?",
+    description: "Only real fans name every logo.",
     intro: "How sharp is your eye for NBA branding? Name the team behind the badge.",
     rules: [
       { n: "1", t: "A team logo appears each round." },
@@ -140,7 +140,7 @@ export const games: Game[] = [
     id: "guess-mvps",
     name: "Guess the MVP",
     tag: "LEGENDS",
-    description: "Who took home MVP that season?",
+    description: "Every season had a king. Name him.",
     intro: "Legends are made in the regular season. Recall who dominated each year.",
     rules: [
       { n: "1", t: "A specific season is shown." },
@@ -170,7 +170,7 @@ export const games: Game[] = [
     id: "starting-five",
     name: "Fill in the Starting 5",
     tag: "LINEUPS",
-    description: "Can you name all five who started?",
+    description: "Remember who actually started that night.",
     intro: "Be the coach's memory — name the full starting five of the winning team.",
     rules: [
       { n: "1", t: "A real game and its winner are shown." },
@@ -232,7 +232,7 @@ export const games: Game[] = [
     id: "fan-favorites",
     name: "Fan Favorites",
     tag: "SURVEY",
-    description: "Can you guess what 100 NBA fans said?",
+    description: "100 NBA fans answered. Match them.",
     intro: "Think like the crowd. The most popular answers score the board.",
     rules: [
       { n: "1", t: "We asked 100 NBA fans a question — their top answers are hidden on the board." },
@@ -262,7 +262,7 @@ export const games: Game[] = [
     id: "heatmap",
     name: "The Heatmap",
     tag: "HEX",
-    description: "How much of the board can you claim?",
+    description: "Claim the board one hex at a time.",
     intro: "A board of NBA criteria — every claimed hex turns orange. How deep can you push?",
     rules: [
       { n: "1", t: "Tap a hex — each one is an NBA criterion (team, award, stat, draft…)." },
@@ -292,7 +292,7 @@ export const games: Game[] = [
     id: "connections",
     name: "NBA Connections",
     tag: "GROUPS",
-    description: "Four hidden links. Can you find them all?",
+    description: "Sixteen players hide four links.",
     intro: "Four hidden connections tie the board together. Spot the traps.",
     rules: [
       { n: "1", t: "Select exactly 4 players you think share a link, then submit." },
@@ -352,7 +352,7 @@ export const games: Game[] = [
     id: "nba-grid",
     name: "NBA Grid",
     tag: "GRID",
-    description: "Can you fill every square?",
+    description: "Nine squares. Every one needs a name.",
     intro: "Nine cells, nine guesses. Rare answers earn the bragging rights.",
     rules: [
       { n: "1", t: "Each cell crosses two criteria (franchise, award, stat, draft…)." },
@@ -442,7 +442,7 @@ export const games: Game[] = [
     id: "bingo",
     name: "NBA Bingo",
     tag: "DAB",
-    description: "Can you fill your card first?",
+    description: "Fill your card before the pack runs out.",
     intro: "Allocation is the tension: a superstar fits six cells but can only dab one.",
     rules: [
       { n: "1", t: "Players are dealt one at a time — dab each onto exactly one matching cell." },
@@ -532,7 +532,7 @@ export const games: Game[] = [
     id: "superdraft",
     name: "SuperDraft Five",
     tag: "DRAFT",
-    description: "Can you draft a five that beats the benchmark?",
+    description: "Draft a five that beats the benchmark.",
     intro: "Five slots, five random pools, one objective. Build the lineup that maxes the metric.",
     rules: [
       { n: "1", t: "Each slot offers a randomized pool (a franchise, a country, a draft class…)." },
