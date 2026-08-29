@@ -25,6 +25,22 @@ Read only the docs for the areas your current task touches:
 Search `docs/team/CODE_MAP.md`'s "Backend utilities" section before writing a new management
 command or util — duplicating a catalogued one is a review-reject.
 
+## Database skills (use when available — optional; `BACKEND_CONSTRAINTS.md` is not)
+This app's Postgres is hosted on Supabase (see `docs/DEPLOYMENT.md`), so if the environment offers
+`supabase-postgres-best-practices`, invoke it **before** any schema change — new tables or columns,
+column types, migrations, indexes, or a query you expect to be hot. Use it for what it is good at:
+choosing column types, index shape, avoiding N+1 and sequential scans, and migration safety.
+
+Three hard limits:
+1. **`docs/constraints/BACKEND_CONSTRAINTS.md` always wins** — it is derived from this codebase.
+   Where the skill's generic Postgres advice conflicts with a numbered BE-rule, follow the BE-rule.
+2. **Stay inside Django's ORM and migration flow.** Never hand-write SQL DDL or edit an applied
+   migration because a skill suggested a different shape; express it as a normal
+   `makemigrations`/`migrate` change (BE-rules on migrations still apply).
+3. **It may be absent — that is fine.** It is a machine-local plugin skill, present in local runs
+   and not in cloud routine runs. If unavailable, note it in one line and proceed from
+   `BACKEND_CONSTRAINTS.md` and `docs/DATA_PIPELINE.md`; never block or invent its content.
+
 Rules:
 - Match existing patterns. Keep changes surgical.
 - A new minigame is a module under `trivia/games/`, registered in `_GAME_MODULES` — never a

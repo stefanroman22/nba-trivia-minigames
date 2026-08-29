@@ -29,6 +29,29 @@ Read only the docs for the areas your current task touches:
 Search `docs/team/CODE_MAP.md` before writing any new component/hook/util — it catalogs every
 existing one and which are already dead. Duplicating a catalogued unit is a review-reject.
 
+## Design skills (use when available — they are optional, the docs above are not)
+If the environment offers any of these skills, invoke the relevant one **before** writing UI, and
+follow it for visual judgment the constraint docs don't cover (hierarchy, spacing rhythm, type
+scale, colour, motion):
+- `design-taste-frontend` — overall direction for a page or a redesign; keeps output from looking
+  templated.
+- `high-end-visual-design` — concrete fonts/spacing/shadow/animation values when a surface needs
+  to feel polished rather than merely correct.
+- `ui-ux-pro-max` — layout systems, palettes, font pairings, UX patterns.
+- `dataviz` — any chart, leaderboard table, stat tile, or score panel.
+
+Three hard limits on all of them:
+1. **The repo's constraint docs always win.** A skill's advice never overrides
+   `GAME_DESIGN_CONSTRAINTS.md`, `UI_SHELL_CONSTRAINTS.md`, or `CODE_MAP.md` reuse. Where they
+   disagree, the repo doc is correct and the skill is ignored for that point.
+2. **Never apply a generic design skill to `Game Renderers/*.tsx`.** Games are fully governed by
+   `GAME_DESIGN_CONSTRAINTS.md` (shared shell, exact tokens); "improving" a game's look against
+   that spec is a review-reject. Design skills are for non-game surfaces — landing, profile,
+   leaderboard, modals, nav.
+3. **They may be absent — that is fine.** These are machine-local skills, so they exist in local
+   runs but not in cloud routine runs. If a skill isn't available, say so in one line and proceed
+   using the constraint docs; never block, never fabricate its guidance.
+
 Rules:
 - Match existing patterns and file layout. Keep changes surgical — touch only what the task needs.
 - TypeScript stays strict; no `any` unless the surrounding code already does it. Build must pass `tsc -b`.
