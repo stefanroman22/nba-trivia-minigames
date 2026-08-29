@@ -148,11 +148,41 @@ localStorage.setItem("accessToken", data.access);
 localStorage.setItem("refreshToken", data.refresh);
 ```
 
-## Rule AUTH-6: `points`/`rank` have exactly one write site in the whole backend — and rank's thresholds are never duplicated on the frontend
+## Rule AUTH-6: `points`/`rank` have exactly one write site — `trivia.views.log_session` — and the client never names its own score
 
-`user.points += points; user.update_rank(); user.save()` inside `update_profile`'s JSON branch
-(`views.py`) is the **only** place in `backend/` that mutates `points` or calls `update_rank()` —
-confirmed by grepping the whole backend for both. `update_rank()` maps 9 fixed point thresholds
+**Changed 2026-08-29.** The single writer used to be `users.update_profile`, which added whatever
+`points` the request body contained. That let any signed-in player POST `{"points": 999999999}`
+and top the leaderboard: authentication worked, authorization was missing — the account was real,
+the score was not.
+
+The writer moved (it did not multiply). `trivia.views.log_session` now records the `GameSession`
+**and** awards its points in one step, so every award has an audit row behind it. Three guards:
+
+1. the score is clamped to `MAX_SESSION_POINTS` (1000; the largest score any renderer can produce
+   is `MAX_SCORE = 300`, so real play never touches the ceiling),
+2. only `mode="single"` by an authenticated user is awarded — preserving AUTH-7,
+3. `update_profile` **rejects** a `points` field with HTTP 400.
+
+The endpoint returns `{awarded, points, rank}` and the client displays the server's number.
+A task must never reintroduce a client-supplied points value, and must not add a second writer.
+
+```python
+❌ WRONG — trusting a client-supplied total (this was the vulnerability)
+user.points += request.data.get("points")
+
+✅ RIGHT — trivia/views.py, clamped and tied to a recorded session
+score = min(max(0, int(body.get('score', 0))), MAX_SESSION_POINTS)
+if user is not None and mode == 'single' and score > 0:
+    user.points += score
+    user.update_rank()
+```
+
+**Known ceiling, stated honestly:** clamping bounds a single submission, and AUTH-10's throttle
+bounds their frequency — together capping gain at 60 × 1000 = 60,000 points/hour per account,
+versus previously unbounded. Closing it further needs per-game caps derived from real
+`GameSession` data, or server-side re-scoring. Neither is done yet.
+
+`update_rank()` maps 9 fixed point thresholds
 (100/200/400/700/1200/2000/3000/5000) to `RANK_CHOICES` in ascending order. The frontend never
 recomputes or duplicates this ladder — no rank label/threshold string appears anywhere under
 `src/`, `user.rank` is only ever displayed verbatim from whatever the backend last returned, and
@@ -163,14 +193,62 @@ code, confirming there is no client-side rank path to accidentally diverge from 
 ❌ WRONG — a second endpoint incrementing points without going through update_rank()
 def award_bonus(request):
     request.user.points += 50
-    request.user.save()  # rank now stale until the next update_profile call
-
-✅ RIGHT — users/views.py's update_profile, the one existing writer
-if points is not None:
-    user.points += points
-    user.update_rank()
-    updated = True
+    request.user.save()  # rank now stale, and no GameSession row explains the points
 ```
+
+## Rule AUTH-10: Sensitive endpoints are throttled, and the cache backend is what makes that real
+
+Added 2026-08-29. Before it there was no throttling of any kind, so `/api/login/` accepted
+unlimited password attempts — which compounded with AUTH-2's error messages distinguishing "no
+account matches" from "incorrect password" (enumerate, then brute force).
+
+`backend/backend/throttles.py` defines four `UserRateThrottle` subclasses — keyed by account when
+authenticated, by IP when not — applied per-view with `@throttle_classes`:
+
+| Scope | Applied to | Rate |
+|---|---|---|
+| `auth-login` | `login_view`, `google_login` | 30/hour |
+| `auth-signup` | `signup_view` | 10/hour |
+| `auth-refresh` | `SessionRefreshView` | 60/hour |
+| `score-submit` | `trivia.log_session` | 60/hour |
+
+There is deliberately **no** `DEFAULT_THROTTLE_CLASSES`: game-data reads stay unthrottled and only
+these endpoints pay a cache lookup.
+
+**The cache backend is load-bearing, and its failure mode is silent.** DRF stores throttle counters
+in Django's cache. `LocMemCache` is per-process and every Vercel lambda is its own process, so
+throttling on it would be near-useless with each cold start resetting the count — and nothing
+would warn you. `settings.py` therefore tiers the cache: `REDIS_URL` → `RedisCache`; else a real
+`DATABASE_URL` → `DatabaseCache` (correct, just slower); else `LocMemCache` (local dev only, where
+single-process makes it accurate). A task must not "simplify" this back to a single LocMemCache.
+
+`DatabaseCache` needs its table, created by `manage.py createcachetable` in `backend/vercel.json`'s
+build command — idempotent, and it must stay there.
+
+## Rule AUTH-11: A failed token refresh must settle every queued caller
+
+`src/utils/Api.tsx` lets one refresh run while other 401'd requests wait. Each waiter stores
+**both** `resolve` and `reject`, and the notify loop is exception-safe. An earlier version stored
+only `resolve` and threw from inside the loop: queued promises stayed pending forever (their
+`await` never returned, so the UI showed spinners that never stopped) and subsequent subscribers
+were never notified — on exactly the session-expired path where the user needs to be told to sign
+in again.
+
+A task must keep the invariant: **every waiter settles, on every path.**
+
+```tsx
+❌ WRONG — a waiter that can only ever succeed
+return new Promise<string>((resolve) => {
+  subscribeTokenRefresh((token) => { if (token) resolve(token); else throw new Error("..."); });
+});
+
+✅ RIGHT — Api.tsx, both outcomes represented
+return new Promise<string>((resolve, reject) => subscribeTokenRefresh({ resolve, reject }));
+```
+
+Related: decide "is this 401 about the token?" from simplejwt's machine-readable
+`code === "token_not_valid"`, never by string-matching words like `"invalid"` in the body — that
+both false-positives on unrelated 401s and misses differently-worded token errors.
 
 ## Rule AUTH-7: Multiplayer match results never touch `points`/`rank` — a win/loss is settled entirely on the Node server
 
