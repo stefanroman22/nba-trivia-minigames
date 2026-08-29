@@ -54,11 +54,11 @@ CTO verdict. Review the PR yourself on GitHub and merge it manually when you're 
 - **Skills** — `.claude/skills/` (e.g. `team-run`, `cto-review`, `ship`, `qa-protocol`).
 - **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
   `browser-qa`, `code-reviewer`, `test-qa-engine`).
-- **Journal** — `.claude/team/journal.json`: mid-flight task state, resumed by the next run.
-- **Logs** — `.claude/team/logs/` (one file per run). Written by PowerShell's
+- **Journal** — `.team/journal.json`: mid-flight task state, resumed by the next run.
+- **Logs** — `.team/logs/` (one file per run). Written by PowerShell's
   `Tee-Object`, which defaults to **UTF-16LE** — open with a UTF-16-aware viewer, not a
   plain `cat`/UTF-8 tool, or the text will look mangled.
-- **QA evidence** — `.claude/team/qa/<slug>/` (screenshots + `verdict.json` per task).
+- **QA evidence** — `.team/qa/<slug>/` (screenshots + `verdict.json` per task).
 - **Worktrees** — `C:\Users\stefa\.team-worktrees\<slug>` — isolated checkouts the
   pipeline builds in; your main checkout's working tree is never touched by pipeline git
   commands beyond `fetch`/`worktree add|remove`.
@@ -120,12 +120,12 @@ of `GITHUB_TOKEN` — a deliberate security tradeoff. Left human-gated by defaul
 ## 11. Troubleshooting
 
 - **Lockfile stuck** (`team-run already running` but no run is actually happening):
-  delete `.claude/team/run.lock`, then retry.
-- **Card stuck In Progress with an empty journal** (`.claude/team/journal.json` is `{}`
+  delete `.team/run.lock`, then retry.
+- **Card stuck In Progress with an empty journal** (`.team/journal.json` is `{}`
   or has no entry for it): the run that claimed it died or was killed. Set the card back
   to `Ready`.
 - **Scheduled run appears to have done nothing**: check the newest file in
-  `.claude/team/logs/` (remember it's UTF-16LE) for what happened, and confirm the
+  `.team/logs/` (remember it's UTF-16LE) for what happened, and confirm the
   active `gh` account is `stefanroman22`, not `jimmedeknatel8` (see §8a) — a wrong
   account fails silently from Notion's point of view since the card never gets past
   ship.
@@ -184,7 +184,7 @@ channel.
 approver's `slack.slackUserId`, and `devSiteUrl` live in `.claude/team/config.json` —
 `node scripts/slack.mjs resolve-channels` fills the channel ids in automatically by
 channel name, but `slackUserId` must be entered by hand. Runtime state (posted task
-cards awaiting a reaction) lives in `.claude/team/slack-state.json`, which is gitignored.
+cards awaiting a reaction) lives in `.team/slack-state.json`, which is gitignored.
 
 **Troubleshooting.** No Slack posts at all → confirm the bot is invited to the target
 channel and that `slack.slackUserId`/the channel ids are set in
@@ -242,7 +242,7 @@ UTC+1 (winter), both reports will fire an hour later than the label says (e.g. t
 season.
 
 **Known limitation.** The Slack reaction→follow-up loop is local-state-only: cloud runs
-use a fresh clone per firing, so `.claude/team/slack-state.json` (gitignored) doesn't
+use a fresh clone per firing, so `.team/slack-state.json` (gitignored) doesn't
 persist between them, and reactions on cloud-posted cards never get ingested into
 follow-up Notion cards. The batch cards and the reports above still post normally in
 cloud mode. To process a 🔄 reaction, run a local `npm run team`, or wait for a future
