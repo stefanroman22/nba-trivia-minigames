@@ -75,6 +75,12 @@ journal stage=design|build.
    happen in the clone on this branch. After ship (or park), `git checkout dev` before the next
    task so each task starts clean from `origin/dev`. There is no `cfg.worktreeRoot` and no
    worktree to remove in cloud mode.
+   **[CLOUD] install deps yourself — do NOT rely on the environment setup script.** After
+   checkout, run `npm ci` (or `npm install` if `npm ci` fails) at the repo root so the verify
+   stage has `node_modules`. If the task touches `backend/`, also
+   `cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt` (Linux
+   paths — the cloud VM is Linux, not Windows). The routine's setup script may be empty/no-op;
+   the pipeline is responsible for its own dependencies in cloud mode.
 
 **design** (only if classify.needsDesignRound) → spawn planner-architect with
 design-round skill. If it parks (design deadlock) → park procedure. journal stage=build.
