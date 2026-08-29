@@ -232,7 +232,7 @@ export const games: Game[] = [
     id: "fan-favorites",
     name: "Fan Favorites",
     tag: "SURVEY",
-    description: "Guess what 100 NBA fans answered — find every answer on the board.",
+    description: "Guess what 100 NBA fans answered.",
     intro: "Think like the crowd. The most popular answers score the board.",
     rules: [
       { n: "1", t: "We asked 100 NBA fans a question — their top answers are hidden on the board." },
@@ -292,7 +292,7 @@ export const games: Game[] = [
     id: "connections",
     name: "NBA Connections",
     tag: "GROUPS",
-    description: "16 players hide 4 secret groups of 4 — find every link.",
+    description: "Group the 16 players into 4 groups.",
     intro: "Four hidden connections tie the board together. Spot the traps.",
     rules: [
       { n: "1", t: "Select exactly 4 players you think share a link, then submit." },
@@ -322,7 +322,7 @@ export const games: Game[] = [
     id: "career-path",
     name: "Career Path Challenge",
     tag: "JOURNEY",
-    description: "Guess the mystery player from his team-by-team career path.",
+    description: "Guess the player based on the career path.",
     intro: "One career, card by card. Name the player before the trail runs out.",
     rules: [
       { n: "1", t: "The first team stint is revealed — years, team, GP, PPG." },
@@ -352,7 +352,7 @@ export const games: Game[] = [
     id: "nba-grid",
     name: "NBA Grid",
     tag: "GRID",
-    description: "Fill the 3×3 grid with players matching both their row and column.",
+    description: "Fill the grid with players.",
     intro: "Nine cells, nine guesses. Rare answers earn the bragging rights.",
     rules: [
       { n: "1", t: "Each cell crosses two criteria (franchise, award, stat, draft…)." },
@@ -382,7 +382,7 @@ export const games: Game[] = [
     id: "who-are-ya",
     name: "Who Are Ya?",
     tag: "MYSTERY",
-    description: "A blurred mystery player — every miss sharpens the photo and adds clues.",
+    description: "Find the player with hints and a blurred image.",
     intro: "Blur, clues, deduction. Unmask the mystery player in as few guesses as you can.",
     rules: [
       { n: "1", t: "Guess any player — attributes come back green (exact) or yellow (close)." },
@@ -412,7 +412,7 @@ export const games: Game[] = [
     id: "tictactoe",
     name: "NBA Tic-Tac-Toe",
     tag: "DUEL",
-    description: "Head-to-head 3×3: claim cells by naming valid players, three in a row wins.",
+    description: "A more complex tic-tac-toe game.",
     intro: "The PvP flagship. Out-think your opponent cell by cell.",
     rules: [
       { n: "1", t: "On your turn, claim a cell by naming a player who fits its row + column." },
@@ -472,7 +472,7 @@ export const games: Game[] = [
     id: "contexto",
     name: "LeContexto",
     tag: "RADAR",
-    description: "Unlimited guesses — every player you name shows how close you are to the secret one.",
+    description: "Every guess brings you closer to the truth.",
     intro: "No fail state, just a similarity radar. Home in on the secret player.",
     rules: [
       { n: "1", t: "Guess any player — you get a similarity rank (#1 is the answer)." },
@@ -532,7 +532,7 @@ export const games: Game[] = [
     id: "superdraft",
     name: "SuperDraft Five",
     tag: "DRAFT",
-    description: "Draft a starting five from randomized pools under today's objective.",
+    description: "Draft a team based on a benchmark.",
     intro: "Five slots, five random pools, one objective. Build the lineup that maxes the metric.",
     rules: [
       { n: "1", t: "Each slot offers a randomized pool (a franchise, a country, a draft class…)." },
@@ -562,7 +562,7 @@ export const games: Game[] = [
     id: "imposter",
     name: "NBA Imposter",
     tag: "PARTY",
-    description: "Party game for friend rooms: find who's bluffing about the mystery player.",
+    description: "Spot the imposter — only for real NBA fans.",
     intro: "Everyone sees the mystery player — except the Imposter. Clue, vote, unmask.",
     rules: [
       { n: "1", t: "All but the Imposter see the mystery player. Take turns giving one-word clues." },
