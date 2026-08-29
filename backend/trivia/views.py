@@ -4,7 +4,7 @@ import random
 from django.conf import settings
 from django.db.models.functions import Length
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 
 from trivia.models import (
@@ -17,6 +17,7 @@ from trivia.models import (
     StartingFiveGame,
     Team,
 )
+from backend.throttles import ScoreSubmitRateThrottle
 from users import leaderboard
 from trivia.utils.fan_favorites import load_seed as load_fan_favorites_seed
 from trivia.utils.logo_utils import logo
@@ -239,6 +240,7 @@ def log_guesses(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([ScoreSubmitRateThrottle])
 def log_session(request):
     """Record one finished play (game, mode, score, duration) and award its points.
 

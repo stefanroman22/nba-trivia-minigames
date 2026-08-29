@@ -75,15 +75,44 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
-# Local-friendly cache. Swap to RedisCache (django_redis) in production by
-# setting a real Redis LOCATION; the in-memory cache needs no external service.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "nba-minigames-local",
-        "TIMEOUT": 60 * 60 * 24,  # 24h
+# Cache tiers, mirroring the REDIS_URL-or-fallback pattern users/leaderboard.py uses.
+#
+# This is load-bearing for rate limiting, not just performance: DRF stores throttle
+# counters here. LocMemCache is per-PROCESS, and every Vercel lambda is its own
+# process, so throttling on it would be silently near-useless — each cold start
+# resets the count and nothing warns you. Anywhere with a real database therefore
+# uses DatabaseCache (shared and correct, merely slower) unless Redis is available.
+_redis_url = os.environ.get("REDIS_URL")
+if _redis_url:
+    # Shared, fast, the production path. redis-py ships in requirements.txt.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+            "TIMEOUT": 60 * 60 * 24,  # 24h
+        }
     }
-}
+elif os.environ.get("DATABASE_URL"):
+    # Read from the environment, not the DATABASE_URL name — that is assigned
+    # further down this file, after this block runs.
+    # No Redis but a real (shared) database: correct throttling, one query per hit.
+    # The table is created by `manage.py createcachetable` in the build command.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.db.DatabaseCache",
+            "LOCATION": "django_cache_table",
+            "TIMEOUT": 60 * 60 * 24,  # 24h
+        }
+    }
+else:
+    # Local dev / CI on sqlite: single process, so in-memory is accurate here.
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "nba-minigames-local",
+            "TIMEOUT": 60 * 60 * 24,  # 24h
+        }
+    }
 
 
 # For development only - restrict in production!
@@ -119,8 +148,21 @@ if "https://*.vercel.app" not in CSRF_TRUSTED_ORIGINS:
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",  
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    # Applied per-view via backend/throttles.py — there is deliberately no
+    # DEFAULT_THROTTLE_CLASSES, so game-data reads stay unthrottled and only the
+    # endpoints worth abusing pay the cache lookup.
+    "DEFAULT_THROTTLE_RATES": {
+        # Generous for a human who mistypes a password; ruinous for a script that
+        # previously had no limit at all.
+        "auth-login": "30/hour",
+        "auth-signup": "10/hour",
+        # A real client needs ~4/hour per device (15-minute access tokens).
+        "auth-refresh": "60/hour",
+        # A game takes minutes to finish, so this is far above real play.
+        "score-submit": "60/hour",
+    },
 }
 
 from datetime import timedelta

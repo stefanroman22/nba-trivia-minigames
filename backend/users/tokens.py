@@ -15,6 +15,8 @@ from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from backend.throttles import RefreshRateThrottle
+
 MAX_SESSION_AGE = timedelta(days=90)
 AUTH_TIME_CLAIM = "auth_time"
 
@@ -39,3 +41,6 @@ class SessionRefreshSerializer(TokenRefreshSerializer):
 
 class SessionRefreshView(TokenRefreshView):
     serializer_class = SessionRefreshSerializer
+    # Each refresh rotates the token and writes a blacklist row, so this bounds
+    # both credential-stuffing against the refresh endpoint and table churn.
+    throttle_classes = [RefreshRateThrottle]

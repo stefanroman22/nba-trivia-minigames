@@ -11,11 +11,12 @@ from django.http import JsonResponse
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
+from backend.throttles import LoginRateThrottle, SignupRateThrottle
 
 from users import leaderboard
 from users.tokens import issue_session_tokens
@@ -77,6 +78,7 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
 # ---------------------------------------------------------------------------
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def login_view(request):
     """Sign in with email, username, or username#ID.
 
@@ -115,6 +117,7 @@ def login_view(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([SignupRateThrottle])
 def signup_view(request):
     try:
         username = str(request.data.get("username") or "").strip()
@@ -228,6 +231,7 @@ def logout_view(request):
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
 def google_login(request):
     try:
         code = json.loads(request.body).get("code")
