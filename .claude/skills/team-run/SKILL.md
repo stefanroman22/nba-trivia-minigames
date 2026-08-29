@@ -72,7 +72,10 @@ journal stage=design|build.
    checkout, run `npm ci` (or `npm install` if `npm ci` fails) at the repo root so the verify
    stage has `node_modules`. If the task touches `backend/`, also
    `cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt` (Linux
-   paths — the cloud VM is Linux, not Windows). The routine's setup script may be empty/no-op;
+   paths — the cloud VM is Linux, not Windows). If the diff touches `src/` or `backend/` (i.e.
+   the qa stage will run), also install the QA browser once:
+   `node node_modules/playwright-core/cli.js install --with-deps chromium` — non-fatal, if it
+   fails log one line and let the qa stage skip. The routine's setup script may be empty/no-op;
    the pipeline is responsible for its own dependencies in cloud mode.
 
 **design** (only if classify.needsDesignRound) → spawn planner-architect with
@@ -92,9 +95,10 @@ park. journal stage=qa.
 
 **qa** → if diff touches src/ or backend/: spawn browser-qa with qa-protocol skill.
 Fail → build (counts toward fixCycles). journal stage=review.
-   **[CLOUD]** Skip the browser-QA stage entirely (no Chrome in the cloud). Rely on the
-   verify stage (lint/tsc/build/Django tests) and code-review; the human reviews the shipped
-   result via the Slack `#pipeline` card and the dev link. Do not spawn browser-qa in cloud mode.
+   **[CLOUD]** Runs here too — QA is headless Playwright (`scripts/qa-browser.mjs`), not the
+   user's Chrome, so it works on a routine VM. The cloud deps step installs the browser.
+   If the browser genuinely cannot be installed, treat QA as skipped (log one line, continue
+   to review) rather than failing the task — never park a task over QA infrastructure.
 
 **review** → spawn code-reviewer (model opus) on the worktree diff
 (`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build

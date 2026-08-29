@@ -202,11 +202,17 @@ on: it runs as an **Anthropic Routine** (cloud), firing at **01:00** and **10:00
 `TEAM_CLOUD=1` set in its environment. That env var flips the `team-run` skill into its
 cloud mode (see `.claude/skills/team-run/SKILL.md` → `## Environment: local vs cloud`):
 each task works on a branch (`team/<slug>`) inside the routine's single clone instead of
-a worktree, the
-browser-QA stage is skipped entirely (no Chrome in the cloud — verify + code-review are
-the gate instead), and `NOTION_TOKEN`/`SLACK_BOT_TOKEN` are read from the environment
-instead of `.env.team`. Everything else — classify, build, verify, review, ship, park,
+a worktree, and `NOTION_TOKEN`/`SLACK_BOT_TOKEN` are read from the environment
+instead of `.env.team`. Everything else — classify, build, verify, QA, review, ship, park,
 the Slack batch post — is unchanged from local runs.
+
+**Browser QA runs in cloud too.** It is headless Playwright driven through
+`scripts/qa-browser.mjs`, not the user's Chrome, so it works on a routine VM. The cloud deps
+step installs the browser once per run
+(`node node_modules/playwright-core/cli.js install --with-deps chromium`); if that install
+fails, QA is skipped with a logged line rather than failing the task. Game tasks additionally
+run `scripts/ui-audit.mjs`, which measures the GAME_DESIGN_CONSTRAINTS shell contract and
+returns named assertion failures — deterministic, no visual judgment required.
 
 The **CTO** review/merge gate (§10) is unaffected by any of this — it already runs in
 GitHub Actions and doesn't care where the worker ran.
@@ -228,7 +234,8 @@ merge falls in a gap or gets reported twice.
 after a routine run is confirmed working; until then the local scheduled task is still
 the live trigger and must keep running, or the pipeline stops entirely. `npm run team`
 still works exactly as before for a manual local run, before or after cutover: no
-`TEAM_CLOUD` env var means local mode, worktrees, and full browser QA.
+`TEAM_CLOUD` env var means local mode and worktrees (QA itself is headless Playwright in
+both modes, so it is no longer a local-only stage).
 
 **Routine configuration.** The routine's environment needs three variables —
 `TEAM_CLOUD=1`, `NOTION_TOKEN`, `SLACK_BOT_TOKEN` — and its network access must allow

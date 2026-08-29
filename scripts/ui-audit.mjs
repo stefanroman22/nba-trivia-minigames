@@ -18,9 +18,9 @@
  *   docs/ui-audit/<label>/report.md    measurements + PASS/FAIL per rule
  *   docs/ui-audit/<label>/report.json  same data, machine-readable
  */
-import { chromium } from 'playwright-core';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { launchBrowser } from './qa-browser.mjs';
 
 const args = Object.fromEntries(
   process.argv.slice(2).join(' ').split('--').filter(Boolean)
@@ -125,7 +125,8 @@ function measureInPage() {
 
 async function run() {
   await mkdir(OUT, { recursive: true });
-  const browser = await chromium.launch({ channel: 'msedge' });
+  // Cloud-portable: Edge/Chrome locally, bundled Chromium on a routine VM.
+  const browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } });
   const results = [];
 
