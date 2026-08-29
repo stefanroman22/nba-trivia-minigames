@@ -17,12 +17,27 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 | Multiplayer ("Play Online") | **Dead** — old Railway host is gone, nothing currently deployed | needs a persistent Node host (see note) |
 
 **Supabase connection (important):** the project's *direct* host `db.<ref>.supabase.co` is
-**IPv6-only and unreachable from Vercel (IPv4)**. You must use the **session pooler**:
+**IPv6-only and unreachable from Vercel (IPv4)**. You must use the **transaction pooler** (port
+`6543`, not the session pooler's `5432` — see `settings.py`'s `conn_max_age=0` /
+`DISABLE_SERVER_SIDE_CURSORS` comments for why):
 ```
-DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:5432/postgres
+DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:6543/postgres
 ```
-(region `eu-central-1`, `aws-1` prefix, user `postgres.<ref>`). This URL is set on the backend
-Vercel project; `vercel.json`'s `buildCommand` runs `migrate` on each deploy.
+(region `eu-central-1`, `aws-1` prefix, user `postgres.<ref>` — the `.` suffix is how Supavisor
+identifies the tenant; without it you get `ENOIDENTIFIER`). Copy it from the Supabase dashboard's
+**Connect → Direct → Transaction pooler**, and percent-encode special characters in the password.
+This URL is set on the backend Vercel project; `vercel.json`'s `buildCommand` runs `migrate` on
+each deploy — so **a database outage fails the build**, and no backend deploy can ship while the
+DB is unreachable.
+
+**Reading Supavisor's error codes** (they name the fault precisely, so don't guess):
+
+| Code | Means |
+|---|---|
+| `ENOIDENTIFIER` | user is missing the `.{project-ref}` suffix |
+| `ENOTFOUND` | tenant/project ref doesn't exist |
+| `password authentication failed` | right tenant, wrong password |
+| `EAUTHQUERY` | pooler can't resolve the role or reach the tenant's database |
 
 **Multiplayer note:** Vercel serverless functions are short-lived and can't hold the persistent
 WebSocket connections / in-memory room state Socket.IO needs, so the multiplayer server in
@@ -47,6 +62,27 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 
 > The NBA blocks data-center IPs, so the data **refresh** must run from home. The cloud only
 > ever serves pre-built data.
+
+### How each service ships
+
+| Service | Trigger | Notes |
+|---|---|---|
+| Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration |
+| Django API | push to `main` | Vercel git integration, **Root Directory = `backend`** |
+| Multiplayer | Railway | not yet deployed |
+
+**The backend's Root Directory setting is load-bearing.** The repo root contains a valid Vite
+`vercel.json`; if the backend project's Root Directory is ever cleared, a git deploy will build
+the *frontend* and promote it onto `backend-kappa-one-42.vercel.app`, replacing the API with a
+React app. The build would succeed, so nothing would warn you.
+
+Manual deploy (fallback, and the only route before the git link existed):
+```bash
+cd backend && vercel deploy --prod
+```
+This uploads the **local working tree**, not a commit — deployments made this way show
+`gitDirty: 1` and can silently pin production to code that no longer matches any branch. Prefer
+pushing to `main`.
 
 ## One-time accounts (create as you need each phase)
 
