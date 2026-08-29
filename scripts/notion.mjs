@@ -56,6 +56,7 @@ const SCHEMA = {
   ] } },
   Branch: { rich_text: {} },
   PR: { url: {} },
+  SlackTs: { rich_text: {} },
   Paused: { checkbox: {} },
 };
 
@@ -143,6 +144,7 @@ async function cmdSetProps(pageId, args) {
   const props = {};
   const bi = args.indexOf("--branch"); if (bi > -1) props.Branch = { rich_text: text(args[bi + 1]) };
   const pi = args.indexOf("--pr"); if (pi > -1) props.PR = { url: args[pi + 1] };
+  const si = args.indexOf("--slack-ts"); if (si > -1) props.SlackTs = { rich_text: text(args[si + 1]) };
   await api(`pages/${pageId}`, "PATCH", { properties: props });
   console.log("props set");
 }
@@ -169,6 +171,26 @@ async function cmdArchiveCard(pageId) {
   console.log("archived");
 }
 
+async function cmdListAwaitingFeedback() {
+  const r = await api(`databases/${DB}/query`, "POST", {
+    filter: { property: "SlackTs", rich_text: { is_not_empty: true } },
+    page_size: 100,
+  });
+  const rows = r.results.filter(p => !isControl(p)).map(p => ({
+    id: p.id,
+    title: p.properties.Name.title.map(t => t.plain_text).join(""),
+    slackTs: (p.properties.SlackTs?.rich_text || []).map(t => t.plain_text).join(""),
+    pr: p.properties.PR?.url || "",
+    areas: (p.properties.Area?.multi_select || []).map(a => a.name),
+  })).filter(x => x.slackTs);
+  console.log(JSON.stringify(rows, null, 2));
+}
+
+async function cmdClearSlackTs(pageId) {
+  await api(`pages/${pageId}`, "PATCH", { properties: { SlackTs: { rich_text: [] } } });
+  console.log("slack-ts cleared");
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "setup": () => cmdSetup(args[0]),
@@ -182,6 +204,8 @@ const run = {
   "comment": () => cmdComment(args[0], args.filter(a => a !== "--mention").slice(1).join(" "), args.includes("--mention")),
   "create-card": () => cmdCreateCard(args[0], args.slice(1)),
   "archive-card": () => cmdArchiveCard(args[0]),
+  "list-awaiting-feedback": cmdListAwaitingFeedback,
+  "clear-slack-ts": () => cmdClearSlackTs(args[0]),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();

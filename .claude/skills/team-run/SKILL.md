@@ -17,14 +17,7 @@ Check the `TEAM_CLOUD` environment variable once at the start.
   **[CLOUD]** below. In short: work on a branch inside the current clone instead of a
   worktree, skip the browser-QA stage, and rely on `NOTION_TOKEN`/`SLACK_BOT_TOKEN` from the
   environment (no `.env.team`). Everything else — classify, build, verify, review, ship, park,
-  post-batch — is identical.
-  **[CLOUD] caveat:** the Slack reaction→follow-up loop (§0b) depends on
-  `.team/slack-state.json`, which does not persist across fresh-clone routine
-  firings, so in cloud mode reactions on cloud-posted cards are NOT ingested into
-  follow-up Notion cards. The reports still work (they read merged PRs, not local state).
-  To act on a 🔄 reaction in cloud-only operation, run a manual local `npm run team`
-  (local mode reads the state), or treat reaction-follow-ups as a local-run feature for
-  now.
+  post-batch, Slack feedback ingestion — is identical.
 
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
