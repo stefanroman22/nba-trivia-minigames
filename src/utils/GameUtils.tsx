@@ -110,7 +110,7 @@ export const games: Game[] = [
     id: "name-logo",
     name: "Name the NBA Club",
     tag: "LOGOS",
-    description: "Based on the logo, name the NBA team.",
+    description: "How many NBA logos do you actually know?",
     intro: "How sharp is your eye for NBA branding? Name the team behind the badge.",
     rules: [
       { n: "1", t: "A team logo appears each round." },
@@ -140,7 +140,7 @@ export const games: Game[] = [
     id: "guess-mvps",
     name: "Guess the MVP",
     tag: "LEGENDS",
-    description: "Name the MVP for a specific NBA season.",
+    description: "Who took home MVP that season?",
     intro: "Legends are made in the regular season. Recall who dominated each year.",
     rules: [
       { n: "1", t: "A specific season is shown." },
@@ -170,7 +170,7 @@ export const games: Game[] = [
     id: "starting-five",
     name: "Fill in the Starting 5",
     tag: "LINEUPS",
-    description: "Name the starting lineup of the winning team.",
+    description: "Can you name all five who started?",
     intro: "Be the coach's memory — name the full starting five of the winning team.",
     rules: [
       { n: "1", t: "A real game and its winner are shown." },
@@ -232,7 +232,7 @@ export const games: Game[] = [
     id: "fan-favorites",
     name: "Fan Favorites",
     tag: "SURVEY",
-    description: "Guess what 100 NBA fans answered.",
+    description: "Can you guess what 100 NBA fans said?",
     intro: "Think like the crowd. The most popular answers score the board.",
     rules: [
       { n: "1", t: "We asked 100 NBA fans a question — their top answers are hidden on the board." },
@@ -262,7 +262,7 @@ export const games: Game[] = [
     id: "heatmap",
     name: "The Heatmap",
     tag: "HEX",
-    description: "Claim hexes by naming players who fit a criterion and all its neighbours.",
+    description: "How much of the board can you claim?",
     intro: "A board of NBA criteria — every claimed hex turns orange. How deep can you push?",
     rules: [
       { n: "1", t: "Tap a hex — each one is an NBA criterion (team, award, stat, draft…)." },
@@ -292,7 +292,7 @@ export const games: Game[] = [
     id: "connections",
     name: "NBA Connections",
     tag: "GROUPS",
-    description: "Group the 16 players into 4 groups.",
+    description: "Four hidden links. Can you find them all?",
     intro: "Four hidden connections tie the board together. Spot the traps.",
     rules: [
       { n: "1", t: "Select exactly 4 players you think share a link, then submit." },
@@ -322,7 +322,7 @@ export const games: Game[] = [
     id: "career-path",
     name: "Career Path Challenge",
     tag: "JOURNEY",
-    description: "Guess the player based on the career path.",
+    description: "Whose career path is this?",
     intro: "One career, card by card. Name the player before the trail runs out.",
     rules: [
       { n: "1", t: "The first team stint is revealed — years, team, GP, PPG." },
@@ -352,7 +352,7 @@ export const games: Game[] = [
     id: "nba-grid",
     name: "NBA Grid",
     tag: "GRID",
-    description: "Fill the grid with players.",
+    description: "Can you fill every square?",
     intro: "Nine cells, nine guesses. Rare answers earn the bragging rights.",
     rules: [
       { n: "1", t: "Each cell crosses two criteria (franchise, award, stat, draft…)." },
@@ -382,7 +382,7 @@ export const games: Game[] = [
     id: "who-are-ya",
     name: "Who Are Ya?",
     tag: "MYSTERY",
-    description: "Find the player with hints and a blurred image.",
+    description: "Name him before the photo clears.",
     intro: "Blur, clues, deduction. Unmask the mystery player in as few guesses as you can.",
     rules: [
       { n: "1", t: "Guess any player — attributes come back green (exact) or yellow (close)." },
@@ -442,7 +442,7 @@ export const games: Game[] = [
     id: "bingo",
     name: "NBA Bingo",
     tag: "DAB",
-    description: "Match each player to the right category.",
+    description: "Can you fill your card first?",
     intro: "Allocation is the tension: a superstar fits six cells but can only dab one.",
     rules: [
       { n: "1", t: "Players are dealt one at a time — dab each onto exactly one matching cell." },
@@ -502,7 +502,7 @@ export const games: Game[] = [
     id: "pack-five",
     name: "Pack 5",
     tag: "CARDS",
-    description: "Flip through a pack of player cards — pick the stat that beats the hidden next card.",
+    description: "Higher or lower? Call the next card.",
     intro: "Premium card-pack feel, poker nerves. Choose the stat that survives.",
     rules: [
       { n: "1", t: "On each card, pick one of 5 stats (PPG, RPG, APG, rings, All-Stars)." },
@@ -532,7 +532,7 @@ export const games: Game[] = [
     id: "superdraft",
     name: "SuperDraft Five",
     tag: "DRAFT",
-    description: "Draft a team based on a benchmark.",
+    description: "Can you draft a five that beats the benchmark?",
     intro: "Five slots, five random pools, one objective. Build the lineup that maxes the metric.",
     rules: [
       { n: "1", t: "Each slot offers a randomized pool (a franchise, a country, a draft class…)." },
