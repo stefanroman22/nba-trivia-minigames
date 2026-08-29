@@ -150,9 +150,13 @@ socket falls back the same way the backend does — except that with nothing dep
 
 `npm run dev` runs `scripts/dev-env.mjs` first (via the `predev` hook), which TCP-probes
 `localhost:8000` and `localhost:4000` and writes the result to a gitignored `.env.local` — local
-if the service answers, the deployed production one otherwise. Whenever a service resolves to the
-deployed one, a `PROD DATA` badge appears in the running app (dev-only) and the terminal prints a
-banner naming each service's mode.
+if the service answers, the deployed production one otherwise. The terminal prints a banner
+naming each service's mode; whenever the *backend* resolves to the deployed one, a `PROD DATA`
+badge also appears in the running app (dev-only). The badge only tracks the backend — it does
+not read the socket's resolution, so it gives no warning if the socket ever falls back to a
+deployed one. That's harmless today because there's nothing for the socket to fall back to (see
+above), but whoever wires up `REMOTE_SOCKET_URL` for the Railway deploy (§5.5/E3) should extend
+the badge to cover `VITE_ENV_SOURCE_SOCKET` too, or a socket-only fallback will go unwarned.
 
 **Why dev and production intentionally share one backend and one Supabase project:** there is no
 second Supabase project. Decision, not oversight — an extra free-tier project can auto-pause
