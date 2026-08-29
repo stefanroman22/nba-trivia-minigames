@@ -68,21 +68,32 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 | Service | Trigger | Notes |
 |---|---|---|
 | Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration |
-| Django API | push to `main` | Vercel git integration, **Root Directory = `backend`** |
+| Django API | **manual CLI only** — `cd backend && vercel deploy --prod` | project is *not* git-connected |
 | Multiplayer | Railway | not yet deployed |
 
-**The backend's Root Directory setting is load-bearing.** The repo root contains a valid Vite
-`vercel.json`; if the backend project's Root Directory is ever cleared, a git deploy will build
-the *frontend* and promote it onto `backend-kappa-one-42.vercel.app`, replacing the API with a
-React app. The build would succeed, so nothing would warn you.
+The manual deploy uploads the **local working tree**, not a commit — such deployments show
+`gitDirty: 1` and can silently pin production to code matching no branch. Production once ran a
+weeks-old commit this way while `dev` moved on.
 
-Manual deploy (fallback, and the only route before the git link existed):
-```bash
-cd backend && vercel deploy --prod
-```
-This uploads the **local working tree**, not a commit — deployments made this way show
-`gitDirty: 1` and can silently pin production to code that no longer matches any branch. Prefer
-pushing to `main`.
+**Why the backend isn't git-connected — read before reconnecting it.** Connecting it is only
+safe once the Vercel project's **Root Directory** is set to `backend`. Without that, Vercel
+builds from the repo root, applies the root `.vercelignore` (which exists to strip `backend/`
+from the *frontend* build), deletes every Django source file, and builds the Vite frontend
+instead — then promotes that onto `backend-kappa-one-42.vercel.app`. **The build succeeds**, so
+nothing fails loudly; the API just starts returning HTML. This happened on 2026-08-29.
+
+Verify the Root Directory takes effect before trusting production to it:
+
+1. Set Root Directory to `backend` (Settings → Build and Deployment) and save.
+2. `cd backend && vercel git connect https://github.com/stefanroman22/nba-trivia-minigames`
+3. Push a throwaway branch (**not** `dev` — `dev` auto-promotes to `main` and would deploy to
+   production). A non-`dev` branch produces a preview build only.
+4. Read that build's log. It must clone and run `pip`/`manage.py migrate`. If it says
+   `Removed N ignored files` listing `/backend/...`, or installs npm packages, the Root
+   Directory is not applied — `vercel git disconnect` immediately.
+5. Only then push `dev` and let CI promote to `main`.
+
+Preview URLs are SSO-protected, so verify from the **build log**, not by curling the preview.
 
 ## One-time accounts (create as you need each phase)
 
