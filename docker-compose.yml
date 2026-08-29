@@ -1,0 +1,19 @@
+# Optional local Postgres, for parity with production when a task touches models
+# or migrations. sqlite remains the default: nothing here is required day to day.
+#   docker compose up -d db     # start
+#   docker compose down         # stop (add -v to also delete the data volume)
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nba-minigames-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - nba-pgdata:/var/lib/postgresql/data
+volumes:
+  nba-pgdata:

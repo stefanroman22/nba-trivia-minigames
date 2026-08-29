@@ -127,3 +127,46 @@ for how, how often, and how it's monitored.
 - Real verification of R2 upload / Postgres connection / Redis requires the live accounts.
 - Full multi-instance multiplayer matchmaking needs the in-memory match state moved into Redis.
 - Mobile app: point it at the same CDN pools + API; not yet in this repo.
+
+## Environments (local / dev / production)
+
+Design background: `docs/superpowers/specs/2026-08-29-three-environment-strategy-design.md`.
+
+| | Frontend | Backend | Socket | Database |
+|---|---|---|---|---|
+| **local** | Vite `:5173` | local `:8000`, else **prod fallback** | local `:4000`, else **prod fallback** | sqlite (default) or local Postgres |
+| **dev** | dev-branch Vercel URL (`https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app`) | production backend | production socket | production Supabase |
+| **production** | `https://nba-minigames.vercel.app` | `https://backend-kappa-one-42.vercel.app/api` | production socket | production Supabase |
+
+`dev` and `production` differ only in which frontend build is served — deliberately: there is no
+separate deployed dev backend, because a deployed backend needs a hosted database and that
+reintroduces the cost/pause problem below. "Isolated backend work" happens locally.
+
+**Note on the socket row:** there is currently no production multiplayer server deployed (the old
+Railway host is dead), so both `dev` and `production` actually get no socket today, and
+"Play Online" is broken in both. Redeploying it is a separate, owner-gated task. Locally, the
+socket falls back the same way the backend does — except that with nothing deployed to fall back
+*to*, the probe (below) reports `socket : UNAVAILABLE` instead of pointing at a remote host.
+
+`npm run dev` runs `scripts/dev-env.mjs` first (via the `predev` hook), which TCP-probes
+`localhost:8000` and `localhost:4000` and writes the result to a gitignored `.env.local` — local
+if the service answers, the deployed production one otherwise. Whenever a service resolves to the
+deployed one, a `PROD DATA` badge appears in the running app (dev-only) and the terminal prints a
+banner naming each service's mode.
+
+**Why dev and production intentionally share one backend and one Supabase project:** there is no
+second Supabase project. Decision, not oversight — an extra free-tier project can auto-pause
+itself or start costing money, and this design adds no such surface. Local writes made against
+the production fallback can reach real production data; the badge and banner exist to make that
+impossible to miss, not to block it.
+
+**Local Postgres (optional, parity only):** sqlite remains the default and nothing requires
+Docker. To use Postgres instead, for parity when a task touches models or migrations:
+```bash
+docker compose up -d db
+```
+then set in `backend/.env`:
+```
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+```
+and run `python manage.py migrate`. Unset `DATABASE_URL` to return to sqlite.
