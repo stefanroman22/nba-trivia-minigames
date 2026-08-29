@@ -131,8 +131,11 @@ When a production socket is redeployed, the only change is setting that constant
 
 ### 5.4 The `PROD DATA` badge
 A small fixed-corner badge, rendered **only** when `import.meta.env.DEV` is true and
-`VITE_ENV_SOURCE_BACKEND === "remote"`. Dev-only by construction — the condition is statically
-false in a production build, so it cannot ship. Purely visual; it blocks nothing (decision 4).
+`VITE_BACKEND_URL` itself resolves to a non-local host, rather than the probe's
+`VITE_ENV_SOURCE_BACKEND` flag — Vite gives an inline `VITE_*` env var the highest precedence of
+all env sources, so the two could otherwise disagree. Dev-only by construction — `import.meta.env.DEV`
+is still the first check and is statically false in a production build, so it cannot ship. Purely
+visual; it blocks nothing (decision 4).
 
 ### 5.5 Production multiplayer server (Railway)
 Socket.IO needs a persistent process holding long-lived connections, so Vercel serverless — where

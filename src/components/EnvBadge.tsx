@@ -17,7 +17,9 @@ export default function EnvBadge() {
   // Local hosts are safe; anything else is a deployed backend holding real data.
   // An empty URL means VITE_BACKEND_URL is unset and the app falls back to .env's
   // localhost default, so it must NOT trigger the badge either.
-  if (url === "" || /^https?:\/\/(localhost|127\.0\.0\.1)\b/.test(url)) return null;
+  // Case-insensitive with an explicit terminator (not `\b`, which `.`/`-` also satisfy) so
+  // `localhost.evil.com` doesn't hide the badge and `[::1]`/`LOCALHOST` don't falsely show it.
+  if (url === "" || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])([:/?#]|$)/i.test(url)) return null;
 
   return (
     <div

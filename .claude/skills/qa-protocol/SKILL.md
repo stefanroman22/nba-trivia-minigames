@@ -16,11 +16,14 @@ vite 5273, socket 4100) so the user's own dev servers (8000/5173/4000) are never
 2. Backend (only if the task touches backend or the page needs live data), backgrounded:
    `cd backend && .venv/bin/python manage.py runserver 8100`
    (Windows local: `.venv\Scripts\python`.)
-3. Frontend, backgrounded, from the task's working tree:
-   - bash: `VITE_BACKEND_URL=http://localhost:8100 npm run dev -- --port 5273`
+3. Frontend, backgrounded, from the task's working tree. Both forms set `NBA_DEV_ENV_SKIP=1`:
+   this runs inside a task worktree, and `scripts/dev-env.mjs`'s `predev` probe must never read
+   the user's own :8000/:4000 from there — QA pins its URLs explicitly anyway, so the probe is
+   redundant here.
+   - bash: `NBA_DEV_ENV_SKIP=1 VITE_BACKEND_URL=http://localhost:8100 npm run dev -- --port 5273`
    - PowerShell (`VAR=x cmd` is a bash-only prefix and is a parse error here — `npm run team`
      runs via `powershell.exe -File scripts/team-run.ps1`, so an agent on Windows needs this
-     form): `$env:VITE_BACKEND_URL = 'http://localhost:8100'; npm run dev -- --port 5273`
+     form): `$env:NBA_DEV_ENV_SKIP = '1'; $env:VITE_BACKEND_URL = 'http://localhost:8100'; npm run dev -- --port 5273`
 4. Multiplayer server only if the task touches multiplayer.
 
 Always address servers as `http://localhost:<port>` — never `127.0.0.1`, because Vite may
