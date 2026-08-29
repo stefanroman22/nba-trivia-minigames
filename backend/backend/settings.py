@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-from .env_utils import env_bool, env_list
+from .env_utils import env_bool, env_list, env_list_merge
 
 
 # Quick-start development settings - unsuitable for production
@@ -89,15 +89,25 @@ CACHES = {
 # For development only - restrict in production!
 CORS_ALLOW_CREDENTIALS = True
 
-# Local dev origins by default; production adds the deployed frontend via env (comma-separated).
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS",
-    ["http://localhost:5173", "http://127.0.0.1:5173"],
-)
-CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS",
-    ["http://localhost:5173", "http://127.0.0.1:5173"],
-)
+# Origins the frontend is actually served from. Kept in code rather than env because
+# the env var is *additive* (env_list_merge): a partial CORS_ALLOWED_ORIGINS can no
+# longer evict these and lock the deployed frontends out of the API — which is exactly
+# what happened once. Set the env var only to add an origin (a custom domain, say).
+FRONTEND_ORIGINS = [
+    "https://nba-minigames.vercel.app",
+    "https://nba-minigames-stefanromanpers-5412s-projects.vercel.app",
+    "https://nba-minigames-git-main-stefanromanpers-5412s-projects.vercel.app",
+    "https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app",
+    # Local dev frontend. Deliberate, and it applies in production too: it lets
+    # `npm run dev` fall back to the deployed backend when no local Django is
+    # running (docs/DEPLOYMENT.md -> Environments). The tradeoff is that any page
+    # served from localhost can call this API with credentials.
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
+CORS_ALLOWED_ORIGINS = env_list_merge("CORS_ALLOWED_ORIGINS", FRONTEND_ORIGINS)
+CSRF_TRUSTED_ORIGINS = env_list_merge("CSRF_TRUSTED_ORIGINS", FRONTEND_ORIGINS)
 # Trust the per-deployment Vercel HTTPS origin + all *.vercel.app aliases (CSRF origins
 # need a scheme, so build it from the bare VERCEL_URL host).
 if _vercel_url:

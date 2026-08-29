@@ -16,3 +16,18 @@ def env_list(name, default):
     if not raw:
         return list(default)
     return [item.strip() for item in raw.split(",") if item.strip()]
+
+
+def env_list_merge(name, base):
+    """Like env_list, but the env var ADDS to `base` instead of replacing it.
+
+    Use where dropping a baseline entry would break the app rather than merely
+    narrow it: setting CORS_ALLOWED_ORIGINS to a partial list once locked the
+    deployed frontends out of the API. Order is preserved (base first) and
+    duplicates are collapsed. `base` is never mutated.
+    """
+    merged = list(base)
+    for item in env_list(name, []):
+        if item not in merged:
+            merged.append(item)
+    return merged
