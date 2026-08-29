@@ -335,9 +335,13 @@ path('get-users/', get_users, name='get-users'),
 `backend/backend/settings.py` reads simple string/URL env vars directly —
 `os.environ.get("DJANGO_SECRET_KEY", <dev-only-default>)`, `os.environ.get("DATABASE_URL")`,
 `os.getenv("CLIENT_ID")` (in `users/views.py`) — and routes anything boolean or comma-separated
-through `backend/backend/env_utils.py`'s `env_bool`/`env_list`:
-`DEBUG = env_bool("DJANGO_DEBUG", True)`, `ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", [...])`,
-`CORS_ALLOWED_ORIGINS = env_list(...)`, `CSRF_TRUSTED_ORIGINS = env_list(...)`. Local dev loads
+through `backend/backend/env_utils.py`'s `env_bool`/`env_list`/`env_list_merge`:
+`DEBUG = env_bool("DJANGO_DEBUG", True)`, `ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", [...])`.
+`CORS_ALLOWED_ORIGINS` / `CSRF_TRUSTED_ORIGINS` use **`env_list_merge`**, not `env_list`: the env
+value is *added* to `settings.FRONTEND_ORIGINS` rather than replacing it, so a partial value can
+never evict the deployed frontends and lock them out of the API (it did once). Reach for
+`env_list_merge` for any list where dropping a baseline entry breaks the app rather than merely
+narrowing it. Local dev loads
 `backend/.env` via `load_dotenv(BASE_DIR / ".env")` (gitignored); production sets real env vars
 (documented in `backend/.env.example`, `docs/DEPLOYMENT.md`). No secret is ever hardcoded as a
 literal for production use — the one inline default (`SECRET_KEY`'s `"django-insecure-..."`

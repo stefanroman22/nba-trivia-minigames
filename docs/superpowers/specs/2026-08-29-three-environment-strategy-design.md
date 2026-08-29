@@ -50,6 +50,12 @@ returns one. `settings.py` defaults include localhost, but production sets
 **Fix:** add `http://localhost:5173` (and `http://127.0.0.1:5173`) to the backend Vercel
 project's `CORS_ALLOWED_ORIGINS` **and** `CSRF_TRUSTED_ORIGINS` env vars, then redeploy.
 
+**Resolved, 2026-08-29 — and the replace semantics are gone.** Applying the fix above by
+*replacing* rather than appending briefly locked the deployed frontends out of the API. Both
+settings now use `env_list_merge`: the env value is added to `settings.FRONTEND_ORIGINS`
+(which lists every frontend origin, localhost included) and can no longer evict it. The
+localhost entries live in code now, so no env var is required for the fallback to work.
+
 **Tradeoff, stated explicitly:** this permanently allows any page served from localhost to call
 the production API with credentials. The backend exposes game data and per-user score endpoints,
 no admin surface. Judged acceptable; it is a real loosening of production and **requires the
