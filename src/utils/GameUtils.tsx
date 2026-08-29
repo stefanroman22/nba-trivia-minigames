@@ -232,7 +232,7 @@ export const games: Game[] = [
     id: "fan-favorites",
     name: "Fan Favorites",
     tag: "SURVEY",
-    description: "100 NBA fans answered. Match them.",
+    description: "Can you find out what other 100 NBA fans answered?",
     intro: "Think like the crowd. The most popular answers score the board.",
     rules: [
       { n: "1", t: "We asked 100 NBA fans a question — their top answers are hidden on the board." },
@@ -292,7 +292,7 @@ export const games: Game[] = [
     id: "connections",
     name: "NBA Connections",
     tag: "GROUPS",
-    description: "Sixteen players hide four links.",
+    description: "16 players hide 4 links.",
     intro: "Four hidden connections tie the board together. Spot the traps.",
     rules: [
       { n: "1", t: "Select exactly 4 players you think share a link, then submit." },
@@ -382,7 +382,7 @@ export const games: Game[] = [
     id: "who-are-ya",
     name: "Who Are Ya?",
     tag: "MYSTERY",
-    description: "Name him before the photo clears.",
+    description: "Find the player with hints and a blurred image.",
     intro: "Blur, clues, deduction. Unmask the mystery player in as few guesses as you can.",
     rules: [
       { n: "1", t: "Guess any player — attributes come back green (exact) or yellow (close)." },
