@@ -95,6 +95,19 @@ Verify the Root Directory takes effect before trusting production to it:
 
 Preview URLs are SSO-protected, so verify from the **build log**, not by curling the preview.
 
+**`vercel rollback` pins the production domain.** After a rollback, later git deploys build,
+go READY, and never serve traffic — the alias keeps pointing at the rolled-back deployment, with
+no warning. `latestDeployment` in the API shows the new one, so it looks shipped. Health checks
+can't tell you either: the pinned deployment is also healthy Django. Confirm what is actually
+serving with
+
+```bash
+vercel inspect backend-kappa-one-42.vercel.app   # prints the serving deployment id
+```
+
+and clear the pin with `vercel promote <deployment-url>`. On 2026-08-29 this silently held
+production on a two-hour-old build across several "successful" deploys.
+
 ## One-time accounts (create as you need each phase)
 
 1. **GitHub** — already done (repo pushed).
