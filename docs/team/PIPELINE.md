@@ -224,9 +224,24 @@ workflow (`.github/workflows/team-reports.yml`), on a cron at **05:30 and 15:30 
 posts one session line to `#pipeline` (`N task(s) shipped` + titles/links, or "no work
 this session" when the window was empty), and — only when there's something to say — a
 per-engine detail post to `#agent-frontend`/`#agent-backend` from each PR's `## Agent
-notes` block. The window for each run is read from `github.event.schedule`, not guessed
-from the clock, and the two windows are back-to-back (`[prev report, this report)`) so no
-merge falls in a gap or gets reported twice.
+notes` block. The window for each run is read from `github.event.schedule` — or from the
+`session` dispatch input (`night`/`day`) — never guessed from the clock, and the two
+windows are back-to-back so no merge falls in a gap or gets reported twice.
+
+**Who actually fires it (since 2026-08-30).** GitHub's own scheduler proved hours late
+(3–6h observed), so the punctual trigger is the Cloudflare Worker **`nba-report-cron`**
+(`infra/report-cron/`, account `8d0328…`, subdomain `stefanroman.workers.dev`): cron
+`30 5 * * *` / `30 15 * * *` UTC → `workflow_dispatch` with the matching `session`. The
+GitHub crons stay enabled as a late-firing backup. Double-posting is impossible: the
+duplicate guard in `cmdDigestWindow` (`scripts/slack.mjs`) skips the whole run if the
+window's report already sits in `#pipeline` history (bot-authored, within `end`+23h — the
+same label recurs daily, hence the bound; matching is emoji-free because Slack stores
+`📋` as `:clipboard:`). Whichever scheduler fires first posts; the other logs
+`already posted, skipping`. The Worker's `GITHUB_TOKEN` secret is a fine-grained PAT
+(repo-scoped, Actions R/W) that **expires yearly** — re-enter it with
+`wrangler secret put GITHUB_TOKEN -c infra/report-cron/wrangler.toml`. Worker health is
+visible only in the Cloudflare dashboard (a failed dispatch throws, marking the
+invocation failed).
 
 **Local scheduled tasks — retire only after cutover.** To switch fully to cloud, run
 `scripts/unregister-team-cron.ps1` to retire the local `nba-team-pipeline` /
