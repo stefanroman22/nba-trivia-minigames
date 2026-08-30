@@ -198,10 +198,12 @@ async function cmdDigestWindow(startISO, endISO, label) {
   // the emoji-free remainder of the head line.
   const matchKey = head.replace("📋 ", "");
   if (chan) {
+    // latest = end+23h: the same label recurs daily, so cap the search before the next occurrence's territory.
     const hist = await apiTry("conversations.history", {
-      channel: chan, oldest: String(end / 1000), inclusive: "true", limit: "100",
+      channel: chan, oldest: String(end / 1000), latest: String(end / 1000 + 23 * 3600),
+      inclusive: "true", limit: "100",
     });
-    if (hist.ok && (hist.messages || []).some((m) => (m.text || "").includes(matchKey))) {
+    if (hist.ok && (hist.messages || []).some((m) => m.bot_id && (m.text || "").includes(matchKey))) {
       console.log("already posted, skipping (found this window's report in channel history)");
       return;
     }
