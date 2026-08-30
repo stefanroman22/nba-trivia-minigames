@@ -190,9 +190,15 @@ html { scroll-behavior: smooth; }
   font-family: inherit;
   width: 100%;
   outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, color 0.3s ease;
 }
 .profile-value--muted { color: var(--muted); }
-.profile-input:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.profile-input:focus:not(:read-only) { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.profile-username { color: var(--muted); }
+.profile-username:read-only { cursor: default; }
+.profile-username.is-active { color: var(--text); }
+.profile-username.is-saved { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.profile-edit-btn:disabled { opacity: 0.6; cursor: default; }
 
 .profile-stats { display: flex; gap: 12px; }
 .profile-stat {

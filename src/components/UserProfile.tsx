@@ -16,10 +16,13 @@ function UserProfile() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempUsername, setTempUsername] = useState(user?.username || "");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [idCopied, setIdCopied] = useState(false);
   const idCopyTimer = useRef<number | null>(null);
+  const savedTimer = useRef<number | null>(null);
+  const usernameInputRef = useRef<HTMLInputElement | null>(null);
 
   // Display names don't need to be unique — the public ID keeps players
   // distinct — so the only rule is the format.
@@ -46,17 +49,35 @@ function UserProfile() {
       return;
     }
 
-    const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
-      method: "POST",
-      body: JSON.stringify({ username: tempUsername }),
-    });
-    const data = await response.json();
+    // Optimistic: reflect the new name instantly and reconcile with the
+    // backend in the background, reverting if it rejects the change.
+    const previousUsername = user?.username || "";
+    dispatch(updateUsername(tempUsername));
+    setIsEditing(false);
+    setSaveState("saving");
 
-    if (data.error) {
-      showErrorAlert(data.error, "Username change failed");
-    } else {
-      dispatch(updateUsername(tempUsername));
-      setIsEditing(false);
+    try {
+      const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
+        method: "POST",
+        body: JSON.stringify({ username: tempUsername }),
+      });
+      const data = await response.json();
+
+      if (data.error) {
+        dispatch(updateUsername(previousUsername));
+        setTempUsername(previousUsername);
+        setSaveState("idle");
+        showErrorAlert(data.error, "Username change failed");
+      } else {
+        setSaveState("saved");
+        if (savedTimer.current) window.clearTimeout(savedTimer.current);
+        savedTimer.current = window.setTimeout(() => setSaveState("idle"), 1600);
+      }
+    } catch {
+      dispatch(updateUsername(previousUsername));
+      setTempUsername(previousUsername);
+      setSaveState("idle");
+      showErrorAlert("Could not reach the server. Please try again.", "Username change failed");
     }
   };
 
@@ -177,26 +198,41 @@ function UserProfile() {
             <span>Username</span>
             <button
               className="profile-edit-btn"
+              disabled={saveState === "saving"}
               onClick={() => {
                 if (isEditing) handleSave();
-                else { setTempUsername(user?.username || ""); setIsEditing(true); }
+                else {
+                  setTempUsername(user?.username || "");
+                  setIsEditing(true);
+                  usernameInputRef.current?.focus();
+                }
               }}
             >
-              {isEditing ? "Confirm" : "Change"}
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.span
+                  key={isEditing ? "confirm" : saveState}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  style={{ display: "inline-block" }}
+                >
+                  {isEditing ? "Confirm" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Change"}
+                </motion.span>
+              </AnimatePresence>
             </button>
           </div>
-          {isEditing ? (
-            <input
-              type="text"
-              maxLength={20}
-              value={tempUsername}
-              onChange={(e) => setTempUsername(e.target.value)}
-              className="profile-input"
-              autoFocus
-            />
-          ) : (
-            <div className="profile-value">{user?.username}</div>
-          )}
+          <input
+            ref={usernameInputRef}
+            type="text"
+            maxLength={20}
+            readOnly={!isEditing}
+            value={isEditing ? tempUsername : user?.username || ""}
+            onChange={(e) => setTempUsername(e.target.value)}
+            className={`profile-input profile-username${
+              (isEditing && tempUsername !== (user?.username || "")) || saveState !== "idle" ? " is-active" : ""
+            }${saveState === "saved" ? " is-saved" : ""}`}
+          />
         </div>
 
         <div className="profile-field">
@@ -206,7 +242,7 @@ function UserProfile() {
               {idCopied ? "Copied!" : "Copy"}
             </button>
           </div>
-          <div className="profile-value tnum" title="Your permanent ID — share it so friends can tell you apart from same-named players.">
+          <div className="profile-value profile-value--muted tnum" title="Your permanent ID — share it so friends can tell you apart from same-named players.">
             #{user?.id}
           </div>
         </div>

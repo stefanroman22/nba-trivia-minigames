@@ -102,10 +102,9 @@ function Navigation({ type = "full" }: NavigationProps) {
         {user ? (
           <button onClick={() => go("leaderboard")} className="nav3-user">
             <UserAvatar photo={user.profile_photo} name={user.username} />
-            <span className="nav3-user-meta hide-sm">
+            <span className="nav3-user-meta hide-sm" style={{ alignItems: "center", textAlign: "center" }}>
               <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
               <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
-              <span className="tnum" style={{ fontSize: 10, color: "var(--brand)", fontWeight: 600 }}>{user.points} pts</span>
             </span>
           </button>
         ) : (
