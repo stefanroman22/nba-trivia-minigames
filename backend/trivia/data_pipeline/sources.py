@@ -347,6 +347,124 @@ def fetch_starting_five(seasons, max_games_per_season=40, per_call_timeout=15, p
 
 
 # ---------------------------------------------------------------------------
+#  Curated players  (two bulk endpoints + three per-player endpoints)
+# ---------------------------------------------------------------------------
+def _int(value, default=None):
+    """int(value) for API fields that arrive as str/float/None/''."""
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def fetch_draft_history(per_call_timeout=30):
+    """Every draft pick ever, keyed for lookup by person_id.
+
+    BULK — one call covers all ~8.4k picks, so this is fetched once and indexed
+    rather than queried per player. Crucially the team here is the team as it
+    was ON DRAFT NIGHT (Seattle for Kevin Durant, Atlanta for Luka Dončić,
+    Charlotte for Shai Gilgeous-Alexander) — never the player's later franchise.
+    """
+    from nba_api.stats.endpoints import drafthistory
+
+    data = retry(
+        lambda: drafthistory.DraftHistory(timeout=per_call_timeout).get_normalized_dict(),
+        label="DraftHistory",
+    )
+    out = []
+    for r in data.get("DraftHistory", []):
+        pid = _int(r.get("PERSON_ID"))
+        year = _int(r.get("SEASON"))
+        if not pid or year is None:
+            continue
+        out.append(
+            {
+                "person_id": pid,
+                "year": year,
+                "round": _int(r.get("ROUND_NUMBER"), 0),
+                "pick": _int(r.get("OVERALL_PICK"), 0),
+                "team_id": _int(r.get("TEAM_ID"), 0),
+                "team_abbr": (r.get("TEAM_ABBREVIATION") or "").strip(),
+                "organization": (r.get("ORGANIZATION") or "").strip(),
+                "organization_type": (r.get("ORGANIZATION_TYPE") or "").strip(),
+            }
+        )
+    return out
+
+
+def fetch_franchise_history(per_call_timeout=30):
+    """Every franchise NAME era (active + defunct) as {team_id, name, start/end_year}.
+
+    BULK — feeds era-accurate stint naming: team_id 1610612760 is the Seattle
+    SuperSonics through 2007-08 and the Oklahoma City Thunder from 2008-09.
+    The endpoint also returns one whole-franchise summary row per team (widest
+    span, current name); callers resolve a season to the NARROWEST matching era,
+    which ignores those summaries and picks Bobcats over Hornets for 2004-2013.
+    """
+    from nba_api.stats.endpoints import franchisehistory
+
+    data = retry(
+        lambda: franchisehistory.FranchiseHistory(timeout=per_call_timeout).get_normalized_dict(),
+        label="FranchiseHistory",
+    )
+    out = []
+    for key in ("FranchiseHistory", "DefunctTeams"):
+        for r in data.get(key, []):
+            team_id = _int(r.get("TEAM_ID"))
+            start = _int(r.get("START_YEAR"))
+            end = _int(r.get("END_YEAR"))
+            name = f"{(r.get('TEAM_CITY') or '').strip()} {(r.get('TEAM_NAME') or '').strip()}".strip()
+            if not team_id or start is None or end is None or not name:
+                continue
+            out.append({"team_id": team_id, "name": name, "start_year": start, "end_year": end})
+    return out
+
+
+def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
+    """The three per-player endpoints behind one curated row, raw.
+
+    Returns {"info": [...], "career": [...], "career_totals": [...], "awards": [...]}
+    exactly as the API gives it — the caller caches this and assembles rows from
+    it offline, so re-shaping a row never re-hits the network. Raises if any of
+    the three endpoints is still failing after retry(): a partially fetched
+    player must never become a null-filled row.
+    """
+    import random
+
+    from nba_api.stats.endpoints import commonplayerinfo, playercareerstats, playerawards
+
+    def _paced(fn, label):
+        result = retry(fn, label=f"{label} {person_id}")
+        time.sleep(pause + random.uniform(0, pause / 2))  # polite + jittered
+        return result
+
+    info = _paced(
+        lambda: commonplayerinfo.CommonPlayerInfo(
+            player_id=person_id, timeout=per_call_timeout
+        ).get_normalized_dict(),
+        "CommonPlayerInfo",
+    )
+    career = _paced(
+        lambda: playercareerstats.PlayerCareerStats(
+            player_id=person_id, timeout=per_call_timeout
+        ).get_normalized_dict(),
+        "PlayerCareerStats",
+    )
+    awards = _paced(
+        lambda: playerawards.PlayerAwards(
+            player_id=person_id, timeout=per_call_timeout
+        ).get_normalized_dict(),
+        "PlayerAwards",
+    )
+    return {
+        "info": info.get("CommonPlayerInfo", []),
+        "career": career.get("SeasonTotalsRegularSeason", []),
+        "career_totals": career.get("CareerTotalsRegularSeason", []),
+        "awards": awards.get("PlayerAwards", []),
+    }
+
+
+# ---------------------------------------------------------------------------
 #  MVPs  (committed CSV — complete back to 1955-56)
 # ---------------------------------------------------------------------------
 def load_mvps(csv_path):

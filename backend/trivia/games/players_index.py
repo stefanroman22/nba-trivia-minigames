@@ -17,6 +17,8 @@ import random
 from django.conf import settings
 from django.http import JsonResponse
 
+from trivia.data_pipeline.curated_players import check_cross_stints
+
 CURATED_PATH = os.path.join(
     settings.BASE_DIR, "trivia", "data_static", "players_curated.json"
 )
@@ -40,7 +42,11 @@ def build_pool():
 
 
 def validate_rows(rows):
-    """Contract check: >=120 rows, unique person_ids, each row has a stint + tier."""
+    """Contract check: >=120 rows, unique person_ids, each row has a stint + tier.
+
+    Also checks stints ACROSS a row (ordered, no season claimed twice) — the
+    per-stint checks elsewhere only ever look at one stint at a time.
+    """
     problems = []
     if not isinstance(rows, list):
         return ["players-index: pool is not a list"]
@@ -62,6 +68,7 @@ def validate_rows(rows):
             problems.append(f"players-index[{i}] ({row.get('full_name')}): no team stints")
         if not row.get("fame_tier"):
             problems.append(f"players-index[{i}] ({row.get('full_name')}): missing fame_tier")
+        problems += [f"players-index[{i}]: {p}" for p in check_cross_stints([row])]
         if len(problems) >= 10:
             break
     return problems
