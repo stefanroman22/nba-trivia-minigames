@@ -5,6 +5,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { matchAnswer } from "../utils/answerMatch";
 import type { MvpSeason, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
 
@@ -48,7 +49,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   }
 
   const isCorrect =
-    playerName.trim().toLowerCase() === (currentSeason?.mvp || "").toLowerCase();
+    matchAnswer(playerName, [{ answer: currentSeason?.mvp || "" }]) === 0;
 
   if (isCorrect) {
     setScore((prev) => prev + pointsPerCorrect);

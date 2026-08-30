@@ -7,6 +7,7 @@ import ScorePanel from "../components/ScorePanel";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { matchAnswer } from "../utils/answerMatch";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import "../styles/StartingFive.css";
 
@@ -138,14 +139,14 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
     if (posKey === "C") {
       match = normalizedStarting5.find(
         (p: StartingFivePlayer) =>
-          p.position === "C" && p.name.toLowerCase() === playerName.trim().toLowerCase()
+          p.position === "C" && matchAnswer(playerName, [{ answer: p.name }]) === 0
       );
     } else {
       match = normalizedStarting5.find(
         (p: StartingFivePlayer) =>
           p.position === expectedPos &&
           !Object.values(correctGuesses).includes(p.name) &&
-          p.name.toLowerCase() === playerName.trim().toLowerCase()
+          matchAnswer(playerName, [{ answer: p.name }]) === 0
       );
     }
 
