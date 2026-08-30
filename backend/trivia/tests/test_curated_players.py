@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 
 from trivia.data_pipeline import curated_players as curated
 
@@ -62,17 +62,18 @@ class EraNameTests(TestCase):
         self.eras = curated.era_name_index(FRANCHISE_ROWS)
 
     def test_franchise_name_is_the_one_in_use_that_season(self):
-        self.assertEqual(curated.era_name(self.eras, 1610612760, 2007, "SEA"), "Seattle SuperSonics")
-        self.assertEqual(curated.era_name(self.eras, 1610612760, 2008, "OKC"), "Oklahoma City Thunder")
+        self.assertEqual(curated.era_name(self.eras, 1610612760, 2007), "Seattle SuperSonics")
+        self.assertEqual(curated.era_name(self.eras, 1610612760, 2008), "Oklahoma City Thunder")
 
     def test_narrowest_era_wins_over_the_summary_row(self):
         # 2010 matches both "Charlotte Hornets 1988-2025" (the summary) and the
         # real Bobcats era; the era the team actually played under must win.
-        self.assertEqual(curated.era_name(self.eras, 1610612766, 2010, "CHA"), "Charlotte Bobcats")
-        self.assertEqual(curated.era_name(self.eras, 1610612766, 2016, "CHA"), "Charlotte Hornets")
+        self.assertEqual(curated.era_name(self.eras, 1610612766, 2010), "Charlotte Bobcats")
+        self.assertEqual(curated.era_name(self.eras, 1610612766, 2016), "Charlotte Hornets")
 
-    def test_unknown_team_falls_back_to_the_abbreviation(self):
-        self.assertEqual(curated.era_name(self.eras, 42, 1950, "CHS"), "CHS")
+    def test_an_unknown_franchise_era_is_none_not_a_name(self):
+        self.assertIsNone(curated.era_name(self.eras, 42, 1950))
+        self.assertIsNone(curated.era_name(self.eras, 1610612760, 1950))
 
 
 class StintTests(TestCase):
@@ -114,6 +115,15 @@ class StintTests(TestCase):
 
     def test_player_with_no_games_has_no_stints(self):
         self.assertEqual(curated.build_stints([], self.eras, ABBRS, is_active=True), [])
+
+    def test_a_franchise_with_no_era_is_counted_not_silently_named(self):
+        seasons = [_season("1949-50", 1610610025, "CHS", 60, 500)]  # Chicago Stags
+        missing = []
+        stints = curated.build_stints(seasons, self.eras, ABBRS, False, missing_eras=missing)
+        # The abbreviation stands in so the row is still publishable, but the
+        # gap is reported rather than passing for a franchise name.
+        self.assertEqual(stints[0]["name"], "CHS")
+        self.assertEqual(missing, [(1610610025, 1949, "CHS")])
 
 
 class FieldTests(TestCase):
@@ -266,7 +276,7 @@ class CacheTests(TestCase):
             fetched, _, failures = curated.fetch_missing([1, 2], cache, fetch)
             self.assertEqual(fetched, 1)
             self.assertIn("read timeout", failures[2])
-            rows, uncached, _ = curated.assemble_rows(
+            rows, uncached, _, _ = curated.assemble_rows(
                 [1, 2], cache, {}, {}, ABBRS, {}
             )
             self.assertEqual([r["person_id"] for r in rows], [1])
@@ -286,7 +296,7 @@ class CacheTests(TestCase):
             cache = curated.ProfileCache(d)
             cache.put(1, _profile(person_id=1, DRAFT_YEAR="1966"))       # claims a draft
             cache.put(2, _profile(person_id=2, DRAFT_YEAR="Undrafted"))  # genuinely undrafted
-            rows, _, draft_gaps = curated.assemble_rows([1, 2], cache, {}, {}, ABBRS, {})
+            rows, _, draft_gaps, _ = curated.assemble_rows([1, 2], cache, {}, {}, ABBRS, {})
             self.assertEqual([r["draft"] for r in rows], [None, None])
             self.assertEqual(draft_gaps, [1])
 
@@ -390,24 +400,35 @@ class ParityCheckTests(TestCase):
         self.assertEqual(curated.check_parity(rows, ["Jonas Valanciunas"]), [])
 
 
-class GenerateCommandTests(TestCase):
-    def _run(self, out_path, cache_dir, *args):
+class _GeneratorRun:
+    """Runs the command against fixtures instead of the network."""
+
+    def _run(self, out_path, cache_dir, *args, fail_for=()):
         profiles = {
             201142: _profile(),
             1629029: _profile(person_id=1629029, name="Luka Dončić", SCHOOL="Real Madrid",
                               COUNTRY="Slovenia", POSITION="Forward-Guard"),
         }
+
+        def fetch_profile(person_id):
+            if person_id in fail_for:
+                raise RuntimeError("read timeout")
+            return profiles[person_id]
+
         module = "trivia.management.commands.generate_players_curated"
+        out = ["--out", out_path] if out_path else []
         with patch(f"{module}.fetch_players", lambda: [
             {"person_id": 201142, "full_name": "Kevin Durant"},
             {"person_id": 1629029, "full_name": "Luka Doncic"},
         ]), patch(f"{module}.fetch_draft_history", lambda: DRAFT_ROWS), patch(
             f"{module}.fetch_franchise_history", lambda: FRANCHISE_ROWS
-        ), patch(f"{module}.fetch_player_profile", lambda pid: profiles[pid]):
-            call_command("generate_players_curated", "--out", out_path,
+        ), patch(f"{module}.fetch_player_profile", fetch_profile):
+            call_command("generate_players_curated", *out,
                          "--cache-dir", cache_dir, *args,
                          stdout=StringIO(), stderr=StringIO())
 
+
+class GenerateCommandTests(_GeneratorRun, TestCase):
     def test_end_to_end_fetch_cache_assemble_write(self):
         with tempfile.TemporaryDirectory() as d:
             out = os.path.join(d, "smoke.json")
@@ -430,3 +451,79 @@ class GenerateCommandTests(TestCase):
     def test_partial_run_refuses_to_touch_the_published_dataset(self):
         with self.assertRaises(CommandError):
             call_command("generate_players_curated", "--limit", "1")
+
+
+class FullRunRewriteTests(_GeneratorRun, TestCase):
+    """The Task-11 finisher: a complete run that also rewrites all-players.json."""
+
+    def _published(self, root, all_players, curated_rows):
+        data = os.path.join(root, "trivia", "data")
+        static = os.path.join(root, "trivia", "data_static")
+        os.makedirs(data)
+        os.makedirs(static)
+        self.all_players_path = os.path.join(data, "all-players.json")
+        self.curated_path = os.path.join(static, "players_curated.json")
+        for path, payload in ((self.all_players_path, all_players),
+                              (self.curated_path, curated_rows)):
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False)
+
+    def _read(self, path):
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+
+    def test_full_run_with_rewrite_leaves_both_files_1_to_1(self):
+        with tempfile.TemporaryDirectory() as d:
+            # The published index lags the league index: an accent-free name, a
+            # name no player answers to any more, and a missing newcomer.
+            self._published(
+                d,
+                all_players=["Luka Doncic", "Retired Ghost", "Kevin Durant"],
+                curated_rows=[{"person_id": 201142, "full_name": "Kevin Durant",
+                               "fame_tier": 1, "aliases": ["KD"]}],
+            )
+            with override_settings(BASE_DIR=d):
+                # No --out: the full run writes the published dataset itself.
+                self._run(None, os.path.join(d, "cache"), "--rewrite-all-players")
+            rows = self._read(self.curated_path)
+            names = self._read(self.all_players_path)
+
+            self.assertEqual([r["full_name"] for r in rows], ["Kevin Durant", "Luka Dončić"])
+            self.assertEqual(rows[0]["fame_tier"], 1)  # carry-over read before the write
+            # 1:1 by construction: one entry per row, file order kept, the name
+            # no row claims dropped — and the parity gate now agrees.
+            self.assertEqual(names, ["Luka Dončić", "Kevin Durant"])
+            self.assertEqual(len(names), len(rows))
+            self.assertEqual(curated.check_parity(rows, names), [])
+            self.assertFalse(os.path.exists(f"{self.curated_path}.rejected.json"))
+
+    def test_two_players_sharing_a_name_keep_two_entries(self):
+        with tempfile.TemporaryDirectory() as d:
+            self._published(d, all_players=["Kevin Durant", "Kevin Durant"], curated_rows=[])
+            with override_settings(BASE_DIR=d):
+                self._run(None, os.path.join(d, "cache"), "--rewrite-all-players")
+            rows = self._read(self.curated_path)
+            names = self._read(self.all_players_path)
+            self.assertEqual(len(names), len(rows))
+            self.assertEqual(sorted(names), ["Kevin Durant", "Luka Dončić"])
+
+    def test_a_blocked_rewrite_keeps_the_work_and_leaves_all_players_alone(self):
+        with tempfile.TemporaryDirectory() as d:
+            self._published(d, all_players=["Kevin Durant", "Luka Doncic"], curated_rows=[])
+            with override_settings(BASE_DIR=d), self.assertRaises(CommandError):
+                self._run(None, os.path.join(d, "cache"), "--rewrite-all-players",
+                          fail_for={1629029})
+            # The published files are untouched, but the rows that DID assemble
+            # are kept aside instead of thrown away.
+            self.assertEqual(self._read(self.all_players_path), ["Kevin Durant", "Luka Doncic"])
+            self.assertEqual(self._read(self.curated_path), [])
+            rejected = self._read(f"{self.curated_path}.rejected.json")
+            self.assertEqual([r["full_name"] for r in rejected], ["Kevin Durant"])
+
+    def test_rewrite_is_refused_on_a_partial_run(self):
+        with tempfile.TemporaryDirectory() as d:
+            self._published(d, all_players=["Kevin Durant"], curated_rows=[])
+            with override_settings(BASE_DIR=d), self.assertRaises(CommandError):
+                self._run(os.path.join(d, "partial.json"), os.path.join(d, "cache"),
+                          "--limit", "1", "--rewrite-all-players")
+            self.assertEqual(self._read(self.all_players_path), ["Kevin Durant"])

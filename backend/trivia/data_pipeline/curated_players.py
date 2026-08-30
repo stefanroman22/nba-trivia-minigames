@@ -82,12 +82,15 @@ def era_name_index(franchise_rows):
     return index
 
 
-def era_name(index, team_id, season_start_year, fallback):
-    """The franchise's name AS OF that season (narrowest matching era wins).
+def era_name(index, team_id, season_start_year):
+    """The franchise's name AS OF that season, or None if history has no era.
 
     Narrowest-wins is what makes 2004-2013 the Charlotte Bobcats even though the
     endpoint also reports a Charlotte Hornets 1988-2025 span, and what drops the
     whole-franchise summary rows the endpoint emits alongside the real eras.
+    None is deliberately NOT a name: callers must count the miss (see
+    build_stints' missing_eras) instead of quietly publishing an abbreviation as
+    a franchise's display name.
     """
     matches = [
         (end - start, name)
@@ -95,7 +98,7 @@ def era_name(index, team_id, season_start_year, fallback):
         if start <= season_start_year <= end
     ]
     if not matches:
-        return fallback
+        return None
     return min(matches, key=lambda m: m[0])[1]
 
 
@@ -195,7 +198,7 @@ def build_birth_year(raw):
     return _int((raw or "")[:4])
 
 
-def build_stints(season_rows, eras, abbrs, is_active):
+def build_stints(season_rows, eras, abbrs, is_active, missing_eras=None):
     """Team stints, oldest first, from playercareerstats' per-season rows.
 
     Consecutive seasons with the same franchise merge into one stint, but a
@@ -205,6 +208,10 @@ def build_stints(season_rows, eras, abbrs, is_active):
     start_year is the first season's start year and end_year the last season's
     END year (2003-04..2009-10 -> 2003..2010); the last stint of an active
     player is open-ended (null), which career_path.validate_rows requires.
+
+    If franchise history has no era for a (team, season) the abbreviation stands
+    in as the display name — a data gap, not a name — so pass `missing_eras` (a
+    list) to have every such season appended and reported. assemble_rows does.
     """
     seasons = []
     for r in season_rows:
@@ -230,7 +237,11 @@ def build_stints(season_rows, eras, abbrs, is_active):
 
     stints = []
     for s in seasons:
-        name = era_name(eras, s["team_id"], s["year"], fallback=s["abbr"])
+        name = era_name(eras, s["team_id"], s["year"])
+        if name is None:
+            name = s["abbr"]
+            if missing_eras is not None:
+                missing_eras.append((s["team_id"], s["year"], s["abbr"]))
         last = stints[-1] if stints else None
         if (
             last
@@ -342,7 +353,7 @@ def carry_over_index(existing_rows):
     return carry
 
 
-def build_row(profile, drafts, eras, abbrs, carry):
+def build_row(profile, drafts, eras, abbrs, carry, missing_eras=None):
     """One frozen-schema curated row from one cached raw profile."""
     info = (profile.get("info") or [{}])[0]
     person_id = _int(info.get("PERSON_ID"))
@@ -356,7 +367,7 @@ def build_row(profile, drafts, eras, abbrs, carry):
 
     status = info.get("ROSTERSTATUS")
     is_active = str(status).strip().lower() in ("active", "1")
-    stints = build_stints(profile.get("career") or [], eras, abbrs, is_active)
+    stints = build_stints(profile.get("career") or [], eras, abbrs, is_active, missing_eras)
     pick = pick_draft(person_id, drafts, stints[0]["start_year"] if stints else None)
 
     return {
@@ -593,21 +604,27 @@ def fetch_missing(person_ids, cache, fetch_profile, on_progress=None):
 def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
     """Build a row for every cached profile.
 
-    Returns (rows, uncached, draft_gaps). `uncached` are the players with no
-    usable cached profile — they get NO row rather than a null-filled one.
-    `draft_gaps` are players whose profile claims a draft year that the draft
-    history has no pick for, so a hole in the source data can never be mistaken
-    for the legitimate `draft: null` of an undrafted player.
+    Returns (rows, uncached, draft_gaps, missing_eras) — the three lists after
+    `rows` are the source's holes, counted rather than swallowed:
+      * `uncached` — players with no usable cached profile. They get NO row
+        rather than a null-filled one.
+      * `draft_gaps` — players whose profile claims a draft year that the draft
+        history has no pick for, so a hole can never be mistaken for the
+        legitimate `draft: null` of an undrafted player.
+      * `missing_eras` — (team_id, season, abbr) the franchise history has no
+        name for, where the stint's display `name` fell back to the
+        abbreviation.
     """
     rows = []
     uncached = []
     draft_gaps = []
+    missing_eras = []
     for person_id in person_ids:
         profile = cache.get(person_id)
         if profile is None:
             uncached.append(person_id)
             continue
-        row = build_row(profile, drafts, eras, abbrs, carry)
+        row = build_row(profile, drafts, eras, abbrs, carry, missing_eras)
         if row["person_id"] is None:
             uncached.append(person_id)
             continue
@@ -616,4 +633,4 @@ def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
             if _int(info.get("DRAFT_YEAR")) is not None:
                 draft_gaps.append(row["person_id"])
         rows.append(row)
-    return rows, uncached, draft_gaps
+    return rows, uncached, draft_gaps, missing_eras
