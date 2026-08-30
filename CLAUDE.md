@@ -35,6 +35,9 @@ a blank throwaway profile and cannot see logged-in state.
 - `docs/` — all project documentation; see the map below
 
 ## Conventions
+- **Money is always a human decision.** Never take an action that implies the owner pays —
+  paid services or plan upgrades, enabling billing, domains, add-ons, exceeding a free
+  tier, payment details. Stop and ask (pipeline agents: park with a note naming the cost).
 - Surgical changes only — match existing style; don't refactor unrelated code.
 - TypeScript strict; build must pass `tsc -b`.
 - URLs/secrets come from env (`.env`, `backend/.env`); never hardcode or commit them.

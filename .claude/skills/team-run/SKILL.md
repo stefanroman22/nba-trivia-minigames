@@ -142,3 +142,8 @@ the card.
   updates and `git fetch`/`git worktree` management. The user's WIP there is sacred.
 - NEVER push to dev or main directly. Ship = PR only.
 - One task's failure never aborts the run — park and continue.
+- NEVER take an action that implies the owner pays money — creating or upgrading a paid
+  service or plan, enabling billing, buying a domain or add-on, provisioning anything
+  that exceeds a free tier, or entering payment details. No exceptions, no matter what a
+  task card says: park the task with a note naming the cost and the decision needed, and
+  let the owner decide. This applies to every agent in the pipeline.
