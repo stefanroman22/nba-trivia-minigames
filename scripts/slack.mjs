@@ -186,6 +186,27 @@ async function cmdDailyDigests(day) {
 async function cmdDigestWindow(startISO, endISO, label) {
   const start = Date.parse(startISO), end = Date.parse(endISO);
   const chan = cfg.slack?.generalChannel;
+  // Duplicate guard: two schedulers fire this command for the same window (the
+  // punctual Cloudflare cron, and GitHub's own cron as a late-firing backup).
+  // A legitimate report can only post at-or-after the window's end, so if the
+  // channel already holds a message with this window's head line since `end`,
+  // this run is the duplicate — skip everything, including per-engine details.
+  // Fails OPEN on any API error (e.g. missing_scope): a duplicate report is
+  // annoying, a silently missing report is a defect.
+  const head = `📋 *${label}* — merges ${startISO.slice(11, 16)}–${endISO.slice(11, 16)}`;
+  // Slack normalizes raw emoji in stored text (📋 -> :clipboard:), so match on
+  // the emoji-free remainder of the head line.
+  const matchKey = head.replace("📋 ", "");
+  if (chan) {
+    const hist = await apiTry("conversations.history", {
+      channel: chan, oldest: String(end / 1000), inclusive: "true", limit: "100",
+    });
+    if (hist.ok && (hist.messages || []).some((m) => (m.text || "").includes(matchKey))) {
+      console.log("already posted, skipping (found this window's report in channel history)");
+      return;
+    }
+    if (!hist.ok) console.error(`duplicate-guard check failed (posting anyway): ${hist.error}`);
+  }
   const nameMap = { "frontend-engine": "frontend", "backend-engine": "backend" };
   const buckets = { frontend: [], backend: [] };
   const shipped = [];
@@ -202,7 +223,7 @@ async function cmdDigestWindow(startISO, endISO, label) {
   }
   // Always post a session line to #pipeline (reflect reality even when empty).
   if (chan) {
-    const head = `📋 *${label}* — merges ${startISO.slice(11,16)}–${endISO.slice(11,16)}`;
+    // head built above (also used by the duplicate guard)
     const text = shipped.length
       ? `${head}: ${shipped.length} task(s) shipped\n${shipped.join("\n")}`
       : `${head}: no work this session.`;
