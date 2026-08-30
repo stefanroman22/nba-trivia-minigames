@@ -3,7 +3,11 @@ name: Team Reports
 on:
   workflow_dispatch:
     inputs:
-      label: { description: "Session label", required: false, default: "Manual" }
+      session:
+        description: "Which session to report"
+        required: true
+        type: choice
+        options: [night, day]
   schedule:
     - cron: "30 5 * * *"   # 07:30 local (UTC+2) — Night session
     - cron: "30 15 * * *"  # 17:30 local (UTC+2) — Day session
@@ -27,13 +31,14 @@ jobs:
           # delay — never guessed from the clock). At 05:30/15:30 UTC the UTC calendar date
           # equals the local date, so `date -u` gives the right day for these report times.
           SCHED="${{ github.event.schedule }}"
+          SESSION="${{ inputs.session }}"
           TODAY=$(date -u +%Y-%m-%d)
           YEST=$(date -u -d "yesterday" +%Y-%m-%d)
-          if [ "$SCHED" = "30 15 * * *" ]; then
+          if [ "$SCHED" = "30 15 * * *" ] || [ "$SESSION" = "day" ]; then
             START="${TODAY}T07:30+02:00"; END="${TODAY}T17:30+02:00"; LABEL="Day session (10:00-17:00 work)"
           else
-            # 05:30 cron (Night) or a manual workflow_dispatch (defaults to Night)
+            # 05:30 cron, dispatch with session=night
             START="${YEST}T17:30+02:00"; END="${TODAY}T07:30+02:00"; LABEL="Night session (01:00-07:00 work)"
           fi
-          echo "schedule=[$SCHED]  window: $START .. $END  ($LABEL)"
+          echo "schedule=[$SCHED] session=[$SESSION]  window: $START .. $END  ($LABEL)"
           node scripts/slack.mjs digest-window "$START" "$END" "$LABEL"
