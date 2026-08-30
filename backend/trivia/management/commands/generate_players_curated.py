@@ -131,18 +131,54 @@ class Command(BaseCommand):
             return
 
         carry = curated.carry_over_index(_load_json(_curated_path(), []))
-        rows, uncached, draft_gaps = curated.assemble_rows(
+        rows, uncached, draft_gaps, missing_eras = curated.assemble_rows(
             person_ids, cache, drafts, eras, abbrs, carry
         )
         self.stdout.write(
             f"assembled {len(rows)} rows ({len(uncached)} without a cached profile, "
-            f"{len(draft_gaps)} drafted players missing a draft-history pick)"
+            f"{len(draft_gaps)} drafted players missing a draft-history pick, "
+            f"{len(missing_eras)} season(s) with no franchise-history name)"
         )
+        if missing_eras:
+            sample = ", ".join(f"{abbr} {year} (team {tid})" for tid, year, abbr in missing_eras[:10])
+            self.stderr.write(self.style.WARNING(
+                f"{len(missing_eras)} stint season(s) fell back to the abbreviation as the "
+                f"franchise display name — franchise history has no era for: {sample}"
+            ))
 
         problems = curated.check_cross_stints(rows) + curated.check_plausibility(rows)
         all_players = _load_json(_all_players_path(), [])
-        if not partial:
-            problems += curated.check_parity(rows, all_players)
+
+        # The rewrite is what makes the two files 1:1 (canonical accented names,
+        # one entry per row), so it has to happen BEFORE the parity check —
+        # checking parity against the pre-rewrite file would fail the run for
+        # exactly the difference the rewrite exists to remove.
+        rewrite_skipped = False
+        if opts["rewrite_all_players"]:
+            if partial:
+                raise CommandError(
+                    "--rewrite-all-players needs the whole league index "
+                    "(drop --limit/--player-ids)."
+                )
+            if problems or uncached or failures:
+                # Refuse, but keep going: the dataset is still written aside as
+                # .rejected.json so hours of fetching stay inspectable.
+                rewrite_skipped = True
+                problems.insert(0, "--rewrite-all-players skipped: the dataset must be "
+                                   "complete and problem-free first")
+            else:
+                all_players = self._rewrite_all_players(rows, all_players)
+
+        # Parity against a file the run was asked to rewrite but could not would
+        # just be noise on top of the real problem.
+        if not partial and not rewrite_skipped:
+            parity = curated.check_parity(rows, all_players)
+            if parity and not opts["rewrite_all_players"]:
+                parity.append(
+                    "(all-players.json still holds the pre-rebuild names — rerun with "
+                    "--rewrite-all-players to publish the canonical list and reach parity)"
+                )
+            problems += parity
         for problem in problems[:20]:
             self.stdout.write(f"  - {problem}")
         if len(problems) > 20:
@@ -154,9 +190,6 @@ class Command(BaseCommand):
             out_path = f"{out_path}.rejected.json"
         _write_json(out_path, rows)
         self.stdout.write(f"wrote {len(rows)} rows to {out_path}")
-
-        if opts["rewrite_all_players"]:
-            self._rewrite_all_players(rows, all_players, partial, problems, uncached, failures)
 
         if problems or failures or uncached:
             raise CommandError(
@@ -172,32 +205,32 @@ class Command(BaseCommand):
             f"  [{done}/{total}] fetched={fetched} cached={skipped} failed={failed}"
         )
 
-    def _rewrite_all_players(self, rows, all_players, partial, problems, uncached, failures):
-        """Rewrite all-players.json to the canonical accented names, in place.
+    def _rewrite_all_players(self, rows, all_players):
+        """Rewrite all-players.json to the canonical accented names; return them.
 
-        Names are matched accent-blind, so 'Jonas Valanciunas' becomes 'Jonas
-        Valančiūnas' without reordering the file; genuinely new players are
-        appended. Only ever runs on a complete, problem-free dataset.
+        Emits exactly ONE entry per curated row — matching each existing name to
+        a row accent-blind and in file order, dropping names no row claims, and
+        appending genuinely new players. So 'Jonas Valanciunas' becomes 'Jonas
+        Valančiūnas' without reshuffling the list, two real players who share a
+        name keep two entries, and the two files come out 1:1 by construction
+        (which is what the parity gate then verifies).
         """
-        if partial or problems or uncached or failures:
-            raise CommandError(
-                "--rewrite-all-players needs a complete, problem-free run "
-                "(no --limit/--player-ids, no validation problems, no failures)."
-            )
         by_folded = {}
-        for row in rows:
+        for i, row in enumerate(rows):
             for name in [row["full_name"]] + list(row["aliases"]):
-                by_folded.setdefault(curated.ascii_fold(name).casefold(), row["full_name"])
+                by_folded.setdefault(curated.ascii_fold(name).casefold(), []).append(i)
         names = []
-        seen = set()
+        claimed = set()
         for name in all_players:
-            canonical = by_folded.get(curated.ascii_fold(name).casefold())
-            if canonical and canonical not in seen:
-                names.append(canonical)
-                seen.add(canonical)
-        for row in rows:
-            if row["full_name"] not in seen:
-                names.append(row["full_name"])
-                seen.add(row["full_name"])
+            for i in by_folded.get(curated.ascii_fold(name).casefold(), []):
+                if i not in claimed:
+                    claimed.add(i)
+                    names.append(rows[i]["full_name"])
+                    break
+        names += [row["full_name"] for i, row in enumerate(rows) if i not in claimed]
         _write_json(_all_players_path(), names, indent=None)
-        self.stdout.write(f"rewrote all-players.json with {len(names)} canonical names")
+        self.stdout.write(
+            f"rewrote all-players.json with {len(names)} canonical names "
+            f"({len(names) - len(claimed)} new, {len(all_players) - len(claimed)} dropped)"
+        )
+        return names
