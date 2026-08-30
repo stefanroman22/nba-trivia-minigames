@@ -62,6 +62,7 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `docs/ARCHITECTURE.md` | changing how the frontend/backend/multiplayer/DB talk to each other |
 | `docs/DATA_PIPELINE.md` | touching `trivia/data_pipeline/`, adding a data source, or changing how pools are built |
 | `docs/DEPLOYMENT.md` | changing env vars, hosting config, or anything that affects production |
+| `docs/CREDENTIALS.md` | creating/rotating any token — expiry dates, blast radius, rotation steps (update it in the same commit) |
 | `docs/games/MASTER_PLAN.md` | adding a new game or checking what's already shipped/planned |
 | `.claude/README.md` | changing the coding-agent model/effort profile |
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
