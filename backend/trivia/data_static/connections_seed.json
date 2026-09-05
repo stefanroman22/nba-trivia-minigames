@@ -68,15 +68,15 @@
       "Antoine Walker",
       "Kevin Garnett",
       "Paul Pierce",
-      "Steve Nash",
+      "Shaquille O'Neal",
       "Chauncey Billups",
       "Rip Hamilton",
       "Ben Wallace",
       "Antawn Jamison",
       "Vince Carter",
-      "Jason Terry",
+      "Rajon Rondo",
       "Tim Duncan",
-      "Michael Redd",
+      "Devin Booker",
       "Rashard Lewis",
       "Dirk Nowitzki",
       "Tayshaun Prince",
@@ -109,7 +109,7 @@
         "members": [
           "Tim Duncan",
           "Kevin Garnett",
-          "Steve Nash",
+          "Shaquille O'Neal",
           "Antawn Jamison"
         ]
       },
@@ -119,8 +119,8 @@
         "members": [
           "Antoine Walker",
           "Jamal Mashburn",
-          "Jason Terry",
-          "Michael Redd"
+          "Rajon Rondo",
+          "Devin Booker"
         ]
       }
     ]
@@ -131,7 +131,7 @@
       "Damian Lillard",
       "Draymond Green",
       "Kemba Walker",
-      "Anthony Davis",
+      "Andrew Bogut",
       "Kyrie Irving",
       "Gordon Hayward",
       "Paul George",
@@ -163,7 +163,7 @@
           "Klay Thompson",
           "Draymond Green",
           "Andre Iguodala",
-          "Anthony Davis"
+          "Andrew Bogut"
         ]
       },
       {
@@ -319,30 +319,30 @@
     "tiles": [
       "Bernard King",
       "World B. Free",
-      "Paul Pierce",
+      "Lou Williams",
       "Chris Mullin",
       "Kevin Durant",
       "Ray Allen",
       "Peja Stojakovic",
-      "Allen Iverson",
+      "Jamal Crawford",
       "Alex English",
       "Dominique Wilkins",
       "George Gervin",
       "Karl Malone",
-      "James Harden",
+      "Manu Ginobili",
       "Charles Barkley",
       "Reggie Miller",
-      "Anthony Davis"
+      "Montrezl Harrell"
     ],
     "groups": [
       {
-        "label": "'The ___' nicknames",
+        "label": "Sixth Man of the Year winners",
         "difficulty": 4,
         "members": [
-          "Allen Iverson",
-          "Paul Pierce",
-          "James Harden",
-          "Anthony Davis"
+          "Jamal Crawford",
+          "Lou Williams",
+          "Manu Ginobili",
+          "Montrezl Harrell"
         ]
       },
       {
@@ -392,10 +392,10 @@
       "Kevin Durant",
       "Brook Lopez",
       "Deron Williams",
-      "Rudy Gay",
+      "Jeff Green",
       "John Wall",
       "Russell Westbrook",
-      "Tyreke Evans"
+      "Gordon Hayward"
     ],
     "groups": [
       {
@@ -415,7 +415,7 @@
           "Kevin Durant",
           "Al Horford",
           "Mike Conley",
-          "Rudy Gay"
+          "Jeff Green"
         ]
       },
       {
@@ -435,7 +435,7 @@
           "John Wall",
           "DeMarcus Cousins",
           "Paul George",
-          "Tyreke Evans"
+          "Gordon Hayward"
         ]
       }
     ]
@@ -572,13 +572,13 @@
       "Derrick Rose",
       "Carmelo Anthony",
       "Alonzo Mourning",
-      "Tim Hardaway",
+      "Penny Hardaway",
       "Chris Paul",
       "Patrick Ewing",
       "Emeka Okafor",
       "Damian Lillard",
       "Anthony Davis",
-      "Kemba Walker",
+      "Tyreke Evans",
       "Karl-Anthony Towns",
       "Stephen Curry",
       "Klay Thompson",
@@ -613,8 +613,8 @@
         "members": [
           "Carmelo Anthony",
           "Derrick Rose",
-          "Kemba Walker",
-          "Tim Hardaway"
+          "Tyreke Evans",
+          "Penny Hardaway"
         ]
       },
       {
@@ -638,7 +638,7 @@
       "Al Horford",
       "Kristaps Porzingis",
       "Giannis Antetokounmpo",
-      "Serge Ibaka",
+      "Rudy Fernandez",
       "Pau Gasol",
       "Ricky Rubio",
       "Luol Deng",
@@ -657,7 +657,7 @@
           "Pau Gasol",
           "Marc Gasol",
           "Ricky Rubio",
-          "Serge Ibaka"
+          "Rudy Fernandez"
         ]
       },
       {
@@ -1401,7 +1401,7 @@
       "Kristaps Porzingis",
       "Luka Doncic",
       "Yao Ming",
-      "Steve Nash",
+      "Dikembe Mutombo",
       "Hakeem Olajuwon",
       "Domantas Sabonis"
     ],
@@ -1431,7 +1431,7 @@
         "difficulty": 3,
         "members": [
           "Yao Ming",
-          "Steve Nash",
+          "Dikembe Mutombo",
           "Hakeem Olajuwon",
           "Patrick Ewing"
         ]
@@ -1463,7 +1463,7 @@
       "Dwight Howard",
       "Zach LaVine",
       "Jason Richardson",
-      "Cedric Ceballos",
+      "Larry Nance",
       "Nate Robinson",
       "Aaron Gordon",
       "Michael Jordan"
@@ -1486,7 +1486,7 @@
           "Michael Jordan",
           "Dominique Wilkins",
           "Spud Webb",
-          "Cedric Ceballos"
+          "Larry Nance"
         ]
       },
       {
@@ -1974,7 +1974,7 @@
     ],
     "groups": [
       {
-        "label": "2003 Draft (banana boat era)",
+        "label": "Banana boat crew",
         "difficulty": 3,
         "members": [
           "LeBron James",
@@ -2089,12 +2089,12 @@
       "Charles Barkley",
       "Chris Webber",
       "LeBron James",
-      "Kevin Durant",
+      "Jermaine O'Neal",
       "Dennis Rodman",
       "Kevin Garnett",
-      "Pau Gasol",
-      "Tim Duncan",
       "Kevin Love",
+      "Tim Duncan",
+      "Tyson Chandler",
       "Tracy McGrady",
       "Amar'e Stoudemire"
     ],
@@ -2114,9 +2114,9 @@
         "difficulty": 3,
         "members": [
           "Tracy McGrady",
-          "Kevin Durant",
+          "Jermaine O'Neal",
           "Amar'e Stoudemire",
-          "Kevin Love"
+          "Tyson Chandler"
         ]
       },
       {
@@ -2125,7 +2125,7 @@
         "members": [
           "Tim Duncan",
           "Chris Bosh",
-          "Pau Gasol",
+          "Kevin Love",
           "Chris Webber"
         ]
       },
