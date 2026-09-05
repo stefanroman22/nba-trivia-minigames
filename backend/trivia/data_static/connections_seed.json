@@ -72,14 +72,14 @@
       "Chauncey Billups",
       "Rip Hamilton",
       "Ben Wallace",
-      "Antawn Jamison",
+      "Hakeem Olajuwon",
       "Vince Carter",
       "Rajon Rondo",
       "Tim Duncan",
       "Devin Booker",
       "Rashard Lewis",
       "Dirk Nowitzki",
-      "Tayshaun Prince",
+      "Rasheed Wallace",
       "Jamal Mashburn"
     ],
     "groups": [
@@ -99,7 +99,7 @@
         "members": [
           "Chauncey Billups",
           "Rip Hamilton",
-          "Tayshaun Prince",
+          "Rasheed Wallace",
           "Ben Wallace"
         ]
       },
@@ -110,7 +110,7 @@
           "Tim Duncan",
           "Kevin Garnett",
           "Shaquille O'Neal",
-          "Antawn Jamison"
+          "Hakeem Olajuwon"
         ]
       },
       {
@@ -575,7 +575,7 @@
       "Penny Hardaway",
       "Chris Paul",
       "Patrick Ewing",
-      "Emeka Okafor",
+      "Roy Hibbert",
       "Damian Lillard",
       "Anthony Davis",
       "Tyreke Evans",
@@ -603,7 +603,7 @@
         "members": [
           "Patrick Ewing",
           "Alonzo Mourning",
-          "Emeka Okafor",
+          "Roy Hibbert",
           "Allen Iverson"
         ]
       },
@@ -1396,7 +1396,7 @@
       "Patrick Ewing",
       "Nikola Jokic",
       "Rudy Gobert",
-      "Bam Adebayo",
+      "Clint Capela",
       "Manu Ginobili",
       "Kristaps Porzingis",
       "Luka Doncic",
@@ -1443,7 +1443,7 @@
           "Kristaps Porzingis",
           "Rudy Gobert",
           "Domantas Sabonis",
-          "Bam Adebayo"
+          "Clint Capela"
         ]
       }
     ]
@@ -1895,7 +1895,7 @@
       "Stephen Curry",
       "Kevin Love",
       "Joakim Noah",
-      "Danny Granger",
+      "Monta Ellis",
       "Ricky Rubio",
       "Eric Gordon",
       "Chris Paul",
@@ -1917,7 +1917,7 @@
           "Chris Paul",
           "Deron Williams",
           "Andrew Bynum",
-          "Danny Granger"
+          "Monta Ellis"
         ]
       },
       {
@@ -2089,14 +2089,14 @@
       "Charles Barkley",
       "Chris Webber",
       "LeBron James",
-      "Jermaine O'Neal",
+      "Wesley Matthews",
       "Dennis Rodman",
       "Kevin Garnett",
       "Kevin Love",
       "Tim Duncan",
-      "Tyson Chandler",
-      "Tracy McGrady",
-      "Amar'e Stoudemire"
+      "Udonis Haslem",
+      "Fred VanVleet",
+      "Jose Calderon"
     ],
     "groups": [
       {
@@ -2110,13 +2110,13 @@
         ]
       },
       {
-        "label": "High-school draftees (wave 2)",
+        "label": "Undrafted (never picked)",
         "difficulty": 3,
         "members": [
-          "Tracy McGrady",
-          "Jermaine O'Neal",
-          "Amar'e Stoudemire",
-          "Tyson Chandler"
+          "Fred VanVleet",
+          "Wesley Matthews",
+          "Jose Calderon",
+          "Udonis Haslem"
         ]
       },
       {

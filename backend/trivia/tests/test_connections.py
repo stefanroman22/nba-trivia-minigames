@@ -75,6 +75,41 @@ class ConnectionsSeedValidatorTest(TestCase):
         self.assertIn("Steve Nash", problems[0])
         self.assertIn("[position=FC]", problems[0])
 
+    def test_own_label_check_catches_a_non_first_overall_pick(self):
+        # cn-040's decade groups are all No. 1 picks; Kemba Walker went 9th.
+        board = self._board("cn-040")
+        self._swap(board, "No. 1 overall picks (2010s)", "Kyrie Irving", "Kemba Walker")
+        problems = connections_validate.validate([board], self.curated)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("Kemba Walker", problems[0])
+        self.assertIn("[top_pick=2010]", problems[0])
+
+    def test_own_label_check_catches_a_top_pick_from_the_wrong_decade(self):
+        # Magic Johnson went first overall, but in 1979, not in the 1980s.
+        board = self._board("cn-040")
+        self._swap(board, "No. 1 overall picks (1980s)", "James Worthy", "Magic Johnson")
+        problems = connections_validate.validate([board], self.curated)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("Magic Johnson", problems[0])
+        self.assertIn("[top_pick=1980]", problems[0])
+
+    def test_never_a_number_one_pick_group_rejects_a_number_one_pick(self):
+        board = self._board("cn-003")
+        self._swap(board, "Never a No. 1 overall pick", "Bradley Beal", "Anthony Davis")
+        problems = connections_validate.validate([board], self.curated)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("Anthony Davis", problems[0])
+        self.assertIn("[not_top_pick=True]", problems[0])
+
+    def test_the_same_four_players_may_not_be_a_group_on_two_boards(self):
+        # The seed shipped one nickname group verbatim on cn-006 and cn-037.
+        first, second = self._board("cn-006"), self._board("cn-037")
+        second["groups"][0]["members"] = list(first["groups"][0]["members"])
+        second["tiles"] = [m for g in second["groups"] for m in g["members"]]
+        problems = connections_validate.validate([first, second], self.curated)
+        self.assertTrue(
+            any("repeats cn-006's" in p for p in problems), problems)
+
     def test_national_team_label_is_not_read_as_a_birthplace(self):
         # "Spain national team" is a roster, not a birthplace: the own-label
         # check must stay quiet about Congo-born Serge Ibaka, who played for it.

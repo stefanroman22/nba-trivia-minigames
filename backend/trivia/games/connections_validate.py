@@ -14,9 +14,12 @@ satisfy this group's criterion. When curated data is missing or a trait is not
 derivable, that specific check is SKIPPED (structural checks still run).
 Own-label check (same data, opposite direction): each of a group's OWN 4
 members must actually satisfy the group's label — draft year, jersey, "Born in
-<country>", position words ("bigs"/"centers"/"forwards"/"guards") and college
-names the curated dataset knows. Labels it cannot read (teammate/nickname/award
-groups) and players missing from players_curated.json are SKIPPED.
+<country>", "No. 1 overall pick" (with an optional decade), position words
+("bigs"/"centers"/"forwards"/"guards") and college names the curated dataset
+knows. Labels it cannot read (teammate/nickname/award groups) and players
+missing from players_curated.json are SKIPPED.
+Duplicate-group check: no board may reuse another board's four members as a
+group, whatever the two are labelled or how they are tiered.
 """
 import json
 import os
@@ -85,6 +88,11 @@ def _own_derive(label, colleges):
         return (kind, value)
     if kind == "country" and re.match(r"born in ", label.strip(), re.IGNORECASE):
         return (kind, value)
+    if re.search(r"no\.?\s*1 overall pick", low):
+        if low.startswith("never"):
+            return ("not_top_pick", True)
+        decade = re.search(r"\b(19|20)(\d)0s\b", low)
+        return ("top_pick", int(decade.group(0)[:-1]) if decade else True)
     for term, positions in (("bigs", "FC"), ("center", "C"), ("forward", "F"), ("guard", "G")):
         if term in low:
             return ("position", positions)
@@ -120,12 +128,23 @@ def _satisfies(row, kind, value):
         if not any(pos):
             return None
         return any(p in pos for p in value)
+    if kind in ("top_pick", "not_top_pick"):
+        draft = row.get("draft") or {}
+        if not draft.get("pick"):
+            return None  # undrafted, or curated has no pick for them
+        first = draft["pick"] == 1
+        if kind == "not_top_pick":
+            return not first
+        if value is True:
+            return first
+        return first and value <= (draft.get("year") or 0) <= value + 9
     return None
 
 
 def validate(boards, curated_index):
     problems = []
     colleges = _colleges(curated_index)
+    seen_groups = {}
     for b in boards:
         qid = b.get("qid", "?")
         tiles = b.get("tiles", [])
@@ -141,6 +160,14 @@ def validate(boards, curated_index):
         diffs = sorted(g.get("difficulty") for g in groups)
         if diffs != [1, 2, 3, 4]:
             problems.append(f"{qid}: difficulties {diffs} != [1,2,3,4]")
+        # No board may reuse another board's four-member group verbatim.
+        for g in groups:
+            owner, label = seen_groups.setdefault(
+                frozenset(g["members"]), (qid, g["label"]))
+            if owner != qid:
+                problems.append(
+                    f"{qid}: group '{g['label']}' repeats {owner}'s '{label}' "
+                    f"verbatim (same four members)")
         # Own-label check: each of a group's own members must satisfy its label.
         for g in groups:
             kind, value = _own_derive(g["label"], colleges)
