@@ -140,6 +140,15 @@ class Command(BaseCommand):
             f"{len(draft_gaps)} drafted players missing a draft-history pick, "
             f"{len(missing_eras)} season(s) with no franchise-history name)"
         )
+        if empty_careers:
+            names = {row["person_id"]: row["full_name"] for row in rows}
+            sample = ", ".join(f"{names.get(pid, '?')} ({pid})" for pid in empty_careers[:10])
+            if len(empty_careers) > 10:
+                sample += f", +{len(empty_careers) - 10} more"
+            self.stderr.write(self.style.WARNING(
+                f"{len(empty_careers)} player(s) have no career stats at all — a legitimate "
+                f"zeroed row (never debuted, or the API answered with an empty body): {sample}"
+            ))
         if missing_eras:
             sample = ", ".join(f"{abbr} {year} (team {tid})" for tid, year, abbr in missing_eras[:10])
             self.stderr.write(self.style.WARNING(

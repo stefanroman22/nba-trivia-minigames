@@ -429,10 +429,15 @@ def _is_empty_body(nba_response):
     answer meaning "there is nothing here", not a failure.
 
     Deliberately narrow, because everything this returns True for stops being
-    retried: a timeout or a reset never reaches here (there is no response at
-    all), and an error page or a truncated body is not a keyless JSON object, so
-    both keep retrying and raising exactly as before.
+    retried AND gets cached forever: a timeout or a reset never reaches here
+    (there is no response at all), and an error page or a truncated body is not
+    a keyless JSON object, so both keep retrying and raising exactly as before.
+    The status code is checked too — nba_api builds the response object from
+    response.text whatever the status, so a 500/503/403 that happens to carry an
+    empty body would otherwise pass for a legitimate answer.
     """
+    if getattr(nba_response, "_status_code", None) != 200:
+        return False  # nba_api exposes no public accessor for the status
     try:
         body = nba_response.get_dict()
     except Exception:  # noqa: BLE001 - no response, or not JSON: a genuine failure

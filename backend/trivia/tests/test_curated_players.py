@@ -352,18 +352,18 @@ def _awards_body():
 
 
 class _FakeHTTPResponse:
-    status_code = 200
-
-    def __init__(self, text):
+    def __init__(self, text, status_code=200):
         self.url = "https://stats.nba.com/stats/test"
         self.text = text
+        self.status_code = status_code
 
 
 class _FakeSession:
     """Stands in for requests.Session at nba_api's real HTTP boundary."""
 
     def __init__(self, bodies):
-        self.bodies = bodies  # endpoint name -> body text, or an Exception to raise
+        # endpoint name -> body text, (body, status) or an Exception to raise
+        self.bodies = bodies
         self.calls = []
 
     def get(self, url, params=None, headers=None, proxies=None, timeout=None):
@@ -372,6 +372,8 @@ class _FakeSession:
         answer = self.bodies[endpoint]
         if isinstance(answer, Exception):
             raise answer
+        if isinstance(answer, tuple):
+            return _FakeHTTPResponse(*answer)
         return _FakeHTTPResponse(answer)
 
 
@@ -442,6 +444,11 @@ class EmptyApiResponseTests(TestCase):
             # Not empty, but raises the very same KeyError('resultSet') the fix
             # keys off — it must NOT be mistaken for a legitimate empty.
             ("a body with no result sets", '{"Message": "An error has occurred."}'),
+            # nba_api builds its response from response.text whatever the status,
+            # so an empty body behind a 5xx would otherwise look legitimate — and
+            # would then be cached forever as a zeroed career.
+            ("a 500 with an empty body", ("{}", 500)),
+            ("a 403 with an empty body", ("{}", 403)),
         ):
             with self.subTest(label):
                 session = self._serve(career=answer)
@@ -582,7 +589,7 @@ class _GeneratorRun:
 
         module = "trivia.management.commands.generate_players_curated"
         out = ["--out", out_path] if out_path else []
-        stdout = StringIO()
+        stdout, stderr = StringIO(), StringIO()
         with patch(f"{module}.fetch_players", lambda: roster), patch(
             f"{module}.fetch_draft_history", lambda: DRAFT_ROWS
         ), patch(
@@ -590,8 +597,8 @@ class _GeneratorRun:
         ), patch(f"{module}.fetch_player_profile", fetch_profile):
             call_command("generate_players_curated", *out,
                          "--cache-dir", cache_dir, *args,
-                         stdout=stdout, stderr=StringIO())
-        return stdout.getvalue()
+                         stdout=stdout, stderr=stderr)
+        return stdout.getvalue(), stderr.getvalue()
 
 
 class GenerateCommandTests(_GeneratorRun, TestCase):
@@ -621,14 +628,16 @@ class GenerateCommandTests(_GeneratorRun, TestCase):
         }
         with tempfile.TemporaryDirectory() as d:
             out = os.path.join(d, "smoke.json")
-            output = self._run(out, os.path.join(d, "cache"),
-                               "--player-ids", "201142,1629029", profiles=profiles)
+            stdout, stderr = self._run(out, os.path.join(d, "cache"),
+                                       "--player-ids", "201142,1629029", profiles=profiles)
             with open(out, encoding="utf-8") as f:
                 rows = json.load(f)
         self.assertEqual([r["full_name"] for r in rows], ["Kevin Durant", "Never Debuted"])
         self.assertEqual(rows[1]["teams"], [])
         self.assertEqual(rows[1]["career"]["seasons"], 0)
-        self.assertIn("1 with no career stats", output)
+        self.assertIn("1 with no career stats", stdout)
+        # Counted is not enough: the operator has to see WHICH players.
+        self.assertIn("Never Debuted (1629029)", stderr)
 
     def test_partial_run_refuses_to_touch_the_published_dataset(self):
         with self.assertRaises(CommandError):
