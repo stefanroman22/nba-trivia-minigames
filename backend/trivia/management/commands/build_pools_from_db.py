@@ -43,11 +43,16 @@ def build_all_players():
 
 def build_wordle():
     # Clean, de-duplicated 5-letter ASCII surnames (accents stripped, e.g. Jokić->Jokic).
-    words = set()
+    # De-dupe case-insensitively too, so casing variants that collide once the
+    # game uppercases guesses (e.g. "DuVal" vs "Duval") don't produce two pool
+    # entries for the same answer.
+    seen = set()
+    words = []
     for ln in Player.objects.values_list("last_name", flat=True):
         w = wordle_word(ln)
-        if w:
-            words.add(w)
+        if w and w.upper() not in seen:
+            seen.add(w.upper())
+            words.append(w)
     return sorted(words)
 
 
