@@ -158,6 +158,36 @@ async function simTicTacToe() {
   return !!room.turn.state.winnerUid;
 }
 
+// ==================================================== USED-PLAYER RULE (TTT)
+// A real player can only sit in one cell on the shared board (mirrors solo
+// mode's usedIdsRef), even when the OTHER player is the one naming them.
+// trustClient is forced on so the check is isolated from grid/pool matching.
+async function simUsedPlayerRule() {
+  line("\n================ TIC-TAC-TOE (used-player rule) ================");
+  const room = makeRoom(333333, ["Alice", "Bob"], "tictactoe");
+  const helpers = makeHelpers(room);
+  await turnGames.init(room, helpers);
+  room.turn.trustClient = true;
+
+  const st = room.turn.state;
+  const first = st.turnUid;
+  const second = room.members.find((m) => m !== first);
+
+  line(`${first} claims cell 0 with "Duplicate Player"`);
+  turnGames.handleAction(room, first, { type: "claim", cell: 0, playerName: "Duplicate Player" }, helpers);
+
+  line(`${second} tries cell 1 with the SAME player -> expect reject`);
+  turnGames.handleAction(room, second, { type: "claim", cell: 1, playerName: "duplicate player" }, helpers);
+  const blocked = st.board[1] === null;
+
+  line(`${second} tries cell 1 with a different player -> expect success`);
+  turnGames.handleAction(room, second, { type: "claim", cell: 1, playerName: "Different Player" }, helpers);
+  const allowed = !!st.board[1];
+
+  line(`blocked duplicate: ${blocked}   allowed distinct: ${allowed}`);
+  return blocked && allowed;
+}
+
 // ================================================================= IMPOSTER
 async function simImposter() {
   line("\n================ IMPOSTER (3 players) ================");
@@ -215,9 +245,11 @@ async function simImposter() {
 
 (async () => {
   const tttWin = await simTicTacToe();
+  const usedPlayerOk = await simUsedPlayerRule();
   const impDone = await simImposter();
   line("\n================ RESULT ================");
   line(`Tic-Tac-Toe reached a win : ${tttWin ? "PASS" : "FAIL"}`);
+  line(`Used-player rule enforced : ${usedPlayerOk ? "PASS" : "FAIL"}`);
   line(`Imposter reached reveal   : ${impDone ? "PASS" : "FAIL"}`);
-  process.exit(tttWin && impDone ? 0 : 1);
+  process.exit(tttWin && usedPlayerOk && impDone ? 0 : 1);
 })();

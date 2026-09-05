@@ -515,6 +515,15 @@ function handleTTT(room, uid, action, helpers) {
     displayName = player.full_name; // canonicalise (handles aliases / casing)
   }
 
+  // --- used-player check (mirrors solo mode: a real player fills at most one
+  // cell on the board, even across the two duelling players) ---
+  const usedElsewhere = s.board.some(
+    (occ, idx) => idx !== cell && occ && normalizeAnswer(occ.playerName) === normalizeAnswer(displayName),
+  );
+  if (usedElsewhere) {
+    return helpers.reject(uid, `${displayName} is already on the board.`);
+  }
+
   // --- apply the move ---
   s.board[cell] = { ownerUid: uid, playerName: displayName };
   if (action.type === "steal") s.stealsLeft[uid] -= 1;
