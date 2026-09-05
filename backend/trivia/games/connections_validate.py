@@ -12,6 +12,11 @@ Cross-group trap check (only where a group's criterion is derivable from
 players_curated.json): no tile assigned to a DIFFERENT group may also validly
 satisfy this group's criterion. When curated data is missing or a trait is not
 derivable, that specific check is SKIPPED (structural checks still run).
+Own-label check (same data, opposite direction): each of a group's OWN 4
+members must actually satisfy the group's label — draft year, jersey, "Born in
+<country>", position words ("bigs"/"centers"/"forwards"/"guards") and college
+names the curated dataset knows. Labels it cannot read (teammate/nickname/award
+groups) and players missing from players_curated.json are SKIPPED.
 """
 import json
 import os
@@ -57,6 +62,39 @@ def _derive(label):
     return ("college", label.strip().lower())
 
 
+def _colleges(curated_index):
+    """Every college the curated dataset knows, lowercased, longest name first."""
+    names = {(row.get("college") or "").lower() for row in curated_index.values()}
+    return sorted((n for n in names if n), key=len, reverse=True)
+
+
+def _own_derive(label, colleges):
+    """(kind, value) the group's OWN members must satisfy, or (None, None).
+
+    Deliberately narrower than _derive(): the cross-group check only needs a
+    *possible* reading of a label (a wrong guess there simply never matches),
+    while asserting a label against its own members needs a reading that is
+    certainly what the label claims. So: draft year and jersey as written,
+    "Born in <country>" but not "<country> national team" (Ibaka played for
+    Spain, he was born in the Congo), position words, and a college phrase only
+    when it names a college the curated dataset itself knows.
+    """
+    low = label.lower()
+    kind, value = _derive(label)
+    if kind in ("draft_year", "jersey"):
+        return (kind, value)
+    if kind == "country" and re.match(r"born in ", label.strip(), re.IGNORECASE):
+        return (kind, value)
+    for term, positions in (("bigs", "FC"), ("center", "C"), ("forward", "F"), ("guard", "G")):
+        if term in low:
+            return ("position", positions)
+    named = [c for c in colleges if c in low]
+    if named:
+        # "Syracuse / Memphis stars" asserts either college, not both.
+        return ("colleges", named)
+    return (None, None)
+
+
 def _satisfies(row, kind, value):
     """Does curated player row satisfy (kind, value)? None = can't tell."""
     if row is None:
@@ -72,11 +110,22 @@ def _satisfies(row, kind, value):
         if not col:
             return None
         return col in value or value in col or col.split()[0] in value
+    if kind == "colleges":
+        col = (row.get("college") or "").lower()
+        if not col:
+            return None
+        return any(c in col or col in c for c in value)
+    if kind == "position":
+        pos = (row.get("position") or "").split("-")
+        if not any(pos):
+            return None
+        return any(p in pos for p in value)
     return None
 
 
 def validate(boards, curated_index):
     problems = []
+    colleges = _colleges(curated_index)
     for b in boards:
         qid = b.get("qid", "?")
         tiles = b.get("tiles", [])
@@ -92,6 +141,17 @@ def validate(boards, curated_index):
         diffs = sorted(g.get("difficulty") for g in groups)
         if diffs != [1, 2, 3, 4]:
             problems.append(f"{qid}: difficulties {diffs} != [1,2,3,4]")
+        # Own-label check: each of a group's own members must satisfy its label.
+        for g in groups:
+            kind, value = _own_derive(g["label"], colleges)
+            if value is None:
+                continue
+            for member in g["members"]:
+                row = curated_index.get(member.lower())
+                if _satisfies(row, kind, value) is False:
+                    problems.append(
+                        f"{qid}: '{member}' (in '{g['label']}') does not satisfy "
+                        f"its own label [{kind}={value}]")
         # Cross-group trap check: a member of group B must NOT also satisfy A.
         for g in groups:
             kind, value = _derive(g["label"])
