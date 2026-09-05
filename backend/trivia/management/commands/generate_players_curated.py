@@ -131,11 +131,12 @@ class Command(BaseCommand):
             return
 
         carry = curated.carry_over_index(_load_json(_curated_path(), []))
-        rows, uncached, draft_gaps, missing_eras = curated.assemble_rows(
+        rows, uncached, draft_gaps, missing_eras, empty_careers = curated.assemble_rows(
             person_ids, cache, drafts, eras, abbrs, carry
         )
         self.stdout.write(
             f"assembled {len(rows)} rows ({len(uncached)} without a cached profile, "
+            f"{len(empty_careers)} with no career stats, "
             f"{len(draft_gaps)} drafted players missing a draft-history pick, "
             f"{len(missing_eras)} season(s) with no franchise-history name)"
         )
