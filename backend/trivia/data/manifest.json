@@ -98,8 +98,8 @@
     },
     "wordle": {
       "file": "wordle.json",
-      "sha256": "802482ce2bf46bebbe75eb879296dd73ef7929eb626e195f1b062e2608b05181",
-      "count": 526
+      "sha256": "e401f5fa5a6143cc75ec6099ded88272e1566db3dbe02cb0338558b8f6785263",
+      "count": 525
     }
   }
 }
