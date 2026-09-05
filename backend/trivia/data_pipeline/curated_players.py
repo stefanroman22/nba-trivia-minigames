@@ -604,8 +604,9 @@ def fetch_missing(person_ids, cache, fetch_profile, on_progress=None):
 def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
     """Build a row for every cached profile.
 
-    Returns (rows, uncached, draft_gaps, missing_eras) — the three lists after
-    `rows` are the source's holes, counted rather than swallowed:
+    Returns (rows, uncached, draft_gaps, missing_eras, empty_careers) — the four
+    lists after `rows` are what the source did not give, counted rather than
+    swallowed:
       * `uncached` — players with no usable cached profile. They get NO row
         rather than a null-filled one.
       * `draft_gaps` — players whose profile claims a draft year that the draft
@@ -614,11 +615,15 @@ def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
       * `missing_eras` — (team_id, season, abbr) the franchise history has no
         name for, where the stint's display `name` fell back to the
         abbreviation.
+      * `empty_careers` — players the API returned no career stats for at all
+        (an empty body, or a drafted player who never debuted). Legitimate, and
+        their row is a real zeroed one — counted so it stays visible.
     """
     rows = []
     uncached = []
     draft_gaps = []
     missing_eras = []
+    empty_careers = []
     for person_id in person_ids:
         profile = cache.get(person_id)
         if profile is None:
@@ -628,9 +633,11 @@ def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
         if row["person_id"] is None:
             uncached.append(person_id)
             continue
+        if not profile.get("career"):
+            empty_careers.append(row["person_id"])
         if row["draft"] is None:
             info = (profile.get("info") or [{}])[0]
             if _int(info.get("DRAFT_YEAR")) is not None:
                 draft_gaps.append(row["person_id"])
         rows.append(row)
-    return rows, uncached, draft_gaps, missing_eras
+    return rows, uncached, draft_gaps, missing_eras, empty_careers

@@ -420,6 +420,48 @@ def fetch_franchise_history(per_call_timeout=30):
     return out
 
 
+def _is_empty_body(nba_response):
+    """True only when an endpoint answered with a literal empty JSON object.
+
+    stats.nba.com answers some real players with a 2-byte `{}` — no result sets
+    at all (PlayerCareerStats for James Thomas, 2839, while the same call for
+    LeBron returns 19 KB, so the API is healthy). That is a FINAL, correct
+    answer meaning "there is nothing here", not a failure.
+
+    Deliberately narrow, because everything this returns True for stops being
+    retried: a timeout or a reset never reaches here (there is no response at
+    all), and an error page or a truncated body is not a keyless JSON object, so
+    both keep retrying and raising exactly as before.
+    """
+    try:
+        body = nba_response.get_dict()
+    except Exception:  # noqa: BLE001 - no response, or not JSON: a genuine failure
+        return False
+    return isinstance(body, dict) and not body
+
+
+def _result_sets(make_endpoint, label):
+    """One endpoint's normalized result sets, or None if the API returned `{}`.
+
+    nba_api parses the response inside the constructor (and raises
+    KeyError('resultSet') on an empty body), so the request is made with
+    get_request=False and driven by hand — that keeps the response object around
+    to inspect when parsing blows up. An empty body returns on the first call;
+    anything else still burns retry()'s backoff ladder and is still raised.
+    """
+    def _call():
+        endpoint = make_endpoint()
+        try:
+            endpoint.get_request()
+        except Exception:
+            if _is_empty_body(getattr(endpoint, "nba_response", None)):
+                return None
+            raise
+        return endpoint.get_normalized_dict()
+
+    return retry(_call, label=label)
+
+
 def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
     """The three per-player endpoints behind one curated row, raw.
 
@@ -428,34 +470,44 @@ def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
     it offline, so re-shaping a row never re-hits the network. Raises if any of
     the three endpoints is still failing after retry(): a partially fetched
     player must never become a null-filled row.
+
+    An EMPTY career or awards response is not a failure: it is the API saying
+    the player has none, so it becomes an empty list and is cached like any
+    other answer. An empty commonplayerinfo is different — with no identity
+    there is no row to build — so that stays a failure (raised, uncached, and
+    retried by the next run).
     """
     import random
 
     from nba_api.stats.endpoints import commonplayerinfo, playercareerstats, playerawards
 
-    def _paced(fn, label):
-        result = retry(fn, label=f"{label} {person_id}")
+    def _paced(make_endpoint, label):
+        result = _result_sets(make_endpoint, f"{label} {person_id}")
         time.sleep(pause + random.uniform(0, pause / 2))  # polite + jittered
         return result
 
     info = _paced(
         lambda: commonplayerinfo.CommonPlayerInfo(
-            player_id=person_id, timeout=per_call_timeout
-        ).get_normalized_dict(),
+            player_id=person_id, timeout=per_call_timeout, get_request=False
+        ),
         "CommonPlayerInfo",
     )
+    if info is None:
+        raise ValueError(f"commonplayerinfo returned an empty body for player {person_id}")
     career = _paced(
         lambda: playercareerstats.PlayerCareerStats(
-            player_id=person_id, timeout=per_call_timeout
-        ).get_normalized_dict(),
+            player_id=person_id, timeout=per_call_timeout, get_request=False
+        ),
         "PlayerCareerStats",
     )
     awards = _paced(
         lambda: playerawards.PlayerAwards(
-            player_id=person_id, timeout=per_call_timeout
-        ).get_normalized_dict(),
+            player_id=person_id, timeout=per_call_timeout, get_request=False
+        ),
         "PlayerAwards",
     )
+    career = career or {}  # empty body -> the normal shape with empty lists
+    awards = awards or {}
     return {
         "info": info.get("CommonPlayerInfo", []),
         "career": career.get("SeasonTotalsRegularSeason", []),

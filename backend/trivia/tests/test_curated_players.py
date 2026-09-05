@@ -1,14 +1,18 @@
 import json
 import os
 import tempfile
+from contextlib import redirect_stdout
 from io import StringIO
 from unittest.mock import patch
 
+import requests
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
+from nba_api.stats.library.http import NBAStatsHTTP
 
 from trivia.data_pipeline import curated_players as curated
+from trivia.data_pipeline import sources
 
 # team_id 1610612760 renamed Seattle SuperSonics -> Oklahoma City Thunder in 2008,
 # 1610612766 Charlotte Bobcats -> Charlotte Hornets in 2014. Both come with the
@@ -276,7 +280,7 @@ class CacheTests(TestCase):
             fetched, _, failures = curated.fetch_missing([1, 2], cache, fetch)
             self.assertEqual(fetched, 1)
             self.assertIn("read timeout", failures[2])
-            rows, uncached, _, _ = curated.assemble_rows(
+            rows, uncached, _, _, _ = curated.assemble_rows(
                 [1, 2], cache, {}, {}, ABBRS, {}
             )
             self.assertEqual([r["person_id"] for r in rows], [1])
@@ -296,9 +300,166 @@ class CacheTests(TestCase):
             cache = curated.ProfileCache(d)
             cache.put(1, _profile(person_id=1, DRAFT_YEAR="1966"))       # claims a draft
             cache.put(2, _profile(person_id=2, DRAFT_YEAR="Undrafted"))  # genuinely undrafted
-            rows, _, draft_gaps, _ = curated.assemble_rows([1, 2], cache, {}, {}, ABBRS, {})
+            rows, _, draft_gaps, _, _ = curated.assemble_rows([1, 2], cache, {}, {}, ABBRS, {})
             self.assertEqual([r["draft"] for r in rows], [None, None])
             self.assertEqual(draft_gaps, [1])
+
+
+_INFO_HEADERS = ["PERSON_ID", "DISPLAY_FIRST_LAST", "POSITION", "HEIGHT", "WEIGHT",
+                 "BIRTHDATE", "COUNTRY", "SCHOOL", "JERSEY", "ROSTERSTATUS", "DRAFT_YEAR"]
+_INFO_ROW = [2839, "James Thomas", "Forward", "6-7", "230", "1982-01-24T00:00:00",
+             "USA", "Texas", "34", "Inactive", "2004"]
+_SEASON_HEADERS = ["SEASON_ID", "LEAGUE_ID", "TEAM_ID", "TEAM_ABBREVIATION",
+                   "GP", "PTS", "REB", "AST"]
+# playercareerstats' load_response indexes all ten of these by name.
+_CAREER_DATA_SETS = (
+    "CareerTotalsAllStarSeason", "CareerTotalsCollegeSeason", "CareerTotalsPostSeason",
+    "CareerTotalsRegularSeason", "SeasonRankingsPostSeason", "SeasonRankingsRegularSeason",
+    "SeasonTotalsAllStarSeason", "SeasonTotalsCollegeSeason", "SeasonTotalsPostSeason",
+    "SeasonTotalsRegularSeason",
+)
+
+
+def _result_set(name, headers=(), rows=()):
+    return {"name": name, "headers": list(headers), "rowSet": [list(r) for r in rows]}
+
+
+def _body(*result_sets):
+    """A stats.nba.com response body, in the legacy resultSets format."""
+    return json.dumps({"resource": "test", "parameters": {}, "resultSets": list(result_sets)})
+
+
+def _info_body():
+    return _body(
+        _result_set("AvailableSeasons", ["SEASON_ID"], [["22004"]]),
+        _result_set("CommonPlayerInfo", _INFO_HEADERS, [_INFO_ROW]),
+        _result_set("PlayerHeadlineStats", ["PLAYER_ID"], [[2839]]),
+    )
+
+
+def _career_body():
+    filled = {
+        "SeasonTotalsRegularSeason": (
+            _SEASON_HEADERS, [["2004-05", "00", 1610612760, "SEA", 20, 100, 40, 10]]
+        ),
+        "CareerTotalsRegularSeason": (["GP", "PTS", "REB", "AST"], [[20, 100, 40, 10]]),
+    }
+    return _body(*[_result_set(n, *filled.get(n, ((), ()))) for n in _CAREER_DATA_SETS])
+
+
+def _awards_body():
+    return _body(_result_set("PlayerAwards", ["PERSON_ID", "DESCRIPTION", "SEASON"], []))
+
+
+class _FakeHTTPResponse:
+    status_code = 200
+
+    def __init__(self, text):
+        self.url = "https://stats.nba.com/stats/test"
+        self.text = text
+
+
+class _FakeSession:
+    """Stands in for requests.Session at nba_api's real HTTP boundary."""
+
+    def __init__(self, bodies):
+        self.bodies = bodies  # endpoint name -> body text, or an Exception to raise
+        self.calls = []
+
+    def get(self, url, params=None, headers=None, proxies=None, timeout=None):
+        endpoint = url.rsplit("/", 1)[-1]
+        self.calls.append(endpoint)
+        answer = self.bodies[endpoint]
+        if isinstance(answer, Exception):
+            raise answer
+        return _FakeHTTPResponse(answer)
+
+
+class EmptyApiResponseTests(TestCase):
+    """stats.nba.com answers some real players with a literal 2-byte `{}`.
+
+    Mocked at nba_api's HTTP boundary, so the real endpoint classes, the real
+    response parser, the real retry ladder and the real row assembly all run.
+    """
+
+    def _serve(self, **bodies):
+        session = _FakeSession({
+            "commonplayerinfo": bodies.get("info", _info_body()),
+            "playercareerstats": bodies.get("career", _career_body()),
+            "playerawards": bodies.get("awards", _awards_body()),
+        })
+        NBAStatsHTTP.set_session(session)
+        self.addCleanup(NBAStatsHTTP.set_session, None)
+        self.sleeps = []
+        patcher = patch("trivia.data_pipeline.sources.time.sleep", self.sleeps.append)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        return session
+
+    def test_an_empty_career_response_yields_a_zeroed_row_and_is_counted(self):
+        self._serve(career="{}")
+        profile = sources.fetch_player_profile(2839, pause=0)
+        self.assertEqual(profile["career"], [])
+        self.assertEqual(profile["career_totals"], [])
+        self.assertEqual(profile["info"][0]["DISPLAY_FIRST_LAST"], "James Thomas")
+
+        with tempfile.TemporaryDirectory() as d:
+            cache = curated.ProfileCache(d)
+            cache.put(2839, profile)
+            rows, uncached, _, _, empty_careers = curated.assemble_rows(
+                [2839], cache, {}, {}, ABBRS, {}
+            )
+        self.assertEqual(uncached, [])
+        self.assertEqual(empty_careers, [2839])
+        row = rows[0]
+        self.assertEqual(list(row.keys()),
+                         list(curated.build_row(_profile(), {}, {}, ABBRS, {}).keys()))
+        self.assertEqual(row["full_name"], "James Thomas")
+        self.assertEqual(row["teams"], [])
+        self.assertEqual(row["career"], {"pts": 0, "reb": 0, "ast": 0, "ppg": 0.0,
+                                         "rpg": 0.0, "apg": 0.0, "seasons": 0})
+        self.assertEqual(curated.check_plausibility(rows), [])
+        self.assertEqual(curated.check_cross_stints(rows), [])
+
+    def test_the_empty_answer_costs_one_call_and_no_backoff(self):
+        session = self._serve(career="{}")
+        sources.fetch_player_profile(2839, pause=0)
+        self.assertEqual(session.calls.count("playercareerstats"), 1)
+        self.assertEqual([s for s in self.sleeps if s >= 1.5], [])  # retry()'s ladder
+
+    def test_an_empty_awards_response_is_an_empty_award_list(self):
+        self._serve(awards="{}")
+        profile = sources.fetch_player_profile(2839, pause=0)
+        self.assertEqual(profile["awards"], [])
+        self.assertEqual(len(profile["career"]), 1)  # the career still came through
+
+    def test_genuine_failures_still_retry_and_still_raise(self):
+        for label, answer in (
+            ("a read timeout", requests.exceptions.ReadTimeout("read timed out")),
+            ("a connection reset", requests.exceptions.ConnectionError("Connection aborted")),
+            ("a truncated body", '{"resultSets": [{"name": "Season'),
+            ("an error page", "<html><body>502 Bad Gateway</body></html>"),
+            # Not empty, but raises the very same KeyError('resultSet') the fix
+            # keys off — it must NOT be mistaken for a legitimate empty.
+            ("a body with no result sets", '{"Message": "An error has occurred."}'),
+        ):
+            with self.subTest(label):
+                session = self._serve(career=answer)
+                with redirect_stdout(StringIO()):  # retry() narrates every attempt
+                    with self.assertRaises(
+                        (KeyError, ValueError, requests.exceptions.RequestException)
+                    ):
+                        sources.fetch_player_profile(2839, pause=0)
+                self.assertEqual(session.calls.count("playercareerstats"), 4)
+                self.assertEqual([s for s in self.sleeps if s >= 1.5], [1.5, 3.0, 6.0, 12.0])
+
+    def test_an_empty_commonplayerinfo_is_a_failure_not_an_identityless_row(self):
+        session = self._serve(info="{}")
+        with self.assertRaises(ValueError) as caught:
+            sources.fetch_player_profile(200603, pause=0)
+        self.assertIn("empty body", str(caught.exception))
+        # One call, no ladder, and the other two endpoints are never asked.
+        self.assertEqual(session.calls, ["commonplayerinfo"])
 
 
 class CrossStintCheckTests(TestCase):
@@ -403,12 +564,16 @@ class ParityCheckTests(TestCase):
 class _GeneratorRun:
     """Runs the command against fixtures instead of the network."""
 
-    def _run(self, out_path, cache_dir, *args, fail_for=()):
-        profiles = {
+    def _run(self, out_path, cache_dir, *args, fail_for=(), profiles=None):
+        profiles = profiles if profiles is not None else {
             201142: _profile(),
             1629029: _profile(person_id=1629029, name="Luka Dončić", SCHOOL="Real Madrid",
                               COUNTRY="Slovenia", POSITION="Forward-Guard"),
         }
+        roster = [
+            {"person_id": pid, "full_name": curated.ascii_fold(p["info"][0]["DISPLAY_FIRST_LAST"])}
+            for pid, p in profiles.items()
+        ]
 
         def fetch_profile(person_id):
             if person_id in fail_for:
@@ -417,15 +582,16 @@ class _GeneratorRun:
 
         module = "trivia.management.commands.generate_players_curated"
         out = ["--out", out_path] if out_path else []
-        with patch(f"{module}.fetch_players", lambda: [
-            {"person_id": 201142, "full_name": "Kevin Durant"},
-            {"person_id": 1629029, "full_name": "Luka Doncic"},
-        ]), patch(f"{module}.fetch_draft_history", lambda: DRAFT_ROWS), patch(
+        stdout = StringIO()
+        with patch(f"{module}.fetch_players", lambda: roster), patch(
+            f"{module}.fetch_draft_history", lambda: DRAFT_ROWS
+        ), patch(
             f"{module}.fetch_franchise_history", lambda: FRANCHISE_ROWS
         ), patch(f"{module}.fetch_player_profile", fetch_profile):
             call_command("generate_players_curated", *out,
                          "--cache-dir", cache_dir, *args,
-                         stdout=StringIO(), stderr=StringIO())
+                         stdout=stdout, stderr=StringIO())
+        return stdout.getvalue()
 
 
 class GenerateCommandTests(_GeneratorRun, TestCase):
@@ -447,6 +613,22 @@ class GenerateCommandTests(_GeneratorRun, TestCase):
             out = os.path.join(d, "smoke.json")
             self._run(out, os.path.join(d, "cache"), "--limit", "1", "--fetch-only")
             self.assertFalse(os.path.exists(out))
+
+    def test_a_player_with_no_career_stats_is_written_and_counted(self):
+        profiles = {
+            201142: _profile(),
+            1629029: _profile(person_id=1629029, name="Never Debuted", seasons=[], totals=[]),
+        }
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "smoke.json")
+            output = self._run(out, os.path.join(d, "cache"),
+                               "--player-ids", "201142,1629029", profiles=profiles)
+            with open(out, encoding="utf-8") as f:
+                rows = json.load(f)
+        self.assertEqual([r["full_name"] for r in rows], ["Kevin Durant", "Never Debuted"])
+        self.assertEqual(rows[1]["teams"], [])
+        self.assertEqual(rows[1]["career"]["seasons"], 0)
+        self.assertIn("1 with no career stats", output)
 
     def test_partial_run_refuses_to_touch_the_published_dataset(self):
         with self.assertRaises(CommandError):
