@@ -115,8 +115,11 @@ async function cmdListReady() {
   console.log(JSON.stringify(rows, null, 2));
 }
 
+// Some external image hosts (e.g. Wikimedia) reject requests that carry no User-Agent.
+const IMAGE_UA = "nba-minigames-team-pipeline/1.0 (+https://github.com/stefanroman22/nba-trivia-minigames)";
+
 async function downloadImage(pageId, url, index) {
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: { "User-Agent": IMAGE_UA } });
   if (!res.ok) { console.error(`Image download failed (${res.status}): ${url}`); return null; }
   const ct = res.headers.get("content-type") || "";
   const ext = ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : "jpg";
@@ -135,7 +138,9 @@ async function cmdGetSpec(pageId) {
       if (b.type === "image") {
         const url = b.image.type === "external" ? b.image.external.url : b.image.file.url;
         const path = await downloadImage(pageId, url, imageIndex++);
-        if (path) out.push(`[Image attached: ${path}]`);
+        out.push(path
+          ? `[Image attached: ${path}]`
+          : "[Image attached: DOWNLOAD FAILED — an image exists on this card but could not be fetched; ask the owner to re-upload it directly in Notion before building]");
         continue;
       }
       const rt = b[b.type]?.rich_text;
