@@ -131,15 +131,37 @@ class Command(BaseCommand):
             return
 
         carry = curated.carry_over_index(_load_json(_curated_path(), []))
-        rows, uncached, draft_gaps, missing_eras, empty_careers = curated.assemble_rows(
-            person_ids, cache, drafts, eras, abbrs, carry
+        by_person_id = {r["person_id"]: r for r in roster}
+        (rows, uncached, draft_gaps, missing_eras, empty_careers, identityless,
+         stolen_awards) = curated.assemble_rows(
+            person_ids, cache, drafts, eras, abbrs, carry, by_person_id
         )
         self.stdout.write(
             f"assembled {len(rows)} rows ({len(uncached)} without a cached profile, "
+            f"{len(identityless)} built from the league index alone, "
             f"{len(empty_careers)} with no career stats, "
             f"{len(draft_gaps)} drafted players missing a draft-history pick, "
-            f"{len(missing_eras)} season(s) with no franchise-history name)"
+            f"{len(missing_eras)} season(s) with no franchise-history name, "
+            f"{len(stolen_awards)} award(s) credited to the wrong namesake)"
         )
+        if stolen_awards:
+            names = {row["person_id"]: row["full_name"] for row in rows}
+            sample = ", ".join(
+                f"{names.get(pid, '?')} ({pid}): {desc} {year}, career {span[0]}-{span[1]}"
+                for pid, desc, year, span in stolen_awards[:10]
+            )
+            self.stderr.write(self.style.WARNING(
+                f"{len(stolen_awards)} award(s) dropped — playerawards resolves by name, so "
+                f"it credited them to a player who was not in the league that season: {sample}"
+            ))
+        if identityless:
+            names = {row["person_id"]: row["full_name"] for row in rows}
+            sample = ", ".join(f"{names.get(pid, '?')} ({pid})" for pid in identityless[:10])
+            self.stderr.write(self.style.WARNING(
+                f"{len(identityless)} player(s) have no commonplayerinfo at all — their row "
+                f"carries only what the league index and draft history vouch for, and the "
+                f">= 1 stint pool rule keeps it out of every game: {sample}"
+            ))
         if empty_careers:
             names = {row["person_id"]: row["full_name"] for row in rows}
             sample = ", ".join(f"{names.get(pid, '?')} ({pid})" for pid in empty_careers[:10])

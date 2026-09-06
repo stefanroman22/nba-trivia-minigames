@@ -280,7 +280,7 @@ class CacheTests(TestCase):
             fetched, _, failures = curated.fetch_missing([1, 2], cache, fetch)
             self.assertEqual(fetched, 1)
             self.assertIn("read timeout", failures[2])
-            rows, uncached, _, _, _ = curated.assemble_rows(
+            rows, uncached, *_ = curated.assemble_rows(
                 [1, 2], cache, {}, {}, ABBRS, {}
             )
             self.assertEqual([r["person_id"] for r in rows], [1])
@@ -300,7 +300,7 @@ class CacheTests(TestCase):
             cache = curated.ProfileCache(d)
             cache.put(1, _profile(person_id=1, DRAFT_YEAR="1966"))       # claims a draft
             cache.put(2, _profile(person_id=2, DRAFT_YEAR="Undrafted"))  # genuinely undrafted
-            rows, _, draft_gaps, _, _ = curated.assemble_rows([1, 2], cache, {}, {}, ABBRS, {})
+            rows, _, draft_gaps, *_ = curated.assemble_rows([1, 2], cache, {}, {}, ABBRS, {})
             self.assertEqual([r["draft"] for r in rows], [None, None])
             self.assertEqual(draft_gaps, [1])
 
@@ -408,7 +408,7 @@ class EmptyApiResponseTests(TestCase):
         with tempfile.TemporaryDirectory() as d:
             cache = curated.ProfileCache(d)
             cache.put(2839, profile)
-            rows, uncached, _, _, empty_careers = curated.assemble_rows(
+            rows, uncached, _, _, empty_careers, _, _ = curated.assemble_rows(
                 [2839], cache, {}, {}, ABBRS, {}
             )
         self.assertEqual(uncached, [])
@@ -460,13 +460,57 @@ class EmptyApiResponseTests(TestCase):
                 self.assertEqual(session.calls.count("playercareerstats"), 4)
                 self.assertEqual([s for s in self.sleeps if s >= 1.5], [1.5, 3.0, 6.0, 12.0])
 
-    def test_an_empty_commonplayerinfo_is_a_failure_not_an_identityless_row(self):
+    def test_an_empty_commonplayerinfo_becomes_a_league_index_only_row(self):
+        """person_id 200603 (Corey Williams) — the one player with no identity.
+
+        Raising here used to drop him out of the dataset entirely, which put a
+        permanent hole in the 1:1 parity with all-players.json and cost a fetch
+        on every run. The empty answer is now cached as the final answer it is,
+        and the row is built from the league index instead.
+        """
         session = self._serve(info="{}")
-        with self.assertRaises(ValueError) as caught:
-            sources.fetch_player_profile(200603, pause=0)
-        self.assertIn("empty body", str(caught.exception))
+        profile = sources.fetch_player_profile(200603, pause=0)
+        self.assertEqual(profile, {"info": [], "career": [], "career_totals": [], "awards": []})
         # One call, no ladder, and the other two endpoints are never asked.
         self.assertEqual(session.calls, ["commonplayerinfo"])
+
+        roster = {200603: {"person_id": 200603, "full_name": "Corey Williams",
+                           "from_year": 1992, "to_year": 1993, "is_active": False}}
+        with tempfile.TemporaryDirectory() as d:
+            cache = curated.ProfileCache(d)
+            cache.put(200603, profile)
+            rows, uncached, _, _, empty_careers, identityless, _ = curated.assemble_rows(
+                [200603], cache, {}, {}, ABBRS, {}, roster
+            )
+        self.assertEqual(uncached, [])
+        self.assertEqual(identityless, [200603])
+        self.assertEqual(empty_careers, [200603])
+        row = rows[0]
+        # Frozen schema, the index's name, and a null everywhere the missing
+        # endpoint was the only source.
+        self.assertEqual(list(row.keys()),
+                         list(curated.build_row(_profile(), {}, {}, ABBRS, {}).keys()))
+        self.assertEqual(row["full_name"], "Corey Williams")
+        self.assertEqual(row["teams"], [])
+        self.assertIsNone(row["position"])
+        self.assertIsNone(row["birth_year"])
+        self.assertIsNone(row["country"])
+        self.assertEqual(curated.check_plausibility(rows), [])
+        self.assertEqual(curated.check_cross_stints(rows), [])
+        # ...and the pool never sees him.
+        self.assertEqual(curated.playable_rows(rows), [])
+
+    def test_a_profile_with_no_identity_and_no_index_entry_still_gets_no_row(self):
+        """The roster fallback is not a licence to invent a row from nothing."""
+        with tempfile.TemporaryDirectory() as d:
+            cache = curated.ProfileCache(d)
+            cache.put(999, {"info": [], "career": [], "career_totals": [], "awards": []})
+            rows, uncached, _, _, _, identityless, _ = curated.assemble_rows(
+                [999], cache, {}, {}, ABBRS, {}, {}
+            )
+        self.assertEqual(rows, [])
+        self.assertEqual(uncached, [999])
+        self.assertEqual(identityless, [])
 
 
 class CrossStintCheckTests(TestCase):
@@ -718,3 +762,105 @@ class FullRunRewriteTests(_GeneratorRun, TestCase):
                 self._run(os.path.join(d, "partial.json"), os.path.join(d, "cache"),
                           "--limit", "1", "--rewrite-all-players")
             self.assertEqual(self._read(self.all_players_path), ["Kevin Durant"])
+
+
+class AwardAttributionTests(TestCase):
+    """playerawards resolves by NAME, so namesakes inherit each other's honours."""
+
+    def _rows(self, *seasons):
+        return [{"DESCRIPTION": d, "SEASON": s} for s, d in seasons]
+
+    def test_an_award_from_outside_the_career_is_dropped_and_counted(self):
+        # The real case: person 2739 is the 2004 Cavaliers' Luke Jackson, and
+        # the endpoint hands him the 1967 title of the 76ers' Luke Jackson.
+        stolen = []
+        awards = curated.build_awards(
+            self._rows(("1966-67", "NBA Champion"), ("2005-06", "NBA Champion")),
+            span=(2004, 2008), stolen=stolen,
+        )
+        self.assertEqual(awards["rings"], [2006])
+        self.assertEqual(stolen, [("NBA Champion", 1967, (2004, 2008))])
+
+    def test_without_a_span_nothing_is_dropped(self):
+        awards = curated.build_awards(self._rows(("1966-67", "NBA Champion")))
+        self.assertEqual(awards["rings"], [1967])
+
+    def test_counted_awards_are_span_checked_too(self):
+        stolen = []
+        awards = curated.build_awards(
+            self._rows(("1979-80", "NBA All-Star"), ("1994-95", "NBA All-Star")),
+            span=(1977, 1987), stolen=stolen,
+        )
+        self.assertEqual(awards["allstar_count"], 1)
+        self.assertEqual(len(stolen), 1)
+
+    def test_career_span_reads_an_open_stint_as_running_to_today(self):
+        self.assertIsNone(curated.career_span([]))
+        self.assertEqual(
+            curated.career_span([{"start_year": 2003, "end_year": 2010},
+                                 {"start_year": 2010, "end_year": 2014}]),
+            (2003, 2014),
+        )
+        first, last = curated.career_span([{"start_year": 2018, "end_year": None}])
+        self.assertEqual(first, 2018)
+        self.assertGreaterEqual(last, 2026)
+
+
+class AliasTests(TestCase):
+    def test_an_alias_that_is_just_the_canonical_name_is_dropped(self):
+        # The shipped dataset carried two of these (Monta Ellis, and Jonas
+        # Valanciunas once the API's unaccented spelling became canonical).
+        self.assertEqual(curated.build_aliases("Monta Ellis", ["Monta Ellis"]), [])
+
+    def test_hand_written_aliases_and_the_accent_fold_both_survive(self):
+        self.assertEqual(
+            curated.build_aliases("Luka Dončić", ["Luka Magic"]),
+            ["Luka Magic", "Luka Doncic"],
+        )
+
+    def test_the_fold_is_not_added_twice(self):
+        self.assertEqual(
+            curated.build_aliases("Nikola Jokić", ["Nikola Jokic"]), ["Nikola Jokic"]
+        )
+
+
+class ShippedDatasetTests(TestCase):
+    """The dataset that actually ships — parity is a gate, not a manual step."""
+
+    def setUp(self):
+        from django.conf import settings
+
+        base = settings.BASE_DIR
+        with open(os.path.join(base, "trivia", "data_static", "players_curated.json"),
+                  encoding="utf-8") as f:
+            self.rows = json.load(f)
+        with open(os.path.join(base, "trivia", "data", "all-players.json"),
+                  encoding="utf-8") as f:
+            self.all_players = json.load(f)
+
+    def test_the_dataset_is_1_to_1_with_all_players_json(self):
+        self.assertEqual(len(self.rows), len(self.all_players))
+        self.assertEqual(curated.check_parity(self.rows, self.all_players), [])
+
+    def test_the_dataset_covers_the_whole_league_index(self):
+        # 159 hand-authored rows was the thing this branch existed to replace.
+        self.assertGreater(len(self.rows), 5000)
+
+    def test_no_row_claims_an_award_it_could_not_have_won(self):
+        for row in self.rows:
+            span = curated.career_span(row["teams"])
+            if span is None:
+                continue
+            years = list(row["awards"]["mvp"]) + list(row["awards"]["fmvp"]) + \
+                list(row["awards"]["dpoy"]) + list(row["awards"]["smoy"]) + \
+                list(row["awards"]["rings"])
+            if row["awards"]["roty"] is not None:
+                years.append(row["awards"]["roty"])
+            for year in years:
+                self.assertTrue(span[0] <= year <= span[1],
+                                f"{row['full_name']}: award {year} outside {span}")
+
+    def test_the_pool_is_the_dataset_minus_the_players_who_never_played(self):
+        pool = curated.playable_rows(self.rows)
+        self.assertLess(len(pool), len(self.rows))
+        self.assertTrue(all(r["teams"] for r in pool))
