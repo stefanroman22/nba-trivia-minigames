@@ -148,9 +148,11 @@ GAME_REGISTRY = [
         "name": "Career Path Challenge",
         "status": "live",
         "modes": _modes(),
-        "sources": ["pool:players-index", "pool:career-path"],
+        "sources": ["pool:players-index"],
         "config": [
-            "Client picks from players-index; eligible players have 3–7 team stints.",
+            "Both modes draw from players-index; eligible players have 3–7 team stints. "
+            "Single-player picks client-side, multiplayer filters the same pool "
+            "server-side at request time.",
             "Round pick is weighted 3× toward fame tiers 2–3.",
         ],
     },
@@ -171,8 +173,11 @@ GAME_REGISTRY = [
         "name": "Who Are Ya?",
         "status": "live",
         "modes": _modes(),
-        "sources": ["pool:players-index", "pool:who-are-ya"],
-        "config": ["Mystery player limited to fame tiers 1–2 with team stints; seed-authored."],
+        "sources": ["pool:players-index"],
+        "config": [
+            "Mystery player filtered from players-index at request time: fame tiers 1–2 "
+            "with at least one team stint. Single-player and multiplayer use the same rule.",
+        ],
     },
     {
         "id": "tictactoe",
@@ -201,10 +206,13 @@ GAME_REGISTRY = [
         "name": "LeContexto",
         "status": "live",
         "modes": _modes(),
-        "sources": ["pool:contexto", "pool:players-index"],
+        "sources": ["pool:players-index"],
         "config": [
-            "Daily secret is computed, not stored: CRC32 of the UTC date modulo the "
-            "secret-pool size — backend and client agree by hashing the same date.",
+            "Both modes are served the same players-index rows — single-player from the "
+            "CDN, multiplayer from /trivia/contexto/ — and run the same client-side "
+            "picker, so the day's secret can't differ between them.",
+            "Daily secret is computed, not stored: FNV-1a of the UTC date modulo the "
+            "fame tier 1–2 candidate count.",
         ],
     },
     {
@@ -212,17 +220,23 @@ GAME_REGISTRY = [
         "name": "Pack 5",
         "status": "live",
         "modes": _modes(),
-        "sources": ["pool:pack-five", "pool:players-index"],
-        "config": ["Pack of 11 cards → 10 higher/lower comparisons; max 3 elite cards dealt."],
+        "sources": ["pool:players-index"],
+        "config": [
+            "Pack of 11 cards → 10 higher/lower comparisons, dealt from players-index at "
+            "request time: fame tiers 1–3 carrying all five trump stats (ppg/rpg/apg, "
+            "rings, All-Star count).",
+        ],
     },
     {
         "id": "superdraft",
         "name": "SuperDraft Five",
         "status": "live",
         "modes": _modes(),
-        "sources": ["pool:superdraft", "pool:players-index"],
+        "sources": ["pool:players-index"],
         "config": [
-            "4 draft objectives in config; the daily objective is picked client-side by date hash.",
+            "The round payload is the players-index pool itself; slots and the daily "
+            "objective are drawn from it client-side.",
+            "4 draft objectives live in the renderer; the daily one is picked by date hash.",
         ],
     },
     {
@@ -233,7 +247,8 @@ GAME_REGISTRY = [
         "sources": ["pool:imposter", "pool:players-index"],
         "config": [
             "Friend-room party game for 3–5 players; 2 clue rounds, 45s steps.",
-            "Mystery player prefers fame tier ≤2.",
+            "The turn server draws the mystery player from players-index at fame tier ≤2; "
+            "pool:imposter republishes exactly those names, so the two always agree.",
         ],
     },
     {
