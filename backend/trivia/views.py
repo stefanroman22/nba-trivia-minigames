@@ -19,6 +19,7 @@ from trivia.models import (
 )
 from backend.throttles import ScoreSubmitRateThrottle
 from users import leaderboard
+from trivia.data_pipeline.live_pool import load_dataset
 from trivia.data_pipeline.starting_five import (
     canonical_lineup_names,
     is_playable_lineup,
@@ -126,15 +127,16 @@ def get_mvps(request):
         return JsonResponse({'error': str(e), 'message': "Error fetching MVP data"}, status=500)
 
 
-_cached_player_names = None
-
-
 def _player_names():
-    """Canonical player names (what the autocomplete offers), read once."""
-    global _cached_player_names
-    if not _cached_player_names:
-        _cached_player_names = list(Player.objects.values_list('full_name', flat=True))
-    return _cached_player_names
+    """Canonical player names (what the autocomplete offers).
+
+    The curated dataset, not the DB Player table: data/all-players.json — the
+    list the autocomplete actually downloads — is published from it and is 1:1
+    with it, so canonicalising a lineup against anything else would rewrite an
+    answer to a spelling the client cannot type. load_dataset() memoizes the
+    file on (mtime, size), which is what the module-level cache here used to do.
+    """
+    return [row["full_name"] for row in load_dataset()]
 
 
 def _starting_five_row(g):

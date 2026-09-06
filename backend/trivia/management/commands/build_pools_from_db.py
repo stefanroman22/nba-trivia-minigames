@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from trivia.data_pipeline.build_static import build_all_players_pool
 from trivia.data_pipeline.manifest import build_manifest
 from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_lineups
 from trivia.data_pipeline.validate import validate_pool
@@ -39,7 +40,12 @@ def build_name_logo():
 
 
 def build_all_players():
-    return list(Player.objects.values_list("full_name", flat=True))
+    # The curated dataset, not the DB Player table: players_curated.json is
+    # generated from the live league index and is 1:1 with this list by
+    # construction (generate_players_curated --rewrite-all-players writes both),
+    # so publishing the DB's older, unaccented names here would break that
+    # parity and the starting-five canonicalisation that reads this list.
+    return build_all_players_pool()
 
 
 def build_wordle():
