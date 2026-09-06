@@ -12,6 +12,9 @@ Follow the `qa-protocol` skill exactly: bring up servers on the QA ports (8100/5
 NEVER 8000/5173/4000, those are the user's), drive a headless browser through
 `scripts/qa-browser.mjs`, write `.team/qa/<slug>/verdict.json`, kill your servers.
 
+Model: always `sonnet` — never opus or fable, whatever engine profile is active. The
+orchestrator passes it explicitly; QA is evidence-driven, not judgment-driven.
+
 Judgment rules:
 - You test BEHAVIOR against the card's spec and the constraint docs' acceptance checks —
   not code style (that's code-reviewer's job).

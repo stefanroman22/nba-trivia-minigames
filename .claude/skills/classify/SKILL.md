@@ -28,20 +28,32 @@ downloaded from the card; Read it, it's part of the spec, not a footnote.
   the protected-paths list — CTO gets a `Risk: high` PR label and extra scrutiny.
 - Multi-area at any difficulty → `needsDesignRound: true`.
 
-## Engine model rubric
-Four tiers, effort always `high` unless noted. Pick by what the task actually needs, not by
-difficulty label alone — `hard` forks into two different models depending on spec quality.
+## Model rubric
+Two separate picks. The model that writes code is the cheap one; the intelligence goes into
+the plan and the review, not the implementation (see `docs/team/DECISIONS.md` 2026-09-06).
 
+### `engineModel` — who implements. Never `opus` or `fable`.
 | Model | When | Example |
 |---|---|---|
 | **haiku** (effort low) | `trivial`: content/copy/config edit, zero logic. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
-| **sonnet** | `standard`: reuses existing logic, or adds a simple-to-moderate feature on top of an existing, well-defined structure. **Prefer sonnet over opus whenever the existing system already gives a clear pattern to extend** — a complex surrounding codebase argues *for* sonnet if it's well-structured, not against it. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." |
-| **opus** | `hard`: new logic, no existing pattern covers it — **and** the spec is explicit: it either states how to handle every edge case, or states enough that the rest can be reasoned out from what's given. | Card: "Add a multiplayer 'best of 3' bracket mode. Ties break by total round wins; on disconnect, forfeit the current game only, not the match; reconnection within 30s resumes the bracket." → opus. |
-| **fable** | Same difficulty class as opus (new logic, no pattern covers it) **but the spec is thin** — no edge-case guidance given, so the engine must invent the missing rules itself under real ambiguity. | Card: "Add a multiplayer 'best of 3' bracket mode." (no further detail) → fable. Same feature as the opus example above — the spec's level of detail is what changes the pick, not the feature. |
+| **sonnet** (effort high) | Everything else — `standard` **and** `hard`. Sonnet is the default implementer because it costs a fraction of opus/fable per token, and it builds on top of an existing feature or follows an explicit plan well. A hard task does not earn a bigger engine — it earns a design round whose implementation plan is explicit enough that sonnet executes it without inventing anything. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." |
+
+### `planModel` — who thinks. Always `opus` or `fable`.
+Used by the orchestrator for the design round (when `needsDesignRound`), the replan after
+repeated verify failures, and the `code-reviewer` pass — so output it on **every** task, even
+when no design round runs. Pick by spec quality, not by difficulty:
+
+| Model | When | Example |
+|---|---|---|
+| **opus** | The spec is explicit: it either states how to handle every edge case, or states enough that the rest can be reasoned out from what's given. | Card: "Add a multiplayer 'best of 3' bracket mode. Ties break by total round wins; on disconnect, forfeit the current game only, not the match; reconnection within 30s resumes the bracket." → opus. |
+| **fable** | The spec is thin — no edge-case guidance given, so the planner must invent the missing rules itself under real ambiguity. | Card: "Add a multiplayer 'best of 3' bracket mode." (no further detail) → fable. Same feature as the opus example above — the spec's level of detail is what changes the pick, not the feature. |
+
+`fable` means the current Fable release (5.1 today) — a rolling alias like `opus`/`sonnet`,
+never a pinned version id.
 
 ### Close calls
-If you seriously weighed two adjacent tiers for this task (e.g. standard/sonnet vs. hard/opus,
-or hard/opus vs. hard/fable) and could defend either, after picking: append a short entry to
+If you seriously weighed two adjacent picks for this task (e.g. trivial/haiku vs.
+standard/sonnet, or planModel opus vs. fable) and could defend either, after picking: append a short entry to
 `docs/team/DECISIONS.md` in its existing format (`## YYYY-MM-DD — <title>` then Context /
 Decision / Consequences) — name both candidates considered and why one won. This is what makes
 step 1's read-back actually keep future similar tasks consistent instead of re-litigating the
@@ -50,6 +62,7 @@ same judgment call from scratch each time.
 ## Output (exact JSON, nothing else)
 { "difficulty": "standard", "areas": ["ui"], "risk": "low",
   "engineModel": "sonnet", "engineEffort": "high",
+  "planModel": "opus",
   "docs": ["docs/constraints/UI_SHELL_CONSTRAINTS.md"],
   "codeMapHits": ["- `src/hooks/useLeaderboard.ts` — ..."],
   "attachments": [],

@@ -275,3 +275,20 @@ pipeline keeps running exactly as before, on the local scheduled tasks:
    access allowing `api.notion.com` + `slack.com`.
 3. Confirm one routine "Run now" ships → merges → reports cleanly end to end.
 4. Only then run `scripts/unregister-team-cron.ps1` to retire the local scheduled tasks.
+
+## 14. Model policy
+
+The rule is **cheap implementer, heavy planner and reviewer** — token spend goes where
+judgment is needed, not into typing code. `classify` outputs two picks per task and the
+orchestrator passes every model explicitly (never relying on agent frontmatter or the
+`npm run engine` profile, which would otherwise move QA onto opus under `deep`/`max`):
+
+| Role | Model |
+|---|---|
+| Implementer (`frontend-engine`, `backend-engine`) | `classify.engineModel`: **haiku** for trivial (copy/config, zero logic), **sonnet** for everything else — including hard tasks, which get a design round and an explicit implementation plan instead of a bigger engine. Never opus/fable. |
+| Planner (`planner-architect` design round + replan) | `classify.planModel`: **opus** when the spec is explicit, **fable** (current release, 5.1 today) when the spec is thin. Its plan must be explicit enough for sonnet to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
+| `code-reviewer` | `classify.planModel` — always opus or fable, never sonnet/haiku. |
+| `test-qa-engine`, `browser-qa` | **sonnet**, always. Never opus/fable. |
+| CTO review (GitHub Actions) | **opus**, pinned in `.github/workflows/claude.yml`. Never fable. |
+
+Rationale and the superpowers-skill reconciliation: `docs/team/DECISIONS.md` 2026-09-06.
