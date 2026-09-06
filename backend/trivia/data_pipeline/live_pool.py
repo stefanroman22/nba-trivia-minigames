@@ -24,17 +24,38 @@ CURATED_PATH = os.path.join(
 )
 
 
+# Parsed once and kept, the way trivia/views.py load_dataset caches its fallback
+# datasets — seven round endpoints read this file now, and re-parsing megabytes of
+# JSON per request would be the one part of this design that only works while the
+# dataset is small. Keyed on (mtime, size) rather than cached forever, so a
+# regenerated file is picked up without a process restart.
+_cache_key = None
+_cache_rows = []
+
+
 def load_players():
     """Curated PlayerIndexEntry rows ([] when the dataset is missing/unreadable).
 
     Callers treat [] as "content not ready" (503) rather than crashing, so a
     half-deployed dataset degrades the same way an empty seed used to.
+
+    TREAT THE RESULT AS READ-ONLY. It is the shared cached list, not a copy —
+    copying it would defeat the cache. Filter or sample it (``[r for r in ...]``,
+    ``random.sample``, ``random.choices`` all build a new list); never sort,
+    append to, or mutate a row of what comes back.
     """
-    if not os.path.exists(CURATED_PATH):
-        return []
+    global _cache_key, _cache_rows
     try:
-        with open(CURATED_PATH, "r", encoding="utf-8") as f:
-            rows = json.load(f)
-    except (OSError, ValueError):
+        stat = os.stat(CURATED_PATH)
+    except OSError:
         return []
-    return rows if isinstance(rows, list) else []
+    key = (stat.st_mtime_ns, stat.st_size)
+    if key != _cache_key:
+        try:
+            with open(CURATED_PATH, "r", encoding="utf-8") as f:
+                rows = json.load(f)
+        except (OSError, ValueError):
+            return []
+        _cache_rows = rows if isinstance(rows, list) else []
+        _cache_key = key
+    return _cache_rows
