@@ -27,6 +27,8 @@ LINEUP_SHAPE = {"G": 2, "F": 2, "C": 1}
 NAME_ALIASES = {
     "nene hilario": "Nene",
     "jianlian yi": "Yi Jianlian",
+    # The player index carries the suffix, the box score does not.
+    "bobby portis": "Bobby Portis Jr.",
 }
 
 

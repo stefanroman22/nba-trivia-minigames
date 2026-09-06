@@ -13,8 +13,9 @@ from trivia.data_pipeline.starting_five import (
     is_playable_lineup,
     playable_lineups,
 )
+from trivia.management.commands import build_pools_from_db
 from trivia.management.commands.build_pools_from_db import build_starting_five
-from trivia.models import Player, StartingFiveGame
+from trivia.models import StartingFiveGame
 
 GOOD = [
     {"name": "Stephen Curry", "position": "G"},
@@ -99,10 +100,20 @@ class CanonicalLineupNameTests(TestCase):
         self.assertEqual(rows[0]["starting_5"][0]["name"], "Nobody At All")
 
 
+def _pin_player_names(test, names):
+    """Pin the canonical name list both builders and the endpoint read."""
+    for target, attr in ((build_pools_from_db, "build_all_players"),
+                         (views, "_player_names")):
+        patcher = patch.object(target, attr, return_value=names)
+        patcher.start()
+        test.addCleanup(patcher.stop)
+
+
 class StartingFivePoolBuildTests(TestCase):
     def setUp(self):
-        views._cached_player_names = None  # the endpoint reads the list once per process
-        Player.objects.create(person_id=1, full_name="Bojan Bogdanovic")
+        # The canonical name list is the curated dataset now, not the DB Player
+        # table — pin it so this stays a test of the naming rule.
+        _pin_player_names(self, ["Bojan Bogdanovic"])
         StartingFiveGame.objects.create(**_game("good", GOOD))
         StartingFiveGame.objects.create(**_game("bad", THREE_GUARDS))
         StartingFiveGame.objects.create(
@@ -134,8 +145,7 @@ class StartingFiveFallbackTests(TestCase):
     """
 
     def test_the_bundled_fallback_is_filtered_and_canonicalized(self):
-        views._cached_player_names = None
-        Player.objects.create(person_id=1, full_name="Bojan Bogdanovic")
+        _pin_player_names(self, ["Bojan Bogdanovic"])
         seed = [
             _game("bad", THREE_GUARDS),
             _game("good", [dict(GOOD[0], name="Bojan Bogdanović")] + GOOD[1:]),
