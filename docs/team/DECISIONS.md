@@ -35,3 +35,21 @@ Consequences: opus/fable spend moves from implementation (the longest stage) to 
 stages (plan, review). Plan quality is now load-bearing for hard tasks — a thin plan will
 show up as sonnet build failures and verify fix-cycles, which is the signal to fix the plan,
 not to raise the engine model.
+
+## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation
+Context: same day as the entry above, the owner banned opus (5 and 4.8) from the pipeline
+outright and asked for Fable 5.1 as the single heavy model, with the implementer chosen by the
+shape of the work rather than by spec quality.
+Decision: supersedes the opus/fable `planModel` split above — `planModel` is removed; every
+thinking role (classify, design round, replan, code-reviewer, CTO gate, orchestrator default in
+`.claude/settings.json`, the `deep`/`max` engine profiles) is fable. `engineModel` gains a
+`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with
+acceptance criteria, however many; fable for complex-but-small work — few steps, each needing
+judgment a plan cannot pin down. Because step count and criteria explicitness are only known
+after planning, classify's pick is provisional and the design round finalizes it (`Engine:`
+line, step 5d). The earlier "CTO never fable" rule is dropped: with opus gone, fable is the only
+reviewer-grade model left.
+Consequences: no repo surface can spawn opus. The cloud worker routine's model lives in the
+claude.ai routine settings, not in this repo — it has to be switched to Fable 5.1 by hand and
+cannot be enforced from here. Long-and-vague plans remain a plan defect, never an engine
+upgrade.

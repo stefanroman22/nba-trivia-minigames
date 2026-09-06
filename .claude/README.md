@@ -9,8 +9,8 @@ applied everywhere the agents run.
 npm run engine            # show current + available profiles
 npm run engine fast       # haiku  / low
 npm run engine balanced   # sonnet / high   (default)
-npm run engine deep       # opus   / xhigh
-npm run engine max        # opus   / max    (see caveat)
+npm run engine deep       # fable  / xhigh
+npm run engine max        # fable  / max    (see caveat)
 ```
 
 (Equivalent: `node .claude/use-profile.mjs <profile>`.)
@@ -37,7 +37,8 @@ so the active profile governs the whole fleet.
 - `code-reviewer` — read-only audit
 - `test-qa-engine` — lint / typecheck / build / Django tests
 
-The main orchestrator model is `model` in `.claude/settings.json` (default `opus`) — edit it directly if needed.
+The main orchestrator model is `model` in `.claude/settings.json` (default `fable`) — edit it directly if needed.
+Opus (5 and 4.8) is banned pipeline-wide: no profile, agent, workflow, or routine may use it — see `docs/team/PIPELINE.md` §14.
 
 ## Caveat: `max` effort
 

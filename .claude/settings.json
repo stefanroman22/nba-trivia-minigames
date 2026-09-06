@@ -1,7 +1,7 @@
 {
-  "model": "opus",
+  "model": "fable",
   "availableModels": [
-    "opus",
+    "fable",
     "sonnet",
     "haiku"
   ],

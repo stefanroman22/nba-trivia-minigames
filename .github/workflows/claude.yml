@@ -28,7 +28,7 @@ jobs:
       - name: Resolve engine profile from .claude/settings.json
         id: profile
         run: |
-          MAIN=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).model || 'opus')")
+          MAIN=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).model || 'fable')")
           MODEL=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).env?.CLAUDE_CODE_SUBAGENT_MODEL || 'sonnet')")
           EFFORT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.claude/settings.json','utf8')).env?.CLAUDE_CODE_EFFORT_LEVEL || 'high')")
           echo "main_model=$MAIN" >> "$GITHUB_OUTPUT"
@@ -65,14 +65,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Model pinned to opus on purpose — the CTO gate never runs on fable
-      # (docs/team/PIPELINE.md §14), so it does not inherit the settings.json profile.
+      # Model pinned to fable on purpose — opus is banned pipeline-wide
+      # (docs/team/PIPELINE.md §14) and the gate must not drift with the settings.json profile.
       - name: CTO review
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: "/cto-review ${{ github.event.pull_request.number }}"
-          claude_args: '--model opus --allowedTools "Bash,Read,Grep,Glob,Write"'
+          claude_args: '--model fable --allowedTools "Bash,Read,Grep,Glob,Write"'
 
       - name: Upload verdict artifact
         if: success()
