@@ -23,11 +23,15 @@ Check the `TEAM_CLOUD` environment variable once at the start.
   only cloud difference is that the deps step installs the browser first.
 
 ## Model policy
-Opus — 5 and 4.8 alike — is **banned** in this pipeline: never spawn it, never pass it, never
-fall back to it. Every spawn below names its model explicitly — never rely on agent frontmatter
-or the `CLAUDE_CODE_SUBAGENT_MODEL` engine profile. Fable 5.1 does the thinking, sonnet does
-the typing, haiku does the trivia (`docs/team/DECISIONS.md` 2026-09-06, second entry).
-- planner-architect (classify, design-round, replan): `fable`.
+Opus 5 is **banned** in this pipeline: never pass the `opus` alias (it resolves to Opus 5 and is
+denied in `.claude/settings.json`), never fall back to it. The one permitted Opus is 4.8, and
+only for planning, reached solely through the `planner-architect-opus` agent whose frontmatter
+pins `claude-opus-4-8` — spawn that agent with NO model parameter. Every other spawn names its
+model explicitly. Fable 5.1 does the thinking, sonnet does the typing, haiku does the trivia
+(`docs/team/DECISIONS.md` 2026-09-06 entries).
+- planner-architect (classify): `fable`. Design-round and replan: per `classify.planModel` —
+  `fable` → planner-architect (model fable); `opus-4.8` → planner-architect-opus (no model
+  parameter).
 - frontend-engine / backend-engine: the design doc's `Engine:` line when a design round ran,
   else `classify.engineModel` — `haiku` (trivial), `sonnet` (clearly defined steps with
   acceptance criteria, any length), `fable` (few steps, each needing real judgment).
@@ -94,8 +98,9 @@ journal stage=design|build.
    fails log one line and let the qa stage skip. The routine's setup script may be empty/no-op;
    the pipeline is responsible for its own dependencies in cloud mode.
 
-**design** (only if classify.needsDesignRound) → spawn planner-architect
-(model fable) with design-round skill. If it parks (design deadlock) → park
+**design** (only if classify.needsDesignRound) → spawn the planner per classify.planModel
+(fable → planner-architect with model fable; opus-4.8 → planner-architect-opus with no
+model parameter) with design-round skill. If it parks (design deadlock) → park
 procedure. journal stage=build.
 
 **build** → per involved area spawn the engine agent (frontend-engine and/or
@@ -111,8 +116,8 @@ the line "Reuse-first: duplicating a CODE_MAP entry is a review-reject." Work ha
 in the worktree path. journal stage=verify.
 
 **verify** → spawn test-qa-engine (model sonnet) in the worktree. Fail → send failures
-back to the engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn planner-architect
-(model fable) with the failure history, get a revised approach, reset to
+back to the engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn the same planner the
+design stage used (classify.planModel) with the failure history, get a revised approach, reset to
 build (replanned=true). Fails again → park. journal stage=qa.
 
 **qa** → if diff touches src/ or backend/: spawn browser-qa (model sonnet — never

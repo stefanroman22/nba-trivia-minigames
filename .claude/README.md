@@ -27,8 +27,13 @@ This rewrites the `env` block of `.claude/settings.json` and updates `.claude/ac
 | Scheduled routines | clones repo, reads committed `.claude/settings.json` env |
 | GitHub Actions | `.github/workflows/claude.yml` extracts the env values from settings.json |
 
-`CLAUDE_CODE_SUBAGENT_MODEL` and `CLAUDE_CODE_EFFORT_LEVEL` override each agent's own frontmatter,
-so the active profile governs the whole fleet.
+Precedence for a subagent's model (per the Claude Code sub-agents docs) is: the `model` passed
+on the spawn call → the agent file's frontmatter `model:` → `CLAUDE_CODE_SUBAGENT_MODEL` → the
+parent session's model. Every fleet agent declares a frontmatter model and the orchestrator
+passes one explicitly per spawn, so the profile's `subagentModel` is a fallback that rarely
+decides anything — the per-task policy in `docs/team/PIPELINE.md` §14 is what governs.
+`planner-architect-opus` pins the full id `claude-opus-4-8` in its frontmatter; the `opus`
+alias is denied outright in `settings.json` `permissions.deny`.
 
 ## The engines (`.claude/agents/`)
 

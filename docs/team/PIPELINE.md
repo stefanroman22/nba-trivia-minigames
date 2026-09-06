@@ -278,22 +278,25 @@ pipeline keeps running exactly as before, on the local scheduled tasks:
 
 ## 14. Model policy
 
-**Opus — 5 and 4.8 alike — is banned everywhere in this pipeline.** No agent, profile,
-workflow, or routine may use it. The three models in play, all rolling aliases (never pinned
-version ids):
+**Opus 5 is banned everywhere in this pipeline.** The `opus` alias resolves to it, so the alias
+is denied at spawn time in `.claude/settings.json` (`permissions.deny`: `Agent(model:opus)`).
+The one permitted Opus is 4.8, pinned by full id in `planner-architect-opus`'s frontmatter and
+used only to plan complex tasks whose spec is detailed. The models in play:
 
-| Alias | Resolves to today | Used for |
+| Model | Id | Used for |
 |---|---|---|
-| `fable` | Fable 5.1 | All thinking: classify, design round, replan, code review, CTO gate, the orchestrator itself — and implementation when the task is complex but small. |
-| `sonnet` | Sonnet 5 | The default implementer, plus verify and browser QA. |
-| `haiku` | Haiku 4.5 | Trivial implementation only (copy/config, zero logic). |
+| Fable 5.1 | alias `fable` | Classify, code review, CTO gate, the orchestrator itself, design rounds for thin/ambiguous specs — and implementation when the task is complex but small. |
+| Opus 4.8 | pinned `claude-opus-4-8` (never the `opus` alias) | Design round + replan for complex tasks with a detailed, explicit spec (`classify.planModel = opus-4.8`). |
+| Sonnet 5 | alias `sonnet` | The default implementer, plus verify and browser QA. |
+| Haiku 4.5 | alias `haiku` | Trivial implementation only (copy/config, zero logic). |
 
 The rule is **fable thinks, sonnet types, haiku does the trivia**. The orchestrator passes every
 model explicitly (never relying on agent frontmatter or the `npm run engine` profile):
 
 | Role | Model |
 |---|---|
-| `planner-architect` (classify, design round, replan) | **fable**. Its plan must be explicit enough — numbered steps, each with an acceptance criterion — for sonnet to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
+| `planner-architect` (classify) | **fable**. |
+| Design round + replan | `classify.planModel`: **Opus 4.8** (`planner-architect-opus`) when the spec is detailed — edge cases and done-criteria stated — **fable** (`planner-architect`) when it is thin. Either way the plan must be explicit enough — numbered steps, each with an acceptance criterion — for sonnet to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
 | Implementer (`frontend-engine`, `backend-engine`) | **haiku** for trivial. Otherwise **sonnet** when the work is clearly defined steps with acceptance criteria — however many — and **fable** when it is complex but small: a few steps that each need judgment a plan cannot pin down. Classify picks provisionally; the design round finalizes it (`Engine:` line in the design doc) once the plan's real shape is known. Long-and-vague is a plan problem, never a reason to upgrade the engine. |
 | `code-reviewer` | **fable**, always. |
 | `test-qa-engine`, `browser-qa` | **sonnet**, always. Never fable. |
