@@ -6,6 +6,7 @@ from django.urls import reverse
 from trivia.games import heatmap_validate
 from trivia.games.heatmap import build_pool, validate_rows
 from trivia.games.heatmap_criteria import ROW_WIDTHS, load_curated
+from trivia.tests.published_pool import published_pool
 
 
 class HeatmapEndpointTests(TestCase):
@@ -23,6 +24,11 @@ class HeatmapEndpointTests(TestCase):
 
     def test_seed_has_six_boards(self):
         self.assertEqual(len(build_pool()), 6)
+
+    def test_published_pool_matches_the_seed(self):
+        # The validators below prove the SEED is sound; this proves the file that
+        # actually ships was rebuilt from that seed and not hand-edited.
+        self.assertEqual(published_pool("heatmap"), build_pool())
 
 
 class HeatmapSeedValidatorTests(TestCase):
