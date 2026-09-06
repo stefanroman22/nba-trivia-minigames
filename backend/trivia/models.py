@@ -59,7 +59,7 @@ class PlayoffSeries(models.Model):
     loser_team_id = models.BigIntegerField()
     loser_name = models.CharField(max_length=100)
     loser_abbreviation = models.CharField(max_length=10, blank=True)
-    loser_wins = models.IntegerField()  # winner always has 4
+    loser_wins = models.IntegerField()  # winner's wins = total_games - loser_wins (best-of-3/5/7 by era)
     total_games = models.IntegerField()
 
     class Meta:
