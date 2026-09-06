@@ -288,70 +288,6 @@
     ]
   },
   {
-    "game_id": "0021000941",
-    "game_date": "2011-03-07",
-    "team_a": "Portland Trail Blazers",
-    "team_b": "Orlando Magic",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "final_score": "89 - 85",
-    "winning_team": "Portland Trail Blazers",
-    "starting_5": [
-      {
-        "name": "Nicolas Batum",
-        "position": "F"
-      },
-      {
-        "name": "LaMarcus Aldridge",
-        "position": "F"
-      },
-      {
-        "name": "Marcus Camby",
-        "position": "G"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      },
-      {
-        "name": "Andre Miller",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021000321",
-    "game_date": "2010-12-08",
-    "team_a": "Detroit Pistons",
-    "team_b": "New Orleans Pelicans",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
-    "final_score": "74 - 93",
-    "winning_team": "New Orleans Pelicans",
-    "starting_5": [
-      {
-        "name": "Trevor Ariza",
-        "position": "F"
-      },
-      {
-        "name": "Willie Green",
-        "position": "F"
-      },
-      {
-        "name": "David West",
-        "position": "G"
-      },
-      {
-        "name": "Emeka Okafor",
-        "position": "G"
-      },
-      {
-        "name": "Marco Belinelli",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021000392",
     "game_date": "2010-12-18",
     "team_a": "Philadelphia 76ers",
@@ -380,70 +316,6 @@
       {
         "name": "Spencer Hawes",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021000383",
-    "game_date": "2010-12-17",
-    "team_a": "Los Angeles Lakers",
-    "team_b": "Philadelphia 76ers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "final_score": "93 - 81",
-    "winning_team": "Los Angeles Lakers",
-    "starting_5": [
-      {
-        "name": "Metta World Peace",
-        "position": "F"
-      },
-      {
-        "name": "Lamar Odom",
-        "position": "F"
-      },
-      {
-        "name": "Kobe Bryant",
-        "position": "G"
-      },
-      {
-        "name": "Derek Fisher",
-        "position": "G"
-      },
-      {
-        "name": "Pau Gasol",
-        "position": "F"
-      }
-    ]
-  },
-  {
-    "game_id": "0021000204",
-    "game_date": "2010-11-23",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Brooklyn Nets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "final_score": "101 - 107",
-    "winning_team": "Brooklyn Nets",
-    "starting_5": [
-      {
-        "name": "Travis Outlaw",
-        "position": "F"
-      },
-      {
-        "name": "Brook Lopez",
-        "position": "F"
-      },
-      {
-        "name": "Kris Humphries",
-        "position": "G"
-      },
-      {
-        "name": "Anthony Morrow",
-        "position": "G"
-      },
-      {
-        "name": "Devin Harris",
-        "position": "G"
       }
     ]
   },
@@ -576,38 +448,6 @@
     ]
   },
   {
-    "game_id": "0021000362",
-    "game_date": "2010-12-14",
-    "team_a": "Los Angeles Lakers",
-    "team_b": "Washington Wizards",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg",
-    "final_score": "103 - 89",
-    "winning_team": "Los Angeles Lakers",
-    "starting_5": [
-      {
-        "name": "Metta World Peace",
-        "position": "F"
-      },
-      {
-        "name": "Lamar Odom",
-        "position": "F"
-      },
-      {
-        "name": "Pau Gasol",
-        "position": "G"
-      },
-      {
-        "name": "Kobe Bryant",
-        "position": "G"
-      },
-      {
-        "name": "Derek Fisher",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021000400",
     "game_date": "2010-12-19",
     "team_a": "Indiana Pacers",
@@ -736,38 +576,6 @@
     ]
   },
   {
-    "game_id": "0021001035",
-    "game_date": "2011-03-20",
-    "team_a": "Brooklyn Nets",
-    "team_b": "Washington Wizards",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg",
-    "final_score": "92 - 98",
-    "winning_team": "Washington Wizards",
-    "starting_5": [
-      {
-        "name": "Jianlian Yi",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Seraphin",
-        "position": "F"
-      },
-      {
-        "name": "Trevor Booker",
-        "position": "G"
-      },
-      {
-        "name": "JaVale McGee",
-        "position": "G"
-      },
-      {
-        "name": "Jordan Crawford",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021000114",
     "game_date": "2010-11-10",
     "team_a": "Dallas Mavericks",
@@ -832,70 +640,6 @@
     ]
   },
   {
-    "game_id": "0021000472",
-    "game_date": "2010-12-29",
-    "team_a": "Utah Jazz",
-    "team_b": "Los Angeles Clippers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
-    "final_score": "103 - 95",
-    "winning_team": "Utah Jazz",
-    "starting_5": [
-      {
-        "name": "Paul Millsap",
-        "position": "F"
-      },
-      {
-        "name": "Al Jefferson",
-        "position": "F"
-      },
-      {
-        "name": "Gordon Hayward",
-        "position": "G"
-      },
-      {
-        "name": "Raja Bell",
-        "position": "G"
-      },
-      {
-        "name": "Deron Williams",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021000520",
-    "game_date": "2011-01-05",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Utah Jazz",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "final_score": "110 - 87",
-    "winning_team": "Atlanta Hawks",
-    "starting_5": [
-      {
-        "name": "Josh Smith",
-        "position": "F"
-      },
-      {
-        "name": "Al Horford",
-        "position": "G"
-      },
-      {
-        "name": "Joe Johnson",
-        "position": "G"
-      },
-      {
-        "name": "Jason Collins",
-        "position": "C"
-      },
-      {
-        "name": "Mike Bibby",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021001155",
     "game_date": "2011-04-05",
     "team_a": "Toronto Raptors",
@@ -928,38 +672,6 @@
     ]
   },
   {
-    "game_id": "0021001009",
-    "game_date": "2011-03-16",
-    "team_a": "Charlotte Hornets",
-    "team_b": "Houston Rockets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "final_score": "78 - 94",
-    "winning_team": "Houston Rockets",
-    "starting_5": [
-      {
-        "name": "Chase Budinger",
-        "position": "F"
-      },
-      {
-        "name": "Patrick Patterson",
-        "position": "F"
-      },
-      {
-        "name": "Chuck Hayes",
-        "position": "G"
-      },
-      {
-        "name": "Kevin Martin",
-        "position": "G"
-      },
-      {
-        "name": "Kyle Lowry",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021000625",
     "game_date": "2011-01-19",
     "team_a": "Minnesota Timberwolves",
@@ -988,38 +700,6 @@
       {
         "name": "DeAndre Jordan",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021001177",
-    "game_date": "2011-04-08",
-    "team_a": "New York Knicks",
-    "team_b": "Brooklyn Nets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "final_score": "116 - 93",
-    "winning_team": "New York Knicks",
-    "starting_5": [
-      {
-        "name": "Carmelo Anthony",
-        "position": "F"
-      },
-      {
-        "name": "Shawne Williams",
-        "position": "F"
-      },
-      {
-        "name": "Shelden Williams",
-        "position": "G"
-      },
-      {
-        "name": "Landry Fields",
-        "position": "G"
-      },
-      {
-        "name": "Chauncey Billups",
-        "position": "G"
       }
     ]
   },
@@ -1568,38 +1248,6 @@
     ]
   },
   {
-    "game_id": "0021000623",
-    "game_date": "2011-01-19",
-    "team_a": "Portland Trail Blazers",
-    "team_b": "Sacramento Kings",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "final_score": "94 - 90",
-    "winning_team": "Portland Trail Blazers",
-    "starting_5": [
-      {
-        "name": "LaMarcus Aldridge",
-        "position": "F"
-      },
-      {
-        "name": "Joel Przybilla",
-        "position": "F"
-      },
-      {
-        "name": "Nicolas Batum",
-        "position": "G"
-      },
-      {
-        "name": "Dante Cunningham",
-        "position": "G"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021100726",
     "game_date": "2012-03-25",
     "team_a": "Memphis Grizzlies",
@@ -1728,38 +1376,6 @@
     ]
   },
   {
-    "game_id": "0021100884",
-    "game_date": "2012-04-13",
-    "team_a": "Denver Nuggets",
-    "team_b": "Los Angeles Lakers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-    "final_score": "97 - 103",
-    "winning_team": "Los Angeles Lakers",
-    "starting_5": [
-      {
-        "name": "Steve Blake",
-        "position": "F"
-      },
-      {
-        "name": "Metta World Peace",
-        "position": "G"
-      },
-      {
-        "name": "Pau Gasol",
-        "position": "G"
-      },
-      {
-        "name": "Andrew Bynum",
-        "position": "C"
-      },
-      {
-        "name": "Devin Ebanks",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021100545",
     "game_date": "2012-03-03",
     "team_a": "Minnesota Timberwolves",
@@ -1788,38 +1404,6 @@
       {
         "name": "Nikola Pekovic",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100209",
-    "game_date": "2012-01-18",
-    "team_a": "Memphis Grizzlies",
-    "team_b": "New Orleans Pelicans",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
-    "final_score": "93 - 87",
-    "winning_team": "Memphis Grizzlies",
-    "starting_5": [
-      {
-        "name": "Marc Gasol",
-        "position": "F"
-      },
-      {
-        "name": "O.J. Mayo",
-        "position": "F"
-      },
-      {
-        "name": "Rudy Gay",
-        "position": "G"
-      },
-      {
-        "name": "Marreese Speights",
-        "position": "G"
-      },
-      {
-        "name": "Tony Allen",
-        "position": "G"
       }
     ]
   },
@@ -1980,70 +1564,6 @@
       {
         "name": "Kendrick Perkins",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100612",
-    "game_date": "2012-03-12",
-    "team_a": "New York Knicks",
-    "team_b": "Chicago Bulls",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612741/primary/L/logo.svg",
-    "final_score": "99 - 104",
-    "winning_team": "Chicago Bulls",
-    "starting_5": [
-      {
-        "name": "Kyle Korver",
-        "position": "F"
-      },
-      {
-        "name": "Carlos Boozer",
-        "position": "F"
-      },
-      {
-        "name": "Joakim Noah",
-        "position": "G"
-      },
-      {
-        "name": "Ronnie Brewer",
-        "position": "G"
-      },
-      {
-        "name": "Derrick Rose",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100301",
-    "game_date": "2012-01-30",
-    "team_a": "New Orleans Pelicans",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "95 - 109",
-    "winning_team": "Miami Heat",
-    "starting_5": [
-      {
-        "name": "LeBron James",
-        "position": "F"
-      },
-      {
-        "name": "Joel Anthony",
-        "position": "F"
-      },
-      {
-        "name": "Chris Bosh",
-        "position": "G"
-      },
-      {
-        "name": "Dwyane Wade",
-        "position": "G"
-      },
-      {
-        "name": "Mario Chalmers",
-        "position": "G"
       }
     ]
   },
@@ -2368,38 +1888,6 @@
     ]
   },
   {
-    "game_id": "0021100596",
-    "game_date": "2012-03-10",
-    "team_a": "Toronto Raptors",
-    "team_b": "Detroit Pistons",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612761/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "final_score": "86 - 105",
-    "winning_team": "Detroit Pistons",
-    "starting_5": [
-      {
-        "name": "Greg Monroe",
-        "position": "F"
-      },
-      {
-        "name": "Jonas Jerebko",
-        "position": "F"
-      },
-      {
-        "name": "Tayshaun Prince",
-        "position": "G"
-      },
-      {
-        "name": "Jason Maxiell",
-        "position": "G"
-      },
-      {
-        "name": "Rodney Stuckey",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021100316",
     "game_date": "2012-02-01",
     "team_a": "Washington Wizards",
@@ -2464,38 +1952,6 @@
     ]
   },
   {
-    "game_id": "0021100312",
-    "game_date": "2012-01-31",
-    "team_a": "Denver Nuggets",
-    "team_b": "Memphis Grizzlies",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "final_score": "97 - 100",
-    "winning_team": "Memphis Grizzlies",
-    "starting_5": [
-      {
-        "name": "Marreese Speights",
-        "position": "F"
-      },
-      {
-        "name": "Marc Gasol",
-        "position": "F"
-      },
-      {
-        "name": "Rudy Gay",
-        "position": "G"
-      },
-      {
-        "name": "Tony Allen",
-        "position": "G"
-      },
-      {
-        "name": "Mike Conley",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0041100113",
     "game_date": "2012-05-03",
     "team_a": "Miami Heat",
@@ -2528,102 +1984,6 @@
     ]
   },
   {
-    "game_id": "0021100400",
-    "game_date": "2012-02-11",
-    "team_a": "Los Angeles Clippers",
-    "team_b": "Charlotte Hornets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
-    "final_score": "111 - 86",
-    "winning_team": "Los Angeles Clippers",
-    "starting_5": [
-      {
-        "name": "Blake Griffin",
-        "position": "F"
-      },
-      {
-        "name": "DeAndre Jordan",
-        "position": "F"
-      },
-      {
-        "name": "Caron Butler",
-        "position": "G"
-      },
-      {
-        "name": "Randy Foye",
-        "position": "G"
-      },
-      {
-        "name": "Chris Paul",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100538",
-    "game_date": "2012-03-02",
-    "team_a": "Sacramento Kings",
-    "team_b": "Los Angeles Lakers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-    "final_score": "107 - 115",
-    "winning_team": "Los Angeles Lakers",
-    "starting_5": [
-      {
-        "name": "Metta World Peace",
-        "position": "F"
-      },
-      {
-        "name": "Pau Gasol",
-        "position": "F"
-      },
-      {
-        "name": "Andrew Bynum",
-        "position": "G"
-      },
-      {
-        "name": "Kobe Bryant",
-        "position": "G"
-      },
-      {
-        "name": "Derek Fisher",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0041100112",
-    "game_date": "2012-04-30",
-    "team_a": "New York Knicks",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "94 - 104",
-    "winning_team": "Miami Heat",
-    "starting_5": [
-      {
-        "name": "LeBron James",
-        "position": "F"
-      },
-      {
-        "name": "Udonis Haslem",
-        "position": "F"
-      },
-      {
-        "name": "Chris Bosh",
-        "position": "G"
-      },
-      {
-        "name": "Dwyane Wade",
-        "position": "G"
-      },
-      {
-        "name": "Mario Chalmers",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021100513",
     "game_date": "2012-02-29",
     "team_a": "Orlando Magic",
@@ -2652,38 +2012,6 @@
       {
         "name": "Dwight Howard",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100722",
-    "game_date": "2012-03-25",
-    "team_a": "Utah Jazz",
-    "team_b": "Atlanta Hawks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "final_score": "133 - 139",
-    "winning_team": "Atlanta Hawks",
-    "starting_5": [
-      {
-        "name": "Joe Johnson",
-        "position": "F"
-      },
-      {
-        "name": "Josh Smith",
-        "position": "F"
-      },
-      {
-        "name": "Zaza Pachulia",
-        "position": "G"
-      },
-      {
-        "name": "Kirk Hinrich",
-        "position": "G"
-      },
-      {
-        "name": "Jeff Teague",
-        "position": "G"
       }
     ]
   },
@@ -2748,70 +2076,6 @@
       {
         "name": "Al Jefferson",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100382",
-    "game_date": "2012-02-08",
-    "team_a": "Dallas Mavericks",
-    "team_b": "Denver Nuggets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
-    "final_score": "105 - 95",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Shawn Marion",
-        "position": "F"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      },
-      {
-        "name": "Vince Carter",
-        "position": "G"
-      },
-      {
-        "name": "Brendan Haywood",
-        "position": "C"
-      },
-      {
-        "name": "Delonte West",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021100510",
-    "game_date": "2012-02-28",
-    "team_a": "Utah Jazz",
-    "team_b": "Sacramento Kings",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "final_score": "96 - 103",
-    "winning_team": "Sacramento Kings",
-    "starting_5": [
-      {
-        "name": "Tyreke Evans",
-        "position": "F"
-      },
-      {
-        "name": "DeMarcus Cousins",
-        "position": "F"
-      },
-      {
-        "name": "Jason Thompson",
-        "position": "G"
-      },
-      {
-        "name": "Marcus Thornton",
-        "position": "G"
-      },
-      {
-        "name": "Isaiah Thomas",
-        "position": "G"
       }
     ]
   },
@@ -3168,38 +2432,6 @@
     ]
   },
   {
-    "game_id": "0041100151",
-    "game_date": "2012-04-28",
-    "team_a": "Dallas Mavericks",
-    "team_b": "Oklahoma City Thunder",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "final_score": "98 - 99",
-    "winning_team": "Oklahoma City Thunder",
-    "starting_5": [
-      {
-        "name": "Kevin Durant",
-        "position": "F"
-      },
-      {
-        "name": "Serge Ibaka",
-        "position": "G"
-      },
-      {
-        "name": "Thabo Sefolosha",
-        "position": "G"
-      },
-      {
-        "name": "Kendrick Perkins",
-        "position": "C"
-      },
-      {
-        "name": "Russell Westbrook",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021200943",
     "game_date": "2013-03-11",
     "team_a": "Brooklyn Nets",
@@ -3228,38 +2460,6 @@
       {
         "name": "Spencer Hawes",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021200618",
-    "game_date": "2013-01-23",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Charlotte Hornets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
-    "final_score": "104 - 92",
-    "winning_team": "Atlanta Hawks",
-    "starting_5": [
-      {
-        "name": "DeShawn Stevenson",
-        "position": "F"
-      },
-      {
-        "name": "Josh Smith",
-        "position": "F"
-      },
-      {
-        "name": "Ivan Johnson",
-        "position": "G"
-      },
-      {
-        "name": "Kyle Korver",
-        "position": "G"
-      },
-      {
-        "name": "Jeff Teague",
-        "position": "G"
       }
     ]
   },
@@ -3324,38 +2524,6 @@
       {
         "name": "Cole Aldrich",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021200416",
-    "game_date": "2012-12-26",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "Memphis Grizzlies",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "final_score": "99 - 89",
-    "winning_team": "Philadelphia 76ers",
-    "starting_5": [
-      {
-        "name": "Dorell Wright",
-        "position": "F"
-      },
-      {
-        "name": "Thaddeus Young",
-        "position": "F"
-      },
-      {
-        "name": "Lavoy Allen",
-        "position": "G"
-      },
-      {
-        "name": "Evan Turner",
-        "position": "G"
-      },
-      {
-        "name": "Jrue Holiday",
-        "position": "G"
       }
     ]
   },
@@ -3680,38 +2848,6 @@
     ]
   },
   {
-    "game_id": "0021201226",
-    "game_date": "2013-04-17",
-    "team_a": "Milwaukee Bucks",
-    "team_b": "Oklahoma City Thunder",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612749/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "final_score": "95 - 89",
-    "winning_team": "Milwaukee Bucks",
-    "starting_5": [
-      {
-        "name": "Ekpe Udoh",
-        "position": "F"
-      },
-      {
-        "name": "Luc Mbah a Moute",
-        "position": "F"
-      },
-      {
-        "name": "John Henson",
-        "position": "G"
-      },
-      {
-        "name": "Monta Ellis",
-        "position": "G"
-      },
-      {
-        "name": "Brandon Jennings",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021200697",
     "game_date": "2013-02-02",
     "team_a": "Sacramento Kings",
@@ -3744,38 +2880,6 @@
     ]
   },
   {
-    "game_id": "0021200538",
-    "game_date": "2013-01-11",
-    "team_a": "Cleveland Cavaliers",
-    "team_b": "Denver Nuggets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
-    "final_score": "91 - 98",
-    "winning_team": "Denver Nuggets",
-    "starting_5": [
-      {
-        "name": "Corey Brewer",
-        "position": "F"
-      },
-      {
-        "name": "Andre Miller",
-        "position": "F"
-      },
-      {
-        "name": "Danilo Gallinari",
-        "position": "G"
-      },
-      {
-        "name": "Kenneth Faried",
-        "position": "G"
-      },
-      {
-        "name": "Kosta Koufos",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021200008",
     "game_date": "2012-10-31",
     "team_a": "San Antonio Spurs",
@@ -3804,38 +2908,6 @@
       {
         "name": "Tiago Splitter",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021200330",
-    "game_date": "2012-12-14",
-    "team_a": "Golden State Warriors",
-    "team_b": "Orlando Magic",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "final_score": "85 - 99",
-    "winning_team": "Orlando Magic",
-    "starting_5": [
-      {
-        "name": "Maurice Harkless",
-        "position": "F"
-      },
-      {
-        "name": "Glen Davis",
-        "position": "F"
-      },
-      {
-        "name": "Nikola Vu\u010devi\u0107",
-        "position": "G"
-      },
-      {
-        "name": "Arron Afflalo",
-        "position": "G"
-      },
-      {
-        "name": "Jameer Nelson",
-        "position": "G"
       }
     ]
   },
@@ -3954,7 +3026,7 @@
         "position": "F"
       },
       {
-        "name": "Nene Hilario",
+        "name": "Nene",
         "position": "G"
       },
       {
@@ -3964,70 +3036,6 @@
       {
         "name": "Trevor Ariza",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021200128",
-    "game_date": "2012-11-16",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Sacramento Kings",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "final_score": "112 - 96",
-    "winning_team": "Atlanta Hawks",
-    "starting_5": [
-      {
-        "name": "Josh Smith",
-        "position": "F"
-      },
-      {
-        "name": "Al Horford",
-        "position": "F"
-      },
-      {
-        "name": "Zaza Pachulia",
-        "position": "G"
-      },
-      {
-        "name": "Kyle Korver",
-        "position": "G"
-      },
-      {
-        "name": "Jeff Teague",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021200902",
-    "game_date": "2013-03-06",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "Atlanta Hawks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "final_score": "96 - 107",
-    "winning_team": "Atlanta Hawks",
-    "starting_5": [
-      {
-        "name": "DeShawn Stevenson",
-        "position": "F"
-      },
-      {
-        "name": "Josh Smith",
-        "position": "F"
-      },
-      {
-        "name": "Devin Harris",
-        "position": "G"
-      },
-      {
-        "name": "Jeff Teague",
-        "position": "G"
-      },
-      {
-        "name": "Al Horford",
-        "position": "F"
       }
     ]
   },
@@ -4156,70 +3164,6 @@
       {
         "name": "Kenyon Martin",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021200576",
-    "game_date": "2013-01-16",
-    "team_a": "Memphis Grizzlies",
-    "team_b": "San Antonio Spurs",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
-    "final_score": "82 - 103",
-    "winning_team": "San Antonio Spurs",
-    "starting_5": [
-      {
-        "name": "Kawhi Leonard",
-        "position": "F"
-      },
-      {
-        "name": "Tim Duncan",
-        "position": "F"
-      },
-      {
-        "name": "Tiago Splitter",
-        "position": "G"
-      },
-      {
-        "name": "Danny Green",
-        "position": "G"
-      },
-      {
-        "name": "Tony Parker",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021201166",
-    "game_date": "2013-04-10",
-    "team_a": "Milwaukee Bucks",
-    "team_b": "Orlando Magic",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612749/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "final_score": "103 - 113",
-    "winning_team": "Orlando Magic",
-    "starting_5": [
-      {
-        "name": "Maurice Harkless",
-        "position": "G"
-      },
-      {
-        "name": "Tobias Harris",
-        "position": "G"
-      },
-      {
-        "name": "Nikola Vu\u010devi\u0107",
-        "position": "G"
-      },
-      {
-        "name": "E'Twaun Moore",
-        "position": "G"
-      },
-      {
-        "name": "Beno Udrih",
-        "position": "G"
       }
     ]
   },
@@ -4704,70 +3648,6 @@
     ]
   },
   {
-    "game_id": "0041200132",
-    "game_date": "2013-04-22",
-    "team_a": "Chicago Bulls",
-    "team_b": "Brooklyn Nets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612741/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "final_score": "90 - 82",
-    "winning_team": "Chicago Bulls",
-    "starting_5": [
-      {
-        "name": "Luol Deng",
-        "position": "F"
-      },
-      {
-        "name": "Carlos Boozer",
-        "position": "F"
-      },
-      {
-        "name": "Joakim Noah",
-        "position": "G"
-      },
-      {
-        "name": "Jimmy Butler III",
-        "position": "G"
-      },
-      {
-        "name": "Kirk Hinrich",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021201180",
-    "game_date": "2013-04-12",
-    "team_a": "Boston Celtics",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "101 - 109",
-    "winning_team": "Miami Heat",
-    "starting_5": [
-      {
-        "name": "Mike Miller",
-        "position": "F"
-      },
-      {
-        "name": "Chris Bosh",
-        "position": "F"
-      },
-      {
-        "name": "LeBron James",
-        "position": "G"
-      },
-      {
-        "name": "Dwyane Wade",
-        "position": "G"
-      },
-      {
-        "name": "Mario Chalmers",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021200213",
     "game_date": "2012-11-28",
     "team_a": "Phoenix Suns",
@@ -4810,7 +3690,7 @@
     "winning_team": "Washington Wizards",
     "starting_5": [
       {
-        "name": "Nene Hilario",
+        "name": "Nene",
         "position": "F"
       },
       {
@@ -4892,70 +3772,6 @@
       {
         "name": "Roy Hibbert",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300685",
-    "game_date": "2014-01-29",
-    "team_a": "Washington Wizards",
-    "team_b": "Los Angeles Clippers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
-    "final_score": "103 - 110",
-    "winning_team": "Los Angeles Clippers",
-    "starting_5": [
-      {
-        "name": "Matt Barnes",
-        "position": "F"
-      },
-      {
-        "name": "Blake Griffin",
-        "position": "F"
-      },
-      {
-        "name": "DeAndre Jordan",
-        "position": "G"
-      },
-      {
-        "name": "JJ Redick",
-        "position": "G"
-      },
-      {
-        "name": "Darren Collison",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300363",
-    "game_date": "2013-12-16",
-    "team_a": "San Antonio Spurs",
-    "team_b": "Los Angeles Clippers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
-    "final_score": "92 - 115",
-    "winning_team": "Los Angeles Clippers",
-    "starting_5": [
-      {
-        "name": "Blake Griffin",
-        "position": "F"
-      },
-      {
-        "name": "DeAndre Jordan",
-        "position": "F"
-      },
-      {
-        "name": "Jared Dudley",
-        "position": "G"
-      },
-      {
-        "name": "Jamal Crawford",
-        "position": "G"
-      },
-      {
-        "name": "Chris Paul",
-        "position": "G"
       }
     ]
   },
@@ -5056,70 +3872,6 @@
     ]
   },
   {
-    "game_id": "0021301149",
-    "game_date": "2014-04-06",
-    "team_a": "New York Knicks",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "91 - 102",
-    "winning_team": "Miami Heat",
-    "starting_5": [
-      {
-        "name": "LeBron James",
-        "position": "F"
-      },
-      {
-        "name": "Norris Cole",
-        "position": "F"
-      },
-      {
-        "name": "Udonis Haslem",
-        "position": "G"
-      },
-      {
-        "name": "Chris Bosh",
-        "position": "G"
-      },
-      {
-        "name": "Toney Douglas",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300154",
-    "game_date": "2013-11-18",
-    "team_a": "Golden State Warriors",
-    "team_b": "Utah Jazz",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "final_score": "98 - 87",
-    "winning_team": "Golden State Warriors",
-    "starting_5": [
-      {
-        "name": "Andre Iguodala",
-        "position": "F"
-      },
-      {
-        "name": "David Lee",
-        "position": "F"
-      },
-      {
-        "name": "Andrew Bogut",
-        "position": "G"
-      },
-      {
-        "name": "Klay Thompson",
-        "position": "G"
-      },
-      {
-        "name": "Stephen Curry",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021300442",
     "game_date": "2013-12-28",
     "team_a": "New Orleans Pelicans",
@@ -5148,70 +3900,6 @@
       {
         "name": "Dwight Howard",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021301095",
-    "game_date": "2014-03-30",
-    "team_a": "Minnesota Timberwolves",
-    "team_b": "Brooklyn Nets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "final_score": "99 - 114",
-    "winning_team": "Brooklyn Nets",
-    "starting_5": [
-      {
-        "name": "Paul Pierce",
-        "position": "F"
-      },
-      {
-        "name": "Mason Plumlee",
-        "position": "F"
-      },
-      {
-        "name": "Joe Johnson",
-        "position": "G"
-      },
-      {
-        "name": "Shaun Livingston",
-        "position": "G"
-      },
-      {
-        "name": "Deron Williams",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300830",
-    "game_date": "2014-02-22",
-    "team_a": "Minnesota Timberwolves",
-    "team_b": "Utah Jazz",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "final_score": "121 - 104",
-    "winning_team": "Minnesota Timberwolves",
-    "starting_5": [
-      {
-        "name": "Corey Brewer",
-        "position": "F"
-      },
-      {
-        "name": "Dante Cunningham",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Love",
-        "position": "G"
-      },
-      {
-        "name": "Chase Budinger",
-        "position": "G"
-      },
-      {
-        "name": "Ricky Rubio",
-        "position": "G"
       }
     ]
   },
@@ -5276,134 +3964,6 @@
       {
         "name": "Jonas Jerebko",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300041",
-    "game_date": "2013-11-03",
-    "team_a": "Boston Celtics",
-    "team_b": "Detroit Pistons",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612738/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "final_score": "77 - 87",
-    "winning_team": "Detroit Pistons",
-    "starting_5": [
-      {
-        "name": "Rodney Stuckey",
-        "position": "F"
-      },
-      {
-        "name": "Josh Smith",
-        "position": "G"
-      },
-      {
-        "name": "Greg Monroe",
-        "position": "G"
-      },
-      {
-        "name": "Kyle Singler",
-        "position": "C"
-      },
-      {
-        "name": "Andre Drummond",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021301071",
-    "game_date": "2014-03-27",
-    "team_a": "Portland Trail Blazers",
-    "team_b": "Atlanta Hawks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "final_score": "100 - 85",
-    "winning_team": "Portland Trail Blazers",
-    "starting_5": [
-      {
-        "name": "Nicolas Batum",
-        "position": "F"
-      },
-      {
-        "name": "LaMarcus Aldridge",
-        "position": "F"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      },
-      {
-        "name": "Damian Lillard",
-        "position": "G"
-      },
-      {
-        "name": "Robin Lopez",
-        "position": "F"
-      }
-    ]
-  },
-  {
-    "game_id": "0021301007",
-    "game_date": "2014-03-18",
-    "team_a": "Orlando Magic",
-    "team_b": "Golden State Warriors",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "final_score": "89 - 103",
-    "winning_team": "Golden State Warriors",
-    "starting_5": [
-      {
-        "name": "Draymond Green",
-        "position": "F"
-      },
-      {
-        "name": "David Lee",
-        "position": "F"
-      },
-      {
-        "name": "Harrison Barnes",
-        "position": "G"
-      },
-      {
-        "name": "Klay Thompson",
-        "position": "G"
-      },
-      {
-        "name": "Stephen Curry",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021301080",
-    "game_date": "2014-03-28",
-    "team_a": "Portland Trail Blazers",
-    "team_b": "Chicago Bulls",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612741/primary/L/logo.svg",
-    "final_score": "91 - 74",
-    "winning_team": "Portland Trail Blazers",
-    "starting_5": [
-      {
-        "name": "Nicolas Batum",
-        "position": "F"
-      },
-      {
-        "name": "LaMarcus Aldridge",
-        "position": "F"
-      },
-      {
-        "name": "Robin Lopez",
-        "position": "G"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      },
-      {
-        "name": "Damian Lillard",
-        "position": "G"
       }
     ]
   },
@@ -5596,38 +4156,6 @@
       {
         "name": "Kendrick Perkins",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300927",
-    "game_date": "2014-03-07",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Golden State Warriors",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "final_score": "97 - 111",
-    "winning_team": "Golden State Warriors",
-    "starting_5": [
-      {
-        "name": "David Lee",
-        "position": "F"
-      },
-      {
-        "name": "Andrew Bogut",
-        "position": "F"
-      },
-      {
-        "name": "Andre Iguodala",
-        "position": "G"
-      },
-      {
-        "name": "Klay Thompson",
-        "position": "G"
-      },
-      {
-        "name": "Stephen Curry",
-        "position": "G"
       }
     ]
   },
@@ -5856,38 +4384,6 @@
     ]
   },
   {
-    "game_id": "0021300058",
-    "game_date": "2013-11-05",
-    "team_a": "Houston Rockets",
-    "team_b": "Portland Trail Blazers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612757/primary/L/logo.svg",
-    "final_score": "116 - 101",
-    "winning_team": "Houston Rockets",
-    "starting_5": [
-      {
-        "name": "Chandler Parsons",
-        "position": "F"
-      },
-      {
-        "name": "Dwight Howard",
-        "position": "F"
-      },
-      {
-        "name": "Omer Asik",
-        "position": "G"
-      },
-      {
-        "name": "James Harden",
-        "position": "G"
-      },
-      {
-        "name": "Jeremy Lin",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021300818",
     "game_date": "2014-02-21",
     "team_a": "Cleveland Cavaliers",
@@ -5914,40 +4410,8 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300986",
-    "game_date": "2014-03-15",
-    "team_a": "Sacramento Kings",
-    "team_b": "Chicago Bulls",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612741/primary/L/logo.svg",
-    "final_score": "87 - 94",
-    "winning_team": "Chicago Bulls",
-    "starting_5": [
-      {
-        "name": "Carlos Boozer",
-        "position": "F"
-      },
-      {
-        "name": "Joakim Noah",
-        "position": "F"
-      },
-      {
-        "name": "Mike Dunleavy",
-        "position": "G"
-      },
-      {
-        "name": "Jimmy Butler III",
-        "position": "G"
-      },
-      {
-        "name": "Kirk Hinrich",
-        "position": "G"
       }
     ]
   },
@@ -6042,7 +4506,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -6106,40 +4570,8 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300396",
-    "game_date": "2013-12-21",
-    "team_a": "Houston Rockets",
-    "team_b": "Detroit Pistons",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "final_score": "114 - 97",
-    "winning_team": "Houston Rockets",
-    "starting_5": [
-      {
-        "name": "Terrence Jones",
-        "position": "F"
-      },
-      {
-        "name": "Chandler Parsons",
-        "position": "G"
-      },
-      {
-        "name": "Dwight Howard",
-        "position": "G"
-      },
-      {
-        "name": "Ronnie Brewer",
-        "position": "C"
-      },
-      {
-        "name": "Francisco Garcia",
-        "position": "G"
       }
     ]
   },
@@ -6208,38 +4640,6 @@
     ]
   },
   {
-    "game_id": "0021300577",
-    "game_date": "2014-01-15",
-    "team_a": "Dallas Mavericks",
-    "team_b": "Los Angeles Clippers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
-    "final_score": "127 - 129",
-    "winning_team": "Los Angeles Clippers",
-    "starting_5": [
-      {
-        "name": "Jared Dudley",
-        "position": "F"
-      },
-      {
-        "name": "Jamal Crawford",
-        "position": "F"
-      },
-      {
-        "name": "Blake Griffin",
-        "position": "G"
-      },
-      {
-        "name": "DeAndre Jordan",
-        "position": "G"
-      },
-      {
-        "name": "JJ Redick",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021300687",
     "game_date": "2014-01-30",
     "team_a": "Cleveland Cavaliers",
@@ -6268,38 +4668,6 @@
       {
         "name": "Tyson Chandler",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021300322",
-    "game_date": "2013-12-11",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "Minnesota Timberwolves",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg",
-    "final_score": "99 - 106",
-    "winning_team": "Minnesota Timberwolves",
-    "starting_5": [
-      {
-        "name": "Corey Brewer",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Love",
-        "position": "F"
-      },
-      {
-        "name": "Nikola Pekovic",
-        "position": "G"
-      },
-      {
-        "name": "Kevin Martin",
-        "position": "G"
-      },
-      {
-        "name": "Ricky Rubio",
-        "position": "G"
       }
     ]
   },
@@ -6362,7 +4730,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -6496,38 +4864,6 @@
     ]
   },
   {
-    "game_id": "0021400106",
-    "game_date": "2014-11-11",
-    "team_a": "Sacramento Kings",
-    "team_b": "Dallas Mavericks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "final_score": "98 - 106",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Tyson Chandler",
-        "position": "F"
-      },
-      {
-        "name": "Al-Farouq Aminu",
-        "position": "F"
-      },
-      {
-        "name": "Chandler Parsons",
-        "position": "G"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      },
-      {
-        "name": "Monta Ellis",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021400181",
     "game_date": "2014-11-21",
     "team_a": "New Orleans Pelicans",
@@ -6624,38 +4960,6 @@
     ]
   },
   {
-    "game_id": "0021400539",
-    "game_date": "2015-01-09",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "Brooklyn Nets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "final_score": "90 - 88",
-    "winning_team": "Philadelphia 76ers",
-    "starting_5": [
-      {
-        "name": "Henry Sims",
-        "position": "F"
-      },
-      {
-        "name": "Luc Mbah a Moute",
-        "position": "G"
-      },
-      {
-        "name": "Nerlens Noel",
-        "position": "G"
-      },
-      {
-        "name": "Jerami Grant",
-        "position": "C"
-      },
-      {
-        "name": "Robert Covington",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021400990",
     "game_date": "2015-03-16",
     "team_a": "Toronto Raptors",
@@ -6682,40 +4986,8 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400382",
-    "game_date": "2014-12-18",
-    "team_a": "Oklahoma City Thunder",
-    "team_b": "Golden State Warriors",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "final_score": "109 - 114",
-    "winning_team": "Golden State Warriors",
-    "starting_5": [
-      {
-        "name": "Draymond Green",
-        "position": "F"
-      },
-      {
-        "name": "Festus Ezeli",
-        "position": "F"
-      },
-      {
-        "name": "Harrison Barnes",
-        "position": "G"
-      },
-      {
-        "name": "Klay Thompson",
-        "position": "G"
-      },
-      {
-        "name": "Stephen Curry",
-        "position": "G"
       }
     ]
   },
@@ -6816,38 +5088,6 @@
     ]
   },
   {
-    "game_id": "0021400962",
-    "game_date": "2015-03-12",
-    "team_a": "Milwaukee Bucks",
-    "team_b": "Indiana Pacers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612749/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612754/primary/L/logo.svg",
-    "final_score": "103 - 109",
-    "winning_team": "Indiana Pacers",
-    "starting_5": [
-      {
-        "name": "Solomon Hill",
-        "position": "F"
-      },
-      {
-        "name": "David West",
-        "position": "F"
-      },
-      {
-        "name": "CJ Miles",
-        "position": "G"
-      },
-      {
-        "name": "George Hill",
-        "position": "G"
-      },
-      {
-        "name": "Ian Mahinmi",
-        "position": "F"
-      }
-    ]
-  },
-  {
     "game_id": "0021400734",
     "game_date": "2015-02-04",
     "team_a": "Brooklyn Nets",
@@ -6912,70 +5152,6 @@
     ]
   },
   {
-    "game_id": "0021400436",
-    "game_date": "2014-12-26",
-    "team_a": "Houston Rockets",
-    "team_b": "Memphis Grizzlies",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "final_score": "117 - 111",
-    "winning_team": "Houston Rockets",
-    "starting_5": [
-      {
-        "name": "Trevor Ariza",
-        "position": "F"
-      },
-      {
-        "name": "Donatas Motiejunas",
-        "position": "G"
-      },
-      {
-        "name": "Dwight Howard",
-        "position": "G"
-      },
-      {
-        "name": "Alexey Shved",
-        "position": "C"
-      },
-      {
-        "name": "James Harden",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400014",
-    "game_date": "2014-10-29",
-    "team_a": "Golden State Warriors",
-    "team_b": "Sacramento Kings",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "final_score": "95 - 77",
-    "winning_team": "Golden State Warriors",
-    "starting_5": [
-      {
-        "name": "Draymond Green",
-        "position": "F"
-      },
-      {
-        "name": "Andre Iguodala",
-        "position": "F"
-      },
-      {
-        "name": "Harrison Barnes",
-        "position": "G"
-      },
-      {
-        "name": "Andrew Bogut",
-        "position": "G"
-      },
-      {
-        "name": "Klay Thompson",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021400938",
     "game_date": "2015-03-09",
     "team_a": "Washington Wizards",
@@ -6998,44 +5174,12 @@
         "position": "G"
       },
       {
-        "name": "Nene Hilario",
+        "name": "Nene",
         "position": "G"
       },
       {
         "name": "Garrett Temple",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400439",
-    "game_date": "2014-12-26",
-    "team_a": "Los Angeles Lakers",
-    "team_b": "Dallas Mavericks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "final_score": "98 - 102",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Chandler Parsons",
-        "position": "F"
-      },
-      {
-        "name": "Richard Jefferson",
-        "position": "F"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      },
-      {
-        "name": "Tyson Chandler",
-        "position": "G"
-      },
-      {
-        "name": "Monta Ellis",
-        "position": "G"
       }
     ]
   },
@@ -7132,38 +5276,6 @@
       {
         "name": "DeAndre Jordan",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400631",
-    "game_date": "2015-01-21",
-    "team_a": "Dallas Mavericks",
-    "team_b": "Minnesota Timberwolves",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612750/primary/L/logo.svg",
-    "final_score": "98 - 75",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Chandler Parsons",
-        "position": "F"
-      },
-      {
-        "name": "Tyson Chandler",
-        "position": "F"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      },
-      {
-        "name": "Monta Ellis",
-        "position": "G"
-      },
-      {
-        "name": "Rajon Rondo",
-        "position": "G"
       }
     ]
   },
@@ -7392,38 +5504,6 @@
     ]
   },
   {
-    "game_id": "0021400213",
-    "game_date": "2014-11-26",
-    "team_a": "Brooklyn Nets",
-    "team_b": "Philadelphia 76ers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "final_score": "99 - 91",
-    "winning_team": "Brooklyn Nets",
-    "starting_5": [
-      {
-        "name": "Joe Johnson",
-        "position": "F"
-      },
-      {
-        "name": "Brook Lopez",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Garnett",
-        "position": "G"
-      },
-      {
-        "name": "Bojan Bogdanovi\u0107",
-        "position": "G"
-      },
-      {
-        "name": "Deron Williams",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021400188",
     "game_date": "2014-11-22",
     "team_a": "Dallas Mavericks",
@@ -7552,70 +5632,6 @@
     ]
   },
   {
-    "game_id": "0021400131",
-    "game_date": "2014-11-14",
-    "team_a": "San Antonio Spurs",
-    "team_b": "Los Angeles Lakers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612747/primary/L/logo.svg",
-    "final_score": "93 - 80",
-    "winning_team": "San Antonio Spurs",
-    "starting_5": [
-      {
-        "name": "Cory Joseph",
-        "position": "F"
-      },
-      {
-        "name": "Kawhi Leonard",
-        "position": "G"
-      },
-      {
-        "name": "Tim Duncan",
-        "position": "G"
-      },
-      {
-        "name": "Matt Bonner",
-        "position": "C"
-      },
-      {
-        "name": "Danny Green",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0041400152",
-    "game_date": "2015-04-21",
-    "team_a": "Dallas Mavericks",
-    "team_b": "Houston Rockets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "final_score": "99 - 111",
-    "winning_team": "Houston Rockets",
-    "starting_5": [
-      {
-        "name": "Terrence Jones",
-        "position": "F"
-      },
-      {
-        "name": "Dwight Howard",
-        "position": "F"
-      },
-      {
-        "name": "Trevor Ariza",
-        "position": "G"
-      },
-      {
-        "name": "James Harden",
-        "position": "G"
-      },
-      {
-        "name": "Jason Terry",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021401218",
     "game_date": "2015-04-15",
     "team_a": "Portland Trail Blazers",
@@ -7680,70 +5696,6 @@
     ]
   },
   {
-    "game_id": "0021400238",
-    "game_date": "2014-11-29",
-    "team_a": "Indiana Pacers",
-    "team_b": "Cleveland Cavaliers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612754/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg",
-    "final_score": "97 - 109",
-    "winning_team": "Cleveland Cavaliers",
-    "starting_5": [
-      {
-        "name": "LeBron James",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Love",
-        "position": "F"
-      },
-      {
-        "name": "Tristan Thompson",
-        "position": "G"
-      },
-      {
-        "name": "Shawn Marion",
-        "position": "G"
-      },
-      {
-        "name": "Kyrie Irving",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400133",
-    "game_date": "2014-11-15",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Cleveland Cavaliers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg",
-    "final_score": "94 - 127",
-    "winning_team": "Cleveland Cavaliers",
-    "starting_5": [
-      {
-        "name": "Kevin Love",
-        "position": "F"
-      },
-      {
-        "name": "Dion Waiters",
-        "position": "F"
-      },
-      {
-        "name": "LeBron James",
-        "position": "G"
-      },
-      {
-        "name": "Anderson Varejao",
-        "position": "G"
-      },
-      {
-        "name": "Shawn Marion",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021400729",
     "game_date": "2015-02-03",
     "team_a": "Utah Jazz",
@@ -7776,38 +5728,6 @@
     ]
   },
   {
-    "game_id": "0021400150",
-    "game_date": "2014-11-17",
-    "team_a": "Orlando Magic",
-    "team_b": "Detroit Pistons",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "final_score": "107 - 93",
-    "winning_team": "Orlando Magic",
-    "starting_5": [
-      {
-        "name": "Nikola Vu\u010devi\u0107",
-        "position": "F"
-      },
-      {
-        "name": "Willie Green",
-        "position": "F"
-      },
-      {
-        "name": "Tobias Harris",
-        "position": "G"
-      },
-      {
-        "name": "Channing Frye",
-        "position": "G"
-      },
-      {
-        "name": "Evan Fournier",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021401044",
     "game_date": "2015-03-22",
     "team_a": "Denver Nuggets",
@@ -7826,7 +5746,7 @@
         "position": "F"
       },
       {
-        "name": "Jusuf Nurki\u0107",
+        "name": "Jusuf Nurkić",
         "position": "G"
       },
       {
@@ -7868,102 +5788,6 @@
       {
         "name": "Leandro Barbosa",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400511",
-    "game_date": "2015-01-05",
-    "team_a": "Dallas Mavericks",
-    "team_b": "Brooklyn Nets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "final_score": "96 - 88",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Tyson Chandler",
-        "position": "F"
-      },
-      {
-        "name": "Greg Smith",
-        "position": "F"
-      },
-      {
-        "name": "Chandler Parsons",
-        "position": "G"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      },
-      {
-        "name": "Monta Ellis",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400033",
-    "game_date": "2014-11-01",
-    "team_a": "Brooklyn Nets",
-    "team_b": "Detroit Pistons",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "final_score": "102 - 90",
-    "winning_team": "Brooklyn Nets",
-    "starting_5": [
-      {
-        "name": "Joe Johnson",
-        "position": "F"
-      },
-      {
-        "name": "Alan Anderson",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Garnett",
-        "position": "G"
-      },
-      {
-        "name": "Mason Plumlee",
-        "position": "G"
-      },
-      {
-        "name": "Bojan Bogdanovi\u0107",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021400823",
-    "game_date": "2015-02-22",
-    "team_a": "Washington Wizards",
-    "team_b": "Detroit Pistons",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612764/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612765/primary/L/logo.svg",
-    "final_score": "89 - 106",
-    "winning_team": "Detroit Pistons",
-    "starting_5": [
-      {
-        "name": "Caron Butler",
-        "position": "F"
-      },
-      {
-        "name": "Greg Monroe",
-        "position": "F"
-      },
-      {
-        "name": "Andre Drummond",
-        "position": "G"
-      },
-      {
-        "name": "Kentavious Caldwell-Pope",
-        "position": "G"
-      },
-      {
-        "name": "Reggie Jackson",
-        "position": "G"
       }
     ]
   },
@@ -8028,38 +5852,6 @@
       {
         "name": "Hassan Whiteside",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500415",
-    "game_date": "2015-12-21",
-    "team_a": "Charlotte Hornets",
-    "team_b": "Houston Rockets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "final_score": "95 - 102",
-    "winning_team": "Houston Rockets",
-    "starting_5": [
-      {
-        "name": "Trevor Ariza",
-        "position": "F"
-      },
-      {
-        "name": "Clint Capela",
-        "position": "F"
-      },
-      {
-        "name": "James Harden",
-        "position": "G"
-      },
-      {
-        "name": "Patrick Beverley",
-        "position": "G"
-      },
-      {
-        "name": "Dwight Howard",
-        "position": "F"
       }
     ]
   },
@@ -8154,40 +5946,8 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500660",
-    "game_date": "2016-01-23",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Phoenix Suns",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
-    "final_score": "95 - 98",
-    "winning_team": "Phoenix Suns",
-    "starting_5": [
-      {
-        "name": "Alex Len",
-        "position": "F"
-      },
-      {
-        "name": "Tyson Chandler",
-        "position": "F"
-      },
-      {
-        "name": "P.J. Tucker",
-        "position": "G"
-      },
-      {
-        "name": "Devin Booker",
-        "position": "G"
-      },
-      {
-        "name": "Archie Goodwin",
-        "position": "G"
       }
     ]
   },
@@ -8250,7 +6010,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -8282,7 +6042,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -8320,38 +6080,6 @@
     ]
   },
   {
-    "game_id": "0021500390",
-    "game_date": "2015-12-18",
-    "team_a": "Toronto Raptors",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612761/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "108 - 94",
-    "winning_team": "Toronto Raptors",
-    "starting_5": [
-      {
-        "name": "James Johnson",
-        "position": "F"
-      },
-      {
-        "name": "Luis Scola",
-        "position": "G"
-      },
-      {
-        "name": "Bismack Biyombo",
-        "position": "G"
-      },
-      {
-        "name": "DeMar DeRozan",
-        "position": "G"
-      },
-      {
-        "name": "Kyle Lowry",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021500236",
     "game_date": "2015-11-27",
     "team_a": "Golden State Warriors",
@@ -8380,38 +6108,6 @@
       {
         "name": "Andrew Bogut",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500947",
-    "game_date": "2016-03-08",
-    "team_a": "Atlanta Hawks",
-    "team_b": "Utah Jazz",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612737/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "final_score": "91 - 84",
-    "winning_team": "Atlanta Hawks",
-    "starting_5": [
-      {
-        "name": "Kent Bazemore",
-        "position": "F"
-      },
-      {
-        "name": "Paul Millsap",
-        "position": "F"
-      },
-      {
-        "name": "Kyle Korver",
-        "position": "G"
-      },
-      {
-        "name": "Jeff Teague",
-        "position": "G"
-      },
-      {
-        "name": "Al Horford",
-        "position": "F"
       }
     ]
   },
@@ -8494,7 +6190,7 @@
         "position": "F"
       },
       {
-        "name": "Kristaps Porzi\u0146\u0123is",
+        "name": "Kristaps Porziņģis",
         "position": "F"
       },
       {
@@ -8576,102 +6272,6 @@
     ]
   },
   {
-    "game_id": "0021500180",
-    "game_date": "2015-11-20",
-    "team_a": "Houston Rockets",
-    "team_b": "Memphis Grizzlies",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "final_score": "84 - 96",
-    "winning_team": "Memphis Grizzlies",
-    "starting_5": [
-      {
-        "name": "Jeff Green",
-        "position": "F"
-      },
-      {
-        "name": "JaMychal Green",
-        "position": "F"
-      },
-      {
-        "name": "Tony Allen",
-        "position": "G"
-      },
-      {
-        "name": "Mike Conley",
-        "position": "G"
-      },
-      {
-        "name": "Marc Gasol",
-        "position": "F"
-      }
-    ]
-  },
-  {
-    "game_id": "0021501054",
-    "game_date": "2016-03-22",
-    "team_a": "Houston Rockets",
-    "team_b": "Oklahoma City Thunder",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612745/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "final_score": "107 - 111",
-    "winning_team": "Oklahoma City Thunder",
-    "starting_5": [
-      {
-        "name": "Serge Ibaka",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Durant",
-        "position": "G"
-      },
-      {
-        "name": "Andre Roberson",
-        "position": "G"
-      },
-      {
-        "name": "Steven Adams",
-        "position": "C"
-      },
-      {
-        "name": "Russell Westbrook",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500517",
-    "game_date": "2016-01-04",
-    "team_a": "Sacramento Kings",
-    "team_b": "Oklahoma City Thunder",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "final_score": "116 - 104",
-    "winning_team": "Sacramento Kings",
-    "starting_5": [
-      {
-        "name": "Quincy Acy",
-        "position": "F"
-      },
-      {
-        "name": "DeMarcus Cousins",
-        "position": "F"
-      },
-      {
-        "name": "Rudy Gay",
-        "position": "G"
-      },
-      {
-        "name": "Ben McLemore",
-        "position": "G"
-      },
-      {
-        "name": "Rajon Rondo",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021500264",
     "game_date": "2015-12-01",
     "team_a": "Phoenix Suns",
@@ -8686,7 +6286,7 @@
         "position": "F"
       },
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -8768,70 +6368,6 @@
     ]
   },
   {
-    "game_id": "0041500123",
-    "game_date": "2016-04-23",
-    "team_a": "Miami Heat",
-    "team_b": "Charlotte Hornets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
-    "final_score": "80 - 96",
-    "winning_team": "Charlotte Hornets",
-    "starting_5": [
-      {
-        "name": "Frank Kaminsky",
-        "position": "F"
-      },
-      {
-        "name": "Al Jefferson",
-        "position": "F"
-      },
-      {
-        "name": "Marvin Williams",
-        "position": "G"
-      },
-      {
-        "name": "Courtney Lee",
-        "position": "G"
-      },
-      {
-        "name": "Kemba Walker",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500022",
-    "game_date": "2015-10-30",
-    "team_a": "Oklahoma City Thunder",
-    "team_b": "Orlando Magic",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "final_score": "139 - 136",
-    "winning_team": "Oklahoma City Thunder",
-    "starting_5": [
-      {
-        "name": "Serge Ibaka",
-        "position": "F"
-      },
-      {
-        "name": "Kyle Singler",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Durant",
-        "position": "G"
-      },
-      {
-        "name": "Steven Adams",
-        "position": "G"
-      },
-      {
-        "name": "Andre Roberson",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021500431",
     "game_date": "2015-12-23",
     "team_a": "San Antonio Spurs",
@@ -8896,70 +6432,6 @@
     ]
   },
   {
-    "game_id": "0021500451",
-    "game_date": "2015-12-26",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "Phoenix Suns",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
-    "final_score": "111 - 104",
-    "winning_team": "Philadelphia 76ers",
-    "starting_5": [
-      {
-        "name": "Robert Covington",
-        "position": "F"
-      },
-      {
-        "name": "Jerami Grant",
-        "position": "F"
-      },
-      {
-        "name": "Nerlens Noel",
-        "position": "G"
-      },
-      {
-        "name": "Isaiah Canaan",
-        "position": "G"
-      },
-      {
-        "name": "Ish Smith",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500835",
-    "game_date": "2016-02-22",
-    "team_a": "Toronto Raptors",
-    "team_b": "New York Knicks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612761/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "final_score": "122 - 95",
-    "winning_team": "Toronto Raptors",
-    "starting_5": [
-      {
-        "name": "James Johnson",
-        "position": "F"
-      },
-      {
-        "name": "Luis Scola",
-        "position": "F"
-      },
-      {
-        "name": "Jonas Valan\u010di\u016bnas",
-        "position": "G"
-      },
-      {
-        "name": "DeMar DeRozan",
-        "position": "G"
-      },
-      {
-        "name": "Kyle Lowry",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021500611",
     "game_date": "2016-01-17",
     "team_a": "Miami Heat",
@@ -9020,38 +6492,6 @@
       {
         "name": "Pau Gasol",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0041500406",
-    "game_date": "2016-06-16",
-    "team_a": "Golden State Warriors",
-    "team_b": "Cleveland Cavaliers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612739/primary/L/logo.svg",
-    "final_score": "101 - 115",
-    "winning_team": "Cleveland Cavaliers",
-    "starting_5": [
-      {
-        "name": "LeBron James",
-        "position": "F"
-      },
-      {
-        "name": "Kevin Love",
-        "position": "F"
-      },
-      {
-        "name": "Tristan Thompson",
-        "position": "G"
-      },
-      {
-        "name": "JR Smith",
-        "position": "G"
-      },
-      {
-        "name": "Kyrie Irving",
-        "position": "G"
       }
     ]
   },
@@ -9152,38 +6592,6 @@
     ]
   },
   {
-    "game_id": "0021500028",
-    "game_date": "2015-10-30",
-    "team_a": "Brooklyn Nets",
-    "team_b": "San Antonio Spurs",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612759/primary/L/logo.svg",
-    "final_score": "75 - 102",
-    "winning_team": "San Antonio Spurs",
-    "starting_5": [
-      {
-        "name": "LaMarcus Aldridge",
-        "position": "F"
-      },
-      {
-        "name": "Tim Duncan",
-        "position": "F"
-      },
-      {
-        "name": "Kawhi Leonard",
-        "position": "G"
-      },
-      {
-        "name": "Danny Green",
-        "position": "G"
-      },
-      {
-        "name": "Tony Parker",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021500721",
     "game_date": "2016-02-01",
     "team_a": "Cleveland Cavaliers",
@@ -9212,70 +6620,6 @@
       {
         "name": "Matthew Dellavedova",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500702",
-    "game_date": "2016-01-29",
-    "team_a": "Brooklyn Nets",
-    "team_b": "Dallas Mavericks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612751/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "final_score": "79 - 91",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Chandler Parsons",
-        "position": "F"
-      },
-      {
-        "name": "Zaza Pachulia",
-        "position": "F"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      },
-      {
-        "name": "Deron Williams",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500023",
-    "game_date": "2015-10-30",
-    "team_a": "Utah Jazz",
-    "team_b": "Philadelphia 76ers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612762/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "final_score": "99 - 71",
-    "winning_team": "Utah Jazz",
-    "starting_5": [
-      {
-        "name": "Gordon Hayward",
-        "position": "F"
-      },
-      {
-        "name": "Derrick Favors",
-        "position": "F"
-      },
-      {
-        "name": "Rudy Gobert",
-        "position": "G"
-      },
-      {
-        "name": "Rodney Hood",
-        "position": "G"
-      },
-      {
-        "name": "Raul Neto",
-        "position": "G"
       }
     ]
   },
@@ -9370,40 +6714,8 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021500299",
-    "game_date": "2015-12-06",
-    "team_a": "Phoenix Suns",
-    "team_b": "Memphis Grizzlies",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612763/primary/L/logo.svg",
-    "final_score": "93 - 95",
-    "winning_team": "Memphis Grizzlies",
-    "starting_5": [
-      {
-        "name": "Jeff Green",
-        "position": "F"
-      },
-      {
-        "name": "Zach Randolph",
-        "position": "F"
-      },
-      {
-        "name": "Marc Gasol",
-        "position": "G"
-      },
-      {
-        "name": "Tony Allen",
-        "position": "G"
-      },
-      {
-        "name": "Mike Conley",
-        "position": "G"
       }
     ]
   },
@@ -9504,38 +6816,6 @@
     ]
   },
   {
-    "game_id": "0021500777",
-    "game_date": "2016-02-08",
-    "team_a": "Los Angeles Clippers",
-    "team_b": "Philadelphia 76ers",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612746/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "final_score": "98 - 92",
-    "winning_team": "Los Angeles Clippers",
-    "starting_5": [
-      {
-        "name": "Wesley Johnson",
-        "position": "F"
-      },
-      {
-        "name": "Luc Mbah a Moute",
-        "position": "F"
-      },
-      {
-        "name": "JJ Redick",
-        "position": "G"
-      },
-      {
-        "name": "Chris Paul",
-        "position": "G"
-      },
-      {
-        "name": "DeAndre Jordan",
-        "position": "F"
-      }
-    ]
-  },
-  {
     "game_id": "0021500091",
     "game_date": "2015-11-07",
     "team_a": "Memphis Grizzlies",
@@ -9626,7 +6906,7 @@
         "position": "G"
       },
       {
-        "name": "Nene Hilario",
+        "name": "Nene",
         "position": "C"
       }
     ]
@@ -9646,7 +6926,7 @@
         "position": "F"
       },
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -9786,7 +7066,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -9818,7 +7098,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -9850,7 +7130,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -9952,38 +7232,6 @@
     ]
   },
   {
-    "game_id": "0021600250",
-    "game_date": "2016-11-27",
-    "team_a": "New Orleans Pelicans",
-    "team_b": "Dallas Mavericks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "final_score": "81 - 91",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Dorian Finney-Smith",
-        "position": "F"
-      },
-      {
-        "name": "Dwight Powell",
-        "position": "F"
-      },
-      {
-        "name": "Harrison Barnes",
-        "position": "G"
-      },
-      {
-        "name": "Andrew Bogut",
-        "position": "G"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021600322",
     "game_date": "2016-12-07",
     "team_a": "Boston Celtics",
@@ -10012,134 +7260,6 @@
       {
         "name": "Al Horford",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021600471",
-    "game_date": "2016-12-26",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "Sacramento Kings",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612758/primary/L/logo.svg",
-    "final_score": "100 - 102",
-    "winning_team": "Sacramento Kings",
-    "starting_5": [
-      {
-        "name": "Rudy Gay",
-        "position": "F"
-      },
-      {
-        "name": "DeMarcus Cousins",
-        "position": "F"
-      },
-      {
-        "name": "Kosta Koufos",
-        "position": "G"
-      },
-      {
-        "name": "Ben McLemore",
-        "position": "G"
-      },
-      {
-        "name": "Darren Collison",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021600495",
-    "game_date": "2016-12-30",
-    "team_a": "New York Knicks",
-    "team_b": "New Orleans Pelicans",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612740/primary/L/logo.svg",
-    "final_score": "92 - 104",
-    "winning_team": "New Orleans Pelicans",
-    "starting_5": [
-      {
-        "name": "Anthony Davis",
-        "position": "F"
-      },
-      {
-        "name": "E'Twaun Moore",
-        "position": "F"
-      },
-      {
-        "name": "Solomon Hill",
-        "position": "G"
-      },
-      {
-        "name": "Dante Cunningham",
-        "position": "G"
-      },
-      {
-        "name": "Buddy Hield",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021600473",
-    "game_date": "2016-12-27",
-    "team_a": "Oklahoma City Thunder",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "106 - 94",
-    "winning_team": "Oklahoma City Thunder",
-    "starting_5": [
-      {
-        "name": "Andre Roberson",
-        "position": "F"
-      },
-      {
-        "name": "Domantas Sabonis",
-        "position": "F"
-      },
-      {
-        "name": "Steven Adams",
-        "position": "G"
-      },
-      {
-        "name": "Anthony Morrow",
-        "position": "G"
-      },
-      {
-        "name": "Russell Westbrook",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021600365",
-    "game_date": "2016-12-12",
-    "team_a": "Denver Nuggets",
-    "team_b": "Dallas Mavericks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "final_score": "92 - 112",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Dorian Finney-Smith",
-        "position": "F"
-      },
-      {
-        "name": "Dwight Powell",
-        "position": "F"
-      },
-      {
-        "name": "Harrison Barnes",
-        "position": "G"
-      },
-      {
-        "name": "Salah Mejri",
-        "position": "G"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
       }
     ]
   },
@@ -10240,38 +7360,6 @@
     ]
   },
   {
-    "game_id": "0021600372",
-    "game_date": "2016-12-13",
-    "team_a": "New York Knicks",
-    "team_b": "Phoenix Suns",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
-    "final_score": "111 - 113",
-    "winning_team": "Phoenix Suns",
-    "starting_5": [
-      {
-        "name": "Leandro Barbosa",
-        "position": "F"
-      },
-      {
-        "name": "P.J. Tucker",
-        "position": "G"
-      },
-      {
-        "name": "Marquese Chriss",
-        "position": "G"
-      },
-      {
-        "name": "Tyson Chandler",
-        "position": "C"
-      },
-      {
-        "name": "Devin Booker",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021600907",
     "game_date": "2017-03-02",
     "team_a": "Charlotte Hornets",
@@ -10368,38 +7456,6 @@
     ]
   },
   {
-    "game_id": "0021601225",
-    "game_date": "2017-04-12",
-    "team_a": "Denver Nuggets",
-    "team_b": "Oklahoma City Thunder",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612743/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612760/primary/L/logo.svg",
-    "final_score": "111 - 105",
-    "winning_team": "Denver Nuggets",
-    "starting_5": [
-      {
-        "name": "Mason Plumlee",
-        "position": "F"
-      },
-      {
-        "name": "Mike Miller",
-        "position": "F"
-      },
-      {
-        "name": "Juancho Hernangomez",
-        "position": "G"
-      },
-      {
-        "name": "Nikola Joki\u0107",
-        "position": "G"
-      },
-      {
-        "name": "Malik Beasley",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021600414",
     "game_date": "2016-12-19",
     "team_a": "Detroit Pistons",
@@ -10432,38 +7488,6 @@
     ]
   },
   {
-    "game_id": "0021601220",
-    "game_date": "2017-04-12",
-    "team_a": "Philadelphia 76ers",
-    "team_b": "New York Knicks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612755/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "final_score": "113 - 114",
-    "winning_team": "New York Knicks",
-    "starting_5": [
-      {
-        "name": "Carmelo Anthony",
-        "position": "F"
-      },
-      {
-        "name": "Marshall Plumlee",
-        "position": "F"
-      },
-      {
-        "name": "Maurice Ndour",
-        "position": "G"
-      },
-      {
-        "name": "Willy Hernangomez",
-        "position": "G"
-      },
-      {
-        "name": "Ron Baker",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021600823",
     "game_date": "2017-02-13",
     "team_a": "Orlando Magic",
@@ -10490,7 +7514,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -10556,38 +7580,6 @@
       {
         "name": "Hassan Whiteside",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021601133",
-    "game_date": "2017-03-31",
-    "team_a": "New York Knicks",
-    "team_b": "Miami Heat",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "final_score": "98 - 94",
-    "winning_team": "New York Knicks",
-    "starting_5": [
-      {
-        "name": "Maurice Ndour",
-        "position": "F"
-      },
-      {
-        "name": "Justin Holiday",
-        "position": "F"
-      },
-      {
-        "name": "Sasha Vujacic",
-        "position": "G"
-      },
-      {
-        "name": "Kristaps Porzi\u0146\u0123is",
-        "position": "G"
-      },
-      {
-        "name": "Willy Hernangomez",
-        "position": "G"
       }
     ]
   },
@@ -10752,70 +7744,6 @@
     ]
   },
   {
-    "game_id": "0021600887",
-    "game_date": "2017-02-27",
-    "team_a": "Miami Heat",
-    "team_b": "Dallas Mavericks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612748/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612742/primary/L/logo.svg",
-    "final_score": "89 - 96",
-    "winning_team": "Dallas Mavericks",
-    "starting_5": [
-      {
-        "name": "Devin Harris",
-        "position": "F"
-      },
-      {
-        "name": "Dorian Finney-Smith",
-        "position": "F"
-      },
-      {
-        "name": "Wesley Matthews",
-        "position": "G"
-      },
-      {
-        "name": "Harrison Barnes",
-        "position": "G"
-      },
-      {
-        "name": "Dirk Nowitzki",
-        "position": "G"
-      }
-    ]
-  },
-  {
-    "game_id": "0021600516",
-    "game_date": "2017-01-02",
-    "team_a": "Orlando Magic",
-    "team_b": "New York Knicks",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612753/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612752/primary/L/logo.svg",
-    "final_score": "115 - 103",
-    "winning_team": "Orlando Magic",
-    "starting_5": [
-      {
-        "name": "Aaron Gordon",
-        "position": "F"
-      },
-      {
-        "name": "Serge Ibaka",
-        "position": "F"
-      },
-      {
-        "name": "Bismack Biyombo",
-        "position": "G"
-      },
-      {
-        "name": "D.J. Augustin",
-        "position": "G"
-      },
-      {
-        "name": "Jodie Meeks",
-        "position": "G"
-      }
-    ]
-  },
-  {
     "game_id": "0021600354",
     "game_date": "2016-12-10",
     "team_a": "Sacramento Kings",
@@ -10838,7 +7766,7 @@
         "position": "G"
       },
       {
-        "name": "Dant\u00e9 Exum",
+        "name": "Dante Exum",
         "position": "G"
       },
       {
@@ -11002,40 +7930,8 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
-      }
-    ]
-  },
-  {
-    "game_id": "0021601087",
-    "game_date": "2017-03-26",
-    "team_a": "Phoenix Suns",
-    "team_b": "Charlotte Hornets",
-    "team_a_logo": "https://cdn.nba.com/logos/nba/1610612756/primary/L/logo.svg",
-    "team_b_logo": "https://cdn.nba.com/logos/nba/1610612766/primary/L/logo.svg",
-    "final_score": "106 - 120",
-    "winning_team": "Charlotte Hornets",
-    "starting_5": [
-      {
-        "name": "Michael Kidd-Gilchrist",
-        "position": "F"
-      },
-      {
-        "name": "Marvin Williams",
-        "position": "F"
-      },
-      {
-        "name": "Cody Zeller",
-        "position": "G"
-      },
-      {
-        "name": "Nicolas Batum",
-        "position": "G"
-      },
-      {
-        "name": "Kemba Walker",
-        "position": "G"
       }
     ]
   },
@@ -11310,7 +8206,7 @@
         "position": "F"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "F"
       },
       {
@@ -11354,7 +8250,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -11414,7 +8310,7 @@
         "position": "G"
       },
       {
-        "name": "Dennis Schr\u00f6der",
+        "name": "Dennis Schröder",
         "position": "G"
       },
       {
@@ -11770,7 +8666,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -11786,7 +8682,7 @@
     "winning_team": "Indiana Pacers",
     "starting_5": [
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -11986,7 +8882,7 @@
         "position": "F"
       },
       {
-        "name": "Bogdan Bogdanovi\u0107",
+        "name": "Bogdan Bogdanović",
         "position": "G"
       },
       {
@@ -12026,7 +8922,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -12110,7 +9006,7 @@
         "position": "F"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "F"
       },
       {
@@ -12250,7 +9146,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -12314,7 +9210,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -12346,7 +9242,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -12566,7 +9462,7 @@
         "position": "G"
       },
       {
-        "name": "Dennis Schr\u00f6der",
+        "name": "Dennis Schröder",
         "position": "G"
       },
       {
@@ -12622,7 +9518,7 @@
         "position": "F"
       },
       {
-        "name": "Dario \u0160ari\u0107",
+        "name": "Dario Saric",
         "position": "F"
       },
       {
@@ -12794,7 +9690,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -12826,7 +9722,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -12954,7 +9850,7 @@
         "position": "G"
       },
       {
-        "name": "Jusuf Nurki\u0107",
+        "name": "Jusuf Nurkić",
         "position": "C"
       }
     ]
@@ -13038,7 +9934,7 @@
         "position": "F"
       },
       {
-        "name": "Dario \u0160ari\u0107",
+        "name": "Dario Saric",
         "position": "F"
       },
       {
@@ -13114,7 +10010,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -13146,7 +10042,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -13402,7 +10298,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -13498,7 +10394,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -13614,7 +10510,7 @@
         "position": "F"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "F"
       },
       {
@@ -13722,7 +10618,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -13754,7 +10650,7 @@
         "position": "G"
       },
       {
-        "name": "Jusuf Nurki\u0107",
+        "name": "Jusuf Nurkić",
         "position": "C"
       }
     ]
@@ -13882,7 +10778,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -13930,7 +10826,7 @@
     "winning_team": "Indiana Pacers",
     "starting_5": [
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -13978,7 +10874,7 @@
         "position": "G"
       },
       {
-        "name": "Jonas Valan\u010di\u016bnas",
+        "name": "Jonas Valančiūnas",
         "position": "C"
       }
     ]
@@ -14202,7 +11098,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -14234,7 +11130,7 @@
         "position": "G"
       },
       {
-        "name": "Nene Hilario",
+        "name": "Nene",
         "position": "C"
       }
     ]
@@ -14254,7 +11150,7 @@
         "position": "F"
       },
       {
-        "name": "Dario \u0160ari\u0107",
+        "name": "Dario Saric",
         "position": "F"
       },
       {
@@ -14330,7 +11226,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -14482,7 +11378,7 @@
         "position": "F"
       },
       {
-        "name": "Bogdan Bogdanovi\u0107",
+        "name": "Bogdan Bogdanović",
         "position": "G"
       },
       {
@@ -14522,7 +11418,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -14606,7 +11502,7 @@
         "position": "F"
       },
       {
-        "name": "Dario \u0160ari\u0107",
+        "name": "Dario Saric",
         "position": "F"
       },
       {
@@ -15002,7 +11898,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -15030,11 +11926,11 @@
         "position": "G"
       },
       {
-        "name": "Mont\u00e9 Morris",
+        "name": "Monte Morris",
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -15282,7 +12178,7 @@
         "position": "F"
       },
       {
-        "name": "Bogdan Bogdanovi\u0107",
+        "name": "Bogdan Bogdanović",
         "position": "G"
       },
       {
@@ -15410,7 +12306,7 @@
         "position": "F"
       },
       {
-        "name": "Bogdan Bogdanovi\u0107",
+        "name": "Bogdan Bogdanović",
         "position": "G"
       },
       {
@@ -15450,7 +12346,7 @@
         "position": "G"
       },
       {
-        "name": "Boban Marjanovi\u0107",
+        "name": "Boban Marjanovic",
         "position": "C"
       }
     ]
@@ -15802,7 +12698,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -15982,7 +12878,7 @@
         "position": "F"
       },
       {
-        "name": "Kristaps Porzi\u0146\u0123is",
+        "name": "Kristaps Porziņģis",
         "position": "F"
       },
       {
@@ -16118,11 +13014,11 @@
         "position": "G"
       },
       {
-        "name": "Mont\u00e9 Morris",
+        "name": "Monte Morris",
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -16146,7 +13042,7 @@
         "position": "F"
       },
       {
-        "name": "Bogdan Bogdanovi\u0107",
+        "name": "Bogdan Bogdanović",
         "position": "G"
       },
       {
@@ -16182,7 +13078,7 @@
         "position": "G"
       },
       {
-        "name": "Luka Don\u010di\u0107",
+        "name": "Luka Dončić",
         "position": "G"
       },
       {
@@ -16218,7 +13114,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -16250,7 +13146,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -16338,7 +13234,7 @@
         "position": "F"
       },
       {
-        "name": "Bogdan Bogdanovi\u0107",
+        "name": "Bogdan Bogdanović",
         "position": "G"
       },
       {
@@ -16374,7 +13270,7 @@
         "position": "G"
       },
       {
-        "name": "Dennis Schr\u00f6der",
+        "name": "Dennis Schröder",
         "position": "G"
       },
       {
@@ -16538,7 +13434,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -16602,7 +13498,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -16698,7 +13594,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -16714,7 +13610,7 @@
     "winning_team": "Utah Jazz",
     "starting_5": [
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -16922,7 +13818,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -16978,7 +13874,7 @@
         "position": "F"
       },
       {
-        "name": "Mont\u00e9 Morris",
+        "name": "Monte Morris",
         "position": "G"
       },
       {
@@ -16986,7 +13882,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -17226,7 +14122,7 @@
     "winning_team": "Utah Jazz",
     "starting_5": [
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -17366,11 +14262,11 @@
         "position": "G"
       },
       {
-        "name": "Luka Don\u010di\u0107",
+        "name": "Luka Dončić",
         "position": "G"
       },
       {
-        "name": "Kristaps Porzi\u0146\u0123is",
+        "name": "Kristaps Porziņģis",
         "position": "C"
       }
     ]
@@ -17522,7 +14418,7 @@
         "position": "F"
       },
       {
-        "name": "Luka Don\u010di\u0107",
+        "name": "Luka Dončić",
         "position": "G"
       },
       {
@@ -17530,7 +14426,7 @@
         "position": "G"
       },
       {
-        "name": "Kristaps Porzi\u0146\u0123is",
+        "name": "Kristaps Porziņģis",
         "position": "C"
       }
     ]
@@ -17626,7 +14522,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -17678,7 +14574,7 @@
         "position": "F"
       },
       {
-        "name": "Kristaps Porzi\u0146\u0123is",
+        "name": "Kristaps Porziņģis",
         "position": "F"
       },
       {
@@ -17686,7 +14582,7 @@
         "position": "G"
       },
       {
-        "name": "Luka Don\u010di\u0107",
+        "name": "Luka Dončić",
         "position": "G"
       },
       {
@@ -17814,11 +14710,11 @@
         "position": "G"
       },
       {
-        "name": "Mont\u00e9 Morris",
+        "name": "Monte Morris",
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -17942,7 +14838,7 @@
         "position": "G"
       },
       {
-        "name": "Luka Don\u010di\u0107",
+        "name": "Luka Dončić",
         "position": "G"
       },
       {
@@ -18058,7 +14954,7 @@
     "winning_team": "Utah Jazz",
     "starting_5": [
       {
-        "name": "Bojan Bogdanovi\u0107",
+        "name": "Bojan Bogdanovic",
         "position": "F"
       },
       {
@@ -18138,7 +15034,7 @@
         "position": "G"
       },
       {
-        "name": "Nikola Vu\u010devi\u0107",
+        "name": "Nikola Vučević",
         "position": "C"
       }
     ]
@@ -18230,11 +15126,11 @@
         "position": "G"
       },
       {
-        "name": "Mont\u00e9 Morris",
+        "name": "Monte Morris",
         "position": "G"
       },
       {
-        "name": "Nikola Joki\u0107",
+        "name": "Nikola Jokić",
         "position": "C"
       }
     ]
@@ -18362,7 +15258,7 @@
         "position": "G"
       },
       {
-        "name": "Jusuf Nurki\u0107",
+        "name": "Jusuf Nurkić",
         "position": "C"
       }
     ]

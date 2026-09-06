@@ -73,8 +73,8 @@
     },
     "starting-five": {
       "file": "starting-five.json",
-      "sha256": "802b847f3efac31d36aaece3edec89e5891b345ff87d77229739d49795315a12",
-      "count": 600
+      "sha256": "5f4d21d892576bcecf5b438ccc89af4f5060b67ba07566ed99a0999e22421b83",
+      "count": 503
     },
     "superdraft": {
       "file": "superdraft.json",
