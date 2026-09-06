@@ -220,6 +220,34 @@ async function simUsedPlayerRule() {
   return blocked && allowed;
 }
 
+// ================================================== PLAYERFORCELL COLLISION
+// Directly forces the used-player collision that simTicTacToe's fixed seed
+// never naturally produces (confirmed: under 0xc0ffee every TTT claim in that
+// run resolves to a distinct player even with NO exclusion at all — see
+// task-3b report). Without this, 15/15 green runs never exercise
+// playerForCell's fall-through, and a regression like dropping the `used`
+// check or swapping normalizeAnswer(pl.full_name) for the raw name would
+// sail through undetected. The occupant name below is deliberately
+// case-mangled so this also proves the exclusion survives normalizeAnswer's
+// case fold, not just an exact-string match.
+function simPlayerForCellCollision() {
+  line("\n================ PLAYERFORCELL COLLISION (fall-through) ================");
+  const rowCrit = { type: "team", value: "CHI" };
+  const colCrit = { type: "college", value: "Duke" };
+  // CHI Player 0, 2, 4, 6 all satisfy team=CHI + college=Duke. "chi player 0"
+  // (case-mangled) already occupies cell 0 on the board.
+  const board = [{ ownerUid: "Alice", playerName: "chi player 0" }, null, null];
+  const picked = playerForCell(rowCrit, colCrit, board);
+  const pickedPlayer = picked && POOL.find((pl) => pl.full_name === picked);
+  const collidesWithTaken = !!picked && normalizeAnswer(picked) === normalizeAnswer("CHI Player 0");
+  const isValidCandidate =
+    !!pickedPlayer && playerMatches(pickedPlayer, rowCrit) && playerMatches(pickedPlayer, colCrit);
+  line(`taken (used): "chi player 0"   playerForCell returned: "${picked}"`);
+  const ok = !!picked && !collidesWithTaken && isValidCandidate;
+  line(`fall-through avoided the taken player: ${ok ? "PASS" : "FAIL"}`);
+  return ok;
+}
+
 // ================================================================= IMPOSTER
 async function simImposter() {
   line("\n================ IMPOSTER (3 players) ================");
@@ -278,10 +306,12 @@ async function simImposter() {
 (async () => {
   const tttWin = await simTicTacToe();
   const usedPlayerOk = await simUsedPlayerRule();
+  const collisionOk = simPlayerForCellCollision();
   const impDone = await simImposter();
   line("\n================ RESULT ================");
   line(`Tic-Tac-Toe reached a win : ${tttWin ? "PASS" : "FAIL"}`);
   line(`Used-player rule enforced : ${usedPlayerOk ? "PASS" : "FAIL"}`);
+  line(`playerForCell fall-through: ${collisionOk ? "PASS" : "FAIL"}`);
   line(`Imposter reached reveal   : ${impDone ? "PASS" : "FAIL"}`);
-  process.exit(tttWin && usedPlayerOk && impDone ? 0 : 1);
+  process.exit(tttWin && usedPlayerOk && collisionOk && impDone ? 0 : 1);
 })();
