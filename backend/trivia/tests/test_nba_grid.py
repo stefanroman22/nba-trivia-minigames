@@ -6,8 +6,9 @@ from django.test import TestCase
 from django.urls import reverse
 
 from trivia.games import nba_grid_validate
-from trivia.games.nba_grid import _load_seed, validate_rows
+from trivia.games.nba_grid import _load_seed, build_pool, validate_rows
 from trivia.models import GuessLog
+from trivia.tests.published_pool import published_pool
 
 
 class NbaGridSeedTests(TestCase):
@@ -31,6 +32,11 @@ class NbaGridSeedTests(TestCase):
         self.assertTrue(validate_rows(bad))
         dupe = _load_seed()[:1] + _load_seed()[:1]
         self.assertTrue(any("duplicate" in p for p in validate_rows(dupe)))
+
+    def test_published_pool_matches_the_seed(self):
+        # The coverage validator below proves the SEED is sound; this proves the
+        # file that actually ships was rebuilt from that seed and not hand-edited.
+        self.assertEqual(published_pool("nba-grid"), build_pool())
 
 
 class NbaGridSeedCoverageTests(TestCase):
