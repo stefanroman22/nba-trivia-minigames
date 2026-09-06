@@ -20,7 +20,8 @@ import {
   type ReactNode,
 } from "react";
 import { useSelector } from "react-redux";
-import { useLocation, useNavigate } from "react-router-dom";
+import { usePathname } from "next/navigation";
+import { useNavigate } from "../hooks/useNavigate";
 import socket from "../socket";
 import type { RootState } from "../store";
 import type { Game, GameData, PlayerInfo } from "../types/types";
@@ -368,7 +369,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const [mp, dispatch] = useReducer(reducer, initial);
   const { user } = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
-  const location = useLocation();
+  const pathname = usePathname();
 
   // Keep the latest values reachable from socket handlers without re-binding them.
   const codeRef = useRef<number | null>(null);
@@ -456,10 +457,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   //      moves everyone when the host changes the lobby's game). ----
   useEffect(() => {
     if (mp.phase === "idle" || !mp.game?.urlPath) return;
-    if (location.pathname !== mp.game.urlPath) {
+    if (pathname !== mp.game.urlPath) {
       navigate(mp.game.urlPath, { state: { id: mp.game.id } });
     }
-  }, [mp.code, mp.phase, mp.game, location.pathname, navigate]);
+  }, [mp.code, mp.phase, mp.game, pathname, navigate]);
 
   const guardOnline = useCallback((): boolean => {
     if (!userRef.current) {

@@ -147,9 +147,9 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
               <div key={m.id || m.username} className="fp-seat">
                 <img
                   className="fp-seat-av"
-                  src={m.profile_photo || defaultAvatar}
+                  src={m.profile_photo || defaultAvatar.src}
                   alt=""
-                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
                 />
                 <span className="fp-seat-col">
                   <span className="fp-seat-name" title={`${m.username} #${m.id}`}>

@@ -34,7 +34,7 @@ npm install
 npm start
 ```
 
-### 3. Frontend — Vite + React (port 5173)
+### 3. Frontend — Next.js + React (port 5173)
 ```bash
 npm install
 npm run dev
@@ -54,7 +54,7 @@ deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 | | |
 |---|---|
 | Frontend lint | `npm run lint` |
-| Frontend typecheck + build | `npx tsc -b && npm run build` |
+| Frontend typecheck + build | `npm run build` |
 | Backend tests | `cd backend && python manage.py test` |
 | Backend sanity check | `cd backend && python manage.py check` |
 
@@ -84,7 +84,7 @@ deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 | Path | What's in it |
 |---|---|
-| `src/` | React + TypeScript frontend — `components/`, `pages/`, `Game Renderers/`, `styles/`, `store/` (Redux Toolkit), `hooks/`, `context/`, `constants/` |
+| `src/` | React + TypeScript frontend — `components/`, `views/` (page-level components — Next.js owns the `pages` name), `Game Renderers/`, `styles/`, `store/` (Redux Toolkit), `hooks/`, `context/`, `constants/` |
 | `backend/` | Django project. Apps: `users/` (auth, custom user, rank), `trivia/` (minigame data + pipeline) |
 | `multiplayer_server/` | Node Socket.IO server for "Play Online" and friend rooms |
 | `docs/` | All project documentation (see the map above) |
@@ -103,7 +103,7 @@ deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Technologies used
 
-**Frontend** — React 19 + TypeScript, Vite, Tailwind CSS 4, Redux Toolkit, framer-motion,
+**Frontend** — React 19 + TypeScript, Next.js (App Router, server-rendered), Tailwind CSS 4, Redux Toolkit, framer-motion,
 socket.io-client.
 
 **Backend** — Django 5 + Django REST Framework, `djangorestframework-simplejwt` for auth,

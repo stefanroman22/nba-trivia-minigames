@@ -1,7 +1,8 @@
 // Scroll-triggered reveal wrapper. Animates children in on enter-viewport,
 // respects prefers-reduced-motion, and supports staggering child <Reveal>s.
-import { motion, useReducedMotion, type Variants, type HTMLMotionProps } from "framer-motion";
+import { motion, type Variants, type HTMLMotionProps } from "framer-motion";
 import { fadeInUp } from "../../motion/variants";
+import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 
 interface RevealProps extends HTMLMotionProps<"div"> {
   variants?: Variants;
@@ -17,7 +18,7 @@ export default function Reveal({
   once = true,
   ...rest
 }: RevealProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
 
   return (
     <motion.div

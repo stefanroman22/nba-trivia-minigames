@@ -26,8 +26,8 @@ vite 5273, socket 4100) so the user's own dev servers (8000/5173/4000) are never
      form): `$env:NBA_DEV_ENV_SKIP = '1'; $env:VITE_BACKEND_URL = 'http://localhost:8100'; npm run dev -- --port 5273`
 4. Multiplayer server only if the task touches multiplayer.
 
-Always address servers as `http://localhost:<port>` — never `127.0.0.1`, because Vite may
-bind IPv6-only and the literal IPv4 address is then unreachable.
+Always address servers as `http://localhost:<port>` — never `127.0.0.1`, because the dev server
+may bind IPv6-only and the literal IPv4 address is then unreachable.
 
 ## 2. Test
 Write ONE short script at the repo root (e.g. `qa-run.mjs`) that imports the harness —
