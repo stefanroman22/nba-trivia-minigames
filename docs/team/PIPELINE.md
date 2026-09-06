@@ -278,17 +278,27 @@ pipeline keeps running exactly as before, on the local scheduled tasks:
 
 ## 14. Model policy
 
-The rule is **cheap implementer, heavy planner and reviewer** — token spend goes where
-judgment is needed, not into typing code. `classify` outputs two picks per task and the
-orchestrator passes every model explicitly (never relying on agent frontmatter or the
-`npm run engine` profile, which would otherwise move QA onto opus under `deep`/`max`):
+**Opus — 5 and 4.8 alike — is banned everywhere in this pipeline.** No agent, profile,
+workflow, or routine may use it. The three models in play, all rolling aliases (never pinned
+version ids):
+
+| Alias | Resolves to today | Used for |
+|---|---|---|
+| `fable` | Fable 5.1 | All thinking: classify, design round, replan, code review, CTO gate, the orchestrator itself — and implementation when the task is complex but small. |
+| `sonnet` | Sonnet 5 | The default implementer, plus verify and browser QA. |
+| `haiku` | Haiku 4.5 | Trivial implementation only (copy/config, zero logic). |
+
+The rule is **fable thinks, sonnet types, haiku does the trivia**. The orchestrator passes every
+model explicitly (never relying on agent frontmatter or the `npm run engine` profile):
 
 | Role | Model |
 |---|---|
-| Implementer (`frontend-engine`, `backend-engine`) | `classify.engineModel`: **haiku** for trivial (copy/config, zero logic), **sonnet** for everything else — including hard tasks, which get a design round and an explicit implementation plan instead of a bigger engine. Never opus/fable. |
-| Planner (`planner-architect` design round + replan) | `classify.planModel`: **opus** when the spec is explicit, **fable** (current release, 5.1 today) when the spec is thin. Its plan must be explicit enough for sonnet to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
-| `code-reviewer` | `classify.planModel` — always opus or fable, never sonnet/haiku. |
-| `test-qa-engine`, `browser-qa` | **sonnet**, always. Never opus/fable. |
-| CTO review (GitHub Actions) | **opus**, pinned in `.github/workflows/claude.yml`. Never fable. |
+| `planner-architect` (classify, design round, replan) | **fable**. Its plan must be explicit enough — numbered steps, each with an acceptance criterion — for sonnet to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
+| Implementer (`frontend-engine`, `backend-engine`) | **haiku** for trivial. Otherwise **sonnet** when the work is clearly defined steps with acceptance criteria — however many — and **fable** when it is complex but small: a few steps that each need judgment a plan cannot pin down. Classify picks provisionally; the design round finalizes it (`Engine:` line in the design doc) once the plan's real shape is known. Long-and-vague is a plan problem, never a reason to upgrade the engine. |
+| `code-reviewer` | **fable**, always. |
+| `test-qa-engine`, `browser-qa` | **sonnet**, always. Never fable. |
+| CTO review (GitHub Actions) | **fable**, pinned in `.github/workflows/claude.yml`. |
 
-Rationale and the superpowers-skill reconciliation: `docs/team/DECISIONS.md` 2026-09-06.
+The cloud worker routine ("NBA team pipeline" at claude.ai/code/routines) sets its own model in
+the routine UI, outside this repo — it must be set to Fable 5.1 by hand; nothing here can
+enforce it. Rationale and history: `docs/team/DECISIONS.md` 2026-09-06 (both entries).

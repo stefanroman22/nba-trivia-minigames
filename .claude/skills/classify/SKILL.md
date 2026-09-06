@@ -29,31 +29,26 @@ downloaded from the card; Read it, it's part of the spec, not a footnote.
 - Multi-area at any difficulty → `needsDesignRound: true`.
 
 ## Model rubric
-Two separate picks. The model that writes code is the cheap one; the intelligence goes into
-the plan and the review, not the implementation (see `docs/team/DECISIONS.md` 2026-09-06).
+Opus — 5 and 4.8 alike — is banned pipeline-wide: never output it. The only models in play are
+`fable` (Fable 5.1: all planning, review and gating, plus hard-but-small implementation),
+`sonnet` (the default implementer) and `haiku` (trivial only). All three are rolling aliases,
+never pinned version ids. Thinking is always fable; this rubric only decides who *implements*
+(see `docs/team/DECISIONS.md` 2026-09-06).
 
-### `engineModel` — who implements. Never `opus` or `fable`.
+### `engineModel` — who implements
 | Model | When | Example |
 |---|---|---|
 | **haiku** (effort low) | `trivial`: content/copy/config edit, zero logic. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
-| **sonnet** (effort high) | Everything else — `standard` **and** `hard`. Sonnet is the default implementer because it costs a fraction of opus/fable per token, and it builds on top of an existing feature or follows an explicit plan well. A hard task does not earn a bigger engine — it earns a design round whose implementation plan is explicit enough that sonnet executes it without inventing anything. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." |
+| **sonnet** (effort high) | **The default.** Any task whose work can be written as clearly defined steps, each with an acceptance criterion — however many steps. Building on an existing feature, following an existing pattern, or executing a design-round plan step by step. Long-and-explicit is sonnet territory; a hard task with a good plan is still sonnet. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." / A 12-step bracket-mode plan where every step names its file and its done-check. |
+| **fable** (effort high) | **Complex but small.** A few steps that each need real judgment a plan cannot fully pin down — a novel algorithm, a tricky state machine, subtle multiplayer timing — or a spec that genuinely cannot be reduced to steps with acceptance criteria. Rule of thumb: short-and-hard → fable; long-and-explicit → sonnet; long-and-vague → the plan is the problem, fix it in the design round rather than upgrading the engine. | Card: "Elo-style rating updates for 3-player rooms with disconnect forfeits" — one file, hard math, ambiguous ties → fable. |
 
-### `planModel` — who thinks. Always `opus` or `fable`.
-Used by the orchestrator for the design round (when `needsDesignRound`), the replan after
-repeated verify failures, and the `code-reviewer` pass — so output it on **every** task, even
-when no design round runs. Pick by spec quality, not by difficulty:
-
-| Model | When | Example |
-|---|---|---|
-| **opus** | The spec is explicit: it either states how to handle every edge case, or states enough that the rest can be reasoned out from what's given. | Card: "Add a multiplayer 'best of 3' bracket mode. Ties break by total round wins; on disconnect, forfeit the current game only, not the match; reconnection within 30s resumes the bracket." → opus. |
-| **fable** | The spec is thin — no edge-case guidance given, so the planner must invent the missing rules itself under real ambiguity. | Card: "Add a multiplayer 'best of 3' bracket mode." (no further detail) → fable. Same feature as the opus example above — the spec's level of detail is what changes the pick, not the feature. |
-
-`fable` means the current Fable release (5.1 today) — a rolling alias like `opus`/`sonnet`,
-never a pinned version id.
+This is a **provisional** pick. When a design round runs, the planner finalizes it once the
+plan exists (`design-round` step 5d) — only then is the step count and the explicitness of the
+acceptance criteria actually known.
 
 ### Close calls
 If you seriously weighed two adjacent picks for this task (e.g. trivial/haiku vs.
-standard/sonnet, or planModel opus vs. fable) and could defend either, after picking: append a short entry to
+standard/sonnet, or engineModel sonnet vs. fable) and could defend either, after picking: append a short entry to
 `docs/team/DECISIONS.md` in its existing format (`## YYYY-MM-DD — <title>` then Context /
 Decision / Consequences) — name both candidates considered and why one won. This is what makes
 step 1's read-back actually keep future similar tasks consistent instead of re-litigating the
@@ -62,7 +57,6 @@ same judgment call from scratch each time.
 ## Output (exact JSON, nothing else)
 { "difficulty": "standard", "areas": ["ui"], "risk": "low",
   "engineModel": "sonnet", "engineEffort": "high",
-  "planModel": "opus",
   "docs": ["docs/constraints/UI_SHELL_CONSTRAINTS.md"],
   "codeMapHits": ["- `src/hooks/useLeaderboard.ts` — ..."],
   "attachments": [],

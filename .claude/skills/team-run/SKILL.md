@@ -23,16 +23,17 @@ Check the `TEAM_CLOUD` environment variable once at the start.
   only cloud difference is that the deps step installs the browser first.
 
 ## Model policy
-Every spawn below names its model explicitly — never rely on agent frontmatter or the
-`CLAUDE_CODE_SUBAGENT_MODEL` engine profile, which would silently move browser-qa onto opus
-under the `deep`/`max` profile. The rule: the implementer is cheap, the planner and reviewer
-are heavy (`docs/team/DECISIONS.md` 2026-09-06).
-- planner-architect: classify → `opus`; design-round and replan → `classify.planModel`.
-- frontend-engine / backend-engine: `classify.engineModel` — `haiku` (trivial) or `sonnet`
-  (everything else). Never opus or fable.
-- test-qa-engine and browser-qa: `sonnet`, always. Never opus or fable.
-- code-reviewer: `classify.planModel` — always opus or fable, never sonnet/haiku.
-- CTO review (GitHub Actions): `opus`, pinned in `.github/workflows/claude.yml`. Never fable.
+Opus — 5 and 4.8 alike — is **banned** in this pipeline: never spawn it, never pass it, never
+fall back to it. Every spawn below names its model explicitly — never rely on agent frontmatter
+or the `CLAUDE_CODE_SUBAGENT_MODEL` engine profile. Fable 5.1 does the thinking, sonnet does
+the typing, haiku does the trivia (`docs/team/DECISIONS.md` 2026-09-06, second entry).
+- planner-architect (classify, design-round, replan): `fable`.
+- frontend-engine / backend-engine: the design doc's `Engine:` line when a design round ran,
+  else `classify.engineModel` — `haiku` (trivial), `sonnet` (clearly defined steps with
+  acceptance criteria, any length), `fable` (few steps, each needing real judgment).
+- test-qa-engine and browser-qa: `sonnet`, always. Never fable.
+- code-reviewer: `fable`, always.
+- CTO review (GitHub Actions): `fable`, pinned in `.github/workflows/claude.yml`.
 
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
@@ -70,7 +71,7 @@ slug = kebab-case title, ≤30 chars.
 
 **claim** → `node scripts/notion.mjs claim <id>`; journal stage=classify.
 
-**classify** → spawn planner-architect (model opus) with the classify skill, the card
+**classify** → spawn planner-architect (model fable) with the classify skill, the card
 title/areas, and `get-spec` output. Parse its JSON. journal stage=workspace.
 
 **workspace** → `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> dev`
@@ -94,11 +95,12 @@ journal stage=design|build.
    the pipeline is responsible for its own dependencies in cloud mode.
 
 **design** (only if classify.needsDesignRound) → spawn planner-architect
-(model=classify.planModel) with design-round skill. If it parks (design deadlock) → park
+(model fable) with design-round skill. If it parks (design deadlock) → park
 procedure. journal stage=build.
 
 **build** → per involved area spawn the engine agent (frontend-engine and/or
-backend-engine) with model=classify.engineModel (haiku or sonnet — never opus/fable),
+backend-engine) with model = the design doc's `Engine:` line if a design round ran, else
+classify.engineModel (haiku, sonnet, or fable — never opus),
 effort=classify.engineEffort.
 Prompt MUST include: spec text, design doc path (if any) plus the line "Implement its
 `## Implementation plan` step by step; do not re-plan", classify.docs (tell them to
@@ -110,19 +112,19 @@ in the worktree path. journal stage=verify.
 
 **verify** → spawn test-qa-engine (model sonnet) in the worktree. Fail → send failures
 back to the engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn planner-architect
-(model=classify.planModel) with the failure history, get a revised approach, reset to
+(model fable) with the failure history, get a revised approach, reset to
 build (replanned=true). Fails again → park. journal stage=qa.
 
 **qa** → if diff touches src/ or backend/: spawn browser-qa (model sonnet — never
-opus/fable) with qa-protocol skill. Fail → build (counts toward fixCycles). journal
+fable) with qa-protocol skill. Fail → build (counts toward fixCycles). journal
 stage=review.
    **[CLOUD]** Runs here too — QA is headless Playwright (`scripts/qa-browser.mjs`), not the
    user's Chrome, so it works on a routine VM. The cloud deps step installs the browser.
    If the browser genuinely cannot be installed, treat QA as skipped (log one line, continue
    to review) rather than failing the task — never park a task over QA infrastructure.
 
-**review** → spawn code-reviewer (model=classify.planModel — opus or fable, never
-sonnet: the implementer was cheap, this pass is where the heavy model checks the work) on the worktree diff
+**review** → spawn code-reviewer (model fable — never sonnet: the implementer was cheap,
+this pass is where the heavy model checks the work) on the worktree diff
 (`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build
 (counts toward fixCycles). "minor"/"nit" findings are noted in the PR body but do not block ship. journal stage=ship.
 
