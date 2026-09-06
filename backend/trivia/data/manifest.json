@@ -1,10 +1,10 @@
 {
-  "version": "2026-09-06.2",
+  "version": "2026-09-06.3",
   "games": {
     "all-players": {
       "file": "all-players.json",
-      "sha256": "c3f852c449a5f860acef6e4075fae147b90778d7f87db85e8d10798b20881798",
-      "count": 5186
+      "sha256": "c4be7243257314074cd2d42c4fc7feb98ce932b897b7e1b9733f8808935ebf21",
+      "count": 5208
     },
     "bingo": {
       "file": "bingo.json",
@@ -13,7 +13,7 @@
     },
     "connections": {
       "file": "connections.json",
-      "sha256": "ce7f780ef644644784957b56314e68d1c9efb78e2199a7787993b47f3b733e6d",
+      "sha256": "efcbae6eada0be777ba35be23d3d46e6f1bf6b5f333028a57ce9d26a4d390297",
       "count": 40
     },
     "fan-favorites": {
@@ -23,13 +23,13 @@
     },
     "heatmap": {
       "file": "heatmap.json",
-      "sha256": "e87b9e77f984ac6f8adf5d94586844d3370f456b676da2fd50a5c8ce4b8e99bf",
+      "sha256": "7fa7c12f48752f906b73a77f0747701f10f6def9b7310412f92a8a9fa990aeb6",
       "count": 6
     },
     "imposter": {
       "file": "imposter.json",
-      "sha256": "c80d3413f48302b23974b984da33f344b523ad198c8fbed9cafb659c04ad7e6e",
-      "count": 98
+      "sha256": "2b3d34e11f0c459e3b5d6960f87d1b34d36e44a8bdc836fb2df00ce0a262579b",
+      "count": 99
     },
     "mvps": {
       "file": "mvps.json",
@@ -48,8 +48,8 @@
     },
     "players-index": {
       "file": "players-index.json",
-      "sha256": "56d5b9f4bb46c9d4679e2d9fbd2296fb07f5418db5bdd0cc73a47234bd2d2d09",
-      "count": 159
+      "sha256": "0fc7f01b545c06cd4b1b880775598b4251c30a1ecc4ba39493334d637401399b",
+      "count": 4900
     },
     "playoff": {
       "file": "playoff.json",
@@ -58,7 +58,7 @@
     },
     "starting-five": {
       "file": "starting-five.json",
-      "sha256": "5f4d21d892576bcecf5b438ccc89af4f5060b67ba07566ed99a0999e22421b83",
+      "sha256": "46039bad27fa0b71a2cea9341df6871b870a05aa310318e6658ad8b90ccac128",
       "count": 503
     },
     "tictactoe": {
