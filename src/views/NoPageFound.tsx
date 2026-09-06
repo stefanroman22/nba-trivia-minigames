@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router-dom";
+"use client";
+import { useNavigate } from "../hooks/useNavigate";
 import { motion } from "framer-motion";
 import { Button } from "../components/ui";
 

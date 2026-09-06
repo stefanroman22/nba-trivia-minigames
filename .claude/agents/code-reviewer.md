@@ -40,7 +40,7 @@ Method:
 - Inspect the diff first: `git --no-pager diff` and `git --no-pager diff --staged`.
 - For each finding give: file:line, severity (blocker/major/minor/nit), what's wrong, a concrete
   fix, and the rule ID it violates where applicable.
-- Verify build/lint claims with `npm run lint`, `npx tsc -b`, and `python manage.py check` where
+- Verify build/lint claims with `npm run lint`, `npx next typegen && npx tsc --noEmit`, and `python manage.py check` where
   relevant. A bare `python manage.py test` is not evidence the suite passed — require
   `python manage.py test users trivia` (BE-18).
 - Be specific and terse. No praise padding. If something is fine, say nothing.

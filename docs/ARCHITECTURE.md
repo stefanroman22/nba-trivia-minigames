@@ -47,7 +47,7 @@ does, where it lives, where it's hosted, and how safe it is.
 
 ## 1. The Frontend (what you see in the browser)
 
-**Tech:** React 19 + TypeScript + Vite + Tailwind 4.
+**Tech:** React 19 + TypeScript + Next.js 16 (App Router — every page is server-rendered) + Tailwind 4.
 **Lives in:** repo root `src/`.
 **Hosted on:** **Vercel** (their global CDN). Production API it talks to:
 `https://backend-kappa-one-42.vercel.app/api`.
@@ -134,6 +134,14 @@ It has two parts ("apps"):
 
 **Game data** (`/trivia/...`): returns random rounds for each game (playoff series, logos,
 MVPs, starting fives, wordle words) and a `manifest` + `pool/<game>` for the frontend cache.
+Also `feedback` — the in-app rating form posts here. It is open to guests on purpose (the
+form says "no account needed"), rate-limited, and takes the sender from the JWT rather than
+the request body, so feedback can't be filed under someone else's name.
+
+**Admin panel** (`/api/admin/...`, every route `IsAdminUser`-gated): `games` +
+`source-rows` back the Games tab; `feedback`, `feedback/stats` and `feedback/<id>` back
+the Feedback tab. The list and the stats share one filter parser, so the charts and the
+table below them always describe the same set of rows.
 
 ### Player identity (built for millions of accounts)
 - Every account gets a **permanent 6-character public ID** (e.g. `#K7F3QD`) generated from
@@ -262,6 +270,7 @@ There are **two kinds of data**, handled very differently:
 | `trivia_mvp` | MVP per season | Guess the MVP |
 | `trivia_startingfivegame` | real games + their starters | Starting 5 |
 | `trivia_syncrun` | a log of each data refresh (audit trail) | — |
+| `trivia_feedback` | player ratings 1–5 + optional message, with a snapshot of the sender's email/name/public id so a closed account doesn't take the only way of replying with it | — |
 
 > There's no special Supabase SDK — the backend just talks to Supabase as a normal Postgres
 > database through Django. (Cloudflare R2 is set up as an optional alternative for serving
@@ -303,7 +312,7 @@ There are **two kinds of data**, handled very differently:
 - Login **tokens are stored in `localStorage`**, not httpOnly cookies. This is convenient and
   common for single-page apps, but it means a cross-site-scripting (XSS) bug could expose a
   token. Mitigated by short token lifetimes and React escaping output by default.
-- The **Google OAuth client ID is hard-coded** in the frontend (`src/main.tsx`). That's fine —
+- The **Google OAuth client ID is hard-coded** in the frontend (`src/components/LogInSignUp.tsx`). That's fine —
   a client ID is public by design; the secret stays on the backend.
 - `DEBUG` defaults to **on** locally, so it's important `DJANGO_DEBUG=False` is set in
   production (it is, per the deployment docs).
@@ -329,7 +338,7 @@ There are **two kinds of data**, handled very differently:
 
 | Piece | Tech | Hosted on | Link / address |
 |---|---|---|---|
-| Frontend | React + Vite | **Vercel CDN** | the public site domain |
+| Frontend | React + Next.js | **Vercel** (prerendered HTML + CDN) | the public site domain |
 | Backend API | Django + DRF | **Vercel (serverless)** | https://backend-kappa-one-42.vercel.app |
 | Multiplayer | Node + Socket.IO | **Railway** | https://nba-multiplayer-production.up.railway.app |
 | User database | Postgres | **Supabase** | via `DATABASE_URL` (session pooler) |

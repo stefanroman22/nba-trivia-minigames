@@ -183,10 +183,6 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
           else if (normPos === "G") { if (!revealAll["PG"]) revealAll["PG"] = p.name; else revealAll["SG"] = p.name; }
         });
 
-        setPopUpInfo({ Text: "Out of lives", Color: "var(--bad)" });
-        setShowPointsAnimation(true);
-        setTimeout(() => setShowPointsAnimation(false), 1400);
-
         const finalScore = score;
         // Only the players the user never found are staggered — the ones they got
         // are already face-up from play, so they cost no reveal time. The wait

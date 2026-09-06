@@ -1,4 +1,4 @@
-# Vercel deploys ONLY the Vite frontend. Strip everything that signals a Python
+# Vercel deploys ONLY the Next.js frontend. Strip everything that signals a Python
 # service (so Vercel doesn't try to build the Django backend as a separate service),
 # but KEEP the JSON under backend/trivia/data — the build (npm run copy:data) reads
 # it to publish /data/.

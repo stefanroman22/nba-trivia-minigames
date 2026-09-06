@@ -1,4 +1,4 @@
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+export const BACKEND_URL = process.env.VITE_BACKEND_URL ?? "";
 
 // Backend origin without the trailing "/api" — used for non-/api routes
 // like /trivia/*. Falls back to local dev if the env var is missing.

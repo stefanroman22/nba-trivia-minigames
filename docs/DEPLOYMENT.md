@@ -67,7 +67,7 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 
 | Service | Trigger | Notes |
 |---|---|---|
-| Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration |
+| Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration; `vercel.json` selects the Next.js preset |
 | Django API | **manual CLI only** — `cd backend && vercel deploy --prod` | project is *not* git-connected |
 | Multiplayer | Railway | not yet deployed |
 
@@ -78,7 +78,7 @@ weeks-old commit this way while `dev` moved on.
 **Why the backend isn't git-connected — read before reconnecting it.** Connecting it is only
 safe once the Vercel project's **Root Directory** is set to `backend`. Without that, Vercel
 builds from the repo root, applies the root `.vercelignore` (which exists to strip `backend/`
-from the *frontend* build), deletes every Django source file, and builds the Vite frontend
+from the *frontend* build), deletes every Django source file, and builds the Next.js frontend
 instead — then promotes that onto `backend-kappa-one-42.vercel.app`. **The build succeeds**, so
 nothing fails loudly; the API just starts returning HTML. This happened on 2026-08-29.
 
@@ -147,6 +147,8 @@ VITE_SOCKET_URL=https://<your-multiplayer-host>     # set once the Node host is 
 # VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
 # Set it only to serve pools from an external CDN/domain instead.
 ```
+The `VITE_*` names predate the Next.js migration and are kept on purpose: `next.config.ts`
+inlines these three into the browser bundle (Next only exposes `NEXT_PUBLIC_*` by itself).
 
 ### Home machine (data refresh) — see [DATA_PIPELINE.md](DATA_PIPELINE.md)
 No env vars needed for the default Vercel path — the data ships with the frontend build.

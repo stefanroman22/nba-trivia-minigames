@@ -23,7 +23,7 @@ that already exists.
 ## Verification command sequence
 Run in order; report failures with the failing output verbatim, not a paraphrase:
 1. `npm run lint`
-2. `npx tsc -b`
+2. `npx next typegen && npx tsc --noEmit`
 3. `npm run build`
 4. If `backend/` was touched: activate the venv (`backend/venv/Scripts/activate` on Windows,
    `source backend/venv/bin/activate` otherwise), `cd backend`, then:

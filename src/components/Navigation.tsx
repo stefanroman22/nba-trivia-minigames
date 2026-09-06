@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../hooks/useNavigate";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import logo from "../assets/basketballLogo.webp";
@@ -26,7 +26,7 @@ function UserAvatar({ photo, name, size = 28 }: { photo?: string | null; name?: 
         <img
           src={photo}
           alt=""
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
         />
       </span>
     );
@@ -86,7 +86,7 @@ function Navigation({ type = "full" }: NavigationProps) {
     <nav className="nav3">
       <div className="nav3-left">
         <div className="nav3-brand" onClick={goHome}>
-          <img src={logo} alt="HOOPS24" className="nav3-logo" />
+          <img src={logo.src} alt="HOOPS24" className="nav3-logo" />
           <div className="nav3-brand-text">
             <span className="font-display" style={{ fontSize: 16, letterSpacing: 1 }}>HOOPS24</span>
             <span className="nav3-tag">NBA MINIGAMES</span>
@@ -102,7 +102,7 @@ function Navigation({ type = "full" }: NavigationProps) {
         {user ? (
           <button onClick={() => go("leaderboard")} className="nav3-user">
             <UserAvatar photo={user.profile_photo} name={user.username} />
-            <span className="nav3-user-meta hide-sm" style={{ alignItems: "center", textAlign: "center" }}>
+            <span className="nav3-user-meta hide-sm">
               <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
               <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
             </span>
@@ -129,7 +129,7 @@ function Navigation({ type = "full" }: NavigationProps) {
           >
             <div className="drawer-head">
               <div className="nav3-brand" onClick={() => { setDrawer(false); goHome(); }}>
-                <img src={logo} alt="" className="nav3-logo" />
+                <img src={logo.src} alt="" className="nav3-logo" />
                 <div className="nav3-brand-text">
                   <span className="font-display" style={{ fontSize: 15, letterSpacing: 1 }}>HOOPS24</span>
                   <span className="nav3-tag">NBA MINIGAMES</span>

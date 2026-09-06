@@ -1,4 +1,4 @@
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 
 interface CourtLoaderProps {
   label?: string;
@@ -7,7 +7,7 @@ interface CourtLoaderProps {
 
 /** Basketball arcs up and swishes through the hoop — the brand loading state. */
 export default function CourtLoader({ label = "Warming up the court…", scale = 1 }: CourtLoaderProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const s = scale;
 
   return (
