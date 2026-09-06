@@ -9,7 +9,23 @@
 //
 // Run:  node scripts/sim_turngames.js
 const turnGames = require("../src/turnGames");
-const { playerMatches } = turnGames._test;
+const { playerMatches, normalizeAnswer } = turnGames._test;
+
+// Deterministic RNG: turnGames.js uses Math.random to pick the TTT grid's
+// rows/cols, the imposter's identity, and the clue order. Left un-seeded,
+// which criteria land on the board (and therefore which pool player
+// playerForCell finds first) varies run to run — which is exactly the kind
+// of luck-dependence that made this harness flaky. Seed it so every run of
+// this script is identical; the imposter/used-player assertions below are
+// already written to adapt to whichever uid the deterministic run picks.
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+Math.random = seededRandom(0xc0ffee);
 
 // ------------------------------------------------------------------ pool
 // A synthetic curated pool: 5 franchises x 8 players, attributes fanned out so
@@ -120,10 +136,16 @@ function makeHelpers(room) {
   };
 }
 
-// Find any pool player satisfying both criteria (guaranteed to exist because the
-// generator only emits solvable cells).
-function playerForCell(rowCrit, colCrit) {
-  const p = POOL.find((pl) => playerMatches(pl, rowCrit) && playerMatches(pl, colCrit));
+// Find a pool player satisfying both criteria who ISN'T already claimed
+// somewhere else on the board — mirroring what a real client does (and what
+// solo mode's usedIdsRef enforces): a player can occupy at most one cell.
+// The used set is derived from the live board on every call, never tracked
+// separately, so it can't drift from what turnGames.js actually recorded.
+function playerForCell(rowCrit, colCrit, board) {
+  const used = new Set(board.filter(Boolean).map((occ) => normalizeAnswer(occ.playerName)));
+  const p = POOL.find(
+    (pl) => !used.has(normalizeAnswer(pl.full_name)) && playerMatches(pl, rowCrit) && playerMatches(pl, colCrit),
+  );
   return p ? p.full_name : null;
 }
 
@@ -145,9 +167,19 @@ async function simTicTacToe() {
   while (!st.winnerUid && !st.draw && guard++ < 12) {
     const uid = st.turnUid;
     const cell = plan[uid].shift();
+    if (cell === undefined) {
+      throw new Error(`sim plan exhausted for ${uid} before a winner emerged — no progress possible`);
+    }
     const row = Math.floor(cell / 3);
     const col = cell % 3;
-    const name = playerForCell(st.criteria.rows[row], st.criteria.cols[col]);
+    const rowCrit = st.criteria.rows[row];
+    const colCrit = st.criteria.cols[col];
+    const name = playerForCell(rowCrit, colCrit, st.board);
+    if (!name) {
+      throw new Error(
+        `no unused player satisfies cell ${cell} (row=${rowCrit.label}, col=${colCrit.label})`,
+      );
+    }
     line(`${uid} claims cell ${cell} with "${name}"`);
     turnGames.handleAction(room, uid, { type: "claim", cell, playerName: name }, helpers);
   }
