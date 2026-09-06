@@ -138,13 +138,14 @@ def fetch_players(season=None, per_call_timeout=20):
 # ---------------------------------------------------------------------------
 #  Playoff series  (derived entirely from the playoff game log)
 # ---------------------------------------------------------------------------
-def _reconstruct_rounds(series):
+def _reconstruct_rounds(series, season):
     """Assign a round label to every series by reconstructing the bracket.
 
     The Finals is the series whose clinching game is latest; each team entered a
     series by winning its previous (earlier) series, so we walk backward from the
     Finals assigning increasing depth (0 = Finals). Era-independent, and never
     yields "Unknown". `series` items have: teams(frozenset), winner_id, latest(date).
+    `season` only picks the label set — see the 1953-54 round robin below.
     """
     n = len(series)
     by_date = sorted(range(n), key=lambda i: series[i]["latest"])
@@ -170,6 +171,15 @@ def _reconstruct_rounds(series):
                 depth[prev] = depth[i] + 1
 
     labels = {0: "NBA Finals", 1: "Conference Finals", 2: "Conference Semifinals", 3: "First Round"}
+    if season == "1953-54":
+        # The NBA's only round-robin postseason (never used before or since): each
+        # division's three qualifiers played each other twice, and the two survivors
+        # then met in the division final. The depths above still come out right —
+        # division finals at 1, round-robin meetings at 2 — but depth 2 is not a
+        # knockout round: New York (0-4 in the East) and Ft. Wayne (0-4 in the West)
+        # each lost two of its series. Naming it for what it was keeps the season
+        # honest instead of asserting two single-elimination semifinal losses apiece.
+        labels[2] = "Division Round Robin"
     return {i: labels.get(depth.get(i, 99), "First Round") for i in range(n)}
 
 
@@ -230,7 +240,7 @@ def _fetch_playoff_season(season, per_call_timeout=15):
     if not series:
         return []
 
-    rounds = _reconstruct_rounds(series)
+    rounds = _reconstruct_rounds(series, season)
     out = []
     for i, s in enumerate(series):
         win_id, lose_id = s["winner_id"], s["loser_id"]
