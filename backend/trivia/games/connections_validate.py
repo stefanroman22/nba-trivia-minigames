@@ -30,6 +30,12 @@ HERE = os.path.dirname(__file__)
 SEED = os.path.join(HERE, "..", "data_static", "connections_seed.json")
 CURATED = os.path.join(HERE, "..", "data_static", "players_curated.json")
 
+# backend/ on the path so the shared pool rule imports whether this runs as a
+# module or as a plain script.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(HERE))))
+
+from trivia.data_pipeline.curated_players import playable_rows  # noqa: E402
+
 
 def _load(path):
     if not os.path.exists(path):
@@ -39,10 +45,30 @@ def _load(path):
 
 
 def _index_curated(curated):
-    """name (lowercased) -> curated row, or {} if the file is absent."""
+    """name (lowercased) -> playable pool row, or {} if the file is absent.
+
+    Rows with no team stints are dataset-only (parity with the league index);
+    a tile can never be one of them, so they are not indexed.
+
+    32 pool names belong to more than one player, so a plain dict would let
+    whoever came last win: Patrick Ewing Jr. (1 season, tier 4) shadowed Patrick
+    Ewing, which made a "1990s dominant centers" group look wrong. A tile means
+    the player the board is about, so the more famous row wins — lower
+    fame_tier first, then the longer career.
+    """
     if not curated:
         return {}
-    return {row["full_name"].lower(): row for row in curated}
+    index = {}
+    for row in playable_rows(curated):
+        key = row["full_name"].lower()
+        held = index.get(key)
+        if held is None or _prominence(row) > _prominence(held):
+            index[key] = row
+    return index
+
+
+def _prominence(row):
+    return (-(row.get("fame_tier") or 4), (row.get("career") or {}).get("seasons") or 0)
 
 
 def _derive(label):
@@ -65,10 +91,26 @@ def _derive(label):
     return ("college", label.strip().lower())
 
 
+MIN_COLLEGE_PLAYERS = 3  # below this a "college" is one player's oddity, not a group
+
+
 def _colleges(curated_index):
-    """Every college the curated dataset knows, lowercased, longest name first."""
-    names = {(row.get("college") or "").lower() for row in curated_index.values()}
-    return sorted((n for n in names if n), key=len, reverse=True)
+    """Colleges the pool has >= MIN_COLLEGE_PLAYERS for, lowercased, longest first.
+
+    The 159-row dataset knew 60-odd well-known US colleges. The full one knows
+    552, including Brooklyn (2 players), Beijing (1) and Germany (1) — words
+    that appear in labels about a franchise, an Olympics and a national team.
+    A college nobody else went to cannot be what a four-player group is about,
+    so it is not offered as a reading of a label.
+    """
+    counts = {}
+    for row in curated_index.values():
+        name = (row.get("college") or "").lower()
+        if name:
+            counts[name] = counts.get(name, 0) + 1
+    return sorted(
+        (n for n, c in counts.items() if c >= MIN_COLLEGE_PLAYERS), key=len, reverse=True
+    )
 
 
 def _own_derive(label, colleges):
@@ -96,8 +138,13 @@ def _own_derive(label, colleges):
     for term, positions in (("bigs", "FC"), ("center", "C"), ("forward", "F"), ("guard", "G")):
         if term in low:
             return ("position", positions)
-    named = [c for c in colleges if c in low]
-    if named:
+    named = [c for c in colleges if re.search(rf"\b{re.escape(c)}\b", low)]
+    # A college phrase NAMES the college first — "Duke Blue Devils", "Kentucky
+    # one-and-dones", "Syracuse / Memphis stars". A label that merely contains a
+    # college word further in is about something else ("1997-98 Utah Jazz",
+    # "2008 Beijing Olympics", "Brooklyn Nets super-team"), and a bare substring
+    # is not even a word ("Iona" inside "International 2010s starters").
+    if named and any(low.startswith(c) for c in named):
         # "Syracuse / Memphis stars" asserts either college, not both.
         return ("colleges", named)
     return (None, None)
@@ -110,7 +157,11 @@ def _satisfies(row, kind, value):
     if kind == "draft_year":
         return bool(row.get("draft")) and row["draft"].get("year") == value
     if kind == "jersey":
-        return row.get("jersey") == value
+        # The row holds ONE number — the profile's current/last one — while a
+        # career often runs through several (Julius Erving: 32 with the Nets, 6
+        # in Philadelphia). A match therefore proves he wore it; a mismatch
+        # proves nothing, so it is "can't tell", not "no".
+        return True if row.get("jersey") == value else None
     if kind == "country":
         return (row.get("country") or "").lower() == value
     if kind == "college":
