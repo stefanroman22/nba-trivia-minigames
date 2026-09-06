@@ -16,6 +16,7 @@ import { ModalProvider } from './context/ModalContext';
 import { MultiplayerProvider } from './context/MultiplayerContext';
 import ModalHost from './components/ModalHost';
 import EnvBadge from './components/EnvBadge';
+import ErrorBoundary from './components/ErrorBoundary';
 
 
 function App() {
@@ -58,7 +59,9 @@ function App() {
       <BrowserRouter>
         <MultiplayerProvider>
           <ModalProvider>
-            <AnimatedRoutes />
+            <ErrorBoundary>
+              <AnimatedRoutes />
+            </ErrorBoundary>
             <ModalHost />
             <EnvBadge />
           </ModalProvider>
