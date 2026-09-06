@@ -1,6 +1,5 @@
 
 import { useNavigate } from 'react-router-dom';
-import Swal from 'sweetalert2';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { Game } from '../types/types';
 import "../styles/GameCard.css";
@@ -16,8 +15,9 @@ export const GameCard = ({ game, gameStarted = false, customStyle = {}, index = 
   const navigate = useNavigate();
   const reduce = useReducedMotion();
 
-  const handleClick = () => {
+  const handleClick = async () => {
     if (gameStarted) {
+      const Swal = (await import('sweetalert2')).default; // out of the startup bundle
       Swal.fire({
         icon: "warning",
         title: "Game already in progress",

@@ -1,0 +1,25 @@
+# HOOPS24 — NBA Trivia Minigames
+
+> Free daily NBA trivia minigames: NBA Wordle, guess-the-player (Who Are Ya), stat grids, starting-five builders, connections, heatmaps and more. Play solo or online against friends, earn points per correct answer and climb the global leaderboard.
+
+## What you can do here
+
+- Play 17+ NBA trivia minigames in the browser, no install needed
+- Create a free account to keep score, earn ranks and appear on the leaderboard
+- Play multiplayer matches against friends via a shareable room
+- Games rotate daily with fresh NBA data (players, teams, stats, draft history)
+
+## Games
+
+- [All games](/): the landing page lists every playable game
+- [NBA Wordle](/wordle): guess the mystery player in 8 tries from attribute clues
+- [Who Are Ya](/who-are-ya): name the player from a blurred photo that sharpens each miss
+- [Guess the MVP](/guess-mvps): identify MVP winners season by season
+- [Starting Five](/starting-five): fill a team's historic starting lineup
+- [Series Winner](/series-winner): pick playoff series winners
+- [Name the Logo](/name-logo): recognize NBA club logos
+
+## Notes
+
+- The app is a single-page React application; game content loads dynamically.
+- /admin is a private administration area.

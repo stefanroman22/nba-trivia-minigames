@@ -8,7 +8,7 @@ import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface LogInSignUpProps {
@@ -260,4 +260,12 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
   );
 }
 
-export default LogInSignUp;
+// Provider lives here (not app-wide in main.tsx) so Google's gsi/client script
+// only loads when the login modal actually mounts.
+export default function LogInSignUpWithGoogle(props: LogInSignUpProps) {
+  return (
+    <GoogleOAuthProvider clientId="504454176332-ut7po2glf32fv3dajltgnb5aho65er7i.apps.googleusercontent.com">
+      <LogInSignUp {...props} />
+    </GoogleOAuthProvider>
+  );
+}

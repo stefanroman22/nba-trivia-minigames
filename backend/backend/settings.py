@@ -162,6 +162,9 @@ REST_FRAMEWORK = {
         "auth-refresh": "60/hour",
         # A game takes minutes to finish, so this is far above real play.
         "score-submit": "60/hour",
+        # Unauthenticated write path — generous for a person with several
+        # things to say, useless as a spam vector.
+        "feedback-submit": "10/hour",
     },
 }
 

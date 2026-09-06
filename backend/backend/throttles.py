@@ -36,3 +36,10 @@ class ScoreSubmitRateThrottle(UserRateThrottle):
     """Finished-game submissions — the points award path. A game takes minutes, so
     the limit is far above real play and exists to bound scripted score farming."""
     scope = "score-submit"
+
+
+class FeedbackRateThrottle(UserRateThrottle):
+    """Feedback submissions. The endpoint is unauthenticated by design (guests get
+    to rate too), so without a limit it is an open write path; a person with
+    something to say needs a handful, not dozens."""
+    scope = "feedback-submit"

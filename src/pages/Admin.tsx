@@ -7,9 +7,11 @@ import { Button, CourtLoader, Field } from "../components/ui";
 import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
 import { games as gameCatalog } from "../utils/GameUtils";
+import FeedbackTab from "../components/admin/FeedbackTab";
 import type { RootState } from "../store";
 import "../styles/LandPage.css";
 import "../styles/Admin.css";
+import "../styles/AdminFeedback.css";
 
 /* ------------------------------------------------------------------ */
 /*  API payload types (see backend/trivia/admin_api.py)                */
@@ -440,7 +442,27 @@ function UsersTab() {
 function Admin() {
   const navigate = useNavigate();
   const { user, authChecked } = useSelector((state: RootState) => state.user);
-  const [tab, setTab] = useState<"games" | "users">("games");
+  const [tab, setTab] = useState<"games" | "feedback" | "users">("games");
+  // Standing count of feedback still to be triaged. Fetched here rather than in
+  // the tab so the badge is visible before the tab is ever opened.
+  const [newFeedback, setNewFeedback] = useState(0);
+
+  useEffect(() => {
+    if (!user?.is_admin) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch(`${BACKEND_URL}/admin/feedback/stats/?period=7d`);
+        const data = await res.json();
+        if (res.ok && !cancelled) setNewFeedback(data.all_time?.new ?? 0);
+      } catch {
+        /* the badge is a nicety — its absence must not break the page */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.is_admin]);
 
   let content;
   if (!authChecked) {
@@ -473,6 +495,15 @@ function Admin() {
           </button>
           <button
             role="tab"
+            aria-selected={tab === "feedback"}
+            className={`admin-tab${tab === "feedback" ? " is-active" : ""}`}
+            onClick={() => setTab("feedback")}
+          >
+            Feedback
+            {newFeedback > 0 && <span className="admin-tab-badge">{newFeedback}</span>}
+          </button>
+          <button
+            role="tab"
             aria-selected={tab === "users"}
             className={`admin-tab${tab === "users" ? " is-active" : ""}`}
             onClick={() => setTab("users")}
@@ -480,7 +511,9 @@ function Admin() {
             Users
           </button>
         </div>
-        {tab === "games" ? <GamesTab /> : <UsersTab />}
+        {tab === "games" && <GamesTab />}
+        {tab === "feedback" && <FeedbackTab onNewCount={setNewFeedback} />}
+        {tab === "users" && <UsersTab />}
       </>
     );
   }
@@ -491,7 +524,7 @@ function Admin() {
       <main className="page admin-page">
         <header className="admin-head">
           <h1 className="font-display admin-title">Admin</h1>
-          <p className="admin-sub">Games, data sources and content health.</p>
+          <p className="admin-sub">Games, data sources, player feedback and content health.</p>
         </header>
         {content}
       </main>

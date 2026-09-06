@@ -28,7 +28,9 @@
 .btn-lg { height: 52px; padding: 0 30px; font-size: 16px; letter-spacing: 0.5px; }
 .btn-block { width: 100%; }
 
-.btn-primary { background: var(--brand); color: #fff; box-shadow: 0 12px 30px -12px var(--brand); }
+/* Dark-on-orange: white on var(--brand) is 2.86:1 and fails WCAG AA (4.5:1);
+   this near-black warm tone reads ~6:1 while keeping the brand background. */
+.btn-primary { background: var(--brand); color: #201005; box-shadow: 0 12px 30px -12px var(--brand); }
 .btn-primary:hover:not(:disabled) { filter: brightness(1.07); }
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--line2); }
 .btn-secondary:hover:not(:disabled) { background: var(--surface2); border-color: var(--brand); }
@@ -100,8 +102,10 @@
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-size: cover;
-  background-position: center;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
   transition: transform 0.4s var(--ease-out);
 }
 .gtile:hover .gtile-img { transform: scale(1.08); }

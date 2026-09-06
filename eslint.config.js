@@ -8,7 +8,7 @@ import { globalIgnores } from 'eslint/config'
 export default tseslint.config([
   // Only lint the frontend; the Python backend (incl. its venv) and the separate
   // multiplayer_server Node package are not part of this app's lint scope.
-  globalIgnores(['dist', 'backend', 'multiplayer_server']),
+  globalIgnores(['dist', 'dist-server', 'backend', 'multiplayer_server']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
