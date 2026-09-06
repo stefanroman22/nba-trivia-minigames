@@ -20,9 +20,16 @@ The "meeting" is an artifact. No code until sign-off.
 4. Hard tasks with unresolved conflicts after step 3: STOP — park the task with status
    Blocked and post-mortem "design deadlock" (v1 has no live agent-team escalation; that is
    Stage 3).
-5. **If `classify.difficulty == "hard"`** (a genuinely complex task, not merely multi-area),
-   turn the signed-off design into a real implementation plan before handoff — the same
-   depth as writing a plan for a human engineer, self-reviewed before anyone builds from it:
+5. **Every design round** — turn the signed-off design into a real implementation plan before
+   handoff, the same depth as writing a plan for a human engineer, self-reviewed before anyone
+   builds from it. This is not optional and not only for `hard`: the build stage runs on
+   sonnet (`classify.engineModel`) and executes the plan rather than reasoning it out, so
+   anything the plan leaves implicit is exactly what the engine will get wrong. You are the
+   heavy model here (`classify.planModel`, opus or fable) — spend the thinking now.
+   If `superpowers:writing-plans` is in your skill listing (local runs only — it is a
+   machine-local plugin, absent on cloud routines), load it and write the plan with it at the
+   depth it prescribes. Never `superpowers:brainstorming`: it gates on human approval, which an
+   unattended run cannot give. Otherwise follow a–c. Either way the plan must pass b.
    a. Break the work into numbered steps, each naming the exact file(s) it touches and what
       "done" looks like for that step (a test to run, a command to pass, a behavior to check).
       No step may say "handle edge cases" or "add appropriate error handling" without saying
@@ -36,6 +43,6 @@ The "meeting" is an artifact. No code until sign-off.
       the plan picks one reading explicitly rather than leaving it for the engine to guess.
    c. Append the reviewed plan to the same design doc under `## Implementation plan`, then hand
       it to the build stage — the engine implements the plan, it does not re-derive one.
-   This step is native to this pipeline (always available, local or cloud) rather than a
-   dependency on any optional planning skill — see `docs/team/DECISIONS.md` 2026-08-29 for why.
+   The a–c procedure is native to this pipeline so the discipline holds on cloud runs where
+   no planning skill exists — see `docs/team/DECISIONS.md` 2026-08-29 and 2026-09-06.
 6. Commit the design doc: `docs(team): design for <slug>`.

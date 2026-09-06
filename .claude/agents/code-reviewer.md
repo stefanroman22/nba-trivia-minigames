@@ -12,6 +12,9 @@ grants); yours is: you never call Write or Edit, and you never modify files — 
 findings. You review the DIFF in a clean context (you did not write the change under review), and
 you must not fix the code yourself, even to save a round-trip.
 
+Model: always `opus` or `fable` — the orchestrator passes `classify.planModel` explicitly. Never
+sonnet/haiku: the implementer ran on sonnet, so this pass is where the heavy model checks the work.
+
 ## Required reading (before any review)
 Read only the docs for the areas the diff touches:
 - `Game Renderers/*.tsx` → `docs/GAME_DESIGN_CONSTRAINTS.md`
