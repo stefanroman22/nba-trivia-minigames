@@ -289,18 +289,37 @@ def _award_year(season):
     return start + 1 if "-" in str(season) else start
 
 
-def build_awards(award_rows):
-    """Aggregate playerawards rows into the frozen award counts. All-zero is fine."""
+def build_awards(award_rows, span=None, stolen=None):
+    """Aggregate playerawards rows into the frozen award counts. All-zero is fine.
+
+    `span` is the (first, last) season the player's own stints cover. It matters
+    because playerawards resolves by NAME, so it hands a player every honour
+    won by anyone who shares it: the 2004 Cavaliers' Luke Jackson is credited
+    with the 1967 title of the 76ers' Luke Jackson, the Hawks' Eddie Johnson
+    with the Suns' 1989 Sixth Man, and the Bullets' Charles Jones with the
+    Rockets' 1995 ring — three wrong "Won a ring" answers waiting to happen.
+
+    An award from a season the player was not in the league cannot be his, so
+    with a span it is dropped and appended to `stolen` (a list) — counted, the
+    way every other source gap here is, never silently deleted.
+    """
     awards = {
         "mvp": [], "fmvp": [], "dpoy": [], "roty": None, "smoy": [],
         "allstar_count": 0, "allnba_count": 0, "rings": [],
     }
     for r in award_rows:
         description = (r.get("DESCRIPTION") or "").strip()
+        if description not in _AWARD_COUNTS and description not in _AWARD_YEARS \
+                and description != _ROOKIE_OF_THE_YEAR:
+            continue
+        year = _award_year(r.get("SEASON"))
+        if span and year is not None and not (span[0] <= year <= span[1]):
+            if stolen is not None:
+                stolen.append((description, year, span))
+            continue
         if description in _AWARD_COUNTS:
             awards[_AWARD_COUNTS[description]] += 1
             continue
-        year = _award_year(r.get("SEASON"))
         if year is None:
             continue
         if description == _ROOKIE_OF_THE_YEAR:
@@ -353,17 +372,43 @@ def carry_over_index(existing_rows):
     return carry
 
 
-def build_row(profile, drafts, eras, abbrs, carry, missing_eras=None):
+def build_aliases(full_name, inherited_aliases):
+    """Carried aliases plus the accent-free fold, minus the canonical name.
+
+    An alias identical to `full_name` is pure noise — it says nothing the
+    canonical name does not, and the shipped dataset carried two of them (Monta
+    Ellis and, once the API's own spelling won, Jonas Valanciunas). The fold is
+    only an alias when it actually differs from the canonical spelling.
+    """
+    aliases = [a for a in (inherited_aliases or []) if a and a != full_name]
+    folded = ascii_fold(full_name)
+    if folded != full_name and folded not in aliases:
+        aliases.append(folded)
+    return aliases
+
+
+def career_span(stints):
+    """(first season, last season) a player's stints cover, or None with no stints.
+
+    An open-ended final stint (an active player) runs to the current year, the
+    same reading curated_validate's check_span uses.
+    """
+    if not stints:
+        return None
+    now = datetime.now(timezone.utc).year
+    return (
+        min(s["start_year"] for s in stints),
+        max((s["end_year"] or now) for s in stints),
+    )
+
+
+def build_row(profile, drafts, eras, abbrs, carry, missing_eras=None, stolen_awards=None):
     """One frozen-schema curated row from one cached raw profile."""
     info = (profile.get("info") or [{}])[0]
     person_id = _int(info.get("PERSON_ID"))
     full_name = (info.get("DISPLAY_FIRST_LAST") or "").strip()
     inherited = carry.get(person_id, {})
-
-    aliases = list(inherited.get("aliases") or [])
-    folded = ascii_fold(full_name)
-    if folded != full_name and folded not in aliases:
-        aliases.append(folded)
+    aliases = build_aliases(full_name, inherited.get("aliases"))
 
     status = info.get("ROSTERSTATUS")
     is_active = str(status).strip().lower() in ("active", "1")
@@ -385,8 +430,53 @@ def build_row(profile, drafts, eras, abbrs, carry, missing_eras=None):
         "jersey": _int(info.get("JERSEY")),
         "is_active": is_active,
         "teams": stints,
-        "awards": build_awards(profile.get("awards") or []),
+        "awards": build_awards(
+            profile.get("awards") or [], career_span(stints), stolen_awards
+        ),
         "career": build_career(profile.get("career_totals") or [], profile.get("career") or []),
+    }
+
+
+def build_roster_only_row(roster_entry, drafts, carry):
+    """A row for a player commonplayerinfo has no identity for at all.
+
+    stats.nba.com answers a literal `{}` for a few real players — person_id
+    200603, Corey Williams (Chicago, 1992-93) is the only one in the whole
+    league index — so there is no name, no physicals and no career to shape a
+    normal row from. He is still a real player: CommonAllPlayers vouches for him
+    and all-players.json has always carried him, so dropping him would put a
+    permanent hole in the 1:1 parity the dataset is built on.
+
+    The row therefore carries exactly what an independent source vouches for
+    (the league index's name and roster status, plus the draft pick draft
+    history has) and a null everywhere the missing endpoint was the only source.
+    `teams: []` is NOT a claim that he never played — it is the absence of a
+    career the API will not serve — and `playable_rows` keeps a row like this
+    out of every game, so nothing ever asserts anything about him on screen.
+    """
+    person_id = roster_entry["person_id"]
+    full_name = (roster_entry.get("full_name") or "").strip()
+    inherited = carry.get(person_id, {})
+    aliases = build_aliases(full_name, inherited.get("aliases"))
+
+    pick = pick_draft(person_id, drafts)
+    return {
+        "person_id": person_id,
+        "full_name": full_name,
+        "aliases": aliases,
+        "fame_tier": inherited.get("fame_tier", DEFAULT_FAME_TIER),
+        "position": None,
+        "height_in": None,
+        "weight_lb": None,
+        "birth_year": None,
+        "country": None,
+        "college": None,
+        "draft": build_draft(pick),
+        "jersey": None,
+        "is_active": bool(roster_entry.get("is_active")),
+        "teams": [],
+        "awards": build_awards([]),
+        "career": build_career([], []),
     }
 
 
@@ -496,6 +586,25 @@ def check_plausibility(rows):
     return problems
 
 
+def playable_rows(rows):
+    """The rows the games may draw from: the ones with at least one team stint.
+
+    The DATASET is 1:1 with the league index — every player CommonAllPlayers
+    knows about has a row, which is what parity with all-players.json means. But
+    307 of those players have never taken the floor in a regular-season game
+    (2026 draftees, two-way and Exhibit-10 signings, and the handful the API has
+    no identity for at all), so their row carries `teams: []`.
+
+    No game can ask a question about a player who has no career, and every
+    criteria matcher would silently count such a row toward a cell's solvers
+    while the published pool the client validates against does not contain it.
+    So the POOL is the dataset minus those rows — the one place that split is
+    defined, used by the live pool reader and by every seed validator that
+    counts solvers.
+    """
+    return [r for r in rows if isinstance(r, dict) and r.get("teams")]
+
+
 def check_parity(rows, all_player_names):
     """1:1 parity with all-players.json — every real player has a row.
 
@@ -601,12 +710,17 @@ def fetch_missing(person_ids, cache, fetch_profile, on_progress=None):
     return fetched, skipped, failures
 
 
-def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
+def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry, roster=None):
     """Build a row for every cached profile.
 
-    Returns (rows, uncached, draft_gaps, missing_eras, empty_careers) — the four
-    lists after `rows` are what the source did not give, counted rather than
-    swallowed:
+    `roster` is the league index keyed by person_id ({person_id: roster row}).
+    It is what lets a player whose commonplayerinfo is permanently empty still
+    have a row (see build_roster_only_row); without it such a player is simply
+    uncached, exactly as before.
+
+    Returns (rows, uncached, draft_gaps, missing_eras, empty_careers,
+    identityless) — the five lists after `rows` are what the source did not
+    give, counted rather than swallowed:
       * `uncached` — players with no usable cached profile. They get NO row
         rather than a null-filled one.
       * `draft_gaps` — players whose profile claims a draft year that the draft
@@ -618,18 +732,34 @@ def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
       * `empty_careers` — players the API returned no career stats for at all
         (an empty body, or a drafted player who never debuted). Legitimate, and
         their row is a real zeroed one — counted so it stays visible.
+      * `identityless` — players commonplayerinfo answered `{}` for, whose row
+        was therefore built from the league index alone. Legitimate (the player
+        is real), but the loudest gap the source has, so it is counted too.
+      * `stolen_awards` — (person_id, description, year, span) for each award
+        playerawards credited to a player who was not in the league that season
+        (it resolves by name, so namesakes inherit each other's honours). The
+        award is left out of the row rather than published as a wrong answer.
     """
     rows = []
     uncached = []
     draft_gaps = []
     missing_eras = []
     empty_careers = []
+    identityless = []
+    stolen_awards = []
+    roster = roster or {}
     for person_id in person_ids:
         profile = cache.get(person_id)
         if profile is None:
             uncached.append(person_id)
             continue
-        row = build_row(profile, drafts, eras, abbrs, carry, missing_eras)
+        if not profile.get("info") and person_id in roster:
+            rows.append(build_roster_only_row(roster[person_id], drafts, carry))
+            identityless.append(person_id)
+            empty_careers.append(person_id)
+            continue
+        stolen = []
+        row = build_row(profile, drafts, eras, abbrs, carry, missing_eras, stolen)
         if row["person_id"] is None:
             uncached.append(person_id)
             continue
@@ -639,5 +769,7 @@ def assemble_rows(person_ids, cache, drafts, eras, abbrs, carry):
             info = (profile.get("info") or [{}])[0]
             if _int(info.get("DRAFT_YEAR")) is not None:
                 draft_gaps.append(row["person_id"])
+        stolen_awards += [(row["person_id"],) + s for s in stolen]
         rows.append(row)
-    return rows, uncached, draft_gaps, missing_eras, empty_careers
+    return (rows, uncached, draft_gaps, missing_eras, empty_careers, identityless,
+            stolen_awards)

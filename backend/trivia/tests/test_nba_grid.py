@@ -51,8 +51,7 @@ class NbaGridSeedCoverageTests(TestCase):
 
     def setUp(self):
         self.seed = _load_seed()
-        with open(nba_grid_validate.CURATED_PATH, encoding="utf-8") as f:
-            self.players = json.load(f)
+        self.players = nba_grid_validate.load_curated()
 
     def test_every_shipped_config_has_enough_answers_per_cell(self):
         self.assertEqual(nba_grid_validate.validate_seed(self.seed, self.players), [])

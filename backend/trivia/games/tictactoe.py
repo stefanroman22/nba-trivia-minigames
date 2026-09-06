@@ -14,6 +14,8 @@ from datetime import date
 from django.conf import settings
 from django.http import JsonResponse
 
+from trivia.data_pipeline.curated_players import playable_rows
+
 GAME_NAME = "NBA Tic-Tac-Toe"
 SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "tictactoe_seed.json")
 CURATED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "players_curated.json")
@@ -165,7 +167,10 @@ def validate_rows(rows):
     if problems:
         return problems
 
-    players = _load_json(CURATED_PATH)
+    # The playable pool, not the whole dataset: a row with no team stints is not
+    # in the players-index pool the client answers against, so it cannot count
+    # as a cell's solver.
+    players = playable_rows(_load_json(CURATED_PATH))
     if not players:
         # Foundation dataset not landed yet — structural checks only so the
         # aggregator pipeline never blocks on landing order.

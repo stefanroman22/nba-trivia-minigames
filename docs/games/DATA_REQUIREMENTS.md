@@ -60,10 +60,13 @@ One generic table, `payload` JSONB per type — avoids one-table-per-game sprawl
 The 12 built games are **seed-driven**, not live-API-driven (stats.nba.com times out from prod, so
 runtime nba_api calls are avoided). Everything ships as validated static JSON:
 
-- **`backend/trivia/data_static/players_curated.json`** — the 159-player master dataset (real
-  `person_id`, fame tier, team stints, awards, draft, physicals, aliases). Published as the
-  **`players-index`** pool that Career Path, Who Are Ya, LeContexto, Pack 5, SuperDraft and Imposter
-  read via `fetchWholePool("players-index")`.
+- **`backend/trivia/data_static/players_curated.json`** — the master dataset (real `person_id`, fame
+  tier, team stints, awards, draft, physicals, aliases), generated from nba_api by
+  `manage.py generate_players_curated` and 1:1 with the league index: **5,208 rows**, one per player
+  in `data/all-players.json`. The 308 who have never played a regular-season game carry `teams: []`
+  and are dataset-only; the **`players-index`** pool is the dataset minus those (**4,900 rows**, the
+  `playable_rows` rule), and Career Path, Who Are Ya, LeContexto, Pack 5, SuperDraft and Imposter
+  read it via `fetchWholePool("players-index")`.
 - **`backend/trivia/data_static/<game>_seed.json`** — per-game seeds (Connections boards, Heatmap hex
   boards, NBA Grid / Tic-Tac-Toe criteria configs, Bingo cards, Who Would Win matchups, Imposter
   mystery pool, SuperDraft objectives). Each game module `backend/trivia/games/<game>.py` exposes
@@ -72,7 +75,10 @@ runtime nba_api calls are avoided). Everything ships as validated static JSON:
 
 ### Data-update runbook
 
-1. Edit the relevant seed in `backend/trivia/data_static/` (or `players_curated.json` for player facts).
+1. Edit the relevant seed in `backend/trivia/data_static/`. Player facts are **not** hand-edited:
+   re-run `DATABASE_URL="" python manage.py generate_players_curated --rewrite-all-players`, which
+   rebuilds `players_curated.json` from the cached nba_api responses (`backend/.nba_api_cache/`,
+   git-ignored) and rewrites `data/all-players.json` to the canonical names so the two stay 1:1.
 2. Run that game's validator script under `backend/trivia/games/*_validate.py` (and
    `curated_validate.py` for the dataset) — fix any flagged rows.
 3. `cd backend && DATABASE_URL="" python manage.py build_pools_from_db` — regenerates every
@@ -80,6 +86,6 @@ runtime nba_api calls are avoided). Everything ships as validated static JSON:
    keeping their committed files).
 4. Commit `backend/trivia/data/` — the `scripts/copy-data.mjs` step (runs on `dev`/`build`) ships them
    to `public/data/` and the CDN.
-5. **Expanding beyond the curated 159** (documented follow-up): run `manage.py sync_nba_data` from a
-   residential IP to backfill `trivia_player`/stints from nba_api, then extend the curated authoring
-   step — the game modules already read whatever `players-index` contains.
+5. **fame_tier is still editorial**: only the 159 originally hand-authored players carry tiers 1-3;
+   every generated row defaults to tier 4. The tier-gated games (Imposter, Who Are Ya) therefore
+   still draw from ~99 names even though the pool is 4,900.

@@ -31,9 +31,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "draft",
+          "value": "round2",
+          "label": "2nd-round pick"
         },
         "neighbors": [
           1,
@@ -45,9 +45,9 @@
       {
         "id": 3,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           2,
@@ -58,9 +58,9 @@
       {
         "id": 4,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           0,
@@ -89,9 +89,9 @@
       {
         "id": 6,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           2,
@@ -105,9 +105,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "stat",
-          "value": "ppg20",
-          "label": "20+ PPG career"
+          "type": "team",
+          "value": "PHI",
+          "label": "Philadelphia 76ers"
         },
         "neighbors": [
           3,
@@ -120,9 +120,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "team",
-          "value": "MIA",
-          "label": "Miami Heat"
+          "type": "stat",
+          "value": "ppg20",
+          "label": "20+ PPG career"
         },
         "neighbors": [
           7,
@@ -132,9 +132,9 @@
       {
         "id": 9,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "team",
+          "value": "GSW",
+          "label": "Golden State Warriors"
         },
         "neighbors": [
           4,
@@ -145,9 +145,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "team",
+          "value": "BOS",
+          "label": "Boston Celtics"
         },
         "neighbors": [
           4,
@@ -161,9 +161,9 @@
       {
         "id": 11,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           5,
@@ -177,9 +177,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           6,
@@ -193,9 +193,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           7,
@@ -208,9 +208,9 @@
       {
         "id": 14,
         "criterion": {
-          "type": "stat",
-          "value": "ppg20",
-          "label": "20+ PPG career"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           9,
@@ -223,9 +223,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "award",
-          "value": "mvp",
-          "label": "MVP"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           10,
@@ -239,9 +239,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "team",
+          "value": "PHI",
+          "label": "Philadelphia 76ers"
         },
         "neighbors": [
           11,
@@ -255,9 +255,9 @@
       {
         "id": 17,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "stat",
+          "value": "ppg20",
+          "label": "20+ PPG career"
         },
         "neighbors": [
           12,
@@ -271,9 +271,9 @@
       {
         "id": 18,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           13,
@@ -284,9 +284,9 @@
       {
         "id": 19,
         "criterion": {
-          "type": "award",
-          "value": "mvp",
-          "label": "MVP"
+          "type": "team",
+          "value": "BOS",
+          "label": "Boston Celtics"
         },
         "neighbors": [
           14,
@@ -297,9 +297,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           14,
@@ -314,8 +314,8 @@
         "id": 21,
         "criterion": {
           "type": "team",
-          "value": "LAL",
-          "label": "Los Angeles Lakers"
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           15,
@@ -329,9 +329,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           16,
@@ -345,9 +345,9 @@
       {
         "id": 23,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           17,
@@ -359,9 +359,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "team",
-          "value": "LAL",
-          "label": "Los Angeles Lakers"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           19,
@@ -372,9 +372,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           20,
@@ -386,9 +386,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           21,
@@ -400,9 +400,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           22,
@@ -444,9 +444,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           1,
@@ -459,8 +459,8 @@
         "id": 3,
         "criterion": {
           "type": "team",
-          "value": "MIA",
-          "label": "Miami Heat"
+          "value": "GSW",
+          "label": "Golden State Warriors"
         },
         "neighbors": [
           2,
@@ -486,9 +486,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           1,
@@ -503,8 +503,8 @@
         "id": 6,
         "criterion": {
           "type": "era",
-          "value": "1990s",
-          "label": "Played in the 90s"
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           2,
@@ -518,9 +518,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "team",
+          "value": "NYK",
+          "label": "New York Knicks"
         },
         "neighbors": [
           3,
@@ -533,9 +533,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           7,
@@ -545,9 +545,9 @@
       {
         "id": 9,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "award",
+          "value": "ring",
+          "label": "Won a ring"
         },
         "neighbors": [
           4,
@@ -558,9 +558,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           4,
@@ -575,8 +575,8 @@
         "id": 11,
         "criterion": {
           "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           5,
@@ -590,9 +590,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "team",
+          "value": "GSW",
+          "label": "Golden State Warriors"
         },
         "neighbors": [
           6,
@@ -606,9 +606,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           7,
@@ -622,8 +622,8 @@
         "id": 14,
         "criterion": {
           "type": "team",
-          "value": "PHI",
-          "label": "Philadelphia 76ers"
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           9,
@@ -636,9 +636,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           10,
@@ -652,9 +652,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           11,
@@ -668,9 +668,9 @@
       {
         "id": 17,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           12,
@@ -685,8 +685,8 @@
         "id": 18,
         "criterion": {
           "type": "stat",
-          "value": "ppg20",
-          "label": "20+ PPG career"
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           13,
@@ -697,9 +697,9 @@
       {
         "id": 19,
         "criterion": {
-          "type": "award",
-          "value": "mvp",
-          "label": "MVP"
+          "type": "team",
+          "value": "PHI",
+          "label": "Philadelphia 76ers"
         },
         "neighbors": [
           14,
@@ -710,9 +710,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           14,
@@ -726,9 +726,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           15,
@@ -742,9 +742,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "team",
+          "value": "MIA",
+          "label": "Miami Heat"
         },
         "neighbors": [
           16,
@@ -772,9 +772,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           19,
@@ -785,9 +785,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "team",
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           20,
@@ -799,9 +799,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "award",
-          "value": "mvp",
-          "label": "MVP"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           21,
@@ -814,8 +814,8 @@
         "id": 27,
         "criterion": {
           "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           22,
@@ -900,8 +900,8 @@
         "id": 5,
         "criterion": {
           "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "value": "ppg20",
+          "label": "20+ PPG career"
         },
         "neighbors": [
           1,
@@ -931,9 +931,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "country",
+          "value": "INTL",
+          "label": "International"
         },
         "neighbors": [
           3,
@@ -972,8 +972,8 @@
         "id": 10,
         "criterion": {
           "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           4,
@@ -987,9 +987,9 @@
       {
         "id": 11,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           5,
@@ -1003,9 +1003,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           6,
@@ -1020,8 +1020,8 @@
         "id": 13,
         "criterion": {
           "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "value": "ring",
+          "label": "Won a ring"
         },
         "neighbors": [
           7,
@@ -1035,8 +1035,8 @@
         "id": 14,
         "criterion": {
           "type": "team",
-          "value": "CHI",
-          "label": "Chicago Bulls"
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           9,
@@ -1065,9 +1065,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "team",
-          "value": "SAS",
-          "label": "San Antonio Spurs"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           11,
@@ -1082,8 +1082,8 @@
         "id": 17,
         "criterion": {
           "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           12,
@@ -1097,9 +1097,9 @@
       {
         "id": 18,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           13,
@@ -1139,9 +1139,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           15,
@@ -1155,9 +1155,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           16,
@@ -1171,9 +1171,9 @@
       {
         "id": 23,
         "criterion": {
-          "type": "era",
-          "value": "1990s",
-          "label": "Played in the 90s"
+          "type": "team",
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           17,
@@ -1185,9 +1185,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "team",
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           19,
@@ -1198,9 +1198,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           20,
@@ -1212,9 +1212,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           21,
@@ -1226,9 +1226,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "award",
-          "value": "mvp",
-          "label": "MVP"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           22,
@@ -1256,9 +1256,9 @@
       {
         "id": 1,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           0,
@@ -1270,9 +1270,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           1,
@@ -1284,9 +1284,9 @@
       {
         "id": 3,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           2,
@@ -1297,9 +1297,9 @@
       {
         "id": 4,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "team",
+          "value": "CHI",
+          "label": "Chicago Bulls"
         },
         "neighbors": [
           0,
@@ -1312,9 +1312,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "team",
-          "value": "SAS",
-          "label": "San Antonio Spurs"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           1,
@@ -1328,9 +1328,9 @@
       {
         "id": 6,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           2,
@@ -1344,9 +1344,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "team",
+          "value": "BOS",
+          "label": "Boston Celtics"
         },
         "neighbors": [
           3,
@@ -1359,9 +1359,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "team",
-          "value": "BOS",
-          "label": "Boston Celtics"
+          "type": "award",
+          "value": "mvp",
+          "label": "MVP"
         },
         "neighbors": [
           7,
@@ -1371,9 +1371,9 @@
       {
         "id": 9,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           4,
@@ -1384,9 +1384,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           4,
@@ -1401,8 +1401,8 @@
         "id": 11,
         "criterion": {
           "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           5,
@@ -1416,9 +1416,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           6,
@@ -1432,9 +1432,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "award",
+          "value": "ring",
+          "label": "Won a ring"
         },
         "neighbors": [
           7,
@@ -1447,9 +1447,9 @@
       {
         "id": 14,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "team",
+          "value": "NYK",
+          "label": "New York Knicks"
         },
         "neighbors": [
           9,
@@ -1463,8 +1463,8 @@
         "id": 15,
         "criterion": {
           "type": "team",
-          "value": "SAS",
-          "label": "San Antonio Spurs"
+          "value": "CHI",
+          "label": "Chicago Bulls"
         },
         "neighbors": [
           10,
@@ -1478,9 +1478,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           11,
@@ -1494,9 +1494,9 @@
       {
         "id": 17,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "award",
+          "value": "mvp",
+          "label": "MVP"
         },
         "neighbors": [
           12,
@@ -1510,9 +1510,9 @@
       {
         "id": 18,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           13,
@@ -1523,9 +1523,9 @@
       {
         "id": 19,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "team",
+          "value": "LAL",
+          "label": "Los Angeles Lakers"
         },
         "neighbors": [
           14,
@@ -1536,9 +1536,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           14,
@@ -1552,9 +1552,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           15,
@@ -1568,9 +1568,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           16,
@@ -1584,9 +1584,9 @@
       {
         "id": 23,
         "criterion": {
-          "type": "team",
-          "value": "LAL",
-          "label": "Los Angeles Lakers"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           17,
@@ -1599,8 +1599,8 @@
         "id": 24,
         "criterion": {
           "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           19,
@@ -1611,9 +1611,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "team",
+          "value": "NYK",
+          "label": "New York Knicks"
         },
         "neighbors": [
           20,
@@ -1625,9 +1625,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           21,
@@ -1639,9 +1639,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "stat",
+          "value": "ppg20",
+          "label": "20+ PPG career"
         },
         "neighbors": [
           22,
@@ -1669,9 +1669,9 @@
       {
         "id": 1,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "team",
+          "value": "PHX",
+          "label": "Phoenix Suns"
         },
         "neighbors": [
           0,
@@ -1698,8 +1698,8 @@
         "id": 3,
         "criterion": {
           "type": "team",
-          "value": "PHX",
-          "label": "Phoenix Suns"
+          "value": "PHI",
+          "label": "Philadelphia 76ers"
         },
         "neighbors": [
           2,
@@ -1710,9 +1710,9 @@
       {
         "id": 4,
         "criterion": {
-          "type": "team",
-          "value": "PHX",
-          "label": "Phoenix Suns"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           0,
@@ -1725,9 +1725,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "team",
+          "value": "PHI",
+          "label": "Philadelphia 76ers"
         },
         "neighbors": [
           1,
@@ -1742,8 +1742,8 @@
         "id": 6,
         "criterion": {
           "type": "team",
-          "value": "LAL",
-          "label": "Los Angeles Lakers"
+          "value": "GSW",
+          "label": "Golden State Warriors"
         },
         "neighbors": [
           2,
@@ -1757,9 +1757,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           3,
@@ -1772,9 +1772,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           7,
@@ -1785,8 +1785,8 @@
         "id": 9,
         "criterion": {
           "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "value": "round2",
+          "label": "2nd-round pick"
         },
         "neighbors": [
           4,
@@ -1797,9 +1797,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           4,
@@ -1829,9 +1829,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "draft",
+          "value": "undrafted",
+          "label": "Undrafted"
         },
         "neighbors": [
           6,
@@ -1845,9 +1845,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "team",
+          "value": "PHX",
+          "label": "Phoenix Suns"
         },
         "neighbors": [
           7,
@@ -1860,9 +1860,9 @@
       {
         "id": 14,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           9,
@@ -1875,9 +1875,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           10,
@@ -1891,9 +1891,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "team",
+          "value": "GSW",
+          "label": "Golden State Warriors"
         },
         "neighbors": [
           11,
@@ -1907,9 +1907,9 @@
       {
         "id": 17,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           12,
@@ -1923,9 +1923,9 @@
       {
         "id": 18,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           13,
@@ -1949,9 +1949,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           14,
@@ -1965,9 +1965,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "draft",
+          "value": "undrafted",
+          "label": "Undrafted"
         },
         "neighbors": [
           15,
@@ -1982,8 +1982,8 @@
         "id": 22,
         "criterion": {
           "type": "team",
-          "value": "BOS",
-          "label": "Boston Celtics"
+          "value": "PHX",
+          "label": "Phoenix Suns"
         },
         "neighbors": [
           16,
@@ -1998,8 +1998,8 @@
         "id": 23,
         "criterion": {
           "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "value": "undrafted",
+          "label": "Undrafted"
         },
         "neighbors": [
           17,
@@ -2011,9 +2011,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "draft",
+          "value": "undrafted",
+          "label": "Undrafted"
         },
         "neighbors": [
           19,
@@ -2024,9 +2024,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           20,
@@ -2038,9 +2038,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           21,
@@ -2052,9 +2052,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "team",
+          "value": "GSW",
+          "label": "Golden State Warriors"
         },
         "neighbors": [
           22,
@@ -2096,9 +2096,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           1,
@@ -2110,9 +2110,9 @@
       {
         "id": 3,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           2,
@@ -2123,9 +2123,9 @@
       {
         "id": 4,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           0,
@@ -2138,9 +2138,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           1,
@@ -2154,9 +2154,9 @@
       {
         "id": 6,
         "criterion": {
-          "type": "team",
-          "value": "BOS",
-          "label": "Boston Celtics"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           2,
@@ -2170,9 +2170,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "type": "team",
+          "value": "BOS",
+          "label": "Boston Celtics"
         },
         "neighbors": [
           3,
@@ -2185,9 +2185,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "team",
-          "value": "PHI",
-          "label": "Philadelphia 76ers"
+          "type": "award",
+          "value": "mvp",
+          "label": "MVP"
         },
         "neighbors": [
           7,
@@ -2197,9 +2197,9 @@
       {
         "id": 9,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           4,
@@ -2210,9 +2210,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           4,
@@ -2242,9 +2242,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           6,
@@ -2258,9 +2258,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           7,
@@ -2274,8 +2274,8 @@
         "id": 14,
         "criterion": {
           "type": "team",
-          "value": "GSW",
-          "label": "Golden State Warriors"
+          "value": "BOS",
+          "label": "Boston Celtics"
         },
         "neighbors": [
           9,
@@ -2288,9 +2288,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           10,
@@ -2304,9 +2304,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "award",
-          "value": "allstar5plus",
-          "label": "5+ All-Stars"
+          "type": "team",
+          "value": "NYK",
+          "label": "New York Knicks"
         },
         "neighbors": [
           11,
@@ -2320,9 +2320,9 @@
       {
         "id": 17,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           12,
@@ -2336,9 +2336,9 @@
       {
         "id": 18,
         "criterion": {
-          "type": "team",
-          "value": "PHI",
-          "label": "Philadelphia 76ers"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           13,
@@ -2349,9 +2349,9 @@
       {
         "id": 19,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "team",
+          "value": "DET",
+          "label": "Detroit Pistons"
         },
         "neighbors": [
           14,
@@ -2362,9 +2362,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           14,
@@ -2379,8 +2379,8 @@
         "id": 21,
         "criterion": {
           "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           15,
@@ -2394,9 +2394,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           16,
@@ -2410,9 +2410,9 @@
       {
         "id": 23,
         "criterion": {
-          "type": "award",
-          "value": "allnba",
-          "label": "All-NBA"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           17,
@@ -2424,9 +2424,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "stat",
-          "value": "20kpts",
-          "label": "20,000+ pts"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           19,
@@ -2438,8 +2438,8 @@
         "id": 25,
         "criterion": {
           "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           20,
@@ -2452,8 +2452,8 @@
         "id": 26,
         "criterion": {
           "type": "award",
-          "value": "ring",
-          "label": "Won a ring"
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           21,
@@ -2465,9 +2465,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "stat",
-          "value": "ppg20",
-          "label": "20+ PPG career"
+          "type": "country",
+          "value": "INTL",
+          "label": "International"
         },
         "neighbors": [
           22,

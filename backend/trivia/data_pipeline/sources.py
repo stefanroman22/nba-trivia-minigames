@@ -486,11 +486,18 @@ def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
     the three endpoints is still failing after retry(): a partially fetched
     player must never become a null-filled row.
 
-    An EMPTY career or awards response is not a failure: it is the API saying
-    the player has none, so it becomes an empty list and is cached like any
-    other answer. An empty commonplayerinfo is different — with no identity
-    there is no row to build — so that stays a failure (raised, uncached, and
-    retried by the next run).
+    An EMPTY response is not a failure: it is the API saying the player has
+    none, so it becomes an empty list and is cached like any other answer. That
+    now includes commonplayerinfo, which answers `{}` for exactly one player in
+    the league index (200603, Corey Williams). He is real — CommonAllPlayers
+    vouches for him — so the empty answer is cached as the final answer it is,
+    and curated_players.build_roster_only_row builds his row from the index
+    instead. Re-raising instead would cost a fetch every run and would drop a
+    real player out of a dataset whose whole contract is 1:1 parity.
+
+    A genuine failure (timeout, reset, 5xx, truncated or non-empty error body)
+    still burns retry()'s ladder and is still raised: _is_empty_body only
+    returns True on a 200 whose body parses as a keyless JSON object.
     """
     import random
 
@@ -508,7 +515,9 @@ def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
         "CommonPlayerInfo",
     )
     if info is None:
-        raise ValueError(f"commonplayerinfo returned an empty body for player {person_id}")
+        # No identity at all: the other two endpoints have nothing to add (both
+        # answer `{}` as well), so they are not even asked.
+        return {"info": [], "career": [], "career_totals": [], "awards": []}
     career = _paced(
         lambda: playercareerstats.PlayerCareerStats(
             player_id=person_id, timeout=per_call_timeout, get_request=False
