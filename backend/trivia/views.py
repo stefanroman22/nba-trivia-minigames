@@ -157,7 +157,10 @@ def get_starting_five(request):
     data = playable_lineups(load_dataset(STARTING_FIVE_DATA_PATH) or [])
     if not data:
         return JsonResponse({'error': 'No games available.'}, status=404)
-    return JsonResponse({"series": [random.choice(data)]})
+    # Copy before canonicalizing — load_dataset caches the parsed file.
+    game = dict(random.choice(data))
+    game['starting_5'] = [dict(p) for p in game['starting_5']]
+    return JsonResponse({"series": canonical_lineup_names([game], _player_names())})
 
 
 _cached_wordle_names = None
