@@ -6,13 +6,18 @@ description: Classify a team task — difficulty, areas, risk, model/effort tier
 # Classify a Task
 
 Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`) and Area tags from the card.
+The spec text may contain `[Image attached: <path>]` lines — each is a local file already
+downloaded from the card; Read it, it's part of the spec, not a footnote.
 
 ## Procedure
 1. Read `docs/team/RETRO.md` (parked-task failures) and `docs/team/DECISIONS.md` (prior
    close-call model picks — see "Close calls" below) so similar tasks get consistent treatment.
-2. Confirm/correct the card's Area tags by grepping the codebase for the features named in the spec.
-3. Grep `docs/team/CODE_MAP.md` for nouns in the spec; collect up to 10 relevant entries.
-4. Apply the difficulty rubric, then the model rubric. If the card has a Difficulty override, it wins.
+2. Read every `[Image attached: <path>]` file in the spec before judging anything else — a
+   mockup/screenshot changes area (usually implies `ui`) and can change difficulty (e.g. exact
+   layout/spacing shown in the image raises the bar past what the text alone states).
+3. Confirm/correct the card's Area tags by grepping the codebase for the features named in the spec.
+4. Grep `docs/team/CODE_MAP.md` for nouns in the spec; collect up to 10 relevant entries.
+5. Apply the difficulty rubric, then the model rubric. If the card has a Difficulty override, it wins.
 
 ## Difficulty rubric (drives risk / design-round — unchanged)
 - **trivial** — docs/copy/config/single-file change, no logic branches.
@@ -47,4 +52,8 @@ same judgment call from scratch each time.
   "engineModel": "sonnet", "engineEffort": "high",
   "docs": ["docs/constraints/UI_SHELL_CONSTRAINTS.md"],
   "codeMapHits": ["- `src/hooks/useLeaderboard.ts` — ..."],
+  "attachments": [],
   "needsDesignRound": false }
+`attachments` is the list of `[Image attached: <path>]` paths pulled verbatim from the spec
+text (empty array if none) — carry them forward unchanged so build/design stages don't have
+to re-parse the spec to find them.
