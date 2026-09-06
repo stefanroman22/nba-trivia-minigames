@@ -11,24 +11,14 @@
       "sha256": "99344d82e9104d23e7aafa9d50fc54fa28eba698261c6545537404909c55dafb",
       "count": 10
     },
-    "career-path": {
-      "file": "career-path.json",
-      "sha256": "37de1a5bbeef7fdff2b0eed011a98df07fc5ee3f928f0008202d93e89dc5d437",
-      "count": 24
-    },
     "connections": {
       "file": "connections.json",
       "sha256": "ce7f780ef644644784957b56314e68d1c9efb78e2199a7787993b47f3b733e6d",
       "count": 40
     },
-    "contexto": {
-      "file": "contexto.json",
-      "sha256": "93903f56766c22a1e210c494b036c75ccb983edd48a4e8a4d93ba1f71f4e0122",
-      "count": 55
-    },
     "fan-favorites": {
       "file": "fan-favorites.json",
-      "sha256": "eab4a4fe6e474061433216a514661a43def05d43c71a1e3cad39d8a9a0049c2f",
+      "sha256": "b746e66a1638f291f0828f43725b34eadba5bfa8de3cb1f62dfc510a0d6e797b",
       "count": 24
     },
     "heatmap": {
@@ -38,8 +28,8 @@
     },
     "imposter": {
       "file": "imposter.json",
-      "sha256": "13cb02e679eb292279b5f66a723b27155b9e04ff9caaa2acdd75306c9d6984ec",
-      "count": 48
+      "sha256": "c80d3413f48302b23974b984da33f344b523ad198c8fbed9cafb659c04ad7e6e",
+      "count": 98
     },
     "mvps": {
       "file": "mvps.json",
@@ -56,11 +46,6 @@
       "sha256": "649ff11cbcfda9c61d97b7d51b78f376a97236c0853cb992d27c5835177fde13",
       "count": 12
     },
-    "pack-five": {
-      "file": "pack-five.json",
-      "sha256": "4e7ddef818d916fa0b24ffd4fc70797026e831addce17f693440f2ec1db45404",
-      "count": 48
-    },
     "players-index": {
       "file": "players-index.json",
       "sha256": "56d5b9f4bb46c9d4679e2d9fbd2296fb07f5418db5bdd0cc73a47234bd2d2d09",
@@ -76,20 +61,10 @@
       "sha256": "5f4d21d892576bcecf5b438ccc89af4f5060b67ba07566ed99a0999e22421b83",
       "count": 503
     },
-    "superdraft": {
-      "file": "superdraft.json",
-      "sha256": "95f16f4cbb52a1f8536e7ad50be39537ca05892d161a69f2c46dcba55b12c262",
-      "count": 1
-    },
     "tictactoe": {
       "file": "tictactoe.json",
       "sha256": "cc3fe13b6012f6a346c1e0f527497284aa1e089de337f97db1549cc427939742",
       "count": 8
-    },
-    "who-are-ya": {
-      "file": "who-are-ya.json",
-      "sha256": "ea2f34af447804d2f3a1507b9a61cc39f3aba5ff05d2d044c3106aa9759477e1",
-      "count": 24
     },
     "who-would-win": {
       "file": "who-would-win.json",

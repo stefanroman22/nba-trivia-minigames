@@ -10,8 +10,8 @@ Everything here is pure except ProfileCache/fetch_missing, which read and write
 the git-ignored raw-response cache. Splitting it that way means a re-run never
 re-fetches a player it already has, and re-shaping a row costs no network at all.
 
-Row schema is FROZEN (contract #1) — see trivia/games/who_are_ya.py's
-_REQUIRED_KEYS and career_path.validate_rows. Do not add/rename/remove fields.
+Row schema is FROZEN (contract #1) — see trivia/games/players_index.py's
+validate_rows and curated_validate.py. Do not add/rename/remove fields.
 """
 import json
 import os
@@ -28,7 +28,7 @@ DEFAULT_FAME_TIER = 4
 # Work-order decision: Iguodala is a tier-2 name, not tier 3.
 FAME_TIER_OVERRIDES = {2738: 2}  # Andre Iguodala
 
-# The only five position values the frozen schema allows (who_are_ya._POSITIONS).
+# The only five position values the frozen schema allows (contract #1).
 POSITIONS = {
     "guard": "G",
     "forward": "F",
@@ -207,7 +207,7 @@ def build_stints(season_rows, eras, abbrs, is_active, missing_eras=None):
     abbreviation (the games match criteria on it); `name` is the era name.
     start_year is the first season's start year and end_year the last season's
     END year (2003-04..2009-10 -> 2003..2010); the last stint of an active
-    player is open-ended (null), which career_path.validate_rows requires.
+    player is open-ended (null), which the games' stint rendering requires.
 
     If franchise history has no era for a (team, season) the abbreviation stands
     in as the display name — a data gap, not a name — so pass `missing_eras` (a
