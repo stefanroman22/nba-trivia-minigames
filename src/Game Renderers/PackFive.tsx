@@ -236,7 +236,6 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
     missRef.current += 1;
     setMisses(missRef.current);
     if (missRef.current >= 2) {
-      flashPopup("Two misses — run over", "var(--bad)");
       later(() => finish(false), REVEAL_MS);
     } else {
       flashPopup("Missed — one life left", "var(--bad)");

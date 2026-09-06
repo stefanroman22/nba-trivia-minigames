@@ -1,6 +1,8 @@
+"use client";
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { usePathname } from 'next/navigation';
+import { useNavigate } from '../../hooks/useNavigate';
 import { useSelector, useDispatch } from 'react-redux';
 import { games } from '../../utils/GameUtils';
 import Navigation from '../../components/Navigation';
@@ -32,10 +34,10 @@ function MiniGame() {
   const { isLoggedIn } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const { mp, findMatch } = useMultiplayer();
-  const location = useLocation();
-  // Prefer the id passed via router state, but fall back to the URL path so
-  // deep-links and reloads still resolve the right game.
-  const gameId = location.state?.id ?? games.find(g => g.urlPath === location.pathname)?.id;
+  const pathname = usePathname();
+  // Every game is routed at its urlPath, so the URL alone resolves the game —
+  // deep-links and reloads included.
+  const gameId = games.find(g => g.urlPath === pathname)?.id;
   const game = games.find(g => g.id === gameId);
   const [loading, setLoading] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);

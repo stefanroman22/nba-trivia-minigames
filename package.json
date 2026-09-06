@@ -10,14 +10,13 @@
   "scripts": {
     "copy:data": "node scripts/copy-data.mjs",
     "predev": "node scripts/dev-env.mjs",
-    "dev": "npm run copy:data && vite",
-    "build": "npm run copy:data && tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server",
-    "postbuild": "node scripts/ssg.mjs",
+    "dev": "npm run copy:data && next dev -p 5173",
+    "build": "npm run copy:data && next build",
     "lint": "eslint .",
     "team": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/team-run.ps1",
     "chrome:debug": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -ExecutionPolicy Bypass -File scripts/chrome-debug.ps1",
     "ui:audit": "node scripts/ui-audit.mjs --label desktop --width 1100 --height 900 && node scripts/ui-audit.mjs --label laptop --width 854 --height 694 && node scripts/ui-audit.mjs --label mobile --width 390 --height 844",
-    "preview": "vite preview",
+    "preview": "next start -p 4173",
     "lh": "lighthouse http://localhost:4173 --output=json --output=html --output-path=./.lighthouse/desktop --chrome-flags=--headless=new --quiet --preset=desktop",
     "lh:mobile": "lighthouse http://localhost:4173 --output=json --output=html --output-path=./.lighthouse/mobile --chrome-flags=--headless=new --quiet",
     "lh:ci": "lhci collect --numberOfRuns=5 --url=http://localhost:4173 --settings.preset=desktop",
@@ -30,17 +29,16 @@
     "@fortawesome/react-fontawesome": "^0.2.3",
     "@react-oauth/google": "^0.12.2",
     "@reduxjs/toolkit": "^2.9.0",
-    "@tailwindcss/vite": "^4.1.11",
     "@tanstack/react-query": "^5.90.12",
     "chart.js": "^4.5.1",
     "copy-to-clipboard": "^3.3.3",
     "framer-motion": "^12.23.24",
+    "next": "^16.3.4",
     "react": "^19.1.0",
     "react-chartjs-2": "^5.3.1",
     "react-confetti": "^6.4.0",
     "react-dom": "^19.1.0",
     "react-redux": "^9.2.0",
-    "react-router-dom": "^7.7.1",
     "socket.io-client": "^4.8.1",
     "styled-components": "^6.1.19",
     "sweetalert2": "^11.6.13"
@@ -53,7 +51,6 @@
     "@types/prop-types": "^15.7.15",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -64,7 +61,6 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.16",
     "typescript": "~5.8.3",
-    "typescript-eslint": "^8.35.1",
-    "vite": "^7.0.4"
+    "typescript-eslint": "^8.35.1"
   }
 }

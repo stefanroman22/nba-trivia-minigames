@@ -13,6 +13,10 @@ dist-ssr
 dist-server
 *.local
 
+# Next.js (build output + the generated type shim; `next build`/`next typegen` recreate it)
+.next/
+next-env.d.ts
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

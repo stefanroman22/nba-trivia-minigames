@@ -99,7 +99,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching playoff series...",
-    backgroundImage: `url('${playoffSeriesBg}')`,
+    backgroundImage: `url('${playoffSeriesBg.src}')`,
     urlPath: "/series-winner",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -129,7 +129,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching logos...",
-    backgroundImage: `url('${guessLogoBg}')`,
+    backgroundImage: `url('${guessLogoBg.src}')`,
     urlPath: "/name-logo",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -159,7 +159,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching seasons...",
-    backgroundImage: `url('${mvpBg}')`,
+    backgroundImage: `url('${mvpBg.src}')`,
     urlPath: "/guess-mvps",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -190,7 +190,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: `url('${startingFiveBg}')`,
+    backgroundImage: `url('${startingFiveBg.src}')`,
     urlPath: "/starting-five",
     pointsPerCorrect: 10,
     maxPoints: 100,
@@ -221,7 +221,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: `url('${wordleBg}')`,
+    backgroundImage: `url('${wordleBg.src}')`,
     urlPath: "/wordle",
     pointsPerCorrect: 10,
     maxPoints: 500,
@@ -251,7 +251,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Surveying the fans...",
-    backgroundImage: `url('${thumb_fan_favorites}')`,
+    backgroundImage: `url('${thumb_fan_favorites.src}')`,
     urlPath: "/fan-favorites",
     pointsPerCorrect: 50,
     maxPoints: 300,
@@ -281,7 +281,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Heating up the hexes...",
-    backgroundImage: `url('${thumb_heatmap}')`,
+    backgroundImage: `url('${thumb_heatmap.src}')`,
     urlPath: "/heatmap",
     pointsPerCorrect: 50,
     maxPoints: 300,
@@ -311,7 +311,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Shuffling the board...",
-    backgroundImage: `url('${thumb_connections}')`,
+    backgroundImage: `url('${thumb_connections.src}')`,
     urlPath: "/connections",
     pointsPerCorrect: 50,
     maxPoints: 200,
@@ -341,7 +341,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Tracing the career path...",
-    backgroundImage: `url('${thumb_career_path}')`,
+    backgroundImage: `url('${thumb_career_path.src}')`,
     urlPath: "/career-path",
     pointsPerCorrect: 100,
     maxPoints: 700,
@@ -371,7 +371,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Drawing the grid...",
-    backgroundImage: `url('${thumb_nba_grid}')`,
+    backgroundImage: `url('${thumb_nba_grid.src}')`,
     urlPath: "/nba-grid",
     pointsPerCorrect: 30,
     maxPoints: 270,
@@ -401,7 +401,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Blurring the mystery player...",
-    backgroundImage: `url('${thumb_who_are_ya}')`,
+    backgroundImage: `url('${thumb_who_are_ya.src}')`,
     urlPath: "/who-are-ya",
     pointsPerCorrect: 30,
     maxPoints: 240,
@@ -431,7 +431,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Chalking the duel board...",
-    backgroundImage: `url('${thumb_tictactoe}')`,
+    backgroundImage: `url('${thumb_tictactoe.src}')`,
     urlPath: "/tictactoe",
     pointsPerCorrect: 25,
     maxPoints: 225,
@@ -461,7 +461,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Dealing the bingo card...",
-    backgroundImage: `url('${thumb_bingo}')`,
+    backgroundImage: `url('${thumb_bingo.src}')`,
     urlPath: "/bingo",
     pointsPerCorrect: 10,
     maxPoints: 200,
@@ -491,7 +491,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Calibrating the radar...",
-    backgroundImage: `url('${thumb_contexto}')`,
+    backgroundImage: `url('${thumb_contexto.src}')`,
     urlPath: "/contexto",
     pointsPerCorrect: 5,
     maxPoints: 200,
@@ -521,7 +521,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Shuffling the pack...",
-    backgroundImage: `url('${thumb_pack_five}')`,
+    backgroundImage: `url('${thumb_pack_five.src}')`,
     urlPath: "/pack-five",
     pointsPerCorrect: 20,
     maxPoints: 220,
@@ -551,7 +551,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Opening the draft room...",
-    backgroundImage: `url('${thumb_superdraft}')`,
+    backgroundImage: `url('${thumb_superdraft.src}')`,
     urlPath: "/superdraft",
     pointsPerCorrect: 20,
     maxPoints: 100,
@@ -581,7 +581,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Gathering the party...",
-    backgroundImage: `url('${thumb_imposter}')`,
+    backgroundImage: `url('${thumb_imposter.src}')`,
     urlPath: "/imposter",
     pointsPerCorrect: 0,
     maxPoints: 0,
@@ -604,7 +604,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: `url('${comingSoonBg}')`,
+    backgroundImage: `url('${comingSoonBg.src}')`,
     urlPath: "/coming-soon",
     pointsPerCorrect: 0,
     maxPoints: 0,

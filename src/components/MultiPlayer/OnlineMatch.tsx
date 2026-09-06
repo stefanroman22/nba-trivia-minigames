@@ -284,9 +284,9 @@ function Standings({ mp }: { mp: Mp }) {
             <span className="om-st-place tnum font-display">{i + 1}</span>
             <img
               className="om-st-av"
-              src={row.profile_photo || defaultAvatar}
+              src={row.profile_photo || defaultAvatar.src}
               alt=""
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
             />
             <span className="om-st-name" title={row.id ? `${row.username} #${row.id}` : row.username}>
               <span className="om-st-namecol">
@@ -447,7 +447,7 @@ function OpponentChip({ name, tag, photo, state }: { name: string; tag?: string 
   const label = state === "offline" ? "Reconnecting" : state === "finished" ? "Finished" : "Playing";
   return (
     <div className={`om-chip is-${state}`}>
-      <img className="om-chip-av" src={photo || defaultAvatar} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }} />
+      <img className="om-chip-av" src={photo || defaultAvatar.src} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }} />
       <span className="om-chip-meta">
         <span className="om-chip-name" title={tag ? `${name} #${tag}` : name}>{name}</span>
         {tag && <span className="om-chip-id tnum">#{tag}</span>}

@@ -17,7 +17,7 @@ const STAR_COLOR = "#f5b301";
 
 /** The game being played, when the modal is opened from a game route.
  *
- * Every game is routed at `/<id>` (App.tsx), so the first path segment IS the
+ * Every game is routed at `/<id>` (src/app/[game]/page.tsx), so the first path segment IS the
  * game id — but it is checked against the catalogue rather than pattern-matched,
  * so non-game routes like /admin or / don't get recorded as games. */
 function currentGame() {

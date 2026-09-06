@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 
 interface GameTileProps {
   name: string;
@@ -24,7 +25,7 @@ export default function GameTile({
   index = 0,
   disabled = false,
 }: GameTileProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
 
   // The photo mounts only client-side, post-hydration. In the server-rendered
   // markup even loading="lazy" images fetch immediately (Chrome's lazy

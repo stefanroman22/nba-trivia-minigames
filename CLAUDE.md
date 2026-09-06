@@ -1,11 +1,11 @@
 # nba-minigames — Project Guide for Claude Code
 
-NBA trivia minigames. Frontend: React 19 + TypeScript + Vite + Tailwind 4. Backend: Django + DRF. Realtime: Socket.IO server for multiplayer.
+NBA trivia minigames. Frontend: React 19 + TypeScript + Next.js 16 (App Router, every page server-rendered) + Tailwind 4. Backend: Django + DRF. Realtime: Socket.IO server for multiplayer.
 
 ## Services & ports
 - Django API — `backend/`, port **8000** (`python manage.py runserver 8000`)
 - Socket.IO multiplayer — `multiplayer_server/`, port **4000** (`node src/index.js`)
-- Vite + React frontend — repo root `src/`, port **5173** (`npm run dev`)
+- Next.js + React frontend — repo root `src/` (routes in `src/app/`), port **5173** (`npm run dev`)
 
 Single-player needs only the Django API; "Play Online" also needs the socket server.
 
@@ -24,12 +24,12 @@ a blank throwaway profile and cannot see logged-in state.
 ## Common commands
 - Install: `npm install` (frontend); `pip install -r backend/requirements.txt` (backend)
 - Lint: `npm run lint`
-- Typecheck + build: `npx tsc -b && npm run build`
+- Typecheck + build: `npm run build` (Next type-checks as part of the build); standalone typecheck: `npx next typegen && npx tsc --noEmit`
 - Backend tests: `cd backend && python manage.py test`
 - Backend check: `cd backend && python manage.py check`
 
 ## Structure
-- `src/` — components/, pages/, styles/, Game Renderers/, store/ (Redux Toolkit), hooks/, context/, constants/, motion/, utils/, socket.ts
+- `src/` — app/ (Next.js routes + root layout/providers), views/ (page-level components — Next.js owns the `pages` name), components/, styles/, Game Renderers/, store/ (Redux Toolkit), hooks/, context/, constants/, motion/, utils/, socket.ts
 - `backend/` — Django project; apps: users/ (auth, custom user, rank), trivia/ (minigame data + data pipeline)
 - `multiplayer_server/` — Node Socket.IO server
 - `docs/` — all project documentation; see the map below
@@ -39,7 +39,9 @@ a blank throwaway profile and cannot see logged-in state.
   paid services or plan upgrades, enabling billing, domains, add-ons, exceeding a free
   tier, payment details. Stop and ask (pipeline agents: park with a note naming the cost).
 - Surgical changes only — match existing style; don't refactor unrelated code.
-- TypeScript strict; build must pass `tsc -b`.
+- TypeScript strict; build must pass `next build`.
+- Next.js 16 differs from older releases (Turbopack, async `params`, no `next lint`) — check the bundled
+  docs in `node_modules/next/dist/docs/` before writing routing, config or metadata code.
 - URLs/secrets come from env (`.env`, `backend/.env`); never hardcode or commit them.
 - **Don't run lint/typecheck/build/tests routinely.** They cost time and context, and for a
   small or obvious edit they tell you nothing you didn't already know. Run them when it
