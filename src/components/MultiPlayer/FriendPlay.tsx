@@ -136,7 +136,7 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
           {copied
             ? "Copied — send it to your friend!"
             : lobby.capacity === 2
-              ? "Send this code to your friend — the match starts the moment they join."
+              ? "Send this code to your friend."
               : `Share this code. The game starts when ${lobby.capacity} players are in.`}
         </p>
 
