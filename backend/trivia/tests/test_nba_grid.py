@@ -1,7 +1,11 @@
 """NBA Grid backend: seed shape validation + rarity tally aggregation."""
+import copy
+import json
+
 from django.test import TestCase
 from django.urls import reverse
 
+from trivia.games import nba_grid_validate
 from trivia.games.nba_grid import _load_seed, validate_rows
 from trivia.models import GuessLog
 
@@ -27,6 +31,32 @@ class NbaGridSeedTests(TestCase):
         self.assertTrue(validate_rows(bad))
         dupe = _load_seed()[:1] + _load_seed()[:1]
         self.assertTrue(any("duplicate" in p for p in validate_rows(dupe)))
+
+
+class NbaGridSeedCoverageTests(TestCase):
+    """The standalone >=3-players-per-cell validator, run as part of the suite.
+
+    validate_rows above is shape-only by design (it must not need the curated
+    file), so a config whose every cell is well-formed but has one or two valid
+    answers used to reach the published pool unnoticed — grid-004's
+    "Undrafted x Won a ring" cell shipped with 2. Asserting nba_grid_validate
+    here is the gate: a thin cell now fails the suite before it can ship.
+    """
+
+    def setUp(self):
+        self.seed = _load_seed()
+        with open(nba_grid_validate.CURATED_PATH, encoding="utf-8") as f:
+            self.players = json.load(f)
+
+    def test_every_shipped_config_has_enough_answers_per_cell(self):
+        self.assertEqual(nba_grid_validate.validate_seed(self.seed, self.players), [])
+
+    def test_a_thin_cell_is_reported(self):
+        cfg = copy.deepcopy(self.seed[0])
+        cfg["cols"][0] = {"type": "college", "value": "Nowhere State", "label": "Nowhere State"}
+        problems = nba_grid_validate.validate_seed([cfg], self.players)
+        self.assertEqual(len(problems), 3)  # the whole column is empty
+        self.assertTrue(all("only 0 valid" in p for p in problems))
 
 
 class NbaGridTallyTests(TestCase):

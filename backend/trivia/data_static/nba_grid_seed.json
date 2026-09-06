@@ -46,9 +46,9 @@
       { "type": "draft", "value": "undrafted", "label": "Undrafted" }
     ],
     "cols": [
-      { "type": "era",     "value": "2010s", "label": "Played in 2010s" },
-      { "type": "country", "value": "USA",   "label": "USA" },
-      { "type": "award",   "value": "ring",  "label": "Won a ring" }
+      { "type": "era",     "value": "2010s",         "label": "Played in 2010s" },
+      { "type": "country", "value": "USA",           "label": "USA" },
+      { "type": "stat",    "value": "seasons15plus", "label": "15+ seasons" }
     ]
   },
   {
