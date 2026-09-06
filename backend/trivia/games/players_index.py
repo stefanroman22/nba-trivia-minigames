@@ -10,35 +10,17 @@ get_round exposes one random curated player as {'series': [row]} — a cheap
 "random real player" provider some games/tools use; the dataset itself is the
 primary product.
 """
-import json
-import os
 import random
 
-from django.conf import settings
 from django.http import JsonResponse
 
 from trivia.data_pipeline.curated_players import check_cross_stints
-
-CURATED_PATH = os.path.join(
-    settings.BASE_DIR, "trivia", "data_static", "players_curated.json"
-)
-
-
-def _load_curated():
-    """Curated rows from data_static ([] until the foundation agent ships them)."""
-    if not os.path.exists(CURATED_PATH):
-        return []
-    try:
-        with open(CURATED_PATH, "r", encoding="utf-8") as f:
-            rows = json.load(f)
-    except (OSError, ValueError):
-        return []
-    return rows if isinstance(rows, list) else []
+from trivia.data_pipeline.live_pool import load_players
 
 
 def build_pool():
     """The full curated dataset, published unmodified as the pool rows."""
-    return _load_curated()
+    return load_players()
 
 
 def validate_rows(rows):
@@ -76,7 +58,7 @@ def validate_rows(rows):
 
 def get_round(request):
     """One random curated player, shaped like every other game's round payload."""
-    rows = _load_curated()
+    rows = load_players()
     if not rows:
         return JsonResponse(
             {"error": "players_curated.json not published yet"}, status=503
