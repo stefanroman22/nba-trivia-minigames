@@ -7,6 +7,9 @@
 // person_id (backend/trivia/games/contexto.py) — and the renderer loads the
 // same CDN pool single-player uses (useRoundPool) to rank against. Both modes
 // end up on the same player for the same day; the pool is never broadcast.
+// Online the sent secret is the ONLY one accepted: if this client's pool
+// doesn't contain it, the round is unplayable rather than quietly ranked
+// against a locally-chosen secret the opponent isn't solving for.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -180,13 +183,14 @@ function hashStr(s: string): number {
 }
 
 /** The day's secret: fame tier 1-2, keyed by the UTC date so it's shared.
- *  Mirrored server-side as daily_secret() in backend/trivia/games/contexto.py. */
-function dailySecret(pool: PlayerIndexEntry[], day?: string): PlayerIndexEntry {
+ *  Single-player only — online the server sends the secret it picked with the
+ *  same rule (daily_secret() in backend/trivia/games/contexto.py). */
+function dailySecret(pool: PlayerIndexEntry[]): PlayerIndexEntry {
   const candidates = pool.filter((p) => p.fame_tier <= 2);
   const list = (candidates.length ? candidates : pool)
     .slice()
     .sort((a, b) => a.person_id - b.person_id);
-  const key = day || new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const key = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
   return list[hashStr(key) % list.length];
 }
 
@@ -246,16 +250,16 @@ export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoP
   };
 
   // Pick the daily secret + rank the whole pool once per pool/round (heavy loop).
-  // Online the server already decided the secret; falling back to dailySecret()
-  // keeps the round playable if the id isn't in the pool this client loaded.
+  // Online the server decided the secret for the whole room: use exactly that
+  // row or none at all. Falling back to the local rule when the id isn't in the
+  // pool this client loaded would have the two players solving DIFFERENT
+  // puzzles and still be scored against each other — the same reason SuperDraft
+  // refuses a slot constraint it can't resolve.
   const secret = useMemo(() => {
     if (!pool || !pool.length) return null;
-    if (round) {
-      const chosen = pool.find((p) => p.person_id === round.secret_person_id);
-      if (chosen) return chosen;
-    }
-    return dailySecret(pool, round?.day);
-  }, [pool, round]);
+    if (multiplayer) return pool.find((p) => p.person_id === round?.secret_person_id) ?? null;
+    return dailySecret(pool);
+  }, [pool, round, multiplayer]);
   const ranking = useMemo(
     () => (secret && pool ? buildRanking(secret, pool) : null),
     [secret, pool],
@@ -358,12 +362,14 @@ export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoP
     later(() => endOnce(0), 1900);
   };
 
-  // Loading / empty-invalid pool state.
+  // Loading / unplayable-round state. Once the pool has resolved (non-null) and
+  // there is still no secret, the round can't be played — either the pool is
+  // empty or, online, it doesn't contain the secret the room was given.
   if (!secret || !ranking) {
     return (
       <div className="cx-center">
         <Spinner label="Calibrating the radar…" />
-        {pool && pool.length === 0 && (
+        {pool && (
           <p className="cx-note">No player data available. Please try again later.</p>
         )}
       </div>

@@ -206,12 +206,23 @@ class ContextoPayloadTests(TestCase):
         self.assertIn(self.round_payload()["secret_person_id"], pids)
 
     def test_the_renderer_resolves_the_same_secret(self):
-        """The multiplayer path must use the id it was sent, and fall back to
-        the identical local rule when the pool it loaded doesn't have it."""
+        """The multiplayer path must use the id it was sent — and ONLY that.
+
+        A local fallback there would let a client whose pool lacks the id rank
+        against a different secret from its opponent's and still be scored
+        against them: the exact silent divergence this contract removes. When
+        the id isn't in the loaded pool the round must be unplayable instead.
+        """
         with open(CONTEXTO_TSX, "r", encoding="utf-8") as f:
             src = f.read()
-        self.assertIn("pool.find((p) => p.person_id === round.secret_person_id)", src)
-        self.assertIn("return dailySecret(pool, round?.day);", src)
+        self.assertIn(
+            "if (multiplayer) return"
+            " pool.find((p) => p.person_id === round?.secret_person_id) ?? null;",
+            src,
+        )
+        # dailySecret is the single-player rule only — never a multiplayer fallback.
+        self.assertIn("return dailySecret(pool);", src)
+        self.assertNotIn("dailySecret(pool, round", src)
         # …and dailySecret still encodes the rule this module mirrors.
         self.assertIn("pool.filter((p) => p.fame_tier <= 2)", src)
         self.assertIn("(a, b) => a.person_id - b.person_id", src)
