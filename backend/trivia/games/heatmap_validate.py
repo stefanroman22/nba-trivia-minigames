@@ -7,6 +7,11 @@ validate_seed(boards, players) -> list[str].
 Independent of the generator: re-derives the template, checks structure (28
 hexes, ids 0..27, neighbours == compute_neighbors(), criterion shape) and proves
 every hex's closed neighbourhood has >= 1 solver in the curated dataset.
+
+Solvability alone is not enough: a set of boards built only from the two or
+three broadest criteria in the bank is trivially solvable AND unplayable — it
+also leaves the renderer's team-logo hex path permanently dead. So the board set
+must additionally clear the variety floors below.
 """
 import json
 import os
@@ -31,6 +36,56 @@ from trivia.games.heatmap_criteria import (  # noqa: E402
 )
 
 VALID_TYPES = {"team", "award", "country", "draft", "college", "stat", "era"}
+
+# Variety floors. Pure counting over the criteria the boards USE — never over
+# the curated pool — so they keep meaning the same thing as the dataset grows.
+# Calibrated against the seeds shipped before 2026-09-06, where every board
+# reused the same 4 criteria of only 3 types, with ZERO team hexes anywhere.
+MIN_DISTINCT_PER_BOARD = 10
+MIN_TEAM_HEXES_PER_BOARD = 2
+MIN_TYPES_IN_SET = 5
+MIN_DISTINCT_IN_SET = 15
+MIN_FRANCHISES_IN_SET = 4
+
+
+def variety_problems(boards):
+    """Does the board set actually use the criteria bank? (see floors above)"""
+    problems = []
+    seen_crits, seen_types, seen_teams = set(), set(), set()
+    for b in boards:
+        qid = b.get("qid", "<no-qid>")
+        crits = [h.get("criterion", {}) for h in b.get("hexes", [])]
+        distinct = {(c.get("type"), c.get("value")) for c in crits}
+        teams = [c for c in crits if c.get("type") == "team"]
+        if len(distinct) < MIN_DISTINCT_PER_BOARD:
+            problems.append(
+                f"{qid}: only {len(distinct)} distinct criteria on the board "
+                f"(need >= {MIN_DISTINCT_PER_BOARD})"
+            )
+        if len(teams) < MIN_TEAM_HEXES_PER_BOARD:
+            problems.append(
+                f"{qid}: only {len(teams)} team hexes (need >= "
+                f"{MIN_TEAM_HEXES_PER_BOARD}, else the renderer's logo path is dead)"
+            )
+        seen_crits |= distinct
+        seen_types |= {c.get("type") for c in crits}
+        seen_teams |= {c.get("value") for c in teams}
+    if len(seen_types) < MIN_TYPES_IN_SET:
+        problems.append(
+            f"board set spans only {len(seen_types)} criterion types "
+            f"(need >= {MIN_TYPES_IN_SET}): {sorted(t for t in seen_types if t)}"
+        )
+    if len(seen_crits) < MIN_DISTINCT_IN_SET:
+        problems.append(
+            f"board set uses only {len(seen_crits)} distinct criteria "
+            f"(need >= {MIN_DISTINCT_IN_SET})"
+        )
+    if len(seen_teams) < MIN_FRANCHISES_IN_SET:
+        problems.append(
+            f"board set uses only {len(seen_teams)} distinct franchises "
+            f"(need >= {MIN_FRANCHISES_IN_SET})"
+        )
+    return problems
 
 
 def validate_seed(boards, players):
@@ -59,6 +114,7 @@ def validate_seed(boards, players):
             if not solvers:
                 labels = " + ".join(c["label"] for c in crits)
                 problems.append(f"{qid} hex {h['id']} UNSOLVABLE: {labels}")
+    problems.extend(variety_problems(boards))
     return problems
 
 
@@ -73,7 +129,13 @@ def main():
         for p in problems:
             print("  -", p)
         sys.exit(1)
-    print(f"OK — all {len(boards)} boards solvable ({len(players)} players).")
+    crits = {
+        (h["criterion"]["type"], h["criterion"]["value"]) for b in boards for h in b["hexes"]
+    }
+    print(
+        f"OK — all {len(boards)} boards solvable ({len(players)} players) and varied "
+        f"({len(crits)} distinct criteria, {len({t for t, _ in crits})} types)."
+    )
 
 
 if __name__ == "__main__":
