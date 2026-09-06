@@ -46,7 +46,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 const headshotUrl = (personId: number) =>
   `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
-// ----- Objectives (canonical; mirrors superdraft_seed.json) -----
+// ----- Objectives (canonical: the renderer owns them; the backend serves the pool) -----
 type MetricKey = "height_in" | "rings" | "career_pts" | "birth_year_desc";
 interface Objective {
   key: string;
