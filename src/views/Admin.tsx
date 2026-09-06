@@ -1,5 +1,6 @@
+"use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../hooks/useNavigate";
 import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import Navigation from "../components/Navigation";

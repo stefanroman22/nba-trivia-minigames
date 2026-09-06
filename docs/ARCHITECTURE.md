@@ -47,7 +47,7 @@ does, where it lives, where it's hosted, and how safe it is.
 
 ## 1. The Frontend (what you see in the browser)
 
-**Tech:** React 19 + TypeScript + Vite + Tailwind 4.
+**Tech:** React 19 + TypeScript + Next.js 16 (App Router — every page is server-rendered) + Tailwind 4.
 **Lives in:** repo root `src/`.
 **Hosted on:** **Vercel** (their global CDN). Production API it talks to:
 `https://backend-kappa-one-42.vercel.app/api`.
@@ -312,7 +312,7 @@ There are **two kinds of data**, handled very differently:
 - Login **tokens are stored in `localStorage`**, not httpOnly cookies. This is convenient and
   common for single-page apps, but it means a cross-site-scripting (XSS) bug could expose a
   token. Mitigated by short token lifetimes and React escaping output by default.
-- The **Google OAuth client ID is hard-coded** in the frontend (`src/main.tsx`). That's fine —
+- The **Google OAuth client ID is hard-coded** in the frontend (`src/components/LogInSignUp.tsx`). That's fine —
   a client ID is public by design; the secret stays on the backend.
 - `DEBUG` defaults to **on** locally, so it's important `DJANGO_DEBUG=False` is set in
   production (it is, per the deployment docs).
@@ -338,7 +338,7 @@ There are **two kinds of data**, handled very differently:
 
 | Piece | Tech | Hosted on | Link / address |
 |---|---|---|---|
-| Frontend | React + Vite | **Vercel CDN** | the public site domain |
+| Frontend | React + Next.js | **Vercel** (prerendered HTML + CDN) | the public site domain |
 | Backend API | Django + DRF | **Vercel (serverless)** | https://backend-kappa-one-42.vercel.app |
 | Multiplayer | Node + Socket.IO | **Railway** | https://nba-multiplayer-production.up.railway.app |
 | User database | Postgres | **Supabase** | via `DATABASE_URL` (session pooler) |

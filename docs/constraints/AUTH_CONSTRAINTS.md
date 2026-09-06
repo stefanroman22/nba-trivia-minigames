@@ -2,7 +2,7 @@
 
 **Scope:** the account/identity surface — `backend/users/` (`CustomUser`, `identity.py`,
 `tokens.py`, the auth endpoints in `views.py`) and its frontend consumers (`src/utils/Api.tsx`'s
-token helpers, `src/components/LogInSignUp.tsx`, `src/App.tsx`'s login bootstrap,
+token helpers, `src/components/LogInSignUp.tsx`, `src/app/providers.tsx`'s login bootstrap,
 `src/store/userSlice.tsx`, `src/components/UserProfile.tsx`). `BACKEND_CONSTRAINTS.md` already
 covers the *generic* Django conventions every `users/` endpoint also follows — DRF `@api_view`
 usage (BE-9), the hand-built-dict response shape (BE-10), broad `try/except` error handling
@@ -25,7 +25,7 @@ not touch without being classified `risk: high`.
 | JWT + custom-user Django settings | `backend/backend/settings.py` (`AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`) |
 | Token storage + refresh-on-401 | `src/utils/Api.tsx` |
 | Login/signup/Google forms | `src/components/LogInSignUp.tsx` |
-| Login-state bootstrap on page load | `src/App.tsx` |
+| Login-state bootstrap on page load | `src/app/providers.tsx` |
 | Redux login-state slice | `src/store/userSlice.tsx` |
 | Profile screen (username/photo/logout) | `src/components/UserProfile.tsx` |
 
@@ -129,12 +129,12 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
 
 A helper module exists (`src/utils/Api.tsx`: `getAccessToken`/`getRefreshToken`/`setTokens`/
 `clearTokens`) and is used by `apiFetch`'s own 401-refresh cycle and by `LogInSignUp.tsx`'s
-`handleLogin`. But it is **not** the dominant pattern: `App.tsx`'s login-bootstrap
+`handleLogin`. But it is **not** the dominant pattern: `app/providers.tsx`'s login-bootstrap
 (`checkLogin`), `LogInSignUp.tsx`'s `handleSignUp` and Google-login success handler, and
 `UserProfile.tsx`'s `handleLogout` all read/write `localStorage.getItem/setItem/removeItem`
 directly with the same two literal strings instead of calling the helper. Whichever way a task
 touches tokens, it must keep using exactly `"accessToken"`/`"refreshToken"` — every read site
-(`getAccessToken`, `App.tsx`'s bootstrap check, `apiFetch`) assumes those literal keys with no
+(`getAccessToken`, `app/providers.tsx`'s bootstrap check, `apiFetch`) assumes those literal keys with no
 fallback.
 
 ```tsx
@@ -143,7 +143,7 @@ localStorage.setItem("access_token", data.access); // getAccessToken() reads "ac
 
 ✅ RIGHT — either the helper (LogInSignUp.tsx's handleLogin)...
 setTokens(data.access, data.refresh);
-// ...or matching the literal keys directly (LogInSignUp.tsx's handleSignUp, App.tsx, UserProfile.tsx)
+// ...or matching the literal keys directly (LogInSignUp.tsx's handleSignUp, app/providers.tsx, UserProfile.tsx)
 localStorage.setItem("accessToken", data.access);
 localStorage.setItem("refreshToken", data.refresh);
 ```
@@ -307,7 +307,7 @@ path:
 - `backend/backend/settings.py`'s `AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK` blocks
 - `src/utils/Api.tsx` (token storage/refresh)
 - `src/store/userSlice.tsx` (client login-state shape)
-- `src/App.tsx`'s `checkLogin` bootstrap
+- `src/app/providers.tsx`'s `checkLogin` bootstrap
 - `multiplayer_server/src/index.js`'s `identify` handler and `players`/`publicUser` (AUTH-8)
 
 ```text
@@ -377,6 +377,6 @@ Observed:
 ```bash
 grep -rn "localStorage.*ccessToken\|localStorage.*efreshToken" src --include=*.tsx --include=*.ts
 ```
-Observed: 16 matches across `src/App.tsx`, `src/components/LogInSignUp.tsx`,
+Observed: 16 matches across `src/app/providers.tsx`, `src/components/LogInSignUp.tsx`,
 `src/components/UserProfile.tsx`, and `src/utils/Api.tsx` — all using the same two literal key
 strings.

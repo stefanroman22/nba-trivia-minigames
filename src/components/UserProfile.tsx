@@ -160,8 +160,8 @@ function UserProfile() {
           <AnimatePresence mode="wait">
             <motion.img
               key={user?.profile_photo || "default"}
-              src={user?.profile_photo || defaultAvatar}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+              src={user?.profile_photo || defaultAvatar.src}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
               alt="Profile"
               initial={{ opacity: 0, scale: 1.06 }}
               animate={{ opacity: 1, scale: 1 }}

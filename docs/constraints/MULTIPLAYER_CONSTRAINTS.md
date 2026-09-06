@@ -285,7 +285,7 @@ solo or online needs no such prop at all.
 
 **Transport connection (the important caveat — don't over-read the above as "no socket activity
 in single-player"):** `MultiplayerProvider` is mounted globally and unconditionally in
-`src/App.tsx` (~line 57, wrapping every route, not just multiplayer screens), `src/socket.ts`
+`src/app/providers.tsx` (wrapping every route, not just multiplayer screens), `src/socket.ts`
 calls `io(SOCKET_URL, { transports: [...] })` at module load with Socket.IO's default
 `autoConnect: true` (no `autoConnect: false` override anywhere in the file), and
 `MultiplayerContext.tsx`'s identity effect (~lines 381-388) emits `identify` on every `"connect"`
@@ -295,7 +295,7 @@ loads — "works single-player" in this doc means **the game's own logic and ren
 correctly with the socket server down or unreachable** (no `gameData`/`onGameEnd` path depends on
 `socket`/`useMultiplayer`, per MP-13), not that zero connection attempt happens. A task judging
 "does this touch the multiplayer surface" by checking whether a game renderer imports `socket`
-will miss changes to `App.tsx`'s provider mount, `socket.ts`'s connection options, or the
+will miss changes to `app/providers.tsx`'s provider mount, `socket.ts`'s connection options, or the
 `identify` effect — those affect every user, solo or not.
 
 ```tsx
@@ -304,10 +304,10 @@ will miss changes to `App.tsx`'s provider mount, `socket.ts`'s connection option
 // server can't affect single-player at all" — the connection + identify() still fire on load,
 // even though this game's own rendering path is unaffected by them.
 
-✅ RIGHT — App.tsx mounts the provider (and therefore the connection) for every route
+✅ RIGHT — app/providers.tsx mounts the provider (and therefore the connection) for every route
 <MultiplayerProvider>      {/* connects + identifies regardless of which page is active */}
   <ModalProvider>
-    <AnimatedRoutes />      {/* includes every single-player-only game route */}
+    {children}              {/* every page, including single-player-only game routes */}
     <ModalHost />
   </ModalProvider>
 </MultiplayerProvider>

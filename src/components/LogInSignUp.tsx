@@ -260,7 +260,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
   );
 }
 
-// Provider lives here (not app-wide in main.tsx) so Google's gsi/client script
+// Provider lives here (not app-wide in app/providers.tsx) so Google's gsi/client script
 // only loads when the login modal actually mounts.
 export default function LogInSignUpWithGoogle(props: LogInSignUpProps) {
   return (

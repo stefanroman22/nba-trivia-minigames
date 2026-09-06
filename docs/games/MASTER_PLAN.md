@@ -156,12 +156,12 @@ contribution at ≈300 per session.
   intervention. The same guess log powers the NBA Grid rarity score.
 
 ### Adding a game (4 touchpoints, from the codebase)
-1. Route in `App.tsx` → 2. entry in `games[]` in `src/utils/GameUtils.tsx` (id, tag, rules,
+1. Nothing to route by hand — `src/app/[game]/page.tsx` serves every `urlPath` in `games[]` → 2. entry in `games[]` in `src/utils/GameUtils.tsx` (id, tag, rules, urlPath,
 maxPoints, fetchData, background) → 3. case in `src/Game Renderers/RenderGame.tsx` →
 4. multiplayer: `multiplayer_server/src/gameEndpoints.js` + Django endpoint/pool.
 
 ### Verify after each game (improve process each time)
-1. `npm run lint` + `npx tsc -b && npm run build` pass. 2. Play a full round S + F modes.
+1. `npm run lint` + `npm run build` pass. 2. Play a full round S + F modes.
 3. Mobile viewport check (no scroll). 4. Kill the network mid-game → graceful error. 5. Feed it a
 dirty-data row → confirm exclusion. 6. Note what went wrong in this build and fix the checklist/
 process before starting the next game.

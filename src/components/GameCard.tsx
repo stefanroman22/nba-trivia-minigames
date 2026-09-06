@@ -1,5 +1,5 @@
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '../hooks/useNavigate';
 import { motion, useReducedMotion } from 'framer-motion';
 import type { Game } from '../types/types';
 import "../styles/GameCard.css";

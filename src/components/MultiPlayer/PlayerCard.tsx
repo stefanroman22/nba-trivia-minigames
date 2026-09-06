@@ -39,9 +39,9 @@ export default function PlayerCard({
     >
       <div className="om-pc-avatar">
         <img
-          src={photo || defaultAvatar}
+          src={photo || defaultAvatar.src}
           alt={name || "Player"}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+          onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
         />
         {result === "win" && (
           <span className="om-pc-crown" aria-label="Winner">

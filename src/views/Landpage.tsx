@@ -1,5 +1,6 @@
+"use client";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "../hooks/useNavigate";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import "../styles/LandPage.css";

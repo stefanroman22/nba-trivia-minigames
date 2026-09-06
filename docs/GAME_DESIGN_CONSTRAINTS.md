@@ -583,6 +583,8 @@ winner else `var(--muted)`.
 - Wrong → a short statement of the truth, in `var(--bad)` — e.g. `It was the ${winner}`,
   `Not on the board`. Never a bare "Wrong".
 - Neutral/no-op → `var(--muted)` (e.g. `Already tried`).
+- Never a distinct "Out of lives" / "Game over" announcement on the guess that empties the last
+  life — see RULE 6.3.
 
 **Styling is fixed:** `.font-accent`, `font-size:14px`, `weight:700`, animated
 `initial {opacity:0, y:6}` → `animate {opacity:1, y:0}` (and `exit {opacity:0, y:6}`).
@@ -669,6 +671,27 @@ new ResizeObserver(() => seen.add(gf.getBoundingClientRect().height.toFixed(2)))
 // …play a round with one correct and one wrong answer…
 seen.size === 1   // MUST be true
 ```
+
+### RULE 6.3 — Lives running out is never announced in the feedback popup. **HARD RULE.**
+
+When a wrong guess drops a game's remaining lives to zero, do **not** flash an "Out of lives" /
+"Game over" / "Run over" style message through `SubmitGuessPopup`. The lives indicator (hearts, a
+miss counter, etc.) already tracks this in real time, and the loss is always followed immediately
+by the §7b reveal sequence (or, for standard-path games, the §7a result screen) — a third message
+announcing the same fact is redundant on top of two other signals the player already sees.
+
+The ordinary wrong-guess copy from the "Copy format is fixed" list above (`Not on the board`,
+`It was the ${winner}`, etc.) still fires normally right up to and including the guess that empties
+the last life — or the popup can be skipped for that guess entirely. Only a distinct "you've lost /
+you're out of lives" string is disallowed.
+
+❌ `setPopUpInfo({ Text: "Out of lives", Color: "var(--bad)" })` on the life-ending guess.
+❌ `flashPopup("Two misses — run over", "var(--bad)")` on the life-ending guess.
+✅ Skip the popup call on the life-ending guess (or reuse the plain wrong-guess copy) and go
+straight into the reveal/result flow.
+
+This does **not** apply to a warning shown *before* the last life is spent (e.g. Pack 5's
+`"Missed — one life left"`) — that's ordinary in-play feedback, not a game-over announcement.
 
 ---
 
@@ -836,7 +859,7 @@ apply. These are reviewed and intentional:
 
 ## Adding a game — the 4 touchpoints
 
-1. Route in `App.tsx`
+1. Nothing to route by hand — `src/app/[game]/page.tsx` serves every `urlPath` in `games[]` (`generateStaticParams`)
 2. `Game` entry in `src/utils/GameUtils.tsx` — `id`, `name`, `tag`, `description`, `intro`, `rules`,
    `instruction`, `loadingMessage`, `backgroundImage`, `urlPath`, `pointsPerCorrect`, `maxPoints`,
    `fetchData`, `handleError`

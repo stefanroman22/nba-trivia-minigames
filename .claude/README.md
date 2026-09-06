@@ -32,7 +32,7 @@ so the active profile governs the whole fleet.
 
 ## The engines (`.claude/agents/`)
 
-- `frontend-engine` — React/TS/Tailwind/Vite (`src/`)
+- `frontend-engine` — React/TS/Tailwind/Next.js (`src/`)
 - `backend-engine` — Django/DRF (`backend/`) + Socket.IO (`multiplayer_server/`)
 - `code-reviewer` — read-only audit
 - `test-qa-engine` — lint / typecheck / build / Django tests
