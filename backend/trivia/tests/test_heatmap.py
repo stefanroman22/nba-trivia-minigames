@@ -35,6 +35,13 @@ class HeatmapSeedValidatorTests(TestCase):
     def test_every_shipped_board_is_solvable_and_varied(self):
         self.assertEqual(heatmap_validate.validate_seed(self.boards, self.players), [])
 
+    def test_no_hex_has_a_single_valid_answer(self):
+        # Maximising variety against a bare >=1 existence proof produced 39 hexes
+        # that were "name this exact player or nothing"; MIN_SOLVERS_PER_HEX is
+        # what keeps that from shipping again.
+        depths = heatmap_validate.hex_depths(self.boards, self.players)
+        self.assertGreaterEqual(min(depths), heatmap_validate.MIN_SOLVERS_PER_HEX)
+
     def test_shipped_set_uses_team_hexes_so_the_logo_path_is_live(self):
         # The pre-2026-09-06 seeds used 4 criteria of 3 types and no team hexes,
         # which left the renderer's team-logo branch permanently unreachable.
