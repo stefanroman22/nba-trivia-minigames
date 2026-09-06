@@ -1,6 +1,5 @@
 
 import type { Game } from "../types/types";
-import Swal from "sweetalert2";
 import { fetchGamePool, fetchWholePool } from "./pool";
 import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
 import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
@@ -24,7 +23,8 @@ import thumb_pack_five from "../assets/Games Backrounds/thumb_pack_five.jpg";
 import thumb_superdraft from "../assets/Games Backrounds/thumb_superdraft.jpg";
 import thumb_imposter from "../assets/Games Backrounds/thumb_imposter.jpg";
 
-export const handleErrorDefault = (error: { title: string; message: string }) => {
+export const handleErrorDefault = async (error: { title: string; message: string }) => {
+  const Swal = (await import("sweetalert2")).default; // out of the startup bundle
   Swal.fire({
     icon: "error",
     title: error.title,

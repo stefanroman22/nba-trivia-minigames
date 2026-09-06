@@ -1,8 +1,102 @@
-/* ===========================================================================
-   MBA Trivium / NBA 3VIA design system — tokens, type, motion.
+﻿/* ===========================================================================
+   MBA Trivium / NBA 3VIA design system â€” tokens, type, motion.
    Ported from the Claude Design comp (MBA Trivium.dc.html).
    =========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Russo+One&display=swap');
+/* Self-hosted fonts (public/fonts/, latin + latin-ext subsets, mirrored from
+   Google Fonts) â€” no third-party requests; index.html preloads the critical
+   faces so the hero text (the LCP element) doesn't repaint on a late swap. */
+/* latin-ext */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-500-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-600-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-700-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Chakra Petch';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/chakra-petch-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Russo One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/russo-one-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Russo One';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  /* Inlined (9.6KB base64): the hero h1 is the LCP element, and inlining its
+     font removes the last network dependency from that first paint. */
+  src: url('data:font/woff2;base64,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') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
   /* Surfaces (dark, default) */
@@ -49,7 +143,7 @@
   color-scheme: dark;
 }
 
-/* Light theme — toggled by adding .light to <html> (or any ancestor). */
+/* Light theme â€” toggled by adding .light to <html> (or any ancestor). */
 .light {
   --bg: #f3f0ea;
   --bg2: #ffffff;
@@ -88,10 +182,23 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Metric-matched fallback for Russo One: sized so the fallback text box is at
+   least as large as the webfont's. The font swap then never paints a LARGER
+   block, so the browser doesn't re-register LCP at font-arrival time (and the
+   swap causes no layout shift). */
+@font-face {
+  font-family: 'Russo One Fallback';
+  src: local('Arial');
+  size-adjust: 121%;
+  ascent-override: 82%;
+  descent-override: 20%;
+  line-gap-override: 0%;
+}
+
 /* Display / accent type */
 .disp,
 .font-display {
-  font-family: 'Russo One', system-ui, sans-serif;
+  font-family: 'Russo One', 'Russo One Fallback', system-ui, sans-serif;
   letter-spacing: 0.4px;
 }
 .font-accent { font-family: 'Chakra Petch', system-ui, sans-serif; }

@@ -42,7 +42,10 @@
 
 .admin-card-head {
   display: grid;
-  grid-template-columns: 1.5fr 1fr auto auto 24px;
+  /* Fixed count/date tracks (not auto): every card resolves the same column
+     widths, so the list stays aligned whatever the name/dataset/date content —
+     an absent date still holds its column open. */
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) 64px 104px 24px;
   align-items: center;
   gap: 14px;
   width: 100%;
@@ -174,7 +177,7 @@ a.admin-source-label:hover { color: var(--brand); text-decoration: underline; }
 
 /* Mobile */
 @media (max-width: 640px) {
-  .admin-card-head { grid-template-columns: 1fr auto 24px; padding: 13px 14px; }
+  .admin-card-head { grid-template-columns: minmax(0, 1fr) 64px 24px; padding: 13px 14px; }
   .admin-card-source { display: none; }
   .admin-card-date { display: none; }
   .admin-card-body { padding: 4px 14px 14px; }

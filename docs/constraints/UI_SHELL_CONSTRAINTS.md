@@ -15,6 +15,7 @@ repeat any of those rules (design tokens, `Stage`, `GameFrame`, `CourtLoader`, `
 | Routing / route-level transition | `src/App.tsx` |
 | Single overlay host | `src/components/ModalHost.tsx`, `src/context/ModalContext.tsx`, `src/components/ui/Modal.tsx` |
 | Shared design-system primitives | `src/components/ui/index.ts` |
+| Animated label swap ("Copy"→"Copied!", "Change"→"Saving…"→"Saved") | `src/components/motion/SwapText.tsx` — wrap any state-driven inline label with `<SwapText>` instead of a bare ternary so the text change animates; see `src/components/UserProfile.tsx` for both usage shapes (auto key from string children, explicit `swapKey`) |
 | One-shot system messages (not modals) | `src/utils/Alerts.tsx` |
 
 Everything below is measured from the live codebase. Where the code is inconsistent, the

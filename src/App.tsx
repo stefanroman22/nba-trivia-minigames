@@ -1,15 +1,18 @@
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion';
 import type { ReactNode } from 'react';
 import './App.css';
 import './index.css';
 import { login, logout } from "./store/userSlice";
 import Landpage from './pages/Landpage';
-import MiniGame from './pages/Trivia/MiniGame';
-import NoPageFound from './pages/NoPageFound';
-import Admin from './pages/Admin';
 import { useDispatch } from "react-redux";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+
+// Route-level code splitting: the landing page ships without the game
+// renderers, admin (chart.js) or 404 code — those chunks load on navigation.
+const MiniGame = lazy(() => import('./pages/Trivia/MiniGame'));
+const NoPageFound = lazy(() => import('./pages/NoPageFound'));
+const Admin = lazy(() => import('./pages/Admin'));
 import { apiFetch } from './utils/Api';
 import { BACKEND_URL } from './configurations/backend';
 import { ModalProvider } from './context/ModalContext';
@@ -53,17 +56,17 @@ function App() {
     checkLogin();
   }, [dispatch]);
 
+  // The router is provided by the entry (BrowserRouter in main.tsx,
+  // StaticRouter in entry-server.tsx) so this tree can render on both sides.
   return (
     <MotionConfig reducedMotion="user">
-      <BrowserRouter>
-        <MultiplayerProvider>
-          <ModalProvider>
-            <AnimatedRoutes />
-            <ModalHost />
-            <EnvBadge />
-          </ModalProvider>
-        </MultiplayerProvider>
-      </BrowserRouter>
+      <MultiplayerProvider>
+        <ModalProvider>
+          <AnimatedRoutes />
+          <ModalHost />
+          <EnvBadge />
+        </ModalProvider>
+      </MultiplayerProvider>
     </MotionConfig>
   );
 }
@@ -74,7 +77,10 @@ function App() {
 function AnimatedRoutes() {
   const location = useLocation();
   return (
-    <AnimatePresence mode="wait">
+    // initial={false}: the first page paints immediately (it's the LCP);
+    // only route CHANGES run the PageTransition fade.
+    <AnimatePresence mode="wait" initial={false}>
+      <Suspense fallback={null}>
       <Routes location={location} key={location.pathname}>
         <Route
           path="/"
@@ -237,6 +243,7 @@ function AnimatedRoutes() {
           }
         />
       </Routes>
+      </Suspense>
     </AnimatePresence>
   );
 }

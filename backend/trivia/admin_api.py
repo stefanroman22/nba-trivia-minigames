@@ -18,6 +18,7 @@ from rest_framework.response import Response
 
 from trivia.models import (
     FanFavoritesQuestion,
+    Feedback,
     GameSession,
     GuessLog,
     Mvp,
@@ -44,6 +45,7 @@ DB_SOURCES = {
     "fanfavoritesquestion": {"model": FanFavoritesQuestion, "search": ["qid", "prompt", "category"], "sync_dataset": None},
     "gamesession": {"model": GameSession, "search": ["game", "mode"], "sync_dataset": None, "latest_field": "finished_at"},
     "guesslog": {"model": GuessLog, "search": ["game", "question_id", "answer"], "sync_dataset": None, "latest_field": "created_at"},
+    "feedback": {"model": Feedback, "search": ["message", "email", "display_name", "public_id"], "sync_dataset": None, "latest_field": "created_at"},
     "syncrun": {"model": SyncRun, "search": ["dataset", "status"], "sync_dataset": None, "latest_field": "created_at"},
 }
 

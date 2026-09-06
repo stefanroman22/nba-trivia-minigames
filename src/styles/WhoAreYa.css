@@ -17,6 +17,7 @@
 
 /* ===== Photo card — fixed frame, blur changes never shift layout ===== */
 .waya-photo-card {
+  position: relative; /* anchors the floating photo toggle */
   flex: none;
   display: flex;
   flex-direction: column;
@@ -32,18 +33,41 @@
   display: block;
   width: 100%;
   height: clamp(120px, 22dvh, 190px); /* fixed height: img and silhouette swap without shift */
-  object-fit: cover;
-  object-position: top center;
+  /* contain, not cover: headshot framing varies by era (legend scans have the
+     head much larger), so any cover-crop of this wide strip beheads someone.
+     The PNGs are transparent on the same dark surface, so letterboxing is
+     invisible and the full face always shows. */
+  object-fit: contain;
+  object-position: center;
   border-radius: calc(var(--radius) - 6px);
   background: var(--surface3);
   user-select: none;
   -webkit-user-drag: none;
 }
 .waya-silhouette { fill: var(--surface3); stroke: var(--line2); padding: 8px 0; }
-/* Guesses-left moved to <GameFrame.Status>; this row only holds the photo toggle. */
-.waya-photo-meta { display: flex; align-items: center; justify-content: center; }
-/* Keep interactive controls >= 44px tall regardless of the shared btn-sm size. */
-.waya-photo-meta .btn { min-height: 44px; }
+/* Guesses-left moved to <GameFrame.Status>; this holds only the photo toggle,
+   floated over the photo (absolute = zero layout footprint, frame stays fixed)
+   instead of claiming its own row under the image. */
+.waya-photo-meta {
+  position: absolute;
+  top: clamp(12px, 1.8dvh, 16px);
+  right: clamp(12px, 1.8dvh, 16px);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  pointer-events: none; /* only the button itself is interactive */
+}
+/* Compact corner toggle (deliberately under the 44px target — it's a low-stakes
+   secondary control). Secondary buttons are transparent — give this one a solid
+   backdrop so it stays legible floating over the (blurred) photo. */
+.waya-photo-meta .btn {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  pointer-events: auto;
+  background: var(--surface2);
+  backdrop-filter: blur(4px);
+}
 
 /* ===== Reveal card ===== */
 .waya-reveal {
