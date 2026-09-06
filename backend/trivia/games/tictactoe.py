@@ -75,10 +75,12 @@ def player_matches(p, c):
             return d is None
         if not d:
             return False
+        # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
+        # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
         if v == "top5":
-            return d.get("pick", 99) <= 5
+            return 1 <= d.get("pick", 99) <= 5
         if v == "lottery":
-            return d.get("pick", 99) <= 14
+            return 1 <= d.get("pick", 99) <= 14
         if v == "round2":
             return d.get("round") == 2
         if isinstance(v, str) and v.startswith("decade-"):

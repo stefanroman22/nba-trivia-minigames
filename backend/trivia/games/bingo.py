@@ -88,10 +88,12 @@ def criterion_matches(p, c):
             return draft is None
         if not draft:
             return False
+        # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
+        # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
         if value == "top5":
-            return draft["pick"] <= 5
+            return 1 <= draft["pick"] <= 5
         if value == "lottery":
-            return draft["pick"] <= 14
+            return 1 <= draft["pick"] <= 14
         if value == "round2":
             return draft["round"] == 2
         if value.startswith("decade-"):
