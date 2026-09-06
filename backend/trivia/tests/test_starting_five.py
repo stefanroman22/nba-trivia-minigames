@@ -1,5 +1,7 @@
 import json
 import os
+import tempfile
+from unittest.mock import patch
 
 from django.conf import settings
 from django.test import TestCase
@@ -121,6 +123,35 @@ class StartingFivePoolBuildTests(TestCase):
             self.assertTrue(is_playable_lineup(game["starting_5"]))
             if game["game_id"] == "accents":
                 self.assertEqual(game["starting_5"][0]["name"], "Bojan Bogdanovic")
+
+
+class StartingFiveFallbackTests(TestCase):
+    """With an empty store the endpoint serves the bundled file — same two rules.
+
+    `starting_five_utils.build_starting_five_database` regenerates that file
+    straight from the box score, so it can come back unfiltered and with raw
+    feed spellings at any time.
+    """
+
+    def test_the_bundled_fallback_is_filtered_and_canonicalized(self):
+        views._cached_player_names = None
+        Player.objects.create(person_id=1, full_name="Bojan Bogdanovic")
+        seed = [
+            _game("bad", THREE_GUARDS),
+            _game("good", [dict(GOOD[0], name="Bojan Bogdanović")] + GOOD[1:]),
+        ]
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "starting_five_data.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(seed, f, ensure_ascii=False)
+            with patch.object(views, "STARTING_FIVE_DATA_PATH", path):
+                body = self.client.get(reverse("starting-five")).json()
+            cached = views._dataset_cache.pop(path)
+        game = body["series"][0]
+        self.assertEqual(game["game_id"], "good")
+        self.assertEqual(game["starting_5"][0]["name"], "Bojan Bogdanovic")
+        # The cached parse of the file itself is left alone.
+        self.assertEqual(cached[1]["starting_5"][0]["name"], "Bojan Bogdanović")
 
 
 class ShippedStartingFivePoolTests(TestCase):
