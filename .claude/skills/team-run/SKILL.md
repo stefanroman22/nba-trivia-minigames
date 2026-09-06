@@ -87,9 +87,11 @@ design-round skill. If it parks (design deadlock) → park procedure. journal st
 **build** → per involved area spawn the engine agent (frontend-engine and/or
 backend-engine) with model=classify.engineModel, effort=classify.engineEffort.
 Prompt MUST include: spec text, design doc path (if any), classify.docs (tell them to
-read those files first), classify.codeMapHits verbatim, and the line
-"Reuse-first: duplicating a CODE_MAP entry is a review-reject." Work happens in the
-worktree path. journal stage=verify.
+read those files first), classify.codeMapHits verbatim, classify.attachments (if
+non-empty — absolute paths to images pulled from the card; tell the engine to Read
+each one before implementing, they are the visual source of truth for this task), and
+the line "Reuse-first: duplicating a CODE_MAP entry is a review-reject." Work happens
+in the worktree path. journal stage=verify.
 
 **verify** → spawn test-qa-engine in the worktree. Fail → send failures back to the
 engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn planner-architect with the
