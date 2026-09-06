@@ -86,17 +86,39 @@ function awardsVec(p: PlayerIndexEntry): number[] {
   return [p.awards.mvp.length, p.awards.allstar_count, p.awards.rings.length, p.awards.dpoy.length];
 }
 
+function magnitude(v: number[]): number {
+  let n = 0;
+  for (const x of v) n += x * x;
+  return Math.sqrt(n);
+}
+
 function cosine(a: number[], b: number[]): number {
   let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  const na = magnitude(a);
+  const nb = magnitude(b);
   if (na === 0 || nb === 0) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  return dot / (na * nb);
+}
+
+/**
+ * Résumé similarity: cosine (the SHAPE of the trophy case) scaled by how
+ * comparably decorated the two players are (the SIZE of it).
+ *
+ * Cosine alone is scale-invariant, which got both ends wrong: a one-time
+ * all-star read as a ~9.4/10 match for a two-MVP secret (same direction,
+ * a fraction of the magnitude), and the 28 pool players with no awards at
+ * all scored the mathematical minimum against each other instead of a
+ * perfect match. The min/max norm ratio is 1 for identical vectors, 0.5
+ * for a résumé twice the size across the board, and 0 when only one side
+ * has any hardware; two empty trophy cases are defined as a match.
+ */
+function awardsSimilarity(a: number[], b: number[]): number {
+  const na = magnitude(a);
+  const nb = magnitude(b);
+  if (na === 0 && nb === 0) return 1;
+  if (na === 0 || nb === 0) return 0;
+  return cosine(a, b) * (Math.min(na, nb) / Math.max(na, nb));
 }
 
 /** Weighted 0..100 similarity of `p` to the `secret`. */
@@ -107,7 +129,7 @@ function similarity(secret: PlayerIndexEntry, p: PlayerIndexEntry): number {
     15 * positionFamily(secret, p) +
     10 * (secret.country === p.country ? 1 : 0) +
     10 * draftProximity(secret, p) +
-    10 * cosine(awardsVec(secret), awardsVec(p))
+    10 * awardsSimilarity(awardsVec(secret), awardsVec(p))
   );
 }
 
