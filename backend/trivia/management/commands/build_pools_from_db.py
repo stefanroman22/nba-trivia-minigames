@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from trivia.data_pipeline.manifest import build_manifest
+from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_lineups
 from trivia.data_pipeline.validate import validate_pool
 from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
 from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
@@ -83,7 +84,11 @@ def build_playoff():
 
 
 def build_starting_five():
-    return [
+    # The board is a fixed 2-2-1 and every guess goes through the autocomplete,
+    # so unwinnable lineups are dropped and names are pulled to their canonical
+    # spelling here: the store keeps the raw feed, the pool only the playable
+    # part of it (trivia/data_pipeline/starting_five.py).
+    rows = [
         {"game_id": g.game_id, "game_date": g.game_date,
          "team_a": g.team_a, "team_b": g.team_b,
          "team_a_logo": g.team_a_logo, "team_b_logo": g.team_b_logo,
@@ -91,6 +96,7 @@ def build_starting_five():
          "starting_5": g.starting_5}
         for g in StartingFiveGame.objects.all()
     ]
+    return canonical_lineup_names(playable_lineups(rows), build_all_players())
 
 
 def build_fan_favorites():

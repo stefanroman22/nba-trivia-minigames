@@ -33,6 +33,15 @@ const SLOTS = [
   { key: "C", label: "Center" },
 ];
 
+// Which cards each position family may fill, in reveal order. The board only
+// renders a 2-guard/2-forward/1-center lineup, which is why the pool is
+// filtered to that shape (backend/trivia/data_pipeline/starting_five.py).
+const SLOTS_BY_POSITION: Record<string, string[]> = {
+  G: ["PG", "SG"],
+  F: ["PF", "SF"],
+  C: ["C"],
+};
+
 const normalizePosition = (pos: string) => {
   if (pos === "PF" || pos === "SF" || pos === "F") return "F";
   if (pos === "PG" || pos === "SG" || pos === "G") return "G";
@@ -178,10 +187,12 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
         // one after another, left → right.
         const revealAll: Record<string, string> = {};
         currentGame.starting_5.forEach((p: StartingFivePlayer) => {
-          const normPos = normalizePosition(p.position);
-          if (normPos === "C") revealAll["C"] = p.name;
-          else if (normPos === "F") { if (!revealAll["PF"]) revealAll["PF"] = p.name; else revealAll["SF"] = p.name; }
-          else if (normPos === "G") { if (!revealAll["PG"]) revealAll["PG"] = p.name; else revealAll["SG"] = p.name; }
+          const slot = (SLOTS_BY_POSITION[normalizePosition(p.position)] ?? []).find((k) => !revealAll[k]);
+          // A lineup that doesn't fit the board's 2-2-1 shape (e.g. a third
+          // guard) is filtered out of the pool, but if one ever slips through
+          // the extra player is left out rather than clobbering another card.
+          if (slot) revealAll[slot] = p.name;
+          else console.warn(`StartingFive: no free ${p.position} card for ${p.name} — lineup is not 2-2-1`);
         });
 
         setPopUpInfo({ Text: "Out of lives", Color: "var(--bad)" });
