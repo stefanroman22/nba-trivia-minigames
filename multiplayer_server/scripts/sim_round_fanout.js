@@ -9,7 +9,9 @@
 // so this stubs them through Module._load the way a test double would, stubs
 // global fetch with the Django round payloads, then drives the real relay:
 //   1. two players identify and queue for superdraft -> a room is created,
-//   2. assert BOTH received roundData and the slot constraints are identical,
+//   2. assert BOTH received roundData and the slot constraints are identical
+//      (captures are deep-cloned, so this is a real comparison of two payloads
+//      and not of one shared object reference with itself),
 //   3. assert a reconnect (index.js's resumeMatch snapshot) re-serves the same
 //      round, and that the retained payload is config-sized, not the pool,
 //   4. same for contexto's secret.
@@ -31,6 +33,15 @@ function check(label, ok, detail) {
 // ------------------------------------------------------------------ stubs
 const emitted = []; // { sid, event, payload }
 
+// CLONE AT CAPTURE. dealRound emits the same object REFERENCE to every member,
+// so recording the reference would make "both players got the same slots" a
+// comparison of one object with itself — an assertion that cannot fail, which
+// is worse than no assertion. Independent copies make the check real: mutate
+// one player's captured payload and the comparison must go red.
+const record = (sid, event, payload) => {
+  emitted.push({ sid, event, payload: structuredClone(payload) });
+};
+
 const fakeIo = {
   handlers: {},
   sockets: { sockets: new Map() },
@@ -40,7 +51,7 @@ const fakeIo = {
   to(sid) {
     return {
       emit(event, payload) {
-        emitted.push({ sid, event, payload });
+        record(sid, event, payload);
       },
     };
   },
@@ -101,7 +112,7 @@ function makeSocket(id) {
       this.handlers[event] = fn;
     },
     emit(event, payload) {
-      emitted.push({ sid: id, event, payload });
+      record(id, event, payload);
     },
     join() {},
     leave() {},
@@ -161,6 +172,10 @@ async function playRound(gameId, suffix) {
   check("superdraft: BOTH players got the SAME slot constraints",
     JSON.stringify(slotsA) === JSON.stringify(slotsB),
     `${JSON.stringify(slotsA)} vs ${JSON.stringify(slotsB)}`);
+  // Guards the guard: if the capture ever stops cloning, the check above
+  // compares one object with itself and silently stops being able to fail.
+  check("superdraft: the two captures are independent copies",
+    sd.roundA[0].gameData !== sd.roundB[0].gameData);
   check("superdraft: both players got the same objective day",
     sd.roundA[0]?.gameData?.[0]?.day === sd.roundB[0]?.gameData?.[0]?.day);
   check("superdraft: the round carries no player rows",
