@@ -160,6 +160,36 @@ export interface BingoCard {
   cells: Criterion[];
 }
 
+/* ---- Multiplayer round CONFIG for the players-index games ----
+ * These rounds are played against the whole shared pool, so the round payload
+ * carries only what the room must agree on; the renderer loads the same
+ * CDN-cached pool single-player uses (utils/pool.ts) instead of having the
+ * dataset broadcast to every player on every round and reconnect. */
+
+/** One SuperDraft slot constraint, drawn server-side so a room shares it. */
+export interface SlotConstraintConfig {
+  kind: "team" | "country" | "draft";
+  value: string;
+  label: string;
+  sub: string;
+}
+
+/** LeContexto round config (backend/trivia/games/contexto.py). */
+export interface ContextoRoundConfig {
+  pool: string;
+  /** "YYYY-MM-DD" (UTC) the round is anchored to. */
+  day: string;
+  secret_person_id: number;
+}
+
+/** SuperDraft Five round config (backend/trivia/games/superdraft.py). */
+export interface SuperDraftRoundConfig {
+  pool: string;
+  /** "YYYY-MM-DD" (UTC) the daily objective is picked from. */
+  day: string;
+  slots: SlotConstraintConfig[];
+}
+
 /** A game's payload is an array of one of these shapes (Wordle = string[]). */
 export type GameData =
   | PlayoffSeries
@@ -172,6 +202,8 @@ export type GameData =
   | GridConfig
   | BingoCard
   | PlayerIndexEntry
+  | ContextoRoundConfig
+  | SuperDraftRoundConfig
   | string;
 
 export interface GameError {

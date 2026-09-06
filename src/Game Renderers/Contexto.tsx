@@ -1,18 +1,27 @@
 // LeContexto — similarity guesser. Name any player; see how close (by rank) you
 // are to a hidden daily secret. Pure engine below; component in the same file.
+//
+// Single-player is handed the whole players-index pool as `gameInfo` and picks
+// the day's secret out of it with dailySecret(). A MULTIPLAYER round is a
+// one-element ContextoRoundConfig array instead — the day and the secret's
+// person_id (backend/trivia/games/contexto.py) — and the renderer loads the
+// same CDN pool single-player uses (useRoundPool) to rank against. Both modes
+// end up on the same player for the same day; the pool is never broadcast.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { useRoundPool } from "../hooks/useRoundPool";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, OnGameEnd } from "../types/types";
+import type { PlayerIndexEntry, OnGameEnd, ContextoRoundConfig } from "../types/types";
 import "../styles/Contexto.css";
 
 export interface ContextoProps {
-  gameInfo: PlayerIndexEntry[];
+  /** Single-player: the whole pool. Multiplayer: [ContextoRoundConfig]. */
+  gameInfo: PlayerIndexEntry[] | ContextoRoundConfig[];
   onGameEnd: OnGameEnd;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
@@ -170,13 +179,14 @@ function hashStr(s: string): number {
   return h >>> 0;
 }
 
-/** The day's secret: fame tier 1-2, keyed by the UTC date so it's shared. */
-function dailySecret(pool: PlayerIndexEntry[]): PlayerIndexEntry {
+/** The day's secret: fame tier 1-2, keyed by the UTC date so it's shared.
+ *  Mirrored server-side as daily_secret() in backend/trivia/games/contexto.py. */
+function dailySecret(pool: PlayerIndexEntry[], day?: string): PlayerIndexEntry {
   const candidates = pool.filter((p) => p.fame_tier <= 2);
   const list = (candidates.length ? candidates : pool)
     .slice()
     .sort((a, b) => a.person_id - b.person_id);
-  const key = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const key = day || new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
   return list[hashStr(key) % list.length];
 }
 
@@ -205,7 +215,12 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
+export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoProps) {
+  // Online, the round IS the config; offline, it's the pool itself.
+  const round = multiplayer ? (gameInfo[0] as ContextoRoundConfig | undefined) : undefined;
+  const localPool = multiplayer ? null : (gameInfo as PlayerIndexEntry[]);
+  const pool = useRoundPool(localPool, round?.pool);
+
   const reduce = useReducedMotion();
   const [rows, setRows] = useState<GuessRow[]>([]);
   const [guessedIds, setGuessedIds] = useState<Set<number>>(new Set());
@@ -230,18 +245,24 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     timersRef.current = [];
   };
 
-  // Pick the daily secret + rank the whole pool once per gameInfo (heavy loop).
-  const secret = useMemo(
-    () => (gameInfo && gameInfo.length ? dailySecret(gameInfo) : null),
-    [gameInfo],
-  );
+  // Pick the daily secret + rank the whole pool once per pool/round (heavy loop).
+  // Online the server already decided the secret; falling back to dailySecret()
+  // keeps the round playable if the id isn't in the pool this client loaded.
+  const secret = useMemo(() => {
+    if (!pool || !pool.length) return null;
+    if (round) {
+      const chosen = pool.find((p) => p.person_id === round.secret_person_id);
+      if (chosen) return chosen;
+    }
+    return dailySecret(pool, round?.day);
+  }, [pool, round]);
   const ranking = useMemo(
-    () => (secret ? buildRanking(secret, gameInfo) : null),
-    [secret, gameInfo],
+    () => (secret && pool ? buildRanking(secret, pool) : null),
+    [secret, pool],
   );
   const suggestions = useMemo(
-    () => (gameInfo ?? []).map((p) => p.full_name),
-    [gameInfo],
+    () => (pool ?? []).map((p) => p.full_name),
+    [pool],
   );
 
   // Fire-and-forget guess log (the data flywheel). apiFetch only attaches the
@@ -342,14 +363,14 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     return (
       <div className="cx-center">
         <Spinner label="Calibrating the radar…" />
-        {gameInfo && gameInfo.length === 0 && (
+        {pool && pool.length === 0 && (
           <p className="cx-note">No player data available. Please try again later.</p>
         )}
       </div>
     );
   }
 
-  const poolSize = gameInfo.length;
+  const poolSize = pool!.length;
   const barWidth = (rank: number) =>
     `${Math.max(5, Math.round(100 * (1 - (rank - 1) / Math.max(1, poolSize - 1))))}%`;
 
