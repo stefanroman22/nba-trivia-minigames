@@ -29,11 +29,12 @@ downloaded from the card; Read it, it's part of the spec, not a footnote.
 - Multi-area at any difficulty → `needsDesignRound: true`.
 
 ## Model rubric
-Opus — 5 and 4.8 alike — is banned pipeline-wide: never output it. The only models in play are
-`fable` (Fable 5.1: all planning, review and gating, plus hard-but-small implementation),
-`sonnet` (the default implementer) and `haiku` (trivial only). All three are rolling aliases,
-never pinned version ids. Thinking is always fable; this rubric only decides who *implements*
-(see `docs/team/DECISIONS.md` 2026-09-06).
+Opus 5 is banned pipeline-wide — never output the `opus` alias. The models in play:
+`fable` (Fable 5.1: classify, review, the CTO gate, most design rounds, and hard-but-small
+implementation), `opus-4.8` (planning only — see `planModel`), `sonnet` (the default
+implementer) and `haiku` (trivial only). `fable`/`sonnet`/`haiku` are rolling aliases;
+`opus-4.8` is a pinned model reached through the `planner-architect-opus` agent.
+(See `docs/team/DECISIONS.md` 2026-09-06.)
 
 ### `engineModel` — who implements
 | Model | When | Example |
@@ -46,6 +47,13 @@ This is a **provisional** pick. When a design round runs, the planner finalizes 
 plan exists (`design-round` step 5d) — only then is the step count and the explicitness of the
 acceptance criteria actually known.
 
+### `planModel` — who runs the design round and any replan
+Output it on every task (it is ignored when `needsDesignRound` is false and no replan happens).
+| Model | When |
+|---|---|
+| **opus-4.8** | `needsDesignRound` **and** the spec is detailed: it states the edge cases and what "done" looks like, or gives enough that the rest follows without inventing product rules. Opus 4.8 is strongest when the full task is specified up front in one pass — that is exactly this case. |
+| **fable** | Everything else: the spec is thin or ambiguous and the planner has to invent the missing rules, or no design round runs at all. |
+
 ### Close calls
 If you seriously weighed two adjacent picks for this task (e.g. trivial/haiku vs.
 standard/sonnet, or engineModel sonnet vs. fable) and could defend either, after picking: append a short entry to
@@ -57,6 +65,7 @@ same judgment call from scratch each time.
 ## Output (exact JSON, nothing else)
 { "difficulty": "standard", "areas": ["ui"], "risk": "low",
   "engineModel": "sonnet", "engineEffort": "high",
+  "planModel": "fable",
   "docs": ["docs/constraints/UI_SHELL_CONSTRAINTS.md"],
   "codeMapHits": ["- `src/hooks/useLeaderboard.ts` — ..."],
   "attachments": [],

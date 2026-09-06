@@ -25,7 +25,7 @@ The "meeting" is an artifact. No code until sign-off.
    builds from it. This is not optional and not only for `hard`: the build stage runs on
    sonnet (`classify.engineModel`) and executes the plan rather than reasoning it out, so
    anything the plan leaves implicit is exactly what the engine will get wrong. You are the
-   heavy model here (fable) — spend the thinking now.
+   heavy model here (fable, or Opus 4.8 when the spec was detailed) — spend the thinking now.
    If `superpowers:writing-plans` is in your skill listing (local runs only — it is a
    machine-local plugin, absent on cloud routines), load it and write the plan with it at the
    depth it prescribes. Never `superpowers:brainstorming`: it gates on human approval, which an

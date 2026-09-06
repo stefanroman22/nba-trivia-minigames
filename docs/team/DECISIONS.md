@@ -53,3 +53,20 @@ Consequences: no repo surface can spawn opus. The cloud worker routine's model l
 claude.ai routine settings, not in this repo — it has to be switched to Fable 5.1 by hand and
 cannot be enforced from here. Long-and-vague plans remain a plan defect, never an engine
 upgrade.
+
+## 2026-09-06 — Opus 4.8 reinstated for planning detailed specs; Opus 5 ban made enforceable
+Context: hours after the entry above, the owner narrowed the ban to Opus 5 and asked for Opus
+4.8 on design rounds where the task comes with detailed instructions (Anthropic's own
+guidance: 4.8 is strongest when the full spec is given up front in one pass). Research into
+Claude Code's model resolution found the `opus` alias now means Opus 5, the spawn-call
+`model` parameter is alias-only in practice, subagent frontmatter accepts full ids, and
+precedence is spawn param → frontmatter → `CLAUDE_CODE_SUBAGENT_MODEL` → parent — so the
+README's claim that the engine profile overrides frontmatter was wrong.
+Decision: `planModel` returns as `opus-4.8 | fable` (detailed spec vs thin), used for the
+design round and replan only; Opus 4.8 is reached solely via a new `planner-architect-opus`
+agent whose frontmatter pins `claude-opus-4-8`, spawned with no model parameter. Review, CTO
+gate and classify stay on fable. `Agent(model:opus)` and `Agent(model:claude-opus-5)` are
+denied in `.claude/settings.json` so the banned model cannot be spawned by mistake. README
+corrected.
+Consequences: the ban is now enforced by the harness, not by prose. The `npm run engine`
+profile's `subagentModel` is documented as a fallback that rarely decides anything.

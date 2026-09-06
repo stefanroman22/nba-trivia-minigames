@@ -8,5 +8,11 @@
   "env": {
     "CLAUDE_CODE_SUBAGENT_MODEL": "sonnet",
     "CLAUDE_CODE_EFFORT_LEVEL": "high"
+  },
+  "permissions": {
+    "deny": [
+      "Agent(model:opus)",
+      "Agent(model:claude-opus-5)"
+    ]
   }
 }
