@@ -8,7 +8,7 @@ import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
-import { useGoogleLogin } from '@react-oauth/google';
+import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { AnimatePresence, motion } from 'framer-motion';
 
 interface LogInSignUpProps {
@@ -158,8 +158,8 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
                 className="modal-input"
                 required
                 pattern="[A-Za-z0-9_]{3,20}"
-                title="3-20 characters: letters, numbers or underscores. Names don't have to be unique — you'll get a permanent #ID that tells players apart."
-                placeholder="Username (any name — you'll get a unique #ID)"
+                title="3-20 characters: letters, numbers or underscores. Names don't have to be unique."
+                placeholder="Username (any name)"
                 value={signupUsername}
                 onChange={(e) => setSignupUsername(e.target.value)}
                 initial={{ opacity: 0, y: -8 }}
@@ -260,4 +260,12 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
   );
 }
 
-export default LogInSignUp;
+// Provider lives here (not app-wide in app/providers.tsx) so Google's gsi/client script
+// only loads when the login modal actually mounts.
+export default function LogInSignUpWithGoogle(props: LogInSignUpProps) {
+  return (
+    <GoogleOAuthProvider clientId="504454176332-ut7po2glf32fv3dajltgnb5aho65er7i.apps.googleusercontent.com">
+      <LogInSignUp {...props} />
+    </GoogleOAuthProvider>
+  );
+}

@@ -245,7 +245,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
       }, 1500);
     } else {
       setFlipped(1 + newWrong); // each miss flips the next card
-      flashPopup("Not him — next stop revealed", "var(--bad)");
+      flashPopup("Not him.", "var(--bad)");
     }
   };
 

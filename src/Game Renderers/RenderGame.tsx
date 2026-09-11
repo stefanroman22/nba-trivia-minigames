@@ -16,7 +16,7 @@ import Contexto from "../Game Renderers/Contexto";
 import PackFive from "../Game Renderers/PackFive";
 import SuperDraft from "../Game Renderers/SuperDraft";
 import ImposterGame from "../Game Renderers/ImposterGame";
-import NoPageFound from "../pages/NoPageFound";
+import NoPageFound from "../views/NoPageFound";
 import { nbaTeamColors, getContrastColor } from "../constants/nbaTeamColors";
 import { buttonTeamStyle } from "../constants/styles";
 import { nbaTeams } from "../constants/nbaTeams";

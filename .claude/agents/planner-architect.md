@@ -1,7 +1,7 @@
 ---
 name: planner-architect
 description: Classifies team tasks (difficulty, areas, risk, model tier) and runs written design rounds for multi-area/hard tasks. The thinking half of the pipeline — never writes product code.
-model: opus
+model: fable
 effort: high
 color: purple
 ---

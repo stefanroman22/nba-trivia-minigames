@@ -1,8 +1,11 @@
 // utils/alerts.ts (or any common file)
-import Swal from "sweetalert2";
+// sweetalert2 is dynamically imported: alerts only fire on user actions, so the
+// library (~16KB gz) stays out of the startup bundle.
+const getSwal = async () => (await import("sweetalert2")).default;
 
-export function showErrorAlert(message: string, title: string = "Error", confirmButtonText: string = "Try Again") {
-  Swal.fire({
+export async function showErrorAlert(message: string, title: string = "Error", confirmButtonText: string = "Try Again") {
+  const Swal = await getSwal();
+  return Swal.fire({
     icon: "error",
     title,
     html: `<p style="font-size: 0.95rem; margin-top: 0.5rem;">${message}</p>`,
@@ -20,7 +23,8 @@ export function showErrorAlert(message: string, title: string = "Error", confirm
   });
 }
 
-export function showNewUserAlert(username: string) {
+export async function showNewUserAlert(username: string) {
+  const Swal = await getSwal();
   Swal.fire({
     icon: 'success',
     title: 'Account Created!',

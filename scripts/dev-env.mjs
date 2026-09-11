@@ -3,11 +3,11 @@
  *
  * Run automatically before `npm run dev` (see package.json "predev"). Each service
  * is resolved independently: if the local port answers we use it, otherwise we fall
- * back to the deployed one. Vite merges env files with LATER winning: .env, then
- * .env.local, then .env.${mode}, then .env.${mode}.local — so .env.local only wins
- * because no .env.development file exists today. If one is ever added, it will
- * silently outrank this script's .env.local and the fallback stops working with no
- * error anywhere. An inline `VITE_*=... npm run dev` env var outranks every file.
+ * back to the deployed one. Next.js loads env files with .env.local outranking
+ * .env.development and .env (only .env.development.local and the process env rank
+ * higher), so this script's .env.local wins over the committed files. An inline
+ * `VITE_*=... npm run dev` env var outranks every file. next.config.ts inlines the
+ * VITE_* names into the browser bundle.
  *
  * .env.local is generated output: gitignored, rewritten every run, never read back.
  *

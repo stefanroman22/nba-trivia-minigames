@@ -7,6 +7,7 @@ import { logout, updateProfilePhoto, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
 import socket from "../socket";
 import { AnimatePresence, motion } from "framer-motion";
+import SwapText from "./motion/SwapText";
 import { BACKEND_URL } from "../configurations/backend";
 import defaultAvatar from "../assets/default.png";
 
@@ -67,7 +68,11 @@ function UserProfile() {
         dispatch(updateUsername(previousUsername));
         setTempUsername(previousUsername);
         setSaveState("idle");
-        showErrorAlert(data.error, "Username change failed");
+        // The name never changed — reopen the editor on the original value,
+        // focused, once the error alert is dismissed.
+        setIsEditing(true);
+        await showErrorAlert(data.error, "Username change failed");
+        usernameInputRef.current?.focus();
       } else {
         setSaveState("saved");
         if (savedTimer.current) window.clearTimeout(savedTimer.current);
@@ -77,7 +82,9 @@ function UserProfile() {
       dispatch(updateUsername(previousUsername));
       setTempUsername(previousUsername);
       setSaveState("idle");
-      showErrorAlert("Could not reach the server. Please try again.", "Username change failed");
+      setIsEditing(true);
+      await showErrorAlert("Could not reach the server. Please try again.", "Username change failed");
+      usernameInputRef.current?.focus();
     }
   };
 
@@ -153,8 +160,8 @@ function UserProfile() {
           <AnimatePresence mode="wait">
             <motion.img
               key={user?.profile_photo || "default"}
-              src={user?.profile_photo || defaultAvatar}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar; }}
+              src={user?.profile_photo || defaultAvatar.src}
+              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
               alt="Profile"
               initial={{ opacity: 0, scale: 1.06 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -208,18 +215,9 @@ function UserProfile() {
                 }
               }}
             >
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.span
-                  key={isEditing ? "confirm" : saveState}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                  style={{ display: "inline-block" }}
-                >
-                  {isEditing ? "Confirm" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Change"}
-                </motion.span>
-              </AnimatePresence>
+              <SwapText swapKey={isEditing ? "confirm" : saveState}>
+                {isEditing ? "Confirm" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Change"}
+              </SwapText>
             </button>
           </div>
           <input
@@ -231,7 +229,7 @@ function UserProfile() {
             onChange={(e) => setTempUsername(e.target.value)}
             className={`profile-input profile-username${
               (isEditing && tempUsername !== (user?.username || "")) || saveState !== "idle" ? " is-active" : ""
-            }${saveState === "saved" ? " is-saved" : ""}`}
+            }`}
           />
         </div>
 
@@ -239,10 +237,10 @@ function UserProfile() {
           <div className="profile-field-label">
             <span>Player ID</span>
             <button className="profile-edit-btn" onClick={copyPlayerId}>
-              {idCopied ? "Copied!" : "Copy"}
+              <SwapText>{idCopied ? "Copied!" : "Copy"}</SwapText>
             </button>
           </div>
-          <div className="profile-value profile-value--muted tnum" title="Your permanent ID — share it so friends can tell you apart from same-named players.">
+          <div className="profile-value profile-value--muted tnum" title="Your permanent ID.">
             #{user?.id}
           </div>
         </div>

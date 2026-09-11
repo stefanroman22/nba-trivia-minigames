@@ -22,6 +22,23 @@ Check the `TEAM_CLOUD` environment variable once at the start.
   `scripts/qa-browser.mjs`, never the user's Chrome, so it is not a local-only stage. The
   only cloud difference is that the deps step installs the browser first.
 
+## Model policy
+Opus 5 is **banned** in this pipeline: never pass the `opus` alias (it resolves to Opus 5 and is
+denied in `.claude/settings.json`), never fall back to it. The one permitted Opus is 4.8, and
+only for planning, reached solely through the `planner-architect-opus` agent whose frontmatter
+pins `claude-opus-4-8` — spawn that agent with NO model parameter. Every other spawn names its
+model explicitly. Fable 5.1 does the thinking, sonnet does the typing, haiku does the trivia
+(`docs/team/DECISIONS.md` 2026-09-06 entries).
+- planner-architect (classify): `fable`. Design-round and replan: per `classify.planModel` —
+  `fable` → planner-architect (model fable); `opus-4.8` → planner-architect-opus (no model
+  parameter).
+- frontend-engine / backend-engine: the design doc's `Engine:` line when a design round ran,
+  else `classify.engineModel` — `haiku` (trivial), `sonnet` (clearly defined steps with
+  acceptance criteria, any length), `fable` (few steps, each needing real judgment).
+- test-qa-engine and browser-qa: `sonnet`, always. Never fable.
+- code-reviewer: `fable`, always.
+- CTO review (GitHub Actions): `fable`, pinned in `.github/workflows/claude.yml`.
+
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
 - `node scripts/notion.mjs check-pause` — exit code 3 → say "paused" and STOP.
@@ -58,7 +75,7 @@ slug = kebab-case title, ≤30 chars.
 
 **claim** → `node scripts/notion.mjs claim <id>`; journal stage=classify.
 
-**classify** → spawn planner-architect (model opus) with the classify skill, the card
+**classify** → spawn planner-architect (model fable) with the classify skill, the card
 title/areas, and `get-spec` output. Parse its JSON. journal stage=workspace.
 
 **workspace** → `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> dev`
@@ -81,29 +98,38 @@ journal stage=design|build.
    fails log one line and let the qa stage skip. The routine's setup script may be empty/no-op;
    the pipeline is responsible for its own dependencies in cloud mode.
 
-**design** (only if classify.needsDesignRound) → spawn planner-architect with
-design-round skill. If it parks (design deadlock) → park procedure. journal stage=build.
+**design** (only if classify.needsDesignRound) → spawn the planner per classify.planModel
+(fable → planner-architect with model fable; opus-4.8 → planner-architect-opus with no
+model parameter) with design-round skill. If it parks (design deadlock) → park
+procedure. journal stage=build.
 
 **build** → per involved area spawn the engine agent (frontend-engine and/or
-backend-engine) with model=classify.engineModel, effort=classify.engineEffort.
-Prompt MUST include: spec text, design doc path (if any), classify.docs (tell them to
-read those files first), classify.codeMapHits verbatim, and the line
-"Reuse-first: duplicating a CODE_MAP entry is a review-reject." Work happens in the
-worktree path. journal stage=verify.
+backend-engine) with model = the design doc's `Engine:` line if a design round ran, else
+classify.engineModel (haiku, sonnet, or fable — never opus),
+effort=classify.engineEffort.
+Prompt MUST include: spec text, design doc path (if any) plus the line "Implement its
+`## Implementation plan` step by step; do not re-plan", classify.docs (tell them to
+read those files first), classify.codeMapHits verbatim, classify.attachments (if
+non-empty — absolute paths to images pulled from the card; tell the engine to Read
+each one before implementing, they are the visual source of truth for this task), and
+the line "Reuse-first: duplicating a CODE_MAP entry is a review-reject." Work happens
+in the worktree path. journal stage=verify.
 
-**verify** → spawn test-qa-engine in the worktree. Fail → send failures back to the
-engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn planner-architect with the
-failure history, get a revised approach, reset to build (replanned=true). Fails again →
-park. journal stage=qa.
+**verify** → spawn test-qa-engine (model sonnet) in the worktree. Fail → send failures
+back to the engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn the same planner the
+design stage used (classify.planModel) with the failure history, get a revised approach, reset to
+build (replanned=true). Fails again → park. journal stage=qa.
 
-**qa** → if diff touches src/ or backend/: spawn browser-qa with qa-protocol skill.
-Fail → build (counts toward fixCycles). journal stage=review.
+**qa** → if diff touches src/ or backend/: spawn browser-qa (model sonnet — never
+fable) with qa-protocol skill. Fail → build (counts toward fixCycles). journal
+stage=review.
    **[CLOUD]** Runs here too — QA is headless Playwright (`scripts/qa-browser.mjs`), not the
    user's Chrome, so it works on a routine VM. The cloud deps step installs the browser.
    If the browser genuinely cannot be installed, treat QA as skipped (log one line, continue
    to review) rather than failing the task — never park a task over QA infrastructure.
 
-**review** → spawn code-reviewer (model opus) on the worktree diff
+**review** → spawn code-reviewer (model fable — never sonnet: the implementer was cheap,
+this pass is where the heavy model checks the work) on the worktree diff
 (`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build
 (counts toward fixCycles). "minor"/"nit" findings are noted in the PR body but do not block ship. journal stage=ship.
 

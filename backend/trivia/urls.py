@@ -8,6 +8,7 @@ from .views import (
     get_fan_favorites,
     log_guesses,
     log_session,
+    submit_feedback,
     get_manifest,
     get_pool,
 )
@@ -24,6 +25,7 @@ urlpatterns = [
     path('fan-favorites/', get_fan_favorites, name='fan-favorites'),
     path('log-guesses/', log_guesses, name='log-guesses'),
     path('log-session/', log_session, name='log-session'),
+    path('feedback/', submit_feedback, name='submit-feedback'),
     path('manifest/', get_manifest, name='manifest'),
     path('pool/<str:game>/', get_pool, name='pool'),
 ]

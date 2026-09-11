@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny
 
 from trivia.models import (
     FanFavoritesQuestion,
+    Feedback,
     GameSession,
     GuessLog,
     Mvp,
@@ -17,7 +18,7 @@ from trivia.models import (
     StartingFiveGame,
     Team,
 )
-from backend.throttles import ScoreSubmitRateThrottle
+from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle
 from users import leaderboard
 from trivia.data_pipeline.live_pool import load_dataset
 from trivia.data_pipeline.starting_five import (
@@ -316,6 +317,57 @@ def log_session(request):
         'points': user.points if user is not None else 0,
         'rank': user.rank if user is not None else None,
     })
+
+
+# Long enough for a genuinely detailed report, short enough that the column
+# can't be used as free storage.
+_MAX_FEEDBACK_CHARS = 2000
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([FeedbackRateThrottle])
+def submit_feedback(request):
+    """Store one rating (1–5) plus an optional message from the feedback modal.
+
+    Open to guests on purpose — the modal says "no account needed", and the
+    ratings from players who never signed up are exactly the ones that would
+    otherwise go unheard. Signed-in senders are identified from the JWT, never
+    from the body, so nobody can file feedback under someone else's name.
+    """
+    body = request.data or {}
+    try:
+        rating = int(body.get("rating", 0))
+    except (TypeError, ValueError):
+        return JsonResponse({"error": "rating must be a whole number 1–5"}, status=400)
+    if not 1 <= rating <= 5:
+        return JsonResponse({"error": "rating must be between 1 and 5"}, status=400)
+
+    message = str(body.get("message") or "").strip()[:_MAX_FEEDBACK_CHARS]
+    user = request.user if request.user.is_authenticated else None
+
+    if user is not None:
+        # Trust the token, not the payload.
+        email, display_name, public_id = user.email, user.username, user.public_id
+    else:
+        # Guests may leave an address so they can be replied to; it is optional
+        # and never verified, so it is stored as given and shown as unverified.
+        email = str(body.get("email") or "").strip()[:254]
+        if "@" not in email:
+            email = ""
+        display_name, public_id = "", ""
+
+    entry = Feedback.objects.create(
+        user=user,
+        email=email,
+        display_name=display_name,
+        public_id=public_id,
+        rating=rating,
+        message=message,
+        page=str(body.get("page") or "")[:120],
+        game=str(body.get("game") or "")[:40],
+    )
+    return JsonResponse({"ok": True, "id": entry.id}, status=201)
 
 
 def _game_data_dir():

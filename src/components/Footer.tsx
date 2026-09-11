@@ -15,11 +15,11 @@ export default function Footer() {
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-3 max-w-md">
           <div className="flex items-center gap-2">
-            <img src={logo} alt="Logo" className="w-8 h-8" />
+            <img src={logo.src} alt="Logo" className="w-8 h-8" />
             <h2 className="text-lg font-semibold tracking-wider">HOOPS24</h2>
           </div>
           <p className="text-gray-300 text-sm leading-relaxed">
-            Test your NBA knowledge with our fast-paced trivia minigames — guess playoff winners, relive legendary moments, and climb the leaderboard to prove you’re the ultimate basketball fan!
+            Test your NBA knowledge with our fast-paced trivia minigames.
           </p>
         </div>
 

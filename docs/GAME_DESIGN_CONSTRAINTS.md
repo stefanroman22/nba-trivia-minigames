@@ -267,9 +267,17 @@ Pressing Play always produces the **same** screen (image 1). No per-game loader.
 - Render is exactly `<CourtLoader label="Warming up the court…" />` — **`scale: 1`** (default).
 
 `CourtLoader` internals (scale 1): wrapper `flex column`, `align-items:center`, `gap:14px`;
-stage box `90×118`; backboard/rim SVG `80×70`; ball `26×26` running
-`shoot 1.45s cubic-bezier(.4,.05,.55,.95) infinite`; net running `netSway 1.45s ease-in-out infinite`;
-label `font-size:14px`, `color:var(--muted)`, `letter-spacing:.3px`, `loaderPulse 1.25s ease-in-out infinite`.
+stage box `90×118` carrying `--s` (the scale) so keyframe distances are `calc(Npx * var(--s))`;
+three stacked layers — back SVG `80×70` (backboard, full rim, far net strands at `opacity:.35`),
+the ball, then a front SVG `80×70` (near rim arc + near net strands at `opacity:.8`) so the ball
+visibly drops *through* the hoop; ball `26×26`, radial-gradient shaded (`#ffb266 → #ff7a1a → #bf4a0b`)
+with `drop-shadow(0 3px 3px rgba(0,0,0,.38))`. One **1.6 s** cycle shared by four keyframes:
+`clBallX` (linear, constant horizontal velocity, fades in 0–6% and out 74–80%),
+`clBallY` (quadratic ease-out up to the apex at 38%, quadratic ease-in down — a real parabola;
+rim at ~64%, clears the net ~71%, 80–100% is the reset), `clBallSpin` (linear `-600deg` backspin),
+`clNetSwish` (net `scaleY`+`skewX` whip starting at 63%, ringing down by 88%).
+Label `font-size:14px`, `color:var(--muted)`, `letter-spacing:.3px`, `loaderPulse 1.25s ease-in-out infinite`.
+Reduced motion: no animations; the ball rests in the net.
 
 Use `Spinner` (not `CourtLoader`) for small inline spots — see §7.
 
@@ -583,6 +591,8 @@ winner else `var(--muted)`.
 - Wrong → a short statement of the truth, in `var(--bad)` — e.g. `It was the ${winner}`,
   `Not on the board`. Never a bare "Wrong".
 - Neutral/no-op → `var(--muted)` (e.g. `Already tried`).
+- Never a distinct "Out of lives" / "Game over" announcement on the guess that empties the last
+  life — see RULE 6.3.
 
 **Styling is fixed:** `.font-accent`, `font-size:14px`, `weight:700`, animated
 `initial {opacity:0, y:6}` → `animate {opacity:1, y:0}` (and `exit {opacity:0, y:6}`).
@@ -669,6 +679,27 @@ new ResizeObserver(() => seen.add(gf.getBoundingClientRect().height.toFixed(2)))
 // …play a round with one correct and one wrong answer…
 seen.size === 1   // MUST be true
 ```
+
+### RULE 6.3 — Lives running out is never announced in the feedback popup. **HARD RULE.**
+
+When a wrong guess drops a game's remaining lives to zero, do **not** flash an "Out of lives" /
+"Game over" / "Run over" style message through `SubmitGuessPopup`. The lives indicator (hearts, a
+miss counter, etc.) already tracks this in real time, and the loss is always followed immediately
+by the §7b reveal sequence (or, for standard-path games, the §7a result screen) — a third message
+announcing the same fact is redundant on top of two other signals the player already sees.
+
+The ordinary wrong-guess copy from the "Copy format is fixed" list above (`Not on the board`,
+`It was the ${winner}`, etc.) still fires normally right up to and including the guess that empties
+the last life — or the popup can be skipped for that guess entirely. Only a distinct "you've lost /
+you're out of lives" string is disallowed.
+
+❌ `setPopUpInfo({ Text: "Out of lives", Color: "var(--bad)" })` on the life-ending guess.
+❌ `flashPopup("Two misses — run over", "var(--bad)")` on the life-ending guess.
+✅ Skip the popup call on the life-ending guess (or reuse the plain wrong-guess copy) and go
+straight into the reveal/result flow.
+
+This does **not** apply to a warning shown *before* the last life is spent (e.g. Pack 5's
+`"Missed."`) — that's ordinary in-play feedback, not a game-over announcement.
 
 ---
 
@@ -836,7 +867,7 @@ apply. These are reviewed and intentional:
 
 ## Adding a game — the 4 touchpoints
 
-1. Route in `App.tsx`
+1. Nothing to route by hand — `src/app/[game]/page.tsx` serves every `urlPath` in `games[]` (`generateStaticParams`)
 2. `Game` entry in `src/utils/GameUtils.tsx` — `id`, `name`, `tag`, `description`, `intro`, `rules`,
    `instruction`, `loadingMessage`, `backgroundImage`, `urlPath`, `pointsPerCorrect`, `maxPoints`,
    `fetchData`, `handleError`

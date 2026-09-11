@@ -1,6 +1,5 @@
 
 import type { Game } from "../types/types";
-import Swal from "sweetalert2";
 import { fetchGamePool, fetchWholePool } from "./pool";
 import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
 import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
@@ -24,7 +23,8 @@ import thumb_pack_five from "../assets/Games Backrounds/thumb_pack_five.jpg";
 import thumb_superdraft from "../assets/Games Backrounds/thumb_superdraft.jpg";
 import thumb_imposter from "../assets/Games Backrounds/thumb_imposter.jpg";
 
-export const handleErrorDefault = (error: { title: string; message: string }) => {
+export const handleErrorDefault = async (error: { title: string; message: string }) => {
+  const Swal = (await import("sweetalert2")).default; // out of the startup bundle
   Swal.fire({
     icon: "error",
     title: error.title,
@@ -85,7 +85,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "Two teams from a real playoff series are shown each round." },
       { n: "2", t: "Tap the team you think won that series." },
-      { n: "3", t: "5 rounds per game — 10 points for every correct call." },
+      { n: "3", t: "5 rounds per game. 10 points for every correct call." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -99,7 +99,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching playoff series...",
-    backgroundImage: `url('${playoffSeriesBg}')`,
+    backgroundImage: `url('${playoffSeriesBg.src}')`,
     urlPath: "/series-winner",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -115,7 +115,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "A team logo appears each round." },
       { n: "2", t: "Type or pick the matching franchise." },
-      { n: "3", t: "5 rounds — 10 points per correct answer." },
+      { n: "3", t: "5 rounds. 10 points per correct answer." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -129,7 +129,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching logos...",
-    backgroundImage: `url('${guessLogoBg}')`,
+    backgroundImage: `url('${guessLogoBg.src}')`,
     urlPath: "/name-logo",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -145,7 +145,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "A specific season is shown." },
       { n: "2", t: "Choose the player who won MVP that year." },
-      { n: "3", t: "5 seasons — 10 points per correct answer." },
+      { n: "3", t: "5 seasons. 10 points per correct answer." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -159,7 +159,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching seasons...",
-    backgroundImage: `url('${mvpBg}')`,
+    backgroundImage: `url('${mvpBg.src}')`,
     urlPath: "/guess-mvps",
     pointsPerCorrect: 10,
     maxPoints: 50,
@@ -171,7 +171,7 @@ export const games: Game[] = [
     name: "Fill in the Starting 5",
     tag: "LINEUPS",
     description: "Remember who actually started that night.",
-    intro: "Be the coach's memory — name the full starting five of the winning team.",
+    intro: "Be the coach's memory.",
     rules: [
       { n: "1", t: "A real game and its winner are shown." },
       { n: "2", t: "Fill all 5 positions (PG, SG, SF, PF, C)." },
@@ -190,7 +190,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: `url('${startingFiveBg}')`,
+    backgroundImage: `url('${startingFiveBg.src}')`,
     urlPath: "/starting-five",
     pointsPerCorrect: 10,
     maxPoints: 100,
@@ -202,7 +202,7 @@ export const games: Game[] = [
     name: "NBA Wordle",
     tag: "DAILY",
     description: "Guess the NBA player using Wordle rules.",
-    intro: "The classic word game for hoops fans — guess the player's last name.",
+    intro: "The classic word game for hoops fans.",
     rules: [
       { n: "1", t: "Green = right letter & spot, yellow = wrong spot, gray = not in name." },
       { n: "2", t: "You have 5 attempts to solve it." },
@@ -221,7 +221,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: `url('${wordleBg}')`,
+    backgroundImage: `url('${wordleBg.src}')`,
     urlPath: "/wordle",
     pointsPerCorrect: 10,
     maxPoints: 500,
@@ -235,13 +235,13 @@ export const games: Game[] = [
     description: "Can you find out what other 100 NBA fans answered?",
     intro: "Think like the crowd. The most popular answers score the board.",
     rules: [
-      { n: "1", t: "We asked 100 NBA fans a question — their top answers are hidden on the board." },
-      { n: "2", t: "Type answers to reveal them. 3 hearts — a miss costs one." },
+      { n: "1", t: "We asked 100 NBA fans a question. Their top answers are hidden on the board." },
+      { n: "2", t: "Type answers to reveal them. 3 hearts. A miss costs one." },
       { n: "3", t: "Clear the whole board for 300 points." },
     ],
     instruction: `
       <div class="space-y-2">
-        <p>Think like the crowd. We asked 100 NBA fans a question — can you find every answer they gave?</p>
+        <p>Think like the crowd. We asked 100 NBA fans a question. Can you find every answer they gave?</p>
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Reveal every hidden answer on the survey board.</li>
           <li><strong>Lives:</strong> You have 3 hearts. A guess that's not on the board costs 1.</li>
@@ -251,7 +251,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Surveying the fans...",
-    backgroundImage: `url('${thumb_fan_favorites}')`,
+    backgroundImage: `url('${thumb_fan_favorites.src}')`,
     urlPath: "/fan-favorites",
     pointsPerCorrect: 50,
     maxPoints: 300,
@@ -263,25 +263,25 @@ export const games: Game[] = [
     name: "The Heatmap",
     tag: "HEX",
     description: "Claim the board one hex at a time.",
-    intro: "A board of NBA criteria — every claimed hex turns orange. How deep can you push?",
+    intro: "A board of NBA criteria.",
     rules: [
-      { n: "1", t: "Tap a hex — each one is an NBA criterion (team, award, stat, draft…)." },
+      { n: "1", t: "Tap a hex. Each one is an NBA criterion (team, award, stat, draft…)." },
       { n: "2", t: "Name a player who fits that hex AND every neighbouring hex." },
-      { n: "3", t: "+50 per claimed hex — profile points cap at 300 per session." },
+      { n: "3", t: "+50 per claimed hex. Profile points cap at 300 per session." },
     ],
     instruction: `
       <div class="space-y-2">
         <p>A hex board of NBA criteria. Claim territory by naming the right players.</p>
         <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Goal:</strong> Claim hexes — a valid player must match the hex <strong>and all its neighbours</strong>.</li>
+          <li><strong>Goal:</strong> Claim hexes. A valid player must match the hex <strong>and all its neighbours</strong>.</li>
           <li><strong>Scoring:</strong> +50 points per claimed hex (profile contribution capped at 300).</li>
-          <li><strong>Tip:</strong> Corner hexes have fewer neighbours — start there.</li>
+          <li><strong>Tip:</strong> Corner hexes have fewer neighbours. Start there.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
     `,
     loadingMessage: "Heating up the hexes...",
-    backgroundImage: `url('${thumb_heatmap}')`,
+    backgroundImage: `url('${thumb_heatmap.src}')`,
     urlPath: "/heatmap",
     pointsPerCorrect: 50,
     maxPoints: 300,
@@ -296,22 +296,22 @@ export const games: Game[] = [
     intro: "Four hidden connections tie the board together. Spot the traps.",
     rules: [
       { n: "1", t: "Select exactly 4 players you think share a link, then submit." },
-      { n: "2", t: "5 hearts — a wrong group costs one. 'One away!' means 3 of 4." },
-      { n: "3", t: "+50 per solved group — clear the board for 200." },
+      { n: "2", t: "5 hearts. A wrong group costs one. 'One away!' means 3 of 4." },
+      { n: "3", t: "+50 per solved group. Clear the board for 200." },
     ],
     instruction: `
       <div class="space-y-2">
         <p>Sixteen NBA players, four secret groups. Find what connects them.</p>
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Submit groups of 4 players sharing a hidden link.</li>
-          <li><strong>Lives:</strong> 5 hearts — each wrong submission costs 1.</li>
+          <li><strong>Lives:</strong> 5 hearts. Each wrong submission costs 1.</li>
           <li><strong>Reward:</strong> 50 points per group, 200 for a clean board.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
     `,
     loadingMessage: "Shuffling the board...",
-    backgroundImage: `url('${thumb_connections}')`,
+    backgroundImage: `url('${thumb_connections.src}')`,
     urlPath: "/connections",
     pointsPerCorrect: 50,
     maxPoints: 200,
@@ -325,7 +325,7 @@ export const games: Game[] = [
     description: "Whose career path is this?",
     intro: "One career, card by card. Name the player before the trail runs out.",
     rules: [
-      { n: "1", t: "The first team stint is revealed — years, team, GP, PPG." },
+      { n: "1", t: "The first team stint is revealed: years, team, GP, PPG." },
       { n: "2", t: "Each wrong guess flips the next card. Guesses = number of teams." },
       { n: "3", t: "Score = unused cards × 100. Run out and it's 0." },
     ],
@@ -334,14 +334,14 @@ export const games: Game[] = [
         <p>Follow the journey. A mystery player's career unfolds one team card at a time.</p>
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Name the player from as few revealed stints as possible.</li>
-          <li><strong>Guesses:</strong> One per team on his path — each miss flips a card.</li>
+          <li><strong>Guesses:</strong> One per team on his path. Each miss flips a card.</li>
           <li><strong>Reward:</strong> 100 points per card you didn't need.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
     `,
     loadingMessage: "Tracing the career path...",
-    backgroundImage: `url('${thumb_career_path}')`,
+    backgroundImage: `url('${thumb_career_path.src}')`,
     urlPath: "/career-path",
     pointsPerCorrect: 100,
     maxPoints: 700,
@@ -356,7 +356,7 @@ export const games: Game[] = [
     intro: "Nine cells, nine guesses. Rare answers earn the bragging rights.",
     rules: [
       { n: "1", t: "Each cell crosses two criteria (franchise, award, stat, draft…)." },
-      { n: "2", t: "9 guesses total — a wrong answer burns one." },
+      { n: "2", t: "9 guesses total. A wrong answer burns one." },
       { n: "3", t: "+30 per cell (270 perfect) + a rarity score for your share card." },
     ],
     instruction: `
@@ -364,14 +364,14 @@ export const games: Game[] = [
         <p>The classic criteria grid. Every cell needs a player who fits its row AND column.</p>
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Fill all 9 cells with valid players.</li>
-          <li><strong>Guesses:</strong> 9 total — wrong answers burn one.</li>
+          <li><strong>Guesses:</strong> 9 total. Wrong answers burn one.</li>
           <li><strong>Reward:</strong> 30 points per cell; rare picks lower your rarity score.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
     `,
     loadingMessage: "Drawing the grid...",
-    backgroundImage: `url('${thumb_nba_grid}')`,
+    backgroundImage: `url('${thumb_nba_grid.src}')`,
     urlPath: "/nba-grid",
     pointsPerCorrect: 30,
     maxPoints: 270,
@@ -385,7 +385,7 @@ export const games: Game[] = [
     description: "Find the player with hints and a blurred image.",
     intro: "Blur, clues, deduction. Unmask the mystery player in as few guesses as you can.",
     rules: [
-      { n: "1", t: "Guess any player — attributes come back green (exact) or yellow (close)." },
+      { n: "1", t: "Guess any player. Attributes come back green (exact) or yellow (close)." },
       { n: "2", t: "Every miss sharpens the photo. 8 guesses max." },
       { n: "3", t: "Solve early: 240 points minus 30 per wrong guess." },
     ],
@@ -393,7 +393,7 @@ export const games: Game[] = [
       <div class="space-y-2">
         <p>Unmask the mystery player. The photo starts heavily blurred and sharpens with every miss.</p>
         <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Clues:</strong> Team, position, age, jersey, draft — green exact, yellow close, arrows for direction.</li>
+          <li><strong>Clues:</strong> Team, position, age, jersey, draft. Green exact, yellow close, arrows for direction.</li>
           <li><strong>Guesses:</strong> 8 attempts.</li>
           <li><strong>Reward:</strong> 240 points, −30 per wrong guess.</li>
         </ul>
@@ -401,7 +401,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Blurring the mystery player...",
-    backgroundImage: `url('${thumb_who_are_ya}')`,
+    backgroundImage: `url('${thumb_who_are_ya.src}')`,
     urlPath: "/who-are-ya",
     pointsPerCorrect: 30,
     maxPoints: 240,
@@ -425,13 +425,13 @@ export const games: Game[] = [
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Claim three cells in a row by naming valid players.</li>
           <li><strong>Turns:</strong> 25s each; time out and the turn passes.</li>
-          <li><strong>Steals:</strong> 3 per player — retake a cell with a different valid answer.</li>
+          <li><strong>Steals:</strong> 3 per player. Retake a cell with a different valid answer.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
     `,
     loadingMessage: "Chalking the duel board...",
-    backgroundImage: `url('${thumb_tictactoe}')`,
+    backgroundImage: `url('${thumb_tictactoe.src}')`,
     urlPath: "/tictactoe",
     pointsPerCorrect: 25,
     maxPoints: 225,
@@ -445,15 +445,15 @@ export const games: Game[] = [
     description: "Fill your card before the pack runs out.",
     intro: "Allocation is the tension: a superstar fits six cells but can only dab one.",
     rules: [
-      { n: "1", t: "Players are dealt one at a time — dab each onto exactly one matching cell." },
+      { n: "1", t: "Players are dealt one at a time. Dab each onto exactly one matching cell." },
       { n: "2", t: "A wrong dab skips your next deal." },
-      { n: "3", t: "Complete the card before the deck runs out — up to 200 points." },
+      { n: "3", t: "Complete the card before the deck runs out. Up to 200 points." },
     ],
     instruction: `
       <div class="space-y-2">
         <p>A 16-category bingo card and a deck of player cards. Spend your stars wisely.</p>
         <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Goal:</strong> Fill the card — each dealt player dabs exactly one matching cell.</li>
+          <li><strong>Goal:</strong> Fill the card. Each dealt player dabs exactly one matching cell.</li>
           <li><strong>Penalty:</strong> A wrong dab skips your next deal.</li>
           <li><strong>Reward:</strong> Up to 200 points, scaled by turns used.</li>
         </ul>
@@ -461,7 +461,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Dealing the bingo card...",
-    backgroundImage: `url('${thumb_bingo}')`,
+    backgroundImage: `url('${thumb_bingo.src}')`,
     urlPath: "/bingo",
     pointsPerCorrect: 10,
     maxPoints: 200,
@@ -475,7 +475,7 @@ export const games: Game[] = [
     description: "Every guess brings you closer to the truth.",
     intro: "No fail state, just a similarity radar. Home in on the secret player.",
     rules: [
-      { n: "1", t: "Guess any player — you get a similarity rank (#1 is the answer)." },
+      { n: "1", t: "Guess any player. You get a similarity rank (#1 is the answer)." },
       { n: "2", t: "Franchise, era, position, draft and stats drive the similarity." },
       { n: "3", t: "200 points, −5 per guess past your tenth." },
     ],
@@ -483,7 +483,7 @@ export const games: Game[] = [
       <div class="space-y-2">
         <p>A secret player is hiding. Every guess tells you how warm you are.</p>
         <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Goal:</strong> Reach rank #1 — the secret player.</li>
+          <li><strong>Goal:</strong> Reach rank #1, the secret player.</li>
           <li><strong>Guesses:</strong> Unlimited; the rank guides you closer.</li>
           <li><strong>Reward:</strong> 200 points, −5 per guess after the tenth.</li>
         </ul>
@@ -491,7 +491,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Calibrating the radar...",
-    backgroundImage: `url('${thumb_contexto}')`,
+    backgroundImage: `url('${thumb_contexto.src}')`,
     urlPath: "/contexto",
     pointsPerCorrect: 5,
     maxPoints: 200,
@@ -507,7 +507,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "On each card, pick one of 5 stats (PPG, RPG, APG, rings, All-Stars)." },
       { n: "2", t: "It must beat or tie the hidden next card. First miss warns, second ends the run." },
-      { n: "3", t: "+20 per card cleared — 220 for the full pack." },
+      { n: "3", t: "+20 per card cleared. 220 for the full pack." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -521,7 +521,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Shuffling the pack...",
-    backgroundImage: `url('${thumb_pack_five}')`,
+    backgroundImage: `url('${thumb_pack_five.src}')`,
     urlPath: "/pack-five",
     pointsPerCorrect: 20,
     maxPoints: 220,
@@ -537,11 +537,11 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "Each slot offers a randomized pool (a franchise, a country, a draft class…)." },
       { n: "2", t: "Draft toward the daily objective: Tallest Five, Most Rings, Most Points…" },
-      { n: "3", t: "Your metric ranks on the leaderboard — top percentile earns up to 100." },
+      { n: "3", t: "Your metric ranks on the leaderboard. Top percentile earns up to 100." },
     ],
     instruction: `
       <div class="space-y-2">
-        <p>Build a starting five under today's objective — every slot draws from a different pool.</p>
+        <p>Build a starting five under today's objective. Every slot draws from a different pool.</p>
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Maximize the daily metric (rings, height, career points…).</li>
           <li><strong>Draft:</strong> One pick per slot from its randomized pool.</li>
@@ -551,7 +551,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Opening the draft room...",
-    backgroundImage: `url('${thumb_superdraft}')`,
+    backgroundImage: `url('${thumb_superdraft.src}')`,
     urlPath: "/superdraft",
     pointsPerCorrect: 20,
     maxPoints: 100,
@@ -562,8 +562,8 @@ export const games: Game[] = [
     id: "imposter",
     name: "NBA Imposter",
     tag: "PARTY",
-    description: "Spot the imposter — only for real NBA fans.",
-    intro: "Everyone sees the mystery player — except the Imposter. Clue, vote, unmask.",
+    description: "Spot the imposter.",
+    intro: "Everyone sees the mystery player except the Imposter. Clue, vote, unmask.",
     rules: [
       { n: "1", t: "All but the Imposter see the mystery player. Take turns giving one-word clues." },
       { n: "2", t: "After two rounds of clues, everyone votes on who's bluffing." },
@@ -573,7 +573,7 @@ export const games: Game[] = [
       <div class="space-y-2">
         <p>A social deduction party game for 3+ friends in a room.</p>
         <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Setup:</strong> Everyone sees the mystery player — except the Imposter.</li>
+          <li><strong>Setup:</strong> Everyone sees the mystery player except the Imposter.</li>
           <li><strong>Play:</strong> One-word clues in turn order, then a vote.</li>
           <li><strong>Scoring:</strong> Survive as Imposter to score per wrong voter; if caught, one final guess can steal it.</li>
         </ul>
@@ -581,7 +581,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Gathering the party...",
-    backgroundImage: `url('${thumb_imposter}')`,
+    backgroundImage: `url('${thumb_imposter.src}')`,
     urlPath: "/imposter",
     pointsPerCorrect: 0,
     maxPoints: 0,
@@ -604,7 +604,7 @@ export const games: Game[] = [
       </div>
     `,
     loadingMessage: "Fetching NBA game...",
-    backgroundImage: `url('${comingSoonBg}')`,
+    backgroundImage: `url('${comingSoonBg.src}')`,
     urlPath: "/coming-soon",
     pointsPerCorrect: 0,
     maxPoints: 0,

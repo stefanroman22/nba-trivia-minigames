@@ -7,6 +7,7 @@ game views/pool builders read from these tables; no game owns its own storage.
 """
 
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -198,3 +199,58 @@ class SyncRun(models.Model):
 
     def __str__(self):
         return f"{self.dataset} {self.status} ({self.rows}) @ {self.created_at:%Y-%m-%d %H:%M}"
+
+
+class Feedback(models.Model):
+    """One player rating (1–5 stars) plus an optional written message.
+
+    Written by the in-app feedback modal (POST /trivia/feedback/) and read by the
+    admin panel's Feedback tab. Guests submit with user=None.
+
+    `email`/`display_name`/`public_id` are a deliberate SNAPSHOT of the sender
+    taken at submission time, not something to be joined from `user`. Two
+    reasons: `user` is SET_NULL, so a closed account would otherwise take the
+    only means of replying down with it; and a guest can leave an address
+    without having an account to join to at all.
+    """
+
+    NEW, READ, RESOLVED = "new", "read", "resolved"
+    STATUS_CHOICES = [(NEW, "New"), (READ, "Read"), (RESOLVED, "Resolved")]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="feedback",
+    )
+    email = models.EmailField(blank=True)
+    display_name = models.CharField(max_length=150, blank=True)
+    public_id = models.CharField(max_length=12, blank=True)
+
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )
+    message = models.TextField(blank=True)
+
+    # Where the modal was opened from, so a rating can be tied to a screen.
+    page = models.CharField(max_length=120, blank=True)
+    game = models.CharField(max_length=40, blank=True)
+
+    # Triage state, driven from the panel — also what the "needs attention"
+    # badge counts.
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=NEW)
+    admin_note = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["-created_at"]),
+            models.Index(fields=["rating"]),
+            models.Index(fields=["status"]),
+            models.Index(fields=["game"]),
+        ]
+        verbose_name_plural = "feedback"
+
+    def __str__(self):
+        return f"{self.rating}★ from {self.display_name or self.email or 'guest'}"

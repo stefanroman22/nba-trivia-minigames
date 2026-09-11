@@ -414,7 +414,7 @@ export default function NbaGrid({ gameInfo, onGameEnd, onPlayAgain, onClose }: N
                 {detail.pick && detail.total >= RARITY_MIN ? (
                   <><span className="tnum">{detail.pct}%</span> picked this</>
                 ) : (
-                  "Be the first — community stats build as people play."
+                  "Be the first."
                 )}
               </div>
               {(onPlayAgain || onClose) && (

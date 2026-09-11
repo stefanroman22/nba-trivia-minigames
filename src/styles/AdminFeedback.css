@@ -1,0 +1,262 @@
+/* Admin → Feedback tab. Tokens from theme.css, primitives from ui.css;
+   the shared admin shell (cards, tables, chips) comes from Admin.css. */
+
+.fb-tab { display: flex; flex-direction: column; gap: 14px; }
+
+/* ---- Filter bar: one row above everything it scopes ---- */
+.fb-filters { padding: 12px 14px; display: flex; flex-direction: column; gap: 12px; }
+
+.fb-filter-main { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fb-period { display: flex; gap: 6px; flex-wrap: wrap; }
+.fb-search { flex: 1 1 220px; min-width: 180px; }
+
+.fb-pill {
+  padding: 7px 14px;
+  border: 1px solid var(--line2);
+  border-radius: 30px;
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.fb-pill:hover { color: var(--text); background: var(--surface3); }
+.fb-pill.is-active { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+.fb-pill-sm { padding: 5px 11px; font-size: 12px; }
+.fb-clear { color: var(--bad); border-color: transparent; background: none; }
+.fb-clear:hover { color: var(--bad); background: var(--bad-soft); }
+
+.fb-select,
+.fb-num {
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+  border-radius: 9px;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  padding: 7px 10px;
+}
+.fb-select:focus-visible,
+.fb-num:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.fb-num { width: 82px; }
+.fb-date { width: 132px; }
+
+.fb-filter-more {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.fb-filter-group { display: flex; flex-direction: column; gap: 7px; }
+/* Groups whose controls read as one row (five star chips, a from-to pair)
+   get two columns so they don't wrap mid-set. */
+.fb-filter-group.is-wide { grid-column: span 2; }
+@media (max-width: 620px) { .fb-filter-group.is-wide { grid-column: span 1; } }
+.fb-filter-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fb-inline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* ---- Drill-down breadcrumb ---- */
+.fb-trail { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fb-crumb {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 0;
+}
+.fb-crumb:hover { text-decoration: underline; }
+.fb-crumb.is-current { color: var(--muted); cursor: default; }
+.fb-crumb.is-current:hover { text-decoration: none; }
+
+/* Refetch holds the previous render rather than flashing a skeleton. */
+.fb-content { display: flex; flex-direction: column; gap: 14px; transition: opacity 0.18s ease; }
+.fb-content.is-stale { opacity: 0.55; }
+
+/* ---- Stat tiles ---- */
+.fb-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: 10px;
+}
+.fb-stat { padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.fb-stat-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+/* Proportional figures: tabular digits read loose at display size. */
+.fb-stat-value { font-size: 27px; line-height: 1.15; color: var(--text); }
+.fb-stat-sub { font-size: 12px; color: var(--muted); }
+
+.fb-delta { font-size: 12px; font-weight: 600; }
+.fb-delta.is-up { color: var(--good); }
+.fb-delta.is-down { color: var(--bad); }
+.fb-delta.is-flat { color: var(--muted); }
+
+.fb-split {
+  margin-top: 6px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface3);
+  overflow: hidden;
+}
+.fb-split > span { display: block; height: 100%; background: var(--brand); border-radius: 3px; }
+
+/* ---- Charts ---- */
+.fb-charts {
+  display: grid;
+  /* Two even columns: four charts fill two rows exactly, and the time series
+     get the width a 12-plus-bar axis needs to stay legible. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (max-width: 900px) {
+  .fb-charts { grid-template-columns: 1fr; }
+}
+.fb-chart-card { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 4px; }
+.fb-chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.fb-chart-title { font-size: 13.5px; font-weight: 700; color: var(--text); }
+.fb-chart-hint { font-size: 11.5px; color: var(--muted); }
+/* Height includes the x-axis band so the card never grows a nested scrollbar. */
+.fb-chart-body { position: relative; margin-top: 10px; }
+
+.fb-granularity { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* ---- One feedback entry ---- */
+.fb-row { overflow: hidden; }
+
+.fb-row-head {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) minmax(0, 150px) 132px 74px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.fb-row-head:hover { background: var(--surface2); }
+
+.fb-stars-inline { display: inline-flex; gap: 1px; }
+
+.fb-row-msg {
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.fb-row-who { display: flex; align-items: center; gap: 6px; overflow: hidden; }
+.fb-row-name { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-row-id { font-size: 11.5px; color: var(--brand); font-weight: 600; }
+.fb-row-date { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; }
+
+.fb-chip-guest { font-size: 10px; padding: 3px 8px; color: var(--muted); }
+.fb-chip-deleted { font-size: 10px; padding: 3px 8px; color: var(--bad); border-color: var(--bad); }
+
+.fb-status {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+.fb-status.is-new { background: var(--brand-soft); color: var(--brand); }
+.fb-status.is-read { background: var(--surface3); color: var(--muted); }
+.fb-status.is-resolved { background: var(--good-soft); color: var(--good); }
+
+.fb-row-body { padding: 4px 16px 16px; border-top: 1px solid var(--line); }
+.fb-row-full {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fb-detail-grid {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+.fb-detail-grid > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.fb-detail-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.fb-detail-value { font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+.fb-mail { color: var(--brand); text-decoration: none; }
+.fb-mail:hover { text-decoration: underline; }
+
+.fb-row-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+.fb-row-actions .admin-browse { margin-left: 0; }
+.admin-browse.is-current { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); opacity: 1; }
+.fb-reply { text-decoration: none; margin-left: auto !important; }
+
+.fb-linkish {
+  background: none;
+  border: none;
+  color: var(--brand);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.fb-empty { gap: 12px; }
+
+/* Tab badge for feedback still to be triaged. */
+.admin-tab-badge {
+  display: inline-block;
+  margin-left: 7px;
+  min-width: 18px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  .fb-row-head {
+    grid-template-columns: 84px minmax(0, 1fr) 74px;
+    grid-template-areas:
+      "stars msg status"
+      "who   who date";
+    row-gap: 6px;
+  }
+  .fb-row-head > .fb-stars-inline { grid-area: stars; }
+  .fb-row-msg { grid-area: msg; }
+  .fb-row-who { grid-area: who; }
+  .fb-row-date { grid-area: date; text-align: left; }
+  .fb-status { grid-area: status; }
+  .fb-search { flex-basis: 100%; }
+}
