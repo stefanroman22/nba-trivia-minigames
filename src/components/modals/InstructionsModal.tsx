@@ -25,7 +25,7 @@ export default function InstructionsModal({ game, onPlay, onClose }: Instruction
       </div>
 
       <button className="modal-primary-btn" style={{ height: 46 }} onClick={handlePlay}>
-        Got it — let's play
+        Got it
       </button>
     </div>
   );

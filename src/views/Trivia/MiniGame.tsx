@@ -3,16 +3,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useNavigate } from '../../hooks/useNavigate';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { games } from '../../utils/GameUtils';
 import Navigation from '../../components/Navigation';
 import { useModal } from '../../context/ModalContext';
 import { useMultiplayer } from '../../context/MultiplayerContext';
 import GameResult from '../../components/GameResult';
 import OnlineMatch from '../../components/MultiPlayer/OnlineMatch';
-import FriendPlay from '../../components/MultiPlayer/FriendPlay';
+import MultiplayerPanel from '../../components/MultiPlayer/MultiplayerPanel';
 import { renderGame } from '../../Game Renderers/RenderGame';
-import type { RootState, AppDispatch } from '../../store';
+import type { AppDispatch } from '../../store';
 import { updatePoints } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
@@ -31,9 +31,8 @@ import "../../styles/MiniGame.css";
 function MiniGame() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { isLoggedIn } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
-  const { mp, findMatch } = useMultiplayer();
+  const { mp } = useMultiplayer();
   const pathname = usePathname();
   // Every game is routed at its urlPath, so the URL alone resolves the game —
   // deep-links and reloads included.
@@ -55,6 +54,19 @@ function MiniGame() {
   // Guarantees a finished game awards profile points exactly once — shared by
   // the result-overview effect and the in-place (answers-in-view) end path.
   const awardedRef = useRef(false);
+  // Desktop rail: matched to the stage's actual rendered height (which varies
+  // by game and by phase) so the "all games" list is as tall as the game
+  // container instead of shrinking to its own content or a fixed cap.
+  const stageColRef = useRef<HTMLElement | null>(null);
+  const [railHeight, setRailHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = stageColRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setRailHeight(entry.contentRect.height));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // An online match takes over the whole stage area. A friend-room lobby does
   // NOT — the stage stays idle (with Play disabled) while the room card waits.
@@ -181,7 +193,7 @@ function MiniGame() {
             </div>
             {inLobby ? (
               <p className="idle-room-note">
-                You're in a private room — the match starts as soon as it fills up.
+                You're in a private room.
               </p>
             ) : (
               <Button size="lg" onClick={handleStart}>
@@ -243,7 +255,7 @@ function MiniGame() {
           </div>
 
           {/* Desktop rail */}
-          <aside className="rail">
+          <aside className="rail" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>
             <div className="rail-head"><span>ALL GAMES</span><span>{games.length}</span></div>
             <div className="rail-list">
               {games.map((g) => (
@@ -267,7 +279,7 @@ function MiniGame() {
           </aside>
 
           {/* Center stage */}
-          <section className="stage-col">
+          <section className="stage-col" ref={stageColRef}>
             <div className="stage-title">
               <h1 className="font-display" style={{ fontSize: "clamp(19px,2.6vw,26px)" }}>{game?.name}</h1>
               <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" ? handleStart : undefined })}>
@@ -285,32 +297,9 @@ function MiniGame() {
             </Stage>
           </section>
 
-          {/* Aside */}
+          {/* Aside: one merged Multiplayer card, same on mobile and desktop. */}
           <aside className="game-aside">
-            <div className="aside-card">
-              <div className="aside-card-head">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 .01M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                <h3 className="font-display" style={{ fontSize: 15 }}>Multiplayer</h3>
-              </div>
-              {!isLoggedIn ? (
-                <>
-                  <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>Challenge a random opponent in real time. You'll need an account to matchmake.</p>
-                  <Button variant="secondary" block size="md" onClick={() => open("login")}>Log in to play online</Button>
-                </>
-              ) : (
-                <Button block size="md" disabled={online || inLobby} onClick={() => game && findMatch(game)}>
-                  {mp.phase === "searching" ? "Searching…" : online ? "In a match" : inLobby ? "In a room" : "Play online 1v1"}
-                </Button>
-              )}
-            </div>
-
-            <div className={`aside-card${inLobby ? " is-room" : ""}`}>
-              <div className="aside-card-head">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></svg>
-                <h3 className="font-display" style={{ fontSize: 15 }}>Play with a friend</h3>
-              </div>
-              {game && <FriendPlay game={game} blocked={gameStarted && !showResult} />}
-            </div>
+            <MultiplayerPanel game={game} gameStarted={gameStarted} showResult={showResult} />
           </aside>
         </div>
       </main>

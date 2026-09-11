@@ -46,6 +46,9 @@ backend/staticfiles/
 # Claude Code personal overrides
 .claude/settings.local.json
 
+# Admin credentials — never commit
+ADMIN.md
+
 # Generated at build from backend/trivia/data (served by the CDN at /data/)
 public/data/
 

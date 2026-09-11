@@ -240,7 +240,7 @@ function UserProfile() {
               <SwapText>{idCopied ? "Copied!" : "Copy"}</SwapText>
             </button>
           </div>
-          <div className="profile-value profile-value--muted tnum" title="Your permanent ID — share it so friends can tell you apart from same-named players.">
+          <div className="profile-value profile-value--muted tnum" title="Your permanent ID.">
             #{user?.id}
           </div>
         </div>

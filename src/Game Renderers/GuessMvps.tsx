@@ -133,7 +133,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
 
         {playersError && (
           <p style={{ color: "var(--brand)", fontSize: "0.8rem", textAlign: "center" }}>
-            Couldn't load player suggestions — you can still type a name and submit.
+            Couldn't load player suggestions.
           </p>
         )}
       </GameFrame.Action>
