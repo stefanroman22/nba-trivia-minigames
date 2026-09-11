@@ -11,7 +11,7 @@ import os
 from django.conf import settings
 
 LIVE_STANDINGS_MIN_GUESSES = 500
-SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "utils", "fan_favorites_seed.json")
+SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "fan_favorites_seed.json")
 
 
 def load_seed():

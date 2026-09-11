@@ -10,37 +10,25 @@ get_round exposes one random curated player as {'series': [row]} — a cheap
 "random real player" provider some games/tools use; the dataset itself is the
 primary product.
 """
-import json
-import os
 import random
 
-from django.conf import settings
 from django.http import JsonResponse
 
-CURATED_PATH = os.path.join(
-    settings.BASE_DIR, "trivia", "data_static", "players_curated.json"
-)
-
-
-def _load_curated():
-    """Curated rows from data_static ([] until the foundation agent ships them)."""
-    if not os.path.exists(CURATED_PATH):
-        return []
-    try:
-        with open(CURATED_PATH, "r", encoding="utf-8") as f:
-            rows = json.load(f)
-    except (OSError, ValueError):
-        return []
-    return rows if isinstance(rows, list) else []
+from trivia.data_pipeline.curated_players import check_cross_stints
+from trivia.data_pipeline.live_pool import load_players
 
 
 def build_pool():
     """The full curated dataset, published unmodified as the pool rows."""
-    return _load_curated()
+    return load_players()
 
 
 def validate_rows(rows):
-    """Contract check: >=120 rows, unique person_ids, each row has a stint + tier."""
+    """Contract check: >=120 rows, unique person_ids, each row has a stint + tier.
+
+    Also checks stints ACROSS a row (ordered, no season claimed twice) — the
+    per-stint checks elsewhere only ever look at one stint at a time.
+    """
     problems = []
     if not isinstance(rows, list):
         return ["players-index: pool is not a list"]
@@ -62,6 +50,7 @@ def validate_rows(rows):
             problems.append(f"players-index[{i}] ({row.get('full_name')}): no team stints")
         if not row.get("fame_tier"):
             problems.append(f"players-index[{i}] ({row.get('full_name')}): missing fame_tier")
+        problems += [f"players-index[{i}]: {p}" for p in check_cross_stints([row])]
         if len(problems) >= 10:
             break
     return problems
@@ -69,7 +58,7 @@ def validate_rows(rows):
 
 def get_round(request):
     """One random curated player, shaped like every other game's round payload."""
-    rows = _load_curated()
+    rows = load_players()
     if not rows:
         return JsonResponse(
             {"error": "players_curated.json not published yet"}, status=503

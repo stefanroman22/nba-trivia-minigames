@@ -1,84 +1,124 @@
 """SuperDraft Five — draft-a-lineup game backend (frozen contract #4).
 
-The playable content is a small, static objectives config (Tallest Five / Most
-Rings / Most Career Points / Oldest Five). The renderer builds every draft
-CLIENT-side from the "players-index" pool (contract #1): it picks one rotating
-daily objective by date-hash and, per slot, a random pool constraint guaranteed
-to have >= 8 eligible players. This module only publishes the objectives seed.
+The draft is played against the players-index pool: one rotating daily
+objective and five slots, each a pool constraint (a franchise / a country / a
+draft decade) with at least MIN_ELIGIBLE eligible players. The objectives live
+in the renderer (src/Game Renderers/SuperDraft.tsx); the pool lives on the CDN.
 
-get_round returns the objectives seed. build_pool publishes it as a single-row
-pool (data/superdraft.json) so the pool pipeline treats it like every other game.
+A round therefore carries CONFIG, not the pool:
+
+    {"series": [{"pool": "players-index",
+                 "day": "YYYY-MM-DD",
+                 "slots": [{kind, value, label, sub} x 5]}]}
+
+The slots are drawn HERE, once per round, so every player in a room drafts
+under identical constraints — the renderer used to draw them client-locally,
+which meant two players in the same match were scored against different
+lineups. ``day`` pins the daily objective to the server's UTC date so clients
+in different timezones can't land on different objectives either.
+
+Shipping the pool itself instead (as this endpoint used to) is O(dataset) per
+player per round — 160 KB at 159 rows, megabytes at the full dataset, re-emitted
+on every reconnect. The renderer loads the same CDN-cached pool single-player
+uses and resolves these constraints against it.
 """
-import json
-import os
+import datetime
+import random
 
-from django.conf import settings
 from django.http import JsonResponse
 
+from trivia.data_pipeline.live_pool import load_players
+
 GAME_NAME = "SuperDraft Five"
-SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "superdraft_seed.json")
 
-# The renderer mirrors these four metrics; the seed is the canonical source.
-VALID_METRICS = {"height_in", "rings", "career_pts", "birth_year_desc"}
+POOL_KEY = "players-index"  # the CDN pool the renderer resolves the slots against
+SLOT_COUNT = 5              # slots per draft (matches SLOT_COUNT in SuperDraft.tsx)
+MIN_ELIGIBLE = 8            # a constraint must offer at least this many players
 
 
-def _load_seed():
-    """The bundled objectives config, or {} when missing/unreadable."""
-    if not os.path.exists(SEED_PATH):
-        return {}
-    try:
-        with open(SEED_PATH, "r", encoding="utf-8") as f:
-            seed = json.load(f)
-    except (OSError, ValueError):
-        return {}
-    return seed if isinstance(seed, dict) else {}
+def _candidate_queues(rows):
+    """Constraints with >= MIN_ELIGIBLE eligible players, grouped by kind.
+
+    Mirrors buildCandidates() in src/Game Renderers/SuperDraft.tsx — same
+    grouping, same labels — so the renderer resolves every slot we send back to
+    exactly the players it would have found itself.
+    """
+    teams, countries, decades = {}, {}, {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        seen_abbr = set()
+        for stint in row.get("teams") or []:
+            abbr = (stint or {}).get("abbr")
+            if not abbr or abbr in seen_abbr:
+                continue
+            seen_abbr.add(abbr)
+            entry = teams.setdefault(abbr, {"name": stint.get("name") or abbr, "count": 0})
+            entry["count"] += 1
+        country = row.get("country")
+        if country:
+            countries[country] = countries.get(country, 0) + 1
+        draft = row.get("draft")
+        if isinstance(draft, dict) and isinstance(draft.get("year"), int):
+            decade = draft["year"] // 10 * 10
+            decades[decade] = decades.get(decade, 0) + 1
+
+    team_c = [
+        {"kind": "team", "value": abbr, "label": e["name"], "sub": "Franchise"}
+        for abbr, e in teams.items()
+        if e["count"] >= MIN_ELIGIBLE
+    ]
+    draft_c = [
+        {"kind": "draft", "value": str(d), "label": f"{d}s Draft", "sub": "Draft class"}
+        for d, n in decades.items()
+        if n >= MIN_ELIGIBLE
+    ]
+    country_c = [
+        {"kind": "country", "value": c, "label": c, "sub": "Country"}
+        for c, n in countries.items()
+        if n >= MIN_ELIGIBLE
+    ]
+    # Round-robin order matches drawSlots() in the renderer: franchise, decade, country.
+    return [team_c, draft_c, country_c]
+
+
+def draw_slots(queues, rng=random):
+    """Round-robin across the kinds so a draft mixes franchises / decades / countries."""
+    queues = [rng.sample(q, len(q)) for q in queues]
+    picked, used = [], set()
+    q = 0
+    guard = 0
+    while len(picked) < SLOT_COUNT and guard < 200:
+        guard += 1
+        queue = queues[q % len(queues)]
+        q += 1
+        if not queue:
+            continue
+        nxt = queue.pop(0)
+        key = f"{nxt['kind']}:{nxt['value']}"
+        if key in used:
+            continue
+        used.add(key)
+        picked.append(nxt)
+    return picked
 
 
 def get_round(request):
-    """The objectives seed (503 until the seed file is published)."""
-    seed = _load_seed()
-    if not seed.get("objectives"):
+    """One room's draft configuration: the day plus its five slot constraints."""
+    rows = load_players()
+    if not rows:
         return JsonResponse({"error": "SuperDraft Five content not ready"}, status=503)
-    return JsonResponse(seed)
-
-
-def build_pool():
-    """The objectives seed as a single-row pool for build_pools_from_db."""
-    seed = _load_seed()
-    return [seed] if seed.get("objectives") else []
-
-
-def validate_rows(rows):
-    """Structural check: one row carrying 4 well-formed objectives + a note."""
-    problems = []
-    if len(rows) != 1:
-        problems.append(f"superdraft: pool must be a single row, got {len(rows)}")
-        return problems
-    row = rows[0]
-    if not isinstance(row, dict):
-        problems.append("superdraft[0]: not an object")
-        return problems
-    objectives = row.get("objectives")
-    if not isinstance(objectives, list) or len(objectives) < 4:
-        problems.append("superdraft[0]: objectives must be a list of >= 4 entries")
-        return problems
-    seen_keys = set()
-    for i, obj in enumerate(objectives):
-        where = f"superdraft[0].objectives[{i}]"
-        if not isinstance(obj, dict):
-            problems.append(f"{where}: not an object")
-            continue
-        key = obj.get("key")
-        if not key:
-            problems.append(f"{where}: missing key")
-        elif key in seen_keys:
-            problems.append(f"{where}: duplicate key {key!r}")
-        else:
-            seen_keys.add(key)
-        if not obj.get("label"):
-            problems.append(f"{where}: missing label")
-        if obj.get("metric") not in VALID_METRICS:
-            problems.append(f"{where}: metric must be one of {sorted(VALID_METRICS)}")
-    if not row.get("note"):
-        problems.append("superdraft[0]: missing note")
-    return problems
+    slots = draw_slots(_candidate_queues(rows))
+    if len(slots) < SLOT_COUNT:
+        return JsonResponse({"error": "SuperDraft Five content not ready"}, status=503)
+    return JsonResponse(
+        {
+            "series": [
+                {
+                    "pool": POOL_KEY,
+                    "day": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"),
+                    "slots": slots,
+                }
+            ]
+        }
+    )

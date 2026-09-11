@@ -122,7 +122,7 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
   const finishPartial = () => {
     const claimedCount = Object.keys(claimedRef.current).length;
     const score = Math.round(((MAX_SCORE * claimedCount) / CELL_COUNT) * 0.5);
-    endGame(score, `Deck done — ${claimedCount}/16 dabbed`, "var(--bad)");
+    endGame(score, "Deck done.", "var(--bad)");
   };
 
   /** Consume one deal: advance to the first player matching an OPEN cell. */
@@ -309,7 +309,7 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
                   onClick={() => handleDab(idx)}
                   disabled={!!claim || !dealt || finished || penalty}
                   aria-pressed={!!claim}
-                  aria-label={claim ? `${c.label} — claimed by ${claim.name}` : c.label}
+                  aria-label={claim ? `${c.label}, claimed by ${claim.name}` : c.label}
                   animate={reduce ? undefined : { scale: claim ? [1, 1.06, 1] : 1 }}
                   transition={{ duration: 0.3 }}
                 >

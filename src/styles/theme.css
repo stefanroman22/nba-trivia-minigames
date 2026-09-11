@@ -238,17 +238,32 @@ input::placeholder, textarea::placeholder { color: var(--muted); opacity: 0.85; 
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes heat { 0%, 100% { opacity: .9; } 50% { opacity: .55; } }
 @keyframes loaderPulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
-/* ball launches from below-left, arcs over the rim, drops straight through the net (a swish) */
-@keyframes shoot {
-  0% { transform: translate(-46px,46px) rotate(0deg); opacity: 0; }
-  9% { opacity: 1; }
-  40% { transform: translate(-8px,-54px) rotate(220deg); }
-  56% { transform: translate(0,-16px) rotate(300deg); }
-  68% { transform: translate(0,2px) rotate(338deg); opacity: 1; }
-  84% { transform: translate(0,32px) rotate(360deg); opacity: .85; }
-  100% { transform: translate(0,66px) rotate(382deg); opacity: 0; }
+/* CourtLoader swish. The ball's X and Y run on separate wrappers so the path is a real
+   parabola: X at constant velocity, Y decelerating to the apex (quadratic ease-out) and
+   accelerating down through the rim (quadratic ease-in). Distances scale with --s so the
+   arc stays proportional at every loader size. Ball reaches the rim at ~64%, clears the
+   net at ~71%, and the 80–100% window is the shooter's reset between attempts. */
+@keyframes clBallX {
+  0% { transform: translateX(calc(-40px * var(--s, 1))); opacity: 0; }
+  6% { opacity: 1; }
+  64% { transform: translateX(0); }
+  74% { opacity: 1; }
+  80%, 100% { transform: translateX(0); opacity: 0; }
 }
-@keyframes netSway { 0%, 58%, 100% { transform: scaleY(1); } 70% { transform: scaleY(1.22); } 84% { transform: scaleY(1.05); } }
+@keyframes clBallY {
+  0% { transform: translateY(calc(58px * var(--s, 1))); animation-timing-function: cubic-bezier(.33,.67,.67,1); }
+  38% { transform: translateY(calc(-50px * var(--s, 1))); animation-timing-function: cubic-bezier(.33,0,.67,.33); }
+  80%, 100% { transform: translateY(calc(66px * var(--s, 1))); }
+}
+/* Backspin: constant angular velocity, counter-rotating against the direction of travel. */
+@keyframes clBallSpin { from { transform: rotate(0deg); } to { transform: rotate(-600deg); } }
+/* Net stretches and whips forward as the ball drops through, then rings down to rest. */
+@keyframes clNetSwish {
+  0%, 63%, 100% { transform: scaleY(1) skewX(0deg); }
+  70% { transform: scaleY(1.2) skewX(3deg); }
+  78% { transform: scaleY(1.05) skewX(-2deg); }
+  88% { transform: scaleY(1.02) skewX(1deg); }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }

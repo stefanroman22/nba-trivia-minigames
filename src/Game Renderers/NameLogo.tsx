@@ -6,6 +6,7 @@ import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { currentLogoUrl } from "../constants/teamLogos";
+import { matchAnswer } from "../utils/answerMatch";
 import type { NbaTeamLogo, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
 
@@ -48,7 +49,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     }
 
     const isCorrect =
-      teamName.trim().toLowerCase() === (currentTeam?.full_name || "").toLowerCase();
+      matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
 
     if (isCorrect) {
       setScore((prev) => prev + pointsPerCorrect);

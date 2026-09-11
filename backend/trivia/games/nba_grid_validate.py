@@ -24,6 +24,12 @@ CURATED_PATH = os.environ.get("NBA_GRID_CURATED") or os.path.join(
 CURRENT_YEAR = date.today().year
 MIN_PER_CELL = 3
 
+# backend/ on the path so the shared pool rule imports whether this runs as
+# `python -m trivia.games.nba_grid_validate` or as a plain script.
+sys.path.insert(0, os.path.dirname(BASE))
+
+from trivia.data_pipeline.curated_players import playable_rows  # noqa: E402
+
 
 def _decade_start(value):
     m = re.search(r"(\d{4})s$", value)
@@ -58,10 +64,12 @@ def player_matches(p, c):
             return d is None
         if not d:
             return False
+        # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
+        # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
         if v == "top5":
-            return d["pick"] <= 5
+            return 1 <= d["pick"] <= 5
         if v == "lottery":
-            return d["pick"] <= 14
+            return 1 <= d["pick"] <= 14
         if v == "round2":
             return d["round"] == 2
         if v.startswith("decade-"):
@@ -115,6 +123,17 @@ def validate_seed(seed, players):
     return problems
 
 
+def load_curated():
+    """The playable pool from CURATED_PATH.
+
+    Rows with no team stints are in the dataset for parity with the league
+    index, but not in the players-index pool the client answers against, so
+    counting one toward MIN_PER_CELL would call a thin cell full.
+    """
+    with open(CURATED_PATH, encoding="utf-8") as f:
+        return playable_rows(json.load(f))
+
+
 def main():
     if not os.path.exists(CURATED_PATH):
         print(
@@ -123,7 +142,7 @@ def main():
         )
         return 1
     seed = json.load(open(SEED_PATH, encoding="utf-8"))
-    players = json.load(open(CURATED_PATH, encoding="utf-8"))
+    players = load_curated()
     problems = validate_seed(seed, players)
     if problems:
         print(f"FAIL — {len(problems)} thin/invalid cell(s):")

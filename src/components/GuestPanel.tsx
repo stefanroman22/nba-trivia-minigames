@@ -30,7 +30,7 @@ export default function GuestPanel() {
       </div>
 
       <button className="guest-panel-cta" onClick={() => open("login")}>Log in / Sign up</button>
-      <span className="guest-panel-note">No pressure — you can keep playing without an account.</span>
+      <span className="guest-panel-note">You can keep playing without an account.</span>
     </div>
   );
 }

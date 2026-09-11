@@ -20,6 +20,10 @@ RANK_CHOICES = [
 class CustomUserManager(UserManager):
     """Case-insensitive email is the login identity (usernames aren't unique)."""
 
+    def normalize_login_email(self, email):
+        """The canonical stored form of a login email — same rule as signup_view."""
+        return str(email or "").strip().lower()
+
     def get_by_natural_key(self, email):
         return self.get(**{f"{self.model.USERNAME_FIELD}__iexact": email})
 

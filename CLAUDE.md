@@ -91,7 +91,7 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
 
 ## Coding engines & profiles
-This repo defines coding subagents in `.claude/agents/` (frontend-engine, backend-engine, code-reviewer, test-qa-engine). Their model + reasoning effort are governed by a named profile. Switch the whole fleet with `npm run engine <fast|balanced|deep|max>`. See `.claude/README.md`.
+This repo defines coding subagents in `.claude/agents/` (frontend-engine, backend-engine, code-reviewer, test-qa-engine, planner-architect, browser-qa). Their model + reasoning effort are governed by a named profile. Switch the whole fleet with `npm run engine <fast|balanced|deep|max>`. See `.claude/README.md`.
 
 ## Autonomous team pipeline
 An unattended pipeline exists that turns Notion task cards into shipped PRs: classify →

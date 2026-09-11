@@ -56,7 +56,7 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
         // again" is wrong advice when the limit is hourly.
         throw new Error(
           res.status === 429
-            ? "You've sent a lot of feedback just now — try again a little later."
+            ? "You've sent a lot of feedback just now."
             : body.error || "Could not send your feedback.",
         );
       }
@@ -112,7 +112,7 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <span className="fb-label">WHAT WOULD YOU CHANGE?</span>
+        <span className="fb-label">WHAT WOULD YOU CHANGE? (OPTIONAL)</span>
         <textarea
           className="modal-textarea"
           rows={4}
@@ -144,11 +144,6 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
       <button className="modal-primary-btn" onClick={send} disabled={!rating || sending}>
         {sending ? "Sending…" : "Send feedback"}
       </button>
-      {!rating && (
-        <p style={{ fontSize: 12, color: "var(--muted)", margin: "-8px 0 0", textAlign: "center" }}>
-          Pick a star rating to send.
-        </p>
-      )}
     </div>
   );
 }

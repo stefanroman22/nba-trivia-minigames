@@ -6,6 +6,7 @@ import LogInSignUp from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
+import MultiplayerInfoModal from "./modals/MultiplayerInfoModal";
 
 /**
  * Single overlay host (mounted once in App). The active modal is keyed so
@@ -38,6 +39,9 @@ export default function ModalHost() {
     title = "How to play";
     const p = payload as InstructionsPayload | undefined;
     content = p?.game ? <InstructionsModal game={p.game} onPlay={p.onPlay} onClose={close} /> : null;
+  } else if (kind === "multiplayerInfo") {
+    title = "Multiplayer";
+    content = <MultiplayerInfoModal onClose={close} />;
   }
 
   return (

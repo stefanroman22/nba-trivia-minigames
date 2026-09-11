@@ -25,7 +25,7 @@ const swap = {
  * the live lobby (seats, share code, host controls). The match itself starts
  * automatically the moment the room is full and takes over the stage.
  */
-export default function FriendPlay({ game, blocked = false }: { game: Game; blocked?: boolean }) {
+export default function FriendPlay({ game, blocked = false, onBack }: { game: Game; blocked?: boolean; onBack?: () => void }) {
   const {
     mp, createFriendRoom, joinFriendRoom, changeFriendGame, leaveMatch, resetFriendJoinError,
   } = useMultiplayer();
@@ -79,7 +79,7 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
     body = (
       <>
         <p className="fp-sub">Set up a private room with a share code and play against 2 friends.</p>
-        <Button variant="secondary" block size="md" onClick={() => open("login")}>
+        <Button variant="secondary" size="lg" onClick={() => open("login")}>
           Log in to play with friends
         </Button>
       </>
@@ -88,7 +88,7 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
     key = "inmatch";
     body = (
       <p className="fp-sub">
-        {mp.roomType === "friend" ? "Private match in progress." : "You're in a match — finish it to open a room."}
+        {mp.roomType === "friend" ? "Private match in progress." : "You're in a match."}
       </p>
     );
   } else if (lobby && collapsed) {
@@ -134,7 +134,7 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
         </div>
         <p className="fp-sub" style={{ textAlign: "center" }}>
           {copied
-            ? "Copied — send it to your friend!"
+            ? "Copied."
             : lobby.capacity === 2
               ? "Send this code to your friend."
               : `Share this code. The game starts when ${lobby.capacity} players are in.`}
@@ -198,11 +198,11 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
           ) : (
             <motion.div key="actions" {...swap} className="fp-actions">
               {isHost && (
-                <Button variant="secondary" block size="sm" onClick={() => setPicking(true)}>
+                <Button variant="secondary" size="sm" onClick={() => setPicking(true)}>
                   Change game
                 </Button>
               )}
-              <Button variant="ghost" block size="sm" onClick={leaveMatch}>
+              <Button variant="ghost" size="sm" onClick={leaveMatch}>
                 {isHost ? "Cancel room" : "Leave room"}
               </Button>
             </motion.div>
@@ -218,18 +218,14 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
         <CodeInput
           value={code}
           onChange={(v) => { setCode(v); resetFriendJoinError(); }}
-          onComplete={submitCode}
           disabled={joining}
           hasError={!!mp.friendJoinError}
         />
         {mp.friendJoinError && <p className="fp-err" role="alert">{mp.friendJoinError}</p>}
         <div className="fp-actions">
-          <Button block size="md" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
+          <Button size="lg" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
             {joining ? "Joining…" : "Join room"}
           </Button>
-          <button className="fp-link" onClick={() => { setMode("menu"); setCode(""); resetFriendJoinError(); }}>
-            Back
-          </button>
         </div>
       </>
     );
@@ -237,12 +233,11 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
     key = "menu";
     body = (
       <>
-        <p className="fp-sub">Challenge a friend 1v1 in a private room. Generate a code, or join with one.</p>
-        <div className="fp-actions">
-          <Button block size="md" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game)}>
-            {creating ? "Creating room…" : "Generate code"}
+        <div className="fp-actions fp-actions--row">
+          <Button size="sm" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game)}>
+            {creating ? "Creating…" : "Generate code"}
           </Button>
-          <Button variant="secondary" block size="md" disabled={blocked || searching || creating} onClick={() => setMode("enter")}>
+          <Button variant="secondary" size="sm" disabled={blocked || searching || creating} onClick={() => setMode("enter")}>
             Enter code
           </Button>
         </div>
@@ -255,8 +250,20 @@ export default function FriendPlay({ game, blocked = false }: { game: Game; bloc
     );
   }
 
+  // One back control for the whole flow, stepping back a single screen at a
+  // time: the code entry returns to the menu, the menu leaves the friend flow.
+  // A live lobby has no "previous screen" — you leave it, you don't go back.
+  const goBack = mode === "enter"
+    ? () => { setMode("menu"); setCode(""); resetFriendJoinError(); }
+    : onBack;
+
   return (
     <div className="fp">
+      {goBack && !lobby && (
+        <button className="mp-back" aria-label="Back" onClick={goBack}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
+      )}
       <AnimatePresence mode="wait">
         <motion.div key={key} {...swap} className="fp-body">
           {body}

@@ -13,6 +13,7 @@ from trivia.data_pipeline.build_static import (
     build_wordle_pool,
 )
 from trivia.data_pipeline.manifest import build_manifest
+from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_lineups
 from trivia.data_pipeline.validate import validate_pool
 
 
@@ -78,6 +79,13 @@ class Command(BaseCommand):
                 build_starting_five_database(output_path=sf_path, max_games_per_season=50)
                 pools["playoff"] = _load_json(playoff_path)
                 pools["starting-five"] = _load_json(sf_path)
+
+        # Same rules the DB->pool bridge applies: the 2-2-1 board can't render
+        # any other lineup shape, and every name has to be typeable in the
+        # autocomplete (trivia/data_pipeline/starting_five.py).
+        pools["starting-five"] = canonical_lineup_names(
+            playable_lineups(pools["starting-five"]), pools["all-players"]
+        )
 
         problems = []
         for key, data in pools.items():

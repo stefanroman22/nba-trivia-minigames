@@ -17,7 +17,7 @@ import Providers from "./providers";
 export const metadata: Metadata = {
   title: { default: "HOOPS24", template: "%s | HOOPS24" },
   description:
-    "Free daily NBA trivia minigames — wordle, grids, guess-the-player and more. Play solo or online, score points and climb the leaderboard.",
+    "Free daily NBA trivia minigames: wordle, grids, guess-the-player and more. Play solo or online, score points and climb the leaderboard.",
   icons: { icon: [{ url: logo.src, type: "image/webp" }] },
 };
 

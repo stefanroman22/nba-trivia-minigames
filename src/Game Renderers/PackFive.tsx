@@ -238,7 +238,7 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
     if (missRef.current >= 2) {
       later(() => finish(false), REVEAL_MS);
     } else {
-      flashPopup("Missed — one life left", "var(--bad)");
+      flashPopup("Missed.", "var(--bad)");
       later(() => (isLastComparison ? finish(true) : nextCard()), REVEAL_MS);
     }
   };
@@ -263,9 +263,9 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
   const bannerTone = finished && lastHit === false && misses >= 2 ? "bad" : misses >= 1 ? "warn" : "neutral";
   const bannerText =
     misses >= 2
-      ? "Run over — that's two misses."
+      ? "Run over."
       : misses === 1
-        ? "One life left — one more miss ends the run."
+        ? "One life left."
         : "Pick a stat where your card beats the mystery card (ties win).";
 
   return (

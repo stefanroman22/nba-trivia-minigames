@@ -30,7 +30,7 @@ function GameResult({ showFinalResult, score, maxPoints, onPlayAgain, onClose }:
   const perfect = maxPoints > 0 && score >= maxPoints;
   const title = perfect ? "Perfect game!" : won ? "Nice run!" : "Good try!";
   const message = perfect
-    ? "Flawless — you maxed it out."
+    ? "Flawless."
     : won
       ? "Solid hoops IQ. Run it back to beat your score."
       : "No points this round. Shake it off and try again.";
