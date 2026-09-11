@@ -14,6 +14,7 @@ class Dataset:
         self.playable = playable_rows(rows)
         self.by_id = {r["person_id"]: r for r in self.playable}
         self.version = version
+        self.extra = {}
 
 
 def load_dataset_from_rows(rows, version):
