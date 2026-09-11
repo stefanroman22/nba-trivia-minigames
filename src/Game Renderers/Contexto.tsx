@@ -1,18 +1,30 @@
 // LeContexto — similarity guesser. Name any player; see how close (by rank) you
 // are to a hidden daily secret. Pure engine below; component in the same file.
+//
+// Single-player is handed the whole players-index pool as `gameInfo` and picks
+// the day's secret out of it with dailySecret(). A MULTIPLAYER round is a
+// one-element ContextoRoundConfig array instead — the day and the secret's
+// person_id (backend/trivia/games/contexto.py) — and the renderer loads the
+// same CDN pool single-player uses (useRoundPool) to rank against. Both modes
+// end up on the same player for the same day; the pool is never broadcast.
+// Online the sent secret is the ONLY one accepted: if this client's pool
+// doesn't contain it, the round is unplayable rather than quietly ranked
+// against a locally-chosen secret the opponent isn't solving for.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { useRoundPool } from "../hooks/useRoundPool";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, OnGameEnd } from "../types/types";
+import type { PlayerIndexEntry, OnGameEnd, ContextoRoundConfig } from "../types/types";
 import "../styles/Contexto.css";
 
 export interface ContextoProps {
-  gameInfo: PlayerIndexEntry[];
+  /** Single-player: the whole pool. Multiplayer: [ContextoRoundConfig]. */
+  gameInfo: PlayerIndexEntry[] | ContextoRoundConfig[];
   onGameEnd: OnGameEnd;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
@@ -86,17 +98,39 @@ function awardsVec(p: PlayerIndexEntry): number[] {
   return [p.awards.mvp.length, p.awards.allstar_count, p.awards.rings.length, p.awards.dpoy.length];
 }
 
+function magnitude(v: number[]): number {
+  let n = 0;
+  for (const x of v) n += x * x;
+  return Math.sqrt(n);
+}
+
 function cosine(a: number[], b: number[]): number {
   let dot = 0;
-  let na = 0;
-  let nb = 0;
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i];
-    na += a[i] * a[i];
-    nb += b[i] * b[i];
-  }
+  for (let i = 0; i < a.length; i++) dot += a[i] * b[i];
+  const na = magnitude(a);
+  const nb = magnitude(b);
   if (na === 0 || nb === 0) return 0;
-  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+  return dot / (na * nb);
+}
+
+/**
+ * Résumé similarity: cosine (the SHAPE of the trophy case) scaled by how
+ * comparably decorated the two players are (the SIZE of it).
+ *
+ * Cosine alone is scale-invariant, which got both ends wrong: a one-time
+ * all-star read as a ~9.4/10 match for a two-MVP secret (same direction,
+ * a fraction of the magnitude), and the 28 pool players with no awards at
+ * all scored the mathematical minimum against each other instead of a
+ * perfect match. The min/max norm ratio is 1 for identical vectors, 0.5
+ * for a résumé twice the size across the board, and 0 when only one side
+ * has any hardware; two empty trophy cases are defined as a match.
+ */
+function awardsSimilarity(a: number[], b: number[]): number {
+  const na = magnitude(a);
+  const nb = magnitude(b);
+  if (na === 0 && nb === 0) return 1;
+  if (na === 0 || nb === 0) return 0;
+  return cosine(a, b) * (Math.min(na, nb) / Math.max(na, nb));
 }
 
 /** Weighted 0..100 similarity of `p` to the `secret`. */
@@ -107,7 +141,7 @@ function similarity(secret: PlayerIndexEntry, p: PlayerIndexEntry): number {
     15 * positionFamily(secret, p) +
     10 * (secret.country === p.country ? 1 : 0) +
     10 * draftProximity(secret, p) +
-    10 * cosine(awardsVec(secret), awardsVec(p))
+    10 * awardsSimilarity(awardsVec(secret), awardsVec(p))
   );
 }
 
@@ -148,7 +182,9 @@ function hashStr(s: string): number {
   return h >>> 0;
 }
 
-/** The day's secret: fame tier 1-2, keyed by the UTC date so it's shared. */
+/** The day's secret: fame tier 1-2, keyed by the UTC date so it's shared.
+ *  Single-player only — online the server sends the secret it picked with the
+ *  same rule (daily_secret() in backend/trivia/games/contexto.py). */
 function dailySecret(pool: PlayerIndexEntry[]): PlayerIndexEntry {
   const candidates = pool.filter((p) => p.fame_tier <= 2);
   const list = (candidates.length ? candidates : pool)
@@ -183,7 +219,12 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
+export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoProps) {
+  // Online, the round IS the config; offline, it's the pool itself.
+  const round = multiplayer ? (gameInfo[0] as ContextoRoundConfig | undefined) : undefined;
+  const localPool = multiplayer ? null : (gameInfo as PlayerIndexEntry[]);
+  const pool = useRoundPool(localPool, round?.pool);
+
   const reduce = useReducedMotion();
   const [rows, setRows] = useState<GuessRow[]>([]);
   const [guessedIds, setGuessedIds] = useState<Set<number>>(new Set());
@@ -208,18 +249,24 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     timersRef.current = [];
   };
 
-  // Pick the daily secret + rank the whole pool once per gameInfo (heavy loop).
-  const secret = useMemo(
-    () => (gameInfo && gameInfo.length ? dailySecret(gameInfo) : null),
-    [gameInfo],
-  );
+  // Pick the daily secret + rank the whole pool once per pool/round (heavy loop).
+  // Online the server decided the secret for the whole room: use exactly that
+  // row or none at all. Falling back to the local rule when the id isn't in the
+  // pool this client loaded would have the two players solving DIFFERENT
+  // puzzles and still be scored against each other — the same reason SuperDraft
+  // refuses a slot constraint it can't resolve.
+  const secret = useMemo(() => {
+    if (!pool || !pool.length) return null;
+    if (multiplayer) return pool.find((p) => p.person_id === round?.secret_person_id) ?? null;
+    return dailySecret(pool);
+  }, [pool, round, multiplayer]);
   const ranking = useMemo(
-    () => (secret ? buildRanking(secret, gameInfo) : null),
-    [secret, gameInfo],
+    () => (secret && pool ? buildRanking(secret, pool) : null),
+    [secret, pool],
   );
   const suggestions = useMemo(
-    () => (gameInfo ?? []).map((p) => p.full_name),
-    [gameInfo],
+    () => (pool ?? []).map((p) => p.full_name),
+    [pool],
   );
 
   // Fire-and-forget guess log (the data flywheel). apiFetch only attaches the
@@ -315,19 +362,21 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     later(() => endOnce(0), 1900);
   };
 
-  // Loading / empty-invalid pool state.
+  // Loading / unplayable-round state. Once the pool has resolved (non-null) and
+  // there is still no secret, the round can't be played — either the pool is
+  // empty or, online, it doesn't contain the secret the room was given.
   if (!secret || !ranking) {
     return (
       <div className="cx-center">
         <Spinner label="Calibrating the radar…" />
-        {gameInfo && gameInfo.length === 0 && (
+        {pool && (
           <p className="cx-note">No player data available. Please try again later.</p>
         )}
       </div>
     );
   }
 
-  const poolSize = gameInfo.length;
+  const poolSize = pool!.length;
   const barWidth = (rank: number) =>
     `${Math.max(5, Math.round(100 * (1 - (rank - 1) / Math.max(1, poolSize - 1))))}%`;
 

@@ -15,6 +15,8 @@ from datetime import date
 from django.conf import settings
 from django.http import JsonResponse
 
+from trivia.data_pipeline.curated_players import playable_rows
+
 GAME_NAME = "NBA Bingo"
 SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "bingo_seed.json")
 CURATED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "players_curated.json")
@@ -49,8 +51,13 @@ def _load_seed():
 
 
 def _load_curated():
-    """players_curated.json rows, or [] while the foundation agent hasn't landed it."""
-    return _load_json(CURATED_PATH)
+    """The playable pool, or [] while the foundation agent hasn't landed it.
+
+    Rows with no team stints live in the dataset for parity but not in the
+    players-index pool the client dabs against, so they must not count toward a
+    cell's MIN_MATCHES_PER_CELL.
+    """
+    return playable_rows(_load_json(CURATED_PATH))
 
 
 def _decade_start(value):
@@ -88,10 +95,12 @@ def criterion_matches(p, c):
             return draft is None
         if not draft:
             return False
+        # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
+        # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
         if value == "top5":
-            return draft["pick"] <= 5
+            return 1 <= draft["pick"] <= 5
         if value == "lottery":
-            return draft["pick"] <= 14
+            return 1 <= draft["pick"] <= 14
         if value == "round2":
             return draft["round"] == 2
         if value.startswith("decade-"):

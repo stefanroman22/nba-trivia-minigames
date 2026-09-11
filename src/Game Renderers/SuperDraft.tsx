@@ -2,11 +2,20 @@
 // A daily objective (Tallest Five / Most Rings / Most Career Points / Oldest
 // Five) is picked by date-hash. Five slots each draw a RANDOM pool constraint
 // (a franchise / a country / a draft decade) guaranteed >= 8 eligible players
-// from the players-index pool (gameInfo). Draft one player per slot via an
+// from the players-index pool. Draft one player per slot via an
 // autocomplete filtered to that slot's eligible names; each player is usable
 // once. After five picks the lineup's metric is graded as a percentile against
 // 300 random valid lineups simulated client-side, and onGameEnd(percentile) is
-// called exactly once. One slot re-roll per game reshuffles all constraints.
+// called exactly once. One slot re-roll per game reshuffles all constraints
+// (single-player only — see below).
+//
+// Single-player is handed the whole pool as `gameInfo` and draws its own slots.
+// A MULTIPLAYER round is a one-element SuperDraftRoundConfig array instead: the
+// day plus the five slot constraints, drawn once server-side
+// (backend/trivia/games/superdraft.py) so both players draft under identical
+// constraints. The renderer then loads the same CDN pool single-player uses
+// (useRoundPool) and resolves those constraints against it — it must never draw
+// its own slots online, which is what made online matches silently unfair.
 //
 // Conventions copied from PackFive/StartingFive: state reset on [gameInfo],
 // timersRef + later()/clearTimers() for ALL delayed work, endedRef guards
@@ -18,13 +27,20 @@ import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { useRoundPool } from "../hooks/useRoundPool";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, OnGameEnd } from "../types/types";
+import type {
+  PlayerIndexEntry,
+  OnGameEnd,
+  SlotConstraintConfig,
+  SuperDraftRoundConfig,
+} from "../types/types";
 import "../styles/SuperDraft.css";
 
 export interface SuperDraftProps {
-  gameInfo: PlayerIndexEntry[];
+  /** Single-player: the whole pool. Multiplayer: [SuperDraftRoundConfig]. */
+  gameInfo: PlayerIndexEntry[] | SuperDraftRoundConfig[];
   onGameEnd: OnGameEnd;
   /** Restarts the game from the result panel (spec §7). */
   onPlayAgain?: () => void;
@@ -46,7 +62,7 @@ const CURRENT_YEAR = new Date().getFullYear();
 const headshotUrl = (personId: number) =>
   `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
-// ----- Objectives (canonical; mirrors superdraft_seed.json) -----
+// ----- Objectives (canonical: the renderer owns them; the backend serves the pool) -----
 type MetricKey = "height_in" | "rings" | "career_pts" | "birth_year_desc";
 interface Objective {
   key: string;
@@ -125,10 +141,14 @@ const OBJECTIVES: Objective[] = [
   },
 ];
 
-// Pick one objective per calendar day (local date), stable within the day.
-function dailyObjective(): Objective {
+// Pick one objective per calendar day, stable within the day. Single-player
+// uses the local date; a multiplayer round passes the server's UTC `day` so two
+// players in different timezones can't be graded on different objectives.
+function dailyObjective(day?: string): Objective {
   const d = new Date();
-  const ymd = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  const ymd = day
+    ? Number(day.slice(0, 4)) * 10000 + Number(day.slice(5, 7)) * 100 + Number(day.slice(8, 10))
+    : d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
   let h = ymd >>> 0;
   h = ((h ^ (h >>> 13)) * 0x9e3779b1) >>> 0; // cheap avalanche so adjacent days differ
   return OBJECTIVES[h % OBJECTIVES.length];
@@ -232,6 +252,24 @@ function drawSlots(cands: Record<ConstraintKind, SlotConstraint[]>): SlotConstra
   return picked;
 }
 
+// Multiplayer: the slots were drawn server-side, so look each one up in the
+// SAME candidate index single-player draws from — identical eligibility, no
+// second draw. Returns [] if any constraint is missing locally (a pool the
+// server hasn't published yet), which the caller shows as the error state
+// rather than quietly playing a different draft from the opponent's.
+function resolveSlots(
+  cands: Record<ConstraintKind, SlotConstraint[]>,
+  wanted: SlotConstraintConfig[],
+): SlotConstraint[] {
+  const picked: SlotConstraint[] = [];
+  for (const w of wanted) {
+    const match = cands[w.kind]?.find((c) => c.value === w.value);
+    if (!match) return [];
+    picked.push({ ...match, label: w.label, sub: w.sub });
+  }
+  return picked;
+}
+
 interface GuessEntry {
   question_id: string;
   answer: string;
@@ -266,8 +304,19 @@ function Headshot({ player }: { player: PlayerIndexEntry }) {
 
 type Phase = "loading" | "error" | "draft" | "reveal";
 
-export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }: SuperDraftProps) {
-  const objective = useMemo(() => dailyObjective(), []);
+export default function SuperDraft({
+  gameInfo,
+  onGameEnd,
+  onPlayAgain,
+  onClose,
+  multiplayer,
+}: SuperDraftProps) {
+  // Online, the round IS the config; offline, it's the pool itself.
+  const round = multiplayer ? (gameInfo[0] as SuperDraftRoundConfig | undefined) : undefined;
+  const localPool = multiplayer ? null : (gameInfo as PlayerIndexEntry[]);
+  const pool = useRoundPool(localPool, round?.pool);
+
+  const objective = useMemo(() => dailyObjective(round?.day), [round?.day]);
   const [phase, setPhase] = useState<Phase>("loading");
   const [slots, setSlots] = useState<SlotConstraint[]>([]);
   const [picks, setPicks] = useState<(PlayerIndexEntry | null)[]>([]);
@@ -294,7 +343,7 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
     timersRef.current = [];
   };
 
-  const candidates = useMemo(() => buildCandidates(gameInfo ?? []), [gameInfo]);
+  const candidates = useMemo(() => buildCandidates(pool ?? []), [pool]);
   const candidateCount = candidates.team.length + candidates.country.length + candidates.draft.length;
 
   const sendGuessLog = () => {
@@ -309,7 +358,8 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
     });
   };
 
-  // Fresh draft whenever the pool changes (play-again / new payload).
+  // Fresh draft whenever the round changes (play-again / new payload), or once
+  // a multiplayer round's pool has finished loading.
   useEffect(() => {
     clearTimers();
     setDraftValue("");
@@ -323,13 +373,20 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
     guessLogRef.current = [];
     startRef.current = Date.now();
 
-    if (candidateCount < SLOT_COUNT) {
+    if (!pool) {
+      setSlots([]);
+      setPicks([]);
+      setPhase("loading");
+      return;
+    }
+    if (!multiplayer && candidateCount < SLOT_COUNT) {
       setSlots([]);
       setPicks([]);
       setPhase("error");
       return;
     }
-    const drawn = drawSlots(candidates);
+    // Online the server already drew the slots — resolve them, never re-draw.
+    const drawn = multiplayer ? resolveSlots(candidates, round?.slots ?? []) : drawSlots(candidates);
     if (drawn.length < SLOT_COUNT) {
       setSlots([]);
       setPicks([]);
@@ -340,7 +397,7 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
     setPicks(Array(SLOT_COUNT).fill(null));
     setPhase("draft");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameInfo]);
+  }, [gameInfo, pool]);
 
   // Unmount: cancel pending reveals/end-calls and flush any un-sent guesses.
   useEffect(
@@ -463,7 +520,9 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
   };
 
   const reroll = () => {
-    if (rerollUsed || phase !== "draft") return;
+    // Online the room shares one server-drawn set of slots; a local re-roll
+    // would put the two players back on different drafts.
+    if (multiplayer || rerollUsed || phase !== "draft") return;
     const drawn = drawSlots(candidates);
     if (drawn.length < SLOT_COUNT) return;
     setRerollUsed(true);
@@ -541,7 +600,7 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
           row disappearing once drafting ends) never shifts the cards. */}
       <GameFrame.Board>
       <div className="sd-tools">
-        {drafting && (
+        {drafting && !multiplayer && (
           <Button
             size="sm"
             variant="secondary"

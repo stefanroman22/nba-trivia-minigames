@@ -9,7 +9,23 @@
 //
 // Run:  node scripts/sim_turngames.js
 const turnGames = require("../src/turnGames");
-const { playerMatches } = turnGames._test;
+const { playerMatches, normalizeAnswer } = turnGames._test;
+
+// Deterministic RNG: turnGames.js uses Math.random to pick the TTT grid's
+// rows/cols, the imposter's identity, and the clue order. Left un-seeded,
+// which criteria land on the board (and therefore which pool player
+// playerForCell finds first) varies run to run — which is exactly the kind
+// of luck-dependence that made this harness flaky. Seed it so every run of
+// this script is identical; the imposter/used-player assertions below are
+// already written to adapt to whichever uid the deterministic run picks.
+function seededRandom(seed) {
+  let s = seed >>> 0;
+  return function () {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+Math.random = seededRandom(0xc0ffee);
 
 // ------------------------------------------------------------------ pool
 // A synthetic curated pool: 5 franchises x 8 players, attributes fanned out so
@@ -120,10 +136,16 @@ function makeHelpers(room) {
   };
 }
 
-// Find any pool player satisfying both criteria (guaranteed to exist because the
-// generator only emits solvable cells).
-function playerForCell(rowCrit, colCrit) {
-  const p = POOL.find((pl) => playerMatches(pl, rowCrit) && playerMatches(pl, colCrit));
+// Find a pool player satisfying both criteria who ISN'T already claimed
+// somewhere else on the board — mirroring what a real client does (and what
+// solo mode's usedIdsRef enforces): a player can occupy at most one cell.
+// The used set is derived from the live board on every call, never tracked
+// separately, so it can't drift from what turnGames.js actually recorded.
+function playerForCell(rowCrit, colCrit, board) {
+  const used = new Set(board.filter(Boolean).map((occ) => normalizeAnswer(occ.playerName)));
+  const p = POOL.find(
+    (pl) => !used.has(normalizeAnswer(pl.full_name)) && playerMatches(pl, rowCrit) && playerMatches(pl, colCrit),
+  );
   return p ? p.full_name : null;
 }
 
@@ -145,9 +167,19 @@ async function simTicTacToe() {
   while (!st.winnerUid && !st.draw && guard++ < 12) {
     const uid = st.turnUid;
     const cell = plan[uid].shift();
+    if (cell === undefined) {
+      throw new Error(`sim plan exhausted for ${uid} before a winner emerged — no progress possible`);
+    }
     const row = Math.floor(cell / 3);
     const col = cell % 3;
-    const name = playerForCell(st.criteria.rows[row], st.criteria.cols[col]);
+    const rowCrit = st.criteria.rows[row];
+    const colCrit = st.criteria.cols[col];
+    const name = playerForCell(rowCrit, colCrit, st.board);
+    if (!name) {
+      throw new Error(
+        `no unused player satisfies cell ${cell} (row=${rowCrit.label}, col=${colCrit.label})`,
+      );
+    }
     line(`${uid} claims cell ${cell} with "${name}"`);
     turnGames.handleAction(room, uid, { type: "claim", cell, playerName: name }, helpers);
   }
@@ -156,6 +188,64 @@ async function simTicTacToe() {
   line(`winnerUid: ${room.turn.state.winnerUid}   draw: ${room.turn.state.draw}`);
   line(`final scores: ${JSON.stringify(room.scores)}`);
   return !!room.turn.state.winnerUid;
+}
+
+// ==================================================== USED-PLAYER RULE (TTT)
+// A real player can only sit in one cell on the shared board (mirrors solo
+// mode's usedIdsRef), even when the OTHER player is the one naming them.
+// trustClient is forced on so the check is isolated from grid/pool matching.
+async function simUsedPlayerRule() {
+  line("\n================ TIC-TAC-TOE (used-player rule) ================");
+  const room = makeRoom(333333, ["Alice", "Bob"], "tictactoe");
+  const helpers = makeHelpers(room);
+  await turnGames.init(room, helpers);
+  room.turn.trustClient = true;
+
+  const st = room.turn.state;
+  const first = st.turnUid;
+  const second = room.members.find((m) => m !== first);
+
+  line(`${first} claims cell 0 with "Duplicate Player"`);
+  turnGames.handleAction(room, first, { type: "claim", cell: 0, playerName: "Duplicate Player" }, helpers);
+
+  line(`${second} tries cell 1 with the SAME player -> expect reject`);
+  turnGames.handleAction(room, second, { type: "claim", cell: 1, playerName: "duplicate player" }, helpers);
+  const blocked = st.board[1] === null;
+
+  line(`${second} tries cell 1 with a different player -> expect success`);
+  turnGames.handleAction(room, second, { type: "claim", cell: 1, playerName: "Different Player" }, helpers);
+  const allowed = !!st.board[1];
+
+  line(`blocked duplicate: ${blocked}   allowed distinct: ${allowed}`);
+  return blocked && allowed;
+}
+
+// ================================================== PLAYERFORCELL COLLISION
+// Directly forces the used-player collision that simTicTacToe's fixed seed
+// never naturally produces (confirmed: under 0xc0ffee every TTT claim in that
+// run resolves to a distinct player even with NO exclusion at all — see
+// task-3b report). Without this, 15/15 green runs never exercise
+// playerForCell's fall-through, and a regression like dropping the `used`
+// check or swapping normalizeAnswer(pl.full_name) for the raw name would
+// sail through undetected. The occupant name below is deliberately
+// case-mangled so this also proves the exclusion survives normalizeAnswer's
+// case fold, not just an exact-string match.
+function simPlayerForCellCollision() {
+  line("\n================ PLAYERFORCELL COLLISION (fall-through) ================");
+  const rowCrit = { type: "team", value: "CHI" };
+  const colCrit = { type: "college", value: "Duke" };
+  // CHI Player 0, 2, 4, 6 all satisfy team=CHI + college=Duke. "chi player 0"
+  // (case-mangled) already occupies cell 0 on the board.
+  const board = [{ ownerUid: "Alice", playerName: "chi player 0" }, null, null];
+  const picked = playerForCell(rowCrit, colCrit, board);
+  const pickedPlayer = picked && POOL.find((pl) => pl.full_name === picked);
+  const collidesWithTaken = !!picked && normalizeAnswer(picked) === normalizeAnswer("CHI Player 0");
+  const isValidCandidate =
+    !!pickedPlayer && playerMatches(pickedPlayer, rowCrit) && playerMatches(pickedPlayer, colCrit);
+  line(`taken (used): "chi player 0"   playerForCell returned: "${picked}"`);
+  const ok = !!picked && !collidesWithTaken && isValidCandidate;
+  line(`fall-through avoided the taken player: ${ok ? "PASS" : "FAIL"}`);
+  return ok;
 }
 
 // ================================================================= IMPOSTER
@@ -215,9 +305,13 @@ async function simImposter() {
 
 (async () => {
   const tttWin = await simTicTacToe();
+  const usedPlayerOk = await simUsedPlayerRule();
+  const collisionOk = simPlayerForCellCollision();
   const impDone = await simImposter();
   line("\n================ RESULT ================");
   line(`Tic-Tac-Toe reached a win : ${tttWin ? "PASS" : "FAIL"}`);
+  line(`Used-player rule enforced : ${usedPlayerOk ? "PASS" : "FAIL"}`);
+  line(`playerForCell fall-through: ${collisionOk ? "PASS" : "FAIL"}`);
   line(`Imposter reached reveal   : ${impDone ? "PASS" : "FAIL"}`);
-  process.exit(tttWin && impDone ? 0 : 1);
+  process.exit(tttWin && usedPlayerOk && collisionOk && impDone ? 0 : 1);
 })();

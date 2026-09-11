@@ -4,7 +4,7 @@
     "tiles": [
       "Chris Bosh",
       "Ben Simmons",
-      "Matthew Dellavedova",
+      "Iman Shumpert",
       "JJ Redick",
       "Joe Ingles",
       "Marvin Bagley III",
@@ -37,7 +37,7 @@
           "JR Smith",
           "Kevin Love",
           "Tristan Thompson",
-          "Matthew Dellavedova"
+          "Iman Shumpert"
         ]
       },
       {
@@ -68,18 +68,18 @@
       "Antoine Walker",
       "Kevin Garnett",
       "Paul Pierce",
-      "Steve Nash",
+      "Shaquille O'Neal",
       "Chauncey Billups",
       "Rip Hamilton",
       "Ben Wallace",
-      "Antawn Jamison",
+      "Hakeem Olajuwon",
       "Vince Carter",
-      "Jason Terry",
+      "Rajon Rondo",
       "Tim Duncan",
-      "Michael Redd",
+      "Devin Booker",
       "Rashard Lewis",
       "Dirk Nowitzki",
-      "Tayshaun Prince",
+      "Rasheed Wallace",
       "Jamal Mashburn"
     ],
     "groups": [
@@ -99,7 +99,7 @@
         "members": [
           "Chauncey Billups",
           "Rip Hamilton",
-          "Tayshaun Prince",
+          "Rasheed Wallace",
           "Ben Wallace"
         ]
       },
@@ -109,8 +109,8 @@
         "members": [
           "Tim Duncan",
           "Kevin Garnett",
-          "Steve Nash",
-          "Antawn Jamison"
+          "Shaquille O'Neal",
+          "Hakeem Olajuwon"
         ]
       },
       {
@@ -119,8 +119,8 @@
         "members": [
           "Antoine Walker",
           "Jamal Mashburn",
-          "Jason Terry",
-          "Michael Redd"
+          "Rajon Rondo",
+          "Devin Booker"
         ]
       }
     ]
@@ -131,7 +131,7 @@
       "Damian Lillard",
       "Draymond Green",
       "Kemba Walker",
-      "Anthony Davis",
+      "Andrew Bogut",
       "Kyrie Irving",
       "Gordon Hayward",
       "Paul George",
@@ -163,7 +163,7 @@
           "Klay Thompson",
           "Draymond Green",
           "Andre Iguodala",
-          "Anthony Davis"
+          "Andrew Bogut"
         ]
       },
       {
@@ -319,30 +319,30 @@
     "tiles": [
       "Bernard King",
       "World B. Free",
-      "Paul Pierce",
+      "Lou Williams",
       "Chris Mullin",
       "Kevin Durant",
       "Ray Allen",
       "Peja Stojakovic",
-      "Allen Iverson",
+      "Jamal Crawford",
       "Alex English",
       "Dominique Wilkins",
       "George Gervin",
       "Karl Malone",
-      "James Harden",
+      "Manu Ginobili",
       "Charles Barkley",
       "Reggie Miller",
-      "Anthony Davis"
+      "Montrezl Harrell"
     ],
     "groups": [
       {
-        "label": "'The ___' nicknames",
+        "label": "Sixth Man of the Year winners",
         "difficulty": 4,
         "members": [
-          "Allen Iverson",
-          "Paul Pierce",
-          "James Harden",
-          "Anthony Davis"
+          "Jamal Crawford",
+          "Lou Williams",
+          "Manu Ginobili",
+          "Montrezl Harrell"
         ]
       },
       {
@@ -392,10 +392,10 @@
       "Kevin Durant",
       "Brook Lopez",
       "Deron Williams",
-      "Rudy Gay",
+      "Jeff Green",
       "John Wall",
       "Russell Westbrook",
-      "Tyreke Evans"
+      "Gordon Hayward"
     ],
     "groups": [
       {
@@ -415,7 +415,7 @@
           "Kevin Durant",
           "Al Horford",
           "Mike Conley",
-          "Rudy Gay"
+          "Jeff Green"
         ]
       },
       {
@@ -435,7 +435,7 @@
           "John Wall",
           "DeMarcus Cousins",
           "Paul George",
-          "Tyreke Evans"
+          "Gordon Hayward"
         ]
       }
     ]
@@ -572,13 +572,13 @@
       "Derrick Rose",
       "Carmelo Anthony",
       "Alonzo Mourning",
-      "Tim Hardaway",
+      "Penny Hardaway",
       "Chris Paul",
       "Patrick Ewing",
-      "Emeka Okafor",
+      "Roy Hibbert",
       "Damian Lillard",
       "Anthony Davis",
-      "Kemba Walker",
+      "Tyreke Evans",
       "Karl-Anthony Towns",
       "Stephen Curry",
       "Klay Thompson",
@@ -603,7 +603,7 @@
         "members": [
           "Patrick Ewing",
           "Alonzo Mourning",
-          "Emeka Okafor",
+          "Roy Hibbert",
           "Allen Iverson"
         ]
       },
@@ -613,8 +613,8 @@
         "members": [
           "Carmelo Anthony",
           "Derrick Rose",
-          "Kemba Walker",
-          "Tim Hardaway"
+          "Tyreke Evans",
+          "Penny Hardaway"
         ]
       },
       {
@@ -638,7 +638,7 @@
       "Al Horford",
       "Kristaps Porzingis",
       "Giannis Antetokounmpo",
-      "Serge Ibaka",
+      "Rudy Fernandez",
       "Pau Gasol",
       "Ricky Rubio",
       "Luol Deng",
@@ -657,7 +657,7 @@
           "Pau Gasol",
           "Marc Gasol",
           "Ricky Rubio",
-          "Serge Ibaka"
+          "Rudy Fernandez"
         ]
       },
       {
@@ -1262,7 +1262,7 @@
   {
     "qid": "cn-021",
     "tiles": [
-      "Wesley Matthews",
+      "Jason Richardson",
       "Michael Jordan",
       "Patrick Ewing",
       "Magic Johnson",
@@ -1286,7 +1286,7 @@
         "members": [
           "Michael Jordan",
           "LeBron James",
-          "Wesley Matthews",
+          "Jason Richardson",
           "Draymond Green"
         ]
       },
@@ -1396,12 +1396,12 @@
       "Patrick Ewing",
       "Nikola Jokic",
       "Rudy Gobert",
-      "Bam Adebayo",
+      "Clint Capela",
       "Manu Ginobili",
       "Kristaps Porzingis",
       "Luka Doncic",
       "Yao Ming",
-      "Steve Nash",
+      "Dikembe Mutombo",
       "Hakeem Olajuwon",
       "Domantas Sabonis"
     ],
@@ -1431,7 +1431,7 @@
         "difficulty": 3,
         "members": [
           "Yao Ming",
-          "Steve Nash",
+          "Dikembe Mutombo",
           "Hakeem Olajuwon",
           "Patrick Ewing"
         ]
@@ -1443,7 +1443,7 @@
           "Kristaps Porzingis",
           "Rudy Gobert",
           "Domantas Sabonis",
-          "Bam Adebayo"
+          "Clint Capela"
         ]
       }
     ]
@@ -1463,7 +1463,7 @@
       "Dwight Howard",
       "Zach LaVine",
       "Jason Richardson",
-      "Cedric Ceballos",
+      "Larry Nance",
       "Nate Robinson",
       "Aaron Gordon",
       "Michael Jordan"
@@ -1486,7 +1486,7 @@
           "Michael Jordan",
           "Dominique Wilkins",
           "Spud Webb",
-          "Cedric Ceballos"
+          "Larry Nance"
         ]
       },
       {
@@ -1895,7 +1895,7 @@
       "Stephen Curry",
       "Kevin Love",
       "Joakim Noah",
-      "Danny Granger",
+      "Monta Ellis",
       "Ricky Rubio",
       "Eric Gordon",
       "Chris Paul",
@@ -1917,7 +1917,7 @@
           "Chris Paul",
           "Deron Williams",
           "Andrew Bynum",
-          "Danny Granger"
+          "Monta Ellis"
         ]
       },
       {
@@ -1974,7 +1974,7 @@
     ],
     "groups": [
       {
-        "label": "2003 Draft (banana boat era)",
+        "label": "Banana boat crew",
         "difficulty": 3,
         "members": [
           "LeBron James",
@@ -2089,14 +2089,14 @@
       "Charles Barkley",
       "Chris Webber",
       "LeBron James",
-      "Kevin Durant",
+      "Wesley Matthews",
       "Dennis Rodman",
       "Kevin Garnett",
-      "Pau Gasol",
-      "Tim Duncan",
       "Kevin Love",
-      "Tracy McGrady",
-      "Amar'e Stoudemire"
+      "Tim Duncan",
+      "Udonis Haslem",
+      "Fred VanVleet",
+      "Jose Calderon"
     ],
     "groups": [
       {
@@ -2110,13 +2110,13 @@
         ]
       },
       {
-        "label": "High-school draftees (wave 2)",
+        "label": "Undrafted (never picked)",
         "difficulty": 3,
         "members": [
-          "Tracy McGrady",
-          "Kevin Durant",
-          "Amar'e Stoudemire",
-          "Kevin Love"
+          "Fred VanVleet",
+          "Wesley Matthews",
+          "Jose Calderon",
+          "Udonis Haslem"
         ]
       },
       {
@@ -2125,12 +2125,12 @@
         "members": [
           "Tim Duncan",
           "Chris Bosh",
-          "Pau Gasol",
+          "Kevin Love",
           "Chris Webber"
         ]
       },
       {
-        "label": "Hall-of-Fame forwards (pre-2000)",
+        "label": "Hall-of-Fame forwards (1980s draftees)",
         "difficulty": 1,
         "members": [
           "Karl Malone",

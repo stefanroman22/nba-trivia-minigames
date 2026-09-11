@@ -12,6 +12,8 @@ from datetime import datetime, timezone
 
 from django.conf import settings
 
+from trivia.data_pipeline.curated_players import playable_rows
+
 # Row-major hex ids 0..27. Even rows flush, odd rows indented +0.5 (honeycomb).
 ROW_WIDTHS = [4, 5, 5, 5, 5, 4]  # == 28 playable hexes
 
@@ -81,10 +83,12 @@ def player_matches(p, c):
             return d is None
         if d is None:
             return False
+        # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
+        # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
         if v == "top5":
-            return d["pick"] <= 5
+            return 1 <= d["pick"] <= 5
         if v == "lottery":
-            return d["pick"] <= 14
+            return 1 <= d["pick"] <= 14
         if v == "round2":
             return d["round"] == 2
         if v.startswith("decade-"):
@@ -117,11 +121,16 @@ def player_matches(p, c):
 
 
 def load_curated():
-    """Load the curated dataset (raises FileNotFoundError with a clear message).
+    """Load the PLAYABLE pool (raises FileNotFoundError with a clear message).
 
     Honours the HEATMAP_CURATED env var (absolute path) so the generator /
     validator can be pointed at an alternate dataset for authoring; defaults to
     the foundation agent's trivia/data_static/players_curated.json.
+
+    Rows with no team stints are dropped (curated_players.playable_rows): they
+    are in the dataset for parity, but not in the players-index pool the client
+    validates against, so counting one as a solver would overstate how solvable
+    a board is by exactly the players the client cannot name.
     """
     override = os.environ.get("HEATMAP_CURATED")
     path = override or os.path.join(
@@ -134,4 +143,4 @@ def load_curated():
             f"(or set HEATMAP_CURATED to an alternate dataset path)."
         )
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        return playable_rows(json.load(f))
