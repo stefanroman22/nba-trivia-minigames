@@ -201,6 +201,41 @@ class SyncRun(models.Model):
         return f"{self.dataset} {self.status} ({self.rows}) @ {self.created_at:%Y-%m-%d %H:%M}"
 
 
+class Question(models.Model):
+    """One pre-generated round for a player-pool game (spec §6).
+
+    `definition` is the small dataset-independent description; the snapshot
+    publisher materializes it against the current player dataset.
+    """
+
+    STATUS_ACTIVE = "active"
+    STATUS_RETIRED = "retired"
+
+    game = models.CharField(max_length=32, db_index=True)
+    qid = models.CharField(max_length=48)
+    definition = models.JSONField()
+    status = models.CharField(max_length=16, default=STATUS_ACTIVE)
+    quality = models.JSONField(default=dict, blank=True)
+    players_referenced = models.JSONField(default=list, blank=True)
+    content_hash = models.CharField(max_length=64)
+    dataset_version = models.CharField(max_length=32, blank=True)
+    created_by = models.CharField(max_length=32, default="generator")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    retired_at = models.DateTimeField(null=True, blank=True)
+    retired_reason = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["game", "qid"], name="uniq_question_game_qid"),
+            models.UniqueConstraint(fields=["game", "content_hash"], name="uniq_question_game_hash"),
+        ]
+        indexes = [models.Index(fields=["game", "status"])]
+
+    def __str__(self):
+        return f"{self.game}/{self.qid} [{self.status}]"
+
+
 class Feedback(models.Model):
     """One player rating (1–5 stars) plus an optional written message.
 
