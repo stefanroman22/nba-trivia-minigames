@@ -138,13 +138,14 @@ def fetch_players(season=None, per_call_timeout=20):
 # ---------------------------------------------------------------------------
 #  Playoff series  (derived entirely from the playoff game log)
 # ---------------------------------------------------------------------------
-def _reconstruct_rounds(series):
+def _reconstruct_rounds(series, season):
     """Assign a round label to every series by reconstructing the bracket.
 
     The Finals is the series whose clinching game is latest; each team entered a
     series by winning its previous (earlier) series, so we walk backward from the
     Finals assigning increasing depth (0 = Finals). Era-independent, and never
     yields "Unknown". `series` items have: teams(frozenset), winner_id, latest(date).
+    `season` only picks the label set — see the 1953-54 round robin below.
     """
     n = len(series)
     by_date = sorted(range(n), key=lambda i: series[i]["latest"])
@@ -170,6 +171,15 @@ def _reconstruct_rounds(series):
                 depth[prev] = depth[i] + 1
 
     labels = {0: "NBA Finals", 1: "Conference Finals", 2: "Conference Semifinals", 3: "First Round"}
+    if season == "1953-54":
+        # The NBA's only round-robin postseason (never used before or since): each
+        # division's three qualifiers played each other twice, and the two survivors
+        # then met in the division final. The depths above still come out right —
+        # division finals at 1, round-robin meetings at 2 — but depth 2 is not a
+        # knockout round: New York (0-4 in the East) and Ft. Wayne (0-4 in the West)
+        # each lost two of its series. Naming it for what it was keeps the season
+        # honest instead of asserting two single-elimination semifinal losses apiece.
+        labels[2] = "Division Round Robin"
     return {i: labels.get(depth.get(i, 99), "First Round") for i in range(n)}
 
 
@@ -230,7 +240,7 @@ def _fetch_playoff_season(season, per_call_timeout=15):
     if not series:
         return []
 
-    rounds = _reconstruct_rounds(series)
+    rounds = _reconstruct_rounds(series, season)
     out = []
     for i, s in enumerate(series):
         win_id, lose_id = s["winner_id"], s["loser_id"]
@@ -344,6 +354,190 @@ def fetch_starting_five(seasons, max_games_per_season=40, per_call_timeout=15, p
         except Exception as e:  # noqa: BLE001
             print(f"  [starting5] {season}: FAILED ({str(e)[:60]}) — skipped")
     return out
+
+
+# ---------------------------------------------------------------------------
+#  Curated players  (two bulk endpoints + three per-player endpoints)
+# ---------------------------------------------------------------------------
+def _int(value, default=None):
+    """int(value) for API fields that arrive as str/float/None/''."""
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def fetch_draft_history(per_call_timeout=30):
+    """Every draft pick ever, keyed for lookup by person_id.
+
+    BULK — one call covers all ~8.4k picks, so this is fetched once and indexed
+    rather than queried per player. Crucially the team here is the team as it
+    was ON DRAFT NIGHT (Seattle for Kevin Durant, Atlanta for Luka Dončić,
+    Charlotte for Shai Gilgeous-Alexander) — never the player's later franchise.
+    """
+    from nba_api.stats.endpoints import drafthistory
+
+    data = retry(
+        lambda: drafthistory.DraftHistory(timeout=per_call_timeout).get_normalized_dict(),
+        label="DraftHistory",
+    )
+    out = []
+    for r in data.get("DraftHistory", []):
+        pid = _int(r.get("PERSON_ID"))
+        year = _int(r.get("SEASON"))
+        if not pid or year is None:
+            continue
+        out.append(
+            {
+                "person_id": pid,
+                "year": year,
+                "round": _int(r.get("ROUND_NUMBER"), 0),
+                "pick": _int(r.get("OVERALL_PICK"), 0),
+                "team_id": _int(r.get("TEAM_ID"), 0),
+                "team_abbr": (r.get("TEAM_ABBREVIATION") or "").strip(),
+                "organization": (r.get("ORGANIZATION") or "").strip(),
+                "organization_type": (r.get("ORGANIZATION_TYPE") or "").strip(),
+            }
+        )
+    return out
+
+
+def fetch_franchise_history(per_call_timeout=30):
+    """Every franchise NAME era (active + defunct) as {team_id, name, start/end_year}.
+
+    BULK — feeds era-accurate stint naming: team_id 1610612760 is the Seattle
+    SuperSonics through 2007-08 and the Oklahoma City Thunder from 2008-09.
+    The endpoint also returns one whole-franchise summary row per team (widest
+    span, current name); callers resolve a season to the NARROWEST matching era,
+    which ignores those summaries and picks Bobcats over Hornets for 2004-2013.
+    """
+    from nba_api.stats.endpoints import franchisehistory
+
+    data = retry(
+        lambda: franchisehistory.FranchiseHistory(timeout=per_call_timeout).get_normalized_dict(),
+        label="FranchiseHistory",
+    )
+    out = []
+    for key in ("FranchiseHistory", "DefunctTeams"):
+        for r in data.get(key, []):
+            team_id = _int(r.get("TEAM_ID"))
+            start = _int(r.get("START_YEAR"))
+            end = _int(r.get("END_YEAR"))
+            name = f"{(r.get('TEAM_CITY') or '').strip()} {(r.get('TEAM_NAME') or '').strip()}".strip()
+            if not team_id or start is None or end is None or not name:
+                continue
+            out.append({"team_id": team_id, "name": name, "start_year": start, "end_year": end})
+    return out
+
+
+def _is_empty_body(nba_response):
+    """True only when an endpoint answered with a literal empty JSON object.
+
+    stats.nba.com answers some real players with a 2-byte `{}` — no result sets
+    at all (PlayerCareerStats for James Thomas, 2839, while the same call for
+    LeBron returns 19 KB, so the API is healthy). That is a FINAL, correct
+    answer meaning "there is nothing here", not a failure.
+
+    Deliberately narrow, because everything this returns True for stops being
+    retried AND gets cached forever: a timeout or a reset never reaches here
+    (there is no response at all), and an error page or a truncated body is not
+    a keyless JSON object, so both keep retrying and raising exactly as before.
+    The status code is checked too — nba_api builds the response object from
+    response.text whatever the status, so a 500/503/403 that happens to carry an
+    empty body would otherwise pass for a legitimate answer.
+    """
+    if getattr(nba_response, "_status_code", None) != 200:
+        return False  # nba_api exposes no public accessor for the status
+    try:
+        body = nba_response.get_dict()
+    except Exception:  # noqa: BLE001 - no response, or not JSON: a genuine failure
+        return False
+    return isinstance(body, dict) and not body
+
+
+def _result_sets(make_endpoint, label):
+    """One endpoint's normalized result sets, or None if the API returned `{}`.
+
+    nba_api parses the response inside the constructor (and raises
+    KeyError('resultSet') on an empty body), so the request is made with
+    get_request=False and driven by hand — that keeps the response object around
+    to inspect when parsing blows up. An empty body returns on the first call;
+    anything else still burns retry()'s backoff ladder and is still raised.
+    """
+    def _call():
+        endpoint = make_endpoint()
+        try:
+            endpoint.get_request()
+        except Exception:
+            if _is_empty_body(getattr(endpoint, "nba_response", None)):
+                return None
+            raise
+        return endpoint.get_normalized_dict()
+
+    return retry(_call, label=label)
+
+
+def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
+    """The three per-player endpoints behind one curated row, raw.
+
+    Returns {"info": [...], "career": [...], "career_totals": [...], "awards": [...]}
+    exactly as the API gives it — the caller caches this and assembles rows from
+    it offline, so re-shaping a row never re-hits the network. Raises if any of
+    the three endpoints is still failing after retry(): a partially fetched
+    player must never become a null-filled row.
+
+    An EMPTY response is not a failure: it is the API saying the player has
+    none, so it becomes an empty list and is cached like any other answer. That
+    now includes commonplayerinfo, which answers `{}` for exactly one player in
+    the league index (200603, Corey Williams). He is real — CommonAllPlayers
+    vouches for him — so the empty answer is cached as the final answer it is,
+    and curated_players.build_roster_only_row builds his row from the index
+    instead. Re-raising instead would cost a fetch every run and would drop a
+    real player out of a dataset whose whole contract is 1:1 parity.
+
+    A genuine failure (timeout, reset, 5xx, truncated or non-empty error body)
+    still burns retry()'s ladder and is still raised: _is_empty_body only
+    returns True on a 200 whose body parses as a keyless JSON object.
+    """
+    import random
+
+    from nba_api.stats.endpoints import commonplayerinfo, playercareerstats, playerawards
+
+    def _paced(make_endpoint, label):
+        result = _result_sets(make_endpoint, f"{label} {person_id}")
+        time.sleep(pause + random.uniform(0, pause / 2))  # polite + jittered
+        return result
+
+    info = _paced(
+        lambda: commonplayerinfo.CommonPlayerInfo(
+            player_id=person_id, timeout=per_call_timeout, get_request=False
+        ),
+        "CommonPlayerInfo",
+    )
+    if info is None:
+        # No identity at all: the other two endpoints have nothing to add (both
+        # answer `{}` as well), so they are not even asked.
+        return {"info": [], "career": [], "career_totals": [], "awards": []}
+    career = _paced(
+        lambda: playercareerstats.PlayerCareerStats(
+            player_id=person_id, timeout=per_call_timeout, get_request=False
+        ),
+        "PlayerCareerStats",
+    )
+    awards = _paced(
+        lambda: playerawards.PlayerAwards(
+            player_id=person_id, timeout=per_call_timeout, get_request=False
+        ),
+        "PlayerAwards",
+    )
+    career = career or {}  # empty body -> the normal shape with empty lists
+    awards = awards or {}
+    return {
+        "info": info.get("CommonPlayerInfo", []),
+        "career": career.get("SeasonTotalsRegularSeason", []),
+        "career_totals": career.get("CareerTotalsRegularSeason", []),
+        "awards": awards.get("PlayerAwards", []),
+    }
 
 
 # ---------------------------------------------------------------------------

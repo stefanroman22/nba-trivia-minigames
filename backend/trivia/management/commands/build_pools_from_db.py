@@ -16,7 +16,9 @@ from datetime import datetime, timezone
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from trivia.data_pipeline.build_static import build_all_players_pool
 from trivia.data_pipeline.manifest import build_manifest
+from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_lineups
 from trivia.data_pipeline.validate import validate_pool
 from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
 from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
@@ -38,16 +40,26 @@ def build_name_logo():
 
 
 def build_all_players():
-    return list(Player.objects.values_list("full_name", flat=True))
+    # The curated dataset, not the DB Player table: players_curated.json is
+    # generated from the live league index and is 1:1 with this list by
+    # construction (generate_players_curated --rewrite-all-players writes both),
+    # so publishing the DB's older, unaccented names here would break that
+    # parity and the starting-five canonicalisation that reads this list.
+    return build_all_players_pool()
 
 
 def build_wordle():
     # Clean, de-duplicated 5-letter ASCII surnames (accents stripped, e.g. Jokić->Jokic).
-    words = set()
+    # De-dupe case-insensitively too, so casing variants that collide once the
+    # game uppercases guesses (e.g. "DuVal" vs "Duval") don't produce two pool
+    # entries for the same answer.
+    seen = set()
+    words = []
     for ln in Player.objects.values_list("last_name", flat=True):
         w = wordle_word(ln)
-        if w:
-            words.add(w)
+        if w and w.upper() not in seen:
+            seen.add(w.upper())
+            words.append(w)
     return sorted(words)
 
 
@@ -78,7 +90,11 @@ def build_playoff():
 
 
 def build_starting_five():
-    return [
+    # The board is a fixed 2-2-1 and every guess goes through the autocomplete,
+    # so unwinnable lineups are dropped and names are pulled to their canonical
+    # spelling here: the store keeps the raw feed, the pool only the playable
+    # part of it (trivia/data_pipeline/starting_five.py).
+    rows = [
         {"game_id": g.game_id, "game_date": g.game_date,
          "team_a": g.team_a, "team_b": g.team_b,
          "team_a_logo": g.team_a_logo, "team_b_logo": g.team_b_logo,
@@ -86,6 +102,7 @@ def build_starting_five():
          "starting_5": g.starting_5}
         for g in StartingFiveGame.objects.all()
     ]
+    return canonical_lineup_names(playable_lineups(rows), build_all_players())
 
 
 def build_fan_favorites():

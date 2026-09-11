@@ -291,7 +291,7 @@ function GameCard({ game }: { game: AdminGame }) {
           </ul>
 
           <div className="admin-card-foot">
-            <button className="btn btn-secondary btn-sm" disabled title="Coming soon — will trigger the data refresh pipeline">
+            <button className="btn btn-secondary btn-sm" disabled title="Coming soon.">
               Refresh data
             </button>
           </div>
@@ -431,7 +431,7 @@ function UsersTab() {
     <div className="surface admin-placeholder">
       <span className="font-display admin-placeholder-title">Users</span>
       <p className="admin-muted">
-        User management lands here next — player search, points &amp; rank moderation, and account actions.
+        User management lands here next.
       </p>
     </div>
   );

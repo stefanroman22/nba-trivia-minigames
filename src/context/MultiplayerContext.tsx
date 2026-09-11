@@ -286,7 +286,7 @@ function reducer(state: MpState, a: Action): MpState {
     case "PROPOSAL_RECEIVED":
       return { ...state, proposal: { role: "theirs", type: a.ptype, gameId: a.gameId, gameName: a.gameName, fromName: a.fromName } };
     case "PROPOSAL_PROGRESS":
-      return { ...state, notice: { kind: "info", text: `${a.username || "A player"} is in — waiting for the rest...` } };
+      return { ...state, notice: { kind: "info", text: `${a.username || "A player"} is in.` } };
     case "PROPOSAL_DECLINED":
       return { ...state, proposal: null, notice: { kind: "warn", text: `${a.username || firstOppName(state)} declined.` } };
     case "PROPOSAL_CANCELLED":

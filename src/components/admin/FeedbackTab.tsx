@@ -146,7 +146,7 @@ function FeedbackCard({ row, onChange }: { row: FeedbackRow; onChange: (r: Feedb
       <button className="fb-row-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <Stars n={row.rating} />
         <span className="fb-row-msg">
-          {row.message || <em className="admin-muted">Rating only — no message</em>}
+          {row.message || <em className="admin-muted">Rating only.</em>}
         </span>
         <span className="fb-row-who">
           {row.is_guest ? (
@@ -185,7 +185,7 @@ function FeedbackCard({ row, onChange }: { row: FeedbackRow; onChange: (r: Feedb
                   <span className="chip fb-chip-deleted">account deleted</span>
                 </span>
               ) : (
-                <span className="fb-detail-value admin-muted">Guest — not signed in</span>
+                <span className="fb-detail-value admin-muted">Guest.</span>
               )}
             </div>
             <div>
@@ -396,9 +396,8 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
       <div className="surface admin-placeholder fb-empty">
         <span className="font-display admin-placeholder-title">No feedback yet</span>
         <p className="admin-muted" style={{ maxWidth: 460 }}>
-          Ratings submitted from the in-app feedback form land here — with the sender's account
-          and email attached whenever they were signed in. Charts and filters appear as soon as
-          the first one arrives.
+          Ratings submitted from the in-app feedback form land here. Charts and filters appear as
+          soon as the first one arrives.
         </p>
         <span className="chip chip-brand">Collection is live</span>
       </div>
@@ -542,7 +541,7 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
               <span className="fb-filter-label">Game</span>
               <select className="fb-select" value={filters.game} onChange={(e) => patch({ game: e.target.value })}>
                 <option value="">All games</option>
-                <option value={NO_GAME}>(no game — sent from another screen)</option>
+                <option value={NO_GAME}>(no game)</option>
                 {gameCatalog.map((g) => (
                   <option key={g.id} value={g.id}>{g.name}</option>
                 ))}

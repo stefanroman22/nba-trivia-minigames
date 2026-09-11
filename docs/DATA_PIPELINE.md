@@ -57,6 +57,15 @@ target (Supabase) and serving (Vercel) are cloud. The fetch runs on a home machi
   Supabase live (always fresh). Each endpoint falls back to the bundled pool file
   if the DB is ever empty/unreachable, so players never get an error.
 
+**Starting-Five is filtered on the way out** (`data_pipeline/starting_five.py`).
+The board is a fixed 2-guard/2-forward/1-center layout, but the box-score feed
+regularly reports three guards or no center — those lineups have no winning
+assignment, so `playable_lineups()` drops them — and it spells some players
+differently from the autocomplete list, so `canonical_lineup_names()` pulls
+those to the `all-players` spelling. Both run in `build_pools_from_db`,
+`refresh_game_data` and the `/trivia/starting-five/` view, so a re-synced feed
+is re-cleaned automatically; the store keeps the raw rows either way.
+
 ## The schedule (autonomous)
 
 Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.cmd`
