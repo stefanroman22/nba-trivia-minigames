@@ -33,6 +33,8 @@ import type {
   GridConfig,
   BingoCard,
   PlayerIndexEntry,
+  ContextoRoundConfig,
+  SuperDraftRoundConfig,
 } from "../types/types";
 
 interface RenderGameArgs {
@@ -198,10 +200,13 @@ export const renderGame = ({
       );
 
     case "contexto":
+      // Online this is a one-element ContextoRoundConfig array (the day + the
+      // secret); single-player passes the whole players-index pool.
       return (
         <Contexto
-          gameInfo={gameData as PlayerIndexEntry[]}
+          gameInfo={gameData as PlayerIndexEntry[] | ContextoRoundConfig[]}
           onGameEnd={onGameEnd}
+          multiplayer={multiplayer}
         />
       );
 
@@ -215,12 +220,15 @@ export const renderGame = ({
       );
 
     case "superdraft":
+      // Online this is a one-element SuperDraftRoundConfig array (the day + the
+      // five server-drawn slots); single-player passes the whole pool.
       return (
         <SuperDraft
-          gameInfo={gameData as PlayerIndexEntry[]}
+          gameInfo={gameData as PlayerIndexEntry[] | SuperDraftRoundConfig[]}
           onGameEnd={onGameEnd}
           onPlayAgain={onPlayAgain}
           onClose={onClose}
+          multiplayer={multiplayer}
         />
       );
 

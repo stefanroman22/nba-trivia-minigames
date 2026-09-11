@@ -20,6 +20,12 @@ from trivia.models import (
 )
 from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle
 from users import leaderboard
+from trivia.data_pipeline.live_pool import load_dataset
+from trivia.data_pipeline.starting_five import (
+    canonical_lineup_names,
+    is_playable_lineup,
+    playable_lineups,
+)
 from trivia.utils.fan_favorites import load_seed as load_fan_favorites_seed
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
@@ -122,25 +128,42 @@ def get_mvps(request):
         return JsonResponse({'error': str(e), 'message': "Error fetching MVP data"}, status=500)
 
 
+def _player_names():
+    """Canonical player names (what the autocomplete offers).
+
+    The curated dataset, not the DB Player table: data/all-players.json — the
+    list the autocomplete actually downloads — is published from it and is 1:1
+    with it, so canonicalising a lineup against anything else would rewrite an
+    answer to a spelling the client cannot type. load_dataset() memoizes the
+    file on (mtime, size), which is what the module-level cache here used to do.
+    """
+    return [row["full_name"] for row in load_dataset()]
+
+
 def _starting_five_row(g):
-    return {
+    row = {
         'game_id': g.game_id, 'game_date': g.game_date,
         'team_a': g.team_a, 'team_b': g.team_b,
         'team_a_logo': g.team_a_logo, 'team_b_logo': g.team_b_logo,
         'final_score': g.final_score, 'winning_team': g.winning_team,
-        'starting_5': g.starting_5,
+        'starting_5': [dict(p) for p in (g.starting_5 or [])],
     }
+    # The store keeps the raw box-score names; the answer has to be typeable.
+    return canonical_lineup_names([row], _player_names())[0]
 
 
 def get_starting_five(request):
-    """Return a random game with its starting five."""
-    g = StartingFiveGame.objects.order_by('?').first()
-    if g:
-        return JsonResponse({"series": [_starting_five_row(g)]})
-    data = load_dataset(STARTING_FIVE_DATA_PATH)
+    """Return a random game whose starting five the 2-2-1 board can render."""
+    for g in StartingFiveGame.objects.order_by('?')[:25]:
+        if is_playable_lineup(g.starting_5):
+            return JsonResponse({"series": [_starting_five_row(g)]})
+    data = playable_lineups(load_dataset(STARTING_FIVE_DATA_PATH) or [])
     if not data:
         return JsonResponse({'error': 'No games available.'}, status=404)
-    return JsonResponse({"series": [random.choice(data)]})
+    # Copy before canonicalizing — load_dataset caches the parsed file.
+    game = dict(random.choice(data))
+    game['starting_5'] = [dict(p) for p in game['starting_5']]
+    return JsonResponse({"series": canonical_lineup_names([game], _player_names())})
 
 
 _cached_wordle_names = None

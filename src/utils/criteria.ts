@@ -51,8 +51,10 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
     case "draft": {
       if (c.value === "undrafted") return p.draft == null;
       if (!p.draft) return false;
-      if (c.value === "top5") return p.draft.pick <= 5;
-      if (c.value === "lottery") return p.draft.pick <= 14;
+      // Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
+      // Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+      if (c.value === "top5") return p.draft.pick >= 1 && p.draft.pick <= 5;
+      if (c.value === "lottery") return p.draft.pick >= 1 && p.draft.pick <= 14;
       if (c.value === "round2") return p.draft.round === 2;
       if (c.value.startsWith("decade-")) {
         const d = decadeStart(c.value);

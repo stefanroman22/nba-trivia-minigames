@@ -1,70 +1,77 @@
 """LeContexto - backend round provider.
 
-Serves a day-seeded secret player from the bundled seed so a multiplayer room
-can share ONE secret (single-player picks the same secret client-side by the
-same UTC date, so both agree). Bundled seed is the always-available fallback;
-the DB is optional.
+The game ranks EVERY player in the pool by similarity to a hidden daily secret,
+so the RANKING needs the players' full profiles — but a round payload does not
+have to carry them. Single-player already loads the whole players-index pool
+from the CDN and picks the day's secret out of it client-side (``dailySecret``
+in src/Game Renderers/Contexto.tsx, FNV-1a over the UTC date across the fame
+tier 1-2 candidates). Multiplayer loads the very same CDN pool.
+
+So a round carries CONFIG, not the pool:
+
+    {"series": [{"pool": "players-index",
+                 "day": "YYYY-MM-DD",
+                 "secret_person_id": 2544}]}
+
+``daily_secret`` below is the Python twin of the renderer's ``dailySecret``
+over the same live pool (trivia/data_pipeline/live_pool.py), so the two modes
+still resolve the same player for the same day; the renderer falls back to
+running ``dailySecret`` itself if the id isn't in the pool it loaded.
+
+Shipping the pool instead (as this endpoint used to) is O(dataset) per player
+per round — 160 KB at 159 rows, megabytes at the full dataset, re-emitted on
+every reconnect.
 """
 import datetime
-import json
-import os
-import zlib
 
-from django.conf import settings
 from django.http import JsonResponse
 
+from trivia.data_pipeline.live_pool import load_players
+
 GAME_NAME = "LeContexto"
-SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "contexto_seed.json")
+
+POOL_KEY = "players-index"  # the CDN pool the renderer ranks against
+SECRET_FAME_TIERS = (1, 2)  # a guessable secret is a famous player
 
 
-def _load_seed():
-    """Bundled seed rows (the always-available fallback; DB is optional)."""
-    if not os.path.exists(SEED_PATH):
-        return []
-    try:
-        with open(SEED_PATH, "r", encoding="utf-8") as f:
-            rows = json.load(f)
-    except (OSError, ValueError):
-        return []
-    return rows if isinstance(rows, list) else []
+def _fnv1a(text):
+    """FNV-1a over UTF-16 code units — hashStr() in src/Game Renderers/Contexto.tsx."""
+    h = 2166136261
+    for ch in text:
+        h = (h ^ ord(ch)) & 0xFFFFFFFF
+        h = (h * 16777619) & 0xFFFFFFFF
+    return h
 
 
-def _pick_daily(rows):
-    """Deterministic secret for today's UTC date (stable within the day)."""
-    key = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
-    idx = zlib.crc32(key.encode("utf-8")) % len(rows)
-    return rows[idx]
+def daily_secret(rows, day):
+    """The day's secret player — the Python twin of dailySecret() in the renderer.
+
+    Same rule, same order, same hash: fame tier 1-2 candidates sorted by
+    person_id, indexed by the FNV-1a hash of the "YYYY-MM-DD" UTC date. Returns
+    None for an empty pool.
+    """
+    if not rows:
+        return None
+    candidates = [r for r in rows if r.get("fame_tier", 9) in SECRET_FAME_TIERS]
+    ordered = sorted(candidates or rows, key=lambda r: r["person_id"])
+    return ordered[_fnv1a(day) % len(ordered)]
 
 
 def get_round(request):
-    """The day's shared secret in the standard {'series': [...]} envelope."""
-    rows = _load_seed()
+    """The day and its secret — the renderer loads the pool and ranks against it."""
+    rows = load_players()
     if not rows:
         return JsonResponse({"error": "LeContexto content not ready"}, status=503)
-    row = _pick_daily(rows)
-    return JsonResponse({"series": [{"secret": row["person_id"], "full_name": row.get("full_name")}]})
-
-
-def build_pool():
-    """Static pool for build_pools_from_db (seed list; [] when missing)."""
-    return _load_seed()
-
-
-def validate_rows(rows):
-    """Per-game pool validation problems (empty list = valid)."""
-    problems = []
-    if not isinstance(rows, list):
-        return ["contexto: expected a list"]
-    seen = set()
-    for i, r in enumerate(rows):
-        if not isinstance(r, dict) or not isinstance(r.get("person_id"), int):
-            problems.append(f"contexto[{i}]: missing int person_id")
-            break
-        if r["person_id"] in seen:
-            problems.append(f"contexto[{i}]: duplicate person_id {r['person_id']}")
-            break
-        seen.add(r["person_id"])
-        if r.get("fame_tier") not in (1, 2):
-            problems.append(f"contexto[{i}]: fame_tier must be 1 or 2")
-            break
-    return problems
+    day = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+    secret = daily_secret(rows, day)
+    return JsonResponse(
+        {
+            "series": [
+                {
+                    "pool": POOL_KEY,
+                    "day": day,
+                    "secret_person_id": secret["person_id"],
+                }
+            ]
+        }
+    )

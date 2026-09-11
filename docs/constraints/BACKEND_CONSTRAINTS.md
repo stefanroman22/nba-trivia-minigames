@@ -79,7 +79,7 @@ module 404s only its own slug — the other 12 games keep working.
 ## Rule BE-3: `trivia/data_static/` is authored source; `trivia/data/` is generated output — never hand-edit the latter
 
 Seed content that a human/tool authors and commits (`tictactoe_seed.json`, `bingo_seed.json`,
-`players_curated.json`, `heatmap_seed.json`, `imposter_seed.json`, `superdraft_seed.json`, ...)
+`players_curated.json`, `heatmap_seed.json`, `nba_grid_seed.json`, `connections_seed.json`, ...)
 lives in `trivia/data_static/`. The versioned pools actually served to the frontend/CDN
 (`trivia/data/<key>.json` + `trivia/data/manifest.json`) are *generated* by
 `manage.py build_pools_from_db` from the DB + `trivia/games/*.py`'s `build_pool()` functions —
@@ -168,12 +168,13 @@ edit — `manage.py makemigrations --check --dry-run` must report no changes nee
 
 Every classic round endpoint in `trivia/views.py` (`get_random_playoff_series`,
 `get_random_nba_teams`, `get_mvps`, `get_starting_five`, `get_wordle`, `get_fan_favorites`) and
-11 of the 13 modular `trivia/games/*.py` `get_round` functions return
+12 of the 13 modular `trivia/games/*.py` `get_round` functions return
 `JsonResponse({"series": [...]})` — several modules' own docstrings call this "the standard
-`{'series': [...]}` envelope" (e.g. `heatmap.py`, `tictactoe.py`, `who_are_ya.py`). Two modules
-deviate, and both say so in their own docstrings: `imposter.py` returns
-`{"mystery_pool": [...]}` (it publishes a name list, not a "round"), and `superdraft.py` returns
-the raw objectives seed dict unwrapped (`JsonResponse(seed)`).
+`{'series': [...]}` envelope" (e.g. `heatmap.py`, `tictactoe.py`, `who_are_ya.py`). One module
+deviates and says so in its own docstring: `imposter.py` returns `{"mystery_pool": [...]}` (it
+publishes a name list, not a "round"). Note the envelope says nothing about length —
+`contexto.py` and `superdraft.py` put the WHOLE player pool in `series`, because their renderers
+need every player's profile to rank/draft against.
 
 ```python
 ❌ WRONG — a new game's get_round skipping the standard envelope with no documented reason
@@ -466,7 +467,7 @@ Observed: first `find` prints nothing (file absent); bare `test` → `Found 30 t
 ```bash
 grep -L '"series"' backend/trivia/games/{bingo,heatmap,connections,contexto,tictactoe,nba_grid,who_are_ya,who_would_win,career_path,pack_five,players_index,imposter,superdraft}.py
 ```
-Observed: exactly `backend/trivia/games/imposter.py` and `backend/trivia/games/superdraft.py`.
+Observed: exactly `backend/trivia/games/imposter.py`.
 Any other file appearing here is a new, undocumented violation of Rule BE-7.
 
 **5. No `@api_view` inside the modular game package (Rule BE-9).**

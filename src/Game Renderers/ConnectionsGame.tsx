@@ -20,8 +20,10 @@ const START_HEARTS = 5;
 
 // Spec-mandated difficulty tiers (orange family only). --tier-ink is picked per
 // tier so label contrast stays >= 4.5:1 on both the lightest and darkest fill.
+// Tier 4 uses a darkened one-off (not --brand-deep) because #c2510a only
+// clears 4.27:1 against the --tier-ink fff2e6 label; #b34a09 clears 4.5:1.
 const TIER_COLOR: Record<number, string> = {
-  1: "#ffb347", 2: "var(--brand2)", 3: "var(--brand)", 4: "var(--brand-deep)",
+  1: "#ffb347", 2: "var(--brand2)", 3: "var(--brand)", 4: "#b34a09",
 };
 const TIER_INK: Record<number, string> = {
   1: "#1a1206", 2: "#1a1206", 3: "#1a1206", 4: "#fff2e6",

@@ -4,10 +4,10 @@ Run: cd backend && DATABASE_URL="" python trivia/data_static/heatmap_gen.py
 Overwrites backend/trivia/data_static/heatmap_seed.json. Deterministic (seeded).
 
 Each hex is assigned a Criterion drawn from a broad bank such that the hex's
-CLOSED neighbourhood (hex + all neighbours) has >= 1 solving player in the
-curated dataset. A board is only emitted once every hex's closed neighbourhood
-is solvable (retried with fresh seeds until it is); heatmap_validate.py then
-re-proves this independently.
+CLOSED neighbourhood (hex + all neighbours) has >= MIN_SOLVERS solving players in
+the curated dataset. A board is only emitted once every hex's closed
+neighbourhood is solvable (retried with fresh seeds until it is);
+heatmap_validate.py then re-proves this independently.
 """
 import collections
 import json
@@ -89,9 +89,16 @@ def _closed_idx(assign, hid):
     return s
 
 
+# A hex is only playable if its closed neighbourhood has room to be GUESSED, not
+# merely a proof that one answer exists: at 1 solver the hex is "name this exact
+# player or nothing". 2 is the floor that removes every such hex while leaving
+# the criteria bank fully usable (3 starves the fill and collapses board variety).
+MIN_SOLVERS = 2
+
+
 def _closed_ok(assign, hid):
     """Is hex `hid`'s closed neighbourhood (self + assigned neighbours) solvable?"""
-    return len(_closed_idx(assign, hid)) >= 1
+    return len(_closed_idx(assign, hid)) >= MIN_SOLVERS
 
 
 def _neighbors_ok(assign, hid):
@@ -116,7 +123,7 @@ def _fill(rng):
                 assign[hid] = c
                 if _closed_ok(assign, hid) and _neighbors_ok(assign, hid):
                     valid.append(c)
-                    if len(_closed_idx(assign, hid)) >= 2:  # leave room for future neighbours
+                    if len(_closed_idx(assign, hid)) > MIN_SOLVERS:  # room for future neighbours
                         roomy.append(c)
                 del assign[hid]
             pool = roomy or valid
