@@ -122,13 +122,19 @@ def run(games, publish, dry_run, rng, dataset, s3=None, cfg=None, out=print):
         if publish and not dry_run:
             version = next_version(current_published_version(cfg))
             names = build_names(dataset.playable)
-            with tempfile.TemporaryDirectory() as tmp:
-                counts = write_snapshot(tmp, version, dataset.version, per_game, names)
-                plan = build_questions_publish_plan(tmp, version, dataset.version, cfg.public_base, counts)
-                upload_plan(plan, s3, cfg.bucket)
-            apply_retention(s3, cfg.bucket, keep=3)
+            try:
+                with tempfile.TemporaryDirectory() as tmp:
+                    counts = write_snapshot(tmp, version, dataset.version, per_game, names)
+                    plan = build_questions_publish_plan(tmp, version, dataset.version, cfg.public_base, counts)
+                    upload_plan(plan, s3, cfg.bucket)
+            except Exception as e:
+                raise RunAborted(f"publish failed: {e}") from e
             summary["version"] = version
             out(f"  published version {version}")
+            try:
+                apply_retention(s3, cfg.bucket, keep=3)
+            except Exception as e:
+                out(f"  retention cleanup failed (non-fatal): {e}")
         if dry_run:
             transaction.set_rollback(True)
             out("  dry run: rolled back")

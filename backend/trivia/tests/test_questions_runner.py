@@ -59,7 +59,7 @@ class RunnerTests(TestCase):
             def put_object(self, *a, **k):
                 raise RuntimeError("s3 down")
         with mock.patch.object(runner, "current_published_version", return_value=None):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(runner.RunAborted):
                 runner.run(["imposter"], publish=True, dry_run=False, rng=self.rng, dataset=self.ds, s3=Boom(), cfg=Cfg(), out=lambda *_: None)
         self.assertEqual(Question.objects.count(), 0)
 
