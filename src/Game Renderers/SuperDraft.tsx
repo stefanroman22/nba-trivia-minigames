@@ -483,7 +483,7 @@ export default function SuperDraft({ gameInfo, onGameEnd, onPlayAgain, onClose }
       return p ? `${s.label}: ${p.full_name} (${objective.fmtPick(p)})` : `${s.label}: —`;
     });
     return [
-      `SuperDraft Five — ${objective.label}`,
+      `SuperDraft Five: ${objective.label}`,
       ...lines,
       `${objective.aggLabel}: ${objective.fmtAgg(values)}`,
       `Top ${100 - percentile}% • ${percentile}/100`,

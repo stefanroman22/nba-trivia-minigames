@@ -36,6 +36,19 @@ function UserAvatar({ photo, name, size = 28 }: { photo?: string | null; name?: 
   );
 }
 
+/** Avatar + username + #id chip — the same identity summary on desktop and mobile. */
+function UserChip({ user, onClick }: { user: { username: string; id: string | number; profile_photo?: string | null }; onClick: () => void }) {
+  return (
+    <button onClick={onClick} className="nav3-user">
+      <UserAvatar photo={user.profile_photo} name={user.username} />
+      <span className="nav3-user-meta hide-sm">
+        <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
+        <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
+      </span>
+    </button>
+  );
+}
+
 function Navigation({ type = "full" }: NavigationProps) {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.user);
@@ -100,22 +113,19 @@ function Navigation({ type = "full" }: NavigationProps) {
       {/* Desktop right */}
       <div className="nav3-right hide-md">
         {user ? (
-          <button onClick={() => go("leaderboard")} className="nav3-user">
-            <UserAvatar photo={user.profile_photo} name={user.username} />
-            <span className="nav3-user-meta hide-sm">
-              <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
-              <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
-            </span>
-          </button>
+          <UserChip user={user} onClick={() => go("leaderboard")} />
         ) : (
           <Button size="sm" onClick={() => openModal("login")}>Log in</Button>
         )}
       </div>
 
-      {/* Mobile hamburger */}
-      <button onClick={() => setDrawer(true)} aria-label="Open menu" className="nav-icon-btn show-md">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
-      </button>
+      {/* Mobile: same identity chip (hide-sm collapses it to just the avatar), then the hamburger */}
+      <div className="nav3-mobile-right show-md">
+        {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
+        <button onClick={() => setDrawer(true)} aria-label="Open menu" className="nav-icon-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+        </button>
+      </div>
 
       {/* Mobile full-screen menu */}
       <AnimatePresence>
@@ -135,9 +145,12 @@ function Navigation({ type = "full" }: NavigationProps) {
                   <span className="nav3-tag">NBA MINIGAMES</span>
                 </div>
               </div>
-              <button onClick={() => setDrawer(false)} aria-label="Close" className="nav-icon-btn" style={{ width: 40, height: 40 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-              </button>
+              <div className="drawer-head-right">
+                {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
+                <button onClick={() => setDrawer(false)} aria-label="Close" className="nav-icon-btn" style={{ width: 40, height: 40 }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                </button>
+              </div>
             </div>
 
             <div className="drawer-body">
@@ -161,20 +174,13 @@ function Navigation({ type = "full" }: NavigationProps) {
               )}
             </div>
 
-            <div className="drawer-foot">
-              {user ? (
-                <div className="nav3-user" style={{ width: "100%", justifyContent: "center" }}>
-                  <UserAvatar photo={user.profile_photo} name={user.username} size={34} />
-                  <span className="nav3-user-meta">
-                    <span style={{ fontSize: 14, fontWeight: 700 }}>{user.username}</span>
-                    <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
-                    <span className="tnum" style={{ fontSize: 11, color: "var(--brand)", fontWeight: 600 }}>{user.points} pts</span>
-                  </span>
-                </div>
-              ) : (
+            {/* Logged-in identity now lives in the top bar, next to the hamburger —
+                no need to repeat it down here. */}
+            {!user && (
+              <div className="drawer-foot">
                 <Button block size="lg" onClick={() => openModal("login")}>Log in / Sign up</Button>
-              )}
-            </div>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

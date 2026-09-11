@@ -267,9 +267,17 @@ Pressing Play always produces the **same** screen (image 1). No per-game loader.
 - Render is exactly `<CourtLoader label="Warming up the court…" />` — **`scale: 1`** (default).
 
 `CourtLoader` internals (scale 1): wrapper `flex column`, `align-items:center`, `gap:14px`;
-stage box `90×118`; backboard/rim SVG `80×70`; ball `26×26` running
-`shoot 1.45s cubic-bezier(.4,.05,.55,.95) infinite`; net running `netSway 1.45s ease-in-out infinite`;
-label `font-size:14px`, `color:var(--muted)`, `letter-spacing:.3px`, `loaderPulse 1.25s ease-in-out infinite`.
+stage box `90×118` carrying `--s` (the scale) so keyframe distances are `calc(Npx * var(--s))`;
+three stacked layers — back SVG `80×70` (backboard, full rim, far net strands at `opacity:.35`),
+the ball, then a front SVG `80×70` (near rim arc + near net strands at `opacity:.8`) so the ball
+visibly drops *through* the hoop; ball `26×26`, radial-gradient shaded (`#ffb266 → #ff7a1a → #bf4a0b`)
+with `drop-shadow(0 3px 3px rgba(0,0,0,.38))`. One **1.6 s** cycle shared by four keyframes:
+`clBallX` (linear, constant horizontal velocity, fades in 0–6% and out 74–80%),
+`clBallY` (quadratic ease-out up to the apex at 38%, quadratic ease-in down — a real parabola;
+rim at ~64%, clears the net ~71%, 80–100% is the reset), `clBallSpin` (linear `-600deg` backspin),
+`clNetSwish` (net `scaleY`+`skewX` whip starting at 63%, ringing down by 88%).
+Label `font-size:14px`, `color:var(--muted)`, `letter-spacing:.3px`, `loaderPulse 1.25s ease-in-out infinite`.
+Reduced motion: no animations; the ball rests in the net.
 
 Use `Spinner` (not `CourtLoader`) for small inline spots — see §7.
 
@@ -691,7 +699,7 @@ you're out of lives" string is disallowed.
 straight into the reveal/result flow.
 
 This does **not** apply to a warning shown *before* the last life is spent (e.g. Pack 5's
-`"Missed — one life left"`) — that's ordinary in-play feedback, not a game-over announcement.
+`"Missed."`) — that's ordinary in-play feedback, not a game-over announcement.
 
 ---
 

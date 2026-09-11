@@ -25,6 +25,9 @@
 .om-stage--play { justify-content: flex-start; gap: 10px; min-height: auto; }
 .om-stage--play .om-exit { margin-top: 0; }
 
+/* Searching screen: pull the loader animation closer to the caption/Cancel button below it. */
+.om-stage--compact { gap: 8px; }
+
 .om-eyebrow {
   font-size: 11px;
   letter-spacing: 2px;

@@ -158,8 +158,8 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
                 className="modal-input"
                 required
                 pattern="[A-Za-z0-9_]{3,20}"
-                title="3-20 characters: letters, numbers or underscores. Names don't have to be unique — you'll get a permanent #ID that tells players apart."
-                placeholder="Username (any name — you'll get a unique #ID)"
+                title="3-20 characters: letters, numbers or underscores. Names don't have to be unique."
+                placeholder="Username (any name)"
                 value={signupUsername}
                 onChange={(e) => setSignupUsername(e.target.value)}
                 initial={{ opacity: 0, y: -8 }}

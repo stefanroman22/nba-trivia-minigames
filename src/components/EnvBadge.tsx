@@ -36,7 +36,7 @@ export default function EnvBadge() {
         letterSpacing: 0.4,
         pointerEvents: "none",
       }}
-      title="Local frontend is using the production backend — writes hit real data."
+      title="Local frontend is using the production backend."
     >
       PROD DATA
     </div>

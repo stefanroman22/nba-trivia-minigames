@@ -323,13 +323,16 @@ html { scroll-behavior: smooth; }
   .hero-stat-num { font-size: 19px; }
 
   /* Smaller cards in a 2-up grid that scrolls internally, so the long game
-     list doesn't push the leaderboard / login far down the page. */
+     list doesn't push the leaderboard / login far down the page.
+     overscroll-behavior-y stays "auto" (the default) on purpose: once the
+     scroll reaches the top/bottom of this inner list, it hands off to the
+     page instead of getting stuck at the boundary. */
   .games-grid3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     max-height: 62vh;
     overflow-y: auto;
-    overscroll-behavior: contain;
+    overscroll-behavior-y: auto;
     -webkit-overflow-scrolling: touch;
     padding: 2px 4px 4px 2px;
     scrollbar-width: thin;

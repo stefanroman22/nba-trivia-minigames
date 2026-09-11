@@ -271,7 +271,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
         setBottomPhase("score");
       }, 1500); // linger on the reveal card, then show the score
     } else {
-      flashPopup(`Not ${guessed.full_name} — photo sharpened`, "var(--bad)");
+      flashPopup(`Not ${guessed.full_name}.`, "var(--bad)");
     }
   };
 

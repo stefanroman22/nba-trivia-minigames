@@ -76,13 +76,11 @@ export default function OnlineMatch() {
 
   if (mp.phase === "searching") {
     body = (
-      <motion.div key="searching" {...swap} className="om-stage">
+      <motion.div key="searching" {...swap} className="om-stage om-stage--compact">
         <CourtLoader label="Finding an opponent near your rank..." scale={0.8} />
-        <p className="om-queue-note">
-          {mp.queueInfo && mp.queueInfo.inQueue > 1
-            ? `#${mp.queueInfo.position} in queue · the match widens the longer you wait`
-            : "Fair matches first — the search widens the longer you wait"}
-        </p>
+        {mp.queueInfo && mp.queueInfo.inQueue > 1 && (
+          <p className="om-queue-note">{`#${mp.queueInfo.position} in queue · the match widens the longer you wait`}</p>
+        )}
         <button className="om-btn om-btn--ghost" onClick={leaveMatch} style={{ marginTop: 6 }}>Cancel</button>
       </motion.div>
     );
@@ -144,7 +142,7 @@ export default function OnlineMatch() {
     body = (
       <motion.div key="results" {...swap} className="om-stage">
         <ResultHeadline outcome={mp.outcome} />
-        {timeBrokeTie && <p className="om-time-note">Same score — faster time wins</p>}
+        {timeBrokeTie && <p className="om-time-note">Same score, faster time wins</p>}
         {mp.roomSize > 2 && mp.standings ? (
           <Standings mp={mp} />
         ) : (

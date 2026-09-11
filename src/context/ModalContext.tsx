@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { Game } from "../types/types";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo";
 
 export interface InstructionsPayload {
   game: Game;

@@ -190,13 +190,12 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
       <div className="imp-explain">
         <h2 className="imp-explain-title font-display">NBA Imposter</h2>
         <p className="imp-explain-lead">
-          Grab 2–4 friends and create a private room to play. There's no solo mode — this one only
-          comes alive with a crew.
+          Grab 2–4 friends and create a private room to play. There's no solo mode.
         </p>
         <ol className="imp-steps">
           <li>
             <span className="imp-step-n font-display">1</span>
-            <span>Everyone gets the same mystery NBA player — except one secret <strong>Imposter</strong>.</span>
+            <span>Everyone gets the same mystery NBA player except one secret <strong>Imposter</strong>.</span>
           </li>
           <li>
             <span className="imp-step-n font-display">2</span>
@@ -255,19 +254,19 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
       : "Mystery player";
   const roleTitle = imposterView ? "YOU ARE THE IMPOSTER" : (state.mysteryPlayer?.full_name ?? "—");
   const roleSub = imposterView
-    ? "Bluff a clue and blend in — you don't know the player."
+    ? "Bluff a clue and blend in."
     : state.phase !== "reveal"
-      ? "Everyone sees this — except the imposter."
+      ? "Everyone sees this except the imposter."
       : null;
 
   const turnLabel =
     state.phase === "clue"
       ? myTurn
-        ? "Your turn — give a one-word clue"
+        ? "Your turn."
         : `${seatOf(state.turnUid ?? "").name} is cluing…`
       : state.phase === "vote"
         ? myVote
-          ? "Vote locked — waiting on the room…"
+          ? "Vote locked."
           : "Tap a player to cast your vote"
         : state.caught
           ? "Imposter caught!"
@@ -446,7 +445,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
               </Button>
             </GameFrame.InputRow>
           ) : (
-            <p className="imp-hint">Watch the clues — trust nobody.</p>
+            <p className="imp-hint">Watch the clues.</p>
           )
         )}
 
