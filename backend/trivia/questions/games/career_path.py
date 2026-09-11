@@ -54,7 +54,7 @@ def index_item(definition, materialized):
     return [None, _weight(materialized["player"])]  # qid is filled by the runner
 
 
-def players_referenced(definition, materialized):
+def players_referenced(definition, materialized, dataset=None):
     return [definition["person_id"]]
 
 
