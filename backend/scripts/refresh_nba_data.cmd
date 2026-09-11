@@ -18,6 +18,7 @@ echo [1/4] sync_nba_data >> "%LOG%"
 
 echo [2/4] build_pools_from_db >> "%LOG%"
 "venv\Scripts\python.exe" manage.py build_pools_from_db >> "%LOG%" 2>&1
+"venv\Scripts\python.exe" manage.py upload_dataset >> "%LOG%" 2>&1
 
 cd /d "%REPO%"
 echo [3/4] commit + push >> "%LOG%"
