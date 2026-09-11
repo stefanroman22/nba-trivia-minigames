@@ -43,7 +43,7 @@ def index_item(definition, materialized):
     return [None]
 
 
-def players_referenced(definition, materialized):
+def players_referenced(definition, materialized, dataset=None):
     return [definition["person_id"]]
 
 

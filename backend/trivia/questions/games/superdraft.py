@@ -78,7 +78,7 @@ def index_item(definition, materialized):
     return [None]
 
 
-def players_referenced(definition, materialized):
+def players_referenced(definition, materialized, dataset=None):
     return sorted({t[0] for s in materialized["slots"] for t in s["eligible"]})
 
 
