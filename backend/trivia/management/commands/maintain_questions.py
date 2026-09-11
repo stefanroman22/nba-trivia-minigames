@@ -36,4 +36,6 @@ class Command(BaseCommand):
                                  rng=rng, dataset=dataset, s3=s3, cfg=cfg, out=self.stdout.write)
         except runner.BelowMinimum as e:
             raise CommandError(str(e))
+        except runner.RunAborted as e:
+            raise CommandError(str(e))
         self.stdout.write(self.style.SUCCESS(f"done: {summary}"))
