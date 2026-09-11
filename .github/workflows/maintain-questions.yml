@@ -37,6 +37,7 @@ jobs:
         run: pip install -r backend/requirements.txt -r backend/requirements-publish.txt
       - name: Maintain and publish
         working-directory: backend
+        shell: bash
         run: python manage.py maintain_questions --games "${{ inputs.games }}" | tee ../maintain-questions.log
       - uses: actions/upload-artifact@v4
         if: always()

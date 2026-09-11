@@ -65,11 +65,20 @@ def _materialize_row(mod, row, dataset, now):
     return (row.qid, item, m)
 
 
+def _active_count(slug, kept, today):
+    if slug == "imposter":
+        return len(kept[0][2]["names"]) if kept else 0
+    if slug == "contexto":
+        return sum(1 for _, _, m in kept if m.get("day", "") >= today)
+    return len(kept)
+
+
 def _process_game(slug, dataset, rng, now, out):
     mod = GAME_MODULES[slug]
+    today = now.date().isoformat()
     if slug == "contexto":
         dataset.extra["contexto_existing"] = list(
-            Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).values_list("definition", flat=True)
+            Question.objects.filter(game=slug).values_list("definition", flat=True)
         )
     kept, retired = [], 0
     for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).order_by("id"):
@@ -81,8 +90,8 @@ def _process_game(slug, dataset, rng, now, out):
     target = mod.TARGET if mod.TARGET is not None else 10 ** 9
     existing = set(Question.objects.filter(game=slug).values_list("content_hash", flat=True))
     added, seq = 0, _next_seq(slug)
-    while len(kept) < target:
-        want = min(GENERATE_BATCH, target - len(kept)) if mod.TARGET is not None else GENERATE_BATCH
+    while _active_count(slug, kept, today) < target:
+        want = min(GENERATE_BATCH, target - _active_count(slug, kept, today)) if mod.TARGET is not None else GENERATE_BATCH
         defs = mod.generate(dataset, existing, rng, want)
         if not defs:
             break
@@ -100,9 +109,7 @@ def _process_game(slug, dataset, rng, now, out):
                 added += 1
         if slug == "contexto":
             dataset.extra["contexto_existing"] += defs
-    active = len(kept)
-    if slug == "imposter":
-        active = len(kept[0][2]["names"]) if kept else 0
+    active = _active_count(slug, kept, today)
     if active < mod.MINIMUM:
         raise BelowMinimum(slug, active, mod.MINIMUM)
     out(f"  {slug}: active {len(kept)}, retired {retired}, added {added}")
@@ -119,22 +126,26 @@ def run(games, publish, dry_run, rng, dataset, s3=None, cfg=None, out=print):
             kept, stats = _process_game(slug, dataset, rng, now, out)
             per_game[slug] = kept
             summary[slug] = stats
-        if publish and not dry_run:
+        if publish:
             version = next_version(current_published_version(cfg))
             names = build_names(dataset.playable)
             try:
                 with tempfile.TemporaryDirectory() as tmp:
                     counts = write_snapshot(tmp, version, dataset.version, per_game, names)
                     plan = build_questions_publish_plan(tmp, version, dataset.version, cfg.public_base, counts)
-                    upload_plan(plan, s3, cfg.bucket)
+                    if not dry_run:
+                        upload_plan(plan, s3, cfg.bucket)
             except Exception as e:
                 raise RunAborted(f"publish failed: {e}") from e
-            summary["version"] = version
-            out(f"  published version {version}")
-            try:
-                apply_retention(s3, cfg.bucket, keep=3)
-            except Exception as e:
-                out(f"  retention cleanup failed (non-fatal): {e}")
+            if dry_run:
+                out(f"  dry run: snapshot built and validated ({sum(counts.values())} questions across {len(counts)} games), nothing uploaded")
+            else:
+                summary["version"] = version
+                out(f"  published version {version}")
+                try:
+                    apply_retention(s3, cfg.bucket, keep=3)
+                except Exception as e:
+                    out(f"  retention cleanup failed (non-fatal): {e}")
         if dry_run:
             transaction.set_rollback(True)
             out("  dry run: rolled back")

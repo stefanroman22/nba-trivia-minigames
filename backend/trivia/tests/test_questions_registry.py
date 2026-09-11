@@ -23,7 +23,7 @@ class ImposterTests(SimpleTestCase):
         defs = imposter.generate(ds, set(), random.Random(0), 5)
         self.assertEqual(defs, [{"rule": "fame_tier<=2"}])
         m = imposter.materialize(defs[0], ds)
-        self.assertTrue(all(ds.by_id[p]["full_name"] in m["names"] for p in imposter.players_referenced(defs[0], m)))
+        self.assertTrue(all(ds.by_id[p]["full_name"] in m["names"] for p in imposter.players_referenced(defs[0], m, ds)))
         self.assertGreaterEqual(len(m["names"]), imposter.MINIMUM)
         self.assertEqual(imposter.validate(m), [])
         self.assertEqual(imposter.qid_for(defs[0], 0), "imposter-pool")

@@ -7,7 +7,7 @@ from trivia.questions.hashing import content_hash
 from trivia.questions.similarity import rank_pool
 
 SLUG = "contexto"
-TARGET = 90            # days scheduled ahead
+TARGET = 60            # days scheduled ahead
 MINIMUM = 30
 SECRET_FAME_TIERS = (1, 2)
 NO_REPEAT_DAYS = 365
