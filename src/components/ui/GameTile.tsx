@@ -1,4 +1,6 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 
 interface GameTileProps {
   name: string;
@@ -23,7 +25,14 @@ export default function GameTile({
   index = 0,
   disabled = false,
 }: GameTileProps) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
+
+  // The photo mounts only client-side, post-hydration. In the server-rendered
+  // markup even loading="lazy" images fetch immediately (Chrome's lazy
+  // threshold spans kilopixels), and 18 tile JPGs would crowd the bandwidth
+  // the first paint needs. Until then the tile shows its scrim + text.
+  const [showImg, setShowImg] = useState(false);
+  useEffect(() => setShowImg(true), []);
 
   return (
     <motion.button
@@ -31,7 +40,6 @@ export default function GameTile({
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       aria-disabled={disabled}
-      aria-label={disabled ? name : `Play ${name}`}
       initial={reduce ? false : { opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.25 }}
@@ -39,7 +47,16 @@ export default function GameTile({
       whileHover={reduce || disabled ? undefined : { y: -4 }}
       whileTap={reduce || disabled ? undefined : { scale: 0.98, y: 0 }}
     >
-      <div className="gtile-img" style={{ backgroundImage }} />
+      {showImg && (
+        <img
+          className="gtile-img"
+          src={backgroundImage.replace(/^url\(['"]?/, "").replace(/['"]?\)$/, "")}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      )}
       <div className="gtile-scrim" />
       <div className="gtile-body">
        

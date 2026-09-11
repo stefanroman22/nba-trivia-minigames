@@ -3,7 +3,7 @@ import type { FetchResult, GameData } from "../types/types";
 // Game pools are served as static JSON from the same origin: the build copies
 // backend/trivia/data into the deployment, served by the CDN at /data/. Override
 // with VITE_DATA_BASE to point at an external CDN (e.g. a dedicated data domain).
-const DATA_BASE = import.meta.env.VITE_DATA_BASE || "/data";
+const DATA_BASE = process.env.VITE_DATA_BASE || "/data";
 
 // In-memory pool cache keyed by "<gameKey>:<version>" (survives within a session).
 const memCache = new Map<string, GameData[]>();

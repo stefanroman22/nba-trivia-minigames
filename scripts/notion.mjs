@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Deterministic Notion I/O for the team pipeline. Zero deps (Node 18+ fetch).
 // Env: NOTION_TOKEN (from .env.team or process env). Config: .claude/team/config.json
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -115,11 +115,34 @@ async function cmdListReady() {
   console.log(JSON.stringify(rows, null, 2));
 }
 
+// Some external image hosts (e.g. Wikimedia) reject requests that carry no User-Agent.
+const IMAGE_UA = "nba-minigames-team-pipeline/1.0 (+https://github.com/stefanroman22/nba-trivia-minigames)";
+
+async function downloadImage(pageId, url, index) {
+  const res = await fetch(url, { headers: { "User-Agent": IMAGE_UA } });
+  if (!res.ok) { console.error(`Image download failed (${res.status}): ${url}`); return null; }
+  const ct = res.headers.get("content-type") || "";
+  const ext = ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : "jpg";
+  const dir = resolve(ROOT, ".team/attachments", pageId);
+  mkdirSync(dir, { recursive: true });
+  const path = resolve(dir, `${index}.${ext}`);
+  writeFileSync(path, Buffer.from(await res.arrayBuffer()));
+  return path;
+}
+
 async function cmdGetSpec(pageId) {
-  let cursor, out = [];
+  let cursor, out = [], imageIndex = 0;
   do {
     const r = await api(`blocks/${pageId}/children?page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`);
     for (const b of r.results) {
+      if (b.type === "image") {
+        const url = b.image.type === "external" ? b.image.external.url : b.image.file.url;
+        const path = await downloadImage(pageId, url, imageIndex++);
+        out.push(path
+          ? `[Image attached: ${path}]`
+          : "[Image attached: DOWNLOAD FAILED — an image exists on this card but could not be fetched; ask the owner to re-upload it directly in Notion before building]");
+        continue;
+      }
       const rt = b[b.type]?.rich_text;
       if (rt) out.push((b.type.startsWith("heading") ? "## " : b.type === "bulleted_list_item" ? "- " : "") + rt.map(t => t.plain_text).join(""));
     }
