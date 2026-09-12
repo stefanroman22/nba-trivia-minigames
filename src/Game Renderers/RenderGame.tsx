@@ -33,6 +33,8 @@ import type {
   GridConfig,
   BingoCard,
   PlayerIndexEntry,
+  CareerPathQuestion,
+  WhoAreYaQuestion,
   ContextoRoundConfig,
   SuperDraftRoundConfig,
 } from "../types/types";
@@ -153,7 +155,7 @@ export const renderGame = ({
     case "career-path":
       return (
         <CareerPath
-          gameInfo={gameData as PlayerIndexEntry[]}
+          gameInfo={gameData as (CareerPathQuestion | PlayerIndexEntry)[]}
           onGameEnd={onGameEnd}
           onPlayAgain={onPlayAgain}
           onClose={onClose}
@@ -173,7 +175,7 @@ export const renderGame = ({
     case "who-are-ya":
       return (
         <WhoAreYa
-          gameInfo={gameData as PlayerIndexEntry[]}
+          gameInfo={gameData as (WhoAreYaQuestion | PlayerIndexEntry)[]}
           onGameEnd={onGameEnd}
           onPlayAgain={onPlayAgain}
           onClose={onClose}
