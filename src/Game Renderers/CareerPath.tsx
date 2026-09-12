@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
@@ -8,13 +8,14 @@ import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
-import { fetchWholePool } from "../utils/pool";
+import { useNames } from "../hooks/useNames";
+import { buildNameLookup } from "../utils/questions";
 import { matchAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd } from "../types/types";
+import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, CareerPathQuestion } from "../types/types";
 import "../styles/CareerPath.css";
 
 export interface CareerPathProps {
-  gameInfo: PlayerIndexEntry[];
+  gameInfo: (CareerPathQuestion | PlayerIndexEntry)[];
   onGameEnd: OnGameEnd;
   onPlayAgain?: () => void;
   onClose?: () => void;
@@ -30,22 +31,6 @@ interface GuessEntry {
   answer: string;
   correct: boolean;
   elapsed_ms: number;
-}
-
-/** Eligible mystery players: 3-7 stints (maxPoints 700 = 7 * 100). */
-const isEligible = (p: PlayerIndexEntry) => p.teams.length >= 3 && p.teams.length <= 7;
-
-/** Weighted pick: fame-tier 2-3 journeymen are 3x as likely as tiers 1/4. */
-function pickMystery(pool: PlayerIndexEntry[]): PlayerIndexEntry | null {
-  const eligible = pool.filter(isEligible);
-  if (!eligible.length) return null;
-  const weights = eligible.map((p) => (p.fame_tier === 2 || p.fame_tier === 3 ? 3 : 1));
-  let r = Math.random() * weights.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < eligible.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return eligible[i];
-  }
-  return eligible[eligible.length - 1];
 }
 
 /** "2019 – present" for a current stint; "2013" for a single-year stop. */
@@ -94,7 +79,6 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
   const [phase, setPhase] = useState<"playing" | "won" | "lost">("playing");
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const guessLogRef = useRef<GuessEntry[]>([]);
@@ -126,8 +110,16 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
     });
   };
 
-  // Fresh state + mystery pick whenever a new payload loads (e.g. play-again).
-  // gameInfo is the whole pool (single-player) or exactly one row (multiplayer).
+  // The shared name list: autocomplete suggestions + name->id/id->name lookup.
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
+  const suggestions = lookup?.suggestions ?? [];
+
+  // Fresh state + mystery whenever a new payload loads (e.g. play-again). The
+  // server now guarantees eligibility, so gameInfo[0] is always playable.
+  // Single-player sends the new { schema, game, qid, player } question shape;
+  // multiplayer still sends the legacy one-row payload until Phase E — handle
+  // both shapes here as a temporary compatibility bridge.
   useEffect(() => {
     clearTimers();
     setFlipped(1);
@@ -139,33 +131,8 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
     setShowPointsAnimation(false);
     guessLogRef.current = [];
     startRef.current = Date.now();
-    if (!gameInfo?.length) {
-      setPlayer(null);
-    } else if (gameInfo.length === 1) {
-      setPlayer(isEligible(gameInfo[0]) ? gameInfo[0] : null);
-    } else {
-      setPlayer(pickMystery(gameInfo));
-    }
-  }, [gameInfo]);
-
-  // Autocomplete names: from the pool payload when we have it; multiplayer's
-  // single-row payload pulls the shared players-index pool (cached) instead.
-  // On fetch failure we degrade to free typing — answer matching still works.
-  useEffect(() => {
-    if (!gameInfo?.length) return;
-    if (gameInfo.length > 1) {
-      setSuggestions(gameInfo.map((p) => p.full_name));
-      return;
-    }
-    let alive = true;
-    fetchWholePool("players-index").then((res) => {
-      if (alive && res.success && res.data) {
-        setSuggestions((res.data as PlayerIndexEntry[]).map((p) => p.full_name));
-      }
-    });
-    return () => {
-      alive = false;
-    };
+    const q = gameInfo?.[0];
+    setPlayer(q ? (("player" in q ? q.player : q) as PlayerIndexEntry) : null);
   }, [gameInfo]);
 
   // Unmount: cancel pending reveals/end-calls and flush any un-sent guesses.
