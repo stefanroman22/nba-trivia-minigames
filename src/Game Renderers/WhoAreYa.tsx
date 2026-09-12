@@ -7,11 +7,10 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
-import { fetchWholePool } from "../utils/pool";
 import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
-import { matchAnswer, normalizeAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, GameError, WhoAreYaQuestion } from "../types/types";
+import { normalizeAnswer } from "../utils/answerMatch";
+import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, WhoAreYaQuestion, NamesEntry } from "../types/types";
 import "../styles/WhoAreYa.css";
 
 export interface WhoAreYaProps {
@@ -22,6 +21,33 @@ export interface WhoAreYaProps {
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
+}
+
+// A guessed player only ever needs to be compared via person_id/full_name/aliases/
+// position/birth_year/jersey/draft/current-team-abbr (buildFeedback, below) — the
+// rest of PlayerIndexEntry is never read for a guess, so it's filled with harmless
+// placeholders here rather than fetching the whole players-index pool just for this.
+function guessedPlayerAsEntry(entry: NamesEntry): PlayerIndexEntry {
+  return {
+    person_id: entry.id,
+    full_name: entry.full_name,
+    aliases: entry.aliases,
+    fame_tier: 4,
+    position: entry.position ?? "G",
+    height_in: null,
+    weight_lb: null,
+    birth_year: entry.birth_year,
+    country: "",
+    college: null,
+    draft: entry.draft,
+    jersey: entry.jersey,
+    is_active: false,
+    teams: entry.team_abbr
+      ? [{ abbr: entry.team_abbr, name: entry.team_abbr, start_year: 0, end_year: null, gp: 0, ppg: 0 }]
+      : [],
+    awards: { mvp: [], fmvp: [], dpoy: [], roty: null, smoy: [], allstar_count: 0, allnba_count: 0, rings: [] },
+    career: { pts: 0, reb: 0, ast: 0, ppg: 0, rpg: 0, apg: 0, seasons: 0 },
+  };
 }
 
 const MAX_SCORE = 240;
@@ -138,8 +164,6 @@ function buildFeedback(guess: PlayerIndexEntry, mystery: PlayerIndexEntry): Feed
 interface GuessEntry { question_id: string; answer: string; correct: boolean; elapsed_ms: number }
 
 function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) {
-  const [pool, setPool] = useState<PlayerIndexEntry[] | null>(null);
-  const [poolError, setPoolError] = useState<GameError | null>(null);
   const [mystery, setMystery] = useState<PlayerIndexEntry | null>(null);
   const [rows, setRows] = useState<FeedbackRow[]>([]);
   const [wrongCount, setWrongCount] = useState(0);
@@ -174,21 +198,10 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     }).catch(() => { /* analytics only */ });
   };
 
-  // The whole curated pool: kept only to resolve a GUESS to its full attribute
-  // record for feedback chips (team, position, age, jersey, draft) — the shared
-  // players-names.json list (useNames, below) carries just id/name/aliases.
-  // Cached by fetchWholePool, so this is a no-op network-wise after the first game.
-  useEffect(() => {
-    let alive = true;
-    fetchWholePool("players-index").then((res) => {
-      if (!alive) return;
-      if (res.success && res.data) setPool(res.data as PlayerIndexEntry[]);
-      else setPoolError(res.error ?? { title: "No data available", message: "Please try again later." });
-    });
-    return () => { alive = false; };
-  }, []);
-
-  // The shared name list: autocomplete suggestions + name->id/id->name lookup.
+  // The shared name list: autocomplete suggestions + name->id/id->name lookup,
+  // now also carrying the bio fields (position, birth_year, jersey, team_abbr,
+  // draft) buildFeedback needs for whichever player gets GUESSED — the mystery
+  // already carries a full row in its own question payload.
   const names = useNames();
   const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
 
@@ -226,15 +239,17 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
   };
 
   const handleGuessSubmit = () => {
-    if (!pool || !mystery || finished) return;
+    if (!lookup || !mystery || finished) return;
     const raw = guess;
     setGuess("");
     if (!normalizeAnswer(raw)) return;
 
-    // Resolve the typed name to a pool player via canonical name + aliases.
-    const idx = matchAnswer(raw, pool.map((p) => ({ answer: p.full_name, aliases: p.aliases })));
-    if (idx < 0) { flashPopup("Not in our player pool", "var(--muted)"); return; } // costs nothing
-    const guessed = pool[idx];
+    // Resolve the typed name via the shared names lookup (built from players-names.json).
+    const id = lookup.toId(raw);
+    if (id === null) { flashPopup("Not in our player pool", "var(--muted)"); return; } // costs nothing
+    const entry = lookup.getEntry(id);
+    if (!entry) { flashPopup("Not in our player pool", "var(--muted)"); return; } // costs nothing
+    const guessed = guessedPlayerAsEntry(entry);
     if (rows.some((r) => r.key === String(guessed.person_id))) {
       flashPopup("Already tried", "var(--muted)"); return; // costs nothing
     }
@@ -281,14 +296,14 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
   };
 
   /* ---- render states ---- */
-  if (poolError)
+  if (names === null) return <Spinner label="Loading players…" />;
+  if (names.length === 0)
     return (
       <div className="waya-state">
-        <p className="waya-state-title">{poolError.title}</p>
-        <p className="waya-state-msg">{poolError.message}</p>
+        <p className="waya-state-title">No data available</p>
+        <p className="waya-state-msg">Please try again later.</p>
       </div>
     );
-  if (!pool) return <Spinner label="Loading players…" />;
   if (!mystery)
     return (
       <div className="waya-state">
