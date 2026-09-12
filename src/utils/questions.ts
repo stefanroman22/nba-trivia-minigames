@@ -186,19 +186,20 @@ export async function fetchQuestion(game: string): Promise<FetchResult> {
 
 export function buildNameLookup(names: NamesEntry[]) {
   const toIdMap = new Map<string, number>();
-  const nameOfMap = new Map<number, string>();
-  for (const [id, name, aliases] of names) {
-    nameOfMap.set(id, name);
-    const canon = normalizeAnswer(name);
-    if (canon && !toIdMap.has(canon)) toIdMap.set(canon, id);
-    for (const a of aliases) {
+  const byId = new Map<number, NamesEntry>();
+  for (const n of names) {
+    byId.set(n.id, n);
+    const canon = normalizeAnswer(n.full_name);
+    if (canon && !toIdMap.has(canon)) toIdMap.set(canon, n.id);
+    for (const a of n.aliases) {
       const k = normalizeAnswer(a);
-      if (k && !toIdMap.has(k)) toIdMap.set(k, id);
+      if (k && !toIdMap.has(k)) toIdMap.set(k, n.id);
     }
   }
   return {
-    suggestions: names.map((n) => n[1]),
+    suggestions: names.map((n) => n.full_name),
     toId: (guess: string) => toIdMap.get(normalizeAnswer(guess)) ?? null,
-    nameOf: (id: number) => nameOfMap.get(id) ?? null,
+    nameOf: (id: number) => byId.get(id)?.full_name ?? null,
+    getEntry: (id: number) => byId.get(id) ?? null,
   };
 }

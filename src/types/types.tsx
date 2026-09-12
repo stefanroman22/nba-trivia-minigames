@@ -264,8 +264,16 @@ export interface QuestionsManifest {
   games: Record<string, { index: string; count: number }>;
 }
 
-/** [person_id, full_name, aliases] */
-export type NamesEntry = [number, string, string[]];
+export interface NamesEntry {
+  id: number;
+  full_name: string;
+  aliases: string[];
+  position: PlayerIndexEntry["position"] | null;
+  birth_year: number | null;
+  jersey: number | null;
+  team_abbr: string | null;
+  draft: PlayerIndexEntry["draft"];
+}
 
 export interface QuestionIndex {
   schema: number;
