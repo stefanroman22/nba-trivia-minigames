@@ -1,6 +1,7 @@
 
 import type { Game } from "../types/types";
 import { fetchGamePool, fetchWholePool } from "./pool";
+import { fetchQuestion } from "./questions";
 import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
 import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
 import mvpBg from "../assets/Games Backrounds/mvp.jpg";
@@ -345,7 +346,7 @@ export const games: Game[] = [
     urlPath: "/career-path",
     pointsPerCorrect: 100,
     maxPoints: 700,
-    fetchData: () => fetchWholePool("players-index"),
+    fetchData: () => fetchQuestion("career-path"),
     handleError: handleErrorDefault,
   },
   {
@@ -405,7 +406,7 @@ export const games: Game[] = [
     urlPath: "/who-are-ya",
     pointsPerCorrect: 30,
     maxPoints: 240,
-    fetchData: () => fetchWholePool("players-index"),
+    fetchData: () => fetchQuestion("who-are-ya"),
     handleError: handleErrorDefault,
   },
   {
