@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
@@ -8,12 +8,14 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { fetchWholePool } from "../utils/pool";
+import { useNames } from "../hooks/useNames";
+import { buildNameLookup } from "../utils/questions";
 import { matchAnswer, normalizeAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, GameError } from "../types/types";
+import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, GameError, WhoAreYaQuestion } from "../types/types";
 import "../styles/WhoAreYa.css";
 
 export interface WhoAreYaProps {
-  gameInfo: PlayerIndexEntry[];
+  gameInfo: (WhoAreYaQuestion | PlayerIndexEntry)[];
   onGameEnd: OnGameEnd;
   onPlayAgain?: () => void;
   onClose?: () => void;
@@ -133,9 +135,6 @@ function buildFeedback(guess: PlayerIndexEntry, mystery: PlayerIndexEntry): Feed
   };
 }
 
-const isEligible = (p: PlayerIndexEntry) =>
-  (p.fame_tier === 1 || p.fame_tier === 2) && p.teams.length > 0;
-
 interface GuessEntry { question_id: string; answer: string; correct: boolean; elapsed_ms: number }
 
 function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) {
@@ -175,8 +174,10 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     }).catch(() => { /* analytics only */ });
   };
 
-  // The whole curated pool: suggestions + name->attributes lookup. Cached by
-  // fetchWholePool, so this is a no-op network-wise after the first game.
+  // The whole curated pool: kept only to resolve a GUESS to its full attribute
+  // record for feedback chips (team, position, age, jersey, draft) — the shared
+  // players-names.json list (useNames, below) carries just id/name/aliases.
+  // Cached by fetchWholePool, so this is a no-op network-wise after the first game.
   useEffect(() => {
     let alive = true;
     fetchWholePool("players-index").then((res) => {
@@ -187,15 +188,19 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     return () => { alive = false; };
   }, []);
 
+  // The shared name list: autocomplete suggestions + name->id/id->name lookup.
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
+
   // Fresh state whenever a new round loads (play-again / multiplayer round).
-  // Mystery: exactly-one-row payload = server-chosen (multiplayer, contract);
-  // otherwise sample an eligible fame 1-2 player from the payload locally.
+  // The server now guarantees eligibility, so gameInfo[0] is always playable.
+  // Single-player sends the new { schema, game, qid, player } question shape;
+  // multiplayer still sends the legacy one-row payload until Phase E — handle
+  // both shapes here as a temporary compatibility bridge.
   useEffect(() => {
     clearTimers();
-    const eligible = (gameInfo ?? []).filter(isEligible);
-    if (gameInfo?.length === 1 && isEligible(gameInfo[0])) setMystery(gameInfo[0]);
-    else if (eligible.length > 0) setMystery(eligible[Math.floor(Math.random() * eligible.length)]);
-    else setMystery(null);
+    const q = gameInfo?.[0];
+    setMystery(q ? (("player" in q ? q.player : q) as PlayerIndexEntry) : null);
     setRows([]);
     setWrongCount(0);
     setGuess("");
@@ -293,7 +298,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     );
 
   const blurPx = finished ? 0 : BLUR_STEPS[Math.min(wrongCount, BLUR_STEPS.length - 1)];
-  const suggestions = pool.filter(isEligible).map((p) => p.full_name);
+  const suggestions = lookup?.suggestions ?? [];
   const guessesLeft = MAX_GUESSES - wrongCount;
   const mysteryStint = currentTeam(mystery);
 
