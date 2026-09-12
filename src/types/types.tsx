@@ -204,6 +204,7 @@ export type GameData =
   | PlayerIndexEntry
   | ContextoRoundConfig
   | SuperDraftRoundConfig
+  | Question
   | string;
 
 export interface GameError {
@@ -252,3 +253,41 @@ export interface RoomState {
   selfSocketId: string | null;
   role: "host" | "guest" | null;
 }
+
+/* ---- Pre-generated questions (docs/superpowers/specs/2026-09-10-questions-store-design.md) ---- */
+
+export interface QuestionsManifest {
+  schema: number;
+  version: string;
+  dataset: { players: string };
+  names: string;
+  games: Record<string, { index: string; count: number }>;
+}
+
+/** [person_id, full_name, aliases] */
+export type NamesEntry = [number, string, string[]];
+
+export interface QuestionIndex {
+  schema: number;
+  game: string;
+  version: string;
+  dataset: { players: string };
+  /** Per game: [qid] | [qid, weight] | [qid, day] | [qid, namesCount] */
+  items: (string | number)[][];
+}
+
+interface QuestionBase {
+  schema: number;
+  game: string;
+  qid: string;
+}
+export interface CareerPathQuestion extends QuestionBase { player: PlayerIndexEntry }
+export interface WhoAreYaQuestion extends QuestionBase { player: PlayerIndexEntry }
+export interface TicTacToeQuestion extends QuestionBase { rows: Criterion[]; cols: Criterion[]; valid: number[][] }
+export interface SuperDraftSlot { kind: "team" | "draft" | "country"; value: string; label: string; sub: string; eligible: [number, number | null, number, number, number | null][] }
+export interface SuperDraftQuestion extends QuestionBase { slots: SuperDraftSlot[] }
+export interface ContextoQuestion extends QuestionBase { day: string; secret: PlayerIndexEntry; ranking: [number, number][] }
+export interface ImposterQuestion extends QuestionBase { names: string[] }
+export type Question =
+  | CareerPathQuestion | WhoAreYaQuestion | TicTacToeQuestion
+  | SuperDraftQuestion | ContextoQuestion | ImposterQuestion;

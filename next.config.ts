@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     VITE_BACKEND_URL: process.env.VITE_BACKEND_URL,
     VITE_SOCKET_URL: process.env.VITE_SOCKET_URL,
     VITE_DATA_BASE: process.env.VITE_DATA_BASE,
+    VITE_QUESTIONS_BASE: process.env.VITE_QUESTIONS_BASE,
   },
   // The Vite entry never wrapped the app in <StrictMode>; keeping it off keeps
   // dev-only double effects (socket identify, the /me/ session check) from
