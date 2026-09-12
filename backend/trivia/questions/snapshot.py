@@ -7,9 +7,35 @@ from trivia.questions.base import SCHEMA
 from trivia.questions.storage import version_key
 
 
+def _current_team_abbr(teams):
+    """The stint with the greatest start_year - mirrors the frontend's currentTeam()."""
+    if not teams:
+        return None
+    return max(teams, key=lambda t: t["start_year"])["abbr"]
+
+
 def build_names(playable):
-    names = [[r["person_id"], r["full_name"], list(r.get("aliases") or [])] for r in playable]
-    return sorted(names, key=lambda n: n[1])
+    """The shared name list every game's autocomplete reads, plus the small set
+    of bio facts (position/age/jersey/team/draft) a game needs to render
+    feedback about whichever player someone GUESSES - not just the mystery
+    player, who already carries a full row in their own question payload.
+    Deliberately excludes career stats/awards/full team history: those stay
+    inside each game's own precomputed question, never in this shared file.
+    """
+    names = [
+        {
+            "id": r["person_id"],
+            "full_name": r["full_name"],
+            "aliases": list(r.get("aliases") or []),
+            "position": r.get("position"),
+            "birth_year": r.get("birth_year"),
+            "jersey": r.get("jersey"),
+            "team_abbr": _current_team_abbr(r.get("teams") or []),
+            "draft": r.get("draft"),
+        }
+        for r in playable
+    ]
+    return sorted(names, key=lambda n: n["full_name"])
 
 
 def _dump(path, data):

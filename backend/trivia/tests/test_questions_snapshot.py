@@ -36,8 +36,17 @@ class SnapshotTests(SimpleTestCase):
     def test_names_and_snapshot_files(self):
         ds = fixture_dataset()
         names = snapshot.build_names(ds.playable)
-        self.assertEqual(names, sorted(names, key=lambda n: n[1]))
-        self.assertEqual(len(names[0]), 3)
+        self.assertEqual(names, sorted(names, key=lambda n: n["full_name"]))
+        self.assertEqual(
+            set(names[0]),
+            {"id", "full_name", "aliases", "position", "birth_year", "jersey", "team_abbr", "draft"},
+        )
+        # team_abbr is the stint with the greatest start_year, matching the
+        # frontend's currentTeam() reduction exactly - not just "some" stint.
+        by_id = {n["id"]: n for n in names}
+        for row in ds.playable:
+            expected_abbr = max(row["teams"], key=lambda t: t["start_year"])["abbr"]
+            self.assertEqual(by_id[row["person_id"]]["team_abbr"], expected_abbr)
         with tempfile.TemporaryDirectory() as tmp:
             q = {"schema": 1, "game": "career-path", "qid": "cp-000001", "player": ds.playable[0]}
             counts = snapshot.write_snapshot(tmp, "2026-09-12.1", "ds-1", {"career-path": [("cp-000001", ["cp-000001", 3], q)]}, names)
