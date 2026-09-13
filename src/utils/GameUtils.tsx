@@ -496,7 +496,7 @@ export const games: Game[] = [
     urlPath: "/contexto",
     pointsPerCorrect: 5,
     maxPoints: 200,
-    fetchData: () => fetchWholePool("players-index"),
+    fetchData: () => fetchQuestion("contexto"),
     handleError: handleErrorDefault,
   },
   {
