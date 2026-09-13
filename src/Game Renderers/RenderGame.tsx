@@ -39,6 +39,7 @@ import type {
   SuperDraftRoundConfig,
   TicTacToeQuestion,
   SuperDraftQuestion,
+  ContextoQuestion,
 } from "../types/types";
 
 interface RenderGameArgs {
@@ -205,10 +206,10 @@ export const renderGame = ({
 
     case "contexto":
       // Online this is a one-element ContextoRoundConfig array (the day + the
-      // secret); single-player passes the whole players-index pool.
+      // secret); single-player passes a ContextoQuestion[].
       return (
         <Contexto
-          gameInfo={gameData as PlayerIndexEntry[] | ContextoRoundConfig[]}
+          gameInfo={gameData as PlayerIndexEntry[] | ContextoRoundConfig[] | ContextoQuestion[]}
           onGameEnd={onGameEnd}
           multiplayer={multiplayer}
         />
