@@ -1,15 +1,22 @@
 // LeContexto — similarity guesser. Name any player; see how close (by rank) you
 // are to a hidden daily secret. Pure engine below; component in the same file.
 //
-// Single-player is handed the whole players-index pool as `gameInfo` and picks
-// the day's secret out of it with dailySecret(). A MULTIPLAYER round is a
-// one-element ContextoRoundConfig array instead — the day and the secret's
-// person_id (backend/trivia/games/contexto.py) — and the renderer loads the
-// same CDN pool single-player uses (useRoundPool) to rank against. Both modes
-// end up on the same player for the same day; the pool is never broadcast.
-// Online the sent secret is the ONLY one accepted: if this client's pool
-// doesn't contain it, the round is unplayable rather than quietly ranked
-// against a locally-chosen secret the opponent isn't solving for.
+// Single-player is handed a precomputed ContextoQuestion as `gameInfo`: the
+// day, the secret (a full PlayerIndexEntry) and the WHOLE ranking of every
+// playable player against it, already computed server-side — it never
+// downloads the player pool or runs the similarity engine itself, just looks
+// a guessed player's id up in the precomputed ranking. Names are resolved
+// against the shared names list (useNames / buildNameLookup).
+//
+// A MULTIPLAYER round is a one-element ContextoRoundConfig array instead — the
+// day and the secret's person_id (backend/trivia/games/contexto.py) — and the
+// renderer loads the same CDN pool single-player used to use (useRoundPool) to
+// rank against. Multiplayer has no precomputed-ranking payload yet (a future
+// phase will give it one), so the similarity engine below
+// (similarity/buildRanking and friends) stays exactly as it was, for the
+// multiplayer branch only. Online the sent secret is the ONLY one accepted: if
+// this client's pool doesn't contain it, the round is unplayable rather than
+// quietly ranked against a locally-chosen secret the opponent isn't solving for.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -17,14 +24,18 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useRoundPool } from "../hooks/useRoundPool";
+import { useNames } from "../hooks/useNames";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
-import type { PlayerIndexEntry, OnGameEnd, ContextoRoundConfig } from "../types/types";
+import { buildNameLookup } from "../utils/questions";
+import type { PlayerIndexEntry, OnGameEnd, ContextoQuestion, ContextoRoundConfig } from "../types/types";
 import "../styles/Contexto.css";
 
 export interface ContextoProps {
-  /** Single-player: the whole pool. Multiplayer: [ContextoRoundConfig]. */
-  gameInfo: PlayerIndexEntry[] | ContextoRoundConfig[];
+  /** Single-player: a ContextoQuestion. Multiplayer: [ContextoRoundConfig].
+   *  PlayerIndexEntry[] stays in the union only so RenderGame's existing cast
+   *  at the call site keeps type-checking — solo no longer receives it. */
+  gameInfo: PlayerIndexEntry[] | ContextoQuestion[] | ContextoRoundConfig[];
   onGameEnd: OnGameEnd;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
@@ -34,7 +45,12 @@ export interface ContextoProps {
 const MAX_SCORE = 200;
 const CURRENT_YEAR = new Date().getFullYear();
 
-// --- similarity components (all normalized to 0..1, weighted in similarity()) ---
+// Multiplayer's pool is fetched via useRoundPool; solo has no pool at all
+// anymore, so it passes this stable empty array as `local` (truthy, so the
+// hook never triggers a fetch — see hooks/useRoundPool.ts).
+const NO_POOL: PlayerIndexEntry[] = [];
+
+// --- similarity components (multiplayer only — all normalized to 0..1, weighted in similarity()) ---
 
 /** Every year of every stint as an "ABBR:YEAR" token (shared franchise-seasons). */
 function franchiseSeasons(p: PlayerIndexEntry): Set<string> {
@@ -172,28 +188,6 @@ function buildRanking(secret: PlayerIndexEntry, pool: PlayerIndexEntry[]): Ranki
   return { rankById, nameToId, idToEntry };
 }
 
-/** FNV-1a hash -> deterministic daily index. */
-function hashStr(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/** The day's secret: fame tier 1-2, keyed by the UTC date so it's shared.
- *  Single-player only — online the server sends the secret it picked with the
- *  same rule (daily_secret() in backend/trivia/games/contexto.py). */
-function dailySecret(pool: PlayerIndexEntry[]): PlayerIndexEntry {
-  const candidates = pool.filter((p) => p.fame_tier <= 2);
-  const list = (candidates.length ? candidates : pool)
-    .slice()
-    .sort((a, b) => a.person_id - b.person_id);
-  const key = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
-  return list[hashStr(key) % list.length];
-}
-
 /** 200 - 5 per guess past the tenth, floor 50. */
 function scoreFor(guesses: number): number {
   return Math.max(50, MAX_SCORE - 5 * Math.max(0, guesses - 10));
@@ -220,10 +214,12 @@ interface GuessEntry {
 }
 
 export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoProps) {
-  // Online, the round IS the config; offline, it's the pool itself.
+  // Online, the round IS the config, ranked against the live pool it loads
+  // (useRoundPool) via the similarity engine above. Offline, gameInfo[0] is a
+  // precomputed ContextoQuestion — no pool to fetch.
   const round = multiplayer ? (gameInfo[0] as ContextoRoundConfig | undefined) : undefined;
-  const localPool = multiplayer ? null : (gameInfo as PlayerIndexEntry[]);
-  const pool = useRoundPool(localPool, round?.pool);
+  const pool = useRoundPool(multiplayer ? null : NO_POOL, round?.pool);
+  const question = multiplayer ? undefined : (gameInfo[0] as ContextoQuestion | undefined);
 
   const reduce = useReducedMotion();
   const [rows, setRows] = useState<GuessRow[]>([]);
@@ -249,25 +245,59 @@ export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoP
     timersRef.current = [];
   };
 
-  // Pick the daily secret + rank the whole pool once per pool/round (heavy loop).
-  // Online the server decided the secret for the whole room: use exactly that
-  // row or none at all. Falling back to the local rule when the id isn't in the
-  // pool this client loaded would have the two players solving DIFFERENT
-  // puzzles and still be scored against each other — the same reason SuperDraft
-  // refuses a slot constraint it can't resolve.
-  const secret = useMemo(() => {
-    if (!pool || !pool.length) return null;
-    if (multiplayer) return pool.find((p) => p.person_id === round?.secret_person_id) ?? null;
-    return dailySecret(pool);
-  }, [pool, round, multiplayer]);
-  const ranking = useMemo(
-    () => (secret && pool ? buildRanking(secret, pool) : null),
-    [secret, pool],
+  // Multiplayer: find the server's secret in the loaded pool and rank the
+  // whole pool against it (heavy loop) — untouched from before solo moved to
+  // the precomputed ranking. Online the server decided the secret for the
+  // whole room: use exactly that row or none at all. Falling back to a
+  // locally-chosen secret when the id isn't in the pool this client loaded
+  // would have the two players solving DIFFERENT puzzles and still be scored
+  // against each other — the same reason SuperDraft refuses a slot constraint
+  // it can't resolve.
+  const mpSecret = useMemo(() => {
+    if (!multiplayer || !pool || !pool.length) return null;
+    return pool.find((p) => p.person_id === round?.secret_person_id) ?? null;
+  }, [multiplayer, pool, round]);
+  const mpRanking = useMemo(
+    () => (mpSecret && pool ? buildRanking(mpSecret, pool) : null),
+    [mpSecret, pool],
   );
+
+  // Solo: the ranking is already computed server-side (Phase A); wrap the
+  // [personId, rank] pairs in a Map for O(1) lookup, built once per question.
+  const soloRankById = useMemo(() => new Map<number, number>(question?.ranking ?? []), [question]);
+  // Shared names list: solo resolves a typed guess to a person_id (and back to
+  // a display name) through it — multiplayer keeps resolving names against the
+  // live pool it already loaded (mpRanking.nameToId/idToEntry), so it's unused there.
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
+
+  const secret = multiplayer ? mpSecret : (question?.secret ?? null);
+  const ready = multiplayer ? !!mpRanking : !!(lookup && soloRankById.size);
   const suggestions = useMemo(
-    () => (pool ?? []).map((p) => p.full_name),
-    [pool],
+    () => (multiplayer ? (pool ?? []).map((p) => p.full_name) : (lookup?.suggestions ?? [])),
+    [multiplayer, pool, lookup],
   );
+
+  // Resolve a typed guess to { pid, name, rank } via whichever source this
+  // mode uses. Returns null for a name this game doesn't recognize.
+  const resolveGuess = (raw: string): { pid: number; name: string; rank: number } | null => {
+    if (multiplayer) {
+      if (!mpRanking) return null;
+      const norm = normalizeAnswer(raw);
+      const pid = mpRanking.nameToId.get(norm);
+      if (pid == null) return null;
+      const rank = mpRanking.rankById.get(pid);
+      const entry = mpRanking.idToEntry.get(pid);
+      if (rank == null || !entry) return null;
+      return { pid, name: entry.full_name, rank };
+    }
+    if (!lookup) return null;
+    const pid = lookup.toId(raw);
+    if (pid == null) return null;
+    const rank = soloRankById.get(pid);
+    if (rank == null) return null;
+    return { pid, name: lookup.nameOf(pid) ?? raw, rank };
+  };
 
   // Fire-and-forget guess log (the data flywheel). apiFetch only attaches the
   // JWT when one exists, so guests log anonymously and it never blocks the game.
@@ -317,30 +347,28 @@ export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoP
   };
 
   const handleGuess = (raw: string) => {
-    if (!secret || !ranking || won || gaveUp) return;
-    const norm = normalizeAnswer(raw);
-    if (!norm) return;
-    const pid = ranking.nameToId.get(norm);
-    if (pid == null) {
+    if (!secret || !ready || won || gaveUp) return;
+    if (!normalizeAnswer(raw)) return;
+    const resolved = resolveGuess(raw);
+    if (!resolved) {
       flash("Not a player in the index", "var(--bad)");
       return;
     }
+    const { pid, name, rank } = resolved;
     if (guessedIds.has(pid)) {
       flash("Already guessed", "var(--muted)");
       setGuess("");
       return;
     }
-    const rank = ranking.rankById.get(pid)!;
-    const entry = ranking.idToEntry.get(pid)!;
     const nextCount = guessedIds.size + 1;
     guessLogRef.current.push({
       question_id: String(secret.person_id),
-      answer: entry.full_name,
+      answer: name,
       correct: rank === 1,
       elapsed_ms: Date.now() - startRef.current,
     });
     setGuessedIds((prev) => new Set(prev).add(pid));
-    setRows((prev) => [...prev, { pid, name: entry.full_name, rank }].sort((a, b) => a.rank - b.rank));
+    setRows((prev) => [...prev, { pid, name, rank }].sort((a, b) => a.rank - b.rank));
     setGuess("");
 
     if (rank === 1) {
@@ -362,21 +390,23 @@ export default function Contexto({ gameInfo, onGameEnd, multiplayer }: ContextoP
     later(() => endOnce(0), 1900);
   };
 
-  // Loading / unplayable-round state. Once the pool has resolved (non-null) and
-  // there is still no secret, the round can't be played — either the pool is
-  // empty or, online, it doesn't contain the secret the room was given.
-  if (!secret || !ranking) {
+  // Loading / unplayable-round state. Once loading has resolved (the pool
+  // online, the shared names list offline) and there is still no secret, the
+  // round can't be played — either the pool/question is empty, or online the
+  // pool doesn't contain the secret the room was given.
+  const attempted = multiplayer ? pool !== null : names !== null;
+  if (!secret || !ready) {
     return (
       <div className="cx-center">
         <Spinner label="Calibrating the radar…" />
-        {pool && (
+        {attempted && (
           <p className="cx-note">No player data available. Please try again later.</p>
         )}
       </div>
     );
   }
 
-  const poolSize = pool!.length;
+  const poolSize = multiplayer ? pool!.length : soloRankById.size;
   const barWidth = (rank: number) =>
     `${Math.max(5, Math.round(100 * (1 - (rank - 1) / Math.max(1, poolSize - 1))))}%`;
 
