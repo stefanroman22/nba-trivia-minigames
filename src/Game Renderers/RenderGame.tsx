@@ -40,6 +40,7 @@ import type {
   TicTacToeQuestion,
   SuperDraftQuestion,
   ContextoQuestion,
+  ImposterQuestion,
 } from "../types/types";
 
 interface RenderGameArgs {
@@ -240,7 +241,7 @@ export const renderGame = ({
     case "imposter":
       return (
         <ImposterGame
-          gameInfo={gameData as PlayerIndexEntry[]}
+          gameInfo={gameData as ImposterQuestion[]}
           onGameEnd={onGameEnd}
           turn={turn}
           onTurnAction={onTurnAction}

@@ -45,6 +45,7 @@ const { Server } = require("socket.io");
 const cors = require("cors");
 const gameEndpoints = require("./gameEndpoints");
 const turnGames = require("./turnGames");
+const questions = require("./questions");
 
 const CORS_ORIGINS = (
   process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
@@ -158,8 +159,14 @@ const publicUser = (user) =>
 /** Display name for log lines / "X left" messages. */
 const nameOf = (uid) => players.get(uid)?.user?.username || "A player";
 
-// Fetch a fresh round of game data for a game id from the Django backend.
+// Games dealt from the pre-generated questions store instead of the Django
+// backend (tictactoe/imposter are TURN_GAMES and never reach fetchRound).
+const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"]);
+
+// Fetch a fresh round of game data for a game id — either one pre-generated
+// question from the questions store, or a round from the Django backend.
 async function fetchRound(gameId) {
+  if (QUESTION_GAMES.has(gameId)) return [await questions.deal(gameId)];
   const endpoint = gameEndpoints[gameId];
   if (!endpoint) throw new Error(`No endpoint configured for game id: ${gameId}`);
   const response = await fetch(endpoint);
