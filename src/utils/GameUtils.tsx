@@ -436,7 +436,7 @@ export const games: Game[] = [
     urlPath: "/tictactoe",
     pointsPerCorrect: 25,
     maxPoints: 225,
-    fetchData: () => fetchGamePool("tictactoe", 1),
+    fetchData: () => fetchQuestion("tictactoe"),
     handleError: handleErrorDefault,
   },
   {
@@ -556,7 +556,7 @@ export const games: Game[] = [
     urlPath: "/superdraft",
     pointsPerCorrect: 20,
     maxPoints: 100,
-    fetchData: () => fetchWholePool("players-index"),
+    fetchData: () => fetchQuestion("superdraft"),
     handleError: handleErrorDefault,
   },
   {
