@@ -436,7 +436,7 @@ export const games: Game[] = [
     urlPath: "/tictactoe",
     pointsPerCorrect: 25,
     maxPoints: 225,
-    fetchData: () => fetchGamePool("tictactoe", 1),
+    fetchData: () => fetchQuestion("tictactoe"),
     handleError: handleErrorDefault,
   },
   {
