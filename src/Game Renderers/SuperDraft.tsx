@@ -1,21 +1,28 @@
 // SuperDraft Five — build a starting five under a rotating daily objective.
 // A daily objective (Tallest Five / Most Rings / Most Career Points / Oldest
 // Five) is picked by date-hash. Five slots each draw a RANDOM pool constraint
-// (a franchise / a country / a draft decade) guaranteed >= 8 eligible players
-// from the players-index pool. Draft one player per slot via an
-// autocomplete filtered to that slot's eligible names; each player is usable
-// once. After five picks the lineup's metric is graded as a percentile against
-// 300 random valid lineups simulated client-side, and onGameEnd(percentile) is
-// called exactly once. One slot re-roll per game reshuffles all constraints
-// (single-player only — see below).
+// (a franchise / a country / a draft decade) guaranteed >= 8 eligible players.
+// Draft one player per slot via an autocomplete filtered to that slot's
+// eligible names; each player is usable once. After five picks the lineup's
+// metric is graded as a percentile against 300 random valid lineups simulated
+// client-side, and onGameEnd(percentile) is called exactly once. One slot
+// re-roll per game (single-player only — see below).
 //
-// Single-player is handed the whole pool as `gameInfo` and draws its own slots.
+// Single-player is handed a precomputed SuperDraftQuestion as `gameInfo`: five
+// slots, each already carrying its eligible [person_id, height_in, rings,
+// career_pts, birth_year] tuples resolved server-side — it never downloads the
+// player pool. Names are resolved against the shared names list (useNames /
+// buildNameLookup). Its one re-roll re-fetches a fresh precomputed question
+// instead of reshuffling locally.
+//
 // A MULTIPLAYER round is a one-element SuperDraftRoundConfig array instead: the
 // day plus the five slot constraints, drawn once server-side
 // (backend/trivia/games/superdraft.py) so both players draft under identical
-// constraints. The renderer then loads the same CDN pool single-player uses
-// (useRoundPool) and resolves those constraints against it — it must never draw
-// its own slots online, which is what made online matches silently unfair.
+// constraints. The renderer then loads the same CDN pool (useRoundPool) and
+// resolves those constraints against it — it must never draw its own slots
+// online, which is what made online matches silently unfair. This machinery
+// (buildCandidates/resolveSlots/useRoundPool) stays exactly as it was — a
+// future phase will give multiplayer its own precomputed payload.
 //
 // Conventions copied from PackFive/StartingFive: state reset on [gameInfo],
 // timersRef + later()/clearTimers() for ALL delayed work, endedRef guards
@@ -28,19 +35,25 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useRoundPool } from "../hooks/useRoundPool";
+import { useNames } from "../hooks/useNames";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
+import { buildNameLookup, fetchQuestion } from "../utils/questions";
 import type {
   PlayerIndexEntry,
   OnGameEnd,
   SlotConstraintConfig,
+  SuperDraftQuestion,
   SuperDraftRoundConfig,
+  SuperDraftSlot,
 } from "../types/types";
 import "../styles/SuperDraft.css";
 
 export interface SuperDraftProps {
-  /** Single-player: the whole pool. Multiplayer: [SuperDraftRoundConfig]. */
-  gameInfo: PlayerIndexEntry[] | SuperDraftRoundConfig[];
+  /** Single-player: a SuperDraftQuestion. Multiplayer: [SuperDraftRoundConfig].
+   *  PlayerIndexEntry[] stays in the union only so RenderGame's existing cast
+   *  at the call site keeps type-checking — solo no longer receives it. */
+  gameInfo: PlayerIndexEntry[] | SuperDraftQuestion[] | SuperDraftRoundConfig[];
   onGameEnd: OnGameEnd;
   /** Restarts the game from the result panel (spec §7). */
   onPlayAgain?: () => void;
@@ -59,10 +72,28 @@ const REVEAL_LEAD_MS = 300; // lead-in before the first reveal (spec Rule 7.2)
 const END_DELAY = 1200; // let the grade land before handing back the score
 const CURRENT_YEAR = new Date().getFullYear();
 
+// Multiplayer's pool is fetched via useRoundPool; solo has no pool at all
+// anymore, so it passes this stable empty array as `local` (truthy, so the
+// hook never triggers a fetch — see hooks/useRoundPool.ts).
+const NO_POOL: PlayerIndexEntry[] = [];
+
 const headshotUrl = (personId: number) =>
   `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
-// ----- Objectives (canonical: the renderer owns them; the backend serves the pool) -----
+/** A drafted player, flattened from either a precomputed eligible tuple (solo)
+ *  or a live-pool PlayerIndexEntry (multiplayer) — everything past the slot
+ *  draw (objectives, grading, JSX) reads this shape only. */
+type Pick = {
+  person_id: number;
+  full_name: string;
+  height_in: number | null;
+  rings: number;
+  career_pts: number;
+  birth_year: number | null;
+  aliases: string[];
+};
+
+// ----- Objectives (canonical: the renderer owns them) -----
 type MetricKey = "height_in" | "rings" | "career_pts" | "birth_year_desc";
 interface Objective {
   key: string;
@@ -70,9 +101,9 @@ interface Objective {
   metric: MetricKey;
   eyebrow: string;
   /** Goodness contribution for one player (higher is always better). */
-  perPick: (p: PlayerIndexEntry) => number;
+  perPick: (p: Pick) => number;
   /** Per-pick display of the metric. */
-  fmtPick: (p: PlayerIndexEntry) => string;
+  fmtPick: (p: Pick) => string;
   /** How the five per-pick values combine for the headline number. */
   aggregate: "sum" | "avg";
   /** Format the aggregated headline from the raw per-pick values. */
@@ -86,11 +117,12 @@ const inchesToFtIn = (inches: number) => {
   const inch = safe % 12;
   return `${ft}'${inch}"`;
 };
-const heightOf = (p: PlayerIndexEntry) => (typeof p.height_in === "number" ? p.height_in : 0);
-const ageOf = (p: PlayerIndexEntry) =>
-  typeof p.birth_year === "number" ? CURRENT_YEAR - p.birth_year : 0;
-const ringsOf = (p: PlayerIndexEntry) => (Array.isArray(p.awards?.rings) ? p.awards.rings.length : 0);
-const ptsOf = (p: PlayerIndexEntry) => (typeof p.career?.pts === "number" ? p.career.pts : 0);
+const heightOf = (p: Pick) => (typeof p.height_in === "number" ? p.height_in : 0);
+const ageOf = (p: Pick) => (typeof p.birth_year === "number" ? CURRENT_YEAR - p.birth_year : 0);
+// Multiplayer resolves PlayerIndexEntry from the live pool — these derive the
+// flat Pick.rings / Pick.career_pts fields the objectives above read.
+const ringsOfEntry = (p: PlayerIndexEntry) => (Array.isArray(p.awards?.rings) ? p.awards.rings.length : 0);
+const ptsOfEntry = (p: PlayerIndexEntry) => (typeof p.career?.pts === "number" ? p.career.pts : 0);
 const mean = (v: number[]) => (v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0);
 const sum = (v: number[]) => v.reduce((a, b) => a + b, 0);
 
@@ -111,8 +143,8 @@ const OBJECTIVES: Objective[] = [
     label: "Most Rings",
     metric: "rings",
     eyebrow: "Stack the most championships",
-    perPick: ringsOf,
-    fmtPick: (p) => String(ringsOf(p)),
+    perPick: (p) => p.rings,
+    fmtPick: (p) => String(p.rings),
     aggregate: "sum",
     fmtAgg: (v) => String(Math.round(sum(v))),
     aggLabel: "Total rings",
@@ -122,8 +154,8 @@ const OBJECTIVES: Objective[] = [
     label: "Most Career Points",
     metric: "career_pts",
     eyebrow: "Draft the biggest scorers",
-    perPick: ptsOf,
-    fmtPick: (p) => ptsOf(p).toLocaleString("en-US"),
+    perPick: (p) => p.career_pts,
+    fmtPick: (p) => p.career_pts.toLocaleString("en-US"),
     aggregate: "sum",
     fmtAgg: (v) => Math.round(sum(v)).toLocaleString("en-US"),
     aggLabel: "Total points",
@@ -154,7 +186,29 @@ function dailyObjective(day?: string): Objective {
   return OBJECTIVES[h % OBJECTIVES.length];
 }
 
-// ----- Slot constraints (random pools) -----
+// Build a Pick from either source, so the slot list / objectives / grading /
+// JSX below never need to know which branch drew the slot.
+const toPickFromEntry = (p: PlayerIndexEntry): Pick => ({
+  person_id: p.person_id,
+  full_name: p.full_name,
+  height_in: typeof p.height_in === "number" ? p.height_in : null,
+  rings: ringsOfEntry(p),
+  career_pts: ptsOfEntry(p),
+  birth_year: typeof p.birth_year === "number" ? p.birth_year : null,
+  aliases: p.aliases,
+});
+const toPickFromTuple = (t: SuperDraftSlot["eligible"][number], name: string): Pick => ({
+  person_id: t[0],
+  full_name: name,
+  height_in: t[1],
+  rings: t[2],
+  career_pts: t[3],
+  birth_year: t[4],
+  aliases: [],
+});
+
+// ----- Slot constraints (multiplayer only — random pools resolved against the
+// live players-index pool; untouched by the questions-store migration) -----
 type ConstraintKind = "team" | "country" | "draft";
 interface SlotConstraint {
   kind: ConstraintKind;
@@ -165,14 +219,6 @@ interface SlotConstraint {
 }
 
 const randInt = (n: number) => Math.floor(Math.random() * n);
-function shuffled<T>(arr: T[]): T[] {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = randInt(i + 1);
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
 
 // Every candidate pool constraint with >= MIN_ELIGIBLE eligible players,
 // grouped by kind so slots can be drawn with variety.
@@ -227,31 +273,6 @@ function buildCandidates(pool: PlayerIndexEntry[]): Record<ConstraintKind, SlotC
   return { team: teamC, country: countryC, draft: draftC };
 }
 
-// Round-robin across kinds so a draft mixes franchises / countries / decades.
-function drawSlots(cands: Record<ConstraintKind, SlotConstraint[]>): SlotConstraint[] {
-  const queues: SlotConstraint[][] = [
-    shuffled(cands.team),
-    shuffled(cands.draft),
-    shuffled(cands.country),
-  ];
-  const picked: SlotConstraint[] = [];
-  const usedValues = new Set<string>();
-  let q = 0;
-  let guard = 0;
-  while (picked.length < SLOT_COUNT && guard < 200) {
-    guard++;
-    const queue = queues[q % queues.length];
-    q++;
-    const next = queue.shift();
-    if (!next) continue;
-    const id = `${next.kind}:${next.value}`;
-    if (usedValues.has(id)) continue;
-    usedValues.add(id);
-    picked.push(next);
-  }
-  return picked;
-}
-
 // Multiplayer: the slots were drawn server-side, so look each one up in the
 // SAME candidate index single-player draws from — identical eligibility, no
 // second draw. Returns [] if any constraint is missing locally (a pool the
@@ -270,6 +291,31 @@ function resolveSlots(
   return picked;
 }
 
+/** The shared render/scoring shape both branches produce for `slots` state. */
+interface DraftSlot {
+  kind: ConstraintKind;
+  value: string;
+  label: string;
+  sub: string;
+  eligible: Pick[];
+}
+
+const slotFromConstraint = (c: SlotConstraint): DraftSlot => ({
+  kind: c.kind,
+  value: c.value,
+  label: c.label,
+  sub: c.sub,
+  eligible: c.eligible.map(toPickFromEntry),
+});
+
+const slotFromQuestion = (s: SuperDraftSlot, lookup: ReturnType<typeof buildNameLookup>): DraftSlot => ({
+  kind: s.kind,
+  value: s.value,
+  label: s.label,
+  sub: s.sub,
+  eligible: s.eligible.map((t) => toPickFromTuple(t, lookup.nameOf(t[0]) ?? `#${t[0]}`)),
+});
+
 interface GuessEntry {
   question_id: string;
   answer: string;
@@ -287,7 +333,7 @@ function Silhouette() {
   );
 }
 
-function Headshot({ player }: { player: PlayerIndexEntry }) {
+function Headshot({ player }: { player: Pick }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [player.person_id]);
   if (failed) return <Silhouette />;
@@ -311,15 +357,18 @@ export default function SuperDraft({
   onClose,
   multiplayer,
 }: SuperDraftProps) {
-  // Online, the round IS the config; offline, it's the pool itself.
+  // Online, the round IS the config; offline, gameInfo[0] is a precomputed
+  // SuperDraftQuestion (see soloQuestion state below).
   const round = multiplayer ? (gameInfo[0] as SuperDraftRoundConfig | undefined) : undefined;
-  const localPool = multiplayer ? null : (gameInfo as PlayerIndexEntry[]);
-  const pool = useRoundPool(localPool, round?.pool);
+  const pool = useRoundPool(multiplayer ? null : NO_POOL, round?.pool);
 
   const objective = useMemo(() => dailyObjective(round?.day), [round?.day]);
   const [phase, setPhase] = useState<Phase>("loading");
-  const [slots, setSlots] = useState<SlotConstraint[]>([]);
-  const [picks, setPicks] = useState<(PlayerIndexEntry | null)[]>([]);
+  const [soloQuestion, setSoloQuestion] = useState<SuperDraftQuestion | null>(
+    multiplayer ? null : ((gameInfo[0] as SuperDraftQuestion) ?? null),
+  );
+  const [slots, setSlots] = useState<DraftSlot[]>([]);
+  const [picks, setPicks] = useState<(Pick | null)[]>([]);
   const [draftValue, setDraftValue] = useState("");
   const [rerollUsed, setRerollUsed] = useState(false);
   const [percentile, setPercentile] = useState(0);
@@ -329,6 +378,11 @@ export default function SuperDraft({
   const [showPopup, setShowPopup] = useState(false);
   const [popup, setPopup] = useState({ Text: "", Color: "" });
   const reduce = useReducedMotion();
+
+  // Shared names list (id <-> full name, aliases) — solo resolves its eligible
+  // tuples' ids through it; unused by multiplayer, which already has names.
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
 
   const endedRef = useRef(false);
   const startRef = useRef(Date.now());
@@ -358,9 +412,10 @@ export default function SuperDraft({
     });
   };
 
-  // Fresh draft whenever the round changes (play-again / new payload), or once
-  // a multiplayer round's pool has finished loading.
+  // ----- Multiplayer: fresh draft whenever the round changes, or once the
+  // round's pool has finished loading. Untouched from before the migration. -----
   useEffect(() => {
+    if (!multiplayer) return;
     clearTimers();
     setDraftValue("");
     setRerollUsed(false);
@@ -379,25 +434,66 @@ export default function SuperDraft({
       setPhase("loading");
       return;
     }
-    if (!multiplayer && candidateCount < SLOT_COUNT) {
+    if (candidateCount < SLOT_COUNT) {
       setSlots([]);
       setPicks([]);
       setPhase("error");
       return;
     }
     // Online the server already drew the slots — resolve them, never re-draw.
-    const drawn = multiplayer ? resolveSlots(candidates, round?.slots ?? []) : drawSlots(candidates);
+    const drawn = resolveSlots(candidates, round?.slots ?? []);
     if (drawn.length < SLOT_COUNT) {
       setSlots([]);
       setPicks([]);
       setPhase("error");
       return;
     }
-    setSlots(drawn);
+    setSlots(drawn.map(slotFromConstraint));
     setPicks(Array(SLOT_COUNT).fill(null));
     setPhase("draft");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameInfo, pool]);
+  }, [gameInfo, pool, multiplayer]);
+
+  // ----- Solo: a fresh gameInfo payload (mount / play-again) resets the round
+  // and adopts its question; reroll() below swaps soloQuestion without going
+  // through this reset (rerollUsed must stay true for the rest of the game). -----
+  useEffect(() => {
+    if (multiplayer) return;
+    clearTimers();
+    setRerollUsed(false);
+    setPercentile(0);
+    setRevealCount(0);
+    setShowResult(false);
+    setCopied(false);
+    setShowPopup(false);
+    endedRef.current = false;
+    setSoloQuestion((gameInfo[0] as SuperDraftQuestion) ?? null);
+  }, [gameInfo, multiplayer]);
+
+  // ----- Solo: derive the slot board from the current question once the
+  // shared names list is ready. Runs again on reroll (new soloQuestion). -----
+  useEffect(() => {
+    if (multiplayer) return;
+    setDraftValue("");
+    guessLogRef.current = [];
+    startRef.current = Date.now();
+
+    if (!soloQuestion || !lookup) {
+      setSlots([]);
+      setPicks([]);
+      setPhase("loading");
+      return;
+    }
+    if (soloQuestion.slots.length < SLOT_COUNT) {
+      setSlots([]);
+      setPicks([]);
+      setPhase("error");
+      return;
+    }
+    setSlots(soloQuestion.slots.map((s) => slotFromQuestion(s, lookup)));
+    setPicks(Array(SLOT_COUNT).fill(null));
+    setPhase("draft");
+  }, [soloQuestion, lookup, multiplayer]);
 
   // Unmount: cancel pending reveals/end-calls and flush any un-sent guesses.
   useEffect(
@@ -415,7 +511,7 @@ export default function SuperDraft({
   };
 
   const currentSlotIndex = picks.findIndex((p) => p === null);
-  const pickedIds = new Set(picks.filter(Boolean).map((p) => (p as PlayerIndexEntry).person_id));
+  const pickedIds = new Set(picks.filter(Boolean).map((p) => (p as Pick).person_id));
 
   // Names offered for the active slot: eligible, minus anyone already drafted.
   const activeSuggestions = useMemo(() => {
@@ -427,7 +523,7 @@ export default function SuperDraft({
   }, [currentSlotIndex, slots, picks]);
 
   // Grade the finished lineup: percentile vs SIM_LINEUPS random valid lineups.
-  const grade = (finalPicks: PlayerIndexEntry[]): number => {
+  const grade = (finalPicks: Pick[]): number => {
     const myScore = sum(finalPicks.map((p) => objective.perPick(p)));
     let atOrBelow = 0;
     for (let i = 0; i < SIM_LINEUPS; i++) {
@@ -435,7 +531,7 @@ export default function SuperDraft({
       let s = 0;
       for (const slot of slots) {
         // Draft a distinct random eligible player for this slot.
-        let pick: PlayerIndexEntry | null = null;
+        let pick: Pick | null = null;
         for (let tries = 0; tries < 6; tries++) {
           const cand = slot.eligible[randInt(slot.eligible.length)];
           if (!used.has(cand.person_id)) {
@@ -452,7 +548,7 @@ export default function SuperDraft({
     return Math.max(0, Math.min(100, Math.round((atOrBelow / SIM_LINEUPS) * 100)));
   };
 
-  const finish = (finalPicks: PlayerIndexEntry[]) => {
+  const finish = (finalPicks: Pick[]) => {
     if (endedRef.current) return;
     endedRef.current = true;
     const pct = grade(finalPicks);
@@ -478,19 +574,26 @@ export default function SuperDraft({
     const slot = slots[idx];
     const norm = normalizeAnswer(raw);
     if (!norm) return;
+    // Solo: resolve the guess against the shared names list first, then find
+    // that id inside this slot's precomputed eligible tuples. Multiplayer:
+    // unchanged direct name/alias match against the live-pool-derived list.
+    const id = lookup?.toId(raw) ?? null;
 
-    const match = slot.eligible.find(
-      (p) =>
-        !pickedIds.has(p.person_id) &&
-        (normalizeAnswer(p.full_name) === norm ||
-          (p.aliases ?? []).some((a) => normalizeAnswer(a) === norm)),
-    );
+    const match: Pick | undefined = multiplayer
+      ? slot.eligible.find(
+          (p) =>
+            !pickedIds.has(p.person_id) &&
+            (normalizeAnswer(p.full_name) === norm || p.aliases.some((a) => normalizeAnswer(a) === norm)),
+        )
+      : id !== null
+        ? slot.eligible.find((p) => p.person_id === id && !pickedIds.has(p.person_id))
+        : undefined;
 
     if (!match) {
       // Distinguish "already drafted" / "not in this pool" for a helpful nudge.
-      const already = slot.eligible.find(
-        (p) => pickedIds.has(p.person_id) && normalizeAnswer(p.full_name) === norm,
-      );
+      const already = multiplayer
+        ? slot.eligible.some((p) => pickedIds.has(p.person_id) && normalizeAnswer(p.full_name) === norm)
+        : id !== null && pickedIds.has(id);
       guessLogRef.current.push({
         question_id: `${slot.kind}:${slot.value}`,
         answer: raw,
@@ -515,27 +618,29 @@ export default function SuperDraft({
     flashPopup(`${match.full_name} drafted`, "var(--good)");
 
     if (next.every((p) => p !== null)) {
-      later(() => finish(next as PlayerIndexEntry[]), 350);
+      later(() => finish(next as Pick[]), 350);
     }
   };
 
-  const reroll = () => {
-    // Online the room shares one server-drawn set of slots; a local re-roll
-    // would put the two players back on different drafts.
+  // Solo only: a reroll now means "get a different pre-generated draft board"
+  // (fetchQuestion) rather than locally redrawing from a pool solo no longer
+  // has. Online the room shares one server-drawn set of slots; a local
+  // re-roll would put the two players back on different drafts.
+  const reroll = async () => {
     if (multiplayer || rerollUsed || phase !== "draft") return;
-    const drawn = drawSlots(candidates);
-    if (drawn.length < SLOT_COUNT) return;
     setRerollUsed(true);
-    setSlots(drawn);
-    setPicks(Array(SLOT_COUNT).fill(null));
-    setDraftValue("");
-    guessLogRef.current = [];
-    startRef.current = Date.now();
+    setPhase("loading");
+    const res = await fetchQuestion("superdraft");
+    if (!res.success || !res.data?.length) {
+      setPhase("error");
+      return;
+    }
+    setSoloQuestion(res.data[0] as SuperDraftQuestion);
     flashPopup("Pools re-rolled", "var(--muted)");
   };
 
   const shareText = () => {
-    const filled = picks.filter(Boolean) as PlayerIndexEntry[];
+    const filled = picks.filter(Boolean) as Pick[];
     const values = filled.map((p) => objective.perPick(p));
     const lines = slots.map((s, i) => {
       const p = picks[i];
@@ -580,7 +685,7 @@ export default function SuperDraft({
   const filledCount = picks.filter(Boolean).length;
   const revealing = phase === "reveal";
   const drafting = !revealing && currentSlotIndex >= 0;
-  const filledValues = (picks.filter(Boolean) as PlayerIndexEntry[]).map((p) => objective.perPick(p));
+  const filledValues = (picks.filter(Boolean) as Pick[]).map((p) => objective.perPick(p));
 
   return (
     // fill: the slot list is the scroller (`.sd-slots` is flex:1 1 auto + overflow-y:auto).
