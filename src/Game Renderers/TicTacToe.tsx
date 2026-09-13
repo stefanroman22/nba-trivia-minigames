@@ -7,11 +7,11 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import { playerKey } from "../context/MultiplayerContext";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
-import { fetchWholePool } from "../utils/pool";
-import { playerMatches } from "../utils/criteria";
+import { useNames } from "../hooks/useNames";
+import { buildNameLookup } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
 import type { RootState } from "../store";
-import type { Criterion, GridConfig, OnGameEnd, PlayerIndexEntry } from "../types/types";
+import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../types/types";
 import "../styles/TicTacToe.css";
 
 const CELL_POINTS = 25; // 9 cells -> 225 max (registry maxPoints)
@@ -43,7 +43,7 @@ export type TttAction =
 // (turn: unknown, onTurnAction: (a: unknown) => void, multiplayer: boolean).
 // The typed shapes above are used internally via casts.
 export interface TicTacToeProps {
-  gameInfo: GridConfig[];
+  gameInfo: (GridConfig | TicTacToeQuestion)[];
   onGameEnd: OnGameEnd;
   turn?: unknown; // present in the duel: the server's TttTurnState
   onTurnAction?: (action: unknown) => void;
@@ -56,16 +56,11 @@ interface GuessEntry {
   correct: boolean;
   elapsed_ms: number;
 }
-type PoolState =
-  | { status: "loading" }
-  | { status: "error"; message: string }
-  | { status: "ready"; players: PlayerIndexEntry[] };
 
 function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: TicTacToeProps) {
   const isMultiplayer = multiplayer === true;
   const mpState = (turn ?? null) as TttTurnState | null;
 
-  const [pool, setPool] = useState<PoolState>({ status: "loading" });
   const [solved, setSolved] = useState<Record<number, string>>({}); // cell -> player name
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [stealMode, setStealMode] = useState(false);
@@ -132,18 +127,9 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     [],
   );
 
-  // Players index (validation truth + autocomplete suggestions).
-  useEffect(() => {
-    let alive = true;
-    fetchWholePool("players-index").then((res) => {
-      if (!alive) return;
-      if (res.success && res.data) setPool({ status: "ready", players: res.data as PlayerIndexEntry[] });
-      else setPool({ status: "error", message: res.error?.message ?? "Couldn't load players." });
-    });
-    return () => {
-      alive = false;
-    };
-  }, []);
+  // Names (id-based validation truth + autocomplete suggestions).
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
 
   // Shared half-second tick: drives the solo clock and the multiplayer deadline.
   useEffect(() => {
@@ -151,27 +137,13 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     return () => clearInterval(id);
   }, []);
 
-  const board = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
-  const players = pool.status === "ready" ? pool.players : [];
-  const suggestions = useMemo(
-    () => (pool.status === "ready" ? pool.players.map((p) => p.full_name) : []),
-    [pool],
-  );
+  const question = gameInfo && gameInfo.length > 0 ? (gameInfo[0] as TicTacToeQuestion) : null;
+  const suggestions = useMemo(() => lookup?.suggestions ?? [], [lookup]);
 
   const flashPopup = (text: string, color: string) => {
     setPopUpInfo({ Text: text, Color: color });
     setShowPopup(true);
     later(() => setShowPopup(false), 1400);
-  };
-
-  const findPlayer = (raw: string): PlayerIndexEntry | null => {
-    const n = normalizeAnswer(raw);
-    if (!n) return null;
-    return (
-      players.find(
-        (p) => normalizeAnswer(p.full_name) === n || p.aliases.some((a) => normalizeAnswer(a) === n),
-      ) ?? null
-    );
   };
 
   // ---------- SOLO ----------
@@ -189,37 +161,36 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
 
   // Clock expiry ends the solo game exactly once.
   useEffect(() => {
-    if (isMultiplayer || !board || finished) return;
+    if (isMultiplayer || !question || finished) return;
     if (soloSecondsLeft <= 0) finishSolo(soloScore, "Time!", "var(--bad)");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [soloSecondsLeft, finished, board, isMultiplayer]);
+  }, [soloSecondsLeft, finished, question, isMultiplayer]);
 
   const handleSoloSubmit = () => {
-    if (!board || finished || selectedCell == null || solved[selectedCell]) return;
+    if (!question || finished || selectedCell == null || solved[selectedCell]) return;
     const raw = guess;
     setGuess("");
-    const rowCrit = board.rows[Math.floor(selectedCell / 3)];
-    const colCrit = board.cols[selectedCell % 3];
-    const qid = `${board.qid}:${selectedCell}`;
+    const qid = `${question.qid}:${selectedCell}`;
     const elapsed = Date.now() - startRef.current;
-    const p = findPlayer(raw);
-    if (!p) {
+    const id = lookup?.toId(raw) ?? null;
+    if (id === null) {
       guessLogRef.current.push({ question_id: qid, answer: normalizeAnswer(raw), correct: false, elapsed_ms: elapsed });
       flashPopup("Not in our player index", "var(--muted)");
       return;
     }
-    if (usedIdsRef.current.has(p.person_id)) {
-      flashPopup(`${p.full_name} already used`, "var(--muted)");
+    const displayName = lookup!.nameOf(id) ?? raw;
+    if (usedIdsRef.current.has(id)) {
+      flashPopup(`${displayName} already used`, "var(--muted)");
       return;
     }
-    const ok = playerMatches(p, rowCrit) && playerMatches(p, colCrit);
-    guessLogRef.current.push({ question_id: qid, answer: p.full_name, correct: ok, elapsed_ms: elapsed });
+    const ok = question.valid[selectedCell].includes(id);
+    guessLogRef.current.push({ question_id: qid, answer: displayName, correct: ok, elapsed_ms: elapsed });
     if (!ok) {
-      flashPopup(`${p.full_name} doesn't fit`, "var(--bad)");
+      flashPopup(`${displayName} doesn't fit`, "var(--bad)");
       return;
     }
-    usedIdsRef.current.add(p.person_id);
-    const nextSolved = { ...solved, [selectedCell]: p.full_name };
+    usedIdsRef.current.add(id);
+    const nextSolved = { ...solved, [selectedCell]: displayName };
     setSolved(nextSolved);
     setSelectedCell(null);
     const n = Object.keys(nextSolved).length;
@@ -229,7 +200,7 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
 
   // ---------- MULTIPLAYER (server authoritative) ----------
   const mpBoard: GridConfig | null = mpState
-    ? { qid: board?.qid ?? "mp", rows: mpState.criteria.rows, cols: mpState.criteria.cols }
+    ? { qid: question?.qid ?? "mp", rows: mpState.criteria.rows, cols: mpState.criteria.cols }
     : null;
   const myTurn = !!mpState && mpState.turnUid === selfUid && mpState.winnerUid == null && !mpState.draw;
   const myStealsLeft = mpState ? mpState.stealsLeft?.[selfUid] ?? 0 : 0;
@@ -259,7 +230,8 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     // claim: an empty cell; steal: an opponent cell with steals remaining.
     if (!stealMode && occupant) return;
     if (stealMode && (!occupant || occupant.ownerUid === selfUid || myStealsLeft <= 0)) return;
-    const p = findPlayer(guess);
+    const id = lookup?.toId(guess) ?? null;
+    const p = id !== null ? lookup!.getEntry(id) : null;
     setGuess("");
     if (!p) {
       flashPopup("Not in our player index", "var(--muted)");
@@ -269,13 +241,8 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
       flashPopup("Name a different player to steal", "var(--muted)");
       return;
     }
-    // Local pre-check is UX only — the server re-validates (authoritative).
-    const rowCrit = mpBoard.rows[Math.floor(selectedCell / 3)];
-    const colCrit = mpBoard.cols[selectedCell % 3];
-    if (players.length && !(playerMatches(p, rowCrit) && playerMatches(p, colCrit))) {
-      flashPopup(`${p.full_name} doesn't fit`, "var(--bad)");
-      return;
-    }
+    // Local fit pre-check is gone with the players-index pool — the server
+    // remains authoritative and re-validates every claim/steal.
     const action: TttAction = { type: stealMode ? "steal" : "claim", cell: selectedCell, playerName: p.full_name };
     onTurnAction?.(action);
     flashPopup("Sent…", "var(--muted)");
@@ -412,27 +379,8 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     );
   }
 
-  // ---- Solo: loading / empty / error states ----
-  if (!board) return <p style={{ color: "var(--muted)" }}>No board available.</p>;
-  if (pool.status === "loading") return <Spinner label="Loading the board…" />;
-  if (pool.status === "error")
-    return (
-      <div className="ttt-fetchfail">
-        <p>{pool.message}</p>
-        <Button
-          size="sm"
-          onClick={() => {
-            setPool({ status: "loading" });
-            fetchWholePool("players-index").then((res) => {
-              if (res.success && res.data) setPool({ status: "ready", players: res.data as PlayerIndexEntry[] });
-              else setPool({ status: "error", message: res.error?.message ?? "Couldn't load players." });
-            });
-          }}
-        >
-          Retry
-        </Button>
-      </div>
-    );
+  // ---- Solo: empty state ----
+  if (!question) return <p style={{ color: "var(--muted)" }}>No board available.</p>;
 
   // ---- Solo board ----
   return (
@@ -458,12 +406,12 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
         <div className="ttt-board">
           <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe criteria board">
             <span className="ttt-corner" aria-hidden="true" />
-            {board.cols.map((c, i) => (
+            {question.cols.map((c, i) => (
               <span key={`c${i}`} className="ttt-crit ttt-crit--col">
                 {c.label}
               </span>
             ))}
-            {board.rows.map((r, ri) => (
+            {question.rows.map((r, ri) => (
               <div key={`r${ri}`} className="ttt-rowgroup" role="row">
                 <span className="ttt-crit ttt-crit--row">{r.label}</span>
                 {[0, 1, 2].map((ci) => {
@@ -477,7 +425,7 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
                       role="gridcell"
                       className={`ttt-cell${name ? " is-mine" : ""}${selected ? " is-selected" : ""}`}
                       disabled={!!name || finished}
-                      aria-label={`${r.label} and ${board.cols[ci].label}${name ? `: ${name}` : ""}`}
+                      aria-label={`${r.label} and ${question.cols[ci].label}${name ? `: ${name}` : ""}`}
                       onClick={() => setSelectedCell(selected ? null : cell)}
                       animate={reduce ? undefined : { scale: name ? [1, 1.06, 1] : 1 }}
                       transition={{ duration: 0.3 }}
