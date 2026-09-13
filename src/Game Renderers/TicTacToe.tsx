@@ -230,6 +230,10 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     // claim: an empty cell; steal: an opponent cell with steals remaining.
     if (!stealMode && occupant) return;
     if (stealMode && (!occupant || occupant.ownerUid === selfUid || myStealsLeft <= 0)) return;
+    if (!lookup) {
+      flashPopup("Still loading players — try again in a moment", "var(--muted)");
+      return;
+    }
     const id = lookup?.toId(guess) ?? null;
     const p = id !== null ? lookup!.getEntry(id) : null;
     setGuess("");
@@ -378,6 +382,15 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
       </GameFrame>
     );
   }
+
+  // ---- Solo: loading / empty states for the shared names fetch ----
+  if (names === null) return <Spinner label="Loading players…" />;
+  if (names.length === 0)
+    return (
+      <div className="ttt-fetchfail">
+        <p>No data available. Please try again later.</p>
+      </div>
+    );
 
   // ---- Solo: empty state ----
   if (!question) return <p style={{ color: "var(--muted)" }}>No board available.</p>;

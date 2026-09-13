@@ -37,6 +37,8 @@ import type {
   WhoAreYaQuestion,
   ContextoRoundConfig,
   SuperDraftRoundConfig,
+  TicTacToeQuestion,
+  SuperDraftQuestion,
 } from "../types/types";
 
 interface RenderGameArgs {
@@ -185,7 +187,7 @@ export const renderGame = ({
     case "tictactoe":
       return (
         <TicTacToe
-          gameInfo={gameData as GridConfig[]}
+          gameInfo={gameData as (GridConfig | TicTacToeQuestion)[]}
           onGameEnd={onGameEnd}
           turn={turn}
           onTurnAction={onTurnAction}
@@ -223,10 +225,10 @@ export const renderGame = ({
 
     case "superdraft":
       // Online this is a one-element SuperDraftRoundConfig array (the day + the
-      // five server-drawn slots); single-player passes the whole pool.
+      // five server-drawn slots); single-player passes a SuperDraftQuestion[].
       return (
         <SuperDraft
-          gameInfo={gameData as PlayerIndexEntry[] | SuperDraftRoundConfig[]}
+          gameInfo={gameData as PlayerIndexEntry[] | SuperDraftRoundConfig[] | SuperDraftQuestion[]}
           onGameEnd={onGameEnd}
           onPlayAgain={onPlayAgain}
           onClose={onClose}

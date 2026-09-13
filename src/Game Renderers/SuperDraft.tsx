@@ -678,6 +678,20 @@ export default function SuperDraft({
         <span className="sd-state-msg">
           Not enough player pools to build a draft right now. Please try again later.
         </span>
+        {(onPlayAgain || onClose) && (
+          <div className="sd-result-actions">
+            {onPlayAgain && (
+              <Button size="sm" block onClick={onPlayAgain}>
+                Play again
+              </Button>
+            )}
+            {onClose && (
+              <Button size="sm" block variant="secondary" onClick={onClose}>
+                Close game
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     );
   }
