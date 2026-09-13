@@ -556,7 +556,7 @@ export const games: Game[] = [
     urlPath: "/superdraft",
     pointsPerCorrect: 20,
     maxPoints: 100,
-    fetchData: () => fetchWholePool("players-index"),
+    fetchData: () => fetchQuestion("superdraft"),
     handleError: handleErrorDefault,
   },
   {
