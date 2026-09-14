@@ -586,7 +586,7 @@ export const games: Game[] = [
     urlPath: "/imposter",
     pointsPerCorrect: 0,
     maxPoints: 0,
-    fetchData: () => fetchWholePool("players-index"),
+    fetchData: () => fetchQuestion("imposter"),
     handleError: handleErrorDefault,
   },
   {
