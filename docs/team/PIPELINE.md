@@ -198,7 +198,7 @@ merged to `dev`.
 ## 13. Cloud operation
 
 Once set up (see the go-live steps below), the worker no longer depends on this PC being
-on: it runs as an **Anthropic Routine** (cloud), firing at **01:00** and **10:00** with
+on: it runs as an **Anthropic Routine** (cloud), firing at **02:00** and **10:00** with
 `TEAM_CLOUD=1` set in its environment. That env var flips the `team-run` skill into its
 cloud mode (see `.claude/skills/team-run/SKILL.md` → `## Environment: local vs cloud`):
 each task works on a branch (`team/<slug>`) inside the routine's single clone instead of
@@ -260,7 +260,7 @@ sandbox. The report workflow needs its own copy of the token as a GitHub repo se
 
 **All crons are UTC.** The report crons (`30 5` / `30 15`) and the routine's schedule are
 expressed in UTC, not local time — at UTC+2 that is 07:30/17:30 local for the reports and
-01:00/10:00 local for the worker (`0 8,23 * * *`). Shift the numbers if you want different
+02:00/10:00 local for the worker (`0 0,8 * * *`). Shift the numbers if you want different
 local times.
 
 **Stateless Slack loop.** The Slack reaction→follow-up loop stores each posted card's
@@ -271,7 +271,7 @@ cloud or local — no local state file is involved.
 pipeline keeps running exactly as before, on the local scheduled tasks:
 1. `gh secret set SLACK_BOT_TOKEN` — the report workflow's own copy of the token.
 2. Create the routine at claude.ai/code/routines: prompt `/team-run`, this repo, cron
-   01:00 & 10:00, env vars `TEAM_CLOUD=1` / `NOTION_TOKEN` / `SLACK_BOT_TOKEN`, network
+   02:00 & 10:00, env vars `TEAM_CLOUD=1` / `NOTION_TOKEN` / `SLACK_BOT_TOKEN`, network
    access allowing `api.notion.com` + `slack.com`.
 3. Confirm one routine "Run now" ships → merges → reports cleanly end to end.
 4. Only then run `scripts/unregister-team-cron.ps1` to retire the local scheduled tasks.
