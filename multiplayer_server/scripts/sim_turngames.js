@@ -2,22 +2,24 @@
 //
 // Standalone, no-network simulation of the two turn-based games in turnGames.js.
 // It stubs the `helpers` bag index.js normally lends the module, injects a
-// synthetic players-index (so grid generation + answer validation run for real
-// without touching the Django backend), then:
-//   1. drives a 2-player Tic-Tac-Toe to a win, and
-//   2. drives a 3-player Imposter to the reveal (imposter caught, guesses right).
+// fixture questions store via turnGames._setQuestionsForTest (so tictactoe/
+// imposter's questions.deal()/loadNames() calls resolve from an in-memory
+// fixture instead of touching Supabase Storage), then:
+//   1. drives a 2-player Tic-Tac-Toe to a win using the fixture's fixed
+//      rows/cols/valid board,
+//   2. exercises the id-lookup validation directly: a claim canonicalises via
+//      an alias, a used player is rejected on a second cell, and an unknown
+//      name is rejected as not fitting, and
+//   3. drives a 3-player Imposter to the reveal (imposter caught, guesses right).
 //
 // Run:  node scripts/sim_turngames.js
 const turnGames = require("../src/turnGames");
-const { playerMatches, normalizeAnswer } = turnGames._test;
 
-// Deterministic RNG: turnGames.js uses Math.random to pick the TTT grid's
-// rows/cols, the imposter's identity, and the clue order. Left un-seeded,
-// which criteria land on the board (and therefore which pool player
-// playerForCell finds first) varies run to run — which is exactly the kind
-// of luck-dependence that made this harness flaky. Seed it so every run of
-// this script is identical; the imposter/used-player assertions below are
-// already written to adapt to whichever uid the deterministic run picks.
+// Deterministic RNG: turnGames.js uses Math.random to pick the imposter's
+// identity, the mystery player, and the clue order (tictactoe no longer rolls
+// any dice of its own — its board comes verbatim from the dealt question).
+// Seed it so every run of this script is identical; the imposter assertions
+// below are written to adapt to whichever uid the deterministic run picks.
 function seededRandom(seed) {
   let s = seed >>> 0;
   return function () {
@@ -27,63 +29,86 @@ function seededRandom(seed) {
 }
 Math.random = seededRandom(0xc0ffee);
 
-// ------------------------------------------------------------------ pool
-// A synthetic curated pool: 5 franchises x 8 players, attributes fanned out so
-// every team x category intersection the grid generator might pick is solvable.
-const TEAMS = [
-  ["LAL", "Lakers"],
-  ["BOS", "Celtics"],
-  ["GSW", "Warriors"],
-  ["MIA", "Heat"],
-  ["CHI", "Bulls"],
+// ------------------------------------------------------------- fixture store
+// A minimal questions-store fixture: one tictactoe question with a fixed
+// rows/cols/valid board, and one imposter question with a small name pool.
+// Keyed by the exact URLs questions.js builds from the manifest (BASE is
+// empty here since QUESTIONS_PUBLIC_BASE is unset — the sim never fetches).
+// NamesEntry objects — mirrors the real players-names.json shape (an array of
+// { id, full_name, aliases, ... } objects, src/types/types.tsx), NOT tuples.
+const NAMES = [
+  { id: 1, full_name: "Kobe Bryant", aliases: [] },
+  { id: 2, full_name: "LeBron James", aliases: [] },
+  { id: 3, full_name: "Shaquille O'Neal", aliases: ["Shaq"] },
+  { id: 4, full_name: "Tim Duncan", aliases: [] },
+  { id: 5, full_name: "Dirk Nowitzki", aliases: [] },
+  { id: 6, full_name: "Kevin Garnett", aliases: [] },
+  { id: 7, full_name: "Magic Johnson", aliases: [] },
+  { id: 8, full_name: "Larry Bird", aliases: [] },
+  { id: 9, full_name: "Hakeem Olajuwon", aliases: [] },
 ];
-function buildPool() {
-  const rows = [];
-  let id = 1;
-  for (const [abbr, name] of TEAMS) {
-    for (let k = 0; k < 8; k++) {
-      const start = 1990 + k * 4; // 1990..2018 -> 1990s..2010s eras
-      rows.push({
-        person_id: id,
-        full_name: `${abbr} Player ${k}`,
-        aliases: [`${abbr}${k}`],
-        fame_tier: k < 2 ? 1 : k < 4 ? 2 : 3,
-        position: "G",
-        country: k % 3 === 0 ? "Spain" : "USA",
-        college: k % 2 === 0 ? "Duke" : null,
-        draft:
-          k >= 6
-            ? { year: start, round: 2, pick: 34 + k }
-            : { year: start, round: 1, pick: 1 + k * 3 },
-        is_active: start >= 2015,
-        teams: [{ abbr, name, start_year: start, end_year: start + 5, gp: 400, ppg: 15 }],
-        awards: {
-          mvp: k === 1 ? [start + 2] : [],
-          fmvp: k === 2 ? [start + 3] : [],
-          dpoy: k === 3 ? [start + 2] : [],
-          roty: k === 4 ? start + 1 : null,
-          smoy: k === 5 ? [start + 2] : [],
-          allstar_count: k, // k>=5 satisfies allstar5plus
-          allnba_count: k % 2,
-          rings: k % 2 === 0 ? [start + 3] : [],
-        },
-        career: {
-          pts: 15000 + k * 3000, // some >= 20k / 25k
-          reb: 4000 + k * 800,
-          ast: 2000 + k * 700,
-          ppg: 12 + k * 2, // some >= 20
-          rpg: 4 + k, // some >= 10
-          apg: 2 + k, // some >= 8
-          seasons: 8 + k, // some >= 15
-        },
-      });
-      id += 1;
-    }
-  }
-  return rows;
-}
-const POOL = buildPool();
-turnGames._setPlayersIndexForTest(POOL);
+
+// 3x3 board, row-major. cell4 also accepts id 3 (Shaquille O'Neal) besides
+// cell1, so the "same player on a second cell" rejection has somewhere legal
+// (name-wise) to land.
+const TTT_VALID = [
+  [1, 2], [3, 4], [5, 6],
+  [7, 8], [3, 9], [2, 8],
+  [4, 9], [5, 7], [6, 8],
+];
+
+const FIXTURE = {
+  files: {
+    "/questions/manifest.json": {
+      schema: 1,
+      version: "t",
+      dataset: { players: "t" },
+      names: "/questions/v/t/players-names.json",
+      games: {
+        tictactoe: { index: "/questions/v/t/tictactoe/index.json", count: 1 },
+        imposter: { index: "/questions/v/t/imposter/index.json", count: 1 },
+      },
+    },
+    "/questions/v/t/players-names.json": NAMES,
+    "/questions/v/t/tictactoe/index.json": {
+      schema: 1,
+      game: "tictactoe",
+      version: "t",
+      dataset: { players: "t" },
+      items: [["ttt-0001"]],
+    },
+    "/questions/v/t/tictactoe/ttt-0001.json": {
+      schema: 1,
+      game: "tictactoe",
+      qid: "ttt-0001",
+      rows: [
+        { type: "team", value: "LAL", label: "Lakers" },
+        { type: "team", value: "BOS", label: "Celtics" },
+        { type: "team", value: "SAS", label: "Spurs" },
+      ],
+      cols: [
+        { type: "award", value: "ring", label: "Won a ring" },
+        { type: "award", value: "mvp", label: "MVP" },
+        { type: "era", value: "2000s", label: "Played in the 2000s" },
+      ],
+      valid: TTT_VALID,
+    },
+    "/questions/v/t/imposter/index.json": {
+      schema: 1,
+      game: "imposter",
+      version: "t",
+      dataset: { players: "t" },
+      items: [["imp-0001"]],
+    },
+    "/questions/v/t/imposter/imp-0001.json": {
+      schema: 1,
+      game: "imposter",
+      qid: "imp-0001",
+      names: ["LeBron James", "Stephen Curry", "Kevin Durant", "Giannis Antetokounmpo", "Nikola Jokic"],
+    },
+  },
+};
+turnGames._setQuestionsForTest(FIXTURE);
 
 // -------------------------------------------------------------- test harness
 const log = [];
@@ -136,20 +161,9 @@ function makeHelpers(room) {
   };
 }
 
-// Find a pool player satisfying both criteria who ISN'T already claimed
-// somewhere else on the board — mirroring what a real client does (and what
-// solo mode's usedIdsRef enforces): a player can occupy at most one cell.
-// The used set is derived from the live board on every call, never tracked
-// separately, so it can't drift from what turnGames.js actually recorded.
-function playerForCell(rowCrit, colCrit, board) {
-  const used = new Set(board.filter(Boolean).map((occ) => normalizeAnswer(occ.playerName)));
-  const p = POOL.find(
-    (pl) => !used.has(normalizeAnswer(pl.full_name)) && playerMatches(pl, rowCrit) && playerMatches(pl, colCrit),
-  );
-  return p ? p.full_name : null;
-}
-
 // ============================================================== TIC-TAC-TOE
+// Alice wins the top row (cells 0,1,2) with Bob filling in between; every
+// claimed id is drawn from TTT_VALID so no name doubles up on the board.
 async function simTicTacToe() {
   line("\n================ TIC-TAC-TOE (2 players) ================");
   const room = makeRoom(111111, ["Alice", "Bob"], "tictactoe");
@@ -159,9 +173,16 @@ async function simTicTacToe() {
   const st = room.turn.state;
   line(`rows: ${st.criteria.rows.map((c) => c.label).join(" | ")}`);
   line(`cols: ${st.criteria.cols.map((c) => c.label).join(" | ")}`);
-  line(`validated grid: ${!room.turn.trustClient}   first turn: ${st.turnUid}`);
+  line(`first turn: ${st.turnUid}`);
 
-  // Plan: Alice takes the top row (0,1,2) for the win; Bob takes filler squares.
+  // cell -> playerName to claim it with (id chosen from TTT_VALID[cell], no reuse).
+  const claimPlan = {
+    0: "Kobe Bryant",     // TTT_VALID[0] = [1,2]
+    1: "Tim Duncan",      // TTT_VALID[1] = [3,4]
+    2: "Dirk Nowitzki",   // TTT_VALID[2] = [5,6]
+    3: "Magic Johnson",   // TTT_VALID[3] = [7,8]
+    5: "Larry Bird",      // TTT_VALID[5] = [2,8]
+  };
   const plan = { Alice: [0, 1, 2], Bob: [3, 5] };
   let guard = 0;
   while (!st.winnerUid && !st.draw && guard++ < 12) {
@@ -170,16 +191,7 @@ async function simTicTacToe() {
     if (cell === undefined) {
       throw new Error(`sim plan exhausted for ${uid} before a winner emerged — no progress possible`);
     }
-    const row = Math.floor(cell / 3);
-    const col = cell % 3;
-    const rowCrit = st.criteria.rows[row];
-    const colCrit = st.criteria.cols[col];
-    const name = playerForCell(rowCrit, colCrit, st.board);
-    if (!name) {
-      throw new Error(
-        `no unused player satisfies cell ${cell} (row=${rowCrit.label}, col=${colCrit.label})`,
-      );
-    }
+    const name = claimPlan[cell];
     line(`${uid} claims cell ${cell} with "${name}"`);
     turnGames.handleAction(room, uid, { type: "claim", cell, playerName: name }, helpers);
   }
@@ -190,62 +202,41 @@ async function simTicTacToe() {
   return !!room.turn.state.winnerUid;
 }
 
-// ==================================================== USED-PLAYER RULE (TTT)
-// A real player can only sit in one cell on the shared board (mirrors solo
-// mode's usedIdsRef), even when the OTHER player is the one naming them.
-// trustClient is forced on so the check is isolated from grid/pool matching.
-async function simUsedPlayerRule() {
-  line("\n================ TIC-TAC-TOE (used-player rule) ================");
-  const room = makeRoom(333333, ["Alice", "Bob"], "tictactoe");
+// ===================================================== ID-LOOKUP VALIDATION
+// A fresh room, exercising handleTTT's answer validation directly:
+//   1. "Shaq" on a cell whose valid[] contains id 3 succeeds and canonicalises
+//      to "Shaquille O'Neal" (alias resolved via questions.nameLookup).
+//   2. The same player claimed again on a DIFFERENT cell that also accepts id 3
+//      is rejected — "already on the board" (mirrors solo mode: a player fills
+//      at most one cell).
+//   3. A name with no id at all is rejected — "doesn't fit that square."
+async function simTTTValidation() {
+  line("\n================ TIC-TAC-TOE (id-lookup validation) ================");
+  const room = makeRoom(444444, ["Ivy", "Jon"], "tictactoe");
   const helpers = makeHelpers(room);
   await turnGames.init(room, helpers);
-  room.turn.trustClient = true;
-
   const st = room.turn.state;
-  const first = st.turnUid;
-  const second = room.members.find((m) => m !== first);
 
-  line(`${first} claims cell 0 with "Duplicate Player"`);
-  turnGames.handleAction(room, first, { type: "claim", cell: 0, playerName: "Duplicate Player" }, helpers);
+  // TTT_VALID[1] = [3,4]: "Shaq" resolves to id 3 -> canonical "Shaquille O'Neal".
+  line(`${st.turnUid} claims cell 1 with "Shaq"`);
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 1, playerName: "Shaq" }, helpers);
+  const canonicalised = st.board[1]?.playerName === "Shaquille O'Neal";
+  line(`cell 1 canonicalised to "${st.board[1]?.playerName}": ${canonicalised ? "PASS" : "FAIL"}`);
 
-  line(`${second} tries cell 1 with the SAME player -> expect reject`);
-  turnGames.handleAction(room, second, { type: "claim", cell: 1, playerName: "duplicate player" }, helpers);
-  const blocked = st.board[1] === null;
+  // TTT_VALID[4] = [3,9]: id 3 is a legal fit here too, but Shaquille O'Neal is
+  // already on the board (cell 1) -> rejected regardless of who claims it.
+  line(`${st.turnUid} claims cell 4 with "Shaquille O'Neal" (already on the board)`);
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 4, playerName: "Shaquille O'Neal" }, helpers);
+  const usedRejected = st.board[4] === null;
+  line(`cell 4 stayed empty: ${usedRejected ? "PASS" : "FAIL"}`);
 
-  line(`${second} tries cell 1 with a different player -> expect success`);
-  turnGames.handleAction(room, second, { type: "claim", cell: 1, playerName: "Different Player" }, helpers);
-  const allowed = !!st.board[1];
+  // TTT_VALID[6] = [4,9]: "Random Nobody" isn't in the names table at all.
+  line(`${st.turnUid} claims cell 6 with "Random Nobody" (not a real name)`);
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 6, playerName: "Random Nobody" }, helpers);
+  const unknownRejected = st.board[6] === null;
+  line(`cell 6 stayed empty: ${unknownRejected ? "PASS" : "FAIL"}`);
 
-  line(`blocked duplicate: ${blocked}   allowed distinct: ${allowed}`);
-  return blocked && allowed;
-}
-
-// ================================================== PLAYERFORCELL COLLISION
-// Directly forces the used-player collision that simTicTacToe's fixed seed
-// never naturally produces (confirmed: under 0xc0ffee every TTT claim in that
-// run resolves to a distinct player even with NO exclusion at all — see
-// task-3b report). Without this, 15/15 green runs never exercise
-// playerForCell's fall-through, and a regression like dropping the `used`
-// check or swapping normalizeAnswer(pl.full_name) for the raw name would
-// sail through undetected. The occupant name below is deliberately
-// case-mangled so this also proves the exclusion survives normalizeAnswer's
-// case fold, not just an exact-string match.
-function simPlayerForCellCollision() {
-  line("\n================ PLAYERFORCELL COLLISION (fall-through) ================");
-  const rowCrit = { type: "team", value: "CHI" };
-  const colCrit = { type: "college", value: "Duke" };
-  // CHI Player 0, 2, 4, 6 all satisfy team=CHI + college=Duke. "chi player 0"
-  // (case-mangled) already occupies cell 0 on the board.
-  const board = [{ ownerUid: "Alice", playerName: "chi player 0" }, null, null];
-  const picked = playerForCell(rowCrit, colCrit, board);
-  const pickedPlayer = picked && POOL.find((pl) => pl.full_name === picked);
-  const collidesWithTaken = !!picked && normalizeAnswer(picked) === normalizeAnswer("CHI Player 0");
-  const isValidCandidate =
-    !!pickedPlayer && playerMatches(pickedPlayer, rowCrit) && playerMatches(pickedPlayer, colCrit);
-  line(`taken (used): "chi player 0"   playerForCell returned: "${picked}"`);
-  const ok = !!picked && !collidesWithTaken && isValidCandidate;
-  line(`fall-through avoided the taken player: ${ok ? "PASS" : "FAIL"}`);
-  return ok;
+  return canonicalised && usedRejected && unknownRejected;
 }
 
 // ================================================================= IMPOSTER
@@ -305,13 +296,11 @@ async function simImposter() {
 
 (async () => {
   const tttWin = await simTicTacToe();
-  const usedPlayerOk = await simUsedPlayerRule();
-  const collisionOk = simPlayerForCellCollision();
+  const validationOk = await simTTTValidation();
   const impDone = await simImposter();
   line("\n================ RESULT ================");
-  line(`Tic-Tac-Toe reached a win : ${tttWin ? "PASS" : "FAIL"}`);
-  line(`Used-player rule enforced : ${usedPlayerOk ? "PASS" : "FAIL"}`);
-  line(`playerForCell fall-through: ${collisionOk ? "PASS" : "FAIL"}`);
-  line(`Imposter reached reveal   : ${impDone ? "PASS" : "FAIL"}`);
-  process.exit(tttWin && usedPlayerOk && collisionOk && impDone ? 0 : 1);
+  line(`Tic-Tac-Toe reached a win        : ${tttWin ? "PASS" : "FAIL"}`);
+  line(`Id-lookup validation (all 3)     : ${validationOk ? "PASS" : "FAIL"}`);
+  line(`Imposter reached reveal          : ${impDone ? "PASS" : "FAIL"}`);
+  process.exit(tttWin && validationOk && impDone ? 0 : 1);
 })();

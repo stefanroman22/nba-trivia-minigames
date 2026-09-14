@@ -22,7 +22,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { playerKey, useMultiplayer } from "../context/MultiplayerContext";
 import type { RootState } from "../store";
-import type { OnGameEnd, PlayerIndexEntry } from "../types/types";
+import type { ImposterQuestion, OnGameEnd } from "../types/types";
 import "../styles/ImposterGame.css";
 
 const CLUE_LIMIT = 30; // matches the server's clue slice
@@ -60,7 +60,7 @@ type ImposterAction =
   | { type: "guess"; playerName: string };
 
 export interface ImposterGameProps {
-  gameInfo: PlayerIndexEntry[];
+  gameInfo: ImposterQuestion[];
   onGameEnd: OnGameEnd;
   turn?: unknown; // present in a room: the server's per-uid ImposterState
   onTurnAction?: (a: unknown) => void;
@@ -167,7 +167,7 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
   const seatOf = (uid: string): Seat =>
     seatByUid.get(uid) ?? { uid, name: "Player", photo: null, isSelf: uid === selfUid };
 
-  const suggestions = useMemo(() => (gameInfo ?? []).map((p) => p.full_name), [gameInfo]);
+  const suggestions = useMemo(() => gameInfo?.[0]?.names ?? [], [gameInfo]);
 
   // Fire onGameEnd exactly once when the reveal is finalized (no pending guess).
   const finalized = !!state && state.phase === "reveal" && !state.awaitingGuess;
