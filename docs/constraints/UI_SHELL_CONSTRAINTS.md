@@ -70,7 +70,13 @@ Adding a game is a routing change plus a `Game` entry in `src/utils/GameUtils.ts
 
 `src/components/Navigation.tsx` takes `type?: "full" | "back"`. On `"full"` (the landing page),
 clicking a nav link scrolls the current page. On `"back"` (every game page), the same click
-navigates home first, then scrolls after a fixed 350ms delay so the target section exists.
+navigates to `/#<section>`. The App Router does its own hash scroll on mount, but it runs while
+`app/template.tsx`'s route-enter scale transform is still animating; a rect-based scroll target
+(`getBoundingClientRect()`/`scrollIntoView()`) reads the transformed (shrunk) position and lands
+short of `.games-section`'s `scroll-margin-top` offset, flush under the sticky nav. So
+`Landpage.tsx` re-runs the same scroll one frame after mount (see below) using a layout-based
+target (`offsetTop`, which ignores ancestor transforms) to land at the correct offset regardless
+of timing.
 
 ```tsx
 ❌ WRONG — game page using type="full", so "Games"/"Leaderboard" try to scroll a section that
@@ -83,11 +89,28 @@ const go = (section: string) => {
   if (type === "full") {
     scrollToSection(section);
   } else {
-    navigate("/");
-    setTimeout(() => scrollToSection(section), 350);
+    navigate(`/#${section}`);
   }
 };
 ```
+
+`Landpage.tsx` then overrides the App Router's own (transform-skewed) hash scroll, once, on mount:
+
+```tsx
+✅ RIGHT — src/views/Landpage.tsx, re-scrolls after Next's own hash scroll so the final
+   position honors scroll-margin-top on both mobile and desktop
+useEffect(() => {
+  const id = window.location.hash.slice(1);
+  if (!id || !document.getElementById(id)) return;
+  const raf = window.requestAnimationFrame(() => scrollToSection(id));
+  return () => window.cancelAnimationFrame(raf);
+}, []);
+```
+
+`scrollToSection` (`src/utils/ScrolllToSection.tsx`) itself computes a layout-based target — it
+sums `offsetTop` up the `offsetParent` chain and subtracts the target's computed
+`scrollMarginTop`, then calls `window.scrollTo()` — instead of `element.scrollIntoView()`, so the
+result is correct whether or not an ancestor transform is mid-animation.
 
 `Landpage.tsx` passes `type="full"`; `MiniGame.tsx` passes `type="back"`. Any new top-level page
 must pick one explicitly — there is no default that works for both.
@@ -132,7 +155,7 @@ utility classes — they use classes from their own page CSS file plus the share
 </button>
 
 ✅ RIGHT — src/components/Navigation.tsx, styled via Navigation.css
-<button type="button" onClick={() => go("play")} className="nav-link">Games</button>
+<button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
 ```
 
 **Exception:** `src/components/Footer.tsx` is written entirely in Tailwind utility classes
@@ -249,10 +272,10 @@ are plain `<button className="…">` elements styled by the owning page's CSS fi
 
 ```tsx
 ❌ WRONG — wrapping every small control in the CTA Button component
-<Button size="sm" variant="ghost" onClick={() => go("play")}>Games</Button>
+<Button size="sm" variant="ghost" onClick={() => go("games-grid")}>Games</Button>
 
 ✅ RIGHT — src/components/Navigation.tsx, a hand-rolled control for a small nav link
-<button type="button" onClick={() => go("play")} className="nav-link">Games</button>
+<button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
 
 ✅ RIGHT — src/views/Landpage.tsx, a CTA using the shared Button
 <Button size="lg" onClick={() => openGame(games[0].id, games[0].urlPath)}>

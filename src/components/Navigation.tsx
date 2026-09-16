@@ -61,14 +61,16 @@ function Navigation({ type = "full" }: NavigationProps) {
     navigate("/");
   };
 
-  // Scroll to a home section; from a game page, route home first.
+  // Scroll to a home section; from a game page, route home with the section
+  // as a hash so Next.js's router scrolls to it once the page has mounted
+  // (native hash-fragment scroll, honoring .games-section's scroll-margin-top)
+  // instead of racing a fixed delay against the route load.
   const go = (section: string) => {
     setDrawer(false);
     if (type === "full") {
       scrollToSection(section);
     } else {
-      navigate("/");
-      setTimeout(() => scrollToSection(section), 350);
+      navigate(`/#${section}`);
     }
   };
 
@@ -86,7 +88,7 @@ function Navigation({ type = "full" }: NavigationProps) {
 
   const navLinks = (
     <>
-      <button type="button" onClick={() => go("play")} className="nav-link">Games</button>
+      <button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
       <button type="button" onClick={() => openModal("leaderboard")} className="nav-link">Leaderboard</button>
       <button type="button" onClick={() => openModal("feedback")} className="nav-link">Feedback</button>
       {user?.is_admin && (
@@ -154,7 +156,7 @@ function Navigation({ type = "full" }: NavigationProps) {
             </div>
 
             <div className="drawer-body">
-              <button onClick={() => go("play")} className="drawer-link">
+              <button onClick={() => go("games-grid")} className="drawer-link">
                 <span>Games</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
               </button>
