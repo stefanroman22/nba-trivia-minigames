@@ -36,12 +36,12 @@ function UserAvatar({ photo, name, size = 28 }: { photo?: string | null; name?: 
   );
 }
 
-/** Avatar + username + #id chip — the same identity summary on desktop and mobile. */
+/** Avatar + username + #id chip — the same identity summary on desktop; avatar-only on mobile. */
 function UserChip({ user, onClick }: { user: { username: string; id: string | number; profile_photo?: string | null }; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="nav3-user">
+    <button onClick={onClick} className="nav3-user" aria-label={`${user.username} #${user.id}`}>
       <UserAvatar photo={user.profile_photo} name={user.username} />
-      <span className="nav3-user-meta hide-sm">
+      <span className="nav3-user-meta hide-md">
         <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
         <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
       </span>
@@ -121,7 +121,7 @@ function Navigation({ type = "full" }: NavigationProps) {
         )}
       </div>
 
-      {/* Mobile: same identity chip (hide-sm collapses it to just the avatar), then the hamburger */}
+      {/* Mobile: avatar-only chip (meta hidden ≤900px via hide-md), then the hamburger */}
       <div className="nav3-mobile-right show-md">
         {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
         <button onClick={() => setDrawer(true)} aria-label="Open menu" className="nav-icon-btn">
