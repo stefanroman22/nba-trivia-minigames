@@ -381,7 +381,7 @@ export default function Template({ children }: { children: ReactNode }) {
 
 `src/styles/ui.css` defines `.hide-xs` (≤480px), `.hide-sm` (≤640px), `.hide-md` (≤900px) as the
 standard way to hide an element at a breakpoint — `Navigation.tsx` uses `hide-md` on the desktop
-nav links/right side and `hide-sm` on the username block.
+nav links/right side and `hide-md` on the username/#id block inside the user chip (avatar-only on mobile).
 
 ```tsx
 ❌ WRONG — a bespoke media query duplicating a breakpoint ui.css already covers

@@ -91,18 +91,16 @@
 .show-md { display: none; }
 @media (max-width: 900px) { .show-md { display: inline-flex; } }
 
-/* Mobile top bar: identity chip, spaced from the hamburger it sits left of.
-   The chip now carries username + #id here too (this overrides .hide-sm,
-   which would otherwise collapse the meta text away below 640px), since the
-   drawer no longer repeats that identity summary at its foot. */
+/* Mobile top bar: avatar-only identity chip (the meta span's own .hide-md
+   hides username/#id at ≤900px), spaced from the hamburger it sits left of. */
 .nav3-mobile-right { align-items: center; gap: 10px; }
-.nav3-mobile-right .nav3-user-meta { display: flex !important; }
 
-/* Drawer header: same identity chip, right beside Close — the drawer panel
-   fully covers the top bar behind it, so without this the chip visibly
-   vanishes the moment the drawer opens. */
+/* Drawer header: same avatar-only chip, right beside Close. */
 .drawer-head-right { display: flex; align-items: center; gap: 10px; }
-.drawer-head-right .nav3-user-meta { display: flex !important; }
+
+/* Avatar-only chip: drop the asymmetric desktop padding so the 28px avatar
+   sits centred in a ~38x38 square, matching .nav-icon-btn. */
+.nav3-mobile-right .nav3-user, .drawer-head-right .nav3-user { padding: 0 5px; }
 
 /* ---- Mobile full-screen menu ---- */
 .drawer-panel {
