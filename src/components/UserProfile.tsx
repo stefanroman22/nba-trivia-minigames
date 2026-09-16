@@ -251,12 +251,13 @@ function UserProfile() {
         </div>
       </div>
 
-      {/* Points & rank */}
+      {/* Points & rank — a single compact pill instead of two stacked cards */}
       <div className="profile-stats">
         <div className="profile-stat">
           <span className="profile-stat-lbl">Points</span>
           <span className="font-display tnum profile-stat-num">{user?.points}</span>
         </div>
+        <span className="profile-stat-divider" aria-hidden="true" />
         <div className="profile-stat">
           <span className="profile-stat-lbl">Rank</span>
           <span className="font-display tnum profile-stat-num">{user?.rank}</span>
