@@ -159,7 +159,8 @@ html { scroll-behavior: smooth; }
 .profile-field-label {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
   font-size: 12px;
   color: var(--muted);
   font-weight: 600;
@@ -181,6 +182,7 @@ html { scroll-behavior: smooth; }
   height: 44px;
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 0 14px;
   border: 1px solid var(--line2);
   border-radius: 10px;
@@ -190,6 +192,7 @@ html { scroll-behavior: smooth; }
   font-family: inherit;
   width: 100%;
   outline: none;
+  text-align: center;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, color 0.3s ease;
 }
 .profile-value--muted { color: var(--muted); }
@@ -199,20 +202,24 @@ html { scroll-behavior: smooth; }
 .profile-username.is-active { color: var(--text); }
 .profile-edit-btn:disabled { opacity: 0.6; cursor: default; }
 
-.profile-stats { display: flex; gap: 12px; }
-.profile-stat {
-  flex: 1;
+/* A single compact pill (not two full-width cards) so points+rank read
+   at a glance without eating vertical space; hugs its own content so it
+   sits centered rather than stretched edge-to-edge. */
+.profile-stats {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 16px 12px;
+  justify-content: center;
+  align-self: center;
+  gap: 16px;
+  padding: 10px 20px;
   background: var(--surface2);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 999px;
 }
-.profile-stat-lbl { font-size: 12px; color: var(--muted); }
-.profile-stat-num { font-size: 22px; color: var(--text); }
+.profile-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.profile-stat-divider { width: 1px; height: 22px; background: var(--line2); }
+.profile-stat-lbl { font-size: 11px; color: var(--muted); }
+.profile-stat-num { font-size: 17px; color: var(--text); }
 .profile-stat:first-child .profile-stat-num { color: var(--brand); }
 
 .profile-logout { margin-top: auto; display: flex; justify-content: center; padding-top: 4px; }
@@ -340,6 +347,11 @@ html { scroll-behavior: smooth; }
   .games-grid3 .gtile { height: 158px; padding: 12px; }
   .games-grid3 .gtile h3 { font-size: 15px; }
   .games-grid3 .gtile p { display: none; }
+
+  .profile-stats { padding: 8px 16px; gap: 12px; }
+  .profile-stat-divider { height: 18px; }
+  .profile-stat-lbl { font-size: 10px; }
+  .profile-stat-num { font-size: 14px; }
 }
 
 /* ===== SweetAlert overrides — overlay + design-matched popup ===== */
