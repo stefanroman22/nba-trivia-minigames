@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { CourtLoader, Field } from "../ui";
+import SwapText from "../motion/SwapText";
 import { games as gameCatalog } from "../../utils/GameUtils";
 import {
   AvgRatingChart,
@@ -648,7 +649,7 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
             </button>
           ))}
           <button className={`fb-pill fb-pill-sm${showTable ? " is-active" : ""}`} onClick={() => setShowTable((v) => !v)}>
-            {showTable ? "Hide table" : "Table view"}
+            <SwapText>{showTable ? "Hide table" : "Table view"}</SwapText>
           </button>
         </div>
 

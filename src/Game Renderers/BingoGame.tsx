@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
+import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { fetchWholePool, sampleN } from "../utils/pool";
@@ -291,7 +292,7 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
                 </motion.div>
               ) : (
                 <motion.div key="idle" className="bng-deal-hint" initial={false} animate={{ opacity: 1 }}>
-                  {finished ? "Card closed" : "Dealing…"}
+                  <SwapText>{finished ? "Card closed" : "Dealing…"}</SwapText>
                 </motion.div>
               )}
             </AnimatePresence>

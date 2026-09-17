@@ -10,6 +10,7 @@ import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { AnimatePresence, motion } from 'framer-motion';
+import SwapText from './motion/SwapText';
 
 interface LogInSignUpProps {
   mode: "login" | "signup";
@@ -235,7 +236,9 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
         </AnimatePresence>
 
         <button type="submit" className="modal-primary-btn" disabled={isSubmitting}>
-          {isSubmitting ? (isSignup ? "Creating…" : "Logging in…") : (isSignup ? "Create account" : "Log in")}
+          <SwapText>
+            {isSubmitting ? (isSignup ? "Creating…" : "Logging in…") : (isSignup ? "Create account" : "Log in")}
+          </SwapText>
         </button>
       </form>
 
