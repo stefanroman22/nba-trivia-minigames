@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { apiFetch } from "../../utils/Api";
 import { BACKEND_ORIGIN } from "../../configurations/backend";
 import { games as gameCatalog } from "../../utils/GameUtils";
+import SwapText from "../motion/SwapText";
 import type { RootState } from "../../store";
 
 /**
@@ -142,7 +143,7 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
       )}
 
       <button className="modal-primary-btn" onClick={send} disabled={!rating || sending}>
-        {sending ? "Sending…" : "Send feedback"}
+        <SwapText>{sending ? "Sending…" : "Send feedback"}</SwapText>
       </button>
     </div>
   );

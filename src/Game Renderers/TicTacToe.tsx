@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
+import SwapText from "../components/motion/SwapText";
 import { playerKey } from "../context/MultiplayerContext";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -265,7 +266,7 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
             <>
               <GameFrame.Label>
                 <span className={`ttt-turn${myTurn ? " is-you" : ""}`}>
-                  {terminal ? "FINAL" : myTurn ? "YOUR TURN" : "OPPONENT'S TURN"}
+                  <SwapText>{terminal ? "FINAL" : myTurn ? "YOUR TURN" : "OPPONENT'S TURN"}</SwapText>
                 </span>
               </GameFrame.Label>
               <span

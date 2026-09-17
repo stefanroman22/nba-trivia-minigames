@@ -33,6 +33,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
+import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useRoundPool } from "../hooks/useRoundPool";
 import { useNames } from "../hooks/useNames";
@@ -728,7 +729,7 @@ export default function SuperDraft({
             disabled={rerollUsed}
             aria-label={rerollUsed ? "Re-roll already used" : "Re-roll all pools (one per game)"}
           >
-            {rerollUsed ? "Re-roll used" : "Re-roll ×1"}
+            <SwapText>{rerollUsed ? "Re-roll used" : "Re-roll ×1"}</SwapText>
           </Button>
         )}
       </div>
@@ -829,7 +830,7 @@ export default function SuperDraft({
               </div>
             </div>
             <button type="button" className="sd-share" onClick={copyShare}>
-              {copied ? "Copied!" : "Share result"}
+              <SwapText>{copied ? "Copied!" : "Share result"}</SwapText>
             </button>
             {(onPlayAgain || onClose) && (
               <div className="sd-result-actions">

@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import "../styles/Leaderboard.css"
 import { Avatar, CourtLoader } from './ui';
+import SwapText from './motion/SwapText';
 import { staggerContainer, staggerItem } from '../motion/variants';
 import { useLeaderboard } from '../hooks/useLeaderboard';
 import { useModal } from '../context/ModalContext';
@@ -82,7 +83,7 @@ function Leaderboard() {
       <div className="lb-foot">
         <button className="lb-refresh" onClick={refresh} disabled={refreshing || loading}>
           <svg className={refreshing ? "lb-refresh-spin" : ""} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
-          {refreshing ? "Refreshing…" : "Refresh"}
+          <SwapText>{refreshing ? "Refreshing…" : "Refresh"}</SwapText>
         </button>
         {lastUpdated && <span className="lb-foot-note">Refreshed {timeAgo(lastUpdated, now)}</span>}
       </div>

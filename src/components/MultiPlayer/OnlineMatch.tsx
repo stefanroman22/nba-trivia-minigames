@@ -7,6 +7,7 @@ import { renderGame } from "../../Game Renderers/RenderGame";
 import { games } from "../../utils/GameUtils";
 import { CourtLoader } from "../ui";
 import SessionTimer from "../ui/SessionTimer";
+import SwapText from "../motion/SwapText";
 import PlayerCard from "./PlayerCard";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import defaultAvatar from "../../assets/default.png";
@@ -451,7 +452,7 @@ function OpponentChip({ name, tag, photo, state }: { name: string; tag?: string 
         {tag && <span className="om-chip-id tnum">#{tag}</span>}
         <span className="om-chip-state">
           {state === "playing" && <span className="om-dots"><i /><i /><i /></span>}
-          {label}
+          <SwapText>{label}</SwapText>
         </span>
       </span>
     </div>

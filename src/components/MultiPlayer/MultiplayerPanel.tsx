@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useModal } from "../../context/ModalContext";
 import { useMultiplayer } from "../../context/MultiplayerContext";
 import { Button } from "../ui";
+import SwapText from "../motion/SwapText";
 import FriendPlay from "./FriendPlay";
 import type { RootState } from "../../store";
 import type { Game } from "../../types/types";
@@ -69,7 +70,7 @@ export default function MultiplayerPanel({
                   <Button variant="ghost" size="sm" onClick={leaveMatch}>Cancel</Button>
                 ) : (
                   <Button size="sm" disabled={online} onClick={() => game && findMatch(game)}>
-                    {online ? "In a match" : "Play 1v1"}
+                    <SwapText>{online ? "In a match" : "Play 1v1"}</SwapText>
                   </Button>
                 )}
                 <Button variant="secondary" size="sm" onClick={() => setFriendMode(true)}>
