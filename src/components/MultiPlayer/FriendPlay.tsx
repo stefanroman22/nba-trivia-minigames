@@ -6,6 +6,7 @@ import { useMultiplayer } from "../../context/MultiplayerContext";
 import { useModal } from "../../context/ModalContext";
 import { games } from "../../utils/GameUtils";
 import { Button } from "../ui";
+import SwapText from "../motion/SwapText";
 import CodeInput from "./CodeInput";
 import defaultAvatar from "../../assets/default.png";
 import type { RootState } from "../../store";
@@ -224,7 +225,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
         {mp.friendJoinError && <p className="fp-err" role="alert">{mp.friendJoinError}</p>}
         <div className="fp-actions">
           <Button size="lg" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
-            {joining ? "Joining…" : "Join room"}
+            <SwapText>{joining ? "Joining…" : "Join room"}</SwapText>
           </Button>
         </div>
       </>
@@ -235,7 +236,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
       <>
         <div className="fp-actions fp-actions--row">
           <Button size="sm" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game)}>
-            {creating ? "Creating…" : "Generate code"}
+            <SwapText>{creating ? "Creating…" : "Generate code"}</SwapText>
           </Button>
           <Button variant="secondary" size="sm" disabled={blocked || searching || creating} onClick={() => setMode("enter")}>
             Enter code

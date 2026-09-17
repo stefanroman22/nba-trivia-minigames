@@ -5,6 +5,7 @@ import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
+import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
@@ -360,7 +361,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
             <div className="waya-photo-meta">
               <Button size="sm" variant="secondary" aria-pressed={hidePhoto}
                 onClick={() => setHidePhoto((h) => !h)} disabled={finished}>
-                {hidePhoto ? "Show photo" : "Hide photo"}
+                <SwapText>{hidePhoto ? "Show photo" : "Hide photo"}</SwapText>
               </Button>
             </div>
           </div>
