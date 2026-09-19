@@ -70,3 +70,32 @@ denied in `.claude/settings.json` so the banned model cannot be spawned by mista
 corrected.
 Consequences: the ban is now enforced by the harness, not by prose. The `npm run engine`
 profile's `subagentModel` is documented as a fallback that rarely decides anything.
+
+## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet
+Context: card 3dc2cfb1-c595-80b9-a2d4-f182a24358e6 asks for a smaller, center-aligned
+points/rank block in the profile panel with reduced text on mobile. The card's Difficulty
+override is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in
+`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,
+no logic — so haiku was defensible under the "trivial → haiku" row.
+Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for
+content/copy/config edits with zero judgment; "find a better way that takes less space" is a
+small layout design call with a responsive breakpoint and a real-browser check, which is the
+sonnet default. No design round (single area, thin spec) → `planModel: fable` is nominal.
+Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to
+sonnet, not haiku; difficulty and engine tier are decided separately when the override forces
+`trivial` on a task that still needs layout judgment.
+
+## 2026-09-16 — Mobile "Games" link must reach the games heading from any page: sonnet vs fable engine
+Context: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend
+only). `Navigation.go("play")` targets the hero `#play`, not `#games-grid` (the section whose
+`scroll-margin-top: 76px` gives the 12px-below-header landing the card asks for), and on
+`type="back"` pages the fixed `setTimeout(..., 350)` races the exit fade + Next route push, so
+the element is often absent when the scroll fires. Fable was defensible because the fix is
+small and involves a real timing subtlety (Next App Router push + sticky header + hash scroll).
+Decision: `engineModel: sonnet`. The work reduces to explicit steps with done-checks (retarget
+to `games-grid`; replace the fixed delay with a scroll-after-arrival mechanism such as a hash or
+a `Landpage` mount effect; update Rule UI-3 in `UI_SHELL_CONSTRAINTS.md`; browser pass from
+`/admin` and a game page on a phone viewport). Difficulty stays `trivial` per the override.
+Consequences: small nav/scroll timing fixes stay on sonnet as long as the target and the
+arrival mechanism can be named up front; fable is reserved for cases where the mechanism itself
+is unclear.
