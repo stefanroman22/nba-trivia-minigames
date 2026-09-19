@@ -10,7 +10,7 @@ on:
     types: [created]
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [dev]
+    branches: [main]
 
 jobs:
   claude:
@@ -44,9 +44,9 @@ jobs:
           CLAUDE_CODE_SUBAGENT_MODEL: ${{ steps.profile.outputs.subagent_model }}
           CLAUDE_CODE_EFFORT_LEVEL: ${{ steps.profile.outputs.effort }}
 
-  # Trust model: team/* branches are pushed only by the owner's automation pipeline.
+  # Trust model: the dev → main PR is opened only by the owner's pipeline (scripts/promote.mjs).
   cto-review:
-    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'team/')
+    if: github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     concurrency:
       group: cto-${{ github.event.pull_request.number }}
@@ -83,7 +83,7 @@ jobs:
 
   cto-act:
     needs: cto-review
-    if: github.event_name == 'pull_request' && startsWith(github.head_ref, 'team/')
+    if: github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main'
     runs-on: ubuntu-latest
     concurrency:
       group: cto-act-${{ github.event.pull_request.number }}
@@ -109,11 +109,11 @@ jobs:
         with:
           name: cto-verdict
 
-      - name: Extract Notion task id
+      - name: Extract Notion task ids
         id: meta
         run: |
           BODY=$(gh pr view "$PR" --json body -q .body)
-          echo "notion_task=$(echo "$BODY" | grep -oP 'Notion-Task: \K\S+' || true)" >> "$GITHUB_OUTPUT"
+          echo "notion_tasks=$(echo "$BODY" | grep -oP 'Notion-Tasks: \K\S+' || true)" >> "$GITHUB_OUTPUT"
 
       - name: Protected paths check
         id: protected
@@ -128,46 +128,19 @@ jobs:
       - name: Act on verdict
         run: |
           VERDICT=$(jq -r .verdict cto-verdict.json)
-          NOTION_TASK="${{ steps.meta.outputs.notion_task }}"
+          SUMMARY=$(jq -r .summary cto-verdict.json)
+          URL=$(gh pr view "$PR" --json url -q .url)
+          IFS=',' read -ra TASKS <<< "${{ steps.meta.outputs.notion_tasks }}"
           if [ "${{ steps.protected.outputs.hit }}" = "true" ]; then
             gh pr edit "$PR" --add-label "needs-human-approval"
-            if [ -n "$NOTION_TASK" ]; then
-              ( node scripts/notion.mjs set-status "$NOTION_TASK" "Blocked-approval" \
-                && node scripts/notion.mjs comment "$NOTION_TASK" "PR touches protected paths — needs your tap: $(gh pr view $PR --json url -q .url)" --mention ) \
-                || echo "notion update failed (non-fatal)"
-            fi
-            exit 0
+            gh pr comment "$PR" --body "⚠️ This promotion touches protected paths (workflows / vercel.json / package*.json / requirements.txt). Review those files yourself before merging."
           fi
           if [ "$VERDICT" = "APPROVE" ]; then
-            # Gate on the dev-ci checks BY NAME (lint + gitleaks). Self-contained: no
-            # dependency on branch-protection "required" config, and we never watch the
-            # CTO jobs themselves, which would self-deadlock (cto-act waiting on cto-act).
-            echo "Waiting up to 10 min for dev-ci checks (lint, gitleaks) to pass..."
-            DEADLINE=$((SECONDS + 600))
-            while :; do
-              CHECKS=$(gh pr checks "$PR" --json name,bucket 2>/dev/null || echo '[]')
-              LINT=$(echo "$CHECKS" | jq -r 'map(select(.name|test("lint";"i")) | .bucket)[0] // "wait"')
-              SEC=$(echo "$CHECKS"  | jq -r 'map(select(.name|test("secret|gitleak";"i")) | .bucket)[0] // "wait"')
-              echo "  lint=$LINT  security=$SEC"
-              case "$LINT" in fail|cancel) LINT=FAIL;; pass|skipping) LINT=OK;; *) LINT=WAIT;; esac
-              case "$SEC"  in fail|cancel) SEC=FAIL;;  pass|skipping) SEC=OK;;  *) SEC=WAIT;; esac
-              if [ "$LINT" = FAIL ] || [ "$SEC" = FAIL ]; then echo "a required check failed"; VERDICT="REQUEST_CHANGES"; break; fi
-              if [ "$LINT" = OK ] && [ "$SEC" = OK ]; then echo "dev-ci checks green"; break; fi
-              if [ "$SECONDS" -ge "$DEADLINE" ]; then echo "timed out waiting for checks"; VERDICT="REQUEST_CHANGES"; break; fi
-              sleep 15
-            done
-          fi
-          if [ "$VERDICT" = "APPROVE" ]; then
-            gh pr merge "$PR" --squash --delete-branch
-            if [ -n "$NOTION_TASK" ]; then
-              ( node scripts/notion.mjs set-status "$NOTION_TASK" "Done" \
-                && node scripts/notion.mjs comment "$NOTION_TASK" "Merged to dev 🎉 $(gh pr view $PR --json url -q .url)" --mention ) \
-                || echo "notion update failed (non-fatal)"
-            fi
+            gh pr edit "$PR" --add-label "cto-approved" --remove-label "cto-changes-requested" 2>/dev/null || gh pr edit "$PR" --add-label "cto-approved"
+            gh pr comment "$PR" --body "✅ CTO approved — merge when the dev site checks out. $SUMMARY"
           else
-            gh pr edit "$PR" --add-label "cto-changes-requested"
-            if [ -n "$NOTION_TASK" ]; then
-              node scripts/notion.mjs comment "$NOTION_TASK" "CTO requested changes — next local run will fix. $(gh pr view $PR --json url -q .url)" \
-                || echo "notion update failed (non-fatal)"
-            fi
+            gh pr edit "$PR" --add-label "cto-changes-requested" --remove-label "cto-approved" 2>/dev/null || gh pr edit "$PR" --add-label "cto-changes-requested"
+            for t in "${TASKS[@]}"; do
+              [ -n "$t" ] && node scripts/notion.mjs comment "$t" "CTO requested changes on the dev → main PR — the next run treats this card as a fix-task. $URL" || echo "notion update failed for $t (non-fatal)"
+            done
           fi
