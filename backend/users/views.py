@@ -19,6 +19,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import LoginRateThrottle, SignupRateThrottle
 
 from users import leaderboard
+from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
 from users.tokens import issue_session_tokens
 
 User = get_user_model()
@@ -37,8 +38,8 @@ REDIRECT_URI = "postmessage"
 #  Reusable helpers
 # ---------------------------------------------------------------------------
 def profile_photo_url(request, user):
-    """Absolute URL of the user's profile photo, or None."""
-    return request.build_absolute_uri(user.profile_photo.url) if user.profile_photo else None
+    """Inline data URL of the user's normalized profile photo, or None (see users.photos)."""
+    return profile_photo_data_url(user.profile_photo_data)
 
 
 def user_payload(request, user):
@@ -205,12 +206,23 @@ def update_profile(request):
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.content_type.startswith("multipart/form-data"):
-        profile_photo = request.FILES.get("profile_photo")
-        if profile_photo:
-            user.profile_photo = profile_photo
-            user.save()
-            return Response({"status": "success"}, status=status.HTTP_200_OK)
-        return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        upload = request.FILES.get("profile_photo")
+        if not upload:
+            return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        if upload.size > MAX_PHOTO_UPLOAD_BYTES:
+            return Response(
+                {"error": "Image is too large. Please choose one under 4 MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            user.profile_photo_data = normalize_profile_photo(upload.read())
+        except InvalidPhoto:
+            return Response(
+                {"error": "We couldn't read that image. Try a JPG, PNG, WebP or GIF."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.save(update_fields=["profile_photo_data"])
+        return Response({"status": "success", "user": user_payload(request, user)}, status=status.HTTP_200_OK)
 
     return Response({"error": "Unsupported content type"}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from users.identity import PUBLIC_ID_ALPHABET, PUBLIC_ID_LENGTH
+from users.models import Friendship
 from users.tokens import AUTH_TIME_CLAIM, MAX_SESSION_AGE, SessionRefreshSerializer, issue_session_tokens
 
 User = get_user_model()
@@ -119,6 +120,35 @@ class LoginTests(TestCase):
         resp = self.client.get(reverse("get_user"), HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["user"]["id"], self.solo.public_id)
+
+
+class FriendsPhotoTests(TestCase):
+    """List endpoints (search, friends overview) never inline a photo's bytes —
+    only the signed-in user's own /me payload does. See users/friends.py `_brief`."""
+
+    def setUp(self):
+        self.me = User.objects.create_user(username="Searcher1", email="searcher@example.com", password="Testpass123!")
+        self.access = str(issue_session_tokens(self.me).access_token)
+        self.friend = User.objects.create_user(username="Photogenic", email="photo@example.com", password="Testpass123!")
+        self.friend.profile_photo_data = b"fake-normalized-jpeg-bytes"
+        self.friend.save(update_fields=["profile_photo_data"])
+        lo, hi = Friendship.ordered_pair(self.me, self.friend)
+        Friendship.objects.create(user_low=lo, user_high=hi)
+
+    def test_search_and_overview_omit_photo_for_user_with_photo_data(self):
+        resp = self.client.get(
+            reverse("search-users"), {"q": "Photogenic"}, HTTP_AUTHORIZATION=f"Bearer {self.access}"
+        )
+        self.assertEqual(resp.status_code, 200)
+        results = resp.json()["results"]
+        self.assertEqual(len(results), 1)
+        self.assertIsNone(results[0]["profile_photo"])
+
+        resp = self.client.get(reverse("friends-overview"), HTTP_AUTHORIZATION=f"Bearer {self.access}")
+        self.assertEqual(resp.status_code, 200)
+        friends = resp.json()["friends"]
+        self.assertEqual(len(friends), 1)
+        self.assertIsNone(friends[0]["profile_photo"])
 
 
 class SessionLifetimeTests(TestCase):

@@ -14,7 +14,6 @@ from rest_framework.response import Response
 
 from backend.throttles import FriendActionRateThrottle, UserSearchRateThrottle
 from users.models import BlockedUser, FriendRequest, Friendship
-from users.views import profile_photo_url
 
 User = get_user_model()
 
@@ -29,12 +28,17 @@ def _clean_public_id(raw):
 
 
 def _brief(request, user):
+    # Inline data URLs (users.views.profile_photo_url) are ~15-35 KB each and are
+    # only for the signed-in user's own payload — a list of these (search results,
+    # friends/requests/blocked rows) would multiply that across every row and risk
+    # blowing the response size limit. List avatars fall back to initials until
+    # there's a cacheable photo endpoint; this key stays for client compatibility.
     return {
         "id": user.public_id,
         "username": user.username,
         "points": user.points,
         "rank": user.rank,
-        "profile_photo": profile_photo_url(request, user),
+        "profile_photo": None,
     }
 
 
@@ -105,7 +109,7 @@ def search_users(request):
     candidates = list(
         User.objects.exclude(pk=me.pk)
         .filter(Q(username__icontains=q) | Q(public_id__icontains=q))
-        .only("id", "public_id", "username", "points", "rank", "profile_photo")[:MAX_RESULTS]
+        .only("id", "public_id", "username", "points", "rank")[:MAX_RESULTS]
     )
     relationships, excluded = _relationship_map(me, [u.pk for u in candidates])
 
@@ -250,17 +254,34 @@ def friends_overview(request):
     directions of pending requests, and who you've blocked."""
     me = request.user
 
-    friendships = Friendship.objects.filter(Q(user_low=me) | Q(user_high=me)).select_related(
-        "user_low", "user_high"
+    friendships = (
+        Friendship.objects.filter(Q(user_low=me) | Q(user_high=me))
+        .select_related("user_low", "user_high")
+        .defer("user_low__profile_photo_data", "user_high__profile_photo_data")
     )
     friends = [
         _brief(request, f.user_high if f.user_low_id == me.pk else f.user_low) for f in friendships
     ]
     friends.sort(key=lambda f: -f["points"])
 
-    incoming = FriendRequest.objects.filter(receiver=me).select_related("sender").order_by("-created_at")
-    outgoing = FriendRequest.objects.filter(sender=me).select_related("receiver").order_by("-created_at")
-    blocked = BlockedUser.objects.filter(blocker=me).select_related("blocked").order_by("-created_at")
+    incoming = (
+        FriendRequest.objects.filter(receiver=me)
+        .select_related("sender")
+        .defer("sender__profile_photo_data")
+        .order_by("-created_at")
+    )
+    outgoing = (
+        FriendRequest.objects.filter(sender=me)
+        .select_related("receiver")
+        .defer("receiver__profile_photo_data")
+        .order_by("-created_at")
+    )
+    blocked = (
+        BlockedUser.objects.filter(blocker=me)
+        .select_related("blocked")
+        .defer("blocked__profile_photo_data")
+        .order_by("-created_at")
+    )
 
     return Response(
         {
