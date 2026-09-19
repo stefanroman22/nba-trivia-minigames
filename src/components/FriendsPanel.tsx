@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import "../../styles/Friends.css";
-import { Avatar, CourtLoader } from "../ui";
-import SwapText from "../motion/SwapText";
+import "../styles/Friends.css";
+import { Avatar, CourtLoader } from "./ui";
+import SwapText from "./motion/SwapText";
 import {
   useFriends,
   searchUsers,
   searchFriends,
   type FriendUser,
   type FriendSearchResult,
-} from "../../hooks/useFriends";
-import { useModal } from "../../context/ModalContext";
+} from "../hooks/useFriends";
 
 type Tab = "friends" | "requests" | "find" | "blocked";
 
@@ -26,25 +25,16 @@ function initials(name: string): string {
 }
 
 /** Friend search + add, incoming/outgoing requests, friend list, and blocked
- * players — everything the "no messaging, just add/search/block" ask needs,
- * in one modal reached from the profile card. */
-export default function FriendsModal() {
+ * players — everything the "no messaging, just add/search/block" ask needs.
+ * Mounted directly in the profile card (the default view there) rather than
+ * behind a modal, so `useFriends`'s own mount-time fetch is all the
+ * refresh-on-return-to-this-view a plain conditional render needs. */
+export default function FriendsPanel() {
   const [tab, setTab] = useState<Tab>("friends");
   const {
-    incoming, outgoing, blocked, loading, error, refresh,
+    incoming, outgoing, blocked, loading, error,
     acceptRequest, declineRequest, cancelRequest, removeFriend, blockUser, unblockUser, sendRequest,
   } = useFriends();
-
-  // The modal host doesn't actually unmount/remount on close+reopen (framer
-  // motion's AnimatePresence holds the exiting element under the same key),
-  // so a mount-only fetch would show stale data the second time this is
-  // opened in the same page session. `kind` from context, unlike this
-  // component's own lifecycle, reliably flips back to "friends" on every
-  // reopen — use that as the "just became visible" signal instead.
-  const { kind } = useModal();
-  useEffect(() => {
-    if (kind === "friends") refresh();
-  }, [kind, refresh]);
 
   // Per-row "this action is in flight" flag, keyed by public id / request id,
   // so a click can't double-fire while its request is still out.
