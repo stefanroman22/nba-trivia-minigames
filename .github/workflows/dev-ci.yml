@@ -1,12 +1,16 @@
 name: Dev CI and Promote
 
-# Runs on pushes to dev and on PRs targeting dev: lint + secret scan only. Promotion to
-# main is a human-merged PR (dev → main), see docs/team/PIPELINE.md §10.
+# Runs lint/security on pushes to dev and on PRs targeting dev. Promotion to
+# main is NOT part of that automatic run for anyone (human, Claude, or the
+# team pipeline) — it only runs when this workflow is dispatched manually
+# ("Run workflow" in the Actions tab, or `gh workflow run dev-ci.yml`), so
+# dev is always the default destination and production is an explicit step.
 on:
   push:
     branches: [dev]
   pull_request:
     branches: [dev]
+  workflow_dispatch:
 
 concurrency:
   group: dev-ci-${{ github.ref }}
@@ -45,3 +49,32 @@ jobs:
         run: |
           docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
             detect --source=/repo --no-git --redact --verbose --exit-code 1
+
+  promote:
+    name: Promote dev to main
+    needs: [lint, security]
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Merge dev into main and push
+        run: |
+          set -euo pipefail
+          git fetch origin main dev
+          git checkout -B main origin/main
+          if git merge --ff-only origin/dev; then
+            echo "Fast-forwarded main to dev."
+          else
+            echo "Fast-forward not possible; creating a merge commit."
+            git merge --no-ff origin/dev -m "Auto-merge dev into main [skip ci]"
+          fi
+          git push origin main

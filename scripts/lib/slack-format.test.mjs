@@ -54,19 +54,16 @@ test("runSummaryText", () => {
     start: "10:00", end: "11:40",
     shipped: [{ title: "A", category: "frontend" }, { title: "B", category: "fullstack" }],
     failed: [{ title: "C", category: "backend", stage: "verify", attempts: 1, maxAttempts: 2, channel: "backend" }],
-    leftTodo: 2, pr: { number: 27, count: 4 }, prSkipped: null,
+    leftTodo: 2,
   });
   assert.equal(t,
 `🟢 Run done · 10:00–11:40 · 2 shipped to dev, 1 failed, 2 left in To Do
 frontend 1 · fullstack 1
 • A
 • B
-Failed: C (verify, attempt 1/2 → details in #agent-backend)
-dev → main PR: #27 (4 tasks waiting for your merge)`);
-  const u = runSummaryText({ start: "02:00", end: "02:30", shipped: [], failed: [], leftTodo: 0, pr: null, prSkipped: "dev-ci red on 1a2b3c4" });
-  assert.match(u, /0 shipped to dev, 0 failed, 0 left in To Do\n/);
-  assert.match(u, /dev → main PR: not opened — dev-ci red on 1a2b3c4$/);
-  assert.doesNotMatch(u, /\n\n/);
+Failed: C (verify, attempt 1/2 → details in #agent-backend)`);
+  const u = runSummaryText({ start: "02:00", end: "02:30", shipped: [], failed: [], leftTodo: 0 });
+  assert.equal(u, "🟢 Run done · 02:00–02:30 · 0 shipped to dev, 0 failed, 0 left in To Do");
 });
 
 test("sessionReportText", () => {
