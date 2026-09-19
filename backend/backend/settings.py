@@ -165,6 +165,8 @@ REST_FRAMEWORK = {
         # Unauthenticated write path — generous for a person with several
         # things to say, useless as a spam vector.
         "feedback-submit": "10/hour",
+        # One real play needs exactly 1/day; this only bounds abuse probing.
+        "wordle-play": "20/hour",
     },
 }
 
