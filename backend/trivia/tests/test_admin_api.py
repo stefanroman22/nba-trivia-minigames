@@ -1,10 +1,8 @@
-import tempfile
 from io import StringIO
 
 from django.contrib.auth import get_user_model
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from rest_framework.test import APIClient
 
 from trivia.models import Mvp
@@ -68,11 +66,6 @@ class AdminEmailIdentityTests(TestCase):
     """Case-insensitive email is the login identity — the admin paths honour it too."""
 
     ADD_URL = "/admin/users/customuser/add/"
-    # Smallest valid GIF — the admin's add-user form asks for a profile photo.
-    GIF = bytes.fromhex(
-        "47494638376101000100810000ff00000000000000000000002c0000"
-        "00000100010000080400010404003b"
-    )
 
     @classmethod
     def setUpTestData(cls):
@@ -92,14 +85,11 @@ class AdminEmailIdentityTests(TestCase):
             "password2": "Sup3rSecret!23",
             "points": 0,
             "rank": "Rookie",
-            "profile_photo": SimpleUploadedFile("p.gif", self.GIF, content_type="image/gif"),
             "is_active": "on",
             **overrides,
         }
         self.client.force_login(self.root)
-        with tempfile.TemporaryDirectory() as media:
-            with override_settings(MEDIA_ROOT=media):
-                return self.client.post(self.ADD_URL, data)
+        return self.client.post(self.ADD_URL, data)
 
     def test_add_form_rejects_an_email_differing_only_in_case(self):
         res = self._add_user(email="Foo@Bar.com")

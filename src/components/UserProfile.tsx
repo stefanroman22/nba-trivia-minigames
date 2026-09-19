@@ -5,6 +5,7 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { logout, updateProfilePhoto, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
+import { PhotoPrepError, prepareProfilePhoto } from "../utils/imagePrep";
 import socket from "../socket";
 import { AnimatePresence, motion } from "framer-motion";
 import SwapText from "./motion/SwapText";
@@ -95,20 +96,27 @@ function UserProfile() {
     if (!file) return;
 
     setUploadingPhoto(true);
-    const formData = new FormData();
-    formData.append("profile_photo", file);
-
     try {
+      let photo: Blob;
+      try {
+        photo = await prepareProfilePhoto(file);
+      } catch (err) {
+        showErrorAlert(err instanceof PhotoPrepError ? err.message : "Photo upload failed", "Upload Error");
+        return;
+      }
+      const formData = new FormData();
+      formData.append("profile_photo", photo, "photo.jpg");
+
       const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
         method: "POST",
         body: formData,
       });
-      if (response.ok) {
-        const previewURL = URL.createObjectURL(file);
-        dispatch(updateProfilePhoto(previewURL));
+      const data = await response.json().catch(() => null);
+      if (response.ok && typeof data?.user?.profile_photo === "string") {
+        // The server's normalized photo, not a local preview — what /me/ will return after reload.
+        dispatch(updateProfilePhoto(data.user.profile_photo));
       } else {
-        const errorData = await response.json();
-        showErrorAlert(errorData.error || "Photo upload failed", "Upload Error");
+        showErrorAlert(data?.error || "Photo upload failed", "Upload Error");
       }
     } finally {
       setUploadingPhoto(false);

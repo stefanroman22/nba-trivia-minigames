@@ -42,7 +42,12 @@ class CustomUser(AbstractUser):
     # The unique login identifier.
     email = models.EmailField(unique=True)
     points = models.IntegerField(default=0)
+    # Legacy/unused: dev and prod share one Supabase DB, and the old backend stays live for a
+    # window after this deploys, so the column must survive until it's retired. Drop in a follow-up.
     profile_photo = models.ImageField(upload_to='profiles/', default='profiles/default.png')
+    # Normalized 256x256 JPEG bytes (users.photos). Stored in the DB because the API's disk is
+    # read-only on Vercel; served inline as a data URL by users.views.user_payload.
+    profile_photo_data = models.BinaryField(null=True, blank=True, editable=False)
     rank = models.CharField(max_length=20, choices=RANK_CHOICES, default='Rookie')
 
     USERNAME_FIELD = "email"
