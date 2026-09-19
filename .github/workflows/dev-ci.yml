@@ -1,13 +1,16 @@
 name: Dev CI and Promote
 
-# Runs on pushes to dev (full pipeline, including promote) and on PRs targeting
-# dev (test-only: promote is gated to the push path). The promote job pushes to
-# main, which does NOT match either filter, so the workflow cannot retrigger itself.
+# Runs lint/security on pushes to dev and on PRs targeting dev. Promotion to
+# main is NOT part of that automatic run for anyone (human, Claude, or the
+# team pipeline) — it only runs when this workflow is dispatched manually
+# ("Run workflow" in the Actions tab, or `gh workflow run dev-ci.yml`), so
+# dev is always the default destination and production is an explicit step.
 on:
   push:
     branches: [dev]
   pull_request:
     branches: [dev]
+  workflow_dispatch:
 
 concurrency:
   group: dev-ci-${{ github.ref }}
@@ -50,7 +53,7 @@ jobs:
   promote:
     name: Promote dev to main
     needs: [lint, security]
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write

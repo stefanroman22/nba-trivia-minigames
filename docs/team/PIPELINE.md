@@ -108,14 +108,16 @@ edit --add-label`, and Notion status writes happen. Practically: a prompt-inject
 LLM step at all. Auto-merge only lands changes on `dev`; the existing `dev-ci.yml`
 promotion (dev → main → production) is unchanged by any of this.
 
-**Known limitation:** auto-merges performed by the pipeline use the GitHub Actions token
-(`GITHUB_TOKEN`). GitHub deliberately does not fire `on: push` workflows from a
-`GITHUB_TOKEN` push (infinite-loop prevention), so the pipeline's own merge into `dev`
-does NOT automatically trigger the dev → main promote job in `dev-ci.yml`. Code the
-pipeline merges to `dev` reaches `main` on the next manual push to `dev` (or a human "Run
-workflow" on the promote job). To make pipeline merges auto-promote to production, mint a
-fine-grained PAT with `contents:write` and use it for the merge step in `cto-act` instead
-of `GITHUB_TOKEN` — a deliberate security tradeoff. Left human-gated by default.
+**Promotion is human-gated for every path, not just the pipeline's (as of 2026-09-19).**
+Auto-merges performed by the pipeline use the GitHub Actions token (`GITHUB_TOKEN`), which
+GitHub deliberately doesn't let trigger further `on: push` workflows (infinite-loop
+prevention) — so the pipeline's own merge into `dev` never touched the promote job. That
+used to be the *only* thing gating it: a real, human-authenticated push to `dev` (e.g. an
+interactive Claude Code session merging its own PR) still auto-triggered `dev-ci.yml`'s
+promote job. `dev-ci.yml`'s promote job now runs **only** on manual `workflow_dispatch` —
+no push to `dev`, from the pipeline, a human, or an interactive agent, auto-promotes.
+Code merged to `dev` reaches `main` only when someone explicitly runs "Promote dev to
+main" (`gh workflow run dev-ci.yml` or "Run workflow" in the Actions tab).
 
 ## 11. Troubleshooting
 
