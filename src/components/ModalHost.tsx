@@ -7,7 +7,6 @@ import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
 import MultiplayerInfoModal from "./modals/MultiplayerInfoModal";
-import FriendsModal from "./modals/FriendsModal";
 
 /**
  * Single overlay host (mounted once in App). The active modal is keyed so
@@ -43,10 +42,6 @@ export default function ModalHost() {
   } else if (kind === "multiplayerInfo") {
     title = "Multiplayer";
     content = <MultiplayerInfoModal onClose={close} />;
-  } else if (kind === "friends") {
-    title = "Friends";
-    wide = true;
-    content = <FriendsModal />;
   }
 
   return (
