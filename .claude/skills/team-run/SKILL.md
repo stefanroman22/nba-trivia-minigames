@@ -1,6 +1,6 @@
 ---
 name: team-run
-description: One queue-drain run of the autonomous team pipeline — resume unfinished cards, claim To Do cards, run each through classify→design→build→verify→QA→review→ship (fast-forward push to dev), fail cards back to To Do, post Slack cards, keep the dev→main PR current. Invoked headless by scripts/team-run.ps1 or npm run team.
+description: One queue-drain run of the autonomous team pipeline — resume unfinished cards, claim To Do cards, run each through classify→design→build→verify→QA→review→ship (fast-forward push to dev), fail cards back to To Do, post Slack cards. Invoked headless by scripts/team-run.ps1 or npm run team.
 ---
 
 # Team Run
@@ -41,24 +41,16 @@ with NO model parameter). Every other spawn names its model explicitly.
 
 ## 0b. Slack feedback ingestion
 `node scripts/slack.mjs poll-reactions` (non-fatal: on error log and continue). For each item:
-- `followup` → `node scripts/notion.mjs create-card "Follow-up: <title>" --category <category> --body "Slack feedback on <title>: <note> (original card: <pageId>)"`. It is `To Do` and joins this run's queue (§2 reads To Do after this).
+- `followup` → `node scripts/notion.mjs create-card "Follow-up: <title>" --category <category> --body "Slack feedback on <title>: <note> (original card: <pageId>)"`. It is `To Do` and joins this run's queue (§1 reads To Do after this).
 - `ack` → nothing (the card stays in QA until its commit reaches main).
 
-## 1. Fix-tasks first (CTO changes requested on the dev → main PR)
-`gh pr list --base main --head dev --label cto-changes-requested --json number,url`. If one exists:
-read its latest CTO comment (`gh pr view <n> --json comments`) and the `Notion-Tasks:` ids in
-its body. For each card named in a must-fix finding: treat it as a task whose spec is
-"<original spec> + CTO findings: <findings for this card>", claim it (§3 claim — its status
-goes QA → In progress), and run classify→build→verify→QA→review→ship as below. After the last
-fix ships: `gh pr edit <n> --remove-label cto-changes-requested`.
-
-## 2. Queue
+## 1. Queue
 Resume every journal entry FIRST, at its recorded stage (skip claim). Then
 `node scripts/notion.mjs list-todo` → queue (P0 first). Process serially; stop starting new
 tasks at 80% of cfg.maxRunMinutes; always finish or fail the current one. `maxTasksPerRun`
 is a safety net, not a target — time is the limit.
 
-## 3. Per task — state machine (update journal after EVERY stage transition)
+## 2. Per task — state machine (update journal after EVERY stage transition)
 slug = kebab-case title, ≤30 chars. Journal entry: `{slug, title, category, stage, fixCycles,
 replanned, startedAt, classify, subtasks?, resumeNote}`.
 
@@ -69,7 +61,7 @@ journal stage=classify.
 **classify** → spawn planner-architect (model fable) with the classify skill, the card
 title/Category, and `get-spec` output (it already contains body text, `[Image attached]`
 lines from the body, the Attachments property and owner comments). Parse its JSON.
-If `areas` contains both `frontend` and `backend` → this is a **split task** (§3b).
+If `areas` contains both `frontend` and `backend` → this is a **split task** (§2b).
 journal stage=workspace.
 
 **workspace** → `git fetch origin dev`; `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/dev`;
@@ -108,14 +100,14 @@ build (counts toward fixCycles). minor/nit → noted in the commit body. journal
 `node scripts/slack.mjs post-qa-card .team/qa-<slug>.json` (non-fatal).
 `SHIP-FAIL <reason>` → fail procedure (stage `ship`).
 
-### 3b. Split tasks (frontend + backend in one card)
+### 2b. Split tasks (frontend + backend in one card)
 Journal `subtasks: {backend:{stage,fixCycles,did}, frontend:{stage,fixCycles,did}}`. Same
 branch/worktree. Run **backend** build→verify first, then **frontend** build→verify, then ONE
 qa + ONE review over the whole diff, then ONE ship (one commit, two `- agent:` bullets). A failing
 half fails the whole card (fail procedure names the half in `stage`, e.g. `verify (frontend)`).
 `.team/qa-<slug>.json` gets `halves` so each channel receives its own card.
 
-## 4. Fail procedure (any stage)
+## 3. Fail procedure (any stage)
 1. Write the post-mortem to `.team/postmortem-<slug>.md`: what was tried / why it failed /
    suggested next step / last error (≤3 lines).
 2. `node scripts/notion.mjs fail-card <id> --stage "<stage>" --reason "<one line>" --postmortem-file .team/postmortem-<slug>.md`
@@ -131,10 +123,9 @@ half fails the whole card (fail procedure names the half in `stage`, e.g. `verif
 6. Remove the worktree; leave the branch pushed only if it has commits; remove the journal entry.
    **[CLOUD]** `git checkout dev`.
 
-## 5. End of run
+## 4. End of run
 - `leftTodo = (node scripts/notion.mjs list-todo).length`.
-- `node scripts/promote.mjs ensure-pr` → `{number,count}` or `{skipped}` (non-fatal: on error `{skipped:"promote.mjs error"}`).
-- Write `.team/run-summary.json`: `{start, end, shipped, failed, leftTodo, pr: {number,count}|null, prSkipped: string|null}`
+- Write `.team/run-summary.json`: `{start, end, shipped, failed, leftTodo}`
   and `node scripts/slack.mjs post-run-summary .team/run-summary.json` — **only if** shipped or
   failed is non-empty or a journal entry was resumed. If the queue was empty and nothing happened,
   exit silently.

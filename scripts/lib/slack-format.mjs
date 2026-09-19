@@ -2,7 +2,7 @@
 //
 // qaCardText   ({title, category, priority, model, effort, planModel, fixCycles, did, check, devUrl, commit, half?})
 // failCardText ({title, category, attempts, maxAttempts, model, effort, planModel, stage, reason, fixCycles, replanned, lastError, cardUrl, needsHuman, half?})
-// runSummaryText ({start, end, shipped:[{title,category}], failed:[{title,category,stage,attempts,maxAttempts,channel}], leftTodo, pr:{number,count}|null, prSkipped:string|null})
+// runSummaryText ({start, end, shipped:[{title,category}], failed:[{title,category,stage,attempts,maxAttempts,channel}], leftTodo})
 // sessionReportText ({label, start, end, shipped:[{title,category,sha}], qaWaiting, doneCount}) → {head, text}
 import { CATEGORIES } from "./team-config.mjs";
 
@@ -52,8 +52,6 @@ export function runSummaryText(r) {
   if (counts) lines.push(counts);
   for (const s of r.shipped) lines.push(`• ${s.title}`);
   for (const f of r.failed) lines.push(`Failed: ${f.title} (${f.stage}, attempt ${f.attempts}/${f.maxAttempts} → details in #agent-${f.channel})`);
-  if (r.pr) lines.push(`dev → main PR: #${r.pr.number} (${r.pr.count} tasks waiting for your merge)`);
-  else lines.push(`dev → main PR: not opened — ${r.prSkipped || "dev not ahead of main"}`);
   return lines.join("\n");
 }
 
