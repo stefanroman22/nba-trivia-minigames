@@ -43,3 +43,10 @@ class FeedbackRateThrottle(UserRateThrottle):
     to rate too), so without a limit it is an open write path; a person with
     something to say needs a handful, not dozens."""
     scope = "feedback-submit"
+
+
+class WordlePlayRateThrottle(UserRateThrottle):
+    """Daily-Wordle play attempts. The real gate is the once-per-day check in
+    trivia.wordle_daily; this just bounds a script hammering the endpoint to
+    probe device ids or race the once-per-day insert."""
+    scope = "wordle-play"
