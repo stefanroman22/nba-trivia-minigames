@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
+import SwapText from "../motion/SwapText";
 import "../../styles/Modal.css";
 
 interface ModalProps {
@@ -92,7 +93,7 @@ export default function Modal({ title, onClose, wide = false, children }: ModalP
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="modal-head">
-          <h3 className="font-display modal-title">{title}</h3>
+          <h3 className="font-display modal-title"><SwapText>{title}</SwapText></h3>
           <button className="modal-close" aria-label="Close" onClick={onClose}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />

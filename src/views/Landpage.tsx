@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "../hooks/useNavigate";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -13,6 +13,7 @@ import GuestPanel from "../components/GuestPanel";
 import Reveal from "../components/motion/Reveal";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
 import { useModal } from "../context/ModalContext";
+import { scrollToSection } from "../utils/ScrolllToSection";
 import type { RootState } from "../store";
 
 const Landpage = () => {
@@ -20,6 +21,19 @@ const Landpage = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const [query, setQuery] = useState("");
+
+  // Navigation.tsx routes cross-page "Games"/"Leaderboard" taps to "/#<section>"
+  // so the section is deep-linkable. Next scrolls to it on mount while the
+  // route-enter scale transform (app/template.tsx) is still active, so its
+  // rect-based target lands short. Re-run the same (now layout-based) scroll
+  // our in-page nav uses, one frame after mount, so it lands after (and
+  // overrides) Next's own scroll at the correct offset regardless of timing.
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (!id || !document.getElementById(id)) return;
+    const raf = window.requestAnimationFrame(() => scrollToSection(id));
+    return () => window.cancelAnimationFrame(raf);
+  }, []);
 
   const playableCount = games.filter((g) => g.id !== "coming-soon").length;
 

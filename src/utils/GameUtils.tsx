@@ -1,6 +1,7 @@
 
 import type { Game } from "../types/types";
 import { fetchGamePool, fetchWholePool } from "./pool";
+import { playWordleDaily } from "./wordleDaily";
 import { fetchQuestion } from "./questions";
 import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
 import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
@@ -226,7 +227,9 @@ export const games: Game[] = [
     urlPath: "/wordle",
     pointsPerCorrect: 10,
     maxPoints: 500,
-    fetchData: () => fetchGamePool("wordle", 1),
+    // One play per day, server-gated — see src/utils/wordleDaily.ts. Unlike
+    // every other single-player game, this is NOT a locally-sampled pool.
+    fetchData: () => playWordleDaily(),
     handleError: handleErrorDefault,
   },
   {

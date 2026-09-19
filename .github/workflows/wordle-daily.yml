@@ -1,0 +1,31 @@
+name: Pick Daily Wordle
+# Picks the day's single-player Wordle word and prunes stale play-gate rows.
+# Not load-bearing for correctness (trivia.wordle_daily self-heals lazily on
+# the first request of the day) — this just gets the word queued up in
+# advance and keeps the WordlePlay table from accumulating past days' rows.
+on:
+  schedule:
+    - cron: "0 23 * * *"   # 23:00 UTC daily — at/just after CET/CEST midnight
+  workflow_dispatch:
+concurrency:
+  group: pick-daily-wordle
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  pick:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: pip install -r backend/requirements.txt
+      - name: Pick today's word
+        working-directory: backend
+        run: python manage.py pick_daily_wordle
