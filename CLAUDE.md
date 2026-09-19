@@ -50,26 +50,39 @@ a blank throwaway profile and cannot see logged-in state.
   autonomous pipeline the verify stage runs them on the diff anyway, so an engine repeating
   them is pure duplication.
 
-## Shipping — the agent owns delivery end to end
-Once a change is verified (build, lint, typecheck, a real browser pass when the UI changed), the
-agent carries it the rest of the way itself. Do not stop to ask for confirmation between steps,
-and do not hand the owner a list of commands to run:
+## Shipping — dev is the default destination; production is an explicit ask
+`dev` is where finished work lands by default. Once a change is verified (build, lint, typecheck,
+a real browser pass when the UI changed), the agent carries it to `dev` itself without stopping
+for confirmation:
 1. Commit and push on a feature branch, open the PR to `dev` (`gh pr create --base dev`), and wait
    for the checks (`gh pr checks <n> --watch`). `gh` must be on the `stefanroman22` account.
 2. Merge it yourself (`gh pr merge <n> --merge --delete-branch`; the team pipeline squashes its own).
-3. Watch the promotion: the push to `dev` runs `.github/workflows/dev-ci.yml`, whose promote job
-   pushes `main` (`gh run list --workflow dev-ci.yml`, `gh run watch <id>`). `main` deploys the
-   frontend AND the backend Vercel projects.
-4. Watch both production deployments to READY (Vercel MCP `list_deployments` / `get_deployment`,
+3. **Stop there and report it's on `dev`.** Do not trigger, run, or wait on the "Promote dev to
+   main" workflow, and do not otherwise push/merge into `main` — merging to `dev` is never itself
+   a request to ship to production, no matter how small or well-tested the change is.
+
+Promotion to `main`/production only happens when the owner explicitly asks for it in the
+conversation (e.g. "promote this", "ship it to prod", "push dev to main") or runs the "Promote dev
+to main" workflow themselves. `.github/workflows/dev-ci.yml`'s promote job runs **only** on a
+manual `workflow_dispatch` (`gh workflow run dev-ci.yml` or "Run workflow" in the Actions tab) — a
+push or PR merge into `dev` no longer auto-promotes for anyone, human, Claude, or the team pipeline.
+
+Once promotion is explicitly requested:
+1. Trigger it (`gh workflow run dev-ci.yml`, then `gh run list --workflow dev-ci.yml` / `gh run
+   watch <id>`) or confirm the owner already ran it. `main` deploys the frontend AND the backend
+   Vercel projects.
+2. Watch both production deployments to READY (Vercel MCP `list_deployments` / `get_deployment`,
    `get_deployment_build_logs` on failure). The backend build runs `manage.py migrate` — read it.
-5. Verify production, not just the build: fetch https://nba-minigames.vercel.app and the routes
+3. Verify production, not just the build: fetch https://nba-minigames.vercel.app and the routes
    you touched (real content, right status codes), hit the API for JSON (e.g.
    https://backend-kappa-one-42.vercel.app/api/get-users/), and run a browser pass when the UI changed.
-6. Anything broken is yours to fix forward on `dev` immediately — never leave production broken
-   and just report it. If the fix will take more than a few minutes, roll back first (`vercel
-   rollback` pins the domain until `vercel promote`; see docs/DEPLOYMENT.md).
-The only stops are the standing ones: anything that costs money, a secret you don't have, and
-deleting data you didn't create. Merge only what actually works — a known error is a blocker.
+4. Anything broken is yours to fix forward immediately — never leave production broken and just
+   report it. If the fix will take more than a few minutes, roll back first (`vercel rollback`
+   pins the domain until `vercel promote`; see docs/DEPLOYMENT.md).
+
+The only stops beyond "wait for an explicit promote ask" are the standing ones: anything that
+costs money, a secret you don't have, and deleting data you didn't create. Merge only what
+actually works — a known error is a blocker.
 
 ## Building or touching any game's UI — read this first
 **`docs/GAME_DESIGN_CONSTRAINTS.md` is mandatory reading before writing or reviewing any game
