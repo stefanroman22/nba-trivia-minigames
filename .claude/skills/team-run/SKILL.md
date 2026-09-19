@@ -31,12 +31,17 @@ with NO model parameter). Every other spawn names its model explicitly.
 - Read `.claude/team/config.json` → cfg. Note the start time (HH:MM); enforce cfg.maxRunMinutes.
 - `node scripts/notion.mjs check-pause` — exit code 3 → say "paused" and STOP.
 - Read `.team/journal.json` (absent → `{}`).
-- **Stale sweep:** `node scripts/notion.mjs list-in-progress`. Any card there with no journal
-  entry belongs to a run that died before writing its journal. That is not the task's fault, so
-  do NOT use `fail-card` (it would count an attempt): run
-  `node scripts/notion.mjs set-status <id> "To Do"` and
+- **Stale sweep:** `node scripts/notion.mjs list-in-progress`. A card there with no journal
+  entry MIGHT belong to a run that died before writing its journal — or it might be a genuinely
+  live run on a different checkout/machine (the cloud routine and a local run can overlap).
+  Only treat it as stale if it's ALSO been untouched a while: `lastEditedTime` is more than
+  cfg.maxRunMinutes minutes in the past. A run still actively working a card touches it again
+  well inside that window at every stage transition; only a truly dead run goes silent that long.
+  For a card past that threshold, it's not the task's fault, so do NOT use `fail-card` (it would
+  count an attempt): run `node scripts/notion.mjs set-status <id> "To Do"` and
   `node scripts/notion.mjs comment <id> "↩️ previous run died before starting this card — back in To Do"`.
-  No Slack card for these.
+  No Slack card for these. A card with no journal entry but a RECENT `lastEditedTime` is left
+  alone — it's someone else's live run, not yours to touch.
 - In-run lists: `shipped = []`, `failed = []`.
 
 ## 0b. Slack feedback ingestion

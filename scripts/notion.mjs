@@ -128,7 +128,7 @@ async function cmdListQa() {
 
 async function cmdListInProgress() {
   const pages = await queryAll({ property: "Status", select: { equals: STATUS.IN_PROGRESS } });
-  console.log(JSON.stringify(pages.map((p) => ({ id: p.id, title: plain(p.properties.Name?.title) })), null, 2));
+  console.log(JSON.stringify(pages.map((p) => ({ id: p.id, title: plain(p.properties.Name?.title), lastEditedTime: p.last_edited_time })), null, 2));
 }
 
 // Some external image hosts (e.g. Wikimedia) reject requests that carry no User-Agent.
