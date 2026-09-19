@@ -1,8 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "../../styles/Friends.css";
 import { Avatar, CourtLoader } from "../ui";
 import SwapText from "../motion/SwapText";
-import { useFriends, searchUsers, type FriendSearchResult } from "../../hooks/useFriends";
+import {
+  useFriends,
+  searchUsers,
+  searchFriends,
+  type FriendUser,
+  type FriendSearchResult,
+} from "../../hooks/useFriends";
 import { useModal } from "../../context/ModalContext";
 
 type Tab = "friends" | "requests" | "find" | "blocked";
@@ -25,7 +31,7 @@ function initials(name: string): string {
 export default function FriendsModal() {
   const [tab, setTab] = useState<Tab>("friends");
   const {
-    friends, incoming, outgoing, blocked, loading, error, refresh,
+    incoming, outgoing, blocked, loading, error, refresh,
     acceptRequest, declineRequest, cancelRequest, removeFriend, blockUser, unblockUser, sendRequest,
   } = useFriends();
 
@@ -90,38 +96,7 @@ export default function FriendsModal() {
       {actionError && <p role="alert" className="fr-error">{actionError}</p>}
 
       {tab === "friends" && (
-        friends.length === 0 ? (
-          <p className="fr-empty">No friends yet — try the Find tab.</p>
-        ) : (
-          <div className="fr-list">
-            {friends.map((f) => (
-              <div key={f.id} className="fr-row">
-                <Avatar initials={initials(f.username)} size={30} />
-                <div className="fr-row-info">
-                  <span className="fr-name">{f.username}</span>
-                  <span className="tnum fr-sub">#{f.id} · {f.rank}</span>
-                </div>
-                <span className="tnum fr-pts">{f.points.toLocaleString()}</span>
-                <div className="fr-actions">
-                  <button
-                    className="fr-btn fr-btn-danger"
-                    disabled={busy.has(f.id)}
-                    onClick={() => withBusy(f.id, () => removeFriend(f.id))}
-                  >
-                    <SwapText>Remove</SwapText>
-                  </button>
-                  <button
-                    className="fr-btn fr-btn-danger"
-                    disabled={busy.has(f.id)}
-                    onClick={() => withBusy(f.id, () => blockUser(f.id))}
-                  >
-                    Block
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
+        <FriendsTab removeFriend={removeFriend} blockUser={blockUser} onError={setActionError} />
       )}
 
       {tab === "requests" && (
@@ -224,11 +199,133 @@ export default function FriendsModal() {
 }
 
 const SEARCH_DEBOUNCE_MS = 350;
+const FRIENDS_PAGE_SIZE = 30;
 const RELATIONSHIP_LABEL: Record<Exclude<FriendSearchResult["relationship"], "none">, string> = {
   friend: "Friends",
   pending_outgoing: "Request sent",
   pending_incoming: "Sent you a request",
 };
+
+/** Your own friend list — searchable by name or player ID, one box, server
+ * paginated. Loads a page at a time instead of the whole list up front, so
+ * this stays fast whether you have 5 friends or 5,000. */
+function FriendsTab({
+  removeFriend,
+  blockUser,
+  onError,
+}: {
+  removeFriend: (publicId: string) => Promise<void>;
+  blockUser: (publicId: string) => Promise<void>;
+  onError: (message: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<FriendUser[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const debounceRef = useRef<number | null>(null);
+  const queryRef = useRef(query);
+  queryRef.current = query;
+
+  const loadPage = useCallback(async (q: string, offset: number, append: boolean) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
+    try {
+      const page = await searchFriends(q, FRIENDS_PAGE_SIZE, offset);
+      // A slower earlier request can resolve after a newer one if the person
+      // kept typing — only apply a response that still matches the live query.
+      if (q !== queryRef.current) return;
+      setResults((prev) => (append ? [...prev, ...page.results] : page.results));
+      setTotal(page.total);
+    } catch {
+      if (q === queryRef.current) onError("Could not load your friends.");
+    } finally {
+      if (append) setLoadingMore(false);
+      else setLoading(false);
+    }
+  }, [onError]);
+
+  useEffect(() => {
+    if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    const q = query.trim();
+    debounceRef.current = window.setTimeout(() => loadPage(q, 0, false), SEARCH_DEBOUNCE_MS);
+    return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query]);
+
+  const handleAction = async (id: string, action: (publicId: string) => Promise<void>) => {
+    if (busyId) return;
+    setBusyId(id);
+    try {
+      await action(id);
+      await loadPage(query.trim(), 0, false);
+    } catch (e) {
+      onError(e instanceof Error ? e.message : "Something went wrong.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div className="fr-find">
+      <input
+        className="modal-input"
+        placeholder="Search your friends by name or player ID…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {loading ? (
+        <p className="fr-empty">Loading…</p>
+      ) : results.length === 0 ? (
+        <p className="fr-empty">
+          {query.trim() ? "No friends match that search." : "No friends yet — try the Find tab."}
+        </p>
+      ) : (
+        <>
+          <div className="fr-list">
+            {results.map((f) => (
+              <div key={f.id} className="fr-row">
+                <Avatar initials={initials(f.username)} size={30} />
+                <div className="fr-row-info">
+                  <span className="fr-name">{f.username}</span>
+                  <span className="tnum fr-sub">#{f.id} · {f.rank}</span>
+                </div>
+                <span className="tnum fr-pts">{f.points.toLocaleString()}</span>
+                <div className="fr-actions">
+                  <button
+                    className="fr-btn fr-btn-danger"
+                    disabled={busyId === f.id}
+                    onClick={() => handleAction(f.id, removeFriend)}
+                  >
+                    <SwapText>Remove</SwapText>
+                  </button>
+                  <button
+                    className="fr-btn fr-btn-danger"
+                    disabled={busyId === f.id}
+                    onClick={() => handleAction(f.id, blockUser)}
+                  >
+                    Block
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+          {results.length < total && (
+            <button
+              className="fr-btn"
+              style={{ alignSelf: "center" }}
+              disabled={loadingMore}
+              onClick={() => loadPage(query.trim(), results.length, true)}
+            >
+              <SwapText>{loadingMore ? "Loading…" : `Load more (${total - results.length} left)`}</SwapText>
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 function FindTab({
   sendRequest,

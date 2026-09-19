@@ -22,6 +22,9 @@ User = get_user_model()
 MIN_SEARCH_LEN = 2
 MAX_RESULTS = 20
 
+DEFAULT_PAGE_SIZE = 30
+MAX_PAGE_SIZE = 100
+
 
 def _clean_public_id(raw):
     return str(raw or "").strip().lstrip("#")
@@ -47,6 +50,19 @@ def _get_target(public_id):
     if not public_id:
         return None
     return User.objects.filter(public_id__iexact=public_id).first()
+
+
+def _friend_ids(me):
+    """The pks of everyone `me` is friends with.
+
+    Two indexed lookups (one per side of the ordered pair), so this is bounded
+    by how many friends `me` actually has, never by the size of the whole
+    user base — that's what keeps a friend search/listing cheap at any scale.
+    """
+    pairs = Friendship.objects.filter(Q(user_low=me) | Q(user_high=me)).values_list(
+        "user_low_id", "user_high_id"
+    )
+    return {hi if lo == me.pk else lo for lo, hi in pairs}
 
 
 def _relationship_map(me, candidate_ids):
@@ -249,20 +265,52 @@ def unblock_user(request):
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
-def friends_overview(request):
-    """Everything the Friends view needs in one payload: friends, both
-    directions of pending requests, and who you've blocked."""
-    me = request.user
+@throttle_classes([UserSearchRateThrottle])
+def search_friends(request):
+    """Page through the caller's own friends, optionally filtered by name or
+    player ID typed into a single search box.
 
-    friendships = (
-        Friendship.objects.filter(Q(user_low=me) | Q(user_high=me))
-        .select_related("user_low", "user_high")
-        .defer("user_low__profile_photo_data", "user_high__profile_photo_data")
-    )
-    friends = [
-        _brief(request, f.user_high if f.user_low_id == me.pk else f.user_low) for f in friendships
-    ]
-    friends.sort(key=lambda f: -f["points"])
+    Deliberately two queries rather than one: first resolve *which* users are
+    friends (bounded by the caller's own friend count via the indexed
+    user_low/user_high columns on Friendship — this never touches the rest of
+    the user base), then filter and paginate only that already-small set.
+    A search here scales with how many friends you have, not with how many
+    players exist on the platform, so it stays fast without needing any
+    special text-search index.
+    """
+    me = request.user
+    q = _clean_public_id(request.query_params.get("q"))
+    try:
+        limit = min(max(int(request.query_params.get("limit", DEFAULT_PAGE_SIZE)), 1), MAX_PAGE_SIZE)
+        offset = max(int(request.query_params.get("offset", 0)), 0)
+    except ValueError:
+        return Response({"error": "limit/offset must be integers"}, status=400)
+
+    friend_ids = _friend_ids(me)
+    if not friend_ids:
+        return Response({"results": [], "total": 0})
+
+    qs = User.objects.filter(pk__in=friend_ids)
+    if q:
+        qs = qs.filter(Q(username__icontains=q) | Q(public_id__icontains=q))
+    # _brief() never reads profile_photo* (list rows always show initials —
+    # see its docstring), so this deliberately leaves the heavy photo blob
+    # column off the fetched fields entirely rather than deferring it.
+    qs = qs.only("id", "public_id", "username", "points", "rank").order_by("-points", "username")
+
+    total = qs.count()
+    page = list(qs[offset : offset + limit])
+    return Response({"results": [_brief(request, u) for u in page], "total": total})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def friends_overview(request):
+    """Both directions of pending requests, and who you've blocked. The
+    friend list itself is paginated separately by `search_friends` — even a
+    "give me everyone" call there is still bounded and sorted the same way,
+    so there's nothing this endpoint needs to duplicate."""
+    me = request.user
 
     incoming = (
         FriendRequest.objects.filter(receiver=me)
@@ -285,7 +333,6 @@ def friends_overview(request):
 
     return Response(
         {
-            "friends": friends,
             "incoming_requests": [{"request_id": r.pk, **_brief(request, r.sender)} for r in incoming],
             "outgoing_requests": [{"request_id": r.pk, **_brief(request, r.receiver)} for r in outgoing],
             "blocked_users": [_brief(request, b.blocked) for b in blocked],

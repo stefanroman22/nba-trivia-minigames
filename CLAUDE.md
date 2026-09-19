@@ -102,6 +102,7 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `docs/games/MASTER_PLAN.md` | adding a new game or checking what's already shipped/planned |
 | `.claude/README.md` | changing the coding-agent model/effort profile |
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
+| `docs/CACHING_SCALING_PLAN.md` | deciding whether friends/leaderboard data needs Redis caching, or touching `users/leaderboard.py`/`users/friends.py`'s query shape |
 
 ## Coding engines & profiles
 This repo defines coding subagents in `.claude/agents/` (frontend-engine, backend-engine, code-reviewer, test-qa-engine, planner-architect, browser-qa). Their model + reasoning effort are governed by a named profile. Switch the whole fleet with `npm run engine <fast|balanced|deep|max>`. See `.claude/README.md`.
