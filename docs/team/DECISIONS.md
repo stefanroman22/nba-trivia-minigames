@@ -99,3 +99,44 @@ a `Landpage` mount effect; update Rule UI-3 in `UI_SHELL_CONSTRAINTS.md`; browse
 Consequences: small nav/scroll timing fixes stay on sonnet as long as the target and the
 arrival mechanism can be named up front; fable is reserved for cases where the mechanism itself
 is unclear.
+
+## 2026-09-17 — Pipeline v2: board columns, push-to-dev, human-merged dev→main
+
+**Context.** Cards created without a Status were invisible to the pipeline; per-task PRs into
+dev plus a CTO merge doubled the review work and left "Done" meaning "on dev, not production";
+the actionable Slack cards lived in `#pipeline` while the agent channels only got digests.
+
+**Decision.** Board = Backlog → To Do → In progress → QA → Done (Done = on main, set only by
+`main-sync.yml`). Ship = rebase + fast-forward push to dev, no PR. QA/failure cards with model +
+effort go to the agent channels and carry the ✅/🔄 loop; `#pipeline` gets one run summary.
+Failures return the card to To Do with `Attempts`; two failures set `Needs human`.
+Frontend+backend work in one card is split internally (backend first, one commit).
+`maxTasksPerRun` is no longer a limit; time is. Promotion to `main` is covered by a separate
+2026-09-19 entry below.
+
+**Consequences.** Spec images can come from the body, the Attachments property or comments.
+`Area` and per-task `PR` are gone from the board.
+Spec: `docs/superpowers/specs/2026-09-17-pipeline-v2-board-flow-slack-design.md`.
+
+## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action
+
+**Context.** Mid-implementation of the above, discovered live that a real, human-authenticated
+push to `dev` (not just the pipeline's bot-token merges) still auto-triggered `dev-ci.yml`'s
+promote-to-main job — that's how an unrelated feature PR reached production without anyone
+asking. A concurrent session had already opened a PR gating that job to manual
+`workflow_dispatch` only. Owner's directive: "all coding agents and pipeline push to dev only.
+Push to prod can only be done if explicitly asked within prompting or via triggering the manual
+action on GitHub."
+
+**Decision.** Drop this plan's original batch `dev → main` PR + CTO-review + owner-merge design
+in favor of the simpler, already-in-flight fix: `dev-ci.yml` keeps its promote job, gated to
+`workflow_dispatch` only (no push, from anyone, auto-promotes). `claude.yml`'s `cto-review`/
+`cto-act` jobs are retired — with no PR left anywhere in the loop (per-task PRs were already gone;
+now the batch PR is too), there's nothing left for a PR-triggered review to attach to. Quality
+into `dev` stays the in-run `code-reviewer` (fable) step, unchanged. `scripts/promote.mjs` is not
+built; `main-sync.yml` is unaffected (it watches pushes to `main`, whatever the mechanism).
+
+**Consequences.** No batch review gate before production — the owner (or an agent explicitly
+asked to) is trusted to check `dev` before promoting. `cto-approved`/`cto-changes-requested`
+labels and the fix-tasks-first CTO loop in `team-run` are gone. Spec revision:
+`docs/superpowers/specs/2026-09-17-pipeline-v2-board-flow-slack-design.md` (2026-09-19 addendum).

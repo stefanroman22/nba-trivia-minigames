@@ -57,11 +57,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Configure git identity
         run: |
           git config user.name "github-actions[bot]"
@@ -78,3 +83,19 @@ jobs:
             git merge --no-ff origin/dev -m "Auto-merge dev into main [skip ci]"
           fi
           git push origin main
+      # A GITHUB_TOKEN push does not fire other on:push workflows (GitHub's anti-recursion
+      # behavior), so main-sync.yml never sees this push. Do the same QA -> Done marking
+      # inline instead of relying on that trigger. main-sync.yml stays correct for the OTHER
+      # way main can move: an agent explicitly pushing main with its own (non-GITHUB_TOKEN)
+      # credentials, which IS a normal push event.
+      - name: Promote QA cards whose commit is on main
+        run: |
+          set -euo pipefail
+          node scripts/notion.mjs list-qa | jq -r '.[] | "\(.id) \(.commit)"' | while read -r id sha; do
+            [ -z "$sha" ] && { echo "skip $id: no Commit"; continue; }
+            if git merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
+              node scripts/notion.mjs mark-done "$id" && echo "done: $id ($sha)"
+            else
+              echo "not on main yet: $id ($sha)"
+            fi
+          done

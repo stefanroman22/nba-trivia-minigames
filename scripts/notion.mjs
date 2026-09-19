@@ -1,37 +1,27 @@
 #!/usr/bin/env node
 // Deterministic Notion I/O for the team pipeline. Zero deps (Node 18+ fetch).
 // Env: NOTION_TOKEN (from .env.team or process env). Config: .claude/team/config.json
-import { readFileSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { ROOT, STATUS, CATEGORIES, loadEnvTeam, loadConfig, text } from "./lib/team-config.mjs";
+import { assembleSpec } from "./lib/notion-spec.mjs";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const CONFIG_PATH = resolve(ROOT, ".claude/team/config.json");
-const ENV_PATH = resolve(ROOT, ".env.team");
-
-function loadEnvTeam() {
-  if (!process.env.NOTION_TOKEN && existsSync(ENV_PATH)) {
-    for (const line of readFileSync(ENV_PATH, "utf8").split(/\r?\n/)) {
-      const m = line.match(/^([A-Z_]+)=(.*)$/);
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
-    }
-  }
-}
 loadEnvTeam();
 const TOKEN = process.env.NOTION_TOKEN;
 if (!TOKEN) { console.error("NOTION_TOKEN missing (set in .env.team or env)"); process.exit(2); }
-const cfg = existsSync(CONFIG_PATH) ? JSON.parse(readFileSync(CONFIG_PATH, "utf8")) : {};
+const cfg = loadConfig();
 const DB = process.env.NOTION_DB_ID || cfg.notionDbId;
 const USER = process.env.NOTION_USER_ID || cfg.notionUserId;
+const MAX_ATTEMPTS = Number(cfg.maxAttempts ?? 2);
+const VERSION = "2022-06-28";
+// The comments endpoint only returns `attachments` on newer API versions; everything
+// else stays on the version the rest of this file was written against.
+const COMMENTS_VERSION = process.env.NOTION_COMMENTS_VERSION || "2025-09-03";
 
-async function api(path, method = "GET", body) {
+async function api(path, method = "GET", body, version = VERSION) {
   const res = await fetch(`https://api.notion.com/v1/${path}`, {
     method,
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Notion-Version": "2022-06-28",
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${TOKEN}`, "Notion-Version": version, "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json();
@@ -39,40 +29,66 @@ async function api(path, method = "GET", body) {
   return json;
 }
 
+const sel = (names, colors = {}) => ({ select: { options: names.map((n) => ({ name: n, ...(colors[n] ? { color: colors[n] } : {}) })) } });
+const STATUS_COLORS = { [STATUS.BACKLOG]: "gray", [STATUS.TODO]: "red", [STATUS.IN_PROGRESS]: "blue", [STATUS.QA]: "yellow", [STATUS.DONE]: "green" };
 const SCHEMA = {
   Name: { title: {} },
-  Status: { select: { options: [
-    { name: "Backlog", color: "gray" }, { name: "Ready", color: "blue" },
-    { name: "In Progress", color: "yellow" }, { name: "In Review", color: "orange" },
-    { name: "Blocked", color: "red" }, { name: "Blocked-approval", color: "pink" },
-    { name: "Done", color: "green" },
-  ] } },
-  Priority: { select: { options: [
-    { name: "P0", color: "red" }, { name: "P1", color: "yellow" }, { name: "P2", color: "gray" },
-  ] } },
-  Area: { multi_select: { options: ["games","ui","backend","multiplayer","auth","data"].map(n => ({ name: n })) } },
-  Difficulty: { select: { options: [
-    { name: "trivial", color: "gray" }, { name: "standard", color: "blue" }, { name: "hard", color: "red" },
-  ] } },
+  Status: sel(Object.values(STATUS), STATUS_COLORS),
+  Category: sel([...CATEGORIES]),
+  Priority: sel(["P0", "P1", "P2"], { P0: "red", P1: "yellow", P2: "gray" }),
+  Attachments: { files: {} },
+  Attempts: { number: { format: "number" } },
+  "Needs human": { checkbox: {} },
+  Model: { rich_text: {} },
+  Difficulty: sel(["trivial", "standard", "hard"], { trivial: "gray", standard: "blue", hard: "red" }),
+  Commit: { rich_text: {} },
   Branch: { rich_text: {} },
-  PR: { url: {} },
   SlackTs: { rich_text: {} },
   Paused: { checkbox: {} },
 };
 
-const text = (s) => [{ type: "text", text: { content: String(s).slice(0, 1900) } }];
+const arg = (args, flag) => { const i = args.indexOf(flag); return i > -1 ? args[i + 1] : undefined; };
+const plain = (rich) => (rich || []).map((t) => t.plain_text).join("");
+const isControl = (p) => plain(p.properties?.Name?.title).startsWith("CONTROL");
+const row = (p) => ({
+  id: p.id,
+  title: plain(p.properties.Name?.title),
+  priority: p.properties.Priority?.select?.name || "P2",
+  category: p.properties.Category?.select?.name || "backend",
+  difficulty: p.properties.Difficulty?.select?.name || null,
+  attempts: p.properties.Attempts?.number || 0,
+  commit: plain(p.properties.Commit?.rich_text),
+  slackTs: plain(p.properties.SlackTs?.rich_text),
+  url: p.url,
+});
+
+async function queryAll(filter) {
+  let cursor, results = [];
+  do {
+    const r = await api(`databases/${DB}/query`, "POST", { ...(filter ? { filter } : {}), page_size: 100, ...(cursor ? { start_cursor: cursor } : {}) });
+    results = results.concat(r.results);
+    cursor = r.has_more ? r.next_cursor : null;
+  } while (cursor);
+  return results.filter((p) => !isControl(p));
+}
+
+async function setStatus(pageId, status) {
+  await api(`pages/${pageId}`, "PATCH", { properties: { Status: { select: { name: status } } } });
+}
+
+async function comment(pageId, body, mention) {
+  const rich = [];
+  if (mention && USER) rich.push({ type: "mention", mention: { user: { id: USER } } }, { type: "text", text: { content: " " } });
+  rich.push({ type: "text", text: { content: String(body).slice(0, 1900) } });
+  await api("comments", "POST", { parent: { page_id: pageId }, rich_text: rich });
+}
+
+// ---------- commands ----------
 
 async function cmdSetup(parentPageId) {
-  const db = await api("databases", "POST", {
-    parent: { type: "page_id", page_id: parentPageId },
-    title: text("NBA Team Board"),
-    properties: SCHEMA,
-  });
+  const db = await api("databases", "POST", { parent: { type: "page_id", page_id: parentPageId }, title: text("NBA Team Board"), properties: SCHEMA });
   console.log(`DB created: ${db.id}`);
-  await api("pages", "POST", {
-    parent: { database_id: db.id },
-    properties: { Name: { title: text("CONTROL — do not delete") }, Paused: { checkbox: false } },
-  });
+  await api("pages", "POST", { parent: { database_id: db.id }, properties: { Name: { title: text("CONTROL — do not delete") }, Paused: { checkbox: false } } });
   console.log("CONTROL row created");
 }
 
@@ -80,138 +96,178 @@ async function cmdWhoamiUser(email) {
   let cursor, found;
   do {
     const r = await api(`users?page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`);
-    found = r.results.find(u => u.person?.email === email);
+    found = r.results.find((u) => u.person?.email === email);
     cursor = r.has_more ? r.next_cursor : null;
   } while (!found && cursor);
   if (!found) { console.error(`No user with email ${email}`); process.exit(1); }
   console.log(found.id);
 }
 
-const isControl = (p) =>
-  (p.properties?.Name?.title?.[0]?.plain_text || "").startsWith("CONTROL");
-
 async function cmdCheckPause() {
-  const r = await api(`databases/${DB}/query`, "POST", {
-    filter: { property: "Paused", checkbox: { equals: true } },
-  });
+  const r = await api(`databases/${DB}/query`, "POST", { filter: { property: "Paused", checkbox: { equals: true } } });
   if (r.results.some(isControl)) { console.log("PAUSED"); process.exit(3); }
   console.log("RUNNING");
 }
 
-async function cmdListReady() {
-  const r = await api(`databases/${DB}/query`, "POST", {
-    filter: { property: "Status", select: { equals: "Ready" } },
-    page_size: 50,
-  });
+async function cmdListTodo() {
+  const pages = await queryAll({ and: [
+    { property: "Status", select: { equals: STATUS.TODO } },
+    { property: "Needs human", checkbox: { equals: false } },
+  ] });
   const rank = { P0: 0, P1: 1, P2: 2 };
-  const rows = r.results.filter(p => !isControl(p)).map(p => ({
-    id: p.id,
-    title: p.properties.Name.title.map(t => t.plain_text).join(""),
-    priority: p.properties.Priority?.select?.name || "P2",
-    area: (p.properties.Area?.multi_select || []).map(a => a.name),
-    difficulty: p.properties.Difficulty?.select?.name || null,
-    url: p.url,
-  })).sort((a, b) => rank[a.priority] - rank[b.priority]);
+  const rows = pages.map((p) => ({ ...row(p), created: p.created_time }))
+    .sort((a, b) => (rank[a.priority] - rank[b.priority]) || a.created.localeCompare(b.created))
+    .map(({ created, commit, slackTs, ...r }) => r);
   console.log(JSON.stringify(rows, null, 2));
+}
+
+async function cmdListQa() {
+  const pages = await queryAll({ property: "Status", select: { equals: STATUS.QA } });
+  console.log(JSON.stringify(pages.map((p) => { const r = row(p); return { id: r.id, title: r.title, category: r.category, commit: r.commit, url: r.url }; }), null, 2));
+}
+
+async function cmdListInProgress() {
+  const pages = await queryAll({ property: "Status", select: { equals: STATUS.IN_PROGRESS } });
+  console.log(JSON.stringify(pages.map((p) => ({ id: p.id, title: plain(p.properties.Name?.title), lastEditedTime: p.last_edited_time })), null, 2));
 }
 
 // Some external image hosts (e.g. Wikimedia) reject requests that carry no User-Agent.
 const IMAGE_UA = "nba-minigames-team-pipeline/1.0 (+https://github.com/stefanroman22/nba-trivia-minigames)";
-
-async function downloadImage(pageId, url, index) {
-  const res = await fetch(url, { headers: { "User-Agent": IMAGE_UA } });
-  if (!res.ok) { console.error(`Image download failed (${res.status}): ${url}`); return null; }
-  const ct = res.headers.get("content-type") || "";
-  const ext = ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : "jpg";
-  const dir = resolve(ROOT, ".team/attachments", pageId);
-  mkdirSync(dir, { recursive: true });
-  const path = resolve(dir, `${index}.${ext}`);
-  writeFileSync(path, Buffer.from(await res.arrayBuffer()));
-  return path;
+function downloader(pageId) {
+  return async (url, index) => {
+    if (!url) return null;
+    let res;
+    try { res = await fetch(url, { headers: { "User-Agent": IMAGE_UA } }); } catch { return null; }
+    if (!res.ok) { console.error(`Attachment download failed (${res.status}): ${url}`); return null; }
+    const ct = res.headers.get("content-type") || "";
+    const ext = ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : ct.includes("pdf") ? "pdf" : ct.includes("jpeg") ? "jpg" : "bin";
+    const dir = resolve(ROOT, ".team/attachments", pageId);
+    mkdirSync(dir, { recursive: true });
+    const path = resolve(dir, `${index}.${ext}`);
+    writeFileSync(path, Buffer.from(await res.arrayBuffer()));
+    return path;
+  };
 }
 
 async function cmdGetSpec(pageId) {
-  let cursor, out = [], imageIndex = 0;
+  let cursor, blocks = [];
   do {
     const r = await api(`blocks/${pageId}/children?page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`);
-    for (const b of r.results) {
-      if (b.type === "image") {
-        const url = b.image.type === "external" ? b.image.external.url : b.image.file.url;
-        const path = await downloadImage(pageId, url, imageIndex++);
-        out.push(path
-          ? `[Image attached: ${path}]`
-          : "[Image attached: DOWNLOAD FAILED — an image exists on this card but could not be fetched; ask the owner to re-upload it directly in Notion before building]");
-        continue;
-      }
-      const rt = b[b.type]?.rich_text;
-      if (rt) out.push((b.type.startsWith("heading") ? "## " : b.type === "bulleted_list_item" ? "- " : "") + rt.map(t => t.plain_text).join(""));
-    }
+    blocks = blocks.concat(r.results);
     cursor = r.has_more ? r.next_cursor : null;
   } while (cursor);
-  console.log(out.join("\n"));
+  const page = await api(`pages/${pageId}`);
+  const files = page.properties?.Attachments?.files || [];
+  let ccur, comments = [];
+  do {
+    const r = await api(`comments?block_id=${pageId}&page_size=100${ccur ? `&start_cursor=${ccur}` : ""}`, "GET", undefined, COMMENTS_VERSION);
+    comments = comments.concat(r.results);
+    ccur = r.has_more ? r.next_cursor : null;
+  } while (ccur);
+  const me = await api("users/me");
+  console.log(await assembleSpec({ blocks, files, comments, botId: me.id, download: downloader(pageId) }));
 }
 
-async function setStatus(pageId, status) {
-  await api(`pages/${pageId}`, "PATCH", { properties: { Status: { select: { name: status } } } });
+async function cmdClaim(pageId, args) {
+  const model = arg(args, "--model") || "";
+  await api(`pages/${pageId}`, "PATCH", { properties: { Status: { select: { name: STATUS.IN_PROGRESS } }, Model: { rich_text: text(model) } } });
+  await comment(pageId, `🤖 started · ${model}`, false);
+  console.log("claimed");
 }
 
-async function cmdComment(pageId, body, mention) {
-  const rich = [];
-  if (mention && USER) rich.push({ type: "mention", mention: { user: { id: USER } } }, { type: "text", text: { content: " " } });
-  rich.push({ type: "text", text: { content: String(body).slice(0, 1900) } });
-  await api("comments", "POST", { parent: { page_id: pageId }, rich_text: rich });
-  console.log("commented");
+async function cmdShipCard(pageId, args) {
+  const commitSha = arg(args, "--commit"), branch = arg(args, "--branch"), model = arg(args, "--model") || "", devUrl = arg(args, "--dev-url") || cfg.devSiteUrl || "";
+  if (!commitSha) { console.error("--commit required"); process.exit(2); }
+  await api(`pages/${pageId}`, "PATCH", { properties: {
+    Status: { select: { name: STATUS.QA } },
+    Commit: { rich_text: text(commitSha) },
+    ...(branch ? { Branch: { rich_text: text(branch) } } : {}),
+    Model: { rich_text: text(model) },
+  } });
+  await comment(pageId, `✅ on dev (${commitSha.slice(0, 7)}) — check ${devUrl}`, true);
+  console.log("shipped");
+}
+
+async function cmdFailCard(pageId, args) {
+  const stage = arg(args, "--stage") || "unknown", reason = arg(args, "--reason") || "";
+  const pmPath = arg(args, "--postmortem-file");
+  const postmortem = pmPath ? readFileSync(pmPath, "utf8") : reason;
+  const page = await api(`pages/${pageId}`);
+  const attempts = (page.properties?.Attempts?.number || 0) + 1;
+  const needsHuman = attempts >= MAX_ATTEMPTS;
+  await api(`pages/${pageId}`, "PATCH", { properties: {
+    Status: { select: { name: STATUS.TODO } },
+    Attempts: { number: attempts },
+    "Needs human": { checkbox: needsHuman },
+  } });
+  const head = `❌ attempt ${attempts}/${MAX_ATTEMPTS} failed at ${stage}: ${reason}` + (needsHuman ? " — Needs human is set; uncheck it to let the pipeline retry." : " — back in To Do, retries next run.");
+  await comment(pageId, `${head}\n\n${postmortem}`, true);
+  console.log(JSON.stringify({ attempts, needsHuman, maxAttempts: MAX_ATTEMPTS }));
+}
+
+async function cmdMarkDone(pageId) {
+  await setStatus(pageId, STATUS.DONE);
+  await comment(pageId, "🚀 in production", true);
+  console.log("done");
 }
 
 async function cmdSetProps(pageId, args) {
   const props = {};
-  const bi = args.indexOf("--branch"); if (bi > -1) props.Branch = { rich_text: text(args[bi + 1]) };
-  const pi = args.indexOf("--pr"); if (pi > -1) props.PR = { url: args[pi + 1] };
-  const si = args.indexOf("--slack-ts"); if (si > -1) props.SlackTs = { rich_text: text(args[si + 1]) };
+  const b = arg(args, "--branch"); if (b) props.Branch = { rich_text: text(b) };
+  const c = arg(args, "--commit"); if (c) props.Commit = { rich_text: text(c) };
+  const s = arg(args, "--slack-ts"); if (s) props.SlackTs = { rich_text: text(s) };
+  const cat = arg(args, "--category"); if (cat) props.Category = { select: { name: cat } };
   await api(`pages/${pageId}`, "PATCH", { properties: props });
   console.log("props set");
 }
 
 async function cmdCreateCard(title, args) {
-  const props = {
-    Name: { title: text(title) },
-    Status: { select: { name: "Ready" } },
-    Priority: { select: { name: "P1" } },
-  };
-  const ai = args.indexOf("--area");
-  if (ai > -1 && args[ai + 1]) props.Area = { multi_select: args[ai + 1].split(",").map(n => ({ name: n.trim() })) };
+  const props = { Name: { title: text(title) }, Status: { select: { name: STATUS.TODO } }, Priority: { select: { name: "P1" } } };
+  const cat = arg(args, "--category"); if (cat) props.Category = { select: { name: cat } };
   const page = { parent: { database_id: DB }, properties: props };
-  const bi = args.indexOf("--body");
-  if (bi > -1 && args[bi + 1]) {
-    page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(args[bi + 1]) } }];
-  }
+  const body = arg(args, "--body");
+  if (body) page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
   const r = await api("pages", "POST", page);
   console.log(r.id);
 }
 
-async function cmdArchiveCard(pageId) {
-  await api(`pages/${pageId}`, "PATCH", { archived: true });
-  console.log("archived");
-}
+async function cmdArchiveCard(pageId) { await api(`pages/${pageId}`, "PATCH", { archived: true }); console.log("archived"); }
 
 async function cmdListAwaitingFeedback() {
-  const r = await api(`databases/${DB}/query`, "POST", {
-    filter: { property: "SlackTs", rich_text: { is_not_empty: true } },
-    page_size: 100,
-  });
-  const rows = r.results.filter(p => !isControl(p)).map(p => ({
-    id: p.id,
-    title: p.properties.Name.title.map(t => t.plain_text).join(""),
-    slackTs: (p.properties.SlackTs?.rich_text || []).map(t => t.plain_text).join(""),
-    pr: p.properties.PR?.url || "",
-    areas: (p.properties.Area?.multi_select || []).map(a => a.name),
-  })).filter(x => x.slackTs);
-  console.log(JSON.stringify(rows, null, 2));
+  const pages = await queryAll({ property: "SlackTs", rich_text: { is_not_empty: true } });
+  console.log(JSON.stringify(pages.map((p) => { const r = row(p); return { id: r.id, title: r.title, slackTs: r.slackTs, category: r.category }; }).filter((x) => x.slackTs), null, 2));
 }
 
-async function cmdClearSlackTs(pageId) {
-  await api(`pages/${pageId}`, "PATCH", { properties: { SlackTs: { rich_text: [] } } });
-  console.log("slack-ts cleared");
+async function cmdClearSlackTs(pageId) { await api(`pages/${pageId}`, "PATCH", { properties: { SlackTs: { rich_text: [] } } }); console.log("slack-ts cleared"); }
+
+// One-shot migration from the v1 board (Ready/In Progress/In Review/Blocked/…) to v2.
+// --qa <id>:<sha>,...       Done cards whose commit is on dev but not main → QA with Commit set
+// --category <id>=<cat>,... Category for existing cards (Area is dropped)
+async function cmdMigrateV2(args) {
+  const qa = Object.fromEntries((arg(args, "--qa") || "").split(",").filter(Boolean).map((s) => s.split(":")));
+  const cats = Object.fromEntries((arg(args, "--category") || "").split(",").filter(Boolean).map((s) => s.split("=")));
+  const OLD = ["Backlog", "Ready", "In Progress", "In Review", "Blocked", "Blocked-approval", "Done"];
+  // 1. add the new options + properties while the old options still exist
+  await api(`databases/${DB}`, "PATCH", { properties: {
+    Status: sel([...Object.values(STATUS), ...OLD.filter((o) => !Object.values(STATUS).some((s) => s.toLowerCase() === o.toLowerCase()))], STATUS_COLORS),
+    Category: SCHEMA.Category, Attachments: SCHEMA.Attachments, Attempts: SCHEMA.Attempts,
+    "Needs human": SCHEMA["Needs human"], Model: SCHEMA.Model, Commit: SCHEMA.Commit,
+  } });
+  // 2. move every row
+  const map = { Ready: STATUS.TODO, "In Progress": STATUS.IN_PROGRESS, "In Review": STATUS.QA, Blocked: STATUS.TODO, "Blocked-approval": STATUS.TODO };
+  for (const p of await queryAll()) {
+    const old = p.properties.Status?.select?.name;
+    const props = { Attempts: { number: 0 } };
+    if (qa[p.id]) { props.Status = { select: { name: STATUS.QA } }; props.Commit = { rich_text: text(qa[p.id]) }; }
+    else if (map[old]) props.Status = { select: { name: map[old] } };
+    if (old === "Blocked" || old === "Blocked-approval") props["Needs human"] = { checkbox: true };
+    if (cats[p.id]) props.Category = { select: { name: cats[p.id] } };
+    await api(`pages/${p.id}`, "PATCH", { properties: props });
+    console.log(`migrated ${p.id}: ${old} → ${props.Status?.select?.name || old}`);
+  }
+  // 3. final option set, drop Area + PR
+  await api(`databases/${DB}`, "PATCH", { properties: { Status: SCHEMA.Status, Area: null, PR: null } });
+  console.log("schema finalized");
 }
 
 const [cmd, ...args] = process.argv.slice(2);
@@ -219,16 +275,22 @@ const run = {
   "setup": () => cmdSetup(args[0]),
   "whoami-user": () => cmdWhoamiUser(args[0]),
   "check-pause": cmdCheckPause,
-  "list-ready": cmdListReady,
+  "list-todo": cmdListTodo,
+  "list-qa": cmdListQa,
+  "list-in-progress": cmdListInProgress,
   "get-spec": () => cmdGetSpec(args[0]),
-  "claim": async () => { await setStatus(args[0], "In Progress"); await cmdComment(args[0], "🤖 started", false); },
-  "set-status": () => setStatus(args[0], args[1]),
+  "claim": () => cmdClaim(args[0], args.slice(1)),
+  "ship-card": () => cmdShipCard(args[0], args.slice(1)),
+  "fail-card": () => cmdFailCard(args[0], args.slice(1)),
+  "mark-done": () => cmdMarkDone(args[0]),
+  "set-status": () => setStatus(args[0], args[1]).then(() => console.log("status set")),
   "set-props": () => cmdSetProps(args[0], args.slice(1)),
-  "comment": () => cmdComment(args[0], args.filter(a => a !== "--mention").slice(1).join(" "), args.includes("--mention")),
+  "comment": () => comment(args[0], args.filter((a) => a !== "--mention").slice(1).join(" "), args.includes("--mention")).then(() => console.log("commented")),
   "create-card": () => cmdCreateCard(args[0], args.slice(1)),
   "archive-card": () => cmdArchiveCard(args[0]),
   "list-awaiting-feedback": cmdListAwaitingFeedback,
   "clear-slack-ts": () => cmdClearSlackTs(args[0]),
+  "migrate-v2": () => cmdMigrateV2(args),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();

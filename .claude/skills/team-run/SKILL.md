@@ -1,175 +1,148 @@
 ---
 name: team-run
-description: One queue-drain run of the autonomous team pipeline — pull Ready Notion cards, execute each through classify→design→build→verify→QA→review→ship, park failures. Invoked headless by scripts/team-run.ps1 or npm run team.
+description: One queue-drain run of the autonomous team pipeline — resume unfinished cards, claim To Do cards, run each through classify→design→build→verify→QA→review→ship (fast-forward push to dev), fail cards back to To Do, post Slack cards. Invoked headless by scripts/team-run.ps1 or npm run team.
 ---
 
 # Team Run
 
 You are the orchestrator. You delegate ALL heavy work to subagents; you never write
-product code yourself. Notion I/O ONLY via `node scripts/notion.mjs ...` — never the
-Notion MCP connector (absent in headless runs).
+product code yourself. Notion I/O ONLY via `node scripts/notion.mjs ...`, Slack ONLY via
+`node scripts/slack.mjs ...` — never MCP connectors (absent in headless runs).
 
 ## Environment: local vs cloud
-Check the `TEAM_CLOUD` environment variable once at the start.
-- **`TEAM_CLOUD` unset (local, Windows):** behave exactly as the sections below describe —
-  git worktrees under `cfg.worktreeRoot`, `.env.team` for tokens.
-- **`TEAM_CLOUD=1` (cloud routine, Linux):** apply the cloud overrides marked
-  **[CLOUD]** below. In short: work on a branch inside the current clone instead of a
-  worktree, install your own dependencies, and rely on `NOTION_TOKEN`/`SLACK_BOT_TOKEN` from
-  the environment (no `.env.team`). Everything else — classify, build, verify, QA, review,
-  ship, park, post-batch, Slack feedback ingestion — is identical.
-- **Browser QA runs in BOTH modes.** It is headless Playwright via
-  `scripts/qa-browser.mjs`, never the user's Chrome, so it is not a local-only stage. The
-  only cloud difference is that the deps step installs the browser first.
+Check `TEAM_CLOUD` once at the start.
+- **unset (local, Windows):** git worktrees under `cfg.worktreeRoot`, tokens from `.env.team`.
+- **`TEAM_CLOUD=1` (cloud routine, Linux):** apply the **[CLOUD]** overrides: a branch inside
+  the single clone instead of a worktree; install your own deps; `NOTION_TOKEN`/`SLACK_BOT_TOKEN`
+  from the environment. Everything else is identical. Browser QA (headless Playwright via
+  `scripts/qa-browser.mjs`) runs in BOTH modes.
 
 ## Model policy
-Opus 5 is **banned** in this pipeline: never pass the `opus` alias (it resolves to Opus 5 and is
-denied in `.claude/settings.json`), never fall back to it. The one permitted Opus is 4.8, and
-only for planning, reached solely through the `planner-architect-opus` agent whose frontmatter
-pins `claude-opus-4-8` — spawn that agent with NO model parameter. Every other spawn names its
-model explicitly. Fable 5.1 does the thinking, sonnet does the typing, haiku does the trivia
-(`docs/team/DECISIONS.md` 2026-09-06 entries).
-- planner-architect (classify): `fable`. Design-round and replan: per `classify.planModel` —
-  `fable` → planner-architect (model fable); `opus-4.8` → planner-architect-opus (no model
-  parameter).
-- frontend-engine / backend-engine: the design doc's `Engine:` line when a design round ran,
-  else `classify.engineModel` — `haiku` (trivial), `sonnet` (clearly defined steps with
-  acceptance criteria, any length), `fable` (few steps, each needing real judgment).
-- test-qa-engine and browser-qa: `sonnet`, always. Never fable.
-- code-reviewer: `fable`, always.
-- CTO review (GitHub Actions): `fable`, pinned in `.github/workflows/claude.yml`.
+Opus 5 is **banned**: never pass the `opus` alias, never fall back to it. The one permitted
+Opus is 4.8, planning only, reached solely through the `planner-architect-opus` agent (spawn it
+with NO model parameter). Every other spawn names its model explicitly.
+- planner-architect (classify): `fable`. Design round / replan: per `classify.planModel` —
+  `fable` → planner-architect (model fable); `opus-4.8` → planner-architect-opus (no model parameter).
+- frontend-engine / backend-engine: the design doc's `Engine:` line if a design round ran, else
+  `classify.engineModel` (`haiku` trivial, `sonnet` default, `fable` few-steps-needing-judgment).
+- test-qa-engine and browser-qa: `sonnet`, always. code-reviewer: `fable`, always.
 
 ## 0. Preconditions
-- Read `.claude/team/config.json` → cfg. Note start time; enforce cfg.maxRunMinutes overall.
+- Read `.claude/team/config.json` → cfg. Note the start time (HH:MM); enforce cfg.maxRunMinutes.
 - `node scripts/notion.mjs check-pause` — exit code 3 → say "paused" and STOP.
-- Read `.team/journal.json` (may be absent → `{}`).
+- Read `.team/journal.json` (absent → `{}`).
+- **Stale sweep:** `node scripts/notion.mjs list-in-progress`. A card there with no journal
+  entry MIGHT belong to a run that died before writing its journal — or it might be a genuinely
+  live run on a different checkout/machine (the cloud routine and a local run can overlap).
+  Only treat it as stale if it's ALSO been untouched a while: `lastEditedTime` is more than
+  cfg.maxRunMinutes minutes in the past. A run still actively working a card touches it again
+  well inside that window at every stage transition; only a truly dead run goes silent that long.
+  For a card past that threshold, it's not the task's fault, so do NOT use `fail-card` (it would
+  count an attempt): run `node scripts/notion.mjs set-status <id> "To Do"` and
+  `node scripts/notion.mjs comment <id> "↩️ previous run died before starting this card — back in To Do"`.
+  No Slack card for these. A card with no journal entry but a RECENT `lastEditedTime` is left
+  alone — it's someone else's live run, not yours to touch.
+- In-run lists: `shipped = []`, `failed = []`.
 
 ## 0b. Slack feedback ingestion
-Run `node scripts/slack.mjs poll-reactions` (non-fatal: on error, log and skip to §1).
-Parse the JSON array. For each item:
-- `action:"followup"` → `node scripts/notion.mjs create-card "Follow-up: <title>" --body "Slack feedback on <pr>: <note>"`. If the item has a non-empty `areas`, pass `--area <areas joined by comma>` to route it directly (e.g. `create-card "Follow-up: <title>" --area <areas.join(",")> --body "Slack feedback on <pr>: <note>"`); if `areas` is empty, omit `--area` as before and classify re-derives areas from the spec. This new Ready card is picked up in this same run's queue (§2 reads Ready after this).
-- `action:"ack"` and the item has a pageId → `node scripts/notion.mjs archive-card <pageId>`.
-This runs BEFORE §2 so follow-ups drain in the same batch.
+`node scripts/slack.mjs poll-reactions` (non-fatal: on error log and continue). For each item:
+- `followup` → `node scripts/notion.mjs create-card "Follow-up: <title>" --category <category> --body "Slack feedback on <title>: <note> (original card: <pageId>)"`. It is `To Do` and joins this run's queue (§1 reads To Do after this).
+- `ack` → nothing (the card stays in QA until its commit reaches main).
 
-## 1. Fix-tasks first (changes-requested PRs)
-`gh pr list --base dev --label cto-changes-requested --json number,headRefName,title,url`
-Each is a fix task: recreate the worktree from its branch
-(`git worktree add <cfg.worktreeRoot>\<slug> <branch>` (slug = headRefName with the team/ prefix stripped)), fetch CTO review comments
-(`gh pr view <n> --json reviews,comments`), dispatch the matching engine agent(s) to fix,
-then verify → QA → ship stages as below (ship = push to same branch, comment on PR
-`CTO findings addressed: <summary>`, remove label `cto-changes-requested`). Counts toward
-cfg.maxTasksPerRun.
-   **[CLOUD]** No worktree — recreate the branch in the clone: `git fetch origin <branch>`
-   then `git checkout -B <branch> origin/<branch>`; run verify/QA/ship as in cloud
-   mode; `git checkout dev` before the next task.
+## 1. Queue
+Resume every journal entry FIRST, at its recorded stage (skip claim). Then
+`node scripts/notion.mjs list-todo` → queue (P0 first). Process serially; stop starting new
+tasks at 80% of cfg.maxRunMinutes; always finish or fail the current one. `maxTasksPerRun`
+is a safety net, not a target — time is the limit.
 
-## 2. Queue
-`node scripts/notion.mjs list-ready` → queue (already P0-sorted). Also merge in any
-journal entries mid-flight (resume them FIRST, at their recorded stage).
-Process serially (Stage 1–2 = 1 task at a time), up to cfg.maxTasksPerRun or until
-cfg.maxRunMinutes is nearly spent (stop starting new tasks at 80% elapsed; always
-finish or park the current one).
+## 2. Per task — state machine (update journal after EVERY stage transition)
+slug = kebab-case title, ≤30 chars. Journal entry: `{slug, title, category, stage, fixCycles,
+replanned, startedAt, classify, subtasks?, resumeNote}`.
 
-## 3. Per task — state machine (update journal after EVERY stage transition)
-slug = kebab-case title, ≤30 chars.
-
-**claim** → `node scripts/notion.mjs claim <id>`; journal stage=classify.
+**claim** → `node scripts/notion.mjs claim <id> --model "<engineModel> · <engineEffort>"`
+(fill after classify if you claim before it — re-run `claim` is idempotent for the Model text).
+journal stage=classify.
 
 **classify** → spawn planner-architect (model fable) with the classify skill, the card
-title/areas, and `get-spec` output. Parse its JSON. journal stage=workspace.
+title/Category, and `get-spec` output (it already contains body text, `[Image attached]`
+lines from the body, the Attachments property and owner comments). Parse its JSON.
+If `areas` contains both `frontend` and `backend` → this is a **split task** (§2b).
+journal stage=workspace.
 
-**workspace** → `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> dev`
-(from up-to-date dev: `git fetch origin dev` first; base on origin/dev).
-In worktree: `npm ci`. If areas include backend/data/auth:
-`cd backend && python -m venv .venv && .venv\Scripts\pip install -r requirements.txt`.
-journal stage=design|build.
-   **[CLOUD]** Do NOT create a worktree. Instead, in the single clone:
-   `git fetch origin dev` then `git checkout -B team/<slug> origin/dev`. Build/verify/review
-   happen in the clone on this branch. After ship (or park), `git checkout dev` before the next
-   task so each task starts clean from `origin/dev`. There is no `cfg.worktreeRoot` and no
-   worktree to remove in cloud mode.
-   **[CLOUD] install deps yourself — do NOT rely on the environment setup script.** After
-   checkout, run `npm ci` (or `npm install` if `npm ci` fails) at the repo root so the verify
-   stage has `node_modules`. If the task touches `backend/`, also
-   `cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt` (Linux
-   paths — the cloud VM is Linux, not Windows). If the diff touches `src/` or `backend/` (i.e.
-   the qa stage will run), also install the QA browser once:
-   `node node_modules/playwright-core/cli.js install --with-deps chromium` — non-fatal, if it
-   fails log one line and let the qa stage skip. The routine's setup script may be empty/no-op;
-   the pipeline is responsible for its own dependencies in cloud mode.
+**workspace** → `git fetch origin dev`; `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/dev`;
+in the worktree `npm ci`; if backend/data/auth areas: `cd backend && python -m venv .venv && .venv\Scripts\pip install -r requirements.txt`.
+Record `baseSha = git rev-parse origin/dev` in the journal. journal stage=design|build.
+   **[CLOUD]** `git checkout -B team/<slug> origin/dev` in the clone; `npm ci` (or `npm install`);
+   backend venv with Linux paths; `node node_modules/playwright-core/cli.js install --with-deps chromium`
+   (non-fatal) when src/ or backend/ will change. After ship or fail: `git checkout dev`.
 
-**design** (only if classify.needsDesignRound) → spawn the planner per classify.planModel
-(fable → planner-architect with model fable; opus-4.8 → planner-architect-opus with no
-model parameter) with design-round skill. If it parks (design deadlock) → park
-procedure. journal stage=build.
+**design** (only if classify.needsDesignRound) → planner per classify.planModel with the
+design-round skill. Design deadlock → fail procedure (stage `design`). journal stage=build.
 
-**build** → per involved area spawn the engine agent (frontend-engine and/or
-backend-engine) with model = the design doc's `Engine:` line if a design round ran, else
-classify.engineModel (haiku, sonnet, or fable — never opus),
-effort=classify.engineEffort.
-Prompt MUST include: spec text, design doc path (if any) plus the line "Implement its
-`## Implementation plan` step by step; do not re-plan", classify.docs (tell them to
-read those files first), classify.codeMapHits verbatim, classify.attachments (if
-non-empty — absolute paths to images pulled from the card; tell the engine to Read
-each one before implementing, they are the visual source of truth for this task), and
-the line "Reuse-first: duplicating a CODE_MAP entry is a review-reject." Work happens
-in the worktree path. journal stage=verify.
+**build** → per involved area spawn frontend-engine / backend-engine with model per the policy,
+effort=classify.engineEffort. Prompt MUST include: spec text, design doc path (if any) + "Implement
+its `## Implementation plan` step by step; do not re-plan", classify.docs (read first),
+classify.codeMapHits verbatim, classify.attachments (Read each before implementing — visual
+source of truth), and "Reuse-first: duplicating a CODE_MAP entry is a review-reject."
+Keep each engine's build report: its `did` (≤20 words) and `assumed`. journal stage=verify.
 
-**verify** → spawn test-qa-engine (model sonnet) in the worktree. Fail → send failures
-back to the engine (fixCycles += 1). fixCycles > 2 → ONE replan: spawn the same planner the
-design stage used (classify.planModel) with the failure history, get a revised approach, reset to
-build (replanned=true). Fails again → park. journal stage=qa.
+**verify** → test-qa-engine (sonnet) in the worktree. Fail → back to the engine (fixCycles += 1).
+fixCycles > 2 → ONE replan via the planner (classify.planModel) with the failure history, reset
+to build (replanned=true). Fails again → fail procedure (stage `verify`). journal stage=qa.
 
-**qa** → if diff touches src/ or backend/: spawn browser-qa (model sonnet — never
-fable) with qa-protocol skill. Fail → build (counts toward fixCycles). journal
-stage=review.
-   **[CLOUD]** Runs here too — QA is headless Playwright (`scripts/qa-browser.mjs`), not the
-   user's Chrome, so it works on a routine VM. The cloud deps step installs the browser.
-   If the browser genuinely cannot be installed, treat QA as skipped (log one line, continue
-   to review) rather than failing the task — never park a task over QA infrastructure.
+**qa** → if diff touches src/ or backend/: browser-qa (sonnet) with qa-protocol. Fail → build
+(counts toward fixCycles). Browser cannot be installed → QA skipped, log one line, continue.
+Write the **Check** line now: navigate → action → expected result, for someone who knows the app.
+journal stage=review.
 
-**review** → spawn code-reviewer (model fable — never sonnet: the implementer was cheap,
-this pass is where the heavy model checks the work) on the worktree diff
-(`git -C <worktree> diff dev...HEAD`). Findings of severity "blocker" or "major" → build
-(counts toward fixCycles). "minor"/"nit" findings are noted in the PR body but do not block ship. journal stage=ship.
+**review** → code-reviewer (fable) on `git -C <worktree> diff origin/dev...HEAD`. blocker/major →
+build (counts toward fixCycles). minor/nit → noted in the commit body. journal stage=ship.
 
-**ship** → follow ship skill. On success: remove journal entry. On success, append to
-an in-run `shipped[]` list: `{n, title, areas, pr, prNum, look, pageId}`. `look` is an
-EXPLICIT verification line the orchestrator writes: where to navigate → what to do →
-the expected result, pitched for someone who knows the app (e.g. "Open the Leaderboard
-from the nav; rows should be ordered by total wins, highest first; ties break by most
-recent win"). Not just the expected end-state — include the navigate/action. The card
-shows one Dev link at the parent (from `cfg.devSiteUrl`); no per-card PR/CTO/deep-link.
-`pr`/`prNum` are stored for the feedback loop's follow-up context, not displayed.
-   **[CLOUD]** Ship is unchanged (commit → `git push -u origin team/<slug>` → `gh pr create
-   --base dev`), but there is no worktree to remove — just `git checkout dev` for the next task.
-   Tokens for the Notion/Slack calls in the ship + post-batch steps come from the environment.
+**ship** → ship skill. `SHIPPED <sha>` → remove the journal entry; append to `shipped[]`:
+`{title, category}`; write `.team/qa-<slug>.json`:
+`{pageId, title, category, priority, model, effort, planModel|null, fixCycles, did, check, commit, halves?}`
+(`halves` only for split tasks: `{backend:{did,model,effort}, frontend:{did,model,effort}}`), then
+`node scripts/slack.mjs post-qa-card .team/qa-<slug>.json` (non-fatal).
+`SHIP-FAIL <reason>` → fail procedure (stage `ship`).
 
-## 4. Park procedure (any stage)
-1. `node scripts/notion.mjs set-status <id> Blocked`
-2. `comment <id> "<post-mortem: what was tried / why it failed / suggested next step>" --mention`
-3. Append the same post-mortem to `docs/team/RETRO.md` in the MAIN checkout, commit it
-   there on dev: `docs(team): retro for <slug>`.
-4. Leave the branch pushed if any commits exist; remove the worktree; remove journal entry.
-   **[CLOUD]** No worktree to remove — just `git checkout dev` for the next task; the branch stays pushed if it has commits.
+### 2b. Split tasks (frontend + backend in one card)
+Journal `subtasks: {backend:{stage,fixCycles,did}, frontend:{stage,fixCycles,did}}`. Same
+branch/worktree. Run **backend** build→verify first, then **frontend** build→verify, then ONE
+qa + ONE review over the whole diff, then ONE ship (one commit, two `- agent:` bullets). A failing
+half fails the whole card (fail procedure names the half in `stage`, e.g. `verify (frontend)`).
+`.team/qa-<slug>.json` gets `halves` so each channel receives its own card.
 
-## 5. End of run
-Log a one-line summary per task (shipped/parked/deferred). If nothing was in the queue,
-exit silently. Never touch cards that are not Ready/In Progress-by-you. If `shipped[]`
-is non-empty, write it to `.team/last-batch.json` as `{count: shipped.length,
-shipped}` and run `node scripts/slack.mjs post-batch .team/last-batch.json`
-(wrap in a try/catch equivalent — if it fails, log "slack post failed (non-fatal)" and
-continue). This is the batch overview to Slack. Composition happens in the local run
-per spec §7; the CTO merges later in the cloud, so the CTO ✅ is visible on the PR, not
-the card.
+## 3. Fail procedure (any stage)
+1. Write the post-mortem to `.team/postmortem-<slug>.md`: what was tried / why it failed /
+   suggested next step / last error (≤3 lines).
+2. `node scripts/notion.mjs fail-card <id> --stage "<stage>" --reason "<one line>" --postmortem-file .team/postmortem-<slug>.md`
+   → parse `{attempts, needsHuman, maxAttempts}`.
+3. Append the post-mortem to `docs/team/RETRO.md` in the MAIN checkout; commit it on dev:
+   `docs(team): retro for <slug>` (fetch/rebase/ff-push it like any dev commit; if that push
+   fails, leave it committed locally and log one line).
+4. Write `.team/fail-<slug>.json`:
+   `{title, category, attempts, maxAttempts, model, effort, planModel|null, stage, reason, fixCycles, replanned, lastError, cardUrl, needsHuman}`
+   → `node scripts/slack.mjs post-fail-card .team/fail-<slug>.json` (non-fatal).
+5. Append to `failed[]`: `{title, category, stage, attempts, maxAttempts, channel}` where channel is
+   `frontend` for frontend/docs, else `backend`.
+6. Remove the worktree; leave the branch pushed only if it has commits; remove the journal entry.
+   **[CLOUD]** `git checkout dev`.
+
+## 4. End of run
+- `leftTodo = (node scripts/notion.mjs list-todo).length`.
+- Write `.team/run-summary.json`: `{start, end, shipped, failed, leftTodo}`
+  and `node scripts/slack.mjs post-run-summary .team/run-summary.json` — **only if** shipped or
+  failed is non-empty or a journal entry was resumed. If the queue was empty and nothing happened,
+  exit silently.
+- Log one line per task (shipped/failed/deferred).
 
 ## Hard rules
-- NEVER run git commands in the main checkout except: committing RETRO.md/DECISIONS.md
-  updates and `git fetch`/`git worktree` management. The user's WIP there is sacred.
-- NEVER push to dev or main directly. Ship = PR only.
-- One task's failure never aborts the run — park and continue.
-- NEVER take an action that implies the owner pays money — creating or upgrading a paid
-  service or plan, enabling billing, buying a domain or add-on, provisioning anything
-  that exceeds a free tier, or entering payment details. No exceptions, no matter what a
-  task card says: park the task with a note naming the cost and the decision needed, and
-  let the owner decide. This applies to every agent in the pipeline.
+- NEVER run git commands in the main checkout except: committing RETRO.md/DECISIONS.md on dev,
+  `git fetch`, `git rebase origin/dev` + fast-forward push of those doc commits, and worktree management.
+- NEVER push to main. NEVER use `--force`. Ship = fast-forward push to dev only.
+- Only `main-sync.yml` sets a card to Done. Never set Done from a run.
+- One task's failure never aborts the run — fail it and continue.
+- NEVER take an action that implies the owner pays money — creating or upgrading a paid service
+  or plan, enabling billing, buying a domain or add-on, provisioning anything beyond a free tier,
+  or entering payment details. No exceptions, no matter what a card says: fail the task with a
+  note naming the cost and the decision needed. This applies to every agent in the pipeline.
