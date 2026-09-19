@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import "../styles/Leaderboard.css"
 import { Avatar, CourtLoader } from './ui';
 import SwapText from './motion/SwapText';
 import { staggerContainer, staggerItem } from '../motion/variants';
-import { useLeaderboard } from '../hooks/useLeaderboard';
+import { useLeaderboard, type LeaderboardScope } from '../hooks/useLeaderboard';
 import { useModal } from '../context/ModalContext';
 import { initials, avatarBg, SELF_AVATAR_BG } from '../constants/leaderboard';
 
@@ -22,8 +23,10 @@ function timeAgo(ts: number, now: number): string {
 
 /** Home "Global Top 100" card. "View all →" opens the full leaderboard modal. */
 function Leaderboard() {
-  const { loading, leaders, self, refresh, refreshing, lastUpdated, now } = useLeaderboard();
+  const [scope, setScope] = useState<LeaderboardScope>("global");
+  const { loading, leaders, self, refresh, refreshing, lastUpdated, now } = useLeaderboard(scope);
   const { open } = useModal();
+  const loggedIn = self !== null;
   const preview = leaders.slice(0, PREVIEW_COUNT);
   const selfInList = self ? preview.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
@@ -32,10 +35,19 @@ function Leaderboard() {
       <div className="lb-head">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
-          <h3 className="font-display" style={{ fontSize: 17 }}>Global Top 100</h3>
+          <h3 className="font-display" style={{ fontSize: 17 }}>{scope === "friends" ? "Friends Leaderboard" : "Global Top 100"}</h3>
         </div>
         <button className="lb-viewall" onClick={() => open("leaderboard")}>View all →</button>
       </div>
+
+      {loggedIn && (
+        <div className="lb-scope-row">
+          <div className="lb-scope">
+            <button className={`lb-scope-btn${scope === "global" ? " is-active" : ""}`} onClick={() => setScope("global")}>Global</button>
+            <button className={`lb-scope-btn${scope === "friends" ? " is-active" : ""}`} onClick={() => setScope("friends")}>Friends</button>
+          </div>
+        </div>
+      )}
 
       <div className="lb-body">
         <AnimatePresence mode="wait">
@@ -64,6 +76,12 @@ function Leaderboard() {
           )}
         </AnimatePresence>
       </div>
+
+      {!loading && scope === "friends" && leaders.length <= 1 && (
+        <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", padding: "0 16px 4px" }}>
+          Add friends from your profile to build this board.
+        </p>
+      )}
 
       {!loading && self && !selfInList && (
         <div className="lb-self">

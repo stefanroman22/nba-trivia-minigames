@@ -167,6 +167,10 @@ REST_FRAMEWORK = {
         "feedback-submit": "10/hour",
         # One real play needs exactly 1/day; this only bounds abuse probing.
         "wordle-play": "20/hour",
+        # Typing-triggered search; generous for a real person, useless for scraping.
+        "user-search": "120/hour",
+        # Sending requests / blocking — a handful per session is genuine use.
+        "friend-action": "60/hour",
     },
 }
 

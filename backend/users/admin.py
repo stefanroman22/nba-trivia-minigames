@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.forms import UserCreationForm
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-from .models import CustomUser
+from .models import BlockedUser, CustomUser, FriendRequest, Friendship
 
 # Hide the JWT token_blacklist sections from the admin sidebar. The app itself
 # stays installed and enforced (SIMPLE_JWT rotation/blacklist in settings.py) —
@@ -54,3 +54,24 @@ class CustomUserAdmin(UserAdmin):
     )
     search_fields = ('username', 'email')
     ordering = ('username',)
+
+
+@admin.register(FriendRequest)
+class FriendRequestAdmin(admin.ModelAdmin):
+    list_display = ('sender', 'receiver', 'created_at')
+    search_fields = ('sender__username', 'sender__public_id', 'receiver__username', 'receiver__public_id')
+    autocomplete_fields = ('sender', 'receiver')
+
+
+@admin.register(Friendship)
+class FriendshipAdmin(admin.ModelAdmin):
+    list_display = ('user_low', 'user_high', 'created_at')
+    search_fields = ('user_low__username', 'user_low__public_id', 'user_high__username', 'user_high__public_id')
+    autocomplete_fields = ('user_low', 'user_high')
+
+
+@admin.register(BlockedUser)
+class BlockedUserAdmin(admin.ModelAdmin):
+    list_display = ('blocker', 'blocked', 'created_at')
+    search_fields = ('blocker__username', 'blocker__public_id', 'blocked__username', 'blocked__public_id')
+    autocomplete_fields = ('blocker', 'blocked')
