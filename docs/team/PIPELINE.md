@@ -28,7 +28,7 @@ kill switch.
 - **Windows scheduled task** `nba-team-pipeline` — runs every 2 hours, 08:00–24:00 daily
   (registered via `scripts/register-team-cron.ps1`).
 - **Manual**: `npm run team` from the repo root, any time.
-- **From your phone**: add or edit a card and set it to Ready — no run needed on your
+- **From your phone**: add or edit a card and set it to To Do — no run needed on your
   end, it's picked up by the next scheduled run.
 
 ## 4. Status meanings
@@ -61,7 +61,7 @@ you take with your own eyes on `dev` first.
 
 ## 7. Where things live
 
-- **Skills** — `.claude/skills/` (e.g. `team-run`, `cto-review`, `ship`, `qa-protocol`).
+- **Skills** — `.claude/skills/` (e.g. `team-run`, `ship`, `classify`, `qa-protocol`).
 - **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
   `browser-qa`, `code-reviewer`, `test-qa-engine`).
 - **Journal** — `.team/journal.json`: mid-flight task state (stage, fix cycles, split-task halves, resume note), resumed by the next run before anything new is claimed.
@@ -90,12 +90,13 @@ b. **PowerShell PATH gap.** This machine's PATH does not include the WindowsPowe
 
 c. **`package.json`'s `"team"` script edit is intentionally uncommitted.** `package.json`
    is a protected path (see §6), so the local fix in (b) is applied to the working tree
-   only and deliberately never committed/pushed — committing it would route it through
-   manual `Blocked-approval` review every time. It must stay uncommitted, working-tree-only.
+   only and deliberately never committed/pushed — an automated ship touching a protected
+   path deserves a human's own deliberate look, not a walked-past commit. It must stay
+   uncommitted, working-tree-only.
 
 ## 9. Secrets rotation
 
-- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the `cto-review` job and the
+- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the
   `@claude` mention responder. Mint it with `claude setup-token` (browser flow), then
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (paste when prompted). It expires
   periodically — when cloud runs start failing auth, re-run both commands.
@@ -121,19 +122,14 @@ human decision, made outside the pipeline's own control flow.
 
 - **Lockfile stuck** (`team-run already running` but no run is actually happening):
   delete `.team/run.lock`, then retry.
-- **Card stuck In Progress with an empty journal** (`.team/journal.json` is `{}`
+- **Card stuck In progress with an empty journal** (`.team/journal.json` is `{}`
   or has no entry for it): the run that claimed it died or was killed. Set the card back
-  to `Ready`.
+  to `To Do`.
 - **Scheduled run appears to have done nothing**: check the newest file in
   `.team/logs/` (remember it's UTF-16LE) for what happened, and confirm the
   active `gh` account is `stefanroman22`, not `jimmedeknatel8` (see §8a) — a wrong
   account fails silently from Notion's point of view since the card never gets past
   ship.
-- **In-Review orphan** (card stuck `In Review` with a failed CTO GitHub Actions run): the
-  `cto-review` job didn't produce `cto-verdict.json`, so `cto-act` was skipped and no
-  label was set. Re-run the failed workflow from the GitHub Actions tab; if it keeps
-  failing, read the run log, and as a fallback set the card back to `Ready` to re-ship
-  from a fresh run.
 
 ## 12. Slack layer
 
