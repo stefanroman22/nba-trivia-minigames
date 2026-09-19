@@ -2,6 +2,7 @@ from django.urls import path
 from .views import login_view, get_current_user, update_profile, logout_view, signup_view, google_login, get_users
 from .friends import (
     search_users,
+    search_friends,
     send_friend_request,
     accept_friend_request,
     decline_friend_request,
@@ -26,6 +27,7 @@ urlpatterns = [
 
     # Friends
     path('search-users/', search_users, name='search-users'),
+    path('search-friends/', search_friends, name='search-friends'),
     path('send-friend-request/', send_friend_request, name='send-friend-request'),
     path('accept-friend-request/', accept_friend_request, name='accept-friend-request'),
     path('decline-friend-request/', decline_friend_request, name='decline-friend-request'),

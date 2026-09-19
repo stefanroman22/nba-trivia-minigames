@@ -22,7 +22,6 @@ export interface FriendSearchResult extends FriendUser {
 }
 
 interface FriendsState {
-  friends: FriendUser[];
   incoming: FriendRequestRow[];
   outgoing: FriendRequestRow[];
   blocked: FriendUser[];
@@ -30,7 +29,12 @@ interface FriendsState {
   error: string | null;
 }
 
-const EMPTY: FriendsState = { friends: [], incoming: [], outgoing: [], blocked: [], loading: true, error: null };
+const EMPTY: FriendsState = { incoming: [], outgoing: [], blocked: [], loading: true, error: null };
+
+export interface FriendsPage {
+  results: FriendUser[];
+  total: number;
+}
 
 async function postAction(path: string, body: Record<string, unknown>): Promise<void> {
   const res = await apiFetch(`${BACKEND_URL}/${path}/`, { method: "POST", body: JSON.stringify(body) });
@@ -46,10 +50,24 @@ export async function searchUsers(q: string): Promise<FriendSearchResult[]> {
   return Array.isArray(data.results) ? data.results : [];
 }
 
-/** Friends, pending requests (both directions) and blocked players for the
- * signed-in account. Fetched fresh each time a consumer mounts — this data
- * is only ever viewed inside the Friends modal, so there's no case for the
- * always-on shared cache the leaderboard uses. */
+/** One page of the caller's own friends, optionally filtered by name/ID —
+ * server-paginated so a large friend list is never fetched in one shot. */
+export async function searchFriends(q: string, limit: number, offset: number): Promise<FriendsPage> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  if (q) params.set("q", q);
+  const res = await apiFetch(`${BACKEND_URL}/search-friends/?${params.toString()}`);
+  const data = await res.json().catch(() => ({}));
+  return {
+    results: Array.isArray(data.results) ? data.results : [],
+    total: typeof data.total === "number" ? data.total : 0,
+  };
+}
+
+/** Pending requests (both directions) and blocked players for the signed-in
+ * account. Fetched fresh each time a consumer mounts — this data is only
+ * ever viewed inside the Friends modal, so there's no case for the always-on
+ * shared cache the leaderboard uses. The friend list itself is paginated
+ * separately via `searchFriends`, not held here. */
 export function useFriends() {
   const [state, setState] = useState<FriendsState>(EMPTY);
   // Only the very first load should blank the view with a spinner — every
@@ -73,7 +91,6 @@ export function useFriends() {
         return;
       }
       setState({
-        friends: data.friends ?? [],
         incoming: data.incoming_requests ?? [],
         outgoing: data.outgoing_requests ?? [],
         blocked: data.blocked_users ?? [],
