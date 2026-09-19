@@ -27,6 +27,7 @@ from trivia.models import (
     StartingFiveGame,
     SyncRun,
     Team,
+    WordleDailyWord,
 )
 from trivia.views import _game_data_dir
 
@@ -47,6 +48,7 @@ DB_SOURCES = {
     "guesslog": {"model": GuessLog, "search": ["game", "question_id", "answer"], "sync_dataset": None, "latest_field": "created_at"},
     "feedback": {"model": Feedback, "search": ["message", "email", "display_name", "public_id"], "sync_dataset": None, "latest_field": "created_at"},
     "syncrun": {"model": SyncRun, "search": ["dataset", "status"], "sync_dataset": None, "latest_field": "created_at"},
+    "wordledailyword": {"model": WordleDailyWord, "search": ["word", "date"], "sync_dataset": None, "latest_field": "date"},
 }
 
 _MODES_DEFAULT = {"singleplayer": True, "multiplayer": True, "turn_based": False, "party": False}
@@ -109,10 +111,12 @@ GAME_REGISTRY = [
         "name": "NBA Wordle",
         "status": "live",
         "modes": _modes(),
-        "sources": ["db:player", "pool:wordle"],
+        "sources": ["db:player", "pool:wordle", "db:wordledailyword"],
         "config": [
             "Words are 5-letter player surnames drawn from the player table.",
-            "Random per play — not date-seeded, despite the DAILY tag.",
+            "One word per calendar day (Europe/Paris) — single-player is limited to one "
+            "play per day per account/device; see db:wordledailyword for the full history.",
+            "A day's word never repeats one used in the previous 180 days.",
             "Player table refreshed by sync_nba_data (dataset: players).",
         ],
     },

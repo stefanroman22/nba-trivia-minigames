@@ -185,6 +185,59 @@ class GuessLog(models.Model):
         return f"{self.game}/{self.question_id}: {self.answer}"
 
 
+class WordleDailyWord(models.Model):
+    """The word of the day for single-player Wordle. One row per calendar day
+    (Europe/Paris / CET-CEST), kept forever as the admin-visible history.
+    """
+
+    date = models.DateField(unique=True)
+    word = models.CharField(max_length=16)
+    picked_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date"]
+
+    def __str__(self):
+        return f"{self.date}: {self.word}"
+
+
+class WordlePlay(models.Model):
+    """One identity's play of the daily Wordle for one day — the once-per-day gate.
+
+    Only ever holds today's rows: the daily word-picker job deletes anything
+    not the current day right after picking the new word, so this never grows
+    with historical players. `user` and `device_id` are independent signals —
+    a logged-in play stamps both, so a logged-out replay from the same browser
+    is still caught by `device_id` even though `user` is absent that time.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE
+    )
+    device_id = models.CharField(max_length=64, null=True, blank=True)
+    play_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "play_date"],
+                condition=models.Q(user__isnull=False),
+                name="uniq_wordleplay_user_day",
+            ),
+            models.UniqueConstraint(
+                fields=["device_id", "play_date"],
+                condition=models.Q(device_id__isnull=False),
+                name="uniq_wordleplay_device_day",
+            ),
+        ]
+        indexes = [models.Index(fields=["play_date"])]
+
+    def __str__(self):
+        who = self.user_id or self.device_id or "?"
+        return f"{self.play_date} played by {who}"
+
+
 class SyncRun(models.Model):
     """Audit log of each data-sync attempt (observability + freshness check)."""
 

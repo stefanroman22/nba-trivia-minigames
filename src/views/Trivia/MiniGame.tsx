@@ -18,6 +18,7 @@ import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
+import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import "../../styles/MiniGame.css";
@@ -59,6 +60,11 @@ function MiniGame() {
   // container instead of shrinking to its own content or a fixed cap.
   const stageColRef = useRef<HTMLElement | null>(null);
   const [railHeight, setRailHeight] = useState<number | null>(null);
+  // Wordle-only: whether this account/browser already played today's word.
+  // Re-checked every time we land on idle for wordle, so it's fresh both on
+  // first load and after finishing a run (Play again / Close game).
+  const [wordleStatus, setWordleStatus] = useState<WordleDailyStatus | null>(null);
+  const [, forceCountdownTick] = useState(0);
 
   useEffect(() => {
     const el = stageColRef.current;
@@ -177,6 +183,24 @@ function MiniGame() {
     prevStageRef.current = stage;
   }, [stage]);
 
+  // Wordle only: check the once-per-day gate whenever we land on idle for it.
+  useEffect(() => {
+    if (gameId !== "wordle" || stage !== "idle") { setWordleStatus(null); return; }
+    let cancelled = false;
+    fetchWordleDailyStatus().then((status) => { if (!cancelled) setWordleStatus(status); });
+    return () => { cancelled = true; };
+  }, [gameId, stage]);
+
+  const wordleLocked = gameId === "wordle" && !!wordleStatus?.locked;
+
+  // Tick the countdown copy once a minute while it's actually shown — the
+  // deadline itself lives on the server response, this just forces a re-render.
+  useEffect(() => {
+    if (!wordleLocked) return;
+    const id = setInterval(() => forceCountdownTick((n) => n + 1), 60_000);
+    return () => clearInterval(id);
+  }, [wordleLocked]);
+
   const renderStage = () => {
     switch (stage) {
       case "idle":
@@ -194,6 +218,10 @@ function MiniGame() {
             {inLobby ? (
               <p className="idle-room-note">
                 You're in a private room.
+              </p>
+            ) : wordleLocked && wordleStatus ? (
+              <p className="idle-room-note">
+                Next word available in {formatWordleCountdown(wordleStatus.nextResetAt)}.
               </p>
             ) : (
               <Button size="lg" onClick={handleStart}>
@@ -282,7 +310,7 @@ function MiniGame() {
           <section className="stage-col" ref={stageColRef}>
             <div className="stage-title">
               <h1 className="font-display" style={{ fontSize: "clamp(19px,2.6vw,26px)" }}>{game?.name}</h1>
-              <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" ? handleStart : undefined })}>
+              <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" && !wordleLocked ? handleStart : undefined })}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
               </button>
               {online
