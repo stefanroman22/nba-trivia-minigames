@@ -4,57 +4,68 @@
 
 An autonomous coding pipeline: you write task cards on a Notion board, and unattended
 agent runs pick them up, build them (classify → design → build → verify → QA → review),
-open a PR, get an independent cloud CTO review, and merge to `dev` on approval. You
-mostly interact with it through Notion, not the terminal.
+and push each finished one straight to `dev` — no PR, no automated review gate. Production
+is a separate, deliberate step you (or an agent you explicitly ask) take later. You mostly
+interact with it through Notion, not the terminal.
 
 ## 2. Daily use
 
-Write cards in the Notion board with a clear title/spec and set `Status = Ready` when
-they're ready to be picked up. You don't need to trigger anything — the next scheduled
-run (or `npm run team`) claims Ready cards and works them. Results notify you via Notion
-@mentions, which show up on both phone and desktop Notion. The `CONTROL` row's `Paused`
-checkbox is the global kill switch — check it and no run will claim any card until it's
-unchecked (`node scripts/notion.mjs check-pause` exits 3 and the run stops immediately).
+The board has five columns. Write cards in **Backlog** while you're still thinking; drag a card
+to **To Do** when it's ready (title = the ticket, Category = one of frontend / backend /
+fullstack / CI/CD / pipeline / AI / docs, Priority optional). Put details, mockups and
+screenshots in the card body; you can also drop files on the `Attachments` property or add
+them later as a comment with an image — the pipeline reads all three. The next run (02:00,
+10:00, or `npm run team`) claims To Do cards, works them, and pushes each finished one to
+`dev`; the card moves to **QA** and you get a card in `#agent-frontend` / `#agent-backend`
+with what to check and the model that did it. React ✅ (fine) or 🔄 + reply (needs work →
+a Follow-up card appears in To Do). `dev` is where the pipeline stops on its own — production is
+never automatic. Promote when you're ready: run "Promote dev to main" from the Actions tab (or
+`gh workflow run dev-ci.yml`), or explicitly ask an agent to push `dev` to `main`; the cards move
+to **Done** once their commit lands there. The `CONTROL` row's `Paused` checkbox is the global
+kill switch.
 
 ## 3. Triggers
 
 - **Windows scheduled task** `nba-team-pipeline` — runs every 2 hours, 08:00–24:00 daily
   (registered via `scripts/register-team-cron.ps1`).
 - **Manual**: `npm run team` from the repo root, any time.
-- **From your phone**: add or edit a card and set it to Ready — no run needed on your
+- **From your phone**: add or edit a card and set it to To Do — no run needed on your
   end, it's picked up by the next scheduled run.
 
 ## 4. Status meanings
 
-- **Backlog** — not ready yet; the pipeline ignores it.
-- **Ready** — queued; the next run will claim it.
-- **In Progress** — a run has claimed it and is actively working it.
-- **In Review** — PR opened, pushed to GitHub, waiting on (or in) CTO review.
-- **Blocked** — the pipeline gave up on it; read the post-mortem comment before touching it.
-- **Blocked-approval** — a PR needing your manual review/merge (protected path — see §6).
-- **Done** — merged to `dev`; nothing left to do.
+- **Backlog** — draft; the pipeline ignores it.
+- **To Do** — queued; the next run claims it (unless `Needs human` is checked).
+- **In progress** — a run owns it. If a run dies mid-task the card stays here and the next run
+  resumes it from `.team/journal.json`.
+- **QA** — its commit is on `dev` (and on the dev Vercel site). Waiting for your check and for
+  someone to promote `dev` to `main` (manually, or by explicitly asking an agent to).
+- **Done** — its commit is on `main` (production). Only `main-sync.yml` sets this.
 
-## 5. When a card goes Blocked
+Card properties the pipeline fills: `Model` (who built it, e.g. `sonnet · high · plan fable`),
+`Attempts`, `Needs human`, `Commit`, `Branch`, `Difficulty`. `Priority` (P0/P1/P2) is yours.
 
-Read the post-mortem comment the pipeline left on the card (what was tried, why it
-failed, suggested next step) and the corresponding entry in `docs/team/RETRO.md`. Fix
-the spec (clarify scope, add missing context) or split the task into smaller cards, then
-set the card back to `Ready`. Don't just flip it back to Ready without addressing the
-cause — it will likely fail the same way again.
+## 5. When a task fails
 
-## 6. Blocked-approval
+The run posts a ❌ card in the task's agent channel (stage, reason, model, last error) and a
+post-mortem comment on the Notion card (also appended to `docs/team/RETRO.md`); the card goes back
+to **To Do** with `Attempts` +1 and is retried next run. After the second failure the pipeline
+checks **Needs human** and skips the card until you uncheck it. Fix the spec (clarify scope, add
+context or a screenshot as a comment), uncheck `Needs human`, and it's back in the queue.
 
-The CTO's deterministic `cto-act` job flags a PR `Blocked-approval` when its diff touches
-a protected path: `.github/workflows/`, `vercel.json`, `package.json`,
-`package-lock.json`, or `backend/requirements.txt`. These never auto-merge, regardless of
-CTO verdict. Review the PR yourself on GitHub and merge it manually when you're satisfied.
+## 6. Protected paths
+
+`.github/workflows/`, `vercel.json`, `package.json`, `package-lock.json`, `backend/requirements.txt`
+reach `dev` like any other change (the in-run review still covers them) — there's no separate
+gate for them beyond that, since promoting to production is already a deliberate, manual step
+you take with your own eyes on `dev` first.
 
 ## 7. Where things live
 
-- **Skills** — `.claude/skills/` (e.g. `team-run`, `cto-review`, `ship`, `qa-protocol`).
+- **Skills** — `.claude/skills/` (e.g. `team-run`, `ship`, `classify`, `qa-protocol`).
 - **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
   `browser-qa`, `code-reviewer`, `test-qa-engine`).
-- **Journal** — `.team/journal.json`: mid-flight task state, resumed by the next run.
+- **Journal** — `.team/journal.json`: mid-flight task state (stage, fix cycles, split-task halves, resume note), resumed by the next run before anything new is claimed.
 - **Logs** — `.team/logs/` (one file per run). Written by PowerShell's
   `Tee-Object`, which defaults to **UTF-16LE** — open with a UTF-16-aware viewer, not a
   plain `cat`/UTF-8 tool, or the text will look mangled.
@@ -80,12 +91,13 @@ b. **PowerShell PATH gap.** This machine's PATH does not include the WindowsPowe
 
 c. **`package.json`'s `"team"` script edit is intentionally uncommitted.** `package.json`
    is a protected path (see §6), so the local fix in (b) is applied to the working tree
-   only and deliberately never committed/pushed — committing it would route it through
-   manual `Blocked-approval` review every time. It must stay uncommitted, working-tree-only.
+   only and deliberately never committed/pushed — an automated ship touching a protected
+   path deserves a human's own deliberate look, not a walked-past commit. It must stay
+   uncommitted, working-tree-only.
 
 ## 9. Secrets rotation
 
-- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the `cto-review` job and the
+- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the
   `@claude` mention responder. Mint it with `claude setup-token` (browser flow), then
   `gh secret set CLAUDE_CODE_OAUTH_TOKEN` (paste when prompted). It expires
   periodically — when cloud runs start failing auth, re-run both commands.
@@ -93,109 +105,66 @@ c. **`package.json`'s `"team"` script edit is intentionally uncommitted.** `pack
   `gh secret set NOTION_TOKEN`. Locally, the same value lives in `.env.team`
   (`scripts/team-run.ps1` loads it into the process before invoking `claude`).
 
-## 10. Security model (from the CTO review design)
+## 10. Security model
 
-The CTO gate is split into two GitHub Actions jobs on purpose. `cto-review` runs the LLM
-(`/cto-review`) with a **read-only** token — it can read the diff, read the spec, and
-post a PR comment, but it cannot merge, push, label, or edit the PR. It writes its
-verdict to `cto-verdict.json` and uploads it as an artifact. `cto-act`, gated on
-`cto-review` via `needs:`, is pure deterministic Bash (no LLM) with the **write-capable**
-token — it downloads the verdict artifact and is the only place `gh pr merge`, `gh pr
-edit --add-label`, and Notion status writes happen. Practically: a prompt-injected PR
-(e.g. malicious text in a file trying to manipulate the reviewing LLM) can at most get
-`cto-review` to post a misleading comment or attempt a relabel via its own limited scope
-— it can never merge or push, because the job actually holding merge/push power runs no
-LLM step at all. Auto-merge only lands changes on `dev`; the existing `dev-ci.yml`
-promotion (dev → main → production) is unchanged by any of this.
-
-**Promotion is human-gated for every path, not just the pipeline's (as of 2026-09-19).**
-Auto-merges performed by the pipeline use the GitHub Actions token (`GITHUB_TOKEN`), which
-GitHub deliberately doesn't let trigger further `on: push` workflows (infinite-loop
-prevention) — so the pipeline's own merge into `dev` never touched the promote job. That
-used to be the *only* thing gating it: a real, human-authenticated push to `dev` (e.g. an
-interactive Claude Code session merging its own PR) still auto-triggered `dev-ci.yml`'s
-promote job. `dev-ci.yml`'s promote job now runs **only** on manual `workflow_dispatch` —
-no push to `dev`, from the pipeline, a human, or an interactive agent, auto-promotes.
-Code merged to `dev` reaches `main` only when someone explicitly runs "Promote dev to
-main" (`gh workflow run dev-ci.yml` or "Run workflow" in the Actions tab).
+**Into `dev`:** the run's own verify (lint, tsc, build, tests), browser QA and a fable code
+review, then a fast-forward push — no PR, no token with more power than the pipeline's own push
+right. `dev-ci.yml` (lint + gitleaks) runs on every push and every PR into `dev`; a red run is
+reported in `#pipeline`, non-blocking (nothing rolls back).
+**Into `main`:** push to `dev` never promotes, for anyone — not the pipeline, not an interactive
+Claude session, not a human. `dev-ci.yml`'s `promote` job only runs on a manual
+`workflow_dispatch` ("Run workflow" in the Actions tab, or `gh workflow run dev-ci.yml`), or an
+agent pushes `dev` to `main` directly when explicitly asked to in that conversation — never on
+its own initiative. On push to `main`, `main-sync.yml` moves every QA card whose commit is now in
+`main` to Done. A prompt-injected task can at most reach `dev`; reaching `main` always needs a
+human decision, made outside the pipeline's own control flow.
 
 ## 11. Troubleshooting
 
 - **Lockfile stuck** (`team-run already running` but no run is actually happening):
   delete `.team/run.lock`, then retry.
-- **Card stuck In Progress with an empty journal** (`.team/journal.json` is `{}`
+- **Card stuck In progress with an empty journal** (`.team/journal.json` is `{}`
   or has no entry for it): the run that claimed it died or was killed. Set the card back
-  to `Ready`.
+  to `To Do`.
 - **Scheduled run appears to have done nothing**: check the newest file in
   `.team/logs/` (remember it's UTF-16LE) for what happened, and confirm the
   active `gh` account is `stefanroman22`, not `jimmedeknatel8` (see §8a) — a wrong
   account fails silently from Notion's point of view since the card never gets past
   ship.
-- **In-Review orphan** (card stuck `In Review` with a failed CTO GitHub Actions run): the
-  `cto-review` job didn't produce `cto-verdict.json`, so `cto-act` was skipped and no
-  label was set. Re-run the failed workflow from the GitHub Actions tab; if it keeps
-  failing, read the run log, and as a fallback set the card back to `Ready` to re-ship
-  from a fresh run.
 
 ## 12. Slack layer
 
-The pipeline mirrors its work into Slack via `scripts/slack.mjs` (zero-dep, Node 18+
-fetch; commands: `ping`, `resolve-channels`, `post-batch`, `poll-reactions`,
-`daily-digests`). The app is installed as **`hoops-24-team`** in the **Roman
-Technologies** workspace.
+`scripts/slack.mjs` (zero-dep; commands: `ping`, `resolve-channels`, `post-qa-card`,
+`post-fail-card`, `post-run-summary`, `poll-reactions`, `digest-window`). App `hoops-24-team`
+in the Roman Technologies workspace.
 
-**Channels.** Three channels: **#pipeline** gets one post per run — the batch overview
-below — and the two implementation-agent channels, **#agent-frontend** and
-**#agent-backend**, get the nightly digests. Those two are the agents that write
-`## Agent notes` in their PRs, so the digests carry what each engine actually did and
-assumed. A merged PR with no parsed frontend/backend notes (e.g. a docs-only change)
-simply produces no digest line — no fallback channel. (The earlier `#agent-qa` /
-`#agent-review` channels were dropped; enriching them would require the QA/review agents
-to emit their own notes — a possible future enhancement.)
+**Channels.** `#agent-frontend` gets every `frontend` and `docs` task; `#agent-backend` gets
+`backend`, `CI/CD`, `AI`, `pipeline`; a `fullstack` task (or any task the classifier splits) gets
+one card in each channel describing that half. The mapping is `slack.categoryChannels` in
+`.claude/team/config.json`. `#pipeline` is overview only.
 
-**Batch overview format.** At end of run (§5), if any tasks shipped, `slack.mjs
-post-batch` posts to #pipeline: a parent message — `🟢 Batch complete — <count> shipped
-to dev · <HH:MM>` plus the Dev link (`cfg.devSiteUrl`) — followed by **one top-level
-message per shipped task** (not a thread reply under the parent). Each task gets its own
-message so a reply threads unambiguously under that task, not the whole batch:
-`<n>.  *_<title>_*   ·   *<areas>*` (title bold-italic, areas bold), then `*Check:*
-<look>` (the orchestrator's explicit navigate → action → expected-result line), then the
-react legend `✅ approve · 🔄 needs work — reply to say what`.
+**QA card** (agent channel, when a task reaches QA): title · Category · Priority; model, effort,
+whether a design round ran, fix cycles; what the engine did; a *Check:* line (navigate → action →
+expected result); the dev URL + commit; the legend `✅ approve · 🔄 needs work — reply to say what`.
+React 🔄 (+ a reply with detail) → the next run creates `Follow-up: <title>` in To Do, same
+Category, body = your reply. ✅ just acknowledges (Done comes from the `main` merge). Only
+reactions from `slack.slackUserId` count. Reactions are polled at the start of the next run.
 
-**Feedback loop.** React 🔄 on a task's message (optionally with a thread reply giving
-detail) → the next run's `## 0b` step (`slack.mjs poll-reactions`) creates a Notion card
-`Follow-up: <title>`, status Ready, body = your reply text (or a generic "reviewer
-flagged 🔄 with no note — re-examine" if you didn't reply); that card drains in the same
-run's queue. React ✅ alone (no 🔄) → the task's Notion card is archived. A thread reply
-with no 🔄 does nothing by itself — the reply is only ever detail attached to a 🔄'd card,
-never a trigger on its own, so a stray note can't reopen a task. Only reactions from the
-user configured as `slack.slackUserId` in config count; anyone else's reactions on the
-same message are ignored. Reactions are **polled, not pushed** — `poll-reactions` only
-runs at the start of the next pipeline run, so there's up to ~2h of latency (the
-`nba-team-pipeline` interval, §3) between reacting and the follow-up card appearing.
+**Failure card** (agent channel): stage and one-line reason, model/effort, fix cycles + replan,
+last error, link to the post-mortem, and whether it retries next run or is waiting on you.
 
-**Daily digests.** The `nba-team-digest` Windows scheduled task (daily at 23:30,
-registered by `scripts/register-team-digest-cron.ps1`) runs `scripts/team-digest.ps1`,
-which loads `.env.team` and calls `node scripts/slack.mjs daily-digests`. That command
-lists the day's merged `team/*` PRs into `dev`, parses each PR body's `## Agent notes`
-block, buckets the notes by agent channel, and posts one digest message per non-empty
-channel.
+**Run summary** (`#pipeline`, once per run): shipped / failed / left-in-To-Do counts, per-category
+counts (categories with zero omitted), one line per shipped task, and one line per failure
+pointing at its agent channel.
 
-**Secrets & config.** `SLACK_BOT_TOKEN` lives in `.env.team`. Channel ids
-(`slack.generalChannel`, `slack.agentChannels.{frontend,backend,qa,review}`), the
-approver's `slack.slackUserId`, and `devSiteUrl` live in `.claude/team/config.json` —
-`node scripts/slack.mjs resolve-channels` fills the channel ids in automatically by
-channel name, but `slackUserId` must be entered by hand. Runtime state (posted task
-cards awaiting a reaction) lives on each card's `SlackTs` Notion property — no local
-state file.
+**Session reports** (07:30 / 17:30, `team-reports.yml` → `digest-window`): commits that reached
+`dev` in the window (from `git log`, by the `Notion:` line in each commit body), per-category
+counts, `QA: n waiting · Done: n reached main this window`, plus per-engine detail from each
+commit's `## Agent notes`.
 
-**Troubleshooting.** No Slack posts at all → confirm the bot is invited to the target
-channel and that `slack.slackUserId`/the channel ids are set in
-`.claude/team/config.json`, then re-run `node scripts/slack.mjs resolve-channels` (it
-prints `MISSING: ...` for any channel name it couldn't resolve, usually because the bot
-isn't in it). Slack failures anywhere in the pipeline (batch post, digest post, reaction
-poll) are non-fatal — logged and skipped; a batch that fails to post to Slack is still
-merged to `dev`.
+**Troubleshooting.** No Slack posts → check the bot is in all three channels and
+`node scripts/slack.mjs resolve-channels` resolves them. Slack failures are non-fatal
+everywhere — a task that fails to post is still on `dev`.
 
 ## 13. Cloud operation
 

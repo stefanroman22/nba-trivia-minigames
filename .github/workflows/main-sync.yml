@@ -1,0 +1,31 @@
+name: Main Sync
+# After the owner merges dev → main, flip every QA card whose commit is now on main to Done.
+# The only code path allowed to set Done (docs/team/PIPELINE.md §4).
+on:
+  push:
+    branches: [main]
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Promote QA cards whose commit is on main
+        run: |
+          set -euo pipefail
+          node scripts/notion.mjs list-qa | jq -r '.[] | "\(.id) \(.commit)"' | while read -r id sha; do
+            [ -z "$sha" ] && { echo "skip $id: no Commit"; continue; }
+            if git merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
+              node scripts/notion.mjs mark-done "$id" && echo "done: $id ($sha)"
+            else
+              echo "not on main yet: $id ($sha)"
+            fi
+          done

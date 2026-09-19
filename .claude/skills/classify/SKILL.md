@@ -5,9 +5,8 @@ description: Classify a team task — difficulty, areas, risk, model/effort tier
 
 # Classify a Task
 
-Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`) and Area tags from the card.
-The spec text may contain `[Image attached: <path>]` lines — each is a local file already
-downloaded from the card; Read it, it's part of the spec, not a footnote.
+Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`) and the card's Category.
+The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]` lines and `## Comment (...)` sections — the owner's comments and their images are part of the spec.
 
 ## Procedure
 1. Read `docs/team/RETRO.md` (parked-task failures) and `docs/team/DECISIONS.md` (prior
@@ -15,7 +14,7 @@ downloaded from the card; Read it, it's part of the spec, not a footnote.
 2. Read every `[Image attached: <path>]` file in the spec before judging anything else — a
    mockup/screenshot changes area (usually implies `ui`) and can change difficulty (e.g. exact
    layout/spacing shown in the image raises the bar past what the text alone states).
-3. Confirm/correct the card's Area tags by grepping the codebase for the features named in the spec.
+3. Derive `areas` (`frontend`, `backend`, plus any of games/ui/multiplayer/auth/data) from the Category and by grepping the codebase for the features named in the spec. Category `fullstack` always yields both `frontend` and `backend`; any other Category may still yield both when the spec needs it.
 4. Grep `docs/team/CODE_MAP.md` for nouns in the spec; collect up to 10 relevant entries.
 5. Apply the difficulty rubric, then the model rubric. If the card has a Difficulty override, it wins.
 
@@ -63,7 +62,7 @@ step 1's read-back actually keep future similar tasks consistent instead of re-l
 same judgment call from scratch each time.
 
 ## Output (exact JSON, nothing else)
-{ "difficulty": "standard", "areas": ["ui"], "risk": "low",
+{ "difficulty": "standard", "areas": ["frontend","ui"], "risk": "low",
   "engineModel": "sonnet", "engineEffort": "high",
   "planModel": "fable",
   "docs": ["docs/constraints/UI_SHELL_CONSTRAINTS.md"],

@@ -3,6 +3,7 @@
   "notionUserId": "2fcd872b-594c-81a1-a343-00022e136a11",
   "maxTasksPerRun": 50,
   "maxRunMinutes": 90,
+  "maxAttempts": 2,
   "worktreeRoot": "C:\\Users\\stefa\\.team-worktrees",
   "qaPorts": {
     "django": 8100,
@@ -15,7 +16,12 @@
       "frontend": "C0BS3CM7E4A",
       "backend": "C0BSXQ4SVQ8"
     },
-    "slackUserId": "U0B421ZJDU4"
+    "slackUserId": "U0B421ZJDU4",
+    "categoryChannels": {
+      "frontend": "frontend", "docs": "frontend",
+      "backend": "backend", "CI/CD": "backend", "AI": "backend", "pipeline": "backend",
+      "fullstack": "both"
+    }
   },
   "devSiteUrl": "https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app"
 }
