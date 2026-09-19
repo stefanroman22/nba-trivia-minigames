@@ -4,8 +4,9 @@
 
 An autonomous coding pipeline: you write task cards on a Notion board, and unattended
 agent runs pick them up, build them (classify → design → build → verify → QA → review),
-open a PR, get an independent cloud CTO review, and merge to `dev` on approval. You
-mostly interact with it through Notion, not the terminal.
+and push each finished one straight to `dev` — no PR, no automated review gate. Production
+is a separate, deliberate step you (or an agent you explicitly ask) take later. You mostly
+interact with it through Notion, not the terminal.
 
 ## 2. Daily use
 
