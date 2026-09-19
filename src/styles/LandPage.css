@@ -159,8 +159,7 @@ html { scroll-behavior: smooth; }
 .profile-field-label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: space-between;
   font-size: 12px;
   color: var(--muted);
   font-weight: 600;
