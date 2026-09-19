@@ -1,0 +1,83 @@
+/* ===========================================================================
+   Friends modal — search/add, requests, friend list, blocked list.
+   Reuses .modal-input / .modal-primary-btn (Modal.css) for the search field;
+   these classes are the friend-specific pieces only.
+   =========================================================================== */
+
+.fr-stack { display: flex; flex-direction: column; gap: 14px; }
+
+.fr-tabs {
+  display: flex;
+  padding: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.fr-tab {
+  flex: 1;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.fr-tab.is-active { background: var(--brand); color: #fff; font-weight: 700; }
+
+.fr-error { color: var(--bad); font-size: 12.5px; font-weight: 600; margin: 0; }
+
+.fr-list { display: flex; flex-direction: column; gap: 6px; max-height: 340px; overflow-y: auto; }
+
+.fr-row {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface2);
+}
+.fr-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.fr-name { font-weight: 600; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fr-sub { font-size: 10.5px; font-weight: 600; color: var(--muted); }
+.fr-pts { font-weight: 700; font-size: 13.5px; color: var(--brand); }
+
+.fr-actions { display: flex; gap: 6px; flex: none; }
+.fr-btn {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line2);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  white-space: nowrap;
+}
+.fr-btn:hover:not(:disabled) { color: var(--text); border-color: var(--line2); }
+.fr-btn:disabled { opacity: 0.6; cursor: default; }
+.fr-btn-primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.fr-btn-primary:hover:not(:disabled) { color: #fff; filter: brightness(1.06); }
+.fr-btn-danger:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); }
+
+.fr-status { font-size: 11.5px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+
+.fr-empty { text-align: center; padding: 1.2rem 0; color: var(--muted); font-size: 13px; margin: 0; }
+
+.fr-req-groups { display: flex; flex-direction: column; gap: 16px; }
+.fr-group-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.fr-find { display: flex; flex-direction: column; gap: 12px; }

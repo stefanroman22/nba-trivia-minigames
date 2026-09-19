@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import IntegrityError, models
@@ -86,3 +87,84 @@ class CustomUser(AbstractUser):
             self.rank = "Role Player"
         else:
             self.rank = "Rookie"
+
+
+class FriendRequest(models.Model):
+    """A pending request from `sender` to `receiver`.
+
+    Only ever holds PENDING requests — accepting one deletes this row and
+    creates a `Friendship`; declining or cancelling just deletes it. There is
+    deliberately no status field or history: nothing downstream needs to know
+    a request once existed after it's resolved.
+    """
+
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="sent_friend_requests", on_delete=models.CASCADE
+    )
+    receiver = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="received_friend_requests", on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["sender", "receiver"], name="uniq_pending_friend_request"),
+        ]
+        indexes = [models.Index(fields=["receiver"]), models.Index(fields=["sender"])]
+
+    def __str__(self):
+        return f"{self.sender_id} -> {self.receiver_id}"
+
+
+class Friendship(models.Model):
+    """An established mutual friendship, stored once per pair.
+
+    `user_low`/`user_high` are ordered by pk (see `ordered_pair`) so (A, B)
+    and (B, A) can never both exist as separate rows — every query and write
+    goes through that same canonical ordering.
+    """
+
+    user_low = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="friendships_low", on_delete=models.CASCADE
+    )
+    user_high = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="friendships_high", on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user_low", "user_high"], name="uniq_friendship_pair"),
+        ]
+        indexes = [models.Index(fields=["user_low"]), models.Index(fields=["user_high"])]
+
+    @staticmethod
+    def ordered_pair(a, b):
+        """Return (a, b) sorted so the same pair always maps to the same row."""
+        return (a, b) if a.pk < b.pk else (b, a)
+
+    def __str__(self):
+        return f"{self.user_low_id} <-> {self.user_high_id}"
+
+
+class BlockedUser(models.Model):
+    """`blocker` has blocked `blocked`. While this exists in either direction
+    between two users, neither can send the other a friend request, and
+    search hides them from each other."""
+
+    blocker = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="blocking", on_delete=models.CASCADE
+    )
+    blocked = models.ForeignKey(
+        settings.AUTH_USER_MODEL, related_name="blocked_by", on_delete=models.CASCADE
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["blocker", "blocked"], name="uniq_block_pair"),
+        ]
+        indexes = [models.Index(fields=["blocker"]), models.Index(fields=["blocked"])]
+
+    def __str__(self):
+        return f"{self.blocker_id} blocked {self.blocked_id}"

@@ -10,10 +10,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import SwapText from "./motion/SwapText";
 import { BACKEND_URL } from "../configurations/backend";
 import defaultAvatar from "../assets/default.png";
+import { useModal } from "../context/ModalContext";
 
 function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
+  const { open } = useModal();
 
   const [isEditing, setIsEditing] = useState(false);
   const [tempUsername, setTempUsername] = useState(user?.username || "");
@@ -248,6 +250,15 @@ function UserProfile() {
         <div className="profile-field">
           <div className="profile-field-label"><span>Email</span></div>
           <div className="profile-value profile-value--muted">{user?.email}</div>
+        </div>
+
+        <div className="profile-field">
+          <div className="profile-field-label">
+            <span>Friends</span>
+            <button className="profile-edit-btn" onClick={() => open("friends")}>
+              <SwapText>View</SwapText>
+            </button>
+          </div>
         </div>
       </div>
 
