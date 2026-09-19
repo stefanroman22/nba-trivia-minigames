@@ -28,6 +28,34 @@
   letter-spacing: 0.3px;
 }
 .lb-viewall:hover { text-decoration: underline; }
+
+/* Global/Friends scope toggle — centered between the header and the list. */
+.lb-scope-row {
+  display: flex;
+  justify-content: center;
+  padding: 10px 16px 0;
+  flex: none;
+}
+.lb-scope {
+  display: flex;
+  padding: 3px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+.lb-scope-btn {
+  padding: 6px 18px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.lb-scope-btn.is-active { background: var(--brand); color: #fff; }
 .lb-body {
   flex: 1;
   padding: 8px 10px;
