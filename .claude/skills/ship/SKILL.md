@@ -1,40 +1,44 @@
 ---
 name: ship
-description: Commit, push, open the PR to dev, update Notion. Final pipeline stage, run from the task worktree.
+description: Commit the task, rebase on dev, fast-forward push to dev (no PR), update Notion. Final pipeline stage, run from the task worktree.
 ---
 
 # Ship
 
-## Pre-flight (abort ship if any fails)
-1. Working tree in the WORKTREE is clean except intended changes; `git -C <worktree> status`.
-2. verify stage passed; QA verdict.json (if QA ran) has `"pass": true`.
+Result contract: end with exactly one line — `SHIPPED <full sha>` or `SHIP-FAIL <one-line reason>`.
+The orchestrator turns `SHIP-FAIL` into the fail procedure; never set Notion status here on failure.
+
+## Pre-flight (SHIP-FAIL if any fails)
+1. `git -C <worktree> status --porcelain` shows only intended files. **Never stage `__pycache__`/`*.pyc`.**
+2. verify stage passed; QA verdict.json (if QA ran) has `"pass": true`; code review has no blocker/major left.
 
 ## Procedure
-1. Commit (conventional): `<type>: <task title>` + body line `Notion: <card url>`.
-2. Push: `git push -u origin team/<slug>`.
-3. PR: `gh pr create --base dev --head team/<slug> --title "<type>: <task title>" --body <file>`.
-   Body template (exact — claude.yml greps Notion-Task):
+1. Commit (one commit, conventional): subject `<type>: <task title>`; body:
 
-   ## Summary
-   <what changed, 3–6 lines>
-
-   ## Test evidence
-   - lint/tsc/build: pass
-   - Django tests: pass|n/a
-   - Browser QA: pass|skipped (<link to .team/qa/<slug>/ evidence if run>)
-
-   Notion-Task: <pageId>
-   Design-Doc: <docs/team/designs/... or "none">
-   Risk: <low|medium|high>
+   Notion: <card url>
+   Category: <card Category>
 
    ## Agent notes
    - agent: <frontend-engine|backend-engine>
      did: <≤20 words on what changed>
-     assumed: <≤20 words on any assumption, or "none">
+     assumed: <≤20 words, or "none">
 
-   Emit one `- agent:` bullet per engine that contributed (a frontend+backend task has two). The orchestrator fills `did`/`assumed` from each engine's build report.
-
-4. Notion: `node scripts/notion.mjs set-props <pageId> --branch team/<slug> --pr <prUrl>`
-   then `set-status <pageId> "In Review"` then
-   `comment <pageId> "PR ready for CTO review: <prUrl>" --mention`.
-5. Remove the worktree: `git worktree remove <path> --force` (branch stays pushed).
+   One `- agent:` bullet per engine that contributed (a fullstack task has two).
+   Use `git commit -F <file>` so the body is verbatim.
+2. `git -C <worktree> fetch origin dev`
+3. `git -C <worktree> rebase origin/dev`. Conflict → `git rebase --abort` → `SHIP-FAIL rebase conflict with dev: <files>`.
+4. If `origin/dev` advanced since the branch was cut (`git rev-list --count <old base>..origin/dev` > 0):
+   re-run the static checks only — `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
+   `cd backend && .venv/<bin>/python manage.py test` when `backend/` changed. Any failure →
+   `SHIP-FAIL post-rebase check failed: <which>`. Browser QA is not repeated.
+5. Push fast-forward: `git -C <worktree> push origin HEAD:dev`. Rejected (non-fast-forward)
+   → repeat steps 2–4 **once**; rejected again → `SHIP-FAIL dev moved twice during ship`.
+   `--force` and `--force-with-lease` are forbidden.
+6. `SHA=$(git -C <worktree> rev-parse HEAD)`.
+7. Notion: `node scripts/notion.mjs ship-card <pageId> --commit <SHA> --branch team/<slug> --model "<model text>"`.
+   Model text = `<engineModel> · <engineEffort>` (+ ` · plan <planModel>` if a design round ran;
+   fullstack: `backend <m> · <e> / frontend <m> · <e>`).
+8. Clean up: `git worktree remove <path> --force`; `git branch -D team/<slug>`;
+   if the branch was ever pushed: `git push origin --delete team/<slug>`.
+   **[CLOUD]** no worktree: `git checkout dev && git branch -D team/<slug>`.
+9. Print `SHIPPED <SHA>`.
