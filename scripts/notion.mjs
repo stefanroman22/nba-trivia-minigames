@@ -249,7 +249,7 @@ async function cmdMigrateV2(args) {
   const OLD = ["Backlog", "Ready", "In Progress", "In Review", "Blocked", "Blocked-approval", "Done"];
   // 1. add the new options + properties while the old options still exist
   await api(`databases/${DB}`, "PATCH", { properties: {
-    Status: sel([...new Set([...OLD, ...Object.values(STATUS)])], STATUS_COLORS),
+    Status: sel([...Object.values(STATUS), ...OLD.filter((o) => !Object.values(STATUS).some((s) => s.toLowerCase() === o.toLowerCase()))], STATUS_COLORS),
     Category: SCHEMA.Category, Attachments: SCHEMA.Attachments, Attempts: SCHEMA.Attempts,
     "Needs human": SCHEMA["Needs human"], Model: SCHEMA.Model, Commit: SCHEMA.Commit,
   } });
