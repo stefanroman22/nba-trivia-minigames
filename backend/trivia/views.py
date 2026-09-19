@@ -18,7 +18,7 @@ from trivia.models import (
     StartingFiveGame,
     Team,
 )
-from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle
+from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
 from users import leaderboard
 from trivia.data_pipeline.live_pool import load_dataset
 from trivia.data_pipeline.starting_five import (
@@ -29,6 +29,7 @@ from trivia.data_pipeline.starting_five import (
 from trivia.utils.fan_favorites import load_seed as load_fan_favorites_seed
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
+from trivia import wordle_daily
 
 # Games read from the central Supabase store (populated by `sync_nba_data`). Each
 # endpoint falls back to the bundled JSON/CSV/static source if its table is empty
@@ -191,6 +192,51 @@ def get_wordle(request):
         return JsonResponse({'error': 'no wordle words available'}, status=500)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+def _iso(dt):
+    return dt.isoformat().replace('+00:00', 'Z')
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def wordle_daily_status(request):
+    """Has this identity already played today's Wordle? Read-only — never
+    records a play, so the idle screen can check this before Play is pressed."""
+    day = wordle_daily.cet_today()
+    device_id = wordle_daily.resolve_device_id(request)
+    user = request.user if request.user.is_authenticated else None
+    locked = wordle_daily.has_played_today(user, device_id, day)
+    return JsonResponse({
+        'locked': locked,
+        'next_reset_at': _iso(wordle_daily.next_reset_utc(day)),
+    })
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([WordlePlayRateThrottle])
+def wordle_daily_play(request):
+    """Start today's single-player Wordle: locked (423) if already played
+    today, otherwise records the play and returns the word of the day."""
+    day = wordle_daily.cet_today()
+    device_id = wordle_daily.resolve_device_id(request)
+    user = request.user if request.user.is_authenticated else None
+    next_reset = _iso(wordle_daily.next_reset_utc(day))
+
+    if wordle_daily.has_played_today(user, device_id, day):
+        return JsonResponse(
+            {'error': "You already played today's word.", 'locked': True, 'next_reset_at': next_reset},
+            status=423,
+        )
+
+    try:
+        daily_word = wordle_daily.get_or_create_daily_word(day)
+    except ValueError as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+    wordle_daily.record_play(user, device_id, day)
+    return JsonResponse({'series': [daily_word.word], 'next_reset_at': next_reset})
 
 
 def _fan_favorites_row(q):

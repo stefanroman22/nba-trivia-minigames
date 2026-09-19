@@ -1,4 +1,7 @@
 Django>=5.1,<5.2
+# IANA timezone database for zoneinfo — Windows/some minimal Linux images don't
+# ship one, and trivia.wordle_daily needs Europe/Paris for the daily CET/CEST flip.
+tzdata
 djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
