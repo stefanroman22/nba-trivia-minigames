@@ -283,6 +283,16 @@ def google_login(request):
 @api_view(['GET'])
 def get_users(request):
     try:
+        scope = request.query_params.get("scope", "global")
+        if scope == "friends":
+            if not request.user.is_authenticated:
+                return JsonResponse({"error": "Sign in to view your friends leaderboard."}, status=401)
+            board, user_rank, number_users = leaderboard.friends_board(request.user)
+            return Response(
+                {"top_100_users": board, "user_rank": user_rank, "number_users": number_users},
+                status=200,
+            )
+
         user_rank = (
             leaderboard.rank_of(request.user)
             if request.user.is_authenticated

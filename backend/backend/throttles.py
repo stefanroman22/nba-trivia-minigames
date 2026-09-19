@@ -50,3 +50,15 @@ class WordlePlayRateThrottle(UserRateThrottle):
     trivia.wordle_daily; this just bounds a script hammering the endpoint to
     probe device ids or race the once-per-day insert."""
     scope = "wordle-play"
+
+
+class UserSearchRateThrottle(UserRateThrottle):
+    """Friend search. A real person typing a name needs a handful of requests
+    a minute at most; unbounded, this is a way to scrape the user directory."""
+    scope = "user-search"
+
+
+class FriendActionRateThrottle(UserRateThrottle):
+    """Sending a friend request or blocking someone. Genuine use is a handful
+    per session; without a limit it's a spam-add / harassment vector."""
+    scope = "friend-action"

@@ -76,3 +76,30 @@ def record_score(user):
     if r is None:
         return
     r.zadd(ZKEY, {user.public_id: user.points})
+
+
+def friends_board(user):
+    """Rows for `user` + their friends, highest first, as (board, rank, count).
+
+    Always Postgres-backed, bypassing Redis entirely: friend groups are small,
+    so the ZSET's O(log N)-at-scale advantage doesn't apply, and computing the
+    rank within an already-small sorted list is just its index — no need for
+    a scoped ZSET primitive, and it stays correct for accounts that predate
+    Redis being wired in.
+    """
+    from django.db.models import Q
+
+    from users.models import Friendship
+
+    pairs = Friendship.objects.filter(Q(user_low=user) | Q(user_high=user)).values_list(
+        "user_low_id", "user_high_id"
+    )
+    friend_ids = {hi if lo == user.pk else lo for lo, hi in pairs}
+    ids = list(friend_ids) + [user.pk]
+
+    rows = list(
+        User.objects.filter(pk__in=ids).order_by("-points").values("pk", "public_id", "username", "points")
+    )
+    board = [{"id": r["public_id"], "username": r["username"], "points": r["points"]} for r in rows]
+    my_rank = next((i + 1 for i, r in enumerate(rows) if r["pk"] == user.pk), len(board))
+    return board, my_rank, len(board)
