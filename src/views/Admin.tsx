@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import Navigation from "../components/Navigation";
 import { Button, CourtLoader, Field } from "../components/ui";
+import SwapText from "../components/motion/SwapText";
 import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
 import { games as gameCatalog } from "../utils/GameUtils";
@@ -210,7 +211,7 @@ function SourceLine({ source }: { source: AdminSource }) {
         </span>
         <span className="admin-source-meta">{fmtDate(source.last_updated)}</span>
         <button className="admin-browse" onClick={() => setBrowsing((b) => !b)} disabled={!!source.missing}>
-          {browsing ? "Hide records" : "View records"}
+          <SwapText>{browsing ? "Hide records" : "View records"}</SwapText>
         </button>
       </div>
       {source.sync && (

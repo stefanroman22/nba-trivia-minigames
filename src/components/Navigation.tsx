@@ -36,12 +36,12 @@ function UserAvatar({ photo, name, size = 28 }: { photo?: string | null; name?: 
   );
 }
 
-/** Avatar + username + #id chip — the same identity summary on desktop and mobile. */
+/** Avatar + username + #id chip — the same identity summary on desktop; avatar-only on mobile. */
 function UserChip({ user, onClick }: { user: { username: string; id: string | number; profile_photo?: string | null }; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="nav3-user">
+    <button onClick={onClick} className="nav3-user" aria-label={`${user.username} #${user.id}`}>
       <UserAvatar photo={user.profile_photo} name={user.username} />
-      <span className="nav3-user-meta hide-sm">
+      <span className="nav3-user-meta hide-md">
         <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
         <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
       </span>
@@ -61,14 +61,16 @@ function Navigation({ type = "full" }: NavigationProps) {
     navigate("/");
   };
 
-  // Scroll to a home section; from a game page, route home first.
+  // Scroll to a home section; from a game page, route home with the section
+  // as a hash so Next.js's router scrolls to it once the page has mounted
+  // (native hash-fragment scroll, honoring .games-section's scroll-margin-top)
+  // instead of racing a fixed delay against the route load.
   const go = (section: string) => {
     setDrawer(false);
     if (type === "full") {
       scrollToSection(section);
     } else {
-      navigate("/");
-      setTimeout(() => scrollToSection(section), 350);
+      navigate(`/#${section}`);
     }
   };
 
@@ -86,7 +88,7 @@ function Navigation({ type = "full" }: NavigationProps) {
 
   const navLinks = (
     <>
-      <button type="button" onClick={() => go("play")} className="nav-link">Games</button>
+      <button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
       <button type="button" onClick={() => openModal("leaderboard")} className="nav-link">Leaderboard</button>
       <button type="button" onClick={() => openModal("feedback")} className="nav-link">Feedback</button>
       {user?.is_admin && (
@@ -119,7 +121,7 @@ function Navigation({ type = "full" }: NavigationProps) {
         )}
       </div>
 
-      {/* Mobile: same identity chip (hide-sm collapses it to just the avatar), then the hamburger */}
+      {/* Mobile: avatar-only chip (meta hidden ≤900px via hide-md), then the hamburger */}
       <div className="nav3-mobile-right show-md">
         {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
         <button onClick={() => setDrawer(true)} aria-label="Open menu" className="nav-icon-btn">
@@ -154,7 +156,7 @@ function Navigation({ type = "full" }: NavigationProps) {
             </div>
 
             <div className="drawer-body">
-              <button onClick={() => go("play")} className="drawer-link">
+              <button onClick={() => go("games-grid")} className="drawer-link">
                 <span>Games</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
               </button>
