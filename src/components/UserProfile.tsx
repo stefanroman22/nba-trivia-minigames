@@ -11,13 +11,17 @@ import { AnimatePresence, motion } from "framer-motion";
 import SwapText from "./motion/SwapText";
 import { BACKEND_URL } from "../configurations/backend";
 import defaultAvatar from "../assets/default.png";
-import { useModal } from "../context/ModalContext";
+import FriendsPanel from "./FriendsPanel";
+
+type ProfileView = "friends" | "profile";
 
 function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
-  const { open } = useModal();
 
+  // Friends is the default view — the profile details are one tap away,
+  // not the other way around.
+  const [view, setView] = useState<ProfileView>("friends");
   const [isEditing, setIsEditing] = useState(false);
   const [tempUsername, setTempUsername] = useState(user?.username || "");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
@@ -164,129 +168,147 @@ function UserProfile() {
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Header: avatar + welcome */}
-      <div className="profile-head">
-        <div className="profile-avatar">
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={user?.profile_photo || "default"}
-              src={user?.profile_photo || defaultAvatar.src}
-              onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
-              alt="Profile"
-              initial={{ opacity: 0, scale: 1.06 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              style={{ imageOrientation: "from-image" as any }}
-            />
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {uploadingPhoto && (
-              <motion.div
-                className="profile-avatar-loading"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                <span className="loader" style={{ width: 26, height: 26, borderWidth: 3 }} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <h2 className="font-display profile-welcome">
-          Welcome, {user?.username}
-          {user?.id && <span className="tnum" style={{ display: "block", fontSize: 13, fontWeight: 400, color: "var(--muted)" }}>#{user.id}</span>}
-        </h2>
-
-        <label htmlFor="photo-upload" className="profile-photo-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
-          Change photo
-        </label>
-        <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+      <div className="profile-view-toggle" role="tablist" aria-label="Profile section">
+        <button
+          className={`profile-view-btn${view === "friends" ? " is-active" : ""}`}
+          role="tab"
+          aria-selected={view === "friends"}
+          onClick={() => setView("friends")}
+        >
+          Friends
+        </button>
+        <button
+          className={`profile-view-btn${view === "profile" ? " is-active" : ""}`}
+          role="tab"
+          aria-selected={view === "profile"}
+          onClick={() => setView("profile")}
+        >
+          Profile
+        </button>
       </div>
 
-      {/* Username + email */}
-      <div className="profile-fields">
-        <div className="profile-field">
-          <div className="profile-field-label">
-            <span>Username</span>
-            <button
-              className="profile-edit-btn"
-              disabled={saveState === "saving"}
-              onClick={() => {
-                if (isEditing) handleSave();
-                else {
-                  setTempUsername(user?.username || "");
-                  setIsEditing(true);
-                  usernameInputRef.current?.focus();
-                }
-              }}
-            >
-              <SwapText swapKey={isEditing ? "confirm" : saveState}>
-                {isEditing ? "Confirm" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Change"}
-              </SwapText>
-            </button>
+      {view === "friends" ? (
+        <div className="profile-view-body">
+          <FriendsPanel />
+        </div>
+      ) : (
+        <div className="profile-view-body">
+          {/* Header: avatar + welcome */}
+          <div className="profile-head">
+            <div className="profile-avatar">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={user?.profile_photo || "default"}
+                  src={user?.profile_photo || defaultAvatar.src}
+                  onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }}
+                  alt="Profile"
+                  initial={{ opacity: 0, scale: 1.06 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.96 }}
+                  transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  style={{ imageOrientation: "from-image" as any }}
+                />
+              </AnimatePresence>
+
+              <AnimatePresence>
+                {uploadingPhoto && (
+                  <motion.div
+                    className="profile-avatar-loading"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <span className="loader" style={{ width: 26, height: 26, borderWidth: 3 }} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <h2 className="font-display profile-welcome">
+              Welcome, {user?.username}
+              {user?.id && <span className="tnum" style={{ display: "block", fontSize: 13, fontWeight: 400, color: "var(--muted)" }}>#{user.id}</span>}
+            </h2>
+
+            <label htmlFor="photo-upload" className="profile-photo-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
+              Change photo
+            </label>
+            <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
           </div>
-          <input
-            ref={usernameInputRef}
-            type="text"
-            maxLength={20}
-            readOnly={!isEditing}
-            value={isEditing ? tempUsername : user?.username || ""}
-            onChange={(e) => setTempUsername(e.target.value)}
-            className={`profile-input profile-username${
-              (isEditing && tempUsername !== (user?.username || "")) || saveState !== "idle" ? " is-active" : ""
-            }`}
-          />
-        </div>
 
-        <div className="profile-field">
-          <div className="profile-field-label">
-            <span>Player ID</span>
-            <button className="profile-edit-btn" onClick={copyPlayerId}>
-              <SwapText>{idCopied ? "Copied!" : "Copy"}</SwapText>
-            </button>
+          {/* Username + email */}
+          <div className="profile-fields">
+            <div className="profile-field">
+              <div className="profile-field-label">
+                <span>Username</span>
+                <button
+                  className="profile-edit-btn"
+                  disabled={saveState === "saving"}
+                  onClick={() => {
+                    if (isEditing) handleSave();
+                    else {
+                      setTempUsername(user?.username || "");
+                      setIsEditing(true);
+                      usernameInputRef.current?.focus();
+                    }
+                  }}
+                >
+                  <SwapText swapKey={isEditing ? "confirm" : saveState}>
+                    {isEditing ? "Confirm" : saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : "Change"}
+                  </SwapText>
+                </button>
+              </div>
+              <input
+                ref={usernameInputRef}
+                type="text"
+                maxLength={20}
+                readOnly={!isEditing}
+                value={isEditing ? tempUsername : user?.username || ""}
+                onChange={(e) => setTempUsername(e.target.value)}
+                className={`profile-input profile-username${
+                  (isEditing && tempUsername !== (user?.username || "")) || saveState !== "idle" ? " is-active" : ""
+                }`}
+              />
+            </div>
+
+            <div className="profile-field">
+              <div className="profile-field-label">
+                <span>Player ID</span>
+                <button className="profile-edit-btn" onClick={copyPlayerId}>
+                  <SwapText>{idCopied ? "Copied!" : "Copy"}</SwapText>
+                </button>
+              </div>
+              <div className="profile-value profile-value--muted tnum" title="Your permanent ID.">
+                #{user?.id}
+              </div>
+            </div>
+
+            <div className="profile-field">
+              <div className="profile-field-label"><span>Email</span></div>
+              <div className="profile-value profile-value--muted">{user?.email}</div>
+            </div>
           </div>
-          <div className="profile-value profile-value--muted tnum" title="Your permanent ID.">
-            #{user?.id}
+
+          {/* Points & rank — a single compact pill instead of two stacked cards */}
+          <div className="profile-stats">
+            <div className="profile-stat">
+              <span className="profile-stat-lbl">Points</span>
+              <span className="font-display tnum profile-stat-num">{user?.points}</span>
+            </div>
+            <span className="profile-stat-divider" aria-hidden="true" />
+            <div className="profile-stat">
+              <span className="profile-stat-lbl">Rank</span>
+              <span className="font-display tnum profile-stat-num">{user?.rank}</span>
+            </div>
+          </div>
+
+          {/* Logout — centered, same style as the Share feedback button */}
+          <div className="profile-logout">
+            <button className="feedback-band-btn" onClick={handleLogout}>Log out</button>
           </div>
         </div>
-
-        <div className="profile-field">
-          <div className="profile-field-label"><span>Email</span></div>
-          <div className="profile-value profile-value--muted">{user?.email}</div>
-        </div>
-
-        <div className="profile-field">
-          <div className="profile-field-label">
-            <span>Friends</span>
-            <button className="profile-edit-btn" onClick={() => open("friends")}>
-              <SwapText>View</SwapText>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Points & rank — a single compact pill instead of two stacked cards */}
-      <div className="profile-stats">
-        <div className="profile-stat">
-          <span className="profile-stat-lbl">Points</span>
-          <span className="font-display tnum profile-stat-num">{user?.points}</span>
-        </div>
-        <span className="profile-stat-divider" aria-hidden="true" />
-        <div className="profile-stat">
-          <span className="profile-stat-lbl">Rank</span>
-          <span className="font-display tnum profile-stat-num">{user?.rank}</span>
-        </div>
-      </div>
-
-      {/* Logout — centered, same style as the Share feedback button */}
-      <div className="profile-logout">
-        <button className="feedback-band-btn" onClick={handleLogout}>Log out</button>
-      </div>
+      )}
     </motion.div>
   );
 }
