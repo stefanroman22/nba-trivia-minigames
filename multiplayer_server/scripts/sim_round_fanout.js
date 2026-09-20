@@ -5,20 +5,33 @@
 // fairness rests on (each player used to draw their own slot constraints
 // client-side and then be scored against the other's lineup).
 //
+// Since the questions-store migration (Phase E, 6a1a11b) the relay deals
+// superdraft and contexto from multiplayer_server/src/questions.js — one
+// pre-generated question per room — instead of fetching a round from Django.
+// So this sim injects a questions-store fixture through questions._setForTest
+// (the same seam scripts/sim_turngames.js uses) and stubs global.fetch to
+// THROW: any Django round fetch for these games fails the run.
+//
 // index.js needs express/socket.io/cors, which aren't installed for a test run,
-// so this stubs them through Module._load the way a test double would, stubs
-// global fetch with the Django round payloads, then drives the real relay:
+// so this stubs them through Module._load the way a test double would, then
+// drives the real relay:
 //   1. two players identify and queue for superdraft -> a room is created,
-//   2. assert BOTH received roundData and the slot constraints are identical
-//      (captures are deep-cloned, so this is a real comparison of two payloads
-//      and not of one shared object reference with itself),
+//   2. assert ONE question was dealt, BOTH received roundData, the slot
+//      constraints are identical (captures are deep-cloned, so this is a real
+//      comparison of two payloads and not of one shared object reference with
+//      itself), and the payload is the dealt question verbatim,
 //   3. assert a reconnect (index.js's resumeMatch snapshot) re-serves the same
-//      round, and that the retained payload is config-sized, not the pool,
+//      round,
 //   4. same for contexto's secret.
 //
 // Run:  node scripts/sim_round_fanout.js     (exit code 0 = pass)
 
+// questions.js builds URLs from QUESTIONS_PUBLIC_BASE at load time; the fixture
+// below is keyed BASE-relative, so pin it empty whatever the shell has.
+process.env.QUESTIONS_PUBLIC_BASE = "";
+
 const Module = require("module");
+const questions = require("../src/questions");
 
 let failures = 0;
 function check(label, ok, detail) {
@@ -73,31 +86,68 @@ Module._load = function (request, parent, isMain) {
   return originalLoad.apply(this, arguments);
 };
 
-// The two round payloads exactly as backend/trivia/games/*.py serve them.
-const SUPERDRAFT_ROUND = {
-  series: [
-    {
-      pool: "players-index",
-      day: "2026-09-06",
-      slots: [
-        { kind: "team", value: "LAL", label: "Los Angeles Lakers", sub: "Franchise" },
-        { kind: "draft", value: "2010", label: "2010s Draft", sub: "Draft class" },
-        { kind: "country", value: "USA", label: "USA", sub: "Country" },
-        { kind: "team", value: "BOS", label: "Boston Celtics", sub: "Franchise" },
-        { kind: "draft", value: "1980", label: "1980s Draft", sub: "Draft class" },
-      ],
-    },
+// ------------------------------------------------------- questions fixture
+// The two dealt questions exactly as trivia/questions/games/{superdraft,
+// contexto}.py materialize them (base.envelope(): schema/game/qid + payload).
+// Small eligible lists and ranking — the shape is what matters, not the size.
+const SUPERDRAFT_QUESTION = {
+  schema: 1,
+  game: "superdraft",
+  qid: "sd-0001",
+  slots: [
+    { kind: "team", value: "LAL", label: "Los Angeles Lakers", sub: "Franchise", eligible: [[2544, 81, 4, 40474, 1984], [977, 78, 5, 33643, 1978]] },
+    { kind: "draft", value: "2010", label: "2010s Draft", sub: "Draft class", eligible: [[203507, 83, 1, 17000, 1994], [1628369, 80, 1, 12000, 1998]] },
+    { kind: "country", value: "Serbia", label: "Serbia", sub: "Country", eligible: [[203999, 83, 0, 15000, 1995], [1627749, 80, 0, 6000, 1997]] },
+    { kind: "team", value: "BOS", label: "Boston Celtics", sub: "Franchise", eligible: [[1628369, 80, 1, 12000, 1998], [1883, 82, 1, 26000, 1976]] },
+    { kind: "draft", value: "1980", label: "1980s Draft", sub: "Draft class", eligible: [[893, 78, 6, 32292, 1963], [1449, 84, 2, 26946, 1963]] },
   ],
 };
-const CONTEXTO_ROUND = {
-  series: [{ pool: "players-index", day: "2026-09-06", secret_person_id: 2544 }],
+const CONTEXTO_QUESTION = {
+  schema: 1,
+  game: "contexto",
+  qid: "ctx-2026-09-06",
+  day: "2026-09-06",
+  secret: { person_id: 2544, full_name: "LeBron James", fame_tier: 1 },
+  ranking: [[2544, 1], [977, 2], [893, 3]],
+};
+const FIXTURE = {
+  files: {
+    "/questions/manifest.json": {
+      schema: 1,
+      version: "t",
+      dataset: { players: "t" },
+      names: "/questions/v/t/players-names.json",
+      games: {
+        superdraft: { index: "/questions/v/t/superdraft/index.json", count: 1 },
+        contexto: { index: "/questions/v/t/contexto/index.json", count: 1 },
+      },
+    },
+    "/questions/v/t/players-names.json": [],
+    "/questions/v/t/superdraft/index.json": { schema: 1, game: "superdraft", version: "t", dataset: { players: "t" }, items: [["sd-0001"]] },
+    "/questions/v/t/superdraft/sd-0001.json": SUPERDRAFT_QUESTION,
+    // pickDaily: no item is dated "today", so the FNV fallback over the sorted
+    // index lands on the only item — deterministic whatever day the sim runs.
+    "/questions/v/t/contexto/index.json": { schema: 1, game: "contexto", version: "t", dataset: { players: "t" }, items: [["ctx-2026-09-06", "2026-09-06"]] },
+    "/questions/v/t/contexto/ctx-2026-09-06.json": CONTEXTO_QUESTION,
+  },
+};
+questions._setForTest(FIXTURE);
+
+// index.js calls questions.deal(gameId) through the module object, so wrapping
+// the export here is what the relay sees. One room = one deal.
+let deals = 0;
+const realDeal = questions.deal;
+questions.deal = (gameId) => {
+  deals++;
+  return realDeal(gameId);
 };
 
-let fetchCalls = 0;
+// superdraft/contexto must never reach Django any more: a fetch is a failure,
+// not something to satisfy with a stub.
+let networkFetches = 0;
 global.fetch = async (url) => {
-  fetchCalls++;
-  const body = url.includes("superdraft") ? SUPERDRAFT_ROUND : CONTEXTO_ROUND;
-  return { ok: true, statusText: "OK", json: async () => JSON.parse(JSON.stringify(body)) };
+  networkFetches++;
+  throw new Error(`unexpected network fetch: ${url}`);
 };
 
 require("../src/index");
@@ -133,6 +183,11 @@ const GAMES = {
   contexto: { id: "contexto", name: "LeContexto", pointsPerCorrect: 0 },
 };
 
+/** Wait (bounded) until pred() holds — dealRound is async over several microtask hops. */
+async function settle(pred, ticks = 100) {
+  for (let i = 0; i < ticks && !pred(); i++) await new Promise((r) => setImmediate(r));
+}
+
 /** Queue two fresh players for a game and return the roundData each received. */
 async function playRound(gameId, suffix) {
   const a = makeSocket(`sa-${suffix}`);
@@ -143,65 +198,59 @@ async function playRound(gameId, suffix) {
   b.send("identify", { user: userB });
   a.send("findMatch", { game: GAMES[gameId] });
   b.send("findMatch", { game: GAMES[gameId] });
-  await new Promise((r) => setImmediate(r));
-  await new Promise((r) => setImmediate(r));
-  return {
-    a,
-    b,
-    userA,
-    userB,
-    roundA: eventsFor(a.id, "roundData"),
-    roundB: eventsFor(b.id, "roundData"),
-  };
+  await settle(() => eventsFor(a.id, "roundData").length && eventsFor(b.id, "roundData").length);
+  return { a, b, userA, userB, roundA: eventsFor(a.id, "roundData"), roundB: eventsFor(b.id, "roundData") };
 }
 
 (async () => {
-  // 1. SuperDraft — the fairness case.
-  const before = fetchCalls;
+  // 1. SuperDraft — the fairness case. Every access below is optional-chained
+  // so a failing run prints its FAIL lines and exits 1 instead of throwing.
+  const sdBefore = deals;
   const sd = await playRound("superdraft", "1");
-  check("superdraft: one round fetched for the whole room", fetchCalls - before === 1,
-    `fetched ${fetchCalls - before}x`);
+  check("superdraft: one question dealt for the whole room", deals - sdBefore === 1, `dealt ${deals - sdBefore}x`);
   check("superdraft: both players received roundData",
-    sd.roundA.length === 1 && sd.roundB.length === 1,
-    `${sd.roundA.length} vs ${sd.roundB.length}`);
-
-  const slotsA = sd.roundA[0]?.gameData?.[0]?.slots;
-  const slotsB = sd.roundB[0]?.gameData?.[0]?.slots;
-  check("superdraft: the round carries five slot constraints", slotsA?.length === 5,
-    JSON.stringify(slotsA));
+    sd.roundA.length === 1 && sd.roundB.length === 1, `${sd.roundA.length} vs ${sd.roundB.length}`);
+  const qA = sd.roundA[0]?.gameData?.[0];
+  const qB = sd.roundB[0]?.gameData?.[0];
+  check("superdraft: the round is a schema-1 superdraft question",
+    qA?.schema === 1 && qA?.game === "superdraft" && typeof qA?.qid === "string", JSON.stringify(qA));
+  check("superdraft: the round carries five slot constraints with eligibility",
+    qA?.slots?.length === 5 && qA.slots.every((s) => s.kind && s.value && s.label && s.sub && Array.isArray(s.eligible)),
+    JSON.stringify(qA?.slots));
   check("superdraft: BOTH players got the SAME slot constraints",
-    JSON.stringify(slotsA) === JSON.stringify(slotsB),
-    `${JSON.stringify(slotsA)} vs ${JSON.stringify(slotsB)}`);
+    !!qA?.slots && JSON.stringify(qA.slots) === JSON.stringify(qB?.slots),
+    `${JSON.stringify(qA?.slots)} vs ${JSON.stringify(qB?.slots)}`);
   // Guards the guard: if the capture ever stops cloning, the check above
   // compares one object with itself and silently stops being able to fail.
   check("superdraft: the two captures are independent copies",
-    sd.roundA[0].gameData !== sd.roundB[0].gameData);
-  check("superdraft: both players got the same objective day",
-    sd.roundA[0]?.gameData?.[0]?.day === sd.roundB[0]?.gameData?.[0]?.day);
-  check("superdraft: the round carries no player rows",
-    !JSON.stringify(sd.roundA[0].gameData).includes("person_id"));
+    !!sd.roundA[0]?.gameData && sd.roundA[0].gameData !== sd.roundB[0]?.gameData);
+  check("superdraft: the round is the dealt question, unchanged",
+    JSON.stringify(qA) === JSON.stringify(SUPERDRAFT_QUESTION));
 
-  // 2. A reconnect re-serves the same round, still config-sized.
+  // 2. A reconnect re-serves the same round.
   sd.a.send("identify", { user: sd.userA });
   const resume = eventsFor(sd.a.id, "resumeMatch");
   check("superdraft: reconnect resumed the match", resume.length === 1);
   check("superdraft: the resumed round is the same one",
-    JSON.stringify(resume[0]?.gameData) === JSON.stringify(sd.roundA[0].gameData));
-  const resumeBytes = JSON.stringify(resume[0]?.gameData).length;
-  check("superdraft: the retained round payload is config-sized", resumeBytes < 1000,
-    `${resumeBytes} bytes`);
+    !!resume[0]?.gameData && JSON.stringify(resume[0].gameData) === JSON.stringify(sd.roundA[0]?.gameData));
 
-  // 3. Contexto — the secret, not the pool.
+  // 3. Contexto — the secret, dealt once for the room.
+  const cxBefore = deals;
   const cx = await playRound("contexto", "2");
+  check("contexto: one question dealt for the whole room", deals - cxBefore === 1, `dealt ${deals - cxBefore}x`);
   check("contexto: both players received roundData",
-    cx.roundA.length === 1 && cx.roundB.length === 1);
-  check("contexto: both players got the SAME secret",
-    cx.roundA[0]?.gameData?.[0]?.secret_person_id ===
-      cx.roundB[0]?.gameData?.[0]?.secret_person_id);
-  check("contexto: the round carries no player array",
-    JSON.stringify(cx.roundA[0].gameData).length < 200 &&
-      !JSON.stringify(cx.roundA[0].gameData).includes("full_name"),
-    JSON.stringify(cx.roundA[0].gameData));
+    cx.roundA.length === 1 && cx.roundB.length === 1, `${cx.roundA.length} vs ${cx.roundB.length}`);
+  const cA = cx.roundA[0]?.gameData?.[0];
+  const cB = cx.roundB[0]?.gameData?.[0];
+  check("contexto: both players got the SAME secret and day",
+    cA?.secret?.person_id === 2544 && cA?.secret?.person_id === cB?.secret?.person_id &&
+      cA?.day === "2026-09-06" && cA?.day === cB?.day,
+    `${JSON.stringify(cA?.secret)}/${cA?.day} vs ${JSON.stringify(cB?.secret)}/${cB?.day}`);
+  check("contexto: the round is the dealt question, unchanged",
+    JSON.stringify(cA) === JSON.stringify(CONTEXTO_QUESTION));
+
+  // 4. Neither game went anywhere near Django.
+  check("no network round fetch for either game", networkFetches === 0, `${networkFetches} fetch(es)`);
 
   console.log(failures === 0 ? "\nAll round fan-out checks passed." : `\n${failures} check(s) failed.`);
   process.exit(failures === 0 ? 0 : 1);

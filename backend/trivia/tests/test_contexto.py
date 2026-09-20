@@ -7,12 +7,12 @@ to ship the whole pool (O(dataset) per player per round, re-emitted on every
 reconnect); it now ships ``{pool, day, secret_person_id}``.
 
 What must not change is the property an earlier fix established: single-player
-and multiplayer resolve the SAME secret for the same day. Single-player runs
-``dailySecret`` in src/Game Renderers/Contexto.tsx over the CDN pool; the
-endpoint runs ``contexto.daily_secret`` over the live pool those rows are
-published from. ``daily_secret`` below is an independent mirror of the TSX
-function, so the tests can assert both ends land on the same player, and the
-source guards pin the renderer to the rule the mirror encodes.
+and multiplayer resolve the SAME secret for the same day. ``daily_secret`` below
+is an independent mirror of the rule the endpoint's ``contexto.daily_secret``
+encodes (the renderer's own ``dailySecret`` copy was deleted by the questions-
+store migration, 40b1ef8 — solo now plays a precomputed ContextoQuestion), so
+the tests can assert the endpoint stays on that rule, and the source guard pins
+the renderer's multiplayer path to the id it was sent.
 """
 import datetime
 import math
@@ -30,10 +30,9 @@ CONTEXTO_TSX = os.path.join(
 )
 
 
-# --- Python mirror of dailySecret() in src/Game Renderers/Contexto.tsx -------
-# Single-player still runs THAT function over the CDN pool. Mirroring it here
-# lets a test ask the real question: given the same day, does the secret the
-# endpoint hands multiplayer match the one single-player picks for itself?
+# --- Python mirror of the daily-secret rule (trivia/games/contexto.daily_secret) --
+# Kept independent of the module under test so a test can ask: given the same
+# day, does the endpoint keep landing on the player this rule picks?
 def _fnv1a(s):
     h = 2166136261
     for ch in s:
@@ -212,25 +211,27 @@ class ContextoPayloadTests(TestCase):
         against a different secret from its opponent's and still be scored
         against them: the exact silent divergence this contract removes. When
         the id isn't in the loaded pool the round must be unplayable instead.
+
+        Since the questions-store migration (40b1ef8) single-player plays a
+        precomputed ContextoQuestion and the renderer has no daily rule of its
+        own any more — the FNV pick lives server-side (pickDaily in
+        src/utils/questions.ts and multiplayer_server/src/questions.js) — so
+        there is nothing left for the online path to fall back to.
         """
         with open(CONTEXTO_TSX, "r", encoding="utf-8") as f:
             src = f.read()
+        # Online: the sent id, found in the loaded pool, or no secret at all.
+        self.assertIn("if (!multiplayer || !pool || !pool.length) return null;", src)
         self.assertIn(
-            "if (multiplayer) return"
-            " pool.find((p) => p.person_id === round?.secret_person_id) ?? null;",
+            "return pool.find((p) => p.person_id === round?.secret_person_id) ?? null;",
             src,
         )
-        # dailySecret is the single-player rule only — never a multiplayer fallback.
-        self.assertIn("return dailySecret(pool);", src)
-        self.assertNotIn("dailySecret(pool, round", src)
-        # …and dailySecret still encodes the rule this module mirrors.
-        self.assertIn("pool.filter((p) => p.fame_tier <= 2)", src)
-        self.assertIn("(a, b) => a.person_id - b.person_id", src)
-        self.assertIn("h = 2166136261;", src)
-        self.assertIn("Math.imul(h, 16777619)", src)
-        self.assertIn("new Date().toISOString().slice(0, 10)", src)
+        # No local daily rule exists in the renderer to fall back on.
+        self.assertNotIn("dailySecret", src)
+        # Solo takes the secret its precomputed question carries; it never picks one.
+        self.assertIn("const secret = multiplayer ? mpSecret : (question?.secret ?? null);", src)
         # The pool arrives from the CDN cache, never through the socket server.
-        self.assertIn("useRoundPool(localPool, round?.pool)", src)
+        self.assertIn("useRoundPool(multiplayer ? null : NO_POOL, round?.pool)", src)
 
     def test_empty_pool_returns_503(self):
         with mock.patch.object(contexto, "load_players", return_value=[]):
