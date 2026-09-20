@@ -109,7 +109,8 @@ class SuperDraftRoundTests(TestCase):
 
     @unittest.skipIf(shutil.which("node") is None, "node not on PATH")
     def test_both_players_in_a_room_receive_the_same_slots(self):
-        """Drives the real relay: two players queue, a room is created, and both
+        """Drives the real relay: two players queue, a room is created, ONE
+        superdraft question is dealt from the questions store, and both
         emissions (plus a reconnect's resume snapshot) must carry byte-identical
         slot constraints. See multiplayer_server/scripts/sim_round_fanout.js."""
         sim = os.path.join(
@@ -122,15 +123,16 @@ class SuperDraftRoundTests(TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
     def test_renderer_plays_the_server_slots_and_never_redraws_online(self):
-        """Guards defect B: drawSlots() must not run on the multiplayer path."""
+        """Guards defect B: online, the renderer resolves the server's slots and
+        has no draw of its own. Since the questions-store migration (6e82128)
+        solo plays a precomputed SuperDraftQuestion and its re-roll refetches
+        one, so drawSlots() is gone from the renderer entirely."""
         with open(SUPERDRAFT_TSX, "r", encoding="utf-8") as f:
             src = f.read()
-        self.assertIn(
-            "const drawn = multiplayer"
-            " ? resolveSlots(candidates, round?.slots ?? []) : drawSlots(candidates);",
-            src,
-        )
-        # The one re-roll would redraw the slots — it is single-player only.
+        self.assertIn("const drawn = resolveSlots(candidates, round?.slots ?? []);", src)
+        # No client-side slot draw exists on any path.
+        self.assertNotIn("drawSlots", src)
+        # The one re-roll would swap the slots — it is single-player only.
         self.assertIn("if (multiplayer || rerollUsed || phase !== \"draft\") return;", src)
         self.assertIn("{drafting && !multiplayer && (", src)
         # The daily objective follows the round's day, not each client's clock.
