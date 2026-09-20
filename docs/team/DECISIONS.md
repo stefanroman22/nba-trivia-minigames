@@ -140,3 +140,55 @@ built; `main-sync.yml` is unaffected (it watches pushes to `main`, whatever the 
 asked to) is trusted to check `dev` before promoting. `cto-approved`/`cto-changes-requested`
 labels and the fix-tasks-first CTO loop in `team-run` are gone. Spec revision:
 `docs/superpowers/specs/2026-09-17-pipeline-v2-board-flow-slack-design.md` (2026-09-19 addendum).
+
+## 2026-09-20 — Stale trivia tests that drive the multiplayer sim: backend-only vs backend+multiplayer
+Context: card "Fix 3 trivia tests that fail on a clean dev checkout" (Category backend, P1). All
+three failures are stale tests, not regressions: the questions-store migration (6e82128,
+40b1ef8, 6a1a11b) removed `drawSlots`/`dailySecret` from `src/Game Renderers/SuperDraft.tsx` /
+`Contexto.tsx` (the invariants the string assertions guard still hold — multiplayer never redraws,
+the sent `secret_person_id` is the only secret accepted) and moved the relay's superdraft/contexto
+rounds from Django fetches to `multiplayer_server/src/questions.js` (`deal()` via a schema-1
+manifest), so `scripts/sim_round_fanout.js`'s `global.fetch` stub of the Django payloads no longer
+reaches the relay and `getManifest` throws `questions schema undefined unsupported`. Fix side is
+the tests every time. Classifying it `areas: ["backend"]` was defensible (Category backend, the
+Python tests are the deliverable, no design round) but the sim rewrite is real Node work against
+`questions._setForTest` mirroring `scripts/sim_turngames.js`'s fixture, i.e. multiplayer-area code.
+Decision: `areas: ["backend","multiplayer"]`, `difficulty: standard`, `risk: low` (a test harness,
+not the socket protocol), `needsDesignRound: true` per the multi-area rule, `engineModel: sonnet`
+(each test maps to a named file and a "passes on clean dev" done-check), `planModel: opus-4.8`
+(the spec enumerates every failure and its error text).
+Consequences: test-only fixes that need a `multiplayer_server/scripts/*` sim rewritten still get
+the short multi-area design round; the plan should say explicitly that no renderer or relay code
+changes and that the sim moves to the `_setForTest` fixture pattern rather than re-stubbing fetch.
+
+## 2026-09-20 — Design round with no spawnable engines: planner fills the engine seats and says so
+Context: design round for "Fix 3 trivia tests that fail on a clean dev checkout" ran on a cloud
+session (TEAM_CLOUD=1) whose tool list has no `Agent` tool, and `ListAgents` showed no teammate
+engines to message — only the planner subagent itself. The `design-round` skill's steps 1 and 3
+(engine proposals, engine sign-off) could not be executed as written.
+Decision: the planner filled both `backend-engine` seats natively from source and `git log -p`
+(the evidence is in the design doc's verdict table), replaced the sign-off pass with the step-5b
+self-review, and states this in the design doc's Decision summary. Not parked: the task is
+`standard`/`risk: low`, the spec enumerated every failure, and all three verdicts rest on commit
+evidence (6e82128, 40b1ef8, 6a1a11b) rather than judgment calls an engine would have changed.
+Consequences: `team-run`/`planner-architect` should check that the Agent tool is present before
+spawning a design round that requires engine consults, or the `design-round` skill should name
+this fallback explicitly for cloud runs; until then a design doc from a cloud run must say whether
+its proposals came from real engines or from the planner.
+
+## 2026-09-20 — Online Contexto/SuperDraft relay→renderer mismatch found while fixing the tests: recorded, not bundled
+Context: the questions-store Phase E commit (6a1a11b) switched the relay's `superdraft`/`contexto`
+rounds to `questions.deal()` (a full `SuperDraftQuestion`/`ContextoQuestion`), while Phase C/D
+(6e82128/40b1ef8) had deliberately left the renderers' multiplayer branches on the old
+`{pool, day, slots}` / `{pool, day, secret_person_id}` configs "for a future phase". Result on
+`dev`: online Contexto shows "No player data available" (`round.secret_person_id` is undefined);
+online SuperDraft works only because `useRoundPool` defaults to `players-index`, and has lost the
+server `day` for `dailyObjective`. None of the three failing tests covers this contract.
+Decision: keep the P1 card to the three tests (tests-only fix, no renderer/relay change) and
+record the mismatch in the design doc as a follow-up card ("Port Contexto/SuperDraft multiplayer
+branches to the dealt question — spec §10.3"; areas ui + multiplayer; needs
+GAME_DESIGN_CONSTRAINTS and browser QA). Bundling a renderer port into a test-unblock card would
+turn a low-risk backend change into a UI change the ship gate for every backend card waits on.
+Consequences: the follow-up must be filed on the board; until it ships, `docs/games/MASTER_PLAN.md`
+readers should treat online Contexto as broken on dev and production alike (the relay change is
+already promoted).
