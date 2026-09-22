@@ -9,12 +9,13 @@ reconnect); it now ships ``{pool, day, secret_person_id}``.
 What must not change is the property an earlier fix established: single-player
 and multiplayer resolve the SAME secret for the same day. ``daily_secret`` below
 is an independent mirror of the rule the endpoint's ``contexto.daily_secret``
-encodes (the renderer's own ``dailySecret`` copy was deleted by the questions-
-store migration, 40b1ef8 — solo now plays a precomputed ContextoQuestion), so
-the tests can assert the endpoint stays on that rule, and the source guard pins
-the renderer's multiplayer path to the id it was sent.
+encodes, so the tests can assert the endpoint stays on that rule. The renderer
+itself now plays one precomputed ContextoQuestion in BOTH modes (the questions
+store deals the same object to every member of a room), so its source guard
+pins that single path and the absence of any client-side secret or ranking.
 """
 import datetime
+import inspect
 import math
 import os
 from unittest import mock
@@ -24,6 +25,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from trivia.games import contexto, players_index
+from trivia.questions import similarity as questions_similarity
 
 CONTEXTO_TSX = os.path.join(
     os.path.dirname(settings.BASE_DIR), "src", "Game Renderers", "Contexto.tsx"
@@ -47,10 +49,10 @@ def daily_secret(pool, day):
     return rows[_fnv1a(day) % len(rows)]
 
 
-# --- Python mirror of awardsSimilarity() in src/Game Renderers/Contexto.tsx --
+# --- Python mirror of _awards_similarity() in trivia/questions/similarity.py --
 # The résumé component of the ranking. Mirrored here so its properties can be
-# asserted against the REAL curated pool the game ranks; the source guard at the
-# bottom of this module fails if the renderer stops using it.
+# asserted against the REAL curated pool the game ranks; the guard at the end
+# of ContextoAwardsSimilarityTests fails if the ranking stops using it.
 def awards_vec(p):
     aw = p["awards"]
     return [len(aw["mvp"]), aw["allstar_count"], len(aw["rings"]), len(aw["dpoy"])]
@@ -138,12 +140,25 @@ class ContextoAwardsSimilarityTests(TestCase):
         }
         self.assertGreater(len(scores), 20)
 
-    def test_the_renderer_uses_the_magnitude_aware_metric(self):
-        """Guards this mirror: the ranking must not fall back to bare cosine."""
-        with open(CONTEXTO_TSX, "r", encoding="utf-8") as f:
-            src = f.read()
-        self.assertIn("awardsSimilarity(awardsVec(secret), awardsVec(p))", src)
-        self.assertNotIn("cosine(awardsVec(", src)
+    def test_the_ranking_uses_the_magnitude_aware_metric(self):
+        """Guards this mirror: the ranking must not fall back to bare cosine.
+
+        The ranking is precomputed server-side (trivia/questions/similarity.py);
+        the renderer's TypeScript copy was deleted when multiplayer moved onto
+        the dealt question, so this is the only implementation left to pin.
+        """
+        for a, b in (
+            ([1, 6, 2, 0], [2, 12, 4, 0]),
+            ([0, 0, 0, 0], [0, 0, 0, 0]),
+            ([0, 0, 0, 0], [4, 21, 4, 0]),
+            ([2, 15, 5, 0], [2, 15, 5, 0]),
+        ):
+            self.assertAlmostEqual(
+                questions_similarity._awards_similarity(a, b), awards_similarity(a, b)
+            )
+        src = inspect.getsource(questions_similarity.similarity)
+        self.assertIn("_awards_similarity(_awards_vec(secret), _awards_vec(p))", src)
+        self.assertNotIn("_cosine(_awards_vec(", src)
 
 
 class ContextoPayloadTests(TestCase):
@@ -205,33 +220,27 @@ class ContextoPayloadTests(TestCase):
         self.assertIn(self.round_payload()["secret_person_id"], pids)
 
     def test_the_renderer_resolves_the_same_secret(self):
-        """The multiplayer path must use the id it was sent — and ONLY that.
+        """Both modes play the ContextoQuestion they were handed — and ONLY that.
 
-        A local fallback there would let a client whose pool lacks the id rank
-        against a different secret from its opponent's and still be scored
-        against them: the exact silent divergence this contract removes. When
-        the id isn't in the loaded pool the round must be unplayable instead.
-
-        Since the questions-store migration (40b1ef8) single-player plays a
-        precomputed ContextoQuestion and the renderer has no daily rule of its
-        own any more — the FNV pick lives server-side (pickDaily in
-        src/utils/questions.ts and multiplayer_server/src/questions.js) — so
-        there is nothing left for the online path to fall back to.
+        The secret and the whole ranking are precomputed server-side
+        (trivia/questions/games/contexto.py); a multiplayer room is dealt one
+        question (multiplayer_server/src/questions.js deal) and every member
+        receives the same object. The renderer therefore has no secret-picking,
+        no pool download and no similarity engine of its own — the retired
+        {pool, day, secret_person_id} multiplayer branch is gone — so two
+        players can never rank against different secrets.
         """
         with open(CONTEXTO_TSX, "r", encoding="utf-8") as f:
             src = f.read()
-        # Online: the sent id, found in the loaded pool, or no secret at all.
-        self.assertIn("if (!multiplayer || !pool || !pool.length) return null;", src)
-        self.assertIn(
-            "return pool.find((p) => p.person_id === round?.secret_person_id) ?? null;",
-            src,
-        )
-        # No local daily rule exists in the renderer to fall back on.
+        # One payload shape for both modes: the question is gameInfo[0].
+        self.assertIn("const question = gameInfo[0] as ContextoQuestion | undefined;", src)
+        self.assertIn("const secret = question?.secret ?? null;", src)
+        self.assertIn("new Map<number, number>(question?.ranking ?? [])", src)
+        # The retired multiplayer config and its client-side machinery are gone.
+        self.assertNotIn("secret_person_id", src)
+        self.assertNotIn("useRoundPool", src)
+        self.assertNotIn("buildRanking", src)
         self.assertNotIn("dailySecret", src)
-        # Solo takes the secret its precomputed question carries; it never picks one.
-        self.assertIn("const secret = multiplayer ? mpSecret : (question?.secret ?? null);", src)
-        # The pool arrives from the CDN cache, never through the socket server.
-        self.assertIn("useRoundPool(multiplayer ? null : NO_POOL, round?.pool)", src)
 
     def test_empty_pool_returns_503(self):
         with mock.patch.object(contexto, "load_players", return_value=[]):

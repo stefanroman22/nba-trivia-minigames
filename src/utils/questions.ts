@@ -137,8 +137,8 @@ export function utcToday(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** FNV-1a over the date — the existing Contexto dailySecret rule, used only as a fallback. */
-function hashStr(s: string): number {
+/** FNV-1a over a string — the Contexto daily fallback, and SuperDraft's online objective (hashStr(qid)). */
+export function hashStr(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
