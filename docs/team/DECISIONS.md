@@ -264,3 +264,33 @@ Consequences: the backend commit (with the migration) ships before the frontend 
 frontend's `version > 0` guard renders initials against a backend without the field. Leaderboard
 rows and the relay's inline data URL are follow-up cards. Two cloud design rounds in a row have
 hit the missing-`Agent` fallback — the `design-round` skill should name it explicitly.
+
+## 2026-09-22 — Port Contexto/SuperDraft multiplayer branches to the dealt question: standard vs hard, sonnet vs fable
+Context: fullstack P1 card, no override, follow-up to the 2026-09-20 finding. The relay
+(`multiplayer_server/src/index.js` `fetchRound` → `[await questions.deal(gameId)]`) already deals a
+full `ContextoQuestion`/`SuperDraftQuestion`, so `roundData.gameData` reaches `RenderGame` as
+`[question]` today; only the two renderers' `multiplayer` branches still cast `gameInfo[0]` to the
+retired `{pool, day, secret_person_id}` / `{pool, day, slots}` configs and go through `useRoundPool`
+(whose only two callers are these files). `hard` was defensible: multi-area, it deletes the
+client-side similarity engine and `buildCandidates`/`resolveSlots`, and one rule is genuinely
+missing — the dealt `SuperDraftQuestion` carries no `day` (`questions/games/superdraft.py`
+`index_item` → `[None]`, `materialize` envelopes `{slots}` only; spec §7.4 keeps the objective
+"chosen by date in the renderer"), so with the relay contract frozen the shared objective has to come
+from something both clients already hold (the qid) or the contract has to grow. `fable` was
+defensible for that same open rule.
+Decision: `difficulty: standard` (bias small: the solo branch of each renderer is the exact pattern
+the multiplayer branch adopts, the relay and Django views are untouched, and the objective rule is one
+decision the design round makes, not a state machine), `risk: low` (renderer-side consumption of an
+existing payload; no socket protocol, auth or pipeline change), `needsDesignRound: true` (multi-area:
+frontend/ui + multiplayer + backend), `engineModel: sonnet` provisional (once the objective rule is
+fixed every step names a file and a done-check: two renderers, `RenderGame` casts, `types.tsx`
+cleanup, delete `useRoundPool`, re-pin the backend source-string guards), `planModel: fable` (the spec
+names the defects and the target shape but the objective rule and the fate of the `RoundConfig`
+types/hook must be invented).
+Consequences: the backend area is real but tests-only — `backend/trivia/tests/test_contexto.py`
+(`round?.secret_person_id`, `useRoundPool(...)`, `const secret = multiplayer ? mpSecret : ...`) and
+`test_superdraft.py` (`resolveSlots(candidates, round?.slots ?? [])`, `dailyObjective(round?.day)`)
+pin renderer lines the port deletes and must be re-pinned in the same change; `sim_round_fanout.js`
+and `multiplayer_server/src/*` stay untouched. If the design round decides the relay must add a
+field after all, that contradicts the card's "keep the relay contract as is" and should be raised on
+the card rather than silently widened.
