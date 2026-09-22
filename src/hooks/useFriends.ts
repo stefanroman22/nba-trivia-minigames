@@ -7,7 +7,10 @@ export interface FriendUser {
   username: string;
   points: number;
   rank: string;
+  /** Always null in list rows — the bytes only travel inline in /me/. */
   profile_photo: string | null;
+  /** 0 = no photo; otherwise the cache key for friendPhotoUrl(). Bumped by every upload. */
+  photo_version: number;
 }
 
 export interface FriendRequestRow extends FriendUser {
@@ -34,6 +37,15 @@ const EMPTY: FriendsState = { incoming: [], outgoing: [], blocked: [], loading: 
 export interface FriendsPage {
   results: FriendUser[];
   total: number;
+}
+
+/** The cacheable photo URL for a list row, or null when the player has no photo.
+ * The version is part of the URL, so the browser keeps a hit for a year and a
+ * re-upload (new version) is simply a new URL — no per-row byte loads, no
+ * invalidation. `version > 0` is also false for undefined, so a backend that
+ * predates the field just yields initials. */
+export function friendPhotoUrl(id: string, version: number): string | null {
+  return version > 0 ? `${BACKEND_URL}/users/${encodeURIComponent(id)}/photo/?v=${version}` : null;
 }
 
 async function postAction(path: string, body: Record<string, unknown>): Promise<void> {

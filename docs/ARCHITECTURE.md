@@ -130,6 +130,8 @@ It has two parts ("apps"):
 - `update-profile` — save points / username / photo (recomputes your rank)
 - `logout` — invalidates your refresh token
 - `get-users` — the top-100 leaderboard plus your own rank
+- `users/<public_id>/photo` — a player's profile photo as a cacheable JPEG (public; `?v=` is the
+  version list rows carry as `photo_version`; `/me/` still inlines your own photo as a data URL)
 - `token/refresh` — get a fresh token when the old one expires
 
 **Game data** (`/trivia/...`): returns random rounds for each game (playoff series, logos,

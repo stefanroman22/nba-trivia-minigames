@@ -6,6 +6,7 @@ import {
   useFriends,
   searchUsers,
   searchFriends,
+  friendPhotoUrl,
   type FriendUser,
   type FriendSearchResult,
 } from "../hooks/useFriends";
@@ -99,7 +100,7 @@ export default function FriendsPanel() {
               <div className="fr-list">
                 {incoming.map((r) => (
                   <div key={r.request_id} className="fr-row">
-                    <Avatar initials={initials(r.username)} size={30} />
+                    <Avatar initials={initials(r.username)} size={30} src={friendPhotoUrl(r.id, r.photo_version)} />
                     <div className="fr-row-info">
                       <span className="fr-name">{r.username}</span>
                       <span className="tnum fr-sub">#{r.id}</span>
@@ -134,7 +135,7 @@ export default function FriendsPanel() {
               <div className="fr-list">
                 {outgoing.map((r) => (
                   <div key={r.request_id} className="fr-row">
-                    <Avatar initials={initials(r.username)} size={30} />
+                    <Avatar initials={initials(r.username)} size={30} src={friendPhotoUrl(r.id, r.photo_version)} />
                     <div className="fr-row-info">
                       <span className="fr-name">{r.username}</span>
                       <span className="tnum fr-sub">#{r.id}</span>
@@ -165,7 +166,7 @@ export default function FriendsPanel() {
           <div className="fr-list">
             {blocked.map((b) => (
               <div key={b.id} className="fr-row">
-                <Avatar initials={initials(b.username)} size={30} />
+                <Avatar initials={initials(b.username)} size={30} src={friendPhotoUrl(b.id, b.photo_version)} />
                 <div className="fr-row-info">
                   <span className="fr-name">{b.username}</span>
                   <span className="tnum fr-sub">#{b.id}</span>
@@ -276,7 +277,7 @@ function FriendsTab({
           <div className="fr-list">
             {results.map((f) => (
               <div key={f.id} className="fr-row">
-                <Avatar initials={initials(f.username)} size={30} />
+                <Avatar initials={initials(f.username)} size={30} src={friendPhotoUrl(f.id, f.photo_version)} />
                 <div className="fr-row-info">
                   <span className="fr-name">{f.username}</span>
                   <span className="tnum fr-sub">#{f.id} · {f.rank}</span>
@@ -384,7 +385,7 @@ function FindTab({
         <div className="fr-list">
           {results.map((r) => (
             <div key={r.id} className="fr-row">
-              <Avatar initials={initials(r.username)} size={30} />
+              <Avatar initials={initials(r.username)} size={30} src={friendPhotoUrl(r.id, r.photo_version)} />
               <div className="fr-row-info">
                 <span className="fr-name">{r.username}</span>
                 <span className="tnum fr-sub">#{r.id} · {r.rank}</span>

@@ -221,7 +221,10 @@ def update_profile(request):
                 {"error": "We couldn't read that image. Try a JPG, PNG, WebP or GIF."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        user.save(update_fields=["profile_photo_data"])
+        # New bytes = new version: list rows carry it as ?v= on the public photo URL, so the
+        # browser cache of the previous photo is left behind rather than invalidated.
+        user.profile_photo_version += 1
+        user.save(update_fields=["profile_photo_data", "profile_photo_version"])
         return Response({"status": "success", "user": user_payload(request, user)}, status=status.HTTP_200_OK)
 
     return Response({"error": "Unsupported content type"}, status=status.HTTP_400_BAD_REQUEST)
