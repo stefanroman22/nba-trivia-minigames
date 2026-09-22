@@ -294,3 +294,35 @@ pin renderer lines the port deletes and must be re-pinned in the same change; `s
 and `multiplayer_server/src/*` stay untouched. If the design round decides the relay must add a
 field after all, that contradicts the card's "keep the relay contract as is" and should be raised on
 the card rather than silently widened.
+
+## 2026-09-22 — Contexto/SuperDraft dealt-question port design: online objective from the qid hash, relay untouched; engine seats filled by the planner
+Context: design round for "Port Contexto/SuperDraft multiplayer branches to the dealt question"
+(standard / risk low, `docs/team/designs/2026-09-22-port-contexto-superdraft-mp.md`). The classify
+entry above left open how online SuperDraft gets a shared objective when the dealt
+`SuperDraftQuestion` carries no `day` (`questions/games/superdraft.py index_item` → `[None]`; spec
+§7.4 keeps the objective in the renderer) and what happens to the retired `*RoundConfig` types and
+`useRoundPool`. Three rules were possible: hash the qid both clients already hold; use `utcToday()`
+on each client; add `day` to the relay payload. This cloud session again had no `Agent` tool and
+`ListAgents` listed no engine teammates, so the `frontend-engine`/`backend-engine` proposal and
+sign-off seats could not be run as the `design-round` skill writes them.
+Decision: online objective = `OBJECTIVES[hashStr(question.qid) % 4]` (the existing FNV-1a in
+`src/utils/questions.ts`, now exported); solo keeps `dailyObjective()` on the local date unchanged.
+`utcToday()` was rejected because the two clients can straddle UTC midnight between their
+`roundData` arrivals and a next-day reconnect would recompute a different objective from the
+opponent's; a relay field was rejected because the card freezes the contract and the value is
+derivable client-side. So: **no relay or Django change.** Both renderers consume `gameInfo[0]` as the
+question in both modes (spec §10.3); `ContextoRoundConfig`/`SuperDraftRoundConfig`/
+`SlotConstraintConfig` and `src/hooks/useRoundPool.ts` are deleted (their only consumers are the two
+branches removed); Contexto drops its `multiplayer` prop (nothing reads it; MP-12), SuperDraft keeps
+it for the re-roll guard and the objective rule. The Contexto awards-metric source guard, which the
+deleted TypeScript engine would have broken, moves onto `trivia/questions/similarity.py` with a
+numeric mirror check rather than being dropped. The planner filled both engine seats from source and
+the 5b self-review stands in for sign-off (same fallback as 2026-09-20 and the friend-photo round).
+Engine finalised as `sonnet` (13 explicit steps with done-checks).
+Consequences: the frontend half must be built before the backend half — the backend is tests-only
+and its re-pins fail against the unported renderers by design. MULTIPLAYER_CONSTRAINTS acceptance
+check 4 now reads 4 / six files (it was already 5 / 7 on the base commit against a documented 3 / 7);
+the doc is left for `bootstrap-audit`. On the cloud QA VM supabase.co is blocked, so the browser pass
+serves a fixture questions store on `localhost:5280` to both the relay (`QUESTIONS_PUBLIC_BASE`) and
+the browser (`VITE_QUESTIONS_BASE`); online mode still fetches only the manifest and the names list
+from the store after the port. Three cloud design rounds have now hit the missing-`Agent` fallback.
