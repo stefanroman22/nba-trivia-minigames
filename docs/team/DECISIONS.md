@@ -238,3 +238,29 @@ Consequences: the design round must settle photo-endpoint auth and the version s
 anything is built, and must keep `search-users`/`search-friends` rows free of photo bytes (the
 51d601b test is the contract). If the plan lands on the migration path, the backend commit must
 ship first per pipeline v2's backend-then-frontend split and note the shared-DB migration.
+
+## 2026-09-22 — Friend-photo endpoint design: public by public_id + stored version column; engine seats filled by the planner
+Context: design round for "Friend lists show profile photos via a cacheable photo endpoint" (hard /
+risk high, `docs/team/designs/2026-09-22-friend-photos-cacheable.md`). The classify entry above
+left two rules open. (1) Auth: a browser `<img>` cannot send the JWT (AUTH-3/AUTH-5), so the
+choice was an unauthenticated endpoint keyed by `public_id` or `apiFetch`→blob URL, which forfeits
+the HTTP cache the card asks for. (2) Version: a per-request byte hash needs the bytes on every
+list row (or a revalidation per row per render), while a column needs migration 0006 on the shared
+dev/prod DB. Also: this cloud session again has no `Agent` tool and `ListAgents` lists no engine
+teammates, so the `backend-engine`/`frontend-engine` proposal and sign-off seats could not be run
+as the `design-round` skill writes them.
+Decision: `GET /api/users/<public_id>/photo/?v=N` is a plain Django view (BE-9), no auth, no
+throttle, JPEG bytes only, identical 404 for unknown and photo-less ids — `public_id` is already
+shown on every row and the leaderboard, and the multiplayer relay already hands photos to any
+opponent, so the endpoint widens nothing. `CustomUser.profile_photo_version`
+(PositiveIntegerField, 0 = no photo) is bumped by `update_profile` and backfilled to 1 for
+pre-existing photos in `0006` (AddField + RunPython); list rows gain a NEW `photo_version` key and
+keep `profile_photo: None` (the 51d601b test contract is extended in place, not replaced).
+Cache-Control: immutable/1y when `?v=` matches, `no-cache` otherwise, `no-store` on 404; ETag =
+version via Django's `condition`. The planner filled both engine seats from source, states so in
+the design doc, and the 5b self-review stands in for sign-off (same fallback as 2026-09-20).
+Engine finalised as `sonnet` (13 explicit steps with done-checks).
+Consequences: the backend commit (with the migration) ships before the frontend one; the
+frontend's `version > 0` guard renders initials against a backend without the field. Leaderboard
+rows and the relay's inline data URL are follow-up cards. Two cloud design rounds in a row have
+hit the missing-`Agent` fallback — the `design-round` skill should name it explicitly.
