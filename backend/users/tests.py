@@ -123,7 +123,7 @@ class LoginTests(TestCase):
 
 
 class FriendsPhotoTests(TestCase):
-    """List endpoints (search, friends overview) never inline a photo's bytes —
+    """List endpoints (search, search-friends) never inline a photo's bytes —
     only the signed-in user's own /me payload does. See users/friends.py `_brief`."""
 
     def setUp(self):
@@ -144,9 +144,9 @@ class FriendsPhotoTests(TestCase):
         self.assertEqual(len(results), 1)
         self.assertIsNone(results[0]["profile_photo"])
 
-        resp = self.client.get(reverse("friends-overview"), HTTP_AUTHORIZATION=f"Bearer {self.access}")
+        resp = self.client.get(reverse("search-friends"), HTTP_AUTHORIZATION=f"Bearer {self.access}")
         self.assertEqual(resp.status_code, 200)
-        friends = resp.json()["friends"]
+        friends = resp.json()["results"]
         self.assertEqual(len(friends), 1)
         self.assertIsNone(friends[0]["profile_photo"])
 
