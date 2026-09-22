@@ -28,7 +28,8 @@ SUPERDRAFT_TSX = os.path.join(
 
 
 def eligible_for(pool, slot):
-    """The players a slot constraint offers — buildCandidates() in SuperDraft.tsx."""
+    """The players a slot constraint offers — the eligibility rule of
+    trivia/questions/games/superdraft.slot_matches (the renderer's buildCandidates copy is gone)."""
     if slot["kind"] == "team":
         return [p for p in pool if any((t or {}).get("abbr") == slot["value"] for t in p.get("teams") or [])]
     if slot["kind"] == "country":
@@ -81,9 +82,8 @@ class SuperDraftRoundTests(TestCase):
         )
 
     def test_every_slot_resolves_in_the_pool_the_renderer_loads(self):
-        """resolveSlots() looks each slot up in buildCandidates(), which only
-        keeps constraints with >= MIN_ELIGIBLE players — a slot the renderer
-        can't find puts the game in its error state."""
+        """The legacy endpoint only draws constraints with >= MIN_ELIGIBLE players —
+        the same floor the questions-store generator enforces per slot (superdraft.materialize)."""
         pool = players_index.build_pool()
         for slot in self.round_payload()["slots"]:
             self.assertGreaterEqual(
@@ -123,20 +123,29 @@ class SuperDraftRoundTests(TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
     def test_renderer_plays_the_server_slots_and_never_redraws_online(self):
-        """Guards defect B: online, the renderer resolves the server's slots and
-        has no draw of its own. Since the questions-store migration (6e82128)
-        solo plays a precomputed SuperDraftQuestion and its re-roll refetches
-        one, so drawSlots() is gone from the renderer entirely."""
+        """Guards defect B: online, the renderer plays the five slots of the
+        SuperDraftQuestion the room was dealt and has no draw, no resolve and
+        no pool of its own. Solo plays a precomputed question too (its re-roll
+        refetches one), and porting the multiplayer branch onto the dealt
+        question removed the last client-side slot machinery
+        (buildCandidates / resolveSlots / useRoundPool)."""
         with open(SUPERDRAFT_TSX, "r", encoding="utf-8") as f:
             src = f.read()
-        self.assertIn("const drawn = resolveSlots(candidates, round?.slots ?? []);", src)
-        # No client-side slot draw exists on any path.
+        # Both modes derive the board from the question's precomputed slots.
+        self.assertIn("setSlots(question.slots.map((s) => slotFromQuestion(s, lookup)));", src)
+        # No client-side slot draw, resolve or pool download exists on any path.
         self.assertNotIn("drawSlots", src)
+        self.assertNotIn("resolveSlots", src)
+        self.assertNotIn("buildCandidates", src)
+        self.assertNotIn("useRoundPool", src)
         # The one re-roll would swap the slots — it is single-player only.
         self.assertIn("if (multiplayer || rerollUsed || phase !== \"draft\") return;", src)
         self.assertIn("{drafting && !multiplayer && (", src)
-        # The daily objective follows the round's day, not each client's clock.
-        self.assertIn("dailyObjective(round?.day)", src)
+        # Online the objective comes from the dealt question's qid — data both
+        # clients hold — never from each client's clock; solo keeps the daily rule.
+        self.assertIn("multiplayer && question ? objectiveForQid(question.qid) : dailyObjective()", src)
+        self.assertNotIn("dailyObjective(round", src)
+        self.assertNotIn("round?.day", src)
 
     def test_empty_pool_returns_503(self):
         with mock.patch.object(superdraft, "load_players", return_value=[]):

@@ -35,8 +35,6 @@ import type {
   PlayerIndexEntry,
   CareerPathQuestion,
   WhoAreYaQuestion,
-  ContextoRoundConfig,
-  SuperDraftRoundConfig,
   TicTacToeQuestion,
   SuperDraftQuestion,
   ContextoQuestion,
@@ -206,13 +204,11 @@ export const renderGame = ({
       );
 
     case "contexto":
-      // Online this is a one-element ContextoRoundConfig array (the day + the
-      // secret); single-player passes a ContextoQuestion[].
+      // One ContextoQuestion in both modes (fetched solo, dealt by the relay online).
       return (
         <Contexto
-          gameInfo={gameData as PlayerIndexEntry[] | ContextoRoundConfig[] | ContextoQuestion[]}
+          gameInfo={gameData as ContextoQuestion[]}
           onGameEnd={onGameEnd}
-          multiplayer={multiplayer}
         />
       );
 
@@ -226,11 +222,11 @@ export const renderGame = ({
       );
 
     case "superdraft":
-      // Online this is a one-element SuperDraftRoundConfig array (the day + the
-      // five server-drawn slots); single-player passes a SuperDraftQuestion[].
+      // One SuperDraftQuestion in both modes (fetched solo, dealt by the relay
+      // online); `multiplayer` only hides the re-roll and picks the objective rule.
       return (
         <SuperDraft
-          gameInfo={gameData as PlayerIndexEntry[] | SuperDraftRoundConfig[] | SuperDraftQuestion[]}
+          gameInfo={gameData as SuperDraftQuestion[]}
           onGameEnd={onGameEnd}
           onPlayAgain={onPlayAgain}
           onClose={onClose}
