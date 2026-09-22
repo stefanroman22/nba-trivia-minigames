@@ -31,17 +31,17 @@ def _clean_public_id(raw):
 
 
 def _brief(request, user):
-    # Inline data URLs (users.views.profile_photo_url) are ~15-35 KB each and are
-    # only for the signed-in user's own payload — a list of these (search results,
-    # friends/requests/blocked rows) would multiply that across every row and risk
-    # blowing the response size limit. List avatars fall back to initials until
-    # there's a cacheable photo endpoint; this key stays for client compatibility.
+    # Photo bytes never travel in a list row: an inline data URL (users.views.profile_photo_url)
+    # is ~15-35 KB and would multiply across every row. `profile_photo` stays None for client
+    # compatibility; rows carry `photo_version` instead (0 = no photo) and the client builds the
+    # cacheable URL /api/users/<id>/photo/?v=<photo_version> (users.photos.profile_photo_view).
     return {
         "id": user.public_id,
         "username": user.username,
         "points": user.points,
         "rank": user.rank,
         "profile_photo": None,
+        "photo_version": user.profile_photo_version,
     }
 
 
@@ -125,7 +125,7 @@ def search_users(request):
     candidates = list(
         User.objects.exclude(pk=me.pk)
         .filter(Q(username__icontains=q) | Q(public_id__icontains=q))
-        .only("id", "public_id", "username", "points", "rank")[:MAX_RESULTS]
+        .only("id", "public_id", "username", "points", "rank", "profile_photo_version")[:MAX_RESULTS]
     )
     relationships, excluded = _relationship_map(me, [u.pk for u in candidates])
 
@@ -293,10 +293,9 @@ def search_friends(request):
     qs = User.objects.filter(pk__in=friend_ids)
     if q:
         qs = qs.filter(Q(username__icontains=q) | Q(public_id__icontains=q))
-    # _brief() never reads profile_photo* (list rows always show initials —
-    # see its docstring), so this deliberately leaves the heavy photo blob
-    # column off the fetched fields entirely rather than deferring it.
-    qs = qs.only("id", "public_id", "username", "points", "rank").order_by("-points", "username")
+    # _brief() reads the small profile_photo_version column, never the blob, so this leaves the
+    # heavy profile_photo_data column off the fetched fields entirely rather than deferring it.
+    qs = qs.only("id", "public_id", "username", "points", "rank", "profile_photo_version").order_by("-points", "username")
 
     total = qs.count()
     page = list(qs[offset : offset + limit])

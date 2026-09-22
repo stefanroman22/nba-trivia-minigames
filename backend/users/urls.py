@@ -12,6 +12,7 @@ from .friends import (
     unblock_user,
     friends_overview,
 )
+from .photos import profile_photo_view
 from .tokens import SessionRefreshView
 
 urlpatterns = [
@@ -36,4 +37,7 @@ urlpatterns = [
     path('block-user/', block_user, name='block-user'),
     path('unblock-user/', unblock_user, name='unblock-user'),
     path('friends-overview/', friends_overview, name='friends-overview'),
+
+    # Public, cacheable profile photo for list rows (bytes only; see users.photos).
+    path('users/<str:public_id>/photo/', profile_photo_view, name='profile-photo'),
 ]

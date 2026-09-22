@@ -48,6 +48,10 @@ class CustomUser(AbstractUser):
     # Normalized 256x256 JPEG bytes (users.photos). Stored in the DB because the API's disk is
     # read-only on Vercel; served inline as a data URL by users.views.user_payload.
     profile_photo_data = models.BinaryField(null=True, blank=True, editable=False)
+    # Bumped by every upload; 0 = no photo. It is the cache key of the public photo endpoint
+    # (users.photos.profile_photo_view: /api/users/<public_id>/photo/?v=N) and what list rows
+    # carry instead of the bytes (users.friends._brief). Backfilled to 1 for pre-0006 photos.
+    profile_photo_version = models.PositiveIntegerField(default=0, editable=False)
     rank = models.CharField(max_length=20, choices=RANK_CHOICES, default='Rookie')
 
     USERNAME_FIELD = "email"
