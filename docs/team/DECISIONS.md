@@ -211,3 +211,30 @@ Consequences: "test is stale after a shipped refactor" cards are trivial/sonnet,
 only; the engine must not restore a `friends` key to `friends_overview` (the frontend already
 consumes `search-friends`). If the photo-endpoint card ships first and rewrites this test,
 the ship stage's rebase test check is the signal to close this card as already fixed.
+
+## 2026-09-22 — Cacheable friend-photo endpoint: standard vs hard, sonnet vs fable engine
+Context: fullstack P1 card, no override. Backend today: photos are 256px JPEG bytes in
+`CustomUser.profile_photo_data` (dbc9a0f), inlined as a data URL only in `user_payload`;
+`users/friends.py::_brief` returns `profile_photo: None` and `FriendsPhotoTests` (fixed in 51d601b)
+asserts list rows stay byte-free. Frontend: `FriendsPanel` rows draw `ui/Avatar` (initials only, no
+`src` prop). Two things the spec leaves open make this more than "add a view": (1) an `<img src>`
+cannot carry the Bearer header (AUTH-3/AUTH-5), so `GET api/users/<public_id>/photo/` is either
+`AllowAny` keyed by the unguessable public_id — a product rule about photo visibility — or an
+`apiFetch`+blob-URL pattern that forfeits the HTTP cache the card asks for; (2) a version/ETag that
+lets list rows cache-bust without loading bytes needs either a per-request hash on the photo view
+(no migration, stale-for-max-age after a re-upload) or a `profile_photo_version` column on the
+AUTH-9-listed `users/models.py` (migration 0006 on the DB dev and prod share). `standard` was
+defensible (bounded, existing DRF patterns, the design round runs anyway for multi-area); `fable`
+was defensible for the same reason — one small view with real caching/auth judgment.
+Decision: `difficulty: hard` (multi-area, first binary/HTTP-cached endpoint in a JSON-only DRF app,
+probable migration), `risk: high` (AUTH-9 files `users/models.py` and `update_profile` are the
+natural touch points, plus a new unauthenticated-by-design read of user data), `engineModel: sonnet`
+provisional — once the design round fixes the two rules above the rest is explicit steps with
+done-checks (view + URL + ETag/Cache-Control + 404/304 tests; `_brief` gains a version/has-photo
+key while `FriendsPhotoTests` stays green; `Avatar` gains an optional `src` with `onError` fallback
+to initials; `FriendsPanel` rows pass it). `planModel: fable` — the spec is concrete about shape
+but the auth and versioning rules have to be invented.
+Consequences: the design round must settle photo-endpoint auth and the version source before
+anything is built, and must keep `search-users`/`search-friends` rows free of photo bytes (the
+51d601b test is the contract). If the plan lands on the migration path, the backend commit must
+ship first per pipeline v2's backend-then-frontend split and note the shared-DB migration.
