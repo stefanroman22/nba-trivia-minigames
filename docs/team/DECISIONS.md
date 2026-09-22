@@ -192,3 +192,22 @@ turn a low-risk backend change into a UI change the ship gate for every backend 
 Consequences: the follow-up must be filed on the board; until it ships, `docs/games/MASTER_PLAN.md`
 readers should treat online Contexto as broken on dev and production alike (the relay change is
 already promoted).
+
+## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet
+Context: backend card, no override. `users.tests.FriendsPhotoTests` reads `resp.json()["friends"]`
+from `friends-overview`, but commit `3fa8788` (search your own friend list) moved the friend
+list into `search_friends` (`search-friends/`, `{"results": [...], "total": n}`) and left
+`friends_overview` returning only `incoming_requests`/`outgoing_requests`/`blocked_users`
+(its docstring says so). The endpoint is right, the test is stale — a one-file test edit with
+no logic branches, so `trivial` fits and haiku was defensible. The open "cacheable photo
+endpoint" card has not shipped (`users/friends.py` HEAD is still `3fa8788`), so nothing has
+fixed this yet and the two cards do not collide as long as this one only touches `tests.py`.
+Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for
+copy/config with zero judgment; this needs the engine to reproduce the failure, confirm the
+correct route (`search-friends`, `results` key, `profile_photo is None`) rather than guess,
+and run `manage.py test users` green. `risk: low` (auth headers are used but auth code is
+untouched), no design round, `planModel: fable` nominal.
+Consequences: "test is stale after a shipped refactor" cards are trivial/sonnet, test-file
+only; the engine must not restore a `friends` key to `friends_overview` (the frontend already
+consumes `search-friends`). If the photo-endpoint card ships first and rewrites this test,
+the ship stage's rebase test check is the signal to close this card as already fixed.
