@@ -10,8 +10,11 @@ player has to sign in again, no matter how active they've been.
 import time
 from datetime import timedelta
 
+from django.contrib.auth import get_user_model
+
 from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.settings import api_settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 
@@ -36,7 +39,18 @@ class SessionRefreshSerializer(TokenRefreshSerializer):
         # expiry still bounds them.
         if auth_time is not None and time.time() - auth_time > MAX_SESSION_AGE.total_seconds():
             raise InvalidToken("Session expired. Please log in again.")
-        return super().validate(attrs)
+        data = super().validate(attrs)
+
+        # A return visit with an expired access token used to cost three round trips
+        # (/me/ 401 -> refresh -> /me/). Handing the /me/ payload back with the new
+        # tokens lets app/providers.tsx resume the session in one.
+        from users.views import user_payload  # lazy: users.views imports this module
+
+        user_id = refresh.payload.get(api_settings.USER_ID_CLAIM)
+        user = get_user_model().objects.filter(**{api_settings.USER_ID_FIELD: user_id}).first()
+        if user is not None:
+            data["user"] = user_payload(self.context.get("request"), user)
+        return data
 
 
 class SessionRefreshView(TokenRefreshView):

@@ -1,7 +1,7 @@
 // src/store/userSlice.ts
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-type User = {
+export type User = {
   /** Permanent public player id (#K7F3QD) — usernames may repeat. */
   id: string;
   username: string;
@@ -40,6 +40,14 @@ const userSlice = createSlice({
       state.user = null;
       state.authChecked = true;
     },
+    /** Optimistic restore from the cached /me/ payload (utils/session.ts) while the real
+     *  check runs. Leaves `authChecked` false: only the server's answer settles it, and a
+     *  check that has already resolved is never overwritten with cached data. */
+    hydrateSession: (state, action: PayloadAction<User>) => {
+      if (state.authChecked) return;
+      state.isLoggedIn = true;
+      state.user = action.payload;
+    },
     updatePoints: (state, action: PayloadAction<number>) => {
       if (state.user) {
         state.user.points += action.payload;
@@ -63,5 +71,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { login, logout, updatePoints, updateRank, updateUsername, updateProfilePhoto } = userSlice.actions;
+export const { login, logout, hydrateSession, updatePoints, updateRank, updateUsername, updateProfilePhoto } = userSlice.actions;
 export default userSlice.reducer;
