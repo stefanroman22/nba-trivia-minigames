@@ -132,7 +132,8 @@ It has two parts ("apps"):
 - `get-users` — the top-100 leaderboard plus your own rank
 - `users/<public_id>/photo` — a player's profile photo as a cacheable JPEG (public; `?v=` is the
   version list rows carry as `photo_version`; `/me/` still inlines your own photo as a data URL)
-- `token/refresh` — get a fresh token when the old one expires
+- `token/refresh` — get a fresh token when the old one expires (also returns your `me` payload,
+  so a return visit restores the session in one round trip)
 
 **Game data** (`/trivia/...`): returns random rounds for each game (playoff series, logos,
 MVPs, starting fives, wordle words) and a `manifest` + `pool/<game>` for the frontend cache.

@@ -326,3 +326,33 @@ the doc is left for `bootstrap-audit`. On the cloud QA VM supabase.co is blocked
 serves a fixture questions store on `localhost:5280` to both the relay (`QUESTIONS_PUBLIC_BASE`) and
 the browser (`VITE_QUESTIONS_BASE`); online mode still fetches only the manifest and the names list
 from the store after the port. Three cloud design rounds have now hit the missing-`Agent` fallback.
+
+## 2026-09-23 — Faster "logged in" on return visits: sonnet vs fable engine
+Context: card "When I enter the website it takes a long time to see that I am actually logged
+in" (fullstack, Difficulty override `hard`, title-only spec). Root cause is a post-hydration
+waterfall in `src/app/providers.tsx` `checkLogin`: Redux starts logged-out, and with a 15-minute
+access token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist
+write) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,
+while `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was
+defensible: the fix touches token/session code on the AUTH-9 `risk: high` list, and there are real
+subtleties — a localStorage read during render is a Next hydration mismatch (must be an effect or
+a pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,
+and skipping the dead `/me/` hop means decoding `exp` client-side.
+Decision: `engineModel: sonnet`, `planModel: fable` (thin spec). The design round can name every
+mechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the
+slice optimistically in the mount effect when a refresh token exists, proactively refresh when the
+access token is expired instead of eating a 401, reconcile with `/me/` in the background, and
+optionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.
+That is long-and-explicit, which is the sonnet row; the AUTH-9 surface is handled by `risk: high`
+review, not by an engine upgrade.
+Consequences: auth-bootstrap/perf work stays on sonnet when the design round can pin the
+hydration-safe read point and the reconcile rules; fable is reserved for cases where the
+session-state mechanism itself cannot be decided before coding.
+Design round, same day (`docs/team/designs/2026-09-23-faster-logged-in-state.md`): fourth cloud
+round with no `Agent` tool and no engine teammates in `ListAgents`, seats filled by the planner
+from source again. Settled: display-only `nba3via-session-user` cache hydrated via a new
+`hydrateSession` reducer in the mount effect (never sets `authChecked`); bootstrap decodes `exp`
+and calls the exported single-flight `refreshSession` directly when expired; `token/refresh/`
+returns `user`; a 5xx from `/me/` now keeps the session instead of deleting the tokens; a
+pre-hydration inline script was rejected because `Navigation`'s guest button and user chip are
+different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.

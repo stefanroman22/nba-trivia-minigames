@@ -313,3 +313,15 @@ class SessionLifetimeTests(TestCase):
         body = resp.json()
         self.assertIn("access", body)
         self.assertIn("refresh", body)  # rotation returns a new refresh token
+        # The /me/ payload rides along so a return visit resumes in one round trip.
+        self.assertEqual(body["user"]["id"], self.user.public_id)
+
+    def test_refresh_user_payload_matches_me(self):
+        tokens = login(self.client, "s@example.com").json()
+        refreshed = self.client.post(
+            reverse("token_refresh"),
+            data={"refresh": tokens["refresh"]},
+            content_type="application/json",
+        ).json()
+        me = self.client.get(reverse("get_user"), HTTP_AUTHORIZATION=f"Bearer {refreshed['access']}").json()
+        self.assertEqual(refreshed["user"], me["user"])
