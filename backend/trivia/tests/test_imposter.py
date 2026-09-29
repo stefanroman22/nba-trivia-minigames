@@ -5,10 +5,10 @@ The live mystery player comes from multiplayer_server/src/turnGames.js
 players-index pool. The static pool used to be a hand-authored fame-tier-1 list
 that nothing read; these tests pin it to the live rule instead.
 """
+import json
 from unittest import mock
 
-from django.test import TestCase
-from django.urls import reverse
+from django.test import RequestFactory, TestCase
 
 from trivia.games import imposter, players_index
 
@@ -51,11 +51,11 @@ class ImposterPoolTests(TestCase):
 
 class ImposterRoundTests(TestCase):
     def test_get_round_returns_the_mystery_pool(self):
-        res = self.client.get(reverse("imposter"))
+        res = imposter.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json()["mystery_pool"], imposter.build_pool())
+        self.assertEqual(json.loads(res.content)["mystery_pool"], imposter.build_pool())
 
     def test_empty_pool_returns_503(self):
         with mock.patch.object(imposter, "load_players", return_value=[]):
-            res = self.client.get(reverse("imposter"))
+            res = imposter.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 503)

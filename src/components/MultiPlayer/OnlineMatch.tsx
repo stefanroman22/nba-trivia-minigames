@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import "../../styles/Multiplayer.css";
 import { playerKey, useMultiplayer } from "../../context/MultiplayerContext";
 import { renderGame } from "../../Game Renderers/RenderGame";
-import { games } from "../../utils/GameUtils";
+import { visibleGames as games } from "../../utils/GameUtils";
 import { CourtLoader } from "../ui";
 import SessionTimer from "../ui/SessionTimer";
 import SwapText from "../motion/SwapText";

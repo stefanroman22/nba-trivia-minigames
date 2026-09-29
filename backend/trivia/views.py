@@ -28,6 +28,7 @@ from trivia.data_pipeline.starting_five import (
 )
 from trivia.utils.fan_favorites import load_seed as load_fan_favorites_seed
 from trivia.utils.logo_utils import logo
+from trivia.games import HIDDEN_GAMES
 from trivia.utils.text_utils import wordle_word
 from trivia import wordle_daily
 
@@ -429,7 +430,8 @@ def get_manifest(request):
         return JsonResponse(
             {"error": "manifest not found; run: manage.py build_pools_from_db"}, status=404
         )
-    return JsonResponse(data)
+    games = {slug: entry for slug, entry in data.get("games", {}).items() if slug not in HIDDEN_GAMES}
+    return JsonResponse({**data, "games": games})
 
 
 def get_pool(request, game):
@@ -437,6 +439,8 @@ def get_pool(request, game):
     safe = os.path.basename(game)  # block path traversal
     if safe == "manifest":
         return JsonResponse({"error": "use /trivia/manifest/"}, status=404)
+    if safe in HIDDEN_GAMES:
+        return JsonResponse({"error": f"pool '{game}' not found"}, status=404)
     data = load_dataset(os.path.join(_game_data_dir(), f"{safe}.json"))
     if data is None:
         return JsonResponse({"error": f"pool '{game}' not found"}, status=404)

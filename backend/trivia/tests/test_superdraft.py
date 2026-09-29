@@ -9,6 +9,7 @@ each other anyway.
 The slots are now drawn here, once per round, and the renderer resolves them
 against the pool it already loads for single-player.
 """
+import json
 import os
 import random
 import shutil
@@ -17,8 +18,7 @@ import unittest
 from unittest import mock
 
 from django.conf import settings
-from django.test import TestCase
-from django.urls import reverse
+from django.test import RequestFactory, TestCase
 
 from trivia.games import players_index, superdraft
 
@@ -44,7 +44,7 @@ def eligible_for(pool, slot):
 
 class SuperDraftRoundTests(TestCase):
     def round_payload(self):
-        body = self.client.get(reverse("superdraft")).json()
+        body = json.loads(superdraft.get_round(RequestFactory().get("/")).content)
         self.assertIn("series", body)
         self.assertTrue(body["series"])  # what index.js fetchRound extracts
         self.assertEqual(len(body["series"]), 1)
@@ -58,14 +58,14 @@ class SuperDraftRoundTests(TestCase):
         self.assertEqual(payload["pool"], "players-index")
         self.assertEqual(sorted(payload), ["day", "pool", "slots"])
         # No player rows anywhere in it — that's the whole point.
-        self.assertNotIn("person_id", self.client.get(reverse("superdraft")).content.decode())
+        self.assertNotIn("person_id", superdraft.get_round(RequestFactory().get("/")).content.decode())
 
     def test_payload_size_does_not_grow_with_the_dataset(self):
         """Defect A: the old payload was the pool, so it scaled with it."""
         rows = players_index.build_pool()
-        small = len(self.client.get(reverse("superdraft")).content)
+        small = len(superdraft.get_round(RequestFactory().get("/")).content)
         with mock.patch.object(superdraft, "load_players", return_value=rows * 30):
-            big = len(self.client.get(reverse("superdraft")).content)
+            big = len(superdraft.get_round(RequestFactory().get("/")).content)
         self.assertLess(small, 1500)
         self.assertLess(big, 1500)
 
@@ -149,13 +149,13 @@ class SuperDraftRoundTests(TestCase):
 
     def test_empty_pool_returns_503(self):
         with mock.patch.object(superdraft, "load_players", return_value=[]):
-            res = self.client.get(reverse("superdraft"))
+            res = superdraft.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 503)
 
     def test_a_pool_with_no_usable_constraint_returns_503(self):
         thin = [{"person_id": 1, "teams": [{"abbr": "LAL", "name": "Lakers"}], "country": "USA"}]
         with mock.patch.object(superdraft, "load_players", return_value=thin):
-            res = self.client.get(reverse("superdraft"))
+            res = superdraft.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 503)
 
     def test_slot_constraints_are_not_usa_only(self):

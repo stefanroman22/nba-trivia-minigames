@@ -291,6 +291,7 @@ export const games: Game[] = [
     maxPoints: 300,
     fetchData: () => fetchGamePool("heatmap", 1),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "connections",
@@ -321,6 +322,7 @@ export const games: Game[] = [
     maxPoints: 200,
     fetchData: () => fetchGamePool("connections", 1),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "career-path",
@@ -381,6 +383,7 @@ export const games: Game[] = [
     maxPoints: 270,
     fetchData: () => fetchGamePool("nba-grid", 1),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "who-are-ya",
@@ -471,6 +474,7 @@ export const games: Game[] = [
     maxPoints: 200,
     fetchData: () => fetchGamePool("bingo", 1),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "contexto",
@@ -531,6 +535,7 @@ export const games: Game[] = [
     maxPoints: 220,
     fetchData: () => fetchWholePool("players-index"),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "superdraft",
@@ -561,6 +566,7 @@ export const games: Game[] = [
     maxPoints: 100,
     fetchData: () => fetchQuestion("superdraft"),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "imposter",
@@ -591,6 +597,7 @@ export const games: Game[] = [
     maxPoints: 0,
     fetchData: () => fetchQuestion("imposter"),
     handleError: handleErrorDefault,
+    hidden: true,
   },
   {
     id: "coming-soon",
@@ -616,3 +623,6 @@ export const games: Game[] = [
     handleError: handleErrorDefault,
   },
 ];
+
+/** `games` minus anything flagged `hidden` — use this for every user-facing listing (grid, rail, switch pickers). */
+export const visibleGames: Game[] = games.filter((g) => !g.hidden);

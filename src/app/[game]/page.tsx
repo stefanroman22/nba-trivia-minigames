@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { games } from "../../utils/GameUtils";
+import { games, visibleGames } from "../../utils/GameUtils";
 import MiniGame from "../../views/Trivia/MiniGame";
 
-/** Every playable game lives at /<slug>; "coming-soon" has its own page. */
+/** Every playable, non-hidden game lives at /<slug>; "coming-soon" has its own page.
+ *  Hidden games are excluded from generateStaticParams and dynamicParams is false,
+ *  so their routes 404 instead of building. */
 const gameSlugs = () =>
-  games.filter((g) => g.id !== "coming-soon").map((g) => g.urlPath.replace(/^\//, ""));
+  visibleGames.filter((g) => g.id !== "coming-soon").map((g) => g.urlPath.replace(/^\//, ""));
 
 // Only the catalogued slugs exist — anything else is a 404, not a runtime lookup.
 export const dynamicParams = false;
