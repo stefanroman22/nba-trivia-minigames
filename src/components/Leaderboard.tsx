@@ -3,10 +3,11 @@ import { AnimatePresence, motion } from 'framer-motion'
 import "../styles/Leaderboard.css"
 import { Avatar, CourtLoader } from './ui';
 import SwapText from './motion/SwapText';
+import SegmentedTabs from './motion/SegmentedTabs';
 import { staggerContainer, staggerItem } from '../motion/variants';
 import { useLeaderboard, type LeaderboardScope } from '../hooks/useLeaderboard';
 import { useModal } from '../context/ModalContext';
-import { initials, avatarBg, SELF_AVATAR_BG } from '../constants/leaderboard';
+import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from '../constants/leaderboard';
 
 /** How many rows the home card shows before "View all →" opens the full list. */
 const PREVIEW_COUNT = 10;
@@ -42,10 +43,7 @@ function Leaderboard() {
 
       {loggedIn && (
         <div className="lb-scope-row">
-          <div className="lb-scope">
-            <button className={`lb-scope-btn${scope === "global" ? " is-active" : ""}`} onClick={() => setScope("global")}>Global</button>
-            <button className={`lb-scope-btn${scope === "friends" ? " is-active" : ""}`} onClick={() => setScope("friends")}>Friends</button>
-          </div>
+          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={setScope} />
         </div>
       )}
 

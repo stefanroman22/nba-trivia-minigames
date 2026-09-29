@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import "../styles/Friends.css";
 import { Avatar, CourtLoader } from "./ui";
 import SwapText from "./motion/SwapText";
+import SegmentedTabs from "./motion/SegmentedTabs";
 import {
   useFriends,
   searchUsers,
@@ -67,22 +68,18 @@ export default function FriendsPanel() {
 
   return (
     <div className="fr-stack">
-      <div className="fr-tabs" role="tablist" aria-label="Friends">
-        {TABS.map((t) => {
+      <SegmentedTabs
+        className="fr-tabs"
+        itemClassName="fr-tab"
+        thumbRadius={8}
+        aria-label="Friends"
+        options={TABS.map((t) => {
           const count = t.key === "requests" ? incoming.length : t.key === "blocked" ? blocked.length : null;
-          return (
-            <button
-              key={t.key}
-              className={`fr-tab${tab === t.key ? " is-active" : ""}`}
-              role="tab"
-              aria-selected={tab === t.key}
-              onClick={() => setTab(t.key)}
-            >
-              {t.label}{count ? ` (${count})` : ""}
-            </button>
-          );
+          return { key: t.key, label: `${t.label}${count ? ` (${count})` : ""}` };
         })}
-      </div>
+        value={tab}
+        onChange={setTab}
+      />
 
       {actionError && <p role="alert" className="fr-error">{actionError}</p>}
 

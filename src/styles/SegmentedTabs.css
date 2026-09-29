@@ -1,0 +1,11 @@
+/* Shared sliding-thumb layer for SegmentedTabs (components/motion). Callers'
+   own track/button classes keep sizing and shape; their .is-active rule only
+   sets the label color — the fill is this thumb. */
+.seg-item { position: relative; }
+.seg-thumb {
+  position: absolute;
+  inset: 0;
+  background: var(--seg-thumb-bg, var(--brand));
+  pointer-events: none;
+}
+.seg-label { position: relative; z-index: 1; }

@@ -9,11 +9,17 @@ import { PhotoPrepError, prepareProfilePhoto } from "../utils/imagePrep";
 import socket from "../socket";
 import { AnimatePresence, motion } from "framer-motion";
 import SwapText from "./motion/SwapText";
+import SegmentedTabs from "./motion/SegmentedTabs";
 import { BACKEND_URL } from "../configurations/backend";
 import defaultAvatar from "../assets/default.png";
 import FriendsPanel from "./FriendsPanel";
 
 type ProfileView = "friends" | "profile";
+
+const PROFILE_VIEWS: { key: ProfileView; label: string }[] = [
+  { key: "friends", label: "Friends" },
+  { key: "profile", label: "Profile" },
+];
 
 function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
@@ -168,24 +174,14 @@ function UserProfile() {
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="profile-view-toggle" role="tablist" aria-label="Profile section">
-        <button
-          className={`profile-view-btn${view === "friends" ? " is-active" : ""}`}
-          role="tab"
-          aria-selected={view === "friends"}
-          onClick={() => setView("friends")}
-        >
-          Friends
-        </button>
-        <button
-          className={`profile-view-btn${view === "profile" ? " is-active" : ""}`}
-          role="tab"
-          aria-selected={view === "profile"}
-          onClick={() => setView("profile")}
-        >
-          Profile
-        </button>
-      </div>
+      <SegmentedTabs
+        className="profile-view-toggle"
+        itemClassName="profile-view-btn"
+        aria-label="Profile section"
+        options={PROFILE_VIEWS}
+        value={view}
+        onChange={setView}
+      />
 
       {view === "friends" ? (
         <div className="profile-view-body">
