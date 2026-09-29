@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import "../styles/LandPage.css";
 import "../styles/GlobalStyles.css";
-import { games } from "../utils/GameUtils";
+import { visibleGames as games } from "../utils/GameUtils";
 import Navigation from "../components/Navigation";
 import UserProfile from "../components/UserProfile";
 import Leaderboard from "../components/Leaderboard";
@@ -59,7 +59,7 @@ const Landpage = () => {
                 the static page paint incomplete until hydration. */}
             <motion.div className="hero-badge" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
               <span className="hero-badge-dot" />
-              {playableCount} GAMES · FREE · NO SIGN-UP NEEDED
+              FREE · NO SIGN-UP NEEDED · NEW GAME EVERY WEEK
             </motion.div>
             {/* LCP element: slide-only entrance (no opacity fade) so its first
                 paint isn't deferred to the animation — keeps mobile LCP honest. */}

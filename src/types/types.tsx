@@ -204,6 +204,8 @@ export interface Game {
   maxPoints: number;
   fetchData: () => Promise<FetchResult>;
   handleError: (error: GameError) => void;
+  /** Excluded from every user-facing listing (grid, rail, switch pickers) while still catalogued for admin use. */
+  hidden?: boolean;
 }
 
 /** Called by a renderer when a game finishes, with the final score.

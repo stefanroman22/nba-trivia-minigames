@@ -1,6 +1,7 @@
 """NBA Bingo backend: criterion matching mirror, seed validation, endpoint."""
-from django.test import TestCase
-from django.urls import reverse
+import json
+
+from django.test import RequestFactory, TestCase
 
 from trivia.games import bingo
 
@@ -104,9 +105,9 @@ class ValidateRowsTests(TestCase):
 
 class GetRoundTests(TestCase):
     def test_serves_one_card_from_seed(self):
-        res = self.client.get(reverse("bingo"))
+        res = bingo.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 200)
-        series = res.json()["series"]
+        series = json.loads(res.content)["series"]
         self.assertEqual(len(series), 1)
         card = series[0]
         self.assertTrue(card["qid"].startswith("bingo-"))

@@ -2,11 +2,10 @@
 import copy
 import json
 
-from django.test import TestCase
-from django.urls import reverse
+from django.test import RequestFactory, TestCase
 
 from trivia.games import nba_grid_validate
-from trivia.games.nba_grid import _load_seed, build_pool, validate_rows
+from trivia.games.nba_grid import _load_seed, build_pool, get_round, nba_grid_tally, validate_rows
 from trivia.models import GuessLog
 from trivia.tests.published_pool import published_pool
 
@@ -18,9 +17,9 @@ class NbaGridSeedTests(TestCase):
         self.assertEqual(validate_rows(seed), [])
 
     def test_round_serves_one_config(self):
-        res = self.client.get(reverse("nba-grid"))
+        res = get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 200)
-        series = res.json()["series"]
+        series = json.loads(res.content)["series"]
         self.assertEqual(len(series), 1)
         cfg = series[0]
         self.assertTrue(cfg["qid"])
@@ -78,10 +77,10 @@ class NbaGridTallyTests(TestCase):
         self._log("grid-001:r1c2", "Stephen Curry", True)
         self._log("grid-002:r0c0", "Tim Duncan", True)  # different grid, excluded
 
-        res = self.client.get(reverse("nba-grid-tally"), {"qid": "grid-001"})
+        res = nba_grid_tally(RequestFactory().get("/", {"qid": "grid-001"}))
         self.assertEqual(res.status_code, 200)
         self.assertEqual(
-            res.json(),
+            json.loads(res.content),
             {
                 "r0c0": {"LeBron James": 2, "Kobe Bryant": 1},
                 "r1c2": {"Stephen Curry": 1},
@@ -89,10 +88,10 @@ class NbaGridTallyTests(TestCase):
         )
 
     def test_tally_requires_qid(self):
-        res = self.client.get(reverse("nba-grid-tally"))
+        res = nba_grid_tally(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 400)
 
     def test_tally_empty_when_no_guesses(self):
-        res = self.client.get(reverse("nba-grid-tally"), {"qid": "grid-005"})
+        res = nba_grid_tally(RequestFactory().get("/", {"qid": "grid-005"}))
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(res.json(), {})
+        self.assertEqual(json.loads(res.content), {})

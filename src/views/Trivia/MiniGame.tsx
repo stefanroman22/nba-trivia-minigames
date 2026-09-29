@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { useNavigate } from '../../hooks/useNavigate';
 import { useDispatch } from 'react-redux';
-import { games } from '../../utils/GameUtils';
+import { games, visibleGames } from '../../utils/GameUtils';
 import Navigation from '../../components/Navigation';
 import { useModal } from '../../context/ModalContext';
 import { useMultiplayer } from '../../context/MultiplayerContext';
@@ -270,7 +270,7 @@ function MiniGame() {
         <div className={`game-grid${inLobby ? " is-room" : ""}`}>
           {/* Mobile game strip */}
           <div className="rail-strip">
-            {games.map((g) => (
+            {visibleGames.map((g) => (
               <button
                 key={g.id}
                 className={`rail-chip${g.id === game?.id ? " is-active" : ""}`}
@@ -284,9 +284,9 @@ function MiniGame() {
 
           {/* Desktop rail */}
           <aside className="rail" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>
-            <div className="rail-head"><span>ALL GAMES</span><span>{games.length}</span></div>
+            <div className="rail-head"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>
             <div className="rail-list">
-              {games.map((g) => (
+              {visibleGames.map((g) => (
                 <button
                   key={g.id}
                   disabled={g.id === "coming-soon"}

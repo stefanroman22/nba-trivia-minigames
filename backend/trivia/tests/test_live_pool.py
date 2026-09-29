@@ -4,9 +4,10 @@ import os
 import tempfile
 from unittest import mock
 
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
 from trivia.data_pipeline import live_pool
+from trivia.games import career_path, contexto, imposter, pack_five, superdraft, who_are_ya
 
 
 def _row(person_id):
@@ -74,9 +75,14 @@ class LoadPlayersCacheTests(TestCase):
 
 class LivePoolCallerTests(TestCase):
     def test_round_endpoints_do_not_mutate_the_shared_list(self):
-        """The cached list is handed out by reference — nobody may reshape it."""
+        """The cached list is handed out by reference — nobody may reshape it.
+
+        Called directly rather than through the URLconf: pack-five, superdraft
+        and imposter are unrouted while hidden from players, but the pipeline
+        still exercises their get_round logic and the shared-list invariant
+        must hold regardless of whether a route is wired up.
+        """
         before = [dict(r) for r in live_pool.load_players()]
-        for url in ("/trivia/career-path/", "/trivia/who-are-ya/", "/trivia/contexto/",
-                    "/trivia/pack-five/", "/trivia/superdraft/", "/trivia/imposter/"):
-            self.assertEqual(self.client.get(url).status_code, 200)
+        for mod in (career_path, who_are_ya, contexto, pack_five, superdraft, imposter):
+            self.assertEqual(mod.get_round(RequestFactory().get("/")).status_code, 200)
         self.assertEqual(live_pool.load_players(), before)

@@ -1,19 +1,19 @@
 import copy
+import json
 
-from django.test import TestCase
-from django.urls import reverse
+from django.test import RequestFactory, TestCase
 
 from trivia.games import heatmap_validate
-from trivia.games.heatmap import build_pool, validate_rows
+from trivia.games.heatmap import build_pool, get_round, validate_rows
 from trivia.games.heatmap_criteria import ROW_WIDTHS, load_curated
 from trivia.tests.published_pool import published_pool
 
 
 class HeatmapEndpointTests(TestCase):
     def test_get_round_serves_one_valid_board(self):
-        res = self.client.get(reverse("heatmap"))
+        res = get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 200)
-        series = res.json()["series"]
+        series = json.loads(res.content)["series"]
         self.assertEqual(len(series), 1)
         board = series[0]
         self.assertTrue(board["qid"])

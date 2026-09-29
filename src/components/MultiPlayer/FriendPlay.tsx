@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import copy from "copy-to-clipboard";
 import { useMultiplayer } from "../../context/MultiplayerContext";
 import { useModal } from "../../context/ModalContext";
-import { games } from "../../utils/GameUtils";
+import { visibleGames as games } from "../../utils/GameUtils";
 import { Button } from "../ui";
 import SwapText from "../motion/SwapText";
 import CodeInput from "./CodeInput";

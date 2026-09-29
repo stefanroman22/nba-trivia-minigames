@@ -33,6 +33,10 @@ _GAME_MODULES = {
     "players_index": "players-index",
 }
 
+# Slugs pulled from the live app: the pipeline keeps generating/maintaining
+# their data, but nothing routes or lists them for players.
+HIDDEN_GAMES = {"heatmap", "connections", "nba-grid", "bingo", "pack-five", "superdraft", "imposter"}
+
 POOL_BUILDERS = {}
 VALIDATORS = {}
 urlpatterns = []
@@ -46,6 +50,8 @@ for _mod_name, _slug in _GAME_MODULES.items():
         POOL_BUILDERS[_slug] = _mod.build_pool
     if hasattr(_mod, "validate_rows"):
         VALIDATORS[_slug] = _mod.validate_rows
+    if _slug in HIDDEN_GAMES:
+        continue
     if hasattr(_mod, "get_round"):
         urlpatterns.append(path(f"{_slug}/", _mod.get_round, name=_slug))
     urlpatterns.extend(getattr(_mod, "EXTRA_URLS", []))

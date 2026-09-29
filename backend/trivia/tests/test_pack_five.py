@@ -1,8 +1,8 @@
 """Pack 5 — the multiplayer pack is dealt from the live pool at request time."""
+import json
 from unittest import mock
 
-from django.test import TestCase
-from django.urls import reverse
+from django.test import RequestFactory, TestCase
 
 from trivia.games import pack_five, players_index
 
@@ -22,9 +22,9 @@ class PackFiveDealTests(TestCase):
 
     def test_round_deals_a_full_pack_of_distinct_live_pool_rows(self):
         pool_ids = {p["person_id"] for p in players_index.build_pool()}
-        res = self.client.get(reverse("pack-five"))
+        res = pack_five.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 200)
-        pack = res.json()["series"]
+        pack = json.loads(res.content)["series"]
         self.assertEqual(len(pack), pack_five.PACK_SIZE)
         self.assertEqual(len({c["person_id"] for c in pack}), pack_five.PACK_SIZE)
         for card in pack:
@@ -33,7 +33,7 @@ class PackFiveDealTests(TestCase):
 
     def test_pool_too_small_to_deal_returns_503(self):
         with mock.patch.object(pack_five, "load_players", return_value=[]):
-            res = self.client.get(reverse("pack-five"))
+            res = pack_five.get_round(RequestFactory().get("/"))
         self.assertEqual(res.status_code, 503)
 
     def test_no_longer_publishes_a_static_pool(self):
