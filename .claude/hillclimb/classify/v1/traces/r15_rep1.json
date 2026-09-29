@@ -1,0 +1,95 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Redis-backed caching for slow backend reads, starting with Friends overview\nCategory: backend\nPriority: P1\n\nget-spec output:\nSwitching from Profile to Friends (and likely other reads) is slow every time -- there is currently zero caching on backend read endpoints. friends_overview (backend/users/friends.py) runs three uncached DB queries on every call. The infrastructure for Redis already exists and is unused for this: backend/backend/settings.py wires Django CACHES with a three-tier fallback (Redis via REDIS_URL, else shared DatabaseCache, else local LocMemCache), redis is already in requirements.txt, and backend/users/leaderboard.py has its own separate direct-redis-client pattern for sorted-set ranking only. Task: 1) Research and pick the best-fit managed Redis provider for this stack (Vercel serverless Django + Supabase Postgres already using a transaction pooler due to IPv6/connection issues, see docs/DEPLOYMENT.md) -- weigh HTTP/REST-based options that avoid persistent-connection problems in serverless, not just the cheapest choice. Document exact setup steps (account, env var names, region) in docs/DEPLOYMENT.md but do NOT create the account or spend money -- the owner adds real credentials afterward. 2) Using the existing Django CACHES abstraction (not the leaderboard raw-client pattern), add caching to friends_overview and audit other slow, frequently-repeated reads across trivia/ and users/ for the same treatment, with correct invalidation (e.g. friends_overview must invalidate immediately on a friend/request/block action for the affected users, not just time out). 3) Must work correctly with zero Redis configured today (falls back to DatabaseCache). This is an infrastructure-level, multi-endpoint change -- treat as needing a real design pass, not a single-file patch."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"AUTH-11\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\constraints\\\\AUTH_CONSTRAINTS.md\",\n  \"output_mode\": \"content\",\n  \"-A\": 15\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)cach|redis|friends|leaderboard\\\\.py|settings\\\\.py|DEPLOYMENT\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "228:## Rule AUTH-11: A failed token refresh must settle every queued caller\n229-\n230-`src/utils/Api.tsx` lets one refresh run while other 401'd requests wait. Each waiter stores\n231-**both** `resolve` and `reject`, and the notify loop is exception-safe. An earlier version stored\n232-only `resolve` and threw from inside the loop: queued promises stayed pending forever (their\n233-`await` never returned, so the UI showed spinners that never stopped) and subsequent subscribers\n234-were never notified — on exactly the session-expired path where the user needs to be told to sign\n235-in again.\n236-\n237-A task must keep the invariant: **every waiter settles, on every path.**\n238-\n239-```tsx\n240-❌ WRONG — a waiter that can only ever succeed\n241-return new Promise<string>((resolve) => {\n242-  subscribeTokenRefresh((token) => { if (token) resolve(token); else throw new Error(\"...\"); });\n243-});"
+  },
+  {
+    "role": "tool_result",
+    "content": "61:- `src/hooks/useLeaderboard.ts` — Loads /get-users/ leaderboard with a shared 5-min TTL cache and auto-refresh. [used by: 2 files]\n73:- `src/utils/pool.ts` — Fetches/caches a game's data pool (CDN + localStorage, version-keyed) and samples N rounds. [used by: 8 files]\n115:- `backend/trivia/management/commands/refresh_game_data.py` — Builds, validates and versions all game pools; `--skip-live` reuses cached playoff/starting-five JSON. [used by: 4 files]\n119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"^## |(?i)cach|redis\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "6:## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n19:## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n39:## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n57:## 2026-09-06 — Opus 4.8 reinstated for planning detailed specs; Opus 5 ban made enforceable\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n88:## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n103:## 2026-09-17 — Pipeline v2: board columns, push-to-dev, human-merged dev→main\n121:## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action\n144:## 2026-09-20 — Stale trivia tests that drive the multiplayer sim: backend-only vs backend+multiplayer\n164:## 2026-09-20 — Design round with no spawnable engines: planner fills the engine seats and says so\n179:## 2026-09-20 — Online Contexto/SuperDraft relay→renderer mismatch found while fixing the tests: recorded, not bundled\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n215:## 2026-09-22 — Cacheable friend-photo endpoint: standard vs hard, sonnet vs fable engine\n223:`apiFetch`+blob-URL pattern that forfeits the HTTP cache the card asks for; (2) a version/ETag that\n224:lets list rows cache-bust without loading bytes needs either a per-request hash on the photo view\n228:was defensible for the same reason — one small view with real caching/auth judgment.\n229:Decision: `difficulty: hard` (multi-area, first binary/HTTP-cached endpoint in a JSON-only DRF app,\n233:done-checks (view + URL + ETag/Cache-Control + 404/304 tests; `_brief` gains a version/has-photo\n242:## 2026-09-22 — Friend-photo endpoint design: public by public_id + stored version column; engine seats filled by the planner\n243:Context: design round for \"Friend lists show profile photos via a cacheable photo endpoint\" (hard /\n244:risk high, `docs/team/designs/2026-09-22-friend-photos-cacheable.md`). The classify entry above\n247:the HTTP cache the card asks for. (2) Version: a per-request byte hash needs the bytes on every\n259:Cache-Control: immutable/1y when `?v=` matches, `no-cache` otherwise, `no-store` on 404; ETag =\n268:## 2026-09-22 — Port Contexto/SuperDraft multiplayer branches to the dealt question: standard vs hard, sonnet vs fable\n298:## 2026-09-22 — Contexto/SuperDraft dealt-question port design: online objective from the qid hash, relay untouched; engine seats filled by the planner\n330:## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine\n339:a pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\n342:mechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\n353:from source again. Settled: display-only `nba3via-session-user` cache hydrated via a new"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)risk-high|risk: high|CACHES\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\constraints\\\\AUTH_CONSTRAINTS.md\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "10-settings pattern (BE-14), and the one hand-authored data migration (BE-6, `0003_identity_overhaul.py`)\n11-— none of that is restated here. This doc covers what's specific to *identity*: the custom user\n12-model's shape, how tokens/sessions actually work, the rank system's boundary, and what a task may\n13:not touch without being classified `risk: high`.\n14-\n15-**Reference implementations** (read these before touching auth code):\n16-\n--\n259-`/api/update-profile/`. This means an online win or loss currently does not change a player's\n260-account points or rank at all. A task that wires multiplayer results into account points would be\n261-adding a second caller to the one points-mutation site (AUTH-6) and touching the identity surface\n262:— classify it `risk: high`.\n263-\n264-```tsx\n265-❌ ASSUMING (incorrectly) that multiplayer already awards points, and \"fixing a bug\" that awards double\n266-// OnlineMatch.tsx already has no award-points call — there's nothing to double here today\n267-\n268:✅ RIGHT — confirmed absence, so a genuinely new task is required and must be risk: high\n269-// grep -n \"update-profile\\|updatePoints\" src/components/MultiPlayer src/context/MultiplayerContext.tsx\n270-// -> no matches (verified below)\n271-```\n--\n278-grep, see Acceptance checks). The Node server has no way to confirm the identity it's told is the\n279-one Django actually authenticated. A task must not add anything privilege-sensitive (moderation,\n280-payouts, account mutation) that trusts data arriving over this channel — and any change to what\n281:flows through `identify` is identity-adjacent, so classify it `risk: high`.\n282-\n283-```js\n284-❌ WRONG — trusting the identify payload for something privilege-sensitive\n--\n291-players.set(uid, { socketId: socket.id, user, roomCode: prev?.roomCode ?? null });\n292-```\n293-\n294:## Rule AUTH-9: `risk: high` surfaces — the exact file list a task must not touch without that classification\n295-\n296:Per the pipeline's `classify` skill (`.superpowers/sdd/.../task-10-brief.md`: \"risk: high if it\n297-touches auth...\"), the auth surface is every file where a bug breaks or locks out *every*\n298-account, not just one game — each of these is a single, unforked source of truth with no fallback\n299-path:\n--\n314-❌ WRONG — a \"standard\" task quietly editing backend/users/tokens.py's MAX_SESSION_AGE\n315-  because a spec mentioned \"make sessions last longer\" — classified difficulty: standard\n316-\n317:✅ RIGHT — the same change classified risk: high per this list, routed for extra review\n318:  before merge (per the classify skill's \"CTO gets a Risk: high PR label and extra scrutiny\")\n319-```\n320-\n321----"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)friends\\\\.py|users/views|users/urls|trivia/views|backend/backend/settings|leaderboard\\\\.py\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_result",
+    "content": "119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"backend/(users|trivia|backend)/[^ ]*\\\\.py`\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790697980928\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "113:- `backend/trivia/management/commands/build_pools_from_db.py` — Rebuilds /data/ JSON pools + manifest from the DB; skips invalid pools, keeps old file. [used by: 2 files]\n114:- `backend/trivia/management/commands/publish_game_data.py` — Uploads GAME_DATA_DIR's versioned pools + manifest to Cloudflare R2 via the S3 API. [used by: 1 files]\n115:- `backend/trivia/management/commands/refresh_game_data.py` — Builds, validates and versions all game pools; `--skip-live` reuses cached playoff/starting-five JSON. [used by: 4 files]\n116:- `backend/trivia/management/commands/seed_fan_favorites.py` — Upserts bundled Fan Favorites seed questions; manual ops command, no code callers. [used by: 0 files] (dead code)\n117:- `backend/trivia/management/commands/sync_nba_data.py` — Fetches/validates/upserts NBA teams, players, MVPs, playoffs, starting-fives into the DB. [used by: 2 files]\n118:- `backend/trivia/management/commands/validate_bingo_seed.py` — Validates bingo_seed.json structure + coverage; dev-time manual check, no code callers. [used by: 0 files] (dead code)\n119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)\n120:- `backend/trivia/utils/fan_favorites.py` — Loads the bundled Fan Favorites seed + auto re-ranks boards from live correct-guess counts. [used by: 4 files]\n121:- `backend/trivia/utils/logo_utils.py` — Builds an NBA-CDN team-logo URL by id; None for defunct franchises (no logo asset). [used by: 6 files]\n122:- `backend/trivia/utils/playoff_games_utils.py` — Fetches historical playoff series from the NBA API into playoff_data.json format. [used by: 2 files]\n123:- `backend/trivia/utils/starting_five_utils.py` — Fetches box scores from the NBA API to build the starting_five_data.json dataset. [used by: 2 files]\n124:- `backend/trivia/utils/text_utils.py` — Strips accents and validates a 5-letter ASCII surname for Wordle answers. [used by: 2 files]"
+  },
+  {
+    "role": "assistant",
+    "content": "This is **hard**, **high risk**, and needs a design round.\n\n- **Difficulty is hard:** the task adds a new caching pattern to several read endpoints in `backend/users/` and `backend/trivia/`. It also needs cache invalidation tied to every friend, request and block action. The spec itself asks for a real design pass.\n- **Risk is high:** it touches friends, blocking and the `CACHES`/settings layer. All three are on the high-risk list.\n- **Engine is opus:** high risk sends it to opus, which also implements hard tasks once Fable has written the plan. Fable runs the design round.\n- **Docs:** `docs/CACHING_SCALING_PLAN.md` is listed because it covers exactly the friends/leaderboard query shape. `docs/DEPLOYMENT.md` is where the Redis provider setup gets written up.\n\nI didn't add a `DECISIONS.md` entry because this wasn't a close call. `RETRO.md` has no parked tasks yet.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"backend\",\"auth\",\"data\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/BACKEND_CONSTRAINTS.md\", \"docs/constraints/AUTH_CONSTRAINTS.md\", \"docs/CACHING_SCALING_PLAN.md\", \"docs/DEPLOYMENT.md\", \"docs/ARCHITECTURE.md\"],\n  \"codeMapHits\": [\"- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)\", \"- `backend/trivia/utils/fan_favorites.py` — Loads the bundled Fan Favorites seed + auto re-ranks boards from live correct-guess counts. [used by: 4 files]\", \"- `src/hooks/useLeaderboard.ts` — Loads /get-users/ leaderboard with a shared 5-min TTL cache and auto-refresh. [used by: 2 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

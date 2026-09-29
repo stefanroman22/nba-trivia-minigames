@@ -1,0 +1,126 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Weekly NBA game predictions with points and a weekly leaderboard\nCategory: fullstack\nPriority: P1\n\nget-spec output:\nEvery week we pick the most interesting NBA games and all users can predict them. A correct prediction gives 3 points, and getting the score (or close to it) gives extra ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â you need to come up with the rules. Store everyone's prediction points and show a global leaderboard just for predictions."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\DECISIONS.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Team Decisions Log\n2\t\n3\tAppend-only. One entry per architectural/design decision made by the planner or a design round.\n4\tFormat: `## YYYY-MM-DD — <title>` then Context / Decision / Consequences (2–3 lines each).\n5\t\n6\t## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n7\tContext: asked to have planner-architect use the `superpowers:brainstorming`/`writing-plans`\n8\tskills for complex tasks (write a plan, self-review it, hand it to the engine).\n9\tDecision: build the same rigor (numbered plan, self-review for coverage/placeholders/\n10\tconsistency/scope/ambiguity) directly into `design-round`'s procedure instead of invoking those\n11\tskills. Two reasons: (1) `superpowers:brainstorming` hard-gates on human approval before any\n12\timplementation step — incompatible with an unattended pipeline run; (2) both skills are\n13\tmachine-local plugins, not committed to this repo, so referencing them would silently no-op on\n14\tevery cloud routine run (the pipeline's primary execution mode).\n15\tConsequences: the plan-and-self-review discipline now runs identically local or cloud, with no\n16\texternal dependency. If those skills are ever made repo-portable and their approval gate made\n17\toptional for headless use, this can be revisited.\n18\t\n19\t## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n20\tContext: the owner wants token spend cut without losing quality. Previously `classify` sent\n21\thard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n22\tand QA models were fixed by frontmatter/profile, so the `deep`/`max` profile could silently put\n23\tbrowser-qa on opus.\n24\tDecision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n25\thard included) — never opus/fable. `planModel` is opus (explicit spec) or fable (thin spec) and\n26\tdrives the design round, the replan, and code-reviewer. Every design round now produces a\n27\tfull implementation plan (previously hard-only), explicit enough that sonnet executes it\n28\trather than reasoning it out. test-qa-engine and browser-qa are always sonnet; the CTO gate\n29\tis pinned to opus in the workflow (never fable). The orchestrator passes every model\n30\texplicitly. Revisits 2026-08-29: `superpowers:writing-plans` may be used for the plan when it\n31\tis present in the skill listing (local runs); the native a–c step remains the cloud fallback.\n32\t`superpowers:brainstorming` stays excluded — its human-approval gate is still incompatible\n33\twith unattended runs.\n34\tConsequences: opus/fable spend moves from implementation (the longest stage) to two short\n35\tstages (plan, review). Plan quality is now load-bearing for hard tasks — a thin plan will\n36\tshow up as sonnet build failures and verify fix-cycles, which is the signal to fix the plan,\n37\tnot to raise the engine model.\n38\t\n39\t## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n40\tContext: same day as the entry above, the owner banned opus (5 and 4.8) from the pipeline\n41\toutright and asked for Fable 5.1 as the single heavy model, with the implementer chosen by the\n42\tshape of the work rather than by spec quality.\n43\tDecision: supersedes the opus/fable `planModel` split above — `planModel` is removed; every\n44\tthinking role (classify, design round, replan, code-reviewer, CTO gate, orchestrator default in\n45\t`.claude/settings.json`, the `deep`/`max` engine profiles) is fable. `engineModel` gains a\n46\t`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n47\tacceptance criteria, however many; fable for complex-but-small work — few steps, each needing\n48\tjudgment a plan cannot pin down. Because step count and criteria explicitness are only known\n49\tafter planning, classify's pick is provisional and the design round finalizes it (`Engine:`\n50\tline, step 5d). The earlier \"CTO never fable\" rule is dropped: with opus gone, fable is the only\n51\treviewe\n... [31178 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)leaderboard|predict|points|schedule|cron|nba_api|weekly|season\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "18:- `src/components/GuestPanel.tsx` — Logged-out sign-in teaser shown beside the home leaderboard card. [used by: 1 files]\n19:- `src/components/Leaderboard.tsx` — Home \"Global Top 100\" card: preview rows, self row, refresh, view-all link. [used by: 1 files]\n23:- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 3 files]\n27:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\n35:- `src/components/modals/LeaderboardModal.tsx` — Full \"Global Top 100\" list shown inside the leaderboard modal. [used by: 1 files]\n64:- `src/hooks/useLeaderboard.ts` — Loads leaderboard (global/friends) with shared 5-min TTL cache and auto-refresh. [used by: 3 files]\n82:- `src/utils/seasons.ts` — Generates NBA season strings (\"1946-47\"…), newest first. [used by: 1 files]\n89:- `src/store/userSlice.tsx` — User auth slice: login/logout/hydrateSession and points/rank/username/photo reducers. [used by: 7 files]\n100:- `src/constants/leaderboard.ts` — Leaderboard row types plus rank-colored avatar-background/initials helpers. [used by: 3 files]\n125:- `backend/trivia/management/commands/generate_players_curated.py` — Rebuilds players_curated.json from nba_api, resumable one player at a time. [used by: 4 files]\n135:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres. [used by: 1 files]\n147:- `backend/trivia/data_pipeline/curated_players.py` — Assembles players_curated.json rows from raw nba_api payloads, fame tiers. [used by: 11 files]\n163:- `backend/users/leaderboard.py` — Leaderboard service: Redis ZSET with Postgres fallback (top, rank_of, record_score, friends_board). [used by: 4 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"AUTH-11\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\constraints\\\\AUTH_CONSTRAINTS.md\",\n  \"output_mode\": \"content\",\n  \"-A\": 25\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "271:## Rule AUTH-11: `risk: high` surfaces: the auth files a task may not touch without that classification\n272-\n273-A bug in these breaks or locks out every account, and each is a single unforked source of truth. Any task\n274-touching them must be classified `risk: high`:\n275-\n276-- `backend/users/models.py` (`CustomUser`, `RANK_CHOICES`, `update_rank`, `Friendship`/`FriendRequest`/`BlockedUser`) and any `backend/users/migrations/`\n277-- `backend/users/identity.py`, `backend/users/tokens.py`\n278-- `backend/users/views.py` auth endpoints: `login_view`, `signup_view`, `google_login`, `logout_view`, `get_current_user`, `update_profile`, `user_payload`, `auth_response`\n279-- `backend/users/friends.py` block/request enforcement and `backend/users/photos.py` (privacy, AUTH-12)\n280-- `backend/trivia/views.py` `log_session` (the points writer) and `backend/trivia/admin_api.py` / `feedback_api.py` permission decorators\n281-- `backend/backend/settings.py` `AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`, `CACHES`; `backend/backend/throttles.py`\n282-- `src/utils/Api.tsx`, `src/utils/session.ts`, `src/store/userSlice.tsx`, `src/app/providers.tsx` (`restoreSession`)\n283-- `multiplayer_server/src/index.js` `identify` handler (AUTH-8)\n284-\n285-Not on the list: `get_users` (read-only leaderboard), `LogInSignUp.tsx` and `UserProfile.tsx` UI-only\n286-edits that leave token keys, endpoints and payload shapes unchanged.\n287-\n288-```text\n289-❌ WRONG — a \"standard\" task editing tokens.py MAX_SESSION_AGE because a spec said \"sessions should last longer\"\n290-✅ RIGHT — the same change classified risk: high and routed for extra review before merge\n291-```\n292-\n293-## Rule AUTH-12: Friend, block and photo endpoints enforce privacy on the server, with `request.user` as the only actor\n294-\n295-`users/friends.py` never trusts a \"who am I\" claim: `me = request.user` and the other party arrives as a\n296-`public_id` resolved by `_get_target`. Every friends endpoint is `IsAuthenticated`. Blocks are symmetric in"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)scoreboard|schedule|crons|leaguegamefinder|live\\\\.nba\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\",\n  \"glob\": \"!{node_modules,.next}/**\",\n  \"head_limit\": 30\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 30 files limit: 30\nsrc\\utils\\questions.ts\nsrc\\styles\\StartingFive.css\nsrc\\styles\\Multiplayer.css\nsrc\\styles\\ImposterGame.css\nsrc\\context\\MultiplayerContext.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\Game Renderers\\StartingFive.tsx\nsrc\\Game Renderers\\ImposterGame.tsx\nscripts\\unregister-team-cron.ps1\nscripts\\slack.mjs\nscripts\\register-team-digest-cron.ps1\nscripts\\register-team-cron.ps1\npackage-lock.json\nmultiplayer_server\\src\\turnGames.js\nmultiplayer_server\\src\\index.js\ninfra\\report-cron\\wrangler.toml\ninfra\\report-cron\\src\\index.js\ndocs\\superpowers\\specs\\2026-09-17-pipeline-v2-board-flow-slack-design.md\ndocs\\superpowers\\specs\\2026-09-10-questions-store-design.md\ndocs\\superpowers\\specs\\2026-08-29-auth-hardening-design.md\ndocs\\superpowers\\specs\\2026-08-23-fully-unattended-cloud-pipeline-design.md\ndocs\\superpowers\\specs\\2026-08-22-slack-reporting-layer-design.md\ndocs\\superpowers\\specs\\2026-08-15-autonomous-team-design.md\ndocs\\superpowers\\specs\\2026-07-09-fan-favorites-upgrade-and-global-rules-design.md\ndocs\\superpowers\\specs\\2026-06-21-nba-data-architecture-design.md\ndocs\\superpowers\\specs\\2026-06-20-cloud-engine-profiles-design.md\ndocs\\superpowers\\plans\\2026-09-17-pipeline-v2-board-flow-slack.md\ndocs\\superpowers\\plans\\2026-09-11-questions-store.md\ndocs\\superpowers\\plans\\2026-09-06-model-reassignment-and-queue-digest.md\ndocs\\superpowers\\plans\\2026-08-30-punctual-report-cron.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)admin_api|report-cron|trivia/views|users/views|urls\\\\.py|apps\\\\.py|Landpage|LandPage\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)admin|views\\\\.py|landpage|urls\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "37:- `src/components/admin/feedbackApi.ts` — Types and fetchers for the admin Feedback tab (filter object, stats, list). [used by: 2 files]\n38:- `src/components/admin/FeedbackCharts.tsx` — Admin Feedback charts: rating distribution and sentiment-over-time line. [used by: 1 files]\n39:- `src/components/admin/FeedbackTab.tsx` — Admin panel Feedback tab: one filter drives charts and table. [used by: 1 files]\n40:- `src/components/admin/vizPalette.ts` — Validated chart palette (ordinal star ramp) for admin Feedback charts. [used by: 1 files]\n134:- `backend/users/management/commands/promote_admin.py` — Promotes a user account to admin/staff. [used by: 1 files]"
+  },
+  {
+    "role": "assistant",
+    "content": "Nearly done. I'm logging the close call in DECISIONS.md, then I'll output the classification."
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"optionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.\",\n  \"new_string\": \"optionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "<tool_use_error>No changes to make: old_string and new_string are exactly the same.</tool_use_error>"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cat >> \\\"C:/Users/stefa/.eval-worktrees/classify/u15_rep1_1790705998406/docs/team/DECISIONS.md\\\" <<'EOF'\\n\\n## 2026-09-29 — Weekly NBA game predictions + prediction leaderboard: risk low vs high, sonnet vs opus\\nContext: fullstack P1 card, no override, thin spec (\\\"you need to come up with the rules\\\"). Nothing\\nin the repo reads live NBA schedules or final scores today (no scoreboard/schedule source; the\\nonly nba_api use is the curated-players pool build), so the feature needs a new external data\\nsource for fixtures and results, a weekly lifecycle (select games → lock at tip-off → resolve\\nafter the final → award points), new models + migrations on the shared dev/prod DB, a separate\\npoints ledger that must not go through `log_session` (AUTH-11) or the global `users/leaderboard.py`\\nZSET, and a scheduler (the existing Cloudflare `infra/report-cron` pattern is the free option).\\n`risk: low` + sonnet was defensible — a new app that leaves the AUTH-11 files alone is, in\\nisolation, bounded CRUD plus a leaderboard query.\\nDecision: `difficulty: hard`, `risk: high`, `needsDesignRound: true`, `engineModel: opus`\\nprovisional, `planModel: fable`. High because it adds a data source and scheduled ingestion\\n(data-pipeline class), migrations on the shared DB, and very likely an admin curation surface\\n(`admin_api.py` permission decorators); opus follows from the risk-high override. The design\\nround must invent the scoring rules (winner 3 pts + margin/score-closeness bonus tiers), the\\nlock/resolve timing, how \\\"most interesting\\\" games are picked (admin pick vs heuristic), and\\nkeep every piece on free tiers — any paid schedule/results API or paid cron is a park-with-cost.\\nConsequences: the plan should tag the ingestion/resolution and lock-timing steps `[opus]` and the\\nUI/leaderboard steps `[sonnet]`; prediction points stay a separate ledger unless the owner asks to\\nmerge them into global points. If the design round shows no AUTH-11 file, pipeline code or admin\\npermission is touched, the review may treat risk as low in practice, but the label stays high.\\nEOF\",\n  \"description\": \"Append close-call entry to DECISIONS log\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Bash has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u15_rep1_1790705998406\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\",\n  \"new_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\\n## 2026-09-29 — Weekly NBA game predictions + prediction leaderboard: risk low vs high, sonnet vs opus\\nContext: fullstack P1 card, no override, thin spec (\\\"you need to come up with the rules\\\"). Nothing\\nin the repo reads live NBA schedules or final scores today (no scoreboard/schedule source; the\\nonly nba_api use is the curated-players pool build), so the feature needs a new external data\\nsource for fixtures and results, a weekly lifecycle (select games → lock at tip-off → resolve\\nafter the final → award points), new models + migrations on the shared dev/prod DB, a separate\\npoints ledger that must not go through `log_session` (AUTH-11) or the global `users/leaderboard.py`\\nZSET, and a scheduler (the existing Cloudflare `infra/report-cron` pattern is the free option).\\n`risk: low` + sonnet was defensible — a new app that leaves the AUTH-11 files alone is, in\\nisolation, bounded CRUD plus a leaderboard query.\\nDecision: `difficulty: hard`, `risk: high`, `needsDesignRound: true`, `engineModel: opus`\\nprovisional, `planModel: fable`. High because it adds a data source and scheduled ingestion\\n(data-pipeline class), migrations on the shared DB, and very likely an admin curation surface\\n(`admin_api.py` permission decorators); opus follows from the risk-high override. The design\\nround must invent the scoring rules (winner 3 pts + margin/score-closeness bonus tiers), the\\nlock/resolve timing, how \\\"most interesting\\\" games are picked (admin pick vs heuristic), and\\nkeep every piece on free tiers — any paid schedule/results API or paid cron is a park-with-cost.\\nConsequences: the plan should tag the ingestion/resolution and lock-timing steps `[opus]` and the\\nUI/leaderboard steps `[sonnet]`; prediction points stay a separate ledger unless the owner asks to\\nmerge them into global points. If the design round shows no AUTH-11 file, pipeline code or admin\\npermission is touched, the review may treat risk as low in practice, but the label stays high.\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Edit has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "I couldn't add the close-call entry to `docs/team/DECISIONS.md` because file writes are blocked in this session. Its content is below so it can be appended later.\n\n**2026-09-29 — Weekly NBA game predictions: risk low vs high, sonnet vs opus.** I seriously considered `risk: low` with sonnet: a new app that leaves the auth files alone is mostly simple data handling plus a leaderboard query. I picked `risk: high` instead, which sends the build to opus for now:\n- **New data source:** nothing in the repo reads live NBA schedules or final scores today.\n- **Scheduled job:** results have to be pulled in on a schedule. Cloudflare's `infra/report-cron` is the free way to run it.\n- **Database migrations:** new tables go onto the database that dev and production share.\n- **Likely admin screen:** picking the week's games probably means touching the admin API's permission checks.\n\nThe design round has to decide:\n- the scoring rules (3 points for the winner, plus bonus tiers for getting the score or margin close);\n- when predictions lock and when games are scored;\n- how the most interesting games get picked;\n- how to keep prediction points separate from global points (not through `log_session` or the global leaderboard).\n\nIt also has to keep everything on free tiers. If it needs a paid schedule/results API or paid cron, the task parks and names the cost.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"frontend\",\"backend\",\"ui\",\"data\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/ARCHITECTURE.md\",\"docs/DATA_PIPELINE.md\",\"docs/DEPLOYMENT.md\",\"docs/CACHING_SCALING_PLAN.md\",\"docs/constraints/BACKEND_CONSTRAINTS.md\",\"docs/constraints/AUTH_CONSTRAINTS.md\",\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `backend/users/leaderboard.py` — Leaderboard service: Redis ZSET with Postgres fallback (top, rank_of, record_score, friends_board). [used by: 4 files]\",\n    \"- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres. [used by: 1 files]\",\n    \"- `src/hooks/useLeaderboard.ts` — Loads leaderboard (global/friends) with shared 5-min TTL cache and auto-refresh. [used by: 3 files]\",\n    \"- `src/components/Leaderboard.tsx` — Home \\\"Global Top 100\\\" card: preview rows, self row, refresh, view-all link. [used by: 1 files]\",\n    \"- `src/components/modals/LeaderboardModal.tsx` — Full \\\"Global Top 100\\\" list shown inside the leaderboard modal. [used by: 1 files]\",\n    \"- `src/constants/leaderboard.ts` — Leaderboard row types plus rank-colored avatar-background/initials helpers. [used by: 3 files]\",\n    \"- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 3 files]\",\n    \"- `src/store/userSlice.tsx` — User auth slice: login/logout/hydrateSession and points/rank/username/photo reducers. [used by: 7 files]\",\n    \"- `backend/trivia/data_pipeline/curated_players.py` — Assembles players_curated.json rows from raw nba_api payloads, fame tiers. [used by: 11 files]\",\n    \"- `src/components/admin/FeedbackTab.tsx` — Admin panel Feedback tab: one filter drives charts and table. [used by: 1 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

@@ -1,0 +1,95 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: A user got blacklisted and blocked without doing anything wrong\nCategory: backend\n\nget-spec output:\nOne user reports being blacklisted/blocked even though they didn't do anything wrong. Find out why and fix it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)blacklist|block|ban|throttl|rate.?limit|abuse\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "10:- `src/components/CorrectAnswer.tsx` — Animated \"Correct answer: X\" banner; superseded by SubmitGuessPopUp. [used by: 0 files]\n15:- `src/components/FriendsPanel.tsx` — Friends modal content: friend list, find tab, requests, blocked players. [used by: 1 files]\n63:- `src/hooks/useFriends.ts` — Friends state + actions (requests, blocks), plus searchUsers/searchFriends/friendPhotoUrl helpers. [used by: 1 files]\n164:- `backend/users/friends.py` — Friends views: search, requests, accept/decline/cancel, remove, block. [used by: 1 files]\n169:- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)blacklist\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\backend\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)block|blacklist|security|abuse\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "76:points/rank block in the profile panel with reduced text on mobile. The card's Difficulty\n77:override is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n190:GAME_DESIGN_CONSTRAINTS and browser QA). Bundling a renderer port into a test-unblock card would\n200:`friends_overview` returning only `incoming_requests`/`outgoing_requests`/`blocked_users`\n325:the doc is left for `bootstrap-audit`. On the cloud QA VM supabase.co is blocked, so the browser pass\n352:that file was blocked by the auto-mode classifier as self-modification of this session's own\n376:access token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 5 files\nbackend\\users\\views.py\nbackend\\users\\tokens.py\nbackend\\users\\admin.py\nbackend\\backend\\throttles.py\nbackend\\backend\\settings.py"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)blacklist|throttl\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\backend\",\n  \"output_mode\": \"content\",\n  \"glob\": \"*.py\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "backend\\backend\\settings.py:54:    \"rest_framework_simplejwt.token_blacklist\",\nbackend\\backend\\settings.py:80:# This is load-bearing for rate limiting, not just performance: DRF stores throttle\nbackend\\backend\\settings.py:82:# process, so throttling on it would be silently near-useless — each cold start\nbackend\\backend\\settings.py:98:    # No Redis but a real (shared) database: correct throttling, one query per hit.\nbackend\\backend\\settings.py:153:    # Applied per-view via backend/throttles.py — there is deliberately no\nbackend\\backend\\settings.py:154:    # DEFAULT_THROTTLE_CLASSES, so game-data reads stay unthrottled and only the\nbackend\\backend\\settings.py:156:    \"DEFAULT_THROTTLE_RATES\": {\nbackend\\backend\\settings.py:181:    # old one blacklisted), and users.tokens.SessionRefreshSerializer refuses\nbackend\\backend\\settings.py:185:    \"ROTATE_REFRESH_TOKENS\": True,              # good with blacklist\nbackend\\backend\\settings.py:186:    \"BLACKLIST_AFTER_ROTATION\": True,\nbackend\\trivia\\views.py:7:from rest_framework.decorators import api_view, permission_classes, throttle_classes\nbackend\\trivia\\views.py:21:from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle\nbackend\\trivia\\views.py:219:@throttle_classes([WordlePlayRateThrottle])\nbackend\\trivia\\views.py:314:@throttle_classes([ScoreSubmitRateThrottle])\nbackend\\trivia\\views.py:376:@throttle_classes([FeedbackRateThrottle])\nbackend\\backend\\throttles.py:6:All four subclass `UserRateThrottle`, which keys by account when the caller is\nbackend\\backend\\throttles.py:11:The rates live in `settings.REST_FRAMEWORK[\"DEFAULT_THROTTLE_RATES\"]`, keyed by the\nbackend\\backend\\throttles.py:15:from rest_framework.throttling import UserRateThrottle\nbackend\\backend\\throttles.py:18:class LoginRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:23:class SignupRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:28:class RefreshRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:31:    refresh writes a blacklist row.\"\"\"\nbackend\\backend\\throttles.py:35:class ScoreSubmitRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:41:class FeedbackRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:48:class WordlePlayRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:55:class UserSearchRateThrottle(UserRateThrottle):\nbackend\\backend\\throttles.py:61:class FriendActionRateThrottle(UserRateThrottle):\nbackend\\users\\views.py:14:from rest_framework.decorators import api_view, permission_classes, parser_classes, throttle_classes\nbackend\\users\\views.py:19:from backend.throttles import LoginRateThrottle, SignupRateThrottle\nbackend\\users\\views.py:82:@throttle_classes([LoginRateThrottle])\nbackend\\users\\views.py:121:@throttle_classes([SignupRateThrottle])\nbackend\\users\\views.py:236:    \"\"\"Logout by blacklisting the refresh token.\"\"\"\nbackend\\users\\views.py:241:        RefreshToken(refresh_token).blacklist()\nbackend\\users\\views.py:249:@throttle_classes([LoginRateThrottle])\nbackend\\users\\tokens.py:4:blacklists the old one), which would let an active player stay signed in\nbackend\\users\\tokens.py:21:from backend.throttles import RefreshRateThrottle\nbackend\\users\\tokens.py:58:    # Each refresh rotates the token and writes a blacklist row, so this bounds\nbackend\\users\\tokens.py:60:    throttle_classes = [RefreshRateThrottle]\nbackend\\trivia\\tests\\test_feedback.py:32:        cache.clear()  # the throttle counter is shared across tests\nbackend\\users\\test_photos.py:19:    \"\"\"A signed-in user + access token, without going through the throttled signup\nbackend\\trivia\\tests\\test_score_award.py:19:        # Throttle counters live in the cache and would leak between tests.\nbackend\\trivia\\tests\\test_score_award.py:102:        self.assertIn(429, codes, \"score submission must be throttled\")\nbackend\\trivia\\tests\\test_score_award.py:106:class LoginThrottleTests(TestCase):\nbackend\\trivia\\tests\\test_score_award.py:116:    def test_password_guessing_i\n... [1413 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 360,\n  \"limit\": 60\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "360\t## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\n361\tContext: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,\n362\tanimation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on\n363\tevery step — complex sub-steps go to Opus 5.5, simpler ones to Sonnet 5.5.\n364\tDecision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or\n365\tnon-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion\n366\tsteps are always `[opus]`) and writes `Engine: opus|sonnet|mixed`. team-run's build stage groups\n367\tconsecutive same-tag steps into one spawn of that model, in order, in the same worktree.\n368\tConsequences: a mixed plan costs extra engine spawns (one per tag run) but each step runs on the\n369\tcheapest model that can handle it. Engines must be told which step range they own and that\n370\tearlier steps are done, or they re-implement from step 1.\n371\t\n372\t## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine\n373\tContext: card \"When I enter the website it takes a long time to see that I am actually logged\n374\tin\" (fullstack, Difficulty override `hard`, title-only spec). Root cause is a post-hydration\n375\twaterfall in `src/app/providers.tsx` `checkLogin`: Redux starts logged-out, and with a 15-minute\n376\taccess token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist\n377\twrite) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,\n378\twhile `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was\n379\tdefensible: the fix touches token/session code on the AUTH-9 `risk: high` list, and there are real\n380\tsubtleties — a localStorage read during render is a Next hydration mismatch (must be an effect or\n381\ta pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\n382\tand skipping the dead `/me/` hop means decoding `exp` client-side.\n383\tDecision: `engineModel: sonnet`, `planModel: fable` (thin spec). The design round can name every\n384\tmechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\n385\tslice optimistically in the mount effect when a refresh token exists, proactively refresh when the\n386\taccess token is expired instead of eating a 401, reconcile with `/me/` in the background, and\n387\toptionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.\n388\tThat is long-and-explicit, which is the sonnet row; the AUTH-9 surface is handled by `risk: high`\n389\treview, not by an engine upgrade.\n390\tConsequences: auth-bootstrap/perf work stays on sonnet when the design round can pin the\n391\thydration-safe read point and the reconcile rules; fable is reserved for cases where the\n392\tsession-state mechanism itself cannot be decided before coding.\n393\tDesign round, same day (`docs/team/designs/2026-09-23-faster-logged-in-state.md`): fourth cloud\n394\tround with no `Agent` tool and no engine teammates in `ListAgents`, seats filled by the planner\n395\tfrom source again. Settled: display-only `nba3via-session-user` cache hydrated via a new\n396\t`hydrateSession` reducer in the mount effect (never sets `authChecked`); bootstrap decodes `exp`\n397\tand calls the exported single-flight `refreshSession` directly when expired; `token/refresh/`\n398\treturns `user`; a 5xx from `/me/` now keeps the session instead of deleting the tokens; a\n399\tpre-hydration inline script was rejected because `Navigation`'s guest button and user chip are\n400\tdifferent DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\n401\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)tokens\\\\.py|throttles|users/views|settings\\\\.py|friends\\\\.py|providers\\\\.tsx|authSlice|refresh\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep0_1790693657231\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "19:- `src/components/Leaderboard.tsx` — Home \"Global Top 100\" card: preview rows, self row, refresh, view-all link. [used by: 1 files]\n64:- `src/hooks/useLeaderboard.ts` — Loads leaderboard (global/friends) with shared 5-min TTL cache and auto-refresh. [used by: 3 files]\n73:- `src/utils/Api.tsx` — `apiFetch` authenticated fetch with token refresh queue, plus token storage helpers. [used by: 21 files]\n126:- `backend/trivia/management/commands/maintain_questions.py` — Daily job: refresh questions table, gate, publish a new questions snapshot. [used by: 0 files]\n129:- `backend/trivia/management/commands/refresh_game_data.py` — Builds, validates, versions all game pools; `--skip-live` reuses cached JSON. [used by: 6 files]\n164:- `backend/users/friends.py` — Friends views: search, requests, accept/decline/cancel, remove, block. [used by: 1 files]\n167:- `backend/users/tokens.py` — Session lifetime control: `issue_session_tokens`, refresh view/serializer with 90-day cap. [used by: 4 files]\n169:- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]"
+  },
+  {
+    "role": "assistant",
+    "content": "```json\n{ \"difficulty\": \"standard\", \"areas\": [\"backend\",\"auth\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/AUTH_CONSTRAINTS.md\",\"docs/constraints/BACKEND_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `backend/users/tokens.py` — Session lifetime control: `issue_session_tokens`, refresh view/serializer with 90-day cap. [used by: 4 files]\",\n    \"- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\",\n    \"- `backend/users/friends.py` — Friends views: search, requests, accept/decline/cancel, remove, block. [used by: 1 files]\",\n    \"- `src/utils/Api.tsx` — `apiFetch` authenticated fetch with token refresh queue, plus token storage helpers. [used by: 21 files]\",\n    \"- `src/hooks/useFriends.ts` — Friends state + actions (requests, blocks), plus searchUsers/searchFriends/friendPhotoUrl helpers. [used by: 1 files]\",\n    \"- `src/components/FriendsPanel.tsx` — Friends modal content: friend list, find tab, requests, blocked players. [used by: 1 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

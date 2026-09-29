@@ -1,0 +1,93 @@
+﻿diff --git a/.claude/skills/classify/SKILL.md b/.claude/skills/classify/SKILL.md
+index 8b275b4..6710b24 100644
+--- a/.claude/skills/classify/SKILL.md
++++ b/.claude/skills/classify/SKILL.md
+@@ -5,7 +5,7 @@ description: Classify a team task — difficulty, areas, risk, model/effort tier
+ 
+ # Classify a Task
+ 
+-Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`) and the card's Category.
++Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`), the card's Category and its Priority.
+ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]` lines and `## Comment (...)` sections — the owner's comments and their images are part of the spec.
+ 
+ ## Procedure
+@@ -21,11 +21,18 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
+ ## Difficulty rubric (drives risk / design-round — unchanged)
+ - **trivial** — docs/copy/config/single-file change, no logic branches.
+ - **standard** — one area, bounded logic, existing patterns cover it.
+-- **hard** — multi-area, new patterns, state machines, migrations, or anything touching
+-  multiplayer protocol. `needsDesignRound: true`.
+-- **risk: high** if it touches auth, data pipeline, multiplayer protocol, or anything in
+-  the protected-paths list — CTO gets a `Risk: high` PR label and extra scrutiny.
+-- Multi-area at any difficulty → `needsDesignRound: true`.
++- **hard** — multi-area, new patterns, state machines, migrations, anything touching
++  multiplayer protocol, or work that generates or regenerates data consumed by several games.
++  `needsDesignRound: true`.
++- **risk** is exactly `low` or `high` — never any other value. **High** if it touches auth,
++  data pipeline, multiplayer protocol, anything in the protected-paths list, or any surface
++  on the risk-high list in `docs/constraints/AUTH_CONSTRAINTS.md` AUTH-11 (friends, blocking,
++  profile photos, sessions, throttles, the admin API, the `CACHES` / settings layer) — read
++  AUTH-11 whenever the task touches `backend/users/`, `backend/backend/settings.py` or caching.
++  CTO gets a `Risk: high` PR label and extra scrutiny.
++- Multi-area at any difficulty → `needsDesignRound: true`. Count areas by what the change must
++  touch **or run to verify**, not by the card's Category: a fix whose check drives the
++  multiplayer relay or its sim scripts involves `multiplayer` even if only backend tests change.
+ - **Security work → `needsDesignRound: true`, `risk: high`, always** — attacks/DDoS, auth or
+   session breaches, account blocking/abuse, secrets, permissions — regardless of difficulty or
+   how few files it touches. Fable plans it so the plan covers every case; opus implements.
+@@ -41,16 +48,18 @@ All four are rolling aliases.
+ ### `engineModel` — who implements
+ | Model | When | Example |
+ |---|---|---|
+-| **haiku** (effort low) | `trivial`: content/copy/config edit, zero logic. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
++| **haiku** (effort low) | `trivial`: mechanical content/copy/config edit, zero logic and zero judgment — the new text or value is given or fully determined. Not haiku: copy that has to be *written* to persuade or engage (headlines, marketing, onboarding text), and adding or removing a visible UI element (it changes layout and needs a visual check) — both are sonnet. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
+ | **sonnet** (effort high) | **The default.** Any task whose work can be written as clearly defined steps, each with an acceptance criterion — however many steps — or a spec detailed enough that nothing needs inventing. Building on an existing feature, following an existing pattern, or executing a design-round plan step by step. Long-and-explicit is sonnet territory. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." / A 12-step bracket-mode plan where every step names its file and its done-check. |
+ | **opus** (effort high) | **Complex.** A few steps that each need real judgment a plan cannot fully pin down — a novel algorithm, a tricky state machine, subtle multiplayer timing — or a spec that genuinely cannot be reduced to steps with acceptance criteria; also the implementer for a hard task once Fable has produced its design-round plan. Rule of thumb: short-and-hard or hard-with-a-plan → opus; long-and-explicit → sonnet; long-and-vague → the plan is the problem, fix it in the design round rather than upgrading the engine. | Card: "Elo-style rating updates for 3-player rooms with disconnect forfeits" — one file, hard math, ambiguous ties → opus. |
+ 
+ Two overrides beat the table:
+ - **Motion/animation → opus, always.** Any task whose core is motion — framer-motion, transitions,
+   animated UI, springs, gestures, scroll/reveal effects — goes to opus regardless of difficulty,
+-  even a one-file change. Feel and timing are judgment, not steps.
+-- **Important + complex → opus.** `risk: high`, or a P0 card that is not trivial, goes to opus
+-  rather than sonnet. Simple tasks stay sonnet (or haiku if trivial).
++  even a one-file change. This includes changing *when* or *how* something animates — timing,
++  sequencing, delays, what triggers an animation, what stays still vs. animates — even when no
++  new animation is authored. Feel and timing are judgment, not steps.
++- **Important + complex → opus.** `risk: high`, or a `Priority: P0` card that is not trivial, goes
++  to opus rather than sonnet. Simple tasks stay sonnet (or haiku if trivial).
+ 
+ This is a **provisional** pick. When a design round runs, the planner finalizes it once the
+ plan exists (`design-round` step 5d), **per step** — a Fable-planned task can mix opus steps
+diff --git a/.claude/skills/team-run/SKILL.md b/.claude/skills/team-run/SKILL.md
+index 4afe1c9..b7d0505 100644
+--- a/.claude/skills/team-run/SKILL.md
++++ b/.claude/skills/team-run/SKILL.md
+@@ -65,7 +65,7 @@ replanned, startedAt, classify, subtasks?, resumeNote}`.
+ journal stage=classify.
+ 
+ **classify** → spawn planner-architect (model fable) with the classify skill, the card
+-title/Category, and `get-spec` output (it already contains body text, `[Image attached]`
++title/Category/Priority (from `list-todo`), and `get-spec` output (it already contains body text, `[Image attached]`
+ lines from the body, the Attachments property and owner comments). Parse its JSON.
+ If `areas` contains both `frontend` and `backend` → this is a **split task** (§2b).
+ journal stage=workspace.
+diff --git "a/.claude\\hillclimb\\classify\\v1/run-eval.before.mjs" b/.claude/hillclimb/classify/run-eval.mjs
+index 4a0da3c..d294292 100644
+--- "a/.claude\\hillclimb\\classify\\v1/run-eval.before.mjs"
++++ b/.claude/hillclimb/classify/run-eval.mjs
+@@ -34,13 +34,14 @@ async function loadCases() {
+   return onlyIds ? cases.filter((c) => onlyIds.has(c.id)) : cases;
+ }
+ 
+-// The same inputs team-run hands classify: title, Category, get-spec output.
++// The same inputs team-run hands classify: title, Category, Priority, get-spec output.
+ function classifyPrompt(c) {
+   return [
+     'Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.',
+     '',
+     `Title: ${c.title}`,
+     `Category: ${c.category ?? '(none)'}`,
++    `Priority: ${c.priority ?? '(none)'}`,
+     '',
+     'get-spec output:',
+     c.spec && c.spec.trim() ? c.spec.trim() : '(empty body)',

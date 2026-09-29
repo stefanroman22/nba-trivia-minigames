@@ -1,0 +1,59 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 9b25b84"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Fix users.FriendsPhotoTests failing on a clean dev checkout (friends-overview KeyError 'friends')\nCategory: backend\nPriority: P1\n\nget-spec output:\nFound by the pipeline verify stage on 2026-09-20 while shipping 'Fix 3 trivia tests that fail on a clean dev checkout'. On untouched origin/dev (0916d43), cd backend && python manage.py test fails 1 test: users.tests.FriendsPhotoTests.test_search_and_overview_omit_photo_for_user_with_photo_data errors with KeyError: 'friends' at backend/users/tests.py:149 ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â resp.json()['friends'] on GET friends-overview. Reproduces in isolation (manage.py test users.tests.FriendsPhotoTests). The rest of the suite is green (Ran 360 tests, errors=1). Decide whether users/friends.py's friends-overview response shape changed (the test expects a top-level 'friends' key holding briefs with profile_photo None) or the test is stale, and fix the right side so manage.py test is fully green. It blocks the ship skill's post-rebase backend test check for every backend card. Note the open card 'Friend lists show profile photos via a cacheable photo endpoint' touches the same _brief/photo code ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â whichever ships first should leave this test green; if that card already fixed it, verify and close this one."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r13_rep1_1790706785319\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd /c/Users/stefa/.eval-worktrees/classify/r13_rep1_1790706785319; tail -80 docs/team/DECISIONS.md; echo ----; grep -n -i \\\"friend\\\\|photo\\\\|users/tests\\\" docs/team/CODE_MAP.md | head -20; echo ----; sed -n 120,160p backend/users/tests.py; echo ----; grep -n \\\"friends\\\\b\\\\|'friends'\\\\|def \\\\|_brief\\\" backend/users/friends.py | head -60\",\n  \"description\": \"Read decisions, code map, test, and friends code\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "2026-09-19 entry below.\n\n**Consequences.** Spec images can come from the body, the Attachments property or comments.\n`Area` and per-task `PR` are gone from the board.\nSpec: `docs/superpowers/specs/2026-09-17-pipeline-v2-board-flow-slack-design.md`.\n\n## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action\n\n**Context.** Mid-implementation of the above, discovered live that a real, human-authenticated\npush to `dev` (not just the pipeline's bot-token merges) still auto-triggered `dev-ci.yml`'s\npromote-to-main job — that's how an unrelated feature PR reached production without anyone\nasking. A concurrent session had already opened a PR gating that job to manual\n`workflow_dispatch` only. Owner's directive: \"all coding agents and pipeline push to dev only.\nPush to prod can only be done if explicitly asked within prompting or via triggering the manual\naction on GitHub.\"\n\n**Decision.** Drop this plan's original batch `dev → main` PR + CTO-review + owner-merge design\nin favor of the simpler, already-in-flight fix: `dev-ci.yml` keeps its promote job, gated to\n`workflow_dispatch` only (no push, from anyone, auto-promotes). `claude.yml`'s `cto-review`/\n`cto-act` jobs are retired — with no PR left anywhere in the loop (per-task PRs were already gone;\nnow the batch PR is too), there's nothing left for a PR-triggered review to attach to. Quality\ninto `dev` stays the in-run `code-reviewer` (fable) step, unchanged. `scripts/promote.mjs` is not\nbuilt; `main-sync.yml` is unaffected (it watches pushes to `main`, whatever the mechanism).\n\n**Consequences.** No batch review gate before production — the owner (or an agent explicitly\nasked to) is trusted to check `dev` before promoting. `cto-approved`/`cto-changes-requested`\nlabels and the fix-tasks-first CTO loop in `team-run` are gone. Spec revision:\n`docs/superpowers/specs/2026-09-17-pipeline-v2-board-flow-slack-design.md` (2026-09-19 addendum).\n\n## 2026-09-20 — Stale trivia tests that drive the multiplayer sim: backend-only vs backend+multiplayer\nContext: card \"Fix 3 trivia tests that fail on a clean dev checkout\" (Category backend, P1). All\nthree failures are stale tests, not regressions: the questions-store migration (6e82128,\n40b1ef8, 6a1a11b) removed `drawSlots`/`dailySecret` from `src/Game Renderers/SuperDraft.tsx` /\n`Contexto.tsx` (the invariants the string assertions guard still hold — multiplayer never redraws,\nthe sent `secret_person_id` is the only secret accepted) and moved the relay's superdraft/contexto\nrounds from Django fetches to `multiplayer_server/src/questions.js` (`deal()` via a schema-1\nmanifest), so `scripts/sim_round_fanout.js`'s `global.fetch` stub of the Django payloads no longer\nreaches the relay and `getManifest` throws `questions schema undefined unsupported`. Fix side is\nthe tests every time. Classifying it `areas: [\"backend\"]` was defensible (Category backend, the\nPython tests are the deliverable, no design round) but the sim rewrite is real Node work against\n`questions._setForTest` mirroring `scripts/sim_turngames.js`'s fixture, i.e. multiplayer-area code.\nDecision: `areas: [\"backend\",\"multiplayer\"]`, `difficulty: standard`, `risk: low` (a test harness,\nnot the socket protocol), `needsDesignRound: true` per the multi-area rule, `engineModel: sonnet`\n(each test maps to a named file and a \"passes on clean dev\" done-check), `planModel: opus-4.8`\n(the spec enumerates every failure and its error text).\nConsequences: test-only fixes that need a `multiplayer_server/scripts/*` sim rewritten still get\nthe short multi-area design round; the plan should say explicitly that no renderer or relay code\nchanges and that the sim moves to the `_setForTest` fixture pattern rather than re-stubbing fetch.\n\n## 2026-09-20 — Design round with no spawnable engines: planner fills the engine seats and says so\nContext: design round for \"Fix 3 trivia tests that fail on a clean dev checkout\" ran on a cloud\nsession (TEAM_CLOUD=1) whose tool list has no `Agent` tool, and\n... [7011 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd /c/Users/stefa/.eval-worktrees/classify/r13_rep1_1790706785319; sed -n 305,345p backend/users/friends.py; grep -n \\\"search_friends\\\\|friends-overview\\\\|search-friends\\\" backend/users/urls.py; git log --oneline -3 -- backend/users/friends.py\",\n  \"description\": \"Inspect friends_overview and its history\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "@api_view([\"GET\"])\n@permission_classes([IsAuthenticated])\ndef friends_overview(request):\n    \"\"\"Both directions of pending requests, and who you've blocked. The\n    friend list itself is paginated separately by `search_friends` — even a\n    \"give me everyone\" call there is still bounded and sorted the same way,\n    so there's nothing this endpoint needs to duplicate.\"\"\"\n    me = request.user\n\n    incoming = (\n        FriendRequest.objects.filter(receiver=me)\n        .select_related(\"sender\")\n        .defer(\"sender__profile_photo_data\")\n        .order_by(\"-created_at\")\n    )\n    outgoing = (\n        FriendRequest.objects.filter(sender=me)\n        .select_related(\"receiver\")\n        .defer(\"receiver__profile_photo_data\")\n        .order_by(\"-created_at\")\n    )\n    blocked = (\n        BlockedUser.objects.filter(blocker=me)\n        .select_related(\"blocked\")\n        .defer(\"blocked__profile_photo_data\")\n        .order_by(\"-created_at\")\n    )\n\n    return Response(\n        {\n            \"incoming_requests\": [{\"request_id\": r.pk, **_brief(request, r.sender)} for r in incoming],\n            \"outgoing_requests\": [{\"request_id\": r.pk, **_brief(request, r.receiver)} for r in outgoing],\n            \"blocked_users\": [_brief(request, b.blocked) for b in blocked],\n        }\n    )\n5:    search_friends,\n30:    path('search-friends/', search_friends, name='search-friends'),\n38:    path('friends-overview/', friends_overview, name='friends-overview'),\n3fa8788 feat(friends): search your own friend list by name or player ID\ndbc9a0f fix: changing the account photo works — any format, any size cropped to fit\nb0f77c1 feat(users): add friends — search, requests, block, and a friends leaderboard"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd /c/Users/stefa/.eval-worktrees/classify/r13_rep1_1790706785319; grep -n \\\"backend/users\\\\|users/\\\" docs/team/CODE_MAP.md | head; ls docs/constraints/ 2>/dev/null\",\n  \"description\": \"Find backend users entries and constraint docs\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "61:- `src/hooks/useLeaderboard.ts` — Loads /get-users/ leaderboard with a shared 5-min TTL cache and auto-refresh. [used by: 2 files]\n119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)\n126:No shared/abstract model mixins exist in `backend/`: `trivia/models.py` and `users/models.py` each\nAUTH_CONSTRAINTS.md\nBACKEND_CONSTRAINTS.md\nMULTIPLAYER_CONSTRAINTS.md\nUI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "The test is out of date; the endpoint is working as intended. Commit 3fa8788 (\"search your own friend list by name or player ID\") deliberately took the friend list out of `friends_overview` (`backend/users/friends.py:308`). The friend list now comes from the paginated `search_friends` endpoint (`search-friends/`). `friends_overview` returns only `incoming_requests`, `outgoing_requests` and `blocked_users`. The fix is to point the second half of `FriendsPhotoTests` (`backend/users/tests.py:147-151`) at `search-friends` and read its `results`. No production code changes.\n\nThis makes it a backend-only fix to a single test, so risk is low even though the test covers friends and profile photos. Nothing in `docs/team/RETRO.md` matches it, and `CODE_MAP.md` has no relevant entries.\n\n```json\n{ \"difficulty\": \"standard\", \"areas\": [\"backend\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/BACKEND_CONSTRAINTS.md\"],\n  \"codeMapHits\": [],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

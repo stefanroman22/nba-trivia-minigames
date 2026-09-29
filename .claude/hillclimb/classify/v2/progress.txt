@@ -1,0 +1,1 @@
+[v2] 72/72 done (72 ok, 0 failed), 1568s elapsed, ~0s left

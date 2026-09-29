@@ -1,0 +1,86 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Make the landing page hero text more engaging\nCategory: frontend\nPriority: P1\n\nget-spec output:\nThe hero headline and sub-text on the landing page feel flat. Rewrite them to be more engaging."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u03_rep1_1790707175411\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)hero|landing|home|headline|copy\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u03_rep1_1790707175411\\\\docs\\\\team\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)hero\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u03_rep1_1790707175411\\\\src\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\team\\CODE_MAP.md:16:- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\ndocs\\team\\CODE_MAP.md:18:- `src/components/GuestPanel.tsx` — Logged-out sign-in teaser shown beside the home leaderboard card. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:19:- `src/components/Leaderboard.tsx` — Home \"Global Top 100\" card: preview rows, self row, refresh, view-all link. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:27:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:76:- `src/utils/ScrolllToSection.tsx` — Smooth-scrolls to a DOM element by id (home-page section nav). [used by: 2 files]\ndocs\\team\\CODE_MAP.md:132:- `backend/trivia/management/commands/upload_dataset.py` — Uploads the curated players dataset to Storage (home-PC step). [used by: 1 files]\ndocs\\team\\DECISIONS.md:81:content/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\ndocs\\team\\DECISIONS.md:84:Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\ndocs\\team\\DECISIONS.md:90:only). `Navigation.go(\"play\")` targets the hero `#play`, not `#games-grid` (the section whose\ndocs\\team\\DECISIONS.md:91:`scroll-margin-top: 76px` gives the 12px-below-header landing the card asks for), and on\ndocs\\team\\DECISIONS.md:206:copy/config with zero judgment; this needs the engine to reproduce the failure, confirm the\ndocs\\team\\PIPELINE.md:229:sandbox. The report workflow needs its own copy of the token as a GitHub repo secret,\ndocs\\team\\PIPELINE.md:243:1. `gh secret set SLACK_BOT_TOKEN` — the report workflow's own copy of the token.\ndocs\\team\\PIPELINE.md:264:| Haiku 4.5 | alias `haiku` | Trivial implementation only (copy/config, zero logic). |\ndocs\\team\\designs\\2026-09-20-fix-3-trivia-tests-clean-dev.md:174:encodes (the renderer's own ``dailySecret`` copy was deleted by the questions-\ndocs\\team\\designs\\2026-09-20-fix-3-trivia-tests-clean-dev.md:186:# day, does the endpoint keep landing on the player this rule picks?\ndocs\\team\\designs\\2026-09-22-port-contexto-superdraft-mp.md:536:        left={<GameFrame.Label>HOME IN BY SIMILARITY</GameFrame.Label>}\ndocs\\team\\designs\\2026-09-22-port-contexto-superdraft-mp.md:803:[Omitted long matching line]\ndocs\\team\\designs\\2026-09-22-port-contexto-superdraft-mp.md:904:        the renderer's TypeScript copy was deleted when multiplayer moved onto\ndocs\\team\\designs\\2026-09-22-port-contexto-superdraft-mp.md:954:trivia/questions/games/superdraft.slot_matches (the renderer's buildCandidates copy is gone).\"\"\"`."
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 4 files\nsrc\\views\\Landpage.tsx\nsrc\\styles\\theme.css\nsrc\\styles\\LandPage.css\nsrc\\app\\layout.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)Landpage|LandPage.css\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u03_rep1_1790707175411\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)hero\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u03_rep1_1790707175411\\\\src\\\\views\\\\Landpage.tsx\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u03_rep1_1790707175411\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 70,\n  \"limit\": 30\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "70\tcorrected.\n71\tConsequences: the ban is now enforced by the harness, not by prose. The `npm run engine`\n72\tprofile's `subagentModel` is documented as a fallback that rarely decides anything.\n73\t\n74\t## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n75\tContext: card 3dc2cfb1-c595-80b9-a2d4-f182a24358e6 asks for a smaller, center-aligned\n76\tpoints/rank block in the profile panel with reduced text on mobile. The card's Difficulty\n77\toverride is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n78\t`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,\n79\tno logic — so haiku was defensible under the \"trivial → haiku\" row.\n80\tDecision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n81\tcontent/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\n82\tsmall layout design call with a responsive breakpoint and a real-browser check, which is the\n83\tsonnet default. No design round (single area, thin spec) → `planModel: fable` is nominal.\n84\tConsequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85\tsonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86\t`trivial` on a task that still needs layout judgment.\n87\t\n88\t## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n89\tContext: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend\n90\tonly). `Navigation.go(\"play\")` targets the hero `#play`, not `#games-grid` (the section whose\n91\t`scroll-margin-top: 76px` gives the 12px-below-header landing the card asks for), and on\n92\t`type=\"back\"` pages the fixed `setTimeout(..., 350)` races the exit fade + Next route push, so\n93\tthe element is often absent when the scroll fires. Fable was defensible because the fix is\n94\tsmall and involves a real timing subtlety (Next App Router push + sticky header + hash scroll).\n95\tDecision: `engineModel: sonnet`. The work reduces to explicit steps with done-checks (retarget\n96\tto `games-grid`; replace the fixed delay with a scroll-after-arrival mechanism such as a hash or\n97\ta `Landpage` mount effect; update Rule UI-3 in `UI_SHELL_CONSTRAINTS.md`; browser pass from\n98\t`/admin` and a game page on a phone viewport). Difficulty stays `trivial` per the override.\n99\tConsequences: small nav/scroll timing fixes stay on sonnet as long as the target and the"
+  },
+  {
+    "role": "tool_result",
+    "content": "50-      <Navigation type=\"full\" />\n51-\n52-      <main className=\"page\">\n53:        {/* ===== HERO ===== */}\n54:        <section id=\"play\" className=\"hero\">\n55:          <div className=\"hero-grain\" aria-hidden=\"true\" />\n56:          <div className=\"hero-inner\">\n57:            {/* Hero entrances are slide-only (no opacity fade): these elements\n58-                are server-rendered, and starting them at opacity 0 would make\n59-                the static page paint incomplete until hydration. */}\n60:            <motion.div className=\"hero-badge\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>\n61:              <span className=\"hero-badge-dot\" />\n62-              FREE · NO SIGN-UP NEEDED · NEW GAME EVERY WEEK\n63-            </motion.div>\n64-            {/* LCP element: slide-only entrance (no opacity fade) so its first\n65-                paint isn't deferred to the animation — keeps mobile LCP honest. */}\n66:            <motion.h1 className=\"font-display hero-h1\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}>\n67-              Test your <span style={{ color: \"var(--brand)\" }}>hoops IQ.</span><br />One quick game at a time.\n68-            </motion.h1>\n69:            <motion.p className=\"hero-lead\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>\n70-              Bite-sized NBA trivia. Build a streak, climb the global board, and challenge friends when you're ready.\n71-            </motion.p>\n72:            <motion.div className=\"hero-cta-row\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>\n73-              <Button size=\"lg\" onClick={() => openGame(games[0].id, games[0].urlPath)}>\n74-                <svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"currentColor\"><path d=\"M8 5v14l11-7z\" /></svg>\n75-                Play today's game\n--\n78-                Browse all games\n79-              </Button>\n80-            </motion.div>\n81:            <motion.div className=\"hero-stats\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}>\n82:              <div className=\"hero-stat\">\n83:                <span className=\"tnum font-display hero-stat-num\" style={{ color: \"var(--brand)\" }}>{playableCount}</span>\n84:                <span className=\"hero-stat-lbl\">GAMES</span>\n85-              </div>\n86-              {user && (\n87-                <>\n88:                  <div className=\"hero-stat-sep\" />\n89:                  <div className=\"hero-stat\">\n90:                    <span className=\"tnum font-display hero-stat-num\">{user.points}</span>\n91:                    <span className=\"hero-stat-lbl\">YOUR POINTS</span>\n92-                  </div>\n93-                </>\n94-              )}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "Classification for \"Make the landing page hero text more engaging\":\n\n- **Difficulty: trivial.** Only the hero copy changes: the `<h1>` and `.hero-lead` text in `src/views/Landpage.tsx` (lines 66–71). It's one file with no logic, and the `motion` entrance animations stay as they are.\n- **Engine: sonnet, not haiku.** The rubric says copy that has to be written to persuade or engage goes to sonnet, and a hero headline is exactly that. Longer text can also change the hero layout, so it needs a visual check in the browser.\n- **Risk: low.** It touches no auth, data pipeline, multiplayer, or settings code. The card is P1, so the \"P0 goes to opus\" rule doesn't apply.\n- **No design round.** Only one area is involved.\n- **No CODE_MAP hits.** `CODE_MAP.md` has no entry for `Landpage.tsx`, so `codeMapHits` is empty.\n- **No DECISIONS.md entry.** The rubric settles haiku vs sonnet for this case directly, so it wasn't a real close call. `RETRO.md` has no parked tasks yet.\n\n```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

@@ -1,0 +1,95 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Rewrite stale llms.txt to match the current live game list\nCategory: docs\nPriority: P1\n\nget-spec output:\nCurrent public/llms.txt is stale: it lists hidden/removed games (connections, heatmap, stat grids) and wrongly calls the app a single-page React application (it is Next.js SSR/App Router). Research findings (llms.txt v2 spec, llmstxt.org, Aug 2026): required structure is one H1 site name, a one-paragraph blockquote summary, optional plain paragraphs, then ## sections each a Markdown link list (Title, url, one-line note). Content rules: 10-30 curated links grouped by product surface not site hierarchy, absolute https URLs, a Last reviewed date line, no marketing fluff, no tech-stack trivia, no auth-gated or hidden-feature links. Honest caveat backed by traffic data (Google explicitly says it is not used for Search; measured AI-agent logs show well under 1 percent of sites get any llms.txt fetches at all): treat this as cheap hygiene, not an SEO lever, but a stale file that misinforms agents is worse than none. Task: rewrite public/llms.txt to list exactly the current visibleGames from src/utils/GameUtils.tsx (10 games today, do not hardcode a count that will drift), remove every hidden game and the /admin mention, add a short accounts/leaderboard/multiplayer section, and a Last reviewed date. Keep it under about 40 lines. Bonus if time allows: add app/llms.txt/route.ts generated from visibleGames so this cannot go stale again, and a small <link rel=describedby href=/llms.txt type=text/markdown> tag in the root layout per the v2 discovery convention."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\docs\\\\team\\\\DECISIONS.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Team Decisions Log\n2\t\n3\tAppend-only. One entry per architectural/design decision made by the planner or a design round.\n4\tFormat: `## YYYY-MM-DD — <title>` then Context / Decision / Consequences (2–3 lines each).\n5\t\n6\t## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n7\tContext: asked to have planner-architect use the `superpowers:brainstorming`/`writing-plans`\n8\tskills for complex tasks (write a plan, self-review it, hand it to the engine).\n9\tDecision: build the same rigor (numbered plan, self-review for coverage/placeholders/\n10\tconsistency/scope/ambiguity) directly into `design-round`'s procedure instead of invoking those\n11\tskills. Two reasons: (1) `superpowers:brainstorming` hard-gates on human approval before any\n12\timplementation step — incompatible with an unattended pipeline run; (2) both skills are\n13\tmachine-local plugins, not committed to this repo, so referencing them would silently no-op on\n14\tevery cloud routine run (the pipeline's primary execution mode).\n15\tConsequences: the plan-and-self-review discipline now runs identically local or cloud, with no\n16\texternal dependency. If those skills are ever made repo-portable and their approval gate made\n17\toptional for headless use, this can be revisited.\n18\t\n19\t## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n20\tContext: the owner wants token spend cut without losing quality. Previously `classify` sent\n21\thard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n22\tand QA models were fixed by frontmatter/profile, so the `deep`/`max` profile could silently put\n23\tbrowser-qa on opus.\n24\tDecision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n25\thard included) — never opus/fable. `planModel` is opus (explicit spec) or fable (thin spec) and\n26\tdrives the design round, the replan, and code-reviewer. Every design round now produces a\n27\tfull implementation plan (previously hard-only), explicit enough that sonnet executes it\n28\trather than reasoning it out. test-qa-engine and browser-qa are always sonnet; the CTO gate\n29\tis pinned to opus in the workflow (never fable). The orchestrator passes every model\n30\texplicitly. Revisits 2026-08-29: `superpowers:writing-plans` may be used for the plan when it\n31\tis present in the skill listing (local runs); the native a–c step remains the cloud fallback.\n32\t`superpowers:brainstorming` stays excluded — its human-approval gate is still incompatible\n33\twith unattended runs.\n34\tConsequences: opus/fable spend moves from implementation (the longest stage) to two short\n35\tstages (plan, review). Plan quality is now load-bearing for hard tasks — a thin plan will\n36\tshow up as sonnet build failures and verify fix-cycles, which is the signal to fix the plan,\n37\tnot to raise the engine model.\n38\t\n39\t## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n40\tContext: same day as the entry above, the owner banned opus (5 and 4.8) from the pipeline\n41\toutright and asked for Fable 5.1 as the single heavy model, with the implementer chosen by the\n42\tshape of the work rather than by spec quality.\n43\tDecision: supersedes the opus/fable `planModel` split above — `planModel` is removed; every\n44\tthinking role (classify, design round, replan, code-reviewer, CTO gate, orchestrator default in\n45\t`.claude/settings.json`, the `deep`/`max` engine profiles) is fable. `engineModel` gains a\n46\t`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n47\tacceptance criteria, however many; fable for complex-but-small work — few steps, each needing\n48\tjudgment a plan cannot pin down. Because step count and criteria explicitness are only known\n49\tafter planning, classify's pick is provisional and the design round finalizes it (`Engine:`\n50\tline, step 5d). The earlier \"CTO never fable\" rule is dropped: with opus gone, fable is the only\n51\treviewe\n... [27262 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"llms|GameUtils|layout\\\\.tsx|visibleGames|robots|sitemap\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"src/app/layout|public/|robots|metadata\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"visibleGames\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\views\\Trivia\\MiniGame.tsx:7:import { games, visibleGames } from '../../utils/GameUtils';\nsrc\\views\\Trivia\\MiniGame.tsx:273:            {visibleGames.map((g) => (\nsrc\\views\\Trivia\\MiniGame.tsx:287:            <div className=\"rail-head\"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>\nsrc\\views\\Trivia\\MiniGame.tsx:289:              {visibleGames.map((g) => (\nsrc\\views\\Landpage.tsx:8:import { visibleGames as games } from \"../utils/GameUtils\";\nsrc\\utils\\GameUtils.tsx:628:export const visibleGames: Game[] = games.filter((g) => !g.hidden);\nsrc\\app\\[game]\\page.tsx:2:import { games, visibleGames } from \"../../utils/GameUtils\";\nsrc\\app\\[game]\\page.tsx:9:  visibleGames.filter((g) => g.id !== \"coming-soon\").map((g) => g.urlPath.replace(/^\\//, \"\"));\nsrc\\components\\MultiPlayer\\FriendPlay.tsx:7:import { visibleGames as games } from \"../../utils/GameUtils\";\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx:7:import { visibleGames as games } from \"../../utils/GameUtils\";"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"id: \\\"coming-soon\\\"|hidden: true\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\src\\\\utils\\\\GameUtils.tsx\",\n  \"output_mode\": \"content\",\n  \"-A\": 2\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "294:    hidden: true,\n295-  },\n296-  {\n--\n325:    hidden: true,\n326-  },\n327-  {\n--\n386:    hidden: true,\n387-  },\n388-  {\n--\n477:    hidden: true,\n478-  },\n479-  {\n--\n538:    hidden: true,\n539-  },\n540-  {\n--\n569:    hidden: true,\n570-  },\n571-  {\n--\n600:    hidden: true,\n601-  },\n602-  {\n603:    id: \"coming-soon\",\n604-    name: \"Coming Soon\",\n605-    tag: \"NEW\","
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790707032278\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\",\n  \"new_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\\n## 2026-09-29 — Rewrite stale public/llms.txt from visibleGames: trivial/haiku vs trivial/sonnet vs standard\\nContext: docs card, P1, no override. The core deliverable is one static file (`public/llms.txt`)\\nwith a structure the spec fully prescribes (H1, blockquote, `##` link lists, Last reviewed line,\\nunder ~40 lines), so haiku was defensible. The optional bonus (`src/app/llms.txt/route.ts`\\ngenerated from `visibleGames` plus a `<link rel=\\\"describedby\\\">` in the root layout) is real Next 16\\nroute/metadata code, which argued for `standard`.\\nDecision: `difficulty: trivial` (bias small; the bonus is optional and still one area),\\n`engineModel: sonnet`. Haiku is for text that is given; here the one-line notes per game and the\\naccounts/leaderboard/multiplayer section must be written from `GameUtils.tsx`, and the list must be\\nderived, not copied: `visibleGames` also contains the `coming-soon` placeholder (not hidden, and\\nalready excluded from routes by `src/app/[game]/page.tsx`), so \\\"exactly visibleGames\\\" needs a\\njudgment call — list only the playable routes. `risk: low`, no design round.\\nConsequences: llms.txt/robots/sitemap-style hygiene cards are trivial/sonnet; if the bonus route is\\nbuilt, a static `public/llms.txt` at the same path conflicts with the route — the engine must keep\\nexactly one source for `/llms.txt`.\\n\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Edit has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "I couldn't record the close-call entry in `docs/team/DECISIONS.md` because this session doesn't allow edits. The reasoning: haiku, sonnet and standard were all possible, and I picked sonnet because the notes for each game have to be written and `coming-soon` has to be excluded. Also, the optional `route.ts` bonus would clash with a static `public/llms.txt`, so only one of them can serve `/llms.txt`.\n\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/DEPLOYMENT.md\"],\n  \"codeMapHits\": [\"- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }"
+  }
+]

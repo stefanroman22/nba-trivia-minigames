@@ -1,0 +1,68 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Confirm and extend robots.txt (sitemap reference, AI-crawler stance)\nCategory: docs\n\nget-spec output:\nCurrent public/robots.txt is minimal: User-agent star, Allow /, Disallow /admin, no Sitemap line. Research findings: Google/RFC 9309 recognize only User-agent, Allow, Disallow, Sitemap; groups do not inherit from the star group, so any dedicated bot group must repeat Disallow /admin itself; Sitemap must be an absolute URL and can be listed even before the sitemap.xml task ships (use the real production domain); Crawl-delay is ignored by Google (recommend omitting); never disallow /_next or any JS/CSS path since this is a client-rendered app and blocking those breaks indexing of rendered content; Disallow is not the same as noindex, a disallowed page can still appear index-only, so keep the existing page-level noindex on /admin as-is rather than relying on robots.txt alone. AI crawlers split into three classes: training crawlers (GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, meta-externalagent, Bytespider), search/answer-engine crawlers (OAI-SearchBot, Claude-SearchBot, PerplexityBot, Googlebot, Bingbot), and user-triggered fetchers. For a free discoverability-driven trivia site with no proprietary content to protect, the recommendation is to stay fully permissive (allow all of the above) rather than block training bots, since blocking has no upside here and could reduce visibility in AI answer engines. Task: keep the current Allow-all-except-admin shape, add a Sitemap line once the production domain is known (coordinate with the sitemap.xml work in the SEO card), and do not add crawl-delay, host or noindex lines. Separately flag, do not fix here: /coming-soon currently returns HTTP 200 with not-found content, a soft 404, which should get a real notFound() or noindex fix in a future task."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r18_rep1_1790693309109\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"robots|sitemap|coming-soon|SEO|metadata\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r18_rep1_1790693309109\\\\docs\\\\team\",\n  \"-i\": true,\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"{public/robots.txt,src/app/robots.ts,src/app/sitemap.ts}\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "public\\robots.txt"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\team\\CODE_MAP.md:68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:138:  varchar column and adding a nullable `bytea` is metadata-only. Migration must be committed\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:136:  metadata-only change on Postgres ≥ 11 (no table rewrite); the backfill `UPDATE` touches only rows"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"^## |haiku\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r18_rep1_1790693309109\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "6:## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n19:## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n39:## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n57:## 2026-09-06 — Opus 4.8 reinstated for planning detailed specs; Opus 5 ban made enforceable\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n88:## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n103:## 2026-09-17 — Pipeline v2: board columns, push-to-dev, human-merged dev→main\n121:## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action\n144:## 2026-09-20 — Stale trivia tests that drive the multiplayer sim: backend-only vs backend+multiplayer\n164:## 2026-09-20 — Design round with no spawnable engines: planner fills the engine seats and says so\n179:## 2026-09-20 — Online Contexto/SuperDraft relay→renderer mismatch found while fixing the tests: recorded, not bundled\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n215:## 2026-09-22 — Cacheable friend-photo endpoint: standard vs hard, sonnet vs fable engine\n242:## 2026-09-22 — Friend-photo endpoint design: public by public_id + stored version column; engine seats filled by the planner\n268:## 2026-09-22 — Port Contexto/SuperDraft multiplayer branches to the dealt question: standard vs hard, sonnet vs fable\n298:## 2026-09-22 — Contexto/SuperDraft dealt-question port design: online objective from the qid hash, relay untouched; engine seats filled by the planner\n330:## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r18_rep1_1790693309109\\\\public\\\\robots.txt\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\tUser-agent: *\n2\tAllow: /\n3\tDisallow: /admin\n4\t"
+  },
+  {
+    "role": "assistant",
+    "content": "Classification: **trivial**, one file, low risk, implemented by haiku. No design round and no DECISIONS.md entry, since this wasn't a close call.\n\n- **Scope:** `public/robots.txt` is the only robots file (there is no `src/app/robots.ts`). The task adds one `Sitemap: https://nba-minigames.vercel.app/sitemap.xml` line. The production domain is already known from `CLAUDE.md`, so the task doesn't need to wait for the SEO card. It keeps the permissive AI-crawler stance with no bot-specific groups, and adds no Crawl-delay, Host or noindex lines.\n- **Not in scope:** the `/coming-soon` soft 404 needs its own task. The engine should flag it and not fix it here.\n- **Context:** `RETRO.md` has no parked tasks, and neither `DECISIONS.md` nor `CODE_MAP.md` has anything relevant.\n\n```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\"], \"risk\": \"low\",\n  \"engineModel\": \"haiku\", \"engineEffort\": \"low\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/DEPLOYMENT.md\"],\n  \"codeMapHits\": [],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

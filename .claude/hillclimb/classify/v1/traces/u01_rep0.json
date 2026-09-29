@@ -1,0 +1,108 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Remove the descriptive text in the info popup next to the game title\nCategory: frontend\nPriority: P1\n\nget-spec output:\nOn an individual game page, clicking the (i) icon next to the game title shows a block of descriptive text. Remove that descriptive text."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cat docs/team/RETRO.md | head -150; echo ----; tail -80 docs/team/DECISIONS.md\",\n  \"description\": \"Read retro and decisions docs\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)info|popup|tooltip|description|title\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "10:- `src/components/CorrectAnswer.tsx` — Animated \"Correct answer: X\" banner; superseded by SubmitGuessPopUp. [used by: 0 files]\n26:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\"Correct! +10\") into the shared feedback slot. [used by: 17 files]\n36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\n53:- `src/components/ui/SectionHeader.tsx` — Title plus optional subtitle/action row for page sections. [used by: 2 files]\n93:- `src/context/FeedbackSlotContext.ts` — DOM-node context so SubmitGuessPopUp portals into one fixed spot. [used by: 2 files]\n119:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text into the shared feedback slot. [used by: 17 files]"
+  },
+  {
+    "role": "tool_result",
+    "content": "# Parked-Task Post-Mortems\n\nAppend-only. The planner-architect MUST read this file before classifying any new task.\nFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n----\nEngine finalised as `sonnet` (13 explicit steps with done-checks).\nConsequences: the frontend half must be built before the backend half — the backend is tests-only\nand its re-pins fail against the unported renderers by design. MULTIPLAYER_CONSTRAINTS acceptance\ncheck 4 now reads 4 / six files (it was already 5 / 7 on the base commit against a documented 3 / 7);\nthe doc is left for `bootstrap-audit`. On the cloud QA VM supabase.co is blocked, so the browser pass\nserves a fixture questions store on `localhost:5280` to both the relay (`QUESTIONS_PUBLIC_BASE`) and\nthe browser (`VITE_QUESTIONS_BASE`); online mode still fetches only the manifest and the names list\nfrom the store after the port. Three cloud design rounds have now hit the missing-`Agent` fallback.\n\n## 2026-09-29 — Opus 5.5 unbanned: replaces Fable as the judgment-implementer tier; Fable narrows to planning-only\nContext: the 2026-09-06 ban targeted Opus 5 specifically for token cost (see that entry). Opus 5.5\nreleased 2026-09-22 (30%+ faster than Opus 5, $4/$20 per Mtok input/output) and Sonnet 5.5 released\n2026-09-28 (30%+ faster and up to 30% cheaper than Sonnet 5 for most work) change that calculus —\nconfirmed via web search after the owner disputed an initial (incorrect) claim that these models\ndid not exist, and confirmed reachable in this environment after a Claude Code restart. The owner\nasked for a three-tier model split, with Opus 5.5 to be used more broadly than Opus 5 ever was.\nDecision: `opus` (rolling alias, now Opus 5.5) is unbanned but used for implementation only, never\nplanning — it takes over the \"complex but small, needs real judgment a plan can't pin down\"\nimplementer role `fable` held since 09-06, and also implements hard tasks once Fable's design round\nhas produced a plan. `fable` narrows to: classify, code review, CTO gate, the orchestrator itself,\nand design-round planning for every `needsDesignRound` task (the old opus-4.8-for-detailed-specs /\nfable-for-thin-specs `planModel` split is retired — planning is fable, unconditionally, since Opus\nno longer needs a planning role to justify its pipeline access). `sonnet` (now Sonnet 5.5) keeps its\nexisting default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n`docs/team/PIPELINE.md` §14, `.claude/skills/classify/SKILL.md`, `.claude/skills/team-run/SKILL.md`,\n`.claude/skills/design-round/SKILL.md` (step 5's heavy-model note and step 5d's engine-finalization\nrow), `.claude/agents/browser-qa.md` and `code-reviewer.md` (stale ban mentions), `.claude/README.md`.\n`planner-architect-opus` (pinned `claude-opus-4-8`, the workaround used to reach an Opus-family\nmodel during the ban) is now unused and left in place rather than deleted.\nConsequences: `.claude/settings.json` still needs `permissions.deny` cleared of\n`Agent(model:opus)`/`Agent(model:claude-opus-5)` and `opus` added to `availableModels` — editing\nthat file was blocked by the auto-mode classifier as self-modification of this session's own\npermissions and needs the owner's direct approval/action; until then the harness still refuses to\nspawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model\n(claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.\nAddendum (same day): `.claude/settings.json` was updated with the owner's explicit approval\n(`opus` added to `availableModels`, both deny rules removed), and a smoke-test spawn with\n`model: opus` confirmed it resolves to `claude-opus-5-5` — the policy is now enforceable.\n\n## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\nContext: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,\nanimation/motion work → always Opus 5.5,\n... [3369 chars trimmed]"
+  },
+  {
+    "role": "assistant",
+    "content": "Now find the (i) popup in the code."
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)(InfoIcon|info-?button|FaInfo|Info\\\\b|showInfo|infoOpen)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\src\",\n  \"output_mode\": \"content\",\n  \"head_limit\": 40\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\types\\types.tsx:11:/** Lightweight player info exchanged over the multiplayer socket. */\nsrc\\types\\types.tsx:12:export interface PlayerInfo {\nsrc\\types\\types.tsx:221:  opponent: PlayerInfo | null;\nsrc\\styles\\Friends.css:44:.fr-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }\nsrc\\components\\ErrorBoundary.tsx:1:import { Component, type ErrorInfo, type ReactNode } from \"react\";\nsrc\\components\\ErrorBoundary.tsx:30:  componentDidCatch(error: Error, info: ErrorInfo) {\nsrc\\components\\ErrorBoundary.tsx:31:    console.error(\"Unhandled UI error:\", error, info.componentStack);\nsrc\\views\\Trivia\\MiniGame.tsx:313:              <button className=\"info-btn\" aria-label=\"How to play\" onClick={() => game && open(\"instructions\", { game, onPlay: stage === \"idle\" && !wordleLocked ? handleStart : undefined })}>\nsrc\\context\\MultiplayerContext.tsx:27:import type { Game, GameData, PlayerInfo } from \"../types/types\";\nsrc\\context\\MultiplayerContext.tsx:31:type NoticeKind = \"info\" | \"warn\" | \"error\";\nsrc\\context\\MultiplayerContext.tsx:55:export interface LobbyMember extends PlayerInfo {\nsrc\\context\\MultiplayerContext.tsx:71:export interface Standing extends PlayerInfo {\nsrc\\context\\MultiplayerContext.tsx:86:  queueInfo: { inQueue: number; position: number } | null;\nsrc\\context\\MultiplayerContext.tsx:87:  opponents: PlayerInfo[];\nsrc\\context\\MultiplayerContext.tsx:111:  queueInfo: null, opponents: [], oppStatus: {}, lobby: null, friendPending: null,\nsrc\\context\\MultiplayerContext.tsx:129:  | { t: \"MATCH_FOUND\"; code: number; role: \"host\" | \"guest\"; opponents: PlayerInfo[]; game: Game; roomType: RoomType; roomSize: number }\nsrc\\context\\MultiplayerContext.tsx:167:  opponents: (PlayerInfo & { online?: boolean; finished?: boolean })[];\nsrc\\context\\MultiplayerContext.tsx:181:function freshStatus(opponents: PlayerInfo[]): Record<string, OppStatus> {\nsrc\\context\\MultiplayerContext.tsx:202:      const queueInfo = a.inQueue != null && a.position != null ? { inQueue: a.inQueue, position: a.position } : state.queueInfo;\nsrc\\context\\MultiplayerContext.tsx:203:      if (state.phase === \"searching\" && queueInfo === state.queueInfo) return state;\nsrc\\context\\MultiplayerContext.tsx:204:      return { ...state, phase: \"searching\", queueInfo };\nsrc\\context\\MultiplayerContext.tsx:279:        notice: { kind: \"info\", text: `${name} reconnected.` },\nsrc\\context\\MultiplayerContext.tsx:289:      return { ...state, notice: { kind: \"info\", text: `${a.username || \"A player\"} is in.` } };\nsrc\\context\\MultiplayerContext.tsx:293:      return { ...state, proposal: null, notice: { kind: \"info\", text: \"The request was withdrawn.\" } };\nsrc\\context\\MultiplayerContext.tsx:397:      matchFound: (d: { code: number; role: \"host\" | \"guest\"; opponent: PlayerInfo; opponents?: PlayerInfo[]; game: Game; roomType?: RoomType; roomSize?: number }) =>\nsrc\\context\\MultiplayerContext.tsx:449:  // ---- Auto-clear transient info/warn notices. ----\nsrc\\context\\ModalContext.tsx:5:export type ModalKind = \"login\" | \"feedback\" | \"leaderboard\" | \"instructions\" | \"multiplayerInfo\";\nsrc\\Game Renderers\\CareerPath.tsx:18:  gameInfo: (CareerPathQuestion | PlayerIndexEntry)[];\nsrc\\Game Renderers\\CareerPath.tsx:74:function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathProps) {\nsrc\\Game Renderers\\CareerPath.tsx:83:  const [popUpInfo, setPopUpInfo] = useState({ Text: \"\", Color: \"\" });\nsrc\\Game Renderers\\CareerPath.tsx:119:  // server now guarantees eligibility, so gameInfo[0] is always playable.\nsrc\\Game Renderers\\CareerPath.tsx:134:    const q = gameInfo?.[0];\nsrc\\Game Renderers\\CareerPath.tsx:136:  }, [gameInfo]);\nsrc\\Game Renderers\\CareerPath.tsx:159:    setPopUpInfo({ Text: text, Color: color });\nsrc\\Game Renderers\\CareerPath.tsx:219:  if (!gameInfo || gameInfo.length === 0)\nsrc\\Game Renderers\\CareerPath.tsx:347:      <SubmitGuessPopup show={showPointsAnimation} text={popUpInfo.Text} color={popUpInfo.Color} />\nsrc\\Game Renderers\\BingoGame.tsx:3:// \n... [379 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"instructions\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\src\\\\components\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 1 file\nsrc\\components\\ModalHost.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"instructions|description|Instructions\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\src\\\\components\\\\ModalHost.tsx\",\n  \"output_mode\": \"content\",\n  \"-C\": 4\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1-import { useEffect, useState } from \"react\";\n2-import { AnimatePresence } from \"framer-motion\";\n3-import Modal from \"./ui/Modal\";\n4:import { useModal, type InstructionsPayload } from \"../context/ModalContext\";\n5-import LogInSignUp from \"./LogInSignUp\";\n6-import FeedbackModal from \"./modals/FeedbackModal\";\n7-import LeaderboardModal from \"./modals/LeaderboardModal\";\n8:import InstructionsModal from \"./modals/InstructionsModal\";\n9-import MultiplayerInfoModal from \"./modals/MultiplayerInfoModal\";\n10-\n11-/**\n12- * Single overlay host (mounted once in App). The active modal is keyed so\n--\n34-  } else if (kind === \"leaderboard\") {\n35-    title = \"Global Top 100\";\n36-    wide = true;\n37-    content = <LeaderboardModal />;\n38:  } else if (kind === \"instructions\") {\n39-    title = \"How to play\";\n40:    const p = payload as InstructionsPayload | undefined;\n41:    content = p?.game ? <InstructionsModal game={p.game} onPlay={p.onPlay} onClose={close} /> : null;\n42-  } else if (kind === \"multiplayerInfo\") {\n43-    title = \"Multiplayer\";\n44-    content = <MultiplayerInfoModal onClose={close} />;\n45-  }"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\src\\\\components\\\\modals\\\\InstructionsModal.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\timport type { InstructionsPayload } from \"../../context/ModalContext\";\n2\t\n3\tinterface InstructionsModalProps extends InstructionsPayload {\n4\t  onClose: () => void;\n5\t}\n6\t\n7\t/** \"How to play\" content: intro + numbered rules + a start CTA. */\n8\texport default function InstructionsModal({ game, onPlay, onClose }: InstructionsModalProps) {\n9\t  const handlePlay = () => {\n10\t    onClose();\n11\t    onPlay?.();\n12\t  };\n13\t\n14\t  return (\n15\t    <div className=\"instr-stack\">\n16\t      {game.intro && <p className=\"instr-intro\">{game.intro}</p>}\n17\t\n18\t      <div className=\"instr-rules\">\n19\t        {(game.rules ?? []).map((rule) => (\n20\t          <div key={rule.n} className=\"instr-rule\">\n21\t            <span className=\"instr-rule-n\">{rule.n}</span>\n22\t            <p className=\"instr-rule-t\">{rule.t}</p>\n23\t          </div>\n24\t        ))}\n25\t      </div>\n26\t\n27\t      <button className=\"modal-primary-btn\" style={{ height: 46 }} onClick={handlePlay}>\n28\t        Got it\n29\t      </button>\n30\t    </div>\n31\t  );\n32\t}\n33\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)haiku|instructions|intro\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n59:4.8 on design rounds where the task comes with detailed instructions (Anthropic's own\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n344:existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"InstructionsModal|ModalHost|ModalContext|MiniGame\\\\.tsx|ui/Modal\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790698346971\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "22:- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\n34:- `src/components/modals/InstructionsModal.tsx` — \"How to play\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\n36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\n51:- `src/components/ui/Modal.tsx` — Accessible modal shell: focus trap, Escape-to-close, scroll lock; import directly. [used by: 1 files]\n94:- `src/context/ModalContext.tsx` — Global single-overlay state plus `useModal()`/`ModalProvider`. [used by: 10 files]"
+  },
+  {
+    "role": "assistant",
+    "content": "{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\", \"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/modals/InstructionsModal.tsx` — \\\"How to play\\\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\",\n    \"- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\",\n    \"- `src/context/ModalContext.tsx` — Global single-overlay state plus `useModal()`/`ModalProvider`. [used by: 10 files]\",\n    \"- `src/components/ui/Modal.tsx` — Accessible modal shell: focus trap, Escape-to-close, scroll lock; import directly. [used by: 1 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": false }"
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at dbc9a0f"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Friend lists show profile photos via a cacheable photo endpoint\nCategory: fullstack\nPriority: P1\n\nget-spec output:\nFollow-up to the profile photo fix (dev commit dbc9a0f). Photos are now 256px JPEG bytes in CustomUser.profile_photo_data, served inline as a data URL only in the signed-in user's own payload. Friend search / friends overview rows (backend/users/friends.py _brief) return profile_photo null and the UI (FriendsModal) draws initials, because inlining ~30 KB per row would multiply across lists. Wanted: a cacheable way to show other players' photos in lists (e.g. GET api/users/<public_id>/photo/ returning the JPEG with a version/ETag so it caches, no per-row byte loads), then render it in FriendsModal rows with the initials Avatar as fallback. Keep the inline data URL for /me/. No paid storage."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r11_rep0_1790706653201\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)photo|friend|avatar\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r11_rep0_1790706653201\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "20:- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 2 files]\n24:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\n26:- `src/components/MultiPlayer/FriendPlay.tsx` — \"Play with a friend\" card: generate/enter room code, live lobby, seats. [used by: 1 files]\n27:- `src/components/MultiPlayer/MultiplayerPanel.tsx` — Pre-match \"Multiplayer\" card extracted from MiniGame.tsx: choice of random 1v1 or \"play with a friend\" (swaps to FriendPlay in place). [used by: 1 files]\n42:- `src/components/ui/Avatar.tsx` — Small rounded avatar chip showing initials on a colored/gradient background. [used by: 3 files]\n79:- `src/store/userSlice.tsx` — User auth slice: login/logout + points/rank/username/photo update reducers. [used by: 3 files]\n85:- `src/context/MultiplayerContext.tsx` — Global multiplayer state machine (matchmaking + friend rooms) wired to the Socket.IO server. [used by: 6 files]\n89:- `src/constants/leaderboard.ts` — Leaderboard row types + rank-colored avatar-background/initials helpers. [used by: 3 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)photo|friend\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r11_rep0_1790706653201\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)backend/users|FriendsModal|users/urls|users/views|models\\\\.py\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r11_rep0_1790706653201\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)\n126:No shared/abstract model mixins exist in `backend/`: `trivia/models.py` and `users/models.py` each"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"profile_photo\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r11_rep0_1790706653201\",\n  \"glob\": \"!**/migrations/**\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 18 files\nsrc\\types\\types.tsx\nsrc\\store\\userSlice.tsx\nsrc\\hooks\\useFriends.ts\nsrc\\context\\MultiplayerContext.tsx\nsrc\\components\\UserProfile.tsx\nsrc\\components\\Navigation.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\components\\MultiPlayer\\FriendPlay.tsx\nsrc\\Game Renderers\\ImposterGame.tsx\nmultiplayer_server\\src\\index.js\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\nbackend\\users\\views.py\nbackend\\users\\tests.py\nbackend\\users\\test_photos.py\nbackend\\users\\photos.py\nbackend\\users\\models.py\nbackend\\users\\friends.py"
+  },
+  {
+    "role": "assistant",
+    "content": "I've classified this task as hard with high risk. Opus will build it after a Fable design round.\n\n- **Difficulty: hard, design round needed.** The Category is `fullstack`, so the areas are frontend and backend. The work is a new, cacheable photo endpoint plus rendering it in the FriendsModal rows. Any multi-area task needs a design round.\n- **Risk: high.** It changes production code for profile photos and friends. The rubric marks both surfaces as high risk.\n- **Engine: opus.** High risk overrides the sonnet default. Planning goes to Fable, as it does for every task.\n- **Close call:** none, so I added nothing to `DECISIONS.md`. `RETRO.md` has no parked tasks yet, and `DECISIONS.md` has no earlier entries about photos or friends.\n- **Worth passing on:** the earlier profile-photo design doc (`docs/team/designs/2026-09-16-profile-photo-upload-any-image.md`) is in the docs list. `FriendsModal`, `friends.py` and `photos.py` have no `CODE_MAP.md` entries, so the design round will have to find them itself.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"frontend\",\"backend\",\"ui\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/BACKEND_CONSTRAINTS.md\", \"docs/constraints/UI_SHELL_CONSTRAINTS.md\", \"docs/team/designs/2026-09-16-profile-photo-upload-any-image.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/ui/Avatar.tsx` — Small rounded avatar chip showing initials on a colored/gradient background. [used by: 3 files]\",\n    \"- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\",\n    \"- `src/store/userSlice.tsx` — User auth slice: login/logout + points/rank/username/photo update reducers. [used by: 3 files]\",\n    \"- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 2 files]\",\n    \"- `src/constants/leaderboard.ts` — Leaderboard row types + rank-colored avatar-background/initials helpers. [used by: 3 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

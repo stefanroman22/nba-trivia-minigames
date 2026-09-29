@@ -1,0 +1,31 @@
+﻿diff --git "a/.claude\\hillclimb\\classify\\v2/classify-SKILL.before.md" "b/.claude\\hillclimb\\classify\\v2/classify-SKILL.md"
+index 6710b24..da6b225 100644
+--- "a/.claude\\hillclimb\\classify\\v2/classify-SKILL.before.md"
++++ "b/.claude\\hillclimb\\classify\\v2/classify-SKILL.md"
+@@ -24,15 +24,18 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
+ - **hard** — multi-area, new patterns, state machines, migrations, anything touching
+   multiplayer protocol, or work that generates or regenerates data consumed by several games.
+   `needsDesignRound: true`.
+-- **risk** is exactly `low` or `high` — never any other value. **High** if it touches auth,
+-  data pipeline, multiplayer protocol, anything in the protected-paths list, or any surface
+-  on the risk-high list in `docs/constraints/AUTH_CONSTRAINTS.md` AUTH-11 (friends, blocking,
+-  profile photos, sessions, throttles, the admin API, the `CACHES` / settings layer) — read
+-  AUTH-11 whenever the task touches `backend/users/`, `backend/backend/settings.py` or caching.
++- **risk** is exactly `low` or `high` — never any other value. **High** if the change modifies
++  production code of: auth, the data pipeline, the multiplayer protocol, anything in the
++  protected-paths list, friends/blocking, profile photos, sessions/tokens, throttles, the admin
++  API, or the `CACHES` / settings layer. Judge by the production code the change will modify,
++  not the code its tests cover: a test-only fix is `low` even when the tests exercise one of
++  these surfaces, unless the fix itself must change that surface's production code.
+   CTO gets a `Risk: high` PR label and extra scrutiny.
+-- Multi-area at any difficulty → `needsDesignRound: true`. Count areas by what the change must
+-  touch **or run to verify**, not by the card's Category: a fix whose check drives the
+-  multiplayer relay or its sim scripts involves `multiplayer` even if only backend tests change.
++- Multi-area at any difficulty → `needsDesignRound: true`. Count areas by what the change
++  modifies **or must run to verify**, not by the card's Category or by which screen it sits on:
++  `multiplayer` means the relay, its protocol or its sim scripts — a fix whose check drives the
++  sim involves `multiplayer` even if only backend tests change, but a UI element on a
++  multiplayer screen is `frontend`/`ui` only.
+ - **Security work → `needsDesignRound: true`, `risk: high`, always** — attacks/DDoS, auth or
+   session breaches, account blocking/abuse, secrets, permissions — regardless of difficulty or
+   how few files it touches. Fable plans it so the plan covers every case; opus implements.

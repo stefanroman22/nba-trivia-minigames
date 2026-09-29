@@ -1,0 +1,86 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Redis-backed caching for slow backend reads, starting with Friends overview\nCategory: backend\nPriority: P1\n\nget-spec output:\nSwitching from Profile to Friends (and likely other reads) is slow every time -- there is currently zero caching on backend read endpoints. friends_overview (backend/users/friends.py) runs three uncached DB queries on every call. The infrastructure for Redis already exists and is unused for this: backend/backend/settings.py wires Django CACHES with a three-tier fallback (Redis via REDIS_URL, else shared DatabaseCache, else local LocMemCache), redis is already in requirements.txt, and backend/users/leaderboard.py has its own separate direct-redis-client pattern for sorted-set ranking only. Task: 1) Research and pick the best-fit managed Redis provider for this stack (Vercel serverless Django + Supabase Postgres already using a transaction pooler due to IPv6/connection issues, see docs/DEPLOYMENT.md) -- weigh HTTP/REST-based options that avoid persistent-connection problems in serverless, not just the cheapest choice. Document exact setup steps (account, env var names, region) in docs/DEPLOYMENT.md but do NOT create the account or spend money -- the owner adds real credentials afterward. 2) Using the existing Django CACHES abstraction (not the leaderboard raw-client pattern), add caching to friends_overview and audit other slow, frequently-repeated reads across trivia/ and users/ for the same treatment, with correct invalidation (e.g. friends_overview must invalidate immediately on a friend/request/block action for the affected users, not just time out). 3) Must work correctly with zero Redis configured today (falls back to DatabaseCache). This is an infrastructure-level, multi-endpoint change -- treat as needing a real design pass, not a single-file patch."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790706871347\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)cach|redis|friends|leaderboard|settings\\\\.py\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790706871347\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "15:- `src/components/GuestPanel.tsx` — Logged-out sign-in teaser shown beside the home leaderboard card. [used by: 1 files]\n16:- `src/components/Leaderboard.tsx` — Home \"Global Top 100\" card: preview rows, self row, refresh, view-all link. [used by: 4 files]\n19:- `src/components/ModalHost.tsx` — Single overlay host; switches login/feedback/leaderboard/instructions content by modal kind. [used by: 2 files]\n32:- `src/components/modals/LeaderboardModal.tsx` — Full \"Global Top 100\" list shown inside the leaderboard modal. [used by: 1 files]\n61:- `src/hooks/useLeaderboard.ts` — Loads /get-users/ leaderboard with a shared 5-min TTL cache and auto-refresh. [used by: 2 files]\n73:- `src/utils/pool.ts` — Fetches/caches a game's data pool (CDN + localStorage, version-keyed) and samples N rounds. [used by: 8 files]\n84:- `src/context/ModalContext.tsx` — Global single-overlay state (login/feedback/leaderboard/instructions) + `useModal()`/`ModalProvider`. [used by: 8 files]\n89:- `src/constants/leaderboard.ts` — Leaderboard row types + rank-colored avatar-background/initials helpers. [used by: 3 files]\n115:- `backend/trivia/management/commands/refresh_game_data.py` — Builds, validates and versions all game pools; `--skip-live` reuses cached playoff/starting-five JSON. [used by: 4 files]\n119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)cach|redis|friends\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790706871347\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n197:Context: backend card, no override. `users.tests.FriendsPhotoTests` reads `resp.json()[\"friends\"]`\n198:from `friends-overview`, but commit `3fa8788` (search your own friend list) moved the friend\n199:list into `search_friends` (`search-friends/`, `{\"results\": [...], \"total\": n}`) and left\n200:`friends_overview` returning only `incoming_requests`/`outgoing_requests`/`blocked_users`\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n203:endpoint\" card has not shipped (`users/friends.py` HEAD is still `3fa8788`), so nothing has\n207:correct route (`search-friends`, `results` key, `profile_photo is None`) rather than guess,\n211:only; the engine must not restore a `friends` key to `friends_overview` (the frontend already\n212:consumes `search-friends`). If the photo-endpoint card ships first and rewrites this test,\n215:## 2026-09-22 — Cacheable friend-photo endpoint: standard vs hard, sonnet vs fable engine\n218:`users/friends.py::_brief` returns `profile_photo: None` and `FriendsPhotoTests` (fixed in 51d601b)\n219:asserts list rows stay byte-free. Frontend: `FriendsPanel` rows draw `ui/Avatar` (initials only, no\n223:`apiFetch`+blob-URL pattern that forfeits the HTTP cache the card asks for; (2) a version/ETag that\n224:lets list rows cache-bust without loading bytes needs either a per-request hash on the photo view\n228:was defensible for the same reason — one small view with real caching/auth judgment.\n229:Decision: `difficulty: hard` (multi-area, first binary/HTTP-cached endpoint in a JSON-only DRF app,\n233:done-checks (view + URL + ETag/Cache-Control + 404/304 tests; `_brief` gains a version/has-photo\n234:key while `FriendsPhotoTests` stays green; `Avatar` gains an optional `src` with `onError` fallback\n235:to initials; `FriendsPanel` rows pass it). `planModel: fable` — the spec is concrete about shape\n238:anything is built, and must keep `search-users`/`search-friends` rows free of photo bytes (the\n243:Context: design round for \"Friend lists show profile photos via a cacheable photo endpoint\" (hard /\n244:risk high, `docs/team/designs/2026-09-22-friend-photos-cacheable.md`). The classify entry above\n247:the HTTP cache the card asks for. (2) Version: a per-request byte hash needs the bytes on every\n259:Cache-Control: immutable/1y when `?v=` matches, `no-cache` otherwise, `no-store` on 404; ETag =\n339:a pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\n342:mechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\n353:from source again. Settled: display-only `nba3via-session-user` cache hydrated via a new"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"backend/(users|backend|trivia)/(friends|leaderboard|views|urls|settings|models|signals)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790706871347\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)CACHES|DatabaseCache|createcachetable\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790706871347\",\n  \"output_mode\": \"content\",\n  \"glob\": \"!**/node_modules/**\",\n  \"head_limit\": 20\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "backend\\vercel.json:3:  \"buildCommand\": \"python manage.py migrate --noinput && python manage.py createcachetable && python manage.py collectstatic --noinput && (python manage.py flushexpiredtokens || true)\",\n.claude\\skills\\classify\\SKILL.md:30:  API, or the `CACHES` / settings layer. Judge by the production code the change will modify,\ndocs\\CACHING_SCALING_PLAN.md:57:   Given the client already caches this for 5 minutes per browser session,\ndocs\\ARCHITECTURE.md:18:                 │  - caches game content locally               │\ndocs\\ARCHITECTURE.md:87:### Client-side caching — **yes, the app caches a lot on purpose**\nbackend\\backend\\throttles.py:12:`scope` strings below. Counters are stored in Django's cache; see the CACHES block\nbackend\\backend\\settings.py:84:# uses DatabaseCache (shared and correct, merely slower) unless Redis is available.\nbackend\\backend\\settings.py:88:    CACHES = {\nbackend\\backend\\settings.py:99:    # The table is created by `manage.py createcachetable` in the build command.\nbackend\\backend\\settings.py:100:    CACHES = {\nbackend\\backend\\settings.py:102:            \"BACKEND\": \"django.core.cache.backends.db.DatabaseCache\",\nbackend\\backend\\settings.py:109:    CACHES = {\nbackend\\trivia\\views.py:165:    # Copy before canonicalizing — load_dataset caches the parsed file.\ndocs\\constraints\\AUTH_CONSTRAINTS.md:222:`DATABASE_URL` → `DatabaseCache` (correct, just slower); else `LocMemCache` (local dev only, where\ndocs\\constraints\\AUTH_CONSTRAINTS.md:225:`DatabaseCache` needs its table, created by `manage.py createcachetable` in `backend/vercel.json`'s\ndocs\\DEPLOYMENT.md:130:REDIS_URL=rediss://...                                       # Upstash. Unset -> Postgres leaderboard AND DatabaseCache for rate limiting (see below)\ndocs\\superpowers\\specs\\2026-08-29-auth-hardening-design.md:108:- unset → `django.core.cache.backends.db.DatabaseCache` (shared and correct, just slower)\ndocs\\superpowers\\specs\\2026-08-29-auth-hardening-design.md:111:`DatabaseCache` needs its table created (`createcachetable`), which is idempotent and belongs in\nsrc\\hooks\\useLeaderboard.ts:45:const caches: Record<LeaderboardScope, CacheEntry | null> = { global: null, friends: null };\nsrc\\hooks\\useLeaderboard.ts:61:      caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };\n\n[Showing results with pagination = limit: 20]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"^- `backend/\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r15_rep1_1790706871347\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "113:- `backend/trivia/management/commands/build_pools_from_db.py` — Rebuilds /data/ JSON pools + manifest from the DB; skips invalid pools, keeps old file. [used by: 2 files]\n114:- `backend/trivia/management/commands/publish_game_data.py` — Uploads GAME_DATA_DIR's versioned pools + manifest to Cloudflare R2 via the S3 API. [used by: 1 files]\n115:- `backend/trivia/management/commands/refresh_game_data.py` — Builds, validates and versions all game pools; `--skip-live` reuses cached playoff/starting-five JSON. [used by: 4 files]\n116:- `backend/trivia/management/commands/seed_fan_favorites.py` — Upserts bundled Fan Favorites seed questions; manual ops command, no code callers. [used by: 0 files] (dead code)\n117:- `backend/trivia/management/commands/sync_nba_data.py` — Fetches/validates/upserts NBA teams, players, MVPs, playoffs, starting-fives into the DB. [used by: 2 files]\n118:- `backend/trivia/management/commands/validate_bingo_seed.py` — Validates bingo_seed.json structure + coverage; dev-time manual check, no code callers. [used by: 0 files] (dead code)\n119:- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)\n120:- `backend/trivia/utils/fan_favorites.py` — Loads the bundled Fan Favorites seed + auto re-ranks boards from live correct-guess counts. [used by: 4 files]\n121:- `backend/trivia/utils/logo_utils.py` — Builds an NBA-CDN team-logo URL by id; None for defunct franchises (no logo asset). [used by: 6 files]\n122:- `backend/trivia/utils/playoff_games_utils.py` — Fetches historical playoff series from the NBA API into playoff_data.json format. [used by: 2 files]\n123:- `backend/trivia/utils/starting_five_utils.py` — Fetches box scores from the NBA API to build the starting_five_data.json dataset. [used by: 2 files]\n124:- `backend/trivia/utils/text_utils.py` — Strips accents and validates a 5-letter ASCII surname for Wordle answers. [used by: 2 files]"
+  },
+  {
+    "role": "assistant",
+    "content": "Classification: **hard**, backend only, **risk high**, needs a design round. Opus implements it after Fable plans it.\n\n- **Why hard:** the spec asks for a real design pass. It covers several endpoints across `trivia/` and `users/`, with cache invalidation that has to be correct, plus researching a provider and documenting its setup.\n- **Why risk high:** the change modifies production code for friends/blocking (`friends_overview` invalidation). It also builds on the `CACHES` settings layer, which is on the high-risk list. The rate-limit throttles store their counters in the same cache, so the design has to make sure the new cache keys can't disturb them.\n- **Why only backend:** the only other areas that could apply don't. It doesn't change auth code, the data pipeline or multiplayer. The frontend already caches the leaderboard for 5 minutes per browser session, which is relevant when judging whether it also needs a server cache.\n- **Why opus implements:** high-risk tasks go to opus under the model rubric. This one didn't come down to a close call, so I didn't add a `DECISIONS.md` entry.\n\n`docs/CACHING_SCALING_PLAN.md` already exists for exactly this decision, so I included it in `docs` for the design round.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"backend\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/BACKEND_CONSTRAINTS.md\", \"docs/constraints/AUTH_CONSTRAINTS.md\", \"docs/CACHING_SCALING_PLAN.md\", \"docs/DEPLOYMENT.md\", \"docs/ARCHITECTURE.md\"],\n  \"codeMapHits\": [\n    \"- `backend/users/management/commands/sync_leaderboard.py` — Backfills the Redis leaderboard ZSET from Postgres; manual ops command, no code callers. [used by: 0 files] (dead code)\",\n    \"- `src/hooks/useLeaderboard.ts` — Loads /get-users/ leaderboard with a shared 5-min TTL cache and auto-refresh. [used by: 2 files]\",\n    \"- `backend/trivia/utils/fan_favorites.py` — Loads the bundled Fan Favorites seed + auto re-ranks boards from live correct-guess counts. [used by: 4 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

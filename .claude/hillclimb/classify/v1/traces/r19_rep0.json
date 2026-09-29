@@ -1,0 +1,117 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Rewrite stale llms.txt to match the current live game list\nCategory: docs\nPriority: P1\n\nget-spec output:\nCurrent public/llms.txt is stale: it lists hidden/removed games (connections, heatmap, stat grids) and wrongly calls the app a single-page React application (it is Next.js SSR/App Router). Research findings (llms.txt v2 spec, llmstxt.org, Aug 2026): required structure is one H1 site name, a one-paragraph blockquote summary, optional plain paragraphs, then ## sections each a Markdown link list (Title, url, one-line note). Content rules: 10-30 curated links grouped by product surface not site hierarchy, absolute https URLs, a Last reviewed date line, no marketing fluff, no tech-stack trivia, no auth-gated or hidden-feature links. Honest caveat backed by traffic data (Google explicitly says it is not used for Search; measured AI-agent logs show well under 1 percent of sites get any llms.txt fetches at all): treat this as cheap hygiene, not an SEO lever, but a stale file that misinforms agents is worse than none. Task: rewrite public/llms.txt to list exactly the current visibleGames from src/utils/GameUtils.tsx (10 games today, do not hardcode a count that will drift), remove every hidden game and the /admin mention, add a short accounts/leaderboard/multiplayer section, and a Last reviewed date. Keep it under about 40 lines. Bonus if time allows: add app/llms.txt/route.ts generated from visibleGames so this cannot go stale again, and a small <link rel=describedby href=/llms.txt type=text/markdown> tag in the root layout per the v2 discovery convention."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)llms|GameUtils|visibleGames|layout\\\\.tsx\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)llms|docs task|copy|haiku\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n81:content/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\n84:Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n206:copy/config with zero judgment; this needs the engine to reproduce the failure, confirm the"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)protected\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\team\\\\PIPELINE.md\",\n  \"output_mode\": \"content\",\n  \"-A\": 6\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "56:## 6. Protected paths\n57-\n58-`.github/workflows/`, `vercel.json`, `package.json`, `package-lock.json`, `backend/requirements.txt`\n59-reach `dev` like any other change (the in-run review still covers them) — there's no separate\n60-gate for them beyond that, since promoting to production is already a deliberate, manual step\n61-you take with your own eyes on `dev` first.\n62-\n--\n93:   is a protected path (see §6), so the local fix in (b) is applied to the working tree\n94:   only and deliberately never committed/pushed — an automated ship touching a protected\n95-   path deserves a human's own deliberate look, not a walked-past commit. It must stay\n96-   uncommitted, working-tree-only.\n97-\n98-## 9. Secrets rotation\n99-\n100-- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"visibleGames\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\src\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 6 files\nsrc\\views\\Trivia\\MiniGame.tsx\nsrc\\views\\Landpage.tsx\nsrc\\utils\\GameUtils.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\components\\MultiPlayer\\FriendPlay.tsx\nsrc\\app\\[game]\\page.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)app/layout|root layout|<head>|metadata\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\constraints\\\\UI_SHELL_CONSTRAINTS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "29:There is no shared `<Layout>` wrapper. `src/app/layout.tsx` + `providers.tsx` only set up the providers and the `#root` container; each top-level page\n33:❌ WRONG — the root layout wrapping every page in a shared shell\n34:// src/app/layout.tsx\n125:classes) is the one exception: it is imported exactly once, globally, in `src/app/layout.tsx`, not\n130:import \"../styles/theme.css\";   // already global via app/layout.tsx — don't re-import per component\n138:// src/app/layout.tsx — the one place theme.css / ui.css are imported"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 190\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "190\tGAME_DESIGN_CONSTRAINTS and browser QA). Bundling a renderer port into a test-unblock card would\n191\tturn a low-risk backend change into a UI change the ship gate for every backend card waits on.\n192\tConsequences: the follow-up must be filed on the board; until it ships, `docs/games/MASTER_PLAN.md`\n193\treaders should treat online Contexto as broken on dev and production alike (the relay change is\n194\talready promoted).\n195\t\n196\t## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n197\tContext: backend card, no override. `users.tests.FriendsPhotoTests` reads `resp.json()[\"friends\"]`\n198\tfrom `friends-overview`, but commit `3fa8788` (search your own friend list) moved the friend\n199\tlist into `search_friends` (`search-friends/`, `{\"results\": [...], \"total\": n}`) and left\n200\t`friends_overview` returning only `incoming_requests`/`outgoing_requests`/`blocked_users`\n201\t(its docstring says so). The endpoint is right, the test is stale — a one-file test edit with\n202\tno logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n203\tendpoint\" card has not shipped (`users/friends.py` HEAD is still `3fa8788`), so nothing has\n204\tfixed this yet and the two cards do not collide as long as this one only touches `tests.py`.\n205\tDecision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n206\tcopy/config with zero judgment; this needs the engine to reproduce the failure, confirm the\n207\tcorrect route (`search-friends`, `results` key, `profile_photo is None`) rather than guess,\n208\tand run `manage.py test users` green. `risk: low` (auth headers are used but auth code is\n209\tuntouched), no design round, `planModel: fable` nominal.\n210\tConsequences: \"test is stale after a shipped refactor\" cards are trivial/sonnet, test-file\n211\tonly; the engine must not restore a `friends` key to `friends_overview` (the frontend already\n212\tconsumes `search-friends`). If the photo-endpoint card ships first and rewrites this test,\n213\tthe ship stage's rebase test check is the signal to close this card as already fixed.\n214\t\n215\t## 2026-09-22 — Cacheable friend-photo endpoint: standard vs hard, sonnet vs fable engine\n216\tContext: fullstack P1 card, no override. Backend today: photos are 256px JPEG bytes in\n217\t`CustomUser.profile_photo_data` (dbc9a0f), inlined as a data URL only in `user_payload`;\n218\t`users/friends.py::_brief` returns `profile_photo: None` and `FriendsPhotoTests` (fixed in 51d601b)\n219\tasserts list rows stay byte-free. Frontend: `FriendsPanel` rows draw `ui/Avatar` (initials only, no\n220\t`src` prop). Two things the spec leaves open make this more than \"add a view\": (1) an `<img src>`\n221\tcannot carry the Bearer header (AUTH-3/AUTH-5), so `GET api/users/<public_id>/photo/` is either\n222\t`AllowAny` keyed by the unguessable public_id — a product rule about photo visibility — or an\n223\t`apiFetch`+blob-URL pattern that forfeits the HTTP cache the card asks for; (2) a version/ETag that\n224\tlets list rows cache-bust without loading bytes needs either a per-request hash on the photo view\n225\t(no migration, stale-for-max-age after a re-upload) or a `profile_photo_version` column on the\n226\tAUTH-9-listed `users/models.py` (migration 0006 on the DB dev and prod share). `standard` was\n227\tdefensible (bounded, existing DRF patterns, the design round runs anyway for multi-area); `fable`\n228\twas defensible for the same reason — one small view with real caching/auth judgment.\n229\tDecision: `difficulty: hard` (multi-area, first binary/HTTP-cached endpoint in a JSON-only DRF app,\n230\tprobable migration), `risk: high` (AUTH-9 files `users/models.py` and `update_profile` are the\n231\tnatural touch points, plus a new unauthenticated-by-design read of user data), `engineModel: sonnet`\n232\tprovisional — once the design round fixes the two rules above the rest is explicit steps with\n233\tdone-checks (view + URL + ETag/Cache-Control + 404/304 tests; \n... [11775 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cat >> \\\"C:/Users/stefa/.eval-worktrees/classify/r19_rep0_1790698307574/docs/team/DECISIONS.md\\\" <<'EOF'\\n\\n## 2026-09-29 — Rewrite stale llms.txt from visibleGames: trivial/haiku vs trivial/sonnet vs standard/sonnet\\nContext: docs P1 card, no override. Core is a one-file rewrite of `public/llms.txt` (drop hidden\\ngames and the /admin mention, fix the \\\"single-page React\\\" claim, list the current `visibleGames`\\nfrom `src/utils/GameUtils.tsx`, add an accounts/leaderboard/multiplayer section and a Last reviewed\\nline). The optional bonus adds `src/app/llms.txt/route.ts` generated from `visibleGames` plus a\\n`<link rel=\\\"describedby\\\">` in `src/app/layout.tsx` — a small route handler, which alone would read\\nas `standard`. Haiku was defensible for a docs edit; `standard` was defensible for the bonus.\\nDecision: `difficulty: trivial` (bias small: the required work is one docs file, the bonus is one\\narea and optional), `engineModel: sonnet` (the one-line notes and link grouping must be *written*\\nand curated from the game catalog, not given — the haiku row excludes that), `risk: low`, no design\\nround, `areas: [\\\"frontend\\\"]` (the file ships from `public/`; the bonus touches `src/app`).\\nConsequences: if the engine takes the bonus, `public/llms.txt` must be deleted in the same change —\\nNext errors on a public file and an app route at the same path — and the route must emit only\\n`visibleGames`, not the full 19-game catalog. Similar \\\"refresh a static SEO/agent text file\\\" cards\\nare trivial/sonnet.\\nEOF\",\n  \"description\": \"Append close-call entry to DECISIONS.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Bash has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "Bash was denied, so I'm appending the close-call entry to DECISIONS.md with Edit instead."
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r19_rep0_1790698307574\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"pre-hydration inline script was rejected because `Navigation`'s guest button and user chip are\\ndifferent DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\",\n  \"new_string\": \"pre-hydration inline script was rejected because `Navigation`'s guest button and user chip are\\ndifferent DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\\n## 2026-09-29 — Rewrite stale llms.txt from visibleGames: trivial/haiku vs trivial/sonnet vs standard/sonnet\\nContext: docs P1 card, no override. Core is a one-file rewrite of `public/llms.txt` (drop hidden\\ngames and the /admin mention, fix the \\\"single-page React\\\" claim, list the current `visibleGames`\\nfrom `src/utils/GameUtils.tsx`, add an accounts/leaderboard/multiplayer section and a Last reviewed\\nline). The optional bonus adds `src/app/llms.txt/route.ts` generated from `visibleGames` plus a\\n`<link rel=\\\"describedby\\\">` in `src/app/layout.tsx` — a small route handler, which alone would read\\nas `standard`. Haiku was defensible for a docs edit; `standard` was defensible for the bonus.\\nDecision: `difficulty: trivial` (bias small: the required work is one docs file, the bonus is one\\narea and optional), `engineModel: sonnet` (the one-line notes and link grouping must be *written*\\nand curated from the game catalog, not given — the haiku row excludes that), `risk: low`, no design\\nround, `areas: [\\\"frontend\\\"]` (the file ships from `public/`; the bonus touches `src/app`).\\nConsequences: if the engine takes the bonus, `public/llms.txt` must be deleted in the same change —\\nNext errors on a public file and an app route at the same path — and the route must emit only\\n`visibleGames`, not the full 19-game catalog. Similar \\\"refresh a static SEO/agent text file\\\" cards\\nare trivial/sonnet.\\n\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Edit has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\"- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }"
+  }
+]
