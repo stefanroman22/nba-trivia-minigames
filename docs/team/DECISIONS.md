@@ -409,3 +409,17 @@ and `risk: high`, regardless of difficulty or file count; Fable plans, opus impl
 override). Recorded in `.claude/skills/classify/SKILL.md` and `docs/team/PIPELINE.md` §14.
 Consequences: small security fixes (e.g. one wrongly blocked account) now pay for a design round;
 that cost is the point. The classify eval's answer key encodes the rule (case u10).
+
+## 2026-09-29 — Classify prompt tuned against a routing eval
+Context: a 36-case eval (19 real cards, 17 owner ideas, owner-corrected answer key) measured the
+classify step's routing — design round yes/no plus implementer tier. Baseline routing was 85%.
+Decision: two rounds of edits to `.claude/skills/classify/SKILL.md` were kept: timing/sequencing
+changes count as motion (opus); persuasive copy and adding/removing a visible UI element are
+sonnet, not haiku; risk is exactly low/high and judged by the production code the change
+modifies (named surfaces; test-only fixes stay low); areas are counted by what the change modifies
+or must run to verify, with `multiplayer` meaning relay/protocol/sim only; P0 non-trivial → opus.
+team-run now passes the card's Priority to classify. Routing went 85% → 99%, design 94% → 99%,
+tier 90% → 100%, risk 94% → 97%, at ~14% lower cost. Owner rules (motion, security, trivial,
+risk-high) untouched.
+Consequences: results are directional (no held-out split). The eval lives on branch `eval/classify`
+(`.claude/hillclimb/classify/`); rerun it before future classify edits.

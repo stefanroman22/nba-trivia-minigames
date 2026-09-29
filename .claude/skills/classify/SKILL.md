@@ -5,7 +5,7 @@ description: Classify a team task — difficulty, areas, risk, model/effort tier
 
 # Classify a Task
 
-Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`) and the card's Category.
+Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`), the card's Category and its Priority.
 The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]` lines and `## Comment (...)` sections — the owner's comments and their images are part of the spec.
 
 ## Procedure
@@ -21,11 +21,21 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
 ## Difficulty rubric (drives risk / design-round — unchanged)
 - **trivial** — docs/copy/config/single-file change, no logic branches.
 - **standard** — one area, bounded logic, existing patterns cover it.
-- **hard** — multi-area, new patterns, state machines, migrations, or anything touching
-  multiplayer protocol. `needsDesignRound: true`.
-- **risk: high** if it touches auth, data pipeline, multiplayer protocol, or anything in
-  the protected-paths list — CTO gets a `Risk: high` PR label and extra scrutiny.
-- Multi-area at any difficulty → `needsDesignRound: true`.
+- **hard** — multi-area, new patterns, state machines, migrations, anything touching
+  multiplayer protocol, or work that generates or regenerates data consumed by several games.
+  `needsDesignRound: true`.
+- **risk** is exactly `low` or `high` — never any other value. **High** if the change modifies
+  production code of: auth, the data pipeline, the multiplayer protocol, anything in the
+  protected-paths list, friends/blocking, profile photos, sessions/tokens, throttles, the admin
+  API, or the `CACHES` / settings layer. Judge by the production code the change will modify,
+  not the code its tests cover: a test-only fix is `low` even when the tests exercise one of
+  these surfaces, unless the fix itself must change that surface's production code.
+  CTO gets a `Risk: high` PR label and extra scrutiny.
+- Multi-area at any difficulty → `needsDesignRound: true`. Count areas by what the change
+  modifies **or must run to verify**, not by the card's Category or by which screen it sits on:
+  `multiplayer` means the relay, its protocol or its sim scripts — a fix whose check drives the
+  sim involves `multiplayer` even if only backend tests change, but a UI element on a
+  multiplayer screen is `frontend`/`ui` only.
 - **Security work → `needsDesignRound: true`, `risk: high`, always** — attacks/DDoS, auth or
   session breaches, account blocking/abuse, secrets, permissions — regardless of difficulty or
   how few files it touches. Fable plans it so the plan covers every case; opus implements.
@@ -41,16 +51,18 @@ All four are rolling aliases.
 ### `engineModel` — who implements
 | Model | When | Example |
 |---|---|---|
-| **haiku** (effort low) | `trivial`: content/copy/config edit, zero logic. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
+| **haiku** (effort low) | `trivial`: mechanical content/copy/config edit, zero logic and zero judgment — the new text or value is given or fully determined. Not haiku: copy that has to be *written* to persuade or engage (headlines, marketing, onboarding text), and adding or removing a visible UI element (it changes layout and needs a visual check) — both are sonnet. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
 | **sonnet** (effort high) | **The default.** Any task whose work can be written as clearly defined steps, each with an acceptance criterion — however many steps — or a spec detailed enough that nothing needs inventing. Building on an existing feature, following an existing pattern, or executing a design-round plan step by step. Long-and-explicit is sonnet territory. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." / A 12-step bracket-mode plan where every step names its file and its done-check. |
 | **opus** (effort high) | **Complex.** A few steps that each need real judgment a plan cannot fully pin down — a novel algorithm, a tricky state machine, subtle multiplayer timing — or a spec that genuinely cannot be reduced to steps with acceptance criteria; also the implementer for a hard task once Fable has produced its design-round plan. Rule of thumb: short-and-hard or hard-with-a-plan → opus; long-and-explicit → sonnet; long-and-vague → the plan is the problem, fix it in the design round rather than upgrading the engine. | Card: "Elo-style rating updates for 3-player rooms with disconnect forfeits" — one file, hard math, ambiguous ties → opus. |
 
 Two overrides beat the table:
 - **Motion/animation → opus, always.** Any task whose core is motion — framer-motion, transitions,
   animated UI, springs, gestures, scroll/reveal effects — goes to opus regardless of difficulty,
-  even a one-file change. Feel and timing are judgment, not steps.
-- **Important + complex → opus.** `risk: high`, or a P0 card that is not trivial, goes to opus
-  rather than sonnet. Simple tasks stay sonnet (or haiku if trivial).
+  even a one-file change. This includes changing *when* or *how* something animates — timing,
+  sequencing, delays, what triggers an animation, what stays still vs. animates — even when no
+  new animation is authored. Feel and timing are judgment, not steps.
+- **Important + complex → opus.** `risk: high`, or a `Priority: P0` card that is not trivial, goes
+  to opus rather than sonnet. Simple tasks stay sonnet (or haiku if trivial).
 
 This is a **provisional** pick. When a design round runs, the planner finalizes it once the
 plan exists (`design-round` step 5d), **per step** — a Fable-planned task can mix opus steps
