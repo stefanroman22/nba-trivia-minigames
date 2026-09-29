@@ -18,4 +18,7 @@ export const springs: Record<string, Transition> = {
   soft: { type: "spring", stiffness: 260, damping: 26 },
   pop: { type: "spring", stiffness: 420, damping: 18, mass: 0.6 },
   gentle: { type: "spring", stiffness: 120, damping: 18 },
+  // Sliding active-option thumb in every tab/pill switcher (SegmentedTabs) —
+  // quick, lightly damped (~0.83 ratio) so it settles with a hint of give, no wobble.
+  thumb: { type: "spring", stiffness: 420, damping: 34, mass: 1 },
 };

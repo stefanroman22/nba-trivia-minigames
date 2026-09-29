@@ -141,7 +141,7 @@ html { scroll-behavior: smooth; }
   cursor: pointer;
   transition: all 0.2s;
 }
-.profile-view-btn.is-active { background: var(--brand); color: #fff; }
+.profile-view-btn.is-active { color: #fff; }
 .profile-view-body {
   flex: 1;
   min-height: 0;

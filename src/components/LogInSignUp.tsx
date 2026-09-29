@@ -11,6 +11,12 @@ import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
 import { AnimatePresence, motion } from 'framer-motion';
 import SwapText from './motion/SwapText';
+import SegmentedTabs from './motion/SegmentedTabs';
+
+const AUTH_MODES: { key: "login" | "signup"; label: string }[] = [
+  { key: "login", label: "Log in" },
+  { key: "signup", label: "Sign up" },
+];
 
 interface LogInSignUpProps {
   mode: "login" | "signup";
@@ -136,10 +142,14 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
 
   return (
     <div className="auth-stack">
-      <div className="auth-tabs">
-        <button type="button" className={`auth-tab${!isSignup ? " is-active" : ""}`} onClick={() => onModeChange("login")}>Log in</button>
-        <button type="button" className={`auth-tab${isSignup ? " is-active" : ""}`} onClick={() => onModeChange("signup")}>Sign up</button>
-      </div>
+      <SegmentedTabs
+        className="auth-tabs"
+        itemClassName="auth-tab"
+        thumbRadius={8}
+        options={AUTH_MODES}
+        value={mode}
+        onChange={onModeChange}
+      />
 
       <form className="auth-stack" onSubmit={isSignup ? handleSignUp : handleLogin}>
         {isSignup ? (

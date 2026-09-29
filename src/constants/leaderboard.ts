@@ -1,3 +1,11 @@
+import type { LeaderboardScope } from "../hooks/useLeaderboard";
+
+// Global/Friends scope switcher options (Leaderboard card + modal).
+export const LEADERBOARD_SCOPES: { key: LeaderboardScope; label: string }[] = [
+  { key: "global", label: "Global" },
+  { key: "friends", label: "Friends" },
+];
+
 export interface LeaderRow {
   rank: number;
   name: string;

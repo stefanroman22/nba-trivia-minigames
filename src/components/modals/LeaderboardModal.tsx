@@ -2,7 +2,8 @@ import { useState } from "react";
 import "../../styles/Leaderboard.css";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
 import { Avatar, CourtLoader } from "../ui";
-import { initials, avatarBg, SELF_AVATAR_BG } from "../../constants/leaderboard";
+import SegmentedTabs from "../motion/SegmentedTabs";
+import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from "../../constants/leaderboard";
 
 /** Full leaderboard list shown inside the leaderboard modal — Global top 100
  * or, once toggled, the signed-in player + their friends. */
@@ -16,10 +17,7 @@ export default function LeaderboardModal() {
     <div>
       {loggedIn && (
         <div className="lb-scope-row" style={{ padding: "0 0 14px" }}>
-          <div className="lb-scope">
-            <button className={`lb-scope-btn${scope === "global" ? " is-active" : ""}`} onClick={() => setScope("global")}>Global</button>
-            <button className={`lb-scope-btn${scope === "friends" ? " is-active" : ""}`} onClick={() => setScope("friends")}>Friends</button>
-          </div>
+          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={setScope} />
         </div>
       )}
 

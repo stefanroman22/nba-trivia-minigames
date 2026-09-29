@@ -55,7 +55,7 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-.lb-scope-btn.is-active { background: var(--brand); color: #fff; }
+.lb-scope-btn.is-active { color: #fff; }
 .lb-body {
   flex: 1;
   padding: 8px 10px;
