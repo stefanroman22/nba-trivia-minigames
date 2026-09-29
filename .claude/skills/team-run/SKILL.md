@@ -65,7 +65,7 @@ replanned, startedAt, classify, subtasks?, resumeNote}`.
 journal stage=classify.
 
 **classify** → spawn planner-architect (model fable) with the classify skill, the card
-title/Category, and `get-spec` output (it already contains body text, `[Image attached]`
+title/Category/Priority (from `list-todo`), and `get-spec` output (it already contains body text, `[Image attached]`
 lines from the body, the Attachments property and owner comments). Parse its JSON.
 If `areas` contains both `frontend` and `backend` → this is a **split task** (§2b).
 journal stage=workspace.
