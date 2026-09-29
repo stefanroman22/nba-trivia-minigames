@@ -1,0 +1,50 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Rename 'Share feedback' to 'Feedback'\nCategory: frontend\nPriority: P2\n\nget-spec output:\nChange the text 'Share feedback' to just 'Feedback' wherever it appears."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u04_rep0_1790707182628\\\"; cat docs/team/RETRO.md | head -150; echo ----; grep -n \\\"^## \\\" docs/team/DECISIONS.md | tail -30; echo ----; grep -rn \\\"Share feedback\\\" --include=*.ts --include=*.tsx --include=*.py --include=*.md --include=*.js . 2>/dev/null | grep -v node_modules | head -30\",\n  \"description\": \"Read retro, decisions headings, grep for text\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "# Parked-Task Post-Mortems\n\nAppend-only. The planner-architect MUST read this file before classifying any new task.\nFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n----\n6:## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n19:## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n39:## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n57:## 2026-09-06 — Opus 4.8 reinstated for planning detailed specs; Opus 5 ban made enforceable\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n88:## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n103:## 2026-09-17 — Pipeline v2: board columns, push-to-dev, human-merged dev→main\n121:## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action\n144:## 2026-09-20 — Stale trivia tests that drive the multiplayer sim: backend-only vs backend+multiplayer\n164:## 2026-09-20 — Design round with no spawnable engines: planner fills the engine seats and says so\n179:## 2026-09-20 — Online Contexto/SuperDraft relay→renderer mismatch found while fixing the tests: recorded, not bundled\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n215:## 2026-09-22 — Cacheable friend-photo endpoint: standard vs hard, sonnet vs fable engine\n242:## 2026-09-22 — Friend-photo endpoint design: public by public_id + stored version column; engine seats filled by the planner\n268:## 2026-09-22 — Port Contexto/SuperDraft multiplayer branches to the dealt question: standard vs hard, sonnet vs fable\n298:## 2026-09-22 — Contexto/SuperDraft dealt-question port design: online objective from the qid hash, relay untouched; engine seats filled by the planner\n330:## 2026-09-29 — Opus 5.5 unbanned: replaces Fable as the judgment-implementer tier; Fable narrows to planning-only\n360:## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\n372:## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine\n----\n./src/components/ModalHost.tsx:32:    title = \"Share feedback\";\n./src/components/UserProfile.tsx:302:          {/* Logout — centered, same style as the Share feedback button */}\n./src/views/Landpage.tsx:156:              <button className=\"feedback-band-btn\" onClick={() => open(\"feedback\")}>Share feedback</button>"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u04_rep0_1790707182628\\\"; grep -rni \\\"share feedback\\\\|share your feedback\\\" --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next . | head; echo ---; grep -ni \\\"feedback\\\\|ModalHost\\\\|Landpage\\\" docs/team/CODE_MAP.md | head; sed -n 74,87p docs/team/DECISIONS.md\",\n  \"description\": \"Search variants and CODE_MAP entries\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "./src/components/ModalHost.tsx:32:    title = \"Share feedback\";\n./src/components/UserProfile.tsx:302:          {/* Logout — centered, same style as the Share feedback button */}\n./src/views/Landpage.tsx:156:              <button className=\"feedback-band-btn\" onClick={() => open(\"feedback\")}>Share feedback</button>\n---\n22:- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\n26:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\"Correct! +10\") into the shared feedback slot. [used by: 17 files]\n33:- `src/components/modals/FeedbackModal.tsx` — Star rating + free-text feedback form modal content. [used by: 1 files]\n36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\n37:- `src/components/admin/feedbackApi.ts` — Types and fetchers for the admin Feedback tab (filter object, stats, list). [used by: 2 files]\n38:- `src/components/admin/FeedbackCharts.tsx` — Admin Feedback charts: rating distribution and sentiment-over-time line. [used by: 1 files]\n39:- `src/components/admin/FeedbackTab.tsx` — Admin panel Feedback tab: one filter drives charts and table. [used by: 1 files]\n40:- `src/components/admin/vizPalette.ts` — Validated chart palette (ordinal star ramp) for admin Feedback charts. [used by: 1 files]\n93:- `src/context/FeedbackSlotContext.ts` — DOM-node context so SubmitGuessPopUp portals into one fixed spot. [used by: 2 files]\n119:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text into the shared feedback slot. [used by: 17 files]\n## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\nContext: card 3dc2cfb1-c595-80b9-a2d4-f182a24358e6 asks for a smaller, center-aligned\npoints/rank block in the profile panel with reduced text on mobile. The card's Difficulty\noverride is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,\nno logic — so haiku was defensible under the \"trivial → haiku\" row.\nDecision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\ncontent/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\nsmall layout design call with a responsive breakpoint and a real-browser check, which is the\nsonnet default. No design round (single area, thin spec) → `planModel: fable` is nominal.\nConsequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\nsonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n`trivial` on a task that still needs layout judgment."
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u04_rep0_1790707182628\\\"; ls docs/constraints 2>/dev/null\",\n  \"description\": \"List constraint docs\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "AUTH_CONSTRAINTS.md\nBACKEND_CONSTRAINTS.md\nMULTIPLAYER_CONSTRAINTS.md\nUI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "This is a trivial task for haiku. The change is a copy edit, the new text is given, and there's no logic or layout judgment involved. It isn't really a close call, so I didn't add an entry to DECISIONS.md. `RETRO.md` has no earlier parked-task failures to take into account.\n\nThe text shows up in three places:\n- **Landing page button:** `src/views/Landpage.tsx:156`, the `feedback-band-btn` label.\n- **Feedback modal title:** `src/components/ModalHost.tsx:32`.\n- **A code comment:** `src/components/UserProfile.tsx:302`. The engine should update it too so it still matches the button.\n\n```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"haiku\", \"engineEffort\": \"low\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\",\n    \"- `src/components/modals/FeedbackModal.tsx` — Star rating + free-text feedback form modal content. [used by: 1 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

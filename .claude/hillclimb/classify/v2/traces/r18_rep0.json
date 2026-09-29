@@ -1,0 +1,50 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Confirm and extend robots.txt (sitemap reference, AI-crawler stance)\nCategory: docs\nPriority: P1\n\nget-spec output:\nCurrent public/robots.txt is minimal: User-agent star, Allow /, Disallow /admin, no Sitemap line. Research findings: Google/RFC 9309 recognize only User-agent, Allow, Disallow, Sitemap; groups do not inherit from the star group, so any dedicated bot group must repeat Disallow /admin itself; Sitemap must be an absolute URL and can be listed even before the sitemap.xml task ships (use the real production domain); Crawl-delay is ignored by Google (recommend omitting); never disallow /_next or any JS/CSS path since this is a client-rendered app and blocking those breaks indexing of rendered content; Disallow is not the same as noindex, a disallowed page can still appear index-only, so keep the existing page-level noindex on /admin as-is rather than relying on robots.txt alone. AI crawlers split into three classes: training crawlers (GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, meta-externalagent, Bytespider), search/answer-engine crawlers (OAI-SearchBot, Claude-SearchBot, PerplexityBot, Googlebot, Bingbot), and user-triggered fetchers. For a free discoverability-driven trivia site with no proprietary content to protect, the recommendation is to stay fully permissive (allow all of the above) rather than block training bots, since blocking has no upside here and could reduce visibility in AI answer engines. Task: keep the current Allow-all-except-admin shape, add a Sitemap line once the production domain is known (coordinate with the sitemap.xml work in the SEO card), and do not add crawl-delay, host or noindex lines. Separately flag, do not fix here: /coming-soon currently returns HTTP 200 with not-found content, a soft 404, which should get a real notFound() or noindex fix in a future task."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r18_rep0_1790706988132\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/r18_rep0_1790706988132\\\"; cat public/robots.txt; grep -n -i \\\"robots\\\\|sitemap\\\\|seo\\\\|metadata\\\\|layout.tsx\\\\|coming-soon\\\" docs/team/CODE_MAP.md | head -20; grep -n -i \\\"robots\\\\|sitemap\\\\|seo\\\\|haiku\\\\|trivial\\\" docs/team/DECISIONS.md | head -30; grep -rn -i \\\"vercel.app\\\\|NEXT_PUBLIC_SITE\\\\|metadataBase\\\" src/app --include=*.ts* | head\",\n  \"description\": \"Inspect robots.txt, code map, decisions, domain refs\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "User-agent: *\nAllow: /\nDisallow: /admin\n68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\n21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n77:override is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n84:Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86:`trivial` on a task that still needs layout judgment.\n89:Context: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend\n98:`/admin` and a game page on a phone viewport). Difficulty stays `trivial` per the override.\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n210:Consequences: \"test is stale after a shipped refactor\" cards are trivial/sonnet, test-file"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/r18_rep0_1790706988132\\\"; grep -n -i \\\"nba-minigames.vercel.app\\\\|domain\\\" docs/DEPLOYMENT.md | head; ls src/app | head -40\",\n  \"description\": \"Check production domain and app routes\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "98:**`vercel rollback` pins the production domain.** After a rollback, later git deploys build,\n116:   an optional alternative for a dedicated data domain — see the R2 note under \"Home machine\".\n127:CORS_ALLOWED_ORIGINS=https://<extra-origin>              # ADDITIVE — merged onto settings.FRONTEND_ORIGINS, never replaces it. Leave unset unless adding a domain.\n138:CORS_ORIGINS=http://localhost:5173,https://<your-frontend-domain>\n148:# Set it only to serve pools from an external CDN/domain instead.\n201:| **production** | `https://nba-minigames.vercel.app` | `https://backend-kappa-one-42.vercel.app/api` | production socket | production Supabase |\n[game]\nadmin\ncoming-soon\nlayout.tsx\nnot-found.tsx\npage.tsx\nproviders.tsx\ntemplate.tsx"
+  },
+  {
+    "role": "assistant",
+    "content": "```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\"], \"risk\": \"low\",\n  \"engineModel\": \"haiku\", \"engineEffort\": \"low\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/DEPLOYMENT.md\"],\n  \"codeMapHits\": [],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

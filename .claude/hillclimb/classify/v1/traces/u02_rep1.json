@@ -1,0 +1,162 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Remove the points text below each game card\nCategory: frontend\nPriority: P1\n\nget-spec output:\nThe game cards show a line of points text under each card. Remove it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)points|game card|GameCard\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)(removing|remove).*(ui element|visible)|haiku\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)points\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\",\n  \"glob\": \"*Card*\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "16:- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\n23:- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 3 files]\n27:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\n89:- `src/store/userSlice.tsx` — User auth slice: login/logout/hydrateSession and points/rank/username/photo reducers. [used by: 7 files]"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_result",
+    "content": "21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n344:existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)\\\\bpoints?\\\\b|\\\\bpts\\\\b\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\",\n  \"glob\": \"*.tsx\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 70,\n  \"limit\": 20\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "70\tcorrected.\n71\tConsequences: the ban is now enforced by the harness, not by prose. The `npm run engine`\n72\tprofile's `subagentModel` is documented as a fallback that rarely decides anything.\n73\t\n74\t## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n75\tContext: card 3dc2cfb1-c595-80b9-a2d4-f182a24358e6 asks for a smaller, center-aligned\n76\tpoints/rank block in the profile panel with reduced text on mobile. The card's Difficulty\n77\toverride is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n78\t`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,\n79\tno logic — so haiku was defensible under the \"trivial → haiku\" row.\n80\tDecision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n81\tcontent/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\n82\tsmall layout design call with a responsive breakpoint and a real-browser check, which is the\n83\tsonnet default. No design round (single area, thin spec) → `planModel: fable` is nominal.\n84\tConsequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85\tsonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86\t`trivial` on a task that still needs layout judgment.\n87\t\n88\t## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n89\tContext: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 27 files\nsrc\\views\\Trivia\\MiniGame.tsx\nsrc\\views\\Landpage.tsx\nsrc\\views\\Admin.tsx\nsrc\\utils\\GameUtils.tsx\nsrc\\types\\types.tsx\nsrc\\store\\userSlice.tsx\nsrc\\context\\MultiplayerContext.tsx\nsrc\\components\\modals\\LeaderboardModal.tsx\nsrc\\components\\admin\\FeedbackTab.tsx\nsrc\\components\\admin\\FeedbackCharts.tsx\nsrc\\components\\UserProfile.tsx\nsrc\\components\\ScorePanel.tsx\nsrc\\components\\MultiPlayer\\PlayerCard.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\components\\Leaderboard.tsx\nsrc\\components\\GuestPanel.tsx\nsrc\\components\\GameResult.tsx\nsrc\\components\\FriendsPanel.tsx\nsrc\\app\\providers.tsx\nsrc\\app\\layout.tsx\nsrc\\Game Renderers\\Wordle.tsx\nsrc\\Game Renderers\\WhoAreYa.tsx\nsrc\\Game Renderers\\SuperDraft.tsx\nsrc\\Game Renderers\\StartingFive.tsx\nsrc\\Game Renderers\\PackFive.tsx\nsrc\\Game Renderers\\NbaGrid.tsx\nsrc\\Game Renderers\\CareerPath.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)points?|pts\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\\\\views\\\\Landpage.tsx\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "87-                <>\n88-                  <div className=\"hero-stat-sep\" />\n89-                  <div className=\"hero-stat\">\n90:                    <span className=\"tnum font-display hero-stat-num\">{user.points}</span>\n91:                    <span className=\"hero-stat-lbl\">YOUR POINTS</span>\n92-                  </div>\n93-                </>\n94-              )}\n--\n119-                  description={game.description}\n120-                  backgroundImage={game.backgroundImage}\n121-                  tag={game.tag}\n122:                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\n123-                  cta={game.id === \"coming-soon\" ? \"Coming soon\" : \"Play now\"}\n124-                  index={index}\n125-                  disabled={game.id === \"coming-soon\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"pointLabel\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\views\\Landpage.tsx:122:                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\nsrc\\components\\ui\\GameTile.tsx:10:  pointLabel?: string;"
+  },
+  {
+    "role": "assistant",
+    "content": "Found the points label (`pointLabel` in `GameTile.tsx`, set in `Landpage.tsx`). Checking where it renders, then I'll classify."
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\\\\components\\\\ui\\\\GameTile.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\timport { useEffect, useState } from \"react\";\n2\timport { motion } from \"framer-motion\";\n3\timport { useReducedMotionSafe } from \"../../hooks/useReducedMotionSafe\";\n4\t\n5\tinterface GameTileProps {\n6\t  name: string;\n7\t  description: string;\n8\t  backgroundImage: string; // already a CSS url(...) value\n9\t  tag?: string;\n10\t  pointLabel?: string;\n11\t  cta?: string;\n12\t  onClick?: () => void;\n13\t  index?: number;\n14\t  /** Renders the tile as not-clickable (e.g. the \"Coming soon\" placeholder). */\n15\t  disabled?: boolean;\n16\t}\n17\t\n18\t/** The game card used in grids. Image zooms on hover, lifts, presses on click. */\n19\texport default function GameTile({\n20\t  name,\n21\t  description,\n22\t  backgroundImage,\n23\t  cta = \"Play now\",\n24\t  onClick,\n25\t  index = 0,\n26\t  disabled = false,\n27\t}: GameTileProps) {\n28\t  const reduce = useReducedMotionSafe();\n29\t\n30\t  // The photo mounts only client-side, post-hydration. In the server-rendered\n31\t  // markup even loading=\"lazy\" images fetch immediately (Chrome's lazy\n32\t  // threshold spans kilopixels), and 18 tile JPGs would crowd the bandwidth\n33\t  // the first paint needs. Until then the tile shows its scrim + text.\n34\t  const [showImg, setShowImg] = useState(false);\n35\t  useEffect(() => setShowImg(true), []);\n36\t\n37\t  return (\n38\t    <motion.button\n39\t      className={`gtile${disabled ? \" is-disabled\" : \"\"}`}\n40\t      onClick={disabled ? undefined : onClick}\n41\t      disabled={disabled}\n42\t      aria-disabled={disabled}\n43\t      initial={reduce ? false : { opacity: 0, y: 16 }}\n44\t      whileInView={{ opacity: 1, y: 0 }}\n45\t      viewport={{ once: true, amount: 0.25 }}\n46\t      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.04, 0.24) }}\n47\t      whileHover={reduce || disabled ? undefined : { y: -4 }}\n48\t      whileTap={reduce || disabled ? undefined : { scale: 0.98, y: 0 }}\n49\t    >\n50\t      {showImg && (\n51\t        <img\n52\t          className=\"gtile-img\"\n53\t          src={backgroundImage.replace(/^url\\(['\"]?/, \"\").replace(/['\"]?\\)$/, \"\")}\n54\t          alt=\"\"\n55\t          loading=\"lazy\"\n56\t          decoding=\"async\"\n57\t          draggable={false}\n58\t        />\n59\t      )}\n60\t      <div className=\"gtile-scrim\" />\n61\t      <div className=\"gtile-body\">\n62\t       \n63\t        <div style={{ display: \"flex\", flexDirection: \"column\", gap: 5, width: \"100%\" }}>\n64\t          <h3 className=\"font-display\" style={{ fontSize: 18, color: \"#fff\" }}>{name}</h3>\n65\t          <p style={{ fontSize: 12.5, color: \"rgba(255,255,255,.78)\", lineHeight: 1.4 }}>{description}</p>\n66\t          <span className=\"gtile-cta\" style={{ marginTop: 6 }}>\n67\t            {cta}\n68\t            <svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2.6\" strokeLinecap=\"round\" strokeLinejoin=\"round\"><path d=\"M5 12h14M13 6l6 6-6 6\" /></svg>\n69\t          </span>\n70\t        </div>\n71\t      </div>\n72\t    </motion.button>\n73\t  );\n74\t}\n75\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\\\\views\\\\Landpage.tsx\",\n  \"offset\": 100,\n  \"limit\": 45\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "100\t        <section id=\"games-grid\" className=\"games-section\">\n101\t          <SectionHeader\n102\t            title=\"Pick a game\"\n103\t            subtitle=\"Jump straight in.\"\n104\t            action={\n105\t              <div className=\"games-search\">\n106\t                <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"var(--muted)\" strokeWidth=\"2\" strokeLinecap=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\" /><path d=\"M21 21l-4.3-4.3\" /></svg>\n107\t                <Field search value={query} onChange={(e) => setQuery(e.target.value)} placeholder=\"Search games…\" aria-label=\"Search games\" />\n108\t              </div>\n109\t            }\n110\t          />\n111\t          {filtered.length === 0 ? (\n112\t            <div className=\"games-empty\">No games match “<strong style={{ color: \"var(--text)\" }}>{query}</strong>”. Try another keyword.</div>\n113\t          ) : (\n114\t            <div className=\"games-grid3\">\n115\t              {filtered.map((game, index) => (\n116\t                <GameTile\n117\t                  key={game.id}\n118\t                  name={game.name}\n119\t                  description={game.description}\n120\t                  backgroundImage={game.backgroundImage}\n121\t                  tag={game.tag}\n122\t                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\n123\t                  cta={game.id === \"coming-soon\" ? \"Coming soon\" : \"Play now\"}\n124\t                  index={index}\n125\t                  disabled={game.id === \"coming-soon\"}\n126\t                  onClick={() => openGame(game.id, game.urlPath)}\n127\t                />\n128\t              ))}\n129\t            </div>\n130\t          )}\n131\t        </section>\n132\t\n133\t        {/* ===== ENGAGE STRIP: leaderboard + guest panel / profile ===== */}\n134\t        <section id=\"leaderboard\" className=\"engage-section\">\n135\t          <Reveal>\n136\t            <div className=\"engage-strip\">\n137\t              <Leaderboard />\n138\t              {user ? <div className=\"profile-card\"><UserProfile /></div> : <GuestPanel />}\n139\t            </div>\n140\t          </Reveal>\n141\t        </section>\n142\t\n143\t        {/* ===== FEEDBACK BAND ===== */}\n144\t        <section className=\"feedback-section\">"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)gtile.*(::after|::before)|content:\\\\s*attr\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"maxPoints|pointLabel|pts\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\views\\Trivia\\MiniGame.tsx:216:              <Chip>up to <span className=\"tnum\" style={{ color: \"var(--brand)\", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>\nsrc\\views\\Trivia\\MiniGame.tsx:243:                onGameEnd: (finalScore: number, opts?: { inPlace?: boolean }) => {\nsrc\\views\\Trivia\\MiniGame.tsx:245:                  if (opts?.inPlace) awardPoints(finalScore);\nsrc\\views\\Trivia\\MiniGame.tsx:260:        return <GameResult showFinalResult={showFinalResult} score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={handleStart} onClose={handleRestart} />;\nsrc\\views\\Trivia\\MiniGame.tsx:302:                    <span className=\"rail-sub\">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : \"soon\"}</span>\nsrc\\views\\Landpage.tsx:122:                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\nsrc\\Game Renderers\\Wordle.tsx:8:const MAX_GUESSES = 5;       // matches the in-game instructions (\"5 attempts\")\nsrc\\types\\types.tsx:103:  pts: number;\nsrc\\types\\types.tsx:204:  maxPoints: number;\nsrc\\types\\types.tsx:215:export type OnGameEnd = (finalScore: number, opts?: { inPlace?: boolean }) => void;\nsrc\\Game Renderers\\WhoAreYa.tsx:50:    career: { pts: 0, reb: 0, ast: 0, ppg: 0, rpg: 0, apg: 0, seasons: 0 },\nsrc\\Game Renderers\\TicTacToe.tsx:18:const CELL_POINTS = 25; // 9 cells -> 225 max (registry maxPoints)\nsrc\\views\\Admin.tsx:275:            {meta && meta.maxPoints > 0 && (\nsrc\\views\\Admin.tsx:277:                {meta.pointsPerCorrect} pts / correct · max {meta.maxPoints}\nsrc\\Game Renderers\\SuperDraft.tsx:13:// career_pts, birth_year] tuples resolved server-side\nsrc\\Game Renderers\\SuperDraft.tsx:77:  career_pts: number;\nsrc\\Game Renderers\\SuperDraft.tsx:82:type MetricKey = \"height_in\" | \"rings\" | \"career_pts\" | \"birth_year_desc\";\nsrc\\Game Renderers\\SuperDraft.tsx:136:    metric: \"career_pts\",\nsrc\\Game Renderers\\SuperDraft.tsx:138:    perPick: (p) => p.career_pts,\nsrc\\Game Renderers\\SuperDraft.tsx:139:    fmtPick: (p) => p.career_pts.toLocaleString(\"en-US\"),\nsrc\\Game Renderers\\SuperDraft.tsx:180:  career_pts: t[3],\nsrc\\Game Renderers\\SuperDraft.tsx:299:  // resets the round and adopts its question; reroll() below swaps `question`\nsrc\\Game Renderers\\StartingFive.tsx:25:const COMPLETION_BONUS = 50; // perfect lineup → 5 * pointsPerCorrect + bonus = maxPoints\nsrc\\Game Renderers\\StartingFive.tsx:133:  const maxPoints = 5 * pointsPerCorrect + COMPLETION_BONUS;\nsrc\\Game Renderers\\StartingFive.tsx:174:          onGameEnd?.(maxPoints, { inPlace: true });\nsrc\\Game Renderers\\StartingFive.tsx:175:          setEndState({ score: maxPoints, won: true });\nsrc\\Game Renderers\\StartingFive.tsx:360:                outOf={maxPoints}\nsrc\\context\\PageTransitionContext.tsx:20:export type NavigateFn = (to: string, opts?: { state?: unknown }) => void;\nsrc\\context\\MultiplayerContext.tsx:342:    pointsPerCorrect: g.pointsPerCorrect, maxPoints: g.maxPoints, backgroundImage: g.backgroundImage,\nsrc\\utils\\GameUtils.tsx:107:    maxPoints: 50,\nsrc\\utils\\GameUtils.tsx:137:    maxPoints: 50,\nsrc\\utils\\GameUtils.tsx:167:    maxPoints: 50,\nsrc\\utils\\GameUtils.tsx:198:    maxPoints: 100,\nsrc\\utils\\GameUtils.tsx:210:      { n: \"2\", t: \"You have 5 attempts to solve it.\" },\nsrc\\utils\\GameUtils.tsx:218:          <li><strong>Challenge:</strong> You have <strong>5 attempts</strong> to solve the puzzle.</li>\nsrc\\utils\\GameUtils.tsx:229:    maxPoints: 500,\nsrc\\utils\\GameUtils.tsx:261:    maxPoints: 300,\nsrc\\utils\\GameUtils.tsx:291:    maxPoints: 300,\nsrc\\utils\\GameUtils.tsx:322:    maxPoints: 200,\nsrc\\utils\\GameUtils.tsx:353:    maxPoints: 700,\nsrc\\utils\\GameUtils.tsx:383:    maxPoints: 270,\nsrc\\utils\\GameUtils.tsx:404:          <li><strong>Guesses:</strong> 8 attempts.</li>\nsrc\\utils\\GameUtils.tsx:414:    maxPoints: 240,\nsrc\\utils\\GameUtils.tsx:444:    maxPoints: 225,\nsrc\\utils\\GameUtils.tsx:474:    maxPoints: 200,\nsrc\\utils\\GameUtils.tsx:505:    maxPoints: 200,\nsrc\\utils\\GameUtils.tsx:535:    maxPoints: 220,\nsrc\\utils\\GameU\n... [2839 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\src\\\\views\\\\Trivia\\\\MiniGame.tsx\",\n  \"offset\": 285,\n  \"limit\": 25\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "285\t          {/* Desktop rail */}\n286\t          <aside className=\"rail\" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>\n287\t            <div className=\"rail-head\"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>\n288\t            <div className=\"rail-list\">\n289\t              {visibleGames.map((g) => (\n290\t                <button\n291\t                  key={g.id}\n292\t                  disabled={g.id === \"coming-soon\"}\n293\t                  onClick={() => {\n294\t                    if (inProgress) { showErrorAlert(\"Finish your current game first.\", \"Game in progress\", \"Continue playing\"); return; }\n295\t                    navigate(g.urlPath, { state: { id: g.id } });\n296\t                  }}\n297\t                  className={`rail-item${g.id === game?.id ? \" is-active\" : \"\"}`}\n298\t                >\n299\t                  <span className=\"rail-thumb\" style={{ backgroundImage: g.backgroundImage }} />\n300\t                  <span className=\"rail-meta\">\n301\t                    <span className=\"rail-name\">{g.name}</span>\n302\t                    <span className=\"rail-sub\">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : \"soon\"}</span>\n303\t                  </span>\n304\t                </button>\n305\t              ))}\n306\t            </div>\n307\t          </aside>\n308\t\n309\t          {/* Center stage */}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"GameTile|MiniGame|Landpage|LandPage.css\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790698467396\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "50:- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]"
+  },
+  {
+    "role": "assistant",
+    "content": "I classified this as **trivial**, frontend/ui only, **low** risk, with **sonnet** as the implementer. No design round is needed. I did not add a DECISIONS.md entry because it wasn't a close call. The rubric sends any removal of a visible UI element to sonnet, not haiku, because it changes layout and needs a visual check.\n\nThe builder should check which text the card means before editing:\n- **Landing-page cards:** `Landpage.tsx:122` still passes a `pointLabel` like \"500 pts\" to `GameTile`, but `GameTile.tsx` never draws it. If this is the target, the text may already be gone there.\n- **Game-page sidebar:** the list of games in `src/views/Trivia/MiniGame.tsx:302` shows \"up to N pts\" under each game's name. This is the only points text I found under each game, so it's the likely target.\n\nA quick browser check of both pages will settle it.\n\n```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\"- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]\", \"- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

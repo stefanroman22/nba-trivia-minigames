@@ -1,0 +1,118 @@
+[baseline] 69 of 72 (id,rep) to run
+[baseline] 0/69 done (0 ok, 0 failed), 30s elapsed
+  [baseline] r02 rep0: routing 1 (37s)
+  [baseline] r01 rep1: routing 1 (51s)
+  [baseline] r02 rep1: routing 1 (58s)
+[baseline] 3/69 done (3 ok, 0 failed), 79s elapsed, ~1737s left
+[baseline] 3/69 done (3 ok, 0 failed), 109s elapsed, ~2397s left
+  [baseline] r03 rep1: routing 1 (65s)
+  [baseline] r03 rep0: routing 1 (85s)
+[baseline] 5/69 done (5 ok, 0 failed), 139s elapsed, ~1779s left
+  [baseline] r04 rep0: routing 1 (88s)
+[baseline] 6/69 done (6 ok, 0 failed), 169s elapsed, ~1774s left
+  [baseline] r04 rep1: routing 1 (76s)
+[baseline] 7/69 done (7 ok, 0 failed), 200s elapsed, ~1767s left
+  [baseline] r05 rep0: routing 1 (83s)
+  [baseline] r05 rep1: routing 1 (67s)
+[baseline] 9/69 done (9 ok, 0 failed), 230s elapsed, ~1530s left
+[baseline] 9/69 done (9 ok, 0 failed), 260s elapsed, ~1730s left
+  [baseline] r06 rep0: routing 1 (71s)
+[baseline] 10/69 done (10 ok, 0 failed), 290s elapsed, ~1708s left
+  [baseline] r06 rep1: routing 1 (87s)
+  [baseline] r07 rep0: routing 0 (94s)
+  [baseline] r07 rep1: routing 1 (53s)
+[baseline] 13/69 done (13 ok, 0 failed), 329s elapsed, ~1418s left
+  [baseline] r08 rep0: routing 0 (63s)
+[baseline] 14/69 done (14 ok, 0 failed), 364s elapsed, ~1429s left
+  [baseline] r09 rep0: routing 1 (48s)
+  [baseline] r08 rep1: routing 1 (74s)
+[baseline] 16/69 done (16 ok, 0 failed), 394s elapsed, ~1305s left
+  [baseline] r09 rep1: routing 1 (57s)
+[baseline] 17/69 done (17 ok, 0 failed), 424s elapsed, ~1297s left
+  [baseline] r10 rep0: routing 0 (71s)
+[baseline] 18/69 done (18 ok, 0 failed), 454s elapsed, ~1286s left
+  [baseline] r10 rep1: routing 0 (91s)
+[baseline] 19/69 done (19 ok, 0 failed), 484s elapsed, ~1273s left
+  [baseline] r11 rep0: routing 1 (84s)
+[baseline] 20/69 done (20 ok, 0 failed), 514s elapsed, ~1259s left
+  [baseline] r11 rep1: routing 1 (86s)
+  [baseline] r12 rep0: routing 1 (73s)
+[baseline] 22/69 done (22 ok, 0 failed), 558s elapsed, ~1192s left
+  [baseline] r12 rep1: routing 1 (63s)
+  [baseline] r13 rep0: routing 1 (62s)
+[baseline] 24/69 done (24 ok, 0 failed), 591s elapsed, ~1108s left
+  [baseline] r13 rep1: routing 1 (73s)
+[baseline] 25/69 done (25 ok, 0 failed), 625s elapsed, ~1099s left
+  [baseline] r14 rep0: routing 1 (66s)
+[baseline] 26/69 done (26 ok, 0 failed), 655s elapsed, ~1083s left
+  [baseline] r14 rep1: routing 1 (85s)
+[baseline] 27/69 done (27 ok, 0 failed), 685s elapsed, ~1065s left
+  [baseline] r15 rep1: routing 1 (66s)
+  [baseline] r15 rep0: routing 1 (88s)
+[baseline] 29/69 done (29 ok, 0 failed), 715s elapsed, ~986s left
+  [baseline] r16 rep1: routing 0 (56s)
+[baseline] 30/69 done (30 ok, 0 failed), 745s elapsed, ~968s left
+  [baseline] r18 rep0: routing 1 (27s)
+  [baseline] r17 rep0: routing 0 (76s)
+  [baseline] r17 rep1: routing 0 (69s)
+[baseline] 33/69 done (33 ok, 0 failed), 778s elapsed, ~849s left
+  [baseline] r18 rep1: routing 1 (32s)
+[baseline] 34/69 done (34 ok, 0 failed), 808s elapsed, ~832s left
+[baseline] 34/69 done (34 ok, 0 failed), 838s elapsed, ~863s left
+  [baseline] r19 rep1: routing 1 (70s)
+  [baseline] u01 rep0: routing 1 (64s)
+  [baseline] r19 rep0: routing 1 (84s)
+[baseline] 37/69 done (37 ok, 0 failed), 868s elapsed, ~751s left
+[baseline] 37/69 done (37 ok, 0 failed), 898s elapsed, ~777s left
+  [baseline] u01 rep1: routing 1 (70s)
+  [baseline] u02 rep0: routing 0 (75s)
+[baseline] 39/69 done (39 ok, 0 failed), 928s elapsed, ~714s left
+  [baseline] u02 rep1: routing 0 (80s)
+  [baseline] u04 rep0: routing 1 (23s)
+  [baseline] u03 rep0: routing 0 (44s)
+[baseline] 42/69 done (42 ok, 0 failed), 961s elapsed, ~618s left
+  [baseline] u03 rep1: routing 0 (51s)
+  [baseline] u04 rep1: routing 1 (35s)
+[baseline] 44/69 done (44 ok, 0 failed), 994s elapsed, ~565s left
+  [baseline] u05 rep0: routing 1 (36s)
+  [baseline] u05 rep1: routing 1 (37s)
+  [baseline] u06 rep0: routing 1 (28s)
+[baseline] 47/69 done (47 ok, 0 failed), 1024s elapsed, ~479s left
+  [baseline] u06 rep1: routing 1 (30s)
+  [baseline] u07 rep0: routing 1 (29s)
+  [baseline] u07 rep1: routing 1 (28s)
+[baseline] 50/69 done (50 ok, 0 failed), 1054s elapsed, ~400s left
+  [baseline] u08 rep0: routing 1 (54s)
+[baseline] 51/69 done (51 ok, 0 failed), 1096s elapsed, ~387s left
+  [baseline] u09 rep0: routing 1 (54s)
+  [baseline] u08 rep1: routing 1 (73s)
+[baseline] 53/69 done (53 ok, 0 failed), 1129s elapsed, ~341s left
+[baseline] 53/69 done (53 ok, 0 failed), 1159s elapsed, ~350s left
+  [baseline] u10 rep0: routing 1 (61s)
+  [baseline] u10 rep1: routing 1 (59s)
+  [baseline] u09 rep1: routing 1 (100s)
+[baseline] 56/69 done (56 ok, 0 failed), 1189s elapsed, ~276s left
+  [baseline] u11 rep1: routing 1 (36s)
+  [baseline] u11 rep0: routing 1 (53s)
+[baseline] 58/69 done (58 ok, 0 failed), 1222s elapsed, ~232s left
+  [baseline] u12 rep0: routing 1 (69s)
+[baseline] 59/69 done (59 ok, 0 failed), 1252s elapsed, ~212s left
+  [baseline] u13 rep0: routing 1 (54s)
+  [baseline] u12 rep1: routing 1 (71s)
+[baseline] 61/69 done (61 ok, 0 failed), 1286s elapsed, ~169s left
+  [baseline] u13 rep1: routing 1 (60s)
+[baseline] 62/69 done (62 ok, 0 failed), 1324s elapsed, ~150s left
+  [baseline] u14 rep1: routing 1 (77s)
+[baseline] 63/69 done (63 ok, 0 failed), 1360s elapsed, ~130s left
+  [baseline] u15 rep0: routing 1 (81s)
+[baseline] 64/69 done (64 ok, 0 failed), 1390s elapsed, ~109s left
+  [baseline] u15 rep1: routing 1 (104s)
+[baseline] 65/69 done (65 ok, 0 failed), 1430s elapsed, ~88s left
+  [baseline] u16 rep1: routing 1 (94s)
+[baseline] 66/69 done (66 ok, 0 failed), 1466s elapsed, ~67s left
+  [baseline] u16 rep0: routing 1 (131s)
+[baseline] 67/69 done (67 ok, 0 failed), 1496s elapsed, ~45s left
+  [baseline] u17 rep0: routing 1 (100s)
+  [baseline] u17 rep1: routing 1 (64s)
+[baseline] 69/69 done (69 ok, 0 failed), 1520s elapsed, ~0s left
+[baseline] done - 69 ok, 0 failed -> .claude\hillclimb\classify\baseline\results.jsonl

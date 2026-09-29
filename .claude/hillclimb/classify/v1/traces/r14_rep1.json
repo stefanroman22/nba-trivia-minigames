@@ -1,0 +1,126 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 89a0c6c"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Technical SEO + full keyboard and ARIA accessibility pass\nCategory: frontend\nPriority: P1\n\nget-spec output:\nOwner reports weak site performance/SEO and wants a technical-only pass -- no copy, content or visual/design changes. Scope: meta tags per page/game (title, description, canonical, Open Graph, Twitter card), structured data (JSON-LD, e.g. Game or SoftwareApplication schema), a real sitemap.xml (check whether src/app/sitemap.ts and src/app/robots.ts App Router conventions exist -- they likely do not yet -- add if missing), Core Web Vitals and Lighthouse issues (image optimization, render-blocking resources, font loading, hydration cost). Also required: full keyboard accessibility across the whole app -- every interactive element including dropdowns, menus and tabs must be reachable and operable via Tab, Shift+Tab, Enter, Escape and arrow keys, with visible focus states, correct ARIA roles/labels, and no keyboard traps. Run whatever real auditing is available first (Lighthouse, axe-core, or a manual keyboard walkthrough) to find concrete issues, then fix everything found -- do not guess at problems. Note: public/robots.txt and public/llms.txt already exist but are stale (still list hidden/removed games); they are separate pending tasks, do not rewrite them here. Explicitly out of scope this round: copy changes, visual redesign, content or keyword strategy, backlinks."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\\\\DECISIONS.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Team Decisions Log\n2\t\n3\tAppend-only. One entry per architectural/design decision made by the planner or a design round.\n4\tFormat: `## YYYY-MM-DD — <title>` then Context / Decision / Consequences (2–3 lines each).\n5\t\n6\t## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n7\tContext: asked to have planner-architect use the `superpowers:brainstorming`/`writing-plans`\n8\tskills for complex tasks (write a plan, self-review it, hand it to the engine).\n9\tDecision: build the same rigor (numbered plan, self-review for coverage/placeholders/\n10\tconsistency/scope/ambiguity) directly into `design-round`'s procedure instead of invoking those\n11\tskills. Two reasons: (1) `superpowers:brainstorming` hard-gates on human approval before any\n12\timplementation step — incompatible with an unattended pipeline run; (2) both skills are\n13\tmachine-local plugins, not committed to this repo, so referencing them would silently no-op on\n14\tevery cloud routine run (the pipeline's primary execution mode).\n15\tConsequences: the plan-and-self-review discipline now runs identically local or cloud, with no\n16\texternal dependency. If those skills are ever made repo-portable and their approval gate made\n17\toptional for headless use, this can be revisited.\n18\t\n19\t## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n20\tContext: the owner wants token spend cut without losing quality. Previously `classify` sent\n21\thard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n22\tand QA models were fixed by frontmatter/profile, so the `deep`/`max` profile could silently put\n23\tbrowser-qa on opus.\n24\tDecision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n25\thard included) — never opus/fable. `planModel` is opus (explicit spec) or fable (thin spec) and\n26\tdrives the design round, the replan, and code-reviewer. Every design round now produces a\n27\tfull implementation plan (previously hard-only), explicit enough that sonnet executes it\n28\trather than reasoning it out. test-qa-engine and browser-qa are always sonnet; the CTO gate\n29\tis pinned to opus in the workflow (never fable). The orchestrator passes every model\n30\texplicitly. Revisits 2026-08-29: `superpowers:writing-plans` may be used for the plan when it\n31\tis present in the skill listing (local runs); the native a–c step remains the cloud fallback.\n32\t`superpowers:brainstorming` stays excluded — its human-approval gate is still incompatible\n33\twith unattended runs.\n34\tConsequences: opus/fable spend moves from implementation (the longest stage) to two short\n35\tstages (plan, review). Plan quality is now load-bearing for hard tasks — a thin plan will\n36\tshow up as sonnet build failures and verify fix-cycles, which is the signal to fix the plan,\n37\tnot to raise the engine model.\n38\t\n39\t## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n40\tContext: same day as the entry above, the owner banned opus (5 and 4.8) from the pipeline\n41\toutright and asked for Fable 5.1 as the single heavy model, with the implementer chosen by the\n42\tshape of the work rather than by spec quality.\n43\tDecision: supersedes the opus/fable `planModel` split above — `planModel` is removed; every\n44\tthinking role (classify, design round, replan, code-reviewer, CTO gate, orchestrator default in\n45\t`.claude/settings.json`, the `deep`/`max` engine profiles) is fable. `engineModel` gains a\n46\t`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n47\tacceptance criteria, however many; fable for complex-but-small work — few steps, each needing\n48\tjudgment a plan cannot pin down. Because step count and criteria explicitness are only known\n49\tafter planning, classify's pick is provisional and the design round finalizes it (`Engine:`\n50\tline, step 5d). The earlier \"CTO never fable\" rule is dropped: with opus gone, fable is the only\n51\treviewe\n... [27262 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)seo|metadata|sitemap|robots|layout|header|navbar|dropdown|menu|tab|font|image|a11y|aria\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"src/app/**/*.{ts,tsx}\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "18:- `src/components/LogInSignUp.tsx` — Tabbed login/signup form incl. Google OAuth, rendered inside the auth modal. [used by: 1 files]\n20:- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 2 files]\n37:[Omitted long matching line]\n43:- `src/components/ui/Button.tsx` — Design-system button: variant/size props, spring hover-lift + tap-press feedback. [used by: 22 files]\n44:- `src/components/ui/Chip.tsx` — Small pill/badge with a variant color and optional dot indicator. [used by: 2 files]\n46:- `src/components/ui/Field.tsx` — Design-system text input; `search` prop switches to the left-icon search variant. [used by: 2 files]\n47:- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell (Status/Score/Label/Prompt/Board/Action/InputRow) every game renderer's root must use. [used by: 19 files]\n51:- `src/components/ui/SectionHeader.tsx` — Title + optional subtitle/action row for page sections. [used by: 2 files]\n68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\n91:- `src/constants/navigation.tsx` — Nav-link label arrays for the footer/header site map. [used by: 1 files]\n92:- `src/constants/nbaCoaches.tsx` — Notable NBA head-coach names — autocomplete decoy pool for coach-category Fan Favorites. [used by: 1 files]\n101:- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell (Status/Score/Label/Prompt/Board/Action/InputRow) every game renderer's root must use. [used by: 19 files]\n131:- `src/motion/tokens.ts` — Shared animation duration/easing/spring constants consumed by motion/variants.ts. [used by: 1 files]\n132:- `src/motion/variants.ts` — Reusable framer-motion Variants (fade/scale/stagger/swap) for consistent app-wide motion. [used by: 2 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\app\\[game]\\page.tsx\nsrc\\app\\admin\\page.tsx\nsrc\\app\\coming-soon\\page.tsx\nsrc\\app\\layout.tsx\nsrc\\app\\not-found.tsx\nsrc\\app\\page.tsx\nsrc\\app\\providers.tsx\nsrc\\app\\template.tsx"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)protected.?paths?\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\",\n  \"output_mode\": \"content\",\n  \"-A\": 8\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)layout\\\\.tsx|\\\\[game\\\\]|Landpage|GameUtils|Dropdown|Modal|Footer|template\\\\.tsx|page\\\\.tsx\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\team\\PIPELINE.md:56:## 6. Protected paths\ndocs\\team\\PIPELINE.md-57-\ndocs\\team\\PIPELINE.md-58-`.github/workflows/`, `vercel.json`, `package.json`, `package-lock.json`, `backend/requirements.txt`\ndocs\\team\\PIPELINE.md-59-reach `dev` like any other change (the in-run review still covers them) — there's no separate\ndocs\\team\\PIPELINE.md-60-gate for them beyond that, since promoting to production is already a deliberate, manual step\ndocs\\team\\PIPELINE.md-61-you take with your own eyes on `dev` first.\ndocs\\team\\PIPELINE.md-62-\ndocs\\team\\PIPELINE.md-63-## 7. Where things live\ndocs\\team\\PIPELINE.md-64-\n--\ndocs\\team\\PIPELINE.md:93:   is a protected path (see §6), so the local fix in (b) is applied to the working tree\ndocs\\team\\PIPELINE.md-94-   only and deliberately never committed/pushed — an automated ship touching a protected\ndocs\\team\\PIPELINE.md-95-   path deserves a human's own deliberate look, not a walked-past commit. It must stay\ndocs\\team\\PIPELINE.md-96-   uncommitted, working-tree-only.\ndocs\\team\\PIPELINE.md-97-\ndocs\\team\\PIPELINE.md-98-## 9. Secrets rotation\ndocs\\team\\PIPELINE.md-99-\ndocs\\team\\PIPELINE.md-100-- **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the\ndocs\\team\\PIPELINE.md-101-  `@claude` mention responder. Mint it with `claude setup-token` (browser flow), then"
+  },
+  {
+    "role": "tool_result",
+    "content": "12:- `src/components/Footer.tsx` — Site footer: logo, social icons, back-to-top button, site-map + legal links. [used by: 0 files] (dead code)\n18:- `src/components/LogInSignUp.tsx` — Tabbed login/signup form incl. Google OAuth, rendered inside the auth modal. [used by: 1 files]\n19:- `src/components/ModalHost.tsx` — Single overlay host; switches login/feedback/leaderboard/instructions content by modal kind. [used by: 2 files]\n30:- `src/components/modals/FeedbackModal.tsx` — Front-end-only star rating + free-text feedback form (no backend endpoint). [used by: 1 files]\n31:- `src/components/modals/InstructionsModal.tsx` — \"How to play\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\n32:- `src/components/modals/LeaderboardModal.tsx` — Full \"Global Top 100\" list shown inside the leaderboard modal. [used by: 1 files]\n33:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal, opened from ModalHost. [used by: 1 files]\n49:- `src/components/ui/Modal.tsx` — Accessible modal shell: focus trap, Escape-to-close, scroll lock; imported directly (not via barrel). [used by: 1 files]\n57:- `src/components/ui/index.ts` — Design-system barrel; re-exports 13 of the 15 primitives (Modal, TeamCrest are imported directly). [used by: 26 files]\n68:- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\n84:- `src/context/ModalContext.tsx` — Global single-overlay state (login/feedback/leaderboard/instructions) + `useModal()`/`ModalProvider`. [used by: 8 files]\n90:- `src/constants/legals.tsx` — Footer legal link labels (Privacy Policy, Terms of Service). [used by: 1 files]\n91:- `src/constants/navigation.tsx` — Nav-link label arrays for the footer/header site map. [used by: 1 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"export const metadata|generateMetadata|next/font|<img \",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\app\\admin\\page.tsx:6:export const metadata: Metadata = {\nsrc\\app\\layout.tsx:17:export const metadata: Metadata = {\nsrc\\app\\[game]\\page.tsx:18:export async function generateMetadata({ params }: { params: Promise<{ game: string }> }): Promise<Metadata> {\nsrc\\components\\Footer.tsx:18:            <img src={logo.src} alt=\"Logo\" className=\"w-8 h-8\" />\nsrc\\Game Renderers\\StartingFive.tsx:87:        <img className=\"s5-photo\" src={playerPhotoUrl(name)} alt={name} onError={() => setFailed(true)} />\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx:449:      <img className=\"om-chip-av\" src={photo || defaultAvatar.src} alt=\"\" onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }} />\nsrc\\components\\Navigation.tsx:104:          <img src={logo.src} alt=\"HOOPS24\" className=\"nav3-logo\" />\nsrc\\components\\Navigation.tsx:144:                <img src={logo.src} alt=\"\" className=\"nav3-logo\" />"
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"slice optimistically in the mount effect when a refresh token exists, proactively refresh when the\\naccess token is expired instead of eating a 401, reconcile with `/me/` in the background, and\\noptionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.\",\n  \"new_string\": \"slice optimistically in the mount effect when a refresh token exists, proactively refresh when the\\naccess token is expired instead of eating a 401, reconcile with `/me/` in the background, and\\noptionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "<tool_use_error>No changes to make: old_string and new_string are exactly the same.</tool_use_error>"
+  },
+  {
+    "role": "assistant",
+    "content": "Appending the close-call entry at the end of the file."
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cat >> \\\"C:/Users/stefa/.eval-worktrees/classify/r14_rep1_1790697877893/docs/team/DECISIONS.md\\\" <<'EOF'\\n\\n## 2026-09-29 — Technical SEO + full keyboard/ARIA pass: standard vs hard, sonnet vs opus\\nContext: frontend P1 card, no override. Two halves: technical SEO (per-route metadata — `layout.tsx`,\\n`admin/page.tsx` and `[game]/page.tsx` `generateMetadata` already exist; JSON-LD; `sitemap.ts`;\\nCWV/Lighthouse fixes) and an app-wide keyboard/ARIA pass (nav + mobile drawer, `ModalHost` modals,\\n`LogInSignUp` tabs, dropdowns, and every `src/Game Renderers/*` board). The spec is audit-first\\n(\\\"run Lighthouse/axe/keyboard walk, then fix everything found\\\"), so the fix list does not exist yet.\\n`standard` was defensible (one Category, no backend, mostly existing patterns — `ui/Modal` already\\ntraps focus); `opus` was defensible because the work cannot be written as steps before the audit.\\nDecision: `difficulty: hard`, `areas: frontend/ui/games` (renderers are touched and must be checked\\nagainst GAME_DESIGN_CONSTRAINTS), `risk: low` (no auth/pipeline/protected paths), `needsDesignRound:\\ntrue`, `planModel: fable`, `engineModel: sonnet` provisional. Per the model rubric, long-and-vague is a\\nplan problem: the design round should run the audit itself and turn findings into per-file steps with\\ndone-checks, which is sonnet work. Opus only for any step that changes when/how something animates.\\nConsequences: the plan must not add `src/app/robots.ts` while `public/robots.txt` exists (Next\\nrejects the conflict and that file belongs to a separate pending card), must forbid visual/copy\\nchanges beyond focus-visible styling, and should consider splitting SEO and a11y into separate\\ncommits or cards if the audit list is long.\\nEOF\",\n  \"description\": \"Append close-call entry to decisions log\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Bash has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\r14_rep1_1790697877893\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\",\n  \"new_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\\n## 2026-09-29 — Technical SEO + full keyboard/ARIA pass: standard vs hard, sonnet vs opus\\nContext: frontend P1 card, no override. Two halves: technical SEO (per-route metadata — `layout.tsx`,\\n`admin/page.tsx` and `[game]/page.tsx` `generateMetadata` already exist; JSON-LD; `sitemap.ts`;\\nCWV/Lighthouse fixes) and an app-wide keyboard/ARIA pass (nav + mobile drawer, `ModalHost` modals,\\n`LogInSignUp` tabs, dropdowns, and every `src/Game Renderers/*` board). The spec is audit-first\\n(\\\"run Lighthouse/axe/keyboard walk, then fix everything found\\\"), so the fix list does not exist yet.\\n`standard` was defensible (one Category, no backend, mostly existing patterns — `ui/Modal` already\\ntraps focus); `opus` was defensible because the work cannot be written as steps before the audit.\\nDecision: `difficulty: hard`, `areas: frontend/ui/games` (renderers are touched and must be checked\\nagainst GAME_DESIGN_CONSTRAINTS), `risk: low` (no auth/pipeline/protected paths), `needsDesignRound:\\ntrue`, `planModel: fable`, `engineModel: sonnet` provisional. Per the model rubric, long-and-vague is a\\nplan problem: the design round should run the audit itself and turn findings into per-file steps with\\ndone-checks, which is sonnet work. Opus only for any step that changes when/how something animates.\\nConsequences: the plan must not add `src/app/robots.ts` while `public/robots.txt` exists (Next\\nrejects the conflict and that file belongs to a separate pending card), must forbid visual/copy\\nchanges beyond focus-visible styling, and should consider splitting SEO and a11y into separate\\ncommits or cards if the audit list is long.\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Edit has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "{ \"difficulty\": \"hard\", \"areas\": [\"frontend\",\"ui\",\"games\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/GAME_DESIGN_CONSTRAINTS.md\",\"docs/constraints/UI_SHELL_CONSTRAINTS.md\",\"docs/DEPLOYMENT.md\"],\n  \"codeMapHits\": [\"- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 2 files]\",\"- `src/components/LogInSignUp.tsx` — Tabbed login/signup form incl. Google OAuth, rendered inside the auth modal. [used by: 1 files]\",\"- `src/components/ModalHost.tsx` — Single overlay host; switches login/feedback/leaderboard/instructions content by modal kind. [used by: 2 files]\",\"- `src/components/ui/Modal.tsx` — Accessible modal shell: focus trap, Escape-to-close, scroll lock; imported directly (not via barrel). [used by: 1 files]\",\"- `src/context/ModalContext.tsx` — Global single-overlay state (login/feedback/leaderboard/instructions) + `useModal()`/`ModalProvider`. [used by: 8 files]\",\"- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell (Status/Score/Label/Prompt/Board/Action/InputRow) every game renderer's root must use. [used by: 19 files]\",\"- `src/components/ui/Button.tsx` — Design-system button: variant/size props, spring hover-lift + tap-press feedback. [used by: 22 files]\",\"- `src/components/ui/Field.tsx` — Design-system text input; `search` prop switches to the left-icon search variant. [used by: 2 files]\",\"- `src/utils/GameUtils.tsx` — Full games catalog (metadata/rules/instructions for all 19 games) + a generic pool-error alert. [used by: 4 files]\",\"- `src/components/modals/FeedbackModal.tsx` — Front-end-only star rating + free-text feedback form (no backend endpoint). [used by: 1 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": true }"
+  }
+]

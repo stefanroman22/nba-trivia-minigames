@@ -1,0 +1,68 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Game cards appear too late on mobile (black screen) ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â make it smoother\nCategory: frontend\nPriority: P1\n\nget-spec output:\nOn the landing page, especially on mobile, the screen stays black and the game cards show up too late. Make them appear sooner and animate in more smoothly."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u06_rep0_1790707267444\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)landing|home|card|motion\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u06_rep0_1790707267444\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "16:- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\n18:- `src/components/GuestPanel.tsx` — Logged-out sign-in teaser shown beside the home leaderboard card. [used by: 1 files]\n19:- `src/components/Leaderboard.tsx` — Home \"Global Top 100\" card: preview rows, self row, refresh, view-all link. [used by: 1 files]\n24:- `src/components/RevealText.tsx` — Word-by-word staggered heading reveal animation (framer-motion). [used by: 0 files]\n29:- `src/components/MultiPlayer/FriendPlay.tsx` — \"Play with a friend\" card: generate/enter room code, live lobby, seats. [used by: 1 files]\n30:- `src/components/MultiPlayer/MultiplayerPanel.tsx` — Pre-match card: random 1v1 or play-with-a-friend (swaps to FriendPlay). [used by: 1 files]\n32:- `src/components/MultiPlayer/PlayerCard.tsx` — Compact player tile for the VS intro and results matchup. [used by: 1 files]\n50:- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]\n57:- `src/components/ui/Surface.tsx` — Bordered motion-enabled card surface, tone \"1\" or \"2\". [used by: 1 files]\n67:- `src/hooks/useReducedMotionSafe.ts` — SSR-safe framer-motion `useReducedMotion`; use instead of the raw hook. [used by: 3 files]\n76:- `src/utils/ScrolllToSection.tsx` — Smooth-scrolls to a DOM element by id (home-page section nav). [used by: 2 files]\n132:- `backend/trivia/management/commands/upload_dataset.py` — Uploads the curated players dataset to Storage (home-PC step). [used by: 1 files]\n176:## Motion (src/motion/ and src/components/motion/)\n178:- `src/motion/tokens.ts` — Shared `durations`, `easing`, and `springs` (soft/pop/gentle/thumb) motion tokens. [used by: 2 files]\n179:- `src/motion/variants.ts` — Reusable framer-motion Variants (fadeIn/fadeInUp/scaleIn/popIn/stagger/swap). [used by: 2 files]\n180:- `src/components/motion/SegmentedTabs.tsx` — Shared sliding-thumb tab/pill switcher on `springs.thumb`; callers keep own track styling. [used by: 5 files]\n181:- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text; configurable transition/variants. [used by: 15 files]\n182:- `src/components/motion/AnimatedNumber.tsx` — Counts up to a value for score reveals; respects reduced motion. [used by: 3 files]\n183:- `src/components/motion/Reveal.tsx` — Scroll-triggered reveal wrapper with child staggering; respects reduced motion. [used by: 1 files]\n184:- `src/components/motion/MotionButton.tsx` — Drop-in animated button with spring hover/tap feedback. [used by: 0 files]\n185:- `src/components/motion/Spinner.tsx` — Glowing orange ring spinner with basketball-seam animation, shadowed by ui/Spinner. [used by: 0 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)animation|motion|landing\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u06_rep0_1790707267444\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "91:`scroll-margin-top: 76px` gives the 12px-below-header landing the card asks for), and on\n114:`maxTasksPerRun` is no longer a limit; time is. Promotion to `main` is covered by a separate\n121:## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action\n360:## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\n362:animation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on\n364:Decision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or\n365:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"GameTile|GameCard\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u06_rep0_1790707267444\\\\src\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 5 files\nsrc\\views\\Landpage.tsx\nsrc\\views\\Admin.tsx\nsrc\\components\\ui\\index.ts\nsrc\\components\\ui\\GameTile.tsx\nsrc\\components\\GameCard.tsx"
+  },
+  {
+    "role": "assistant",
+    "content": "```json\n{ \"difficulty\": \"standard\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]\",\n    \"- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\",\n    \"- `src/components/motion/Reveal.tsx` — Scroll-triggered reveal wrapper with child staggering; respects reduced motion. [used by: 1 files]\",\n    \"- `src/motion/variants.ts` — Reusable framer-motion Variants (fadeIn/fadeInUp/scaleIn/popIn/stagger/swap). [used by: 2 files]\",\n    \"- `src/motion/tokens.ts` — Shared `durations`, `easing`, and `springs` (soft/pop/gentle/thumb) motion tokens. [used by: 2 files]\",\n    \"- `src/hooks/useReducedMotionSafe.ts` — SSR-safe framer-motion `useReducedMotion`; use instead of the raw hook. [used by: 3 files]\",\n    \"- `src/components/RevealText.tsx` — Word-by-word staggered heading reveal animation (framer-motion). [used by: 0 files]\",\n    \"- `src/components/ui/Surface.tsx` — Bordered motion-enabled card surface, tone \\\"1\\\" or \\\"2\\\". [used by: 1 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

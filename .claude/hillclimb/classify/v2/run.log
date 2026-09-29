@@ -1,0 +1,124 @@
+[v2] 72 of 72 (id,rep) to run
+[v2] 0/72 done (0 ok, 0 failed), 30s elapsed
+  [v2] r01 rep0: routing 1 (56s)
+[v2] 1/72 done (1 ok, 0 failed), 62s elapsed, ~4396s left
+  [v2] r02 rep0: routing 1 (63s)
+  [v2] r01 rep1: routing 1 (69s)
+  [v2] r02 rep1: routing 1 (35s)
+[v2] 4/72 done (4 ok, 0 failed), 96s elapsed, ~1626s left
+  [v2] r03 rep1: routing 1 (27s)
+  [v2] r03 rep0: routing 1 (37s)
+[v2] 6/72 done (6 ok, 0 failed), 126s elapsed, ~1382s left
+[v2] 6/72 done (6 ok, 0 failed), 156s elapsed, ~1712s left
+  [v2] r04 rep0: routing 1 (68s)
+  [v2] r04 rep1: routing 1 (69s)
+  [v2] r05 rep0: routing 0 (74s)
+[v2] 9/72 done (9 ok, 0 failed), 186s elapsed, ~1300s left
+[v2] 9/72 done (9 ok, 0 failed), 216s elapsed, ~1510s left
+  [v2] r06 rep1: routing 1 (44s)
+  [v2] r06 rep0: routing 1 (68s)
+[v2] 11/72 done (11 ok, 0 failed), 246s elapsed, ~1363s left
+  [v2] r05 rep1: routing 1 (90s)
+  [v2] r07 rep0: routing 1 (41s)
+[v2] 13/72 done (13 ok, 0 failed), 276s elapsed, ~1251s left
+  [v2] r07 rep1: routing 1 (45s)
+  [v2] r08 rep0: routing 1 (52s)
+[v2] 15/72 done (15 ok, 0 failed), 309s elapsed, ~1174s left
+  [v2] r09 rep1: routing 1 (35s)
+[v2] 16/72 done (16 ok, 0 failed), 344s elapsed, ~1204s left
+  [v2] r08 rep1: routing 1 (86s)
+  [v2] r09 rep0: routing 1 (74s)
+[v2] 18/72 done (18 ok, 0 failed), 374s elapsed, ~1122s left
+  [v2] r11 rep0: routing 1 (49s)
+[v2] 19/72 done (19 ok, 0 failed), 407s elapsed, ~1135s left
+  [v2] r10 rep1: routing 1 (66s)
+  [v2] r10 rep0: routing 1 (83s)
+[v2] 21/72 done (21 ok, 0 failed), 437s elapsed, ~1061s left
+  [v2] r11 rep1: routing 1 (43s)
+[v2] 22/72 done (22 ok, 0 failed), 467s elapsed, ~1061s left
+  [v2] r12 rep1: routing 1 (66s)
+  [v2] r12 rep0: routing 1 (80s)
+[v2] 24/72 done (24 ok, 0 failed), 497s elapsed, ~994s left
+  [v2] r13 rep0: routing 1 (53s)
+[v2] 25/72 done (25 ok, 0 failed), 527s elapsed, ~990s left
+  [v2] r13 rep1: routing 1 (67s)
+[v2] 26/72 done (26 ok, 0 failed), 563s elapsed, ~996s left
+  [v2] r14 rep0: routing 1 (78s)
+  [v2] r14 rep1: routing 1 (87s)
+[v2] 28/72 done (28 ok, 0 failed), 593s elapsed, ~932s left
+[v2] 28/72 done (28 ok, 0 failed), 623s elapsed, ~979s left
+  [v2] r15 rep0: routing 1 (82s)
+  [v2] r15 rep1: routing 1 (74s)
+  [v2] r16 rep0: routing 1 (65s)
+[v2] 31/72 done (31 ok, 0 failed), 655s elapsed, ~866s left
+[v2] 31/72 done (31 ok, 0 failed), 685s elapsed, ~906s left
+  [v2] r16 rep1: routing 1 (53s)
+  [v2] r17 rep0: routing 1 (58s)
+[v2] 33/72 done (33 ok, 0 failed), 715s elapsed, ~845s left
+  [v2] r18 rep0: routing 1 (44s)
+  [v2] r17 rep1: routing 1 (88s)
+  [v2] r18 rep1: routing 1 (44s)
+[v2] 36/72 done (36 ok, 0 failed), 751s elapsed, ~751s left
+[v2] 36/72 done (36 ok, 0 failed), 781s elapsed, ~781s left
+  [v2] r19 rep0: routing 1 (59s)
+  [v2] u01 rep0: routing 1 (58s)
+[v2] 38/72 done (38 ok, 0 failed), 812s elapsed, ~726s left
+  [v2] r19 rep1: routing 1 (75s)
+[v2] 39/72 done (39 ok, 0 failed), 842s elapsed, ~712s left
+  [v2] u01 rep1: routing 1 (73s)
+[v2] 40/72 done (40 ok, 0 failed), 872s elapsed, ~698s left
+  [v2] u02 rep0: routing 1 (71s)
+  [v2] u02 rep1: routing 1 (68s)
+[v2] 42/72 done (42 ok, 0 failed), 902s elapsed, ~644s left
+  [v2] u03 rep0: routing 1 (52s)
+  [v2] u03 rep1: routing 1 (50s)
+[v2] 44/72 done (44 ok, 0 failed), 932s elapsed, ~593s left
+  [v2] u04 rep1: routing 1 (40s)
+[v2] 45/72 done (45 ok, 0 failed), 962s elapsed, ~577s left
+  [v2] u04 rep0: routing 1 (85s)
+  [v2] u05 rep0: routing 1 (49s)
+[v2] 47/72 done (47 ok, 0 failed), 992s elapsed, ~528s left
+  [v2] u05 rep1: routing 1 (42s)
+  [v2] u06 rep0: routing 1 (36s)
+  [v2] u06 rep1: routing 1 (44s)
+[v2] 50/72 done (50 ok, 0 failed), 1026s elapsed, ~451s left
+  [v2] u07 rep0: routing 1 (35s)
+  [v2] u07 rep1: routing 1 (51s)
+[v2] 52/72 done (52 ok, 0 failed), 1059s elapsed, ~407s left
+  [v2] u08 rep0: routing 1 (48s)
+  [v2] u08 rep1: routing 1 (48s)
+[v2] 54/72 done (54 ok, 0 failed), 1089s elapsed, ~363s left
+[v2] 54/72 done (54 ok, 0 failed), 1119s elapsed, ~373s left
+  [v2] u09 rep1: routing 1 (76s)
+[v2] 55/72 done (55 ok, 0 failed), 1151s elapsed, ~356s left
+  [v2] u10 rep0: routing 1 (72s)
+  [v2] u09 rep0: routing 1 (105s)
+[v2] 57/72 done (57 ok, 0 failed), 1181s elapsed, ~311s left
+  [v2] u11 rep1: routing 1 (51s)
+[v2] 58/72 done (58 ok, 0 failed), 1222s elapsed, ~295s left
+  [v2] u11 rep0: routing 1 (76s)
+[v2] 59/72 done (59 ok, 0 failed), 1252s elapsed, ~276s left
+[v2] 59/72 done (59 ok, 0 failed), 1285s elapsed, ~283s left
+  [v2] u10 rep1: routing 1 (168s)
+[v2] 60/72 done (60 ok, 0 failed), 1325s elapsed, ~265s left
+  [v2] u12 rep1: routing 1 (112s)
+[v2] 61/72 done (61 ok, 0 failed), 1355s elapsed, ~244s left
+[v2] 61/72 done (61 ok, 0 failed), 1385s elapsed, ~250s left
+  [v2] u12 rep0: routing 1 (178s)
+  [v2] u13 rep0: routing 1 (86s)
+  [v2] u13 rep1: routing 1 (61s)
+[v2] 64/72 done (64 ok, 0 failed), 1415s elapsed, ~177s left
+[v2] 64/72 done (64 ok, 0 failed), 1445s elapsed, ~181s left
+  [v2] u14 rep1: routing 1 (55s)
+  [v2] u14 rep0: routing 1 (86s)
+[v2] 66/72 done (66 ok, 0 failed), 1478s elapsed, ~134s left
+  [v2] u15 rep0: routing 1 (78s)
+[v2] 67/72 done (67 ok, 0 failed), 1508s elapsed, ~113s left
+  [v2] u16 rep1: routing 1 (32s)
+  [v2] u15 rep1: routing 1 (76s)
+[v2] 69/72 done (69 ok, 0 failed), 1538s elapsed, ~67s left
+  [v2] u17 rep0: routing 1 (42s)
+  [v2] u16 rep0: routing 1 (84s)
+  [v2] u17 rep1: routing 1 (41s)
+[v2] 72/72 done (72 ok, 0 failed), 1568s elapsed, ~0s left
+[v2] done - 72 ok, 0 failed -> .claude\hillclimb\classify\v2\results.jsonl

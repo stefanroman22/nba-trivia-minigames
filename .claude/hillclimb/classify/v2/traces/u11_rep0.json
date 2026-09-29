@@ -1,0 +1,50 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: P0: we are under a DDoS attack and the site is about to crash\nCategory: CI/CD\nPriority: P0\n\nget-spec output:\nThe website is under a DDoS attack and is about to go down (or has). Stop it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790707452919\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u11_rep0_1790707452919\\\"; cat docs/team/DECISIONS.md | head -150; echo ----; grep -niE \\\"throttl|rate|middleware|vercel|settings|firewall|ddos|cache\\\" docs/team/CODE_MAP.md | head -40; ls docs/constraints 2>/dev/null\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "# Team Decisions Log\n\nAppend-only. One entry per architectural/design decision made by the planner or a design round.\nFormat: `## YYYY-MM-DD — <title>` then Context / Decision / Consequences (2–3 lines each).\n\n## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\nContext: asked to have planner-architect use the `superpowers:brainstorming`/`writing-plans`\nskills for complex tasks (write a plan, self-review it, hand it to the engine).\nDecision: build the same rigor (numbered plan, self-review for coverage/placeholders/\nconsistency/scope/ambiguity) directly into `design-round`'s procedure instead of invoking those\nskills. Two reasons: (1) `superpowers:brainstorming` hard-gates on human approval before any\nimplementation step — incompatible with an unattended pipeline run; (2) both skills are\nmachine-local plugins, not committed to this repo, so referencing them would silently no-op on\nevery cloud routine run (the pipeline's primary execution mode).\nConsequences: the plan-and-self-review discipline now runs identically local or cloud, with no\nexternal dependency. If those skills are ever made repo-portable and their approval gate made\noptional for headless use, this can be revisited.\n\n## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\nContext: the owner wants token spend cut without losing quality. Previously `classify` sent\nhard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\nand QA models were fixed by frontmatter/profile, so the `deep`/`max` profile could silently put\nbrowser-qa on opus.\nDecision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\nhard included) — never opus/fable. `planModel` is opus (explicit spec) or fable (thin spec) and\ndrives the design round, the replan, and code-reviewer. Every design round now produces a\nfull implementation plan (previously hard-only), explicit enough that sonnet executes it\nrather than reasoning it out. test-qa-engine and browser-qa are always sonnet; the CTO gate\nis pinned to opus in the workflow (never fable). The orchestrator passes every model\nexplicitly. Revisits 2026-08-29: `superpowers:writing-plans` may be used for the plan when it\nis present in the skill listing (local runs); the native a–c step remains the cloud fallback.\n`superpowers:brainstorming` stays excluded — its human-approval gate is still incompatible\nwith unattended runs.\nConsequences: opus/fable spend moves from implementation (the longest stage) to two short\nstages (plan, review). Plan quality is now load-bearing for hard tasks — a thin plan will\nshow up as sonnet build failures and verify fix-cycles, which is the signal to fix the plan,\nnot to raise the engine model.\n\n## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\nContext: same day as the entry above, the owner banned opus (5 and 4.8) from the pipeline\noutright and asked for Fable 5.1 as the single heavy model, with the implementer chosen by the\nshape of the work rather than by spec quality.\nDecision: supersedes the opus/fable `planModel` split above — `planModel` is removed; every\nthinking role (classify, design round, replan, code-reviewer, CTO gate, orchestrator default in\n`.claude/settings.json`, the `deep`/`max` engine profiles) is fable. `engineModel` gains a\n`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\nacceptance criteria, however many; fable for complex-but-small work — few steps, each needing\njudgment a plan cannot pin down. Because step count and criteria explicitness are only known\nafter planning, classify's pick is provisional and the design round finalizes it (`Engine:`\nline, step 5d). The earlier \"CTO never fable\" rule is dropped: with opus gone, fable is the only\nreviewer-grade model left.\nConsequences: no repo surface can spawn opus. The cloud worker routine's model lives in the\nclaude.ai routine settings, not \n... [10042 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u11_rep0_1790707452919\\\"; sed -n 150,400p docs/team/DECISIONS.md | grep -niE \\\"ddos|security|attack|P0\\\" ; grep -niE \\\"settings\\\\.py|backend/backend/|multiplayer_server/src/index|middleware|vercel\\\" docs/team/CODE_MAP.md | head; grep -rniE \\\"throttle|rate.?limit\\\" multiplayer_server/src --include=*.js -l | head; grep -niE \\\"DEFAULT_THROTTLE|THROTTLE_RATES\\\" backend/backend/settings.py; ls vercel.json backend/vercel.json 2>/dev/null\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "216:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion\n168:- `backend/backend/env_utils.py` — `env_bool`/`env_list`/`env_list_merge` env-var parsing helpers for settings. [used by: 2 files]\n169:- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\nmultiplayer_server/src/index.js\n154:    # DEFAULT_THROTTLE_CLASSES, so game-data reads stay unthrottled and only the\n156:    \"DEFAULT_THROTTLE_RATES\": {\nbackend/vercel.json\nvercel.json"
+  },
+  {
+    "role": "assistant",
+    "content": "```json\n{ \"difficulty\": \"hard\", \"areas\": [\"backend\", \"frontend\", \"multiplayer\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/DEPLOYMENT.md\", \"docs/ARCHITECTURE.md\", \"docs/constraints/BACKEND_CONSTRAINTS.md\", \"docs/constraints/MULTIPLAYER_CONSTRAINTS.md\", \"docs/CACHING_SCALING_PLAN.md\"],\n  \"codeMapHits\": [\"- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\", \"- `backend/backend/env_utils.py` — `env_bool`/`env_list`/`env_list_merge` env-var parsing helpers for settings. [used by: 2 files]\", \"- `src/utils/pool.ts` — Fetches/caches a game's data pool (CDN + version-keyed) and samples N rounds. [used by: 6 files]\", \"- `src/hooks/useLeaderboard.ts` — Loads leaderboard (global/friends) with shared 5-min TTL cache and auto-refresh. [used by: 3 files]\", \"- `src/utils/session.ts` — Cached /me/ user read/write/clear and access-token expiry check for session bootstrap. [used by: 2 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

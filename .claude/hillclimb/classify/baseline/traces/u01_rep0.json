@@ -1,0 +1,126 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Remove the descriptive text in the info popup next to the game title\nCategory: frontend\n\nget-spec output:\nOn an individual game page, clicking the (i) icon next to the game title shows a block of descriptive text. Remove that descriptive text."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)info|popup|description|title\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "10:- `src/components/CorrectAnswer.tsx` — Animated \"Correct answer: X\" banner; superseded by SubmitGuessPopUp. [used by: 0 files]\n26:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\"Correct! +10\") into the shared feedback slot. [used by: 17 files]\n36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\n53:- `src/components/ui/SectionHeader.tsx` — Title plus optional subtitle/action row for page sections. [used by: 2 files]\n93:- `src/context/FeedbackSlotContext.ts` — DOM-node context so SubmitGuessPopUp portals into one fixed spot. [used by: 2 files]\n119:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text into the shared feedback slot. [used by: 17 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)info.?(popup|popover|tooltip|icon)|InfoIcon|FaInfo|showInfo\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\src\",\n  \"output_mode\": \"content\",\n  \"head_limit\": 30\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)info popup|descriptive|haiku|trivial\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_result",
+    "content": "21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n77:override is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n84:Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86:`trivial` on a task that still needs layout judgment.\n89:Context: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend\n98:`/admin` and a game page on a phone viewport). Difficulty stays `trivial` per the override.\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n210:Consequences: \"test is stale after a shipped refactor\" cards are trivial/sonnet, test-file\n344:existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n365:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)(info|ⓘ|aria-label=\\\"[^\\\"]*(info|about|how to))\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\src\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 29 files\nsrc\\views\\Trivia\\MiniGame.tsx\nsrc\\types\\types.tsx\nsrc\\styles\\Multiplayer.css\nsrc\\styles\\MiniGame.css\nsrc\\styles\\Friends.css\nsrc\\context\\MultiplayerContext.tsx\nsrc\\context\\ModalContext.tsx\nsrc\\components\\modals\\MultiplayerInfoModal.tsx\nsrc\\components\\UserProfile.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\components\\MultiPlayer\\MultiplayerPanel.tsx\nsrc\\components\\ModalHost.tsx\nsrc\\components\\FriendsPanel.tsx\nsrc\\components\\ErrorBoundary.tsx\nsrc\\Game Renderers\\Wordle.tsx\nsrc\\Game Renderers\\WhoAreYa.tsx\nsrc\\Game Renderers\\TicTacToe.tsx\nsrc\\Game Renderers\\SuperDraft.tsx\nsrc\\Game Renderers\\StartingFive.tsx\nsrc\\Game Renderers\\RenderGame.tsx\nsrc\\Game Renderers\\PackFive.tsx\nsrc\\Game Renderers\\NbaGrid.tsx\nsrc\\Game Renderers\\ImposterGame.tsx\nsrc\\Game Renderers\\HeatmapGame.tsx\nsrc\\Game Renderers\\FanFavorites.tsx\nsrc\\Game Renderers\\Contexto.tsx\nsrc\\Game Renderers\\ConnectionsGame.tsx\nsrc\\Game Renderers\\CareerPath.tsx\nsrc\\Game Renderers\\BingoGame.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)info\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\src\\\\views\\\\Trivia\\\\MiniGame.tsx\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "310-          <section className=\"stage-col\" ref={stageColRef}>\n311-            <div className=\"stage-title\">\n312-              <h1 className=\"font-display\" style={{ fontSize: \"clamp(19px,2.6vw,26px)\" }}>{game?.name}</h1>\n313:              <button className=\"info-btn\" aria-label=\"How to play\" onClick={() => game && open(\"instructions\", { game, onPlay: stage === \"idle\" && !wordleLocked ? handleStart : undefined })}>\n314-                <svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2.2\" strokeLinecap=\"round\" strokeLinejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\" /><path d=\"M12 16v-4M12 8h.01\" /></svg>\n315-              </button>\n316-              {online"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"instructions\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\src\\\\components\",\n  \"output_mode\": \"content\",\n  \"-n\": true\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\components\\ModalHost.tsx:38:  } else if (kind === \"instructions\") {"
+  },
+  {
+    "role": "assistant",
+    "content": "Found the (i) button in `MiniGame.tsx`; checking the instructions modal it opens."
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\src\\\\components\\\\ModalHost.tsx\",\n  \"offset\": 30,\n  \"limit\": 40\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "30\t    content = <LogInSignUp mode={authMode} onModeChange={setAuthMode} onClose={close} />;\n31\t  } else if (kind === \"feedback\") {\n32\t    title = \"Share feedback\";\n33\t    content = <FeedbackModal onClose={close} />;\n34\t  } else if (kind === \"leaderboard\") {\n35\t    title = \"Global Top 100\";\n36\t    wide = true;\n37\t    content = <LeaderboardModal />;\n38\t  } else if (kind === \"instructions\") {\n39\t    title = \"How to play\";\n40\t    const p = payload as InstructionsPayload | undefined;\n41\t    content = p?.game ? <InstructionsModal game={p.game} onPlay={p.onPlay} onClose={close} /> : null;\n42\t  } else if (kind === \"multiplayerInfo\") {\n43\t    title = \"Multiplayer\";\n44\t    content = <MultiplayerInfoModal onClose={close} />;\n45\t  }\n46\t\n47\t  return (\n48\t    <AnimatePresence>\n49\t      {kind && (\n50\t        <Modal key={kind} title={title} onClose={close} wide={wide}>\n51\t          {content}\n52\t        </Modal>\n53\t      )}\n54\t    </AnimatePresence>\n55\t  );\n56\t}\n57\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"src/components/**/InstructionsModal.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\components\\modals\\InstructionsModal.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\src\\\\components\\\\modals\\\\InstructionsModal.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\timport type { InstructionsPayload } from \"../../context/ModalContext\";\n2\t\n3\tinterface InstructionsModalProps extends InstructionsPayload {\n4\t  onClose: () => void;\n5\t}\n6\t\n7\t/** \"How to play\" content: intro + numbered rules + a start CTA. */\n8\texport default function InstructionsModal({ game, onPlay, onClose }: InstructionsModalProps) {\n9\t  const handlePlay = () => {\n10\t    onClose();\n11\t    onPlay?.();\n12\t  };\n13\t\n14\t  return (\n15\t    <div className=\"instr-stack\">\n16\t      {game.intro && <p className=\"instr-intro\">{game.intro}</p>}\n17\t\n18\t      <div className=\"instr-rules\">\n19\t        {(game.rules ?? []).map((rule) => (\n20\t          <div key={rule.n} className=\"instr-rule\">\n21\t            <span className=\"instr-rule-n\">{rule.n}</span>\n22\t            <p className=\"instr-rule-t\">{rule.t}</p>\n23\t          </div>\n24\t        ))}\n25\t      </div>\n26\t\n27\t      <button className=\"modal-primary-btn\" style={{ height: 46 }} onClick={handlePlay}>\n28\t        Got it\n29\t      </button>\n30\t    </div>\n31\t  );\n32\t}\n33\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)InstructionsModal|ModalHost|MiniGame\\\\.tsx\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep0_1790693341092\\\\docs\",\n  \"output_mode\": \"content\",\n  \"head_limit\": 15\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md:166:(`score-submit`, 60/hour), and it returns `{awarded, points, rank}`, which `MiniGame.tsx`'s `awardPoints`\ndocs\\constraints\\AUTH_CONSTRAINTS.md:191:written, and the response is `awarded: 0, points: 0, rank: None`. `MiniGame.tsx` says so (\"guests log\ndocs\\GAME_DESIGN_CONSTRAINTS.md:98:Fixed DOM chain, owned by `MiniGame.tsx` + `Stage.tsx`. A game renderer supplies **only** the\ndocs\\GAME_DESIGN_CONSTRAINTS.md:252:> The \"5 rounds\" and \"~1 min\" chips are currently **hardcoded** in `MiniGame.tsx`; only\ndocs\\GAME_DESIGN_CONSTRAINTS.md:266:  (`MiniGame.tsx`), so the animation never flashes.\ndocs\\GAME_DESIGN_CONSTRAINTS.md:318:>   `MiniGame.tsx`. Game→Exit gap = **28px**.\ndocs\\GAME_DESIGN_CONSTRAINTS.md:712:   Owned by `MiniGame.tsx:149`, so every game gets it identically.\ndocs\\team\\CODE_MAP.md:22:- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:34:- `src/components/modals/InstructionsModal.tsx` — \"How to play\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md:18:| Page shell (`app-shell` + `Navigation` + `main.page`) | `src/views/Landpage.tsx`, `src/views/Trivia/MiniGame.tsx`, `src/views/Admin.tsx` |\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md:20:| Single overlay host | `src/components/ModalHost.tsx`, `src/context/ModalContext.tsx`, `src/components/ui/Modal.tsx` |\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md:37:`src/views/Trivia/MiniGame.tsx`, `src/views/Admin.tsx`) renders the shell markup itself. The\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md:65:(`games.find(g => g.urlPath === pathname)?.id` in `src/views/Trivia/MiniGame.tsx`).\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md:123:`LandPage.css`, `views/Trivia/MiniGame.tsx` → `MiniGame.css`, `motion/SegmentedTabs.tsx` →\n\n[Showing results with pagination = limit: 15]"
+  },
+  {
+    "role": "assistant",
+    "content": "I classed this as trivial and gave it to Haiku, with no design round.\n\n- **Where the text is:** the (i) button next to the game title in `src/views/Trivia/MiniGame.tsx` opens the \"How to play\" modal. The descriptive text is the intro paragraph on line 16 of `src/components/modals/InstructionsModal.tsx`. Deleting that one line is the whole job, with no logic involved.\n- **What stays:** the numbered rules and the \"Got it\" button stay. I read \"descriptive text\" as the intro paragraph only, not the rules.\n- **Close call:** I didn't log one in `DECISIONS.md`. Haiku versus Sonnet was the only real choice. Earlier Sonnet picks were for layout judgment, and deleting a line of text doesn't need any.\n- **Past failures:** `RETRO.md` has no parked tasks yet.\n\n```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"haiku\", \"engineEffort\": \"low\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\"- `src/components/modals/InstructionsModal.tsx` — \\\"How to play\\\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\", \"- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

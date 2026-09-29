@@ -1,0 +1,104 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: In-game UI: don't fade elements that don't change between rounds\nCategory: frontend\n\nget-spec output:\nWhen the next round loads, text components that stay the same still fade out and back in. Only animate the parts whose data actually changes; everything else should stay put."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)fade|round|transition|animat|feedback|GameFrame|renderer\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "10:- `src/components/CorrectAnswer.tsx` — Animated \"Correct answer: X\" banner; superseded by SubmitGuessPopUp. [used by: 0 files]\n11:- `src/components/EndSequence.tsx` — Shared end-of-game bottom slot: cross-fades input, loader, score phases. [used by: 5 files]\n16:- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\n24:- `src/components/RevealText.tsx` — Word-by-word staggered heading reveal animation (framer-motion). [used by: 0 files]\n26:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\"Correct! +10\") into the shared feedback slot. [used by: 17 files]\n33:- `src/components/modals/FeedbackModal.tsx` — Star rating + free-text feedback form modal content. [used by: 1 files]\n37:- `src/components/admin/feedbackApi.ts` — Types and fetchers for the admin Feedback tab (filter object, stats, list). [used by: 2 files]\n38:- `src/components/admin/FeedbackCharts.tsx` — Admin Feedback charts: rating distribution and sentiment-over-time line. [used by: 1 files]\n39:- `src/components/admin/FeedbackTab.tsx` — Admin panel Feedback tab: one filter drives charts and table. [used by: 1 files]\n40:- `src/components/admin/vizPalette.ts` — Validated chart palette (ordinal star ramp) for admin Feedback charts. [used by: 1 files]\n44:- `src/components/ui/Avatar.tsx` — Small rounded avatar chip showing initials or photo on colored background. [used by: 4 files]\n49:- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell (Status/Score/Label/Prompt/Board/Action/InputRow) for renderer roots. [used by: 18 files]\n66:- `src/hooks/useNavigate.ts` — react-router-style `navigate(path, {state})` that plays the page exit fade first. [used by: 7 files]\n80:- `src/utils/pool.ts` — Fetches/caches a game's data pool (CDN + version-keyed) and samples N rounds. [used by: 6 files]\n93:- `src/context/FeedbackSlotContext.ts` — DOM-node context so SubmitGuessPopUp portals into one fixed spot. [used by: 2 files]\n96:- `src/context/PageTransitionContext.tsx` — Page-transition state, provider and the app's `navigate()` (via useNavigate). [used by: 3 files]\n100:- `src/constants/leaderboard.ts` — Leaderboard row types plus rank-colored avatar-background/initials helpers. [used by: 3 files]\n109:## Game renderer shared patterns (src/Game Renderers/)\n111:- `src/Game Renderers/RenderGame.tsx` — `renderGame()` dispatcher: gameId to the matching game renderer component. [used by: 2 files]\n112:- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell every renderer's root must use. [used by: 18 files]\n116:- `src/components/EndSequence.tsx` — Shared end-of-game slot: cross-fades input, loader, score phases. [used by: 5 files]\n119:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text into the shared feedback slot. [used by: 17 files]\n120:- `src/context/FeedbackSlotContext.ts` — DOM-node context the shell exposes for the feedback portal. [used by: 2 files]\n179:- `src/motion/variants.ts` — Reusable framer-motion Variants (fadeIn/fadeInUp/scaleIn/popIn/stagger/swap). [used by: 2 files]\n181:- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text; configurable transition/variants. [used by: 15 files]\n182:- `src/components/motion/AnimatedNumber.tsx` — Counts up to a value for score reveals; respects reduced motion. [used by: 3 files]\n184:- `src/components/motion/MotionButton.tsx` — Drop-in animated button with spring hover/tap feedback. [used by: 0 files]\n185:- `src/components/motion/Spinner.tsx` — Glowing orange ring spinner with basketball-seam animation, shadowed by ui/Spinner. [used by: 0 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)fade|animat|motion\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "92:`type=\"back\"` pages the fixed `setTimeout(..., 350)` races the exit fade + Next route push, so\n114:`maxTasksPerRun` is no longer a limit; time is. Promotion to `main` is covered by a separate\n121:## 2026-09-19 — Pipeline v2: push-to-dev-only, promotion is a manual/explicit action\n360:## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\n362:animation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on\n364:Decision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or\n365:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"AnimatePresence|key=\\\\{.*(round|question|index)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\src\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 33 files\nsrc\\motion\\variants.ts\nsrc\\context\\PageTransitionContext.tsx\nsrc\\components\\ui\\Stage.tsx\nsrc\\components\\ui\\Modal.tsx\nsrc\\components\\motion\\SwapText.tsx\nsrc\\components\\UserProfile.tsx\nsrc\\components\\SubmitGuessPopUp.tsx\nsrc\\components\\RevealText.tsx\nsrc\\components\\Navigation.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\components\\MultiPlayer\\MultiplayerPanel.tsx\nsrc\\components\\MultiPlayer\\FriendPlay.tsx\nsrc\\components\\ModalHost.tsx\nsrc\\components\\LogInSignUp.tsx\nsrc\\components\\Leaderboard.tsx\nsrc\\components\\GameResult.tsx\nsrc\\components\\EndSequence.tsx\nsrc\\components\\CorrectAnswer.tsx\nsrc\\components\\AutoCompleteInput.tsx\nsrc\\Game Renderers\\Wordle.tsx\nsrc\\Game Renderers\\WhoAreYa.tsx\nsrc\\Game Renderers\\SuperDraft.tsx\nsrc\\Game Renderers\\StartingFive.tsx\nsrc\\Game Renderers\\PlayOffSeries.tsx\nsrc\\Game Renderers\\PackFive.tsx\nsrc\\Game Renderers\\NbaGrid.tsx\nsrc\\Game Renderers\\NameLogo.tsx\nsrc\\Game Renderers\\ImposterGame.tsx\nsrc\\Game Renderers\\GuessMvps.tsx\nsrc\\Game Renderers\\Contexto.tsx\nsrc\\Game Renderers\\ConnectionsGame.tsx\nsrc\\Game Renderers\\CareerPath.tsx\nsrc\\Game Renderers\\BingoGame.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\src\\\\components\\\\motion\\\\SwapText.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t// Animated inline text swap: when the label changes, the old text fades/slides\n2\t// out and the new one slides in (e.g. \"Change\" → \"Saving…\" → \"Saved\",\n3\t// \"Copy\" → \"Copied!\"). Respects reduced motion. Zero layout opinion — the\n4\t// parent keeps its own sizing, so reserve space for the widest state there if\n5\t// shifts matter. Callers who need a different feel (or none at all) don't\n6\t// touch this file — see `transition`/`variants`/`disabled` below.\n7\timport { AnimatePresence, motion, useReducedMotion, type Transition, type TargetAndTransition } from \"framer-motion\";\n8\timport type { ReactNode } from \"react\";\n9\t\n10\t/** The baseline distance/duration/ease, exported so a caller building a custom\n11\t *  `transition` or `variants` can start from the same values instead of guessing. */\n12\t// eslint-disable-next-line react-refresh/only-export-components\n13\texport const SWAP_TEXT_DEFAULTS = { distance: 5, duration: 0.18, ease: \"easeOut\" as const };\n14\t\n15\tinterface SwapTextVariants {\n16\t  initial?: TargetAndTransition;\n17\t  animate?: TargetAndTransition;\n18\t  exit?: TargetAndTransition;\n19\t}\n20\t\n21\tinterface SwapTextProps {\n22\t  children: ReactNode;\n23\t  /** Identifies the current state; the swap animates when it changes.\n24\t      Defaults to the children themselves when they are a string/number. */\n25\t  swapKey?: string | number;\n26\t  /** Vertical travel in px of the outgoing/incoming text (ignored if `variants` is given). */\n27\t  distance?: number;\n28\t  /** Duration in seconds, used only when `transition` is not given. */\n29\t  duration?: number;\n30\t  /** Replaces the default `{ duration, ease: \"easeOut\" }` transition entirely — tune ease, duration or use a spring. */\n31\t  transition?: Transition;\n32\t  /** Opt out entirely: renders `children` in a plain `<span>`, no AnimatePresence/motion. */\n33\t  disabled?: boolean;\n34\t  /** Override the default slide+fade initial/animate/exit values wholesale. */\n35\t  variants?: SwapTextVariants;\n36\t  /** Passed through to the inner span (Tailwind callers, or to hook into layout). */\n37\t  className?: string;\n38\t}\n39\t\n40\tconst SwapText = ({\n41\t  children,\n42\t  swapKey,\n43\t  distance = SWAP_TEXT_DEFAULTS.distance,\n44\t  duration = SWAP_TEXT_DEFAULTS.duration,\n45\t  transition,\n46\t  disabled = false,\n47\t  variants,\n48\t  className,\n49\t}: SwapTextProps) => {\n50\t  const reduce = useReducedMotion();\n51\t  const key =\n52\t    swapKey ??\n53\t    (typeof children === \"string\" || typeof children === \"number\" ? String(children) : \"static\");\n54\t\n55\t  if (disabled) {\n56\t    return <span className={className}>{children}</span>;\n57\t  }\n58\t\n59\t  const initial = variants?.initial ?? { opacity: 0, y: reduce ? 0 : distance };\n60\t  const animate = variants?.animate ?? { opacity: 1, y: 0 };\n61\t  const exit = variants?.exit ?? { opacity: 0, y: reduce ? 0 : -distance };\n62\t\n63\t  return (\n64\t    <AnimatePresence mode=\"wait\" initial={false}>\n65\t      <motion.span\n66\t        key={key}\n67\t        className={className}\n68\t        initial={initial}\n69\t        animate={animate}\n70\t        exit={exit}\n71\t        transition={transition ?? { duration, ease: SWAP_TEXT_DEFAULTS.ease }}\n72\t        style={{ display: \"inline-block\" }}\n73\t      >\n74\t        {children}\n75\t      </motion.span>\n76\t    </AnimatePresence>\n77\t  );\n78\t};\n79\t\n80\texport default SwapText;\n81\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\src\\\\components\\\\ui\\\\Stage.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\timport { AnimatePresence, motion } from \"framer-motion\";\n2\timport type { ReactNode } from \"react\";\n3\t\n4\tinterface StageProps {\n5\t  /** changing this key cross-fades the stage content */\n6\t  phaseKey: string;\n7\t  children: ReactNode;\n8\t}\n9\t\n10\t/** The bordered, gradient, dot-grid game shell that cross-fades between phases\n11\t *  (idle / loading / playing / result). Content is centered and responsive. */\n12\texport default function Stage({ phaseKey, children }: StageProps) {\n13\t  return (\n14\t    <div className=\"stage-shell\">\n15\t      <div className=\"stage-dots\" aria-hidden=\"true\" />\n16\t      <div className=\"stage-inner\">\n17\t        <AnimatePresence mode=\"wait\">\n18\t          <motion.div\n19\t            key={phaseKey}\n20\t            initial={{ opacity: 0, y: 12 }}\n21\t            animate={{ opacity: 1, y: 0 }}\n22\t            exit={{ opacity: 0, y: -12 }}\n23\t            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}\n24\t            style={{ width: \"100%\", display: \"flex\", alignItems: \"center\", justifyContent: \"center\" }}\n25\t          >\n26\t            {children}\n27\t          </motion.div>\n28\t        </AnimatePresence>\n29\t      </div>\n30\t    </div>\n31\t  );\n32\t}\n33\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"key=\\\\{`?[^}]*(round|currentIndex|questionIndex|idx)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\src\\\\Game Renderers\",\n  \"output_mode\": \"content\",\n  \"-i\": true\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\Game Renderers\\BingoGame.tsx:307:                  key={idx}\nsrc\\Game Renderers\\ConnectionsGame.tsx:236:                      key={s.idx}\nsrc\\Game Renderers\\GuessMvps.tsx:95:          key={currentIndex}\nsrc\\Game Renderers\\PlayOffSeries.tsx:103:          key={currentIndex}\nsrc\\Game Renderers\\NameLogo.tsx:96:          key={currentIndex}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\\\\src\\\\Game Renderers\\\\GuessMvps.tsx\",\n  \"offset\": 80,\n  \"limit\": 50\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "80\t\n81\t  if (!currentSeason) return null;\n82\t\n83\t\n84\t  return (\n85\t    <GameFrame>\n86\t      <GameFrame.Status\n87\t        left={<GameFrame.Label>ROUND <span className=\"tnum\">{currentIndex + 1}/{seasonsList.length}</span></GameFrame.Label>}\n88\t        right={<GameFrame.Score value={score} />}\n89\t      />\n90\t      <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seasonsList.length} />\n91\t\n92\t      <GameFrame.Board>\n93\t      <AnimatePresence mode=\"wait\">\n94\t        <motion.div\n95\t          key={currentIndex}\n96\t          initial={reduce ? false : { opacity: 0, y: 10 }}\n97\t          animate={{ opacity: 1, y: 0 }}\n98\t          exit={reduce ? undefined : { opacity: 0, y: -10 }}\n99\t          transition={{ duration: 0.25 }}\n100\t          style={{ width: \"100%\" }}\n101\t        >\n102\t          <GameFrame.Prompt\n103\t            eyebrow={<span className=\"tnum\">{currentSeason.season}</span>}\n104\t            title=\"Who won MVP?\"\n105\t          />\n106\t        </motion.div>\n107\t      </AnimatePresence>\n108\t      </GameFrame.Board>\n109\t\n110\t      {/* Autocomplete Input and Confirm Button */}\n111\t      <GameFrame.Action>\n112\t        <GameFrame.InputRow>\n113\t          <AutocompleteInput\n114\t            placeholder=\"Guess the Player...\"\n115\t            value={guess}\n116\t            setValue={setGuess}\n117\t            suggestions={allPlayers}\n118\t            onSubmit={handleGuessSubmit}\n119\t            customStyleInput={{ width: \"100%\" }}\n120\t          />\n121\t\n122\t          <Button\n123\t            size=\"md\"\n124\t            onClick={() => {\n125\t              if (guess.trim() !== \"\") {\n126\t                handleGuessSubmit(guess);\n127\t              }\n128\t            }}\n129\t            disabled={guess.trim() === \"\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep1_1790693531884\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "{ \"difficulty\": \"standard\", \"areas\": [\"frontend\", \"ui\", \"games\"], \"risk\": \"low\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/GAME_DESIGN_CONSTRAINTS.md\", \"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell (Status/Score/Label/Prompt/Board/Action/InputRow) for renderer roots. [used by: 18 files]\",\n    \"- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text; configurable transition/variants. [used by: 15 files]\",\n    \"- `src/motion/variants.ts` — Reusable framer-motion Variants (fadeIn/fadeInUp/scaleIn/popIn/stagger/swap). [used by: 2 files]\",\n    \"- `src/components/ui/Stage.tsx` — cross-fades the stage content between phases (idle / loading / playing / result) keyed on phaseKey.\",\n    \"- `src/Game Renderers/RenderGame.tsx` — `renderGame()` dispatcher: gameId to the matching game renderer component. [used by: 2 files]\",\n    \"- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\\\"Correct! +10\\\") into the shared feedback slot. [used by: 17 files]\",\n    \"- `src/components/EndSequence.tsx` — Shared end-of-game bottom slot: cross-fades input, loader, score phases. [used by: 5 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": false }"
+  }
+]

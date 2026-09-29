@@ -1,0 +1,50 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: A user got blacklisted and blocked without doing anything wrong\nCategory: backend\nPriority: P1\n\nget-spec output:\nOne user reports being blacklisted/blocked even though they didn't do anything wrong. Find out why and fix it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd /c/Users/stefa/.eval-worktrees/classify/u10_rep1_1790705783039; cat docs/team/RETRO.md | head -150; echo ----; tail -80 docs/team/DECISIONS.md; echo ----; grep -n -i \\\"block\\\\|blacklist\\\\|throttl\\\\|ban\\\" docs/team/CODE_MAP.md | head -30; echo ---; grep -n \\\"AUTH-11\\\" -A 20 docs/constraints/AUTH_CONSTRAINTS.md | head -40\",\n  \"description\": \"Read retro, decisions, code map, auth constraints\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "# Parked-Task Post-Mortems\n\nAppend-only. The planner-architect MUST read this file before classifying any new task.\nFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n----\nEngine finalised as `sonnet` (13 explicit steps with done-checks).\nConsequences: the frontend half must be built before the backend half — the backend is tests-only\nand its re-pins fail against the unported renderers by design. MULTIPLAYER_CONSTRAINTS acceptance\ncheck 4 now reads 4 / six files (it was already 5 / 7 on the base commit against a documented 3 / 7);\nthe doc is left for `bootstrap-audit`. On the cloud QA VM supabase.co is blocked, so the browser pass\nserves a fixture questions store on `localhost:5280` to both the relay (`QUESTIONS_PUBLIC_BASE`) and\nthe browser (`VITE_QUESTIONS_BASE`); online mode still fetches only the manifest and the names list\nfrom the store after the port. Three cloud design rounds have now hit the missing-`Agent` fallback.\n\n## 2026-09-29 — Opus 5.5 unbanned: replaces Fable as the judgment-implementer tier; Fable narrows to planning-only\nContext: the 2026-09-06 ban targeted Opus 5 specifically for token cost (see that entry). Opus 5.5\nreleased 2026-09-22 (30%+ faster than Opus 5, $4/$20 per Mtok input/output) and Sonnet 5.5 released\n2026-09-28 (30%+ faster and up to 30% cheaper than Sonnet 5 for most work) change that calculus —\nconfirmed via web search after the owner disputed an initial (incorrect) claim that these models\ndid not exist, and confirmed reachable in this environment after a Claude Code restart. The owner\nasked for a three-tier model split, with Opus 5.5 to be used more broadly than Opus 5 ever was.\nDecision: `opus` (rolling alias, now Opus 5.5) is unbanned but used for implementation only, never\nplanning — it takes over the \"complex but small, needs real judgment a plan can't pin down\"\nimplementer role `fable` held since 09-06, and also implements hard tasks once Fable's design round\nhas produced a plan. `fable` narrows to: classify, code review, CTO gate, the orchestrator itself,\nand design-round planning for every `needsDesignRound` task (the old opus-4.8-for-detailed-specs /\nfable-for-thin-specs `planModel` split is retired — planning is fable, unconditionally, since Opus\nno longer needs a planning role to justify its pipeline access). `sonnet` (now Sonnet 5.5) keeps its\nexisting default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n`docs/team/PIPELINE.md` §14, `.claude/skills/classify/SKILL.md`, `.claude/skills/team-run/SKILL.md`,\n`.claude/skills/design-round/SKILL.md` (step 5's heavy-model note and step 5d's engine-finalization\nrow), `.claude/agents/browser-qa.md` and `code-reviewer.md` (stale ban mentions), `.claude/README.md`.\n`planner-architect-opus` (pinned `claude-opus-4-8`, the workaround used to reach an Opus-family\nmodel during the ban) is now unused and left in place rather than deleted.\nConsequences: `.claude/settings.json` still needs `permissions.deny` cleared of\n`Agent(model:opus)`/`Agent(model:claude-opus-5)` and `opus` added to `availableModels` — editing\nthat file was blocked by the auto-mode classifier as self-modification of this session's own\npermissions and needs the owner's direct approval/action; until then the harness still refuses to\nspawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model\n(claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.\nAddendum (same day): `.claude/settings.json` was updated with the owner's explicit approval\n(`opus` added to `availableModels`, both deny rules removed), and a smoke-test spawn with\n`model: opus` confirmed it resolves to `claude-opus-5-5` — the policy is now enforceable.\n\n## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\nContext: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,\nanimation/motion work → always Opus 5.5,\n... [5668 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"blacklist|Blacklist|BlockedUser|is_blocked|throttle\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep1_1790705783039\\\\backend\",\n  \"glob\": \"!**/migrations/**\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 12 files\nbackend\\users\\views.py\nbackend\\users\\tokens.py\nbackend\\users\\test_photos.py\nbackend\\users\\photos.py\nbackend\\users\\models.py\nbackend\\users\\friends.py\nbackend\\users\\admin.py\nbackend\\trivia\\views.py\nbackend\\trivia\\tests\\test_score_award.py\nbackend\\trivia\\tests\\test_feedback.py\nbackend\\backend\\throttles.py\nbackend\\backend\\settings.py"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"users/(tokens|views|models|identity)\\\\.py|settings\\\\.py|session\\\\.ts|Api\\\\.tsx\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u10_rep1_1790705783039\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "73:- `src/utils/Api.tsx` — `apiFetch` authenticated fetch with token refresh queue, plus token storage helpers. [used by: 21 files]\n83:- `src/utils/session.ts` — Cached /me/ user read/write/clear and access-token expiry check for session bootstrap. [used by: 2 files]\n165:- `backend/users/identity.py` — Public player-ID generation (`generate_public_id`). [used by: 2 files]\n167:- `backend/users/tokens.py` — Session lifetime control: `issue_session_tokens`, refresh view/serializer with 90-day cap. [used by: 4 files]\n173:No shared/abstract model mixins exist in `backend/`: `trivia/models.py` and `users/models.py` each"
+  },
+  {
+    "role": "assistant",
+    "content": "The card is a backend auth bug about an account being wrongly blocked, so I classified it as standard difficulty with high risk and a design round. Opus implements, and Fable plans the design round.\n\n- **Why high risk and a design round:** a user wrongly blacklisted or blocked counts as account blocking/abuse work. The classify rules always make that `risk: high` with a design round, however few files it ends up touching.\n- **Where the cause could be:** the spec doesn't say where the block comes from. There are three places in the code that can block a user:\n  - the login and signup rate limits in `backend/backend/throttles.py`;\n  - the session token blacklist in `backend/users/tokens.py` and `settings.py` (a refresh token that got blacklisted when tokens were swapped);\n  - player-to-player blocks in `backend/users/friends.py`.\n\n  All three are on the high-risk auth list in `AUTH_CONSTRAINTS.md` (AUTH-11). The design round should find the real cause before anyone writes code.\n- **Why standard, not hard:** the fix should stay in one part of the backend. The design round is already required by the security rule, so a higher difficulty wouldn't change anything.\n- **Why Opus:** high risk sends the build to Opus rather than Sonnet.\n\n`RETRO.md` has no failed tasks recorded yet. I didn't add a `DECISIONS.md` entry because this wasn't a close call.\n\n```json\n{ \"difficulty\": \"standard\", \"areas\": [\"backend\",\"auth\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/AUTH_CONSTRAINTS.md\", \"docs/ARCHITECTURE.md\"],\n  \"codeMapHits\": [\n    \"- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\",\n    \"- `backend/users/tokens.py` — Session lifetime control: `issue_session_tokens`, refresh view/serializer with 90-day cap. [used by: 4 files]\",\n    \"- `backend/users/friends.py` — Friends views: search, requests, accept/decline/cancel, remove, block. [used by: 1 files]\",\n    \"- `src/utils/Api.tsx` — `apiFetch` authenticated fetch with token refresh queue, plus token storage helpers. [used by: 21 files]\",\n    \"- `src/utils/session.ts` — Cached /me/ user read/write/clear and access-token expiry check for session bootstrap. [used by: 2 files]\",\n    \"- `src/hooks/useFriends.ts` — Friends state + actions (requests, blocks), plus searchUsers/searchFriends/friendPhotoUrl helpers. [used by: 1 files]\",\n    \"- `src/components/FriendsPanel.tsx` — Friends modal content: friend list, find tab, requests, blocked players. [used by: 1 files]\",\n    \"- `backend/users/identity.py` — Public player-ID generation (`generate_public_id`). [used by: 2 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

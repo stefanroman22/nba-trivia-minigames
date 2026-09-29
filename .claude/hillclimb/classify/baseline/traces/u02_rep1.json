@@ -1,0 +1,184 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Remove the points text below each game card\nCategory: frontend\n\nget-spec output:\nThe game cards show a line of points text under each card. Remove it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)game ?card|points\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "16:- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\n23:- `src/components/Navigation.tsx` — Top nav bar: desktop links, user avatar/points, mobile drawer menu. [used by: 3 files]\n27:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\n89:- `src/store/userSlice.tsx` — User auth slice: login/logout/hydrateSession and points/rank/username/photo reducers. [used by: 7 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)points\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\",\n  \"glob\": \"*Card*\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)(minor|trivial|copy|remove).*(haiku|sonnet)|(haiku|sonnet).*(remove|trivial)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n210:Consequences: \"test is stale after a shipped refactor\" cards are trivial/sonnet, test-file\n344:existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n365:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 74,\n  \"limit\": 16\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "74\t## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n75\tContext: card 3dc2cfb1-c595-80b9-a2d4-f182a24358e6 asks for a smaller, center-aligned\n76\tpoints/rank block in the profile panel with reduced text on mobile. The card's Difficulty\n77\toverride is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n78\t`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,\n79\tno logic — so haiku was defensible under the \"trivial → haiku\" row.\n80\tDecision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n81\tcontent/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\n82\tsmall layout design call with a responsive breakpoint and a real-browser check, which is the\n83\tsonnet default. No design round (single area, thin spec) → `planModel: fable` is nominal.\n84\tConsequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85\tsonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86\t`trivial` on a task that still needs layout judgment.\n87\t\n88\t## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n89\tContext: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)\\\\bpts\\\\b|points\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\",\n  \"glob\": \"*.tsx\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 36 files\nsrc\\views\\Trivia\\MiniGame.tsx\nsrc\\views\\Landpage.tsx\nsrc\\views\\Admin.tsx\nsrc\\utils\\GameUtils.tsx\nsrc\\types\\types.tsx\nsrc\\store\\userSlice.tsx\nsrc\\context\\MultiplayerContext.tsx\nsrc\\components\\modals\\LeaderboardModal.tsx\nsrc\\components\\admin\\FeedbackTab.tsx\nsrc\\components\\admin\\FeedbackCharts.tsx\nsrc\\components\\UserProfile.tsx\nsrc\\components\\ScorePanel.tsx\nsrc\\components\\MultiPlayer\\PlayerCard.tsx\nsrc\\components\\MultiPlayer\\OnlineMatch.tsx\nsrc\\components\\Leaderboard.tsx\nsrc\\components\\GuestPanel.tsx\nsrc\\components\\GameResult.tsx\nsrc\\components\\FriendsPanel.tsx\nsrc\\app\\providers.tsx\nsrc\\app\\layout.tsx\nsrc\\Game Renderers\\Wordle.tsx\nsrc\\Game Renderers\\WhoAreYa.tsx\nsrc\\Game Renderers\\TicTacToe.tsx\nsrc\\Game Renderers\\SuperDraft.tsx\nsrc\\Game Renderers\\StartingFive.tsx\nsrc\\Game Renderers\\RenderGame.tsx\nsrc\\Game Renderers\\PlayOffSeries.tsx\nsrc\\Game Renderers\\PackFive.tsx\nsrc\\Game Renderers\\NbaGrid.tsx\nsrc\\Game Renderers\\NameLogo.tsx\nsrc\\Game Renderers\\HeatmapGame.tsx\nsrc\\Game Renderers\\GuessMvps.tsx\nsrc\\Game Renderers\\FanFavorites.tsx\nsrc\\Game Renderers\\ConnectionsGame.tsx\nsrc\\Game Renderers\\CareerPath.tsx\nsrc\\Game Renderers\\BingoGame.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)points|pts\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\\\\views\\\\Landpage.tsx\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "87-                <>\n88-                  <div className=\"hero-stat-sep\" />\n89-                  <div className=\"hero-stat\">\n90:                    <span className=\"tnum font-display hero-stat-num\">{user.points}</span>\n91:                    <span className=\"hero-stat-lbl\">YOUR POINTS</span>\n92-                  </div>\n93-                </>\n94-              )}\n--\n119-                  description={game.description}\n120-                  backgroundImage={game.backgroundImage}\n121-                  tag={game.tag}\n122:                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\n123-                  cta={game.id === \"coming-soon\" ? \"Coming soon\" : \"Play now\"}\n124-                  index={index}\n125-                  disabled={game.id === \"coming-soon\"}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"pointLabel\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\",\n  \"output_mode\": \"content\",\n  \"-C\": 2\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\views\\Landpage.tsx-120-                  backgroundImage={game.backgroundImage}\nsrc\\views\\Landpage.tsx-121-                  tag={game.tag}\nsrc\\views\\Landpage.tsx:122:                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\nsrc\\views\\Landpage.tsx-123-                  cta={game.id === \"coming-soon\" ? \"Coming soon\" : \"Play now\"}\nsrc\\views\\Landpage.tsx-124-                  index={index}\n--\nsrc\\components\\ui\\GameTile.tsx-8-  backgroundImage: string; // already a CSS url(...) value\nsrc\\components\\ui\\GameTile.tsx-9-  tag?: string;\nsrc\\components\\ui\\GameTile.tsx:10:  pointLabel?: string;\nsrc\\components\\ui\\GameTile.tsx-11-  cta?: string;\nsrc\\components\\ui\\GameTile.tsx-12-  onClick?: () => void;"
+  },
+  {
+    "role": "assistant",
+    "content": "Looking at how GameTile renders the points label, then I'll give the classification."
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\\\\components\\\\ui\\\\GameTile.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\timport { useEffect, useState } from \"react\";\n2\timport { motion } from \"framer-motion\";\n3\timport { useReducedMotionSafe } from \"../../hooks/useReducedMotionSafe\";\n4\t\n5\tinterface GameTileProps {\n6\t  name: string;\n7\t  description: string;\n8\t  backgroundImage: string; // already a CSS url(...) value\n9\t  tag?: string;\n10\t  pointLabel?: string;\n11\t  cta?: string;\n12\t  onClick?: () => void;\n13\t  index?: number;\n14\t  /** Renders the tile as not-clickable (e.g. the \"Coming soon\" placeholder). */\n15\t  disabled?: boolean;\n16\t}\n17\t\n18\t/** The game card used in grids. Image zooms on hover, lifts, presses on click. */\n19\texport default function GameTile({\n20\t  name,\n21\t  description,\n22\t  backgroundImage,\n23\t  cta = \"Play now\",\n24\t  onClick,\n25\t  index = 0,\n26\t  disabled = false,\n27\t}: GameTileProps) {\n28\t  const reduce = useReducedMotionSafe();\n29\t\n30\t  // The photo mounts only client-side, post-hydration. In the server-rendered\n31\t  // markup even loading=\"lazy\" images fetch immediately (Chrome's lazy\n32\t  // threshold spans kilopixels), and 18 tile JPGs would crowd the bandwidth\n33\t  // the first paint needs. Until then the tile shows its scrim + text.\n34\t  const [showImg, setShowImg] = useState(false);\n35\t  useEffect(() => setShowImg(true), []);\n36\t\n37\t  return (\n38\t    <motion.button\n39\t      className={`gtile${disabled ? \" is-disabled\" : \"\"}`}\n40\t      onClick={disabled ? undefined : onClick}\n41\t      disabled={disabled}\n42\t      aria-disabled={disabled}\n43\t      initial={reduce ? false : { opacity: 0, y: 16 }}\n44\t      whileInView={{ opacity: 1, y: 0 }}\n45\t      viewport={{ once: true, amount: 0.25 }}\n46\t      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.04, 0.24) }}\n47\t      whileHover={reduce || disabled ? undefined : { y: -4 }}\n48\t      whileTap={reduce || disabled ? undefined : { scale: 0.98, y: 0 }}\n49\t    >\n50\t      {showImg && (\n51\t        <img\n52\t          className=\"gtile-img\"\n53\t          src={backgroundImage.replace(/^url\\(['\"]?/, \"\").replace(/['\"]?\\)$/, \"\")}\n54\t          alt=\"\"\n55\t          loading=\"lazy\"\n56\t          decoding=\"async\"\n57\t          draggable={false}\n58\t        />\n59\t      )}\n60\t      <div className=\"gtile-scrim\" />\n61\t      <div className=\"gtile-body\">\n62\t       \n63\t        <div style={{ display: \"flex\", flexDirection: \"column\", gap: 5, width: \"100%\" }}>\n64\t          <h3 className=\"font-display\" style={{ fontSize: 18, color: \"#fff\" }}>{name}</h3>\n65\t          <p style={{ fontSize: 12.5, color: \"rgba(255,255,255,.78)\", lineHeight: 1.4 }}>{description}</p>\n66\t          <span className=\"gtile-cta\" style={{ marginTop: 6 }}>\n67\t            {cta}\n68\t            <svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" strokeWidth=\"2.6\" strokeLinecap=\"round\" strokeLinejoin=\"round\"><path d=\"M5 12h14M13 6l6 6-6 6\" /></svg>\n69\t          </span>\n70\t        </div>\n71\t      </div>\n72\t    </motion.button>\n73\t  );\n74\t}\n75\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"GameTile|Landpage\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "50:- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"GameTile|maxPoints|gtile-pts|gtile-point\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\context\\MultiplayerContext.tsx:342:    pointsPerCorrect: g.pointsPerCorrect, maxPoints: g.maxPoints, backgroundImage: g.backgroundImage,\nsrc\\types\\types.tsx:204:  maxPoints: number;\nsrc\\views\\Admin.tsx:275:            {meta && meta.maxPoints > 0 && (\nsrc\\views\\Admin.tsx:277:                {meta.pointsPerCorrect} pts / correct · max {meta.maxPoints}\nsrc\\views\\Landpage.tsx:14:import { Button, GameTile, SectionHeader, Field } from \"../components/ui\";\nsrc\\views\\Landpage.tsx:116:                <GameTile\nsrc\\views\\Landpage.tsx:122:                  pointLabel={game.id === \"coming-soon\" ? \"SOON\" : `${game.maxPoints} pts`}\nsrc\\views\\Trivia\\MiniGame.tsx:216:              <Chip>up to <span className=\"tnum\" style={{ color: \"var(--brand)\", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>\nsrc\\views\\Trivia\\MiniGame.tsx:260:        return <GameResult showFinalResult={showFinalResult} score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={handleStart} onClose={handleRestart} />;\nsrc\\views\\Trivia\\MiniGame.tsx:302:                    <span className=\"rail-sub\">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : \"soon\"}</span>\nsrc\\components\\GameResult.tsx:11:  maxPoints: number,\nsrc\\components\\GameResult.tsx:18:function GameResult({ showFinalResult, score, maxPoints, onPlayAgain, onClose }: GameResultProps) {\nsrc\\components\\GameResult.tsx:30:  const perfect = maxPoints > 0 && score >= maxPoints;\nsrc\\components\\GameResult.tsx:72:              <span className=\"font-display\" style={{ fontSize: 20, color: \"var(--muted)\" }}>/ {maxPoints}</span>\nsrc\\Game Renderers\\TicTacToe.tsx:18:const CELL_POINTS = 25; // 9 cells -> 225 max (registry maxPoints)\nsrc\\Game Renderers\\StartingFive.tsx:25:const COMPLETION_BONUS = 50; // perfect lineup → 5 * pointsPerCorrect + bonus = maxPoints\nsrc\\Game Renderers\\StartingFive.tsx:133:  const maxPoints = 5 * pointsPerCorrect + COMPLETION_BONUS;\nsrc\\Game Renderers\\StartingFive.tsx:174:          onGameEnd?.(maxPoints, { inPlace: true });\nsrc\\Game Renderers\\StartingFive.tsx:175:          setEndState({ score: maxPoints, won: true });\nsrc\\Game Renderers\\StartingFive.tsx:360:                outOf={maxPoints}\nsrc\\components\\ui\\index.ts:11:export { default as GameTile } from \"./GameTile\";\nsrc\\components\\ui\\GameTile.tsx:5:interface GameTileProps {\nsrc\\components\\ui\\GameTile.tsx:19:export default function GameTile({\nsrc\\components\\ui\\GameTile.tsx:27:}: GameTileProps) {\nsrc\\utils\\GameUtils.tsx:107:    maxPoints: 50,\nsrc\\utils\\GameUtils.tsx:137:    maxPoints: 50,\nsrc\\utils\\GameUtils.tsx:167:    maxPoints: 50,\nsrc\\utils\\GameUtils.tsx:198:    maxPoints: 100,\nsrc\\utils\\GameUtils.tsx:229:    maxPoints: 500,\nsrc\\utils\\GameUtils.tsx:261:    maxPoints: 300,\nsrc\\utils\\GameUtils.tsx:291:    maxPoints: 300,\nsrc\\utils\\GameUtils.tsx:322:    maxPoints: 200,\nsrc\\utils\\GameUtils.tsx:353:    maxPoints: 700,\nsrc\\utils\\GameUtils.tsx:383:    maxPoints: 270,\nsrc\\utils\\GameUtils.tsx:414:    maxPoints: 240,\nsrc\\utils\\GameUtils.tsx:444:    maxPoints: 225,\nsrc\\utils\\GameUtils.tsx:474:    maxPoints: 200,\nsrc\\utils\\GameUtils.tsx:505:    maxPoints: 200,\nsrc\\utils\\GameUtils.tsx:535:    maxPoints: 220,\nsrc\\utils\\GameUtils.tsx:566:    maxPoints: 100,\nsrc\\utils\\GameUtils.tsx:597:    maxPoints: 0,\nsrc\\utils\\GameUtils.tsx:621:    maxPoints: 0,"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\src\\\\views\\\\Trivia\\\\MiniGame.tsx\",\n  \"offset\": 285,\n  \"limit\": 25\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "285\t          {/* Desktop rail */}\n286\t          <aside className=\"rail\" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>\n287\t            <div className=\"rail-head\"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>\n288\t            <div className=\"rail-list\">\n289\t              {visibleGames.map((g) => (\n290\t                <button\n291\t                  key={g.id}\n292\t                  disabled={g.id === \"coming-soon\"}\n293\t                  onClick={() => {\n294\t                    if (inProgress) { showErrorAlert(\"Finish your current game first.\", \"Game in progress\", \"Continue playing\"); return; }\n295\t                    navigate(g.urlPath, { state: { id: g.id } });\n296\t                  }}\n297\t                  className={`rail-item${g.id === game?.id ? \" is-active\" : \"\"}`}\n298\t                >\n299\t                  <span className=\"rail-thumb\" style={{ backgroundImage: g.backgroundImage }} />\n300\t                  <span className=\"rail-meta\">\n301\t                    <span className=\"rail-name\">{g.name}</span>\n302\t                    <span className=\"rail-sub\">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : \"soon\"}</span>\n303\t                  </span>\n304\t                </button>\n305\t              ))}\n306\t            </div>\n307\t          </aside>\n308\t\n309\t          {/* Center stage */}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 196,\n  \"limit\": 18\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "196\t## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n197\tContext: backend card, no override. `users.tests.FriendsPhotoTests` reads `resp.json()[\"friends\"]`\n198\tfrom `friends-overview`, but commit `3fa8788` (search your own friend list) moved the friend\n199\tlist into `search_friends` (`search-friends/`, `{\"results\": [...], \"total\": n}`) and left\n200\t`friends_overview` returning only `incoming_requests`/`outgoing_requests`/`blocked_users`\n201\t(its docstring says so). The endpoint is right, the test is stale — a one-file test edit with\n202\tno logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n203\tendpoint\" card has not shipped (`users/friends.py` HEAD is still `3fa8788`), so nothing has\n204\tfixed this yet and the two cards do not collide as long as this one only touches `tests.py`.\n205\tDecision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n206\tcopy/config with zero judgment; this needs the engine to reproduce the failure, confirm the\n207\tcorrect route (`search-friends`, `results` key, `profile_photo is None`) rather than guess,\n208\tand run `manage.py test users` green. `risk: low` (auth headers are used but auth code is\n209\tuntouched), no design round, `planModel: fable` nominal.\n210\tConsequences: \"test is stale after a shipped refactor\" cards are trivial/sonnet, test-file\n211\tonly; the engine must not restore a `friends` key to `friends_overview` (the frontend already\n212\tconsumes `search-friends`). If the photo-endpoint card ships first and rewrites this test,\n213\tthe ship stage's rebase test check is the signal to close this card as already fixed."
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u02_rep1_1790693409125\\\" && tail -c 300 docs/team/DECISIONS.md; echo; git log -3 --format='%h %s' -- src/components/ui/GameTile.tsx\",\n  \"description\": \"Show end of DECISIONS and GameTile history\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "`token/refresh/`\nreturns `user`; a 5xx from `/me/` now keeps the session instead of deleting the tokens; a\npre-hydration inline script was rejected because `Navigation`'s guest button and user chip are\ndifferent DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\n\ndc71093 feat(frontend): migrate to Next.js 16 with SSR on every route\n1899a28 chore: snapshot uncommitted dev work before the Next.js migration\ncdb1c18 feat(ui): app-wide redesign pass (renderers, nav, landing, leaderboard) + refreshed assets"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u02_rep1_1790693409125\\\" && cat >> docs/team/DECISIONS.md <<'EOF'\\n\\n## 2026-09-29 — Remove the points text below each game card: trivial/haiku vs trivial/sonnet\\nContext: frontend card, no override, spec is one line (\\\"remove the points line under each game\\ncard\\\"). The landing-page `GameTile` (`src/components/ui/GameTile.tsx`) already renders no points\\ntext — `pointLabel` is still declared and passed by `src/views/Landpage.tsx:122` but never\\ndestructured or rendered. The only live \\\"points under a card\\\" line is the game-page rail in\\n`src/views/Trivia/MiniGame.tsx:302` (`<span className=\\\"rail-sub\\\">up to N pts / soon</span>`\\nunder each `rail-name`). A one-span deletion with no logic, so haiku was defensible.\\nDecision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16 / 2026-09-22:\\nthe edit is trivial, but the engine must pick the right target (the rail sub-line that is\\nactually visible, confirmed in a browser) instead of shipping a no-op that only deletes the\\ndead `pointLabel` prop — the kind of silent wrong-target pass verify would not catch.\\nConsequences: remove the `rail-sub` span (and the now-orphaned `.rail-sub` CSS only if nothing\\nelse uses it); removing the dead `pointLabel` prop/argument is in scope as cleanup of the same\\nfeature. Leave the `up to N pts` chip on the game idle screen (`MiniGame.tsx:216`) and the\\nAdmin meta line alone — they are not under a game card.\\nEOF\",\n  \"description\": \"Append close-call entry to DECISIONS.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Bash has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "I'm logging the haiku-vs-sonnet close call in DECISIONS.md with Edit, since Bash is blocked."
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u02_rep1_1790693409125\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\",\n  \"new_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\\n## 2026-09-29 — Remove the points text below each game card: trivial/haiku vs trivial/sonnet\\nContext: frontend card, no override, spec is one line (\\\"remove the points line under each game\\ncard\\\"). The landing-page `GameTile` (`src/components/ui/GameTile.tsx`) already renders no points\\ntext: `pointLabel` is still declared and passed by `src/views/Landpage.tsx:122`, but it is never\\ndestructured or rendered. The only live \\\"points under a card\\\" line is the game-page rail in\\n`src/views/Trivia/MiniGame.tsx:302` (`<span className=\\\"rail-sub\\\">up to N pts / soon</span>`\\nunder each `rail-name`). It's a one-span deletion with no logic, so haiku was defensible.\\nDecision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16 / 2026-09-22:\\nthe edit is trivial, but the engine must pick the right target (the rail sub-line that is\\nactually visible, confirmed in a browser). It must not ship a no-op that only deletes the\\ndead `pointLabel` prop, because verify would not catch that kind of silent wrong-target pass.\\nConsequences: remove the `rail-sub` span, and remove the now-orphaned `.rail-sub` CSS only if\\nnothing else uses it. Removing the dead `pointLabel` prop/argument is in scope as cleanup of the\\nsame feature. Leave the `up to N pts` chip on the game idle screen (`MiniGame.tsx:216`) and the\\nAdmin meta line alone, because they are not under a game card.\\n\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Edit has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "The classification is below. I couldn't write the close-call entry to `docs/team/DECISIONS.md` because this session doesn't allow edits. Whoever next has write access should add it.\n\n- **Which text to remove:** the landing-page game cards (`GameTile`) already show no points text. The `pointLabel` prop is still passed in from `src/views/Landpage.tsx:122`, but `GameTile` never displays it. The only points line actually showing under a card is the \"up to N pts\" / \"soon\" line under each game in the side list of games on the game page (`src/views/Trivia/MiniGame.tsx:302`).\n- **Close call (for DECISIONS.md):** trivial/haiku vs trivial/sonnet. I picked sonnet, following the 2026-09-16 and 2026-09-22 entries. The edit itself is trivial, but the engine has to find the right target. It must check in a browser that the line is gone and not just delete the unused `pointLabel` prop, which would ship a change that removes nothing on screen. Removing that unused prop is fine as cleanup. The \"up to N pts\" chip on the game start screen (`MiniGame.tsx:216`) and the Admin line should stay, since neither sits under a game card.\n\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"sonnet\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\"- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]\", \"- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }"
+  }
+]

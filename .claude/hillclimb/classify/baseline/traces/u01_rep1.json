@@ -1,0 +1,157 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Remove the descriptive text in the info popup next to the game title\nCategory: frontend\n\nget-spec output:\nOn an individual game page, clicking the (i) icon next to the game title shows a block of descriptive text. Remove that descriptive text."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)info|popup|description|title\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "10:- `src/components/CorrectAnswer.tsx` — Animated \"Correct answer: X\" banner; superseded by SubmitGuessPopUp. [used by: 0 files]\n26:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\"Correct! +10\") into the shared feedback slot. [used by: 17 files]\n36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\n53:- `src/components/ui/SectionHeader.tsx` — Title plus optional subtitle/action row for page sections. [used by: 2 files]\n93:- `src/context/FeedbackSlotContext.ts` — DOM-node context so SubmitGuessPopUp portals into one fixed spot. [used by: 2 files]\n119:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text into the shared feedback slot. [used by: 17 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)close call|haiku|trivial\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n77:override is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\n80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n84:Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86:`trivial` on a task that still needs layout judgment.\n89:Context: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend\n98:`/admin` and a game page on a phone viewport). Difficulty stays `trivial` per the override.\n196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\n202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\n205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\n210:Consequences: \"test is stale after a shipped refactor\" cards are trivial/sonnet, test-file\n344:existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n365:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)(info(popup|modal|icon|button)|InfoIcon|showInfo|infoOpen)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\src\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 2 files\nsrc\\components\\modals\\MultiplayerInfoModal.tsx\nsrc\\components\\ModalHost.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)(FaInfo|InfoCircle|lucide.*Info|\\\\bInfo\\\\b|ⓘ|aria-label=\\\\\\\"[^\\\\\\\"]*info)\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\src\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\views\\Trivia\\MiniGame.tsx:313:              <button className=\"info-btn\" aria-label=\"How to play\" onClick={() => game && open(\"instructions\", { game, onPlay: stage === \"idle\" && !wordleLocked ? handleStart : undefined })}>\nsrc\\context\\MultiplayerContext.tsx:31:type NoticeKind = \"info\" | \"warn\" | \"error\";\nsrc\\context\\MultiplayerContext.tsx:279:        notice: { kind: \"info\", text: `${name} reconnected.` },\nsrc\\context\\MultiplayerContext.tsx:289:      return { ...state, notice: { kind: \"info\", text: `${a.username || \"A player\"} is in.` } };\nsrc\\context\\MultiplayerContext.tsx:293:      return { ...state, proposal: null, notice: { kind: \"info\", text: \"The request was withdrawn.\" } };\nsrc\\context\\MultiplayerContext.tsx:449:  // ---- Auto-clear transient info/warn notices. ----\nsrc\\components\\FriendsPanel.tsx:101:                    <div className=\"fr-row-info\">\nsrc\\components\\FriendsPanel.tsx:136:                    <div className=\"fr-row-info\">\nsrc\\components\\FriendsPanel.tsx:167:                <div className=\"fr-row-info\">\nsrc\\components\\FriendsPanel.tsx:278:                <div className=\"fr-row-info\">\nsrc\\components\\FriendsPanel.tsx:386:              <div className=\"fr-row-info\">\nsrc\\components\\ErrorBoundary.tsx:30:  componentDidCatch(error: Error, info: ErrorInfo) {\nsrc\\components\\ErrorBoundary.tsx:31:    console.error(\"Unhandled UI error:\", error, info.componentStack);\nsrc\\types\\types.tsx:11:/** Lightweight player info exchanged over the multiplayer socket. */\nsrc\\components\\MultiPlayer\\MultiplayerPanel.tsx:44:        <button className=\"info-btn\" aria-label=\"How multiplayer works\" style={{ marginLeft: \"auto\" }} onClick={() => open(\"multiplayerInfo\")}>\nsrc\\styles\\Friends.css:44:.fr-row-info { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }\nsrc\\styles\\MiniGame.css:99:.info-btn {\nsrc\\styles\\MiniGame.css:113:.info-btn:hover { color: var(--brand); border-color: var(--brand); }\nsrc\\styles\\Multiplayer.css:377:.om-notice.is-info { border-color: var(--brand); }"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"instructions\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\src\\\\components\\\\ModalHost.tsx\",\n  \"output_mode\": \"content\",\n  \"-C\": 3\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "35-    title = \"Global Top 100\";\n36-    wide = true;\n37-    content = <LeaderboardModal />;\n38:  } else if (kind === \"instructions\") {\n39-    title = \"How to play\";\n40-    const p = payload as InstructionsPayload | undefined;\n41-    content = p?.game ? <InstructionsModal game={p.game} onPlay={p.onPlay} onClose={close} /> : null;"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"src/components/**/InstructionsModal.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\components\\modals\\InstructionsModal.tsx"
+  },
+  {
+    "role": "assistant",
+    "content": "Found the info popup (`InstructionsModal`). Checking what text it renders before I classify."
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\src\\\\components\\\\modals\\\\InstructionsModal.tsx\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\timport type { InstructionsPayload } from \"../../context/ModalContext\";\n2\t\n3\tinterface InstructionsModalProps extends InstructionsPayload {\n4\t  onClose: () => void;\n5\t}\n6\t\n7\t/** \"How to play\" content: intro + numbered rules + a start CTA. */\n8\texport default function InstructionsModal({ game, onPlay, onClose }: InstructionsModalProps) {\n9\t  const handlePlay = () => {\n10\t    onClose();\n11\t    onPlay?.();\n12\t  };\n13\t\n14\t  return (\n15\t    <div className=\"instr-stack\">\n16\t      {game.intro && <p className=\"instr-intro\">{game.intro}</p>}\n17\t\n18\t      <div className=\"instr-rules\">\n19\t        {(game.rules ?? []).map((rule) => (\n20\t          <div key={rule.n} className=\"instr-rule\">\n21\t            <span className=\"instr-rule-n\">{rule.n}</span>\n22\t            <p className=\"instr-rule-t\">{rule.t}</p>\n23\t          </div>\n24\t        ))}\n25\t      </div>\n26\t\n27\t      <button className=\"modal-primary-btn\" style={{ height: 46 }} onClick={handlePlay}>\n28\t        Got it\n29\t      </button>\n30\t    </div>\n31\t  );\n32\t}\n33\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"offset\": 70,\n  \"limit\": 40\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "70\tcorrected.\n71\tConsequences: the ban is now enforced by the harness, not by prose. The `npm run engine`\n72\tprofile's `subagentModel` is documented as a fallback that rarely decides anything.\n73\t\n74\t## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\n75\tContext: card 3dc2cfb1-c595-80b9-a2d4-f182a24358e6 asks for a smaller, center-aligned\n76\tpoints/rank block in the profile panel with reduced text on mobile. The card's Difficulty\n77\toverride is `trivial` (it wins). The change lives in one CSS block (`.profile-stats*` in\n78\t`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,\n79\tno logic — so haiku was defensible under the \"trivial → haiku\" row.\n80\tDecision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\n81\tcontent/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\n82\tsmall layout design call with a responsive breakpoint and a real-browser check, which is the\n83\tsonnet default. No design round (single area, thin spec) → `planModel: fable` is nominal.\n84\tConsequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\n85\tsonnet, not haiku; difficulty and engine tier are decided separately when the override forces\n86\t`trivial` on a task that still needs layout judgment.\n87\t\n88\t## 2026-09-16 — Mobile \"Games\" link must reach the games heading from any page: sonnet vs fable engine\n89\tContext: card 3dc2cfb1-c595-8068-ac4c-cee34b4124e6 (Difficulty override `trivial`, frontend\n90\tonly). `Navigation.go(\"play\")` targets the hero `#play`, not `#games-grid` (the section whose\n91\t`scroll-margin-top: 76px` gives the 12px-below-header landing the card asks for), and on\n92\t`type=\"back\"` pages the fixed `setTimeout(..., 350)` races the exit fade + Next route push, so\n93\tthe element is often absent when the scroll fires. Fable was defensible because the fix is\n94\tsmall and involves a real timing subtlety (Next App Router push + sticky header + hash scroll).\n95\tDecision: `engineModel: sonnet`. The work reduces to explicit steps with done-checks (retarget\n96\tto `games-grid`; replace the fixed delay with a scroll-after-arrival mechanism such as a hash or\n97\ta `Landpage` mount effect; update Rule UI-3 in `UI_SHELL_CONSTRAINTS.md`; browser pass from\n98\t`/admin` and a game page on a phone viewport). Difficulty stays `trivial` per the override.\n99\tConsequences: small nav/scroll timing fixes stay on sonnet as long as the target and the\n100\tarrival mechanism can be named up front; fable is reserved for cases where the mechanism itself\n101\tis unclear.\n102\t\n103\t## 2026-09-17 — Pipeline v2: board columns, push-to-dev, human-merged dev→main\n104\t\n105\t**Context.** Cards created without a Status were invisible to the pipeline; per-task PRs into\n106\tdev plus a CTO merge doubled the review work and left \"Done\" meaning \"on dev, not production\";\n107\tthe actionable Slack cards lived in `#pipeline` while the agent channels only got digests.\n108\t\n109\t**Decision.** Board = Backlog → To Do → In progress → QA → Done (Done = on main, set only by"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"tail -n 25 \\\"C:/Users/stefa/.eval-worktrees/classify/u01_rep1_1790693401649/docs/team/DECISIONS.md\\\"; grep -rn \\\"instr-intro\\\" \\\"C:/Users/stefa/.eval-worktrees/classify/u01_rep1_1790693401649/src\\\" | head\",\n  \"description\": \"Show end of decisions log and intro class uses\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "access token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist\nwrite) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,\nwhile `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was\ndefensible: the fix touches token/session code on the AUTH-9 `risk: high` list, and there are real\nsubtleties — a localStorage read during render is a Next hydration mismatch (must be an effect or\na pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\nand skipping the dead `/me/` hop means decoding `exp` client-side.\nDecision: `engineModel: sonnet`, `planModel: fable` (thin spec). The design round can name every\nmechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\nslice optimistically in the mount effect when a refresh token exists, proactively refresh when the\naccess token is expired instead of eating a 401, reconcile with `/me/` in the background, and\noptionally have `SessionRefreshView` return `user` so it is one hop — each with a done-check.\nThat is long-and-explicit, which is the sonnet row; the AUTH-9 surface is handled by `risk: high`\nreview, not by an engine upgrade.\nConsequences: auth-bootstrap/perf work stays on sonnet when the design round can pin the\nhydration-safe read point and the reconcile rules; fable is reserved for cases where the\nsession-state mechanism itself cannot be decided before coding.\nDesign round, same day (`docs/team/designs/2026-09-23-faster-logged-in-state.md`): fourth cloud\nround with no `Agent` tool and no engine teammates in `ListAgents`, seats filled by the planner\nfrom source again. Settled: display-only `nba3via-session-user` cache hydrated via a new\n`hydrateSession` reducer in the mount effect (never sets `authChecked`); bootstrap decodes `exp`\nand calls the exported single-flight `refreshSession` directly when expired; `token/refresh/`\nreturns `user`; a 5xx from `/me/` now keeps the session instead of deleting the tokens; a\npre-hydration inline script was rejected because `Navigation`'s guest button and user chip are\ndifferent DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\nC:/Users/stefa/.eval-worktrees/classify/u01_rep1_1790693401649/src/components/modals/InstructionsModal.tsx:16:      {game.intro && <p className=\"instr-intro\">{game.intro}</p>}\nC:/Users/stefa/.eval-worktrees/classify/u01_rep1_1790693401649/src/components/modals/MultiplayerInfoModal.tsx:11:      <p className=\"instr-intro\">Two ways to play against real people: a random opponent, or a private room with friends.</p>\nC:/Users/stefa/.eval-worktrees/classify/u01_rep1_1790693401649/src/styles/Modal.css:194:.instr-intro { font-size: 14px; color: var(--text); line-height: 1.55; }"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cat >> \\\"C:/Users/stefa/.eval-worktrees/classify/u01_rep1_1790693401649/docs/team/DECISIONS.md\\\" <<'EOF'\\n\\n## 2026-09-29 — Remove descriptive text from the game info popup: trivial/haiku vs trivial/sonnet\\nContext: the (i) `info-btn` next to a game title (`src/views/Trivia/MiniGame.tsx`) opens the\\n\\\"How to play\\\" modal, `src/components/modals/InstructionsModal.tsx`, whose descriptive block is the\\n`game.intro` paragraph (`.instr-intro`) above the numbered rules. The 2026-09-16 precedent sends\\ntrivial visual/layout work to sonnet, so sonnet was defensible.\\nDecision: `difficulty: trivial`, `engineModel: haiku`. This is a pure content removal — delete one\\nJSX line, no layout call, no logic; `.instr-intro` CSS stays because `MultiplayerInfoModal` still\\nuses it. The numbered rules and the \\\"Got it\\\" button stay (the spec names only the descriptive text).\\nConsequences: \\\"remove this text/element\\\" cards with a single named target stay haiku; the sonnet\\nsplit from 2026-09-16 applies only when the change needs a spacing/layout judgment.\\nEOF\",\n  \"description\": \"Append close-call entry to decisions log\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Bash has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "assistant",
+    "content": "Bash was blocked, so I'll add the entry with Edit instead."
+  },
+  {
+    "role": "tool_call",
+    "name": "Edit",
+    "content": "{\n  \"replace_all\": false,\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"old_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\",\n  \"new_string\": \"different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.\\n\\n## 2026-09-29 — Remove descriptive text from the game info popup: trivial/haiku vs trivial/sonnet\\nContext: the (i) `info-btn` next to a game title (`src/views/Trivia/MiniGame.tsx`) opens the\\n\\\"How to play\\\" modal, `src/components/modals/InstructionsModal.tsx`, whose descriptive block is the\\n`game.intro` paragraph (`.instr-intro`) above the numbered rules. The 2026-09-16 precedent sends\\ntrivial visual/layout work to sonnet, so sonnet was defensible.\\nDecision: `difficulty: trivial`, `engineModel: haiku`. This is a pure content removal — delete one\\nJSX line, no layout call, no logic; `.instr-intro` CSS stays because `MultiplayerInfoModal` still\\nuses it. The numbered rules and the \\\"Got it\\\" button stay (the spec names only the descriptive text).\\nConsequences: \\\"remove this text/element\\\" cards with a single named target stay haiku; the sonnet\\nsplit from 2026-09-16 applies only when the change needs a spacing/layout judgment.\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Permission to use Edit has been denied because Claude Code is running in don't ask mode. IMPORTANT: You *may* attempt to accomplish this action using other tools that might naturally be used to accomplish this goal, e.g. using head instead of cat. But you *should not* attempt to work around this denial in malicious ways, e.g. do not use your ability to run tests to execute non-test actions. You should only try to work around this restriction in reasonable ways that do not attempt to bypass the intent behind this denial. If you believe this capability is essential to complete the user's request, STOP and explain to the user what you were trying to do and why you need this permission. Let the user decide how to proceed."
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)ModalHost|MiniGame\\\\.tsx|InstructionsModal|ModalContext|Modal\\\\.css\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u01_rep1_1790693401649\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "22:- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\n34:- `src/components/modals/InstructionsModal.tsx` — \"How to play\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\n36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\n94:- `src/context/ModalContext.tsx` — Global single-overlay state plus `useModal()`/`ModalProvider`. [used by: 10 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "I classified this as trivial and gave it to haiku with no design round. The work is deleting one line in `src/components/modals/InstructionsModal.tsx`: the paragraph that shows the game's `intro` text. The (i) button in `src/views/Trivia/MiniGame.tsx` opens the \"How to play\" modal, and that paragraph is the descriptive block the card means. The numbered rules and the \"Got it\" button stay, since the spec only mentions the descriptive text. The paragraph's `.instr-intro` style must stay because `MultiplayerInfoModal` still uses it.\n\n**Not saved:** I wanted to log a close-call entry in `docs/team/DECISIONS.md`, but this session blocks writing files and running shell commands. I picked haiku over sonnet because this is a simple text removal. The 2026-09-16 entry, which sent small layout edits to sonnet, doesn't apply because nothing here needs a layout decision. Someone with write access should add that entry.\n\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"haiku\", \"engineEffort\": \"low\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\"- `src/components/modals/InstructionsModal.tsx` — \\\"How to play\\\" modal content: intro, numbered rules, start CTA. [used by: 1 files]\", \"- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\", \"- `src/components/modals/MultiplayerInfoModal.tsx` — \\\"How multiplayer works\\\" explainer modal opened from ModalHost. [used by: 1 files]\", \"- `src/context/ModalContext.tsx` — Global single-overlay state plus `useModal()`/`ModalProvider`. [used by: 10 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }"
+  }
+]

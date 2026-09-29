@@ -1,0 +1,1 @@
+{"prompt_id":"r02","rep":1,"failure_class":"error","error":"Command failed: git -C C:\\Users\\stefa\\OneDrive\\Desktop\\nba-projects\\nba-minigames worktree add --detach --force C:\\Users\\stefa\\.eval-worktrees\\classify\\r02_rep1_1790692545741 e7b8630ecd69f201044ad2e0bd03b39defbb1332","retries":0,"latency_s":9.129}

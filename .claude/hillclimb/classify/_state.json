@@ -1,48 +1,72 @@
-{
-  "flow": "classify",
-  "description": "Routing accuracy of the team pipeline's classify step under the 2026-09-29 model policy",
-  "metrics": [
-    {
-      "id": "routing",
-      "label": "Routing",
-      "kind": "binary"
-    },
-    {
-      "id": "design",
-      "label": "Design round",
-      "kind": "binary"
-    },
-    {
-      "id": "engine",
-      "label": "Model tier",
-      "kind": "binary"
-    },
-    {
-      "id": "risk",
-      "label": "Risk",
-      "kind": "binary"
-    },
-    {
-      "id": "difficulty",
-      "label": "Difficulty",
-      "kind": "binary"
-    },
-    {
-      "id": "format",
-      "label": "Valid JSON",
-      "kind": "binary"
-    }
-  ],
-  "perf_fields": [
-    "latency_s",
-    "tool_calls",
-    "num_turns",
-    "close_call_attempts",
-    "cost_usd_reported",
-    "usage"
-  ],
-  "harness_paths": [
-    ".claude/hillclimb/classify/cases.jsonl"
-  ],
-  "harness_sha": "53f578f5e602cabe81833d670522544b5baa65546b577977c54f914b7349603a"
+﻿{
+    "flow":  "classify",
+    "description":  "Routing accuracy of the team pipeline\u0027s classify step under the 2026-09-29 model policy",
+    "metrics":  [
+                    {
+                        "id":  "routing",
+                        "label":  "Routing",
+                        "kind":  "binary"
+                    },
+                    {
+                        "id":  "design",
+                        "label":  "Design round",
+                        "kind":  "binary"
+                    },
+                    {
+                        "id":  "engine",
+                        "label":  "Model tier",
+                        "kind":  "binary"
+                    },
+                    {
+                        "id":  "risk",
+                        "label":  "Risk",
+                        "kind":  "binary"
+                    },
+                    {
+                        "id":  "difficulty",
+                        "label":  "Difficulty",
+                        "kind":  "binary"
+                    },
+                    {
+                        "id":  "format",
+                        "label":  "Valid JSON",
+                        "kind":  "binary"
+                    }
+                ],
+    "perf_fields":  [
+                        "latency_s",
+                        "tool_calls",
+                        "num_turns",
+                        "close_call_attempts",
+                        "cost_usd_reported",
+                        "usage"
+                    ],
+    "harness_paths":  [
+                          ".claude/hillclimb/classify/cases.jsonl"
+                      ],
+    "harness_sha":  "16139b723f075f9bea03571c49bbeff5f195120ab42dea9fc35d4fd8069939aa",
+    "current_round":  2,
+    "reps":  2,
+    "goal":  {
+                 "target":  "routing",
+                 "direction":  "higher",
+                 "hold":  [
+                              "design",
+                              "risk",
+                              "format"
+                          ]
+             },
+    "approve_each_round":  false,
+    "split":  "none (small set) - whole set every round, results directional",
+    "best":  {
+                 "round":  2,
+                 "test_score":  0.9861
+             },
+    "max_rounds":  4,
+    "stop_rule":  "2 consecutive flat rounds or any guardrail regression",
+    "fingerprint":  {
+                        "repo":  "d1328f5",
+                        "model":  "claude-fable-5-1"
+                    },
+    "stopped":  "round 2: at ceiling (71/72 routing), v2 vs v1 delta within noise"
 }

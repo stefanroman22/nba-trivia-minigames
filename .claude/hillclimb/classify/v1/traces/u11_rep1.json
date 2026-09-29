@@ -1,0 +1,50 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: P0: we are under a DDoS attack and the site is about to crash\nCategory: CI/CD\nPriority: P0\n\nget-spec output:\nThe website is under a DDoS attack and is about to go down (or has). Stop it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep1_1790705839084\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u11_rep1_1790705839084\\\"; cat docs/team/DECISIONS.md | tail -60; echo ----; grep -n -i -E \\\"throttl|rate|middleware|settings.py|vercel|firewall|cors|socket|index.js|proxy\\\" docs/team/CODE_MAP.md | head -40; echo ----; grep -n \\\"AUTH-11\\\" -A 20 docs/constraints/AUTH_CONSTRAINTS.md | head -40; ls docs/constraints\",\n  \"description\": \"Read decisions, code map hits, auth constraints\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "and design-round planning for every `needsDesignRound` task (the old opus-4.8-for-detailed-specs /\nfable-for-thin-specs `planModel` split is retired — planning is fable, unconditionally, since Opus\nno longer needs a planning role to justify its pipeline access). `sonnet` (now Sonnet 5.5) keeps its\nexisting default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n`docs/team/PIPELINE.md` §14, `.claude/skills/classify/SKILL.md`, `.claude/skills/team-run/SKILL.md`,\n`.claude/skills/design-round/SKILL.md` (step 5's heavy-model note and step 5d's engine-finalization\nrow), `.claude/agents/browser-qa.md` and `code-reviewer.md` (stale ban mentions), `.claude/README.md`.\n`planner-architect-opus` (pinned `claude-opus-4-8`, the workaround used to reach an Opus-family\nmodel during the ban) is now unused and left in place rather than deleted.\nConsequences: `.claude/settings.json` still needs `permissions.deny` cleared of\n`Agent(model:opus)`/`Agent(model:claude-opus-5)` and `opus` added to `availableModels` — editing\nthat file was blocked by the auto-mode classifier as self-modification of this session's own\npermissions and needs the owner's direct approval/action; until then the harness still refuses to\nspawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model\n(claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.\nAddendum (same day): `.claude/settings.json` was updated with the owner's explicit approval\n(`opus` added to `availableModels`, both deny rules removed), and a smoke-test spawn with\n`model: opus` confirmed it resolves to `claude-opus-5-5` — the policy is now enforceable.\n\n## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\nContext: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,\nanimation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on\nevery step — complex sub-steps go to Opus 5.5, simpler ones to Sonnet 5.5.\nDecision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or\nnon-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion\nsteps are always `[opus]`) and writes `Engine: opus|sonnet|mixed`. team-run's build stage groups\nconsecutive same-tag steps into one spawn of that model, in order, in the same worktree.\nConsequences: a mixed plan costs extra engine spawns (one per tag run) but each step runs on the\ncheapest model that can handle it. Engines must be told which step range they own and that\nearlier steps are done, or they re-implement from step 1.\n\n## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine\nContext: card \"When I enter the website it takes a long time to see that I am actually logged\nin\" (fullstack, Difficulty override `hard`, title-only spec). Root cause is a post-hydration\nwaterfall in `src/app/providers.tsx` `checkLogin`: Redux starts logged-out, and with a 15-minute\naccess token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist\nwrite) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,\nwhile `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was\ndefensible: the fix touches token/session code on the AUTH-9 `risk: high` list, and there are real\nsubtleties — a localStorage read during render is a Next hydration mismatch (must be an effect or\na pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\nand skipping the dead `/me/` hop means decoding `exp` client-side.\nDecision: `engineModel: sonnet`, `planModel: fable` (thin spec). The design round can name every\nmechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\nslice optimistically in the mount effect when a refresh token exists, proactively refresh when the\naccess token is expired instead of eating a 401\n... [5178 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u11_rep1_1790705839084\\\"; grep -n -E \\\"settings|vercel|multiplayer_server/src/index|middleware|urls.py|next.config|proxy\\\" docs/team/CODE_MAP.md | head; ls; ls backend; cat vercel.json backend/vercel.json 2>/dev/null | head -40\",\n  \"description\": \"Find settings, hosting config entries\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "168:- `backend/backend/env_utils.py` — `env_bool`/`env_list`/`env_list_merge` env-var parsing helpers for settings. [used by: 2 files]\nCLAUDE.md\nLICENSE\nREADME.md\nbackend\ndocker-compose.yml\ndocs\neslint.config.js\ninfra\nmultiplayer_server\nnext.config.ts\npackage-lock.json\npackage.json\npostcss.config.js\nprobe-report.json\npublic\nscripts\nsrc\ntailwind.config.js\ntsconfig.json\nvercel.json\nbackend\nmanage.py\nmedia\nrequirements-publish.txt\nrequirements.txt\nscripts\ntrivia\nusers\nvercel.json\n{\n  \"$schema\": \"https://openapi.vercel.sh/vercel.json\",\n  \"framework\": \"nextjs\",\n  \"buildCommand\": \"npm run build\",\n  \"headers\": [\n    {\n      \"source\": \"/data/manifest.json\",\n      \"headers\": [{ \"key\": \"Cache-Control\", \"value\": \"public, max-age=60\" }]\n    },\n    {\n      \"source\": \"/data/:file((?!manifest).*)\",\n      \"headers\": [\n        { \"key\": \"Cache-Control\", \"value\": \"public, max-age=300, stale-while-revalidate=86400\" }\n      ]\n    }\n  ]\n}\n{\n  \"$schema\": \"https://openapi.vercel.sh/vercel.json\",\n  \"buildCommand\": \"python manage.py migrate --noinput && python manage.py createcachetable && python manage.py collectstatic --noinput && (python manage.py flushexpiredtokens || true)\",\n  \"regions\": [\"fra1\"]\n}"
+  },
+  {
+    "role": "assistant",
+    "content": "Classified as **hard, high risk, with a design round**. The classify skill's security rule decides this card: DDoS and attack work always gets `risk: high` and a design round, however few files it touches.\n\n- **Difficulty:** hard, because stopping it touches several parts of the stack at once:\n  - the Django rate limits in `backend/backend/throttles.py` and the `REST_FRAMEWORK` / `CACHES` settings;\n  - the Socket.IO server's connection handling;\n  - the Vercel hosting config for both frontend and backend.\n- **Risk:** high. The rate-limit file and those settings are on the high-risk list in AUTH-11 of the auth constraints doc.\n- **Models:** Opus builds it, because the card is high-risk, a non-trivial P0 and security work. Fable plans it.\n- **Spec:** it's one line, so the design round has to settle what \"stop it\" means before anyone writes code.\n- **Money:** real DDoS protection may need a paid Vercel firewall or Cloudflare plan. Under the project rules that's the owner's decision, so the design round must name the cost and park that part rather than turn it on.\n\nI didn't add a `DECISIONS.md` entry because this wasn't a close call. `RETRO.md` has no earlier parked tasks.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"frontend\",\"backend\",\"multiplayer\",\"auth\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/DEPLOYMENT.md\",\"docs/constraints/AUTH_CONSTRAINTS.md\",\"docs/constraints/BACKEND_CONSTRAINTS.md\",\"docs/constraints/MULTIPLAYER_CONSTRAINTS.md\",\"docs/CACHING_SCALING_PLAN.md\",\"docs/ARCHITECTURE.md\"],\n  \"codeMapHits\": [\"- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\",\"- `backend/backend/env_utils.py` — `env_bool`/`env_list`/`env_list_merge` env-var parsing helpers for settings. [used by: 2 files]\",\"- `src/context/MultiplayerContext.tsx` — Global multiplayer state machine (matchmaking, friend rooms) over Socket.IO. [used by: 8 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

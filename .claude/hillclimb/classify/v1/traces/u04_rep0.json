@@ -1,0 +1,50 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Rename 'Share feedback' to 'Feedback'\nCategory: frontend\nPriority: P2\n\nget-spec output:\nChange the text 'Share feedback' to just 'Feedback' wherever it appears."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u04_rep0_1790698640481\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"Share feedback\",\n  \"-i\": true,\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src\\views\\Landpage.tsx:156:              <button className=\"feedback-band-btn\" onClick={() => open(\"feedback\")}>Share feedback</button>\nsrc\\components\\UserProfile.tsx:302:          {/* Logout — centered, same style as the Share feedback button */}\nsrc\\components\\ModalHost.tsx:32:    title = \"Share feedback\";"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)feedback|Landpage|ModalHost|copy|haiku\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u04_rep0_1790698640481\\\\docs\\\\team\",\n  \"output_mode\": \"content\",\n  \"glob\": \"{CODE_MAP.md,DECISIONS.md}\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\team\\DECISIONS.md:21:hard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\ndocs\\team\\DECISIONS.md:24:Decision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\ndocs\\team\\DECISIONS.md:46:`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\ndocs\\team\\DECISIONS.md:74:## 2026-09-16 — Compact centered points/rank in account overview: trivial/haiku vs trivial/sonnet\ndocs\\team\\DECISIONS.md:78:`src/styles/LandPage.css`) plus at most the matching markup in `src/components/UserProfile.tsx`,\ndocs\\team\\DECISIONS.md:79:no logic — so haiku was defensible under the \"trivial → haiku\" row.\ndocs\\team\\DECISIONS.md:80:Decision: keep `trivial` (override) but set `engineModel: sonnet`. The haiku row is for\ndocs\\team\\DECISIONS.md:81:content/copy/config edits with zero judgment; \"find a better way that takes less space\" is a\ndocs\\team\\DECISIONS.md:84:Consequences: trivial-by-override tasks that are visual/layout rather than copy/config go to\ndocs\\team\\DECISIONS.md:85:sonnet, not haiku; difficulty and engine tier are decided separately when the override forces\ndocs\\team\\DECISIONS.md:97:a `Landpage` mount effect; update Rule UI-3 in `UI_SHELL_CONSTRAINTS.md`; browser pass from\ndocs\\team\\DECISIONS.md:196:## 2026-09-22 — Stale FriendsPhotoTests (friends-overview KeyError 'friends'): trivial/haiku vs trivial/sonnet\ndocs\\team\\DECISIONS.md:202:no logic branches, so `trivial` fits and haiku was defensible. The open \"cacheable photo\ndocs\\team\\DECISIONS.md:205:Decision: `difficulty: trivial`, `engineModel: sonnet`. Same split as 2026-09-16: haiku is for\ndocs\\team\\DECISIONS.md:206:copy/config with zero judgment; this needs the engine to reproduce the failure, confirm the\ndocs\\team\\DECISIONS.md:344:existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\ndocs\\team\\DECISIONS.md:378:while `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was\ndocs\\team\\CODE_MAP.md:22:- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:26:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\"Correct! +10\") into the shared feedback slot. [used by: 17 files]\ndocs\\team\\CODE_MAP.md:27:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:33:- `src/components/modals/FeedbackModal.tsx` — Star rating + free-text feedback form modal content. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:36:- `src/components/modals/MultiplayerInfoModal.tsx` — \"How multiplayer works\" explainer modal opened from ModalHost. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:37:- `src/components/admin/feedbackApi.ts` — Types and fetchers for the admin Feedback tab (filter object, stats, list). [used by: 2 files]\ndocs\\team\\CODE_MAP.md:38:- `src/components/admin/FeedbackCharts.tsx` — Admin Feedback charts: rating distribution and sentiment-over-time line. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:39:- `src/components/admin/FeedbackTab.tsx` — Admin panel Feedback tab: one filter drives charts and table. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:40:- `src/components/admin/vizPalette.ts` — Validated chart palette (ordinal star ramp) for admin Feedback charts. [used by: 1 files]\ndocs\\team\\CODE_MAP.md:93:- `src/context/FeedbackSlotContext.ts` — DOM-node context so SubmitGuessPopUp portals into one fixed spot. [used by: 2 files]\ndocs\\team\\CODE_MAP.md:119:- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text into the shared feedback slot. [used by: 17 files]\ndocs\\team\\CODE_MAP.md:120:- `src/context/FeedbackSlotContext.ts` — DOM-node context the shell exposes for the feedback portal. [used by: 2 files]\ndocs\\team\\CODE_MAP.md:184:- `src/components/motion/MotionButton.tsx` — Drop-in animated button with spring hover/tap feedback. [used by: 0 files\n... [1 chars trimmed]"
+  },
+  {
+    "role": "assistant",
+    "content": "Only two strings a user can see need changing: the button on `src/views/Landpage.tsx:156` and the modal title in `src/components/ModalHost.tsx:32`. `src/components/UserProfile.tsx:302` also contains the text, but only inside a code comment. The spec gives the exact new text and no logic changes, which is the skill's example of a haiku task, so this is trivial / haiku with no design round. The haiku-or-sonnet choice wasn't close, so I didn't add an entry to `DECISIONS.md`. `RETRO.md` has no parked tasks yet.\n\n```json\n{ \"difficulty\": \"trivial\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"haiku\", \"engineEffort\": \"low\",\n  \"planModel\": \"fable\",\n  \"docs\": [],\n  \"codeMapHits\": [\"- `src/components/ModalHost.tsx` — Single overlay host; switches modal content by ModalContext kind. [used by: 1 files]\", \"- `src/components/modals/FeedbackModal.tsx` — Star rating + free-text feedback form modal content. [used by: 1 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

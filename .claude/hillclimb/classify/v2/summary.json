@@ -1,0 +1,1 @@
+﻿{ "description": "Narrow v1 rules: risk judged by modified production code (named surfaces, no rule number); multiplayer area = relay/protocol/sim, not screens", "label": "narrow v1 rules", "target": "skill" }

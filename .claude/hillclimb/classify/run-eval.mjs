@@ -34,13 +34,14 @@ async function loadCases() {
   return onlyIds ? cases.filter((c) => onlyIds.has(c.id)) : cases;
 }
 
-// The same inputs team-run hands classify: title, Category, get-spec output.
+// The same inputs team-run hands classify: title, Category, Priority, get-spec output.
 function classifyPrompt(c) {
   return [
     'Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.',
     '',
     `Title: ${c.title}`,
     `Category: ${c.category ?? '(none)'}`,
+    `Priority: ${c.priority ?? '(none)'}`,
     '',
     'get-spec output:',
     c.spec && c.spec.trim() ? c.spec.trim() : '(empty body)',
@@ -129,6 +130,14 @@ async function runCase(c, ctx) {
       }
     }
     if (typeof result.result === 'string' && result.result.trim()) finalText = result.result;
+    // A plan usage/session limit comes back as a "successful" result whose text is the notice -
+    // never grade it. Non-transient (resets at a clock time), so it goes to errors.jsonl and a
+    // later resume re-runs the case.
+    if (/hit your (session|usage|weekly) limit|usage limit reached|limit .*resets/i.test(finalText)) {
+      const e = new Error(`plan usage limit: ${finalText.trim().slice(0, 120)}`);
+      e.failure_class = 'usage_limit';
+      throw e;
+    }
     // Served model = the model that did the most output work (Claude Code may also use a small helper model).
     const mu = result.modelUsage || {};
     const served = Object.entries(mu).sort((a, b) => (b[1].outputTokens || 0) - (a[1].outputTokens || 0))[0]?.[0];

@@ -1,0 +1,59 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: Game cards appear too late on mobile (black screen) ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â make it smoother\nCategory: frontend\nPriority: P1\n\nget-spec output:\nOn the landing page, especially on mobile, the screen stays black and the game cards show up too late. Make them appear sooner and animate in more smoothly."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u06_rep1_1790707274475\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u06_rep1_1790707274475\\\"; tail -60 docs/team/DECISIONS.md; grep -n -i -E \\\"landing|home|card|intro|splash|hero\\\" docs/team/CODE_MAP.md | head -30; ls docs/constraints 2>/dev/null\",\n  \"description\": \"Read decisions, code map hits, constraint docs\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "and design-round planning for every `needsDesignRound` task (the old opus-4.8-for-detailed-specs /\nfable-for-thin-specs `planModel` split is retired — planning is fable, unconditionally, since Opus\nno longer needs a planning role to justify its pipeline access). `sonnet` (now Sonnet 5.5) keeps its\nexisting default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n`docs/team/PIPELINE.md` §14, `.claude/skills/classify/SKILL.md`, `.claude/skills/team-run/SKILL.md`,\n`.claude/skills/design-round/SKILL.md` (step 5's heavy-model note and step 5d's engine-finalization\nrow), `.claude/agents/browser-qa.md` and `code-reviewer.md` (stale ban mentions), `.claude/README.md`.\n`planner-architect-opus` (pinned `claude-opus-4-8`, the workaround used to reach an Opus-family\nmodel during the ban) is now unused and left in place rather than deleted.\nConsequences: `.claude/settings.json` still needs `permissions.deny` cleared of\n`Agent(model:opus)`/`Agent(model:claude-opus-5)` and `opus` added to `availableModels` — editing\nthat file was blocked by the auto-mode classifier as self-modification of this session's own\npermissions and needs the owner's direct approval/action; until then the harness still refuses to\nspawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model\n(claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.\nAddendum (same day): `.claude/settings.json` was updated with the owner's explicit approval\n(`opus` added to `availableModels`, both deny rules removed), and a smoke-test spawn with\n`model: opus` confirmed it resolves to `claude-opus-5-5` — the policy is now enforceable.\n\n## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\nContext: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,\nanimation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on\nevery step — complex sub-steps go to Opus 5.5, simpler ones to Sonnet 5.5.\nDecision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or\nnon-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion\nsteps are always `[opus]`) and writes `Engine: opus|sonnet|mixed`. team-run's build stage groups\nconsecutive same-tag steps into one spawn of that model, in order, in the same worktree.\nConsequences: a mixed plan costs extra engine spawns (one per tag run) but each step runs on the\ncheapest model that can handle it. Engines must be told which step range they own and that\nearlier steps are done, or they re-implement from step 1.\n\n## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine\nContext: card \"When I enter the website it takes a long time to see that I am actually logged\nin\" (fullstack, Difficulty override `hard`, title-only spec). Root cause is a post-hydration\nwaterfall in `src/app/providers.tsx` `checkLogin`: Redux starts logged-out, and with a 15-minute\naccess token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist\nwrite) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,\nwhile `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was\ndefensible: the fix touches token/session code on the AUTH-9 `risk: high` list, and there are real\nsubtleties — a localStorage read during render is a Next hydration mismatch (must be an effect or\na pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\nand skipping the dead `/me/` hop means decoding `exp` client-side.\nDecision: `engineModel: sonnet`, `planModel: fable` (thin spec). The design round can name every\nmechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\nslice optimistically in the mount effect when a refresh token exists, proactively refresh when the\naccess token is expired instead of eating a 401\n... [2954 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u06_rep1_1790707274475\\\"; grep -n -i -E \\\"Landpage|views/|GameTile|games\\\" docs/team/CODE_MAP.md | head -20; grep -rln \\\"GameTile\\\" src | head\",\n  \"description\": \"Find landing view and game tile usage\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "50:- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]\n74:- `src/utils/GameUtils.tsx` — `games` catalog, `visibleGames` (only list user-facing UI may render), fetchGameData. [used by: 8 files]\n138:- `backend/trivia/utils/playoff_games_utils.py` — Fetches historical playoff series from NBA API into playoff_data.json format. [used by: 1 files]\n141:- `backend/trivia/games/__init__.py` — Game registry: POOL_BUILDERS, VALIDATORS, HIDDEN_GAMES, aggregated urlpatterns per game module. [used by: 6 files]\n142:- `backend/trivia/games/players_index.py` — Publishes the curated player dataset as the \"players-index\" pool. [used by: 6 files]\n143:- `backend/trivia/games/heatmap_criteria.py` — Shared heatmap board geometry and player/criterion matching (mirrors src/utils/criteria.ts). [used by: 5 files]\n144:- `backend/trivia/games/connections_validate.py` — Validates connections seed boards against the curated player index. [used by: 2 files]\n145:- `backend/trivia/games/curated_validate.py` — Sanity checks curated dataset ids, career spans and headshots. [used by: 1 files]\nsrc/components/ui/GameTile.tsx\nsrc/components/ui/index.ts\nsrc/views/Landpage.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u06_rep1_1790707274475\\\"; grep -n -E \\\"motion|whileInView|initial|animate|delay|GameTile|viewport\\\" src/views/Landpage.tsx | head -30; grep -n -E \\\"motion|whileInView|initial|animate|delay|viewport\\\" src/components/ui/GameTile.tsx | head\",\n  \"description\": \"Inspect landing page animation code\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "5:import { motion } from \"framer-motion\";\n13:import Reveal from \"../components/motion/Reveal\";\n14:import { Button, GameTile, SectionHeader, Field } from \"../components/ui\";\n60:            <motion.div className=\"hero-badge\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>\n63:            </motion.div>\n66:            <motion.h1 className=\"font-display hero-h1\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}>\n68:            </motion.h1>\n69:            <motion.p className=\"hero-lead\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>\n71:            </motion.p>\n72:            <motion.div className=\"hero-cta-row\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>\n80:            </motion.div>\n81:            <motion.div className=\"hero-stats\" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}>\n95:            </motion.div>\n116:                <GameTile\n2:import { motion } from \"framer-motion\";\n38:    <motion.button\n43:      initial={reduce ? false : { opacity: 0, y: 16 }}\n44:      whileInView={{ opacity: 1, y: 0 }}\n45:      viewport={{ once: true, amount: 0.25 }}\n46:      transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1], delay: Math.min(index * 0.04, 0.24) }}\n72:    </motion.button>"
+  },
+  {
+    "role": "assistant",
+    "content": "I read `docs/team/RETRO.md` (no parked tasks yet) and `docs/team/DECISIONS.md`, including the 2026-09-29 rule that animation work always goes to opus.\n\nThe landing page is `src/views/Landpage.tsx`. It renders the `GameTile` cards, and each card starts at `opacity: 0` and only fades in once `whileInView` fires with `amount: 0.25`. Each card also has a delay of up to 0.24s. On a slow mobile first paint that would look like the black screen described, which is my inference from the code; I haven't reproduced it on a device.\n\n- **Difficulty:** standard. The change is in one area (the frontend UI) and follows an existing framer-motion pattern.\n- **Engine:** opus. The rule that motion work always goes to opus decides this, because the task is about when and how the cards animate.\n- **Risk:** low. It doesn't touch auth, sessions, the data pipeline or any other high-risk surface.\n- **No design round, no DECISIONS entry:** the task stays in one area, and I didn't weigh any other close options.\n\n```json\n{ \"difficulty\": \"standard\", \"areas\": [\"frontend\",\"ui\"], \"risk\": \"low\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/ui/GameTile.tsx` — Game-grid card with hover zoom/lift for the games listing. [used by: 2 files]\",\n    \"- `src/components/GameCard.tsx` — Animated landing-page game card navigating to the game's route on click. [used by: 0 files]\",\n    \"- `src/utils/GameUtils.tsx` — `games` catalog, `visibleGames` (only list user-facing UI may render), fetchGameData. [used by: 8 files]\",\n    \"- `src/components/ui/Surface.tsx` — Bordered motion-enabled card surface, tone \\\"1\\\" or \\\"2\\\". [used by: 1 files]\",\n    \"- `src/utils/ScrolllToSection.tsx` — Smooth-scrolls to a DOM element by id (home-page section nav). [used by: 2 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

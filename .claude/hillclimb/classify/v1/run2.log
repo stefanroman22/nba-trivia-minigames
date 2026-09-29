@@ -1,0 +1,30 @@
+[v1] 16 of 72 (id,rep) to run
+[v1] 0/16 done (0 ok, 0 failed), 30s elapsed
+[v1] 0/16 done (0 ok, 0 failed), 60s elapsed
+  [v1] u11 rep0: routing 1 (66s)
+  [v1] u10 rep0: routing 1 (76s)
+  [v1] u10 rep1: routing 1 (83s)
+[v1] 3/16 done (3 ok, 0 failed), 90s elapsed, ~390s left
+  [v1] u11 rep1: routing 1 (53s)
+[v1] 4/16 done (4 ok, 0 failed), 124s elapsed, ~372s left
+[v1] 4/16 done (4 ok, 0 failed), 154s elapsed, ~462s left
+  [v1] u12 rep1: routing 0 (76s)
+  [v1] u12 rep0: routing 0 (89s)
+  [v1] u13 rep0: routing 1 (51s)
+[v1] 7/16 done (7 ok, 0 failed), 184s elapsed, ~237s left
+[v1] 7/16 done (7 ok, 0 failed), 214s elapsed, ~275s left
+  [v1] u14 rep0: routing 1 (53s)
+  [v1] u13 rep1: routing 1 (66s)
+  [v1] u14 rep1: routing 1 (69s)
+[v1] 10/16 done (10 ok, 0 failed), 244s elapsed, ~146s left
+[v1] 10/16 done (10 ok, 0 failed), 274s elapsed, ~164s left
+  [v1] u15 rep0: routing 1 (71s)
+  [v1] u16 rep0: routing 1 (57s)
+  [v1] u15 rep1: routing 1 (79s)
+[v1] 13/16 done (13 ok, 0 failed), 309s elapsed, ~71s left
+[v1] 13/16 done (13 ok, 0 failed), 339s elapsed, ~78s left
+  [v1] u16 rep1: routing 1 (54s)
+  [v1] u17 rep0: routing 1 (48s)
+  [v1] u17 rep1: routing 1 (47s)
+[v1] 16/16 done (16 ok, 0 failed), 352s elapsed, ~0s left
+[v1] done - 16 ok, 0 failed -> .claude\hillclimb\classify\v1\results.jsonl

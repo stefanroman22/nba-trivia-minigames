@@ -1,0 +1,59 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: In-game UI: don't fade elements that don't change between rounds\nCategory: frontend\nPriority: P1\n\nget-spec output:\nWhen the next round loads, text components that stay the same still fade out and back in. Only animate the parts whose data actually changes; everything else should stay put."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u05_rep0_1790698695538\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u05_rep0_1790698695538\\\"; tail -n 60 docs/team/DECISIONS.md; echo ----; grep -niE \\\"animat|fade|round|renderer|motion|feedback|GameFrame|question\\\" docs/team/CODE_MAP.md | head -40; ls docs/constraints\",\n  \"description\": \"Read decisions tail and grep code map\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "and design-round planning for every `needsDesignRound` task (the old opus-4.8-for-detailed-specs /\nfable-for-thin-specs `planModel` split is retired — planning is fable, unconditionally, since Opus\nno longer needs a planning role to justify its pipeline access). `sonnet` (now Sonnet 5.5) keeps its\nexisting default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:\n`docs/team/PIPELINE.md` §14, `.claude/skills/classify/SKILL.md`, `.claude/skills/team-run/SKILL.md`,\n`.claude/skills/design-round/SKILL.md` (step 5's heavy-model note and step 5d's engine-finalization\nrow), `.claude/agents/browser-qa.md` and `code-reviewer.md` (stale ban mentions), `.claude/README.md`.\n`planner-architect-opus` (pinned `claude-opus-4-8`, the workaround used to reach an Opus-family\nmodel during the ban) is now unused and left in place rather than deleted.\nConsequences: `.claude/settings.json` still needs `permissions.deny` cleared of\n`Agent(model:opus)`/`Agent(model:claude-opus-5)` and `opus` added to `availableModels` — editing\nthat file was blocked by the auto-mode classifier as self-modification of this session's own\npermissions and needs the owner's direct approval/action; until then the harness still refuses to\nspawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model\n(claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.\nAddendum (same day): `.claude/settings.json` was updated with the owner's explicit approval\n(`opus` added to `availableModels`, both deny rules removed), and a smoke-test spawn with\n`model: opus` confirmed it resolves to `claude-opus-5-5` — the policy is now enforceable.\n\n## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step\nContext: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,\nanimation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on\nevery step — complex sub-steps go to Opus 5.5, simpler ones to Sonnet 5.5.\nDecision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or\nnon-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion\nsteps are always `[opus]`) and writes `Engine: opus|sonnet|mixed`. team-run's build stage groups\nconsecutive same-tag steps into one spawn of that model, in order, in the same worktree.\nConsequences: a mixed plan costs extra engine spawns (one per tag run) but each step runs on the\ncheapest model that can handle it. Engines must be told which step range they own and that\nearlier steps are done, or they re-implement from step 1.\n\n## 2026-09-23 — Faster \"logged in\" on return visits: sonnet vs fable engine\nContext: card \"When I enter the website it takes a long time to see that I am actually logged\nin\" (fullstack, Difficulty override `hard`, title-only spec). Root cause is a post-hydration\nwaterfall in `src/app/providers.tsx` `checkLogin`: Redux starts logged-out, and with a 15-minute\naccess token nearly every return visit does `/me/` (401) → `token/refresh/` (rotation + blacklist\nwrite) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,\nwhile `Navigation`/`Landpage` render the guest UI until the last one resolves. Fable was\ndefensible: the fix touches token/session code on the AUTH-9 `risk: high` list, and there are real\nsubtleties — a localStorage read during render is a Next hydration mismatch (must be an effect or\na pre-hydration inline script), an optimistic cached user must reconcile without a logout flash,\nand skipping the dead `/me/` hop means decoding `exp` client-side.\nDecision: `engineModel: sonnet`, `planModel: fable` (thin spec). The design round can name every\nmechanism up front — cache the last `/me/` payload under a fixed localStorage key, hydrate the\nslice optimistically in the mount effect when a refresh token exists, proactively refresh when the\naccess token is expired instead of eating a 401\n... [6621 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u05_rep0_1790698695538\\\"; grep -rnE \\\"key=\\\\{.*(round|question|current|index)\\\" \\\"src/Game Renderers\\\" src/components/ui/GameFrame.tsx | head -30; echo ---; ls \\\"src/Game Renderers\\\" | wc -l; grep -n \\\"SwapText\\\" -r src --include=*.tsx -l | head -20\",\n  \"description\": \"Find round-keyed animations in renderers\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "src/Game Renderers/GuessMvps.tsx:95:          key={currentIndex}\nsrc/Game Renderers/NameLogo.tsx:96:          key={currentIndex}\nsrc/Game Renderers/NameLogo.tsx:125:                    key={`${currentTeam?.full_name}-${srcIdx}`}\nsrc/Game Renderers/PackFive.tsx:300:            key={index}\nsrc/Game Renderers/PlayOffSeries.tsx:103:          key={currentIndex}\nsrc/Game Renderers/Wordle.tsx:109:              key={index}\n---\n18\nsrc/components/admin/FeedbackTab.tsx\nsrc/components/FriendsPanel.tsx\nsrc/components/Leaderboard.tsx\nsrc/components/LogInSignUp.tsx\nsrc/components/modals/FeedbackModal.tsx\nsrc/components/motion/SwapText.tsx\nsrc/components/MultiPlayer/FriendPlay.tsx\nsrc/components/MultiPlayer/MultiplayerPanel.tsx\nsrc/components/MultiPlayer/OnlineMatch.tsx\nsrc/components/ui/Modal.tsx\nsrc/components/UserProfile.tsx\nsrc/Game Renderers/BingoGame.tsx\nsrc/Game Renderers/SuperDraft.tsx\nsrc/Game Renderers/TicTacToe.tsx\nsrc/Game Renderers/WhoAreYa.tsx\nsrc/views/Admin.tsx"
+  },
+  {
+    "role": "tool_call",
+    "name": "Bash",
+    "content": "{\n  \"command\": \"cd \\\"C:/Users/stefa/.eval-worktrees/classify/u05_rep0_1790698695538\\\"; sed -n 85,115p \\\"src/Game Renderers/GuessMvps.tsx\\\"\",\n  \"description\": \"Inspect round-keyed block in GuessMvps\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "    <GameFrame>\n      <GameFrame.Status\n        left={<GameFrame.Label>ROUND <span className=\"tnum\">{currentIndex + 1}/{seasonsList.length}</span></GameFrame.Label>}\n        right={<GameFrame.Score value={score} />}\n      />\n      <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seasonsList.length} />\n\n      <GameFrame.Board>\n      <AnimatePresence mode=\"wait\">\n        <motion.div\n          key={currentIndex}\n          initial={reduce ? false : { opacity: 0, y: 10 }}\n          animate={{ opacity: 1, y: 0 }}\n          exit={reduce ? undefined : { opacity: 0, y: -10 }}\n          transition={{ duration: 0.25 }}\n          style={{ width: \"100%\" }}\n        >\n          <GameFrame.Prompt\n            eyebrow={<span className=\"tnum\">{currentSeason.season}</span>}\n            title=\"Who won MVP?\"\n          />\n        </motion.div>\n      </AnimatePresence>\n      </GameFrame.Board>\n\n      {/* Autocomplete Input and Confirm Button */}\n      <GameFrame.Action>\n        <GameFrame.InputRow>\n          <AutocompleteInput\n            placeholder=\"Guess the Player...\"\n            value={guess}"
+  },
+  {
+    "role": "assistant",
+    "content": "The task is classified as **standard**, **frontend only**, **low risk**, implemented by **opus**, with **no design round**.\n\n- **Cause confirmed in the code.** In `GuessMvps`, `NameLogo` and `PlayOffSeries`, the whole prompt sits inside a `motion.div` with `key={currentIndex}`. So text that never changes, like the \"Who won MVP?\" title in `GuessMvps`, fades out and back in every round. The fix is to animate only the parts whose data changes per round. That is limited to a few game screens and follows patterns the code already has (`SwapText`, the shared motion tokens).\n- **Why opus:** the skill's motion override sends any change to *what* animates versus what stays still to opus, whatever the difficulty.\n- **Why no design round:** everything the change touches, and everything needed to check it, is frontend. The UI and games tags describe parts of the frontend, not extra areas.\n- **Other checks:** `RETRO.md` has no parked tasks yet. The spec has no attachments. There was no close call, so I didn't add an entry to `DECISIONS.md`.\n\n```json\n{ \"difficulty\": \"standard\", \"areas\": [\"frontend\",\"ui\",\"games\"], \"risk\": \"low\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/GAME_DESIGN_CONSTRAINTS.md\", \"docs/constraints/UI_SHELL_CONSTRAINTS.md\"],\n  \"codeMapHits\": [\n    \"- `src/components/ui/GameFrame.tsx` — Fixed game-layout shell (Status/Score/Label/Prompt/Board/Action/InputRow) for renderer roots. [used by: 18 files]\",\n    \"- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text; configurable transition/variants. [used by: 15 files]\",\n    \"- `src/motion/variants.ts` — Reusable framer-motion Variants (fadeIn/fadeInUp/scaleIn/popIn/stagger/swap). [used by: 2 files]\",\n    \"- `src/motion/tokens.ts` — Shared `durations`, `easing`, and `springs` (soft/pop/gentle/thumb) motion tokens. [used by: 2 files]\",\n    \"- `src/hooks/useReducedMotionSafe.ts` — SSR-safe framer-motion `useReducedMotion`; use instead of the raw hook. [used by: 3 files]\",\n    \"- `src/Game Renderers/RenderGame.tsx` — `renderGame()` dispatcher: gameId to the matching game renderer component. [used by: 2 files]\",\n    \"- `src/components/EndSequence.tsx` — Shared end-of-game bottom slot: cross-fades input, loader, score phases. [used by: 5 files]\",\n    \"- `src/components/SubmitGuessPopUp.tsx` — Portals in-game feedback text (\\\"Correct! +10\\\") into the shared feedback slot. [used by: 17 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": false }\n```"
+  }
+]

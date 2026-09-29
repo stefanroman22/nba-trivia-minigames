@@ -1,0 +1,68 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: P0: authentication does not work for users\nCategory: fullstack\nPriority: P0\n\nget-spec output:\nUsers report they can't log in / stay logged in. Authentication is broken for users."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u08_rep1_1790707333076\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u08_rep1_1790707333076\\\\docs\\\\team\\\\DECISIONS.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Team Decisions Log\n2\t\n3\tAppend-only. One entry per architectural/design decision made by the planner or a design round.\n4\tFormat: `## YYYY-MM-DD — <title>` then Context / Decision / Consequences (2–3 lines each).\n5\t\n6\t## 2026-08-29 — Native plan-and-self-review step for hard-task design rounds, not superpowers:writing-plans\n7\tContext: asked to have planner-architect use the `superpowers:brainstorming`/`writing-plans`\n8\tskills for complex tasks (write a plan, self-review it, hand it to the engine).\n9\tDecision: build the same rigor (numbered plan, self-review for coverage/placeholders/\n10\tconsistency/scope/ambiguity) directly into `design-round`'s procedure instead of invoking those\n11\tskills. Two reasons: (1) `superpowers:brainstorming` hard-gates on human approval before any\n12\timplementation step — incompatible with an unattended pipeline run; (2) both skills are\n13\tmachine-local plugins, not committed to this repo, so referencing them would silently no-op on\n14\tevery cloud routine run (the pipeline's primary execution mode).\n15\tConsequences: the plan-and-self-review discipline now runs identically local or cloud, with no\n16\texternal dependency. If those skills are ever made repo-portable and their approval gate made\n17\toptional for headless use, this can be revisited.\n18\t\n19\t## 2026-09-06 — Model policy: cheap implementer, heavy planner and reviewer\n20\tContext: the owner wants token spend cut without losing quality. Previously `classify` sent\n21\thard tasks to an opus or fable *engine*; sonnet/haiku only implemented easier tiers. Reviewer\n22\tand QA models were fixed by frontmatter/profile, so the `deep`/`max` profile could silently put\n23\tbrowser-qa on opus.\n24\tDecision: split the pick in two. `engineModel` is haiku (trivial) or sonnet (everything else,\n25\thard included) — never opus/fable. `planModel` is opus (explicit spec) or fable (thin spec) and\n26\tdrives the design round, the replan, and code-reviewer. Every design round now produces a\n27\tfull implementation plan (previously hard-only), explicit enough that sonnet executes it\n28\trather than reasoning it out. test-qa-engine and browser-qa are always sonnet; the CTO gate\n29\tis pinned to opus in the workflow (never fable). The orchestrator passes every model\n30\texplicitly. Revisits 2026-08-29: `superpowers:writing-plans` may be used for the plan when it\n31\tis present in the skill listing (local runs); the native a–c step remains the cloud fallback.\n32\t`superpowers:brainstorming` stays excluded — its human-approval gate is still incompatible\n33\twith unattended runs.\n34\tConsequences: opus/fable spend moves from implementation (the longest stage) to two short\n35\tstages (plan, review). Plan quality is now load-bearing for hard tasks — a thin plan will\n36\tshow up as sonnet build failures and verify fix-cycles, which is the signal to fix the plan,\n37\tnot to raise the engine model.\n38\t\n39\t## 2026-09-06 — Opus banned; fable 5.1 for all thinking, fable-or-sonnet for implementation\n40\tContext: same day as the entry above, the owner banned opus (5 and 4.8) from the pipeline\n41\toutright and asked for Fable 5.1 as the single heavy model, with the implementer chosen by the\n42\tshape of the work rather than by spec quality.\n43\tDecision: supersedes the opus/fable `planModel` split above — `planModel` is removed; every\n44\tthinking role (classify, design round, replan, code-reviewer, CTO gate, orchestrator default in\n45\t`.claude/settings.json`, the `deep`/`max` engine profiles) is fable. `engineModel` gains a\n46\t`fable` option: haiku for trivial; sonnet for work that is clearly defined steps with\n47\tacceptance criteria, however many; fable for complex-but-small work — few steps, each needing\n48\tjudgment a plan cannot pin down. Because step count and criteria explicitness are only known\n49\tafter planning, classify's pick is provisional and the design round finalizes it (`Engine:`\n50\tline, step 5d). The earlier \"CTO never fable\" rule is dropped: with opus gone, fable is the only\n51\treviewe\n... [31178 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)auth|login|session|token|jwt|cookie|logout|refresh\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u08_rep1_1790707333076\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "19:- `src/components/Leaderboard.tsx` — Home \"Global Top 100\" card: preview rows, self row, refresh, view-all link. [used by: 1 files]\n21:- `src/components/LogInSignUp.tsx` — Tabbed login/signup form incl. Google OAuth, rendered inside the auth modal. [used by: 1 files]\n27:- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\n54:- `src/components/ui/SessionTimer.tsx` — Ticking m:ss elapsed-time pill shown while a game is in progress. [used by: 2 files]\n64:- `src/hooks/useLeaderboard.ts` — Loads leaderboard (global/friends) with shared 5-min TTL cache and auto-refresh. [used by: 3 files]\n73:- `src/utils/Api.tsx` — `apiFetch` authenticated fetch with token refresh queue, plus token storage helpers. [used by: 21 files]\n83:- `src/utils/session.ts` — Cached /me/ user read/write/clear and access-token expiry check for session bootstrap. [used by: 2 files]\n89:- `src/store/userSlice.tsx` — User auth slice: login/logout/hydrateSession and points/rank/username/photo reducers. [used by: 7 files]\n126:- `backend/trivia/management/commands/maintain_questions.py` — Daily job: refresh questions table, gate, publish a new questions snapshot. [used by: 0 files]\n129:- `backend/trivia/management/commands/refresh_game_data.py` — Builds, validates, versions all game pools; `--skip-live` reuses cached JSON. [used by: 6 files]\n167:- `backend/users/tokens.py` — Session lifetime control: `issue_session_tokens`, refresh view/serializer with 90-day cap. [used by: 4 files]\n169:- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\n178:- `src/motion/tokens.ts` — Shared `durations`, `easing`, and `springs` (soft/pop/gentle/thumb) motion tokens. [used by: 2 files]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)users/views|users/urls|providers|google|settings\\\\.py|authentication\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u08_rep1_1790707333076\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "21:- `src/components/LogInSignUp.tsx` — Tabbed login/signup form incl. Google OAuth, rendered inside the auth modal. [used by: 1 files]"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "I classified this as **hard, high risk**. A design round is needed before any code, and the provisional implementer is opus.\n\n- **Areas:** the card is fullstack, and login plus session persistence cover the frontend (`Api.tsx` refresh queue, `session.ts`, `userSlice`, the login form) and the backend (`users/tokens.py`, the login throttles). Frontend plus backend is multi-area, and the rubric makes any multi-area task hard.\n- **Risk and model:** it changes auth and session/token production code, so risk is high. That, plus a P0 that isn't trivial, puts the build on opus. Planning is on fable, as it is for every design round.\n- **The spec is too thin to plan from yet.** It reports symptoms only (\"can't log in / stay logged in\") and gives no cause. The design round has to find the root cause first. It should start with the 2026-09-23 \"faster logged in\" change: it added the session-user cache, decoding the token's expiry in the browser, calling refresh directly when the token has expired, and returning `user` from `token/refresh/`. It should also check the token-refresh logic, the 90-day session cap, the login throttles and the deploy environment settings.\n- **Not treated as security work:** nothing in the spec suggests a breach, attack or abuse. It still gets the same design round and risk level through the multi-area and auth rules.\n\n`docs/team/RETRO.md` has no parked tasks yet. I didn't add a close-call entry to `DECISIONS.md` because the rubric settled each pick outright.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"frontend\",\"backend\",\"auth\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/constraints/AUTH_CONSTRAINTS.md\",\"docs/constraints/BACKEND_CONSTRAINTS.md\",\"docs/DEPLOYMENT.md\"],\n  \"codeMapHits\": [\n    \"- `src/utils/Api.tsx` — `apiFetch` authenticated fetch with token refresh queue, plus token storage helpers. [used by: 21 files]\",\n    \"- `src/utils/session.ts` — Cached /me/ user read/write/clear and access-token expiry check for session bootstrap. [used by: 2 files]\",\n    \"- `src/store/userSlice.tsx` — User auth slice: login/logout/hydrateSession and points/rank/username/photo reducers. [used by: 7 files]\",\n    \"- `src/components/LogInSignUp.tsx` — Tabbed login/signup form incl. Google OAuth, rendered inside the auth modal. [used by: 1 files]\",\n    \"- `src/components/UserProfile.tsx` — Profile panel: avatar upload, username edit, player-ID copy, points/rank, logout. [used by: 1 files]\",\n    \"- `backend/users/tokens.py` — Session lifetime control: `issue_session_tokens`, refresh view/serializer with 90-day cap. [used by: 4 files]\",\n    \"- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\"\n  ],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]

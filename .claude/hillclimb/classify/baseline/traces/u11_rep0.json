@@ -1,0 +1,86 @@
+[
+  {
+    "role": "system",
+    "content": "Agent: planner-architect (.claude/agents/planner-architect.md) running the classify skill, headless, in a worktree at 423b203"
+  },
+  {
+    "role": "user",
+    "content": "Classify this team task using the `classify` skill (.claude/skills/classify/SKILL.md). Follow the skill exactly and end with its exact JSON output.\n\nTitle: P0: we are under a DDoS attack and the site is about to crash\nCategory: CI/CD\n\nget-spec output:\nThe website is under a DDoS attack and is about to go down (or has). Stop it."
+  },
+  {
+    "role": "tool_call",
+    "name": "Skill",
+    "content": "{\n  \"skill\": \"classify\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Launching skill: classify"
+  },
+  {
+    "role": "tool_call",
+    "name": "Read",
+    "content": "{\n  \"file_path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790693718509\\\\docs\\\\team\\\\RETRO.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "1\t# Parked-Task Post-Mortems\n2\t\n3\tAppend-only. The planner-architect MUST read this file before classifying any new task.\n4\tFormat: `## YYYY-MM-DD — <task title> (<Notion page id>)` then What was tried / Why it failed / Suggested next step.\n5\t"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)throttl|rate.?limit|middleware|vercel|firewall|ddos|settings\\\\.py|proxy\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790693718509\\\\docs\\\\team\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\team\\CODE_MAP.md:169:- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\ndocs\\team\\DECISIONS.md:253:throttle, JPEG bytes only, identical 404 for unknown and photo-less ids — `public_id` is already\ndocs\\team\\DECISIONS.md:377:write) → `/me/` again, three sequential hops to a cold Vercel serverless Django + Supabase pooler,\ndocs\\team\\PIPELINE.md:41:- **QA** — its commit is on `dev` (and on the dev Vercel site). Waiting for your check and for\ndocs\\team\\PIPELINE.md:58:`.github/workflows/`, `vercel.json`, `package.json`, `package-lock.json`, `backend/requirements.txt`\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:23:   (`MEDIA_ROOT`), and `/media/` is only routed when `DEBUG`. Production is Vercel serverless\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:28:   `docs/CREDENTIALS.md` and not known to be on Vercel, so object storage is out. New field\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:50:5. **Client downscale (Vercel 4.5 MB body limit).** `src/utils/imagePrep.ts`\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:75:MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024  # under Vercel's 4.5 MB body limit\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:137:- Migration on prod Postgres runs in the Vercel build (`manage.py migrate --noinput`): dropping a\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:229:# Vercel rejects bodies over 4.5 MB; the browser downscales first, this is the server-side cap.\ndocs\\team\\designs\\2026-09-16-profile-photo-upload-any-image.md:273:    # read-only on Vercel; served inline as a data URL by users.views.user_payload.\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:31:doesn't. Not throttled: the URL space is 32^6 ≈ 1.07e9 (enumeration is useless), a miss is one\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:32:indexed query, and a throttle would add a `DatabaseCache` round-trip to every photo load in\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:34:unthrottled by design; `get_users` is the precedent).\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:137:  with bytes (a handful). The old backend code ignores the column. The Vercel build runs\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:149:  `crossorigin`, and no `settings.py` change is needed.\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:281:    endpoint reveals nothing the leaderboard doesn't. Not throttled (see the design doc): a miss\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:282:    is one indexed query and a throttle would cost a cache round-trip per photo load.\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:312:outermost. Do not add `@api_view`, `permission_classes` or a throttle (BE-9, D1).\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:734:  `settings.py` or CSS changes. The `ARCHITECTURE.md` bullet is the one doc touch the new endpoint\ndocs\\team\\designs\\2026-09-22-friend-photos-cacheable.md:739:  (e) Throttle or not: not (D1). (f) Which rows get photos: all five, including blocked (D5).\ndocs\\team\\designs\\2026-09-23-faster-logged-in-state.md:26:and then a second `GET /me/`. Three sequential round trips to a Vercel serverless Django (cold on\ndocs\\team\\designs\\2026-09-23-faster-logged-in-state.md:58:where a 401-triggered one happened before), so the `auth-refresh` throttle and blacklist churn are\ndocs\\team\\designs\\2026-09-23-faster-logged-in-state.md:93:POST /api/token/refresh/            users/urls.py name=\"token_refresh\", users.tokens.SessionRefreshView (unchanged route/throttle)\ndocs\\team\\designs\\2026-09-23-faster-logged-in-state.md:132:| Everything else | untouched — explicitly `LogInSignUp.tsx`, `UserProfile.tsx`, `Navigation.tsx`, `Landpage.tsx`, `Admin.tsx`, `MultiplayerContext.tsx`, `users/views.py`, `settings.py`, `urls.py`, `throttles.py`. |\ndocs\\team\\designs\\2026-09-23-faster-logged-in-state.md:150:- **Refresh throttle (60/h per \n... [507 chars trimmed]"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)DEFAULT_THROTTLE|ratelimit|RATE_LIMIT|express-rate|attackChallengeMode|firewall\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790693718509\",\n  \"glob\": \"!node_modules/**\",\n  \"output_mode\": \"files_with_matches\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "Found 6 files\ndocs\\superpowers\\specs\\2026-08-29-auth-hardening-design.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\AUTH_CONSTRAINTS.md\nbackend\\trivia\\tests\\test_score_award.py\nbackend\\backend\\throttles.py\nbackend\\backend\\settings.py"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)security|ddos|attack|P0\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790693718509\\\\docs\\\\team\\\\DECISIONS.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "365:non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)settings\\\\.py|vercel|multiplayer_server/src/index|dev-ci|next\\\\.config|middleware|proxy\\\\.ts|urls\\\\.py\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790693718509\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "No matches found"
+  },
+  {
+    "role": "tool_call",
+    "name": "Grep",
+    "content": "{\n  \"pattern\": \"(?i)backend/backend/|multiplayer_server|src/app/layout|config\",\n  \"path\": \"C:\\\\Users\\\\stefa\\\\.eval-worktrees\\\\classify\\\\u11_rep0_1790693718509\\\\docs\\\\team\\\\CODE_MAP.md\",\n  \"output_mode\": \"content\"\n}"
+  },
+  {
+    "role": "tool_call",
+    "name": "Glob",
+    "content": "{\n  \"pattern\": \"docs/constraints/*.md\"\n}"
+  },
+  {
+    "role": "tool_result",
+    "content": "88:- `src/store/index.tsx` — Redux `configureStore` setup plus `RootState`/`AppDispatch` types. [used by: 15 files]\n168:- `backend/backend/env_utils.py` — `env_bool`/`env_list`/`env_list_merge` env-var parsing helpers for settings. [used by: 2 files]\n169:- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\n181:- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text; configurable transition/variants. [used by: 15 files]"
+  },
+  {
+    "role": "tool_result",
+    "content": "docs\\constraints\\AUTH_CONSTRAINTS.md\ndocs\\constraints\\BACKEND_CONSTRAINTS.md\ndocs\\constraints\\MULTIPLAYER_CONSTRAINTS.md\ndocs\\constraints\\UI_SHELL_CONSTRAINTS.md"
+  },
+  {
+    "role": "assistant",
+    "content": "The rubric decides this one directly, so it wasn't a close call and I didn't add anything to `DECISIONS.md`. `RETRO.md` has no earlier failures to learn from. I read the spec as a request for lasting DDoS protection: rate limits (throttles) and hosting config. Stopping a live attack right now isn't something a code pipeline can do.\n\n- **Security rule:** DDoS/attack work always gets a design round, is always high risk, and is planned by Fable.\n- **Difficulty is hard** because the work spans three areas: Vercel hosting config (`vercel.json`, which is a protected path), Django API throttles (the existing `throttles.py` and DRF settings), and connection limits on the Socket.IO multiplayer server.\n- **Opus implements** because the task is both high-risk and a P0 that isn't trivial.\n- **Cost risk:** the design round should flag any mitigation that needs a paid tier, such as Vercel's paid firewall or Cloudflare Pro. The card gets parked with the cost named rather than turning that on.\n\n```json\n{ \"difficulty\": \"hard\", \"areas\": [\"frontend\", \"backend\", \"multiplayer\"], \"risk\": \"high\",\n  \"engineModel\": \"opus\", \"engineEffort\": \"high\",\n  \"planModel\": \"fable\",\n  \"docs\": [\"docs/DEPLOYMENT.md\", \"docs/constraints/BACKEND_CONSTRAINTS.md\", \"docs/constraints/MULTIPLAYER_CONSTRAINTS.md\", \"docs/constraints/AUTH_CONSTRAINTS.md\", \"docs/ARCHITECTURE.md\"],\n  \"codeMapHits\": [\"- `backend/backend/throttles.py` — Login and signup rate throttles. [used by: 4 files]\", \"- `backend/backend/env_utils.py` — `env_bool`/`env_list`/`env_list_merge` env-var parsing helpers for settings. [used by: 2 files]\"],\n  \"attachments\": [],\n  \"needsDesignRound\": true }\n```"
+  }
+]
