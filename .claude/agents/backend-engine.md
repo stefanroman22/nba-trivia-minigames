@@ -59,8 +59,8 @@ Rules:
   signal. Run them yourself only when: you were explicitly asked to, you're about to commit
   outside the pipeline, or you touched models/migrations/settings where a static read genuinely
   can't tell you if it's sound. When you do run tests, always name both apps —
-  `python manage.py test users trivia` — because a bare `manage.py test` silently skips all 91
-  `trivia` tests (no `trivia/__init__.py`) and still reports `OK` (BE-18).
+  `python manage.py test users trivia` — explicit, so the command states what it covers (bare
+  discovery also finds both apps now that `trivia/__init__.py` exists; treat any failure as real — BE-18).
 - Secrets come from env (`backend/.env`); never commit keys. Keep CORS/URLs working for the
   frontend (port 5173).
 - `sync_nba_data` (the NBA-API fetch) must run only offline from a residential IP — never call it

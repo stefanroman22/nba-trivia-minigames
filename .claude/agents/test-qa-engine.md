@@ -28,11 +28,10 @@ Run in order; report failures with the failing output verbatim, not a paraphrase
 4. If `backend/` was touched: activate the venv (`backend/venv/Scripts/activate` on Windows,
    `source backend/venv/bin/activate` otherwise), `cd backend`, then:
    - `python manage.py check`
-   - `python manage.py test users trivia` — **never** a bare `python manage.py test`.
-     `backend/trivia/__init__.py` doesn't exist, so bare discovery silently runs only the `users`
-     app's 30 tests and reports `OK`, skipping all 91 `trivia` tests
-     (`docs/constraints/BACKEND_CONSTRAINTS.md` BE-18). A green bare run is not evidence the suite
-     passed.
+   - `python manage.py test users trivia` — name both apps so the command states its coverage.
+     (`backend/trivia/__init__.py` now exists, so bare discovery also finds both apps — ~369 tests;
+     `docs/constraints/BACKEND_CONSTRAINTS.md` BE-18.) Check the reported test count is in that
+     range, not just that it says `OK`.
 
 Rules:
 - Prefer adding tests next to existing ones; match the current per-app style (`trivia/tests/` is a

@@ -1,33 +1,41 @@
 # UI Shell Constraints (non-game chrome)
 
-**Scope:** everything a player sees that is *not* a game renderer — the app shell, routing,
-navigation, pages, modals/overlays, the shared `components/ui/` toolkit, and their styling
-conventions. Game renderers (`src/Game Renderers/*.tsx`) and the in-game stage/idle/loading/
-feedback/end-of-game system are `docs/GAME_DESIGN_CONSTRAINTS.md` territory — this doc does not
-repeat any of those rules (design tokens, `Stage`, `GameFrame`, `CourtLoader`, `TeamCrest`,
-`SubmitGuessPopup`, `.stage-*`, `.playing-wrap`, `.feedback-slot`, etc. are all covered there).
+**Scope:** everything a player sees that is *not* a game renderer — the App Router shell, routing,
+navigation, pages/views, modals/overlays, the shared `components/ui/` and `components/motion/`
+toolkits, and their styling conventions. Game renderers (`src/Game Renderers/*.tsx`) and the in-game
+stage/idle/loading/feedback/end-of-game system are `docs/GAME_DESIGN_CONSTRAINTS.md` territory — this
+doc does not repeat any of those rules (`Stage`, `GameFrame`, `CourtLoader`, `TeamCrest`,
+`SubmitGuessPopup`, `.stage-*`, `.playing-wrap`, `.feedback-slot`, etc. are covered there).
+
+The frontend is Next.js 16 (App Router) + React + TypeScript, migrated from Vite/React Router in
+Sept 2026. Route files live in `src/app/`; page components live in `src/views/` (not `src/pages/`).
 
 **Reference implementations** (read these before touching shell code):
 
 | Concern | Reference |
 |---|---|
-| Page shell (`app-shell` + `Navigation` + `main.page`) | `src/views/Landpage.tsx`, `src/views/Trivia/MiniGame.tsx` |
-| Routing / route-level transition | `src/app/[game]/page.tsx` (one dynamic route for every game), `src/app/template.tsx` + `src/context/PageTransitionContext.tsx` (the transition) |
+| Root layout + global CSS + providers | `src/app/layout.tsx`, `src/app/providers.tsx` |
+| Page shell (`app-shell` + `Navigation` + `main.page`) | `src/views/Landpage.tsx`, `src/views/Trivia/MiniGame.tsx`, `src/views/Admin.tsx` |
+| Routing / route-level transition | `src/app/[game]/page.tsx` (one dynamic route for every game), `src/app/template.tsx` + `src/context/PageTransitionContext.tsx` + `src/hooks/useNavigate.ts` |
 | Single overlay host | `src/components/ModalHost.tsx`, `src/context/ModalContext.tsx`, `src/components/ui/Modal.tsx` |
 | Shared design-system primitives | `src/components/ui/index.ts` |
-| Animated label swap ("Copy"→"Copied!", "Change"→"Saving…"→"Saved") | `src/components/motion/SwapText.tsx` — wrap any state-driven inline label with `<SwapText>` instead of a bare ternary so the text change animates; see `src/components/UserProfile.tsx` for both usage shapes (auto key from string children, explicit `swapKey`) |
+| Sliding tab/pill switcher | `src/components/motion/SegmentedTabs.tsx` + `src/styles/SegmentedTabs.css` + `springs.thumb` in `src/motion/tokens.ts` |
+| Animated label swap ("Copy"→"Copied!") | `src/components/motion/SwapText.tsx` (see `src/components/modals/FeedbackModal.tsx`) |
 | One-shot system messages (not modals) | `src/utils/Alerts.tsx` |
+| Game visibility | `visibleGames` in `src/utils/GameUtils.tsx` |
 
-Everything below is measured from the live codebase. Where the code is inconsistent, the
-DOMINANT pattern is documented and the exception is called out explicitly — nothing here is an
-aspirational convention the code doesn't actually show.
+Everything below is measured from the live codebase. Where the code is inconsistent, the DOMINANT
+pattern is documented and the exception is called out explicitly — nothing here is an aspirational
+convention the code doesn't actually show.
 
 ---
 
 ## Rule UI-1: A page owns its own shell — `.app-shell` → `<Navigation>` → `<main class="page …">`
 
-There is no shared `<Layout>` wrapper. `src/app/layout.tsx` + `providers.tsx` only set up the providers and the `#root` container; each top-level page
-(`src/views/Landpage.tsx`, `src/views/Trivia/MiniGame.tsx`) renders the shell markup itself.
+There is no shared `<Layout>` wrapper. `src/app/layout.tsx` + `src/app/providers.tsx` only set up
+global CSS, providers and the `#root` container; each top-level page (`src/views/Landpage.tsx`,
+`src/views/Trivia/MiniGame.tsx`, `src/views/Admin.tsx`) renders the shell markup itself. The
+`.app-shell` / `.page` rules live in `src/styles/LandPage.css`.
 
 ```tsx
 ❌ WRONG — the root layout wrapping every page in a shared shell
@@ -43,16 +51,18 @@ There is no shared `<Layout>` wrapper. `src/app/layout.tsx` + `providers.tsx` on
 </div>
 ```
 
-`src/views/NoPageFound.tsx` is the one page that skips this shell entirely (no `Navigation`, no
-`.app-shell`/`.page`) — it renders a full-bleed centered message instead. That is a deliberate
-exception for the not-found state, not something to copy for a real page.
+`src/views/NoPageFound.tsx` (rendered by `src/app/not-found.tsx` and `src/app/coming-soon/page.tsx`)
+is the one page that skips the shell (no `Navigation`, no `.app-shell`/`.page`) — it renders a
+full-bleed centered message. That is a deliberate exception for the not-found state, not something
+to copy for a real page.
 
-## Rule UI-2: A new game is a route to the single `MiniGame` page, never a new page component
+## Rule UI-2: A new game is a catalogue entry that the single `[game]` route serves, never a new page
 
-`src/app/[game]/page.tsx` is the one route for every game path — its `generateStaticParams`
-comes from `games[]` in `src/utils/GameUtils.tsx` (17 paths, one component) and it always renders
-the same `<MiniGame />`. `MiniGame` resolves which game to show from the URL path
-(`src/views/Trivia/MiniGame.tsx`, `gameId = games.find(g => g.urlPath === pathname)?.id`).
+`src/app/[game]/page.tsx` is the one route for every game path: `generateStaticParams` is built from
+`visibleGames` in `src/utils/GameUtils.tsx` (minus `coming-soon`, which has its own
+`src/app/coming-soon/page.tsx`), `dynamicParams = false` makes every other slug a 404, and it always
+renders the same `<MiniGame />`. `MiniGame` resolves the game from the URL
+(`games.find(g => g.urlPath === pathname)?.id` in `src/views/Trivia/MiniGame.tsx`).
 
 ```tsx
 ❌ WRONG — a bespoke page per game
@@ -63,23 +73,21 @@ export default function NewGamePage() { return <NewGameScreen />; }
 { id: "new-game", name: "New Game", urlPath: "/new-game", /* … */ }
 ```
 
-Adding a game is a routing change plus a `Game` entry in `src/utils/GameUtils.tsx` (see
-`GAME_DESIGN_CONSTRAINTS.md`'s "Adding a game" section) — never a new file under `src/views/`.
+Adding a game is a `Game` entry in `src/utils/GameUtils.tsx` (see `GAME_DESIGN_CONSTRAINTS.md`) —
+never a new file under `src/views/` or `src/app/`.
 
 ## Rule UI-3: `Navigation`'s `type` prop decides scroll-in-place vs navigate-then-scroll
 
-`src/components/Navigation.tsx` takes `type?: "full" | "back"`. On `"full"` (the landing page),
-clicking a nav link scrolls the current page. On `"back"` (every game page), the same click
-navigates to `/#<section>`. The App Router does its own hash scroll on mount, but it runs while
-`app/template.tsx`'s route-enter scale transform is still animating; a rect-based scroll target
-(`getBoundingClientRect()`/`scrollIntoView()`) reads the transformed (shrunk) position and lands
-short of `.games-section`'s `scroll-margin-top` offset, flush under the sticky nav. So
-`Landpage.tsx` re-runs the same scroll one frame after mount (see below) using a layout-based
-target (`offsetTop`, which ignores ancestor transforms) to land at the correct offset regardless
-of timing.
+`src/components/Navigation.tsx` takes `type?: "full" | "back"`. On `"full"` (the landing page) a nav
+link scrolls the current page; on `"back"` (game pages, and `Admin.tsx`) the same click navigates to
+`/#<section>`. Next scrolls to the hash while `src/app/template.tsx`'s enter transform
+(`scale: 0.98`) is still active, so its rect-based scroll lands short. `Landpage.tsx` therefore
+re-runs a layout-based scroll one frame after mount, and `scrollToSection`
+(`src/utils/ScrolllToSection.tsx`) sums `offsetTop` up the `offsetParent` chain minus the target's
+`scrollMarginTop` instead of using `scrollIntoView()`.
 
 ```tsx
-❌ WRONG — game page using type="full", so "Games"/"Leaderboard" try to scroll a section that
+❌ WRONG — game page using type="full", so "Games" tries to scroll a section that
    doesn't exist on /series-winner
 <Navigation type="full" />
 
@@ -94,11 +102,8 @@ const go = (section: string) => {
 };
 ```
 
-`Landpage.tsx` then overrides the App Router's own (transform-skewed) hash scroll, once, on mount:
-
 ```tsx
-✅ RIGHT — src/views/Landpage.tsx, re-scrolls after Next's own hash scroll so the final
-   position honors scroll-margin-top on both mobile and desktop
+✅ RIGHT — src/views/Landpage.tsx re-scrolls once on mount, overriding Next's transform-skewed hash scroll
 useEffect(() => {
   const id = window.location.hash.slice(1);
   if (!id || !document.getElementById(id)) return;
@@ -107,69 +112,61 @@ useEffect(() => {
 }, []);
 ```
 
-`scrollToSection` (`src/utils/ScrolllToSection.tsx`) itself computes a layout-based target — it
-sums `offsetTop` up the `offsetParent` chain and subtracts the target's computed
-`scrollMarginTop`, then calls `window.scrollTo()` — instead of `element.scrollIntoView()`, so the
-result is correct whether or not an ancestor transform is mid-animation.
+Any new top-level page must pick `type` explicitly. Exception: the hero's "Browse all games" button
+in `Landpage.tsx` calls `getElementById("games-grid")?.scrollIntoView(...)` directly; it runs long
+after mount so the transform is not an issue, but new code should use `scrollToSection`.
 
-`Landpage.tsx` passes `type="full"`; `MiniGame.tsx` passes `type="back"`. Any new top-level page
-must pick one explicitly — there is no default that works for both.
+## Rule UI-4: One CSS file per page/feature, imported by its owner; the shared layers are imported once, in `layout.tsx`
 
-## Rule UI-4: One CSS file per page/feature, imported by that component; the design system is imported once, globally
-
-Every page-scoped or feature-scoped stylesheet lives in `src/styles/<Name>.css` and is imported
-directly by the one component that owns it: `src/components/Navigation.tsx` imports
-`../styles/Navigation.css`, `src/components/ui/Modal.tsx` imports `../../styles/Modal.css`,
-`src/views/Landpage.tsx` imports `../styles/LandPage.css`, `src/views/Trivia/MiniGame.tsx` imports
-`../../styles/MiniGame.css`. The shared design system (`theme.css` tokens + `ui.css` component
-classes) is the one exception: it is imported exactly once, globally, in `src/app/layout.tsx`, not
-re-imported per component.
+Feature/page stylesheets live in `src/styles/<Name>.css` and are imported by the component that owns
+them (`Navigation.tsx` → `Navigation.css`, `ui/Modal.tsx` → `Modal.css`, `views/Landpage.tsx` →
+`LandPage.css`, `views/Trivia/MiniGame.tsx` → `MiniGame.css`, `motion/SegmentedTabs.tsx` →
+`SegmentedTabs.css`). All CSS is global under Next (no CSS Modules), and the shared layers are
+imported once in `src/app/layout.tsx`: `theme.css`, `ui.css`, `src/index.css` (Tailwind import),
+`src/App.css` (`#root`), and `LandPage.css` + `GlobalStyles.css` — the last two globally on purpose,
+because `LandPage.css` owns `.app-shell`/`.page` that game and admin pages rely on, and Next would
+otherwise scope them to `/`.
 
 ```tsx
-❌ WRONG — a new shell component re-declaring shared tokens/classes in its own file
-import "../styles/theme.css";   // already global via app/layout.tsx — don't re-import per component
+❌ WRONG — a shell component re-importing the shared layers
+import "../styles/theme.css";   // already global via app/layout.tsx
 import "../styles/ui.css";
 
 ✅ RIGHT — src/components/Navigation.tsx: only the feature's own CSS file
 import "../styles/Navigation.css";
 ```
 
-```tsx
-// src/app/layout.tsx — the one place theme.css / ui.css are imported
-import "../styles/theme.css";
-import "../styles/ui.css";
-```
+Note: `src/views/Admin.tsx` and `Landpage.tsx` also re-import `LandPage.css`/`GlobalStyles.css`
+(harmless duplication; don't add more).
 
-## Rule UI-5: Shell/page markup styles with hand-written CSS classes, not Tailwind utility classes
+## Rule UI-5: Shell/page markup styles with hand-written CSS classes, not Tailwind utilities
 
-`tailwind.config.js` scans `./src/**/*.{js,jsx,ts,tsx}` and Tailwind is imported via
-`@import "tailwindcss";` in `src/index.css`, but no wired shell page (`app/providers.tsx`, `Navigation.tsx`,
-`src/views/**`, `src/components/modals/**`, `src/components/ui/**`) styles itself with Tailwind
-utility classes — they use classes from their own page CSS file plus the shared `ui.css` classes
-(`.btn`, `.chip`, `.field`, `.surface`, …).
+Tailwind is live (`@import "tailwindcss";` in `src/index.css`, loaded by `layout.tsx`;
+`postcss.config.js` uses `@tailwindcss/postcss`; `tailwind.config.js` scans `./src/**/*.{js,jsx,ts,tsx}`),
+but no shell page (`Navigation.tsx`, `src/views/**`, `src/components/modals/**`,
+`src/components/ui/**`) styles itself with utilities. They use classes from their own page CSS plus
+the shared `ui.css` classes (`.btn`, `.chip`, `.field`, `.surface`, …) and inline `style` for
+one-offs.
 
 ```tsx
 ❌ WRONG — new nav item styled with Tailwind utilities
-<button className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white">
-  Games
-</button>
+<button className="flex items-center gap-2 px-3 py-2 text-sm text-white/70 hover:text-white">Games</button>
 
 ✅ RIGHT — src/components/Navigation.tsx, styled via Navigation.css
 <button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
 ```
 
-**Exception:** `src/components/Footer.tsx` is written entirely in Tailwind utility classes
-(`className="bg-[#292929] text-white py-10 px-6 flex flex-col …"`) — but it is not imported or
-rendered anywhere in the app (not in `app/providers.tsx`, not in any page). It is dead code, not a second
-convention; don't use it as a template for new shell UI.
+**Exceptions:** `src/app/template.tsx` uses `className="w-full h-full"` (the only live Tailwind
+utility in the shell); `src/components/Footer.tsx` is written entirely in Tailwind but is not imported
+by anything (dead code, not a second convention). Don't use either as a template. (`tailwind.config.js`
+also lists a nonexistent `./index.html`, a Vite leftover — harmless.)
 
 ## Rule UI-6: New component-scoped classes take a short, unique prefix — all CSS is global
 
-There are no CSS Modules and no `styled-components`; every class is global. Existing shell
-components avoid collisions with a short prefix per component: `.nav3-*` (`Navigation.css`),
-`.gtile-*` (`ui.css`, the landing-page game card), `.lbf-*` (the full leaderboard modal,
-`Modal.css`), `.fb-*` (feedback modal, `Modal.css`), `.instr-*` (instructions modal, `Modal.css`),
-`.auth-*` (login/signup, `Modal.css`), `.rail-*` / `.aside-*` (`MiniGame.css`).
+Every class is global. Shell components avoid collisions with a per-feature prefix: `.nav3-*`
+(`Navigation.css`), `.gtile-*` (`ui.css`), `.lbf-*` / `.fb-*` / `.instr-*` / `.auth-*` /
+`.modal-*` (`Modal.css`), `.rail-*` / `.aside-*` (`MiniGame.css`), `.admin-*` (`Admin.css`),
+`.seg-*` (`SegmentedTabs.css`).
 
 ```css
 ❌ WRONG — generic names that will collide with something else's .card/.row
@@ -181,11 +178,12 @@ components avoid collisions with a short prefix per component: `.nav3-*` (`Navig
 .fb-star { background: none; border: none; cursor: pointer; }
 ```
 
-## Rule UI-7: Non-game chrome colors/spacing come from `theme.css` tokens, and the app is dark-only at runtime
+## Rule UI-7: Non-game chrome colors come from `theme.css` tokens, and the app is dark-only at runtime
 
-Shell CSS reads the same custom properties as game CSS (`var(--surface)`, `var(--text)`,
-`var(--muted)`, `var(--brand)`, `var(--line)`, `var(--shadow)`, …) defined in
-`src/styles/theme.css`. Never hardcode a hex value that has a token.
+Shell CSS reads the custom properties in `src/styles/theme.css` (`var(--surface)`, `var(--text)`,
+`var(--muted)`, `var(--brand)`, `var(--line)`, `var(--shadow)`, …). Never hardcode a hex that has a
+token. (Known exceptions: `src/utils/Alerts.tsx` passes `background: "#1c1c1e"` to SweetAlert2 and
+the popup CSS overrides it with tokens; `.btn-primary` deliberately uses `#201005` for contrast.)
 
 ```css
 ❌ WRONG — a hardcoded hex where a token already exists
@@ -195,29 +193,27 @@ Shell CSS reads the same custom properties as game CSS (`var(--surface)`, `var(-
 .new-banner { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
 ```
 
-`theme.css` also defines a full `.light` palette (lines 53–70), but `src/app/providers.tsx` actively
-strips it on every mount:
+`theme.css` also defines a `.light` palette, but `src/app/providers.tsx` strips it on every mount:
 
 ```tsx
-// src/app/providers.tsx
-useEffect(() => {
-  document.documentElement.classList.remove("light");
-  try { localStorage.setItem("nba3via-theme", "dark"); } catch { /* ignore */ }
-}, []);
+// src/app/providers.tsx (AppEffects)
+document.documentElement.classList.remove("light");
+try { localStorage.setItem("nba3via-theme", "dark"); } catch { /* ignore */ }
 ```
 
-So the light tokens exist in CSS but are unreachable in the running app — build and review shell
-UI as dark-only; don't rely on `.light` ever being applied, and don't spend effort tuning it.
+Build and review shell UI as dark-only. `src/hooks/useTheme.ts` (a toggle hook) exists but nothing in
+the shell mounts a theme toggle; don't wire one in.
 
 ## Rule UI-8: Every overlay goes through the single `ModalHost` + `Modal` shell
 
-`src/components/ModalHost.tsx` is mounted once in `app/providers.tsx` and owns the only `.modal-backdrop`/
-`.modal-panel` in the app. `src/context/ModalContext.tsx` exposes `open(kind, payload)` /
-`close()`; `src/components/ui/Modal.tsx` owns the backdrop, panel, title bar, close button,
-Escape-to-close, focus trap, and body-scroll lock. A new overlay is a new `ModalKind` plus a
-`content` branch in `ModalHost.tsx` and a small presentational component (see
-`src/components/modals/FeedbackModal.tsx`, `LeaderboardModal.tsx`, `InstructionsModal.tsx`) that
-only receives `onClose` — it never renders its own backdrop.
+`src/components/ModalHost.tsx` is mounted once in `src/app/providers.tsx` and owns the only
+`.modal-backdrop`/`.modal-panel`. `src/context/ModalContext.tsx` exposes `open(kind, payload)` /
+`close()`; `src/components/ui/Modal.tsx` owns backdrop, panel, title bar, close button,
+Escape-to-close, focus trap, focus restore and body-scroll lock, and `ModalHost` wraps it in
+`<AnimatePresence>` keyed by `kind`. A new overlay is a new `ModalKind` plus a branch in
+`ModalHost.tsx` and a presentational component in `src/components/modals/` that only receives
+`onClose` (never its own backdrop). Current kinds: `login`, `feedback`, `leaderboard`,
+`instructions`, `multiplayerInfo`.
 
 ```tsx
 ❌ WRONG — a component rendering its own overlay outside ModalHost
@@ -231,23 +227,27 @@ function ShareDialog({ onClose }: { onClose: () => void }) {
 
 ✅ RIGHT — add a ModalKind, let ModalHost render the shared Modal shell
 // src/context/ModalContext.tsx
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "share";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo";
 
 // src/components/ModalHost.tsx
-} else if (kind === "share") {
-  title = "Share this game";
-  content = <ShareModal onClose={close} />;
+} else if (kind === "multiplayerInfo") {
+  title = "Multiplayer";
+  content = <MultiplayerInfoModal onClose={close} />;
 }
 ```
 
+Use `wide` (via the `wide` flag set in `ModalHost`, as `leaderboard` does) rather than a custom
+panel width. Open from UI with `useModal().open(kind)`; `Navigation.tsx` closes the mobile drawer
+first when it opens a modal.
+
 ## Rule UI-9: One-shot system messages use SweetAlert2 via `src/utils/Alerts.tsx`, not a bespoke toast
 
-Errors and one-shot confirmations (not in-app content) go through `showErrorAlert` /
-`showNewUserAlert` in `src/utils/Alerts.tsx`, which call `Swal.fire(...)` with the
-`swal2-custom-popup` / `swal2-custom-button` classes. `src/views/Trivia/MiniGame.tsx` uses this
-for "Finish your current game first." when a player tries to switch games mid-round. This is a
-different mechanism from `ModalHost` — reserve `ModalHost` for actual in-app content (forms,
-lists, instructions), and `Alerts.tsx` for a single blocking message.
+Errors and one-shot confirmations go through `showErrorAlert` / `showNewUserAlert` in
+`src/utils/Alerts.tsx`, which lazy-import `sweetalert2` (kept out of the startup bundle) and style it
+with `swal2-custom-popup` / `swal2-custom-button`. `MiniGame.tsx` uses it for "Finish your current
+game first." Reserve `ModalHost` for in-app content (forms, lists, instructions). There is no toast
+library; the in-game "Correct! +10" line is the game-owned feedback slot
+(`GAME_DESIGN_CONSTRAINTS.md`), not a shell toast.
 
 ```tsx
 ❌ WRONG — a one-off error routed through the modal system
@@ -257,18 +257,17 @@ open("error", { message: "Finish your current game first." });
 showErrorAlert("Finish your current game first.", "Game in progress", "Continue playing");
 ```
 
-The SweetAlert style overrides (`.swal2-custom-popup`, `.swal2-custom-button`) live in
-`src/styles/LandPage.css` (lines ~335–367) even though the alerts themselves fire from
-`MiniGame.tsx` and other non-landing-page code — that's the file to edit if the SweetAlert look
-needs to change, despite the misleading location.
+The `.swal2-*` overrides live in `src/styles/LandPage.css` (global via `layout.tsx`) even though the
+alerts fire from non-landing code — edit that file to change the look. Any new `Swal.fire` outside
+`Alerts.tsx` (as `src/components/GameCard.tsx` and `src/utils/GameUtils.tsx` do today) must use the
+same `customClass` names.
 
 ## Rule UI-10: `<Button>` is for CTA-weight actions; small inline controls are hand-rolled `<button>`s
 
-`src/components/ui/Button.tsx` (the `.btn-primary`/`.btn-secondary`/etc. wrapper with
-framer-motion hover/tap) is used for primary and secondary calls to action: "Play" on the idle
-screen, "Log in", "Play today's game" / "Browse all games", "Back to games". Small inline
-controls — nav links, the mobile drawer links, the info/exit/close icon buttons, rail chips —
-are plain `<button className="…">` elements styled by the owning page's CSS file, not `<Button>`.
+`src/components/ui/Button.tsx` (`.btn .btn-<variant> .btn-<size>` with framer-motion hover/tap, both
+disabled under reduced motion) is for primary/secondary calls to action: "Play", "Log in", "Play
+today's game", "Back to games". Small inline controls — nav links, drawer links, icon buttons, rail
+chips — are plain `<button className="…">` styled by the owning page CSS.
 
 ```tsx
 ❌ WRONG — wrapping every small control in the CTA Button component
@@ -278,17 +277,17 @@ are plain `<button className="…">` elements styled by the owning page's CSS fi
 <button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
 
 ✅ RIGHT — src/views/Landpage.tsx, a CTA using the shared Button
-<Button size="lg" onClick={() => openGame(games[0].id, games[0].urlPath)}>
-  Play today's game
-</Button>
+<Button size="lg" onClick={() => openGame(games[0].id, games[0].urlPath)}>Play today's game</Button>
 ```
+
+Exception: modal forms use `.modal-primary-btn` (`Modal.css`) rather than `<Button>`. Follow that
+inside modals.
 
 ## Rule UI-11: Icons in shell chrome are hand-written inline SVG, not an icon library
 
-Every icon in the app-shell/navigation/modal chrome proper (`Navigation.tsx`'s hamburger/close,
-`Modal.tsx`'s close button, `Landpage.tsx`'s play/search icons) is an inline `<svg>` with
-`viewBox="0 0 24 24"`, `stroke="currentColor"`, `strokeWidth` in the 2–2.4 range, and
-`strokeLinecap="round"`. This is the convention for new icons anywhere in the shell.
+Every icon in `Navigation.tsx`, `ui/Modal.tsx`, `Landpage.tsx`, `ui/GameTile.tsx` is an inline
+`<svg viewBox="0 0 24 24">` with `stroke="currentColor"`, `strokeWidth` 2–2.6 and
+`strokeLinecap="round"`.
 
 ```tsx
 ❌ WRONG — pulling in an icon library for a new shell button
@@ -301,24 +300,18 @@ import { faBell } from "@fortawesome/free-solid-svg-icons";
 </svg>
 ```
 
-**Exceptions — two files import `@fortawesome/react-fontawesome`, and only one is dead:**
-`src/components/Footer.tsx` is unmounted (see Rule UI-5) and doesn't count. But
-`src/components/LogInSignUp.tsx` imports `FontAwesomeIcon` plus `faEye`/`faEyeSlash`
-(`@fortawesome/free-solid-svg-icons`, the password show/hide toggle) and `faGoogle`
-(`@fortawesome/free-brands-svg-icons`, the Google OAuth button) — and it is live: `ModalHost.tsx`
-renders it for the `"login"` `ModalKind`. This is a genuine second icon convention, scoped to the
-auth form. Don't extend FontAwesome into new shell chrome and don't rewrite
-`LogInSignUp.tsx`'s existing icons as a drive-by fix — but do grep for `LogInSignUp` (not just
-`Footer`) before claiming "no FontAwesome in the live app."
+**Exceptions:** `src/components/Footer.tsx` imports FontAwesome but is unmounted. `src/components/LogInSignUp.tsx`
+is live (rendered by `ModalHost` for `login`) and imports `FontAwesomeIcon` (`faEye`/`faEyeSlash`,
+`faGoogle`). Don't extend FontAwesome into new chrome and don't drive-by rewrite that file.
 
-## Rule UI-12: Fixed/sticky shell chrome uses a fixed z-index scale — don't pick an arbitrary number
+## Rule UI-12: Fixed/sticky chrome uses the existing z-index scale — don't pick an arbitrary number
 
-Observed literal values, low to high: `.feedback-fab` (`src/styles/LandPage.css`) `z-index: 35` <
-`.nav3` sticky nav (`src/styles/Navigation.css`) `z-index: 40` < `.modal-backdrop`
-(`src/styles/Modal.css`) `z-index: 60` < `.drawer-panel` mobile menu (`src/styles/Navigation.css`)
-`z-index: 70`. A new page-level fixed/sticky element should slot into this scale rather than
-inventing a value (elements scoped inside a card, like the `.games-search` icon's local
-`z-index: 1`, are a separate local stacking context and don't need to fit this scale).
+Observed shell scale, low to high: `.feedback-fab` (`LandPage.css`) `35` < `.nav3` (`Navigation.css`)
+`40` < `.modal-backdrop` (`Modal.css`) `60` < `.drawer-panel` (`Navigation.css`) `70`. A new
+page-level fixed/sticky element slots into this scale. Local stacking inside a card (`.gtile-*` 0–2,
+`.seg-label` 1, `.feedback-slot` 5 in `MiniGame.css`, `.games-search svg` 1) is a separate concern.
+Existing outliers, not to be copied: `EnvBadge.tsx` `9999` (dev-only badge), the confetti layer in
+`GameResult.tsx` `9998`, `AutoCompleteInput.tsx` dropdown `1000`.
 
 ```css
 ❌ WRONG — an arbitrary high value for a new floating element
@@ -330,11 +323,11 @@ inventing a value (elements scoped inside a card, like the `.games-search` icon'
 
 ## Rule UI-13: Reuse the existing breakpoint set — don't invent new pixel values
 
-The shell reuses a fixed handful of breakpoints rather than a per-component ad hoc value:
-`480px` / `640px` / `900px` (`src/styles/ui.css`'s `.hide-xs`/`.hide-sm`/`.hide-md`, and
-`src/styles/LandPage.css`'s mobile reflow at 640px / engage-strip stack at 900px), `560px`
-(`src/styles/Modal.css`'s mobile bottom-sheet dock), and `819px`/`820px` +
-`1199px`/`1200px` (`src/styles/MiniGame.css`'s rail-strip↔rail and aside-column breakpoints).
+Shell breakpoints: `480px` / `640px` / `900px` (`ui.css` `.hide-xs`/`.hide-sm`/`.hide-md`;
+`LandPage.css` reflows at `640px` and `900px`), `560px` (`Modal.css` bottom-sheet dock), and
+`819px`/`820px` + `1199px`/`1200px` (`MiniGame.css` rail/aside layout; `ui.css` `--stage-max` at
+`819px`). Per-game CSS files add their own (`400`, `480`, `620`, `760`) — that is game territory,
+not a shell precedent.
 
 ```css
 ❌ WRONG — a new breakpoint that doesn't match anything else in the shell
@@ -344,16 +337,20 @@ The shell reuses a fixed handful of breakpoints rather than a per-component ad h
 @media (max-width: 900px) { .hide-md { display: none !important; } }
 ```
 
-## Rule UI-14: Route-level transitions are owned by `src/app/template.tsx` — pages don't add their own
+Breakpoints are max-width for the shared utilities and `Navigation.css`; `MiniGame.css` mixes
+`min-width: 820px/1200px` with `max-width: 819px/1199px` (keep the 1px pairing exact).
 
-`src/app/template.tsx` wraps every page in one route-level transition (`opacity`/`scale` fade,
-`0.4s` in / `0.3s` out — the exit is sequenced by `hooks/useNavigate` via `PageTransitionContext`). A page must not add a second top-level
-enter/exit animation around its own root — scroll-triggered motion *inside* the page (e.g.
-`src/components/motion/Reveal.tsx`, used in `Landpage.tsx`) is fine, a competing whole-page
-transition is not.
+## Rule UI-14: Route-level transitions are owned by `template.tsx` + `PageTransitionContext` — pages don't add their own
+
+`src/app/template.tsx` remounts on every route change and wraps each page in one fade/scale
+(`0.4s easeOut` in, `0.3s easeIn` out). The exit can't be animated by the App Router, so
+`navigate()` in `src/context/PageTransitionContext.tsx` sets `leaving`, waits `EXIT_MS = 300` (must
+match the exit duration in `template.tsx`), then `router.push`. The first paint (`hasNavigated`
+false) does not animate because it is the LCP. A page must not add a second whole-page
+enter/exit; scroll-triggered motion inside the page (`src/components/motion/Reveal.tsx`) is fine.
 
 ```tsx
-❌ WRONG — a page re-animating its own root on top of PageTransition
+❌ WRONG — a page re-animating its own root on top of the template
 const Landpage = () => (
   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
     <div className="app-shell">…</div>
@@ -361,27 +358,26 @@ const Landpage = () => (
 );
 
 ✅ RIGHT — src/app/template.tsx owns the one route-level transition
-export default function Template({ children }: { children: ReactNode }) {
-  const { leaving, hasNavigated } = usePageTransition();
-  return (
-    <motion.div
-      initial={hasNavigated ? { opacity: 0, scale: 0.98 } : false}
-      animate={leaving
-        ? { opacity: 0, scale: 0.98, transition: { duration: 0.3, ease: "easeIn" } }
-        : { opacity: 1, scale: 1, transition: { duration: 0.4, ease: "easeOut" } }}
-      className="w-full h-full"
-    >
-      {children}
-    </motion.div>
-  );
-}
+<motion.div
+  initial={hasNavigated ? { opacity: 0, scale: 0.98 } : false}
+  animate={leaving
+    ? { opacity: 0, scale: 0.98, transition: { duration: 0.3, ease: "easeIn" } }
+    : { opacity: 1, scale: 1, transition: { duration: 0.4, ease: "easeOut" } }}
+  className="w-full h-full"
+>
+  {children}
+</motion.div>
 ```
+
+Server-rendered hero content follows the same LCP logic: `Landpage.tsx` entrances are slide-only
+(`initial={{ y: 14 }}`, no opacity 0) so the static page isn't invisible before hydration. Don't
+start SSR'd above-the-fold elements at `opacity: 0`.
 
 ## Rule UI-15: Use the shared `.hide-xs`/`.hide-sm`/`.hide-md` utilities for simple breakpoint show/hide
 
-`src/styles/ui.css` defines `.hide-xs` (≤480px), `.hide-sm` (≤640px), `.hide-md` (≤900px) as the
-standard way to hide an element at a breakpoint — `Navigation.tsx` uses `hide-md` on the desktop
-nav links/right side and `hide-md` on the username/#id block inside the user chip (avatar-only on mobile).
+`src/styles/ui.css` defines `.hide-xs` (≤480px), `.hide-sm` (≤640px), `.hide-md` (≤900px).
+`Navigation.tsx` uses `hide-md` on the desktop links, the right-side block and the username/#id
+meta of the user chip (avatar-only on mobile).
 
 ```tsx
 ❌ WRONG — a bespoke media query duplicating a breakpoint ui.css already covers
@@ -393,64 +389,231 @@ nav links/right side and `hide-md` on the username/#id block inside the user chi
 <div className="nav3-right hide-md"> … </div>
 ```
 
-**Exception:** `src/styles/Navigation.css` also defines its own local `.show-md` (display none by
-default, `inline-flex` at ≤900px) for the mobile hamburger button instead of inverting the shared
-`.hide-md` utility — both the shared hide-* set and this one bespoke show-* class exist side by
-side for nav-specific show/hide; don't be surprised the two conventions coexist, but default to
-`.hide-xs`/`.hide-sm`/`.hide-md` for anything new.
+**Exception:** `Navigation.css` defines its own `.show-md` (hidden by default, `inline-flex` at
+≤900px) for the hamburger group. Both conventions coexist; default to the shared `hide-*` set for
+new work.
+
+## Rule UI-16: Every single-track tab/pill switcher uses `SegmentedTabs`
+
+`src/components/motion/SegmentedTabs.tsx` is the one place tab/pill switchers get their sliding
+active-option thumb (a framer-motion `layoutId` span, spring `springs.thumb` from
+`src/motion/tokens.ts`, `{ duration: 0 }` under reduced motion). The caller keeps its own track and
+button classes for size/shape (`className`, `itemClassName`, `thumbRadius` matching the button's
+border-radius); the fill and label layering come from `src/styles/SegmentedTabs.css`, so the
+caller's `.is-active` rule must set only the label colour, not a background. Current users:
+`LeaderboardModal.tsx` and `Leaderboard.tsx` (`lb-scope`), `FriendsPanel.tsx` (`fr-tabs`),
+`LogInSignUp.tsx` (`auth-tabs`), `UserProfile.tsx`. Override the thumb colour with `--seg-thumb-bg`
+(default `var(--brand)`).
+
+```tsx
+❌ WRONG — a hand-rolled switcher that just toggles a background class
+<div className="lb-scope">
+  {LEADERBOARD_SCOPES.map((s) => (
+    <button key={s.key} className={`lb-scope-btn${scope === s.key ? " is-active" : ""}`} onClick={() => setScope(s.key)}>
+      {s.label}
+    </button>
+  ))}
+</div>
+
+✅ RIGHT — src/components/modals/LeaderboardModal.tsx
+<SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={setScope} />
+```
+
+**Known not-yet-migrated exceptions:** `src/views/Admin.tsx` (`.admin-tabs`, separate gapped bordered
+chips with a `tablist` role) and the `.fb-pill` filter groups in `src/components/admin/FeedbackTab.tsx`
+(period/granularity toggles). Treat them as legacy; a new or reworked single-select switcher must use
+`SegmentedTabs`. Multi-select toggles and free-standing chips (`rail-chip`) are not switchers.
+
+## Rule UI-17: Navigate only through `useNavigate` — never `next/link`, `useRouter`, or `react-router`
+
+`src/hooks/useNavigate.ts` is a drop-in for React Router's `navigate(path, { state })` that plays the
+exit fade and then pushes the route (`PageTransitionContext`). The `state` option is accepted for
+source compatibility but ignored — every game resolves from the URL path. `useRouter` from
+`next/navigation` appears only inside `PageTransitionContext.tsx`; elsewhere only read-only
+`usePathname` is used (`MiniGame.tsx`, `MultiplayerContext.tsx`). There is no `next/link` and no
+`react-router` in the app.
+
+```tsx
+❌ WRONG — bypasses the exit transition and the leaving flag
+import { useRouter } from "next/navigation";
+const router = useRouter();
+router.push(g.urlPath);
+
+✅ RIGHT — src/views/Trivia/MiniGame.tsx
+import { useNavigate } from '../../hooks/useNavigate';
+const navigate = useNavigate();
+navigate(g.urlPath, { state: { id: g.id } });
+```
+
+Pass hash targets as a plain string (`navigate("/#games-grid")`, as `Navigation.tsx` does). Navigating
+to the current path skips the transition and calls `router.push` directly.
+
+## Rule UI-18: `src/app/` files are thin server-side wrappers; page logic lives in `src/views/` behind `"use client"`
+
+Route files (`page.tsx`, `not-found.tsx`, `coming-soon/page.tsx`, `admin/page.tsx`) only render a
+view and export `metadata`/`generateMetadata` (title template `%s | HOOPS24` from `layout.tsx`;
+`/admin` also sets `robots: { index: false, follow: false }`). Views and providers that use hooks,
+Redux or framer-motion start with `"use client"` (`Landpage.tsx`, `Admin.tsx`, `NoPageFound.tsx`,
+`MiniGame.tsx`, `providers.tsx`, `template.tsx`, `PageTransitionContext.tsx`). Client-only
+components (`Navigation`, `ModalHost`, modals) carry no directive of their own and are only imported
+from client trees. Keep `layout.tsx` a server component: providers go in `providers.tsx`, not inline.
+
+```tsx
+❌ WRONG — UI logic in a route file
+// src/app/admin/page.tsx
+"use client";
+export default function AdminPage() { const user = useSelector(...); /* … */ }
+
+✅ RIGHT — src/app/admin/page.tsx delegates to the view
+export const metadata: Metadata = { title: "Admin", robots: { index: false, follow: false } };
+export default function AdminPage() { return <Admin />; }
+```
+
+## Rule UI-19: Every user-facing game listing uses `visibleGames`, never raw `games`
+
+`src/utils/GameUtils.tsx` flags unfinished games `hidden: true` (typed at `hidden?: boolean` in
+`src/types/types.tsx`) and exports `visibleGames = games.filter((g) => !g.hidden)`. The landing grid
+(`Landpage.tsx`), the game rail and mobile strip (`MiniGame.tsx`), the multiplayer pickers
+(`MultiPlayer/FriendPlay.tsx`, `OnlineMatch.tsx`) and `[game]/page.tsx`'s `generateStaticParams`
+all use it, so a hidden game has no tile, no rail entry and a 404 route. Raw `games` is only for
+lookups by id/path where the game is already known (`MiniGame.tsx` resolving the URL, the
+`gameCatalog` id checks in `FeedbackModal.tsx`, `FeedbackTab.tsx`, `Admin.tsx`).
+
+```tsx
+❌ WRONG — a new picker listing every catalogue entry, hidden ones included
+import { games } from "../utils/GameUtils";
+{games.map((g) => <GameTile key={g.id} name={g.name} … />)}
+
+✅ RIGHT — src/views/Landpage.tsx
+import { visibleGames as games } from "../utils/GameUtils";
+{filtered.map((game, index) => <GameTile key={game.id} name={game.name} … />)}
+```
+
+## Rule UI-20: Motion must honour reduced motion — `MotionConfig`, `useReducedMotionSafe`, and the tokens
+
+`src/app/providers.tsx` wraps the tree in `<MotionConfig reducedMotion="user">`, and `theme.css`
+shrinks all CSS animation to `0.01ms` under `prefers-reduced-motion: reduce`. Components that
+gate their own hover/tap/loops read the preference: components that render in server HTML and derive
+markup from it (`Reveal.tsx`, `GameTile.tsx`, `CourtLoader.tsx`) use `useReducedMotionSafe`
+(`src/hooks/useReducedMotionSafe.ts`, which returns `null` until hydrated so the first client render
+matches the server); purely client-side interactive ones (`Button.tsx`, `SegmentedTabs.tsx`,
+`SwapText.tsx`, `AnimatedNumber.tsx`, `Spinner.tsx`) use framer-motion's `useReducedMotion`. Reuse
+`durations`/`easing`/`springs` from `src/motion/tokens.ts` and the variants in `src/motion/variants.ts`
+rather than inventing curves (some older shell code hardcodes `[0.22, 1, 0.36, 1]` — that is
+`easing.out`).
+
+```tsx
+❌ WRONG — an infinite/decorative animation with no reduced-motion branch, and an SSR-unsafe hook
+const reduce = useReducedMotion();          // in a component rendered into server HTML
+<motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity }} />
+
+✅ RIGHT — src/components/motion/Reveal.tsx
+const reduce = useReducedMotionSafe();
+<motion.div variants={variants} initial={reduce ? "visible" : "hidden"} whileInView="visible" viewport={{ once, amount }} />
+```
+
+```tsx
+✅ RIGHT — src/components/ui/Button.tsx: hover/tap disabled when the user prefers reduced motion
+const interactive = !reduce && !disabled;
+whileHover={interactive ? { y: -2 } : undefined}
+```
+
+Note `src/components/motion/Spinner.tsx` and `src/components/ui/Spinner.tsx` are two different
+spinners (framer ring with label vs CSS `.spinner-ring`); whole-stage loading is `CourtLoader`.
 
 ---
 
 ## Acceptance checks
 
-Concrete DevTools/console checks a QA agent can run.
+Concrete DevTools/console/grep checks a QA agent can run.
 
-**1. Every route renders the shell (Rule UI-1).** Navigate to `/`, `/series-winner`, and
-`/coming-soon`, and on each run:
+**1. Shell present on real pages, absent only on 404s (Rule UI-1).** Visit `/`, `/series-winner`,
+`/admin` (signed in as admin), then `/coming-soon` and `/definitely-not-a-route`, and run:
 ```js
-({
-  hasShell: !!document.querySelector('.app-shell'),
-  hasMain: !!document.querySelector('main.page'),
-});
+({ shell: !!document.querySelector('.app-shell'), main: !!document.querySelector('main.page') });
 ```
-`/` and `/series-winner` → both `true`. `/coming-soon` (`NoPageFound`) is the documented
-exception and may be `false`.
+`/`, `/series-winner`, `/admin` → both `true`. `/coming-soon` and the unknown route (`NoPageFound`)
+may be `false`; the unknown route must also return HTTP 404 (Network tab).
 
-**2. Single overlay host (Rule UI-8).** Open any overlay (Log in, Feedback, Leaderboard, or a
-game's info button) and run:
+**2. Single overlay host (Rule UI-8).** Open Log in, Feedback, Leaderboard, and a game's info
+button in turn:
 ```js
-document.querySelectorAll('.modal-backdrop').length;   // MUST be 1
+document.querySelectorAll('.modal-backdrop').length;      // MUST be 1
 !!document.querySelector('.modal-backdrop .modal-panel'); // MUST be true
 ```
+Press Escape: the backdrop must disappear and focus return to the trigger.
 
-**3. Z-index scale (Rule UI-12).** With a modal open, run:
+**3. Z-index scale (Rule UI-12).** With a modal open on `/`:
 ```js
-const z = sel => { const el = document.querySelector(sel); return el && +getComputedStyle(el).zIndex; };
-({ fab: z('.feedback-fab'), nav: z('.nav3'), modalBackdrop: z('.modal-backdrop') });
-// expect 35, 40, 60 respectively (fab only present on the landing page)
+const z = s => { const e = document.querySelector(s); return e && +getComputedStyle(e).zIndex; };
+({ fab: z('.feedback-fab'), nav: z('.nav3'), modal: z('.modal-backdrop') }); // 35, 40, 60
 ```
-Open the mobile drawer (viewport ≤900px, tap the hamburger) and check
-`z('.drawer-panel')` → `70`.
+At ≤900px viewport tap the hamburger: `z('.drawer-panel')` → `70`.
 
-**4. Breakpoint reuse (Rule UI-13).** Resize to 899px then 901px and diff
-`getComputedStyle(document.querySelector('.nav3-links')).display` (`flex` → `none` crossing
-900px). Resize to 819px then 821px on a game page and diff
-`getComputedStyle(document.querySelector('.rail')).display` / `.rail-strip` visibility.
+**4. Breakpoints (Rules UI-13, UI-15).** Resize to 899px then 901px:
+`getComputedStyle(document.querySelector('.nav3-links')).display` goes `none` → `flex`, and
+`.nav3-mobile-right` is `inline-flex` only at 899px. On a game page at 819px vs 821px,
+`.rail-strip` is `flex` vs `none` and `.rail` is `none` vs `flex`.
 
-**5. Icon-library usage matches the documented exceptions, no more (Rule UI-11).** From the repo
-root — note `src/components/*.tsx` (bare files, not just the named ones) is included, or this
-check silently misses live components like `LogInSignUp.tsx`:
+**5. Icon libraries limited to documented files (Rule UI-11).**
 ```bash
-grep -rl "@fortawesome\|react-icons\|lucide-react" src/app src/components/*.tsx src/components/Navigation.tsx src/views src/components/modals src/components/ui
+grep -rl "@fortawesome\|react-icons\|lucide-react" src --include=*.tsx
 ```
-Expect exactly two hits: `src/components/Footer.tsx` (unmounted, doesn't count — Rule UI-5) and
-`src/components/LogInSignUp.tsx` (the documented live exception). Any *other* file appearing here
-is a new violation of Rule UI-11.
+Expect exactly `src/components/Footer.tsx` (unmounted) and `src/components/LogInSignUp.tsx`.
 
-**6. No Tailwind utilities in wired shell code (Rule UI-5).** Same bare-file scoping as check 5:
+**6. No new Tailwind utilities in shell code (Rule UI-5).**
 ```bash
-grep -rnE 'className="[^"]*\b(flex|grid|px-[0-9]|py-[0-9]|text-(sm|lg|white)|bg-\[)' src/app src/components/*.tsx src/components/Navigation.tsx src/views src/components/modals
+grep -rnE 'className="[^"]*\b(flex|grid|px-[0-9]|py-[0-9]|w-full|h-full|text-(sm|lg|white)|bg-\[)' src/app src/components/*.tsx src/views src/components/modals src/components/ui
 ```
-Expect no output outside `src/components/Footer.tsx` (unmounted) and
-`src/views/Landpage.tsx`'s single incidental `games-grid3` class name (which is not a Tailwind
-utility — it's a page-CSS class that happens to contain a digit).
+Expected hits only: `src/app/template.tsx` (`w-full h-full`), `src/components/Footer.tsx`, and
+false positives whose class merely contains "grid" (`games-grid3` in `Landpage.tsx`,
+`fb-detail-grid` in `FeedbackTab.tsx` if that path is included). Anything else is a violation.
+
+**7. Navigation goes through `useNavigate` (Rule UI-17).**
+```bash
+grep -rnE "useRouter|next/link|react-router" src --include=*.ts --include=*.tsx
+```
+`useRouter` must appear only in `src/context/PageTransitionContext.tsx`; comments in
+`useNavigate.ts` mentioning react-router are fine. In the browser, click a rail chip on a game page:
+the page must fade out (~0.3s, `opacity` on the `template` wrapper) before the URL changes.
+
+**8. Route transition not doubled (Rule UI-14).** Hard-load `/wordle`: the template wrapper has no
+inline `opacity`/`transform` animation on first paint. Then click "Games" → a game from `/`:
+```js
+getComputedStyle(document.querySelector('#root > div')).opacity // returns to "1" after ~0.4s
+```
+and confirm no other full-page wrapper animates.
+
+**9. SegmentedTabs in use (Rule UI-16).** Open the leaderboard modal while signed in and switch scope:
+```js
+document.querySelectorAll('.seg-thumb').length; // exactly 1 per mounted switcher
+```
+The thumb must slide (not jump) between options. Repeat in Log in ↔ Sign up (`.auth-tabs`) and the
+friends panel (`.fr-tabs`). Grep for regressions:
+```bash
+grep -rn 'role="tab"' src --include=*.tsx   # only SegmentedTabs.tsx and the legacy Admin.tsx
+```
+
+**10. Hidden games do not leak (Rule UI-19).** Read the `hidden: true` ids from
+`src/utils/GameUtils.tsx`; each must be absent from the landing grid (`.gtile` names), the game rail
+(`.rail-item`), and the mobile strip (`.rail-chip`), and `/<its-slug>` must 404. Grep:
+```bash
+grep -rn "from \"../utils/GameUtils\"\|from '../../utils/GameUtils'" src/views src/components --include=*.tsx
+```
+Every listing/picker import must be `visibleGames`; raw `games`/`gameCatalog` only for lookups.
+
+**11. Reduced motion (Rule UI-20).** In DevTools → Rendering, set "Emulate CSS prefers-reduced-motion:
+reduce", hard reload `/`: `.hero-grain` has `animation-name: none`, `Button` hover doesn't lift,
+`CourtLoader` (start any game) shows a static ball, and switching a `SegmentedTabs` option moves the
+thumb instantly. Console must show no hydration warnings for `Reveal`/`GameTile`.
+
+**12. Tokens, not hex (Rule UI-7).**
+```bash
+grep -nE "#[0-9a-fA-F]{3,6}\b" src/styles/Navigation.css src/styles/Modal.css src/styles/SegmentedTabs.css
+```
+Any hit that duplicates a `theme.css` token (`#101010`, `#1c1c1e`, `#9c9a95`, `#ff6a1a`, …) is a
+violation. Also confirm `document.documentElement.classList.contains('light')` is `false` after load.
+
+**13. Swal styling (Rule UI-9).** Trigger "Finish your current game first." (start a game, click
+another rail item on desktop): the popup has `.swal2-custom-popup`, its background resolves to
+`var(--surface)`, and no `.modal-backdrop` is added.
