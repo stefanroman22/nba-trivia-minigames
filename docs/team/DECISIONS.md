@@ -353,6 +353,21 @@ that file was blocked by the auto-mode classifier as self-modification of this s
 permissions and needs the owner's direct approval/action; until then the harness still refuses to
 spawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model
 (claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.
+Addendum (same day): `.claude/settings.json` was updated with the owner's explicit approval
+(`opus` added to `availableModels`, both deny rules removed), and a smoke-test spawn with
+`model: opus` confirmed it resolves to `claude-opus-5-5` — the policy is now enforceable.
+
+## 2026-09-29 — Motion always opus; Fable-planned tasks pick the engine per step
+Context: owner refined the entry above: complex/important → Opus 5.5, simple → Sonnet 5.5,
+animation/motion work → always Opus 5.5, and a Fable-planned task should not force one engine on
+every step — complex sub-steps go to Opus 5.5, simpler ones to Sonnet 5.5.
+Decision: classify gains two overrides (motion → opus regardless of difficulty; `risk: high` or
+non-trivial P0 → opus). design-round step 5d tags every plan step `[opus]`/`[sonnet]` (motion
+steps are always `[opus]`) and writes `Engine: opus|sonnet|mixed`. team-run's build stage groups
+consecutive same-tag steps into one spawn of that model, in order, in the same worktree.
+Consequences: a mixed plan costs extra engine spawns (one per tag run) but each step runs on the
+cheapest model that can handle it. Engines must be told which step range they own and that
+earlier steps are done, or they re-implement from step 1.
 
 ## 2026-09-23 — Faster "logged in" on return visits: sonnet vs fable engine
 Context: card "When I enter the website it takes a long time to see that I am actually logged

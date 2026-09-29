@@ -42,9 +42,17 @@ All four are rolling aliases.
 | **sonnet** (effort high) | **The default.** Any task whose work can be written as clearly defined steps, each with an acceptance criterion — however many steps — or a spec detailed enough that nothing needs inventing. Building on an existing feature, following an existing pattern, or executing a design-round plan step by step. Long-and-explicit is sonnet territory. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." / A 12-step bracket-mode plan where every step names its file and its done-check. |
 | **opus** (effort high) | **Complex.** A few steps that each need real judgment a plan cannot fully pin down — a novel algorithm, a tricky state machine, subtle multiplayer timing — or a spec that genuinely cannot be reduced to steps with acceptance criteria; also the implementer for a hard task once Fable has produced its design-round plan. Rule of thumb: short-and-hard or hard-with-a-plan → opus; long-and-explicit → sonnet; long-and-vague → the plan is the problem, fix it in the design round rather than upgrading the engine. | Card: "Elo-style rating updates for 3-player rooms with disconnect forfeits" — one file, hard math, ambiguous ties → opus. |
 
+Two overrides beat the table:
+- **Motion/animation → opus, always.** Any task whose core is motion — framer-motion, transitions,
+  animated UI, springs, gestures, scroll/reveal effects — goes to opus regardless of difficulty,
+  even a one-file change. Feel and timing are judgment, not steps.
+- **Important + complex → opus.** `risk: high`, or a P0 card that is not trivial, goes to opus
+  rather than sonnet. Simple tasks stay sonnet (or haiku if trivial).
+
 This is a **provisional** pick. When a design round runs, the planner finalizes it once the
-plan exists (`design-round` step 5d) — only then is the step count and the explicitness of the
-acceptance criteria actually known.
+plan exists (`design-round` step 5d), **per step** — a Fable-planned task can mix opus steps
+(complex, or motion) and sonnet steps (simpler). Only then is the step count and the
+explicitness of the acceptance criteria actually known.
 
 ### `planModel` — who runs the design round and any replan
 Output it on every task (it is ignored when `needsDesignRound` is false and no replan happens).

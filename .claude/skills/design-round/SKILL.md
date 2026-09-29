@@ -43,12 +43,14 @@ The "meeting" is an artifact. No code until sign-off.
       the plan picks one reading explicitly rather than leaving it for the engine to guess.
    c. Append the reviewed plan to the same design doc under `## Implementation plan`, then hand
       it to the build stage — the engine implements the plan, it does not re-derive one.
-   d. Finalize the engine now that the plan exists — classify's `engineModel` was provisional.
-      `sonnet` if the steps are many and each carries an explicit done-check (long-and-explicit);
-      `opus` if the plan is short (roughly ≤5 steps) and the steps need judgment the plan cannot
-      fully pin down (short-and-hard). Long-and-vague means the plan failed b — fix the plan, do
-      not upgrade the engine. Write it as `Engine: sonnet|opus` in the design doc's
-      Decision summary and echo it in your final reply; the build stage uses it over classify's pick.
+   d. Finalize the engine **per step** now that the plan exists — classify's `engineModel` was
+      provisional. Tag every numbered step in `## Implementation plan` with `[opus]` or `[sonnet]`:
+      `[opus]` if the step needs judgment the plan cannot fully pin down (a tricky algorithm, state
+      machine, timing, a design call) **or involves motion/animation of any kind**; `[sonnet]` if
+      the step is explicit and carries a clear done-check. Long-and-vague means the plan failed b —
+      fix the plan, do not upgrade the engine. In the Decision summary write
+      `Engine: opus|sonnet|mixed` (mixed = both tags present) and echo it in your final reply; the
+      build stage uses the per-step tags over classify's pick.
    The a–c procedure is native to this pipeline so the discipline holds on cloud runs where
    no planning skill exists — see `docs/team/DECISIONS.md` 2026-08-29 and 2026-09-06.
 6. Commit the design doc: `docs(team): design for <slug>`.
