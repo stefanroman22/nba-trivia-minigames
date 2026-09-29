@@ -270,7 +270,7 @@ frontmatter or the `npm run engine` profile):
 | Role | Model |
 |---|---|
 | `planner-architect` (classify) | **fable**. |
-| Design round + replan | **fable**, always, when `classify.needsDesignRound`. The plan must be explicit enough — numbered steps, each with an acceptance criterion — for the implementer to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
+| Design round + replan | **fable**, always, when `classify.needsDesignRound` — which security work (attacks, auth/session breaches, account blocking/abuse, secrets, permissions) always sets, whatever its size. The plan must be explicit enough — numbered steps, each with an acceptance criterion — for the implementer to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
 | Implementer (`frontend-engine`, `backend-engine`) | **haiku** for trivial. **sonnet** for simple work: clearly defined steps with acceptance criteria — however many — or a fully detailed spec. **opus** for complex or important work (judgment a plan cannot pin down, `risk: high`, non-trivial P0) and **always for motion/animation**. For Fable-planned tasks the engine is chosen **per step**: the design round tags each plan step `[opus]` (complex or motion) or `[sonnet]` (simpler), and the build stage runs consecutive same-tag steps as one spawn of that model. Long-and-vague is a plan problem, never a reason to upgrade the engine. |
 | `code-reviewer` | **fable**, always. |
 | `test-qa-engine`, `browser-qa` | **sonnet**, always. Never fable or opus. |
