@@ -28,19 +28,19 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
 - Multi-area at any difficulty → `needsDesignRound: true`.
 
 ## Model rubric
-Opus 5 is banned pipeline-wide — never output the `opus` alias. The models in play:
-`fable` (Fable 5.1: classify, review, the CTO gate, most design rounds, and hard-but-small
-implementation), `opus-4.8` (planning only — see `planModel`), `sonnet` (the default
-implementer) and `haiku` (trivial only). `fable`/`sonnet`/`haiku` are rolling aliases;
-`opus-4.8` is a pinned model reached through the `planner-architect-opus` agent.
-(See `docs/team/DECISIONS.md` 2026-09-06.)
+As of 2026-09-29, Opus is unbanned (see `docs/team/DECISIONS.md` 2026-09-29) — the 2026-09-06 ban
+targeted Opus 5's cost specifically; Opus 5.5 and Sonnet 5.5 are meaningfully faster and cheaper.
+The models in play: `fable` (Fable 5.1: classify, review, the CTO gate, and design rounds for
+hard tasks — no longer an implementer), `opus` (Opus 5.5: implementation requiring real
+judgment), `sonnet` (Sonnet 5.5: the default implementer) and `haiku` (Haiku 4.5: trivial only).
+All four are rolling aliases.
 
 ### `engineModel` — who implements
 | Model | When | Example |
 |---|---|---|
 | **haiku** (effort low) | `trivial`: content/copy/config edit, zero logic. | "Change the CTA button text from 'Play Now' to 'Start Game'." |
-| **sonnet** (effort high) | **The default.** Any task whose work can be written as clearly defined steps, each with an acceptance criterion — however many steps. Building on an existing feature, following an existing pattern, or executing a design-round plan step by step. Long-and-explicit is sonnet territory; a hard task with a good plan is still sonnet. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." / A 12-step bracket-mode plan where every step names its file and its done-check. |
-| **fable** (effort high) | **Complex but small.** A few steps that each need real judgment a plan cannot fully pin down — a novel algorithm, a tricky state machine, subtle multiplayer timing — or a spec that genuinely cannot be reduced to steps with acceptance criteria. Rule of thumb: short-and-hard → fable; long-and-explicit → sonnet; long-and-vague → the plan is the problem, fix it in the design round rather than upgrading the engine. | Card: "Elo-style rating updates for 3-player rooms with disconnect forfeits" — one file, hard math, ambiguous ties → fable. |
+| **sonnet** (effort high) | **The default.** Any task whose work can be written as clearly defined steps, each with an acceptance criterion — however many steps — or a spec detailed enough that nothing needs inventing. Building on an existing feature, following an existing pattern, or executing a design-round plan step by step. Long-and-explicit is sonnet territory. | "Add a 'career-high' stat row to the profile page, mirroring the existing stat-row pattern." / "New minigame built on the existing `GameFrame` shell, following a similar existing game as the template." / A 12-step bracket-mode plan where every step names its file and its done-check. |
+| **opus** (effort high) | **Complex.** A few steps that each need real judgment a plan cannot fully pin down — a novel algorithm, a tricky state machine, subtle multiplayer timing — or a spec that genuinely cannot be reduced to steps with acceptance criteria; also the implementer for a hard task once Fable has produced its design-round plan. Rule of thumb: short-and-hard or hard-with-a-plan → opus; long-and-explicit → sonnet; long-and-vague → the plan is the problem, fix it in the design round rather than upgrading the engine. | Card: "Elo-style rating updates for 3-player rooms with disconnect forfeits" — one file, hard math, ambiguous ties → opus. |
 
 This is a **provisional** pick. When a design round runs, the planner finalizes it once the
 plan exists (`design-round` step 5d) — only then is the step count and the explicitness of the
@@ -48,10 +48,7 @@ acceptance criteria actually known.
 
 ### `planModel` — who runs the design round and any replan
 Output it on every task (it is ignored when `needsDesignRound` is false and no replan happens).
-| Model | When |
-|---|---|
-| **opus-4.8** | `needsDesignRound` **and** the spec is detailed: it states the edge cases and what "done" looks like, or gives enough that the rest follows without inventing product rules. Opus 4.8 is strongest when the full task is specified up front in one pass — that is exactly this case. |
-| **fable** | Everything else: the spec is thin or ambiguous and the planner has to invent the missing rules, or no design round runs at all. |
+Always **fable** — Opus is no longer used for planning under this policy, only implementation.
 
 ### Close calls
 If you seriously weighed two adjacent picks for this task (e.g. trivial/haiku vs.

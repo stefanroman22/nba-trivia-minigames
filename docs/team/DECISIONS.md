@@ -327,6 +327,33 @@ serves a fixture questions store on `localhost:5280` to both the relay (`QUESTIO
 the browser (`VITE_QUESTIONS_BASE`); online mode still fetches only the manifest and the names list
 from the store after the port. Three cloud design rounds have now hit the missing-`Agent` fallback.
 
+## 2026-09-29 — Opus 5.5 unbanned: replaces Fable as the judgment-implementer tier; Fable narrows to planning-only
+Context: the 2026-09-06 ban targeted Opus 5 specifically for token cost (see that entry). Opus 5.5
+released 2026-09-22 (30%+ faster than Opus 5, $4/$20 per Mtok input/output) and Sonnet 5.5 released
+2026-09-28 (30%+ faster and up to 30% cheaper than Sonnet 5 for most work) change that calculus —
+confirmed via web search after the owner disputed an initial (incorrect) claim that these models
+did not exist, and confirmed reachable in this environment after a Claude Code restart. The owner
+asked for a three-tier model split, with Opus 5.5 to be used more broadly than Opus 5 ever was.
+Decision: `opus` (rolling alias, now Opus 5.5) is unbanned but used for implementation only, never
+planning — it takes over the "complex but small, needs real judgment a plan can't pin down"
+implementer role `fable` held since 09-06, and also implements hard tasks once Fable's design round
+has produced a plan. `fable` narrows to: classify, code review, CTO gate, the orchestrator itself,
+and design-round planning for every `needsDesignRound` task (the old opus-4.8-for-detailed-specs /
+fable-for-thin-specs `planModel` split is retired — planning is fable, unconditionally, since Opus
+no longer needs a planning role to justify its pipeline access). `sonnet` (now Sonnet 5.5) keeps its
+existing default-implementer role unchanged. `haiku` (trivial) unchanged. Updated:
+`docs/team/PIPELINE.md` §14, `.claude/skills/classify/SKILL.md`, `.claude/skills/team-run/SKILL.md`,
+`.claude/skills/design-round/SKILL.md` (step 5's heavy-model note and step 5d's engine-finalization
+row), `.claude/agents/browser-qa.md` and `code-reviewer.md` (stale ban mentions), `.claude/README.md`.
+`planner-architect-opus` (pinned `claude-opus-4-8`, the workaround used to reach an Opus-family
+model during the ban) is now unused and left in place rather than deleted.
+Consequences: `.claude/settings.json` still needs `permissions.deny` cleared of
+`Agent(model:opus)`/`Agent(model:claude-opus-5)` and `opus` added to `availableModels` — editing
+that file was blocked by the auto-mode classifier as self-modification of this session's own
+permissions and needs the owner's direct approval/action; until then the harness still refuses to
+spawn `opus`, so this policy is documented but not yet enforceable. The cloud worker routine's model
+(claude.ai/code/routines UI) is unaffected by any of this and still must be set by hand.
+
 ## 2026-09-23 — Faster "logged in" on return visits: sonnet vs fable engine
 Context: card "When I enter the website it takes a long time to see that I am actually logged
 in" (fullstack, Difficulty override `hard`, title-only spec). Root cause is a post-hydration
