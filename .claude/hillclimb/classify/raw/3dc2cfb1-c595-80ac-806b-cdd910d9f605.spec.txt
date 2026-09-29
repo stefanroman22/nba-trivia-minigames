@@ -1,0 +1,3 @@
+## Comment (owner, 2026-09-19)
+SDD Task 10 verification comment — confirming comment-attached images are picked up by get-spec.
+[Image attached: C:\Users\stefa\OneDrive\Desktop\nba-projects\nba-minigames\.team\attachments\3dc2cfb1-c595-80ac-806b-cdd910d9f605\0.png]

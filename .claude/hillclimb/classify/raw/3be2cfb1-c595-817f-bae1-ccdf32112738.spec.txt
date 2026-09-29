@@ -1,0 +1,1 @@
+Create docs/team/SMOKE.md containing exactly one line: "pipeline smoke test — 2026-08-16". No other changes.

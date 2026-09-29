@@ -1,0 +1,1 @@
+Delete these two files, both leftover smoke-test markers: docs/team/SMOKE.md and docs/team/CLOUD_SMOKE.md. Remove nothing else anywhere in the repo.
