@@ -1,0 +1,1 @@
+Create a new file docs/team/CLOUD_SMOKE.md containing exactly one line: cloud pipeline smoke test — 2026-08-29. No other changes anywhere.

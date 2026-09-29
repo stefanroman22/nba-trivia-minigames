@@ -1,0 +1,7 @@
+﻿**/traces/
+report.html
+state.json
+trajectory/
+*.log
+*.log.out
+progress.txt
