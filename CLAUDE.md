@@ -21,18 +21,12 @@ window — same tab, same session, visible to you. Prefer its `mcp__chrome__*`
 tools over the sandboxed `mcp__plugin_playwright_playwright__*` ones, which get
 a blank throwaway profile and cannot see logged-in state.
 
-## Common commands
-- Install: `npm install` (frontend); `pip install -r backend/requirements.txt` (backend)
-- Lint: `npm run lint`
-- Typecheck + build: `npm run build` (Next type-checks as part of the build); standalone typecheck: `npx next typegen && npx tsc --noEmit`
-- Backend tests: `cd backend && python manage.py test`
-- Backend check: `cd backend && python manage.py check`
+## Commands that aren't guessable
+- Standalone typecheck: `npx next typegen && npx tsc --noEmit` (`npm run build` also type-checks).
 
-## Structure
-- `src/` — app/ (Next.js routes + root layout/providers), views/ (page-level components — Next.js owns the `pages` name), components/, styles/, Game Renderers/, store/ (Redux Toolkit), hooks/, context/, constants/, motion/, utils/, socket.ts
-- `backend/` — Django project; apps: users/ (auth, custom user, rank), trivia/ (minigame data + data pipeline)
-- `multiplayer_server/` — Node Socket.IO server
-- `docs/` — all project documentation; see the map below
+## Structure gotcha
+- Page-level components live in `src/views/`, not `src/pages/` — Next.js owns the `pages` name.
+  Routes are thin wrappers in `src/app/`.
 
 ## Conventions
 - **Money is always a human decision.** Never take an action that implies the owner pays —
@@ -67,18 +61,9 @@ to main" workflow themselves. `.github/workflows/dev-ci.yml`'s promote job runs 
 manual `workflow_dispatch` (`gh workflow run dev-ci.yml` or "Run workflow" in the Actions tab) — a
 push or PR merge into `dev` no longer auto-promotes for anyone, human, Claude, or the team pipeline.
 
-Once promotion is explicitly requested:
-1. Trigger it (`gh workflow run dev-ci.yml`, then `gh run list --workflow dev-ci.yml` / `gh run
-   watch <id>`) or confirm the owner already ran it. `main` deploys the frontend AND the backend
-   Vercel projects.
-2. Watch both production deployments to READY (Vercel MCP `list_deployments` / `get_deployment`,
-   `get_deployment_build_logs` on failure). The backend build runs `manage.py migrate` — read it.
-3. Verify production, not just the build: fetch https://nba-minigames.vercel.app and the routes
-   you touched (real content, right status codes), hit the API for JSON (e.g.
-   https://backend-kappa-one-42.vercel.app/api/get-users/), and run a browser pass when the UI changed.
-4. Anything broken is yours to fix forward immediately — never leave production broken and just
-   report it. If the fix will take more than a few minutes, roll back first (`vercel rollback`
-   pins the domain until `vercel promote`; see docs/DEPLOYMENT.md).
+Once promotion is explicitly requested, follow the `promote-to-prod` skill
+(`.claude/skills/promote-to-prod/SKILL.md`) — trigger, watch both deploys, verify production,
+fix forward or roll back. Never leave production broken and just report it.
 
 The only stops beyond "wait for an explicit promote ask" are the standing ones: anything that
 costs money, a secret you don't have, and deleting data you didn't create. Merge only what
@@ -105,12 +90,12 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `docs/CACHING_SCALING_PLAN.md` | deciding whether friends/leaderboard data needs Redis caching, or touching `users/leaderboard.py`/`users/friends.py`'s query shape |
 
 ## Coding engines & profiles
-This repo defines coding subagents in `.claude/agents/` (frontend-engine, backend-engine, code-reviewer, test-qa-engine, planner-architect, browser-qa). Their model + reasoning effort are governed by a named profile. Switch the whole fleet with `npm run engine <fast|balanced|deep|max>`. See `.claude/README.md`.
+Subagent models/effort follow a named profile: `npm run engine <fast|balanced|deep|max>`. The per-task
+model policy (which work goes to fable/opus/sonnet/haiku) is `docs/team/PIPELINE.md` §14. See `.claude/README.md`.
 
 ## Autonomous team pipeline
-An unattended pipeline exists that turns Notion task cards into shipped PRs: classify →
-design → build → verify → QA → review → ship, run headlessly via the `team-run` skill
-(triggered by a Windows scheduled task and `npm run team`). Notion is the control
-surface — write cards, set `Status = Ready`, watch for @mentions. Task worktrees live
-under `C:\Users\stefa\.team-worktrees`, never in this checkout — never build pipeline
-tasks in the main checkout. See `docs/team/PIPELINE.md` for the full operator manual.
+An unattended pipeline turns Notion task cards into commits on `dev`: classify → design → build →
+verify → QA → review → ship, run headlessly via the `team-run` skill (a scheduled cloud routine,
+plus `npm run team` on demand). Notion is the control surface — write cards and set
+`Status = To Do`. Task worktrees live under `C:\Users\stefa\.team-worktrees`, never in this
+checkout — never build pipeline tasks in the main checkout. See `docs/team/PIPELINE.md`.
