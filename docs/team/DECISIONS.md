@@ -398,3 +398,14 @@ and calls the exported single-flight `refreshSession` directly when expired; `to
 returns `user`; a 5xx from `/me/` now keeps the session instead of deleting the tokens; a
 pre-hydration inline script was rejected because `Navigation`'s guest button and user chip are
 different DOM (the remaining flash is the JS-load window, a follow-up card). Engine stays sonnet.
+
+## 2026-09-29 — Security work always gets a Fable-planned design round
+Context: while building the classify eval's answer key, the owner ruled on a DDoS card that security
+"is not a joke" and needs Fable to plan it so every case is covered, then confirmed this as a general
+rule rather than a one-off.
+Decision: classify's difficulty rubric gains an override — security work (attacks/DDoS, auth or
+session breaches, account blocking/abuse, secrets, permissions) is always `needsDesignRound: true`
+and `risk: high`, regardless of difficulty or file count; Fable plans, opus implements (risk-high
+override). Recorded in `.claude/skills/classify/SKILL.md` and `docs/team/PIPELINE.md` §14.
+Consequences: small security fixes (e.g. one wrongly blocked account) now pay for a design round;
+that cost is the point. The classify eval's answer key encodes the rule (case u10).

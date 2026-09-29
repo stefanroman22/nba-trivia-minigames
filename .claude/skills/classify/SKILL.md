@@ -26,6 +26,9 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
 - **risk: high** if it touches auth, data pipeline, multiplayer protocol, or anything in
   the protected-paths list — CTO gets a `Risk: high` PR label and extra scrutiny.
 - Multi-area at any difficulty → `needsDesignRound: true`.
+- **Security work → `needsDesignRound: true`, `risk: high`, always** — attacks/DDoS, auth or
+  session breaches, account blocking/abuse, secrets, permissions — regardless of difficulty or
+  how few files it touches. Fable plans it so the plan covers every case; opus implements.
 
 ## Model rubric
 As of 2026-09-29, Opus is unbanned (see `docs/team/DECISIONS.md` 2026-09-29) — the 2026-09-06 ban
