@@ -23,9 +23,9 @@ The "meeting" is an artifact. No code until sign-off.
 5. **Every design round** — turn the signed-off design into a real implementation plan before
    handoff, the same depth as writing a plan for a human engineer, self-reviewed before anyone
    builds from it. This is not optional and not only for `hard`: the build stage runs on
-   sonnet (`classify.engineModel`) and executes the plan rather than reasoning it out, so
+   sonnet or opus (`classify.engineModel`) and executes the plan rather than reasoning it out, so
    anything the plan leaves implicit is exactly what the engine will get wrong. You are the
-   heavy model here (fable, or Opus 4.8 when the spec was detailed) — spend the thinking now.
+   heavy model here (fable) — spend the thinking now.
    If `superpowers:writing-plans` is in your skill listing (local runs only — it is a
    machine-local plugin, absent on cloud routines), load it and write the plan with it at the
    depth it prescribes. Never `superpowers:brainstorming`: it gates on human approval, which an
@@ -45,9 +45,9 @@ The "meeting" is an artifact. No code until sign-off.
       it to the build stage — the engine implements the plan, it does not re-derive one.
    d. Finalize the engine now that the plan exists — classify's `engineModel` was provisional.
       `sonnet` if the steps are many and each carries an explicit done-check (long-and-explicit);
-      `fable` if the plan is short (roughly ≤5 steps) and the steps need judgment the plan cannot
+      `opus` if the plan is short (roughly ≤5 steps) and the steps need judgment the plan cannot
       fully pin down (short-and-hard). Long-and-vague means the plan failed b — fix the plan, do
-      not upgrade the engine. Never opus. Write it as `Engine: sonnet|fable` in the design doc's
+      not upgrade the engine. Write it as `Engine: sonnet|opus` in the design doc's
       Decision summary and echo it in your final reply; the build stage uses it over classify's pick.
    The a–c procedure is native to this pipeline so the discipline holds on cloud runs where
    no planning skill exists — see `docs/team/DECISIONS.md` 2026-08-29 and 2026-09-06.

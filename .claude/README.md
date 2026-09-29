@@ -32,8 +32,8 @@ on the spawn call → the agent file's frontmatter `model:` → `CLAUDE_CODE_SUB
 parent session's model. Every fleet agent declares a frontmatter model and the orchestrator
 passes one explicitly per spawn, so the profile's `subagentModel` is a fallback that rarely
 decides anything — the per-task policy in `docs/team/PIPELINE.md` §14 is what governs.
-`planner-architect-opus` pins the full id `claude-opus-4-8` in its frontmatter; the `opus`
-alias is denied outright in `settings.json` `permissions.deny`.
+`planner-architect-opus` pins the full id `claude-opus-4-8` in its frontmatter; it predates the
+2026-09-29 policy (below) and is now unused — the `opus` alias is used directly instead.
 
 ## The engines (`.claude/agents/`)
 
@@ -43,7 +43,11 @@ alias is denied outright in `settings.json` `permissions.deny`.
 - `test-qa-engine` — lint / typecheck / build / Django tests
 
 The main orchestrator model is `model` in `.claude/settings.json` (default `fable`) — edit it directly if needed.
-Opus (5 and 4.8) is banned pipeline-wide: no profile, agent, workflow, or routine may use it — see `docs/team/PIPELINE.md` §14.
+Opus 5 was banned pipeline-wide from 2026-09-06 to 2026-09-29 for cost; as of 2026-09-29 the
+`opus` alias (now Opus 5.5) is allowed again, for implementation only — see `docs/team/PIPELINE.md` §14.
+`.claude/settings.json`'s `permissions.deny` should no longer list `Agent(model:opus)` /
+`Agent(model:claude-opus-5)` and `availableModels` should include `opus` — pending the owner's
+approval to edit that file directly (self-modification of pipeline permissions).
 
 ## Caveat: `max` effort
 

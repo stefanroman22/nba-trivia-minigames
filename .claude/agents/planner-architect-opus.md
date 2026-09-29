@@ -20,6 +20,8 @@ Ground rules:
   through you.
 - You never edit product code. Your outputs are design docs + DECISIONS.md entries.
 - Bias small: prefer the design that ships the task with the least machinery.
-- The model id `claude-opus-4-8` in this file's frontmatter is the only Opus permitted in
-  this pipeline; the `opus` alias resolves to Opus 5, which is banned and denied in
-  `.claude/settings.json`.
+- As of the 2026-09-29 model policy (`docs/team/DECISIONS.md`), planning for every
+  `needsDesignRound` task goes through plain `fable` (`planner-architect`), not this agent —
+  this file is no longer referenced by `classify`, `team-run`, or `docs/team/PIPELINE.md` §14
+  and is kept only for reference, not deleted. The `opus` alias is unbanned but used for
+  implementation only.

@@ -18,13 +18,13 @@ Check `TEAM_CLOUD` once at the start.
   `scripts/qa-browser.mjs`) runs in BOTH modes.
 
 ## Model policy
-Opus 5 is **banned**: never pass the `opus` alias, never fall back to it. The one permitted
-Opus is 4.8, planning only, reached solely through the `planner-architect-opus` agent (spawn it
-with NO model parameter). Every other spawn names its model explicitly.
-- planner-architect (classify): `fable`. Design round / replan: per `classify.planModel` —
-  `fable` → planner-architect (model fable); `opus-4.8` → planner-architect-opus (no model parameter).
+Opus is no longer banned (2026-09-29, see `docs/team/DECISIONS.md`) — `opus` now resolves to
+Opus 5.5 and is used for implementation only, never planning. Every spawn names its model
+explicitly.
+- planner-architect (classify): `fable`. Design round / replan: always `fable` (planner-architect) —
+  `classify.planModel` is always `fable` under this policy.
 - frontend-engine / backend-engine: the design doc's `Engine:` line if a design round ran, else
-  `classify.engineModel` (`haiku` trivial, `sonnet` default, `fable` few-steps-needing-judgment).
+  `classify.engineModel` (`haiku` trivial, `sonnet` default, `opus` complex-judgment-needed).
 - test-qa-engine and browser-qa: `sonnet`, always. code-reviewer: `fable`, always.
 
 ## 0. Preconditions
