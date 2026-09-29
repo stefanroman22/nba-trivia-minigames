@@ -23,8 +23,9 @@ Opus 5.5 and is used for implementation only, never planning. Every spawn names 
 explicitly.
 - planner-architect (classify): `fable`. Design round / replan: always `fable` (planner-architect) —
   `classify.planModel` is always `fable` under this policy.
-- frontend-engine / backend-engine: the design doc's `Engine:` line if a design round ran, else
-  `classify.engineModel` (`haiku` trivial, `sonnet` default, `opus` complex-judgment-needed).
+- frontend-engine / backend-engine: if a design round ran, the per-step `[opus]`/`[sonnet]` tags in
+  the design doc's `## Implementation plan` (see **build**); else `classify.engineModel` (`haiku`
+  trivial, `sonnet` simple/default, `opus` complex, important, or any motion/animation work).
 - test-qa-engine and browser-qa: `sonnet`, always. code-reviewer: `fable`, always.
 
 ## 0. Preconditions
@@ -80,7 +81,11 @@ Record `baseSha = git rev-parse origin/dev` in the journal. journal stage=design
 design-round skill. Design deadlock → fail procedure (stage `design`). journal stage=build.
 
 **build** → per involved area spawn frontend-engine / backend-engine with model per the policy,
-effort=classify.engineEffort. Prompt MUST include: spec text, design doc path (if any) + "Implement
+effort=classify.engineEffort. When the plan's steps carry `[opus]`/`[sonnet]` tags, walk them in
+order and group consecutive steps with the same tag into one spawn of that model, told to
+"implement steps N–M only; earlier steps are already done" — so a mixed plan runs as e.g.
+sonnet 1–3 → opus 4 → sonnet 5–8 in the same worktree. Record each group's model in the build
+report; the Notion `Model` text becomes `mixed (opus+sonnet) · <effort>` for mixed plans. Prompt MUST include: spec text, design doc path (if any) + "Implement
 its `## Implementation plan` step by step; do not re-plan", classify.docs (read first),
 classify.codeMapHits verbatim, classify.attachments (Read each before implementing — visual
 source of truth), and "Reuse-first: duplicating a CODE_MAP entry is a review-reject."
