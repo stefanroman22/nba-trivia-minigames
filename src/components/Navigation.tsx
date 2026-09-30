@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useCallback, useRef, useState, type MouseEvent } from "react";
 import { useNavigate } from "../hooks/useNavigate";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import logo from "../assets/basketballLogo.webp";
@@ -19,6 +20,9 @@ const initials = (name?: string) =>
   (name || "You").trim().split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase() || "YS";
 
 /** Round user avatar — profile photo when available, initials as fallback. */
+// Let the browser handle ctrl/cmd/shift/middle-click (open in new tab/window) on real links.
+const isModifiedClick = (e: MouseEvent<HTMLElement>) => e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0;
+
 function UserAvatar({ photo, name, size = 28 }: { photo?: string | null; name?: string; size?: number }) {
   if (photo) {
     return (
@@ -55,6 +59,11 @@ function Navigation({ type = "full" }: NavigationProps) {
   const { open } = useModal();
   const { mp, leaveMatch } = useMultiplayer();
   const [drawer, setDrawer] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const closeDrawer = useCallback(() => setDrawer(false), []);
+  // The drawer is a modal dialog: focus moves in, Tab wraps, Escape closes, focus returns to the hamburger.
+  // Scroll lock stays off so the drawer keeps its current scrolling behaviour.
+  useFocusTrap(drawerRef, closeDrawer, { active: drawer, lockScroll: false });
 
   const goHome = () => {
     if (mp.phase !== "idle") leaveMatch(); // leave any live match before heading home
@@ -100,13 +109,17 @@ function Navigation({ type = "full" }: NavigationProps) {
   return (
     <nav className="nav3">
       <div className="nav3-left">
-        <div className="nav3-brand" onClick={goHome}>
-          <img src={logo.src} alt="HOOPS24" className="nav3-logo" />
+        <a
+          href="/"
+          className="nav3-brand"
+          onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); goHome(); }}
+        >
+          <img src={logo.src} alt="HOOPS24" className="nav3-logo" width={38} height={38} />
           <div className="nav3-brand-text">
             <span className="font-display" style={{ fontSize: 16, letterSpacing: 1 }}>HOOPS24</span>
             <span className="nav3-tag">NBA MINIGAMES</span>
           </div>
-        </div>
+        </a>
       </div>
 
       {/* Desktop links */}
@@ -124,7 +137,7 @@ function Navigation({ type = "full" }: NavigationProps) {
       {/* Mobile: avatar-only chip (meta hidden ≤900px via hide-md), then the hamburger */}
       <div className="nav3-mobile-right show-md">
         {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
-        <button onClick={() => setDrawer(true)} aria-label="Open menu" className="nav-icon-btn">
+        <button onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={drawer} aria-controls="nav-drawer" className="nav-icon-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
         </button>
       </div>
@@ -133,6 +146,11 @@ function Navigation({ type = "full" }: NavigationProps) {
       <AnimatePresence>
         {drawer && (
           <motion.div
+            ref={drawerRef}
+            id="nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menu"
             className="drawer-panel"
             initial={{ opacity: 0, x: "8%" }}
             animate={{ opacity: 1, x: 0 }}
@@ -140,13 +158,17 @@ function Navigation({ type = "full" }: NavigationProps) {
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="drawer-head">
-              <div className="nav3-brand" onClick={() => { setDrawer(false); goHome(); }}>
-                <img src={logo.src} alt="" className="nav3-logo" />
+              <a
+                href="/"
+                className="nav3-brand"
+                onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); setDrawer(false); goHome(); }}
+              >
+                <img src={logo.src} alt="" className="nav3-logo" width={38} height={38} />
                 <div className="nav3-brand-text">
                   <span className="font-display" style={{ fontSize: 15, letterSpacing: 1 }}>HOOPS24</span>
                   <span className="nav3-tag">NBA MINIGAMES</span>
                 </div>
-              </div>
+              </a>
               <div className="drawer-head-right">
                 {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
                 <button onClick={() => setDrawer(false)} aria-label="Close" className="nav-icon-btn" style={{ width: 40, height: 40 }}>

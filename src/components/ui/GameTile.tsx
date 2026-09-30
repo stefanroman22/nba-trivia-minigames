@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
+import { backgroundUrl } from "../../utils/GameUtils";
 
 interface GameTileProps {
   name: string;
@@ -50,7 +51,7 @@ export default function GameTile({
       {showImg && (
         <img
           className="gtile-img"
-          src={backgroundImage.replace(/^url\(['"]?/, "").replace(/['"]?\)$/, "")}
+          src={backgroundUrl(backgroundImage)}
           alt=""
           loading="lazy"
           decoding="async"

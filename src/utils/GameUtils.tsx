@@ -626,3 +626,6 @@ export const games: Game[] = [
 
 /** `games` minus anything flagged `hidden` — use this for every user-facing listing (grid, rail, switch pickers). */
 export const visibleGames: Game[] = games.filter((g) => !g.hidden);
+
+/** Strip the CSS `url('…')` wrapper a Game's backgroundImage carries → a plain path for <img>/preload/OG. */
+export const backgroundUrl = (css: string) => css.replace(/^url\(['"]?/, "").replace(/['"]?\)$/, "");

@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useNavigate } from '../../hooks/useNavigate';
 import { useDispatch } from 'react-redux';
@@ -21,6 +21,7 @@ import { BACKEND_ORIGIN } from '../../configurations/backend';
 import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
+import { FOCUSABLE } from '../../hooks/useFocusTrap';
 import "../../styles/MiniGame.css";
 
 // NOTE: there is deliberately no CONTENT_STAGE_GAMES list here any more.
@@ -51,6 +52,13 @@ function MiniGame() {
   // Epoch ms the current single-player play started (set when the stage
   // enters "playing") — feeds the session timer + duration logging.
   const playStartRef = useRef(0);
+  // Pressing Play unmounts the focused button; hand focus to the first control of the playing board
+  // (callback ref: runs once when .playing-wrap mounts, never on first page load, which renders idle).
+  const focusFirstIn = useCallback((el: HTMLDivElement | null) => {
+    // Skip on touch devices: focusing an <input> there opens the soft keyboard and shrinks the 100dvh stage.
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    el?.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true });
+  }, []);
   const prevStageRef = useRef("idle");
   // Guarantees a finished game awards profile points exactly once — shared by
   // the result-overview effect and the in-place (answers-in-view) end path.
@@ -234,7 +242,7 @@ function MiniGame() {
         return <CourtLoader label="Warming up the court…" />;
       case "playing":
         return (
-          <div className="playing-wrap">
+          <div className="playing-wrap" ref={focusFirstIn}>
             <FeedbackSlotContext.Provider value={feedbackSlot}>
               {renderGame({
                 gameId: game?.id,
@@ -273,6 +281,7 @@ function MiniGame() {
             {visibleGames.map((g) => (
               <button
                 key={g.id}
+                aria-current={g.id === game?.id ? "true" : undefined}
                 className={`rail-chip${g.id === game?.id ? " is-active" : ""}`}
                 disabled={inProgress || g.id === "coming-soon"}
                 onClick={() => navigate(g.urlPath, { state: { id: g.id } })}
@@ -283,7 +292,7 @@ function MiniGame() {
           </div>
 
           {/* Desktop rail */}
-          <aside className="rail" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>
+          <aside className="rail" aria-label="All games" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>
             <div className="rail-head"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>
             <div className="rail-list">
               {visibleGames.map((g) => (
@@ -294,6 +303,7 @@ function MiniGame() {
                     if (inProgress) { showErrorAlert("Finish your current game first.", "Game in progress", "Continue playing"); return; }
                     navigate(g.urlPath, { state: { id: g.id } });
                   }}
+                  aria-current={g.id === game?.id ? "true" : undefined}
                   className={`rail-item${g.id === game?.id ? " is-active" : ""}`}
                 >
                   <span className="rail-thumb" style={{ backgroundImage: g.backgroundImage }} />
@@ -326,7 +336,7 @@ function MiniGame() {
           </section>
 
           {/* Aside: one merged Multiplayer card, same on mobile and desktop. */}
-          <aside className="game-aside">
+          <aside className="game-aside" aria-label="Multiplayer">
             <MultiplayerPanel game={game} gameStarted={gameStarted} showResult={showResult} />
           </aside>
         </div>

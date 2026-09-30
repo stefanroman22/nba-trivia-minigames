@@ -17,7 +17,6 @@ export const inputStyle: CSSProperties = {
   color: "var(--text)",
   fontSize: "0.95rem",
   fontWeight: 500,
-  outline: "none",
   transition: "border-color 0.2s ease, box-shadow 0.2s ease",
   letterSpacing: "0.3px",
 };

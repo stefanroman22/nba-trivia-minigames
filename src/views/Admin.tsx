@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "../hooks/useNavigate";
+import { useRovingTabs } from "../hooks/useRovingTabs";
 import { motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import Navigation from "../components/Navigation";
@@ -441,10 +442,13 @@ function UsersTab() {
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
+const ADMIN_TABS = ["games", "feedback", "users"] as const;
+
 function Admin() {
   const navigate = useNavigate();
   const { user, authChecked } = useSelector((state: RootState) => state.user);
   const [tab, setTab] = useState<"games" | "feedback" | "users">("games");
+  const tabs = useRovingTabs(ADMIN_TABS, tab, setTab);
   // Standing count of feedback still to be triaged. Fetched here rather than in
   // the tab so the badge is visible before the tab is ever opened.
   const [newFeedback, setNewFeedback] = useState(0);
@@ -486,18 +490,22 @@ function Admin() {
   } else {
     content = (
       <>
-        <div className="admin-tabs" role="tablist" aria-label="Admin sections">
+        <div className="admin-tabs" role="tablist" aria-label="Admin sections" onKeyDown={tabs.onKeyDown}>
           <button
+            type="button"
             role="tab"
             aria-selected={tab === "games"}
+            tabIndex={tabs.tabIndexFor("games")}
             className={`admin-tab${tab === "games" ? " is-active" : ""}`}
             onClick={() => setTab("games")}
           >
             Games
           </button>
           <button
+            type="button"
             role="tab"
             aria-selected={tab === "feedback"}
+            tabIndex={tabs.tabIndexFor("feedback")}
             className={`admin-tab${tab === "feedback" ? " is-active" : ""}`}
             onClick={() => setTab("feedback")}
           >
@@ -505,8 +513,10 @@ function Admin() {
             {newFeedback > 0 && <span className="admin-tab-badge">{newFeedback}</span>}
           </button>
           <button
+            type="button"
             role="tab"
             aria-selected={tab === "users"}
+            tabIndex={tabs.tabIndexFor("users")}
             className={`admin-tab${tab === "users" ? " is-active" : ""}`}
             onClick={() => setTab("users")}
           >

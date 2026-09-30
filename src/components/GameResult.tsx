@@ -73,7 +73,7 @@ function GameResult({ showFinalResult, score, maxPoints, onPlayAgain, onClose }:
             </div>
             <p style={{ fontSize: 13.5, color: "var(--muted)", maxWidth: 300, lineHeight: 1.5 }}>{message}</p>
             <div style={{ display: "flex", gap: 10, marginTop: 14, width: "100%" }}>
-              <Button block onClick={onPlayAgain}>Play again</Button>
+              <Button block autoFocus onClick={onPlayAgain}>Play again</Button>
               <Button block variant="secondary" onClick={onClose}>Close game</Button>
             </div>
           </motion.div>
