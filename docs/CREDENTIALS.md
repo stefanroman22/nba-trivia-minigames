@@ -25,6 +25,7 @@ Everything else either doesn't expire or has no date set — see the table.
 | 7 | **Supabase DB password** (inside `DATABASE_URL`) | Vercel env (backend project), `backend/.env` locally when needed | Django in production | **No expiry** (until reset in Supabase) | Backend 500s on all DB endpoints AND deploys fail (build runs `migrate`). Reset + rebuild procedure: `docs/DEPLOYMENT.md` → Supabase connection. |
 | 8 | **Google OAuth client secret** | Vercel env `CLIENT_SECRET` (+ public `CLIENT_ID`) | "Sign in with Google" | **No expiry** (until rotated in Google Cloud Console) | Google sign-in fails; email/password login unaffected. |
 | 9 | **`gh` CLI + `wrangler` OAuth** | This machine's keyring / wrangler config | Local dev and agent sessions | Self-refreshing / long-lived | Re-auth interactively (`gh auth login`, `wrangler login`). Account gotcha: `gh` must be on `stefanroman22`, not `jimmedeknatel8`. |
+| 10 | **Upstash Redis password** (inside `REDIS_URL`) | Vercel env (backend project) `REDIS_URL` (+ multiplayer host if set) | Django cache tiers (`settings.py` CACHES → throttles + friends cache), `users/leaderboard.py` ZSET, Socket.IO adapter | **Never** (rotate manually). Status: not yet provisioned (2026-09-30) | Reset the password in the Upstash console (Database → Details), update `REDIS_URL`, redeploy. Blast radius: cache contents + leaderboard ZSET (rebuildable via `manage.py sync_leaderboard`), no user data. |
 
 ## Rotation procedures
 

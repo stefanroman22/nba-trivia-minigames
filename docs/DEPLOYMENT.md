@@ -127,7 +127,7 @@ DJANGO_ALLOWED_HOSTS=<your-backend>.vercel.app         # *.vercel.app + VERCEL_U
 CORS_ALLOWED_ORIGINS=https://<extra-origin>              # ADDITIVE — merged onto settings.FRONTEND_ORIGINS, never replaces it. Leave unset unless adding a domain.
 CSRF_TRUSTED_ORIGINS=https://<extra-origin>              # same; *.vercel.app is auto-trusted for CSRF regardless
 DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.supabase.com:6543/postgres   # MUST be the Supabase POOLER (transaction, 6543), not the IPv6 direct host (unset -> sqlite)
-REDIS_URL=rediss://...                                       # Upstash. Unset -> Postgres leaderboard AND DatabaseCache for rate limiting (see below)
+REDIS_URL=rediss://...                                       # Upstash (see "Redis (Upstash) — setup" below). Unset -> Postgres leaderboard AND DatabaseCache for rate limiting + friends cache
 CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
 ```
@@ -155,6 +155,42 @@ inlines these three into the browser bundle (Next only exposes `NEXT_PUBLIC_*` b
 No env vars needed for the default Vercel path — the data ships with the frontend build.
 R2 env vars (optional CDN alternative) are documented there, not repeated here.
 
+## Redis (Upstash) — setup
+
+**Provider decision (2026-09-30, `docs/team/designs/2026-09-30-redis-friends-cache.md`):**
+Upstash Redis. Free tier, TLS `rediss://` endpoint that Django's built-in `RedisCache` +
+`redis-py` speak with no extra package, per-lambda connections that need no pooler, and the
+same instance serves the leaderboard ZSET (`users/leaderboard.py`), the friends cache
+(`users/friends_cache.py`) and the multiplayer Socket.IO adapter. Its REST API is **not** used —
+Django's cache framework has no REST backend. Alternatives: Redis Cloud free tier (30 MB, no
+Vercel integration), "Vercel KV" (is Upstash via the Marketplace), Railway/Render (usage-billed).
+
+**Steps (owner only — creating the account is a money decision even on the free tier):**
+1. Sign up at upstash.com (GitHub login is fine) — or, from the Vercel dashboard, *Storage →
+   Create → Upstash Redis* (Marketplace). Either way pick the **Free** plan; no card should be
+   requested — if it is, stop.
+2. Create a database: type **Regional** (not Global — Global replicates and costs more per
+   command, verify on signup), region **eu-central-1 / Frankfurt** to sit next to the backend
+   (`backend/vercel.json` `regions: ["fra1"]`) and Supabase (`aws-1-eu-central-1`). TLS on
+   (default). **Eviction: off** (default) — with eviction on, the leaderboard ZSET could be
+   evicted and `leaderboard.top()` would return an empty board until `manage.py sync_leaderboard`
+   re-backfills. The friends-cache keys expire on their own (60 s).
+3. Copy the **Redis (TLS) URL** from the database's *Details* tab. It looks like
+   `rediss://default:<password>@<name>-<id>.upstash.io:6379`. Free-tier limits to note (verify on
+   signup; they change): ~256 MB, ~500K commands/month, ~100 concurrent connections — far above
+   this app's traffic; the cache issues 1-2 commands per Friends-modal open.
+4. Set `REDIS_URL` to that value on the Vercel **backend** project (Production and Preview) — the
+   Marketplace integration injects its own names (`KV_URL`, `KV_REST_API_URL`, …; verify on
+   signup); `settings.py` and `leaderboard.py` read **only `REDIS_URL`**, so add it explicitly if
+   the integration did not. Then redeploy the backend (`vercel --prod` or push to `main`).
+5. Backfill the leaderboard once: `cd backend && python manage.py sync_leaderboard` with
+   `REDIS_URL` and `DATABASE_URL` exported locally (Phase 5b).
+6. Verify: `GET /api/friends-overview/` twice with the same token — the second should be
+   visibly faster in the Vercel function log; `GET /api/get-users/` still returns the board.
+7. Optional: set the same `REDIS_URL` on the multiplayer host to enable the Socket.IO adapter.
+8. Record the credential in `docs/CREDENTIALS.md` (a row is pre-filled) — rotation is
+   *Database → Details → Reset password* in the Upstash console, then update `REDIS_URL`.
+
 ## Data workflow (home machine)
 
 The scheduled refresh (`sync_nba_data` → `build_pools_from_db` → commit/push → `vercel deploy`)
@@ -174,7 +210,8 @@ for how, how often, and how it's monitored.
 4. **Fix prod multiplayer (Phase 5a) — PENDING host:** deploy `multiplayer_server/` to an always-on
    Node host, then set `API_BASE_URL` + `CORS_ORIGINS` on it and `VITE_SOCKET_URL` on the frontend.
 5. **Scale the leaderboard + realtime (Phase 5b):** set `REDIS_URL` (Upstash) on Django + the
-   multiplayer host; run `manage.py sync_leaderboard` once to backfill.
+   multiplayer host; run `manage.py sync_leaderboard` once to backfill. Also enables the friends-overview
+   cache (`users/friends_cache.py`).
 
 ## Verification
 
