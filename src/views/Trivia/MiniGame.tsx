@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { useNavigate } from '../../hooks/useNavigate';
@@ -45,7 +44,6 @@ function MiniGame() {
   const [gameData, setGameData] = useState<GameData[]>([]);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [showFinalResult, setShowFinalResult] = useState(false);
   // The shell feedback slot node (in .playing-wrap, above Exit) that every game's
   // "Correct! +10" popup portals into — one consistent spot across all games.
   const [feedbackSlot, setFeedbackSlot] = useState<HTMLDivElement | null>(null);
@@ -61,8 +59,13 @@ function MiniGame() {
   }, []);
   const prevStageRef = useRef("idle");
   // Guarantees a finished game awards profile points exactly once — shared by
-  // the result-overview effect and the in-place (answers-in-view) end path.
+  // the result-overview and the in-place (answers-in-view) end paths.
   const awardedRef = useRef(false);
+  // Bumped on every new run (Play / game switch) and read back when the
+  // background log-session call lands, so a slow response from a previous run
+  // can't surface an error alert over a run that's already been restarted.
+  const runIdRef = useRef(0);
+  const mountedRef = useRef(false);
   // Desktop rail: matched to the stage's actual rendered height (which varies
   // by game and by phase) so the "all games" list is as tall as the game
   // container instead of shrinking to its own content or a fixed cap.
@@ -73,6 +76,11 @@ function MiniGame() {
   // first load and after finishing a run (Play again / Close game).
   const [wordleStatus, setWordleStatus] = useState<WordleDailyStatus | null>(null);
   const [, forceCountdownTick] = useState(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const el = stageColRef.current;
@@ -94,6 +102,7 @@ function MiniGame() {
     setScore(0);
     setShowResult(false);
     awardedRef.current = false;
+    runIdRef.current += 1;
     setTimeout(async () => {
       if (!game) return;
       const result = await game.fetchData();
@@ -127,6 +136,7 @@ function MiniGame() {
     setScore(0);
     setShowResult(false);
     awardedRef.current = false;
+    runIdRef.current += 1;
   }, [gameId]);
 
   // Log a finished single-player game exactly once (guarded by awardedRef).
@@ -134,10 +144,14 @@ function MiniGame() {
   // GameSession, clamps the score and credits the account in one step, then
   // reports back what it actually granted. We trust that number, not ours —
   // the client no longer tells the backend how many points it deserves.
+  //
+  // This runs in the background: the result screen never waits on it, so a
+  // slow or failed request can't delay or break the reveal.
   const awardPoints = async (finalScore: number) => {
     if (awardedRef.current) return;
     awardedRef.current = true;
     if (!game) return;
+    const runId = runIdRef.current;
     try {
       // apiFetch only attaches the JWT when one exists, so guests log anonymously
       // and are simply awarded nothing.
@@ -151,26 +165,19 @@ function MiniGame() {
         }),
       });
       const data = await response.json().catch(() => ({}));
-      if (data.error) showErrorAlert(data.error, "Saving your score failed!");
-      else if (data.awarded > 0) dispatch(updatePoints(data.awarded));
+      if (data.error) {
+        // Only complain about the run the player is still looking at.
+        if (mountedRef.current && runIdRef.current === runId) showErrorAlert(data.error, "Saving your score failed!");
+      } else if (data.awarded > 0) {
+        // The server has already credited the account, and updatePoints is a
+        // delta, so applying it late (even after Play again) keeps the store
+        // in step with the backend rather than drifting until the next fetch.
+        dispatch(updatePoints(data.awarded));
+      }
     } catch (err) {
       console.error("Network error:", err);
     }
   };
-
-  // Result-overview flow: award points, then flip GameResult from "Calculating…"
-  // to the animated final screen after a beat.
-  useEffect(() => {
-    if (!showResult) return;
-    let cancelled = false;
-    (async () => {
-      setShowFinalResult(false);
-      await awardPoints(score);
-      await new Promise((res) => setTimeout(res, 1500));
-      if (!cancelled) setShowFinalResult(true);
-    })();
-    return () => { cancelled = true; };
-  }, [showResult]);
 
   // A game is "locked in" while actively playing single-player, in an online
   // match, or waiting in a friend room — the player can't hop games from the
@@ -250,8 +257,9 @@ function MiniGame() {
                 pointsPerCorrect: game?.pointsPerCorrect,
                 onGameEnd: (finalScore: number, opts?: { inPlace?: boolean }) => {
                   setScore(finalScore);
-                  if (opts?.inPlace) awardPoints(finalScore);
-                  else setShowResult(true);
+                  // Fire-and-forget: the reveal doesn't wait for the award.
+                  void awardPoints(finalScore);
+                  if (!opts?.inPlace) setShowResult(true);
                 },
                 onExit: handleExit,
                 onPlayAgain: handleStart,
@@ -265,7 +273,7 @@ function MiniGame() {
           </div>
         );
       case "result":
-        return <GameResult showFinalResult={showFinalResult} score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={handleStart} onClose={handleRestart} />;
+        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={handleStart} onClose={handleRestart} />;
     }
   };
 
