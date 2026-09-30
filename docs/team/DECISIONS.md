@@ -471,3 +471,24 @@ click). `experimental.inlineCss` is enabled with an explicit revert rule if the 
 Consequences: "audit-then-fix" cards get their audit in the design round, so the build stage
 implements a table of measured findings instead of hunting; a future cloud round can reuse the
 same tooling (lighthouse + playwright-core + node_modules/axe-core) without adding dependencies.
+
+## 2026-09-30 — redis-friends-cache design round: Upstash (docs only), Django CACHES, one endpoint, sonnet
+Context: design round for the P1 "Redis-backed caching for slow backend reads, starting with Friends
+overview" card (`docs/team/designs/2026-09-30-redis-friends-cache.md`). Cloud round, no `Agent` tool:
+the backend-engine seat was filled by the planner from source; sign-off is the doc's 5b self-review.
+Web access unavailable, so provider facts are marked "verify on signup". Opus banned for this run.
+Decision: (1) Provider = Upstash Redis, documented for the owner in `docs/DEPLOYMENT.md` — free tier,
+TLS `rediss://` that Django's built-in `RedisCache` + the installed `redis` package speak with no new
+dependency, serverless-friendly per-lambda connections, `eu-central-1` next to `fra1`/Supabase, and one
+instance for leaderboard ZSET + cache + Socket.IO adapter via the existing `REDIS_URL`. The REST path is
+explicitly not used (no Django cache backend for it). Nothing is provisioned by the pipeline. (2) Reads
+go through `django.core.cache` via a new `users/friends_cache.py` (keys `users:friends-overview:v1:<pk>`,
+namespaced away from DRF `throttle_*` keys, 60 s TTL, exceptions degrade to a miss); the raw leaderboard
+client stays for ZSET primitives only, and `docs/CACHING_SCALING_PLAN.md` is revised to say so. (3) The
+audit yields exactly one endpoint now — `friends_overview` — with `search_friends` recorded as the next
+candidate (generation-key scheme) and `/me/`, leaderboard, wordle, dataset reads excluded with reasons.
+Invalidation is inline after every friend/request/block/unblock/remove write for both users (8 call
+sites). (4) Per-tier gain stated honestly: real win only with `REDIS_URL`; DatabaseCache hits save 2
+queries, misses cost ~2x; cold start / JWT lookup / pooler dominate. `Engine: sonnet`, 9 explicit steps.
+Consequences: the owner gets a runbook and a decision, not a Redis bill; a later card can add the
+friends-list cache on the same helper. Opus-banned rounds resolve to sonnet when the plan is explicit.
