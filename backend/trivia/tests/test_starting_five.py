@@ -8,6 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from trivia import views
+from trivia.data_pipeline import live_pool
 from trivia.data_pipeline.starting_five import (
     canonical_lineup_names,
     is_playable_lineup,
@@ -162,6 +163,57 @@ class StartingFiveFallbackTests(TestCase):
         self.assertEqual(game["starting_5"][0]["name"], "Bojan Bogdanovic")
         # The cached parse of the file itself is left alone.
         self.assertEqual(cached[1]["starting_5"][0]["name"], "Bojan Bogdanović")
+
+
+class PlayerNamesLoaderTests(TestCase):
+    """`_player_names()` reads the curated dataset through live_pool, unpatched.
+
+    views.py defines its own path-taking `load_dataset(path)`; the zero-arg
+    live_pool loader must stay reachable under another name, or every
+    starting-five request raises TypeError. Every other test pins
+    `_player_names`, so only this one exercises the real thing.
+    """
+
+    def setUp(self):
+        self._dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self._dir.cleanup)
+        path = os.path.join(self._dir.name, "players_curated.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump([{"full_name": "Bojan Bogdanovic", "teams": []},
+                       {"full_name": "Stephen Curry", "teams": []}], f)
+        patcher = patch.object(live_pool, "CURATED_PATH", path)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self._reset_cache()
+        self.addCleanup(self._reset_cache)
+
+    def _reset_cache(self):
+        live_pool._cache_key = None
+        live_pool._cache_rows = []
+
+    def test_player_names_come_from_the_curated_dataset(self):
+        self.assertEqual(views._player_names(), ["Bojan Bogdanovic", "Stephen Curry"])
+
+    def test_the_endpoint_serves_a_canonicalized_game_from_the_db(self):
+        StartingFiveGame.objects.create(
+            **_game("accents", [dict(GOOD[0], name="Bojan Bogdanović")] + GOOD[1:])
+        )
+        response = self.client.get(reverse("starting-five"))
+        self.assertEqual(response.status_code, 200)
+        game = response.json()["series"][0]
+        self.assertEqual(game["starting_5"][0]["name"], "Bojan Bogdanovic")
+
+    def test_the_bundled_fallback_branch_also_reaches_the_curated_names(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "starting_five_data.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump([_game("good", [dict(GOOD[0], name="Bojan Bogdanović")] + GOOD[1:])],
+                          f, ensure_ascii=False)
+            with patch.object(views, "STARTING_FIVE_DATA_PATH", path):
+                response = self.client.get(reverse("starting-five"))
+            views._dataset_cache.pop(path, None)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["series"][0]["starting_5"][0]["name"], "Bojan Bogdanovic")
 
 
 class ShippedStartingFivePoolTests(TestCase):
