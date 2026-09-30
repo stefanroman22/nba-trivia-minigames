@@ -574,3 +574,25 @@ Consequences: "client-side wiring for an event the relay already emits, no relay
 it is `multiplayer` + `hard` + design round as before. The build must also refresh the
 now-stale prose in `MULTIPLAYER_CONSTRAINTS.md` (MP-2 "known gap", MP-4 dead-emit ❌, MP-13
 `UserProfile` aside, acceptance checks 3-5) in the same diff.
+
+## 2026-09-30 — Fix load_dataset shadowing in trivia views: trivial/sonnet vs standard/sonnet
+Context: backend card (P1, no override, bootstrap-audit finding). `backend/trivia/views.py:23`
+imports `load_dataset` from `trivia.data_pipeline.live_pool` (zero-arg, returns the cached
+curated-player row list) and `views.py:49` defines a module-local `load_dataset(path)` (per-path
+JSON cache, `None` when missing). The local def wins, so the import is not merely dead — it is
+shadowed: `_player_names()` at line 142 calls `load_dataset()` with no arguments intending the
+live_pool one and gets `TypeError: missing 1 required positional argument: 'path'`. That helper
+sits on the `starting-five/` request path (`_starting_five_row` on the DB branch and the JSON
+fallback branch both call it), so the endpoint 500s in production; the only test that exercises it
+(`tests/test_starting_five.py::_pin_player_names`) patches `views._player_names` and masks the
+bug. Lines 82/162/428/444 pass a path and rely on the local `load_dataset(path)`. Trivial was
+defensible (one file, a handful of lines: alias the import and use it in `_player_names`).
+Decision: `difficulty: standard`, `engineModel: sonnet`, `areas: ["backend"]`, `risk: low` (only
+`trivia/views.py` and a test change; `trivia/data_pipeline/` is not touched), no design round.
+Standard rather than trivial because the spec's framing ("remove the other") is wrong — both
+implementations are intended, the fix is an import alias, and the card requires a regression
+test that calls the real `_player_names()` (unpatched) against a pinned `live_pool.CURATED_PATH`.
+Consequences: "shadowed/dead import" audit cards are standard/sonnet when the shadowing hides
+a runtime failure on a request path; the engine must keep `views.load_dataset(path)` (its name is
+referenced by `admin_api.py`'s comment and by `test_pool_endpoints` behaviour) and alias the
+live_pool import instead of renaming the local helper.

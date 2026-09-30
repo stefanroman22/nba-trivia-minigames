@@ -20,7 +20,7 @@ from trivia.models import (
 )
 from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
 from users import leaderboard
-from trivia.data_pipeline.live_pool import load_dataset
+from trivia.data_pipeline.live_pool import load_dataset as load_curated_dataset
 from trivia.data_pipeline.starting_five import (
     canonical_lineup_names,
     is_playable_lineup,
@@ -136,10 +136,11 @@ def _player_names():
     The curated dataset, not the DB Player table: data/all-players.json — the
     list the autocomplete actually downloads — is published from it and is 1:1
     with it, so canonicalising a lineup against anything else would rewrite an
-    answer to a spelling the client cannot type. load_dataset() memoizes the
+    answer to a spelling the client cannot type. load_curated_dataset() memoizes the
     file on (mtime, size), which is what the module-level cache here used to do.
+    (Aliased: this module's own load_dataset(path) would otherwise shadow it.)
     """
-    return [row["full_name"] for row in load_dataset()]
+    return [row["full_name"] for row in load_curated_dataset()]
 
 
 def _starting_five_row(g):

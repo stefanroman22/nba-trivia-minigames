@@ -265,9 +265,9 @@ fallback. The comment atop `trivia/views.py` gives the reason. Modular games ski
 bundled seed or the curated pool via `trivia/data_pipeline/live_pool.py` (`load_players()`,
 read-only shared list).
 
-Caution: `trivia/views.py` defines its own `load_dataset(path)` AFTER importing
-`live_pool.load_dataset()`, shadowing it; new code must call `live_pool` through the module
-(`from trivia.data_pipeline import live_pool`) rather than importing the bare name into `views.py`.
+Note: `trivia/views.py` imports the curated loader as `load_curated_dataset` (used only by
+`_player_names()`); its module-local `load_dataset(path)` is the per-file fallback cache and returns
+`None` when the file is missing (-> 404 in `get_manifest`/`get_pool`).
 
 ```python
 ❌ WRONG — 500s the moment the table is empty
