@@ -1,25 +1,25 @@
-# HOOPS24 — NBA Trivia Minigames
+# HOOPS24
 
-> Free daily NBA trivia minigames: NBA Wordle, guess-the-player (Who Are Ya), stat grids, starting-five builders, connections, heatmaps and more. Play solo or online against friends, earn points per correct answer and climb the global leaderboard.
+> Free daily NBA trivia minigames: wordle, grids, guess-the-player and more. Play solo or online, score points and climb the leaderboard.
 
-## What you can do here
-
-- Play 17+ NBA trivia minigames in the browser, no install needed
-- Create a free account to keep score, earn ranks and appear on the leaderboard
-- Play multiplayer matches against friends via a shareable room
-- Games rotate daily with fresh NBA data (players, teams, stats, draft history)
+Server-rendered pages; each game has its own public URL.
 
 ## Games
 
-- [All games](/): the landing page lists every playable game
-- [NBA Wordle](/wordle): guess the mystery player in 8 tries from attribute clues
-- [Who Are Ya](/who-are-ya): name the player from a blurred photo that sharpens each miss
-- [Guess the MVP](/guess-mvps): identify MVP winners season by season
-- [Starting Five](/starting-five): fill a team's historic starting lineup
-- [Series Winner](/series-winner): pick playoff series winners
-- [Name the Logo](/name-logo): recognize NBA club logos
+- [Guess the Series Winner](https://nba-minigames.vercel.app/series-winner): pick the winner of a real NBA playoff series
+- [Name the NBA Club](https://nba-minigames.vercel.app/name-logo): identify the franchise behind each logo
+- [Guess the MVP](https://nba-minigames.vercel.app/guess-mvps): name the MVP for each season shown
+- [Fill in the Starting 5](https://nba-minigames.vercel.app/starting-five): recall the starting lineup of a real game's winning team
+- [NBA Wordle](https://nba-minigames.vercel.app/wordle): daily Wordle-style puzzle for an NBA player's last name
+- [Fan Favorites](https://nba-minigames.vercel.app/fan-favorites): find the top answers 100 NBA fans gave to a survey question
+- [Career Path Challenge](https://nba-minigames.vercel.app/career-path): name a player from his career stints, revealed team by team
+- [Who Are Ya?](https://nba-minigames.vercel.app/who-are-ya): find the mystery player from attribute hints and a blurred photo
+- [NBA Tic-Tac-Toe](https://nba-minigames.vercel.app/tictactoe): tic-tac-toe duel where each cell is a row + column criteria pair
+- [LeContexto](https://nba-minigames.vercel.app/contexto): guess the secret player using a similarity rank
 
-## Notes
+## Accounts, leaderboard and multiplayer
 
-- The app is a single-page React application; game content loads dynamically.
-- /admin is a private administration area.
+- [Home](https://nba-minigames.vercel.app/): game list, plus sign-up and log-in; an account keeps your points and rank and puts you on the leaderboard
+- [Home](https://nba-minigames.vercel.app/): every game page has a Multiplayer panel (random 1v1 or a private friend room, login required); NBA Tic-Tac-Toe is the turn-based head-to-head duel
+
+Last reviewed: 2026-09-30
