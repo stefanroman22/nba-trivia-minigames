@@ -267,8 +267,8 @@ if (!endpoint) throw new Error(`No endpoint configured for game id: ${gameId}`);
 `VITE_*` names are kept on purpose post-Next-migration; a new browser var must be added to
 `next.config.ts` `env` or it is `undefined`. `scripts/dev-env.mjs` writes `VITE_SOCKET_URL` for
 local dev (no remote socket exists). `multiplayer_server/.env.example` documents `API_BASE_URL`,
-`CORS_ORIGINS`, `PORT`, `REDIS_URL` but **not** `QUESTIONS_PUBLIC_BASE`, which the relay needs to
-deal any question game; set it wherever the relay runs.
+`CORS_ORIGINS`, `PORT`, `REDIS_URL`, `QUESTIONS_PUBLIC_BASE`; the relay needs the last one to
+deal any question game, so set it wherever the relay runs.
 
 ```ts
 ❌ hypothetical: production socket URL as a second literal in source

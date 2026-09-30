@@ -523,3 +523,26 @@ Consequences: a design round on a content task, but the alternative was sonnet p
 seed files by hand with no plan for verification or for the DB-backed games. Future "expand
 content across many games" cards get the same treatment; single-game seed top-ups with an
 existing validator stay `standard`/`sonnet`, `risk: low`.
+
+## 2026-09-30 — Docs: QUESTIONS_PUBLIC_BASE in .env.example + ARCHITECTURE §3 refresh: trivial/haiku vs trivial/sonnet, backend-only vs backend+multiplayer
+Context: docs card (P1, no override, bootstrap-audit finding). `backend/trivia/questions/storage.py`
+lists `QUESTIONS_PUBLIC_BASE` in `REQUIRED` (with the five `SUPABASE_S3_*`/`SUPABASE_STORAGE_BUCKET`
+names), but `backend/.env.example` stops at `CLIENT_SECRET`; there is no root `.env.example`, and
+`multiplayer_server/.env.example` also lacks it even though `multiplayer_server/src/questions.js`
+reads it at load. `docs/ARCHITECTURE.md` §3 still says the relay "fetches the round's data from the
+Django backend" (it now reads the schema-1 manifest from Supabase Storage via `questions.js`),
+that a friend room holds "exactly 2 players" (`FRIEND_ROOM_SIZE = 2` but turn games override via
+`turnGames.roomConfigFor`, and results are sent for "any room size"), and names a live Railway host
+that `docs/DEPLOYMENT.md` records as dead. Haiku was defensible under the "trivial → haiku" row
+(docs/config, no logic branches); `areas: ["backend","multiplayer"]` was defensible because §3
+describes the relay.
+Decision: `difficulty: trivial`, `engineModel: sonnet`, `areas: ["backend"]`, `risk: low`, no
+design round, `planModel: fable` nominal. Same split as 2026-09-16 / 2026-09-22: haiku is for
+zero-judgment copy; "refresh §3 versus the current code" needs the engine to read `index.js` /
+`questions.js` and decide sentence by sentence what is stale, and to add the env var with a
+placeholder value and a comment (never a real value) in the file(s) the code actually reads.
+Backend-only because only prose changes about multiplayer — the 2026-09-20 precedent added
+`multiplayer` when relay-area Node code was rewritten; here no relay code moves.
+Consequences: "doc is stale versus code" cards are trivial/sonnet, single-area, no design round;
+the engine should cover both `.env.example` files that consume the variable (backend and relay)
+and keep `.env` / `.env.production` values untouched.
