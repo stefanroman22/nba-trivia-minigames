@@ -492,3 +492,34 @@ sites). (4) Per-tier gain stated honestly: real win only with `REDIS_URL`; Datab
 queries, misses cost ~2x; cold start / JWT lookup / pooler dominate. `Engine: sonnet`, 9 explicit steps.
 Consequences: the owner gets a runbook and a decision, not a Redis bill; a later card can add the
 friends-list cache on the same helper. Opus-banned rounds resolve to sonnet when the plan is explicit.
+
+## 2026-09-30 — Expand question pools for games with headroom: risk high vs low, hard/opus
+Context: AI P1 card, no override, to grow the small pools (heatmap 6, tictactoe 8, bingo 10,
+nba-grid 12, fan-favorites 24, name-logo 30, who-would-win 30, connections 40) plus the
+Question-store games (career-path, who-are-ya, contexto, superdraft, imposter, pack-five), with a
+hard "verifiably correct against players_curated.json, run each validator" requirement. The work
+is spread over two generator families — `backend/trivia/games/*.py::build_pool/validate_rows`
+reading hand/tool-authored seeds in `trivia/data_static/` (BE-3), and
+`backend/trivia/questions/games/*.py` `generate/materialize/validate` with hard `TARGET` caps run
+by `questions/runner.py` against the `Question` table + Storage — and fan-favorites lives in
+Supabase (`seed_fan_favorites`), wordle is derived from the `Player` table at
+`build_pools_from_db` time. Tests pin today's counts (`test_heatmap` 6, `test_connections` 40,
+`test_nba_grid` 12, `test_tictactoe` 8, `bingo.EXPECTED_CARDS`). `risk: low` was defensible: the
+bulk of the diff is seed JSON and regenerated `trivia/data/*.json`, not pipeline logic.
+Decision: `hard`, `needsDesignRound: true`, areas `backend`/`data`, `risk: high`, provisional
+`engineModel: opus`. High because the change cannot stay data-only — it must edit
+`data_static/heatmap_gen.py`'s bank, the `TARGET`/`MINIMUM` constants in `questions/games/*.py`,
+the count-pinning tests, and re-emit `trivia/data/manifest.json`, i.e. production code of the
+data pipeline that every live game reads; and hallucinated content shipped to live games
+(fan-favorites, who-would-win, tictactoe) is exactly what the CTO label exists to catch. Opus
+because risk-high + hard-with-a-plan; the design round should still tag mechanical steps
+(re-running validators, rebuilding pools, bumping count assertions) `[sonnet]` and reserve
+`[opus]` for content authoring that needs NBA judgment (connections groups, who-would-win
+matchups, fan-favorites answer sets). The round must also decide how pools get rebuilt in a
+worktree without `DATABASE_URL` (DB-backed builders raise; the seed-only games can be rebuilt
+directly) and whether the runner-driven games are in scope at all for an unattended run that
+has no DB/Storage credentials — parking those with a note is acceptable.
+Consequences: a design round on a content task, but the alternative was sonnet padding eight
+seed files by hand with no plan for verification or for the DB-backed games. Future "expand
+content across many games" cards get the same treatment; single-game seed top-ups with an
+existing validator stay `standard`/`sonnet`, `risk: low`.
