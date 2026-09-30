@@ -6,7 +6,6 @@ import type { RootState, AppDispatch } from "../store";
 import { logout, updateProfilePhoto, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
 import { PhotoPrepError, prepareProfilePhoto } from "../utils/imagePrep";
-import socket from "../socket";
 import { AnimatePresence, motion } from "framer-motion";
 import SwapText from "./motion/SwapText";
 import SegmentedTabs from "./motion/SegmentedTabs";
@@ -150,7 +149,6 @@ function UserProfile() {
       showErrorAlert(data.error, "Unable to Log Out!");
     } else {
       setIsLoading(true);
-      if (socket.connected) socket.emit("setUserInfo", null);
       setTimeout(() => {
         dispatch(logout());
         setIsLoading(false);

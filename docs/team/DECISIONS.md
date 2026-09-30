@@ -546,3 +546,31 @@ Backend-only because only prose changes about multiplayer — the 2026-09-20 pre
 Consequences: "doc is stale versus code" cards are trivial/sonnet, single-area, no design round;
 the engine should cover both `.env.example` files that consume the variable (backend and relay)
 and keep `.env` / `.env.production` values untouched.
+
+## 2026-09-30 — Handle multiplayer turnReject on the client + drop dead emits: standard/low vs hard/high, frontend-only vs +multiplayer
+Context: frontend P1 card, no override, bootstrap-audit finding. The relay emits `turnReject`
+`{ message }` via `turnHelpers.reject` (`multiplayer_server/src/index.js`) for every illegal
+tictactoe/imposter move in `turnGames.js`, and nothing under `src/` listens. Two client emits are
+dead: `leaveMultiplayer` (`src/utils/LeaveMultiplayer.tsx`, zero importers) and `setUserInfo`
+(`src/components/UserProfile.tsx` logout path). Checked the server: there is no `socket.on` for
+either name anywhere in `multiplayer_server/` or `backend/`; room exit is `leaveMatch` (already
+wired through `MultiplayerContext.leaveMatch`) and identity has no de-identify counterpart to
+`identify`. `hard`/`risk: high` was defensible under the rubric's "anything touching the
+multiplayer protocol" line; `areas` including `multiplayer` was defensible because the fix
+consumes a relay event.
+Decision: `difficulty: standard`, `areas: ["frontend","ui"]`, `risk: low`, `engineModel: sonnet`,
+no design round. The wire contract does not change — the client starts consuming an event the
+relay already sends and stops sending two events the relay already ignores; no file under
+`multiplayer_server/` moves, and `docs/constraints/MULTIPLAYER_CONSTRAINTS.md` (MP-2, acceptance
+check 4) already prescribes the exact fix: a `turnReject` key in the `MultiplayerContext.tsx`
+`on` map dispatching a `NOTICE`. Per the classify rubric, `multiplayer` means the relay, its
+protocol or its sims; a client listener plus a notice on a multiplayer screen is `frontend`/`ui`.
+Wiring the two dead emits up instead would mean inventing relay handlers (protocol change,
+design round) for behaviour `leaveMatch` and the disconnect grace window already cover, so
+"remove" wins on bias-small: delete `LeaveMultiplayer.tsx`, drop the `setUserInfo` emit and the
+`import socket` from `UserProfile.tsx` (MP-13 flags that import as the one non-context socket use).
+Consequences: "client-side wiring for an event the relay already emits, no relay edits" is
+`standard`/`low`, frontend-only, sonnet. If a future card needs a new relay handler or payload,
+it is `multiplayer` + `hard` + design round as before. The build must also refresh the
+now-stale prose in `MULTIPLAYER_CONSTRAINTS.md` (MP-2 "known gap", MP-4 dead-emit ❌, MP-13
+`UserProfile` aside, acceptance checks 3-5) in the same diff.
