@@ -90,6 +90,9 @@ if _redis_url:
             "BACKEND": "django.core.cache.backends.redis.RedisCache",
             "LOCATION": _redis_url,
             "TIMEOUT": 60 * 60 * 24,  # 24h
+            # Django's RedisCacheClient forwards these to redis.ConnectionPool.from_url; an
+            # unreachable Redis then fails in ~2 s and users/friends_cache degrades to the DB.
+            "OPTIONS": {"socket_connect_timeout": 2, "socket_timeout": 2},
         }
     }
 elif os.environ.get("DATABASE_URL"):

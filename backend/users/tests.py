@@ -2,16 +2,19 @@ import re
 import time
 from io import BytesIO
 from importlib import import_module
+from unittest import mock
 
 from django.apps import apps as django_apps
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
 from users.identity import PUBLIC_ID_ALPHABET, PUBLIC_ID_LENGTH
-from users.models import FriendRequest, Friendship
+from users import friends_cache
+from users.models import BlockedUser, FriendRequest, Friendship
 from users.tokens import AUTH_TIME_CLAIM, MAX_SESSION_AGE, SessionRefreshSerializer, issue_session_tokens
 
 User = get_user_model()
@@ -177,6 +180,108 @@ class FriendsPhotoTests(TestCase):
         self.assertEqual(len(incoming), 1)
         self.assertIsNone(incoming[0]["profile_photo"])
         self.assertEqual(incoming[0]["photo_version"], 2)
+
+
+@override_settings(CACHES={"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}})
+class FriendsOverviewCacheTests(TestCase):
+    """`friends_overview` is cached 60 s per user (users/friends_cache.py) and every friend/request/block
+    view invalidates BOTH affected users. Runs on LocMemCache, the same tier as no-Redis dev/CI."""
+
+    def setUp(self):
+        cache.clear()
+        self.me = User.objects.create_user(username="CacheMe", email="cacheme@example.com", password="Testpass123!")
+        self.other = User.objects.create_user(username="CacheOther", email="cacheother@example.com", password="Testpass123!")
+        self.me_token = str(issue_session_tokens(self.me).access_token)
+        self.other_token = str(issue_session_tokens(self.other).access_token)
+
+    def _get(self, token):
+        return self.client.get(reverse("friends-overview"), HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def _post(self, name, token, **body):
+        return self.client.post(
+            reverse(name), data=body, content_type="application/json", HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+
+    def _warm(self):
+        self.assertEqual(self._get(self.me_token).status_code, 200)
+        self.assertEqual(self._get(self.other_token).status_code, 200)
+        self.assertIsNotNone(cache.get(friends_cache.overview_key(self.me.pk)))
+        self.assertIsNotNone(cache.get(friends_cache.overview_key(self.other.pk)))
+
+    def test_overview_is_served_from_cache_until_ttl(self):
+        resp = self._get(self.me_token)
+        self.assertEqual(resp.json()["incoming_requests"], [])
+        self.assertIsNotNone(cache.get(friends_cache.overview_key(self.me.pk)))
+
+        # ORM write bypasses the views, so nothing invalidates: the next read is a cache hit.
+        FriendRequest.objects.create(sender=self.other, receiver=self.me)
+        self.assertEqual(len(self._get(self.me_token).json()["incoming_requests"]), 0)
+
+        cache.clear()
+        self.assertEqual(len(self._get(self.me_token).json()["incoming_requests"]), 1)
+
+    def test_every_friend_action_invalidates_both_users(self):
+        def befriend():
+            lo, hi = Friendship.ordered_pair(self.me, self.other)
+            Friendship.objects.create(user_low=lo, user_high=hi)
+
+        def pending(sender, receiver):
+            return lambda: FriendRequest.objects.create(sender=sender, receiver=receiver)
+
+        def request_id():
+            return FriendRequest.objects.get().pk
+
+        actions = [
+            ("send", lambda: None,
+             lambda: self._post("send-friend-request", self.other_token, public_id=self.me.public_id)),
+            ("accept", pending(self.other, self.me),
+             lambda: self._post("accept-friend-request", self.me_token, request_id=request_id())),
+            ("decline", pending(self.other, self.me),
+             lambda: self._post("decline-friend-request", self.me_token, request_id=request_id())),
+            ("cancel", pending(self.other, self.me),
+             lambda: self._post("cancel-friend-request", self.other_token, request_id=request_id())),
+            ("remove", befriend,
+             lambda: self._post("remove-friend", self.me_token, public_id=self.other.public_id)),
+            ("block", lambda: None,
+             lambda: self._post("block-user", self.me_token, public_id=self.other.public_id)),
+            ("unblock", lambda: BlockedUser.objects.create(blocker=self.me, blocked=self.other),
+             lambda: self._post("unblock-user", self.me_token, public_id=self.other.public_id)),
+            ("reverse-accept", pending(self.other, self.me),
+             lambda: self._post("send-friend-request", self.me_token, public_id=self.other.public_id)),
+        ]
+        for label, setup, action in actions:
+            with self.subTest(label):
+                cache.clear()
+                FriendRequest.objects.all().delete()
+                Friendship.objects.all().delete()
+                BlockedUser.objects.all().delete()
+                setup()
+                self._warm()
+                resp = action()
+                self.assertLess(resp.status_code, 300, resp.content)
+                self.assertIsNone(cache.get(friends_cache.overview_key(self.me.pk)))
+                self.assertIsNone(cache.get(friends_cache.overview_key(self.other.pk)))
+
+    def test_send_request_is_visible_to_receiver_immediately(self):
+        self._warm()
+        resp = self._post("send-friend-request", self.other_token, public_id=self.me.public_id)
+        self.assertEqual(resp.status_code, 201)
+
+        incoming = self._get(self.me_token).json()["incoming_requests"]
+        self.assertEqual([r["id"] for r in incoming], [self.other.public_id])
+        outgoing = self._get(self.other_token).json()["outgoing_requests"]
+        self.assertEqual([r["id"] for r in outgoing], [self.me.public_id])
+
+    def test_cache_backend_failure_degrades_to_db(self):
+        FriendRequest.objects.create(sender=self.other, receiver=self.me)
+        with mock.patch.object(friends_cache, "cache") as fake:
+            fake.get.side_effect = RuntimeError("down")
+            fake.set.side_effect = RuntimeError("down")
+            fake.delete_many.side_effect = RuntimeError("down")
+            resp = self._get(self.me_token)
+            friends_cache.invalidate_friends(self.me, self.other.pk)  # must not raise
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual([r["id"] for r in resp.json()["incoming_requests"]], [self.other.public_id])
 
 
 class ProfilePhotoEndpointTests(TestCase):

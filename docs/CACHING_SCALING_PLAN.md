@@ -12,7 +12,7 @@ before it's forgotten.
 | Global leaderboard (top 100, rank, total) | `users/leaderboard.py` | **Yes** — Redis ZSET (`leaderboard`, member = public_id, score = points) when `REDIS_URL` is set; falls back to plain Postgres queries otherwise. Already scales to any N via `ZREVRANGE`/`ZREVRANK` (O(log N)). |
 | Friends leaderboard (`?scope=friends`) | `leaderboard.friends_board()` | No — always Postgres, deliberately (see below). |
 | Friend list / friend search (`search-friends`) | `users/friends.py` | No — always Postgres. |
-| Friend requests, blocked list (`friends-overview`) | `users/friends.py` | No — always Postgres. |
+| Friend requests, blocked list (`friends-overview`) | `users/friends.py` | **Yes** — Django `CACHES` (`users/friends_cache.py`), 60 s TTL, invalidated by every friend/request/block view for both users; Redis when `REDIS_URL`, else DatabaseCache/LocMem. |
 
 The global leaderboard cache exists because **N (total players) is
 unbounded** and a top-100/rank query over the whole table gets slower as the
@@ -91,15 +91,28 @@ Revisit item 2 if the friends leaderboard modal becomes a widely-shared
 view (e.g. leaderboards embedded/shared outside the app) rather than each
 player mostly looking at their own.
 
-## Implementation shape, when the time comes
+## Implementation shape
 
-Follow the existing pattern in `users/leaderboard.py` exactly — it's
-already the right template:
-- Lazy `redis.from_url(REDIS_URL)` client, `None` when `REDIS_URL` isn't
-  set (local/CI keep working with zero code changes).
-- Every cached read has a Postgres fallback path — Redis is an
-  accelerator, never a dependency the app can't run without.
-- Writes to the cache happen at the same call sites that already mutate
-  the underlying rows (`accept_friend_request`, `remove_friend`,
-  `block_user`, `unblock_user`), mirroring how `record_score()` is called
-  from every place `points` changes today.
+Cached *reads* go through `django.core.cache` (the three tiers already in `settings.py`: Redis when
+`REDIS_URL`, else DatabaseCache, else LocMemCache), so they are correct with zero Redis
+configured. Keys are namespaced `users:<thing>:v1:<pk>` so they never collide with DRF's
+`throttle_<scope>_<ident>` counters in the same cache, and any cache failure is treated as a miss
+(see `users/friends_cache.py`). The raw `users/leaderboard.py` client is only for Redis primitives
+Django's cache API lacks (the ZSET) — do not copy it for read caching. Invalidate at the write
+sites, for every affected user, right after the write (`accept_friend_request`, `remove_friend`,
+`block_user`, ... all call `friends_cache.invalidate_friends`). Rows also carry the *other*
+user's username/points/rank, which can lag up to the 60 s TTL by design.
+
+## Next candidate: `search-friends`
+
+Not built; only do it once `search-friends` shows up in function-duration percentiles. Scheme:
+a per-user generation key `users:friends-gen:v1:<pk>` bumped on friendship changes, and a page key
+`users:friends-list:v1:<pk>:g<gen>:<limit>:<offset>` for `q == ""` only (searches with a `q` stay
+uncached, per "What NOT to do"). Cost: one extra cache read per request for the generation.
+
+## What the cache does not fix
+
+A single slow request is usually dominated by the Vercel cold start, the JWT user lookup and the
+pooler handshake, none of which caching removes. The friends-overview cache removes 3 queries per
+Friends-modal open; on the DatabaseCache tier the gain is modest (and a miss costs slightly more
+than uncached), so the real win needs `REDIS_URL` (`docs/DEPLOYMENT.md` -> "Redis (Upstash) — setup").

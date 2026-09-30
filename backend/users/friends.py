@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from backend.throttles import FriendActionRateThrottle, UserSearchRateThrottle
+from users import friends_cache
 from users.models import BlockedUser, FriendRequest, Friendship
 
 User = get_user_model()
@@ -162,12 +163,14 @@ def send_friend_request(request):
         with transaction.atomic():
             Friendship.objects.get_or_create(user_low=lo, user_high=hi)
             reverse.delete()
+        friends_cache.invalidate_friends(me, target)
         return Response({"status": "accepted"})
 
     try:
         FriendRequest.objects.create(sender=me, receiver=target)
     except IntegrityError:
         return Response({"error": "Request already sent."}, status=409)
+    friends_cache.invalidate_friends(me, target)
     return Response({"status": "sent"}, status=201)
 
 
@@ -188,9 +191,11 @@ def accept_friend_request(request):
     if fr is None:
         return Response({"error": "Request not found."}, status=404)
     lo, hi = Friendship.ordered_pair(fr.sender, fr.receiver)
+    sender_id, receiver_id = fr.sender_id, fr.receiver_id
     with transaction.atomic():
         Friendship.objects.get_or_create(user_low=lo, user_high=hi)
         fr.delete()
+    friends_cache.invalidate_friends(sender_id, receiver_id)
     return Response({"status": "accepted"})
 
 
@@ -200,9 +205,12 @@ def decline_friend_request(request):
     req_id = _resolve_request(request.data.get("request_id"))
     if req_id is None:
         return Response({"error": "request_id is required"}, status=400)
-    deleted, _ = FriendRequest.objects.filter(pk=req_id, receiver=request.user).delete()
-    if not deleted:
+    fr = FriendRequest.objects.filter(pk=req_id, receiver=request.user).first()
+    if fr is None:
         return Response({"error": "Request not found."}, status=404)
+    sender_id = fr.sender_id
+    fr.delete()
+    friends_cache.invalidate_friends(request.user, sender_id)
     return Response({"status": "declined"})
 
 
@@ -212,9 +220,12 @@ def cancel_friend_request(request):
     req_id = _resolve_request(request.data.get("request_id"))
     if req_id is None:
         return Response({"error": "request_id is required"}, status=400)
-    deleted, _ = FriendRequest.objects.filter(pk=req_id, sender=request.user).delete()
-    if not deleted:
+    fr = FriendRequest.objects.filter(pk=req_id, sender=request.user).first()
+    if fr is None:
         return Response({"error": "Request not found."}, status=404)
+    receiver_id = fr.receiver_id
+    fr.delete()
+    friends_cache.invalidate_friends(request.user, receiver_id)
     return Response({"status": "cancelled"})
 
 
@@ -229,6 +240,7 @@ def remove_friend(request):
     deleted, _ = Friendship.objects.filter(user_low=lo, user_high=hi).delete()
     if not deleted:
         return Response({"error": "You're not friends with this player."}, status=404)
+    friends_cache.invalidate_friends(me, target)
     return Response({"status": "removed"})
 
 
@@ -248,6 +260,7 @@ def block_user(request):
         Friendship.objects.filter(user_low=lo, user_high=hi).delete()
         FriendRequest.objects.filter(Q(sender=me, receiver=target) | Q(sender=target, receiver=me)).delete()
         BlockedUser.objects.get_or_create(blocker=me, blocked=target)
+    friends_cache.invalidate_friends(me, target)
     return Response({"status": "blocked"})
 
 
@@ -260,6 +273,7 @@ def unblock_user(request):
     deleted, _ = BlockedUser.objects.filter(blocker=request.user, blocked=target).delete()
     if not deleted:
         return Response({"error": "You haven't blocked this player."}, status=404)
+    friends_cache.invalidate_friends(request.user, target)
     return Response({"status": "unblocked"})
 
 
@@ -308,8 +322,13 @@ def friends_overview(request):
     """Both directions of pending requests, and who you've blocked. The
     friend list itself is paginated separately by `search_friends` — even a
     "give me everyone" call there is still bounded and sorted the same way,
-    so there's nothing this endpoint needs to duplicate."""
+    so there's nothing this endpoint needs to duplicate.
+
+    Cached 60 s under `friends_cache`, invalidated by every write view above."""
     me = request.user
+    cached = friends_cache.get_overview(me.pk)
+    if cached is not None:
+        return Response(cached)
 
     incoming = (
         FriendRequest.objects.filter(receiver=me)
@@ -330,10 +349,10 @@ def friends_overview(request):
         .order_by("-created_at")
     )
 
-    return Response(
-        {
-            "incoming_requests": [{"request_id": r.pk, **_brief(request, r.sender)} for r in incoming],
-            "outgoing_requests": [{"request_id": r.pk, **_brief(request, r.receiver)} for r in outgoing],
-            "blocked_users": [_brief(request, b.blocked) for b in blocked],
-        }
-    )
+    payload = {
+        "incoming_requests": [{"request_id": r.pk, **_brief(request, r.sender)} for r in incoming],
+        "outgoing_requests": [{"request_id": r.pk, **_brief(request, r.receiver)} for r in outgoing],
+        "blocked_users": [_brief(request, b.blocked) for b in blocked],
+    }
+    friends_cache.set_overview(me.pk, payload)
+    return Response(payload)
