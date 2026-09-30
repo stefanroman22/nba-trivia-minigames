@@ -208,5 +208,215 @@
       { "type": "era",     "value": "2010s",         "label": "Played in the 2010s" },
       { "type": "era",     "value": "2020s",         "label": "Played in the 2020s" }
     ]
+  },
+  {
+    "qid": "bingo-011",
+    "cells": [
+      { "type": "team",    "value": "LAL",           "label": "Played for the Lakers" },
+      { "type": "team",    "value": "SAS",           "label": "Played for the Spurs" },
+      { "type": "team",    "value": "UTA",           "label": "Played for the Jazz" },
+      { "type": "team",    "value": "POR",           "label": "Played for the Blazers" },
+      { "type": "team",    "value": "HOU",           "label": "Played for the Rockets" },
+      { "type": "award",   "value": "mvp",           "label": "Won league MVP" },
+      { "type": "award",   "value": "dpoy",          "label": "Defensive Player of the Year" },
+      { "type": "award",   "value": "allstar5plus",  "label": "5+ All-Star nods" },
+      { "type": "country", "value": "USA",           "label": "Born in the USA" },
+      { "type": "draft",   "value": "decade-1980s",  "label": "Drafted in the '80s" },
+      { "type": "draft",   "value": "top5",          "label": "Top-5 draft pick" },
+      { "type": "college", "value": "UCLA",          "label": "Played at UCLA" },
+      { "type": "stat",    "value": "rpg10",         "label": "10+ RPG career" },
+      { "type": "stat",    "value": "20kpts",        "label": "20,000+ career points" },
+      { "type": "era",     "value": "1980s",         "label": "Played in the '80s" },
+      { "type": "era",     "value": "1990s",         "label": "Played in the '90s" }
+    ]
+  },
+  {
+    "qid": "bingo-012",
+    "cells": [
+      { "type": "team",    "value": "BOS",           "label": "Played for the Celtics" },
+      { "type": "team",    "value": "NYK",           "label": "Played for the Knicks" },
+      { "type": "team",    "value": "DET",           "label": "Played for the Pistons" },
+      { "type": "team",    "value": "CHI",           "label": "Played for the Bulls" },
+      { "type": "team",    "value": "PHI",           "label": "Played for the 76ers" },
+      { "type": "team",    "value": "WAS",           "label": "Played for the Wizards" },
+      { "type": "award",   "value": "ring",          "label": "Won a championship" },
+      { "type": "award",   "value": "fmvp",          "label": "Finals MVP" },
+      { "type": "award",   "value": "roty",          "label": "Rookie of the Year" },
+      { "type": "country", "value": "INTL",          "label": "Born outside the USA" },
+      { "type": "draft",   "value": "round2",        "label": "Second-round pick" },
+      { "type": "draft",   "value": "decade-1990s",  "label": "Drafted in the '90s" },
+      { "type": "college", "value": "Duke",          "label": "Played at Duke" },
+      { "type": "stat",    "value": "seasons15plus", "label": "15+ NBA seasons" },
+      { "type": "stat",    "value": "ppg20",         "label": "20+ PPG career" },
+      { "type": "era",     "value": "2000s",         "label": "Played in the 2000s" }
+    ]
+  },
+  {
+    "qid": "bingo-013",
+    "cells": [
+      { "type": "team",    "value": "GSW",           "label": "Played for the Warriors" },
+      { "type": "team",    "value": "OKC",           "label": "Played for the Thunder" },
+      { "type": "team",    "value": "MEM",           "label": "Played for the Grizzlies" },
+      { "type": "team",    "value": "NOP",           "label": "Played for the Pelicans" },
+      { "type": "team",    "value": "MIN",           "label": "Played for the Wolves" },
+      { "type": "award",   "value": "allnba",        "label": "Made an All-NBA team" },
+      { "type": "award",   "value": "roty",          "label": "Rookie of the Year" },
+      { "type": "award",   "value": "smoy",          "label": "Sixth Man of the Year" },
+      { "type": "country", "value": "France",        "label": "Born in France" },
+      { "type": "draft",   "value": "decade-2010s",  "label": "Drafted in the 2010s" },
+      { "type": "draft",   "value": "lottery",       "label": "Lottery pick (top 14)" },
+      { "type": "college", "value": "Kentucky",      "label": "Played at Kentucky" },
+      { "type": "stat",    "value": "apg8",          "label": "8+ APG career" },
+      { "type": "stat",    "value": "ppg20",         "label": "20+ PPG career" },
+      { "type": "era",     "value": "2010s",         "label": "Played in the 2010s" },
+      { "type": "era",     "value": "2020s",         "label": "Played in the 2020s" }
+    ]
+  },
+  {
+    "qid": "bingo-014",
+    "cells": [
+      { "type": "team",    "value": "MIA",           "label": "Played for the Heat" },
+      { "type": "team",    "value": "CLE",           "label": "Played for the Cavs" },
+      { "type": "team",    "value": "DEN",           "label": "Played for the Nuggets" },
+      { "type": "team",    "value": "TOR",           "label": "Played for the Raptors" },
+      { "type": "team",    "value": "SAC",           "label": "Played for the Kings" },
+      { "type": "award",   "value": "mvp",           "label": "Won league MVP" },
+      { "type": "award",   "value": "ring",          "label": "Won a championship" },
+      { "type": "award",   "value": "allstar5plus",  "label": "5+ All-Star nods" },
+      { "type": "award",   "value": "dpoy",          "label": "Defensive Player of the Year" },
+      { "type": "country", "value": "USA",           "label": "Born in the USA" },
+      { "type": "draft",   "value": "decade-2000s",  "label": "Drafted in the 2000s" },
+      { "type": "college", "value": "none",          "label": "Skipped college" },
+      { "type": "stat",    "value": "25kpts",        "label": "25,000+ career points" },
+      { "type": "stat",    "value": "rpg10",         "label": "10+ RPG career" },
+      { "type": "era",     "value": "2000s",         "label": "Played in the 2000s" },
+      { "type": "era",     "value": "2010s",         "label": "Played in the 2010s" }
+    ]
+  },
+  {
+    "qid": "bingo-015",
+    "cells": [
+      { "type": "team",    "value": "ATL",           "label": "Played for the Hawks" },
+      { "type": "team",    "value": "ORL",           "label": "Played for the Magic" },
+      { "type": "team",    "value": "LAC",           "label": "Played for the Clippers" },
+      { "type": "team",    "value": "BKN",           "label": "Played for the Nets" },
+      { "type": "team",    "value": "MIL",           "label": "Played for the Bucks" },
+      { "type": "team",    "value": "PHX",           "label": "Played for the Suns" },
+      { "type": "award",   "value": "fmvp",          "label": "Finals MVP" },
+      { "type": "award",   "value": "allnba",        "label": "Made an All-NBA team" },
+      { "type": "award",   "value": "smoy",          "label": "Sixth Man of the Year" },
+      { "type": "country", "value": "INTL",          "label": "Born outside the USA" },
+      { "type": "draft",   "value": "top5",          "label": "Top-5 draft pick" },
+      { "type": "draft",   "value": "round2",        "label": "Second-round pick" },
+      { "type": "college", "value": "North Carolina","label": "Played at North Carolina" },
+      { "type": "stat",    "value": "20kpts",        "label": "20,000+ career points" },
+      { "type": "stat",    "value": "seasons15plus", "label": "15+ NBA seasons" },
+      { "type": "era",     "value": "1990s",         "label": "Played in the '90s" }
+    ]
+  },
+  {
+    "qid": "bingo-016",
+    "cells": [
+      { "type": "team",    "value": "DAL",           "label": "Played for the Mavericks" },
+      { "type": "team",    "value": "HOU",           "label": "Played for the Rockets" },
+      { "type": "team",    "value": "SAS",           "label": "Played for the Spurs" },
+      { "type": "team",    "value": "MIN",           "label": "Played for the Wolves" },
+      { "type": "team",    "value": "POR",           "label": "Played for the Blazers" },
+      { "type": "award",   "value": "roty",          "label": "Rookie of the Year" },
+      { "type": "award",   "value": "dpoy",          "label": "Defensive Player of the Year" },
+      { "type": "award",   "value": "allnba",        "label": "Made an All-NBA team" },
+      { "type": "country", "value": "France",        "label": "Born in France" },
+      { "type": "draft",   "value": "lottery",       "label": "Lottery pick (top 14)" },
+      { "type": "draft",   "value": "decade-1990s",  "label": "Drafted in the '90s" },
+      { "type": "college", "value": "Duke",          "label": "Played at Duke" },
+      { "type": "stat",    "value": "ppg20",         "label": "20+ PPG career" },
+      { "type": "stat",    "value": "apg8",          "label": "8+ APG career" },
+      { "type": "era",     "value": "2000s",         "label": "Played in the 2000s" },
+      { "type": "era",     "value": "1980s",         "label": "Played in the '80s" }
+    ]
+  },
+  {
+    "qid": "bingo-017",
+    "cells": [
+      { "type": "team",    "value": "LAL",           "label": "Played for the Lakers" },
+      { "type": "team",    "value": "BOS",           "label": "Played for the Celtics" },
+      { "type": "team",    "value": "CHI",           "label": "Played for the Bulls" },
+      { "type": "team",    "value": "DET",           "label": "Played for the Pistons" },
+      { "type": "team",    "value": "PHI",           "label": "Played for the 76ers" },
+      { "type": "award",   "value": "mvp",           "label": "Won league MVP" },
+      { "type": "award",   "value": "fmvp",          "label": "Finals MVP" },
+      { "type": "award",   "value": "ring",          "label": "Won a championship" },
+      { "type": "country", "value": "USA",           "label": "Born in the USA" },
+      { "type": "draft",   "value": "decade-1980s",  "label": "Drafted in the '80s" },
+      { "type": "draft",   "value": "top5",          "label": "Top-5 draft pick" },
+      { "type": "college", "value": "North Carolina","label": "Played at North Carolina" },
+      { "type": "stat",    "value": "25kpts",        "label": "25,000+ career points" },
+      { "type": "stat",    "value": "rpg10",         "label": "10+ RPG career" },
+      { "type": "era",     "value": "1980s",         "label": "Played in the '80s" },
+      { "type": "era",     "value": "1990s",         "label": "Played in the '90s" }
+    ]
+  },
+  {
+    "qid": "bingo-018",
+    "cells": [
+      { "type": "team",    "value": "NYK",           "label": "Played for the Knicks" },
+      { "type": "team",    "value": "WAS",           "label": "Played for the Wizards" },
+      { "type": "team",    "value": "SAC",           "label": "Played for the Kings" },
+      { "type": "team",    "value": "MEM",           "label": "Played for the Grizzlies" },
+      { "type": "team",    "value": "UTA",           "label": "Played for the Jazz" },
+      { "type": "team",    "value": "ORL",           "label": "Played for the Magic" },
+      { "type": "award",   "value": "allstar5plus",  "label": "5+ All-Star nods" },
+      { "type": "award",   "value": "roty",          "label": "Rookie of the Year" },
+      { "type": "country", "value": "INTL",          "label": "Born outside the USA" },
+      { "type": "draft",   "value": "decade-2000s",  "label": "Drafted in the 2000s" },
+      { "type": "draft",   "value": "lottery",       "label": "Lottery pick (top 14)" },
+      { "type": "college", "value": "UCLA",          "label": "Played at UCLA" },
+      { "type": "stat",    "value": "seasons15plus", "label": "15+ NBA seasons" },
+      { "type": "stat",    "value": "apg8",          "label": "8+ APG career" },
+      { "type": "stat",    "value": "20kpts",        "label": "20,000+ career points" },
+      { "type": "era",     "value": "2010s",         "label": "Played in the 2010s" }
+    ]
+  },
+  {
+    "qid": "bingo-019",
+    "cells": [
+      { "type": "team",    "value": "GSW",           "label": "Played for the Warriors" },
+      { "type": "team",    "value": "OKC",           "label": "Played for the Thunder" },
+      { "type": "team",    "value": "CLE",           "label": "Played for the Cavs" },
+      { "type": "team",    "value": "MIA",           "label": "Played for the Heat" },
+      { "type": "team",    "value": "BKN",           "label": "Played for the Nets" },
+      { "type": "award",   "value": "dpoy",          "label": "Defensive Player of the Year" },
+      { "type": "award",   "value": "smoy",          "label": "Sixth Man of the Year" },
+      { "type": "award",   "value": "allnba",        "label": "Made an All-NBA team" },
+      { "type": "country", "value": "USA",           "label": "Born in the USA" },
+      { "type": "draft",   "value": "round2",        "label": "Second-round pick" },
+      { "type": "draft",   "value": "decade-2010s",  "label": "Drafted in the 2010s" },
+      { "type": "college", "value": "Kentucky",      "label": "Played at Kentucky" },
+      { "type": "stat",    "value": "ppg20",         "label": "20+ PPG career" },
+      { "type": "stat",    "value": "20kpts",        "label": "20,000+ career points" },
+      { "type": "era",     "value": "2020s",         "label": "Played in the 2020s" },
+      { "type": "era",     "value": "2000s",         "label": "Played in the 2000s" }
+    ]
+  },
+  {
+    "qid": "bingo-020",
+    "cells": [
+      { "type": "team",    "value": "TOR",           "label": "Played for the Raptors" },
+      { "type": "team",    "value": "DEN",           "label": "Played for the Nuggets" },
+      { "type": "team",    "value": "PHX",           "label": "Played for the Suns" },
+      { "type": "team",    "value": "ATL",           "label": "Played for the Hawks" },
+      { "type": "team",    "value": "LAC",           "label": "Played for the Clippers" },
+      { "type": "team",    "value": "NOP",           "label": "Played for the Pelicans" },
+      { "type": "award",   "value": "ring",          "label": "Won a championship" },
+      { "type": "award",   "value": "mvp",           "label": "Won league MVP" },
+      { "type": "award",   "value": "fmvp",          "label": "Finals MVP" },
+      { "type": "country", "value": "France",        "label": "Born in France" },
+      { "type": "draft",   "value": "top5",          "label": "Top-5 draft pick" },
+      { "type": "draft",   "value": "decade-2000s",  "label": "Drafted in the 2000s" },
+      { "type": "college", "value": "none",          "label": "Skipped college" },
+      { "type": "stat",    "value": "rpg10",         "label": "10+ RPG career" },
+      { "type": "stat",    "value": "25kpts",        "label": "25,000+ career points" },
+      { "type": "era",     "value": "2010s",         "label": "Played in the 2010s" }
+    ]
   }
 ]

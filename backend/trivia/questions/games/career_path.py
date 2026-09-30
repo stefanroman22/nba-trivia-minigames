@@ -4,7 +4,8 @@ from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "career-path"
-TARGET = 300
+# 2026-09-30: raised from 300 (expand-question-pools); eligible pool comfortably larger, see docs/team/designs/2026-09-30-expand-question-pools.md
+TARGET = 500
 MINIMUM = 50
 MIN_STINTS, MAX_STINTS = 3, 7
 

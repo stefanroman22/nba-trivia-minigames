@@ -10,7 +10,7 @@ from trivia.models import GuessLog
 class SeedTests(TestCase):
     def test_seed_loads_and_validates(self):
         rows = _load_seed()
-        self.assertGreaterEqual(len(rows), 30)
+        self.assertGreaterEqual(len(rows), 60)
         self.assertEqual(validate_rows(rows), [])
 
     def test_validator_catches_bad_rows(self):

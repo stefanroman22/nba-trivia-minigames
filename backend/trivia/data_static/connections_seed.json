@@ -2518,5 +2518,1265 @@
         ]
       }
     ]
+  },
+  {
+    "qid": "cn-041",
+    "tiles": [
+      "Allen Iverson",
+      "Shai Gilgeous-Alexander",
+      "Kostas Papanikolaou",
+      "Buddy Hield",
+      "Jalen Williams",
+      "Luguentz Dort",
+      "Chet Holmgren",
+      "Thanasis Antetokounmpo",
+      "Wayman Tisdale",
+      "Kobe Bryant",
+      "Trae Young",
+      "Ray Allen",
+      "Blake Griffin",
+      "Georgios Papagiannis",
+      "Steve Nash",
+      "Giannis Antetokounmpo"
+    ],
+    "groups": [
+      {
+        "label": "2025 Thunder champions",
+        "difficulty": 2,
+        "members": [
+          "Shai Gilgeous-Alexander",
+          "Jalen Williams",
+          "Chet Holmgren",
+          "Luguentz Dort"
+        ]
+      },
+      {
+        "label": "1996 NBA Draft class",
+        "difficulty": 1,
+        "members": [
+          "Kobe Bryant",
+          "Allen Iverson",
+          "Ray Allen",
+          "Steve Nash"
+        ]
+      },
+      {
+        "label": "Born in Greece",
+        "difficulty": 3,
+        "members": [
+          "Giannis Antetokounmpo",
+          "Thanasis Antetokounmpo",
+          "Kostas Papanikolaou",
+          "Georgios Papagiannis"
+        ]
+      },
+      {
+        "label": "Oklahoma Sooners",
+        "difficulty": 4,
+        "members": [
+          "Blake Griffin",
+          "Trae Young",
+          "Buddy Hield",
+          "Wayman Tisdale"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-042",
+    "tiles": [
+      "Russell Westbrook",
+      "Arvydas Sabonis",
+      "Scottie Pippen",
+      "Horace Grant",
+      "Kevin Love",
+      "Zach LaVine",
+      "Jonas Valanciunas",
+      "Jaylen Brown",
+      "Jayson Tatum",
+      "Kristaps Porziņģis",
+      "Zydrunas Ilgauskas",
+      "Derrick White",
+      "Kareem Abdul-Jabbar",
+      "Darius Songaila",
+      "Kevin Johnson",
+      "David Robinson"
+    ],
+    "groups": [
+      {
+        "label": "2024 Celtics champions",
+        "difficulty": 1,
+        "members": [
+          "Jayson Tatum",
+          "Jaylen Brown",
+          "Derrick White",
+          "Kristaps Porziņģis"
+        ]
+      },
+      {
+        "label": "1987 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Scottie Pippen",
+          "David Robinson",
+          "Kevin Johnson",
+          "Horace Grant"
+        ]
+      },
+      {
+        "label": "Born in Lithuania",
+        "difficulty": 4,
+        "members": [
+          "Jonas Valanciunas",
+          "Zydrunas Ilgauskas",
+          "Arvydas Sabonis",
+          "Darius Songaila"
+        ]
+      },
+      {
+        "label": "UCLA Bruins",
+        "difficulty": 3,
+        "members": [
+          "Russell Westbrook",
+          "Kevin Love",
+          "Kareem Abdul-Jabbar",
+          "Zach LaVine"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-043",
+    "tiles": [
+      "Michael Olowokandi",
+      "Derrick Rose",
+      "Josh Okogie",
+      "Michael Porter Jr.",
+      "Draymond Green",
+      "Obinna Ekezie",
+      "Bradley Beal",
+      "Anthony Davis",
+      "Aaron Gordon",
+      "Tyreke Evans",
+      "Jamal Murray",
+      "Nikola Jokić",
+      "Hakeem Olajuwon",
+      "Lorenzen Wright",
+      "Chris Douglas-Roberts",
+      "Damian Lillard"
+    ],
+    "groups": [
+      {
+        "label": "2023 Nuggets champions",
+        "difficulty": 1,
+        "members": [
+          "Nikola Jokić",
+          "Jamal Murray",
+          "Aaron Gordon",
+          "Michael Porter Jr."
+        ]
+      },
+      {
+        "label": "2012 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Anthony Davis",
+          "Damian Lillard",
+          "Bradley Beal",
+          "Draymond Green"
+        ]
+      },
+      {
+        "label": "Born in Nigeria",
+        "difficulty": 4,
+        "members": [
+          "Hakeem Olajuwon",
+          "Michael Olowokandi",
+          "Josh Okogie",
+          "Obinna Ekezie"
+        ]
+      },
+      {
+        "label": "Memphis Tigers",
+        "difficulty": 3,
+        "members": [
+          "Derrick Rose",
+          "Tyreke Evans",
+          "Lorenzen Wright",
+          "Chris Douglas-Roberts"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-044",
+    "tiles": [
+      "Rajon Rondo",
+      "Kemba Walker",
+      "Nicolas Batum",
+      "Rudy Gobert",
+      "Kyle Kuzma",
+      "Alex Caruso",
+      "Al Jefferson",
+      "Josh Smith",
+      "Devin Harris",
+      "Ray Allen",
+      "Boris Diaw",
+      "Andre Iguodala",
+      "Anthony Davis",
+      "Evan Fournier",
+      "Rudy Gay",
+      "Richard Hamilton"
+    ],
+    "groups": [
+      {
+        "label": "2020 Lakers champions",
+        "difficulty": 1,
+        "members": [
+          "Anthony Davis",
+          "Rajon Rondo",
+          "Alex Caruso",
+          "Kyle Kuzma"
+        ]
+      },
+      {
+        "label": "2004 NBA Draft class",
+        "difficulty": 3,
+        "members": [
+          "Andre Iguodala",
+          "Devin Harris",
+          "Al Jefferson",
+          "Josh Smith"
+        ]
+      },
+      {
+        "label": "Born in France",
+        "difficulty": 2,
+        "members": [
+          "Rudy Gobert",
+          "Nicolas Batum",
+          "Boris Diaw",
+          "Evan Fournier"
+        ]
+      },
+      {
+        "label": "Connecticut Huskies",
+        "difficulty": 4,
+        "members": [
+          "Ray Allen",
+          "Kemba Walker",
+          "Richard Hamilton",
+          "Rudy Gay"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-045",
+    "tiles": [
+      "Furkan Korkmaz",
+      "Bob Pettit",
+      "Omer Asik",
+      "Mario Chalmers",
+      "Zach Randolph",
+      "LeBron James",
+      "Chris Bosh",
+      "Pete Maravich",
+      "Hedo Turkoglu",
+      "Gilbert Arenas",
+      "Dwyane Wade",
+      "Shaquille O'Neal",
+      "Pau Gasol",
+      "Joe Johnson",
+      "Glen Davis",
+      "Alperen Sengun"
+    ],
+    "groups": [
+      {
+        "label": "2012 Heat champions",
+        "difficulty": 1,
+        "members": [
+          "LeBron James",
+          "Dwyane Wade",
+          "Chris Bosh",
+          "Mario Chalmers"
+        ]
+      },
+      {
+        "label": "2001 NBA Draft class",
+        "difficulty": 3,
+        "members": [
+          "Pau Gasol",
+          "Joe Johnson",
+          "Gilbert Arenas",
+          "Zach Randolph"
+        ]
+      },
+      {
+        "label": "Born in Turkey",
+        "difficulty": 4,
+        "members": [
+          "Hedo Turkoglu",
+          "Omer Asik",
+          "Alperen Sengun",
+          "Furkan Korkmaz"
+        ]
+      },
+      {
+        "label": "Louisiana State Tigers",
+        "difficulty": 2,
+        "members": [
+          "Shaquille O'Neal",
+          "Pete Maravich",
+          "Bob Pettit",
+          "Glen Davis"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-046",
+    "tiles": [
+      "Luis Scola",
+      "Carlos Delfino",
+      "Elton Brand",
+      "Andrew Bynum",
+      "Shawn Marion",
+      "Myles Turner",
+      "Andres Nocioni",
+      "Pablo Prigioni",
+      "P.J. Tucker",
+      "Kevin Durant",
+      "T.J. Ford",
+      "Derek Fisher",
+      "Pau Gasol",
+      "Andrei Kirilenko",
+      "Kobe Bryant",
+      "Baron Davis"
+    ],
+    "groups": [
+      {
+        "label": "2009 Lakers champions",
+        "difficulty": 1,
+        "members": [
+          "Kobe Bryant",
+          "Pau Gasol",
+          "Derek Fisher",
+          "Andrew Bynum"
+        ]
+      },
+      {
+        "label": "1999 NBA Draft class",
+        "difficulty": 3,
+        "members": [
+          "Baron Davis",
+          "Elton Brand",
+          "Shawn Marion",
+          "Andrei Kirilenko"
+        ]
+      },
+      {
+        "label": "Born in Argentina",
+        "difficulty": 4,
+        "members": [
+          "Luis Scola",
+          "Carlos Delfino",
+          "Andres Nocioni",
+          "Pablo Prigioni"
+        ]
+      },
+      {
+        "label": "Texas Longhorns",
+        "difficulty": 2,
+        "members": [
+          "Kevin Durant",
+          "Myles Turner",
+          "P.J. Tucker",
+          "T.J. Ford"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-047",
+    "tiles": [
+      "Joe Smith",
+      "Tim Duncan",
+      "Damon Stoudamire",
+      "Tony Parker",
+      "RJ Barrett",
+      "Robert Horry",
+      "Manu Ginobili",
+      "Kevin Garnett",
+      "Kelly Olynyk",
+      "Andrew Wiggins",
+      "Antawn Jamison",
+      "James Worthy",
+      "Michael Jordan",
+      "Vince Carter",
+      "Jamal Murray",
+      "Antonio McDyess"
+    ],
+    "groups": [
+      {
+        "label": "2007 Spurs champions",
+        "difficulty": 1,
+        "members": [
+          "Tim Duncan",
+          "Tony Parker",
+          "Manu Ginobili",
+          "Robert Horry"
+        ]
+      },
+      {
+        "label": "1995 NBA Draft class",
+        "difficulty": 3,
+        "members": [
+          "Kevin Garnett",
+          "Antonio McDyess",
+          "Damon Stoudamire",
+          "Joe Smith"
+        ]
+      },
+      {
+        "label": "Born in Canada",
+        "difficulty": 2,
+        "members": [
+          "Jamal Murray",
+          "Andrew Wiggins",
+          "RJ Barrett",
+          "Kelly Olynyk"
+        ]
+      },
+      {
+        "label": "North Carolina Tar Heels",
+        "difficulty": 4,
+        "members": [
+          "Michael Jordan",
+          "Vince Carter",
+          "James Worthy",
+          "Antawn Jamison"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-048",
+    "tiles": [
+      "Magic Johnson",
+      "David Robinson",
+      "Luka Dončić",
+      "Sasha Vujacic",
+      "Rajon Rondo",
+      "Kyle Lowry",
+      "Goran Dragic",
+      "Zach Randolph",
+      "Tim Duncan",
+      "Steve Kerr",
+      "LaMarcus Aldridge",
+      "Jaren Jackson Jr.",
+      "Rudy Gay",
+      "Rasho Nesterovic",
+      "Stephen Jackson",
+      "Draymond Green"
+    ],
+    "groups": [
+      {
+        "label": "2003 Spurs champions",
+        "difficulty": 2,
+        "members": [
+          "Tim Duncan",
+          "David Robinson",
+          "Stephen Jackson",
+          "Steve Kerr"
+        ]
+      },
+      {
+        "label": "2006 NBA Draft class",
+        "difficulty": 3,
+        "members": [
+          "Kyle Lowry",
+          "Rajon Rondo",
+          "Rudy Gay",
+          "LaMarcus Aldridge"
+        ]
+      },
+      {
+        "label": "Born in Slovenia",
+        "difficulty": 1,
+        "members": [
+          "Luka Dončić",
+          "Goran Dragic",
+          "Rasho Nesterovic",
+          "Sasha Vujacic"
+        ]
+      },
+      {
+        "label": "Michigan State Spartans",
+        "difficulty": 4,
+        "members": [
+          "Magic Johnson",
+          "Draymond Green",
+          "Jaren Jackson Jr.",
+          "Zach Randolph"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-049",
+    "tiles": [
+      "Kyrie Irving",
+      "Darrell Griffith",
+      "Nikola Jokić",
+      "Kawhi Leonard",
+      "Wes Unseld",
+      "Terry Rozier",
+      "Shaquille O'Neal",
+      "Klay Thompson",
+      "Horace Grant",
+      "Darko Milicic",
+      "Donovan Mitchell",
+      "Rick Fox",
+      "Kobe Bryant",
+      "Bogdan Bogdanović",
+      "Kemba Walker",
+      "Vlade Divac"
+    ],
+    "groups": [
+      {
+        "label": "2001 Lakers champions",
+        "difficulty": 1,
+        "members": [
+          "Shaquille O'Neal",
+          "Kobe Bryant",
+          "Rick Fox",
+          "Horace Grant"
+        ]
+      },
+      {
+        "label": "2011 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Kyrie Irving",
+          "Kawhi Leonard",
+          "Klay Thompson",
+          "Kemba Walker"
+        ]
+      },
+      {
+        "label": "Born in Serbia",
+        "difficulty": 3,
+        "members": [
+          "Nikola Jokić",
+          "Vlade Divac",
+          "Bogdan Bogdanović",
+          "Darko Milicic"
+        ]
+      },
+      {
+        "label": "Louisville Cardinals",
+        "difficulty": 4,
+        "members": [
+          "Donovan Mitchell",
+          "Terry Rozier",
+          "Wes Unseld",
+          "Darrell Griffith"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-050",
+    "tiles": [
+      "Michael Jordan",
+      "Christian Laettner",
+      "Dennis Rodman",
+      "Nene",
+      "Alonzo Mourning",
+      "Mark Price",
+      "Anderson Varejao",
+      "Scottie Pippen",
+      "Latrell Sprewell",
+      "Stephon Marbury",
+      "Kenny Anderson",
+      "Tom Gugliotta",
+      "Chris Bosh",
+      "Steve Kerr",
+      "Leandro Barbosa",
+      "Tiago Splitter"
+    ],
+    "groups": [
+      {
+        "label": "1998 Bulls champions",
+        "difficulty": 1,
+        "members": [
+          "Michael Jordan",
+          "Scottie Pippen",
+          "Dennis Rodman",
+          "Steve Kerr"
+        ]
+      },
+      {
+        "label": "1992 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Alonzo Mourning",
+          "Latrell Sprewell",
+          "Christian Laettner",
+          "Tom Gugliotta"
+        ]
+      },
+      {
+        "label": "Born in Brazil",
+        "difficulty": 3,
+        "members": [
+          "Nene",
+          "Leandro Barbosa",
+          "Anderson Varejao",
+          "Tiago Splitter"
+        ]
+      },
+      {
+        "label": "Georgia Tech Yellow Jackets",
+        "difficulty": 4,
+        "members": [
+          "Chris Bosh",
+          "Stephon Marbury",
+          "Mark Price",
+          "Kenny Anderson"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-051",
+    "tiles": [
+      "Scottie Pippen",
+      "Joe Dumars",
+      "Chris Mullin",
+      "Drazen Petrovic",
+      "Karl Malone",
+      "Mario Hezonja",
+      "Dario Saric",
+      "Dino Radja",
+      "Andre Iguodala",
+      "Mike Bibby",
+      "Gilbert Arenas",
+      "Luc Longley",
+      "Aaron Gordon",
+      "Ron Harper",
+      "Detlef Schrempf",
+      "Robert Parish"
+    ],
+    "groups": [
+      {
+        "label": "1997 Bulls champions",
+        "difficulty": 2,
+        "members": [
+          "Scottie Pippen",
+          "Robert Parish",
+          "Ron Harper",
+          "Luc Longley"
+        ]
+      },
+      {
+        "label": "1985 NBA Draft class",
+        "difficulty": 1,
+        "members": [
+          "Karl Malone",
+          "Chris Mullin",
+          "Joe Dumars",
+          "Detlef Schrempf"
+        ]
+      },
+      {
+        "label": "Born in Croatia",
+        "difficulty": 4,
+        "members": [
+          "Drazen Petrovic",
+          "Dino Radja",
+          "Dario Saric",
+          "Mario Hezonja"
+        ]
+      },
+      {
+        "label": "Arizona Wildcats",
+        "difficulty": 3,
+        "members": [
+          "Andre Iguodala",
+          "Gilbert Arenas",
+          "Aaron Gordon",
+          "Mike Bibby"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-052",
+    "tiles": [
+      "Hakeem Olajuwon",
+      "Kenny Smith",
+      "Mario Elie",
+      "Pascal Siakam",
+      "David Lee",
+      "Christian Koloko",
+      "Giannis Antetokounmpo",
+      "Bradley Beal",
+      "Rudy Gobert",
+      "Steven Adams",
+      "Joel Embiid",
+      "Joakim Noah",
+      "CJ McCollum",
+      "Al Horford",
+      "Luc Mbah a Moute",
+      "Clyde Drexler"
+    ],
+    "groups": [
+      {
+        "label": "1995 Rockets champions",
+        "difficulty": 1,
+        "members": [
+          "Hakeem Olajuwon",
+          "Clyde Drexler",
+          "Kenny Smith",
+          "Mario Elie"
+        ]
+      },
+      {
+        "label": "2013 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Giannis Antetokounmpo",
+          "Rudy Gobert",
+          "CJ McCollum",
+          "Steven Adams"
+        ]
+      },
+      {
+        "label": "Born in Cameroon",
+        "difficulty": 3,
+        "members": [
+          "Joel Embiid",
+          "Pascal Siakam",
+          "Luc Mbah a Moute",
+          "Christian Koloko"
+        ]
+      },
+      {
+        "label": "Florida Gators",
+        "difficulty": 4,
+        "members": [
+          "Bradley Beal",
+          "Al Horford",
+          "Joakim Noah",
+          "David Lee"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-053",
+    "tiles": [
+      "Dillon Brooks",
+      "Julius Randle",
+      "Bill Cartwright",
+      "Joel Embiid",
+      "Tristan Thompson",
+      "Bill Laimbeer",
+      "Michael Jordan",
+      "Horace Grant",
+      "Adrian Dantley",
+      "Cory Joseph",
+      "Zach LaVine",
+      "Pat Connaughton",
+      "Troy Murphy",
+      "Nikola Jokić",
+      "Shai Gilgeous-Alexander",
+      "B.J. Armstrong"
+    ],
+    "groups": [
+      {
+        "label": "1993 Bulls champions",
+        "difficulty": 2,
+        "members": [
+          "Michael Jordan",
+          "Horace Grant",
+          "B.J. Armstrong",
+          "Bill Cartwright"
+        ]
+      },
+      {
+        "label": "2014 NBA Draft class",
+        "difficulty": 1,
+        "members": [
+          "Nikola Jokić",
+          "Joel Embiid",
+          "Zach LaVine",
+          "Julius Randle"
+        ]
+      },
+      {
+        "label": "Born in Canada",
+        "difficulty": 3,
+        "members": [
+          "Shai Gilgeous-Alexander",
+          "Tristan Thompson",
+          "Dillon Brooks",
+          "Cory Joseph"
+        ]
+      },
+      {
+        "label": "Notre Dame Fighting Irish",
+        "difficulty": 4,
+        "members": [
+          "Adrian Dantley",
+          "Bill Laimbeer",
+          "Pat Connaughton",
+          "Troy Murphy"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-054",
+    "tiles": [
+      "Kristaps Porziņģis",
+      "Mikal Bridges",
+      "Karl-Anthony Towns",
+      "Isiah Thomas",
+      "Timothe Luwawu-Cabarrot",
+      "Jalen Brunson",
+      "Devin Booker",
+      "D'Angelo Russell",
+      "Dennis Rodman",
+      "Joe Dumars",
+      "Kyle Lowry",
+      "Vinnie Johnson",
+      "Kerry Kittles",
+      "Victor Wembanyama",
+      "Rudy Gobert",
+      "Ian Mahinmi"
+    ],
+    "groups": [
+      {
+        "label": "1990 Pistons champions",
+        "difficulty": 1,
+        "members": [
+          "Isiah Thomas",
+          "Joe Dumars",
+          "Dennis Rodman",
+          "Vinnie Johnson"
+        ]
+      },
+      {
+        "label": "2015 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Karl-Anthony Towns",
+          "Devin Booker",
+          "Kristaps Porziņģis",
+          "D'Angelo Russell"
+        ]
+      },
+      {
+        "label": "Born in France",
+        "difficulty": 3,
+        "members": [
+          "Victor Wembanyama",
+          "Rudy Gobert",
+          "Ian Mahinmi",
+          "Timothe Luwawu-Cabarrot"
+        ]
+      },
+      {
+        "label": "Villanova Wildcats",
+        "difficulty": 4,
+        "members": [
+          "Kyle Lowry",
+          "Jalen Brunson",
+          "Mikal Bridges",
+          "Kerry Kittles"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-055",
+    "tiles": [
+      "Jalen Suggs",
+      "John Stockton",
+      "Rui Hachimura",
+      "Pascal Siakam",
+      "Nemanja Bjelica",
+      "Danny Ainge",
+      "Kelly Olynyk",
+      "Brandon Ingram",
+      "Jaylen Brown",
+      "Nikola Jokić",
+      "Boban Marjanović",
+      "Bill Walton",
+      "Larry Bird",
+      "Kevin McHale",
+      "Nenad Krstic",
+      "Buddy Hield"
+    ],
+    "groups": [
+      {
+        "label": "1986 Celtics champions",
+        "difficulty": 1,
+        "members": [
+          "Larry Bird",
+          "Kevin McHale",
+          "Bill Walton",
+          "Danny Ainge"
+        ]
+      },
+      {
+        "label": "2016 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Brandon Ingram",
+          "Jaylen Brown",
+          "Pascal Siakam",
+          "Buddy Hield"
+        ]
+      },
+      {
+        "label": "Born in Serbia",
+        "difficulty": 4,
+        "members": [
+          "Nikola Jokić",
+          "Boban Marjanović",
+          "Nemanja Bjelica",
+          "Nenad Krstic"
+        ]
+      },
+      {
+        "label": "Gonzaga Bulldogs",
+        "difficulty": 3,
+        "members": [
+          "John Stockton",
+          "Kelly Olynyk",
+          "Rui Hachimura",
+          "Jalen Suggs"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-056",
+    "tiles": [
+      "Tim Duncan",
+      "Kareem Abdul-Jabbar",
+      "Dwyane Wade",
+      "Kurt Rambis",
+      "Magic Johnson",
+      "Luis Scola",
+      "Jimmy Butler III",
+      "Tracy McGrady",
+      "Chauncey Billups",
+      "Stephen Jackson",
+      "Doc Rivers",
+      "Wesley Matthews",
+      "Fabricio Oberto",
+      "Facundo Campazzo",
+      "James Worthy",
+      "Manu Ginobili"
+    ],
+    "groups": [
+      {
+        "label": "1985 Lakers champions",
+        "difficulty": 1,
+        "members": [
+          "Kareem Abdul-Jabbar",
+          "Magic Johnson",
+          "James Worthy",
+          "Kurt Rambis"
+        ]
+      },
+      {
+        "label": "1997 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Tim Duncan",
+          "Tracy McGrady",
+          "Chauncey Billups",
+          "Stephen Jackson"
+        ]
+      },
+      {
+        "label": "Born in Argentina",
+        "difficulty": 3,
+        "members": [
+          "Manu Ginobili",
+          "Luis Scola",
+          "Fabricio Oberto",
+          "Facundo Campazzo"
+        ]
+      },
+      {
+        "label": "Marquette Golden Eagles",
+        "difficulty": 4,
+        "members": [
+          "Dwyane Wade",
+          "Jimmy Butler III",
+          "Wesley Matthews",
+          "Doc Rivers"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-057",
+    "tiles": [
+      "Wilt Chamberlain",
+      "John Stockton",
+      "Sarunas Marciulionis",
+      "Hakeem Olajuwon",
+      "Joel Embiid",
+      "Bob McAdoo",
+      "Danny Manning",
+      "Norm Nixon",
+      "Donatas Motiejunas",
+      "Charles Barkley",
+      "Michael Jordan",
+      "Sarunas Jasikevicius",
+      "Magic Johnson",
+      "Jamaal Wilkes",
+      "Linas Kleiza",
+      "Paul Pierce"
+    ],
+    "groups": [
+      {
+        "label": "1982 Lakers champions",
+        "difficulty": 3,
+        "members": [
+          "Magic Johnson",
+          "Jamaal Wilkes",
+          "Norm Nixon",
+          "Bob McAdoo"
+        ]
+      },
+      {
+        "label": "1984 NBA Draft class",
+        "difficulty": 1,
+        "members": [
+          "Hakeem Olajuwon",
+          "Michael Jordan",
+          "Charles Barkley",
+          "John Stockton"
+        ]
+      },
+      {
+        "label": "Born in Lithuania",
+        "difficulty": 4,
+        "members": [
+          "Sarunas Marciulionis",
+          "Linas Kleiza",
+          "Donatas Motiejunas",
+          "Sarunas Jasikevicius"
+        ]
+      },
+      {
+        "label": "Kansas Jayhawks",
+        "difficulty": 2,
+        "members": [
+          "Paul Pierce",
+          "Wilt Chamberlain",
+          "Joel Embiid",
+          "Danny Manning"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-058",
+    "tiles": [
+      "Zoran Dragic",
+      "Jerry Lucas",
+      "Cade Cunningham",
+      "Jack Sikma",
+      "Fred Brown",
+      "Beno Udrih",
+      "Michael Redd",
+      "Vlatko Čančar",
+      "Jalen Green",
+      "Mike Conley",
+      "Dennis Johnson",
+      "Luka Dončić",
+      "Scottie Barnes",
+      "John Havlicek",
+      "Evan Mobley",
+      "Gus Williams"
+    ],
+    "groups": [
+      {
+        "label": "1979 SuperSonics champions",
+        "difficulty": 4,
+        "members": [
+          "Dennis Johnson",
+          "Gus Williams",
+          "Fred Brown",
+          "Jack Sikma"
+        ]
+      },
+      {
+        "label": "2021 NBA Draft class",
+        "difficulty": 2,
+        "members": [
+          "Cade Cunningham",
+          "Evan Mobley",
+          "Scottie Barnes",
+          "Jalen Green"
+        ]
+      },
+      {
+        "label": "Born in Slovenia",
+        "difficulty": 1,
+        "members": [
+          "Luka Dončić",
+          "Beno Udrih",
+          "Vlatko Čančar",
+          "Zoran Dragic"
+        ]
+      },
+      {
+        "label": "Ohio State Buckeyes",
+        "difficulty": 3,
+        "members": [
+          "Mike Conley",
+          "John Havlicek",
+          "Jerry Lucas",
+          "Michael Redd"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-059",
+    "tiles": [
+      "Wes Unseld",
+      "Nick Anderson",
+      "Victor Wembanyama",
+      "Elvin Hayes",
+      "Brandon Miller",
+      "Hedo Turkoglu",
+      "Deron Williams",
+      "Semih Erden",
+      "Kendall Gill",
+      "Mehmet Okur",
+      "Bob Dandridge",
+      "Omer Asik",
+      "Scoot Henderson",
+      "Derek Harper",
+      "Amen Thompson",
+      "Kevin Grevey"
+    ],
+    "groups": [
+      {
+        "label": "1978 Bullets champions",
+        "difficulty": 4,
+        "members": [
+          "Elvin Hayes",
+          "Wes Unseld",
+          "Bob Dandridge",
+          "Kevin Grevey"
+        ]
+      },
+      {
+        "label": "2023 NBA Draft class",
+        "difficulty": 1,
+        "members": [
+          "Victor Wembanyama",
+          "Brandon Miller",
+          "Scoot Henderson",
+          "Amen Thompson"
+        ]
+      },
+      {
+        "label": "Born in Turkey",
+        "difficulty": 3,
+        "members": [
+          "Mehmet Okur",
+          "Hedo Turkoglu",
+          "Omer Asik",
+          "Semih Erden"
+        ]
+      },
+      {
+        "label": "Illinois Fighting Illini",
+        "difficulty": 2,
+        "members": [
+          "Deron Williams",
+          "Derek Harper",
+          "Kendall Gill",
+          "Nick Anderson"
+        ]
+      }
+    ]
+  },
+  {
+    "qid": "cn-060",
+    "tiles": [
+      "Udoka Azubuike",
+      "Charles Bassey",
+      "Precious Achiuwa",
+      "Cedric Maxwell",
+      "Victor Oladipo",
+      "Eric Gordon",
+      "Dennis Johnson",
+      "Hakeem Olajuwon",
+      "Kyle Kuzma",
+      "Calbert Cheaney",
+      "Donovan Mitchell",
+      "Isiah Thomas",
+      "Kevin McHale",
+      "Bam Adebayo",
+      "Jayson Tatum",
+      "Robert Parish"
+    ],
+    "groups": [
+      {
+        "label": "1984 Celtics champions",
+        "difficulty": 2,
+        "members": [
+          "Robert Parish",
+          "Kevin McHale",
+          "Dennis Johnson",
+          "Cedric Maxwell"
+        ]
+      },
+      {
+        "label": "2017 NBA Draft class",
+        "difficulty": 1,
+        "members": [
+          "Jayson Tatum",
+          "Donovan Mitchell",
+          "Bam Adebayo",
+          "Kyle Kuzma"
+        ]
+      },
+      {
+        "label": "Born in Nigeria",
+        "difficulty": 4,
+        "members": [
+          "Hakeem Olajuwon",
+          "Precious Achiuwa",
+          "Charles Bassey",
+          "Udoka Azubuike"
+        ]
+      },
+      {
+        "label": "Indiana Hoosiers",
+        "difficulty": 3,
+        "members": [
+          "Isiah Thomas",
+          "Victor Oladipo",
+          "Eric Gordon",
+          "Calbert Cheaney"
+        ]
+      }
+    ]
   }
 ]

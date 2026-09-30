@@ -2070,6 +2070,1493 @@
           ]
         }
       ]
+    },
+    {
+      "id": "ff-025",
+      "prompt": "Name a player with 10,000+ career assists",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "LeBron James",
+          "count": 22,
+          "aliases": [
+            "lebron",
+            "james",
+            "king james",
+            "lebron james"
+          ]
+        },
+        {
+          "answer": "John Stockton",
+          "count": 20,
+          "aliases": [
+            "stockton",
+            "john stockton"
+          ]
+        },
+        {
+          "answer": "Chris Paul",
+          "count": 16,
+          "aliases": [
+            "cp3",
+            "paul",
+            "chris paul"
+          ]
+        },
+        {
+          "answer": "Magic Johnson",
+          "count": 13,
+          "aliases": [
+            "magic",
+            "johnson",
+            "magic johnson"
+          ]
+        },
+        {
+          "answer": "Jason Kidd",
+          "count": 10,
+          "aliases": [
+            "kidd",
+            "jason kidd"
+          ]
+        },
+        {
+          "answer": "Steve Nash",
+          "count": 9,
+          "aliases": [
+            "nash",
+            "steve nash"
+          ]
+        },
+        {
+          "answer": "Russell Westbrook",
+          "count": 7,
+          "aliases": [
+            "westbrook",
+            "russ",
+            "russell westbrook",
+            "brodie"
+          ]
+        },
+        {
+          "answer": "Mark Jackson",
+          "count": 3,
+          "aliases": [
+            "jackson",
+            "mark jackson"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-026",
+      "prompt": "Name a player with 15,000+ career rebounds",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Wilt Chamberlain",
+          "count": 30,
+          "aliases": [
+            "wilt",
+            "chamberlain",
+            "wilt chamberlain",
+            "the big dipper"
+          ]
+        },
+        {
+          "answer": "Bill Russell",
+          "count": 24,
+          "aliases": [
+            "russell",
+            "bill russell"
+          ]
+        },
+        {
+          "answer": "Kareem Abdul-Jabbar",
+          "count": 18,
+          "aliases": [
+            "kareem",
+            "abdul-jabbar",
+            "abdul jabbar",
+            "kareem abdul jabbar"
+          ]
+        },
+        {
+          "answer": "Tim Duncan",
+          "count": 14,
+          "aliases": [
+            "duncan",
+            "tim duncan",
+            "big fundamental"
+          ]
+        },
+        {
+          "answer": "Moses Malone",
+          "count": 9,
+          "aliases": [
+            "moses",
+            "malone",
+            "moses malone"
+          ]
+        },
+        {
+          "answer": "Elvin Hayes",
+          "count": 5,
+          "aliases": [
+            "hayes",
+            "elvin hayes",
+            "the big e"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-027",
+      "prompt": "Name a Rookie of the Year who later won MVP",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "LeBron James",
+          "count": 20,
+          "aliases": [
+            "lebron",
+            "james",
+            "king james",
+            "lebron james"
+          ]
+        },
+        {
+          "answer": "Michael Jordan",
+          "count": 17,
+          "aliases": [
+            "jordan",
+            "mj",
+            "michael jordan"
+          ]
+        },
+        {
+          "answer": "Kevin Durant",
+          "count": 13,
+          "aliases": [
+            "durant",
+            "kd",
+            "kevin durant"
+          ]
+        },
+        {
+          "answer": "Shaquille O'Neal",
+          "count": 11,
+          "aliases": [
+            "shaq",
+            "oneal",
+            "o'neal",
+            "shaquille oneal",
+            "shaquille o'neal"
+          ]
+        },
+        {
+          "answer": "Tim Duncan",
+          "count": 10,
+          "aliases": [
+            "duncan",
+            "tim duncan",
+            "big fundamental"
+          ]
+        },
+        {
+          "answer": "Derrick Rose",
+          "count": 8,
+          "aliases": [
+            "rose",
+            "d rose",
+            "derrick rose"
+          ]
+        },
+        {
+          "answer": "Allen Iverson",
+          "count": 7,
+          "aliases": [
+            "iverson",
+            "ai",
+            "the answer",
+            "allen iverson"
+          ]
+        },
+        {
+          "answer": "Larry Bird",
+          "count": 6,
+          "aliases": [
+            "bird",
+            "larry bird",
+            "larry legend"
+          ]
+        },
+        {
+          "answer": "Kareem Abdul-Jabbar",
+          "count": 5,
+          "aliases": [
+            "kareem",
+            "abdul-jabbar",
+            "abdul jabbar",
+            "kareem abdul jabbar"
+          ]
+        },
+        {
+          "answer": "David Robinson",
+          "count": 3,
+          "aliases": [
+            "robinson",
+            "the admiral",
+            "david robinson"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-028",
+      "prompt": "Name a Defensive Player of the Year who also won an NBA title",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Hakeem Olajuwon",
+          "count": 18,
+          "aliases": [
+            "hakeem",
+            "olajuwon",
+            "the dream",
+            "hakeem olajuwon"
+          ]
+        },
+        {
+          "answer": "Michael Jordan",
+          "count": 16,
+          "aliases": [
+            "jordan",
+            "mj",
+            "michael jordan"
+          ]
+        },
+        {
+          "answer": "Kawhi Leonard",
+          "count": 14,
+          "aliases": [
+            "kawhi",
+            "leonard",
+            "kawhi leonard",
+            "the klaw"
+          ]
+        },
+        {
+          "answer": "Giannis Antetokounmpo",
+          "count": 12,
+          "aliases": [
+            "giannis",
+            "antetokounmpo",
+            "greek freak",
+            "giannis antetokounmpo"
+          ]
+        },
+        {
+          "answer": "Kevin Garnett",
+          "count": 10,
+          "aliases": [
+            "garnett",
+            "kg",
+            "kevin garnett"
+          ]
+        },
+        {
+          "answer": "Ben Wallace",
+          "count": 9,
+          "aliases": [
+            "wallace",
+            "big ben",
+            "ben wallace"
+          ]
+        },
+        {
+          "answer": "Draymond Green",
+          "count": 7,
+          "aliases": [
+            "draymond",
+            "green",
+            "draymond green"
+          ]
+        },
+        {
+          "answer": "Gary Payton",
+          "count": 6,
+          "aliases": [
+            "payton",
+            "the glove",
+            "gary payton"
+          ]
+        },
+        {
+          "answer": "Dwight Howard",
+          "count": 5,
+          "aliases": [
+            "dwight",
+            "howard",
+            "dwight howard",
+            "superman"
+          ]
+        },
+        {
+          "answer": "Dennis Rodman",
+          "count": 3,
+          "aliases": [
+            "rodman",
+            "the worm",
+            "dennis rodman"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-029",
+      "prompt": "Name a second-round pick who made an All-NBA team",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Nikola Jokić",
+          "count": 30,
+          "aliases": [
+            "jokic",
+            "joker",
+            "nikola jokic"
+          ]
+        },
+        {
+          "answer": "Draymond Green",
+          "count": 16,
+          "aliases": [
+            "draymond",
+            "green",
+            "draymond green"
+          ]
+        },
+        {
+          "answer": "Manu Ginobili",
+          "count": 13,
+          "aliases": [
+            "manu",
+            "ginobili",
+            "manu ginobili"
+          ]
+        },
+        {
+          "answer": "Marc Gasol",
+          "count": 10,
+          "aliases": [
+            "gasol",
+            "marc gasol"
+          ]
+        },
+        {
+          "answer": "Jalen Brunson",
+          "count": 9,
+          "aliases": [
+            "brunson",
+            "jalen brunson"
+          ]
+        },
+        {
+          "answer": "Gilbert Arenas",
+          "count": 7,
+          "aliases": [
+            "arenas",
+            "agent zero",
+            "gilbert arenas"
+          ]
+        },
+        {
+          "answer": "Isaiah Thomas",
+          "count": 6,
+          "aliases": [
+            "isaiah",
+            "isaiah thomas"
+          ]
+        },
+        {
+          "answer": "DeAndre Jordan",
+          "count": 5,
+          "aliases": [
+            "deandre",
+            "deandre jordan"
+          ]
+        },
+        {
+          "answer": "Dennis Rodman",
+          "count": 4,
+          "aliases": [
+            "rodman",
+            "the worm",
+            "dennis rodman"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-030",
+      "prompt": "Name an undrafted player who won an NBA championship",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Fred VanVleet",
+          "count": 22,
+          "aliases": [
+            "vanvleet",
+            "fvv",
+            "fred vanvleet"
+          ]
+        },
+        {
+          "answer": "Ben Wallace",
+          "count": 18,
+          "aliases": [
+            "wallace",
+            "big ben",
+            "ben wallace"
+          ]
+        },
+        {
+          "answer": "Alex Caruso",
+          "count": 13,
+          "aliases": [
+            "caruso",
+            "alex caruso"
+          ]
+        },
+        {
+          "answer": "Udonis Haslem",
+          "count": 11,
+          "aliases": [
+            "haslem",
+            "udonis haslem"
+          ]
+        },
+        {
+          "answer": "Bruce Bowen",
+          "count": 9,
+          "aliases": [
+            "bowen",
+            "bruce bowen"
+          ]
+        },
+        {
+          "answer": "J.J. Barea",
+          "count": 8,
+          "aliases": [
+            "barea",
+            "jj barea",
+            "j.j. barea"
+          ]
+        },
+        {
+          "answer": "Jeremy Lin",
+          "count": 7,
+          "aliases": [
+            "lin",
+            "linsanity",
+            "jeremy lin"
+          ]
+        },
+        {
+          "answer": "Gary Payton II",
+          "count": 5,
+          "aliases": [
+            "gp2",
+            "gary payton ii",
+            "gary payton 2"
+          ]
+        },
+        {
+          "answer": "Chris Andersen",
+          "count": 4,
+          "aliases": [
+            "andersen",
+            "birdman",
+            "chris andersen"
+          ]
+        },
+        {
+          "answer": "Avery Johnson",
+          "count": 3,
+          "aliases": [
+            "avery",
+            "the little general",
+            "avery johnson"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-031",
+      "prompt": "Name a player with 20,000+ points who never won an NBA title",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Charles Barkley",
+          "count": 20,
+          "aliases": [
+            "barkley",
+            "chuck",
+            "sir charles",
+            "charles barkley"
+          ]
+        },
+        {
+          "answer": "Karl Malone",
+          "count": 16,
+          "aliases": [
+            "malone",
+            "karl malone",
+            "the mailman"
+          ]
+        },
+        {
+          "answer": "Allen Iverson",
+          "count": 13,
+          "aliases": [
+            "iverson",
+            "ai",
+            "the answer",
+            "allen iverson"
+          ]
+        },
+        {
+          "answer": "Carmelo Anthony",
+          "count": 12,
+          "aliases": [
+            "melo",
+            "carmelo",
+            "anthony",
+            "carmelo anthony"
+          ]
+        },
+        {
+          "answer": "James Harden",
+          "count": 10,
+          "aliases": [
+            "harden",
+            "the beard",
+            "james harden"
+          ]
+        },
+        {
+          "answer": "Russell Westbrook",
+          "count": 9,
+          "aliases": [
+            "westbrook",
+            "russ",
+            "russell westbrook",
+            "brodie"
+          ]
+        },
+        {
+          "answer": "Chris Paul",
+          "count": 7,
+          "aliases": [
+            "cp3",
+            "paul",
+            "chris paul"
+          ]
+        },
+        {
+          "answer": "Reggie Miller",
+          "count": 6,
+          "aliases": [
+            "reggie",
+            "miller",
+            "reggie miller"
+          ]
+        },
+        {
+          "answer": "Patrick Ewing",
+          "count": 4,
+          "aliases": [
+            "ewing",
+            "patrick ewing"
+          ]
+        },
+        {
+          "answer": "Vince Carter",
+          "count": 3,
+          "aliases": [
+            "vince",
+            "carter",
+            "vinsanity",
+            "vince carter"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-032",
+      "prompt": "Name a Canadian NBA player",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Shai Gilgeous-Alexander",
+          "count": 30,
+          "aliases": [
+            "shai",
+            "sga",
+            "gilgeous-alexander",
+            "shai gilgeous-alexander",
+            "gilgeous alexander"
+          ]
+        },
+        {
+          "answer": "Steve Nash",
+          "count": 20,
+          "aliases": [
+            "nash",
+            "steve nash"
+          ]
+        },
+        {
+          "answer": "Andrew Wiggins",
+          "count": 12,
+          "aliases": [
+            "wiggins",
+            "andrew wiggins"
+          ]
+        },
+        {
+          "answer": "Jamal Murray",
+          "count": 10,
+          "aliases": [
+            "murray",
+            "jamal murray"
+          ]
+        },
+        {
+          "answer": "RJ Barrett",
+          "count": 8,
+          "aliases": [
+            "barrett",
+            "rj barrett",
+            "r.j. barrett"
+          ]
+        },
+        {
+          "answer": "Tristan Thompson",
+          "count": 6,
+          "aliases": [
+            "tristan",
+            "tristan thompson"
+          ]
+        },
+        {
+          "answer": "Kelly Olynyk",
+          "count": 5,
+          "aliases": [
+            "olynyk",
+            "kelly olynyk"
+          ]
+        },
+        {
+          "answer": "Luguentz Dort",
+          "count": 4,
+          "aliases": [
+            "dort",
+            "lu dort",
+            "luguentz dort"
+          ]
+        },
+        {
+          "answer": "Dillon Brooks",
+          "count": 3,
+          "aliases": [
+            "brooks",
+            "dillon brooks"
+          ]
+        },
+        {
+          "answer": "Cory Joseph",
+          "count": 2,
+          "aliases": [
+            "cory joseph"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-033",
+      "prompt": "Name a player with 8 or more career assists per game",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Magic Johnson",
+          "count": 20,
+          "aliases": [
+            "magic",
+            "johnson",
+            "magic johnson"
+          ]
+        },
+        {
+          "answer": "John Stockton",
+          "count": 17,
+          "aliases": [
+            "stockton",
+            "john stockton"
+          ]
+        },
+        {
+          "answer": "Chris Paul",
+          "count": 14,
+          "aliases": [
+            "cp3",
+            "paul",
+            "chris paul"
+          ]
+        },
+        {
+          "answer": "Isiah Thomas",
+          "count": 11,
+          "aliases": [
+            "isiah",
+            "zeke",
+            "isiah thomas"
+          ]
+        },
+        {
+          "answer": "Steve Nash",
+          "count": 9,
+          "aliases": [
+            "nash",
+            "steve nash"
+          ]
+        },
+        {
+          "answer": "Jason Kidd",
+          "count": 8,
+          "aliases": [
+            "kidd",
+            "jason kidd"
+          ]
+        },
+        {
+          "answer": "Russell Westbrook",
+          "count": 7,
+          "aliases": [
+            "westbrook",
+            "russ",
+            "russell westbrook",
+            "brodie"
+          ]
+        },
+        {
+          "answer": "Trae Young",
+          "count": 6,
+          "aliases": [
+            "trae",
+            "trae young",
+            "ice trae"
+          ]
+        },
+        {
+          "answer": "Luka Dončić",
+          "count": 5,
+          "aliases": [
+            "luka",
+            "doncic",
+            "luka doncic"
+          ]
+        },
+        {
+          "answer": "Oscar Robertson",
+          "count": 3,
+          "aliases": [
+            "oscar",
+            "robertson",
+            "the big o",
+            "oscar robertson"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-034",
+      "prompt": "Name an MVP who was drafted outside the top 10",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Kobe Bryant",
+          "count": 24,
+          "aliases": [
+            "kobe",
+            "bryant",
+            "kobe bryant",
+            "black mamba"
+          ]
+        },
+        {
+          "answer": "Nikola Jokić",
+          "count": 20,
+          "aliases": [
+            "jokic",
+            "joker",
+            "nikola jokic"
+          ]
+        },
+        {
+          "answer": "Giannis Antetokounmpo",
+          "count": 18,
+          "aliases": [
+            "giannis",
+            "antetokounmpo",
+            "greek freak",
+            "giannis antetokounmpo"
+          ]
+        },
+        {
+          "answer": "Steve Nash",
+          "count": 12,
+          "aliases": [
+            "nash",
+            "steve nash"
+          ]
+        },
+        {
+          "answer": "Shai Gilgeous-Alexander",
+          "count": 11,
+          "aliases": [
+            "shai",
+            "sga",
+            "gilgeous-alexander",
+            "shai gilgeous-alexander",
+            "gilgeous alexander"
+          ]
+        },
+        {
+          "answer": "Karl Malone",
+          "count": 9,
+          "aliases": [
+            "malone",
+            "karl malone",
+            "the mailman"
+          ]
+        },
+        {
+          "answer": "Julius Erving",
+          "count": 6,
+          "aliases": [
+            "dr j",
+            "erving",
+            "julius erving"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-035",
+      "prompt": "Name a 5-time All-Star who played for the New York Knicks",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Patrick Ewing",
+          "count": 22,
+          "aliases": [
+            "ewing",
+            "patrick ewing"
+          ]
+        },
+        {
+          "answer": "Carmelo Anthony",
+          "count": 18,
+          "aliases": [
+            "melo",
+            "carmelo",
+            "anthony",
+            "carmelo anthony"
+          ]
+        },
+        {
+          "answer": "Walt Frazier",
+          "count": 12,
+          "aliases": [
+            "clyde",
+            "frazier",
+            "walt frazier"
+          ]
+        },
+        {
+          "answer": "Willis Reed",
+          "count": 10,
+          "aliases": [
+            "reed",
+            "willis reed"
+          ]
+        },
+        {
+          "answer": "Amar'e Stoudemire",
+          "count": 9,
+          "aliases": [
+            "amare",
+            "stoudemire",
+            "stat",
+            "amare stoudemire",
+            "amar'e stoudemire"
+          ]
+        },
+        {
+          "answer": "Karl-Anthony Towns",
+          "count": 8,
+          "aliases": [
+            "kat",
+            "towns",
+            "karl-anthony towns",
+            "karl anthony towns"
+          ]
+        },
+        {
+          "answer": "Jason Kidd",
+          "count": 7,
+          "aliases": [
+            "kidd",
+            "jason kidd"
+          ]
+        },
+        {
+          "answer": "Tracy McGrady",
+          "count": 6,
+          "aliases": [
+            "t-mac",
+            "tmac",
+            "mcgrady",
+            "tracy mcgrady"
+          ]
+        },
+        {
+          "answer": "Dave DeBusschere",
+          "count": 5,
+          "aliases": [
+            "debusschere",
+            "dave debusschere"
+          ]
+        },
+        {
+          "answer": "Chauncey Billups",
+          "count": 3,
+          "aliases": [
+            "billups",
+            "mr big shot",
+            "chauncey billups"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-036",
+      "prompt": "Name a player who averaged 10+ rebounds per game for his career",
+      "survey_date": "2026-09-30",
+      "category": "player",
+      "answers": [
+        {
+          "answer": "Wilt Chamberlain",
+          "count": 20,
+          "aliases": [
+            "wilt",
+            "chamberlain",
+            "wilt chamberlain",
+            "the big dipper"
+          ]
+        },
+        {
+          "answer": "Bill Russell",
+          "count": 16,
+          "aliases": [
+            "russell",
+            "bill russell"
+          ]
+        },
+        {
+          "answer": "Dennis Rodman",
+          "count": 13,
+          "aliases": [
+            "rodman",
+            "the worm",
+            "dennis rodman"
+          ]
+        },
+        {
+          "answer": "Shaquille O'Neal",
+          "count": 11,
+          "aliases": [
+            "shaq",
+            "oneal",
+            "o'neal",
+            "shaquille oneal",
+            "shaquille o'neal"
+          ]
+        },
+        {
+          "answer": "Tim Duncan",
+          "count": 10,
+          "aliases": [
+            "duncan",
+            "tim duncan",
+            "big fundamental"
+          ]
+        },
+        {
+          "answer": "Dwight Howard",
+          "count": 8,
+          "aliases": [
+            "dwight",
+            "howard",
+            "dwight howard",
+            "superman"
+          ]
+        },
+        {
+          "answer": "Kareem Abdul-Jabbar",
+          "count": 7,
+          "aliases": [
+            "kareem",
+            "abdul-jabbar",
+            "abdul jabbar",
+            "kareem abdul jabbar"
+          ]
+        },
+        {
+          "answer": "Hakeem Olajuwon",
+          "count": 6,
+          "aliases": [
+            "hakeem",
+            "olajuwon",
+            "the dream",
+            "hakeem olajuwon"
+          ]
+        },
+        {
+          "answer": "Nikola Jokić",
+          "count": 5,
+          "aliases": [
+            "jokic",
+            "joker",
+            "nikola jokic"
+          ]
+        },
+        {
+          "answer": "Charles Barkley",
+          "count": 4,
+          "aliases": [
+            "barkley",
+            "chuck",
+            "sir charles",
+            "charles barkley"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-037",
+      "prompt": "Name a franchise that has won an NBA title since 2010",
+      "survey_date": "2026-09-30",
+      "category": "team",
+      "answers": [
+        {
+          "answer": "Golden State Warriors",
+          "count": 21,
+          "aliases": [
+            "warriors",
+            "golden state",
+            "gsw",
+            "golden state warriors"
+          ]
+        },
+        {
+          "answer": "Los Angeles Lakers",
+          "count": 14,
+          "aliases": [
+            "lakers",
+            "la lakers",
+            "los angeles lakers"
+          ]
+        },
+        {
+          "answer": "Miami Heat",
+          "count": 11,
+          "aliases": [
+            "heat",
+            "miami",
+            "miami heat"
+          ]
+        },
+        {
+          "answer": "Boston Celtics",
+          "count": 10,
+          "aliases": [
+            "celtics",
+            "boston",
+            "boston celtics"
+          ]
+        },
+        {
+          "answer": "Cleveland Cavaliers",
+          "count": 9,
+          "aliases": [
+            "cavaliers",
+            "cavs",
+            "cleveland",
+            "cleveland cavaliers"
+          ]
+        },
+        {
+          "answer": "San Antonio Spurs",
+          "count": 8,
+          "aliases": [
+            "spurs",
+            "san antonio",
+            "san antonio spurs"
+          ]
+        },
+        {
+          "answer": "Toronto Raptors",
+          "count": 7,
+          "aliases": [
+            "raptors",
+            "toronto",
+            "toronto raptors",
+            "raps"
+          ]
+        },
+        {
+          "answer": "Denver Nuggets",
+          "count": 6,
+          "aliases": [
+            "nuggets",
+            "denver",
+            "denver nuggets"
+          ]
+        },
+        {
+          "answer": "Milwaukee Bucks",
+          "count": 5,
+          "aliases": [
+            "bucks",
+            "milwaukee",
+            "milwaukee bucks"
+          ]
+        },
+        {
+          "answer": "Oklahoma City Thunder",
+          "count": 4,
+          "aliases": [
+            "thunder",
+            "okc",
+            "oklahoma city",
+            "oklahoma city thunder",
+            "seattle supersonics",
+            "sonics"
+          ]
+        },
+        {
+          "answer": "Dallas Mavericks",
+          "count": 3,
+          "aliases": [
+            "mavericks",
+            "mavs",
+            "dallas",
+            "dallas mavericks"
+          ]
+        },
+        {
+          "answer": "New York Knicks",
+          "count": 2,
+          "aliases": [
+            "knicks",
+            "new york",
+            "new york knicks"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-038",
+      "prompt": "Name a team that reached the NBA Finals in the 2020s",
+      "survey_date": "2026-09-30",
+      "category": "team",
+      "answers": [
+        {
+          "answer": "Boston Celtics",
+          "count": 18,
+          "aliases": [
+            "celtics",
+            "boston",
+            "boston celtics"
+          ]
+        },
+        {
+          "answer": "Golden State Warriors",
+          "count": 14,
+          "aliases": [
+            "warriors",
+            "golden state",
+            "gsw",
+            "golden state warriors"
+          ]
+        },
+        {
+          "answer": "Los Angeles Lakers",
+          "count": 13,
+          "aliases": [
+            "lakers",
+            "la lakers",
+            "los angeles lakers"
+          ]
+        },
+        {
+          "answer": "Miami Heat",
+          "count": 11,
+          "aliases": [
+            "heat",
+            "miami",
+            "miami heat"
+          ]
+        },
+        {
+          "answer": "Denver Nuggets",
+          "count": 9,
+          "aliases": [
+            "nuggets",
+            "denver",
+            "denver nuggets"
+          ]
+        },
+        {
+          "answer": "Dallas Mavericks",
+          "count": 8,
+          "aliases": [
+            "mavericks",
+            "mavs",
+            "dallas",
+            "dallas mavericks"
+          ]
+        },
+        {
+          "answer": "Oklahoma City Thunder",
+          "count": 7,
+          "aliases": [
+            "thunder",
+            "okc",
+            "oklahoma city",
+            "oklahoma city thunder",
+            "seattle supersonics",
+            "sonics"
+          ]
+        },
+        {
+          "answer": "Milwaukee Bucks",
+          "count": 6,
+          "aliases": [
+            "bucks",
+            "milwaukee",
+            "milwaukee bucks"
+          ]
+        },
+        {
+          "answer": "Phoenix Suns",
+          "count": 5,
+          "aliases": [
+            "suns",
+            "phoenix",
+            "phoenix suns"
+          ]
+        },
+        {
+          "answer": "Indiana Pacers",
+          "count": 4,
+          "aliases": [
+            "pacers",
+            "indiana",
+            "indiana pacers"
+          ]
+        },
+        {
+          "answer": "New York Knicks",
+          "count": 3,
+          "aliases": [
+            "knicks",
+            "new york",
+            "new york knicks"
+          ]
+        },
+        {
+          "answer": "San Antonio Spurs",
+          "count": 2,
+          "aliases": [
+            "spurs",
+            "san antonio",
+            "san antonio spurs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-039",
+      "prompt": "Name a franchise that has won back-to-back NBA titles",
+      "survey_date": "2026-09-30",
+      "category": "team",
+      "answers": [
+        {
+          "answer": "Chicago Bulls",
+          "count": 30,
+          "aliases": [
+            "bulls",
+            "chicago",
+            "chicago bulls"
+          ]
+        },
+        {
+          "answer": "Boston Celtics",
+          "count": 20,
+          "aliases": [
+            "celtics",
+            "boston",
+            "boston celtics"
+          ]
+        },
+        {
+          "answer": "Los Angeles Lakers",
+          "count": 18,
+          "aliases": [
+            "lakers",
+            "la lakers",
+            "los angeles lakers"
+          ]
+        },
+        {
+          "answer": "Golden State Warriors",
+          "count": 12,
+          "aliases": [
+            "warriors",
+            "golden state",
+            "gsw",
+            "golden state warriors"
+          ]
+        },
+        {
+          "answer": "Miami Heat",
+          "count": 9,
+          "aliases": [
+            "heat",
+            "miami",
+            "miami heat"
+          ]
+        },
+        {
+          "answer": "Houston Rockets",
+          "count": 6,
+          "aliases": [
+            "rockets",
+            "houston",
+            "houston rockets"
+          ]
+        },
+        {
+          "answer": "Detroit Pistons",
+          "count": 5,
+          "aliases": [
+            "pistons",
+            "detroit",
+            "detroit pistons"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ff-040",
+      "prompt": "Name a team Dwight Howard played for",
+      "survey_date": "2026-09-30",
+      "category": "team",
+      "answers": [
+        {
+          "answer": "Orlando Magic",
+          "count": 34,
+          "aliases": [
+            "magic",
+            "orlando",
+            "orlando magic"
+          ]
+        },
+        {
+          "answer": "Los Angeles Lakers",
+          "count": 26,
+          "aliases": [
+            "lakers",
+            "la lakers",
+            "los angeles lakers"
+          ]
+        },
+        {
+          "answer": "Houston Rockets",
+          "count": 16,
+          "aliases": [
+            "rockets",
+            "houston",
+            "houston rockets"
+          ]
+        },
+        {
+          "answer": "Atlanta Hawks",
+          "count": 9,
+          "aliases": [
+            "hawks",
+            "atlanta",
+            "atlanta hawks",
+            "st louis hawks"
+          ]
+        },
+        {
+          "answer": "Philadelphia 76ers",
+          "count": 7,
+          "aliases": [
+            "76ers",
+            "sixers",
+            "philadelphia",
+            "philadelphia 76ers",
+            "philly"
+          ]
+        },
+        {
+          "answer": "Charlotte Hornets",
+          "count": 5,
+          "aliases": [
+            "hornets",
+            "charlotte",
+            "charlotte hornets",
+            "bobcats"
+          ]
+        },
+        {
+          "answer": "Washington Wizards",
+          "count": 3,
+          "aliases": [
+            "wizards",
+            "washington",
+            "washington wizards",
+            "baltimore bullets",
+            "bullets"
+          ]
+        }
+      ]
     }
   ]
 }

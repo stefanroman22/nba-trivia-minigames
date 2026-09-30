@@ -1,4 +1,4 @@
-"""Authoring tool: build 6 solvable Heatmap boards from players_curated.json.
+"""Authoring tool: build 12 solvable Heatmap boards from players_curated.json.
 
 Run: cd backend && DATABASE_URL="" python trivia/data_static/heatmap_gen.py
 Overwrites backend/trivia/data_static/heatmap_seed.json. Deterministic (seeded).
@@ -60,6 +60,26 @@ BANK = [
     {"type": "stat", "value": "seasons15plus", "label": "15+ seasons"},
     {"type": "stat", "value": "20kpts", "label": "20,000+ pts"},
     {"type": "stat", "value": "ppg20", "label": "20+ PPG career"},
+    {"type": "team", "value": "DAL", "label": "Dallas Mavericks"},
+    {"type": "team", "value": "HOU", "label": "Houston Rockets"},
+    {"type": "team", "value": "MIL", "label": "Milwaukee Bucks"},
+    {"type": "team", "value": "CLE", "label": "Cleveland Cavaliers"},
+    {"type": "team", "value": "POR", "label": "Portland Trail Blazers"},
+    {"type": "team", "value": "UTA", "label": "Utah Jazz"},
+    {"type": "team", "value": "DEN", "label": "Denver Nuggets"},
+    {"type": "team", "value": "ATL", "label": "Atlanta Hawks"},
+    {"type": "era", "value": "1980s", "label": "Played in the 80s"},
+    {"type": "era", "value": "2020s", "label": "Played in the 2020s"},
+    {"type": "award", "value": "fmvp", "label": "Finals MVP"},
+    {"type": "award", "value": "roty", "label": "Rookie of the Year"},
+    {"type": "draft", "value": "decade-2000s", "label": "Drafted in the 2000s"},
+    {"type": "draft", "value": "decade-2010s", "label": "Drafted in the 2010s"},
+    {"type": "college", "value": "none", "label": "No college"},
+    {"type": "college", "value": "Kentucky", "label": "Kentucky Wildcats"},
+    {"type": "college", "value": "Duke", "label": "Duke Blue Devils"},
+    {"type": "college", "value": "North Carolina", "label": "North Carolina Tar Heels"},
+    {"type": "stat", "value": "rpg10", "label": "10+ RPG career"},
+    {"type": "stat", "value": "25kpts", "label": "25,000+ pts"},
 ]
 
 NEI = compute_neighbors()
@@ -182,7 +202,7 @@ def main():
     _precompute(players)
     boards = []
     used_sigs = set()
-    for i in range(1, 7):
+    for i in range(1, 13):
         boards.append(build_board(f"hm-board-{i}", 1000 + i * 1000, used_sigs))
     out = os.path.join(settings.BASE_DIR, "trivia", "data_static", "heatmap_seed.json")
     with open(out, "w", encoding="utf-8") as f:

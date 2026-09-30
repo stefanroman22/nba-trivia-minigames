@@ -123,6 +123,34 @@ R2_PUBLIC_BASE_URL=https://data.<your-domain>        # the bucket's custom domai
 
 The Vercel backend needs none of these — only set them where you run `publish_game_data`.
 
+## Authoring seed content — quality guidelines
+
+- Source of truth: every player named in a seed must resolve to a `players_curated.json` row by exact
+  `full_name` or a listed alias (accent-folded); write the curated spelling (`Nikola Jokić`), never a
+  nickname. Team-seasons resolve against `trivia/data/playoff.json`; franchise names against
+  `trivia/data/name-logo.json`.
+- Only author claims the data can prove: criteria from the shared vocabulary (team/award/country/
+  draft/college/stat/era), draft years, birthplaces, colleges, rings + stints for "YYYY <Team>
+  champions", award years for "<decade> <award>" groups. No records ("72-10"), no scoring titles, no
+  dunk contests, no "greatest" lists unless the group is an explicit opinion prompt.
+- Depth floors: tictactoe and nba-grid need at least 3 playable solvers per cell (validator enforces 1
+  and 3 respectively — author to 3), bingo at least 4 dealable (fame <= 3) per cell, heatmap at least 2
+  per closed neighbourhood (generator + validator), fan-favorites at least 6 answers from a computed
+  candidate list.
+- Variety over volume: a new board must differ from every existing board in at least 3 of 6 criteria
+  (grid/tictactoe) or share at most 10 of 16 cells (bingo); spread franchises, decades and criterion
+  types; never reuse a four-member group; one label kind per group on connections boards.
+- Seeds are append-only with sequential qids (`ttt-NNN`, `grid-NNN`, `bingo-NNN`, `cn-NNN`,
+  `www-NNN`, `ff-NNN`, `hm-board-N`); published pools come only from `build_pools_from_db`; bump the
+  count pin in the game's test in the same change.
+- Run the game's validator (table in `docs/team/designs/2026-09-30-expand-question-pools.md`
+  "Interfaces") before rebuilding; reject and regenerate on any problem line.
+- Known limits recorded 2026-09-30: connections' validator skips tiles it cannot resolve (fold-aware
+  index + unknown-tile failure is a follow-up); wordle is maxed at 525 under the current rule (+6 with
+  generational-suffix stripping); who-are-ya / imposter / contexto grow only by re-tiering players to
+  fame tier 1-2 in the generated dataset; contexto's 99 secrets vs `NO_REPEAT_DAYS = 365` will exhaust
+  ~99 days after the first run.
+
 ## Superseded command (do not use)
 
 `manage.py refresh_game_data` and `backend/scripts/refresh_game_data.ps1` predate `sync_nba_data` /

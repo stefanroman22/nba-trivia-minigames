@@ -154,5 +154,161 @@
       { "type": "country", "value": "USA",          "label": "USA" },
       { "type": "era",     "value": "2000s",        "label": "Played in 2000s" }
     ]
+  },
+  {
+    "qid": "grid-013",
+    "rows": [
+      { "type": "team", "value": "NYK", "label": "Knicks" },
+      { "type": "team", "value": "PHI", "label": "76ers" },
+      { "type": "team", "value": "DET", "label": "Pistons" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "allnba",        "label": "All-NBA" },
+      { "type": "stat",    "value": "seasons15plus", "label": "15+ seasons" },
+      { "type": "college", "value": "none",          "label": "No college" }
+    ]
+  },
+  {
+    "qid": "grid-014",
+    "rows": [
+      { "type": "team", "value": "MIL", "label": "Bucks" },
+      { "type": "team", "value": "CLE", "label": "Cavaliers" },
+      { "type": "team", "value": "POR", "label": "Trail Blazers" }
+    ],
+    "cols": [
+      { "type": "college", "value": "UCLA",           "label": "UCLA" },
+      { "type": "college", "value": "North Carolina", "label": "North Carolina" },
+      { "type": "college", "value": "Duke",           "label": "Duke" }
+    ]
+  },
+  {
+    "qid": "grid-015",
+    "rows": [
+      { "type": "team", "value": "UTA", "label": "Jazz" },
+      { "type": "team", "value": "DEN", "label": "Nuggets" },
+      { "type": "team", "value": "OKC", "label": "Thunder" }
+    ],
+    "cols": [
+      { "type": "country", "value": "INTL",   "label": "International" },
+      { "type": "draft",   "value": "top5",   "label": "Top-5 pick" },
+      { "type": "award",   "value": "allnba", "label": "All-NBA" }
+    ]
+  },
+  {
+    "qid": "grid-016",
+    "rows": [
+      { "type": "team", "value": "TOR", "label": "Raptors" },
+      { "type": "team", "value": "ATL", "label": "Hawks" },
+      { "type": "team", "value": "SAC", "label": "Kings" }
+    ],
+    "cols": [
+      { "type": "draft", "value": "decade-1980s", "label": "Drafted 1980s" },
+      { "type": "draft", "value": "decade-2000s", "label": "Drafted 2000s" },
+      { "type": "draft", "value": "decade-2020s", "label": "Drafted 2020s" }
+    ]
+  },
+  {
+    "qid": "grid-017",
+    "rows": [
+      { "type": "team", "value": "WAS", "label": "Wizards" },
+      { "type": "team", "value": "IND", "label": "Pacers" },
+      { "type": "team", "value": "BKN", "label": "Nets" }
+    ],
+    "cols": [
+      { "type": "stat",  "value": "seasons15plus", "label": "15+ seasons" },
+      { "type": "draft", "value": "undrafted",     "label": "Undrafted" },
+      { "type": "era",   "value": "1980s",         "label": "Played in 1980s" }
+    ]
+  },
+  {
+    "qid": "grid-018",
+    "rows": [
+      { "type": "era", "value": "1980s", "label": "Played in 1980s" },
+      { "type": "era", "value": "1990s", "label": "Played in 1990s" },
+      { "type": "era", "value": "2020s", "label": "Played in 2020s" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "allstar5plus", "label": "5x+ All-Star" },
+      { "type": "stat",    "value": "rpg10",        "label": "10+ RPG" },
+      { "type": "college", "value": "Kentucky",     "label": "Kentucky" }
+    ]
+  },
+  {
+    "qid": "grid-019",
+    "rows": [
+      { "type": "era", "value": "1980s", "label": "Played in 1980s" },
+      { "type": "era", "value": "1990s", "label": "Played in 1990s" },
+      { "type": "era", "value": "2000s", "label": "Played in 2000s" }
+    ],
+    "cols": [
+      { "type": "award",   "value": "fmvp",       "label": "Finals MVP" },
+      { "type": "stat",    "value": "ppg20",      "label": "20+ PPG" },
+      { "type": "college", "value": "Georgetown", "label": "Georgetown" }
+    ]
+  },
+  {
+    "qid": "grid-020",
+    "rows": [
+      { "type": "college", "value": "Kentucky",       "label": "Kentucky" },
+      { "type": "college", "value": "UCLA",           "label": "UCLA" },
+      { "type": "college", "value": "North Carolina", "label": "North Carolina" }
+    ],
+    "cols": [
+      { "type": "award", "value": "ring", "label": "Won a ring" },
+      { "type": "draft", "value": "top5", "label": "Top-5 pick" },
+      { "type": "team",  "value": "LAL",  "label": "Lakers" }
+    ]
+  },
+  {
+    "qid": "grid-021",
+    "rows": [
+      { "type": "draft", "value": "decade-1980s", "label": "Drafted 1980s" },
+      { "type": "draft", "value": "decade-2010s", "label": "Drafted 2010s" },
+      { "type": "draft", "value": "decade-2020s", "label": "Drafted 2020s" }
+    ],
+    "cols": [
+      { "type": "country", "value": "INTL", "label": "International" },
+      { "type": "draft",   "value": "top5", "label": "Top-5 pick" },
+      { "type": "college", "value": "Duke", "label": "Duke" }
+    ]
+  },
+  {
+    "qid": "grid-022",
+    "rows": [
+      { "type": "award", "value": "smoy", "label": "Sixth Man" },
+      { "type": "award", "value": "dpoy", "label": "DPOY" },
+      { "type": "award", "value": "roty", "label": "Rookie of Year" }
+    ],
+    "cols": [
+      { "type": "era",   "value": "1990s",   "label": "Played in 1990s" },
+      { "type": "era",   "value": "2010s",   "label": "Played in 2010s" },
+      { "type": "draft", "value": "lottery", "label": "Lottery pick" }
+    ]
+  },
+  {
+    "qid": "grid-023",
+    "rows": [
+      { "type": "stat", "value": "ppg20",         "label": "20+ PPG" },
+      { "type": "stat", "value": "rpg10",         "label": "10+ RPG" },
+      { "type": "stat", "value": "seasons15plus", "label": "15+ seasons" }
+    ],
+    "cols": [
+      { "type": "country", "value": "INTL", "label": "International" },
+      { "type": "draft",   "value": "top5", "label": "Top-5 pick" },
+      { "type": "team",    "value": "PHI",  "label": "76ers" }
+    ]
+  },
+  {
+    "qid": "grid-024",
+    "rows": [
+      { "type": "country", "value": "Canada",    "label": "Canada" },
+      { "type": "country", "value": "France",    "label": "France" },
+      { "type": "country", "value": "Australia", "label": "Australia" }
+    ],
+    "cols": [
+      { "type": "era",   "value": "2010s",     "label": "Played in 2010s" },
+      { "type": "era",   "value": "2020s",     "label": "Played in 2020s" },
+      { "type": "draft", "value": "undrafted", "label": "Undrafted" }
+    ]
   }
 ]

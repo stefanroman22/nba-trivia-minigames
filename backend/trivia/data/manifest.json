@@ -1,30 +1,30 @@
 {
-  "version": "2026-09-11.1",
+  "version": "2026-09-30",
   "games": {
     "all-players": {
       "file": "all-players.json",
-      "sha256": "c4be7243257314074cd2d42c4fc7feb98ce932b897b7e1b9733f8808935ebf21",
+      "sha256": "806be997493fb008d565f39d1922f38e220911551a705cac5a770a26c5ab4d08",
       "count": 5208
     },
     "bingo": {
       "file": "bingo.json",
-      "sha256": "99344d82e9104d23e7aafa9d50fc54fa28eba698261c6545537404909c55dafb",
-      "count": 10
+      "sha256": "96d347d783da283e66a8a0e848ac6691fd76beaabd396286bb4baebbe033902a",
+      "count": 20
     },
     "connections": {
       "file": "connections.json",
-      "sha256": "efcbae6eada0be777ba35be23d3d46e6f1bf6b5f333028a57ce9d26a4d390297",
-      "count": 40
+      "sha256": "be04a3b4e0a63813937ced0c41df4703c4b2ece863f35a563eb70e1c59f14a2a",
+      "count": 60
     },
     "fan-favorites": {
       "file": "fan-favorites.json",
-      "sha256": "b746e66a1638f291f0828f43725b34eadba5bfa8de3cb1f62dfc510a0d6e797b",
-      "count": 24
+      "sha256": "55763ad13c289bde327301874951f0530c5fef533e8a31fd7da0e8c5be95697e",
+      "count": 40
     },
     "heatmap": {
       "file": "heatmap.json",
-      "sha256": "7fa7c12f48752f906b73a77f0747701f10f6def9b7310412f92a8a9fa990aeb6",
-      "count": 6
+      "sha256": "c1abe37827bfa341694d743e370cc1cb5183c21b3cbd82c7b1fbb2d2bd0c9212",
+      "count": 12
     },
     "imposter": {
       "file": "imposter.json",
@@ -43,8 +43,8 @@
     },
     "nba-grid": {
       "file": "nba-grid.json",
-      "sha256": "6d0414a9b2e91f701cbcc04c782ca125ae55e2023fff561858826afd72938530",
-      "count": 12
+      "sha256": "32ce2d6a93390b13b4581112e7a0a81dfee6ae6ac0d467f37ba1f82eade1a475",
+      "count": 24
     },
     "players-index": {
       "file": "players-index.json",
@@ -63,13 +63,13 @@
     },
     "tictactoe": {
       "file": "tictactoe.json",
-      "sha256": "cc3fe13b6012f6a346c1e0f527497284aa1e089de337f97db1549cc427939742",
-      "count": 8
+      "sha256": "abf33b5a9a756bf9f1996472e70b1a1fab52b5098209d4501f3143b296feccc8",
+      "count": 16
     },
     "who-would-win": {
       "file": "who-would-win.json",
-      "sha256": "f28b0c38199f3d70bbdb3c9f299da8315cfc379356a675c6af04f0a9b7441687",
-      "count": 30
+      "sha256": "d8dc801481ef732c5749bfb5c8f1bb04b132a8ab337f899d4d6e37559accd39d",
+      "count": 60
     },
     "wordle": {
       "file": "wordle.json",

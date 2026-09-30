@@ -102,5 +102,109 @@
       { "type": "award", "value": "allstar5plus", "label": "5+ All-Star" },
       { "type": "country", "value": "INTL", "label": "International" }
     ]
+  },
+  {
+    "qid": "ttt-009",
+    "rows": [
+      { "type": "team", "value": "ATL", "label": "Hawks" },
+      { "type": "team", "value": "WAS", "label": "Wizards" },
+      { "type": "team", "value": "SAC", "label": "Kings" }
+    ],
+    "cols": [
+      { "type": "award", "value": "allstar5plus", "label": "5+ All-Star" },
+      { "type": "stat", "value": "ppg20", "label": "20+ PPG career" },
+      { "type": "stat", "value": "rpg10", "label": "10+ RPG career" }
+    ]
+  },
+  {
+    "qid": "ttt-010",
+    "rows": [
+      { "type": "team", "value": "BKN", "label": "Nets" },
+      { "type": "team", "value": "IND", "label": "Pacers" },
+      { "type": "team", "value": "TOR", "label": "Raptors" }
+    ],
+    "cols": [
+      { "type": "award", "value": "roty", "label": "Rookie of the Year" },
+      { "type": "country", "value": "INTL", "label": "International" },
+      { "type": "stat", "value": "seasons15plus", "label": "15+ seasons" }
+    ]
+  },
+  {
+    "qid": "ttt-011",
+    "rows": [
+      { "type": "team", "value": "MEM", "label": "Grizzlies" },
+      { "type": "team", "value": "NOP", "label": "Pelicans" },
+      { "type": "team", "value": "CHA", "label": "Hornets" }
+    ],
+    "cols": [
+      { "type": "college", "value": "Kentucky", "label": "Kentucky" },
+      { "type": "college", "value": "Duke", "label": "Duke" },
+      { "type": "draft", "value": "top5", "label": "Top-5 pick" }
+    ]
+  },
+  {
+    "qid": "ttt-012",
+    "rows": [
+      { "type": "draft", "value": "decade-1980s", "label": "Drafted 1980s" },
+      { "type": "draft", "value": "decade-1990s", "label": "Drafted 1990s" },
+      { "type": "draft", "value": "decade-2010s", "label": "Drafted 2010s" }
+    ],
+    "cols": [
+      { "type": "team", "value": "ATL", "label": "Hawks" },
+      { "type": "team", "value": "SAC", "label": "Kings" },
+      { "type": "team", "value": "BKN", "label": "Nets" }
+    ]
+  },
+  {
+    "qid": "ttt-013",
+    "rows": [
+      { "type": "college", "value": "Kentucky", "label": "Kentucky" },
+      { "type": "college", "value": "Duke", "label": "Duke" },
+      { "type": "college", "value": "North Carolina", "label": "North Carolina" }
+    ],
+    "cols": [
+      { "type": "award", "value": "ring", "label": "Won a ring" },
+      { "type": "award", "value": "allnba", "label": "All-NBA selection" },
+      { "type": "draft", "value": "round2", "label": "Second-round pick" }
+    ]
+  },
+  {
+    "qid": "ttt-014",
+    "rows": [
+      { "type": "draft", "value": "top5", "label": "Top-5 pick" },
+      { "type": "draft", "value": "round2", "label": "Second-round pick" },
+      { "type": "draft", "value": "undrafted", "label": "Undrafted" }
+    ],
+    "cols": [
+      { "type": "era", "value": "1980s", "label": "Played in the 80s" },
+      { "type": "era", "value": "2020s", "label": "Played in the 2020s" },
+      { "type": "award", "value": "allnba", "label": "All-NBA selection" }
+    ]
+  },
+  {
+    "qid": "ttt-015",
+    "rows": [
+      { "type": "team", "value": "WAS", "label": "Wizards" },
+      { "type": "team", "value": "TOR", "label": "Raptors" },
+      { "type": "team", "value": "MEM", "label": "Grizzlies" }
+    ],
+    "cols": [
+      { "type": "award", "value": "dpoy", "label": "Defensive POY" },
+      { "type": "award", "value": "allnba", "label": "All-NBA selection" },
+      { "type": "country", "value": "France", "label": "From France" }
+    ]
+  },
+  {
+    "qid": "ttt-016",
+    "rows": [
+      { "type": "team", "value": "IND", "label": "Pacers" },
+      { "type": "team", "value": "CHA", "label": "Hornets" },
+      { "type": "team", "value": "ATL", "label": "Hawks" }
+    ],
+    "cols": [
+      { "type": "college", "value": "UCLA", "label": "UCLA" },
+      { "type": "draft", "value": "undrafted", "label": "Undrafted" },
+      { "type": "award", "value": "smoy", "label": "Sixth Man of the Year" }
+    ]
   }
 ]

@@ -22,8 +22,8 @@ class HeatmapEndpointTests(TestCase):
     def test_bundled_seed_passes_structural_validation(self):
         self.assertEqual(validate_rows(build_pool()), [])
 
-    def test_seed_has_six_boards(self):
-        self.assertEqual(len(build_pool()), 6)
+    def test_seed_has_twelve_boards(self):
+        self.assertEqual(len(build_pool()), 12)
 
     def test_published_pool_matches_the_seed(self):
         # The validators below prove the SEED is sound; this proves the file that

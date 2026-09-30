@@ -13,7 +13,7 @@ from trivia.tests.published_pool import published_pool
 class NbaGridSeedTests(TestCase):
     def test_bundled_seed_is_valid(self):
         seed = _load_seed()
-        self.assertEqual(len(seed), 12)
+        self.assertEqual(len(seed), 24)
         self.assertEqual(validate_rows(seed), [])
 
     def test_round_serves_one_config(self):

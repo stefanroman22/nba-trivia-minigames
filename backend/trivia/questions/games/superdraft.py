@@ -5,7 +5,8 @@ from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "superdraft"
-TARGET = 200
+# 2026-09-30: raised from 200 (expand-question-pools); eligible pool comfortably larger, see docs/team/designs/2026-09-30-expand-question-pools.md
+TARGET = 300
 MINIMUM = 30
 MAX_ELIGIBLE = 250
 
