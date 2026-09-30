@@ -158,6 +158,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
               type="email"
               className="modal-input"
               required
+              aria-label="Email"
               placeholder="Email"
               value={signupEmail}
               onChange={(e) => setSignupEmail(e.target.value)}
@@ -170,6 +171,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
                 required
                 pattern="[A-Za-z0-9_]{3,20}"
                 title="3-20 characters: letters, numbers or underscores. Names don't have to be unique."
+                aria-label="Username"
                 placeholder="Username (any name)"
                 value={signupUsername}
                 onChange={(e) => setSignupUsername(e.target.value)}
@@ -185,6 +187,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
             type="text"
             className="modal-input"
             required
+            aria-label="Email or username"
             placeholder="Email or username"
             title="Use your email, your username, or Name#ID if several players share your name."
             value={userId}
@@ -196,6 +199,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
           <input
             type={showPassword ? "text" : "password"}
             className="modal-input"
+            aria-label="Password"
             placeholder="Password"
             required
             minLength={isSignup ? 8 : undefined}
@@ -229,6 +233,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
               <input
                 type="password"
                 className="modal-input"
+                aria-label="Confirm password"
                 placeholder="Confirm password"
                 required
                 minLength={8}

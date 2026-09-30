@@ -146,6 +146,7 @@ VITE_BACKEND_URL=https://backend-kappa-one-42.vercel.app/api
 VITE_SOCKET_URL=https://<your-multiplayer-host>     # set once the Node host is deployed
 # VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
 # Set it only to serve pools from an external CDN/domain instead.
+# NEXT_PUBLIC_SITE_URL is optional — canonical/OG/sitemap URLs use it, else Vercel's VERCEL_PROJECT_PRODUCTION_URL, else https://nba-minigames.vercel.app.
 ```
 The `VITE_*` names predate the Next.js migration and are kept on purpose: `next.config.ts`
 inlines these three into the browser bundle (Next only exposes `NEXT_PUBLIC_*` by itself).

@@ -76,7 +76,7 @@ function Prompt({ eyebrow, title }: { eyebrow?: ReactNode; title?: ReactNode }) 
   return (
     <div className="gf-prompt">
       {eyebrow && <span className="gf-eyebrow">{eyebrow}</span>}
-      {title && <h3 className="gf-title font-display">{title}</h3>}
+      {title && <h2 className="gf-title font-display">{title}</h2>}
     </div>
   );
 }

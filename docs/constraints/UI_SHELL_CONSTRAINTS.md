@@ -458,6 +458,11 @@ Redux or framer-motion start with `"use client"` (`Landpage.tsx`, `Admin.tsx`, `
 components (`Navigation`, `ModalHost`, modals) carry no directive of their own and are only imported
 from client trees. Keep `layout.tsx` a server component: providers go in `providers.tsx`, not inline.
 
+Route files also own SEO: `metadataBase`, canonical, Open Graph and Twitter tags come from `layout.tsx`
+plus each route's `generateMetadata`; every absolute URL derives from `src/configurations/site.ts`
+(`SITE_URL`); JSON-LD is rendered with `<JsonLd>` in the route's `page.tsx`; `src/app/sitemap.ts` is built
+from `visibleGames`. `robots.txt` stays in `public/` — adding `src/app/robots.ts` would fail the build.
+
 ```tsx
 ❌ WRONG — UI logic in a route file
 // src/app/admin/page.tsx

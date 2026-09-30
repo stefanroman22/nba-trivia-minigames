@@ -7,6 +7,7 @@
 import { useId, type ReactNode } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { springs } from "../../motion/tokens";
+import { useRovingTabs } from "../../hooks/useRovingTabs";
 import "../../styles/SegmentedTabs.css";
 
 export interface SegmentedTabsOption<T extends string> {
@@ -40,9 +41,10 @@ export default function SegmentedTabs<T extends string>({
   const reduce = useReducedMotion();
   // Scoped per instance so two mounted switchers never trade thumbs.
   const layoutId = `seg-thumb-${useId()}`;
+  const { onKeyDown, tabIndexFor } = useRovingTabs(options.map((o) => o.key), value, onChange);
 
   return (
-    <div className={className} role="tablist" aria-label={ariaLabel}>
+    <div className={className} role="tablist" aria-label={ariaLabel} onKeyDown={onKeyDown}>
       {options.map((o) => {
         const active = o.key === value;
         return (
@@ -52,6 +54,7 @@ export default function SegmentedTabs<T extends string>({
             className={`${itemClassName} seg-item${active ? " is-active" : ""}`}
             role="tab"
             aria-selected={active}
+            tabIndex={tabIndexFor(o.key)}
             onClick={() => onChange(o.key)}
           >
             {active && (

@@ -1,6 +1,7 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import SwapText from "../motion/SwapText";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import "../../styles/Modal.css";
 
 interface ModalProps {
@@ -10,9 +11,6 @@ interface ModalProps {
   wide?: boolean;
   children: ReactNode;
 }
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Presentational modal shell. The mount/unmount is controlled by an
@@ -24,51 +22,7 @@ const FOCUSABLE =
 export default function Modal({ title, onClose, wide = false, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const prevFocus = document.activeElement as HTMLElement | null;
-    const panel = panelRef.current;
-
-    const focusables = () =>
-      panel
-        ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null)
-        : [];
-
-    // Move focus into the dialog (first focusable, else the panel itself).
-    (focusables()[0] ?? panel)?.focus();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-        return;
-      }
-      if (e.key !== "Tab") return;
-      const items = focusables();
-      if (items.length === 0) {
-        e.preventDefault();
-        panel?.focus();
-        return;
-      }
-      const first = items[0];
-      const last = items[items.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-      if (e.shiftKey && (active === first || active === panel)) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    };
-
-    document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-      prevFocus?.focus?.();
-    };
-  }, [onClose]);
+  useFocusTrap(panelRef, onClose);
 
   return (
     <motion.div

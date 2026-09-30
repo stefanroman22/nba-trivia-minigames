@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   // CLAUDE.md on every run; that file is hand-curated (it points at the
   // bundled Next docs itself).
   agentRules: false,
+  // Six small stylesheets were render-blocking <link>s (Lighthouse: ~720 ms on mobile); inlined they arrive with the HTML.
+  experimental: { inlineCss: true },
 };
 
 export default nextConfig;

@@ -13,11 +13,18 @@ import "../styles/LandPage.css";
 import "../styles/GlobalStyles.css";
 import logo from "../assets/basketballLogo.webp";
 import Providers from "./providers";
+import { SITE_NAME, SITE_URL, SITE_DESCRIPTION } from "../configurations/site";
 
 export const metadata: Metadata = {
-  title: { default: "HOOPS24", template: "%s | HOOPS24" },
-  description:
-    "Free daily NBA trivia minigames: wordle, grids, guess-the-player and more. Play solo or online, score points and climb the leaderboard.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website", siteName: SITE_NAME, locale: "en_US",
+    title: SITE_NAME, description: SITE_DESCRIPTION,
+    images: [{ url: logo.src, width: logo.width, height: logo.height, alt: SITE_NAME }],
+  },
+  twitter: { card: "summary", title: SITE_NAME, description: SITE_DESCRIPTION, images: [logo.src] },
   icons: { icon: [{ url: logo.src, type: "image/webp" }] },
 };
 
