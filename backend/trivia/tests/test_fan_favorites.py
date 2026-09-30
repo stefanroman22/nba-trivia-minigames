@@ -2,6 +2,7 @@ import json
 import os
 
 from django.conf import settings
+from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
@@ -147,14 +148,21 @@ class LogSessionEndpointTests(TestCase):
 
 
 class SeedLoaderTests(TestCase):
-    def test_load_seed_returns_24_normalized_questions(self):
+    def test_load_seed_returns_40_normalized_questions(self):
         seed = load_seed()
-        self.assertEqual(len(seed), 24)
+        self.assertEqual(len(seed), 40)
         for q in seed:
             self.assertTrue(q["qid"])
             self.assertTrue(q["prompt"])
             self.assertIn("survey_date", q)
             self.assertGreaterEqual(len(q["answers"]), 6)
+
+
+class SeedCommandTests(TestCase):
+    def test_seed_command_writes_category(self):
+        call_command("seed_fan_favorites")
+        self.assertEqual(FanFavoritesQuestion.objects.get(qid="ff-002").category, "team")
+        self.assertEqual(FanFavoritesQuestion.objects.get(qid="ff-001").category, "player")
 
 
 class RefreshLiveStandingsTests(TestCase):

@@ -22,7 +22,7 @@ SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "bingo_seed
 CURATED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "players_curated.json")
 
 CELLS_PER_CARD = 16
-EXPECTED_CARDS = 10
+EXPECTED_CARDS = 20
 MIN_MATCHES_PER_CELL = 4
 MAX_FAME_TIER_DEALT = 3  # the client only deals fame_tier <= 3 players
 

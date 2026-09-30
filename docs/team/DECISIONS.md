@@ -596,3 +596,31 @@ Consequences: "shadowed/dead import" audit cards are standard/sonnet when the sh
 a runtime failure on a request path; the engine must keep `views.load_dataset(path)` (its name is
 referenced by `admin_api.py`'s comment and by `test_pool_endpoints` behaviour) and alias the
 live_pool import instead of renaming the local helper.
+
+## 2026-09-30 — Expand question pools (design round): offline rebuild via sqlite, Question-store scope, heatmap bank, target sizes
+Context: design round for the AI P1 card classified 2026-09-30 (above). Open questions were how pools
+get rebuilt in a worktree with no `DATABASE_URL`/Storage credentials, whether the runner-driven
+Question-store games are in scope, and which tests pin counts. The backend-engine proposal (sonnet)
+asked for larger targets (heatmap 16, connections 80, grid 40, bingo 30, fan-favorites 48, career-path
+800), a frozen heatmap `BANK` so boards 1-6 stay stable, and a fold-aware `connections_validate.py`.
+Decision: (1) rebuild with `DATABASE_URL=""` → sqlite: `migrate` → `seed_fan_favorites` →
+`build_pools_from_db`; the DB-only builders are skipped by design (files kept), seed builders are
+rewritten, `fan-favorites.json` comes from the sqlite-seeded table (today's published file equals the
+normalized seed, so nothing live is lost), `all-players.json` reorders to curated order (accepted — the
+monthly production run does the same). (2) Question-store games only as `TARGET` bumps (career-path
+300→500, superdraft 200→300, tictactoe 60→120) verified by an in-memory-sqlite `runner.run(...,
+dry_run=True)` against the real curated dataset; who-are-ya / imposter / contexto / pack-five recorded as
+"no headroom without re-tiering" rather than parked-as-failed. (3) Heatmap `BANK` extended by 20 pinned
+criteria; boards 1-6 regenerate — variety is the spec's stated preference, the validator re-proves every
+board, the game is hidden. (4) Targets are doubles (12/16/24/20/60/60/40): every authored board needs
+per-item verification against real data; a second card can top up with the guidelines this one writes.
+(5) The connections validator is not rewritten (it would force edits to 11 legacy tiles on existing
+boards); new boards are held to a tile-resolution + champion-roster check script and to label kinds the
+validator can derive. (6) `seed_fan_favorites` gets the one-line `category` fix because both the offline
+rebuild and the eventual production seeding depend on it. (7) Wordle: maxed at 525/525 under the build
+rule; +6 only via suffix stripping — noted, not done. Engine per step: 1-7 `[opus]` (content needing NBA
+judgment), 8-11 `[sonnet]`. Doc: `docs/team/designs/2026-09-30-expand-question-pools.md`.
+Consequences: the card ships without credentials, but the owner must run `seed_fan_favorites` against
+production before the 2026-10-01 monthly refresh or `fan-favorites.json` regresses to 24 boards — the
+handoff is in the design doc. Follow-up cards named there: contexto secret exhaustion (99 secrets vs
+`NO_REPEAT_DAYS = 365`), fame-tier re-tiering, connections validator hardening + legacy tile repair.

@@ -1,7 +1,7 @@
 """Prove every hex of every Heatmap board is solvable (hex + all neighbours).
 
 Run: cd backend && DATABASE_URL="" python trivia/games/heatmap_validate.py
-Exits 0 when all 6 boards pass; 1 (with reasons) otherwise. Also importable:
+Exits 0 when all 12 boards pass; 1 (with reasons) otherwise. Also importable:
 validate_seed(boards, players) -> list[str].
 
 Independent of the generator: re-derives the template, checks structure (28

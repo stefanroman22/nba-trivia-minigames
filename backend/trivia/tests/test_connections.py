@@ -18,7 +18,7 @@ class ConnectionsBackendTest(TestCase):
 
     def test_build_pool_nonempty_and_valid(self):
         pool = connections.build_pool()
-        self.assertEqual(len(pool), 40)
+        self.assertEqual(len(pool), 60)
         self.assertEqual(connections.validate_rows(pool), [])
 
 

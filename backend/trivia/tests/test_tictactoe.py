@@ -40,11 +40,11 @@ class PlayerMatchesTests(TestCase):
 
 
 class SeedTests(TestCase):
-    def test_pool_has_eight_valid_boards(self):
+    def test_pool_has_sixteen_valid_boards(self):
         rows = build_pool()
-        self.assertEqual(len(rows), 8)
+        self.assertEqual(len(rows), 16)
         self.assertEqual(validate_rows(rows), [])
-        self.assertEqual(len({r["qid"] for r in rows}), 8)
+        self.assertEqual(len({r["qid"] for r in rows}), 16)
 
     def test_validate_rejects_bad_board(self):
         bad = [{"qid": "x", "rows": [], "cols": []}]

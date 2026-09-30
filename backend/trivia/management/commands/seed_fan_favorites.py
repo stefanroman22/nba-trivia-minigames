@@ -16,6 +16,7 @@ class Command(BaseCommand):
                 defaults={
                     "prompt": q["prompt"],
                     "survey_date": q.get("survey_date", ""),
+                    "category": q.get("category", "player"),
                     "answers": q["answers"],
                     "live": True,
                 },
