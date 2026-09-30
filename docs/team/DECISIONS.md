@@ -423,3 +423,51 @@ tier 90% → 100%, risk 94% → 97%, at ~14% lower cost. Owner rules (motion, se
 risk-high) untouched.
 Consequences: results are directional (no held-out split). The eval lives on branch `eval/classify`
 (`.claude/hillclimb/classify/`); rerun it before future classify edits.
+
+## 2026-09-30 — Technical SEO + keyboard/ARIA pass: standard/sonnet vs hard/opus
+Context: one P1 card bundles per-route metadata/OG/canonical, JSON-LD, `sitemap.ts`/`robots.ts`,
+Core Web Vitals fixes, and full keyboard/ARIA operability across the whole app (nav drawer,
+`SegmentedTabs`, `AutoCompleteInput` used by 12 callers, modals, 15 game renderers). The spec is
+long and explicit (argues `standard`/`sonnet`) but says "audit first, then fix everything found", so
+the actual fix list does not exist until an audit runs (argues `hard`, plan-first).
+Decision: `hard`, `needsDesignRound: true`, areas `frontend`/`ui`/`games`, risk `low`, provisional
+`engineModel: opus`. Fable's design round must (a) run the audit (bundled `lighthouse` +
+`playwright-core` keyboard walkthrough; no new deps — `package.json` stays untouched) and turn
+findings into per-step acceptance criteria, (b) tag steps per engine: metadata/sitemap/JSON-LD
+and mechanical ARIA labels → `[sonnet]`; combobox pattern for `AutoCompleteInput`, roving
+tabindex + arrow keys for `SegmentedTabs`, drawer focus trap, any renderer whose board needs a
+keyboard model → `[opus]`, (c) resolve the `src/app/robots.ts` vs existing `public/robots.txt`
+conflict (Next refuses both at `/robots.txt`; the card forbids rewriting the file) — ship
+`sitemap.ts` only and leave robots to its pending card unless the plan finds a cleaner answer.
+Consequences: pays for a design round on a frontend-only card, but the alternative was sonnet
+inventing the fix list mid-build across every screen. Future "audit-then-fix-everything" cards
+that span more than one area get the same treatment.
+
+## 2026-09-30 — seo-a11y-pass design round: audit-driven plan, sonnet, robots/next-image exclusions
+Context: design round for the P1 "Technical SEO + full keyboard and ARIA accessibility pass" card
+(`docs/team/designs/2026-09-30-seo-a11y-pass.md`). Fifth cloud round with no `Agent` tool and no
+engine teammates in `ListAgents`; the single frontend-engine seat was filled by the planner from
+source, and the sign-off pass is the doc's 5b self-review. Opus is banned pipeline-wide for this run,
+so the classify stage's provisional `opus` had to resolve to sonnet or fable.
+Decision: the round ran the audit itself (bundled `lighthouse` 13.4.1 mobile+desktop on `/` and a game
+page, plus a `playwright-core` keyboard walkthrough with `axe-core` injected from `node_modules` —
+it is already lighthouse's dependency, so nothing was installed and `package.json` is untouched).
+Lighthouse's static a11y/SEO scores were 100 everywhere; every real defect was interactive or
+structural (drawer with no trap/Escape, non-focusable brand, tablists without roving tabindex,
+mouse-only autocomplete, focus dropped to `<body>` after Play, unlabeled progressbar/asides/inputs,
+no canonical/OG/Twitter/JSON-LD/sitemap, LCP background image not preloaded, render-blocking CSS).
+Each finding maps to a numbered step with the exact attributes/handlers/code and a done-check, so
+`Engine: sonnet` (all 16 steps `[sonnet]`); no step touches motion. Three exclusions are recorded
+rather than left implicit: (1) no `src/app/robots.ts` — it cannot coexist with `public/robots.txt`
+and the card forbids rewriting that file; the sitemap ships and the pending robots card should add
+the `Sitemap:` line; (2) no `next/image` — Vercel Image Optimization is metered, so that is an owner
+money decision; plain `<img>` stays; (3) axe `color-contrast` hits are visual and the card forbids
+visual changes. Absolute URLs come from one module (`src/configurations/site.ts`: `NEXT_PUBLIC_SITE_URL`
+→ Vercel's `VERCEL_PROJECT_PRODUCTION_URL` → the documented production origin as last resort) — the
+last fallback is the site's own public origin, not a service URL, so it does not breach the
+"URLs come from env" rule. Tabs use automatic activation (selection follows arrow-key focus); the
+autocomplete's Enter on a highlighted option fills the input and does not submit (matches today's
+click). `experimental.inlineCss` is enabled with an explicit revert rule if the build or styling breaks.
+Consequences: "audit-then-fix" cards get their audit in the design round, so the build stage
+implements a table of measured findings instead of hunting; a future cloud round can reuse the
+same tooling (lighthouse + playwright-core + node_modules/axe-core) without adding dependencies.
