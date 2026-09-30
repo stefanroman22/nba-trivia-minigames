@@ -131,11 +131,13 @@ REDIS_URL=rediss://...                                       # Upstash (see "Red
 CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
 ```
+The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the offline questions pipeline only — not needed on Vercel.
 
 ### Multiplayer server (Render / Node host)
 ```
 API_BASE_URL=https://backend-kappa-one-42.vercel.app # REQUIRED in prod (else it tries localhost)
 CORS_ORIGINS=http://localhost:5173,https://<your-frontend-domain>
+QUESTIONS_PUBLIC_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>   # REQUIRED to deal question games (questions store)
 REDIS_URL=rediss://...                               # optional: enables the Socket.IO adapter
 PORT=4000
 ```

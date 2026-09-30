@@ -188,12 +188,12 @@ Rookie → Role Player → Sixth Man → Starter → All-Star → All-NBA → MV
 
 **Tech:** Node.js + Socket.IO (real-time websockets).
 **Lives in:** `multiplayer_server/`.
-**Hosted on:** **Railway** — intended host. Client connects to
-`https://nba-multiplayer-production.up.railway.app` in production.
+**Hosted on:** nowhere yet — the old Railway host is gone and it needs a persistent Node host
+(see `docs/DEPLOYMENT.md`). Locally it listens on port 4000.
 
 ### Why it's a separate program
 Vercel's serverless functions are short-lived and can't keep a live connection open. A live
-1-v-1 match needs a connection that stays open the whole game, so it runs on an always-on
+match needs a connection that stays open the whole game, so it runs on an always-on
 Node host instead.
 
 ### What it does (in simple terms)
@@ -203,10 +203,17 @@ Node host instead.
    windows" allow — and those windows widen the longer you wait, so nobody
    queues forever. If no one shows up within 30 seconds, it tells you no
    opponent was found.
-2. **Same questions for everyone** — the server fetches the round's data **from the Django
-   backend** and sends the *same* questions to every player in the room, so it's fair.
-3. **Scoring** — players submit their scores; once everyone's is in, the server sends each
-   player the outcome (and, for friend rooms, a ranked scoreboard).
+2. **Same questions for everyone** — the server deals the round once per room and sends the
+   *same* data to every player, so it's fair. Four games (career-path, who-are-ya, contexto,
+   superdraft) plus the two turn-based games (tic-tac-toe, imposter) draw one pre-generated
+   question from the **questions store**: the server reads the schema-1 manifest
+   (`<QUESTIONS_PUBLIC_BASE>/questions/manifest.json`, cached ~60 s) from Supabase Storage's
+   public CDN (`multiplayer_server/src/questions.js`). Every other game still fetches its
+   round **from the Django backend** (`API_BASE_URL`). The turn-based games run a
+   server-authoritative state machine (`turnGames.js`) instead of sending one shared round.
+3. **Scoring** — players submit their scores; once everyone's is in, the server ranks them
+   (score first, then faster time) and sends each player the outcome plus the ranked
+   scoreboard — this works for any room size.
 4. **Rematch / switch game** — one player proposes, everyone else must accept, then a fresh
    round starts without re-queuing.
 5. **Leaving/disconnecting** — if anyone quits, the others are told immediately.
@@ -215,10 +222,12 @@ Node host instead.
 Logged-in players can also skip matchmaking and play with a friend:
 - The host presses **Generate code** and gets a **6-digit room code** to share (codes are
   crypto-random, so they can't be guessed in order).
-- The friend presses **Enter code** and types it in. A room holds **exactly 2 players** —
-  the match starts automatically the moment the friend joins.
-- While waiting, the host can **change the game** or **cancel the room**. If either player
-  leaves or drops out, the room closes for both. On phones the room card can collapse to a
+- The friend presses **Enter code** and types it in. Room size depends on the game: most
+  hold **exactly 2 players**, while Imposter takes **3–5** (`turnGames.roomConfigFor`). The
+  match starts automatically the moment the room is full; in an Imposter lobby the host can
+  also start early once 3 players are in.
+- While waiting, the host can **change the game** or **cancel the room**. If anyone
+  leaves or drops out, the room closes for everyone. On phones the room card can collapse to a
   slim overview so the game stage stays in view.
 - Housekeeping keeps the code space healthy at scale: every lookup is O(1) by code,
   unfilled lobbies **expire after 15 minutes** (freeing their code), join attempts are
@@ -343,7 +352,7 @@ There are **two kinds of data**, handled very differently:
 |---|---|---|---|
 | Frontend | React + Next.js | **Vercel** (prerendered HTML + CDN) | the public site domain |
 | Backend API | Django + DRF | **Vercel (serverless)** | https://backend-kappa-one-42.vercel.app |
-| Multiplayer | Node + Socket.IO | **Railway** | https://nba-multiplayer-production.up.railway.app |
+| Multiplayer | Node + Socket.IO | **Not deployed yet** (old Railway host is gone; needs a persistent Node host) | local: port 4000 |
 | User database | Postgres | **Supabase** | via `DATABASE_URL` (session pooler) |
 | Game content | Static JSON | **Vercel CDN** (`/data/`) | bundled with the frontend build |
 | Data refresh | Python (`nba_api`) | **Home PC** (monthly) | residential IP required |
