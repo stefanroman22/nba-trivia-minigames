@@ -708,9 +708,13 @@ This does **not** apply to a warning shown *before* the last life is spent (e.g.
 ### 7a. Standard path — full-screen result (default)
 Call `onGameEnd(finalScore)` with **no options**. The shell flips to the `result` phase:
 
-1. **Calculating animation — 1.5 s.** `<CourtLoader label="Calculating score…" scale={0.8} />`.
-   Owned by `MiniGame.tsx:149`, so every game gets it identically.
-2. Then `GameResult` springs in (`stiffness 240`, `damping 22`,
+1. **No "Calculating…" beat.** The score is already known the instant a game ends, so nothing
+   is shown between the last round and the result — the only transition is the `Stage`
+   cross-fade (`0.25 s` out / `0.25 s` in). Points are logged and awarded **in the background**
+   (`awardPoints` in `MiniGame.tsx`, fired from `onGameEnd`); the reveal never waits on that
+   request, and a slow or failed `log-session` call must not delay or break the screen. Never
+   reintroduce a loader or an artificial timeout in front of the result.
+2. `GameResult` springs in immediately (`stiffness 240`, `damping 22`,
    `initial {opacity:0, scale:.9, y:10}`), container `max-width:440px`, `margin:0 auto`,
    `flex column`, `align-items:center`, `gap:8px`, centered:
 
