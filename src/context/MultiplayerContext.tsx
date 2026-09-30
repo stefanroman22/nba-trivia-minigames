@@ -434,6 +434,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       proposalTimeout: () => dispatch({ t: "PROPOSAL_TIMEOUT" }),
       resumeMatch: (snapshot: ResumeSnapshot) => dispatch({ t: "RESUME", snapshot }),
       matchError: (d: { message: string }) => dispatch({ t: "NOTICE", notice: { kind: "error", text: d.message } }),
+      // Illegal turn move: transient feedback (warn auto-clears), shown by OnlineMatch's NoticeBar.
+      turnReject: (d: { message?: string } = {}) =>
+        dispatch({ t: "NOTICE", notice: { kind: "warn", text: d?.message || "That move isn't allowed right now." } }),
     };
     (Object.entries(on)).forEach(([evt, fn]) => socket.on(evt, fn as (...args: unknown[]) => void));
     return () => { Object.entries(on).forEach(([evt, fn]) => socket.off(evt, fn as (...args: unknown[]) => void)); };

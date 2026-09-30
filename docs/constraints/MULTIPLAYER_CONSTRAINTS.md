@@ -71,9 +71,10 @@ the same `gameData` to every member), all turn-game state (`turnGames.js` valida
 (`rankRoom`, MP-8), proposals, lobby snapshots. Client-authoritative (and trusted unverified):
 each member's final `score`/`elapsedMs` for round games (`submitScore`), and the `game` object
 sent with `findMatch`/`createFriendRoom`/`changeFriendGame`/`proposeSwitch`. The client mirrors
-server state in `MpState` and never derives a room fact locally. Known gap: the relay emits
-`turnReject` for illegal turn moves (`turnHelpers.reject` in `index.js`) but nothing under `src/`
-listens for it, so rejected moves are silent (Acceptance check 4).
+server state in `MpState` and never derives a room fact locally. The relay emits
+`turnReject` (`{ message }`) for illegal turn moves (`turnHelpers.reject` in `index.js`); the
+client's `turnReject` handler in `MultiplayerContext.tsx` dispatches a transient `warn` `NOTICE`,
+shown by `OnlineMatch.tsx`'s `NoticeBar` (Acceptance check 4).
 
 ```tsx
 ❌ hypothetical: a renderer mutating turn state locally as if final
@@ -121,12 +122,12 @@ keyed by integer); any `Game` sent over the wire goes through `serializeGame()` 
 `MultiplayerContext.tsx` (functions like `fetchData` are not serializable). Exception: server
 handlers are inconsistent about coercing `code` (`changeFriendGame`/`startRoomNow`/`turnAction`
 use `Number(code)`; `submitScore`/`reportProgress`/proposals/`leaveMatch` use `rooms.get(code)`
-raw), so always send a number. Two client emits have **no** server handler (dead): see the ❌.
+raw), so always send a number. Every client emit has a server handler; a new emit must add one (Acceptance check 5).
 
 ```ts
-❌ real: src/utils/LeaveMultiplayer.tsx (unimported) and src/components/UserProfile.tsx
+❌ hypothetical: an emit with no relay handler (the old `leaveMultiplayer` / `setUserInfo` were removed)
 socket.emit("leaveMultiplayer");            // relay handles "leaveMatch"
-if (socket.connected) socket.emit("setUserInfo", null); // no such handler in index.js
+socket.emit("setUserInfo", null);           // no such handler in index.js
 
 ✅ src/context/MultiplayerContext.tsx: real event, numeric code, serialized game
 socket.emit("leaveMatch", { code: codeRef.current });
@@ -314,8 +315,8 @@ case "bingo":
 No file under `src/Game Renderers/` imports `../socket`. `ImposterGame.tsx` alone imports
 `useMultiplayer`/`playerKey`, reading `mp.opponents` to map uids in `turn` state to name/avatar
 (`seatByUid`); every game-state decision comes from the `turn` prop. Socket plumbing lives in
-`MultiplayerContext.tsx`, `OnlineMatch.tsx` and `FriendPlay.tsx`. (Outside renderers,
-`UserProfile.tsx` imports the socket for its logout emit, see MP-4; do not copy it.)
+`MultiplayerContext.tsx` only: it is the sole file under `src/` that imports `../socket`
+(`OnlineMatch.tsx`/`FriendPlay.tsx` go through `useMultiplayer()`); do not add another importer.
 
 ```tsx
 ❌ hypothetical: a renderer emitting directly
@@ -385,30 +386,28 @@ cd multiplayer_server && node scripts/sim_turngames.js && node scripts/sim_round
 Observed: `sim_turngames.js` ends with `Tic-Tac-Toe reached a win : PASS`, `Id-lookup validation (all 3) : PASS`,
 `Imposter reached reveal : PASS`; `sim_round_fanout.js` ends `All round fan-out checks passed.` (exit 0).
 
-**3. Every server-emitted event has a client handler except `turnReject` (MP-4).**
+**3. Every server-emitted event has a client handler (MP-4).**
 ```bash
-grep -ohE '(toUid\([a-zA-Z0-9_.\[\]]+, |socket\.emit\()"[a-zA-Z]+"' multiplayer_server/src/index.js multiplayer_server/src/turnGames.js | grep -oE '"[a-zA-Z]+"' | sort -u
+grep -ohE '(toUid\([^,]+, |socket\.emit\()"[a-zA-Z]+"' multiplayer_server/src/index.js multiplayer_server/src/turnGames.js | grep -oE '"[a-zA-Z]+"' | sort -u
 grep -n "helpers.toUid(uid, \"turnState\"" multiplayer_server/src/turnGames.js
 ```
 Observed: 28 distinct names from `index.js` (including `turnReject`, sent via `turnHelpers.reject`)
 plus `turnState` from `turnGames.js` = 29 server events. The client `on` map in
-`MultiplayerContext.tsx` registers 28 handlers, none for `turnReject`. Any diff adding a server
+`MultiplayerContext.tsx` registers 29 handlers, including `turnReject`. Any diff adding a server
 emit must add the matching key in that `on` map.
 
-**4. `turnReject` has no client listener (known gap, MP-2).**
+**4. `turnReject` has a client listener (MP-2).**
 ```bash
 grep -rn "turnReject" src
 ```
-Observed: no output. A fix should add a handler in `MultiplayerContext.tsx` that dispatches a
-`NOTICE`; after that, this check should return that line.
+Observed: the `turnReject:` handler line in `MultiplayerContext.tsx` (dispatches a `warn` `NOTICE`).
 
 **5. Client emits map to real server handlers (MP-4).**
 ```bash
 grep -rhoE 'socket\.emit\("[a-zA-Z]+"' src | sort -u
 grep -oE 'socket\.on\("[a-zA-Z]+"' multiplayer_server/src/index.js | sort -u
 ```
-Observed: every emitted name has a handler except `leaveMultiplayer` (`src/utils/LeaveMultiplayer.tsx`,
-unimported) and `setUserInfo` (`src/components/UserProfile.tsx`). No new diff may add to that list.
+Observed: every emitted name has a handler. No new diff may add an emit without one.
 
 **6. Engine sets and sizing live in one place each (MP-3, MP-9, MP-10).**
 ```bash
