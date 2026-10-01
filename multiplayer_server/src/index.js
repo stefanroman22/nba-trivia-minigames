@@ -179,10 +179,13 @@ async function fetchRound(gameId) {
 /** Load a round and broadcast it to both members; resolves the room into "playing". */
 async function dealRound(room) {
   // Starting a fresh round: cancel any turn timer and clear stale turn state
-  // from a previous game (e.g. after a play-again/switch off a turn game).
+  // from a previous game (e.g. after a play-again/switch off a turn game), and
+  // the previous round's payload so a resume mid-switch can't snapshot it
+  // (turn games have no gameData; the round branch re-assigns it below).
   if (room.turnTimer) clearTimeout(room.turnTimer);
   room.turnTimer = null;
   room.turn = null;
+  room.gameData = null;
   // Turn-based games don't fetch a shared round — they boot a server-authoritative
   // state machine that broadcasts turnState instead of roundData.
   if (TURN_GAMES.has(room.gameId)) {

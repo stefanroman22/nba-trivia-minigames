@@ -22,7 +22,11 @@
 //      itself), and the payload is the dealt question verbatim,
 //   3. assert a reconnect (index.js's resumeMatch snapshot) re-serves the same
 //      round,
-//   4. same for contexto's secret.
+//   4. same for contexto's secret,
+//   5. switch a live superdraft room to tictactoe (proposeSwitch +
+//      respondProposal): a reconnect after the switch must snapshot
+//      gameData === null (dealRound clears the previous round's payload) and
+//      re-push turnState.
 //
 // Run:  node scripts/sim_round_fanout.js     (exit code 0 = pass)
 
@@ -110,6 +114,30 @@ const CONTEXTO_QUESTION = {
   secret: { person_id: 2544, full_name: "LeBron James", fame_tier: 1 },
   ranking: [[2544, 1], [977, 2], [893, 3]],
 };
+// A tictactoe question + name pool, shaped like sim_turngames.js's FIXTURE
+// (NamesEntry objects; the board's content is irrelevant here — only that
+// turnGames.init deals and broadcasts turnState).
+const TTT_QUESTION = {
+  schema: 1,
+  game: "tictactoe",
+  qid: "ttt-0001",
+  rows: [
+    { type: "team", value: "LAL", label: "Lakers" },
+    { type: "team", value: "BOS", label: "Celtics" },
+    { type: "team", value: "SAS", label: "Spurs" },
+  ],
+  cols: [
+    { type: "award", value: "ring", label: "Won a ring" },
+    { type: "award", value: "mvp", label: "MVP" },
+    { type: "era", value: "2000s", label: "Played in the 2000s" },
+  ],
+  valid: [[1, 2], [3, 4], [5, 6], [7, 8], [3, 9], [2, 8], [4, 9], [5, 7], [6, 8]],
+};
+const NAMES = [
+  { id: 1, full_name: "Kobe Bryant", aliases: [] },
+  { id: 2, full_name: "LeBron James", aliases: [] },
+  { id: 3, full_name: "Shaquille O'Neal", aliases: ["Shaq"] },
+];
 const FIXTURE = {
   files: {
     "/questions/manifest.json": {
@@ -120,15 +148,18 @@ const FIXTURE = {
       games: {
         superdraft: { index: "/questions/v/t/superdraft/index.json", count: 1 },
         contexto: { index: "/questions/v/t/contexto/index.json", count: 1 },
+        tictactoe: { index: "/questions/v/t/tictactoe/index.json", count: 1 },
       },
     },
-    "/questions/v/t/players-names.json": [],
+    "/questions/v/t/players-names.json": NAMES,
     "/questions/v/t/superdraft/index.json": { schema: 1, game: "superdraft", version: "t", dataset: { players: "t" }, items: [["sd-0001"]] },
     "/questions/v/t/superdraft/sd-0001.json": SUPERDRAFT_QUESTION,
     // pickDaily: no item is dated "today", so the FNV fallback over the sorted
     // index lands on the only item — deterministic whatever day the sim runs.
     "/questions/v/t/contexto/index.json": { schema: 1, game: "contexto", version: "t", dataset: { players: "t" }, items: [["ctx-2026-09-06", "2026-09-06"]] },
     "/questions/v/t/contexto/ctx-2026-09-06.json": CONTEXTO_QUESTION,
+    "/questions/v/t/tictactoe/index.json": { schema: 1, game: "tictactoe", version: "t", dataset: { players: "t" }, items: [["ttt-0001"]] },
+    "/questions/v/t/tictactoe/ttt-0001.json": TTT_QUESTION,
   },
 };
 questions._setForTest(FIXTURE);
@@ -181,6 +212,7 @@ const eventsFor = (sid, event) =>
 const GAMES = {
   superdraft: { id: "superdraft", name: "SuperDraft Five", pointsPerCorrect: 0 },
   contexto: { id: "contexto", name: "LeContexto", pointsPerCorrect: 0 },
+  tictactoe: { id: "tictactoe", name: "Tic-Tac-Toe", pointsPerCorrect: 0 },
 };
 
 /** Wait (bounded) until pred() holds — dealRound is async over several microtask hops. */
@@ -249,8 +281,41 @@ async function playRound(gameId, suffix) {
   check("contexto: the round is the dealt question, unchanged",
     JSON.stringify(cA) === JSON.stringify(CONTEXTO_QUESTION));
 
-  // 4. Neither game went anywhere near Django.
-  check("no network round fetch for either game", networkFetches === 0, `${networkFetches} fetch(es)`);
+  // 4. Round game -> turn game switch. dealRound's turn branch used to leave the
+  // previous round's room.gameData in place, so a resume after the switch
+  // snapshotted the superdraft payload with turn:null. The negative control is
+  // check 2 above: while the room is still a round game, its snapshot carries
+  // gameData (a plain null-everywhere snapshot could not tell the two apart).
+  const swCode = resume[0]?.code;
+  sd.a.send("proposeSwitch", { code: swCode, game: GAMES.tictactoe });
+  sd.b.send("respondProposal", { code: swCode, accept: true });
+  await settle(() => eventsFor(sd.a.id, "turnState").length && eventsFor(sd.b.id, "turnState").length);
+  check("switch: both players got matchRestart for tictactoe",
+    eventsFor(sd.a.id, "matchRestart")[0]?.game?.id === "tictactoe" &&
+      eventsFor(sd.b.id, "matchRestart")[0]?.game?.id === "tictactoe");
+  check("switch: both players received turnState",
+    eventsFor(sd.a.id, "turnState").length === 1 && eventsFor(sd.b.id, "turnState").length === 1,
+    `${eventsFor(sd.a.id, "turnState").length} vs ${eventsFor(sd.b.id, "turnState").length}`);
+  check("switch: no roundData for the turn game",
+    eventsFor(sd.a.id, "roundData").length === 1 && eventsFor(sd.b.id, "roundData").length === 1,
+    "the superdraft deal is the only roundData each player has");
+
+  // Disconnect A, then resume the same user on a fresh socket.
+  sd.a.send("disconnect");
+  const a2 = makeSocket("sa-1b");
+  a2.send("identify", { user: sd.userA });
+  const swResume = eventsFor(a2.id, "resumeMatch");
+  check("switch: reconnect resumed the match", swResume.length === 1 && swResume[0]?.code === swCode);
+  check("switch: the resume snapshot is for tictactoe", swResume[0]?.game?.id === "tictactoe",
+    JSON.stringify(swResume[0]?.game));
+  check("switch: the resume snapshot carries NO stale gameData from the superdraft round",
+    swResume[0] && swResume[0].gameData === null, JSON.stringify(swResume[0]?.gameData)?.slice(0, 80));
+  const swTurn = eventsFor(a2.id, "turnState");
+  check("switch: turnState is re-pushed to the resumed socket",
+    swTurn.length === 1 && swTurn[0]?.state?.board?.length === 9, JSON.stringify(swTurn[0])?.slice(0, 80));
+
+  // 5. No game went anywhere near Django.
+  check("no network round fetch for any game", networkFetches === 0, `${networkFetches} fetch(es)`);
 
   console.log(failures === 0 ? "\nAll round fan-out checks passed." : `\n${failures} check(s) failed.`);
   process.exit(failures === 0 ? 0 : 1);

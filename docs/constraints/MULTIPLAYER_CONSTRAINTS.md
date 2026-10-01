@@ -335,7 +335,9 @@ onTurnAction?.({ type: "clue", text });
 first item for imposter, random otherwise) and `dealRound` emits that same object to every member;
 resume re-serves `room.gameData`. `multiplayer_server/scripts/sim_round_fanout.js` proves it for
 superdraft and contexto (one deal per room, identical payloads, identical after resume, zero
-Django fetches). Renderers must therefore not roll per-client dice in a room. SuperDraft's online
+Django fetches) and that a round-game -> turn-game switch resumes with `gameData: null` and a
+re-pushed `turnState` (`dealRound` clears the previous round's payload). Renderers must therefore
+not roll per-client dice in a room. SuperDraft's online
 objective is `OBJECTIVES[hashStr(question.qid) % OBJECTIVES.length]` (`objectiveForQid`), using the
 same FNV-1a as `multiplayer_server/src/questions.js`'s `hashStr` and `src/utils/questions.ts`; solo
 uses `dailyObjective()`. Contexto is a single daily secret: every room on a given UTC day gets the
