@@ -624,3 +624,37 @@ Consequences: the card ships without credentials, but the owner must run `seed_f
 production before the 2026-10-01 monthly refresh or `fan-favorites.json` regresses to 24 boards — the
 handoff is in the design doc. Follow-up cards named there: contexto secret exhaustion (99 secrets vs
 `NO_REPEAT_DAYS = 365`), fame-tier re-tiering, connections validator hardening + legacy tile repair.
+
+## 2026-10-01 — Turn games never emit roundData, online TTT/Imposter stall on intro: client-side standard/low vs relay-side hard/high
+Context: multiplayer P1 card (3eb2cfb1-c595-81b7-977d-c401408d8d7a), no override, found by browser
+QA on the turnReject card. Verified on origin/dev (643393e): `dealRound` (`multiplayer_server/src/
+index.js:180`) returns after `turnGames.init` for `TURN_GAMES`, and `initTTT`/`initImposter` only
+`broadcastTurnState` — no `roundData` has ever been emitted for turn games (both sides landed in
+merge 86f4373). Client side, `MultiplayerContext.tsx` leaves `intro` only in `ROUND_DATA` (when
+`introElapsed`) or `INTRO_ELAPSED` (when `gameData` is set); `TURN_STATE` just stores `turnState`,
+so the phase never advances and `OnlineMatch.tsx` shows "Loading the game..." indefinitely. The
+same gate breaks resume: `snapshotFor` carries `gameData: null` for turn games, so the `playing`
+branch (`mp.gameData ? renderGame(...) : <CourtLoader>`) spins forever even after `resumeFor`
+re-pushes `turnState`. Not a store problem: a failing `questions.deal` would surface as
+`roundDataError` -> `mp.error` text, not the silent loader QA saw. Neither turn renderer needs
+`gameData` online — `TicTacToe` renders purely from `turn` in its MP branch and `ImposterGame`
+only reads `gameInfo?.[0]?.names` for suggestions (tolerates `[]`). Two defensible fixes: (a) relay
+emits a stub `roundData` (`gameData: []`) after `turnGames.init` and sets `room.gameData` so
+resume matches — a wire-contract addition, `multiplayer` + `hard` + `risk: high` + design round
+per the 2026-09-30 turnReject entry; (b) client treats `turnState` as the turn-game equivalent of
+`roundData`: `TURN_STATE` advances `intro`->`playing` when `introElapsed`, `INTRO_ELAPSED` checks
+`gameData || turnState`, and `OnlineMatch` gates the play stage and the "Get ready..." line on
+`gameData || turnState` (passing `gameData ?? []` to `renderGame`). Also weighed opus for
+"multiplayer timing" vs sonnet.
+Decision: (b). `difficulty: standard`, `areas: ["frontend","ui"]`, `risk: low`, `engineModel:
+sonnet`, no design round. The relay's "turnState instead of roundData" split is deliberate and
+documented (MP-3, `dealRound` comment); the client reducer simply never got the matching
+transition. No file under `multiplayer_server/` moves, the 29-event wire contract is unchanged, and
+the fix is three named edits each with a done-check (intro advances on turnState, resume into a
+live turn game renders the board, round games unaffected). Sonnet over opus: no timing is being
+designed, the 2600 ms intro hold and the existing `introElapsed` handshake are reused verbatim.
+Consequences: same precedent as the turnReject card — consuming/gating on an event the relay
+already sends is frontend-only standard/low. The build must cover the resume path (MP-7) in the
+same diff and refresh the MP-7 "renderer remounts on the same gameData" aside so it mentions
+turn games resume from `turnState`. If a later card decides turn games should also emit
+`roundData` for symmetry, that is a protocol change and goes through a design round.

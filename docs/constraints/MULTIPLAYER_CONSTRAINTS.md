@@ -178,7 +178,9 @@ per-player `playing` vs `waiting`), re-pushes `turnState` via `turnGames.resumeF
 and tells the others (`opponentReconnected` / `friendLobbyUpdate`). Turn games auto-pass a dropped
 player's step (`turnGames.onDisconnect`). Client side, `RESUME` in the reducer rebuilds `MpState`
 from the snapshot. Limits as implemented: resume restores the room's round and scores, not the
-renderer's in-round progress (the renderer remounts on the same `gameData`); the client re-emits
+renderer's in-round progress (the renderer remounts on the same `gameData`; turn games have no
+`gameData`, so they enter intro-to-play and resume from `turnState`, which `TURN_STATE`/
+`INTRO_ELAPSED` and `OnlineMatch.tsx` treat as the round-ready signal); the client re-emits
 `identify` only if a user is in Redux; `FriendPlay`/`OnlineMatch` show reconnecting state from
 `oppStatus`. The sim proves resume re-serves the same round (Acceptance check 2).
 

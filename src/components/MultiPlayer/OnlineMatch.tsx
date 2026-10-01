@@ -12,7 +12,10 @@ import PlayerCard from "./PlayerCard";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import defaultAvatar from "../../assets/default.png";
 import type { RootState } from "../../store";
-import type { Game, PlayerInfo } from "../../types/types";
+import type { Game, GameData, PlayerInfo } from "../../types/types";
+
+/** Stable empty round for turn games (no gameData): a fresh [] per render would re-trigger renderers' `[gameInfo]` effects. */
+const EMPTY_ROUND: GameData[] = [];
 
 const EASE = [0.22, 1, 0.36, 1] as [number, number, number, number];
 
@@ -90,16 +93,17 @@ export default function OnlineMatch() {
       <motion.div key="intro" {...swap} className="om-stage">
         <span className="om-eyebrow">{mp.roomType === "friend" ? "Private match" : "Match found"}</span>
         <Matchup mp={mp} />
-        <p className="om-introline">{mp.error ? mp.error : mp.gameData ? "Get ready..." : "Loading the game..."}</p>
+        <p className="om-introline">{mp.error ? mp.error : mp.gameData || mp.turnState ? "Get ready..." : "Loading the game..."}</p>
       </motion.div>
     );
   } else if (mp.phase === "playing") {
     body = (
       <motion.div key="playing" {...swap} className="om-stage om-stage--play">
-        {mp.gameData ? (
+        {mp.gameData || mp.turnState ? (
           renderGame({
             gameId: mp.game?.id,
-            gameData: mp.gameData,
+            // Turn games carry no round data (state comes via `turn`); renderers tolerate [].
+            gameData: mp.gameData ?? EMPTY_ROUND,
             pointsPerCorrect: mp.game?.pointsPerCorrect,
             onGameEnd: (score: number) => submitScore(score, Date.now() - startRef.current),
             turn: mp.turnState,
