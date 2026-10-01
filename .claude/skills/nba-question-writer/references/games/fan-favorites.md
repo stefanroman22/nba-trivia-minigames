@@ -44,14 +44,12 @@ answers. A listed answer reveals "+{count} fans said it"; anything else costs on
   more famous non-answer shares it ("johnson" on a 1990s #1 picks board credits a Magic guess).
 - Mix categories and eras across the board set, not just players from the last decade.
 
-## Known issues to fix when touching these boards
+## History
 
-Spot-checked 2026-10-01, not yet confirmed against a source: ff-004 (#1 picks since 2010) lacks
-John Wall, Anthony Bennett, Markelle Fultz, Deandre Ayton, Paolo Banchero, Zaccharie Risacher and the 2026 pick AJ Dybantsa;
-ff-014 (multiple DPOYs) lacks Dennis Rodman; ff-017 (15+ All-Stars) lacks Kevin Durant; ff-019
-(20+ seasons) lacks Kareem Abdul-Jabbar; ff-021 lacks Tyler Herro; ff-023 needs the 2026 champion
-checked. ff-013 (any Slam Dunk winner) and ff-032 (any Canadian NBA player) are open-ended and cannot be complete; narrow or replace them.
-Verify each against Basketball-Reference before editing.
+On 2026-10-01, 27 boards were completed against sources (Wikipedia lists cross-checked with NBA.com
+and Land of Basketball), open-ended boards were narrowed to closed sets, and the production
+`trivia_fanfavoritesquestion` table was re-seeded to match. Re-check boards with moving facts
+(recent champions, #1 picks, award winners, active players' totals) after each season.
 
 ## Validate
 
