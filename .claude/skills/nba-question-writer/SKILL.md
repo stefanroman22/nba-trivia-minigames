@@ -1,5 +1,6 @@
 ---
 name: nba-question-writer
+disable-model-invocation: true
 description: Write, expand, audit or fix NBA trivia content for the nba-minigames games: Fan Favorites survey boards, Tic-Tac-Toe criteria, Career Path and Who Are Ya player picks, Contexto secrets, MVP/series/starting-five/logo/wordle pools. Use this whenever a task adds or edits questions, answers, aliases, criteria labels, player facts or question pools, reviews trivia data for errors, or asks to "expand question pools", "add questions", "fix a wrong answer" or "make the questions better", even if the word "skill" is never mentioned.
 ---
 
