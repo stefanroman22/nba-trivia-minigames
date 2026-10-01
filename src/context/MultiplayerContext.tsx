@@ -215,13 +215,17 @@ function reducer(state: MpState, a: Action): MpState {
       const play = state.phase === "intro" && state.introElapsed;
       return { ...state, gameData: a.gameData, game: a.game ?? state.game, error: null, phase: play ? "playing" : state.phase };
     }
-    case "TURN_STATE":
-      return { ...state, turnState: a.state };
+    case "TURN_STATE": {
+      // Turn games never get a roundData (relay sends turnState instead), so
+      // the first turnState is their "round is ready" signal — mirror ROUND_DATA.
+      const play = state.phase === "intro" && state.introElapsed && a.state != null;
+      return { ...state, turnState: a.state, phase: play ? "playing" : state.phase };
+    }
     case "ROUND_ERROR":
       return { ...state, error: a.message };
     case "INTRO_ELAPSED":
       if (state.phase !== "intro") return state;
-      return state.gameData ? { ...state, phase: "playing" } : { ...state, introElapsed: true };
+      return state.gameData || state.turnState ? { ...state, phase: "playing" } : { ...state, introElapsed: true };
     case "SUBMITTED":
       // Only a live game can move to waiting — a stale onGameEnd (e.g. a
       // renderer's delayed end firing after leave/opponent-left) is ignored.
