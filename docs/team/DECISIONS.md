@@ -700,3 +700,30 @@ user) rather than in `sim_turngames.js` as the spec says, and may add a comment 
 noting that relay-level assertions live in the fanout sim. Acceptance check 2 of
 `MULTIPLAYER_CONSTRAINTS.md` still ends `All round fan-out checks passed.`; MP-7's "turn games have
 no `gameData`" sentence becomes true after a switch as well and needs no rewrite.
+
+## 2026-10-01 — Remove 6 duplicate DB indexes on friends/blocking tables: standard/opus vs hard, sonnet vs opus
+Context: backend P1 card, no override, Supabase advisor finding. `backend/users/models.py` declares
+`Meta.indexes = [Index(fields=["receiver"]), Index(fields=["sender"])]` on `FriendRequest`,
+`["user_low"]`/`["user_high"]` on `Friendship` and `["blocker"]`/`["blocked"]` on `BlockedUser`
+(all created in `0004_blockeduser_friendrequest_friendship.py`), each duplicating the index Django
+already builds for the FK column. The fix is deleting the six single-column `Index` entries (the
+`UniqueConstraint`s stay) and letting `makemigrations` emit one `0007` with six `RemoveIndex`
+operations; 0004 is not edited (BE-6). The difficulty rubric lists "migrations" under `hard`, and
+`hard` was defensible on that word alone; `sonnet` was defensible because the work is six deleted
+lines plus a generated file and an EXPLAIN read-back, with nothing to invent.
+Decision: `difficulty: standard`, `areas: ["backend"]`, `risk: high` (AUTH-11 names
+`users/models.py` and any `users/migrations/`; friends/blocking is on the rubric's high list; the
+migration runs on the dev/prod shared DB at deploy), `engineModel: opus`, no design round. Standard
+rather than hard because the "migrations" trigger is meant for schema changes that need a plan
+(data migrations, new columns with backfills, shape changes several readers depend on) — a
+drop-only `RemoveIndex` migration auto-generated from a Meta edit has no design to make, and a
+design round would be pure machinery (bias-small rule). Opus rather than sonnet because the
+09-29 override reads `risk: high` → opus unconditionally (the "not trivial" qualifier attaches to
+P0 only) and the owner's phrasing was "complex/important → Opus"; a production migration on the
+users app is important even when it is simple.
+Consequences: Supabase-advisor "duplicate index" cards on AUTH-11 tables are standard/opus,
+risk high, no design round; the same card on a non-protected table would be standard/sonnet,
+risk low. The engine must verify with `makemigrations --check --dry-run` after generating, keep
+the FK-side indexes and both `UniqueConstraint`s, and show an EXPLAIN (Django `.explain()` is
+enough) for the `friends.py` lookups on `user_low`/`user_high`, `receiver`/`sender`,
+`blocker`/`blocked` still hitting the FK index. The 41 "unused index" notes stay untouched.

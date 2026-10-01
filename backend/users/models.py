@@ -119,7 +119,6 @@ class FriendRequest(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["sender", "receiver"], name="uniq_pending_friend_request"),
         ]
-        indexes = [models.Index(fields=["receiver"]), models.Index(fields=["sender"])]
 
     def __str__(self):
         return f"{self.sender_id} -> {self.receiver_id}"
@@ -145,7 +144,6 @@ class Friendship(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["user_low", "user_high"], name="uniq_friendship_pair"),
         ]
-        indexes = [models.Index(fields=["user_low"]), models.Index(fields=["user_high"])]
 
     @staticmethod
     def ordered_pair(a, b):
@@ -173,7 +171,6 @@ class BlockedUser(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["blocker", "blocked"], name="uniq_block_pair"),
         ]
-        indexes = [models.Index(fields=["blocker"]), models.Index(fields=["blocked"])]
 
     def __str__(self):
         return f"{self.blocker_id} blocked {self.blocked_id}"
