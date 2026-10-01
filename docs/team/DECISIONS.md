@@ -658,3 +658,45 @@ already sends is frontend-only standard/low. The build must cover the resume pat
 same diff and refresh the MP-7 "renderer remounts on the same gameData" aside so it mentions
 turn games resume from `turnState`. If a later card decides turn games should also emit
 `roundData` for symmetry, that is a protocol change and goes through a design round.
+
+## 2026-10-01 — dealRound leaves stale room.gameData on the turn-game branch: single-area relay fix standard/low vs "touches the multiplayer protocol" hard/high
+Context: multiplayer P1 follow-up (3ec2cfb1-c595-814b-ab36-fa94ce911571) from code review of the
+turn-games intro card. Verified on origin/dev (d976ac9): `dealRound` (`multiplayer_server/src/
+index.js:180-197`) clears `room.turnTimer`/`room.turn` (183-185) but the `TURN_GAMES` branch returns
+before line 202, the only place `room.gameData` is written. After a round game, `registerAccept`
+(780-797) swaps `gameId`/`game`, sets `phase: "intro"`, emits `matchRestart` and calls `dealRound`;
+`turnGames.init` sets `phase: "playing"` and never touches `gameData`, so `snapshotFor` (304-345)
+sends the previous round's array on every `identify` resume. Client side `RESUME` copies it into
+`gameData` and `OnlineMatch.tsx:102` now mounts the renderer on `gameData || turnState`, so the
+turn renderer mounts with a foreign payload and `turn: null` until `resumeFor` re-pushes
+`turnState` (`ImposterGame` reads `gameInfo[0]?.names` from it). The fix is one statement
+(`room.gameData = null;` beside `room.turn = null;`) and a sim assertion. The spec names
+`scripts/sim_turngames.js` for the assertion, but that sim only requires `turnGames.js` and builds
+fake rooms — it never loads `index.js`, so it cannot observe `dealRound` or `snapshotFor`;
+`scripts/sim_round_fanout.js` is the harness that stubs express/socket.io, drives the real relay
+through fake sockets and already asserts a reconnect's `resumeMatch` snapshot. Weighed: (a)
+`hard` + `risk: high` + design round because the rubric lists "anything touching multiplayer
+protocol" and the change edits relay production code; (b) `standard` + `risk: low`, no design
+round, as a bounded single-area relay bug fix. Also weighed opus for "multiplayer" vs sonnet.
+Decision: (b). `difficulty: standard`, `areas: ["backend","multiplayer"]` (backend-engine owns
+`multiplayer_server/`; only that directory changes), `risk: low`, `engineModel: sonnet`,
+`needsDesignRound: false`. The protocol is the set of events and payload shapes: no event is added
+(contrast option (a) of the 2026-10-01 intro entry, a new `roundData` emit), and `resumeMatch.
+gameData` is already nullable (it is `null` for a turn game dealt from a fresh match). The fix only
+makes the switch path produce the value the fresh path already produces, so it is a state-reset
+correctness fix, not a contract change. `["backend","multiplayer"]` here is one engine plus its
+sub-area, like `["frontend","ui"]` — the 2026-09-20 precedent took a design round because it
+changed both `backend/` tests and a relay sim, two codebases; this touches one. Sonnet over opus:
+no timing is designed; two steps each with a done-check (reset line; fanout-sim check that a
+round->turn switch followed by a resume snapshots `gameData === null` and still re-pushes
+`turnState`).
+Consequences: a relay change that resets or corrects room state without adding an event or
+changing a payload shape is `standard`/`low`, backend+multiplayer, sonnet, no design round; adding
+an emit, a handler or a payload field stays `hard`/`high` with a design round. The build must put
+the assertion in `scripts/sim_round_fanout.js` (extend its questions fixture with a tictactoe
+question and names, add a tictactoe `GAMES` entry, drive `proposeSwitch` + `respondProposal
+{accept: true}` after a round game, settle on `turnState`, then disconnect + `identify` the same
+user) rather than in `sim_turngames.js` as the spec says, and may add a comment to `sim_turngames.js`
+noting that relay-level assertions live in the fanout sim. Acceptance check 2 of
+`MULTIPLAYER_CONSTRAINTS.md` still ends `All round fan-out checks passed.`; MP-7's "turn games have
+no `gameData`" sentence becomes true after a switch as well and needs no rewrite.
