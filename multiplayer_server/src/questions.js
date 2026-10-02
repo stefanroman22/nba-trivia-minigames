@@ -1,6 +1,53 @@
 // multiplayer_server/src/questions.js
-// Pre-generated questions from Supabase Storage (public CDN). Mirrors src/utils/questions.ts.
+// Pre-generated questions. Mirrors src/utils/questions.ts.
+//
+// deal() / loadNames() read the manifest-v3 data host first (gameData.js, DATA_PUBLIC_BASE)
+// whenever its manifest publishes the game / "question_names", so a room gets the same
+// question files single-player reads; otherwise (not published yet, hidden games, host down)
+// they fall back to the old Supabase Storage questions store below (QUESTIONS_PUBLIC_BASE),
+// logged once per game. turnGames.js (tictactoe, imposter) and index.js both go through here.
 const { normalizeAnswer } = require("./answerMatch");
+const gameData = require("./gameData");
+
+// The question games the publisher puts on the data host (publish_v3.QUESTION_GAMES).
+const PUBLISHED_GAMES = new Set(["career-path", "who-are-ya", "tictactoe", "contexto"]);
+const warned = new Set();
+function warnOnce(key, message) {
+  if (warned.has(key)) return;
+  warned.add(key);
+  console.warn(`[questions] ${message}`);
+}
+
+/** The published question, or null to use the store (DATA_PUBLIC_BASE unset = silent). */
+async function publishedQuestion(gameId) {
+  if (!gameData.isConfigured()) return null;
+  try {
+    const m = await gameData.getManifest();
+    if (!gameData.hasQuestions(m, gameId)) {
+      if (PUBLISHED_GAMES.has(gameId)) warnOnce(gameId, `${gameId}: not published on the data host yet, using the questions store`);
+      return null;
+    }
+    return await gameData.fetchQuestion(gameId);
+  } catch (err) {
+    warnOnce(gameId, `${gameId}: data host unavailable (${err.message}), using the questions store`);
+    return null;
+  }
+}
+
+async function publishedNames() {
+  if (!gameData.isConfigured()) return null;
+  try {
+    const m = await gameData.getManifest();
+    if (!m.question_names) {
+      warnOnce("names", "question names not published on the data host yet, using the questions store");
+      return null;
+    }
+    return await gameData.fetchQuestionNames();
+  } catch (err) {
+    warnOnce("names", `data host unavailable for question names (${err.message}), using the questions store`);
+    return null;
+  }
+}
 
 const BASE = (process.env.QUESTIONS_PUBLIC_BASE || "").replace(/\/$/, "");
 const SUPPORTED_SCHEMA = 1;
@@ -38,6 +85,8 @@ async function cached(version, key, url) {
 }
 
 async function loadNames() {
+  const published = await publishedNames();
+  if (published) return published;
   const m = await getManifest();
   return cached(m.version, "names", m.names);
 }
@@ -55,25 +104,13 @@ async function loadQuestion(game, qid) {
   return cached(m.version, `${game}:${qid}`, url);
 }
 
-function utcToday() { return new Date().toISOString().slice(0, 10); }
-function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
-function pickRandom(index) { return String(index.items[Math.floor(Math.random() * index.items.length)][0]); }
-function pickWeighted(index) {
-  const total = index.items.reduce((s, it) => s + (Number(it[1]) || 1), 0);
-  let r = Math.random() * total;
-  for (const it of index.items) { r -= Number(it[1]) || 1; if (r <= 0) return String(it[0]); }
-  return String(index.items[index.items.length - 1][0]);
-}
-function pickDaily(index, today = utcToday()) {
-  const hit = index.items.find((it) => it[1] === today);
-  if (hit) return String(hit[0]);
-  const sorted = [...index.items].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return String(sorted[hashStr(today) % sorted.length][0]);
-}
-const PICKERS = { "career-path": pickWeighted, contexto: pickDaily, imposter: (i) => String(i.items[0][0]) };
+// The pickers are shared with the published path (gameData.js mirrors src/utils/gameData.ts).
+const { pickRandom, pickDaily, PICKERS } = gameData;
 
 /** One question for a game id (a room deals once so every member plays the same one). */
 async function deal(gameId) {
+  const published = await publishedQuestion(gameId);
+  if (published) return published;
   const index = await loadIndex(gameId);
   if (!index.items.length) throw new Error(`no questions for ${gameId}`);
   const qid = (PICKERS[gameId] || pickRandom)(index);
@@ -95,6 +132,6 @@ function nameLookup(names) {
   return { toId: (g) => toId.get(normalizeAnswer(g)) ?? null, nameOf: (id) => nameOf.get(id) ?? null };
 }
 
-function _setForTest(fixture) { testFiles = fixture ? fixture.files : null; manifest = null; files.clear(); }
+function _setForTest(fixture) { testFiles = fixture ? fixture.files : null; manifest = null; files.clear(); warned.clear(); }
 
 module.exports = { getManifest, loadNames, loadIndex, loadQuestion, deal, nameLookup, pickDaily, _setForTest };

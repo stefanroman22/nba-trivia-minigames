@@ -13,6 +13,12 @@
 //
 // DATA_PUBLIC_BASE unset, or the host failing, makes dealOrNull() return null so index.js falls
 // back to the backend endpoints in gameEndpoints.js (logged once per game).
+//
+// Question games ("kind": "questions"): fetchQuestion(game) reads index -> the game's picker ->
+// one question file, the exact payload the old Supabase questions store served, and
+// fetchQuestionNames() the "question_names" list. questions.js uses them whenever the manifest
+// publishes the game, and falls back to the store otherwise. The pickers live here and mirror
+// src/utils/gameData.ts (contexto: same UTC day -> same question on the site and the relay).
 
 const SCHEMA = 3;
 const MANIFEST_TTL_MS = 60_000;
@@ -52,14 +58,27 @@ function isManifest(m) {
   return !!m && typeof m === "object" && m.schema === SCHEMA && !!m.games && typeof m.games === "object";
 }
 
+const questionPath = (game, qid, sha12) => `${game}/${qid}.${sha12}.json`;
+
+function isPublishedIndex(v) {
+  return !!v && typeof v === "object" && typeof v.game === "string" && Array.isArray(v.items) && !!v.files && typeof v.files === "object";
+}
+
+/** Files a manifest references, plus the question files listed by its already-cached indexes. */
 function manifestFiles(m) {
   const paths = new Set();
   for (const entry of Object.values(m.games)) {
     if (entry.file) paths.add(entry.file);
     for (const c of entry.chunks || []) paths.add(c);
     for (const l of Object.values(entry.lookups || {})) paths.add(l);
+    if (entry.index) {
+      paths.add(entry.index);
+      const index = files.get(entry.index);
+      if (isPublishedIndex(index)) for (const [qid, sha] of Object.entries(index.files)) paths.add(questionPath(index.game, qid, sha));
+    }
   }
   if (m.names) paths.add(m.names);
+  if (m.question_names) paths.add(m.question_names);
   return paths;
 }
 
@@ -99,12 +118,16 @@ async function getManifest() {
   return manifestPromise;
 }
 
-async function cachedFile(path) {
+async function cachedJson(path, valid, what) {
   if (files.has(path)) return files.get(path);
   const value = await getJson(`${base()}/${path}`);
-  if (!Array.isArray(value)) throw new Error(`${path} is not a JSON array`);
+  if (!valid(value)) throw new Error(`${path} is not ${what}`);
   files.set(path, value);
   return value;
+}
+
+function cachedFile(path) {
+  return cachedJson(path, Array.isArray, "a JSON array");
 }
 
 /** THE expand() contract (publish_v3.py), mirrored from src/utils/gameData.ts. */
@@ -230,6 +253,66 @@ async function dealOrNull(gameId) {
   }
 }
 
+// ------------------------------------------------------------------ question games
+
+function utcToday() { return new Date().toISOString().slice(0, 10); }
+/** FNV-1a: contexto's daily fallback and SuperDraft's online objective. Same as src/utils/gameData.ts. */
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function pickRandom(index, rand = Math.random) { return String(index.items[Math.floor(rand() * index.items.length)][0]); }
+function pickWeighted(index, rand = Math.random) {
+  const total = index.items.reduce((s, it) => s + (Number(it[1]) || 1), 0);
+  let r = rand() * total;
+  for (const it of index.items) { r -= Number(it[1]) || 1; if (r <= 0) return String(it[0]); }
+  return String(index.items[index.items.length - 1][0]);
+}
+function pickDaily(index, today = utcToday()) {
+  const hit = index.items.find((it) => it[1] === today);
+  if (hit) return String(hit[0]);
+  const sorted = [...index.items].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return String(sorted[hashStr(today) % sorted.length][0]);
+}
+const PICKERS = { "career-path": pickWeighted, contexto: (i) => pickDaily(i), imposter: (i) => String(i.items[0][0]) };
+
+function hasQuestions(m, game) {
+  const entry = m && m.games && m.games[game];
+  return !!entry && entry.kind === "questions" && !!entry.index;
+}
+
+async function loadIndexFrom(m, game) {
+  if (!hasQuestions(m, game)) throw new Error(`no ${game} questions in manifest ${m.version}`);
+  return cachedJson(m.games[game].index, isPublishedIndex, "a question index");
+}
+
+async function loadQuestionFrom(m, game, rand, qid) {
+  const index = await loadIndexFrom(m, game);
+  if (!index.items.length) throw new Error(`no ${game} questions`);
+  const pick = qid || (PICKERS[game] || pickRandom)(index, rand);
+  const sha = index.files[pick];
+  if (!sha) throw new Error(`${game}/${pick} is not in the index`);
+  return cachedJson(questionPath(game, pick, sha), (v) => !!v && typeof v === "object" && !Array.isArray(v) && typeof v.qid === "string", "a question");
+}
+
+/** One question for a game from the published files (`qid` skips the picker). Throws on any failure. */
+async function fetchQuestion(game, rand = Math.random, qid) {
+  const m = await getManifest();
+  try {
+    return await loadQuestionFrom(m, game, rand, qid);
+  } catch (err) {
+    // A manifest up to 60 s old can point at an index a publish just retired: retry once on a fresh one.
+    manifest = null;
+    const fresh = await getManifest().catch(() => m);
+    if (fresh === m || JSON.stringify(fresh.games[game]) === JSON.stringify(m.games[game])) throw err;
+    return loadQuestionFrom(fresh, game, rand, qid);
+  }
+}
+
+/** The question games' NamesEntry list (manifest "question_names"). Throws when absent. */
+async function fetchQuestionNames() {
+  const m = await getManifest();
+  if (!m.question_names) throw new Error(`no question_names in manifest ${m.version}`);
+  return cachedJson(m.question_names, Array.isArray, "a names list");
+}
+
 function _resetForTest() {
   manifest = null;
   manifestPromise = null;
@@ -245,4 +328,5 @@ function _expireManifestForTest() {
 module.exports = {
   ROUND_GAMES, SIDE_GAMES, isConfigured, handles, getManifest, expand, randomizeSides,
   fetchGameRows, deal, dealOrNull, _resetForTest, _expireManifestForTest,
+  hasQuestions, fetchQuestion, fetchQuestionNames, pickRandom, pickWeighted, pickDaily, hashStr, utcToday, PICKERS,
 };
