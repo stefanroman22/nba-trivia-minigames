@@ -26,8 +26,11 @@ function GameResult({ score, maxPoints, onPlayAgain, onClose }: GameResultProps)
 
   const won = score > 0;
   const perfect = maxPoints > 0 && score >= maxPoints;
-  const title = perfect ? "Perfect game!" : won ? "Nice run!" : "Good try!";
-  const message = perfect
+  const unscored = maxPoints <= 0; // opinion games (Who Would Win): no points to report
+  const title = unscored ? "Thanks for voting!" : perfect ? "Perfect game!" : won ? "Nice run!" : "Good try!";
+  const message = unscored
+    ? "Your votes are in the community split. Run it back for a fresh set of matchups."
+    : perfect
     ? "Flawless."
     : won
       ? "Solid hoops IQ. Run it back to beat your score."
@@ -61,10 +64,12 @@ function GameResult({ score, maxPoints, onPlayAgain, onClose }: GameResultProps)
           )}
         </div>
         <h2 className="font-display" style={{ fontSize: 24 }}>{title}</h2>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "4px 0" }}>
-          <span className="font-display tnum" style={{ fontSize: 48, color: "var(--brand)" }}><AnimatedNumber value={score} /></span>
-          <span className="font-display" style={{ fontSize: 20, color: "var(--muted)" }}>/ {maxPoints}</span>
-        </div>
+        {!unscored && (
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "4px 0" }}>
+            <span className="font-display tnum" style={{ fontSize: 48, color: "var(--brand)" }}><AnimatedNumber value={score} /></span>
+            <span className="font-display" style={{ fontSize: 20, color: "var(--muted)" }}>/ {maxPoints}</span>
+          </div>
+        )}
         <p style={{ fontSize: 13.5, color: "var(--muted)", maxWidth: 300, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 14, width: "100%" }}>
           <Button block autoFocus onClick={onPlayAgain}>Play again</Button>

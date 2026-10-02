@@ -16,6 +16,7 @@ import Contexto from "../Game Renderers/Contexto";
 import PackFive from "../Game Renderers/PackFive";
 import SuperDraft from "../Game Renderers/SuperDraft";
 import ImposterGame from "../Game Renderers/ImposterGame";
+import WhoWouldWin from "../Game Renderers/WhoWouldWin";
 import NoPageFound from "../views/NoPageFound";
 import { nbaTeamColors, getContrastColor } from "../constants/nbaTeamColors";
 import { buttonTeamStyle } from "../constants/styles";
@@ -39,6 +40,7 @@ import type {
   SuperDraftQuestion,
   ContextoQuestion,
   ImposterQuestion,
+  WwwMatchup,
 } from "../types/types";
 
 interface RenderGameArgs {
@@ -242,6 +244,14 @@ export const renderGame = ({
           turn={turn}
           onTurnAction={onTurnAction}
           multiplayer={multiplayer}
+        />
+      );
+
+    case "who-would-win":
+      return (
+        <WhoWouldWin
+          gameInfo={gameData as WwwMatchup[]}
+          onGameEnd={onGameEnd}
         />
       );
 

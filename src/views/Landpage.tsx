@@ -119,7 +119,7 @@ const Landpage = () => {
                   description={game.description}
                   backgroundImage={game.backgroundImage}
                   tag={game.tag}
-                  pointLabel={game.id === "coming-soon" ? "SOON" : `${game.maxPoints} pts`}
+                  pointLabel={game.id === "coming-soon" ? "SOON" : game.maxPoints > 0 ? `${game.maxPoints} pts` : "VOTE"}
                   cta={game.id === "coming-soon" ? "Coming soon" : "Play now"}
                   index={index}
                   disabled={game.id === "coming-soon"}

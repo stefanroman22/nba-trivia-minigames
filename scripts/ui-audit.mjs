@@ -52,6 +52,7 @@ const GAMES = [
   ['pack-five', '/pack-five'],
   ['superdraft', '/superdraft'],
   ['imposter', '/imposter'],
+  ['who-would-win', '/who-would-win'],
 ];
 
 const only = args.only ? String(args.only).split(',').map((s) => s.trim()) : null;

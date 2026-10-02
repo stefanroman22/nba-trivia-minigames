@@ -24,6 +24,7 @@ import thumb_contexto from "../assets/Games Backrounds/thumb_contexto.jpg";
 import thumb_pack_five from "../assets/Games Backrounds/thumb_pack_five.jpg";
 import thumb_superdraft from "../assets/Games Backrounds/thumb_superdraft.jpg";
 import thumb_imposter from "../assets/Games Backrounds/thumb_imposter.jpg";
+import thumb_who_would_win from "../assets/Games Backrounds/thumb_who_would_win.jpg";
 
 export const handleErrorDefault = async (error: { title: string; message: string }) => {
   const Swal = (await import("sweetalert2")).default; // out of the startup bundle
@@ -598,6 +599,37 @@ export const games: Game[] = [
     fetchData: () => fetchQuestion("imposter"),
     handleError: handleErrorDefault,
     hidden: true,
+  },
+  {
+    id: "who-would-win",
+    name: "Who Would Win?",
+    tag: "VOTE",
+    description: "Pick a side in 10 dream matchups, then see how the crowd voted.",
+    intro: "No right answers, just takes. Back a side, then see where the community landed.",
+    rules: [
+      { n: "1", t: "Ten hypothetical matchups between legendary teams from different eras." },
+      { n: "2", t: "Tap the side you think wins. Your vote joins the live community split." },
+      { n: "3", t: "No points here. At the end, see how often you sided with the crowd." },
+    ],
+    instruction: `
+      <div class="space-y-2">
+        <p>Dream matchups, real debate. Which team takes it if they played each other in their primes?</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Goal:</strong> Vote for the side you think wins each of the 10 matchups.</li>
+          <li><strong>Split:</strong> After every vote you see how the community voted, live.</li>
+          <li><strong>Reward:</strong> No points. Finish to see how often you sided with the crowd.</li>
+        </ul>
+        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
+    loadingMessage: "Setting up the matchups...",
+    backgroundImage: `url('${thumb_who_would_win.src}')`,
+    urlPath: "/who-would-win",
+    pointsPerCorrect: 0,
+    maxPoints: 0,
+    roundsLabel: "10 matchups",
+    fetchData: () => fetchGamePool("who-would-win", 10),
+    handleError: handleErrorDefault,
   },
   {
     id: "coming-soon",
