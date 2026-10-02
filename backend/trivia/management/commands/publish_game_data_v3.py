@@ -1,0 +1,102 @@
+"""Build the manifest-v3 game-data folder for the static data host.
+
+Builds the selected pool games from the DB with the existing builders, validates
+them, lays them out as content-addressed chunk/lookup files
+(trivia/data_pipeline/publish_v3.py), diffs against the live manifest and writes a
+deploy folder (default build/game-data) for .github/workflows/publish-game-data.yml
+to upload. Uploads nothing itself and never calls the NBA website: needs only
+DATABASE_URL + DJANGO_SECRET_KEY (plus DATA_PUBLIC_BASE to diff against the live
+publication).
+
+Exit codes: 0 with "nothing to publish" when no selected game changed (and
+``result=nothing-to-publish`` in $GITHUB_OUTPUT); non-zero with nothing written
+on any build/validation/fetch failure.
+"""
+
+import json
+import os
+
+from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
+
+from trivia.data_pipeline import publish_v3
+
+
+class Command(BaseCommand):
+    help = "Build the manifest-v3 game-data deploy folder (pool games)."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--games", default="",
+                            help=f"Comma-separated games (default all: {','.join(publish_v3.GAMES)})")
+        parser.add_argument("--out", default=os.path.join("build", "game-data"),
+                            help="Deploy folder to write (default build/game-data)")
+        parser.add_argument("--previous", default=None,
+                            help="Live manifest to diff against: URL or path (default "
+                                 "$DATA_PUBLIC_BASE/manifest.json; none = everything is new)")
+        parser.add_argument("--report", default=None,
+                            help="JSON report path (default game-data-report.json next to --out)")
+        parser.add_argument("--dry-run", action="store_true",
+                            help="Build, validate and diff only; write nothing")
+
+    def handle(self, *args, **opts):
+        games = [g.strip() for g in opts["games"].split(",") if g.strip()] or list(publish_v3.GAMES)
+        out_dir = os.path.abspath(opts["out"])
+        report_path = opts["report"] or os.path.join(os.path.dirname(out_dir), "game-data-report.json")
+        location = opts["previous"] or os.environ.get("DATA_PUBLIC_BASE", "").strip() or None
+        previous = publish_v3.PreviousSource(location) if location else None
+        self.stdout.write(f"Games: {', '.join(games)}")
+        self.stdout.write(f"Previous publication: {previous or 'none (everything is new)'}")
+
+        try:
+            report = publish_v3.publish(
+                games, out_dir, previous=previous,
+                origins=getattr(settings, "CORS_ALLOWED_ORIGINS", []),
+                dry_run=opts["dry_run"],
+                warn=lambda msg: self.stdout.write(self.style.WARNING(f"  warning: {msg}")),
+            )
+        except publish_v3.PublishError as e:
+            raise CommandError(f"Publish aborted, nothing written: {e}") from e
+
+        self._print_table(report)
+        _github_output({"result": report["result"], "version": report["version"] or ""})
+        _github_summary(report)
+        if report["result"] == "nothing-to-publish":
+            self.stdout.write(self.style.SUCCESS("nothing to publish"))
+            return
+        if opts["dry_run"]:
+            self.stdout.write(self.style.SUCCESS(f"Dry run: would publish version {report['version']}"))
+            return
+        os.makedirs(os.path.dirname(report_path), exist_ok=True)
+        with open(report_path, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+        _github_output({"report": report_path, "out": out_dir})
+        self.stdout.write(self.style.SUCCESS(
+            f"Wrote {out_dir} (version {report['version']}); report {report_path}"))
+
+    def _print_table(self, report):
+        self.stdout.write(f"{'game':<15} {'status':<10} {'rows':>6} {'files':>6} {'bytes':>9} {'upload':>9}")
+        for g in report["games"]:
+            self.stdout.write(f"{g['game']:<15} {g['status']:<10} {g['rows']:>6} {g['files']:>6} "
+                              f"{g['bytes']:>9} {g['upload_bytes']:>9}")
+
+
+def _github_output(values):
+    path = os.environ.get("GITHUB_OUTPUT")
+    if not path:
+        return
+    with open(path, "a", encoding="utf-8") as f:
+        for key, value in values.items():
+            f.write(f"{key}={value}\n")
+
+
+def _github_summary(report):
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    lines = [f"### Game data: {report['result']}"
+             + (f" (version {report['version']})" if report["version"] else ""), "",
+             "| game | status | rows | bytes | upload bytes |", "|---|---|---:|---:|---:|"]
+    lines += [f"| {g['game']} | {g['status']} | {g['rows']} | {g['bytes']} | {g['upload_bytes']} |"
+              for g in report["games"]]
+    with open(path, "a", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n\n")
