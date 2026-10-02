@@ -132,6 +132,7 @@ CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
 ```
 The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the offline questions pipeline only — not needed on Vercel.
+`DATA_PUBLIC_BASE` (the static game-data host's public URL) is read only by `manage.py publish_game_data_v3`, which runs in the manual `publish-game-data.yml` workflow (repo variable `vars.DATA_PUBLIC_BASE`) — not needed on Vercel either.
 
 ### Multiplayer server (Render / Node host)
 ```

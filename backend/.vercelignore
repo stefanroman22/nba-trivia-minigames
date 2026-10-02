@@ -6,3 +6,4 @@ media/
 venv/
 __pycache__/
 *.pyc
+/build/
