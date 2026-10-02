@@ -69,7 +69,20 @@ def manifest_files(manifest):
         out[game] = paths
     if manifest.get("names"):
         out["all-players"] = [manifest["names"]]
+    if manifest.get("question_names"):
+        out["question-names"] = [manifest["question_names"]]
     return out
+
+
+def question_files(base, index_path, get=http_get):
+    """The question files a published question index lists ({game}/{qid}.{sha12}.json)."""
+    status, headers, body = get(f"{base}/{urllib.parse.quote(index_path)}", {"Accept-Encoding": "gzip"})
+    if status != 200:
+        raise OSError(f"{index_path}: HTTP {status}")
+    if "gzip" in {k.lower(): v for k, v in headers.items()}.get("content-encoding", ""):
+        body = gzip.decompress(body)
+    index = json.loads(body)
+    return [f"{index['game']}/{qid}.{sha}.json" for qid, sha in index["files"].items()]
 
 
 def file_size(base, path, get=http_get):
@@ -86,6 +99,12 @@ def published_bytes(base, manifest, get=http_get):
     """Totals and per-game sizes of the live published set; failed files are listed."""
     games, failed = {}, []
     for game, paths in sorted(manifest_files(manifest).items()):
+        index = ((manifest.get("games") or {}).get(game) or {}).get("index")
+        if index:  # a question game: the index lists one file per question
+            try:
+                paths = paths + question_files(base, index, get)
+            except (OSError, ValueError, KeyError, TypeError) as e:
+                failed.append(f"{index}: question files not listed ({e})")
         raw = served = 0
         for path in paths:
             try:

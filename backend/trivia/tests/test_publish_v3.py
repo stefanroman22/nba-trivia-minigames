@@ -318,6 +318,8 @@ class PublishCommandTests(TestCase):
 
     def _call(self, *args):
         out = StringIO()
+        if "--games" not in args:  # the pool games (question games: test_publish_v3_questions)
+            args = ("--games", ",".join(GAMES)) + args
         call_command("publish_game_data_v3", *args, stdout=out)
         return out.getvalue()
 

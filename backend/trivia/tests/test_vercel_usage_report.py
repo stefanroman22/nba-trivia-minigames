@@ -84,6 +84,26 @@ class ManifestParsingTests(SimpleTestCase):
         self.assertEqual(sizes["raw"], 7 * 5)
 
 
+    def test_question_games_count_their_index_and_every_question_file(self):
+        manifest = {"games": {"career-path": {"kind": "questions", "rows": 2,
+                                              "index": "career-path/index.0a1b2c3d4e5f.json"}},
+                    "question_names": "shared/question-names.111111111111.json"}
+        index = {"game": "career-path", "items": [["cp-1", 1], ["cp-2", 3]],
+                 "files": {"cp-1": "aaaaaaaaaaaa", "cp-2": "bbbbbbbbbbbb"}}
+        seen = []
+
+        def get(url, headers=None):
+            seen.append(urllib.parse.urlparse(url).path)
+            if "index." in url:
+                return 200, {"Content-Encoding": "gzip"}, gzip.compress(json.dumps(index).encode())
+            return 200, {}, b"x" * 10
+        sizes = usage.published_bytes(BASE, manifest, get)
+        self.assertEqual(sizes["games"]["career-path"]["files"], 3)
+        self.assertEqual(sizes["games"]["question-names"]["files"], 1)
+        self.assertIn("/career-path/cp-2.bbbbbbbbbbbb.json", seen)
+        self.assertEqual(sizes["failed"], [])
+
+
 class DeploymentsTests(SimpleTestCase):
     def test_paginates_and_keeps_only_the_window(self):
         host = FakeHost()
