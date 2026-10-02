@@ -1,4 +1,4 @@
-# Home-only dependency for `manage.py publish_game_data` (uploads game data to
-# Cloudflare R2 via the S3 API). NOT needed by the Render web service. Install at
-# home alongside the weekly refresh: pip install -r requirements-publish.txt
+# Dependency for the Supabase Storage uploads (manage.py upload_dataset and
+# maintain_questions, via the S3 API). Not needed by the web service or by
+# publish_game_data_v3. Install where those run: pip install -r requirements-publish.txt
 boto3

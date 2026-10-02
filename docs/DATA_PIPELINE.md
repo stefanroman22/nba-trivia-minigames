@@ -70,9 +70,11 @@ is re-cleaned automatically; the store keeps the raw rows either way.
 
 Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.cmd`
 monthly (1st, 04:00). It: sync → `upload_dataset` → `gh workflow run
-publish-game-data.yml` (the "Publish game data" workflow builds the files from the DB
-and uploads only what changed to the data host; nothing is committed and the website
-is not redeployed). `gh` must be logged in as `stefanroman22`; if it is missing or
+publish-game-data.yml` (the "Publish game data" workflow builds the files from the DB,
+runs the question maintenance for the four public question games, and uploads only what
+changed to the data host; nothing is committed and the website is not redeployed).
+`upload_dataset` now only feeds `maintain_questions` (the Supabase snapshot the hidden games
+and the fallback read); the publish workflow reads the committed `players_curated.json`. `gh` must be logged in as `stefanroman22`; if it is missing or
 logged out the script logs an ERROR line and exits non-zero. (A `.ps1`
 equivalent exists too, but the task uses the `.cmd` — more reliable under Task
 Scheduler. Verified end-to-end on 2026-06-22.)
@@ -95,36 +97,15 @@ schtasks /Delete /TN "NBA Data Refresh" /F
   only requires the PC to be on at run time (Task Scheduler runs a missed job at
   next logon). For pure-cloud scheduling you'd need a residential proxy (paid).
 
-## Optional: publish to Cloudflare R2 instead of the Vercel CDN
+## Cloudflare R2 (second data-host target)
 
-The default path above needs nothing extra — the pools ship inside the frontend build and
-Vercel's CDN serves them from `/data/`. R2 is an **alternative** for a dedicated data domain
-(e.g. serving the same pools to a future mobile app without shipping them in that app's bundle):
-
-```bash
-pip install -r requirements-publish.txt          # one-time (boto3; home machine only)
-venv/Scripts/python.exe manage.py publish_game_data --dry-run   # preview the upload plan, no creds
-venv/Scripts/python.exe manage.py publish_game_data             # real upload (needs R2 env vars)
-```
-
-`publish_game_data` reads `trivia/data/manifest.json` for the version, uploads each pool to
-`v/<version>/<key>.json` (immutable, cached forever) plus a small `manifest.json` (60s TTL)
-pointing at the public CDN URLs. Clients see the new `version` and fetch new immutable files;
-old versions stay cached, so updates are instant and never stale.
-
-**One-time R2 setup:** create a bucket + an S3 API token (Access Key ID + Secret), attach a
-**custom domain** to the bucket (required for CDN caching — the `r2.dev` URL is not cached), then
-set on the home machine / scheduled task:
-
-```
-R2_ACCOUNT_ID=...
-R2_BUCKET=nba-minigames
-R2_ACCESS_KEY_ID=...
-R2_SECRET_ACCESS_KEY=...
-R2_PUBLIC_BASE_URL=https://data.<your-domain>        # the bucket's custom domain
-```
-
-The Vercel backend needs none of these — only set them where you run `publish_game_data`.
+The old `publish_game_data` command (whole pools to R2 under `v/<version>/`) was removed in
+phase 6 of `docs/team/designs/2026-10-02-independent-game-data-publishing.md`: it was never
+used. R2 is now a **target** of the manifest-v3 publisher instead: the same deploy folder
+`publish_game_data_v3` writes (`_headers.json` carries the per-object cache headers and the
+bucket CORS block) is uploaded by the `target: r2` branch of `publish-game-data.yml`, which is
+not wired yet. Moving to R2 is an owner decision (Cloudflare account, custom domain; see the
+design's hosting table).
 
 ## Authoring seed content — quality guidelines
 
