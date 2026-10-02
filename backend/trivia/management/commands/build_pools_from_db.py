@@ -22,7 +22,7 @@ from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_
 from trivia.data_pipeline.validate import validate_pool
 from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
 from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
-from trivia.utils.fan_favorites import refresh_live_standings
+from trivia.utils.fan_favorites import live_standings, refresh_live_standings
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
 
@@ -109,14 +109,18 @@ def build_starting_five():
     return canonical_lineup_names(playable_lineups(rows), build_all_players())
 
 
-def build_fan_favorites():
+def build_fan_favorites(persist=True):
     # Auto seed->live transition: boards with enough real guesses re-rank first.
-    refresh_live_standings()
-    return [
-        {"qid": q.qid, "prompt": q.prompt, "survey_date": q.survey_date,
-         "category": q.category, "answers": q.answers}
-        for q in FanFavoritesQuestion.objects.filter(live=True).order_by("qid")
-    ]
+    # persist=False (the read-only freshness check) applies the same re-rank in
+    # memory only, so it sees exactly the rows a publish would build, with no writes.
+    if persist:
+        refresh_live_standings()
+    rows = []
+    for q in FanFavoritesQuestion.objects.filter(live=True).order_by("qid"):
+        answers = q.answers if persist else (live_standings(q) or q.answers)
+        rows.append({"qid": q.qid, "prompt": q.prompt, "survey_date": q.survey_date,
+                     "category": q.category, "answers": answers})
+    return rows
 
 
 BUILDERS = {

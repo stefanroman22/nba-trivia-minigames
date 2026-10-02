@@ -8,7 +8,9 @@ from unittest.mock import patch
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 
 from trivia.data_pipeline import publish_v3
 from trivia.data_pipeline.publish_v3 import (
@@ -27,8 +29,9 @@ from trivia.data_pipeline.publish_v3 import (
 )
 from trivia.data_pipeline.starting_five import is_playable_lineup
 from trivia.management.commands import build_pools_from_db
-from trivia.models import FanFavoritesQuestion, Mvp, PlayoffSeries, StartingFiveGame, Team
+from trivia.models import FanFavoritesQuestion, GuessLog, Mvp, PlayoffSeries, StartingFiveGame, Team
 from trivia.tests.published_pool import published_pool
+from trivia.utils.fan_favorites import LIVE_STANDINGS_MIN_GUESSES
 
 DAY = datetime(2026, 10, 2, 9, 0, tzinfo=timezone.utc)
 
@@ -417,3 +420,146 @@ class RealBuildersTests(TestCase):
         self.assertTrue(all(is_playable_lineup(r["starting_5"]) for r in rows))
         accents = next(r for r in rows if r["game_id"] == "accents")
         self.assertEqual(accents["starting_5"][0]["name"], "Bojan Bogdanovic")
+
+
+class FreshnessCheckTests(TestCase):
+    """--check-only: read-only build, diff against the live manifest, never fails."""
+
+    def setUp(self):
+        self.pools = _committed()
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = self._tmp.name
+        env = patch.dict(os.environ, {"GITHUB_OUTPUT": os.path.join(self.tmp, "gh-output")})
+        env.start()
+        self.addCleanup(env.stop)
+        os.environ.pop("DATA_PUBLIC_BASE", None)
+        os.environ.pop("GITHUB_STEP_SUMMARY", None)
+        # A live publication of the committed pools.
+        publish(list(GAMES), os.path.join(self.tmp, "live"), builders=_builders(self.pools),
+                now=DAY, warn=lambda m: None)
+        self.live = PreviousSource(os.path.join(self.tmp, "live"))
+
+    def _call(self, *args):
+        out = StringIO()
+        call_command("publish_game_data_v3", "--check-only", *args, stdout=out)
+        return out.getvalue()
+
+    def _gh_output(self):
+        with open(os.environ["GITHUB_OUTPUT"], encoding="utf-8") as f:
+            return f.read()
+
+    def test_unchanged_data_is_fresh(self):
+        report = publish_v3.check(list(GAMES), previous=self.live, builders=_builders(self.pools))
+        self.assertEqual(report["result"], "fresh")
+        self.assertEqual(report["stale"], [])
+        self.assertEqual(report["live_version"], "2026-10-02.1")
+        self.assertEqual({g["status"] for g in report["games"]}, {"unchanged"})
+
+    def test_reports_only_the_changed_games(self):
+        pools = copy.deepcopy(self.pools)
+        pools["mvps"][0]["mvp"] = "Someone Else"
+        pools["playoff"][0]["round"] = "Changed"
+        report = publish_v3.check(list(GAMES), previous=self.live, builders=_builders(pools))
+        self.assertEqual(report["result"], "stale")
+        self.assertEqual(sorted(report["stale"]), ["mvps", "playoff"])
+        status = {g["game"]: g["status"] for g in report["games"]}
+        self.assertEqual(status["mvps"], "changed")
+        self.assertEqual(status["name-logo"], "unchanged")
+
+    def test_command_reports_stale_games_and_writes_only_the_report(self):
+        pools = copy.deepcopy(self.pools)
+        pools["mvps"][0]["mvp"] = "Someone Else"
+        report_path = os.path.join(self.tmp, "fresh", "report.json")
+        before = sorted(os.listdir(self.tmp))
+        with patch.object(publish_v3, "default_builders", return_value=_builders(pools)) as builders:
+            output = self._call("--previous", os.path.join(self.tmp, "live", "manifest.json"),
+                                "--report", report_path)
+        builders.assert_called_once_with(read_only=True)
+        self.assertIn("result: stale (stale: mvps)", output)
+        self.assertEqual(_load(os.path.dirname(report_path), "report.json")["stale"], ["mvps"])
+        self.assertIn("result=stale", self._gh_output())
+        self.assertIn("stale=mvps", self._gh_output())
+        # No deploy folder, no game-data-report.json: only the requested report appeared.
+        self.assertEqual(sorted(os.listdir(self.tmp)), sorted(set(before) | {"fresh", "gh-output"}))
+
+    def test_unreachable_live_manifest_reports_unknown_without_crashing(self):
+        def boom(self, rel):
+            raise PublishError("GET https://data.example/manifest.json failed: timed out")
+
+        with patch.object(PreviousSource, "read", boom), \
+                patch.object(publish_v3, "default_builders", return_value=_builders(self.pools)):
+            output = self._call("--previous", "https://data.example")
+        self.assertIn("result: unknown", output)
+        self.assertIn("cannot read the live manifest", output)
+        self.assertIn("result=unknown", self._gh_output())
+        self.assertIn("stale=\n", self._gh_output())
+
+    def test_unreachable_host_for_real_is_unknown(self):
+        # Port 9 (discard) on localhost: refused straight away, no network needed.
+        report = publish_v3.check(["mvps"], previous=PreviousSource("http://127.0.0.1:9"),
+                                  builders=_builders(self.pools))
+        self.assertEqual(report["result"], "unknown")
+        self.assertEqual(report["games"][0]["status"], "unknown")
+
+    def test_no_live_location_is_unknown(self):
+        output = self._call()
+        self.assertIn("result: unknown", output)
+
+    def test_a_broken_game_does_not_hide_the_others(self):
+        pools = copy.deepcopy(self.pools)
+        pools["mvps"][0]["mvp"] = "Someone Else"
+        pools["playoff"] = []
+        report = publish_v3.check(list(GAMES), previous=self.live, builders=_builders(pools))
+        status = {g["game"]: g["status"] for g in report["games"]}
+        self.assertEqual(status["playoff"], "error")
+        self.assertEqual(report["stale"], ["mvps"])
+        self.assertEqual(report["result"], "stale")
+        self.assertIn("playoff", report["error"])
+
+
+class FreshnessCheckReadOnlyTests(TestCase):
+    """The real builders in read-only mode issue no write queries at all."""
+
+    def setUp(self):
+        patcher = patch.object(build_pools_from_db, "build_all_players",
+                               return_value=["Stephen Curry", "Klay Thompson"])
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        gsw = (1610612744, "Golden State Warriors", "GSW")
+        bos = (1610612738, "Boston Celtics", "BOS")
+        _series("2021-22", "2021-22-b", gsw, bos, rnd="NBA Finals")
+        Team.objects.create(team_id=gsw[0], full_name=gsw[1], abbreviation=gsw[2])
+        Mvp.objects.create(season="2015-16", mvp="Stephen Curry", team="Golden State Warriors",
+                           team_logo_url="https://example.com/gsw.png")
+        self.seed = [{"answer": f"P{i}", "count": 40 - i, "aliases": []} for i in range(6)]
+        FanFavoritesQuestion.objects.create(qid="ff-001", prompt="Name a player",
+                                            survey_date="2026-07-01", answers=self.seed)
+        # Enough live guesses that a publish WOULD re-rank (and save) this board.
+        GuessLog.objects.bulk_create(
+            [GuessLog(game="fan-favorites", question_id="ff-001", answer="P5", correct=True)
+             for _ in range(LIVE_STANDINGS_MIN_GUESSES)])
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+
+    def test_check_only_performs_zero_db_writes(self):
+        games = ["playoff", "name-logo", "mvps", "fan-favorites"]
+        with patch.object(build_pools_from_db, "refresh_live_standings",
+                          side_effect=AssertionError("re-rank must not run")), \
+                CaptureQueriesContext(connection) as ctx:
+            report = publish_v3.check(games, previous=PreviousSource(self._tmp.name))
+        writes = [q["sql"] for q in ctx.captured_queries
+                  if q["sql"].lstrip().split(" ", 1)[0].upper() in ("INSERT", "UPDATE", "DELETE")]
+        self.assertEqual(writes, [])
+        self.assertGreater(len(ctx.captured_queries), 0)
+        self.assertEqual(FanFavoritesQuestion.objects.get(qid="ff-001").answers, self.seed)
+        # No live publication yet: every game is new, hence stale.
+        self.assertEqual(report["result"], "stale")
+        self.assertEqual(sorted(report["stale"]), sorted(games))
+
+    def test_read_only_build_matches_what_a_publish_would_build(self):
+        read_only = publish_v3.default_builders(read_only=True)["fan-favorites"]()
+        self.assertEqual(read_only[0]["answers"][0], {"answer": "P5", "count": 100, "aliases": []})
+        self.assertEqual(FanFavoritesQuestion.objects.get(qid="ff-001").answers, self.seed)
+        persisted = publish_v3.default_builders()["fan-favorites"]()
+        self.assertEqual(persisted, read_only)

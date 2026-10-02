@@ -11,6 +11,12 @@ publication).
 Exit codes: 0 with "nothing to publish" when no selected game changed (and
 ``result=nothing-to-publish`` in $GITHUB_OUTPUT); non-zero with nothing written
 on any build/validation/fetch failure.
+
+``--check-only`` is the daily freshness check (.github/workflows/game-data-freshness.yml):
+it builds the rows read-only (no DB writes, Fan Favorites re-ranked in memory),
+diffs them against the live manifest, writes only the optional --report JSON and
+always exits 0, with ``result=fresh|stale|unknown`` and ``stale=<games>`` in
+$GITHUB_OUTPUT.
 """
 
 import json
@@ -37,9 +43,15 @@ class Command(BaseCommand):
                             help="JSON report path (default game-data-report.json next to --out)")
         parser.add_argument("--dry-run", action="store_true",
                             help="Build, validate and diff only; write nothing")
+        parser.add_argument("--check-only", action="store_true",
+                            help="Read-only freshness check: no DB writes, no folder; reports which "
+                                 "games differ from the live manifest (JSON only with --report) and "
+                                 "always exits 0")
 
     def handle(self, *args, **opts):
         games = [g.strip() for g in opts["games"].split(",") if g.strip()] or list(publish_v3.GAMES)
+        if opts["check_only"]:
+            return self._check(games, opts)
         out_dir = os.path.abspath(opts["out"])
         report_path = opts["report"] or os.path.join(os.path.dirname(out_dir), "game-data-report.json")
         location = opts["previous"] or os.environ.get("DATA_PUBLIC_BASE", "").strip() or None
@@ -73,6 +85,42 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"Wrote {out_dir} (version {report['version']}); report {report_path}"))
 
+    def _check(self, games, opts):
+        """--check-only: never writes to the DB or the deploy folder, never fails."""
+        location = opts["previous"] or os.environ.get("DATA_PUBLIC_BASE", "").strip() or None
+        self.stdout.write(f"Freshness check: {', '.join(games)} vs {location or '(no live manifest)'}")
+        try:
+            previous = publish_v3.PreviousSource(location) if location else None
+            report = publish_v3.check(games, previous=previous)
+        except Exception as e:  # the check must never fail the job
+            report = {"result": "unknown", "live_version": None, "stale": [],
+                      "error": f"check crashed: {e}",
+                      "games": [{"game": g, "status": "unknown", "rows": 0, "bytes": 0} for g in games]}
+        for g in report["games"]:
+            self.stdout.write(f"{g['game']:<15} {g['status']:<10} {g['rows']:>6} {g['bytes']:>9}"
+                              + (f"  {g['error']}" if g.get("error") else ""))
+        if report.get("error"):
+            self.stdout.write(self.style.WARNING(f"  warning: {report['error']}"))
+        stale = ",".join(report["stale"])
+        self.stdout.write(f"result: {report['result']}" + (f" (stale: {stale})" if stale else "")
+                          + f"; live version {report.get('live_version') or 'unknown'}")
+        if opts["report"]:
+            try:
+                os.makedirs(os.path.dirname(os.path.abspath(opts["report"])), exist_ok=True)
+                with open(opts["report"], "w", encoding="utf-8") as f:
+                    json.dump(report, f, indent=2)
+            except OSError as e:
+                self.stdout.write(self.style.WARNING(f"  warning: could not write report: {e}"))
+        _github_output({"result": report["result"], "stale": stale,
+                        "live_version": report.get("live_version") or ""})
+        lines = [f"### Game data freshness: {report['result']}"
+                 + (f" (live version {report['live_version']})" if report.get("live_version") else ""),
+                 "", "| game | status | rows | bytes |", "|---|---|---:|---:|"]
+        lines += [f"| {g['game']} | {g['status']} | {g['rows']} | {g['bytes']} |" for g in report["games"]]
+        if report.get("error"):
+            lines += ["", f"Warning: {report['error']}"]
+        _github_summary_lines(lines)
+
     def _print_table(self, report):
         self.stdout.write(f"{'game':<15} {'status':<10} {'rows':>6} {'files':>6} {'bytes':>9} {'upload':>9}")
         for g in report["games"]:
@@ -100,3 +148,14 @@ def _github_summary(report):
               for g in report["games"]]
     with open(path, "a", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n\n")
+
+
+def _github_summary_lines(lines):
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not path:
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n\n")
+    except OSError:
+        pass
