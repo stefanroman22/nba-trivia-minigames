@@ -348,8 +348,12 @@ def winner_first(series):
     return digest[0] % 2 == 0
 
 
-def default_builders():
-    """The existing pool builders (build_pools_from_db), keyed by game."""
+def default_builders(read_only=False):
+    """The existing pool builders (build_pools_from_db), keyed by game.
+
+    read_only=True never writes to the database: Fan Favorites applies the live
+    re-rank in memory instead of saving it (used by the freshness check).
+    """
     from trivia.management.commands import build_pools_from_db as pools
 
     return {
@@ -357,7 +361,7 @@ def default_builders():
         "name-logo": pools.build_name_logo,
         "mvps": pools.build_mvps,
         "starting-five": pools.build_starting_five,
-        "fan-favorites": pools.build_fan_favorites,
+        "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only),
         NAMES_GAME: pools.build_all_players,
     }
 
@@ -666,4 +670,64 @@ def publish(games, out_dir, previous=None, origins=(), builders=None, now=None,
     files = collect_files(manifest, prev_history, builds, previous, warn)
     write_folder(out_dir, files, manifest, history, origins)
     report["manifest_sha256"] = sha256_hex(dump(manifest))
+    return report
+
+
+# ------------------------------------------------------------ freshness check
+
+STALE_STATUSES = ("new", "changed")
+
+
+def check(games, previous=None, builders=None, now=None):
+    """Read-only freshness check: would a publish of ``games`` change anything?
+
+    Builds every game with the read-only builders (no DB writes) and diffs it
+    against the live manifest. Writes nothing and never raises. Returns::
+
+        {"result": "fresh" | "stale" | "unknown", "checked_at": ..., "live_version": ...,
+         "stale": [game, ...], "error": str | None,
+         "games": [{"game", "status", "rows", "bytes"[, "error"]}, ...]}
+
+    A game's status is unchanged / changed / new (as in a publish), "error" when
+    its builder or validation fails (the other games are still checked), or
+    "unknown" for every game when the live manifest can't be read.
+    """
+    now = now or datetime.now(timezone.utc)
+    report = {"result": "unknown", "checked_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "live_version": None, "stale": [], "error": None, "games": []}
+    if previous is None:
+        report["error"] = "no live manifest location (set DATA_PUBLIC_BASE or pass --previous)"
+        report["games"] = [{"game": g, "status": "unknown", "rows": 0, "bytes": 0} for g in games]
+        return report
+    try:
+        prev_manifest, _ = load_previous(previous)
+    except Exception as e:  # unreachable / not JSON / wrong schema: report, don't crash
+        report["error"] = f"cannot read the live manifest: {e}"
+        report["games"] = [{"game": g, "status": "unknown", "rows": 0, "bytes": 0} for g in games]
+        return report
+    report["live_version"] = (prev_manifest or {}).get("version")
+
+    builders = builders or default_builders(read_only=True)
+    builds, errors = {}, {}
+    for game in games:
+        try:
+            builds.update(build_games([game], builders))
+        except Exception as e:  # one broken game must not hide the others
+            errors[game] = str(e)
+    by_game = {row["game"]: row for row in diff_games(prev_manifest, builds)}
+    for game in games:
+        if game in errors:
+            report["games"].append({"game": game, "status": "error", "rows": 0, "bytes": 0,
+                                    "error": errors[game]})
+            continue
+        row = by_game[game]
+        report["games"].append({"game": game, "status": row["status"], "rows": row["rows"],
+                                "bytes": row["bytes"]})
+    report["stale"] = [g["game"] for g in report["games"] if g["status"] in STALE_STATUSES]
+    if errors:
+        report["error"] = "; ".join(f"{g}: {e}" for g, e in errors.items())
+    if report["stale"]:
+        report["result"] = "stale"
+    else:
+        report["result"] = "unknown" if errors else "fresh"
     return report

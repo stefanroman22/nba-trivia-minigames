@@ -40,32 +40,45 @@ def load_seed():
     ]
 
 
+def live_standings(q):
+    """The question's answers re-ranked from real correct guesses, or None when
+    it has fewer than LIVE_STANDINGS_MIN_GUESSES samples. Read-only: returns new
+    answer dicts and never touches ``q`` or the database."""
+    from trivia.models import GuessLog
+
+    logs = GuessLog.objects.filter(
+        game="fan-favorites", question_id=q.qid, correct=True
+    )
+    total = logs.count()
+    if total < LIVE_STANDINGS_MIN_GUESSES:
+        return None
+    counts = {}
+    for ans in logs.values_list("answer", flat=True):
+        counts[ans] = counts.get(ans, 0) + 1
+    # Correct guesses are logged with the canonical answer string, so a
+    # straight value-count re-ranks the board; counts rescale to /100.
+    # Any answer that was actually guessed keeps at least 1 (a revealed
+    # slot must never read "0 fans said it").
+    answers = sorted(
+        (dict(a) for a in q.answers),
+        key=lambda a: counts.get(a.get("answer"), 0), reverse=True,
+    )
+    for a in answers:
+        n = counts.get(a.get("answer"), 0)
+        a["count"] = max(1, round(100 * n / total)) if n else 0
+    return answers
+
+
 def refresh_live_standings():
     """Re-rank each question's answers from real correct guesses once it has
     >= LIVE_STANDINGS_MIN_GUESSES samples. Returns how many questions updated."""
-    from trivia.models import FanFavoritesQuestion, GuessLog
+    from trivia.models import FanFavoritesQuestion
 
     updated = 0
     for q in FanFavoritesQuestion.objects.filter(live=True):
-        logs = GuessLog.objects.filter(
-            game="fan-favorites", question_id=q.qid, correct=True
-        )
-        total = logs.count()
-        if total < LIVE_STANDINGS_MIN_GUESSES:
+        answers = live_standings(q)
+        if answers is None:
             continue
-        counts = {}
-        for ans in logs.values_list("answer", flat=True):
-            counts[ans] = counts.get(ans, 0) + 1
-        # Correct guesses are logged with the canonical answer string, so a
-        # straight value-count re-ranks the board; counts rescale to /100.
-        # Any answer that was actually guessed keeps at least 1 (a revealed
-        # slot must never read "0 fans said it").
-        answers = sorted(
-            q.answers, key=lambda a: counts.get(a.get("answer"), 0), reverse=True
-        )
-        for a in answers:
-            n = counts.get(a.get("answer"), 0)
-            a["count"] = max(1, round(100 * n / total)) if n else 0
         q.answers = answers
         q.save(update_fields=["answers"])
         updated += 1
