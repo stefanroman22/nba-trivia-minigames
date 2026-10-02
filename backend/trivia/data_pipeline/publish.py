@@ -1,46 +1,14 @@
+"""S3-style upload of a publish plan (Supabase Storage: maintain_questions, upload_dataset).
+
+The R2 whole-pool publisher that lived here (build_publish_plan + manage.py
+publish_game_data) was removed: game data is published by publish_v3.py.
+"""
 import json
-import os
 
 # Versioned pool files never change for a given version -> cache forever.
 POOL_CACHE = "public, max-age=31536000, immutable"
 # The manifest is the single mutable pointer -> short TTL so clients see new versions fast.
 MANIFEST_CACHE = "public, max-age=60"
-
-
-def build_publish_plan(data_dir, version, public_base_url):
-    """Plan the R2/S3 upload: versioned immutable pool files + a manifest of public URLs.
-
-    Returns {"objects": [{local_path, key, content_type, cache_control}, ...],
-             "manifest": {"version", "games": {key: public_url}},
-             "manifest_key": "manifest.json", "manifest_cache": str}.
-    """
-    # NOTE: the published manifest is intentionally a DIFFERENT shape from the on-disk
-    # manifest (see manifest.py) — here games[key] is the public CDN URL string for clients
-    # to fetch. Version-prefixed paths (v/<version>/...), not content-hashed filenames, are the
-    # cache-bust key; this is safe because refresh_game_data bumps the version on every run.
-    base = public_base_url.rstrip("/")
-    objects = []
-    games = {}
-    for name in sorted(os.listdir(data_dir)):
-        if not name.endswith(".json") or name == "manifest.json":
-            continue
-        key_name = name[: -len(".json")]
-        remote_key = f"v/{version}/{name}"
-        objects.append(
-            {
-                "local_path": os.path.join(data_dir, name),
-                "key": remote_key,
-                "content_type": "application/json",
-                "cache_control": POOL_CACHE,
-            }
-        )
-        games[key_name] = f"{base}/{remote_key}"
-    return {
-        "objects": objects,
-        "manifest": {"version": version, "games": games},
-        "manifest_key": "manifest.json",
-        "manifest_cache": MANIFEST_CACHE,
-    }
 
 
 def upload_plan(plan, client, bucket):
