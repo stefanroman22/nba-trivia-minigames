@@ -227,8 +227,10 @@ function MiniGame() {
               <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.5 }}>{game?.description}</p>
             </div>
             <div className="idle-chips">
-              <Chip>5 rounds</Chip>
-              <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>
+              <Chip>{game?.roundsLabel ?? "5 rounds"}</Chip>
+              {(game?.maxPoints ?? 0) > 0 && (
+                <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>
+              )}
             </div>
             {inLobby ? (
               <p className="idle-room-note">
@@ -317,7 +319,7 @@ function MiniGame() {
                   <span className="rail-thumb" style={{ backgroundImage: g.backgroundImage }} />
                   <span className="rail-meta">
                     <span className="rail-name">{g.name}</span>
-                    <span className="rail-sub">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : "soon"}</span>
+                    <span className="rail-sub">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : g.id === "coming-soon" ? "soon" : "opinion vote"}</span>
                   </span>
                 </button>
               ))}

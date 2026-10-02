@@ -40,7 +40,7 @@ Update this table whenever a game ships or its status changes.
 | W3-5 | Pixel Reveal (players + retro logos) | 📋 Wave 3 | P2 | /pixel-reveal | 150 | S/M/F |
 | W3-6 | NBA Timeline | 📋 Wave 3 | P3 | /timeline | 200 | S/M/F |
 | W3-7 | Blind Rank suite (+ Start·Bench·Cut) | 📋 Wave 3 | P2 | /blind-rank | 100 (graded) | S/M/F |
-| W3-8 | Who Would Win (votes) | ✅ Built 2026-07-06 | P3 | /who-would-win | none (opinion) | S |
+| W3-8 | Who Would Win (votes) | ✅ Built 2026-10-02 (backend 2026-07-06; frontend rebuilt after the Next migration) | P3 | /who-would-win | none (opinion) | S |
 | W3-9 | Guess the Franchise | 📋 Wave 3 | P3 | /guess-franchise | 150 | S/M/F |
 | W3-10 | SuperDraft Five | ✅ Built 2026-07-06 | P3 | /superdraft | metric-based | S/M/F |
 | W3-11 | Pack 5 (stat trumps) | ✅ Built 2026-07-06 | P3 | /pack-five | 220 | S/M/F |

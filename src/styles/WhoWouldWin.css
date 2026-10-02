@@ -1,0 +1,164 @@
+/* ===== Who Would Win — opinion matchups (prefix: www-) ===== */
+/* The root, status row, progress bar, prompt and action row come from
+   <GameFrame fill> (ui.css) — do not add a .www-wrap here. The two stacked
+   cards are the fill board: they share the stage height and shrink with it. */
+
+/* ===== Arena: two stacked half-cards with a VS badge between ===== */
+.www-arena {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.8dvh, 8px);
+}
+.www-vs {
+  flex: none;
+  align-self: center;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+/* The whole half-card is the tap target. */
+.www-card {
+  flex: 1 1 0;
+  min-height: 96px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: clamp(8px, 1.6dvh, 16px) 14px;
+  background: var(--surface2);
+  border: 1px solid var(--line2);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.35s ease, border-color 0.35s ease, opacity 0.35s ease;
+}
+.www-card:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.www-card:disabled { cursor: default; }
+.www-card.is-mine { border-color: var(--brand); background: var(--brand-soft); }
+.www-card.is-other { opacity: 0.6; }
+
+.www-card-label {
+  font-size: clamp(17px, 2.6dvh, 22px);
+  line-height: 1.2;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.www-card.is-mine .www-card-label { color: var(--brand); }
+.www-card-sub {
+  min-height: 1.3em; /* reserved even when empty — no shift between cards */
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Split area: height reserved BEFORE the vote so the reveal costs zero pixels. */
+.www-split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: min(100%, 300px);
+  min-height: 28px;
+}
+.www-bar-track {
+  display: block;
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  overflow: hidden;
+}
+.www-bar-fill { display: block; height: 100%; border-radius: 999px; background: var(--muted); }
+.www-bar-fill.is-mine { background: var(--brand); }
+.www-split-nums { font-size: 12px; font-weight: 700; color: var(--text); }
+.www-card.is-other .www-split-nums { color: var(--muted); }
+
+/* Hint / early-votes / error line — always mounted, fixed height. */
+.www-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px; /* tallest state is one 12.5px row; spinner is 14px */
+  width: 100%;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}
+.www-note-row { display: inline-flex; align-items: center; gap: 8px; line-height: 1.3; }
+.www-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.www-btn { max-width: 420px; }
+
+/* ===== Summary ===== */
+.www-agree { color: var(--brand); }
+.www-summary-list {
+  flex: 1 1 0;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto; /* this fill game's scroller — the page never scrolls */
+}
+.www-summary-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.www-summary-row.is-agreed { border-color: var(--brand); background: var(--brand-soft); }
+.www-summary-num {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  background: var(--surface3);
+  border: 1px solid var(--line2);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.www-summary-row.is-agreed .www-summary-num { background: var(--brand); border-color: var(--brand); color: #fff; }
+.www-summary-pick {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.www-summary-crowd {
+  flex: none;
+  max-width: 45%;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

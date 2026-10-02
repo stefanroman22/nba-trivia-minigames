@@ -160,6 +160,19 @@ export interface BingoCard {
   cells: Criterion[];
 }
 
+/** One side of a Who Would Win matchup. */
+export interface WwwSide {
+  label: string;
+  sub?: string;
+}
+
+/** Who Would Win matchup row (backend/trivia/data/who-would-win.json). */
+export interface WwwMatchup {
+  qid: string;
+  a: WwwSide;
+  b: WwwSide;
+}
+
 /** A game's payload is an array of one of these shapes (Wordle = string[]). */
 export type GameData =
   | PlayoffSeries
@@ -171,6 +184,7 @@ export type GameData =
   | ConnectionsBoard
   | GridConfig
   | BingoCard
+  | WwwMatchup
   | PlayerIndexEntry
   | Question
   | string;
@@ -202,6 +216,8 @@ export interface Game {
   urlPath: string;
   pointsPerCorrect: number;
   maxPoints: number;
+  /** Idle-screen chip for the session length; defaults to "5 rounds". */
+  roundsLabel?: string;
   fetchData: () => Promise<FetchResult>;
   handleError: (error: GameError) => void;
   /** Excluded from every user-facing listing (grid, rail, switch pickers) while still catalogued for admin use. */
