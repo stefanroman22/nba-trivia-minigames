@@ -37,13 +37,37 @@ def seed_definitions():
     return [{"rows": b["rows"], "cols": b["cols"]} for b in boards]
 
 
+def _current_team_names(dataset):
+    """abbr -> era name of that abbr's most recent stint (greatest start_year; ties
+    keep the later end_year, an open-ended stint counting as latest, else the last
+    seen) - the franchise's modern name, as snapshot._current_team_abbr picks the
+    current team. `abbr` is already modern. build_stints writes name == abbr as a
+    stand-in when franchise history has no era for a season, so a stint whose name
+    is empty or equals its abbr is skipped; the abbr is the label only when the
+    franchise has no real-name stint at all."""
+    best, names = {}, {}
+    for r in dataset.playable:
+        for s in r.get("teams") or []:
+            abbr = s["abbr"]
+            names.setdefault(abbr, abbr)
+            name = s.get("name")
+            if not name or name == abbr:
+                continue
+            end = s.get("end_year")
+            key = (s.get("start_year") or 0, 10**4 if end is None else end)
+            if abbr not in best or key >= best[abbr]:
+                best[abbr] = key
+                names[abbr] = name
+    return names
+
+
 def _team_criteria(dataset):
     min_team_players = 40 if len(dataset.playable) > 1000 else 20
-    names, counts = {}, {}
+    counts = {}
     for r in dataset.playable:
         for s in r.get("teams") or []:
             counts[s["abbr"]] = counts.get(s["abbr"], 0) + 1
-            names.setdefault(s["abbr"], s.get("name") or s["abbr"])
+    names = _current_team_names(dataset)
     return [
         {"type": "team", "value": abbr, "label": names[abbr]}
         for abbr, n in counts.items() if n >= min_team_players
@@ -77,6 +101,11 @@ def materialize(definition, dataset):
     rows, cols = definition.get("rows") or [], definition.get("cols") or []
     if len(rows) != 3 or len(cols) != 3:
         raise Invalid("board needs 3 rows and 3 cols")
+    # Stored boards keep whatever label they were generated with; re-derive team labels
+    # so a republish heals stale franchise names (value/cells are unaffected).
+    names = _current_team_names(dataset)
+    rows = [{**r, "label": names.get(r.get("value"), r.get("label"))} if r.get("type") == "team" else r
+            for r in rows]
     valid = []
     for r in rows:
         for c in cols:
