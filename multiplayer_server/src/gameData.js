@@ -63,8 +63,11 @@ function manifestFiles(m) {
   return paths;
 }
 
+// A hanging data host must not stall a room's deal: give up and fall back to the endpoint.
+const FETCH_TIMEOUT_MS = 8_000;
+
 async function getJson(url) {
-  const r = await fetch(url);
+  const r = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if (!r.ok) throw new Error(`${url} ${r.status}`);
   return r.json();
 }
