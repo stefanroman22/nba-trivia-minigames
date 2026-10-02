@@ -772,3 +772,37 @@ in the same diff. Open product note for the owner, not a blocker: with the `Game
 `FriendPlay` lists the game online and the relay ranks a 0-point session purely by elapsed time; the
 engine should accept and ignore the `multiplayer`/`turn` props as the plan does, and a later card can
 decide whether an opinion game belongs in the online picker.
+
+## 2026-10-02 — Tic-Tac-Toe rows show old franchise names: backend-only relabel-at-materialize vs backend+data regeneration
+Context: backend P1 card, no override. Verified on origin/dev: `_team_criteria()` in
+`backend/trivia/questions/games/tictactoe.py:46` does `names.setdefault(abbr, name)` over
+`dataset.playable` in row order, so a franchise's label is whichever era name the first player
+seen happened to play under ("Seattle SuperSonics" for OKC; the curated data also carries
+Vancouver/Memphis, NJ/Brooklyn, Bobcats/Hornets, KC/Sacramento, 7 Bullets/Wizards names and one
+empty-string WAS name). Stints are `{abbr, name, start_year, end_year, gp, ppg}` — `abbr` is
+already the modern abbreviation (`curated_players.build_stints`), and the modern display name is
+derivable in-process as the `name` of the stint with the greatest `start_year` per abbr, the same
+rule `questions/snapshot.py::_current_team_abbr` already uses. No canonical abbr->modern-name map
+exists in `backend/` (`modern_abbr_index()` keys on team_id, which stints do not keep, and pulls
+`nba_api`); the frontend `teamLogos.ts` resolves logos from any era name, so only the text is
+wrong. Stale labels also live in every stored `Question.definition` row, but the runner
+(`_materialize_row`) publishes `mod.materialize(row.definition, dataset)`, and `materialize`
+passes `rows` through verbatim — so weighed (a) `["backend","data"]` with a one-off DB relabel
+or regeneration of the active TTT boards (widens to data, likely a design round, touches
+`content_hash` dedupe), vs (b) `["backend"]` only: fix `_team_criteria` and have `materialize`
+re-derive team-row labels from the dataset, so the next daily `maintain_questions` snapshot
+heals the published boards with no migration, no regeneration and no definition rewrite.
+Decision: (b). `difficulty: standard`, `areas: ["backend"]`, `risk: low` (`trivia/questions/` is
+its own boundary per BACKEND_CONSTRAINTS, not `trivia/data_pipeline/`, auth or a protected path;
+the seed JSON and `build_pools_from_db` pools are untouched), `engineModel: sonnet`, no design
+round. Sonnet over opus: two bounded edits with done-checks (a helper picking the latest
+non-empty stint name per abbr, used by both `_team_criteria` and `materialize`; a test in
+`test_questions_tictactoe.py` with a fixture player carrying a Seattle->OKC stint pair asserting
+the row label and the materialized row label are "Oklahoma City Thunder").
+Consequences: a stale-label bug in a pre-generated question family is fixed at materialize time
+so stored definitions self-heal on the next snapshot — not by data regeneration; that keeps it
+`["backend"]`/standard/low. Known residue the brief should name: `content_hash` includes labels,
+so a newly generated board can duplicate an old stale-labelled one's rows+cols (rare, TARGET
+120 is already full); fixing dedupe to hash on values only is a separate card if it ever
+matters. Seed boards use nicknames ("Lakers") while generated boards use full era names — a
+pre-existing inconsistency, out of scope.
