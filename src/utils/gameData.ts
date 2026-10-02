@@ -119,8 +119,12 @@ function prune(m: ManifestV3): void {
   }
 }
 
+// A hanging data host must not hold the game's loader forever: give up and fall back to /data.
+const FETCH_TIMEOUT_MS = 8_000;
+
 async function getJson(url: string): Promise<unknown> {
-  const res = await fetch(url);
+  const signal = typeof AbortSignal.timeout === "function" ? AbortSignal.timeout(FETCH_TIMEOUT_MS) : undefined;
+  const res = await fetch(url, { signal });
   if (!res.ok) throw new GameDataUnavailable(`${url} ${res.status}`);
   return res.json();
 }
