@@ -1,39 +1,59 @@
 """Build the manifest-v3 game-data folder for the static data host.
 
-Builds the selected pool games from the DB with the existing builders, validates
-them, lays them out as content-addressed chunk/lookup files
-(trivia/data_pipeline/publish_v3.py), diffs against the live manifest and writes a
-deploy folder (default build/game-data) for .github/workflows/publish-game-data.yml
-to upload. Uploads nothing itself and never calls the NBA website: needs only
-DATABASE_URL + DJANGO_SECRET_KEY (plus DATA_PUBLIC_BASE to diff against the live
-publication).
+Builds the selected games from the DB, validates them, lays them out as
+content-addressed files (trivia/data_pipeline/publish_v3.py), diffs against the
+live manifest and writes a deploy folder (default build/game-data) for
+.github/workflows/publish-game-data.yml to upload. Uploads nothing itself and
+never calls the NBA website: needs only DATABASE_URL + DJANGO_SECRET_KEY (plus
+DATA_PUBLIC_BASE to diff against the live publication).
+
+Games: the pool games (playoff, name-logo, mvps, starting-five, fan-favorites,
+all-players) and the question games (career-path, who-are-ya, tictactoe,
+contexto, plus their names list question-names, added automatically with any of
+them). For the question games the run first does the question maintenance
+(trivia/questions/runner.maintain: re-materialize, retire, top up, minimum gate)
+against the committed curated dataset, in ONE transaction with every game's
+build: a gate or build failure rolls the maintenance back and writes nothing.
+``--skip-maintain`` publishes the current active questions instead (read-only).
+``--no-commit`` writes the folder but rolls the DB writes back (workflow dry runs).
 
 Exit codes: 0 with "nothing to publish" when no selected game changed (and
 ``result=nothing-to-publish`` in $GITHUB_OUTPUT); non-zero with nothing written
-on any build/validation/fetch failure.
+on any maintenance/build/validation/fetch failure.
 
 ``--check-only`` is the daily freshness check (.github/workflows/game-data-freshness.yml):
-it builds the rows read-only (no DB writes, Fan Favorites re-ranked in memory),
-diffs them against the live manifest, writes only the optional --report JSON and
-always exits 0, with ``result=fresh|stale|unknown`` and ``stale=<games>`` in
-$GITHUB_OUTPUT.
+it builds the rows read-only (no DB writes: Fan Favorites re-ranked in memory,
+question games materialized from their current rows, no maintenance), diffs them
+against the live manifest, writes only the optional --report JSON and always
+exits 0, with ``result=fresh|stale|unknown`` and ``stale=<games>`` in $GITHUB_OUTPUT.
 """
 
 import json
 import os
+import random
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 from trivia.data_pipeline import publish_v3
+from trivia.questions import runner
 
 
 class Command(BaseCommand):
-    help = "Build the manifest-v3 game-data deploy folder (pool games)."
+    help = "Build the manifest-v3 game-data deploy folder (pool and question games)."
 
     def add_arguments(self, parser):
         parser.add_argument("--games", default="",
-                            help=f"Comma-separated games (default all: {','.join(publish_v3.GAMES)})")
+                            help=f"Comma-separated games (default all: {','.join(publish_v3.ALL_GAMES)})")
+        parser.add_argument("--skip-maintain", action="store_true",
+                            help="Question games: publish the current active questions without the "
+                                 "maintenance (no retire / top-up, no DB writes for them)")
+        parser.add_argument("--no-commit", action="store_true",
+                            help="Write the folder but roll back every DB write of this run "
+                                 "(question maintenance, Fan Favorites re-rank); for dry runs")
+        parser.add_argument("--rng-seed", type=int, default=None,
+                            help="Seed for the question top-up generator (tests / reproducible runs)")
         parser.add_argument("--out", default=os.path.join("build", "game-data"),
                             help="Deploy folder to write (default build/game-data)")
         parser.add_argument("--previous", default=None,
@@ -49,7 +69,8 @@ class Command(BaseCommand):
                                  "always exits 0")
 
     def handle(self, *args, **opts):
-        games = [g.strip() for g in opts["games"].split(",") if g.strip()] or list(publish_v3.GAMES)
+        games = [g.strip() for g in opts["games"].split(",") if g.strip()] or list(publish_v3.ALL_GAMES)
+        games = publish_v3.with_question_names(games)
         if opts["check_only"]:
             return self._check(games, opts)
         out_dir = os.path.abspath(opts["out"])
@@ -59,13 +80,36 @@ class Command(BaseCommand):
         self.stdout.write(f"Games: {', '.join(games)}")
         self.stdout.write(f"Previous publication: {previous or 'none (everything is new)'}")
 
+        unknown = [g for g in games if g not in publish_v3.SPECS]
+        if unknown:
+            raise CommandError(f"Publish aborted, nothing written: unknown game(s): {', '.join(unknown)} "
+                               f"(known: {', '.join(publish_v3.SPECS)})")
+        to_maintain = [] if opts["skip_maintain"] else [g for g in games if g in publish_v3.QUESTION_GAMES]
+        rollback = opts["dry_run"] or opts["no_commit"]
         try:
+            # Maintenance and every game's build share one transaction: the minimum
+            # gate or any build/validation failure rolls the question writes back.
+            with transaction.atomic():
+                maintained, dataset = {}, None
+                if to_maintain:
+                    dataset = publish_v3.curated_dataset()
+                    self.stdout.write(f"Question maintenance ({', '.join(to_maintain)}) against dataset "
+                                      f"{dataset.version}: {len(dataset.playable)} playable players")
+                    maintained, _ = runner.maintain(to_maintain, dataset, random.Random(opts["rng_seed"]),
+                                                    out=self.stdout.write)
+                builds = publish_v3.build_games(
+                    games, publish_v3.default_builders(maintained=maintained, dataset=dataset))
+                if rollback:
+                    transaction.set_rollback(True)
+                    self.stdout.write("  DB writes of this run rolled back (--dry-run / --no-commit)")
             report = publish_v3.publish(
                 games, out_dir, previous=previous,
                 origins=getattr(settings, "CORS_ALLOWED_ORIGINS", []),
-                dry_run=opts["dry_run"],
+                dry_run=opts["dry_run"], builds=builds,
                 warn=lambda msg: self.stdout.write(self.style.WARNING(f"  warning: {msg}")),
             )
+        except runner.BelowMinimum as e:
+            raise CommandError(f"Publish aborted, nothing written, question maintenance rolled back: {e}") from e
         except publish_v3.PublishError as e:
             raise CommandError(f"Publish aborted, nothing written: {e}") from e
 

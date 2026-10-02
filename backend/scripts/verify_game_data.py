@@ -15,6 +15,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 
 
 def fetch(url):
@@ -55,18 +56,22 @@ def main():
         print("::error::live manifest bytes differ from the built manifest")
         return 1
 
-    failures = 0
-    for item in report.get("changed_files", []):
+    def check(item):
         url = f"{base}/{item['path']}"
         try:
             got = hashlib.sha256(fetch(url)).hexdigest()
         except (urllib.error.URLError, OSError) as e:
-            print(f"::error::{item['path']}: fetch failed: {e}")
-            failures += 1
-            continue
+            return f"::error::{item['path']}: fetch failed: {e}"
         if got != item["sha256"]:
-            print(f"::error::{item['path']}: sha256 {got} != {item['sha256']}")
-            failures += 1
+            return f"::error::{item['path']}: sha256 {got} != {item['sha256']}"
+        return None
+
+    # A first question publish changes ~800 small files: check them in parallel.
+    with ThreadPoolExecutor(16) as pool:
+        errors = [e for e in pool.map(check, report.get("changed_files", [])) if e]
+    for e in errors:
+        print(e)
+    failures = len(errors)
     if failures:
         print(f"::error::{failures} changed file(s) failed verification")
         return 1

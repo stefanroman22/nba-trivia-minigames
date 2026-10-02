@@ -7,6 +7,8 @@ module turns each game's builder rows into a static folder any CDN can serve:
     manifest-history.json               the last HISTORY_LIMIT manifests (rollback)
     <game>/<name>.<sha12>.json          immutable, cached for a year
     shared/players-names.<sha12>.json   autocomplete names (the "all-players" pool)
+    shared/question-names.<sha12>.json  question games' NamesEntry list ("question-names")
+    <game>/index.<sha12>.json           question game index; <game>/<qid>.<sha12>.json per question
     vercel.json, _headers.json          host config (Vercel headers / R2 object metadata)
 
 ``<sha12>`` is the first 12 hex chars of the SHA-256 of the file's bytes, so the
@@ -24,9 +26,30 @@ Manifest v3::
      "names": "shared/players-names.5e6f7a8b9c0d.json"}
 
 Every data file (a chunk or a single file) is a JSON array of encoded rows. A
-lookup file is a JSON array of entries. A future ``kind: "questions"`` entry
-(``{"kind": "questions", "rows": N, "index": "<game>/index.<sha12>.json"}``)
-plugs in as one more branch of ``encode_game``/``decode_game``/``entry_files``.
+lookup file is a JSON array of entries.
+
+QUESTION GAMES (career-path, who-are-ya, tictactoe, contexto) use
+``{"kind": "questions", "rows": N, "index": "<game>/index.<sha12>.json"}``. The
+index is the old Supabase snapshot's ``index.json`` minus its per-publish
+``version`` (the manifest version replaces it), plus ``files`` = {qid: sha12}::
+
+    {"schema": 1, "game": "career-path", "dataset": {"players": "curated-9be60750128e"},
+     "items": [["cp-000001", 3], ...], "files": {"cp-000001": "0a1b2c3d4e5f", ...}}
+
+and each question is its own file ``<game>/<qid>.<files[qid]>.json`` holding the
+exact bytes the snapshot's ``<qid>.json`` held (the materialized envelope
+``{"schema": 1, "game", "qid", ...payload}``, key order kept). ``items`` keeps
+the snapshot's per-game shape, so the pickers are unchanged: [qid] | [qid,
+weight] (career-path) | [qid, day] (contexto). The question files are listed in
+the index, not in the manifest, so ``entry_files`` needs a ``read`` to list them.
+
+The question games' autocomplete list (NamesEntry objects: id, full_name,
+aliases + bio facts, built by trivia.questions.snapshot.build_names from the
+playable pool) is the manifest's top-level ``"question_names"`` file
+(``shared/question-names.<sha12>.json``). It is NOT the same as ``"names"``:
+``names`` is every dataset row's full name as a plain string (Fan Favorites /
+Starting 5 autocomplete), ``question_names`` is the playable pool only, with the
+ids the question payloads reference. Both come from the same curated dataset.
 
 THE expand() CONTRACT (mirror it exactly in the website and multiplayer loaders)
 -------------------------------------------------------------------------------
@@ -68,6 +91,7 @@ import shutil
 import urllib.error
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
@@ -86,6 +110,15 @@ JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 NAMES_GAME = "all-players"
 NAMES_DIR = "shared"
 NAMES_NAME = "players-names"
+
+# The question games published here (hidden superdraft/imposter stay on the old
+# Supabase snapshot until they return), and their shared NamesEntry list, which
+# the manifest carries as the top-level "question_names" pointer.
+QUESTION_GAMES = ("career-path", "who-are-ya", "tictactoe", "contexto")
+QNAMES_GAME = "question-names"
+QNAMES_NAME = "question-names"
+# trivia.questions.base.SCHEMA (not imported: this module must load without Django).
+QUESTION_SCHEMA = 1
 
 HASHED_NAME = re.compile(r"\.([0-9a-f]{12})\.json$")
 SAFE_NAME = re.compile(r"[A-Za-z0-9_-]{1,64}")
@@ -143,6 +176,16 @@ GAMES = {
     NAMES_GAME: GameSpec("single"),
 }
 
+# Every publishable game: the pool games above, the question games (one file per
+# question + an index) and the question games' names list.
+SPECS = {
+    **GAMES,
+    **{game: GameSpec("questions") for game in QUESTION_GAMES},
+    QNAMES_GAME: GameSpec("single"),
+}
+ALL_GAMES = tuple(SPECS)
+SHARED_NAMES = {NAMES_GAME: NAMES_NAME, QNAMES_GAME: QNAMES_NAME}
+
 
 @dataclass
 class GameBuild:
@@ -164,6 +207,12 @@ def canonical(obj):
 def dump(obj):
     """The exact bytes a published file holds (compact, UTF-8, sorted keys)."""
     return canonical(obj).encode("utf-8")
+
+
+def dump_ordered(obj):
+    """Compact UTF-8 bytes with the builder's key order kept: byte for byte what the
+    old questions snapshot wrote (json.dump, ensure_ascii=False, compact)."""
+    return json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
 def sha256_hex(data):
@@ -267,12 +316,14 @@ def split_chunks(rows, size, seed):
 
 def encode_game(game, rows, spec=None):
     """Lay out one game's rows as content-addressed files + its manifest entry."""
-    spec = spec or GAMES[game]
+    spec = spec or SPECS[game]
+    if spec.kind == "questions":
+        return encode_questions(game, rows)
     ordered = list(rows)
     if spec.sort_key is not None:
         ordered.sort(key=lambda r: (spec.sort_key(r), canonical(r)))
     encoded, lookups = encode_rows(ordered, spec.refs)
-    game_dir = NAMES_DIR if game == NAMES_GAME else game
+    game_dir = NAMES_DIR if game in SHARED_NAMES else game
     files = {}
     lookup_paths = {}
     for name in sorted(lookups):
@@ -283,7 +334,7 @@ def encode_game(game, rows, spec=None):
 
     if spec.kind == "single":
         data = dump(encoded)
-        name = NAMES_NAME if game == NAMES_GAME else "all"
+        name = SHARED_NAMES.get(game, "all")
         path = hashed_path(game_dir, name, data)
         files[path] = data
         entry = {"kind": "single", "rows": len(rows), "file": path}
@@ -304,25 +355,121 @@ def encode_game(game, rows, spec=None):
             paths.append(path)
         entry = {"kind": "chunked", "rows": len(rows), "chunk_size": spec.chunk_size,
                  "chunks": paths}
-    else:  # "questions" lands here in the next phase.
+    else:
         raise PublishError(f"{game}: unsupported kind {spec.kind!r}")
     if lookup_paths:
         entry["lookups"] = lookup_paths
     return GameBuild(game=game, rows=list(rows), entry=entry, files=files)
 
 
-def entry_files(entry):
-    """Every file path a manifest entry references."""
+# ------------------------------------------------------------ question games
+
+def question_row(qid, item, question, dataset_version):
+    """One question game row: what the runner materialized for one qid."""
+    return {"qid": qid, "item": item, "question": question, "dataset": dataset_version}
+
+
+def question_path(game, qid, sha12):
+    return f"{game}/{qid}.{sha12}.json"
+
+
+def validate_questions(game, rows):
+    """Problems with a question game's rows (the payloads were already validated
+    by the game module when they were materialized)."""
+    if not isinstance(rows, list) or not rows:
+        return [f"{game}: no questions"]
+    problems, seen = [], set()
+    for i, row in enumerate(rows):
+        qid = row.get("qid") if isinstance(row, dict) else None
+        question = row.get("question") if isinstance(row, dict) else None
+        item = row.get("item") if isinstance(row, dict) else None
+        if not isinstance(qid, str) or not SAFE_NAME.fullmatch(qid):
+            problems.append(f"{game}[{i}]: bad qid {qid!r}")
+        elif qid in seen:
+            problems.append(f"{game}[{i}]: duplicate qid {qid}")
+        elif not isinstance(question, dict) or question.get("qid") != qid or question.get("game") != game:
+            problems.append(f"{game}[{i}]: question payload does not match {game}/{qid}")
+        elif not isinstance(item, list) or not item or item[0] != qid:
+            problems.append(f"{game}[{i}]: index item does not start with {qid}")
+        seen.add(qid)
+        if len(problems) >= 5:
+            break
+    if len({canonical(r.get("dataset")) for r in rows if isinstance(r, dict)}) > 1:
+        problems.append(f"{game}: questions materialized against different datasets")
+    return problems
+
+
+def encode_questions(game, rows):
+    """One content-addressed file per question plus a content-addressed index.
+
+    The index lists the items in the runner's order (as the snapshot did) and
+    maps each qid to its file's sha12, so one changed question changes only its
+    own file and the index; every other question keeps its URL.
+    """
+    files, shas, items = {}, {}, []
+    for row in rows:
+        data = dump_ordered(row["question"])
+        sha12 = sha256_hex(data)[:12]
+        files[question_path(game, row["qid"], sha12)] = data
+        shas[row["qid"]] = sha12
+        items.append(row["item"])
+    index = {
+        "schema": QUESTION_SCHEMA, "game": game,
+        "dataset": {"players": rows[0]["dataset"] if rows else None},
+        "items": items, "files": shas,
+    }
+    data = dump_ordered(index)
+    path = hashed_path(game, "index", data)
+    files[path] = data
+    entry = {"kind": "questions", "rows": len(rows), "index": path}
+    return GameBuild(game=game, rows=list(rows), entry=entry, files=files)
+
+
+def index_question_paths(index):
+    """The question file paths a parsed question index lists."""
+    game = index["game"]
+    return [question_path(game, qid, sha12) for qid, sha12 in index["files"].items()]
+
+
+def entry_files(entry, read=None):
+    """Every file path a manifest entry references.
+
+    A questions entry references its index and, through it, one file per
+    question: those are listed only when ``read(path) -> bytes`` is given to read
+    the index (a read returning None or failing raises PublishError).
+    """
     paths = []
     if entry.get("file"):
         paths.append(entry["file"])
     paths.extend(entry.get("chunks") or [])
     paths.extend((entry.get("lookups") or {}).values())
+    if entry.get("index"):
+        paths.append(entry["index"])
+        if read is not None:
+            raw = read(entry["index"])
+            if raw is None:
+                raise PublishError(f"cannot read question index {entry['index']}")
+            try:
+                paths.extend(index_question_paths(json.loads(raw)))
+            except (ValueError, KeyError, TypeError, AttributeError) as e:
+                raise PublishError(f"question index {entry['index']} is malformed: {e}") from e
     return paths
+
+
+def decode_questions(entry, read):
+    index = json.loads(read(entry["index"]))
+    by_qid = {}
+    for path in index_question_paths(index):
+        question = json.loads(read(path))
+        by_qid[question["qid"]] = question
+    return [question_row(item[0], item, by_qid[item[0]], index["dataset"]["players"])
+            for item in index["items"]]
 
 
 def decode_game(entry, read):
     """Rebuild a game's full rows from its entry; ``read(path) -> bytes``."""
+    if entry["kind"] == "questions":
+        return decode_questions(entry, read)
     lookups = {name: json.loads(read(path)) for name, path in (entry.get("lookups") or {}).items()}
     rows = []
     if entry["kind"] == "single":
@@ -348,11 +495,67 @@ def winner_first(series):
     return digest[0] % 2 == 0
 
 
-def default_builders(read_only=False):
-    """The existing pool builders (build_pools_from_db), keyed by game.
+def curated_dataset():
+    """The question games' player dataset: the committed players_curated.json.
+
+    It is the same file the all-players "names" pool is built from, and the same
+    bytes upload_dataset put in Supabase Storage for maintain_questions (checked
+    2026-10-02: both sha256 9be60750...). The version is "curated-<sha12>", so it
+    changes exactly when the file does.
+    """
+    from trivia.data_pipeline.live_pool import CURATED_PATH
+    from trivia.questions.base import load_dataset_from_rows
+
+    with open(CURATED_PATH, "rb") as f:
+        raw = f.read()
+    rows = json.loads(raw.decode("utf-8"))
+    if not isinstance(rows, list) or not rows:
+        raise PublishError(f"{CURATED_PATH} is empty or not a list")
+    return load_dataset_from_rows(rows, f"curated-{sha256_hex(raw)[:12]}")
+
+
+def question_builders(maintained=None, dataset=None):
+    """Builders for the question games and their names list.
+
+    ``maintained`` = {slug: [(qid, item, question), ...]} from runner.maintain()
+    (the rows a maintenance run just kept). A game without maintained rows is
+    materialized read-only from its current active rows (runner.materialize_active:
+    no DB writes; BelowMinimum still aborts). The dataset loads lazily, once.
+    """
+    maintained = maintained or {}
+    cache = {}
+
+    def get_dataset():
+        if "ds" not in cache:
+            cache["ds"] = dataset or curated_dataset()
+        return cache["ds"]
+
+    def build(slug):
+        def run():
+            ds = get_dataset()
+            kept = maintained.get(slug)
+            if kept is None:
+                from trivia.questions import runner
+
+                kept = runner.materialize_active([slug], ds)[slug]
+            return [question_row(qid, item, question, ds.version) for qid, item, question in kept]
+        return run
+
+    def names():
+        from trivia.questions.snapshot import build_names
+
+        return build_names(get_dataset().playable)
+
+    return {**{slug: build(slug) for slug in QUESTION_GAMES}, QNAMES_GAME: names}
+
+
+def default_builders(read_only=False, maintained=None, dataset=None):
+    """The existing pool builders (build_pools_from_db) plus the question builders, by game.
 
     read_only=True never writes to the database: Fan Favorites applies the live
-    re-rank in memory instead of saving it (used by the freshness check).
+    re-rank in memory instead of saving it (used by the freshness check), and the
+    question games are materialized from their current rows (``maintained`` is
+    for a publish that just ran the question maintenance).
     """
     from trivia.management.commands import build_pools_from_db as pools
 
@@ -363,7 +566,17 @@ def default_builders(read_only=False):
         "starting-five": pools.build_starting_five,
         "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only),
         NAMES_GAME: pools.build_all_players,
+        **question_builders(None if read_only else maintained, dataset),
     }
+
+
+def with_question_names(games):
+    """``games`` plus the question names list whenever a question game is in it,
+    so names always match the dataset the questions were materialized against."""
+    games = list(games)
+    if any(g in QUESTION_GAMES for g in games) and QNAMES_GAME not in games:
+        games.append(QNAMES_GAME)
+    return games
 
 
 def build_games(games, builders=None):
@@ -371,9 +584,9 @@ def build_games(games, builders=None):
     from trivia.data_pipeline.validate import validate_pool
 
     builders = builders or default_builders()
-    unknown = [g for g in games if g not in GAMES]
+    unknown = [g for g in games if g not in SPECS]
     if unknown:
-        raise PublishError(f"unknown game(s): {', '.join(unknown)} (known: {', '.join(GAMES)})")
+        raise PublishError(f"unknown game(s): {', '.join(unknown)} (known: {', '.join(SPECS)})")
     problems = []
     rows_by_game = {}
     for game in games:
@@ -382,7 +595,10 @@ def build_games(games, builders=None):
         except Exception as e:  # a crashing builder is a failed game, not a partial publish
             problems.append(f"{game}: builder failed: {e}")
             continue
-        problems.extend(validate_pool(game, rows))
+        if SPECS[game].kind == "questions":
+            problems.extend(validate_questions(game, rows))
+        else:
+            problems.extend(validate_pool(game, rows))
         rows_by_game[game] = rows
     if problems:
         raise PublishError("validation failed:\n  " + "\n  ".join(problems))
@@ -464,29 +680,51 @@ def load_previous(source):
     return manifest, history[:HISTORY_LIMIT]
 
 
+# Top-level manifest pointers that are published like single-file games.
+POINTERS = {"names": NAMES_GAME, "question_names": QNAMES_GAME}
+
+
 def manifest_entries(manifest):
-    """{game: entry} of a manifest, with "names" folded in as the all-players game."""
+    """{game: entry} of a manifest, with "names" / "question_names" folded in as games."""
     if not manifest:
         return {}
     entries = dict(manifest.get("games") or {})
-    if manifest.get("names"):
-        entries[NAMES_GAME] = {"kind": "single", "file": manifest["names"]}
+    for key, game in POINTERS.items():
+        if manifest.get(key):
+            entries[game] = {"kind": "single", "file": manifest[key]}
     return entries
 
 
-def manifest_files(manifest):
-    return {p for entry in manifest_entries(manifest).values() for p in entry_files(entry)}
+def manifest_files(manifest, read=None):
+    """Every file a manifest references; question files only when ``read`` is given."""
+    return {p for entry in manifest_entries(manifest).values() for p in entry_files(entry, read)}
+
+
+def lenient_files(manifest, read):
+    """manifest_files(manifest, read), but a question index that can't be read only
+    drops that game's question files (used where the answer is informational)."""
+    paths = set()
+    for entry in manifest_entries(manifest).values():
+        try:
+            paths.update(entry_files(entry, read))
+        except PublishError:
+            paths.update(entry_files(entry))
+    return paths
 
 
 def _comparable(game, entry):
-    # "names" is only a path in the manifest, so compare all-players by path.
-    return {"file": entry.get("file")} if game == NAMES_GAME else entry
+    # The pointers are only paths in the manifest, so compare them by path.
+    return {"file": entry.get("file")} if game in SHARED_NAMES else entry
 
 
-def diff_games(previous, builds):
-    """Per built game: status new / changed / unchanged, total and new bytes."""
+def diff_games(previous, builds, prev_files=None):
+    """Per built game: status new / changed / unchanged, total and new bytes.
+
+    ``prev_files``: the previous publication's files including question files
+    (default: without them, so every question file of a changed index counts as new).
+    """
     prev_entries = manifest_entries(previous)
-    prev_files = manifest_files(previous)
+    prev_files = manifest_files(previous) if prev_files is None else prev_files
     report = []
     for game, build in builds.items():
         prev = prev_entries.get(game)
@@ -521,15 +759,16 @@ def build_manifest(previous, builds, now):
     entries = manifest_entries(previous)
     for game, build in builds.items():
         entries[game] = build.entry
-    names = entries.pop(NAMES_GAME, None)
+    pointers = {key: entries.pop(game, None) for key, game in POINTERS.items()}
     manifest = {
         "schema": SCHEMA,
         "version": next_version((previous or {}).get("version"), now),
         "published_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
         "games": {g: entries[g] for g in sorted(entries)},
     }
-    if names:
-        manifest["names"] = names["file"]
+    for key, entry in pointers.items():
+        if entry:
+            manifest[key] = entry["file"]
     return manifest
 
 
@@ -570,42 +809,68 @@ def object_headers(path):
 
 # ------------------------------------------------------------------ output
 
+FETCH_WORKERS = 16
+
+
+def make_reader(local, source):
+    """read(path) -> bytes: a freshly built file, else the previous publication
+    (memoized, so a question index is fetched once however often it is listed)."""
+    memo = {}
+
+    def read(path):
+        if path in local:
+            return local[path]
+        if path not in memo:
+            memo[path] = source.read(path) if source is not None else None
+        return memo[path]
+    return read
+
+
 def collect_files(manifest, history, builds, source, warn):
     """Every file the deploy folder must hold.
 
     A Vercel deploy is a full snapshot, so the folder holds the new manifest's
     complete file set (built locally, or fetched for games carried over — a
     failed fetch there aborts) plus the files of the previous KEEP_PREVIOUS
-    manifests (fetched; a failure only warns).
+    manifests (fetched; a failure only warns). Question files are listed through
+    their game's index. Fetches run in parallel: a question game carried over is
+    hundreds of small files.
     """
     files = {}
     for build in builds.values():
         files.update(build.files)
-    required = manifest_files(manifest) - set(files)
+    read = make_reader(files, source)
+    required = manifest_files(manifest, read) - set(files)
     optional = set()
     for old in history[:KEEP_PREVIOUS]:
-        optional |= manifest_files(old)
+        for entry in manifest_entries(old).values():
+            try:
+                optional.update(entry_files(entry, read))
+            except PublishError as e:
+                warn(f"skipping question files of an older manifest ({e})")
+                optional.update(entry_files(entry))
     optional -= set(files) | required
 
     def fetch(path):
-        data = source.read(path) if source is not None else None
+        try:
+            data = read(path)
+        except PublishError as e:
+            return path, None, str(e)
         if data is None:
-            return None, "not found"
+            return path, None, "not found"
         m = HASHED_NAME.search(path)
         if m and sha256_hex(data)[:12] != m.group(1):
-            return None, "content hash mismatch"
-        return data, None
+            return path, None, "content hash mismatch"
+        return path, data, None
 
-    for path in sorted(required):
-        data, why = fetch(path)
+    with ThreadPoolExecutor(FETCH_WORKERS) as pool:
+        fetched_required = list(pool.map(fetch, sorted(required)))
+        fetched_optional = list(pool.map(fetch, sorted(optional)))
+    for path, data, why in fetched_required:
         if data is None:
             raise PublishError(f"cannot fetch {path} from {source} ({why}); it is still in the manifest")
         files[path] = data
-    for path in sorted(optional):
-        try:
-            data, why = fetch(path)
-        except PublishError as e:
-            data, why = None, str(e)
+    for path, data, why in fetched_optional:
         if data is None:
             warn(f"skipping {path} from an older manifest ({why})")
             continue
@@ -639,18 +904,20 @@ def write_folder(out_dir, files, manifest, history, origins):
 
 
 def publish(games, out_dir, previous=None, origins=(), builders=None, now=None,
-            dry_run=False, warn=print):
+            dry_run=False, warn=print, builds=None):
     """Build, diff and (unless nothing changed or dry_run) write the deploy folder.
 
+    ``builds``: games already built by build_games() (the command builds inside
+    the question-maintenance transaction); default builds ``games`` here.
     Returns a report dict: result ("publish" | "nothing-to-publish"), version,
     games (per-game diff rows) and changed_files ([{path, sha256, bytes}]).
     Raises PublishError with nothing written on any failure.
     """
     now = now or datetime.now(timezone.utc)
-    builds = build_games(games, builders)
+    builds = builds if builds is not None else build_games(games, builders)
     prev_manifest, prev_history = load_previous(previous)
-    report_games = diff_games(prev_manifest, builds)
-    prev_files = manifest_files(prev_manifest)
+    prev_files = lenient_files(prev_manifest, make_reader({}, previous))
+    report_games = diff_games(prev_manifest, builds, prev_files)
     changed_files = [
         {"path": p, "sha256": sha256_hex(b), "bytes": len(b)}
         for build in builds.values() for p, b in sorted(build.files.items()) if p not in prev_files
@@ -714,7 +981,7 @@ def check(games, previous=None, builders=None, now=None):
             builds.update(build_games([game], builders))
         except Exception as e:  # one broken game must not hide the others
             errors[game] = str(e)
-    by_game = {row["game"]: row for row in diff_games(prev_manifest, builds)}
+    by_game = {row["game"]: row for row in diff_games(prev_manifest, builds, prev_files=set())}
     for game in games:
         if game in errors:
             report["games"].append({"game": game, "status": "error", "rows": 0, "bytes": 0,

@@ -1,4 +1,8 @@
-"""The maintenance job: re-materialize, retire, top up, gate, publish (spec §9)."""
+"""The maintenance job: re-materialize, retire, top up, gate, publish (spec §9).
+
+maintain() is the maintenance alone; publish_game_data_v3 runs it and publishes
+the public question games to the manifest-v3 data host. run() (maintain_questions)
+still publishes the Supabase Storage snapshot, kept for the hidden games."""
 import re
 import tempfile
 
@@ -42,13 +46,26 @@ def _next_seq(slug):
     return max(seqs) + 1
 
 
-def _materialize_row(mod, row, dataset, now):
+def _materialize(mod, definition, dataset):
+    """(materialized, problems) for one definition; no DB access."""
     try:
-        m = mod.materialize(row.definition, dataset)
+        m = mod.materialize(definition, dataset)
         problems = mod.validate(m)
     except Invalid as e:
         problems = [str(e)]
         m = None
+    return m, problems
+
+
+def _kept(mod, row, m):
+    m["qid"] = row.qid
+    item = mod.index_item(row.definition, m)
+    item[0] = row.qid
+    return (row.qid, item, m)
+
+
+def _materialize_row(mod, row, dataset, now):
+    m, problems = _materialize(mod, row.definition, dataset)
     if problems:
         row.status = Question.STATUS_RETIRED
         row.retired_at = now
@@ -60,9 +77,7 @@ def _materialize_row(mod, row, dataset, now):
     row.players_referenced = mod.players_referenced(row.definition, m, dataset)
     row.dataset_version = dataset.version
     row.save(update_fields=["quality", "players_referenced", "dataset_version", "updated_at"])
-    item = mod.index_item(row.definition, m)
-    item[0] = row.qid
-    return (row.qid, item, m)
+    return _kept(mod, row, m)
 
 
 def _active_count(slug, kept, today):
@@ -116,16 +131,55 @@ def _process_game(slug, dataset, rng, now, out):
     return kept, {"active": len(kept), "retired": retired, "added": added, "materialized": len(kept)}
 
 
+def maintain(games, dataset, rng, now=None, out=print):
+    """Re-materialize, retire, top up and gate each game; no publishing.
+
+    Returns ({slug: [(qid, index_item, materialized), ...]}, {slug: stats}).
+    Writes to the questions table, so call it inside transaction.atomic(): a
+    BelowMinimum (or any later failure in the caller's block) rolls every game's
+    writes back. Used by run() (Supabase snapshot) and publish_game_data_v3.
+    """
+    now = now or timezone.now()
+    per_game, stats = {}, {}
+    for slug in games:
+        per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out)
+    return per_game, stats
+
+
+def materialize_active(games, dataset, now=None, out=None):
+    """Read-only twin of maintain(): materialize each game's current active rows
+    without retiring, topping up or saving anything (no DB writes).
+
+    A row that no longer materializes is left out (maintenance would retire it);
+    the minimum gate still applies and raises BelowMinimum.
+    """
+    today = (now or timezone.now()).date().isoformat()
+    per_game = {}
+    for slug in games:
+        mod = GAME_MODULES[slug]
+        kept, skipped = [], 0
+        for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).order_by("id"):
+            m, problems = _materialize(mod, row.definition, dataset)
+            if problems:
+                skipped += 1
+                continue
+            kept.append(_kept(mod, row, m))
+        active = _active_count(slug, kept, today)
+        if active < mod.MINIMUM:
+            raise BelowMinimum(slug, active, mod.MINIMUM)
+        if out:
+            out(f"  {slug}: {len(kept)} current questions ({skipped} no longer materialize; left out)")
+        per_game[slug] = kept
+    return per_game
+
+
 def run(games, publish, dry_run, rng, dataset, s3=None, cfg=None, out=print):
     games = games or list(GAME_MODULES)
     now = timezone.now()
     summary = {"version": None}
     with transaction.atomic():
-        per_game = {}
-        for slug in games:
-            kept, stats = _process_game(slug, dataset, rng, now, out)
-            per_game[slug] = kept
-            summary[slug] = stats
+        per_game, stats = maintain(games, dataset, rng, now, out)
+        summary.update(stats)
         if publish:
             version = next_version(current_published_version(cfg))
             names = build_names(dataset.playable)
