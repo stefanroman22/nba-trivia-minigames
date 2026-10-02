@@ -1,7 +1,8 @@
 # Independent game-data publishing
 
-Status: approved; phases 1-3 live, phase 5 (safety nets) built on `feat/game-data-safety-nets`
-(2026-10-02). Revised 2026-10-02 to fix every weak point found in review.
+Status: approved; phases 1-3 live, phase 5 (safety nets) built on `feat/game-data-safety-nets`,
+phase 6 (question games) built on `feat/game-data-questions` (2026-10-02), not yet switched on.
+Revised 2026-10-02 to fix every weak point found in review.
 
 ## Goal
 
@@ -90,8 +91,11 @@ uploads only files Vercel doesn't already have. The R2 target uploads only keys 
                "chunks": ["playoff/c00.9f8e7d6c5b4a.json", "..."]},
    "mvps": {"kind": "single", "rows": 71, "file": "mvps/all.3f9a1c2b7e04.json"},
    "career-path": {"kind": "questions", "rows": 500, "index": "career-path/index.0a1b2c3d4e5f.json"}},
- "names": "shared/players-names.5e6f7a8b9c0d.json"}
+ "names": "shared/players-names.5e6f7a8b9c0d.json",
+ "question_names": "shared/question-names.7a8b9c0d1e2f.json"}
 ```
+A question index is `{"schema": 1, "game", "dataset", "items": [[qid, ...]], "files": {qid: sha12}}`;
+each question is `<game>/<qid>.<sha12>.json`.
 `manifest-history.json` keeps the last 5 manifests for rollback. Each deploy also keeps the files
 referenced by the previous 3 manifests, so a player holding a manifest up to 60 seconds old never
 hits a missing file.
@@ -158,13 +162,72 @@ multiplayer server)
   (https://vercel.com/docs/integrations/create-integration/vercel-api-integrations#scopes).
   Vercel's own limit emails remain the bandwidth alert.
 
-**6. Retire the old routes**
-- Question games stop publishing to Supabase Storage. Old snapshots stay for 30 days, then the bucket
-  is emptied.
-- `maintain-questions.yml` is replaced by the publish workflow (question top-up becomes a step of it).
-- Remove the unused R2 publish path and the old manifest formats.
-- Bundled `/data` stays only as the website's fallback.
-- Update `docs/DEPLOYMENT.md`, `docs/team/DECISIONS.md` and the deploy-topology memory note.
+**6. Retire the old routes** (built on `feat/game-data-questions`, 2026-10-02)
+- [x] `publish_v3` gets `kind: "questions"` for career-path, who-are-ya, tictactoe, contexto:
+  a content-addressed index (the snapshot `index.json` minus `version`, plus `files` =
+  qid -> sha12) and one content-addressed file per question holding the snapshot's exact bytes.
+  The question games' NamesEntry list is the top-level `question_names` file, kept separate from
+  `names` (all dataset names as strings for Fan Favorites / Starting 5; `question_names` is the
+  playable pool with ids, aliases and bio facts). Tests: byte-for-byte equal to
+  `write_snapshot`, stable per-question URLs, unchanged detection, carry-over, check-only
+  zero writes (`trivia/tests/test_publish_v3_questions.py`).
+- [x] Question maintenance is a step of the publish: `publish_game_data_v3` runs
+  `runner.maintain` (re-materialize, retire, top up, minimum gate) and builds every game in one
+  transaction (a failed gate or build rolls it back, nothing written); `--skip-maintain`
+  publishes the current rows read-only; workflow dry runs pass `--no-commit`. The dataset is
+  the committed `players_curated.json` (sha256 identical to the Storage dataset on 2026-10-02).
+  `--check-only` covers the question games read-only (no maintenance).
+- [x] Site (`questions.ts`) and relay (`questions.js`, used by `turnGames.js` and `index.js`)
+  read a question game through the shared loader (`gameData.ts` / `gameData.js`: index ->
+  picker -> question file; pickers moved there) when the v3 manifest has it, else the Supabase
+  store, logged once per game. Hidden superdraft/imposter stay on the store.
+- [x] `maintain-questions.yml` is manual only (schedule removed, header note), kept for the
+  hidden games and to refresh the fallback snapshot. Not deleted: the hidden games still read it.
+- [x] Unused R2 path removed: `manage.py publish_game_data` and `build_publish_plan`.
+  `data_pipeline/publish.py` keeps `upload_plan` (used by `maintain_questions` and
+  `upload_dataset`). The schema-1 questions manifest stays until the retirement below; the
+  bundled `/data` manifest stays as the website's fallback.
+- [x] `docs/DEPLOYMENT.md`, `docs/team/DECISIONS.md` updated. The deploy-topology memory note is
+  the owner's local file (update it after the switch).
+- [ ] Switch on (owner): see "Switching the question games on" below.
+- [ ] Retire the Supabase questions store 30 days after the switch: see below.
+
+**Switching the question games on** (no code or site deploy needed; the code falls back until
+the manifest has the games)
+1. Merge `feat/game-data-questions` to `dev`, promote to `main` (the workflow runs from `main`),
+   and `railway up` the relay (its `DATA_PUBLIC_BASE` must be the data host).
+2. Actions → **Publish game data**, `games` = `career-path,who-are-ya,tictactoe,contexto`,
+   `target` vercel, `dry_run` ticked. Check the summary (4 games + `question-names` "new",
+   ~800 files) and the artifact; the DB writes were rolled back.
+3. Run it again with `dry_run` unticked. The verify step checks every new file's SHA-256.
+4. Check: `curl -s https://nba-minigames-data.vercel.app/manifest.json` lists the four games
+   with `"kind":"questions"` and a `question_names`; play each game on the site (DevTools
+   Network shows `nba-minigames-data.vercel.app/<game>/<qid>.<sha12>.json`, no `supabase.co`
+   question request); one online career-path and one tic-tac-toe room. Today's contexto secret
+   is unchanged (same `trivia_question` rows as the snapshot).
+5. Next morning the freshness check should say fresh.
+
+**Retiring the Supabase questions store** (owner runs or approves; 30 days after the switch;
+nothing here deletes anything until then)
+1. Confirm the switch held: relay logs have no `[questions] ... using the questions store` lines
+   for the four games, and the freshness check has been fresh.
+2. Decide the hidden games: publish superdraft/imposter through v3 too (add them to
+   `publish_v3.QUESTION_GAMES` and to `QUESTION_GAMES` in `gameData.ts`, `PUBLISHED_GAMES` in
+   `questions.js`; their payloads already work), or accept they stop working while hidden. The
+   store cannot be emptied while they read it.
+3. Remove the fallback code in one PR: the store branch of `src/utils/questions.ts` and
+   `multiplayer_server/src/questions.js`, `VITE_QUESTIONS_BASE` (`.env*`, `next.config.ts`),
+   `QUESTIONS_PUBLIC_BASE` (relay env, `.env.example`s), `manage.py maintain_questions`,
+   `upload_dataset`, `trivia/questions/storage.py` + `upload.py` + the snapshot writer,
+   `data_pipeline/publish.py`, `requirements-publish.txt`, `maintain-questions.yml`, the
+   `upload_dataset` step of `refresh_nba_data.cmd`. Ship it (site + `railway up`).
+4. Empty the bucket (bucket `questions`, project `roscfxiuxsbrymdtqmth`): Supabase dashboard →
+   Storage → `questions` → delete the folders `questions/` (schema-1 manifest + `v/<version>/`
+   snapshots) and `datasets/` (players dataset), or with the S3 keys:
+   `aws s3 rm s3://$SUPABASE_STORAGE_BUCKET/questions/ --recursive --endpoint-url $SUPABASE_S3_ENDPOINT --region $SUPABASE_S3_REGION`
+   and the same for `datasets/`. Then delete the bucket.
+5. Revoke the Supabase S3 access key, delete the `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` /
+   `QUESTIONS_PUBLIC_BASE` GitHub secrets and env vars, and update `docs/CREDENTIALS.md`.
 
 ## Owner workflow afterwards
 

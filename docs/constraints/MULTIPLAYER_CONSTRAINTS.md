@@ -235,8 +235,9 @@ const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };
 
 `fetchRound(gameId)` in `index.js`: (1) `TURN_GAMES` never reach it (`turnGames.init`); (2)
 `QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"])` returns
-`[await questions.deal(gameId)]` from the Supabase-Storage questions store
-(`multiplayer_server/src/questions.js`, no Django call); (3) everything else looks up
+`[await questions.deal(gameId)]` (`multiplayer_server/src/questions.js`, no Django call: from
+the manifest-v3 data host via `gameData.fetchQuestion` when its manifest publishes the game,
+else the Supabase-Storage questions store, logged once); (3) everything else looks up
 `gameEndpoints[gameId]` in `multiplayer_server/src/gameEndpoints.js` and throws
 `No endpoint configured for game id: ...` if absent. Within (3), the five pool games
 (`gameData.ROUND_GAMES`: series-winner, name-logo, guess-mvps, starting-five, fan-favorites) are
@@ -266,10 +267,10 @@ if (!endpoint) throw new Error(`No endpoint configured for game id: ${gameId}`);
 | Browser to relay | `VITE_SOCKET_URL` | `http://localhost:4000` | `src/socket.ts` (`process.env`, inlined by `next.config.ts` `env`) |
 | Relay listen port | `PORT` | `4000` (binds `0.0.0.0`) | `multiplayer_server/src/index.js` |
 | Relay to Django | `API_BASE_URL` | `http://localhost:8000` | `multiplayer_server/src/gameEndpoints.js` (only; `turnGames.js` no longer fetches Django) |
-| Relay to questions store | `QUESTIONS_PUBLIC_BASE` | `""` | `multiplayer_server/src/questions.js` |
-| Relay to game-data host (manifest v3, five pool games; unset = Django endpoints) | `DATA_PUBLIC_BASE` | `""` | `multiplayer_server/src/gameData.js` |
-| Browser to game-data host (same host; unset or failing = bundled `/data`) | `VITE_DATA_BASE` | `""` | `src/utils/gameData.ts` via `src/utils/pool.ts`, inlined via `next.config.ts` |
-| Browser to questions store | `VITE_QUESTIONS_BASE` | `""` | `src/utils/questions.ts`, inlined via `next.config.ts` |
+| Relay to questions store (hidden games + fallback for the published question games) | `QUESTIONS_PUBLIC_BASE` | `""` | `multiplayer_server/src/questions.js` |
+| Relay to game-data host (manifest v3: five pool games + published question games; unset = Django endpoints / questions store) | `DATA_PUBLIC_BASE` | `""` | `multiplayer_server/src/gameData.js` (also via `questions.js`) |
+| Browser to game-data host (same host; unset or failing = bundled `/data` / questions store) | `VITE_DATA_BASE` | `""` | `src/utils/gameData.ts` via `src/utils/pool.ts` and `src/utils/questions.ts`, inlined via `next.config.ts` |
+| Browser to questions store (fallback) | `VITE_QUESTIONS_BASE` | `""` | `src/utils/questions.ts`, inlined via `next.config.ts` |
 | Relay CORS allowlist | `CORS_ORIGINS` | `http://localhost:5173,https://nba-trivia-minigames.online` | `index.js` (Next dev runs on 3000, so set it for local dev) |
 
 `VITE_*` names are kept on purpose post-Next-migration; a new browser var must be added to
@@ -344,7 +345,8 @@ Django fetches) and that a round-game -> turn-game switch resumes with `gameData
 re-pushed `turnState` (`dealRound` clears the previous round's payload). Renderers must therefore
 not roll per-client dice in a room. SuperDraft's online
 objective is `OBJECTIVES[hashStr(question.qid) % OBJECTIVES.length]` (`objectiveForQid`), using the
-same FNV-1a as `multiplayer_server/src/questions.js`'s `hashStr` and `src/utils/questions.ts`; solo
+same FNV-1a as `multiplayer_server/src/gameData.js`'s `hashStr` (used by `questions.js`) and
+`src/utils/gameData.ts` (re-exported by `src/utils/questions.ts`); solo
 uses `dailyObjective()`. Contexto is a single daily secret: every room on a given UTC day gets the
 same word.
 
@@ -477,6 +479,6 @@ Observed: provider wraps `ModalProvider` at the app root; `socket.ts` returns `n
 
 **13. SuperDraft online objective stays a function of qid (MP-14).**
 ```bash
-grep -n "objectiveForQid\|hashStr" "src/Game Renderers/SuperDraft.tsx" src/utils/questions.ts multiplayer_server/src/questions.js
+grep -n "objectiveForQid\|hashStr" "src/Game Renderers/SuperDraft.tsx" src/utils/gameData.ts multiplayer_server/src/gameData.js
 ```
 Observed: `objectiveForQid(qid)` uses `hashStr(qid) % OBJECTIVES.length` in `SuperDraft.tsx`.
