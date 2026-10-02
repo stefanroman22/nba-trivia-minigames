@@ -36,6 +36,17 @@ async function cmdPing(channel, ...text) {
   console.log(`posted ts=${r.ts} channel=${r.channel}`);
 }
 
+// Plain text to one channel. <channel> is a config key ("general", "frontend", "backend")
+// or a raw channel id; text "-" reads it from stdin (multi-line CI messages). Fails loudly.
+async function cmdPostText(channel, ...text) {
+  const chan = channel === "general" ? cfg.slack?.generalChannel : (agentChannelId(channel) || channel);
+  if (!chan) { console.error(`no channel for "${channel}" in config`); process.exit(2); }
+  const body = text.length === 1 && text[0] === "-" ? readFileSync(0, "utf8").trim() : text.join(" ").trim();
+  if (!body) { console.error("post-text: empty message"); process.exit(2); }
+  const r = await api("chat.postMessage", { channel: chan, text: body, unfurl_links: false }, true);
+  console.log(`posted ts=${r.ts} channel=${r.channel}`);
+}
+
 async function cmdResolveChannels() {
   const want = { "pipeline": "generalChannel", "agent-frontend": "frontend", "agent-backend": "backend" };
   const found = {};
@@ -182,6 +193,7 @@ async function cmdDigestWindow(startISO, endISO, label) {
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "ping": () => cmdPing(args[0], ...args.slice(1)),
+  "post-text": () => cmdPostText(args[0], ...args.slice(1)),
   "resolve-channels": cmdResolveChannels,
   "post-qa-card": () => cmdPostQaCard(args[0]),
   "post-fail-card": () => cmdPostFailCard(args[0]),
