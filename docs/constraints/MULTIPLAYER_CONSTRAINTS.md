@@ -238,7 +238,10 @@ const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };
 `[await questions.deal(gameId)]` from the Supabase-Storage questions store
 (`multiplayer_server/src/questions.js`, no Django call); (3) everything else looks up
 `gameEndpoints[gameId]` in `multiplayer_server/src/gameEndpoints.js` and throws
-`No endpoint configured for game id: ...` if absent. A game must appear in exactly one path, with
+`No endpoint configured for game id: ...` if absent. Within (3), the five pool games
+(`gameData.ROUND_GAMES`: series-winner, name-logo, guess-mvps, starting-five, fan-favorites) are
+first dealt from the published manifest-v3 files (`multiplayer_server/src/gameData.js`,
+`DATA_PUBLIC_BASE`); their `gameEndpoints.js` entries stay as the fallback. A game must appear in exactly one path, with
 an id identical to `src/utils/GameUtils.tsx`'s `Game.id`. A game that moves to the questions store
 (as career-path/who-are-ya/contexto/superdraft did) must be **removed** from `gameEndpoints.js`
 and added to `QUESTION_GAMES`, with a matching entry in `src/utils/questions.ts`'s `PICKERS` if it
@@ -264,6 +267,8 @@ if (!endpoint) throw new Error(`No endpoint configured for game id: ${gameId}`);
 | Relay listen port | `PORT` | `4000` (binds `0.0.0.0`) | `multiplayer_server/src/index.js` |
 | Relay to Django | `API_BASE_URL` | `http://localhost:8000` | `multiplayer_server/src/gameEndpoints.js` (only; `turnGames.js` no longer fetches Django) |
 | Relay to questions store | `QUESTIONS_PUBLIC_BASE` | `""` | `multiplayer_server/src/questions.js` |
+| Relay to game-data host (manifest v3, five pool games; unset = Django endpoints) | `DATA_PUBLIC_BASE` | `""` | `multiplayer_server/src/gameData.js` |
+| Browser to game-data host (same host; unset or failing = bundled `/data`) | `VITE_DATA_BASE` | `""` | `src/utils/gameData.ts` via `src/utils/pool.ts`, inlined via `next.config.ts` |
 | Browser to questions store | `VITE_QUESTIONS_BASE` | `""` | `src/utils/questions.ts`, inlined via `next.config.ts` |
 | Relay CORS allowlist | `CORS_ORIGINS` | `http://localhost:5173,https://nba-trivia-minigames.online` | `index.js` (Next dev runs on 3000, so set it for local dev) |
 

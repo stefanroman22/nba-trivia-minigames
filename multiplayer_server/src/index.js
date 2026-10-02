@@ -46,6 +46,7 @@ const cors = require("cors");
 const gameEndpoints = require("./gameEndpoints");
 const turnGames = require("./turnGames");
 const questions = require("./questions");
+const gameData = require("./gameData");
 
 const CORS_ORIGINS = (
   process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
@@ -164,9 +165,13 @@ const nameOf = (uid) => players.get(uid)?.user?.username || "A player";
 const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"]);
 
 // Fetch a fresh round of game data for a game id — either one pre-generated
-// question from the questions store, or a round from the Django backend.
+// question from the questions store, a round of a pool game from the published
+// manifest-v3 files (gameData.js; null = use its backend endpoint instead), or a
+// round from the Django backend.
 async function fetchRound(gameId) {
   if (QUESTION_GAMES.has(gameId)) return [await questions.deal(gameId)];
+  const published = await gameData.dealOrNull(gameId);
+  if (published) return published;
   const endpoint = gameEndpoints[gameId];
   if (!endpoint) throw new Error(`No endpoint configured for game id: ${gameId}`);
   const response = await fetch(endpoint);
