@@ -1,0 +1,119 @@
+name: Publish game data
+# Builds the manifest-v3 game-data folder from the DB (manage.py publish_game_data_v3),
+# uploads only when something changed, then verifies the live files byte for byte.
+# Design: docs/team/designs/2026-10-02-independent-game-data-publishing.md.
+# Never touches the website or backend deploys, and never calls stats.nba.com.
+# Note: building Fan Favorites re-ranks boards with enough live guesses in the DB
+# (same as build_pools_from_db), even on a dry run.
+on:
+  workflow_dispatch:
+    inputs:
+      games:
+        description: "comma-separated games (empty = all): playoff,name-logo,mvps,starting-five,fan-favorites,all-players"
+        required: false
+        default: ""
+        type: string
+      target:
+        description: "data host"
+        required: true
+        default: vercel
+        type: choice
+        options:
+          - vercel
+          - r2
+      dry_run:
+        description: "build and diff only; upload the folder as an artifact"
+        required: true
+        default: true
+        type: boolean
+concurrency:
+  group: publish-game-data
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Repo variable; unset on the very first run (everything is then "new").
+      DATA_PUBLIC_BASE: ${{ vars.DATA_PUBLIC_BASE }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install
+        run: pip install -r backend/requirements.txt
+      - name: Build game data
+        id: build
+        working-directory: backend
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          GAMES: ${{ inputs.games }}
+        run: >
+          python manage.py publish_game_data_v3 --games "$GAMES"
+          --out "$GITHUB_WORKSPACE/build/game-data"
+          --report "$GITHUB_WORKSPACE/build/game-data-report.json"
+
+      - name: Upload dry-run folder
+        if: steps.build.outputs.result == 'publish' && inputs.dry_run
+        uses: actions/upload-artifact@v6
+        with:
+          name: game-data-${{ steps.build.outputs.version }}
+          path: build/
+          include-hidden-files: true
+
+      - name: Check Vercel secrets
+        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && inputs.target == 'vercel'
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DATA_PROJECT_ID }}
+        run: |
+          missing=()
+          [ -n "$VERCEL_TOKEN" ] || missing+=(VERCEL_TOKEN)
+          [ -n "$VERCEL_ORG_ID" ] || missing+=(VERCEL_ORG_ID)
+          [ -n "$VERCEL_PROJECT_ID" ] || missing+=(VERCEL_DATA_PROJECT_ID)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing repo secrets for the Vercel data target: ${missing[*]} (see phase 0 of the design doc)"
+            exit 1
+          fi
+
+      - name: Deploy to Vercel
+        id: deploy
+        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && inputs.target == 'vercel'
+        shell: bash
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_DATA_PROJECT_ID }}
+        # A static folder: no package.json, no build step. Vercel uploads only
+        # files it doesn't already have (content-addressed names never change).
+        run: |
+          url=$(npx --yes vercel@latest deploy build/game-data --prod --yes --token "$VERCEL_TOKEN")
+          echo "Deployed: $url"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to R2
+        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && inputs.target == 'r2'
+        run: |
+          echo "::error::R2 target not configured yet (owner decision)"
+          exit 1
+
+      - name: Verify live data
+        if: steps.build.outputs.result == 'publish' && !inputs.dry_run
+        shell: bash
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          base="${DATA_PUBLIC_BASE:-$DEPLOY_URL}"
+          if [ -z "$DATA_PUBLIC_BASE" ]; then
+            echo "::warning::vars.DATA_PUBLIC_BASE is not set; verifying against the deployment URL $DEPLOY_URL. Set it to the data host's production URL."
+          fi
+          python backend/scripts/verify_game_data.py --base "$base" --report build/game-data-report.json
