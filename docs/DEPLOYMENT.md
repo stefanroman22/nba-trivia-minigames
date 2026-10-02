@@ -131,14 +131,15 @@ REDIS_URL=rediss://...                                       # Upstash (see "Red
 CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
 ```
-The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the offline questions pipeline only — not needed on Vercel.
+The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the old questions pipeline only (`maintain_questions`, `upload_dataset`: hidden games + the fallback snapshot) — not needed on Vercel, nor by `publish_game_data_v3`.
 `DATA_PUBLIC_BASE` (the static game-data host's public URL) is read only by `manage.py publish_game_data_v3`, which runs in the manual `publish-game-data.yml` workflow (repo variable `vars.DATA_PUBLIC_BASE`) — not needed on Vercel either.
 
 ### Multiplayer server (Render / Node host)
 ```
 API_BASE_URL=https://backend-kappa-one-42.vercel.app # REQUIRED in prod (else it tries localhost)
 CORS_ORIGINS=http://localhost:5173,https://<your-frontend-domain>
-QUESTIONS_PUBLIC_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>   # REQUIRED to deal question games (questions store)
+DATA_PUBLIC_BASE=https://nba-minigames-data.vercel.app   # game-data host: pool games + published question games (unset = backend endpoints / questions store)
+QUESTIONS_PUBLIC_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>   # questions store: hidden games + fallback for the question games
 REDIS_URL=rediss://...                               # optional: enables the Socket.IO adapter
 PORT=4000
 ```
@@ -203,15 +204,33 @@ for how, how often, and how it's monitored. It no longer commits pools or runs `
 
 ## Data publishing (game-data host)
 
-Pool games read manifest-v3 files from the data host `vars.DATA_PUBLIC_BASE`
-(`https://nba-minigames-data.vercel.app`, Vercel project `nba-minigames-data`), published
-independently of the website and backend. Design:
-`docs/team/designs/2026-10-02-independent-game-data-publishing.md`.
+Pool games, and (from the first question publish on) the question games, read manifest-v3
+files from the data host `vars.DATA_PUBLIC_BASE` (`https://nba-minigames-data.vercel.app`,
+Vercel project `nba-minigames-data`), published independently of the website and backend.
+Design: `docs/team/designs/2026-10-02-independent-game-data-publishing.md`.
+
+One button publishes all nine file-based games: playoff, name-logo, mvps, starting-five,
+fan-favorites (+ the all-players `names` list) and career-path, who-are-ya, tictactoe,
+contexto (+ their `question_names` list). For the question games the run first does the
+question maintenance (re-materialize, retire, top up, minimum gate; formerly
+`maintain-questions.yml`) against the committed `players_curated.json`, in the same DB
+transaction as the build, so a failed gate publishes nothing and rolls the maintenance back.
+Each question is its own content-addressed file (`<game>/<qid>.<sha12>.json`), listed by a
+content-addressed index, so an unchanged question is never re-uploaded or re-downloaded.
+A dry run rolls every DB write back (`--no-commit`). `manage.py publish_game_data_v3
+--skip-maintain` publishes the current questions without maintenance.
+
+The site (`src/utils/questions.ts`) and the relay (`multiplayer_server/src/questions.js`,
+also behind `turnGames.js`) read a question game from the data host when its manifest has it
+(`"kind": "questions"`), else from the old Supabase Storage questions store, logged once per
+game. The hidden games (superdraft, imposter) stay on the store until they return. The store
+is retired 30 days after the switch (steps in the design doc, phase 6).
 
 | What | Where | When |
 |---|---|---|
-| **Publish button** | Actions → **Publish game data** (`publish-game-data.yml`): `games` empty = all, `target` vercel, untick `dry_run` | manually, or triggered by the PC refresh |
-| **Freshness alert** | `game-data-freshness.yml` runs `manage.py publish_game_data_v3 --check-only` (no DB writes) and posts one message to Slack `#agent-backend` naming games whose DB data isn't published yet, with a link to the button | daily 06:30 UTC + manual; silent when everything is fresh |
+| **Publish button** | Actions → **Publish game data** (`publish-game-data.yml`): `games` empty = all (or e.g. `career-path,contexto`), `target` vercel, untick `dry_run` | manually, or triggered by the PC refresh |
+| **Question maintenance (hidden games only)** | `maintain-questions.yml`, manual only: refreshes the Supabase snapshot superdraft/imposter and the fallback read | only when the hidden games need new questions |
+| **Freshness alert** | `game-data-freshness.yml` runs `manage.py publish_game_data_v3 --check-only` (no DB writes; question games are materialized from their current rows, no maintenance) and posts one message to Slack `#agent-backend` naming games whose DB data isn't published yet, with a link to the button | daily 06:30 UTC + manual; silent when everything is fresh |
 | **Usage report** | `game-data-usage.yml` runs `backend/scripts/vercel_usage_report.py` and posts to `#agent-backend`: live data version, size of the published set (raw and gzip'd), data deployments this week, link to the Vercel usage dashboard | Mondays 07:00 UTC + manual |
 | **PC refresh** | `backend/scripts/refresh_nba_data.cmd` (Task Scheduler): `sync_nba_data` → `upload_dataset` → `gh workflow run publish-game-data.yml --ref main -f games= -f target=vercel -f dry_run=false` | monthly; needs `gh` logged in as `stefanroman22` |
 
@@ -230,8 +249,8 @@ data project (it pins the domain, see above).
    client-side; single multiplayer instance; sqlite; Postgres leaderboard. Fully working.
 2. **CDN content (Phase 2 + 3):** deploy the frontend to **Vercel** — the build bundles the game
    data into `/data/` and `pool.ts` reads it from there, so content is served by Vercel's CDN
-   automatically. No object store or extra account. (R2 stays an optional alternative via
-   `publish_game_data` + `VITE_DATA_BASE`.)
+   automatically. No object store or extra account. (Superseded by the game-data host, see
+   "Data publishing" above; R2 is that publisher's second target.)
 3. **Harden prod (Phase 4) — DONE:** Supabase `DATABASE_URL` (pooler) + `DJANGO_*` / CORS vars are
    set on the Vercel backend project; `migrate` runs in the build. Auth + leaderboard verified live.
 4. **Fix prod multiplayer (Phase 5a) — PENDING host:** deploy `multiplayer_server/` to an always-on

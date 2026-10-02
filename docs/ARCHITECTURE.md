@@ -206,9 +206,11 @@ Node host instead.
 2. **Same questions for everyone** — the server deals the round once per room and sends the
    *same* data to every player, so it's fair. Four games (career-path, who-are-ya, contexto,
    superdraft) plus the two turn-based games (tic-tac-toe, imposter) draw one pre-generated
-   question from the **questions store**: the server reads the schema-1 manifest
-   (`<QUESTIONS_PUBLIC_BASE>/questions/manifest.json`, cached ~60 s) from Supabase Storage's
-   public CDN (`multiplayer_server/src/questions.js`). Every other game still fetches its
+   question (`multiplayer_server/src/questions.js`): from the manifest-v3 game-data host
+   (`<DATA_PUBLIC_BASE>/manifest.json` → the game's index → one question file, via
+   `gameData.js`, the same files single-player reads) whenever it publishes the game, else from
+   the old **questions store** (schema-1 manifest `<QUESTIONS_PUBLIC_BASE>/questions/manifest.json`
+   on Supabase Storage; the hidden superdraft/imposter always come from there). Every other game still fetches its
    round **from the Django backend** (`API_BASE_URL`). The turn-based games run a
    server-authoritative state machine (`turnGames.js`) instead of sending one shared round.
 3. **Scoring** — players submit their scores; once everyone's is in, the server ranks them

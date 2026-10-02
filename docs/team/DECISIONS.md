@@ -806,3 +806,23 @@ so a newly generated board can duplicate an old stale-labelled one's rows+cols (
 120 is already full); fixing dedupe to hash on values only is a separate card if it ever
 matters. Seed boards use nicknames ("Lakers") while generated boards use full era names — a
 pre-existing inconsistency, out of scope.
+
+## 2026-10-02 — Question games move onto the manifest-v3 publisher; one file per question, maintenance inside the publish transaction
+Context: phase 6 of the independent game-data publishing design. Career Path, Who Are Ya,
+Tic-Tac-Toe and LeContexto were published by `maintain_questions` to Supabase Storage as a
+versioned snapshot (every file re-uploaded and re-downloaded each day), separate from the v3
+data host the pool games use.
+Decision: `publish_v3` gets `kind: "questions"`: a content-addressed index (the snapshot index
+minus its per-publish `version`, plus `files` = qid -> sha12) and one content-addressed file per
+question holding the snapshot's exact bytes; the question games' NamesEntry list is a separate
+top-level `question_names` file (the all-players `names` strings stay, because Fan Favorites /
+Starting 5 need every dataset name as a string while the question games need ids, aliases and
+bio facts for the playable pool only). `publish_game_data_v3` runs the runner's maintenance
+(`runner.maintain`) and builds every game inside one transaction, reading the committed
+`players_curated.json` (byte-identical to the Storage dataset) instead of Storage. Site and relay
+read a question game from v3 when the manifest has it, else from the store (logged once).
+`maintain-questions.yml` stays, manual only, for the hidden superdraft/imposter.
+Consequences: unchanged questions are never re-uploaded or re-downloaded; one button publishes all
+nine file-based games; a regenerated curated dataset must be committed (as for `names`) before a
+publish sees it; the question index grows (career-path ~7 KB gzip vs ~1 KB) because sha12s do
+not compress; the Supabase snapshot is retired 30 days after the switch by the owner.
