@@ -1,9 +1,36 @@
 import type { FetchResult, GameData } from "../types/types";
+import { POOL_GAMES, fetchGameRows, fetchNames, isConfigured } from "./gameData";
 
 // Game pools are served as static JSON from the same origin: the build copies
-// backend/trivia/data into the deployment, served by the CDN at /data/. Override
-// with VITE_DATA_BASE to point at an external CDN (e.g. a dedicated data domain).
-const DATA_BASE = process.env.VITE_DATA_BASE || "/data";
+// backend/trivia/data into the deployment, served by the CDN at /data/. The five
+// POOL_GAMES (and the "all-players" autocomplete names) are read from the manifest-v3
+// data host in VITE_DATA_BASE instead (utils/gameData.ts) whenever it answers; this
+// bundled copy is their fallback and stays the only source for every other pool.
+const DATA_BASE = "/data";
+
+const warnedFallback = new Set<string>();
+
+/**
+ * Rows from the v3 data host, or null to use the bundled copy. `rounds` undefined = whole pool.
+ * Unset VITE_DATA_BASE is the normal pre-launch state and falls back silently; a configured
+ * host that fails (unreachable, schema != 3, missing game/file) warns once per game.
+ */
+async function v3Rows(gameKey: string, rounds?: number): Promise<GameData[] | null> {
+  if (!isConfigured() || (gameKey !== "all-players" && !POOL_GAMES.has(gameKey))) return null;
+  try {
+    const rows =
+      gameKey === "all-players"
+        ? ((await fetchNames()) as unknown as GameData[])
+        : await fetchGameRows(gameKey, rounds);
+    return rows.length ? rows : null;
+  } catch (err) {
+    if (!warnedFallback.has(gameKey)) {
+      warnedFallback.add(gameKey);
+      console.warn(`[gameData] ${gameKey}: data host unavailable, using bundled /data copy`, err);
+    }
+    return null;
+  }
+}
 
 // In-memory pool cache keyed by "<gameKey>:<version>" (survives within a session).
 const memCache = new Map<string, GameData[]>();
@@ -126,6 +153,8 @@ export async function fetchGamePool(
   gameKey: string,
   rounds: number,
 ): Promise<FetchResult> {
+  const v3 = await v3Rows(gameKey, rounds);
+  if (v3) return { success: true, data: v3 };
   try {
     const pool = await loadPool(gameKey);
     if (!pool.length) {
@@ -152,6 +181,8 @@ export async function fetchGamePool(
  * "players-index" curated pool for Career Path / Who Are Ya / Contexto…).
  */
 export async function fetchWholePool(gameKey: string): Promise<FetchResult> {
+  const v3 = await v3Rows(gameKey);
+  if (v3) return { success: true, data: v3 };
   try {
     const pool = await loadPool(gameKey);
     if (!pool.length) {
