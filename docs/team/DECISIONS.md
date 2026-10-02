@@ -727,3 +727,48 @@ risk low. The engine must verify with `makemigrations --check --dry-run` after g
 the FK-side indexes and both `UniqueConstraint`s, and show an EXPLAIN (Django `.explain()` is
 enough) for the `friends.py` lookups on `user_low`/`user_high`, `receiver`/`sender`,
 `blocker`/`blocked` still hitting the FK index. The 41 "unused index" notes stay untouched.
+
+## 2026-10-02 — Who Would Win frontend from a stale-but-settled plan doc: standard/sonnet vs hard+design round
+Context: frontend P1 card "Build the Who Would Win frontend (backend already live)", no override. Verified on
+this checkout: the backend half is complete (`backend/trivia/games/who_would_win.py` with `get_round`,
+`get_tally` at `/trivia/who-would-win/tally/?qid=`, `build_pool`, `validate_rows`, `EXTRA_URLS`; 60-row seed
+and pool, manifest entry, `tests/test_who_would_win.py`, MP endpoint in `gameEndpoints.js:16`) and the
+frontend half is entirely absent (no renderer, no CSS, no `GameUtils` entry, no `RenderGame` case, no
+`WwwMatchup` type, nothing under `src/` mentions the game; `thumb_who_would_win.jpg` does exist). The spec
+points at `docs/superpowers/plans/2026-07-05-who-would-win.md`, whose game design is settled (10 matchups,
+tap-a-side vote POSTed as `correct:false` to `/trivia/log-guesses/`, then GET tally and show the split,
+crowd-agreement summary, `onGameEnd(0)` once from Finish) but whose frame is stale: it claims the shared
+wiring is "pre-staged/frozen" (it is not — `GameUtils.tsx`, `RenderGame.tsx`, `types/types.tsx` all need
+edits), it targets the Vite era (`App.tsx` route, `npx tsc -b`, `:5173` Vite) when the app is Next.js 16
+with a single `src/app/[game]` route that serves every `visibleGames` entry, and its TSX uses a bare
+`.www-wrap` root with a hand-rolled header, which `docs/GAME_DESIGN_CONSTRAINTS.md` RULE 0 now forbids
+(`<GameFrame>` root, `Status`/`Prompt`/`Board`/`Action` slots). `MASTER_PLAN.md` W3-8 says "Built
+2026-07-06" and the constraints doc already lists Who Would Win's accepted deviations (fill game, no
+`Correct! +N`, `#fff` on brand fills) — evidence a frontend once existed and was lost in the Next
+migration, which is why the doc rows survive. Weighed: (a) `hard` + design round, because the plan is
+stale and the engine must re-shape the component into the shell; (b) `standard`/`sonnet`, no design round,
+because every stale item is a mechanical adaptation with an exact target already written down.
+Also weighed opus for the motion override: the split bars animate in (`width 0 -> pct%`, 0.6s easeOut)
+and the summary fades up, but motion is not the core — the vote/tally/summary flow is, and the plan
+already pins the durations.
+Decision: (b). `difficulty: standard`, `areas: ["frontend","ui"]`, `risk: low` (no protected surface;
+backend untouched; the renderer only calls two existing endpoints), `engineModel: sonnet`,
+`needsDesignRound: false`. Standard rather than hard: one engine, one codebase, an existing renderer
+pattern (`FanFavorites.tsx` — same `apiFetch` log-guesses call, `motion` + `useReducedMotion`,
+`GameFrame` root, `.ff-` prefixed CSS in `src/styles/`), and the four add-a-game touchpoints are
+enumerated in the constraints doc. Sonnet rather than opus: long-and-explicit — the plan's component,
+stylesheet, class list, tally contract and acceptance checks exist; the engine translates the root into
+`GameFrame` slots, adds the `WwwMatchup` type + `GameUtils`/`RenderGame` entries, and keeps the design.
+Consequences: when a card's referenced plan doc is settled on the game design but stale on shell/tooling,
+that is not a reason for a design round — the build brief must instead name the stale parts explicitly:
+(1) root is `<GameFrame>` per RULE 0, not `.www-wrap`; header goes in `Status`/`Prompt`, the arena in
+`Board`, the Next/Finish button in `Action`; (2) the shared wiring is NOT pre-staged — add `WwwMatchup`
+to `types.tsx` (and to the `GameData` union), the `who-would-win` `Game` entry (`pointsPerCorrect: 0`,
+`maxPoints: 0`, `fetchData: () => fetchGamePool("who-would-win", 10)`, `thumb_who_would_win.jpg`) and the
+`RenderGame` case; (3) no route file — `[game]/page.tsx` picks it up from `visibleGames`; (4) verify with
+`npx next typegen && npx tsc --noEmit`, `npm run build`, `npm run ui:audit` (add the id to the `GAMES`
+mirror in `scripts/ui-audit.mjs`) — not `npx tsc -b`; (5) `MASTER_PLAN.md` W3-8 status may be refreshed
+in the same diff. Open product note for the owner, not a blocker: with the `Game` entry visible,
+`FriendPlay` lists the game online and the relay ranks a 0-point session purely by elapsed time; the
+engine should accept and ignore the `multiplayer`/`turn` props as the plan does, and a later card can
+decide whether an opinion game belongs in the online picker.
