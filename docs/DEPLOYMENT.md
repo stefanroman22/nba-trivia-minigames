@@ -196,9 +196,33 @@ Vercel integration), "Vercel KV" (is Upstash via the Marketplace), Railway/Rende
 
 ## Data workflow (home machine)
 
-The scheduled refresh (`sync_nba_data` → `build_pools_from_db` → commit/push → `vercel deploy`)
+The scheduled refresh (`sync_nba_data` → `upload_dataset` → `gh workflow run publish-game-data.yml`)
 is fully documented in [DATA_PIPELINE.md](DATA_PIPELINE.md) — that's the single source of truth
-for how, how often, and how it's monitored.
+for how, how often, and how it's monitored. It no longer commits pools or runs `vercel deploy`
+(that redeployed the website from the PC's working tree).
+
+## Data publishing (game-data host)
+
+Pool games read manifest-v3 files from the data host `vars.DATA_PUBLIC_BASE`
+(`https://nba-minigames-data.vercel.app`, Vercel project `nba-minigames-data`), published
+independently of the website and backend. Design:
+`docs/team/designs/2026-10-02-independent-game-data-publishing.md`.
+
+| What | Where | When |
+|---|---|---|
+| **Publish button** | Actions → **Publish game data** (`publish-game-data.yml`): `games` empty = all, `target` vercel, untick `dry_run` | manually, or triggered by the PC refresh |
+| **Freshness alert** | `game-data-freshness.yml` runs `manage.py publish_game_data_v3 --check-only` (no DB writes) and posts one message to Slack `#agent-backend` naming games whose DB data isn't published yet, with a link to the button | daily 06:30 UTC + manual; silent when everything is fresh |
+| **Usage report** | `game-data-usage.yml` runs `backend/scripts/vercel_usage_report.py` and posts to `#agent-backend`: live data version, size of the published set (raw and gzip'd), data deployments this week, link to the Vercel usage dashboard | Mondays 07:00 UTC + manual |
+| **PC refresh** | `backend/scripts/refresh_nba_data.cmd` (Task Scheduler): `sync_nba_data` → `upload_dataset` → `gh workflow run publish-game-data.yml --ref main -f games= -f target=vercel -f dry_run=false` | monthly; needs `gh` logged in as `stefanroman22` |
+
+The usage report **cannot show bandwidth served or a % of the free allowance**: Vercel's only
+usage endpoint (`GET /v1/billing/charges`) needs the `billing` scope, "only available to Pro and
+Enterprise teams", and this team is on Hobby (100 GB Fast Data Transfer/month, shared with the
+website). Check that number on the Vercel usage dashboard; Vercel also emails when a Hobby limit
+is near.
+
+Rollback = republish an older manifest from `manifest-history.json`; never `vercel rollback` the
+data project (it pins the domain, see above).
 
 ## Recommended activation order
 
