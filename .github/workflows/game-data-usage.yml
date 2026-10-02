@@ -1,0 +1,39 @@
+name: Game data usage
+# Weekly read-only report on the game-data host, posted to #agent-backend: live data
+# version, size of the published set (raw and gzip'd), data deployments this week, and
+# a link to the Vercel usage dashboard. Bandwidth served is NOT reported: Vercel's usage
+# API (GET /v1/billing/charges) is Pro/Enterprise only and this team is on Hobby
+# (see backend/scripts/vercel_usage_report.py). VERCEL_TOKEN is only used to list
+# deployments.
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # Mondays 07:00 UTC
+  workflow_dispatch:
+concurrency:
+  group: game-data-usage
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Build report
+        env:
+          DATA_PUBLIC_BASE: ${{ vars.DATA_PUBLIC_BASE }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_DATA_PROJECT_ID: ${{ secrets.VERCEL_DATA_PROJECT_ID }}
+        run: |
+          mkdir -p build
+          python backend/scripts/vercel_usage_report.py --out build/usage-report.txt
+          cat build/usage-report.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Post to Slack
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        run: node scripts/slack.mjs post-text backend - < build/usage-report.txt

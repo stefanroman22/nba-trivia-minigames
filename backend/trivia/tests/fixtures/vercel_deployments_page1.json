@@ -1,0 +1,36 @@
+{
+  "deployments": [
+    {
+      "uid": "dpl_3fW9cXyZ1aBcDeFgHiJkLmNoPqRs",
+      "name": "nba-minigames-data",
+      "url": "nba-minigames-data-8k2j4h1g0-stefanromanpers-5412s-projects.vercel.app",
+      "created": 1791014400000,
+      "createdAt": 1791014400000,
+      "source": "cli",
+      "state": "READY",
+      "readyState": "READY",
+      "readySubstate": "PROMOTED",
+      "type": "LAMBDAS",
+      "target": "production",
+      "projectId": "prj_VQDErgGnc7UrOHnwI4tOFmiQfuZL",
+      "creator": {"uid": "eLrCnEgbKhsHyfbiNR7E8496", "username": "stefanroman22"},
+      "inspectorUrl": "https://vercel.com/stefanromanpers-5412s-projects/nba-minigames-data/3fW9cXyZ1aBcDeFgHiJkLmNoPqRs"
+    },
+    {
+      "uid": "dpl_8aB7cD6eF5gH4iJ3kL2mN1oP0qRs",
+      "name": "nba-minigames-data",
+      "url": "nba-minigames-data-1a2b3c4d5-stefanromanpers-5412s-projects.vercel.app",
+      "created": 1790950000000,
+      "createdAt": 1790950000000,
+      "source": "cli",
+      "state": "ERROR",
+      "readyState": "ERROR",
+      "type": "LAMBDAS",
+      "target": "production",
+      "projectId": "prj_VQDErgGnc7UrOHnwI4tOFmiQfuZL",
+      "creator": {"uid": "eLrCnEgbKhsHyfbiNR7E8496", "username": "stefanroman22"},
+      "inspectorUrl": null
+    }
+  ],
+  "pagination": {"count": 2, "next": 1790949999999, "prev": 1791014400000}
+}
