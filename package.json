@@ -13,6 +13,7 @@
     "dev": "npm run copy:data && next dev -p 5173",
     "build": "npm run copy:data && next build",
     "lint": "eslint .",
+    "test:game-data": "node --experimental-strip-types scripts/test-game-data.mjs",
     "team": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/team-run.ps1",
     "chrome:debug": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -ExecutionPolicy Bypass -File scripts/chrome-debug.ps1",
     "ui:audit": "node scripts/ui-audit.mjs --label desktop --width 1100 --height 900 && node scripts/ui-audit.mjs --label laptop --width 854 --height 694 && node scripts/ui-audit.mjs --label mobile --width 390 --height 844",
