@@ -27,6 +27,8 @@
 // so the client can render a countdown and role without re-deriving them. The
 // client reads turnState as `any`, so extra fields are harmless.
 
+// questions.deal()/loadNames() read the manifest-v3 data host when it publishes the game
+// (tictactoe does; imposter is hidden and stays on the Supabase questions store).
 const questions = require("./questions");
 const { normalizeAnswer } = require("./answerMatch");
 

@@ -8,8 +8,13 @@
 // publisher-generated fixture (multiplayer_server/scripts/fixtures/game-data-v3/) by
 // scripts/test-game-data.mjs and multiplayer_server/scripts/test_game_data.js.
 //
-// Callers (utils/pool.ts) fall back to the bundled /data copy when this module throws.
-import type { GameData } from "../types/types";
+// Question games (kind "questions": index -> pick a qid -> one question file) are read through
+// fetchQuestion() / fetchQuestionNames() below; the pickers (weighted, daily contexto, random)
+// live here and are shared with utils/questions.ts.
+//
+// Callers (utils/pool.ts) fall back to the bundled /data copy when this module throws;
+// utils/questions.ts falls back to the Supabase Storage questions store.
+import type { GameData, NamesEntry, Question, QuestionIndex } from "../types/types";
 
 export const SCHEMA = 3;
 const BASE = (process.env.VITE_DATA_BASE || "").replace(/\/+$/, "");
@@ -19,6 +24,9 @@ const LS_FILE = "gamedata:f:"; // + content-addressed path, e.g. "gamedata:f:mvp
 
 /** The pool games published under manifest v3 (pool.ts keys). */
 export const POOL_GAMES = new Set(["playoff", "name-logo", "mvps", "starting-five", "fan-favorites"]);
+
+/** The question games the publisher can put under manifest v3 (publish_v3.QUESTION_GAMES). */
+export const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "tictactoe", "contexto"]);
 
 /**
  * Games whose rows carry a team_a / team_b pair the player picks between. The publisher writes
@@ -31,12 +39,13 @@ type Row = Record<string, unknown>;
 export type Lookups = Record<string, Row[]>;
 
 export interface GameEntry {
-  kind: string; // "single" | "chunked"
+  kind: string; // "single" | "chunked" | "questions"
   rows: number;
   file?: string;
   chunks?: string[];
   chunk_size?: number;
   lookups?: Record<string, string>;
+  index?: string; // kind "questions": "<game>/index.<sha12>.json"
 }
 
 export interface ManifestV3 {
@@ -45,13 +54,23 @@ export interface ManifestV3 {
   published_at?: string;
   games: Record<string, GameEntry>;
   names?: string;
+  question_names?: string;
+}
+
+/** A published question index: the snapshot index.json minus `version`, plus qid -> sha12. */
+interface PublishedIndex {
+  schema: number;
+  game: string;
+  dataset: { players: string };
+  items: (string | number)[][];
+  files: Record<string, string>;
 }
 
 export class GameDataUnavailable extends Error {}
 
 let manifestCache: { at: number; value: ManifestV3 } | null = null;
 let manifestPromise: Promise<ManifestV3> | null = null;
-const mem = new Map<string, unknown[]>(); // content-addressed path -> parsed file
+const mem = new Map<string, unknown>(); // content-addressed path -> parsed file
 
 /** True when VITE_DATA_BASE points somewhere (whether it really is a v3 host is checked lazily). */
 export function isConfigured(): boolean {
@@ -93,21 +112,47 @@ function readLs(key: string): unknown {
   }
 }
 
-/** Every file path a manifest references (all games' files, chunks and lookups, plus names). */
+/**
+ * Every file path a manifest references (all games' files, chunks, lookups and question indexes,
+ * plus both names files). Question files are listed in their index, not the manifest.
+ */
 export function manifestFiles(m: ManifestV3): Set<string> {
   const paths = new Set<string>();
   for (const entry of Object.values(m.games)) {
     if (entry.file) paths.add(entry.file);
     for (const c of entry.chunks ?? []) paths.add(c);
     for (const l of Object.values(entry.lookups ?? {})) paths.add(l);
+    if (entry.index) paths.add(entry.index);
   }
   if (m.names) paths.add(m.names);
+  if (m.question_names) paths.add(m.question_names);
+  return paths;
+}
+
+function isPublishedIndex(v: unknown): v is PublishedIndex {
+  if (!v || typeof v !== "object") return false;
+  const i = v as PublishedIndex;
+  return typeof i.game === "string" && Array.isArray(i.items) && !!i.files && typeof i.files === "object";
+}
+
+const questionPath = (game: string, qid: string, sha12: string) => `${game}/${qid}.${sha12}.json`;
+
+/** The question files of the manifest's question indexes that are already cached (memory or localStorage). */
+function cachedQuestionFiles(m: ManifestV3): Set<string> {
+  const paths = new Set<string>();
+  for (const entry of Object.values(m.games)) {
+    if (entry.kind !== "questions" || !entry.index) continue;
+    const index = mem.get(entry.index) ?? readLs(LS_FILE + entry.index);
+    if (!isPublishedIndex(index)) continue;
+    for (const [qid, sha] of Object.entries(index.files)) paths.add(questionPath(index.game, qid, sha));
+  }
   return paths;
 }
 
 /** Drop cached files the current manifest no longer references (memory + localStorage). */
 function prune(m: ManifestV3): void {
   const keep = manifestFiles(m);
+  for (const p of cachedQuestionFiles(m)) keep.add(p);
   for (const k of [...mem.keys()]) if (!keep.has(k)) mem.delete(k);
   try {
     for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -162,20 +207,27 @@ export async function getManifest(): Promise<ManifestV3> {
   return manifestPromise;
 }
 
-/** One published file (always a JSON array), cached by its content-addressed path. */
-async function cachedFile(path: string): Promise<unknown[]> {
+/** One published file, cached by its content-addressed path; `valid` rejects a wrong shape. */
+async function cachedJson<T>(path: string, valid: (v: unknown) => v is T, what: string): Promise<T> {
   const hit = mem.get(path);
-  if (hit) return hit;
+  if (valid(hit)) return hit;
   const stored = readLs(LS_FILE + path);
-  if (Array.isArray(stored)) {
+  if (valid(stored)) {
     mem.set(path, stored);
     return stored;
   }
   const value = await getJson(`${BASE}/${path}`);
-  if (!Array.isArray(value)) throw new GameDataUnavailable(`${path} is not a JSON array`);
+  if (!valid(value)) throw new GameDataUnavailable(`${path} is not ${what}`);
   mem.set(path, value);
   writeLs(LS_FILE + path, value);
   return value;
+}
+
+const isArray = (v: unknown): v is unknown[] => Array.isArray(v);
+
+/** One published data file (always a JSON array). */
+function cachedFile(path: string): Promise<unknown[]> {
+  return cachedJson(path, isArray, "a JSON array");
 }
 
 /**
@@ -286,4 +338,115 @@ export async function fetchNames(): Promise<string[]> {
   const m = await getManifest();
   if (!m.names) throw new GameDataUnavailable(`no names in manifest ${m.version}`);
   return (await cachedFile(m.names)) as string[];
+}
+
+// ------------------------------------------------------------------ question games
+
+/** Index pickers (moved here from utils/questions.ts, which re-exports them). Items: [qid, ...]. */
+export function pickRandom(index: QuestionIndex, rand: () => number = Math.random): string {
+  const items = index.items;
+  return String(items[Math.floor(rand() * items.length)][0]);
+}
+
+/** career-path: items [qid, weight]; a missing / non-numeric weight counts as 1. */
+export function pickWeighted(index: QuestionIndex, rand: () => number = Math.random): string {
+  const items = index.items;
+  const total = items.reduce((s, it) => s + (Number(it[1]) || 1), 0);
+  let r = rand() * total;
+  for (const it of items) {
+    r -= Number(it[1]) || 1;
+    if (r <= 0) return String(it[0]);
+  }
+  return String(items[items.length - 1][0]);
+}
+
+export function utcToday(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** FNV-1a over a string — the Contexto daily fallback, and SuperDraft's online objective (hashStr(qid)). */
+export function hashStr(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/** contexto: the item scheduled for `today` (UTC), else a stable FNV pick over the sorted qids. */
+export function pickDaily(index: QuestionIndex, today = utcToday()): string {
+  const scheduled = index.items.find((it) => it[1] === today);
+  if (scheduled) return String(scheduled[0]);
+  const sorted = [...index.items].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
+  return String(sorted[hashStr(today) % sorted.length][0]);
+}
+
+/** Per-game picker; anything not listed picks uniformly. Mirrored in multiplayer_server/src/gameData.js. */
+export const PICKERS: Record<string, (i: QuestionIndex, rand?: () => number) => string> = {
+  "career-path": pickWeighted,
+  "who-are-ya": pickRandom,
+  tictactoe: pickRandom,
+  superdraft: pickRandom,
+  contexto: (i) => pickDaily(i),
+  imposter: (i) => String(i.items[0][0]),
+};
+
+/** True when the manifest publishes this question game. */
+export function hasQuestions(m: ManifestV3, game: string): boolean {
+  const entry = m.games[game];
+  return !!entry && entry.kind === "questions" && !!entry.index;
+}
+
+async function loadIndexFrom(m: ManifestV3, game: string): Promise<PublishedIndex> {
+  if (!hasQuestions(m, game)) throw new GameDataUnavailable(`no ${game} questions in manifest ${m.version}`);
+  return cachedJson(m.games[game].index as string, isPublishedIndex, "a question index");
+}
+
+/** A game's question index in the QuestionIndex shape the pickers take (version = manifest version). */
+export async function fetchQuestionIndex(game: string): Promise<QuestionIndex> {
+  const m = await getManifest();
+  const index = await loadIndexFrom(m, game);
+  return { schema: index.schema, game: index.game, version: m.version, dataset: index.dataset, items: index.items };
+}
+
+const isQuestion = (v: unknown): v is Question =>
+  !!v && typeof v === "object" && !Array.isArray(v) && typeof (v as Question).qid === "string";
+
+async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number, qid?: string): Promise<Question> {
+  const index = await loadIndexFrom(m, game);
+  if (!index.items.length) throw new GameDataUnavailable(`no ${game} questions`);
+  const view: QuestionIndex = { schema: index.schema, game, version: m.version, dataset: index.dataset, items: index.items };
+  const pick = qid ?? (PICKERS[game] ?? pickRandom)(view, rand);
+  const sha = index.files[pick];
+  if (!sha) throw new GameDataUnavailable(`${game}/${pick} is not in the index`);
+  return cachedJson(questionPath(game, pick, sha), isQuestion, "a question");
+}
+
+/**
+ * One question for a game: manifest -> index -> the game's picker -> the question file, exactly
+ * the payload the old questions store served. `qid` skips the picker. Throws GameDataUnavailable
+ * (or a fetch error) when the host or the game isn't available; callers fall back.
+ */
+export async function fetchQuestion(game: string, rand: () => number = Math.random, qid?: string): Promise<Question> {
+  const m = await getManifest();
+  try {
+    return await loadQuestionFrom(m, game, rand, qid);
+  } catch (err) {
+    // A manifest up to 60 s old can point at an index a publish just retired: retry once on a fresh one.
+    manifestCache = null;
+    const fresh = await getManifest().catch(() => m);
+    if (fresh === m || JSON.stringify(fresh.games[game]) === JSON.stringify(m.games[game])) throw err;
+    return loadQuestionFrom(fresh, game, rand, qid);
+  }
+}
+
+const isNamesList = (v: unknown): v is NamesEntry[] =>
+  Array.isArray(v) && (v.length === 0 || (!!v[0] && typeof v[0] === "object"));
+
+/** The question games' autocomplete list (manifest "question_names": NamesEntry objects with ids). */
+export async function fetchQuestionNames(): Promise<NamesEntry[]> {
+  const m = await getManifest();
+  if (!m.question_names) throw new GameDataUnavailable(`no question_names in manifest ${m.version}`);
+  return cachedJson(m.question_names, isNamesList, "a names list");
 }

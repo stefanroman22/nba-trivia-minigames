@@ -160,8 +160,9 @@ const publicUser = (user) =>
 /** Display name for log lines / "X left" messages. */
 const nameOf = (uid) => players.get(uid)?.user?.username || "A player";
 
-// Games dealt from the pre-generated questions store instead of the Django
-// backend (tictactoe/imposter are TURN_GAMES and never reach fetchRound).
+// Games dealt from the pre-generated questions (questions.js: the manifest-v3 data
+// host when it publishes the game, else the Supabase questions store) instead of
+// the Django backend (tictactoe/imposter are TURN_GAMES and never reach fetchRound).
 const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"]);
 
 // Fetch a fresh round of game data for a game id — either one pre-generated

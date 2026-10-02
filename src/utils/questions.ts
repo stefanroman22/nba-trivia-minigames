@@ -1,9 +1,60 @@
-// Pre-generated questions: manifest (60 s) -> index -> one question file, all from
-// Supabase Storage's public CDN. Same caching shape as utils/pool.ts.
+// Pre-generated questions: manifest (60 s) -> index -> one question file.
+//
+// Read from the manifest-v3 data host first (utils/gameData.ts, VITE_DATA_BASE) whenever its
+// manifest publishes the game ("kind": "questions") / the "question_names" list; otherwise
+// from the old Supabase Storage questions store below (VITE_QUESTIONS_BASE), logged once per
+// game. The fallback keeps the switch safe before the first question publish, keeps the hidden
+// games (superdraft, imposter) on the store, and covers a failing data host.
 import type {
   FetchResult, NamesEntry, Question, QuestionIndex, QuestionsManifest,
 } from "../types/types";
 import { normalizeAnswer } from "./answerMatch";
+import {
+  PICKERS, QUESTION_GAMES, fetchQuestion as fetchV3Question, fetchQuestionNames, getManifest as getV3Manifest,
+  hasQuestions, isConfigured as v3Configured, pickRandom,
+} from "./gameData";
+
+export { hashStr, pickDaily, pickRandom, pickWeighted, utcToday } from "./gameData";
+
+const warnedFallback = new Set<string>();
+function warnOnce(key: string, message: string, err?: unknown): void {
+  if (warnedFallback.has(key)) return;
+  warnedFallback.add(key);
+  console.warn(`[questions] ${message}`, ...(err === undefined ? [] : [err]));
+}
+
+/** The v3 question for a game, or null to use the questions store (unset host = silent). */
+async function v3Question(game: string): Promise<Question | null> {
+  if (!v3Configured()) return null;
+  try {
+    const m = await getV3Manifest();
+    if (!hasQuestions(m, game)) {
+      // Hidden games (superdraft, imposter) are never published there: no log for them.
+      if (QUESTION_GAMES.has(game)) warnOnce(game, `${game}: not published on the data host yet, using the questions store`);
+      return null;
+    }
+    return await fetchV3Question(game);
+  } catch (err) {
+    warnOnce(game, `${game}: data host unavailable, using the questions store`, err);
+    return null;
+  }
+}
+
+/** The v3 question names, or null to use the questions store's players-names.json. */
+async function v3Names(): Promise<NamesEntry[] | null> {
+  if (!v3Configured()) return null;
+  try {
+    const m = await getV3Manifest();
+    if (!m.question_names) {
+      warnOnce("names", "question names not published on the data host yet, using the questions store");
+      return null;
+    }
+    return await fetchQuestionNames();
+  } catch (err) {
+    warnOnce("names", "data host unavailable for question names, using the questions store", err);
+    return null;
+  }
+}
 
 export const SUPPORTED_SCHEMA = 1;
 const BASE = (process.env.VITE_QUESTIONS_BASE || "").replace(/\/$/, "");
@@ -89,6 +140,8 @@ async function cached<T>(version: string, key: string, url: string): Promise<T> 
 }
 
 export async function loadNames(): Promise<NamesEntry[]> {
+  const published = await v3Names();
+  if (published) return published;
   const m = await getManifest();
   return cached<NamesEntry[]>(m.version, "names", m.names);
 }
@@ -117,52 +170,6 @@ export async function loadQuestion<T extends Question>(game: string, qid: string
   }
 }
 
-export function pickRandom(index: QuestionIndex): string {
-  const items = index.items;
-  return String(items[Math.floor(Math.random() * items.length)][0]);
-}
-
-export function pickWeighted(index: QuestionIndex): string {
-  const items = index.items;
-  const total = items.reduce((s, it) => s + (Number(it[1]) || 1), 0);
-  let r = Math.random() * total;
-  for (const it of items) {
-    r -= Number(it[1]) || 1;
-    if (r <= 0) return String(it[0]);
-  }
-  return String(items[items.length - 1][0]);
-}
-
-export function utcToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-/** FNV-1a over a string — the Contexto daily fallback, and SuperDraft's online objective (hashStr(qid)). */
-export function hashStr(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-export function pickDaily(index: QuestionIndex, today = utcToday()): string {
-  const scheduled = index.items.find((it) => it[1] === today);
-  if (scheduled) return String(scheduled[0]);
-  const sorted = [...index.items].sort((a, b) => String(a[0]).localeCompare(String(b[0])));
-  return String(sorted[hashStr(today) % sorted.length][0]);
-}
-
-const PICKERS: Record<string, (i: QuestionIndex) => string> = {
-  "career-path": pickWeighted,
-  "who-are-ya": pickRandom,
-  tictactoe: pickRandom,
-  superdraft: pickRandom,
-  contexto: (i) => pickDaily(i),
-  imposter: (i) => String(i.items[0][0]),
-};
-
 const UNAVAILABLE = {
   success: false,
   error: {
@@ -174,6 +181,8 @@ const UNAVAILABLE = {
 /** One question for a game, in the { success, data: [question] } shape MiniGame expects. */
 export async function fetchQuestion(game: string): Promise<FetchResult> {
   try {
+    const published = await v3Question(game);
+    if (published) return { success: true, data: [published] };
     const index = await loadIndex(game);
     if (!index.items.length) return { success: false, error: { title: "No data available", message: "Please try again later." } };
     const qid = (PICKERS[game] ?? pickRandom)(index);

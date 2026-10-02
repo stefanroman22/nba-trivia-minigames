@@ -6,8 +6,10 @@
 // expand() rebuilds every game exactly, chunk economy, playoff side randomization (winner still
 // right), localStorage caching by content-addressed path + pruning, a corrupt cache entry, the
 // offline fallback to the persisted manifest, and that schema != 3 / no host throws (pool.ts then
-// uses the bundled /data copy).
-import { createRequire } from "node:module";
+// uses the bundled /data copy). Then the question games through src/utils/questions.ts: every
+// published question == the materialized payload, picks (weighted, daily contexto agreeing with
+// the relay's twin on every day), published question_names, and the Supabase-store fallback.
+import { createRequire, register } from "node:module";
 
 const require = createRequire(import.meta.url);
 const { EXPECTED, MANIFEST, startServer, canonical, sameRows, swapped, makeChecker } =
@@ -138,6 +140,128 @@ check("host down + nothing cached: throws", (await gd.fetchGameRows("mvps", 5).c
 delete process.env.VITE_DATA_BASE;
 gd = await load();
 check("VITE_DATA_BASE unset: not configured, throws", !gd.isConfigured() && (await gd.fetchGameRows("mvps", 5).catch((e) => e)) instanceof Error);
+
+// 6. Question games through src/utils/questions.ts (v3 first, Supabase store fallback).
+// questions.ts imports "./gameData" / "./answerMatch" without extensions (bundler style): a tiny
+// resolve hook adds ".ts" and carries this file's ?i=<n> to them, so each load is a fresh page.
+register("data:text/javascript," + encodeURIComponent(`
+  export async function resolve(spec, ctx, next) {
+    if (/^\\.\\.?\\//.test(spec) && !/\\.[cm]?[jt]s$/.test(spec.split("?")[0]) && ctx.parentURL?.includes("/src/")) {
+      const q = ctx.parentURL.includes("?") ? ctx.parentURL.slice(ctx.parentURL.indexOf("?")) : "";
+      return next(spec + ".ts" + q, ctx);
+    }
+    return next(spec, ctx);
+  }`));
+const { RealDate, pinDate } = (() => {
+  const Real = Date;
+  return {
+    RealDate: Real,
+    pinDate: (iso) => {
+      globalThis.Date = class extends Real {
+        constructor(...a) { super(...(a.length ? a : [iso])); }
+        static now() { return new Real(iso).getTime(); }
+      };
+    },
+  };
+})();
+const relay = require("../multiplayer_server/src/gameData.js");
+const QGAMES = ["career-path", "who-are-ya", "tictactoe", "contexto"];
+const qserver = await startServer();
+process.env.VITE_DATA_BASE = qserver.base;
+process.env.DATA_PUBLIC_BASE = qserver.base;
+// The old store, served by the same test server under /store/ (VITE_QUESTIONS_BASE).
+const STORE_INDEX = { schema: 1, game: "who-are-ya", version: "s", dataset: { players: "s" }, items: [["way-store"]] };
+Object.assign(qserver.overlay, {
+  "store/questions/manifest.json": { schema: 1, version: "s", dataset: { players: "s" }, names: `${qserver.base}/store/names.json`,
+    games: { "who-are-ya": { index: `${qserver.base}/store/way/index.json`, count: 1 }, superdraft: { index: `${qserver.base}/store/sd/index.json`, count: 1 } } },
+  "store/names.json": [{ id: 9, full_name: "Store Name", aliases: [] }],
+  "store/way/index.json": STORE_INDEX,
+  "store/way/way-store.json": { schema: 1, game: "who-are-ya", qid: "way-store", player: { full_name: "Store" } },
+  "store/sd/index.json": { schema: 1, game: "superdraft", version: "s", dataset: { players: "s" }, items: [["sd-1"]] },
+  "store/sd/sd-1.json": { schema: 1, game: "superdraft", qid: "sd-1", slots: [] },
+});
+process.env.VITE_QUESTIONS_BASE = `${qserver.base}/store`;
+const loadQ = () => import(`../src/utils/questions.ts?i=${++instance}`);
+store.clear();
+let qs = await loadQ();
+
+for (const g of QGAMES) {
+  const res = await qs.fetchQuestion(g);
+  const ok = res.success && EXPECTED[g].some((r) => canonical(r.question) === canonical(res.data[0]));
+  check(`${g}: fetchQuestion() serves a published question in the { success, data: [q] } shape`, ok, JSON.stringify(res).slice(0, 120));
+}
+gd = await load();
+let allSame = true;
+for (const g of QGAMES) for (const r of EXPECTED[g]) if (canonical(await gd.fetchQuestion(g, Math.random, r.qid)) !== canonical(r.question)) allSame = false;
+check("every published question file == the materialized payload", allSame);
+const idx = await gd.fetchQuestionIndex("career-path");
+check("fetchQuestionIndex: the snapshot index shape (version = manifest version)",
+  idx.version === MANIFEST.version && canonical(idx.items) === canonical(EXPECTED["career-path"].map((r) => r.item)) && idx.dataset.players === EXPECTED["career-path"][0].dataset);
+check("names: loadNames() is the published question_names list", canonical(await qs.loadNames()) === canonical(EXPECTED["question-names"]));
+check("names: buildNameLookup works on them", (() => {
+  const n = EXPECTED["question-names"][0];
+  return qs.buildNameLookup(EXPECTED["question-names"]).toId(n.full_name) === n.id;
+})());
+
+// Weighted / random picks are the same functions as before (re-exported from gameData.ts).
+const weighted = { items: [["a", 1], ["b", 3]] };
+check("pickWeighted honours weights", qs.pickWeighted(weighted, () => 0.2) === "a" && qs.pickWeighted(weighted, () => 0.3) === "b");
+check("pickRandom picks by index", qs.pickRandom({ items: [["x"], ["y"]] }, () => 0.9) === "y");
+
+// contexto: the site and the relay pick the same question for every day, scheduled or not.
+const cindex = { items: EXPECTED.contexto.map((r) => r.item) };
+let agree = true;
+for (let d = new RealDate("2026-09-20T00:00:00Z"); d < new RealDate("2026-11-10T00:00:00Z"); d.setUTCDate(d.getUTCDate() + 1)) {
+  const day = d.toISOString().slice(0, 10);
+  if (gd.pickDaily(cindex, day) !== relay.pickDaily(cindex, day)) agree = false;
+  if (EXPECTED.contexto.some((r) => r.item[1] === day) && gd.pickDaily(cindex, day) !== `ctx-${day}`) agree = false;
+}
+check("contexto: site and relay pickDaily agree on every day (scheduled day = that day's question)", agree);
+pinDate("2026-10-04T08:00:00Z");
+const siteToday = await qs.fetchQuestion("contexto");
+relay._resetForTest();
+const relayToday = await relay.fetchQuestion("contexto");
+globalThis.Date = RealDate;
+check("contexto: on 2026-10-04 the site and the relay both serve ctx-2026-10-04",
+  siteToday.data?.[0]?.qid === "ctx-2026-10-04" && relayToday.qid === "ctx-2026-10-04", `${siteToday.data?.[0]?.qid} / ${relayToday.qid}`);
+
+// One question = the index (cached after) + one file; a second play costs one file at most.
+store.clear();
+gd = await load();
+qserver.log.length = 0;
+await gd.fetchQuestion("tictactoe");
+check("tictactoe: manifest + index + one question file", qserver.log.length === 3 && qserver.log.some((p) => p.startsWith("tictactoe/index.")), qserver.log.join(", "));
+check("question files cached in localStorage by path", [...store.keys()].some((k) => k.startsWith("gamedata:f:tictactoe/ttt-")));
+
+// Fallbacks to the Supabase store.
+const warnings = [];
+const realWarn = console.warn;
+console.warn = (msg) => warnings.push(String(msg));
+qserver.overlay["manifest.json"] = { ...MANIFEST, games: Object.fromEntries(Object.entries(MANIFEST.games).filter(([g]) => g !== "who-are-ya")) };
+store.clear();
+qs = await loadQ();
+const f1 = await qs.fetchQuestion("who-are-ya");
+const f2 = await qs.fetchQuestion("who-are-ya");
+check("fallback: a game the v3 manifest doesn't publish comes from the store", f1.data?.[0]?.qid === "way-store" && f2.data?.[0]?.qid === "way-store");
+check("fallback: logged once", warnings.filter((w) => w.includes("who-are-ya")).length === 1, warnings.join(" | "));
+const sd = await qs.fetchQuestion("superdraft");
+check("hidden game (superdraft): store, no warning", sd.data?.[0]?.qid === "sd-1" && !warnings.some((w) => w.includes("superdraft")));
+qserver.overlay["manifest.json"] = { ...MANIFEST, question_names: undefined };
+qs = await loadQ();
+check("fallback: no question_names published -> store names", (await qs.loadNames())[0].full_name === "Store Name");
+qserver.overlay["manifest.json"] = 404;
+store.clear();
+qs = await loadQ();
+const fdown = await qs.fetchQuestion("who-are-ya");
+check("fallback: data host has no manifest -> the store", fdown.data?.[0]?.qid === "way-store");
+delete qserver.overlay["manifest.json"];
+delete process.env.VITE_DATA_BASE;
+warnings.length = 0;
+qs = await loadQ();
+const funset = await qs.fetchQuestion("who-are-ya");
+check("fallback: VITE_DATA_BASE unset -> the store, silently", funset.data?.[0]?.qid === "way-store" && warnings.length === 0, warnings.join(" | "));
+console.warn = realWarn;
+await qserver.close();
 
 console.log(state.failures === 0 ? "\nAll gameData.ts checks passed." : `\n${state.failures} check(s) failed.`);
 process.exit(state.failures === 0 ? 0 : 1);
