@@ -1,9 +1,15 @@
 name: Maintain Questions
+# SUPERSEDED for the public question games (career-path, who-are-ya, tictactoe, contexto):
+# "Publish game data" (publish-game-data.yml) now runs their maintenance and publishes them to
+# the manifest-v3 data host. Manual only (the daily schedule is removed; the workflow was
+# disabled in GitHub). Kept because the hidden games superdraft and imposter are still read
+# from this Supabase Storage snapshot until they return; running it also refreshes the old
+# snapshot the site and relay fall back to. Retirement steps: phase 6 of
+# docs/team/designs/2026-10-02-independent-game-data-publishing.md.
+#
 # Re-materializes, prunes, tops up and publishes the pre-generated game questions.
 # Reads the player dataset from Supabase Storage (never stats.nba.com).
 on:
-  schedule:
-    - cron: "0 4 * * *"   # 04:00 UTC daily
   workflow_dispatch:
     inputs:
       games:

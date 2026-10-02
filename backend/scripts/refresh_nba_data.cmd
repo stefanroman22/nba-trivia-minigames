@@ -2,8 +2,9 @@
 REM Periodic NBA data refresh -- RUN FROM A RESIDENTIAL MACHINE (NBA blocks datacenter IPs).
 REM Scheduled via Task Scheduler. Logs everything to last_refresh.log.
 REM   1) sync_nba_data: NBA API -> Supabase (validate + retry, non-destructive upsert)
-REM   2) upload_dataset: question-game dataset (still used until phase 6 of
-REM      docs/team/designs/2026-10-02-independent-game-data-publishing.md)
+REM   2) upload_dataset: players dataset in Supabase Storage, read only by maintain_questions
+REM      (hidden superdraft/imposter + the fallback snapshot); the publish workflow reads the
+REM      committed players_curated.json (phase 6 of the game-data publishing design)
 REM   3) trigger the "Publish game data" GitHub workflow, which builds the game-data
 REM      files from the DB and uploads only what changed to the data host. The website
 REM      is not redeployed and nothing is committed from this machine.

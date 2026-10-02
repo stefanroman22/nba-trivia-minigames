@@ -1,15 +1,18 @@
 name: Publish game data
 # Builds the manifest-v3 game-data folder from the DB (manage.py publish_game_data_v3),
 # uploads only when something changed, then verifies the live files byte for byte.
+# Question games (career-path, who-are-ya, tictactoe, contexto) first run the question
+# maintenance (re-materialize, retire, top up, minimum gate) in the same DB transaction as
+# the build; this supersedes maintain-questions.yml for them.
 # Design: docs/team/designs/2026-10-02-independent-game-data-publishing.md.
 # Never touches the website or backend deploys, and never calls stats.nba.com.
-# Note: building Fan Favorites re-ranks boards with enough live guesses in the DB
-# (same as build_pools_from_db), even on a dry run.
+# A dry run passes --no-commit: the folder is built (and uploaded as an artifact) but every
+# DB write of the run (question maintenance, Fan Favorites re-rank) is rolled back.
 on:
   workflow_dispatch:
     inputs:
       games:
-        description: "comma-separated games (empty = all): playoff,name-logo,mvps,starting-five,fan-favorites,all-players"
+        description: "comma-separated games (empty = all): playoff,name-logo,mvps,starting-five,fan-favorites,all-players,career-path,who-are-ya,tictactoe,contexto,question-names"
         required: false
         default: ""
         type: string
@@ -34,7 +37,7 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       # Repo variable; unset on the very first run (everything is then "new").
       DATA_PUBLIC_BASE: ${{ vars.DATA_PUBLIC_BASE }}
@@ -55,10 +58,13 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           GAMES: ${{ inputs.games }}
-        run: >
-          python manage.py publish_game_data_v3 --games "$GAMES"
-          --out "$GITHUB_WORKSPACE/build/game-data"
-          --report "$GITHUB_WORKSPACE/build/game-data-report.json"
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          extra=()
+          if [ "$DRY_RUN" = "true" ]; then extra+=(--no-commit); fi
+          python manage.py publish_game_data_v3 --games "$GAMES" "${extra[@]}" \
+            --out "$GITHUB_WORKSPACE/build/game-data" \
+            --report "$GITHUB_WORKSPACE/build/game-data-report.json"
 
       - name: Upload dry-run folder
         if: steps.build.outputs.result == 'publish' && inputs.dry_run

@@ -10,7 +10,7 @@
 #                            redeployed and nothing is committed from this machine.
 #
 # gh must be installed and logged in as the stefanroman22 account (gh auth login).
-# (The .cmd twin also runs upload_dataset for the question games until phase 6.)
+# (The .cmd twin also runs upload_dataset, now only for maintain_questions: hidden games + fallback.)
 #
 # DATABASE_URL is read from backend/.env (gitignored) via settings' load_dotenv,
 # so no secret lives in this script or the repo.
