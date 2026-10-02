@@ -1,6 +1,7 @@
 # Independent game-data publishing
 
-Status: proposed, awaiting owner approval (revised 2026-10-02 to fix every weak point found in review)
+Status: approved; phases 1-3 live, phase 5 (safety nets) built on `feat/game-data-safety-nets`
+(2026-10-02). Revised 2026-10-02 to fix every weak point found in review.
 
 ## Goal
 
@@ -141,11 +142,21 @@ multiplayer server)
   one question game with two clients.
 
 **5. Freshness and monitoring**
-- `refresh_nba_data.cmd`: keep `sync_nba_data` (needs a home IP), then
-  `gh workflow run publish-game-data.yml` instead of committing pools and running `vercel deploy`.
-- Daily read-only freshness check: content hashes of the source tables vs. the live manifest;
-  Slack alert naming any unpublished game.
-- Weekly usage report: bytes served vs. the free allowance; Slack alert at 50% and 80%.
+- [x] `refresh_nba_data.cmd` (+ `.ps1`): keep `sync_nba_data` (needs a home IP) and
+  `upload_dataset`, then `gh workflow run publish-game-data.yml` instead of committing pools and
+  running `vercel deploy`. Logs an error and exits non-zero when `gh` is missing or logged out.
+- [x] Daily read-only freshness check (`game-data-freshness.yml`, 06:30 UTC):
+  `publish_game_data_v3 --check-only` builds the rows without DB writes (the Fan Favorites
+  re-rank is applied in memory only), diffs them with the live manifest, and posts one Slack
+  message to `#agent-backend` naming any unpublished game. Unreachable manifest = "unknown",
+  no message.
+- [~] Weekly usage report (`game-data-usage.yml`, Mondays 07:00 UTC): reports the live version,
+  published bytes (raw and gzip'd) and data deployments this week, plus a link to the Vercel
+  usage dashboard. **Bytes served vs. the allowance and the 50%/80% alerts are not possible on
+  Hobby**: the only usage API (`GET /v1/billing/charges`) needs the `billing` scope, which is
+  Pro/Enterprise only
+  (https://vercel.com/docs/integrations/create-integration/vercel-api-integrations#scopes).
+  Vercel's own limit emails remain the bandwidth alert.
 
 **6. Retire the old routes**
 - Question games stop publishing to Supabase Storage. Old snapshots stay for 30 days, then the bucket

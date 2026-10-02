@@ -69,8 +69,11 @@ is re-cleaned automatically; the store keeps the raw rows either way.
 ## The schedule (autonomous)
 
 Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.cmd`
-monthly (1st, 04:00). It: sync → regenerate pools → commit/push to `dev`
-(CI promotes to `main`) → `vercel deploy` to publish the pools. (A `.ps1`
+monthly (1st, 04:00). It: sync → `upload_dataset` → `gh workflow run
+publish-game-data.yml` (the "Publish game data" workflow builds the files from the DB
+and uploads only what changed to the data host; nothing is committed and the website
+is not redeployed). `gh` must be logged in as `stefanroman22`; if it is missing or
+logged out the script logs an ERROR line and exits non-zero. (A `.ps1`
 equivalent exists too, but the task uses the `.cmd` — more reliable under Task
 Scheduler. Verified end-to-end on 2026-06-22.)
 
