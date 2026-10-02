@@ -70,13 +70,17 @@ def build_mvps():
     ]
 
 
-def build_playoff():
+def build_playoff(winner_first=None):
+    # winner_first(series) -> bool decides whether the winner is team_a. Random by
+    # default; the v3 publisher passes a stable rule so the same data always
+    # produces the same bytes (and the same content-addressed file names).
+    winner_first = winner_first or (lambda s: random.choice([True, False]))
     out = []
     for s in PlayoffSeries.objects.all():
         winner_wins = s.total_games - s.loser_wins
         winner = (s.winner_name, s.winner_abbreviation, s.winner_team_id, winner_wins)
         loser = (s.loser_name, s.loser_abbreviation, s.loser_team_id, s.loser_wins)
-        a, b = (winner, loser) if random.choice([True, False]) else (loser, winner)
+        a, b = (winner, loser) if winner_first(s) else (loser, winner)
         out.append({
             "season": s.season,
             "team_a": a[0], "team_b": b[0],
