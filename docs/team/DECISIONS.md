@@ -959,3 +959,40 @@ Consequences: a card's "Model routing" hint does not downgrade a non-trivial P0 
 owner wants sonnet on simple P0 cards, the override text in `classify/SKILL.md` is the place to
 change it, not per-card. The build engine should key the hidden exit link off the existing
 `inPlace` signal rather than inventing a renderer→shell callback or store flag.
+
+## 2026-10-03 — Career Path result at the top: design round picks "same five slots, the content swaps"
+Context: design round for the P0 frontend card (`hard`, areas frontend/ui/games, risk low). Doc:
+`docs/team/designs/2026-10-03-career-path-result-top.md`. As on the cold-start round, this cloud
+planner had no agent-spawning tool, so both proposals and the sign-off were written by the planner
+from `frontend-engine.md`, the constraint docs and a full code read; `impeccable:impeccable` is not
+installed here, so `GAME_DESIGN_CONSTRAINTS.md` was the only design guidance (it outranks generic
+design skills for renderers anyway).
+Weighed: (A) keep all five `GameFrame` slots mounted and swap each slot's content for an
+equal-height end state — result line (`ScoreLine`) lone-left in the Status slot, a 22px chip toggle
+in the Prompt slot, rail + answer panes stacked in one grid cell in the Board, `ScoreActions` in the
+Action slot; (B) replace Status+Progress+Prompt with one result card and slide the answer in under
+the rail. B needs either a per-game header wrapper (Rule 0 forbids) or a `layout` animation on the
+shared `GameFrame` div to avoid the height jump, plus a reserved empty band for the answer on a
+loss (Rule 6.2); A resizes nothing by construction.
+Decided: (1) A. (2) `ScorePanel` becomes `ScoreLine` + `ScoreActions` + the composing default
+export — an extension, not a fork; `EndSequence` untouched. (3) `ScoreLine` always renders the
+score through `AnimatedNumber`, so Who Are Ya, Starting Five, Fan Favorites and Heatmap gain the
+0.9 s count-up — deliberate, one shared behaviour, screenshots in the Done-when cover it. (4)
+GameResult's spring becomes `springs.result` and the `resultIn` variant, consumed by `GameResult`
+(dedupe) and the Career Path result line, because the card demands "reuse GameResult's spring" and
+"tokens only". (5) New shared variant `stackPane` (swap's values + `visibility` via `transitionEnd`
++ `delayChildren`) for two always-mounted panes in one grid cell; `AnimatePresence mode="wait"`
+cannot keep the zone rail-tall. (6) Career Path drops the §7b 1.5 s loader (`input -> score`): the
+reveal is player-driven and the owner's rule is no button waits more than 400 ms; recorded in the
+Accepted deviations table. (7) "Rail expanded or scrolled" = scrolled; a wrapping grid needs ~650px
+at 390 wide. (8) The play label and counter vanish without an exit animation when the result
+mounts: an exit under `mode="wait"` would slide the label to centre (lone-left rule) while fading;
+a `missing` minor from the motion reviewer is accepted. (9) Rule 6.3 fix folded in: the losing
+guess flashes `Not him.`, not `Out of guesses` — one string in the branch the plan rewrites.
+Engine: mixed — opus on steps 3-7 (ScorePanel split, renderer header/end flow/stage panes, the
+CSS that makes the slots static), sonnet on 1-2 (tokens/variants, GameResult 3-line swap) and
+8-10 (docs, commit notes).
+Consequences: an in-place game that wants its result at the top renders `ScoreLine` in the
+Status slot and `ScoreActions` in the score slot; a view toggle that must not resize its container
+uses `stackPane` on two always-mounted panes sharing a grid cell; `springs.result`/`resultIn` are
+the only sanctioned result-entrance values.
