@@ -840,3 +840,77 @@ missing go in the commit body. `code-reviewer` stays fable and is not replaced.
 Consequences: one extra Opus pass per UI task (more plan usage, only on UI diffs). The Notion card tool
 (`scripts/notion.mjs create-card`) also gained `--body-file` (markdown-lite with uploaded local images),
 `--priority` and `--difficulty`, so tickets can carry long specs, screenshots and a Difficulty override.
+
+## 2026-10-03 — Cut backend cold start (slim function + pre-warm): standard vs hard, sonnet vs opus, risk high
+Context: fullstack P1 card, no override, with a complete owner-written plan already on dev
+(`docs/team/designs/2026-10-03-backend-cold-start.md`: A split `requirements.txt` /
+`requirements-pipeline.txt` + remove dead pandas/nba_api fallbacks in `trivia/views.py:103/123/188` and
+`trivia/dynamic_data/players.py`; B lazy-import `requests`/`google.oauth2`/`PIL` inside
+`users/views.py`, `users/photos.py`, `trivia/questions/storage.py`; C `GET /api/health/` + a
+non-blocking guest pre-warm fetch in `src/app/providers.tsx`; D owner checks Fluid compute). Verified on
+this checkout: `users/views.py:4,11-12` and `photos.py:8` import at module level as stated; four
+workflows (`wordle-daily`, `publish-game-data`, `game-data-freshness`, `maintain-questions`) plus
+`README.md` do `pip install -r backend/requirements.txt`, so the split reaches the data pipeline's
+install path. Areas therefore `frontend`,`backend`,`auth`,`data` — a design round regardless of
+difficulty. The card says "risk medium"; the rubric has no such value. Weighed: (a) `hard` — the
+rubric lists multi-area under hard, and the dependency split + startup-import guard test are new
+patterns for the repo; (b) `standard` — nothing needs inventing, every step in the plan names its file
+and done-check, and the design round already runs because of multi-area, so `hard` would add no
+machinery (bias-small rule, as in the 10-01 duplicate-index entry). Engine: the spec routes "sonnet
+for all steps" and 09-23 kept auth-bootstrap perf on sonnet, but that predates the 09-29 override,
+which 10-01 settled as `risk: high` → opus unconditionally.
+Decision: `difficulty: standard`, `needsDesignRound: true`, `risk: high` (AUTH-11 names
+`users/views.py` login/google endpoints and `users/photos.py`; `backend/requirements.txt` and
+`.github/workflows/` are PIPELINE §6 protected paths; the production dependency set changes),
+provisional `engineModel: opus`, `planModel: fable`. The design round should tag per step: `[opus]`
+for the auth-view/photo lazy-import edits and the dead-fallback removal (behaviour must stay identical
+when the DB has data; empty table → clear JSON error, not a stats.nba.com call), `[sonnet]` for the
+requirements split, workflow/script/README install lines, the health endpoint, the guest pre-warm
+fetch and the `sys.modules` startup test. It must also grep every `pip install -r` (and
+`requirements-publish.txt`'s relation to the new pipeline file) so no workflow loses pandas/nba_api,
+and decide how bundle size and cold-start timings get measured in an unattended run (likely: tests +
+`-X importtime` in the worktree; the `vercel inspect` and 20-min-idle samples are owner/QA evidence
+noted in the PR, not blockers). Step D is owner-only and not a build step.
+Consequences: owner-planned perf cards that touch AUTH-11 files stay `standard` + design round +
+`risk: high`, with opus provisional and the round splitting steps by judgment; "risk medium" on a card
+maps to high whenever an AUTH-11 or protected path is in the diff.
+
+## 2026-10-03 — Cut backend cold start: design round settles the dependency split, the fallbacks, the health path and per-step engines
+Context: design round for the P1 fullstack card (classify entry above). The owner-written doc
+`docs/team/designs/2026-10-03-backend-cold-start.md` is the design doc; the round appended to it
+rather than creating a second file. This cloud planner had no agent-spawning tool (no
+`Agent`/`Task` in the session, `ListAgents` showed only the planner), so the two engine proposals
+and the sign-off were written by the planner from `.claude/agents/backend-engine.md` /
+`frontend-engine.md` plus a code read, and the doc says so.
+Weighed and decided: (1) three requirements files — `requirements.txt` web-only (what Vercel
+installs), new `requirements-pipeline.txt` = `-r requirements.txt` + pandas + nba_api,
+`requirements-publish.txt` untouched (boto3 is a different consumer set) — over folding boto3 in.
+(2) Consumers: `publish-game-data`, `game-data-freshness`, `maintain-questions` workflows (cache
+path `backend/requirements*.txt`), the team-run workspace install, the nightly routine prompt,
+README and DATA_PIPELINE one-liners; `wordle-daily.yml` stays on the web file
+(`pick_daily_wordle` imports nothing from the pipeline). The test suite itself needs the pipeline
+file (`test_curated_players.py` imports nba_api/requests; `test_refresh_command.py` patches
+`starting_five_utils`, which imports pandas), which is why team-run's install line changes.
+(3) The three `nba_api.stats.static` fallbacks read bundled static lists, not stats.nba.com —
+the card's "blocked IPs" reason is wrong for them — but they are the only runtime reason for
+nba_api, so: `name-logo` empty table -> `500 {"error": "No team data available."}`, `wordle` ->
+`500 {"error": "no wordle words available"}` (BE-8 classic-view convention), `all-players` ->
+curated dataset names (BE-11), `guess-mvps` keeps its bundled CSV via stdlib `csv` (identical
+shape). (4) `GET /api/health/` from `backend/backend/health.py`, routed in `backend/backend/urls.py`
+— `BACKEND_URL` ends in `/api`, so the frontend calls `${BACKEND_URL}/health/`; not in
+`users/urls.py` to keep the AUTH-11 import graph out of it. (5) Pre-warm = `prewarmBackend()` in
+`src/utils/session.ts`, called only in the `!getRefreshToken()` branch of `restoreSession`, so it
+never duplicates `/me/`. (6) `trivia/questions/storage.py` and the `*_utils.py`/`curated_validate`
+files are not touched or moved: nothing on the request path imports them; the guard proves it.
+(7) Startup guard runs in a fresh subprocess (the test process already has PIL/nba_api loaded via
+sibling tests) in `trivia/tests/test_startup.py`; fallbacks in `trivia/tests/test_classic_fallbacks.py`.
+(8) Unattended measurement = WSGI+URLconf startup ms and loaded-heavy list before/after in the
+venv, plus `du -sm` of pandas/numpy/numpy.libs/nba_api as the expected bundle delta; `vercel
+inspect`, 20-min-idle samples and Fluid compute are owner evidence listed in the build report.
+Engine: mixed — backend sonnet 1-3, opus 4-7 (classic-view fallback removal, `users/views.py`
+and `users/photos.py` lazy imports: AUTH-11 files where behaviour must stay identical), sonnet
+8-11; frontend sonnet 12-13.
+Consequences: a module-level `import requests`/`PIL`/`google`/`pandas`/`nba_api` anywhere on the
+request path now fails the suite by name; the web function's dependency set and the pipeline's are
+two files, and any new installer must pick the right one; `backend/.venv/` is untracked and not
+ignored in cloud checkouts, so engines stage by explicit path.
