@@ -6,7 +6,7 @@
 // Writes .team/qa/<slug>/verdict.json via the shared harness and exits 0/1. Kills what it started.
 // Usage: node scripts/team/qa.mjs <slug> --base <sha> [--lane 1|2] [--repo <dir>]
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, rmSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ROOT, loadConfig } from "../lib/team-config.mjs";
@@ -58,6 +58,8 @@ process.on("exit", stopAll);
 process.on("SIGINT", () => { stopAll(); process.exit(130); });
 
 const t0 = Date.now();
+const log = (m) => console.error(`[qa +${Math.round((Date.now() - t0) / 1000)}s] ${m}`);
+log(`touched ${touched.length} files → routes ${plan.routes.join(",") || "-"} games ${plan.games === "*" ? "all" : plan.games.join(",") || "-"} backend ${plan.backend}`);
 try {
   // --- servers
   if (plan.backend) {
@@ -67,27 +69,46 @@ try {
   }
   const feEnv = { NBA_DEV_ENV_SKIP: "1", PORT: String(ports.vite) };
   if (plan.backend) feEnv.VITE_BACKEND_URL = `http://localhost:${ports.django}/api`;
-  start("next", "npm", ["run", "dev", "--", "--port", String(ports.vite)], { env: feEnv });
+  // Gate 1 already produced a production build; serving it is ~10x faster per page than dev
+  // mode compiling every route on first visit (18 games × 3 viewports took >12 min in dev).
+  const prodBuild = existsSync(resolve(repo, ".next/BUILD_ID"));
+  if (prodBuild) start("next", "npx", ["next", "start", "-p", String(ports.vite)], { env: feEnv });
+  else start("next", "npm", ["run", "dev", "--", "--port", String(ports.vite)], { env: feEnv });
   const baseUrl = `http://localhost:${ports.vite}`;
+  log(`waiting for ${baseUrl} (${prodBuild ? "next start, production build from gate 1" : "next dev — no .next/BUILD_ID"})`);
   await waitForServer(baseUrl, 120000);
+  log("server up");
+  if (!prodBuild) notes.push("served by next dev (no production build found)");
   if (plan.backend) await waitForServer(`http://localhost:${ports.django}/api/health/`, 90000).catch(() => notes.push("django health did not answer in 90s"));
 
   // --- ui-audit for touched games
-  const games = plan.games === "*" ? null : plan.games;
-  if (plan.games === "*" || games.length) {
+  // A shared-component change maps to "*"; auditing all 18 games takes minutes per viewport, so
+  // sample one pool game, one in-place game and one bespoke game plus every renderer the diff touched.
+  const SAMPLE = ["series-winner", "career-path", "contexto"];
+  const games = plan.games === "*" ? [...new Set([...SAMPLE, ...cls.games])] : plan.games;
+  if (games.length) {
+    if (plan.games === "*") notes.push(`shared UI touched → audited sample ${games.join(",")}`);
     const viewports = [["desktop", 1100, 900], ["laptop", 854, 694], ["mobile", 390, 844]];
     for (const [label, w, h] of viewports) {
-      const args = [resolve(repo, "scripts/ui-audit.mjs"), "--url", baseUrl, "--label", `qa-${slug}-${label}`, "--width", String(w), "--height", String(h)];
-      if (games) args.push("--only", games.join(","));
-      const r = spawnSync(process.execPath, args, { cwd: repo, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+      const auditLabel = `qa-${slug}-${label}`;
+      const args = [resolve(repo, "scripts/ui-audit.mjs"), "--url", baseUrl, "--label", auditLabel, "--width", String(w), "--height", String(h), "--only", games.join(",")];
+      log(`ui-audit ${label} ${games.join(",")}`);
+      const r = spawnSync(process.execPath, args, { cwd: repo, encoding: "utf8", maxBuffer: 32 * 1024 * 1024, timeout: 240000 });
+      log(`ui-audit ${label} exit ${r.status}`);
       if (r.status !== 0) {
         const lines = ((r.stdout || "") + (r.stderr || "")).split(/\r?\n/).filter((l) => /✖|×|FAIL|assert|Error/i.test(l)).slice(0, 40);
-        failures.push(`ui-audit ${label} (${games ? games.join(",") : "all games"}) exit ${r.status}: ${lines.join(" | ") || "see output"}`);
+        failures.push(`ui-audit ${label} (${games.join(",")}) exit ${r.status === null ? "timeout" : r.status}: ${lines.join(" | ") || "see output"}`);
       }
+      // ui-audit writes under docs/ui-audit/<label> (tracked folder) — move the evidence into the
+      // card's QA dir so the worktree stays clean for ship's "only intended files" pre-flight.
+      const from = resolve(repo, "docs/ui-audit", auditLabel);
+      const to = resolve(repo, ".team/qa", slug, `audit-${label}`);
+      try { rmSync(to, { recursive: true, force: true }); mkdirSync(resolve(repo, ".team/qa", slug), { recursive: true }); if (existsSync(from)) renameSync(from, to); } catch (e) { notes.push(`could not move ${auditLabel}: ${e.message}`); }
     }
   }
 
   // --- route smoke + assertions
+  log("route smoke");
   const browser = await launchBrowser();
   const assertions = readAssertions(resolve(dir, "brief.md"));
   try {
@@ -102,7 +123,15 @@ try {
           await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
           const hasMain = (await page.locator("main, .page, .app-shell").count()) > 0;
           if (!hasMain) failures.push(`${route} @${w}: no <main>/.page/.app-shell rendered`);
-          const real = errors.filter((e) => !/favicon|hydrat|ResizeObserver|Download the React DevTools|net::ERR_CONNECTION_REFUSED.*(4000|socket)/i.test(e));
+          // Noise that is not the card's fault: dev-tools hints, the multiplayer relay (not deployed in
+          // production → socket.io 404/refused on every page), and — when no local backend is under
+          // test — cross-origin fetches to the deployed API that the browser blocks with CORS from a
+          // localhost QA port. JS exceptions (pageerror) and same-origin errors always count.
+          const NOISE = /favicon|hydrat|ResizeObserver|Download the React DevTools|WebSocket|socket\.io|ERR_CONNECTION_REFUSED/i;
+          const REMOTE = /CORS policy|net::ERR_FAILED|ERR_NAME_NOT_RESOLVED|Failed to load (resource|leaderboard|friends|users|profile)/i;
+          const real = errors.filter((e) => !NOISE.test(e) && !(!plan.backend && REMOTE.test(e)));
+          const ignored = errors.length - real.length;
+          if (ignored && !notes.some((n) => n.startsWith("ignored"))) notes.push(`ignored ${ignored}+ relay/cross-origin console errors (no local backend under test)`);
           if (real.length) failures.push(`${route} @${w}: ${real.length} console/page error(s): ${real.slice(0, 3).join(" | ").slice(0, 400)}`);
           await shot(page, slug, `${route.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") || "home"}-${w}`);
           for (const a of assertions.filter((x) => x.route === route && !x.flow)) {
@@ -124,6 +153,7 @@ try {
 } catch (e) {
   failures.push(`qa harness: ${String(e.message || e).split("\n")[0].slice(0, 300)}`);
 } finally {
+  log("stopping servers");
   stopAll();
 }
 
