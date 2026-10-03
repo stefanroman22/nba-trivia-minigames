@@ -13,6 +13,7 @@ import GuestPanel from "../components/GuestPanel";
 import Reveal from "../components/motion/Reveal";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
 import { useModal } from "../context/ModalContext";
+import { useWordleCardState } from "../hooks/useWordleCardState";
 import { scrollToSection } from "../utils/ScrolllToSection";
 import type { RootState } from "../store";
 
@@ -21,6 +22,7 @@ const Landpage = () => {
   const { user } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const [query, setQuery] = useState("");
+  const wordleCard = useWordleCardState();
 
   // Navigation.tsx routes cross-page "Games"/"Leaderboard" taps to "/#<section>"
   // so the section is deep-linkable. Next scrolls to it on mount while the
@@ -112,20 +114,28 @@ const Landpage = () => {
             <div className="games-empty">No games match “<strong style={{ color: "var(--text)" }}>{query}</strong>”. Try another keyword.</div>
           ) : (
             <div className="games-grid3">
-              {filtered.map((game, index) => (
-                <GameTile
-                  key={game.id}
-                  name={game.name}
-                  description={game.description}
-                  backgroundImage={game.backgroundImage}
-                  tag={game.tag}
-                  pointLabel={game.id === "coming-soon" ? "SOON" : game.maxPoints > 0 ? `${game.maxPoints} pts` : "VOTE"}
-                  cta={game.id === "coming-soon" ? "Coming soon" : "Play now"}
-                  index={index}
-                  disabled={game.id === "coming-soon"}
-                  onClick={() => openGame(game.id, game.urlPath)}
-                />
-              ))}
+              {filtered.map((game, index) => {
+                // Today's Wordle already played: grey tile + "Next Wordle in …" countdown.
+                const playedLabel = game.id === "wordle" && wordleCard.locked ? wordleCard.label : null;
+                const wordlePlayed = playedLabel !== null;
+                return (
+                  <GameTile
+                    key={game.id}
+                    name={game.name}
+                    description={game.description}
+                    backgroundImage={game.backgroundImage}
+                    tag={game.tag}
+                    pointLabel={game.id === "coming-soon" ? "SOON" : game.maxPoints > 0 ? `${game.maxPoints} pts` : "VOTE"}
+                    cta={game.id === "coming-soon" ? "Coming soon" : playedLabel ?? "Play now"}
+                    dimmed={wordlePlayed}
+                    ctaTone={wordlePlayed ? "muted" : "default"}
+                    ctaSwapKey={game.id === "wordle" ? (wordlePlayed ? "locked" : "play") : undefined}
+                    index={index}
+                    disabled={game.id === "coming-soon"}
+                    onClick={() => openGame(game.id, game.urlPath)}
+                  />
+                );
+              })}
             </div>
           )}
         </section>

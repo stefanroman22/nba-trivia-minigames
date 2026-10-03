@@ -1,10 +1,11 @@
-import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import "../styles/Leaderboard.css"
 import { Avatar, CourtLoader } from './ui';
 import SwapText from './motion/SwapText';
 import SegmentedTabs from './motion/SegmentedTabs';
 import { staggerContainer, staggerItem } from '../motion/variants';
+import { durations, easing } from '../motion/tokens';
 import { useLeaderboard, type LeaderboardScope } from '../hooks/useLeaderboard';
 import { useModal } from '../context/ModalContext';
 import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from '../constants/leaderboard';
@@ -31,14 +32,33 @@ function Leaderboard() {
   const preview = leaders.slice(0, PREVIEW_COUNT);
   const selfInList = self ? preview.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
+  // The body's height follows its measured content with a tween, so switching
+  // Global <-> Friends (10 rows <-> 1 row) resizes the card smoothly instead of
+  // snapping. While the loader shows, the last height is held so the card
+  // doesn't collapse around it and then grow again. `null` = not measured yet
+  // (first paint / SSR) -> natural height.
+  const reduceMotion = useReducedMotion();
+  const bodyContentRef = useRef<HTMLDivElement>(null);
+  const [bodyHeight, setBodyHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const el = bodyContentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      if (el.querySelector(".lb-body-loading")) return;
+      setBodyHeight(el.offsetHeight);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
     <div className="lb-card">
       <div className="lb-head">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
-          <h3 className="font-display" style={{ fontSize: 17 }}>{scope === "friends" ? "Friends Leaderboard" : "Global Top 100"}</h3>
+          <h3 className="font-display" style={{ fontSize: 17 }}><SwapText>{scope === "friends" ? "Friends Leaderboard" : "Global Top 100"}</SwapText></h3>
         </div>
-        <button className="lb-viewall" onClick={() => open("leaderboard")}>View all →</button>
+        <button className="lb-viewall" onClick={() => open("leaderboard", { scope })}>View all →</button>
       </div>
 
       {loggedIn && (
@@ -47,61 +67,70 @@ function Leaderboard() {
         </div>
       )}
 
-      <div className="lb-body">
-        <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div key="load" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
-              <CourtLoader label="Loading the board…" scale={0.7} />
-            </motion.div>
-          ) : preview.length === 0 ? (
-            <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
-              No players yet.
-            </motion.div>
-          ) : (
-            <motion.div key={`rows-${preview.length}`} variants={staggerContainer} initial="hidden" animate="visible">
-              {preview.map((u) => (
-                <motion.div key={u.id ?? `${u.rank}-${u.name}`} variants={staggerItem} className="lb-row">
-                  <span className="tnum" style={{ minWidth: 24, textAlign: "center", fontWeight: 700, fontSize: 13, color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
-                  <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} />
-                  <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
-                    <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
-                    {u.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
-                  </span>
-                  <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{u.points.toLocaleString()}</span>
+      <motion.div
+        className="lb-body"
+        initial={false}
+        animate={{ height: bodyHeight ?? "auto" }}
+        transition={reduceMotion ? { duration: 0 } : { duration: durations.base, ease: easing.out }}
+      >
+        <div ref={bodyContentRef}>
+          <div className="lb-body-inner">
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div key="load" className="lb-body-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
+                  <CourtLoader label="Loading the board…" scale={0.7} />
                 </motion.div>
-              ))}
-            </motion.div>
+              ) : preview.length === 0 ? (
+                <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
+                  No players yet.
+                </motion.div>
+              ) : (
+                <motion.div key={`rows-${preview.length}`} variants={staggerContainer} initial="hidden" animate="visible">
+                  {preview.map((u) => (
+                    <motion.div key={u.id ?? `${u.rank}-${u.name}`} variants={staggerItem} className="lb-row">
+                      <span className="tnum" style={{ minWidth: 24, textAlign: "center", fontWeight: 700, fontSize: 13, color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
+                      <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} />
+                      <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
+                        <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
+                        {u.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
+                      </span>
+                      <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{u.points.toLocaleString()}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Inside the measured block so its appear/disappear is part of the same height tween. */}
+          {!loading && self && !selfInList && (
+            <div className="lb-self">
+              <span className="tnum" style={{ minWidth: 34, textAlign: "center", fontWeight: 700, fontSize: 13, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
+              <Avatar initials={initials(self.name)} size={26} bg={SELF_AVATAR_BG} />
+              <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
+                <span style={{ fontWeight: 700, fontSize: 13.5 }}>{self.name}</span>
+                <span style={{ fontWeight: 500, color: "var(--muted)", fontSize: 11.5 }}>
+                  {self.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600 }}>#{self.id} · </span>}
+                  of {self.total.toLocaleString()}
+                </span>
+              </span>
+              <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{self.points.toLocaleString()}</span>
+            </div>
           )}
-        </AnimatePresence>
-      </div>
-
-      {!loading && scope === "friends" && leaders.length <= 1 && (
-        <p style={{ textAlign: "center", fontSize: 12, color: "var(--muted)", padding: "0 16px 4px" }}>
-          Add friends from your profile to build this board.
-        </p>
-      )}
-
-      {!loading && self && !selfInList && (
-        <div className="lb-self">
-          <span className="tnum" style={{ minWidth: 34, textAlign: "center", fontWeight: 700, fontSize: 13, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
-          <Avatar initials={initials(self.name)} size={26} bg={SELF_AVATAR_BG} />
-          <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-            <span style={{ fontWeight: 700, fontSize: 13.5 }}>{self.name}</span>
-            <span style={{ fontWeight: 500, color: "var(--muted)", fontSize: 11.5 }}>
-              {self.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600 }}>#{self.id} · </span>}
-              of {self.total.toLocaleString()}
-            </span>
-          </span>
-          <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{self.points.toLocaleString()}</span>
         </div>
-      )}
+      </motion.div>
 
       <div className="lb-foot">
         <button className="lb-refresh" onClick={refresh} disabled={refreshing || loading}>
           <svg className={refreshing ? "lb-refresh-spin" : ""} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
           <SwapText>{refreshing ? "Refreshing…" : "Refresh"}</SwapText>
         </button>
-        {lastUpdated && <span className="lb-foot-note">Refreshed {timeAgo(lastUpdated, now)}</span>}
+        {/* Always rendered (blank while a scope's first fetch is in flight) so the
+            footer never gains/loses a line mid-switch — that step would break the
+            body's smooth height tween. */}
+        <span className="lb-foot-note">
+          <SwapText>{lastUpdated ? `Refreshed ${timeAgo(lastUpdated, now)}` : " "}</SwapText>
+        </span>
       </div>
     </div>
   )

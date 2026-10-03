@@ -106,7 +106,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transition: transform 0.4s var(--ease-out);
+  transition: transform 0.4s var(--ease-out), filter 0.3s var(--ease-out);
 }
 .gtile:hover .gtile-img { transform: scale(1.08); }
 .gtile.is-disabled { cursor: not-allowed; }
@@ -119,8 +119,17 @@
   background: linear-gradient(180deg, rgba(8, 8, 8, 0.25), rgba(8, 8, 8, 0.55) 45%, rgba(8, 8, 8, 0.9));
 }
 .gtile-body { position: relative; z-index: 2; display: flex; flex-direction: column; height: 100%; justify-content: flex-end }
-.gtile-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--brand2); transition: gap 0.25s ease; }
+.gtile-cta { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--brand2); transition: gap 0.25s ease, color 0.2s var(--ease-out); }
 .gtile:hover .gtile-cta { gap: 11px; }
+/* One line in every state, at a fixed line box (12px x the inherited 1.5), so
+   swapping to the longer/smaller countdown label never moves the title above it. */
+.gtile-cta-text { white-space: nowrap; line-height: 18px; }
+/* Played/locked state: grey, desaturated photo; title and copy stay legible. */
+.gtile.is-dimmed .gtile-img { filter: grayscale(1) brightness(0.6); }
+.gtile-cta--muted { color: var(--muted); }
+/* The tile body is always a dark surface, so in light theme lift the muted token
+   toward white to keep the label readable on it. */
+.light .gtile-cta--muted { color: color-mix(in srgb, var(--muted) 40%, #fff); }
 
 /* ---------- Stage (game shell) ---------- */
 .stage-shell {

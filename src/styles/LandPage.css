@@ -378,6 +378,8 @@ html { scroll-behavior: smooth; }
   .games-grid3 .gtile { height: 158px; padding: 12px; }
   .games-grid3 .gtile h3 { font-size: 15px; }
   .games-grid3 .gtile p { display: none; }
+  /* "Next Wordle in 23h 59m" + arrow fits one line on the 129px-wide tile body at 360px. */
+  .games-grid3 .gtile-cta--muted { font-size: 9.5px; letter-spacing: 0; }
 
   .profile-stats { padding: 8px 16px; gap: 12px; }
   .profile-stat-divider { height: 18px; }

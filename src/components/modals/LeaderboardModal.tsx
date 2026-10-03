@@ -1,4 +1,3 @@
-import { useState } from "react";
 import "../../styles/Leaderboard.css";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
 import { Avatar, CourtLoader } from "../ui";
@@ -6,9 +5,14 @@ import SegmentedTabs from "../motion/SegmentedTabs";
 import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from "../../constants/leaderboard";
 
 /** Full leaderboard list shown inside the leaderboard modal — Global top 100
- * or, once toggled, the signed-in player + their friends. */
-export default function LeaderboardModal() {
-  const [scope, setScope] = useState<LeaderboardScope>("global");
+ * or, once toggled, the signed-in player + their friends. The scope is
+ * controlled by ModalHost so the modal title can follow it. */
+interface LeaderboardModalProps {
+  scope: LeaderboardScope;
+  onScopeChange: (scope: LeaderboardScope) => void;
+}
+
+export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardModalProps) {
   const { loading, leaders, self } = useLeaderboard(scope);
   const loggedIn = self !== null;
   const selfInList = self ? leaders.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
@@ -17,7 +21,7 @@ export default function LeaderboardModal() {
     <div>
       {loggedIn && (
         <div className="lb-scope-row" style={{ padding: "0 0 14px" }}>
-          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={setScope} />
+          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={onScopeChange} />
         </div>
       )}
 
@@ -39,12 +43,6 @@ export default function LeaderboardModal() {
           {leaders.length === 0 && (
             <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
               No players yet.
-            </div>
-          )}
-
-          {scope === "friends" && leaders.length <= 1 && (
-            <div style={{ textAlign: "center", padding: "0 0 1rem", color: "var(--muted)", fontSize: 13 }}>
-              Add friends from your profile to build this board.
             </div>
           )}
 

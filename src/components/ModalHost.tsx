@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
-import { useModal, type InstructionsPayload } from "../context/ModalContext";
+import { useModal, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
+import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import LogInSignUp from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
@@ -21,6 +22,16 @@ export default function ModalHost() {
     if (kind === "login") setAuthMode("login");
   }, [kind]);
 
+  // Each time the leaderboard modal opens, start on the scope the opener asked for.
+  // Adjusted during render (not in an effect) so the first frame already has the
+  // right title and list — no Global -> Friends swap on open.
+  const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
+  const [prevKind, setPrevKind] = useState(kind);
+  if (kind !== prevKind) {
+    setPrevKind(kind);
+    if (kind === "leaderboard") setLeaderboardScope((payload as LeaderboardPayload | undefined)?.scope ?? "global");
+  }
+
   let title = "";
   let wide = false;
   let content: React.ReactNode = null;
@@ -32,9 +43,9 @@ export default function ModalHost() {
     title = "Share feedback";
     content = <FeedbackModal onClose={close} />;
   } else if (kind === "leaderboard") {
-    title = "Global Top 100";
+    title = leaderboardScope === "friends" ? "Friends leaderboard" : "Global Top 100";
     wide = true;
-    content = <LeaderboardModal />;
+    content = <LeaderboardModal scope={leaderboardScope} onScopeChange={setLeaderboardScope} />;
   } else if (kind === "instructions") {
     title = "How to play";
     const p = payload as InstructionsPayload | undefined;
