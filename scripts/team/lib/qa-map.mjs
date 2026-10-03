@@ -41,8 +41,9 @@ export function resolveQa(files, map) {
   for (const file of files || []) {
     const f = file.replace(/\\/g, "/");
     const hits = entries.filter((e) => e.re.test(f));
-    const rendererId = gameIdFor(f);
-    if (rendererId && /^src\/Game Renderers\//.test(f)) { addGame(rendererId); addRoute("/" + rendererId); }
+    // a renderer or its per-game stylesheet maps to its own game without a map entry
+    const rendererId = /^src\/(Game Renderers|styles)\//.test(f) ? gameIdFor(f) : null;
+    if (rendererId) { addGame(rendererId); addRoute("/" + rendererId); }
     if (!hits.length) {
       if (!rendererId && /^src\//.test(f)) { unmapped.push(f); addRoute("/"); }
       if (/^backend\//.test(f)) { backend = true; addRoute("/"); }

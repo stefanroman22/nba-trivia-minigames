@@ -40,14 +40,15 @@ const GAME_IDS = new Set(GAME_WORDS.map(([, id]) => id));
 
 /**
  * Lane keys decide whether two cards may run side by side. A game card is keyed by its game(s)
- * only — two different games touch different renderers. A frontend card with no game is keyed
- * `frontend`, which conflicts with every other frontend card AND every game card (it may touch
- * shared components). Backend/docs are their own keys.
+ * instead of the generic `frontend` — two different games touch different renderers. A frontend
+ * card with no game is keyed `frontend`, which conflicts with every other frontend card AND every
+ * game card (it may touch shared components). Non-frontend areas (backend, docs) always stay.
  */
 export function laneKeys(card) {
-  const areas = areasOf(card);
-  const games = [...areas].filter((a) => GAME_IDS.has(a));
-  return new Set(games.length ? games : [...areas]);
+  const areas = [...areasOf(card)];
+  const games = areas.filter((a) => GAME_IDS.has(a));
+  const rest = areas.filter((a) => !GAME_IDS.has(a) && !(games.length && a === "frontend"));
+  return new Set([...games, ...rest]);
 }
 
 const disjoint = (a, b) => {
@@ -62,11 +63,15 @@ const disjoint = (a, b) => {
 /**
  * @param {Array} queue sorted (P0 first, oldest first), each with difficulty/category/title
  * @param {number} remainingMin
- * @param {{ lanes?: number, running?: Array<{ areas: string[] }> }} opts
+ * @param {{ lanes?: number, running?: Array<{ laneKeys?: string[], areas?: string[], tier?: string }> }} opts
+ * @returns {Array} cards to start now. Empty when nothing fits, when a hard card is running, or when
+ *   the first card that fits is hard but another lane is busy (it waits for a free run tick rather
+ *   than being skipped — otherwise a P0 hard card would starve behind standard cards all run).
  */
 export function pickNext(queue, remainingMin, { lanes = 2, running = [] } = {}) {
   const free = Math.max(0, lanes - running.length);
   if (!free) return [];
+  if (running.some((r) => (r.tier || "standard") === "hard")) return [];
   const busy = running.map((r) => new Set(r.laneKeys || r.areas || []));
   const fits = (c) => tierBudget(c.difficulty || "standard") <= remainingMin;
   const clear = (c, others) => others.every((o) => disjoint(laneKeys(c), o));
@@ -75,12 +80,12 @@ export function pickNext(queue, remainingMin, { lanes = 2, running = [] } = {}) 
     if (picks.length >= free) break;
     if (!fits(c)) continue;
     const taken = [...busy, ...picks.map(laneKeys)];
-    if (!clear(c, taken)) continue;
     if ((c.difficulty || "standard") === "hard") {
-      if (picks.length || busy.length) continue; // hard runs alone
+      if (busy.length || picks.length) break; // hard runs alone: wait for an empty tick, don't skip it
       picks.push(c);
       break;
     }
+    if (!clear(c, taken)) continue;
     picks.push(c);
   }
   return picks;

@@ -16,10 +16,16 @@ test("300 tsc errors are capped at 100 lines with a trailer", () => {
   assert.match(outLines[outLines.length - 1], /^… \(\+\d+ more lines\)$/);
 });
 
-test("context lines after a failure are kept, duplicates dropped", () => {
-  const txt = ["ok 1", "FAIL tests/x.test.js", "  expected 1", "  got 2", "ok 2", "FAIL tests/x.test.js", "  expected 1", "  got 2"].join("\n");
+test("one line before and two after a failure are kept, duplicate failures dropped", () => {
+  const txt = ["ok 1", "FAIL tests/x.test.js", "  expected 1", "  got 2", "", "ok 2", "FAIL tests/x.test.js", "  expected 1", "  got 2"].join("\n");
   const out = failuresOnly(txt);
-  assert.deepEqual(out.split("\n"), ["FAIL tests/x.test.js", "  expected 1", "  got 2"]);
+  assert.deepEqual(out.split("\n"), ["ok 1", "FAIL tests/x.test.js", "  expected 1", "  got 2"]);
+});
+
+test("eslint-style output keeps the file path line that precedes the error", () => {
+  const txt = ["", "C:\\repo\\src\\views\\Friends.tsx", "  12:5  error  'x' is defined but never used  no-unused-vars", "", "✖ 1 problem"].join("\n");
+  const out = failuresOnly(txt);
+  assert.equal(out.split("\n")[0], "C:\\repo\\src\\views\\Friends.tsx");
 });
 
 test("fallbackTail keeps the last lines when nothing matches but the command failed", () => {

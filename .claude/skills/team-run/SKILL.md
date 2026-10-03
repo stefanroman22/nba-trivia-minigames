@@ -14,6 +14,9 @@ Slack only via `node scripts/slack.mjs`. Design: `docs/team/designs/2026-10-03-p
 `TEAM_CLOUD` unset = local Windows (worktrees under `cfg.worktreeRoot`, tokens from `.env.team`).
 `TEAM_CLOUD=1` = cloud routine, Linux: deps, Chromium, venv and the dev sqlite are pre-installed by
 `infra/routine/setup.sh` — **install nothing**. Worktrees live next to the clone (`../wt-<slug>`).
+`<repo>` below = this main checkout (your cwd). Per-card files live in `<repo>/.team/run/<slug>/` and
+QA evidence in `<repo>/.team/qa/<slug>/` — always give agents these as **absolute paths**, because
+they work inside the worktree `<wt>`.
 
 ## Model policy (every spawn names its model)
 | Who | Model | When |
@@ -42,44 +45,59 @@ Slack only via `node scripts/slack.mjs`. Design: `docs/team/designs/2026-10-03-p
 
 ## 1. Workspace (per card)
 - `git fetch origin dev`; `baseSha = git rev-parse origin/dev`.
-- Local: `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/dev`, then share deps:
-  `cmd /c mklink /J <wt>\node_modules <repo>\node_modules` (and `<wt>\backend\.venv` → `<repo>\backend\.venv`
-  if present). Never `npm ci` in a worktree.
-- Cloud: `git worktree add ../wt-<slug> -b team/<slug> origin/dev && ln -s "$PWD/node_modules" ../wt-<slug>/node_modules && ln -s "$PWD/backend/.venv" ../wt-<slug>/backend/.venv`.
+- Local: `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/dev`, then in the worktree
+  `npm ci --prefer-offline --no-audit --no-fund` (60–120 s from the warm npm cache). **Never junction or
+  symlink `<repo>\node_modules` into a worktree on Windows**: removing the worktree later follows the link and
+  deletes the main checkout's files (it wiped `node_modules\.bin` on 2026-10-03). No venv setup: verify and QA
+  fall back to `<repo>\backend\venv` automatically.
+- Cloud: `git worktree add ../wt-<slug> -b team/<slug> origin/dev && ln -s "$PWD/node_modules" ../wt-<slug>/node_modules && ln -s "$PWD/backend/.venv" ../wt-<slug>/backend/.venv`
+  (`backend/.venv` is git-ignored, so the symlink never shows up as a touched file).
 - Record `baseSha`, `worktree`, `lane` in `.team/run/<slug>/state.json` (merge, don't overwrite).
   All later node commands take `--repo <wt> --base <baseSha> --lane <n>`.
 
 ## 2. Card flow
 **classify** → `Agent(model: sonnet, planner-architect)`: "Run the `classify` skill for the card in
-`.team/run/<slug>/card.json` (spec, attachments and props are inside). Return ONLY the JSON." Save it
-as `.team/run/<slug>/classify.json`. `node scripts/notion.mjs claim <id> --model "<engineModel> · <effort>"`.
+`<repo>/.team/run/<slug>/card.json` (spec, attachments and props are inside). Return ONLY the JSON." Save it
+as `<repo>/.team/run/<slug>/classify.json`. `node scripts/notion.mjs claim <id> --model "<engineModel> · <effort>"`.
+If classify returns `hard` (or `needsDesignRound`) for a card intake started as `standard`: write
+`state.tier = "hard"`, and if another lane is active, **park this card at this point** (leave it claimed)
+until that lane ships or fails — a hard card runs alone and gets the 45-minute budget. If the remaining
+time is then under 45 minutes, release it: `set-status <id> "To Do"` + a comment, delete the run dir, no attempt counted.
 
-**brief** → `node scripts/team/brief.mjs <slug> --repo <wt>` → `{hasPlan, needsPlan}`.
-- `needsPlan` and tier `standard`: `Agent(model: sonnet, planner-architect)`: "Read `.team/run/<slug>/brief.md`.
+**brief** → `node scripts/team/brief.mjs <slug> --repo <wt>` → `{hasPlan, needsPlan, planFiles}`.
+- tier `hard` / `needsDesignRound` (this wins over `needsPlan`): `Agent(model: fable, planner-architect)` with the
+  `design-round` skill: "Brief: `<repo>/.team/run/<slug>/brief.md`. Work inside the worktree `<wt>` (branch
+  `team/<slug>`): write the design doc to `<wt>/docs/team/designs/<date>-<slug>.md`, append DECISIONS there,
+  commit there." → design doc path → `node scripts/team/brief.mjs <slug> --design <path> --repo <wt>` (keeps the
+  QA triples the planner wrote into the brief).
+- else `needsPlan`: `Agent(model: sonnet, planner-architect)`: "Read `<repo>/.team/run/<slug>/brief.md`.
   Replace the `## Plan` paragraph with 5–12 numbered steps, each naming its file(s) and a done-check, tag
   each `[sonnet]` or `[opus]` (opus = judgment or motion), and fill `## QA assertions`. Edit the brief in
   place; no code." Then re-read the brief's plan.
-- tier `hard` (or classify says `needsDesignRound`): `Agent(model: fable, planner-architect)` with the
-  `design-round` skill and the brief path → design doc path → `node scripts/team/brief.mjs <slug> --design <path> --repo <wt>`.
+- If the plan's files hit a shared UI entry of `.claude/team/qa-map.json` (`games: "*"` — `components/ui`,
+  `components/motion`, `src/motion`, `ScorePanel`, `EndSequence`, `GameResult`, `ui.css`, `MiniGame.css`,
+  `theme.css`) and another frontend/game lane is active, park this card until that lane finishes (§11 of the design).
 
 **build** → one `Agent` per area (frontend-engine / backend-engine), model per the table and the plan's
 `[opus]/[sonnet]` tags (consecutive same-tag steps = one spawn, "implement steps N–M only"). Prompt:
-"Worktree `<wt>` on branch `team/<slug>`; do not switch branches or commit. Read
-`.team/run/<slug>/brief.md` first and work from it — the rules that apply are quoted there; do NOT read
+"Worktree `<wt>` on branch `team/<slug>`; edit files there only; do not switch branches or commit. Read
+`<repo>/.team/run/<slug>/brief.md` first and work from it — the rules that apply are quoted there; do NOT read
 the full constraint docs unless a quoted rule points you to a section. Read every attachment listed.
 Implement the `## Plan` steps <N–M>. Reuse-first: duplicating a CODE_MAP entry is a review-reject. Do
-not run lint/typecheck/build routinely. When done write `.team/run/<slug>/build-report.json`
+not run lint/typecheck/build routinely. When done write `<repo>/.team/run/<slug>/build-report.json`
 `{did, assumed, touched[], testsAdded[]}` and reply with its contents." Two areas whose plan files are
 disjoint → spawn both at once. **Keep every engine's agent id** in `state.engineAgentIds[area]`.
 
-**gate 1 — verify** → `node scripts/team/verify.mjs <slug> --base <baseSha> --repo <wt>`. Exit 1 → fix round (§3).
+**gate 1 — verify** → `node scripts/team/verify.mjs <slug> --base <baseSha> --repo <wt> --lane <n>`. Exit 1 → fix round (§3).
+(The build is made against the lane's Django port; QA serves exactly that build.)
 
 **gate 2 — QA** → `node scripts/team/qa.mjs <slug> --base <baseSha> --lane <n> --repo <wt>`. Exit 1 → fix round.
-If its output lists `flows`, spawn `Agent(model: sonnet, browser-qa)` with the brief path, the verdict path,
-the lane and the flow text; it appends to the verdict. Fail → fix round. Browser unavailable → QA skipped, one log line.
+If its output lists `flows`, spawn `Agent(model: sonnet, browser-qa)` with `<repo>/.team/run/<slug>/brief.md`,
+`<repo>/.team/qa/<slug>/verdict.json`, `<wt>`, the lane and the flow text; it appends to the verdict. Fail → fix
+round. A missing browser makes the script write a skipped-pass verdict itself (never a fix round).
 
 **review** → `node scripts/team/review-package.mjs <slug> --base <baseSha> --repo <wt>` → `{reviewModel, motion}`.
-Spawn `Agent(model: <reviewModel>, code-reviewer)` on `.team/run/<slug>/review-package.md`; if `motion`,
+Spawn `Agent(model: <reviewModel>, code-reviewer)` on `<repo>/.team/run/<slug>/review-package.md`; if `motion`,
 also `Agent(model: opus, motion-reviewer)` on the same file, in parallel. Any blocker/major → fix round;
 minor/nit/missing → noted in the commit body.
 
@@ -98,12 +116,12 @@ minor/nit/missing → noted in the commit body.
   prompt = build prompt + "Previous attempts failed; findings so far: …". Replace the stored agent id.
 - **Round 4 does not exist** → fail procedure (`stage: <g>`).
 - **Breaker:** after any round, if `git -C <wt> status --porcelain` plus `git -C <wt> diff --stat <baseSha>`
-  show no change since the previous round, or the gate's first failure line equals `state.lastFirstError`
-  from the previous round → fail now with reason `no progress at <g>`.
+  show no change since the previous round, or the gate script prints `sameFirstError: true` (verify.mjs and
+  qa.mjs compare against the previous round themselves) → fail now with reason `no progress at <g>`.
 - **Replan (once):** the same gate failing twice → `Agent(model: plan's model, planner-architect)` rewrites
   `## Plan` in the brief with the failure history; set `state.replanned=true`, reset `fixRounds[g]` to 0.
-A review re-run after a fix uses `review-package.mjs … --since <sha before the fix>` so the reviewer sees
-only the fix diff.
+A review re-run after a fix rebuilds the package with `--since <baseSha>` (engines do not commit, so the fix
+cannot be isolated; the package tells the reviewer to re-check its earlier findings first).
 
 ## 4. Fail procedure (any stage)
 1. `.team/postmortem-<slug>.md`: what was tried / why it failed / suggested next step / last error (≤3 lines).

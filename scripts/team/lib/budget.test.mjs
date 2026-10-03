@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { tierBudget, areasOf, pickNext } from "./budget.mjs";
+import { tierBudget, areasOf, laneKeys, pickNext } from "./budget.mjs";
 
 const card = (title, category, difficulty, priority = "P1") => ({ id: title, title, category, difficulty, priority });
 
@@ -40,6 +40,18 @@ test("running lanes block overlapping areas and reduce free lanes", () => {
   const picks = pickNext(q, 90, { running: [{ areas: ["frontend"] }] });
   assert.deepEqual(picks.map((c) => c.title), ["Rank endpoint"]);
   assert.deepEqual(pickNext(q, 90, { running: [{ areas: ["frontend"] }, { areas: ["backend"] }] }), []);
+});
+
+test("a hard card behind a busy lane waits instead of being skipped", () => {
+  const q = [card("Ban system", "backend", "hard", "P0"), card("Hero pill", "frontend", "standard")];
+  assert.deepEqual(pickNext(q, 90, { running: [{ laneKeys: ["frontend"] }] }), []);
+  assert.deepEqual(pickNext(q, 90, { running: [{ laneKeys: ["backend"], tier: "hard" }] }), []);
+});
+
+test("a backend card that names a game keeps its backend key", () => {
+  assert.deepEqual([...laneKeys(card("Contexto golden set refresh", "backend"))].sort(), ["backend", "contexto"]);
+  const q = [card("Contexto golden set refresh", "backend", "standard"), card("Rank endpoint", "backend", "standard")];
+  assert.equal(pickNext(q, 90).length, 1);
 });
 
 test("lanes:1 returns a single pick", () => {

@@ -81,8 +81,8 @@ Rules:
 - The socket connects and identifies on every app load (`MultiplayerProvider` mounted globally in
   `app/providers.tsx`), not only on multiplayer screens — don't assume a change is single-player-safe without
   checking `MULTIPLAYER_CONSTRAINTS.md` MP-12.
-- **Before touching any `Game Renderers/*.tsx` file, read `docs/GAME_DESIGN_CONSTRAINTS.md`.** RULE 0
-  there requires every game's root to be `<GameFrame>` — no per-game wrapper class, max-width, gap,
-  or padding — and the doc gives numbered rules with ❌/✅ examples plus DevTools acceptance tests.
-  Treat it as load-bearing, not optional, and verify with `npm run ui:audit` (renders every game at
-  3 viewports) rather than a static read-through.
+- **`Game Renderers/*.tsx` are governed by `docs/GAME_DESIGN_CONSTRAINTS.md`.** RULE 0 there requires
+  every game's root to be `<GameFrame>` — no per-game wrapper class, max-width, gap, or padding. In a
+  pipeline task the brief quotes the rules that apply; open the doc only for a rule id the brief
+  points to. Gate 2 runs the layout audit (`scripts/ui-audit.mjs`) on the games you touched — do not
+  run `npm run ui:audit` yourself. Outside the pipeline, read the doc first and run the audit.

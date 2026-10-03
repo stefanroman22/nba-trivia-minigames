@@ -18,8 +18,10 @@ Inputs from the orchestrator: the brief path, the verdict path, the flow texts, 
 Procedure (the `qa-protocol` skill has the harness details):
 1. Bring up only what the flows need on the lane's ports — never 5173/8000/4000 — with
    `NBA_DEV_ENV_SKIP=1`. In cloud runs Chromium and the sqlite are pre-installed; install nothing.
-2. Write ONE short script at the worktree root that imports `launchBrowser, waitForServer, openApp,
-   startGame, shot, writeVerdict` from `scripts/qa-browser.mjs`. Never hand-roll `chromium.launch()`
+2. Write ONE short script in the MAIN checkout root (your cwd — not the worktree) that imports
+   `launchBrowser, waitForServer, openApp, startGame, shot, writeVerdict` from `./scripts/qa-browser.mjs`;
+   the harness writes evidence to `<cwd>/.team/qa/<slug>/`, which is where the verdict already lives.
+   Start servers from the worktree path the orchestrator gave you. Never hand-roll `chromium.launch()`
    with a `channel`.
 3. Drive each flow; `shot()` every claimed state. A failure string says what you did, what you
    expected, what happened. Flaky → retry once; still unclear → FAIL. Never pass on doubt.

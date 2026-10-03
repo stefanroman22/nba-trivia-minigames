@@ -21,7 +21,7 @@ export function extractRules(docText) {
     const h = line.match(HEADING_RE);
     if (h) {
       const level = h[1].length;
-      if (current && level <= current.level + 1) current = null; // any heading at same/deeper-by-one closes the body
+      if (current && level <= current.level) current = null; // a heading at the same or a higher level closes the body
       const r = h[2].match(RULE_RE);
       if (r) {
         current = { id: r[1], heading: r[2].trim(), body: "", level };

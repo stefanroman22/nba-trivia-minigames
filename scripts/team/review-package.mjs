@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT } from "../lib/team-config.mjs";
-import { classifyTouched, touchedFiles, diffText } from "./lib/touched.mjs";
+import { classifyTouched, touchedFiles, diffText, untrackedDiff } from "./lib/touched.mjs";
 import { runDir, readJson, writeState } from "./lib/state.mjs";
 
 const argv = process.argv.slice(2);
@@ -21,15 +21,18 @@ const dir = runDir(slug);
 const card = readJson(resolve(dir, "card.json"), {});
 const classify = readJson(resolve(dir, "classify.json"), {});
 const verify = readJson(resolve(dir, "verify.json"));
-const verdictPath = resolve(repo, ".team/qa", slug, "verdict.json");
+// QA evidence lives in the MAIN checkout's .team/qa (qa.mjs runs from there), whatever --repo is.
+const verdictPath = resolve(ROOT, ".team/qa", slug, "verdict.json");
 const verdict = existsSync(verdictPath) ? readJson(verdictPath) : null;
 
 const git = (...a) => { try { return execFileSync("git", ["-C", repo, ...a], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }); } catch { return ""; } };
 const touched = touchedFiles(repo, base);
 const cls = classifyTouched(touched, diffText(repo, base));
 const range = `${since || base}...HEAD`;
-const stat = git("diff", "--stat", range) + git("diff", "--stat", "HEAD");
-const diff = git("diff", range) + git("diff", "HEAD");
+const EXCLUDE = [":(exclude)package-lock.json", ":(exclude)backend/trivia/data/**"];
+const stat = git("diff", "--stat", range, "--", ".", ...EXCLUDE) + git("diff", "--stat", "HEAD", "--", ".", ...EXCLUDE);
+// engines never commit: new files are untracked and need the /dev/null diff to appear at all
+const diff = git("diff", range, "--", ".", ...EXCLUDE) + git("diff", "HEAD", "--", ".", ...EXCLUDE) + untrackedDiff(repo);
 const commits = git("log", "--oneline", `${base}..HEAD`);
 const tier = classify.difficulty || card.tier || "standard";
 const risk = classify.risk || "low";
@@ -40,7 +43,7 @@ const md = [
   `# Review package — ${card.title || slug}`,
   ``,
   `Card ${card.id || "?"} · ${card.priority || "?"} · tier ${tier} · risk ${risk} · engine ${classify.engineModel || "?"} · review model **${reviewModel}** · motion ${cls.motion} · protected paths ${cls.protected}`,
-  since ? `**Scoped re-review:** only the fix diff since \`${since}\` is included below; earlier findings were already addressed or waived.` : "",
+  since ? `**Re-review after a fix round.** The diff below is the whole change again (engines do not commit, so a fix cannot be isolated); re-check your earlier findings first, then anything new.` : "",
   ``,
   `Brief (spec + the rules that apply): \`.team/run/${slug}/brief.md\` — read it; do not open the full constraint docs unless a quoted rule points there.`,
   ``,
@@ -48,7 +51,7 @@ const md = [
   verify ? `pass: ${verify.pass} · tests: ${verify.testCount ?? "n/a"} · ran: ${verify.ran.map((r) => `${r.label} (${Math.round(r.ms / 1000)}s, exit ${r.exit})`).join(", ") || "nothing (" + (verify.skipped || []).join(", ") + ")"}` : "_verify.json missing — that is a finding_",
   ``,
   `## QA (gate 2)`,
-  verdict ? `pass: ${verdict.pass}${verdict.skipped ? ` (skipped: ${verdict.skipped})` : ""} · failures: ${(verdict.failures || []).length} · screenshots: \`.team/qa/${slug}/\`` : "_no verdict (QA not run or skipped)_",
+  verdict ? `pass: ${verdict.pass} · failures: ${(verdict.failures || []).length} · notes: ${verdict.notes || "-"} · evidence: \`${verdictPath.replace(/\\/g, "/").replace(/\/verdict\.json$/, "/")}\`` : "_no verdict (QA not run or skipped)_",
   ``,
   `## Commits`,
   "```", commits.trim() || "(uncommitted work only)", "```",

@@ -37,14 +37,22 @@ export function writeState(slug, patch) {
   return writeJson(resolve(runDir(slug), "state.json"), next);
 }
 
-/** kebab-case title, ≤30 chars, unique against existing run dirs. */
-export function slugFor(title) {
+/**
+ * kebab-case title, ≤30 chars, unique against existing run dirs: a dir is reused only when its
+ * card.json belongs to the same Notion card (a resume); any other occupant gets a -2/-3 suffix.
+ */
+export function slugFor(title, cardId = null) {
   let base = String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   if (base.length > 30) { base = base.slice(0, 30); const cut = base.lastIndexOf("-"); if (cut > 12) base = base.slice(0, cut); }
   base = base.replace(/-+$/g, "");
   if (!base) base = "card";
   let slug = base;
   let i = 2;
-  while (existsSync(resolve(RUN_ROOT, slug)) && !existsSync(resolve(RUN_ROOT, slug, "card.json"))) slug = `${base.slice(0, 27)}-${i++}`;
+  const taken = (s) => {
+    if (!existsSync(resolve(RUN_ROOT, s))) return false;
+    const owner = readJson(resolve(RUN_ROOT, s, "card.json"));
+    return !(owner && cardId && owner.id === cardId);
+  };
+  while (taken(slug)) slug = `${base.slice(0, 27)}-${i++}`;
   return slug;
 }
