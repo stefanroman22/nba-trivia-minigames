@@ -3,7 +3,7 @@
 // total), write .team/run/<slug>/verify.json and exit 0/1.
 // Usage: node scripts/team/verify.mjs <slug> --base <sha> [--repo <dir>] [--lane 1|2] [--touched a,b,c]
 import { spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, loadConfig } from "../lib/team-config.mjs";
 import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
@@ -57,7 +57,11 @@ if (cls.backend) {
   if (ran.at(-1).exit === 0) ran.push(run("django tests", py, ["manage.py", "test", "users", "trivia", "--noinput"], { cwd: resolve(repo, "backend"), env }));
 }
 if (cls.multiplayer) ran.push(run("relay syntax", process.execPath, ["--check", "multiplayer_server/src/index.js"]));
-if (cls.scripts) ran.push(run("script tests", process.execPath, ["--test", "scripts/lib/", "scripts/team/lib/"]));
+if (cls.scripts) {
+  // node --test on Node 22 wants files, not directories
+  const testFiles = ["scripts/lib", "scripts/team/lib"].flatMap((d) => { try { return readdirSync(resolve(repo, d)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`); } catch { return []; } });
+  if (testFiles.length) ran.push(run("script tests", process.execPath, ["--test", ...testFiles]));
+}
 
 const failed = ran.filter((r) => r.exit !== 0);
 const perCmd = Math.max(20, Math.floor(100 / Math.max(1, failed.length)) - 2);
