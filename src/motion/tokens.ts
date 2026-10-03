@@ -18,6 +18,9 @@ export const springs: Record<string, Transition> = {
   soft: { type: "spring", stiffness: 260, damping: 26 },
   pop: { type: "spring", stiffness: 420, damping: 18, mass: 0.6 },
   gentle: { type: "spring", stiffness: 120, damping: 18 },
+  // GameResult's score-reveal entrance (scale .9 / y 10 -> settled); every result line that
+  // springs in at the end of a game uses it.
+  result: { type: "spring", stiffness: 240, damping: 22 },
   // Sliding active-option thumb in every tab/pill switcher (SegmentedTabs) —
   // quick, lightly damped (~0.83 ratio) so it settles with a hint of give, no wobble.
   thumb: { type: "spring", stiffness: 420, damping: 34, mass: 1 },

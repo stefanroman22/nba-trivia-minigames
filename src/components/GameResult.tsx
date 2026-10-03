@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 import Confetti from 'react-confetti'
 import Button from './ui/Button'
 import AnimatedNumber from './motion/AnimatedNumber'
+import { resultIn } from '../motion/variants'
 
 interface GameResultProps {
   score: number,
@@ -52,9 +53,9 @@ function GameResult({ score, maxPoints, onPlayAgain, onClose }: GameResultProps)
           cross-fade. Points are awarded in the background (MiniGame.awardPoints)
           and never gate this reveal. */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 240, damping: 22 }}
+        variants={resultIn}
+        initial="hidden"
+        animate="visible"
         style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, textAlign: "center" }}
       >
         <div style={{ width: 64, height: 64, borderRadius: "50%", background: won ? "var(--good-soft)" : "var(--surface3)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 4 }}>

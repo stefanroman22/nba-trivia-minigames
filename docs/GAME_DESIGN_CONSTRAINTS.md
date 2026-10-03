@@ -749,7 +749,7 @@ score  → the compact score line + buttons
 ```
 
 - **The loader is small and sits at the bottom of the live game UI** — `.endseq` is
-  `width:100%`, `flex`, centered, `min-height:44px` (so the swap never collapses the layout);
+  `width:100%`, `flex`, centered, `min-height:46px` — the `btn-md` input row's height (so the swap never collapses the layout);
   `.endseq-slot` is a centered `flex column`.
   `Spinner`: `.spinner-ring` `border:3px solid var(--brand-soft)`, `border-top-color:var(--brand)`,
   `animation: spin .75s linear infinite`, default `size:30`; label `font-size:12.5px`,
@@ -770,6 +770,10 @@ check, no 48px number, no message paragraph. Use `<ScorePanel>`:
 .scorepanel-label { font-size:.9rem;   font-weight:600; color:var(--muted); }  /* var(--good) when won */
 .scorepanel-pts   { font-size:1.15rem; font-weight:700; color:var(--brand); letter-spacing:.3px; }
 ```
+
+`ScorePanel` is `ScoreLine` (the line, score via `AnimatedNumber`) + `ScoreActions` (Play again / Close game),
+both exported from the same file; a game that puts its result at the top of the frame renders
+`ScoreLine` in the Status slot and `ScoreActions` in the score slot (Career Path).
 
 Optional `label` lead-in, optional `outOf` cap, `.tnum` on the number. **Below the score sit
 Play again + Close game**, using the same button treatment as 7a — pass `onPlayAgain` and
@@ -830,7 +834,7 @@ Slower steps read as lag: Starting Five's 480ms step made a full miss take 4.5s;
 ## 8. Reusable components — use these, don't re-invent
 
 `Stage`, `Button`, `Chip`, `ProgressBar`, `AutoCompleteInput` (pass `maxResults` for large pools),
-`EndSequence`, `ScorePanel`, `Spinner`, `SubmitGuessPopup`, `CourtLoader` (full-stage loading only),
+`EndSequence`, `ScorePanel`, `ScoreLine`, `ScoreActions`, `Spinner`, `SubmitGuessPopup`, `CourtLoader` (full-stage loading only),
 `TeamCrest`, `SessionTimer`, `AnimatedNumber`, `motion/*`.
 Alias-aware answer matching lives in `src/utils/answerMatch.ts`.
 
@@ -866,6 +870,7 @@ apply. These are reviewed and intentional:
 | Wordle | result shows `Close game` only, no `Play again` (`GameResult` without `onPlayAgain`) | once per day: a replay POSTs `daily-play` and hits the 423 lock |
 | Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | no white token exists; `ui.css:31` sets the same precedent |
 | Who Would Win | stays a fill game, not `is-content` | its vertical stacked arena genuinely fills; converting it would be a redesign |
+| Career Path | no `loader` beat (`input -> score`); result line in the Status slot, the career/answer toggle in the Prompt slot, actions alone in the Action slot | the reveal is player-driven ("See full career" / "See the answer"), so nothing is calculated behind a spinner, and the owner's rule is that no button waits more than 400 ms; every slot keeps its play-time height so the frame never resizes (Rule 6.2) |
 
 **Known open items:**
 - §9's always-visible `SessionTimer` is not rendered by any game — a repo-wide product decision.

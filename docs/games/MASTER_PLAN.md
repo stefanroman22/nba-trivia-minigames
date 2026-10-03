@@ -289,7 +289,9 @@ Guess the mystery player from his team-by-team career path.
   first card starts revealed; **team logo appears on a card when it's revealed**.
 - Guesses allowed = number of teams (x). Each wrong guess flips the next team card.
 - **Score = (x − y) × 100** where y = wrong guesses (spec example: 7 teams, 3 misses ⇒ 400). Run out
-  of guesses ⇒ 0 points and the player's name + headshot shown in a reveal container at the bottom.
+  of guesses ⇒ 0 points. The result line sits at the top of the frame; the name + headshot are the
+  answer pane (shown by default on a win, behind "See the answer" on a loss) and "See full career"
+  flips the remaining cards.
 - Draft info (year/round/pick + drafted-by team) is the final card. Tie in multiplayer → time.
 
 **UI:** team cards use `--surface2` with the team's logo and an orange year chip; unrevealed cards

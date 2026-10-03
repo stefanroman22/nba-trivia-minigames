@@ -3,12 +3,49 @@
    play area fits 390x844 with no page scroll (the rail pans inside itself).
 
    The root, status row, prompt and action row come from <GameFrame> (ui.css) —
-   this file only styles the card rail itself. Do not re-add a .cp-wrap/.cp-head.
+   this file styles what goes into those slots. Do not re-add a .cp-wrap/.cp-head.
    Not a fill game: the rail pans on overflow-x, nothing scrolls vertically
-   (Rule 4.1). */
+   (Rule 4.1).
 
-/* Guesses-left counter — the status row's right-hand group */
-.cp-counter { font-size: clamp(12px, 1.9dvh, 14px); font-weight: 700; color: var(--brand); }
+   The board is a stage holding two always-mounted panes in one grid cell: the
+   card rail and the answer (name + headshot). The answer replaces the old
+   bottom reveal container; the toggle in the prompt row swaps the panes. Every
+   slot keeps the same box height in play and at the end (22px status, 22px
+   prompt, rail-tall stage), so the frame never resizes (Rule 6.2). */
+
+/* Guesses-left counter — the status row's right-hand group during play */
+.cp-counter {
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  font-size: clamp(12px, 1.9dvh, 14px);
+  font-weight: 700;
+  color: var(--brand);
+}
+
+/* End-of-game result line — replaces label + counter, lone-left so it centres */
+.cp-result { height: 22px; display: inline-flex; align-items: center; }
+
+/* Prompt row: the eyebrow during play, the career/answer toggle chip at the end */
+.cp-eyebrow { height: 22px; display: inline-flex; align-items: center; }
+.cp-toggle {
+  height: 22px;
+  padding: 0 12px;
+  position: relative;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface2);
+  border-color: var(--line2);
+  cursor: pointer;
+}
+.cp-toggle:hover { border-color: var(--brand); color: var(--brand); }
+.cp-toggle::after { content: ""; position: absolute; inset: -11px -6px; } /* 44px touch target, no layout cost */
+
+/* ===== Stage: rail pane + answer pane share one grid cell ===== */
+.cp-stage { display: grid; width: 100%; }
+.cp-pane { grid-area: 1 / 1; min-width: 0; }
+/* Fallback for the first mount; the stackPane variant's inline visibility wins during fades */
+.cp-pane:not(.is-active) { visibility: hidden; pointer-events: none; }
 
 /* ===== Card rail: horizontal pan INSIDE the container ===== */
 .cp-rail {
@@ -114,30 +151,30 @@
 
 /* Input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
-/* ===== Loss reveal container ===== */
-.cp-reveal {
+/* ===== Answer pane: headshot + name, centred in the rail-tall cell ===== */
+.cp-answer {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 12px;
-  width: 100%;
-  max-width: 420px;
-  padding: 10px 14px;
-  background: var(--surface2);
-  border: 1px solid var(--brand);
-  border-radius: var(--radius);
+  justify-content: center;
+  text-align: center;
+  gap: clamp(6px, 1.2dvh, 10px);
 }
+.cp-answer-text { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 .cp-reveal-photo,
 .cp-reveal-fallback {
+  display: block; /* no inline-baseline gap under the photo */
   flex: none;
-  width: 64px;
-  height: 47px; /* matches the 1040x760 headshot aspect */
+  width: clamp(96px, 24vw, 128px);
+  aspect-ratio: 1040 / 760; /* the headshot's native aspect */
+  height: auto;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 12px;
   background: var(--surface3);
+  border: 1px solid var(--line2);
 }
-.cp-reveal-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.cp-reveal-label { font-size: 10.5px; color: var(--muted); letter-spacing: 0.4px; }
-.cp-reveal-name { font-size: clamp(15px, 2.2dvh, 19px); color: var(--text); }
+.cp-reveal-label { font-size: 11px; color: var(--muted); letter-spacing: 0.4px; }
+.cp-reveal-name { font-size: clamp(18px, 2.6dvh, 24px); color: var(--text); }
 
 /* Small phones (390x844): tighter cards so rail + input + reveal all fit */
 @media (max-width: 480px) {

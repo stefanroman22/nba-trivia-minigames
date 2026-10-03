@@ -186,7 +186,7 @@
 /* ---------- End-of-game sequence slot (EndSequence) ---------- */
 /* Bottom slot that cross-fades submission → loader → score for answers-shown
    games. min-height keeps the swap from collapsing the stage height. */
-.endseq { width: 100%; display: flex; justify-content: center; min-height: 44px; }
+.endseq { width: 100%; display: flex; justify-content: center; min-height: 46px; }
 .endseq-slot { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
 /* Compact brand-orange ring spinner (Spinner.tsx) — faint orange track, solid
@@ -210,6 +210,10 @@
 .scorepanel-line { display: flex; align-items: baseline; gap: 9px; }
 .scorepanel-label { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
 .scorepanel-pts { font-size: 1.15rem; font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
+/* The counting number reserves its final width (--digits = chars of the widest value;
+   .tnum fixes glyph width, + the 0.3px letter-spacing) so the centred line never shifts. */
+.scorepanel-num { display: inline-block; text-align: right; min-width: calc(var(--digits) * (1ch + 0.3px)); }
+.scorepanel-actions { display: flex; gap: 10px; }
 
 /* ---------- GameFrame: the shared game layout (GameFrame.tsx) ----------
    ONE rhythm for every game. Games must not set gap/margin/padding on their own
