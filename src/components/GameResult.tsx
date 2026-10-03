@@ -7,8 +7,9 @@ import AnimatedNumber from './motion/AnimatedNumber'
 interface GameResultProps {
   score: number,
   maxPoints: number,
-  /** Restarts and auto-launches the same game (no extra Play press). */
-  onPlayAgain: () => void,
+  /** Restarts and auto-launches the same game (no extra Play press). Omit to
+   *  show Close game alone (Wordle: once per day, a replay would hit the daily lock). */
+  onPlayAgain?: () => void,
   /** Closes the game and returns to the generic no-game screen. */
   onClose: () => void,
 }
@@ -72,8 +73,8 @@ function GameResult({ score, maxPoints, onPlayAgain, onClose }: GameResultProps)
         )}
         <p style={{ fontSize: 13.5, color: "var(--muted)", maxWidth: 300, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 14, width: "100%" }}>
-          <Button block autoFocus onClick={onPlayAgain}>Play again</Button>
-          <Button block variant="secondary" onClick={onClose}>Close game</Button>
+          {onPlayAgain && <Button block autoFocus onClick={onPlayAgain}>Play again</Button>}
+          <Button block autoFocus={!onPlayAgain} variant="secondary" onClick={onClose}>Close game</Button>
         </div>
       </motion.div>
     </div>

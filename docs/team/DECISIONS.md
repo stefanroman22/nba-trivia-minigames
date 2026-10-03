@@ -931,3 +931,31 @@ the trade-off; the step 1/11 measurement list still includes `requests`.
 Consequences: the card's "Done when" is met minus `requests`, which is documented rather than
 asserted; moving Google login off `requests` (and `requests` out of the web set) is a separate
 card if the ~51 ms ever matters.
+
+## 2026-10-03 — Single "Close game" control on every game screen: card says sonnet, P0 override says opus; standard, no design round
+Context: frontend P0 card, no Difficulty override, owner-investigated spec with a "Model routing:
+sonnet" hint. Screenshots (Starting 5 and Fan Favorites result at phone width) confirm the bug: the
+in-place `ScorePanel` ("Play again" / "Close game") sits above the shell's `.exit-link` "Exit game",
+two leave controls at once. Verified on dev 6450a5f: `MiniGame.tsx:274` renders `.exit-link` for the
+whole `playing` stage; the shell already receives the in-place ending — `onGameEnd(finalScore,
+{ inPlace: true })` at `MiniGame.tsx:260-264` — but only uses `inPlace` to skip `setShowResult`,
+storing no ended flag, so the exit link has nothing to key off today. Hiding it is one boolean state
+set there and cleared in `handleStart`/`handleRestart`/`handleExit`/the `[gameId]` effect, plus a
+conditional render: a few lines, which is the card's own threshold for skipping a design round.
+`onExit` is dead (`RenderGame.tsx:53/69/114`, `StartingFive.tsx:19`, never read). Wordle ends via
+`GameResult` (no `inPlace`), so "Close game only" there is a `GameResult`/shell condition, not a
+renderer change. Hidden games' hand-rolled copies (`NbaGrid.tsx:422-423`, `SuperDraft.tsx:514-521,
+667-674`) already read "Close game".
+Weighed: (a) `difficulty: trivial` — the rename itself is given text; rejected because the task
+removes/hides a visible UI element (rubric: visual check needed, not haiku) and adds shell state.
+(b) `standard` with `needsDesignRound: false` — one area (`frontend`/`ui`), existing patterns, every
+step has an acceptance check in the card. Engine: (c) `sonnet`, as the card routes and as the work is
+long-and-explicit; (d) `opus`, because the 09-29 override ("`risk: high` or a non-trivial P0 → opus")
+is unconditional and the 09-29 routing-eval entry restates it ("P0 non-trivial → opus"). The
+card's routing line is a hint, not a Difficulty override, and only an override beats the rubric.
+Decision: `difficulty: standard`, `areas: frontend, ui`, `risk: low`, `engineModel: opus`
+(provisional, by the P0 override), `planModel: fable`, `needsDesignRound: false`.
+Consequences: a card's "Model routing" hint does not downgrade a non-trivial P0 from opus; if the
+owner wants sonnet on simple P0 cards, the override text in `classify/SKILL.md` is the place to
+change it, not per-card. The build engine should key the hidden exit link off the existing
+`inPlace` signal rather than inventing a renderer→shell callback or store flag.

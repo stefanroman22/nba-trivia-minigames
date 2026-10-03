@@ -61,7 +61,6 @@ const SLOT_COUNT = 5;
 const SIM_LINEUPS = 300; // random valid lineups graded against
 const REVEAL_STEP_MS = 260; // stagger between per-slot metric reveals (spec Rule 7.2)
 const REVEAL_LEAD_MS = 300; // lead-in before the first reveal (spec Rule 7.2)
-const END_DELAY = 1200; // let the grade land before handing back the score
 const CURRENT_YEAR = new Date().getFullYear();
 
 const headshotUrl = (personId: number) =>
@@ -402,9 +401,13 @@ export default function SuperDraft({
     for (let i = 0; i < SLOT_COUNT; i++) {
       later(() => setRevealCount(i + 1), REVEAL_LEAD_MS + i * REVEAL_STEP_MS);
     }
-    later(() => setShowResult(true), REVEAL_LEAD_MS + SLOT_COUNT * REVEAL_STEP_MS + 200);
     // inPlace: the bespoke .sd-result panel below IS the end screen (spec §7).
-    later(() => onGameEnd?.(pct, { inPlace: true }), REVEAL_LEAD_MS + SLOT_COUNT * REVEAL_STEP_MS + 200 + END_DELAY);
+    // Shown and reported in the same tick so the shell's "Close game" hides as
+    // the panel's own Close game appears.
+    later(() => {
+      setShowResult(true);
+      onGameEnd?.(pct, { inPlace: true });
+    }, REVEAL_LEAD_MS + SLOT_COUNT * REVEAL_STEP_MS + 200);
   };
 
   const submitPick = (raw: string) => {

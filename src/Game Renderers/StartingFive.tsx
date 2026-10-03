@@ -15,8 +15,6 @@ interface StartingFiveProps {
   gameInfo: StartingFiveGame[];
   pointsPerCorrect: number;
   onGameEnd: OnGameEnd;
-  /** Passed by RenderGame; the shell owns the exit control (spec §4). */
-  onExit?: () => void;
   onPlayAgain?: () => void;
   /** Closes the game and returns to the idle screen (spec §7b). */
   onClose?: () => void;
