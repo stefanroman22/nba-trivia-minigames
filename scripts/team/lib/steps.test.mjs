@@ -26,6 +26,12 @@ test("two steps are not a plan", () => {
   assert.equal(detectSteps("1. `src/a.ts` x\n2. `src/b.ts` y").hasPlan, false);
 });
 
+test("line suffixes are stripped and deduplicated", () => {
+  const r = detectSteps("1. `src/styles/Friends.css:70` and `src/styles/Friends.css` again\n2. `src/a.tsx:1-9`\n3. `src/b.tsx`");
+  assert.deepEqual(r.steps[0].files, ["src/styles/Friends.css"]);
+  assert.deepEqual(r.steps[1].files, ["src/a.tsx"]);
+});
+
 test("bare path tokens count as files", () => {
   const r = detectSteps("1. Hook into backend/users/views.py after normalize\n2. Frontend: src/utils/Api.tsx handles 403\n3. Update docs/DEPLOYMENT.md");
   assert.equal(r.hasPlan, true);

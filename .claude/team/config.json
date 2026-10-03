@@ -8,7 +8,11 @@
   "qaPorts": {
     "django": 8100,
     "socket": 4100,
-    "vite": 5273
+    "vite": 5273,
+    "lanes": [
+      { "django": 8100, "socket": 4100, "vite": 5273 },
+      { "django": 8101, "socket": 4101, "vite": 5274 }
+    ]
   },
   "slack": {
     "generalChannel": "C0BS1F0PVSA",
