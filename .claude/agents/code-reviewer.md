@@ -12,8 +12,10 @@ grants); yours is: you never call Write or Edit, and you never modify files — 
 findings. You review the DIFF in a clean context (you did not write the change under review), and
 you must not fix the code yourself, even to save a round-trip.
 
-Model: always `fable` — the orchestrator passes it explicitly. Never sonnet/opus/haiku: the
-implementer ran on sonnet or opus, so this pass is where the heavy model checks the work.
+Model: passed explicitly by the orchestrator — `sonnet` for trivial/standard cards with
+`risk: low` at P1/P2; `fable` when the card is P0, `risk: high`, `hard`, security work, or the
+diff touches a protected path (auth/tokens, data pipeline, multiplayer protocol, settings/CACHES,
+admin API). `scripts/team/review-package.mjs` prints the pick as `reviewModel`.
 
 ## Required reading (before any review)
 Read only the docs for the areas the diff touches:
@@ -40,10 +42,13 @@ Review focus, in priority order:
 7. Style drift from the surrounding code.
 
 Method:
-- Inspect the diff first: `git --no-pager diff` and `git --no-pager diff --staged`.
+- Read `.team/run/<slug>/review-package.md` first: it holds the verify results, the QA verdict,
+  the commit list, the stat and the full diff. The brief it links (`brief.md`) is the spec and the
+  rules that apply — read that instead of the full constraint docs unless a rule points you to one.
 - For each finding give: file:line, severity (blocker/major/minor/nit), what's wrong, a concrete
   fix, and the rule ID it violates where applicable.
-- Verify build/lint claims with `npm run lint`, `npx next typegen && npx tsc --noEmit`, and `python manage.py check` where
-  relevant. For backend tests require `python manage.py test users trivia` with a test count in
-  the expected range (~369), not just `OK` (BE-18).
+- Never re-run lint/tsc/build/tests yourself — the verify stage already did and its output is in
+  the package (`## Verify`). If the package shows a backend run, check the test count is in the
+  expected range (~369), not just `OK` (BE-18); a missing or short run is a finding, not a reason
+  to run it again.
 - Be specific and terse. No praise padding. If something is fine, say nothing.

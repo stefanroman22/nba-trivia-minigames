@@ -20,7 +20,10 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
 
 ## Difficulty rubric (drives risk / design-round — unchanged)
 - **trivial** — docs/copy/config/single-file change, no logic branches.
-- **standard** — one area, bounded logic, existing patterns cover it.
+- **standard** — one area, bounded logic, existing patterns cover it. Also: a spec whose body
+  already lists numbered steps naming files (the owner's detailed tickets) is `standard` even
+  when it spans several files — unless it is security, multiplayer-protocol or data-regeneration
+  work. `needsDesignRound: false`; the brief copies the steps as the plan.
 - **hard** — multi-area, new patterns, state machines, migrations, anything touching
   multiplayer protocol, or work that generates or regenerates data consumed by several games.
   `needsDesignRound: true`.

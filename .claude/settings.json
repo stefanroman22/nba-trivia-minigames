@@ -1,5 +1,6 @@
 {
   "model": "fable",
+  "subagentPromptCacheTtl": "1h",
   "availableModels": [
     "fable",
     "sonnet",
