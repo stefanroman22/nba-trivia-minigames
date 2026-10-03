@@ -1021,3 +1021,6 @@ Consequences: `test-qa-engine` retired; `.team/journal.json` replaced by `.team/
 `team-run.ps1` passes `--model sonnet`; the routine UI model should be Sonnet 5.5 and its setup
 script `infra/routine/setup.sh`. Targets to verify on the next runs: standard card 15–25 min,
 ≤500k tokens; 4–6 cards per 90-minute run.
+Measured on 2026-10-03 (local, Windows): smoke card (trivial, docs-only) intake→ship in ~3 min; gate 1 in a
+fresh worktree `npm ci --prefer-offline` 143 s + lint 47 s + typegen 14 s + tsc 19 s + build 79 s; gate 2 on a
+shared-UI diff (3-game sample × 3 viewports + 2 routes × 2 widths, lane Django + `next start`) 176–229 s.
