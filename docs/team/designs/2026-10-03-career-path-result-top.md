@@ -35,7 +35,7 @@ TRACE THE CAREER        5 guesses left        That's him!  500/600 pts     Out o
 │                              │              │ The journey belonged │     │  all face-up (rail)  │      share one cell; the inactive pane is
 └──────────────────────────────┘              │   to  Eric Montross  │     └──────────────────────┘      faded out + visibility:hidden
                                               └──────────────────────┘
-[ Who is it?…        ][Confirm]                 [Play again][Close game]      [Play again][Close game]  <- Action: EndSequence input -> score (44px both)
+[ Who is it?…        ][Confirm]                 [Play again][Close game]      [Play again][Close game]  <- Action: EndSequence input -> score (46px both)
 ```
 
 - Header: `"{n} guesses left"` only (`"1 guess left"` singular), wrapped in `SwapText` so the number
@@ -53,7 +53,7 @@ TRACE THE CAREER        5 guesses left        That's him!  500/600 pts     Out o
   newly flipped stop ("scrolled to show every stop"). On a loss there is nothing to flip; the swap
   alone brings the rail back.
 - Play again + Close game are `ScoreActions` (the second half of `ScorePanel`) in the EndSequence
-  score slot: btn-sm 38px inside the 44px `.endseq` minimum, same height as the input row.
+  score slot: btn-sm 38px inside the 46px `.endseq` minimum, same height as the md input row.
 - No loader beat: Career Path goes `input -> score` directly. The reveal is player-driven, so there
   is nothing to calculate behind a spinner, and the owner's ">400 ms before a button is pressable"
   rule cannot be met with the §7b 1.5 s loader. Recorded as an accepted deviation (docs step).
@@ -186,7 +186,7 @@ CSS contract (`src/styles/CareerPath.css`), heights that make the frame static:
 | Status right | `.cp-counter` | omitted (`undefined`) | `.cp-counter { height: 22px }` |
 | Prompt eyebrow | `.cp-eyebrow` text | `.cp-toggle` chip | both `height: 22px; display: inline-flex; align-items: center` |
 | Board | `.cp-stage` > `.cp-rail.cp-pane` + `.cp-answer.cp-pane` | same nodes, `is-active` moves | `grid-area: 1 / 1` on both panes |
-| Action | `GameFrame.InputRow` (44px) | `ScoreActions` (38px) in `.endseq` (min 44px) | unchanged |
+| Action | `GameFrame.InputRow` (46px, `btn-md`) | `ScoreActions` (38px) in `.endseq` (min 46px) | unchanged |
 
 ## File plan
 
@@ -352,6 +352,9 @@ File: `src/Game Renderers/CareerPath.tsx`.
      The children carry only `variants` (no `initial`/`animate`): they inherit the pane's labels, so
      `stackPane.visible`'s `delayChildren` releases the pop and the fade together once the other pane
      has left.
+     (Fix cycle 1) The two children render only when `ended`, so the name and headshot request
+     don't exist during play, and the answer pane's `initial` is `{ended ? "hidden" : false}` so
+     children mounting at the end start hidden and still take the orchestrated pop/fade.
 - `railRef` stays `useRef<HTMLDivElement>(null)`; `motion.div` forwards it.
 Done: toggling flips `is-active` between the two panes; the answer pane is not focusable or
 hit-testable while inactive; `.gf` height is identical in play, at the end and after each toggle.

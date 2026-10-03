@@ -46,3 +46,26 @@ export const swap: Variants = {
   visible: { opacity: 1, y: 0, scale: 1, transition: { duration: durations.base, ease: easing.out } },
   exit: { opacity: 0, y: -14, scale: 0.985, transition: { duration: durations.fast, ease: easing.in } },
 };
+
+// End-of-game result entrance (GameResult's spring): the score springs in from slightly below
+// and slightly smaller. In-place games use it on their result line too.
+export const resultIn: Variants = {
+  hidden: { opacity: 0, scale: 0.9, y: 10 },
+  visible: { opacity: 1, scale: 1, y: 0, transition: springs.result },
+};
+
+// Two always-mounted panes sharing one grid cell: a view toggle that must not change the
+// container's height (GAME_DESIGN_CONSTRAINTS Rule 6.2). The leaving pane fades/slides out on
+// swap's exit timing and ends visibility:hidden; the arriving pane waits that long, enters on
+// swap's entrance, and releases its own variant children (popIn / fadeInUp) at the same moment.
+export const stackPane: Variants = {
+  hidden: {
+    opacity: 0, y: 14, scale: 0.985,
+    transition: { duration: durations.fast, ease: easing.in },
+    transitionEnd: { visibility: "hidden" },
+  },
+  visible: {
+    opacity: 1, y: 0, scale: 1, visibility: "visible",
+    transition: { duration: durations.base, ease: easing.out, delay: durations.fast, delayChildren: durations.fast },
+  },
+};
