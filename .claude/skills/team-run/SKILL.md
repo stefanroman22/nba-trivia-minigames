@@ -27,6 +27,8 @@ explicitly.
   the design doc's `## Implementation plan` (see **build**); else `classify.engineModel` (`haiku`
   trivial, `sonnet` simple/default, `opus` complex, important, or any motion/animation work).
 - test-qa-engine and browser-qa: `sonnet`, always. code-reviewer: `fable`, always.
+- motion-reviewer: `opus`, only when the diff touches `src/` UI files (`.tsx`/`.css`); it runs next to
+  code-reviewer, never instead of it (owner decision 2026-10-03).
 
 ## 0. Preconditions
 - Read `.claude/team/config.json` → cfg. Note the start time (HH:MM); enforce cfg.maxRunMinutes.
@@ -100,8 +102,10 @@ to build (replanned=true). Fails again → fail procedure (stage `verify`). jour
 Write the **Check** line now: navigate → action → expected result, for someone who knows the app.
 journal stage=review.
 
-**review** → code-reviewer (fable) on `git -C <worktree> diff origin/dev...HEAD`. blocker/major →
-build (counts toward fixCycles). minor/nit → noted in the commit body. journal stage=ship.
+**review** → code-reviewer (fable) on `git -C <worktree> diff origin/dev...HEAD`. If that diff touches
+`src/**/*.tsx` or `src/**/*.css`, spawn motion-reviewer (opus) on the same diff in parallel. blocker/major
+from either → build (counts toward fixCycles). minor/nit/missing → noted in the commit body.
+journal stage=ship.
 
 **ship** → ship skill. `SHIPPED <sha>` → remove the journal entry; append to `shipped[]`:
 `{title, category}`; write `.team/qa-<slug>.json`:

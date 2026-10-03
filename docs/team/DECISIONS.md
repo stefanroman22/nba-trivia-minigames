@@ -826,3 +826,17 @@ Consequences: unchanged questions are never re-uploaded or re-downloaded; one bu
 nine file-based games; a regenerated curated dataset must be committed (as for `names`) before a
 publish sees it; the question index grows (career-path ~7 KB gzip vs ~1 KB) because sha12s do
 not compress; the Supabase snapshot is retired 30 days after the switch by the owner.
+
+## 2026-10-03 — Motion reviewer joins the review stage
+Context: the owner wants every visible text change and screen change to be smooth, and asked for a
+subagent that checks animations are used correctly and finds places that should be animated but are not.
+A shared motion system already exists (`src/motion/tokens.ts`, `variants.ts`, `src/components/motion/*`
+including `SwapText`), but nothing in the pipeline checked that new UI work used it.
+Decision: new read-only agent `.claude/agents/motion-reviewer.md` (model `opus`). The review stage runs it
+next to `code-reviewer` whenever the diff touches `src/**/*.tsx` or `src/**/*.css`. Check A: motion that
+exists (shared pieces, tokens, reduced motion, jank, aria-live, timing). Check B: motion that is missing
+(abrupt text, conditional blocks, result and modal screens). blocker/major go back to build; minor and
+missing go in the commit body. `code-reviewer` stays fable and is not replaced.
+Consequences: one extra Opus pass per UI task (more plan usage, only on UI diffs). The Notion card tool
+(`scripts/notion.mjs create-card`) also gained `--body-file` (markdown-lite with uploaded local images),
+`--priority` and `--difficulty`, so tickets can carry long specs, screenshots and a Difficulty override.

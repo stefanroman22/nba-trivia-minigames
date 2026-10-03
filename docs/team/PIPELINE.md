@@ -64,7 +64,7 @@ you take with your own eyes on `dev` first.
 
 - **Skills** — `.claude/skills/` (e.g. `team-run`, `ship`, `classify`, `qa-protocol`).
 - **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
-  `browser-qa`, `code-reviewer`, `test-qa-engine`).
+  `browser-qa`, `code-reviewer`, `motion-reviewer`, `test-qa-engine`).
 - **Journal** — `.team/journal.json`: mid-flight task state (stage, fix cycles, split-task halves, resume note), resumed by the next run before anything new is claimed.
 - **Logs** — `.team/logs/` (one file per run). Written by PowerShell's
   `Tee-Object`, which defaults to **UTF-16LE** — open with a UTF-16-aware viewer, not a
@@ -273,6 +273,7 @@ frontmatter or the `npm run engine` profile):
 | Design round + replan | **fable**, always, when `classify.needsDesignRound` — which security work (attacks, auth/session breaches, account blocking/abuse, secrets, permissions) always sets, whatever its size. The plan must be explicit enough — numbered steps, each with an acceptance criterion — for the implementer to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
 | Implementer (`frontend-engine`, `backend-engine`) | **haiku** for trivial. **sonnet** for simple work: clearly defined steps with acceptance criteria — however many — or a fully detailed spec. **opus** for complex or important work (judgment a plan cannot pin down, `risk: high`, non-trivial P0) and **always for motion/animation**. For Fable-planned tasks the engine is chosen **per step**: the design round tags each plan step `[opus]` (complex or motion) or `[sonnet]` (simpler), and the build stage runs consecutive same-tag steps as one spawn of that model. Long-and-vague is a plan problem, never a reason to upgrade the engine. |
 | `code-reviewer` | **fable**, always. |
+| `motion-reviewer` | **opus**, only when the diff touches `src/` UI files; runs alongside `code-reviewer`. Checks that animations use the shared motion system and flags visible text/screen changes that still happen abruptly. |
 | `test-qa-engine`, `browser-qa` | **sonnet**, always. Never fable or opus. |
 | CTO review (GitHub Actions) | **fable**, pinned in `.github/workflows/claude.yml`. |
 
