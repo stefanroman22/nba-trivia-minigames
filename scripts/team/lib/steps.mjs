@@ -4,10 +4,13 @@ const STEP_RE = /^\s*(\d+)[.)]\s+(.*)$/;
 const BACKTICK_PATH_RE = /`([^`\s]+\/[^`\s]+)`/g;
 const BARE_PATH_RE = /\b((?:src|backend|scripts|docs|multiplayer_server|infra)\/[\w./\-\[\]]+)/g;
 
+// `src/x.tsx:57-63` → `src/x.tsx` (specs cite line ranges; the file is what matters)
+const clean = (p) => p.replace(/:\d+(?:-\d+)?$/, "").replace(/[.:,;]+$/, "");
+
 function filesIn(text) {
   const out = new Set();
-  for (const m of text.matchAll(BACKTICK_PATH_RE)) out.add(m[1].replace(/[.:,;]+$/, ""));
-  for (const m of text.matchAll(BARE_PATH_RE)) out.add(m[1].replace(/[.:,;]+$/, ""));
+  for (const m of text.matchAll(BACKTICK_PATH_RE)) out.add(clean(m[1]));
+  for (const m of text.matchAll(BARE_PATH_RE)) out.add(clean(m[1]));
   return [...out];
 }
 

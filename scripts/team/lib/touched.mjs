@@ -60,7 +60,10 @@ export function classifyTouched(files, diffText = "") {
   const multiplayer = norm.some((f) => /^multiplayer_server\//.test(f));
   const scripts = norm.some((f) => /^scripts\//.test(f));
   const docsOnly = norm.length > 0 && norm.every((f) => DOC_RE.test(f));
-  const motion = norm.some((f) => MOTION_PATH_RE.test(f)) || MOTION_DIFF_RE.test(String(diffText || ""));
+  // diff markers only count when UI source is in the diff; a pipeline script mentioning
+  // "framer-motion" in a comment must not wake the motion reviewer
+  const hasUiSource = norm.some((f) => /^src\/.*\.(tsx|ts|jsx|css)$/.test(f));
+  const motion = norm.some((f) => MOTION_PATH_RE.test(f)) || (hasUiSource && MOTION_DIFF_RE.test(String(diffText || "")));
   const isProtected = norm.some((f) => PROTECTED_RES.some((re) => re.test(f)));
   return { frontend, backend, multiplayer, scripts, docsOnly, motion, protected: isProtected, games, files: norm };
 }
