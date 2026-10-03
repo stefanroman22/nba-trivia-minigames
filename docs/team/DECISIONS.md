@@ -1040,3 +1040,25 @@ answer, solution or final board ends in place); `scripts/check-game-results.mjs`
 called by `npm run lint`, so CI) fails a visible game whose `onGameEnd` lacks `{ inPlace: true }`
 unless it has a written reason in `scripts/game-result-allowlist.json`; the reviewer and QA
 checklists carry the same check. Contexto, Wordle and solo TicTacToe were fixed in the same change.
+
+## 2026-10-03 — Who Would Win overlap/Skip/points/end-in-place: standard vs hard, sonnet vs opus engine
+Context: Card spec lists 7 numbered steps naming files (standard by the rubric) but spans frontend renderer, GameUtils, backend log_session cap and multiplayer switchers, and is P0.
+Decision: hard with needsDesignRound true (multi-area rule; owner asked for a Fable round), planModel fable, provisional engine opus (P0 non-trivial); risk low (per-game score ceiling only, no auth/throttle/protocol code changed; multiplayer work is UI-only switcher gating). Candidates weighed: standard/sonnet with brief-copied plan.
+Consequences: planner finalizes engine per step; CSS/Skip row/backend cap can be sonnet, in-place result and points flow opus.
+
+## 2026-10-03 — LeContexto in-place result + enforced end-in-place rule: standard vs hard, opus vs sonnet, design round or not
+Context: P0 frontend card, Difficulty field `standard`, spec has four explicit parts with named files and
+done-checks, but its own "Model routing" text asks for a Fable design round ("hard, multi-area").
+Work: Contexto.tsx switches to the shared `EndSequence` + `ScorePanel` + `onGameEnd(score, { inPlace: true })`
+pattern already used by Career Path / Who Are Ya / Starting Five; a plain-Node check script plus allowlist
+JSON; doc and checklist edits; an audit of six visible games.
+Weighed: (a) `hard` + Fable design round, as the spec text asks — rejected: the card's Difficulty field is
+`standard` and wins, every step already names its file and acceptance check, the pattern exists in three
+renderers, and the script is dependency-free; no protocol, security or data work. (b) `standard`, no design
+round — chosen. Engine: `sonnet` (long-and-explicit) vs `opus`; the 09-29 override sends a non-trivial P0 to
+`opus`, and the spec itself marks the Contexto result UX and answer-reveal judgment as `[opus]`.
+Decision: `difficulty: standard`, `areas: frontend, ui, games`, `risk: low`, `engineModel: opus`,
+`planModel: sonnet`, `needsDesignRound: false`. The planner tags script/allowlist/doc steps `[sonnet]` and the
+Contexto UX and per-game audit judgment `[opus]`.
+Consequences: if the audit finds a large violator (Wordle, TicTacToe), it is allowlisted with a follow-up note
+as the card allows, not turned into a design round here.
