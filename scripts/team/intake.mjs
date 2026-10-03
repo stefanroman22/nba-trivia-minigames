@@ -87,7 +87,12 @@ for (const c of picks) {
   } else {
     writeState(slug, { resumed: true });
   }
+  // lanes are 1-based (config qaPorts.lanes[lane-1]); a resumed card keeps its lane, new picks take the free ones
+  const usedLanes = new Set([...runningLanes.map((r) => ours.find((x) => x.slug === r.slug)?.state?.lane), ...out.map((o) => o.lane)].filter(Boolean));
+  let laneNo = resumed && readState(slug).lane ? readState(slug).lane : 1;
+  while (usedLanes.has(laneNo)) laneNo += 1;
+  writeState(slug, { lane: laneNo });
   const st = readState(slug);
-  out.push({ slug, id: c.id, title: c.title, tier: st.tier, budgetMin: tierBudget(st.tier), laneKeys: [...laneKeys(c)], category: c.category, priority: c.priority, resumed, stage: st.stage });
+  out.push({ slug, id: c.id, title: c.title, tier: st.tier, budgetMin: tierBudget(st.tier), lane: laneNo, laneKeys: [...laneKeys(c)], category: c.category, priority: c.priority, resumed, stage: st.stage });
 }
-console.log(JSON.stringify({ picks: out, leftTodo, remainingMin }, null, 2));
+console.log(JSON.stringify({ picks: out, leftTodo, remainingMin, lanesAre: "1-based: pass --lane <n> to verify.mjs and qa.mjs" }, null, 2));

@@ -103,7 +103,8 @@ try {
   // runs when the frontend is under test (otherwise the UI would call the owner's :8000 or CORS-fail
   // against production). The worktree has no sqlite (ignored file): migrate first, seconds on sqlite.
   const py = venvPython();
-  const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1" } };
+  // CORS_ALLOWED_ORIGINS is additive in settings.py (env_list_merge), so this only adds the lane's origin.
+  const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1", CORS_ALLOWED_ORIGINS: `http://localhost:${ports.vite}` } };
   const mig = spawnSync(py, ["manage.py", "migrate", "--noinput", "-v", "0"], { ...dj, env: { ...process.env, ...dj.env }, encoding: "utf8" });
   if (mig.status !== 0) notes.push(`migrate failed: ${((mig.stderr || "") + (mig.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
   start("django", py, ["manage.py", "runserver", String(ports.django), "--noreload"], dj);
