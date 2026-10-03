@@ -1,56 +1,41 @@
 ---
 name: design-round
-description: Written design round for multi-area or hard tasks — proposals, merge, sign-off — before any code. Run by planner-architect.
+description: One-pass written design for a hard card (security, protocol, data regeneration, new patterns, owner Difficulty=hard) — decision, interfaces, file plan, risks, test plan, and a step-by-step implementation plan with per-step model tags. Run by planner-architect on fable. Not used for standard cards.
 ---
 
-# Design Round
+# Design Round (v2 — one pass, hard cards only)
 
-The "meeting" is an artifact. No code until sign-off.
+The meeting is an artifact; no code until the plan exists. You are the heavy model here: spend the
+thinking on the plan, not on ceremony. v1's "proposals from each engine" and "sign-off pass" are gone —
+in a headless run there was no second party, the planner wrote both sides itself (log evidence,
+2026-10-03). Budget: **10 minutes**, one document.
 
-## Procedure
-1. For each involved area, dispatch that engine agent with: the task spec, classify JSON,
-   relevant constraint docs, CODE_MAP hits. Ask for a proposal, ≤300 words:
-   interface/contract it will expose or consume, data shapes, files it will touch, risks.
-2. Merge the proposals into ONE design doc: `docs/team/designs/YYYY-MM-DD-<slug>.md` with
-   sections: Decision summary / Interfaces (exact names+types) / File plan / Risks / Test plan.
-   Where proposals conflict, planner decides and records the decision + reason.
-3. One sign-off pass: send the merged doc back to each involved engine — "objection or OK?"
-   Fold objections in once. Persistent conflict = planner decides, logs to
-   `docs/team/DECISIONS.md`.
-4. Hard tasks with unresolved conflicts after step 3: STOP — park the task with status
-   Blocked and post-mortem "design deadlock" (v1 has no live agent-team escalation; that is
-   Stage 3).
-5. **Every design round** — turn the signed-off design into a real implementation plan before
-   handoff, the same depth as writing a plan for a human engineer, self-reviewed before anyone
-   builds from it. This is not optional and not only for `hard`: the build stage runs on
-   sonnet or opus (`classify.engineModel`) and executes the plan rather than reasoning it out, so
-   anything the plan leaves implicit is exactly what the engine will get wrong. You are the
-   heavy model here (fable) — spend the thinking now.
-   If `superpowers:writing-plans` is in your skill listing (local runs only — it is a
-   machine-local plugin, absent on cloud routines), load it and write the plan with it at the
-   depth it prescribes. Never `superpowers:brainstorming`: it gates on human approval, which an
-   unattended run cannot give. Otherwise follow a–c. Either way the plan must pass b.
-   a. Break the work into numbered steps, each naming the exact file(s) it touches and what
-      "done" looks like for that step (a test to run, a command to pass, a behavior to check).
-      No step may say "handle edge cases" or "add appropriate error handling" without saying
-      which edge cases and what the handling actually is.
-   b. Self-review the plan against the spec, in this order, fixing anything you find before
-      moving on: (i) **coverage** — every requirement in the task's spec maps to a step;
-      (ii) **no placeholders** — no TBD/TODO, no step that describes intent without the
-      concrete detail to act on it; (iii) **consistency** — a name, type, or file path used in
-      one step matches how a later step refers to it; (iv) **scope** — nothing is planned that
-      the spec didn't ask for; (v) **ambiguity** — anywhere the spec could be read two ways,
-      the plan picks one reading explicitly rather than leaving it for the engine to guess.
-   c. Append the reviewed plan to the same design doc under `## Implementation plan`, then hand
-      it to the build stage — the engine implements the plan, it does not re-derive one.
-   d. Finalize the engine **per step** now that the plan exists — classify's `engineModel` was
-      provisional. Tag every numbered step in `## Implementation plan` with `[opus]` or `[sonnet]`:
-      `[opus]` if the step needs judgment the plan cannot fully pin down (a tricky algorithm, state
-      machine, timing, a design call) **or involves motion/animation of any kind**; `[sonnet]` if
-      the step is explicit and carries a clear done-check. Long-and-vague means the plan failed b —
-      fix the plan, do not upgrade the engine. In the Decision summary write
-      `Engine: opus|sonnet|mixed` (mixed = both tags present) and echo it in your final reply; the
-      build stage uses the per-step tags over classify's pick.
-   The a–c procedure is native to this pipeline so the discipline holds on cloud runs where
-   no planning skill exists — see `docs/team/DECISIONS.md` 2026-08-29 and 2026-09-06.
-6. Commit the design doc: `docs(team): design for <slug>`.
+## Input
+`.team/run/<slug>/brief.md` (spec, attachments, classify JSON, the rules that apply, CODE_MAP hits,
+files named). Read it first. Open a constraint doc only where a quoted rule points you to a section.
+Read `docs/team/RETRO.md` and the last 60 lines of `docs/team/DECISIONS.md` for prior calls on similar work.
+
+## Output: `docs/team/designs/YYYY-MM-DD-<slug>.md`
+1. **Decision summary** — the chosen approach in ≤10 lines; `Engine: opus|sonnet|mixed`.
+2. **Interfaces** — exact names and types (endpoints, events, props, table columns, env vars).
+3. **File plan** — every file touched or created, one line each.
+4. **Risks** — what can break, how the plan prevents it.
+5. **Test plan** — the commands gate 1 runs, the QA assertions gate 2 runs (as the brief's
+   `{route, selector, expect}` triples, or `{"flow": "..."}` for multi-step checks), and any new tests
+   the engine must add.
+6. **`## Implementation plan`** — numbered steps, each naming its file(s) and what "done" looks like
+   (a test to run, a command to pass, a behavior to check). No "handle edge cases" without naming
+   them. Tag every step `[opus]` (judgment the plan cannot pin down, security logic, motion) or
+   `[sonnet]` (explicit, with a clear done-check). Long-and-vague means the plan failed — fix the plan,
+   do not upgrade the engine.
+
+Self-review before saving, in order: coverage (every spec requirement maps to a step) · no
+placeholders · consistency of names/paths across steps · scope (nothing the spec did not ask for) ·
+ambiguity (where the spec can be read two ways, the plan picks one and says so).
+
+## Finish
+- Copy the Test plan's QA triples into the brief's `## QA assertions` JSON block.
+- Append a short entry to `docs/team/DECISIONS.md` only for a genuine judgment call (two defensible
+  options, why one won). Commit both files on the task branch: `docs(team): design for <slug>`.
+- Reply with the design doc path, `Engine: …`, and the step list with tags. If the spec is contradictory
+  beyond repair, reply `DESIGN-DEADLOCK: <reason>` instead (the orchestrator fails the card).

@@ -94,8 +94,10 @@ Subagent models/effort follow a named profile: `npm run engine <fast|balanced|de
 model policy (which work goes to fable/opus/sonnet/haiku) is `docs/team/PIPELINE.md` §14. See `.claude/README.md`.
 
 ## Autonomous team pipeline
-An unattended pipeline turns Notion task cards into commits on `dev`: classify → design → build →
-verify → QA → review → ship, run headlessly via the `team-run` skill (a scheduled cloud routine,
-plus `npm run team` on demand). Notion is the control surface — write cards and set
-`Status = To Do`. Task worktrees live under `C:\Users\stefa\.team-worktrees`, never in this
-checkout — never build pipeline tasks in the main checkout. See `docs/team/PIPELINE.md`.
+An unattended pipeline turns Notion task cards into commits on `dev`: intake → classify → brief →
+[plan] → build → verify → QA → review → ship, run headlessly via the `team-run` skill (a scheduled
+cloud routine, plus `npm run team` on demand). The mechanical steps are scripts in `scripts/team/`;
+agents work from one generated brief per card (`.team/run/<slug>/brief.md`) and are resumed, not
+respawned, when a gate fails. Notion is the control surface — write cards and set `Status = To Do`.
+Task worktrees live under `C:\Users\stefa\.team-worktrees`, never in this checkout — never build
+pipeline tasks in the main checkout. See `docs/team/PIPELINE.md`.

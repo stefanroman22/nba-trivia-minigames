@@ -31,7 +31,8 @@ try {
   # browser, etc.) is still running, cutting a task off mid-stage even though it was making
   # real progress. Bounded (not 0/infinite) so a genuinely hung step still gets killed.
   $env:CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS = "1800000"
-  claude --dangerously-skip-permissions -p "/team-run" 2>&1 | Tee-Object -FilePath $log
+  # v2: the orchestrator runs on Sonnet (it calls scripts and relays messages); heavy models are spawned explicitly.
+  claude --dangerously-skip-permissions --model sonnet -p "/team-run" 2>&1 | Tee-Object -FilePath $log
 } finally {
   Remove-Item $lock -Force -ErrorAction SilentlyContinue
 }
