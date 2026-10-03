@@ -128,21 +128,58 @@ This turns the 40-minute stage into ~5 minutes for most cards and ~12 for flow-h
 
 Owner action for the current queue: set Difficulty to `standard` on the 10 detailed UI cards; keep `hard` on ban/text moderation, photo moderation, constraints cleanup and the motion audit.
 
-## 9. Models and tokens
+## 9. Model policy (single source of truth for v2)
 
-| Role | Model | Change vs today |
-|---|---|---|
-| Orchestrator | fable | unchanged, but it now mostly calls scripts — far fewer turns |
-| Classify | fable | unchanged (37 s, 56k — fine) |
-| Brief rule selection / standard plan | haiku (sonnet if haiku fails schema) | new, cheap |
-| Design round (hard only) | fable | capped |
-| Engines | per plan tag / tier, as today | kept alive across fix rounds |
-| Verify | script | was sonnet agent |
-| QA | script; sonnet only for flows | was sonnet agent for everything |
-| Reviewer | fable, review package, **does not re-run lint/build** | reads `verify.json` instead |
-| Motion reviewer | opus, **only when the diff touches motion code** | was every `.tsx/.css` diff |
+Rule in one sentence: **scripts do everything mechanical (no model); Haiku assembles; Sonnet is the default worker everywhere; Opus only where feel or judgment lives inside code; Fable only where a wrong call is expensive — hard planning and risky review.**
 
-Settings: `subagentPromptCacheTtl: "1h"` in `.claude/settings.json`; `CLAUDE_CODE_EFFORT_LEVEL` stays `high` only for fable/opus spawns, `medium` for haiku/sonnet mechanical steps. CLAUDE.md stays ≤ 120 lines.
+### 9.1 Every agent
+
+| Agent | Model | Condition | Effort |
+|---|---|---|---|
+| Orchestrator (`team-run` session) | **sonnet** (today fable) | always; in v2 it calls scripts and relays messages. Set in the routine UI | high |
+| planner-architect — classify | **sonnet** (today fable) | every card. A `hard`/`risk: high` verdict routes to Fable in the next node, so a misjudgment is caught there | medium |
+| brief-writer (new) | **haiku** | every card: spec + matching rules + CODE_MAP hits + copies the card's numbered steps | low |
+| brief-writer — plan step | **sonnet** | only `standard` cards with no numbered steps (writes 5–12 steps with files and done-checks); two-area standard cards: also the interface contract | medium |
+| planner-architect — design round | **fable** | only `hard`: security, multiplayer protocol, data regeneration, new patterns/state machines, owner Difficulty=`hard`. One pass, 10-min cap | high |
+| planner-architect — replan | plan's model: **sonnet** (standard) / **fable** (hard) | once, after 2 failed fix rounds at the same gate | high |
+| frontend-engine / backend-engine | **haiku** | `trivial`: copy/config/single value, zero logic | low |
+| | **sonnet** | **default**: clear steps, however many | high |
+| | **opus** | motion/animation is the core; `risk: high`; non-trivial P0; plan steps tagged `[opus]` | high |
+| | escalation | fix round 3: sonnet → fresh opus; opus → fresh opus with the plan re-attached | high |
+| verify | **script** | every card (frontend checks only if `src/` changed; backend suite only if `backend/` changed) | — |
+| qa runner | **script** | every card touching `src/` or `backend/` | — |
+| browser-qa | **sonnet** | only when the brief has a multi-step flow the `{route, selector, expect}` form cannot express | medium |
+| code-reviewer | **sonnet** | `trivial`/`standard`, `risk: low`, P1/P2 | medium |
+| | **fable** | P0, `risk: high`, `hard`, security, or the diff touches protected paths (auth, tokens, data pipeline, multiplayer protocol, settings/CACHES, admin API) | high |
+| motion-reviewer | **opus** | only when the diff touches `src/motion/**`, imports `framer-motion`, or adds CSS `transition`/`animation`/`@keyframes` | high |
+| ship | **script** + orchestrator | every card | — |
+| CTO gate (`.github/workflows/claude.yml`) | **fable**, pinned | unchanged; PRs only | — |
+
+Retired: `test-qa-engine` (verify is a script; new tests are written by the engine from the brief's test plan) and the design round's role-played proposals/sign-off.
+
+### 9.2 Every flow step
+
+Run flow: intake (script) → pick the next card whose tier budget fits (script; trivial 10 / standard 25 / hard 45 min) → open lane 2 if a disjoint card exists (script decides) → card flow per lane → run summary (script).
+
+Card flow: classify **sonnet** → brief **haiku** (+ **sonnet** plan/contract when needed) → plan **fable** only `hard` → build (engine per 9.1; two engines in parallel when the plan's files are disjoint) → gate 1 verify (script) → gate 2 QA (script; **sonnet** browser-qa only for flows) → review (**sonnet**/**fable** per risk; **opus** motion-reviewer only on motion diffs; in parallel) → ship (script).
+
+Fix loop: rounds 1–2 `SendMessage` to the same engine with failure lines only; round 3 fresh engine one model up; no round 4. Breaker: zero files changed or the same first error twice → fail early. Two failures at the same gate → one replan (plan's model), counter reset once.
+
+Fail flow: post-mortem by the orchestrator (**sonnet**), `fail-card`, RETRO entry, Slack card. No extra agent.
+
+### 9.3 Worked lineups
+
+| Card | classify | brief | plan | build | QA agent | review | motion |
+|---|---|---|---|---|---|---|---|
+| Friends text swap (P1, standard, steps in spec) | sonnet | haiku | — | sonnet | — | sonnet | **opus** (SwapText import) |
+| Leaderboard rank endpoint (P1, standard) | sonnet | haiku | — | sonnet | — | sonnet | — |
+| Daily game, two areas (P1, standard) | sonnet | haiku + sonnet contract | — | sonnet ∥ sonnet | — | sonnet | — |
+| Ban + text moderation (P1, hard, security) | sonnet | haiku | **fable** | opus steps 1–4, sonnet 5–9 | sonnet (flow) | **fable** | — |
+
+Fable appears twice on the security card and nowhere on the other three; today it appears 3–4 times on every card (orchestrator, classify, design, review).
+
+### 9.4 Where models are set
+Orchestrator: routine UI (claude.ai/code/routines). Every spawn: the skill passes `model:` explicitly; agent frontmatter is the fallback. `CLAUDE_CODE_SUBAGENT_MODEL=sonnet` stays as the safety net. Effort: high for fable/opus and implementers, medium for sonnet classify/brief/review, low for haiku. Settings: `subagentPromptCacheTtl: "1h"`. CLAUDE.md stays ≤ 120 lines.
 
 ## 10. Cloud environment — pay setup once
 
