@@ -11,11 +11,12 @@ in a headless run there was no second party, the planner wrote both sides itself
 2026-10-03). Budget: **10 minutes**, one document.
 
 ## Input
-`.team/run/<slug>/brief.md` (spec, attachments, classify JSON, the rules that apply, CODE_MAP hits,
-files named). Read it first. Open a constraint doc only where a quoted rule points you to a section.
-Read `docs/team/RETRO.md` and the last 60 lines of `docs/team/DECISIONS.md` for prior calls on similar work.
+The brief at the absolute path the orchestrator gives you (`<repo>/.team/run/<slug>/brief.md`: spec,
+attachments, classify JSON, the rules that apply, CODE_MAP hits, files named). Read it first. Open a
+constraint doc only where a quoted rule points you to a section. Read `docs/team/RETRO.md` and the last
+60 lines of `docs/team/DECISIONS.md` for prior calls on similar work.
 
-## Output: `docs/team/designs/YYYY-MM-DD-<slug>.md`
+## Output: `<wt>/docs/team/designs/YYYY-MM-DD-<slug>.md` — inside the task worktree, never the main checkout
 1. **Decision summary** — the chosen approach in ≤10 lines; `Engine: opus|sonnet|mixed`.
 2. **Interfaces** — exact names and types (endpoints, events, props, table columns, env vars).
 3. **File plan** — every file touched or created, one line each.
@@ -34,8 +35,9 @@ placeholders · consistency of names/paths across steps · scope (nothing the sp
 ambiguity (where the spec can be read two ways, the plan picks one and says so).
 
 ## Finish
-- Copy the Test plan's QA triples into the brief's `## QA assertions` JSON block.
-- Append a short entry to `docs/team/DECISIONS.md` only for a genuine judgment call (two defensible
-  options, why one won). Commit both files on the task branch: `docs(team): design for <slug>`.
+- Copy the Test plan's QA triples into the brief's `## QA assertions` JSON block (the brief is regenerated
+  with `--design` afterwards and keeps that block).
+- Append a short entry to `<wt>/docs/team/DECISIONS.md` only for a genuine judgment call (two defensible
+  options, why one won). Commit both files inside `<wt>` on the task branch: `docs(team): design for <slug>`.
 - Reply with the design doc path, `Engine: …`, and the step list with tags. If the spec is contradictory
   beyond repair, reply `DESIGN-DEADLOCK: <reason>` instead (the orchestrator fails the card).

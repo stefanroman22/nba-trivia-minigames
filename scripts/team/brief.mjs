@@ -40,20 +40,29 @@ for (const g of cls.games) kw.add(g);
 for (const w of String(card.title).toLowerCase().split(/[^a-z0-9]+/)) if (w.length >= 5) kw.add(w);
 for (const a of classify.areas || []) kw.add(a);
 
-// --- rules
+// --- rules: a global budget so two docs cannot blow the 400-line cap (6 rules for the first doc,
+// 3 for each further one, 25 body lines each — the index still lists every id)
 const docs = [...new Set(classify.docs || [])];
 const ruleSections = [];
 let rulesQuoted = 0;
-for (const d of docs) {
+docs.forEach((d, di) => {
   const p = resolve(repo, d);
-  if (!existsSync(p)) continue;
+  if (!existsSync(p)) return;
   const rules = extractRules(readFileSync(p, "utf8"));
-  if (!rules.length) continue;
-  const picked = selectRules(rules, [...kw], { max: 8 });
+  if (!rules.length) return;
+  const picked = selectRules(rules, [...kw], { max: di === 0 ? 6 : 3 });
   rulesQuoted += picked.length;
   ruleSections.push(`### ${d}\nAll rule ids (open the doc only for one of these when a quoted rule points there):\n${ruleIndex(rules)}\n`);
-  for (const r of picked) ruleSections.push(`#### RULE ${r.id} — ${r.heading}\n${r.body.split("\n").slice(0, 40).join("\n")}\n`);
-}
+  for (const r of picked) {
+    const body = r.body.split("\n");
+    ruleSections.push(`#### RULE ${r.id} — ${r.heading}\n${body.slice(0, 25).join("\n")}${body.length > 25 ? `\n_(… ${body.length - 25} more lines in the doc)_` : ""}\n`);
+  }
+});
+
+// --- keep what a planner already wrote into an earlier brief (design round QA triples, a hand plan)
+const prevBrief = existsSync(resolve(dir, "brief.md")) ? readFileSync(resolve(dir, "brief.md"), "utf8") : "";
+const prevQa = (prevBrief.match(/## QA assertions[\s\S]*?```json\s*([\s\S]*?)```/) || [])[1]?.trim();
+const qaJson = prevQa && prevQa !== "[]" ? prevQa : "[]";
 
 // --- files named (first 40 lines each, max 6)
 const named = [];
@@ -112,7 +121,7 @@ const lines = [
   `## QA assertions`,
   "Gate 2 runs these against the dev server (fill or extend; `expect` is `text:<substring>`, `count>=N` or `visible`; add `\"flow\": \"...\"` for a multi-step check a script cannot do — that wakes the browser-qa agent):",
   "```json",
-  "[]",
+  qaJson,
   "```",
   ``,
   `---`,
@@ -122,10 +131,17 @@ const lines = [
 let text = lines.join("\n");
 let count = text.split("\n").length;
 if (count > MAX_LINES) {
-  // trim "Files named" first
+  // trim "Files named" first, then hard-truncate the rules section (the index of ids always survives)
   const i = lines.indexOf("## Files named by the plan");
   lines[i + 1] = "_trimmed to keep the brief under 400 lines — read the files directly_";
   text = lines.join("\n"); count = text.split("\n").length;
+  if (count > MAX_LINES) {
+    const r = lines.indexOf("## Rules that apply");
+    const over = count - MAX_LINES;
+    const ruleLines = lines[r + 1].split("\n");
+    lines[r + 1] = ruleLines.slice(0, Math.max(20, ruleLines.length - over - 1)).join("\n") + "\n_(rules truncated to fit 400 lines — the id index above is complete; open a rule in the doc when needed)_";
+    text = lines.join("\n"); count = text.split("\n").length;
+  }
 }
 writeFileSync(resolve(dir, "brief.md"), text + "\n");
 writeState(slug, { stage: needsPlan ? "plan" : "build", tier, hasPlan, needsPlan });

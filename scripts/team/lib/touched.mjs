@@ -39,8 +39,9 @@ const MOTION_PATH_RE = /^src\/(motion\/|components\/motion\/)/;
 const MOTION_DIFF_RE = /^\+.*(framer-motion|\btransition\s*:|\banimation\s*:|@keyframes)/m;
 const DOC_RE = /^(docs\/|[^/]+\.md$|\.claude\/|infra\/|\.team\/)/;
 
+/** `CareerPath.tsx` or `CareerPath.css` → `career-path`; anything else → null. */
 export function gameIdFor(fileName) {
-  const base = String(fileName).replace(/^.*[\\/]/, "").replace(/\.tsx$/, "");
+  const base = String(fileName).replace(/^.*[\\/]/, "").replace(/\.(tsx|css)$/, "");
   return RENDERER_TO_ID[base] || null;
 }
 
@@ -82,10 +83,24 @@ export function touchedFiles(repoDir, baseSha) {
   return [...out].filter((f) => !/^\.team\//.test(f));
 }
 
-/** Unified diff text for the same range, used for the motion marker check. */
+/** Engines never commit, so new files are untracked and `git diff` skips them: diff each against /dev/null. */
+export function untrackedDiff(repoDir) {
+  let txt = "";
+  let files = [];
+  try { files = git(repoDir, ["ls-files", "--others", "--exclude-standard"]).split(/\r?\n/).filter(Boolean); } catch { return ""; }
+  for (const f of files) {
+    if (/^\.team\//.test(f)) continue;
+    try { execFileSync("git", ["-C", repoDir, "diff", "--no-index", "--", process.platform === "win32" ? "NUL" : "/dev/null", f], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }); }
+    catch (e) { if (e.stdout) txt += e.stdout; } // --no-index exits 1 when the files differ, which is the point
+  }
+  return txt;
+}
+
+/** Unified diff text for the same range (committed + uncommitted + untracked), used for the motion check and the review package. */
 export function diffText(repoDir, baseSha) {
   let txt = "";
   try { txt += git(repoDir, ["diff", `${baseSha}...HEAD`]); } catch { /* ignore */ }
   try { txt += git(repoDir, ["diff", "HEAD"]); } catch { /* ignore */ }
+  txt += untrackedDiff(repoDir);
   return txt;
 }

@@ -36,6 +36,12 @@ test("backend paths set backend and keep routes", () => {
   assert.deepEqual(r.games, []);
 });
 
+test("a per-game stylesheet maps to its game", () => {
+  const r = resolveQa(["src/styles/CareerPath.css"], MAP);
+  assert.deepEqual(r.games, ["career-path"]);
+  assert.deepEqual(r.routes, ["/career-path"]);
+});
+
 test("unmapped frontend files fall back to the home route", () => {
   const r = resolveQa(["src/hooks/useThing.ts"], MAP);
   assert.deepEqual(r.routes, ["/"]);

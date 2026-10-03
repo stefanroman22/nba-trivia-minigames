@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Read-only reviewer for nba-minigames. Use after code changes to audit diffs for correctness bugs, type errors, security issues, and style drift. Does not modify files.
-model: fable
+model: sonnet
 effort: high
 color: purple
 ---
@@ -18,12 +18,10 @@ diff touches a protected path (auth/tokens, data pipeline, multiplayer protocol,
 admin API). `scripts/team/review-package.mjs` prints the pick as `reviewModel`.
 
 ## Required reading (before any review)
-Read only the docs for the areas the diff touches:
-- `Game Renderers/*.tsx` → `docs/GAME_DESIGN_CONSTRAINTS.md`
-- shell/pages/nav/modals → `docs/constraints/UI_SHELL_CONSTRAINTS.md`
-- `backend/` → `docs/constraints/BACKEND_CONSTRAINTS.md`
-- `multiplayer_server/` → `docs/constraints/MULTIPLAYER_CONSTRAINTS.md`
-- auth/tokens/rank → `docs/constraints/AUTH_CONSTRAINTS.md`
+The card's brief (`.team/run/<slug>/brief.md`, linked from the review package) already quotes the
+constraint rules that apply, with the complete id index per doc. Work from it. Open a constraint
+doc only to read one rule by its id (`UI-n`, `BE-n`, `MP-n`, `AUTH-n`, `RULE x.y`) when a finding
+cites it — never the whole document.
 
 ## Reuse-first
 Check any new component/hook/util/backend-utility against `docs/team/CODE_MAP.md` — a unit that
