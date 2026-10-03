@@ -218,6 +218,17 @@ async function cmdSetProps(pageId, args) {
   const c = arg(args, "--commit"); if (c) props.Commit = { rich_text: text(c) };
   const s = arg(args, "--slack-ts"); if (s) props.SlackTs = { rich_text: text(s) };
   const cat = arg(args, "--category"); if (cat) props.Category = { select: { name: cat } };
+  const pri = arg(args, "--priority");
+  if (pri) {
+    if (!["P0", "P1", "P2"].includes(pri)) { console.error("--priority must be P0, P1 or P2"); process.exit(1); }
+    props.Priority = { select: { name: pri } };
+  }
+  const diff = arg(args, "--difficulty");
+  if (diff) {
+    if (!["trivial", "standard", "hard"].includes(diff)) { console.error("--difficulty must be trivial, standard or hard"); process.exit(1); }
+    props.Difficulty = { select: { name: diff } };
+  }
+  const title = arg(args, "--title"); if (title) props.Name = { title: text(title) };
   await api(`pages/${pageId}`, "PATCH", { properties: props });
   console.log("props set");
 }

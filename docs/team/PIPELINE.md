@@ -24,6 +24,15 @@ never automatic. Promote when you're ready: run "Promote dev to main" from the A
 to **Done** once their commit lands there. The `CONTROL` row's `Paused` checkbox is the global
 kill switch.
 
+**Queue order.** A run takes `P0` cards first, then `P1`, then `P2`, oldest first within a priority.
+Notion timestamps only have minute precision, so cards created in the same minute have no
+guaranteed order. When order matters (for example one card depends on another), put them in
+different priorities, or create them a minute apart. `node scripts/notion.mjs set-props <id>
+--priority P0|P1|P2 [--difficulty trivial|standard|hard] [--title "..."]` edits an existing card;
+`create-card` takes the same flags plus `--body-file <markdown>` with `![caption](local-image)` lines
+(uploaded and embedded in place). A `Difficulty` set on the card overrides classify's own guess.
+In PowerShell avoid double quotes inside a title argument (they get stripped); use single quotes.
+
 ## 3. Triggers
 
 - **Windows scheduled task** `nba-team-pipeline` — runs every 2 hours, 08:00–24:00 daily
