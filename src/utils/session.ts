@@ -8,6 +8,7 @@
 // holds a token. It is cleared on logout, on any failed session check and on a corrupt
 // read; everything sensitive re-checks the server (admin endpoints re-check is_staff).
 import type { User } from "../store/userSlice";
+import { BACKEND_URL } from "../configurations/backend";
 
 const SESSION_USER_KEY = "nba3via-session-user";
 
@@ -60,5 +61,22 @@ export function isAccessTokenExpired(token: string): boolean {
     return typeof exp === "number" && exp * 1000 <= Date.now() + ACCESS_EXPIRY_SKEW_MS;
   } catch {
     return false;
+  }
+}
+
+let prewarmed = false;
+
+/** Guests only: one fire-and-forget GET /health/ so the serverless backend is warm before the
+ *  first real request (a guess log, login, leaderboard). Signed-in visitors already warm it with
+ *  /me/ or token/refresh/, so providers.tsx calls this only on the no-refresh-token path. Never
+ *  awaited, never surfaces an error, at most once per page load. */
+export function prewarmBackend(): void {
+  if (prewarmed || !BACKEND_URL || typeof fetch !== "function") return;
+  prewarmed = true;
+  try {
+    fetch(`${BACKEND_URL}/health/`, { method: "GET", mode: "no-cors", cache: "no-store", keepalive: true })
+      .catch(() => { /* warming only */ });
+  } catch {
+    /* ignore */
   }
 }

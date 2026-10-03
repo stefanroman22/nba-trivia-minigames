@@ -9,7 +9,7 @@ Schedule: daily. Prompt:
 
 > Run the project health check for nba-minigames and report failures only.
 > Steps: `npm ci`; `npm run lint`; `npx next typegen && npx tsc --noEmit`; `npm run build`;
-> then in `backend/`: create/activate the venv, `pip install -r requirements.txt`,
+> then in `backend/`: create/activate the venv, `pip install -r requirements-pipeline.txt`,
 > `python manage.py check`, `python manage.py test`.
 > If anything fails, summarize the failure and the smallest fix. Do not push changes.
 

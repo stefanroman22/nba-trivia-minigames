@@ -73,7 +73,7 @@ If `areas` contains both `frontend` and `backend` → this is a **split task** (
 journal stage=workspace.
 
 **workspace** → `git fetch origin dev`; `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/dev`;
-in the worktree `npm ci`; if backend/data/auth areas: `cd backend && python -m venv .venv && .venv\Scripts\pip install -r requirements.txt`.
+in the worktree `npm ci`; if backend/data/auth areas: `cd backend && python -m venv .venv && .venv\Scripts\pip install -r requirements-pipeline.txt`.
 Record `baseSha = git rev-parse origin/dev` in the journal. journal stage=design|build.
    **[CLOUD]** `git checkout -B team/<slug> origin/dev` in the clone; `npm ci` (or `npm install`);
    backend venv with Linux paths; `node node_modules/playwright-core/cli.js install --with-deps chromium`

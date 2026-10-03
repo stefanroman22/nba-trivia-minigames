@@ -34,6 +34,10 @@ the store is the shared "big data" the brief asked for.
 - **Playoff series** are derived by grouping the playoff **game log** into
   team-vs-team matchups, which captures best-of-3/5/7 across every era.
 
+The fetch needs the pipeline dependency set: `pip install -r
+backend/requirements-pipeline.txt` (pandas + nba_api on top of `requirements.txt`; the web function
+on Vercel installs only `requirements.txt`).
+
 ```bash
 # Full historical backfill (one-time; playoffs back to 1946-47):
 python manage.py sync_nba_data --full

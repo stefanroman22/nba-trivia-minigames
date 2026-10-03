@@ -1,0 +1,8 @@
+# The data pipeline's extra dependencies: the NBA fetch (manage.py sync_nba_data,
+# refresh_game_data, generate_players_curated), the game-data publish/freshness commands
+# and the full test suite. Not installed by Vercel, which reads requirements.txt only — the
+# web function never imports these (guard: trivia/tests/test_startup.py).
+# Install where those run: pip install -r requirements-pipeline.txt
+-r requirements.txt
+pandas
+nba_api

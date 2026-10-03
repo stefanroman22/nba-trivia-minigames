@@ -5,7 +5,6 @@ rows, by profile_photo_view() below."""
 import base64
 from io import BytesIO
 
-from PIL import Image, ImageOps
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import condition, require_safe
@@ -27,6 +26,7 @@ class InvalidPhoto(ValueError):
 
 def normalize_profile_photo(data: bytes) -> bytes:
     """Any image Pillow can open -> EXIF-oriented, first frame, centre-square 256x256 JPEG bytes."""
+    from PIL import Image, ImageOps  # lazy: Pillow (~15 MB) is only for uploads (guard: trivia/tests/test_startup.py)
     try:
         img = Image.open(BytesIO(data))
         if img.width * img.height > MAX_PHOTO_PIXELS:

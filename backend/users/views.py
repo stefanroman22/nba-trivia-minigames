@@ -1,15 +1,12 @@
 import os
 import json
 import re
-import requests
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.contrib.auth.password_validation import validate_password
 from django.db import IntegrityError
 from django.http import JsonResponse
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view, permission_classes, parser_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -249,6 +246,11 @@ def logout_view(request):
 @throttle_classes([LoginRateThrottle])
 def google_login(request):
     try:
+        # Lazy: requests (+charset_normalizer) and google-auth cost ~0.5 s to import and only
+        # this endpoint uses them (guard: trivia/tests/test_startup.py).
+        import requests
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
         code = json.loads(request.body).get("code")
         if not code:
             return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)

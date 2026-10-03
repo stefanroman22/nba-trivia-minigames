@@ -23,6 +23,7 @@ cd backend
 python -m venv venv
 venv\Scripts\activate          # Windows  (macOS/Linux: source venv/bin/activate)
 pip install -r requirements.txt
+pip install -r requirements-pipeline.txt   # only for the NBA data commands and the test suite
 python manage.py migrate
 python manage.py runserver 8000
 ```
