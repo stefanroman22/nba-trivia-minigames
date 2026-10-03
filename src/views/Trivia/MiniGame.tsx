@@ -44,6 +44,9 @@ function MiniGame() {
   const [gameData, setGameData] = useState<GameData[]>([]);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  // An in-place game (answers stay on screen) has ended: its ScorePanel now owns
+  // the only "Close game", so the shell's leave link is hidden (one per screen).
+  const [endedInPlace, setEndedInPlace] = useState(false);
   // The shell feedback slot node (in .playing-wrap, above Exit) that every game's
   // "Correct! +10" popup portals into — one consistent spot across all games.
   const [feedbackSlot, setFeedbackSlot] = useState<HTMLDivElement | null>(null);
@@ -101,6 +104,7 @@ function MiniGame() {
     setGameStarted(true);
     setScore(0);
     setShowResult(false);
+    setEndedInPlace(false);
     awardedRef.current = false;
     runIdRef.current += 1;
     setTimeout(async () => {
@@ -121,12 +125,14 @@ function MiniGame() {
     setGameData([]);
     setScore(0);
     setShowResult(false);
+    setEndedInPlace(false);
   };
 
   const handleExit = () => {
     setGameData([]);
     setGameStarted(false);
     setLoading(false);
+    setEndedInPlace(false);
   };
 
   useEffect(() => {
@@ -135,6 +141,7 @@ function MiniGame() {
     setGameData([]);
     setScore(0);
     setShowResult(false);
+    setEndedInPlace(false);
     awardedRef.current = false;
     runIdRef.current += 1;
   }, [gameId]);
@@ -261,21 +268,25 @@ function MiniGame() {
                   setScore(finalScore);
                   // Fire-and-forget: the reveal doesn't wait for the award.
                   void awardPoints(finalScore);
-                  if (!opts?.inPlace) setShowResult(true);
+                  if (opts?.inPlace) setEndedInPlace(true);
+                  else setShowResult(true);
                 },
-                onExit: handleExit,
                 onPlayAgain: handleStart,
                 onClose: handleRestart,
               })}
             </FeedbackSlotContext.Provider>
             {/* Shell-owned feedback slot: game popups portal here so "Correct! +10"
-                shows in one consistent spot in the gap above Exit for every game. */}
+                shows in one consistent spot in the gap above the leave link for every game. */}
             <div className="feedback-slot" ref={setFeedbackSlot} aria-hidden="true" />
-            <button className="exit-link" onClick={handleExit}>Exit game</button>
+            {/* The one leave control while playing. Once an in-place game ends, its
+                ScorePanel shows Play again + Close game, so this link goes invisible
+                (visibility, not unmount: it keeps its box so the board doesn't shift). */}
+            <button className={`exit-link${endedInPlace ? " is-ended" : ""}`} onClick={handleExit}>Close game</button>
           </div>
         );
       case "result":
-        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={handleStart} onClose={handleRestart} />;
+        // Wordle is once per day: Play again would only hit the daily lock, so its result offers Close game alone.
+        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={gameId === "wordle" ? undefined : handleStart} onClose={handleRestart} />;
     }
   };
 

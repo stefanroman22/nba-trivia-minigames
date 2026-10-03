@@ -289,7 +289,7 @@ Use `Spinner` (not `CourtLoader`) for small inline spots — see §7.
 <div class="playing-wrap is-content">
   <!-- your game root -->
   <div class="feedback-slot" aria-hidden="true"></div>
-  <button class="exit-link">Exit game</button>
+  <button class="exit-link">Close game</button>
 </div>
 ```
 
@@ -496,10 +496,14 @@ const exit  = document.querySelector('.exit-link');
 ```
 
 ### Exit button
-One shell element only — `.exit-link` with `margin-top:auto`, so the distance beneath it is the
-`.stage-inner` clamp padding for **every** game. `font-size:12px`, `color:var(--muted)`,
-`text-decoration:underline`, `text-underline-offset:3px`; hover → `var(--text)`.
-**Never render your own exit.**
+**One leave control per screen, labeled Close game.**
+While playing it is one shell element only — `.exit-link` (text `Close game`) with `margin-top:auto`,
+so the distance beneath it is the `.stage-inner` clamp padding for **every** game. `font-size:12px`,
+`color:var(--muted)`, `text-decoration:underline`, `text-underline-offset:3px`; hover → `var(--text)`.
+On a result screen the leave control is the end panel's `Close game` button (7a `GameResult`, 7b
+`ScorePanel`); once an in-place game ends the shell adds `.is-ended` (`visibility:hidden`, box kept
+so the board doesn't shift) to `.exit-link`. **Never render your own exit**, and never label a leave
+control anything but `Close game` (multiplayer's `OnlineMatch` leave-match control is the exception).
 
 ---
 
@@ -726,7 +730,7 @@ Call `onGameEnd(finalScore)` with **no options**. The shell flips to the `result
 | ↳ score | `.font-display.tnum`, **`font-size:48px`**, `color:var(--brand)`, count-up via `AnimatedNumber` |
 | ↳ cap | `.font-display`, `font-size:20px`, `color:var(--muted)` — `/ {maxPoints}` |
 | message | `font-size:13.5px`, `color:var(--muted)`, `max-width:300px`, `line-height:1.5` |
-| buttons | `flex`, `gap:10px`, `margin-top:14px`, `width:100%` — `<Button block>Play again</Button>` + `<Button block variant="secondary">Close game</Button>` (both `btn-md`, `height:46px`) |
+| buttons | `flex`, `gap:10px`, `margin-top:14px`, `width:100%` — `<Button block>Play again</Button>` + `<Button block variant="secondary">Close game</Button>` (both `btn-md`, `height:46px`); `Close game` is the screen's only leave control (§4 Exit button) |
 | confetti | only when score > 0 and motion allowed: 260 pieces, `gravity .25`, colours `#ff6a1a, #ff8a3d, #ffd166, #ffffff, #2fc762` |
 
 ### 7b. The exception — games that reveal answers (stay in place)
@@ -769,7 +773,8 @@ check, no 48px number, no message paragraph. Use `<ScorePanel>`:
 
 Optional `label` lead-in, optional `outOf` cap, `.tnum` on the number. **Below the score sit
 Play again + Close game**, using the same button treatment as 7a — pass `onPlayAgain` and
-`onClose` (both threaded through `RenderGame` from `MiniGame`).
+`onClose` (both threaded through `RenderGame` from `MiniGame`). That `Close game` is the screen's
+only leave control: `onGameEnd(…, { inPlace: true })` hides the shell's `.exit-link` (§4 Exit button).
 
 #### RULE 7.0 — Score above the buttons, always
 
@@ -858,6 +863,7 @@ apply. These are reviewed and intentional:
 | SuperDraft | keeps its bespoke `.sd-result` panel | it has a Share action with no shared equivalent; it now ends in place so there is only one end screen |
 | Imposter | keeps its custom explainer screen | MP-only; that is a rules screen inside the room, not the shell idle |
 | Imposter | lost the progress bar's `[data-low]` red state | swapped to the shared `ProgressBar`; `.imp-clock[data-low]` still signals low time |
+| Wordle | result shows `Close game` only, no `Play again` (`GameResult` without `onPlayAgain`) | once per day: a replay POSTs `daily-play` and hits the 423 lock |
 | Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | no white token exists; `ui.css:31` sets the same precedent |
 | Who Would Win | stays a fill game, not `is-content` | its vertical stacked arena genuinely fills; converting it would be a redesign |
 

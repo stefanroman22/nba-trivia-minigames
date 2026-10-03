@@ -48,9 +48,7 @@ interface RenderGameArgs {
   gameData: GameData[];
   pointsPerCorrect?: number;
   onGameEnd: OnGameEnd;
-  /** Single-player only: Starting Five's loss screen uses these for its
-   *  in-place "play again" / "exit" choices. */
-  onExit?: () => void;
+  /** Single-player only: the in-place end panels' "Play again". */
   onPlayAgain?: () => void;
   /** Closes the game and returns to idle — the in-place end panels' "Close game". */
   onClose?: () => void;
@@ -66,7 +64,6 @@ export const renderGame = ({
   gameData,
   pointsPerCorrect = 0,
   onGameEnd,
-  onExit,
   onPlayAgain,
   onClose,
   turn,
@@ -111,7 +108,6 @@ export const renderGame = ({
           gameInfo={gameData as StartingFiveGame[]}
           pointsPerCorrect={pointsPerCorrect}
           onGameEnd={onGameEnd}
-          onExit={onExit}
           onPlayAgain={onPlayAgain}
           onClose={onClose}
         />
