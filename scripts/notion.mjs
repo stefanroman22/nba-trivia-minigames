@@ -5,6 +5,7 @@ import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, STATUS, CATEGORIES, loadEnvTeam, loadConfig, text } from "./lib/team-config.mjs";
 import { assembleSpec } from "./lib/notion-spec.mjs";
+import { markdownToBlocks } from "./lib/notion-blocks.mjs";
 
 loadEnvTeam();
 const TOKEN = process.env.NOTION_TOKEN;
@@ -221,12 +222,42 @@ async function cmdSetProps(pageId, args) {
   console.log("props set");
 }
 
+// Uploads a local image through Notion's file-upload API and returns an image block that
+// references it (Notion serves it back as a normal file block, which assembleSpec downloads).
+const IMAGE_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
+async function uploadedImageBlock(path, caption) {
+  const ext = path.split(".").pop().toLowerCase();
+  const type = IMAGE_TYPES[ext];
+  if (!type) { console.error(`Unsupported image type: ${path}`); process.exit(1); }
+  const created = await api("file_uploads", "POST", { filename: path.split(/[\\/]/).pop(), content_type: type });
+  const form = new FormData();
+  form.append("file", new Blob([readFileSync(path)], { type }), path.split(/[\\/]/).pop());
+  const sent = await fetch(`https://api.notion.com/v1/file_uploads/${created.id}/send`, {
+    method: "POST", headers: { Authorization: `Bearer ${TOKEN}`, "Notion-Version": VERSION }, body: form,
+  });
+  const json = await sent.json();
+  if (!sent.ok) { console.error(`Notion image upload ${sent.status}: ${json.message}`); process.exit(1); }
+  return { object: "block", type: "image", image: { type: "file_upload", file_upload: { id: created.id }, caption: caption ? text(caption) : [] } };
+}
+
+// --body: a single paragraph (as before). --body-file: markdown-lite file (headings, bullets,
+// paragraphs, and ![caption](local-image-path) lines that are uploaded and embedded in place).
 async function cmdCreateCard(title, args) {
-  const props = { Name: { title: text(title) }, Status: { select: { name: STATUS.TODO } }, Priority: { select: { name: "P1" } } };
+  const priority = arg(args, "--priority") || "P1";
+  if (!["P0", "P1", "P2"].includes(priority)) { console.error("--priority must be P0, P1 or P2"); process.exit(1); }
+  const props = { Name: { title: text(title) }, Status: { select: { name: STATUS.TODO } }, Priority: { select: { name: priority } } };
   const cat = arg(args, "--category"); if (cat) props.Category = { select: { name: cat } };
+  // Difficulty override: classify honors it over its own guess (hard => design round).
+  const difficulty = arg(args, "--difficulty");
+  if (difficulty) {
+    if (!["trivial", "standard", "hard"].includes(difficulty)) { console.error("--difficulty must be trivial, standard or hard"); process.exit(1); }
+    props.Difficulty = { select: { name: difficulty } };
+  }
   const page = { parent: { database_id: DB }, properties: props };
   const body = arg(args, "--body");
-  if (body) page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
+  const bodyFile = arg(args, "--body-file");
+  if (bodyFile) page.children = await markdownToBlocks(readFileSync(bodyFile, "utf8"), uploadedImageBlock);
+  else if (body) page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
   const r = await api("pages", "POST", page);
   console.log(r.id);
 }
