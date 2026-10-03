@@ -52,6 +52,10 @@ they work inside the worktree `<wt>`.
   fall back to `<repo>\backend\venv` automatically.
 - Cloud: `git worktree add ../wt-<slug> -b team/<slug> origin/dev && ln -s "$PWD/node_modules" ../wt-<slug>/node_modules && ln -s "$PWD/backend/.venv" ../wt-<slug>/backend/.venv`
   (`backend/.venv` is git-ignored, so the symlink never shows up as a touched file).
+  **Fallback when the routine's setup script is not installed yet** (`node_modules` missing in the clone):
+  once per run, in the clone, `npm ci --no-audit --no-fund`, `python3 -m venv backend/.venv && backend/.venv/bin/pip install -q -r backend/requirements.txt`,
+  `node node_modules/playwright-core/cli.js install chromium || true` (QA skips without a browser), and log one
+  line "setup script missing — installed deps in-run". Then symlink as above.
 - Record `baseSha`, `worktree`, `lane` in `.team/run/<slug>/state.json` (merge, don't overwrite).
   All later node commands take `--repo <wt> --base <baseSha> --lane <n>`.
 
