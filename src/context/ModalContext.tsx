@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { Game } from "../types/types";
+import type { LeaderboardScope } from "../hooks/useLeaderboard";
 
 /** Which overlay is currently open. `null` = nothing open. */
 export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo";
@@ -10,8 +11,13 @@ export interface InstructionsPayload {
   onPlay?: () => void;
 }
 
-// Per-kind payloads. Only `instructions` needs one today.
-export type ModalPayload = InstructionsPayload | undefined;
+/** Which board the leaderboard modal opens on. Omitted = global. */
+export interface LeaderboardPayload {
+  scope: LeaderboardScope;
+}
+
+// Per-kind payloads.
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

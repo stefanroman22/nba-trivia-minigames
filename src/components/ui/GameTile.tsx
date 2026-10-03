@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 import { backgroundUrl } from "../../utils/GameUtils";
+import SwapText from "../motion/SwapText";
 
 interface GameTileProps {
   name: string;
@@ -14,6 +15,14 @@ interface GameTileProps {
   index?: number;
   /** Renders the tile as not-clickable (e.g. the "Coming soon" placeholder). */
   disabled?: boolean;
+  /** Grey, desaturated "already played" look. The tile stays clickable. */
+  dimmed?: boolean;
+  /** "muted" paints the CTA in the neutral text token instead of the brand orange. */
+  ctaTone?: "default" | "muted";
+  /** Identifies the CTA state for the text swap (defaults to `cta`): pass a stable
+   *  key so a ticking label (a countdown) updates in place and only a real state
+   *  change animates. */
+  ctaSwapKey?: string;
 }
 
 /** The game card used in grids. Image zooms on hover, lifts, presses on click. */
@@ -25,6 +34,9 @@ export default function GameTile({
   onClick,
   index = 0,
   disabled = false,
+  dimmed = false,
+  ctaTone = "default",
+  ctaSwapKey,
 }: GameTileProps) {
   const reduce = useReducedMotionSafe();
 
@@ -37,7 +49,7 @@ export default function GameTile({
 
   return (
     <motion.button
-      className={`gtile${disabled ? " is-disabled" : ""}`}
+      className={`gtile${disabled ? " is-disabled" : ""}${dimmed ? " is-dimmed" : ""}`}
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       aria-disabled={disabled}
@@ -64,8 +76,8 @@ export default function GameTile({
         <div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%" }}>
           <h3 className="font-display" style={{ fontSize: 18, color: "#fff" }}>{name}</h3>
           <p style={{ fontSize: 12.5, color: "rgba(255,255,255,.78)", lineHeight: 1.4 }}>{description}</p>
-          <span className="gtile-cta" style={{ marginTop: 6 }}>
-            {cta}
+          <span className={`gtile-cta${ctaTone === "muted" ? " gtile-cta--muted" : ""}`} style={{ marginTop: 6 }}>
+            <SwapText className="gtile-cta-text" swapKey={ctaSwapKey ?? cta}>{cta}</SwapText>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
           </span>
         </div>

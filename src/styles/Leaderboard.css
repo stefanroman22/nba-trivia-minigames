@@ -1,7 +1,6 @@
 .lb-card {
   width: 100%;
   height: 100%;
-  min-height: 340px;
   display: flex;
   flex-direction: column;
   border: 1px solid var(--line);
@@ -56,14 +55,17 @@
   transition: all 0.2s;
 }
 .lb-scope-btn.is-active { color: #fff; }
+/* The card hugs its content (no height floor): Leaderboard.tsx tweens the
+   body's height to the measured .lb-body-inner, so a 10-row <-> 1-row scope
+   switch resizes smoothly. Basis `auto` = that height; grow still fills a
+   card stretched by the desktop grid row. Hidden overflow clips mid-tween. */
 .lb-body {
-  flex: 1;
-  padding: 8px 10px;
+  flex: 1 1 auto;
   max-height: none;
   min-height: 0;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  overflow: hidden;
 }
+.lb-body-inner { padding: 8px 10px; }
 .lb-row {
   display: flex;
   align-items: center;
