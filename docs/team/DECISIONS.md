@@ -1024,3 +1024,19 @@ script `infra/routine/setup.sh`. Targets to verify on the next runs: standard ca
 Measured on 2026-10-03 (local, Windows): smoke card (trivial, docs-only) intake→ship in ~3 min; gate 1 in a
 fresh worktree `npm ci --prefer-offline` 143 s + lint 47 s + typegen 14 s + tsc 19 s + build 79 s; gate 2 on a
 shared-UI diff (3-game sample × 3 viewports + 2 routes × 2 widths, lane Django + `next start`) 176–229 s.
+
+## 2026-10-03 — Contexto ended on the full-screen result: an omission, now enforced (Rule 7.3)
+Context: Contexto's end replaced the whole game with a "Good try! 0 / 200" card and never showed the
+secret player, unlike the other answer-reveal games. Why it was missed: Contexto was built 2026-07-05
+(`aada0cd`, plan `docs/superpowers/plans/2026-07-05-contexto.md`), before Rule 7b existed. Rule 7b was
+written 2026-08-29 (`11ab84c`) and its text listed only Starting Five, Heatmap, Fan Favorites, Career
+Path and Who Are Ya. The 2026-08-02 alignment plan (`docs/superpowers/plans/2026-08-02-game-spec-alignment.md`,
+Tasks 6-7) migrated Starting Five, Heatmap, SuperDraft, Who Would Win and NbaGrid and never mentioned
+Contexto. Contexto is not in the accepted-deviations table for results. Its later commits (`146b653`,
+`234ca0c`, `cdcb251`, `40b1ef8`, `f0dbb78`) touched only ranking and multiplayer.
+Decision: an omission, not a decision, and nothing enforced the rule (no eslint rule, test or QA item).
+Remedy: Rule 7.3 replaces the named game list in 7b with a general rule (a game that reveals an
+answer, solution or final board ends in place); `scripts/check-game-results.mjs` (`npm run check:games`,
+called by `npm run lint`, so CI) fails a visible game whose `onGameEnd` lacks `{ inPlace: true }`
+unless it has a written reason in `scripts/game-result-allowlist.json`; the reviewer and QA
+checklists carry the same check. Contexto, Wordle and solo TicTacToe were fixed in the same change.

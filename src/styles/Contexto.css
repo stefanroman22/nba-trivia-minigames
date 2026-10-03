@@ -3,9 +3,21 @@
    re-add a .cx-wrap/.cx-head here. This is a FILL game: the guess list
    (.cx-list, flex:1 1 auto + overflow-y:auto) is a genuine internal scroller, so
    the root is <GameFrame fill> and the board grows to the stage height
-   (Rule 4.1). The board stacks the scrolling list above the give-up reveal, so
+   (Rule 4.1). The board stacks the #1 secret card above the scrolling list, so
    it needs a gap of its own (.gf-board is gapless by default). */
 .gf-board:has(.cx-list) { gap: 8px; }
+
+/* End sequence (Rule 7b): reserve the input phase's height (46px input row +
+   10px gap + 44px Give up) so the swap to loader / ScorePanel never shrinks the
+   action slot (Rule 6.2). */
+.gf:has(.cx-list) .endseq { min-height: 100px; }
+.cx-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
 
 /* Loading / empty-pool state (not the game root — GameFrame owns that) */
 .cx-center {
@@ -22,7 +34,9 @@
    scrolls inside itself rather than pushing the page down. */
 .cx-list {
   min-height: 0;
-  max-height: clamp(180px, 42dvh, 420px);
+  /* Old cap (clamp(180px, 42dvh, 420px)) minus the #1 secret card + its gap
+     (~68px), so adding the card costs the 390x844 budget nothing (Rule 1.1). */
+  max-height: clamp(112px, calc(42dvh - 68px), 352px);
   width: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -53,7 +67,34 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
-.cx-reveal { flex: none; width: 100%; }
+/* #1 secret card — always mounted; the end reveal only swaps its content. The
+   photo box is fixed-size, so silhouette -> headshot never changes its height. */
+.cx-reveal {
+  flex: none;
+  width: 100%;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+.cx-reveal-photo {
+  display: block;
+  flex: none;
+  width: 62px;
+  height: 46px; /* 1040/760 headshot aspect, ~62 x 45 */
+  border-radius: calc(var(--radius) - 6px);
+  background: var(--surface3);
+  overflow: hidden;
+}
+.cx-reveal-photo img,
+.cx-reveal-photo svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* never behead an era-scan headshot */
+}
+.cx-reveal-photo svg { fill: var(--line2); }
+.cx-reveal-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cx-reveal-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.3px; }
 .cx-row-name {
   min-width: 0;
   overflow: hidden;
@@ -81,8 +122,13 @@
 .cx-row.is-bad .cx-row-rank { color: var(--bad); }
 .cx-row.is-win { border-color: var(--good); background: var(--good-soft); }
 
+.cx-reveal .cx-row-name { color: var(--muted); }
 .cx-reveal.is-brand { border-color: var(--brand); background: var(--brand-soft); }
-.cx-reveal .cx-row-name { color: var(--brand); }
+.cx-reveal.is-brand .cx-row-name,
+.cx-reveal.is-brand .cx-row-rank { color: var(--brand); }
+.cx-reveal.is-good { border-color: var(--good); background: var(--good-soft); }
+.cx-reveal.is-good .cx-row-name,
+.cx-reveal.is-good .cx-row-rank { color: var(--good); }
 
 /* Input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
@@ -109,4 +155,5 @@
 /* Small phones (390x844): tighter rows, still no page scroll */
 @media (max-width: 480px) {
   .cx-row, .cx-reveal { min-height: 42px; padding: 5px 8px; gap: 6px; }
+  .cx-reveal { gap: 8px; }
 }

@@ -114,10 +114,12 @@ export const renderGame = ({
       );
 
     case "wordle":
+      // Once per day: no onPlayAgain (it would only hit the daily lock).
       return (
         <Wordle
           gameInfo={gameData as string[]}
           onGameEnd={onGameEnd}
+          onClose={onClose}
         />
       );
 
@@ -187,6 +189,8 @@ export const renderGame = ({
         <TicTacToe
           gameInfo={gameData as (GridConfig | TicTacToeQuestion)[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
           turn={turn}
           onTurnAction={onTurnAction}
           multiplayer={multiplayer}
@@ -207,6 +211,8 @@ export const renderGame = ({
         <Contexto
           gameInfo={gameData as ContextoQuestion[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 

@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useSelector } from "react-redux";
 import AutocompleteInput from "../components/AutoCompleteInput";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import { ScoreLine, ScoreActions } from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import SwapText from "../components/motion/SwapText";
@@ -46,6 +48,10 @@ export type TttAction =
 export interface TicTacToeProps {
   gameInfo: (GridConfig | TicTacToeQuestion)[];
   onGameEnd: OnGameEnd;
+  /** Solo only: the in-place end panel's "Play again". */
+  onPlayAgain?: () => void;
+  /** Solo only: closes the game and returns to idle (the in-place "Close game"). */
+  onClose?: () => void;
   turn?: unknown; // present in the duel: the server's TttTurnState
   onTurnAction?: (action: unknown) => void;
   multiplayer?: boolean;
@@ -58,7 +64,7 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: TicTacToeProps) {
+function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnAction, multiplayer }: TicTacToeProps) {
   const isMultiplayer = multiplayer === true;
   const mpState = (turn ?? null) as TttTurnState | null;
 
@@ -70,6 +76,10 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
   const [showPopup, setShowPopup] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const [now, setNow] = useState(() => Date.now());
+  // Solo end (Rule 7b, in place): the final board stays; the input row swaps to
+  // Play again / Close game and the status row shows the score line.
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
+  const [endState, setEndState] = useState<{ score: number; secondsLeft: number } | null>(null);
   const usedIdsRef = useRef<Set<number>>(new Set());
   const guessLogRef = useRef<GuessEntry[]>([]);
   const endedRef = useRef(false);
@@ -112,6 +122,8 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
     setGuess("");
     setFinished(false);
     setShowPopup(false);
+    setBottomPhase("input");
+    setEndState(null);
     usedIdsRef.current = new Set();
     guessLogRef.current = [];
     endedRef.current = false;
@@ -151,13 +163,18 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
   const soloSecondsLeft = Math.max(0, Math.ceil((soloDeadlineRef.current - now) / 1000));
   const soloScore = Object.keys(solved).length * CELL_POINTS;
 
+  // Ends in place (Rule 7b, Career Path split): the final board stays on screen,
+  // the score line takes the status row's right slot and Play again / Close game
+  // take the input row's slot. Both fit their slot, so nothing resizes (Rule 6.2).
   const finishSolo = (score: number, text: string, color: string) => {
     if (endedRef.current) return;
     endedRef.current = true;
     setFinished(true);
     sendGuessLog();
     flashPopup(text, color);
-    later(() => onGameEnd?.(score), 1500);
+    onGameEnd?.(score, { inPlace: true });
+    setEndState({ score, secondsLeft: soloSecondsLeft });
+    setBottomPhase("score");
   };
 
   // Clock expiry ends the solo game exactly once.
@@ -221,7 +238,7 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
   useEffect(() => {
     if (!isMultiplayer || !terminal || endedRef.current) return;
     endedRef.current = true;
-    later(() => onGameEnd?.(myCells * CELL_POINTS), 1800);
+    later(() => onGameEnd?.(myCells * CELL_POINTS), 1800); // game-results: online-duel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiplayer, terminal]);
 
@@ -397,23 +414,35 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
   if (!question) return <p style={{ color: "var(--muted)" }}>No board available.</p>;
 
   // ---- Solo board ----
+  // Once the game has ended the clock shows the time left at that moment.
+  const clockSeconds = endState ? endState.secondsLeft : soloSecondsLeft;
   return (
     <GameFrame>
       <GameFrame.Status
         left={
           <>
-            <GameFrame.Label>CLAIM THREE IN A ROW</GameFrame.Label>
+            <GameFrame.Label>
+              <SwapText>{endState ? "FINAL BOARD" : "CLAIM THREE IN A ROW"}</SwapText>
+            </GameFrame.Label>
             <span
               className="ttt-clock tnum"
               role="timer"
-              aria-label={`${soloSecondsLeft} seconds left`}
-              data-low={soloSecondsLeft <= 30 || undefined}
+              aria-label={`${clockSeconds} seconds left`}
+              data-low={clockSeconds <= 30 || undefined}
             >
-              {Math.floor(soloSecondsLeft / 60)}:{String(soloSecondsLeft % 60).padStart(2, "0")}
+              {Math.floor(clockSeconds / 60)}:{String(clockSeconds % 60).padStart(2, "0")}
             </span>
           </>
         }
-        right={<GameFrame.Score value={soloScore} />}
+        right={
+          <SwapText swapKey={endState ? "result" : "score"}>
+            {endState ? (
+              <ScoreLine score={endState.score} outOf={9 * CELL_POINTS} />
+            ) : (
+              <GameFrame.Score value={soloScore} />
+            )}
+          </SwapText>
+        }
       />
 
       <GameFrame.Board>
@@ -459,25 +488,34 @@ function TicTacToe({ gameInfo, onGameEnd, turn, onTurnAction, multiplayer }: Tic
       </GameFrame.Board>
 
       <GameFrame.Action>
-        <GameFrame.InputRow>
-          <AutocompleteInput
-            placeholder={selectedCell == null ? "Pick a square first…" : "Name a player…"}
-            value={guess}
-            setValue={setGuess}
-            suggestions={suggestions}
-            onSubmit={handleSoloSubmit}
-            customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
-            customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
-          />
-          <Button
-            size="md"
-            aria-label="Confirm player"
-            onClick={handleSoloSubmit}
-            disabled={finished || selectedCell == null || guess.trim() === ""}
-          >
-            Confirm
-          </Button>
-        </GameFrame.InputRow>
+        {/* Input → score (shared answers-shown end sequence; no loader beat, as in
+            Career Path: the 38px buttons fit the 46px input slot, a labelled
+            spinner would not) */}
+        <EndSequence
+          phase={bottomPhase}
+          input={
+            <GameFrame.InputRow>
+              <AutocompleteInput
+                placeholder={selectedCell == null ? "Pick a square first…" : "Name a player…"}
+                value={guess}
+                setValue={setGuess}
+                suggestions={suggestions}
+                onSubmit={handleSoloSubmit}
+                customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
+                customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
+              />
+              <Button
+                size="md"
+                aria-label="Confirm player"
+                onClick={handleSoloSubmit}
+                disabled={finished || selectedCell == null || guess.trim() === ""}
+              >
+                Confirm
+              </Button>
+            </GameFrame.InputRow>
+          }
+          score={<ScoreActions onPlayAgain={onPlayAgain} onClose={onClose} />}
+        />
       </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} />

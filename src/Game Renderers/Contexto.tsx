@@ -16,6 +16,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
+import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
+import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
@@ -30,11 +32,18 @@ export interface ContextoProps {
   /** One precomputed ContextoQuestion — the same shape in single-player and multiplayer. */
   gameInfo: ContextoQuestion[];
   onGameEnd: OnGameEnd;
+  /** Single-player only: the in-place ScorePanel's "Play again". */
+  onPlayAgain?: () => void;
+  /** Closes the game and returns to idle — the in-place ScorePanel's "Close game". */
+  onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
 }
 
 const MAX_SCORE = 200;
+
+const headshotUrl = (personId: number) =>
+  `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 /** 200 - 5 per guess past the tenth, floor 50. */
 function scoreFor(guesses: number): number {
@@ -61,7 +70,7 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
+export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: ContextoProps) {
   // The round IS the question, however it arrived (fetched solo, dealt online).
   const question = gameInfo[0] as ContextoQuestion | undefined;
 
@@ -73,6 +82,9 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
   const [gaveUp, setGaveUp] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popup, setPopup] = useState({ Text: "", Color: "" });
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
+  const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
 
   const startRef = useRef(Date.now());
   const guessLogRef = useRef<GuessEntry[]>([]);
@@ -133,6 +145,9 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     setWon(false);
     setGaveUp(false);
     setShowPopup(false);
+    setPhotoFailed(false);
+    setBottomPhase("input");
+    setEndState(null);
     endedRef.current = false;
     startRef.current = Date.now();
     guessLogRef.current = [];
@@ -153,10 +168,17 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     later(() => setShowPopup(false), 1500);
   };
 
-  const endOnce = (finalScore: number) => {
+  // Ends in place (Rule 7b): the guess list and the revealed secret stay on
+  // screen; the input row cross-fades to the loader, then to the ScorePanel.
+  const endOnce = (finalScore: number, didWin: boolean) => {
     if (endedRef.current) return;
     endedRef.current = true;
-    onGameEnd?.(finalScore);
+    setBottomPhase("loader");
+    later(() => {
+      onGameEnd?.(finalScore, { inPlace: true });
+      setEndState({ score: finalScore, won: didWin });
+      setBottomPhase("score");
+    }, 1500);
   };
 
   const handleGuess = (raw: string) => {
@@ -189,7 +211,7 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
       const finalScore = scoreFor(nextCount);
       flash(`Got it in ${nextCount}! +${finalScore}`, "var(--good)");
       sendGuessLog();
-      later(() => endOnce(finalScore), 1700);
+      endOnce(finalScore, true);
     } else {
       flash(`#${rank}`, rank <= 25 ? "var(--good)" : rank <= 100 ? "var(--brand)" : "var(--bad)");
     }
@@ -200,7 +222,7 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
     setGaveUp(true);
     flash(`It was ${secret.full_name}`, "var(--bad)");
     sendGuessLog();
-    later(() => endOnce(0), 1900);
+    endOnce(0, false);
   };
 
   // Loading / unplayable-round state. Once the shared names list has resolved
@@ -221,6 +243,7 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
   const poolSize = rankById.size;
   const barWidth = (rank: number) =>
     `${Math.max(5, Math.round(100 * (1 - (rank - 1) / Math.max(1, poolSize - 1))))}%`;
+  const revealed = won || gaveUp;
 
   return (
     <GameFrame>
@@ -230,6 +253,35 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
       />
 
       <GameFrame.Board>
+      {/* The #1 secret card heads the ranking. Always mounted with a fixed-size
+          photo box, so the end-of-game reveal swaps its content in place and the
+          board never resizes (Rule 6.2); the answer then stays on screen. */}
+      <div
+        className={`cx-reveal${revealed ? (won ? " is-good" : " is-brand") : ""}`}
+        aria-live="polite"
+      >
+        <span className="cx-reveal-photo">
+          {revealed && !photoFailed ? (
+            <img
+              src={headshotUrl(secret.person_id)}
+              alt={secret.full_name}
+              onError={() => setPhotoFailed(true)}
+              draggable={false}
+            />
+          ) : (
+            <svg viewBox="0 0 64 72" aria-hidden="true">
+              <circle cx="32" cy="26" r="13" />
+              <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
+            </svg>
+          )}
+        </span>
+        <span className="cx-reveal-text">
+          <span className="cx-reveal-label">{revealed ? "The secret player" : "Secret player"}</span>
+          <span className="cx-row-name font-display">{revealed ? secret.full_name : "? ? ?"}</span>
+        </span>
+        <span className="cx-row-rank tnum">#1</span>
+      </div>
+
       <div className="cx-list" role="log" aria-live="polite">
         {rows.length === 0 ? (
           <div className="cx-empty">
@@ -260,44 +312,55 @@ export default function Contexto({ gameInfo, onGameEnd }: ContextoProps) {
           </AnimatePresence>
         )}
       </div>
-
-      {gaveUp && (
-        <div className="cx-reveal is-brand">
-          <span className="cx-row-name font-display">{secret.full_name}</span>
-          <span className="cx-row-rank tnum">#1</span>
-        </div>
-      )}
       </GameFrame.Board>
 
       <GameFrame.Action>
-        <GameFrame.InputRow>
-          <AutocompleteInput
-            placeholder="Guess a player…"
-            value={guess}
-            setValue={setGuess}
-            suggestions={suggestions}
-            onSubmit={(v) => handleGuess(v)}
-            customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.9rem" }}
-            customStyleSuggestion={{ fontSize: "0.82rem", maxHeight: "180px", minWidth: "100%" }}
-          />
-          <Button
-            size="md"
-            aria-label="Submit guess"
-            onClick={() => handleGuess(guess)}
-            disabled={won || gaveUp || guess.trim() === ""}
-          >
-            Guess
-          </Button>
-        </GameFrame.InputRow>
+        {/* Input → spinner → score (shared answers-shown end sequence, Rule 7b) */}
+        <EndSequence
+          phase={bottomPhase}
+          input={
+            <div className="cx-controls">
+              <GameFrame.InputRow>
+                <AutocompleteInput
+                  placeholder="Guess a player…"
+                  value={guess}
+                  setValue={setGuess}
+                  suggestions={suggestions}
+                  onSubmit={(v) => handleGuess(v)}
+                  customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.9rem" }}
+                  customStyleSuggestion={{ fontSize: "0.82rem", maxHeight: "180px", minWidth: "100%" }}
+                />
+                <Button
+                  size="md"
+                  aria-label="Submit guess"
+                  onClick={() => handleGuess(guess)}
+                  disabled={won || gaveUp || guess.trim() === ""}
+                >
+                  Guess
+                </Button>
+              </GameFrame.InputRow>
 
-        <button
-          type="button"
-          className="cx-giveup"
-          onClick={handleGiveUp}
-          disabled={won || gaveUp}
-        >
-          Give up
-        </button>
+              <button
+                type="button"
+                className="cx-giveup"
+                onClick={handleGiveUp}
+                disabled={won || gaveUp}
+              >
+                Give up
+              </button>
+            </div>
+          }
+          score={
+            <ScorePanel
+              score={endState?.score ?? 0}
+              outOf={MAX_SCORE}
+              label={endState?.won ? "Found it!" : "Gave up"}
+              won={endState?.won}
+              onPlayAgain={onPlayAgain}
+              onClose={onClose}
+            />
+          }
+        />
       </GameFrame.Action>
 
       <SubmitGuessPopup show={showPopup} text={popup.Text} color={popup.Color} />

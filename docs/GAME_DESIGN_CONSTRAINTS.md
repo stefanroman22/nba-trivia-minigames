@@ -734,9 +734,8 @@ Call `onGameEnd(finalScore)` with **no options**. The shell flips to the `result
 | confetti | only when score > 0 and motion allowed: 260 pieces, `gravity .25`, colours `#ff6a1a, #ff8a3d, #ffd166, #ffffff, #2fc762` |
 
 ### 7b. The exception — games that reveal answers (stay in place)
-For games whose whole point is showing the correct answers at the end (Starting Five, Heatmap,
-Fan Favorites, Career Path, Who Are Ya…): **there is no screen change.** The player stays on the
-game UI while the answers fill in.
+Any game that reveals an answer, solution or final board at the end ends in place (RULE 7.3):
+**there is no screen change.** The player stays on the game UI while the answers fill in.
 
 Call `onGameEnd(finalScore, { inPlace: true })` (awards points, suppresses the overview) and drive
 the shared `<EndSequence phase input score />` with a
@@ -828,6 +827,28 @@ toReveal.forEach((key, i) => later(() => reveal(key), 300 + i * 260));
 
 Stagger step is **260ms** with a ~300ms lead-in (matching Fan Favorites), then settle into `score`.
 Slower steps read as lag: Starting Five's 480ms step made a full miss take 4.5s; at 260ms it is 2.1s.
+
+#### RULE 7.3 — A game that reveals something at the end MUST end in place. **HARD RULE.**
+
+Any game that reveals an answer, solution or final board at the end MUST end in place: the answer
+stays on screen and points appear as one small ScorePanel. The full-screen GameResult is only for
+games with nothing to reveal.
+
+```tsx
+❌ WRONG — the secret player / solution word / final board vanishes behind a full-screen card
+onGameEnd?.(finalScore);                      // shell swaps in <GameResult> "Good try! 0 / 200"
+
+✅ RIGHT — the answer stays on screen, points are the small ScorePanel under it
+onGameEnd?.(finalScore, { inPlace: true });   // EndSequence → ScorePanel, Rule 6.2: no resize
+```
+
+A game whose every round already reveals its answer before advancing (nothing left unrevealed at
+the end) may keep `GameResult`, but only as an entry with a written reason in
+`scripts/game-result-allowlist.json`. This is enforced: `scripts/check-game-results.mjs`
+(`npm run check:games`, run by `npm run lint` and therefore CI) fails when a visible game calls
+`onGameEnd` without `{ inPlace: true }` and has no allowlist entry, and when an allowlist entry
+is stale. A call that ends through another flow (TicTacToe's online duel) is exempted with a
+`// game-results: online-duel` comment on the call line.
 
 ---
 

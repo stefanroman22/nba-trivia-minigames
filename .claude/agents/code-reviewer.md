@@ -34,7 +34,9 @@ Review focus, in priority order:
 4. Constraint-doc compliance, citing the specific rule ID (`UI-n`/`BE-n`/`MP-n`/`AUTH-n`). For any
    `Game Renderers/*.tsx` diff: compliance with `docs/GAME_DESIGN_CONSTRAINTS.md` — shell ownership
    (no per-game exit/loader/padding), layout-mode classification, feedback copy/placement, token
-   usage. Cite the specific rule number when flagging a violation.
+   usage; result screen follows 7b / Rule 7.3: a game that reveals an answer ends in place
+   (`{ inPlace: true }`, `ScorePanel`); full-screen `GameResult` only if allowlisted in
+   `scripts/game-result-allowlist.json`. Cite the specific rule number when flagging a violation.
 5. Reuse — anything in the diff that duplicates a `docs/team/CODE_MAP.md` entry.
 6. Tests exist for any logic change (new/changed view, hook, util, reducer, socket handler).
 7. Style drift from the surrounding code.
