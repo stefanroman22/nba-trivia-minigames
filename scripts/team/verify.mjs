@@ -5,7 +5,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { ROOT } from "../lib/team-config.mjs";
+import { ROOT, loadConfig } from "../lib/team-config.mjs";
 import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
 import { failuresOnly } from "./lib/output.mjs";
 import { runDir, writeJson, writeState } from "./lib/state.mjs";
@@ -18,6 +18,12 @@ const repo = resolve(arg("--repo", ROOT));
 const base = arg("--base", "origin/dev");
 const touched = arg("--touched") ? arg("--touched").split(",").map((s) => s.trim()).filter(Boolean) : touchedFiles(repo, base);
 const cls = classifyTouched(touched);
+// Gate 2 serves this build with `next start`. VITE_* values are inlined at build time
+// (next.config.ts), so when the backend changed too, point the build at the lane's Django port.
+const lane = Number(arg("--lane", "1"));
+const lanes = loadConfig().qaPorts?.lanes || [];
+const djangoPort = (lanes[lane - 1] || {}).django || 8100;
+const buildEnv = cls.backend ? { VITE_BACKEND_URL: `http://localhost:${djangoPort}/api` } : {};
 
 export function venvPython(repoDir) {
   const win = process.platform === "win32";
@@ -40,7 +46,7 @@ const ran = [];
 if (cls.frontend) {
   ran.push(run("lint", "npm", ["run", "lint", "--silent"]));
   if (ran.at(-1).exit === 0) ran.push(run("typecheck", "npx", ["next", "typegen"]), run("tsc", "npx", ["tsc", "--noEmit"]));
-  if (ran.every((r) => r.exit === 0)) ran.push(run("build", "npm", ["run", "build", "--silent"]));
+  if (ran.every((r) => r.exit === 0)) ran.push(run("build", "npm", ["run", "build", "--silent"], { env: { NBA_DEV_ENV_SKIP: "1", ...buildEnv } }));
 }
 if (cls.backend) {
   const py = venvPython(repo);
