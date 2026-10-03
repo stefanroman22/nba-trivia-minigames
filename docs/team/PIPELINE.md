@@ -238,6 +238,19 @@ both modes, so it is no longer a local-only stage).
 sandbox. The report workflow needs its own copy of the token as a GitHub repo secret,
 `SLACK_BOT_TOKEN` (`gh secret set SLACK_BOT_TOKEN`), separate from the routine's env var.
 
+**Setup script (since 2026-10-03).** The routine's "Setup script" field holds
+`infra/routine/setup.sh` verbatim. It installs `node_modules`, Playwright Chromium (into
+`/opt/pw-browsers`), the backend venv and migrates the dev sqlite once; the platform caches the
+result as a filesystem snapshot (the script must finish in ~5 minutes), so a run starts with
+everything in place and the workspace step installs nothing. It also guards the environment's
+global Stop hook (`~/.claude/stop-hook-git-check.sh`) with `TEAM_CLOUD=1 → exit 0`, because that
+hook fired "uncommitted changes" on every orchestrator turn while an engine was mid-edit. The
+script needs these hosts allowed in the routine's network settings: `registry.npmjs.org`,
+`pypi.org`, `files.pythonhosted.org`, `playwright.azureedge.net`,
+`playwright-akamai.azureedge.net`, `playwright-verizon.azureedge.net`. Routine model: **Sonnet 5.5**
+for the orchestrator (v2 — it calls scripts and relays messages; the heavy models are spawned
+explicitly where §14 says so).
+
 **All crons are UTC.** The report crons (`30 5` / `30 15`) and the routine's schedule are
 expressed in UTC, not local time — at UTC+2 that is 07:30/17:30 local for the reports and
 02:00/10:00 local for the worker (`0 0,8 * * *`). Shift the numbers if you want different
