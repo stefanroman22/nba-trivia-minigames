@@ -125,6 +125,17 @@
 .wk-key.present { background: var(--brand); border-color: var(--brand); color: #fff; }
 .wk-key.absent { background: var(--bg2); border-color: var(--line); color: var(--muted); }
 
+/* End of game (Rule 7b, in place): the end sequence sits in the keyboard's grid
+   cell. The keyboard stays mounted, only hidden, so the cell keeps its height and
+   the swap to loader / ScorePanel never resizes the board (Rule 6.2). The empty
+   input-phase slot lets clicks through to the keys during play. */
+.wk-stack { display: grid; width: 100%; max-width: 460px; }
+.wk-stack > * { grid-area: 1 / 1; }
+.wk { transition: opacity 0.16s ease, visibility 0s linear 0s; }
+.wk.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.16s ease, visibility 0s linear 0.16s; }
+.wk-end { align-self: center; min-width: 0; display: flex; justify-content: center; pointer-events: none; }
+.wk-end .endseq-slot > * { pointer-events: auto; }
+
 @media (max-width: 480px) {
   .wk-key { height: 46px; font-size: 13px; border-radius: 8px; }
   /* keep ENTER/DEL from overflowing their narrower keys */

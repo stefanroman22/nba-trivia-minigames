@@ -39,7 +39,10 @@ Cover, in this order:
 1. **Game tasks** (diff touches `src/Game Renderers/`): run the deterministic audit instead of
    improvising layout checks — `node scripts/ui-audit.mjs --url http://localhost:5273 --only <game-id> --label qa-<slug>`.
    It measures the GAME_DESIGN_CONSTRAINTS shell contract and exits non-zero with named
-   assertion failures. Its failures are QA failures verbatim.
+   assertion failures. Its failures are QA failures verbatim. Also check the end of the game
+   (Rule 7.3): finish a game (win and give up/lose) at 390x844 and 1280x800 and assert the
+   answer is still on screen, points are one small ScorePanel line above Play again / Close game,
+   no full-screen GameResult, and the container height is unchanged.
 2. **Constraint acceptance checks**: execute the `## Acceptance checks` section of every
    constraint doc the classify JSON listed, as assertions in your script.
 3. **The card's own spec**: does the feature do what the card says? Happy path plus one edge

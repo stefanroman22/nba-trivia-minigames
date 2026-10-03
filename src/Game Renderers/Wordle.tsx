@@ -1,12 +1,22 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import "../styles/Wordle.css";
+import EndSequence, { type EndSequencePhase } from '../components/EndSequence';
+import ScorePanel from '../components/ScorePanel';
 import SubmitGuessPopup from '../components/SubmitGuessPopUp';
+import SwapText from '../components/motion/SwapText';
 import { GameFrame } from '../components/ui';
 import type { OnGameEnd } from '../types/types';
 
 const WORD_LENGTH = 5;
 const MAX_GUESSES = 5;       // matches the in-game instructions ("5 attempts")
 const POINTS_PER_GUESS = 100; // first try = 500, then -100 per used attempt
+const MAX_SCORE = MAX_GUESSES * POINTS_PER_GUESS;
+// Row reveal timing — keep in sync with Wordle.css `--reveal-step` / `--flip-dur`.
+const REVEAL_STEP_MS = 300;
+const FLIP_MS = 550;
+/** The last tile of a submitted row finishes flipping at this point. */
+const ROW_LANDED_MS = (WORD_LENGTH - 1) * REVEAL_STEP_MS + FLIP_MS; // 1750
+const LOADER_MS = 500; // short beat: the row reveal already did the waiting
 
 const KEY_ROWS = [
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -17,15 +27,43 @@ const KEY_ROWS = [
 interface WordleProps {
   gameInfo: string[];
   onGameEnd: OnGameEnd;
+  /** Closes the game and returns to idle — the in-place ScorePanel's "Close game".
+   *  No "Play again": Wordle is once per day. */
+  onClose?: () => void;
 }
 
-function Wordle({ gameInfo, onGameEnd }: WordleProps) {
+function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
   const [solution, setSolution] = useState('');
   const [guesses, setGuesses] = useState<Array<string | null>>(Array(MAX_GUESSES).fill(null));
   const [currentGuess, setCurrentGuess] = useState('');
   const [submitted, setSubmitted] = useState<boolean[]>(Array(MAX_GUESSES).fill(false));
   const [feedback, setFeedback] = useState<{ text: string; color: string } | null>(null);
   const lockedRef = useRef(false);
+  const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
+  const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
+  const endTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Unmount (Close game before the end lands): never fire a stale onGameEnd for an
+  // abandoned game. endTimerRef always holds whichever end step is still pending.
+  useEffect(() => () => {
+    if (endTimerRef.current) clearTimeout(endTimerRef.current);
+  }, []);
+
+  // Ends in place (Rule 7b): the tile board stays. The keyboard stays up until the
+  // last row has finished flipping, then gives way to a short loader and the
+  // ScorePanel, and the status label reveals the answer.
+  const endGame = useCallback((points: number, won: boolean) => {
+    lockedRef.current = true;
+    endTimerRef.current = setTimeout(() => {
+      setBottomPhase("loader");
+      endTimerRef.current = setTimeout(() => {
+        onGameEnd(points, { inPlace: true });
+        setEndState({ score: points, won });
+        setFeedback(null);
+        setBottomPhase("score");
+      }, LOADER_MS);
+    }, ROW_LANDED_MS);
+  }, [onGameEnd]);
 
   // Initialize solution (guarded against empty payloads)
   useEffect(() => {
@@ -53,21 +91,16 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
 
     const solved = currentGuess === solution;
     if (solved) {
-      lockedRef.current = true;
       const points = (MAX_GUESSES - firstNullIndex) * POINTS_PER_GUESS;
       setFeedback({ text: `Correct! +${points}`, color: "var(--good)" });
-      setTimeout(() => onGameEnd(points), 1800);
+      endGame(points, true);
     } else if (firstNullIndex === MAX_GUESSES - 1) {
-      lockedRef.current = true;
-      setTimeout(() => setFeedback({ text: `Correct answer: ${solution}`, color: "var(--bad)" }), 1200);
-      setTimeout(() => {
-        setFeedback(null);
-        onGameEnd(0);
-      }, 3000);
+      // No popup: the answer stays on screen in the status label once the game ends.
+      endGame(0, false);
     }
 
     setCurrentGuess('');
-  }, [currentGuess, guesses, solution, onGameEnd]);
+  }, [currentGuess, guesses, solution, endGame]);
 
   // Central key handler — drives both the on-screen keyboard and physical keys.
   const handleKey = useCallback((key: string) => {
@@ -83,6 +116,8 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      // Game over: leave keys alone so Enter can activate the ScorePanel's buttons.
+      if (lockedRef.current) return;
       if (e.key === "Enter") { e.preventDefault(); handleKey("ENTER"); }
       else if (e.key === "Backspace") { e.preventDefault(); handleKey("DEL"); }
       else if (/^[a-zA-Z]$/.test(e.key)) handleKey(e.key.toUpperCase());
@@ -94,10 +129,17 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
   // Best-known status for each letter, for keyboard coloring.
   const letterStatuses = computeLetterStatuses(guesses, submitted, solution);
   const activeRow = guesses.findIndex((g) => g === null);
+  const ended = bottomPhase !== "input";
 
   return (
     <GameFrame>
-      <GameFrame.Status left={<GameFrame.Label>GUESS THE PLAYER&rsquo;S LAST NAME</GameFrame.Label>} />
+      <GameFrame.Status
+        left={
+          <GameFrame.Label>
+            <SwapText>{endState ? `ANSWER: ${solution}` : "GUESS THE PLAYER’S LAST NAME"}</SwapText>
+          </GameFrame.Label>
+        }
+      />
 
       <GameFrame.Board>
       <div className="wordle-board">
@@ -115,7 +157,11 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
         })}
       </div>
 
-      <div className="wk">
+      {/* End sequence (Rule 7b) shares the keyboard's grid cell: the keyboard stays
+          mounted (hidden once the game ends) so it keeps sizing the cell, and the
+          loader / ScorePanel swap in over it — the board never resizes (Rule 6.2). */}
+      <div className="wk-stack">
+      <div className={`wk${ended ? " is-ended" : ""}`} aria-hidden={ended || undefined}>
         {KEY_ROWS.map((row, r) => (
           <div className="wk-row" key={r}>
             {row.map((key) => {
@@ -137,6 +183,22 @@ function Wordle({ gameInfo, onGameEnd }: WordleProps) {
             })}
           </div>
         ))}
+      </div>
+      <div className="wk-end">
+        <EndSequence
+          phase={bottomPhase}
+          input={null}
+          score={
+            <ScorePanel
+              score={endState?.score ?? 0}
+              outOf={MAX_SCORE}
+              label={endState?.won ? "Solved!" : "Out of guesses"}
+              won={endState?.won}
+              onClose={onClose}
+            />
+          }
+        />
+      </div>
       </div>
       </GameFrame.Board>
 
