@@ -16,7 +16,12 @@ Two services:
   `gameEndpoints.js`), port 4000, for "Play Online" / "Play with a friend".
 
 ## Required reading (before any work)
-Read only the docs for the areas your current task touches:
+**Pipeline task:** read `.team/run/<slug>/brief.md` first and work from it. It holds the spec, the
+plan steps, the CODE_MAP hits and — quoted — the constraint rules that apply. Do NOT read the full
+constraint docs; open a section only when a quoted rule points you there. Finish by writing
+`.team/run/<slug>/build-report.json` `{did, assumed, touched[], testsAdded[]}`.
+
+**Outside the pipeline** (no brief), read only the docs for the areas your task touches:
 - Django models, views, migrations, data-pipeline boundary → `docs/constraints/BACKEND_CONSTRAINTS.md`
 - `multiplayer_server/` (rooms, turn games, round-fetch) → `docs/constraints/MULTIPLAYER_CONSTRAINTS.md`
 - `users/` auth endpoints, tokens, rank, identity → `docs/constraints/AUTH_CONSTRAINTS.md`
@@ -54,9 +59,9 @@ Rules:
 - Use the venv at `backend/venv`. Run the API with `python manage.py runserver 8000`.
 - After model changes: `python manage.py makemigrations` then `migrate`. Never edit applied
   migrations by hand.
-- **Don't run `manage.py check` / the test suite routinely.** The pipeline's verify stage
-  (test-qa-engine) runs them on your diff — repeating them burns context and time for no extra
-  signal. Run them yourself only when: you were explicitly asked to, you're about to commit
+- **Don't run `manage.py check` / the test suite routinely.** The pipeline's verify gate
+  (`scripts/team/verify.mjs`) runs them on your diff — repeating them burns context and time for no
+  extra signal. Run them yourself only when: you were explicitly asked to, you're about to commit
   outside the pipeline, or you touched models/migrations/settings where a static read genuinely
   can't tell you if it's sound. When you do run tests, always name both apps —
   `python manage.py test users trivia` — explicit, so the command states what it covers (bare

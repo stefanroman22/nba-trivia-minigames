@@ -996,3 +996,28 @@ Consequences: an in-place game that wants its result at the top renders `ScoreLi
 Status slot and `ScoreActions` in the score slot; a view toggle that must not resize its container
 uses `stackPane` on two always-mounted panes sharing a grid cell; `springs.result`/`resultIn` are
 the only sanctioned result-entrance values.
+
+## 2026-10-03 — Pipeline v2: scripts for the mechanical steps, one brief per card, resume-based fix loop, tiered models
+Context: the 2026-10-03 08:00 UTC routine run shipped one card in ~90 minutes and ~1.2M tokens.
+Browser QA took ~40 min (improvised exploration, per-run Chromium install, rebuilt mocks), the
+Fable design round 17 min / 204k tokens (and in a headless run the planner role-played both the
+proposals and the sign-off itself), every build spawn re-read ~2,000 lines of constraint docs, and
+the reviewer re-ran lint/build that verify had just run. Lint+typecheck+build were 40 s. With two
+runs a day that is 2–4 cards/day. Design: `designs/2026-10-03-pipeline-v2-loop-architecture.md`.
+Decision: (1) intake, brief, verify, QA (scoped by `.claude/team/qa-map.json`) and the review
+package are scripts under `scripts/team/`; agents do classify, plan, build, review. (2) Every
+agent reads `.team/run/<slug>/brief.md` — spec, plan, quoted rules that apply, CODE_MAP hits —
+instead of the full docs. (3) A failed gate resumes the same engine via SendMessage with the
+failure lines only; round 3 escalates one model up; round 4 does not exist; a no-progress breaker
+fails early. (4) The design round runs only for `hard` cards, one pass, 10 min; a spec with
+numbered steps naming files is `standard` and its steps are the plan. (5) Models: orchestrator
+and classify on sonnet, reviews on sonnet unless P0/risk-high/hard/protected paths (fable),
+motion-reviewer only on motion diffs, Fable only for hard planning and risky review.
+(6) Two lanes for cards with disjoint areas; per-tier budgets (10/25/45 min) replace the flat
+72-minute cutoff. (7) The routine's setup script pre-installs deps/Chromium/venv/sqlite once.
+Rejected: agent teams (not spawnable headless, ~7x tokens), claude-flow swarms, making the run
+depend on the Workflow tool (unmeasured for build→test→review; kept optional).
+Consequences: `test-qa-engine` retired; `.team/journal.json` replaced by `.team/run/<slug>/state.json`;
+`team-run.ps1` passes `--model sonnet`; the routine UI model should be Sonnet 5.5 and its setup
+script `infra/routine/setup.sh`. Targets to verify on the next runs: standard card 15–25 min,
+≤500k tokens; 4–6 cards per 90-minute run.

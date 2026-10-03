@@ -40,7 +40,7 @@ decides anything — the per-task policy in `docs/team/PIPELINE.md` §14 is what
 - `frontend-engine` — React/TS/Tailwind/Next.js (`src/`)
 - `backend-engine` — Django/DRF (`backend/`) + Socket.IO (`multiplayer_server/`)
 - `code-reviewer` — read-only audit
-- `test-qa-engine` — lint / typecheck / build / Django tests
+- verify gate — `scripts/team/verify.mjs` (lint / typecheck / build / Django tests; no agent)
 
 The main orchestrator model is `model` in `.claude/settings.json` (default `fable`) — edit it directly if needed.
 Opus 5 was banned pipeline-wide from 2026-09-06 to 2026-09-29 for cost; as of 2026-09-29 the

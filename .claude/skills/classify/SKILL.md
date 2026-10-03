@@ -46,10 +46,11 @@ The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]`
 ## Model rubric
 As of 2026-09-29, Opus is unbanned (see `docs/team/DECISIONS.md` 2026-09-29) — the 2026-09-06 ban
 targeted Opus 5's cost specifically; Opus 5.5 and Sonnet 5.5 are meaningfully faster and cheaper.
-The models in play: `fable` (Fable 5.1: classify, review, the CTO gate, and design rounds for
-hard tasks — no longer an implementer), `opus` (Opus 5.5: implementation requiring real
-judgment), `sonnet` (Sonnet 5.5: the default implementer) and `haiku` (Haiku 4.5: trivial only).
-All four are rolling aliases.
+The models in play (v2, 2026-10-03): `fable` (Fable 5.1: design rounds for hard cards, review of
+P0/risk-high/hard/protected-path diffs, the CTO gate — never an implementer, no longer the
+classifier), `opus` (Opus 5.5: implementation requiring real judgment, motion), `sonnet` (Sonnet
+5.5: classify, standard plans, the default implementer, standard reviews, browser flows) and
+`haiku` (Haiku 4.5: trivial only). All four are rolling aliases. You run classify on `sonnet`.
 
 ### `engineModel` — who implements
 | Model | When | Example |
@@ -72,9 +73,10 @@ plan exists (`design-round` step 5d), **per step** — a Fable-planned task can 
 (complex, or motion) and sonnet steps (simpler). Only then is the step count and the
 explicitness of the acceptance criteria actually known.
 
-### `planModel` — who runs the design round and any replan
-Output it on every task (it is ignored when `needsDesignRound` is false and no replan happens).
-Always **fable** — Opus is no longer used for planning under this policy, only implementation.
+### `planModel` — who writes the plan and any replan
+Output it on every task. `fable` when `needsDesignRound` is true (hard/security/protocol/data
+regeneration); otherwise `sonnet` (the short step plan for a standard card without steps, and its
+replan). Opus is never used for planning.
 
 ### Close calls
 If you seriously weighed two adjacent picks for this task (e.g. trivial/haiku vs.

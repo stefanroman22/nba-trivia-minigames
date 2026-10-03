@@ -3,8 +3,13 @@
 ## 1. What it is
 
 An autonomous coding pipeline: you write task cards on a Notion board, and unattended
-agent runs pick them up, build them (classify → design → build → verify → QA → review),
-and push each finished one straight to `dev` — no PR, no automated review gate. Production
+agent runs pick them up, build them (intake → classify → brief → [plan, hard only] → build →
+verify → QA → review), and push each finished one straight to `dev` — no PR, no automated review
+gate. Since 2026-10-03 (v2) the mechanical steps are scripts under `scripts/team/` (intake,
+brief, verify, qa, review-package); agents do classify, planning, building and reviewing, work
+from one generated brief per card (`.team/run/<slug>/brief.md`) instead of re-reading the
+constraint docs, and a failed gate resumes the same engine instead of spawning a new one. Up to
+two cards with disjoint areas run at once. Design: `designs/2026-10-03-pipeline-v2-loop-architecture.md`. Production
 is a separate, deliberate step you (or an agent you explicitly ask) take later. You mostly
 interact with it through Notion, not the terminal.
 
@@ -46,7 +51,7 @@ In PowerShell avoid double quotes inside a title argument (they get stripped); u
 - **Backlog** — draft; the pipeline ignores it.
 - **To Do** — queued; the next run claims it (unless `Needs human` is checked).
 - **In progress** — a run owns it. If a run dies mid-task the card stays here and the next run
-  resumes it from `.team/journal.json`.
+  resumes it from `.team/run/<slug>/state.json` (intake detects the existing run dir).
 - **QA** — its commit is on `dev` (and on the dev Vercel site). Waiting for your check and for
   someone to promote `dev` to `main` (manually, or by explicitly asking an agent to).
 - **Done** — its commit is on `main` (production). Only `main-sync.yml` sets this.
@@ -73,8 +78,14 @@ you take with your own eyes on `dev` first.
 
 - **Skills** — `.claude/skills/` (e.g. `team-run`, `ship`, `classify`, `qa-protocol`).
 - **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
-  `browser-qa`, `code-reviewer`, `motion-reviewer`, `test-qa-engine`).
-- **Journal** — `.team/journal.json`: mid-flight task state (stage, fix cycles, split-task halves, resume note), resumed by the next run before anything new is claimed.
+  `browser-qa`, `code-reviewer`, `motion-reviewer`). Verify is a script (`scripts/team/verify.mjs`), not an agent.
+- **Run state** — `.team/run/<slug>/`: `card.json` (spec + props), `classify.json`, `brief.md`
+  (the context pack every agent reads), `build-report.json`, `verify.json`, `review-package.md`
+  and `state.json` (stage, fix rounds per gate, engine agent ids, base sha). Deleted on ship or
+  fail; a leftover dir means a run died and intake resumes it. (`.team/journal.json` was v1.)
+- **Scripts** — `scripts/team/{intake,brief,verify,qa,review-package}.mjs` with pure libs and
+  `node --test` tests under `scripts/team/lib/`. `.claude/team/qa-map.json` maps touched files to
+  the games/routes QA exercises.
 - **Logs** — `.team/logs/` (one file per run). Written by PowerShell's
   `Tee-Object`, which defaults to **UTF-16LE** — open with a UTF-16-aware viewer, not a
   plain `cat`/UTF-8 tool, or the text will look mangled.
@@ -285,21 +296,23 @@ referenced by this policy and is unused — left in place rather than deleted. T
 | Sonnet 5.5 | alias `sonnet` | The default implementer for clearly-defined steps (however many) or a fully detailed spec, plus verify and browser QA. |
 | Haiku 4.5 | alias `haiku` | Trivial implementation only (copy/config, zero logic). |
 
-The rule is **fable plans the hard ones, opus handles judgment calls, sonnet types the rest,
-haiku does the trivia**. The orchestrator passes every model explicitly (never relying on agent
-frontmatter or the `npm run engine` profile):
+The v2 rule (2026-10-03): **scripts do everything mechanical; Haiku assembles; Sonnet is the
+default worker everywhere; Opus only where feel or judgment lives inside code; Fable only where
+a wrong call is expensive — hard planning and risky review.** The single source of truth is
+`designs/2026-10-03-pipeline-v2-loop-architecture.md` §9; the orchestrator passes every model
+explicitly (never relying on agent frontmatter or the `npm run engine` profile):
 
 | Role | Model |
 |---|---|
-| `planner-architect` (classify) | **fable**. |
-| Design round + replan | **fable**, always, when `classify.needsDesignRound` — which security work (attacks, auth/session breaches, account blocking/abuse, secrets, permissions) always sets, whatever its size. The plan must be explicit enough — numbered steps, each with an acceptance criterion — for the implementer to execute without re-deriving it; `superpowers:writing-plans` is used when present (local), the native plan step otherwise (cloud). |
-| Implementer (`frontend-engine`, `backend-engine`) | **haiku** for trivial. **sonnet** for simple work: clearly defined steps with acceptance criteria — however many — or a fully detailed spec. **opus** for complex or important work (judgment a plan cannot pin down, `risk: high`, non-trivial P0) and **always for motion/animation**. For Fable-planned tasks the engine is chosen **per step**: the design round tags each plan step `[opus]` (complex or motion) or `[sonnet]` (simpler), and the build stage runs consecutive same-tag steps as one spawn of that model. Long-and-vague is a plan problem, never a reason to upgrade the engine. |
-| `code-reviewer` | **fable**, always. |
-| `motion-reviewer` | **opus**, only when the diff touches `src/` UI files; runs alongside `code-reviewer`. Checks that animations use the shared motion system and flags visible text/screen changes that still happen abruptly. |
-| `test-qa-engine`, `browser-qa` | **sonnet**, always. Never fable or opus. |
+| Orchestrator (`team-run` session) | **sonnet** — `scripts/team-run.ps1` passes `--model sonnet`; the cloud routine's model is set in its UI. |
+| `planner-architect` — classify | **sonnet**. |
+| `planner-architect` — short plan for a `standard` card whose spec has no numbered steps | **sonnet**. |
+| `planner-architect` — design round (`hard` only: security, protocol, data regeneration, new patterns, owner Difficulty=hard) + its replan | **fable**, one pass, 10-minute cap. |
+| Implementer (`frontend-engine`, `backend-engine`) | **haiku** trivial · **sonnet** default · **opus** for motion/animation, `risk: high`, non-trivial P0, and `[opus]`-tagged plan steps. Fix round 3 escalates one model up. |
+| verify, qa, review-package | scripts — no model. |
+| `browser-qa` | **sonnet**, only for `"flow"` assertions a script cannot express. |
+| `code-reviewer` | **sonnet** for trivial/standard risk-low P1/P2; **fable** for P0, `risk: high`, `hard`, security, or protected paths (`review-package.mjs` prints the pick). |
+| `motion-reviewer` | **opus**, only when the diff touches `src/motion/**`, `components/motion/**`, a `framer-motion` import, or CSS transitions/animations. |
 | CTO review (GitHub Actions) | **fable**, pinned in `.github/workflows/claude.yml`. |
 
-The cloud worker routine ("NBA team pipeline" at claude.ai/code/routines) sets its own model in
-the routine UI, outside this repo — it must be set to Fable 5.1 by hand; nothing here can
-enforce it. Rationale and history: `docs/team/DECISIONS.md` 2026-09-06 (both entries) for the
-original ban, 2026-09-29 for this reversal.
+History: `docs/team/DECISIONS.md` 2026-09-06 (Opus ban), 2026-09-29 (reversal), 2026-10-03 (v2).

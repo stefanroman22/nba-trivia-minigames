@@ -21,7 +21,12 @@ by its owner — see UI-4), `Game Renderers/`, `store/` (Redux), `hooks/`, `cont
 `motion/`, `utils/`, `socket.ts`.
 
 ## Required reading (before any work)
-Read only the docs for the areas your current task touches:
+**Pipeline task:** read `.team/run/<slug>/brief.md` first and work from it. It holds the spec, the
+plan steps, the attachments, the CODE_MAP hits and — quoted — the constraint rules that apply. Do
+NOT read the full constraint docs; open a section only when a quoted rule points you there. Finish
+by writing `.team/run/<slug>/build-report.json` `{did, assumed, touched[], testsAdded[]}`.
+
+**Outside the pipeline** (no brief), read only the docs for the areas your task touches:
 - `Game Renderers/*.tsx` → `docs/GAME_DESIGN_CONSTRAINTS.md`
 - App shell, pages, nav, modals, `components/ui/` → `docs/constraints/UI_SHELL_CONSTRAINTS.md`
 - `socket.ts`, `context/MultiplayerContext.tsx`, `components/MultiPlayer/` → `docs/constraints/MULTIPLAYER_CONSTRAINTS.md`
@@ -67,8 +72,8 @@ Rules:
 - Match existing patterns and file layout. Keep changes surgical — touch only what the task needs.
 - TypeScript stays strict; no `any` unless the surrounding code already does it. Build must pass `next build`.
 - **Don't run `npm run lint` / `tsc --noEmit` / `npm run build` routinely.** The pipeline's verify
-  stage (test-qa-engine) runs them on your diff — repeating them burns context and time for no
-  extra signal. Run them yourself only when: you were explicitly asked to, you're about to
+  gate (`scripts/team/verify.mjs`) runs them on your diff — repeating them burns context and time for
+  no extra signal. Run them yourself only when: you were explicitly asked to, you're about to
   commit outside the pipeline, or you changed something you genuinely can't reason about
   statically (a tricky type, a build-config change). Small, obvious edits need none of it.
   Dev server: `npm run dev` (port 5173).
