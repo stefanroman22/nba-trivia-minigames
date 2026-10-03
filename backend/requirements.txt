@@ -6,8 +6,6 @@ djangorestframework
 djangorestframework-simplejwt
 django-cors-headers
 python-dotenv
-pandas
-nba_api
 requests
 google-auth
 Pillow

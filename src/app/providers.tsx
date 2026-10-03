@@ -5,7 +5,7 @@ import { MotionConfig } from "framer-motion";
 import { store } from "../store";
 import { hydrateSession, login, logout, type User } from "../store/userSlice";
 import { apiFetch, clearTokens, getAccessToken, getRefreshToken, refreshSession, SessionNetworkError } from "../utils/Api";
-import { clearCachedUser, isAccessTokenExpired, readCachedUser, writeCachedUser } from "../utils/session";
+import { clearCachedUser, isAccessTokenExpired, prewarmBackend, readCachedUser, writeCachedUser } from "../utils/session";
 import { BACKEND_URL } from "../configurations/backend";
 import { ModalProvider } from "../context/ModalContext";
 import { MultiplayerProvider } from "../context/MultiplayerContext";
@@ -48,6 +48,8 @@ function AppEffects() {
     // 5xx changes nothing and leaves `authChecked` false for the next load to settle.
     const restoreSession = async () => {
       if (!getRefreshToken()) {
+        // Guest: nothing will call /me/, so warm the backend for the first real request.
+        prewarmBackend();
         // Nothing to resume. Also drops a cache left behind by a logout in another tab.
         clearCachedUser();
         dispatch(logout());

@@ -1,3 +1,4 @@
+import csv
 import os
 import json
 import random
@@ -32,11 +33,10 @@ from trivia.games import HIDDEN_GAMES
 from trivia.utils.text_utils import wordle_word
 from trivia import wordle_daily
 
-# Games read from the central Supabase store (populated by `sync_nba_data`). Each
-# endpoint falls back to the bundled JSON/CSV/static source if its table is empty
-# or the DB is unreachable, so players never receive an error or stale-empty pool.
-#
-# NOTE: pandas and nba_api are imported lazily inside the fallbacks that use them.
+# Games read from the central Supabase store (populated by sync_nba_data). Where a bundled
+# file exists (playoff JSON, starting-five JSON, MVP CSV) an empty table falls back to it;
+# otherwise it is a JSON error. Nothing here may import pandas or nba_api: they are not in
+# the web function's requirements.txt (guard: trivia/tests/test_startup.py).
 
 PLAYOFF_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'playoff_data.json')
 STARTING_FIVE_DATA_PATH = os.path.join(settings.BASE_DIR, 'trivia', 'utils', 'starting_five_data.json')
@@ -85,31 +85,34 @@ def get_random_playoff_series(request):
     return JsonResponse({'series': random.sample(data, min(5, len(data)))})
 
 
-_cached_teams = None
-
-
 def get_random_nba_teams(request):
-    global _cached_teams
     try:
         qs = list(Team.objects.all())
-        if qs:
-            pool = [
-                {"team_id": t.team_id, "full_name": t.full_name,
-                 "abbreviation": t.abbreviation, "logo": t.logo or logo(t.team_id)}
-                for t in qs
-            ]
-        else:
-            if _cached_teams is None:
-                from nba_api.stats.static import teams
-                _cached_teams = [
-                    {"team_id": t["id"], "full_name": t["full_name"],
-                     "abbreviation": t["abbreviation"], "logo": logo(t["id"])}
-                    for t in teams.get_teams()
-                ]
-            pool = _cached_teams
+        pool = [
+            {"team_id": t.team_id, "full_name": t.full_name,
+             "abbreviation": t.abbreviation, "logo": t.logo or logo(t.team_id)}
+            for t in qs
+        ]
+        if not pool:
+            return JsonResponse({'error': 'No team data available.'}, status=500)
         return JsonResponse({"series": random.sample(pool, min(5, len(pool)))})
     except Exception as e:
         return JsonResponse({"error": str(e), "message": "Error fetching NBA team logos"}, status=500)
+
+
+_cached_mvps = None
+
+
+def _mvp_rows():
+    """Bundled MVP list (trivia/utils/nba_mvps.csv) read once; [] when the file is missing."""
+    global _cached_mvps
+    if _cached_mvps is None:
+        if not os.path.exists(MVP_DATA_PATH):
+            _cached_mvps = []
+        else:
+            with open(MVP_DATA_PATH, newline='', encoding='utf-8') as f:
+                _cached_mvps = list(csv.DictReader(f))
+    return _cached_mvps
 
 
 def get_mvps(request):
@@ -120,12 +123,10 @@ def get_mvps(request):
                 {'season': m.season, 'mvp': m.mvp, 'team': m.team, 'team_logo_url': m.team_logo_url}
                 for m in qs
             ]})
-        import pandas as pd
-        mvp_df = pd.read_csv(MVP_DATA_PATH)
-        if mvp_df.empty:
+        rows = _mvp_rows()
+        if not rows:
             return JsonResponse({'error': 'MVP data is empty.'}, status=500)
-        random_mvps = mvp_df.sample(n=min(5, len(mvp_df)))
-        return JsonResponse({'series': random_mvps.to_dict(orient='records')})
+        return JsonResponse({'series': random.sample(rows, min(5, len(rows)))})
     except Exception as e:
         return JsonResponse({'error': str(e), 'message': "Error fetching MVP data"}, status=500)
 
@@ -169,11 +170,7 @@ def get_starting_five(request):
     return JsonResponse({"series": canonical_lineup_names([game], _player_names())})
 
 
-_cached_wordle_names = None
-
-
 def get_wordle(request):
-    global _cached_wordle_names
     try:
         # Sample a few random 5-letter surnames; return the first that cleans to
         # exactly five ASCII letters (accents stripped, e.g. Jokić -> Jokic).
@@ -184,13 +181,6 @@ def get_wordle(request):
             w = wordle_word(ln)
             if w:
                 return JsonResponse({'series': [w]}, status=200)
-        if _cached_wordle_names is None:
-            from nba_api.stats.static import players
-            _cached_wordle_names = [
-                w for pl in players.get_players() if (w := wordle_word(pl['last_name']))
-            ]
-        if _cached_wordle_names:
-            return JsonResponse({'series': [random.choice(_cached_wordle_names)]}, status=200)
         return JsonResponse({'error': 'no wordle words available'}, status=500)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

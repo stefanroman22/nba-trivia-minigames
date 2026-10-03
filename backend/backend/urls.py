@@ -5,7 +5,10 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 
+from backend.health import health_view
+
 urlpatterns = [
+    path('api/health/', health_view, name='health'),
     path('admin/', admin.site.urls),
     path('api/admin/', include('trivia.admin_urls')),
     path('api/', include('users.urls')),

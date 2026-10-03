@@ -232,6 +232,12 @@ Engine: mixed
 - D9. Plan step D (Fluid compute) is owner-only: the build report asks for it; no build step.
 - D10. Per-step engines: `[opus]` for the four edits that must keep behaviour identical in
   AUTH-11 files and the classic views (steps 4-7); `[sonnet]` for the rest.
+- D11 (build amendment). The startup guard does not list `requests`: DRF's
+  `rest_framework/compat.py` imports it whenever it is installed, and it stays installed for
+  `google_login` / google-auth's transport. The guard covers pandas, numpy, nba_api, PIL, google;
+  the measured cost of the DRF-loaded `requests` subtree (~51 ms on Linux) is reported, not asserted.
+  Rewriting `google_login` without `requests` (and dropping it from `requirements.txt`) would be an
+  auth-logic change to an AUTH-11 file that the card did not ask for.
 
 ## Interfaces
 
@@ -299,8 +305,10 @@ Not touched: `backend/requirements-publish.txt`, `.github/workflows/wordle-daily
 - Lazy imports in AUTH-11 files: import errors would surface as the endpoints' existing generic
   error (`google_login` -> `400 "Unexpected error: ..."`); the photo import sits before the
   `try`, so a missing Pillow raises instead of masquerading as "unreadable image".
-- A future module-level `import requests` anywhere on the request path re-introduces the cost
-  silently: the guard test fails the suite, naming the module.
+- A future module-level `import pandas`/`nba_api`/`PIL`/`google` anywhere on the request path
+  re-introduces the cost silently: the guard test fails the suite, naming the module. `requests`
+  is outside the guard (DRF imports it, D11), so its ~51 ms stays until `google_login` is moved
+  off it in a separate card.
 - Removing `nba_api` from the web set while the owner's PC venv still has it: no effect; the PC
   installs the pipeline file next time (README line).
 
@@ -508,7 +516,10 @@ from django.conf import settings
 from django.test import SimpleTestCase
 from django.urls import reverse
 
-HEAVY = ("pandas", "numpy", "nba_api", "requests", "PIL", "google")
+# `requests` is deliberately not listed: rest_framework/compat.py does `import requests` whenever
+# the package is installed (it must stay installed: google_login and google-auth's transport use
+# it), so DRF loads it at startup no matter what users/views.py does. ~51 ms on Linux.
+HEAVY = ("pandas", "numpy", "nba_api", "PIL", "google")
 
 # Runs in a fresh interpreter: this test process has already imported PIL and nba_api through
 # sibling test modules, so inspecting its own sys.modules would prove nothing.
@@ -594,8 +605,11 @@ passes (4 tests).
 Run `cd backend && .venv/bin/python manage.py check && .venv/bin/python manage.py makemigrations
 --check --dry-run && .venv/bin/python manage.py test users trivia`; all must pass (BE-18: a failure
 is real — fix the cause in the files this plan names, never skip a test). Then re-run the step 1
-measurement block and label it "after": expected heavy loaded = `[]`. Write into the final report
-and the commit body: before/after startup ms (lowest of 3), before/after loaded list, the `du`
+measurement block and label it "after": expected heavy loaded = `['requests']` (DRF's
+`rest_framework/compat.py` imports it whenever it is installed; see "Plan amendment (build)"). Write
+into the final report and the commit body: before/after startup ms (lowest of 3), before/after
+loaded list, one line stating that `requests` remains loaded because DRF imports it and its
+measured cost (`-X importtime` cumulative for the `requests` subtree, ~51 ms on Linux), the `du`
 sizes as "expected bundle delta", and the owner follow-ups: `vercel inspect` after the next
 `cd backend && vercel deploy --prod`, five first-request samples of `GET /api/health/` and
 `GET /api/get-users/` after 20 idle minutes (target < 1.2 s), and the Fluid compute setting on the
@@ -641,7 +655,7 @@ exactly two lines (the import and the call) and the verify stage's `npx next typ
 ### Self-review (step 5b)
 - Coverage: spec A -> steps 2-5 (+ guard 9, fallback tests 10); B -> steps 6-7 (+ guard 9);
   C -> steps 8, 12, 13; "bundle and startup measured before/after" -> steps 1, 11; "a test asserts
-  pandas/numpy/nba_api/requests/PIL/google.auth are not loaded" -> step 9; "all backend tests pass"
+  pandas/numpy/nba_api/requests/PIL/google.auth are not loaded" -> step 9 (minus `requests`, D11); "all backend tests pass"
   -> step 11; browser checks -> Test plan (QA stage); D -> owner follow-up in step 11's report.
 - No placeholders: every step names files, exact text or code, and a command/grep done-check.
 - Consistency: URL name `health`, path `api/health/`, helper `prewarmBackend`, test module names
@@ -658,3 +672,17 @@ backend-engine lens: OK (checked the subprocess guard resolves `backend.settings
 `require_GET` yields the 405). frontend-engine lens: OK (`mode: "no-cors"` + `keepalive` is valid
 for a GET, `.catch` is attached so no floating promise, the call cannot alter `authChecked`).
 No unresolved objection; no design deadlock.
+
+### Plan amendment (build)
+Found by the opus engine after steps 4-7 (455 backend tests green, startup 469 ms -> 370 ms in
+this checkout's venv, loaded list `['PIL', 'google', 'requests']` -> `['requests']`): the
+remaining `requests` import is `rest_framework/compat.py:48` (`try: import requests / except
+ImportError: requests = None`), reached through `rest_framework.decorators` -> views -> response ->
+serializers -> compat by the first `@api_view` module the URL conf imports (`trivia/admin_api.py`).
+It fires whenever `requests` is installed, and `requests` must stay in `requirements.txt`
+(`google_login`, google-auth transport). `-X importtime` puts the `requests` subtree at ~51 ms
+cumulative on Linux. Decision (D11): the step 9 guard tuple is
+`("pandas", "numpy", "nba_api", "PIL", "google")`, with the test comment saying why `requests` is
+excluded; step 11's report states the measured cost. The step 1/11 measurement tuple keeps
+`requests` so the report shows it. No product code changes; the sonnet engine creates the test
+file exactly as step 9 now reads.

@@ -914,3 +914,20 @@ Consequences: a module-level `import requests`/`PIL`/`google`/`pandas`/`nba_api`
 request path now fails the suite by name; the web function's dependency set and the pipeline's are
 two files, and any new installer must pick the right one; `backend/.venv/` is untracked and not
 ignored in cloud checkouts, so engines stage by explicit path.
+
+## 2026-10-03 — cold-start guard: requests is a DRF import
+Context: build of the cold-start card, after steps 4-7. The startup guard planned in step 9
+listed `requests` among the modules that must not be loaded by `get_wsgi_application()` + URL
+resolution, but `rest_framework/compat.py:48` does `import requests` (optional dependency) whenever
+the package is installed, reached by the first `@api_view` module the URL conf imports. `requests`
+cannot leave `requirements.txt`: `google_login` and `google.auth.transport.requests` use it. Measured
+`-X importtime` cost of the subtree on Linux: ~51 ms (the owner doc's ~400 ms was a Windows figure).
+Options: (a) drop `requests` from the guard and say why in the test; (b) rewrite `google_login` on
+`urllib`/`google.auth.transport.urllib3` and drop `requests` — auth logic in an AUTH-11 file on a
+risk-high card, not asked for; (c) stub `sys.modules` — a hack.
+Decision: (a). Guard tuple `("pandas", "numpy", "nba_api", "PIL", "google")`; the test comment
+names DRF as the reason; step 11's report states the measured `requests` cost so the owner sees
+the trade-off; the step 1/11 measurement list still includes `requests`.
+Consequences: the card's "Done when" is met minus `requests`, which is documented rather than
+asserted; moving Google login off `requests` (and `requests` out of the web set) is a separate
+card if the ~51 ms ever matters.
