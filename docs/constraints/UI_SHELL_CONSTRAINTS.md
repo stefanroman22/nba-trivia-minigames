@@ -528,6 +528,35 @@ spinners (framer ring with label vs CSS `.spinner-ring`); whole-stage loading is
 
 ---
 
+## Rule UI-21: Any visible text that changes with state uses `SwapText`
+
+Any visible text that changes with state uses `src/components/motion/SwapText.tsx` — the
+"Copy" → "Copied!" swap (`UserProfile.tsx`): the old text fades up and out, the new one fades up and
+in, `durations.swap` (0.18 s) per leg, fade-only under reduced motion. Instant feedback (typing,
+timers, counters that already use `AnimatedNumber`) is exempt. Never build a second swap component.
+
+- Give each state an explicit `swapKey` (`"loading"`, `"empty"`, `"no-match"`, `"searching"`, …)
+  whenever the children aren't a plain string, or the text can change within one state
+  (`Load more (12 left)` stays `"more"`).
+- Keep **one** element across the states and swap only its text: a single `.fr-empty` line whose
+  `SwapText` goes `loading` → `empty`, not one `<p>` per branch — the box keeps its padding and
+  never jumps in height. Don't stack two loading states (a page loader, then a list's own
+  "Loading…"): the list's placeholder line owns the one loading → empty transition.
+- A button/inline label whose states differ in width passes `reserveWidth={[…every state]}` so the
+  control never resizes mid-swap (it also holds a line at its tallest state if one wraps).
+- Don't wrap static text: `<SwapText>Remove</SwapText>` animates nothing.
+
+```tsx
+❌ WRONG — src/components/FriendsPanel.tsx before: a separate <p> per state, so the text snaps
+{loading ? <p className="fr-empty">Loading…</p> : <p className="fr-empty">No players found.</p>}
+
+✅ RIGHT — src/components/FriendsPanel.tsx (EmptyLine): one line, keyed per state
+<p className="fr-empty"><SwapText swapKey={state.key}>{state.text}</SwapText></p>
+<SwapText swapKey={sending ? "sending" : "add"} reserveWidth={["Add", "Sending…"]}>{sending ? "Sending…" : "Add"}</SwapText>
+```
+
+---
+
 ## Acceptance checks
 
 Concrete DevTools/console/grep checks a QA agent can run.
@@ -622,3 +651,8 @@ violation. Also confirm `document.documentElement.classList.contains('light')` i
 **13. Swal styling (Rule UI-9).** Trigger "Finish your current game first." (start a game, click
 another rail item on desktop): the popup has `.swal2-custom-popup`, its background resolves to
 `var(--surface)`, and no `.modal-backdrop` is added.
+
+**14. State text swaps (Rule UI-21).** Signed in, open the Friends tab on a throttled connection:
+the tabs and search box show at once, and the line under the list fades "Loading your friends…" →
+"No friends yet — try the Find tab." (or the list) with no jump in the card's height; in Find, type
+one letter then two and watch the hint → "Searching…" → "No players found." swap in the same line.

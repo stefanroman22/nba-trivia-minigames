@@ -93,7 +93,11 @@ export default function OnlineMatch() {
       <motion.div key="intro" {...swap} className="om-stage">
         <span className="om-eyebrow">{mp.roomType === "friend" ? "Private match" : "Match found"}</span>
         <Matchup mp={mp} />
-        <p className="om-introline">{mp.error ? mp.error : mp.gameData || mp.turnState ? "Get ready..." : "Loading the game..."}</p>
+        <p className="om-introline">
+          <SwapText swapKey={mp.error ? "error" : mp.gameData || mp.turnState ? "ready" : "loading"}>
+            {mp.error ? mp.error : mp.gameData || mp.turnState ? "Get ready..." : "Loading the game..."}
+          </SwapText>
+        </p>
       </motion.div>
     );
   } else if (mp.phase === "playing") {

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "../styles/Friends.css";
-import { Avatar, CourtLoader } from "./ui";
+import { Avatar } from "./ui";
 import SwapText from "./motion/SwapText";
 import SegmentedTabs from "./motion/SegmentedTabs";
 import {
@@ -24,6 +24,22 @@ const TABS: { key: Tab; label: string }[] = [
 function initials(name: string): string {
   const letters = (name || "?").replace(/[^A-Za-z]/g, "").slice(0, 2).toUpperCase();
   return letters || "?";
+}
+
+/** One state of a list's placeholder line: `key` names the state ("loading",
+ * "empty", "no-match", …) so the text swap animates on a state change, not on
+ * every re-render. */
+type EmptyState = { key: string; text: string };
+
+/** The muted placeholder line under a list. A single `.fr-empty` element across
+ * all its states — only the text swaps (SwapText), so the box never changes
+ * height between "Loading…" and the empty/no-match copy. */
+function EmptyLine({ state }: { state: EmptyState }) {
+  return (
+    <p className="fr-empty">
+      <SwapText swapKey={state.key}>{state.text}</SwapText>
+    </p>
+  );
 }
 
 /** Friend search + add, incoming/outgoing requests, friend list, and blocked
@@ -54,17 +70,13 @@ export default function FriendsPanel() {
   };
   const [actionError, setActionError] = useState<string | null>(null);
 
-  if (loading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
-        <CourtLoader label="Loading your friends…" scale={0.7} />
-      </div>
-    );
-  }
-
-  if (error) {
-    return <p style={{ textAlign: "center", color: "var(--muted)", padding: "1rem 0" }}>{error}</p>;
-  }
+  // One loading state, owned by each list's own placeholder line: the tabs and
+  // the search box render at once, and only the line under the list swaps
+  // "Loading…" → its empty copy. The requests/blocked lists come from the
+  // overview fetch; the Friends list pages itself in (FriendsTab), so it never
+  // waits on the overview — and a failed overview only affects the lists it feeds.
+  const overviewLine = (key: string, text: string): EmptyState =>
+    loading ? { key: "loading", text: "Loading…" } : error ? { key: "error", text: error } : { key, text };
 
   return (
     <div className="fr-stack">
@@ -75,7 +87,10 @@ export default function FriendsPanel() {
         aria-label="Friends"
         options={TABS.map((t) => {
           const count = t.key === "requests" ? incoming.length : t.key === "blocked" ? blocked.length : null;
-          return { key: t.key, label: `${t.label}${count ? ` (${count})` : ""}` };
+          return {
+            key: t.key,
+            label: <SwapText swapKey={count ?? 0}>{`${t.label}${count ? ` (${count})` : ""}`}</SwapText>,
+          };
         })}
         value={tab}
         onChange={setTab}
@@ -92,7 +107,7 @@ export default function FriendsPanel() {
           <div>
             <span className="fr-group-label">Incoming</span>
             {incoming.length === 0 ? (
-              <p className="fr-empty">No incoming requests.</p>
+              <EmptyLine state={overviewLine("empty", "No incoming requests.")} />
             ) : (
               <div className="fr-list">
                 {incoming.map((r) => (
@@ -127,7 +142,7 @@ export default function FriendsPanel() {
           <div>
             <span className="fr-group-label">Sent</span>
             {outgoing.length === 0 ? (
-              <p className="fr-empty">No sent requests.</p>
+              <EmptyLine state={overviewLine("empty", "No sent requests.")} />
             ) : (
               <div className="fr-list">
                 {outgoing.map((r) => (
@@ -158,7 +173,7 @@ export default function FriendsPanel() {
 
       {tab === "blocked" && (
         blocked.length === 0 ? (
-          <p className="fr-empty">You haven't blocked anyone.</p>
+          <EmptyLine state={overviewLine("empty", "You haven't blocked anyone.")} />
         ) : (
           <div className="fr-list">
             {blocked.map((b) => (
@@ -213,6 +228,9 @@ function FriendsTab({
   const [loadingMore, setLoadingMore] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const debounceRef = useRef<number | null>(null);
+  // The first page loads at once — the debounce is for typing, and delaying the
+  // opening fetch would only stretch the tab's single "Loading…" state.
+  const firstLoadRef = useRef(true);
   const queryRef = useRef(query);
   queryRef.current = query;
 
@@ -237,7 +255,11 @@ function FriendsTab({
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    debounceRef.current = window.setTimeout(() => loadPage(q, 0, false), SEARCH_DEBOUNCE_MS);
+    const delay = firstLoadRef.current ? 0 : SEARCH_DEBOUNCE_MS;
+    debounceRef.current = window.setTimeout(() => {
+      firstLoadRef.current = false;
+      loadPage(q, 0, false);
+    }, delay);
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
@@ -263,12 +285,16 @@ function FriendsTab({
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {loading ? (
-        <p className="fr-empty">Loading…</p>
-      ) : results.length === 0 ? (
-        <p className="fr-empty">
-          {query.trim() ? "No friends match that search." : "No friends yet — try the Find tab."}
-        </p>
+      {loading || results.length === 0 ? (
+        <EmptyLine
+          state={
+            loading
+              ? { key: "loading", text: "Loading your friends…" }
+              : query.trim()
+                ? { key: "no-match", text: "No friends match that search." }
+                : { key: "empty", text: "No friends yet — try the Find tab." }
+          }
+        />
       ) : (
         <>
           <div className="fr-list">
@@ -286,7 +312,7 @@ function FriendsTab({
                     disabled={busyId === f.id}
                     onClick={() => handleAction(f.id, removeFriend)}
                   >
-                    <SwapText>Remove</SwapText>
+                    Remove
                   </button>
                   <button
                     className="fr-btn fr-btn-danger"
@@ -306,7 +332,12 @@ function FriendsTab({
               disabled={loadingMore}
               onClick={() => loadPage(query.trim(), results.length, true)}
             >
-              <SwapText>{loadingMore ? "Loading…" : `Load more (${total - results.length} left)`}</SwapText>
+              <SwapText
+                swapKey={loadingMore ? "loading" : "more"}
+                reserveWidth={["Loading…", `Load more (${total - results.length} left)`]}
+              >
+                {loadingMore ? "Loading…" : `Load more (${total - results.length} left)`}
+              </SwapText>
             </button>
           )}
         </>
@@ -372,12 +403,16 @@ function FindTab({
         onChange={(e) => setQuery(e.target.value)}
         autoFocus
       />
-      {searching ? (
-        <p className="fr-empty">Searching…</p>
-      ) : query.trim().length < 2 ? (
-        <p className="fr-empty">Type at least 2 characters to search.</p>
-      ) : results.length === 0 ? (
-        <p className="fr-empty">No players found.</p>
+      {searching || query.trim().length < 2 || results.length === 0 ? (
+        <EmptyLine
+          state={
+            searching
+              ? { key: "searching", text: "Searching…" }
+              : query.trim().length < 2
+                ? { key: "hint", text: "Type at least 2 characters to search." }
+                : { key: "no-results", text: "No players found." }
+          }
+        />
       ) : (
         <div className="fr-list">
           {results.map((r) => (
@@ -388,17 +423,23 @@ function FindTab({
                 <span className="tnum fr-sub">#{r.id} · {r.rank}</span>
               </div>
               <div className="fr-actions">
-                {r.relationship === "none" ? (
-                  <button
-                    className="fr-btn fr-btn-primary"
-                    disabled={sendingId === r.id}
-                    onClick={() => handleAdd(r.id)}
-                  >
-                    <SwapText>{sendingId === r.id ? "Sending…" : "Add"}</SwapText>
-                  </button>
-                ) : (
-                  <span className="fr-status">{RELATIONSHIP_LABEL[r.relationship]}</span>
-                )}
+                {/* The Add button handing over to its status label ("Request sent")
+                    is one swap, keyed by the relationship. */}
+                <SwapText swapKey={r.relationship}>
+                  {r.relationship === "none" ? (
+                    <button
+                      className="fr-btn fr-btn-primary"
+                      disabled={sendingId === r.id}
+                      onClick={() => handleAdd(r.id)}
+                    >
+                      <SwapText swapKey={sendingId === r.id ? "sending" : "add"} reserveWidth={["Add", "Sending…"]}>
+                        {sendingId === r.id ? "Sending…" : "Add"}
+                      </SwapText>
+                    </button>
+                  ) : (
+                    <span className="fr-status">{RELATIONSHIP_LABEL[r.relationship]}</span>
+                  )}
+                </SwapText>
               </div>
             </div>
           ))}

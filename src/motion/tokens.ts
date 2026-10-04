@@ -5,6 +5,9 @@ export const durations = {
   fast: 0.14,
   base: 0.2,
   slow: 0.3,
+  // One leg (exit or enter) of SwapText's inline label swap — "Copy" → "Copied!".
+  // A full swap is two legs (mode="wait"), ~0.36s; keep it short so it reads as feedback.
+  swap: 0.18,
 } as const;
 
 // ease-out for entrances, ease-in for exits (see UX motion guidelines)

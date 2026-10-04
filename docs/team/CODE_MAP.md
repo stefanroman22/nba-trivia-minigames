@@ -183,7 +183,7 @@ define standalone Django models (no `abstract = True` base classes, no `Mixin`-n
 - `src/motion/tokens.ts` — Shared `durations`, `easing`, and `springs` (soft/pop/gentle/result/thumb) motion tokens. [used by: 2 files]
 - `src/motion/variants.ts` — Reusable framer-motion Variants (fadeIn/fadeInUp/scaleIn/popIn/stagger/swap/resultIn/stackPane). [used by: 4 files]
 - `src/components/motion/SegmentedTabs.tsx` — Shared sliding-thumb tab/pill switcher on `springs.thumb`; callers keep own track styling. [used by: 5 files]
-- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text; configurable transition/variants. [used by: 16 files]
+- `src/components/motion/SwapText.tsx` — Animated inline label swap for state-driven text (UI-21); per-state `swapKey`, `reserveWidth` holds the widest state; configurable transition/variants. [used by: 16 files]
 - `src/components/motion/AnimatedNumber.tsx` — Counts up to a value for score reveals; respects reduced motion. [used by: 4 files]
 - `src/components/motion/Reveal.tsx` — Scroll-triggered reveal wrapper with child staggering; respects reduced motion. [used by: 1 files]
 - `src/components/motion/MotionButton.tsx` — Drop-in animated button with spring hover/tap feedback. [used by: 0 files]
