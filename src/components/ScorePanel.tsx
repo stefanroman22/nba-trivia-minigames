@@ -5,7 +5,8 @@ import AnimatedNumber from "./motion/AnimatedNumber";
 export interface ScoreLineProps {
   /** Final score (the big number). */
   score: number;
-  /** Optional lead-in, e.g. "Board cleared!", "Out of guesses", "Found 5/8". */
+  /** Optional win/lose state lead-in only, e.g. "Board cleared!", "Out of guesses" — never a count of
+   *  correct items (the board already shows them; GAME_DESIGN_CONSTRAINTS Rule 7.1). */
   label?: string;
   /** Optional "/N" cap shown after the score. */
   outOf?: number;

@@ -796,6 +796,9 @@ Verify: `r(scoreLine).bottom <= r(buttonRow).top`.
 
 #### RULE 7.1 — The answers carry the result; don't restate it as a count
 
+**The result line shows final points only. Never repeat counts of correct items that the board or
+answer list already shows.**
+
 When a game reveals per-answer outcomes, colour each revealed answer — `var(--good)` for what the
 player got, `var(--bad)` for what they missed — and **omit any "Found 3/5" style tally**. The board
 already shows it; a count is redundant chrome that competes with the reveal.
@@ -807,7 +810,9 @@ already shows it; a count is redundant chrome that competes with the reveal.
 ```
 
 Only use `ScorePanel`'s `label` for a genuine state that colour can't convey (`Board cleared!`,
-`Out of guesses`) — never for a score the player can just read off the board.
+`Out of guesses`) — never for a score the player can just read off the board. On a plain loss with
+nothing extra to say, pass no `label` at all (Fan Favorites): the points line stands alone, with no
+placeholder in its place (Rule 4.2a).
 
 #### RULE 7.2 — Never animate a reveal the player has already earned
 

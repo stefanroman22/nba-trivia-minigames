@@ -41,7 +41,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   // End-state: the board stays in view; the bottom slot fades submission → loader
   // → score (win and loss both play this in-place sequence — see EndSequence).
-  const [endState, setEndState] = useState<{ score: number; found: number; total: number; win: boolean } | null>(null);
+  const [endState, setEndState] = useState<{ score: number; win: boolean } | null>(null);
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   // Full ~5k NBA player names, loaded on demand for player-category boards.
   const [playerPool, setPlayerPool] = useState<string[]>([]);
@@ -164,7 +164,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
         setBottomPhase("loader");
         later(() => {
           onGameEnd?.(MAX_SCORE, { inPlace: true });
-          setEndState({ score: MAX_SCORE, found: question.answers.length, total: question.answers.length, win: true });
+          setEndState({ score: MAX_SCORE, win: true });
           setBottomPhase("score");
         }, 700);
       } else {
@@ -201,7 +201,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
       // …then the score + Play again fade in once they've all shown.
       later(() => {
         onGameEnd?.(finalScore, { inPlace: true });
-        setEndState({ score: finalScore, found, total, win: false });
+        setEndState({ score: finalScore, win: false });
         setBottomPhase("score");
       }, 260 + toReveal.length * 260 + 380);
     } else {
@@ -305,7 +305,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
           <ScorePanel
             score={endState?.score ?? 0}
             outOf={MAX_SCORE}
-            label={endState?.win ? "Board cleared!" : `Found ${endState?.found ?? 0}/${endState?.total ?? 0}`}
+            label={endState?.win ? "Board cleared!" : undefined}
             won={endState?.win}
             onPlayAgain={onPlayAgain}
             onClose={onClose}
