@@ -64,6 +64,79 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
+/** What one board cell shows and how it behaves (derived per mode by the caller). */
+interface TttBoardCell {
+  /** Claimed player's name; absent/null while the cell is empty. */
+  name?: string | null;
+  mine?: boolean;
+  theirs?: boolean;
+  stealable?: boolean;
+  disabled: boolean;
+}
+
+interface TttBoardProps {
+  ariaLabel: string;
+  rows: Criterion[];
+  cols: Criterion[];
+  cell: (index: number) => TttBoardCell;
+  selectedCell: number | null;
+  onSelect: (cell: number | null) => void;
+  /** Solo only: the small pulse when a cell is claimed (off under reduced motion). */
+  animateClaim: boolean;
+}
+
+/** The single 3x3 criteria grid shared by solo and duel, so the two modes cannot drift.
+ *  Empty cells show an orange "?" (aria-hidden; the button's aria-label carries the meaning). */
+function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim }: TttBoardProps) {
+  return (
+    <div className="ttt-grid" role="grid" aria-label={ariaLabel}>
+      <span className="ttt-corner" aria-hidden="true" />
+      {cols.map((c, i) => (
+        <span key={`c${i}`} className="ttt-crit ttt-crit--col" lang="en">
+          {c.label}
+        </span>
+      ))}
+      {rows.map((r, ri) => (
+        <div key={`r${ri}`} className="ttt-rowgroup" role="row">
+          <span className="ttt-crit ttt-crit--row" lang="en">
+            {r.label}
+          </span>
+          {[0, 1, 2].map((ci) => {
+            const index = ri * 3 + ci;
+            const { name, mine, theirs, stealable, disabled } = cell(index);
+            const selected = selectedCell === index;
+            return (
+              <motion.button
+                key={index}
+                type="button"
+                role="gridcell"
+                className={`ttt-cell${mine ? " is-mine" : theirs ? " is-theirs" : ""}${
+                  selected ? " is-selected" : ""
+                }${stealable ? " is-stealable" : ""}`}
+                disabled={disabled}
+                aria-label={`${r.label} and ${cols[ci].label}${name ? `: ${name}` : ""}`}
+                onClick={() => onSelect(selected ? null : index)}
+                animate={animateClaim ? { scale: name ? [1, 1.06, 1] : 1 } : undefined}
+                transition={{ duration: 0.3 }}
+              >
+                <SwapText swapKey={name ? `p:${name}` : "empty"} className="ttt-cell-swap">
+                  {name ? (
+                    <span className="ttt-cell-name">{name}</span>
+                  ) : (
+                    <span className="ttt-cell-blank" aria-hidden="true">
+                      ?
+                    </span>
+                  )}
+                </SwapText>
+              </motion.button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnAction, multiplayer }: TicTacToeProps) {
   const isMultiplayer = multiplayer === true;
   const mpState = (turn ?? null) as TttTurnState | null;
@@ -301,45 +374,26 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
 
         <GameFrame.Board>
           <div className="ttt-board">
-            <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe duel board">
-              <span className="ttt-corner" aria-hidden="true" />
-              {mpBoard.cols.map((c, i) => (
-                <span key={`c${i}`} className="ttt-crit ttt-crit--col">
-                  {c.label}
-                </span>
-              ))}
-              {mpBoard.rows.map((r, ri) => (
-                <div key={`r${ri}`} className="ttt-rowgroup" role="row">
-                  <span className="ttt-crit ttt-crit--row">{r.label}</span>
-                  {[0, 1, 2].map((ci) => {
-                    const cell = ri * 3 + ci;
-                    const occ = mpState.board[cell];
-                    const mine = occ?.ownerUid === selfUid;
-                    const selectable = myTurn && !terminal && (stealMode ? !!occ && !mine : !occ);
-                    const selected = selectedCell === cell;
-                    return (
-                      <button
-                        key={cell}
-                        type="button"
-                        role="gridcell"
-                        className={`ttt-cell${mine ? " is-mine" : occ ? " is-theirs" : ""}${
-                          selected ? " is-selected" : ""
-                        }${stealMode && selectable ? " is-stealable" : ""}`}
-                        disabled={!selectable}
-                        aria-label={`${r.label} and ${mpBoard.cols[ci].label}${occ ? `: ${occ.playerName}` : ""}`}
-                        onClick={() => setSelectedCell(selected ? null : cell)}
-                      >
-                        {occ ? (
-                          <span className="ttt-cell-name">{occ.playerName}</span>
-                        ) : (
-                          <span className="ttt-cell-blank" aria-hidden="true" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+            <TttBoard
+              ariaLabel="Tic-tac-toe duel board"
+              rows={mpBoard.rows}
+              cols={mpBoard.cols}
+              cell={(i) => {
+                const occ = mpState.board[i];
+                const mine = occ?.ownerUid === selfUid;
+                const selectable = myTurn && !terminal && (stealMode ? !!occ && !mine : !occ);
+                return {
+                  name: occ?.playerName,
+                  mine,
+                  theirs: !!occ && !mine,
+                  stealable: stealMode && selectable,
+                  disabled: !selectable,
+                };
+              }}
+              selectedCell={selectedCell}
+              onSelect={setSelectedCell}
+              animateClaim={false}
+            />
 
             {terminal && (
               <div
@@ -447,43 +501,15 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
 
       <GameFrame.Board>
         <div className="ttt-board">
-          <div className="ttt-grid" role="grid" aria-label="Tic-tac-toe criteria board">
-            <span className="ttt-corner" aria-hidden="true" />
-            {question.cols.map((c, i) => (
-              <span key={`c${i}`} className="ttt-crit ttt-crit--col">
-                {c.label}
-              </span>
-            ))}
-            {question.rows.map((r, ri) => (
-              <div key={`r${ri}`} className="ttt-rowgroup" role="row">
-                <span className="ttt-crit ttt-crit--row">{r.label}</span>
-                {[0, 1, 2].map((ci) => {
-                  const cell = ri * 3 + ci;
-                  const name = solved[cell];
-                  const selected = selectedCell === cell;
-                  return (
-                    <motion.button
-                      key={cell}
-                      type="button"
-                      role="gridcell"
-                      className={`ttt-cell${name ? " is-mine" : ""}${selected ? " is-selected" : ""}`}
-                      disabled={!!name || finished}
-                      aria-label={`${r.label} and ${question.cols[ci].label}${name ? `: ${name}` : ""}`}
-                      onClick={() => setSelectedCell(selected ? null : cell)}
-                      animate={reduce ? undefined : { scale: name ? [1, 1.06, 1] : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {name ? (
-                        <span className="ttt-cell-name">{name}</span>
-                      ) : (
-                        <span className="ttt-cell-blank" aria-hidden="true" />
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+          <TttBoard
+            ariaLabel="Tic-tac-toe criteria board"
+            rows={question.rows}
+            cols={question.cols}
+            cell={(i) => ({ name: solved[i], mine: !!solved[i], disabled: !!solved[i] || finished })}
+            selectedCell={selectedCell}
+            onSelect={setSelectedCell}
+            animateClaim={!reduce}
+          />
         </div>
       </GameFrame.Board>
 
