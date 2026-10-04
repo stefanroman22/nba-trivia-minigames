@@ -1062,3 +1062,9 @@ Decision: `difficulty: standard`, `areas: frontend, ui, games`, `risk: low`, `en
 Contexto UX and per-game audit judgment `[opus]`.
 Consequences: if the audit finds a large violator (Wordle, TicTacToe), it is allowlisted with a follow-up note
 as the card allows, not turned into a design round here.
+
+## 2026-10-04 — Remove 'Found n/m' counts from result screens: trivial/haiku vs standard/sonnet vs standard/opus
+Context: P0 frontend card, Difficulty `standard`, spec names exact files/lines (FanFavorites.tsx:308, Rule 7.1 doc edit) and says "Engine: sonnet". Work is one label removal plus a grep sweep of renderer result states, a layout check (no gap, no height jump, Rule 6.2) and a doc wording change.
+Weighed: (a) `trivial`/haiku — rejected: removing a visible UI element changes layout and needs a visual check, and the sweep is judgment over several renderers. (b) `standard`/sonnet as the spec asks — defensible (long-and-explicit, tiny change). (c) `standard`/opus — chosen: the 09-29 override sends a non-trivial P0 to opus, same as the LeContexto card.
+Decision: `difficulty: standard`, `areas: frontend, ui, games`, `risk: low`, `engineModel: opus`, `planModel: sonnet`, `needsDesignRound: false`.
+Consequences: the planner should tag the Fan Favorites removal, doc edit and screenshots `[sonnet]` and keep `[opus]` only for the cross-renderer sweep and the layout-gap judgment. WhoWouldWin is out of scope (separate card).
