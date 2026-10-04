@@ -1332,3 +1332,14 @@ inflation by a forged client is abuse, which the rubric makes security work rega
 Decision: (b). Difficulty standard, areas backend only (the one-time play id, if chosen, may add frontend: the design round re-counts).
 Consequences: the design round should resolve the owner question with the smallest option (unknown game -> 400/0 against the real game
 id set, keep known games credited exactly their capped score) and park or split the play-id replay guard if it needs an owner call.
+## 2026-10-04 — Remove 'Found n/m' counts from result screens: trivial/haiku vs standard/sonnet vs standard/opus
+Context: P0 frontend card, Difficulty `standard`, spec names exact files/lines (FanFavorites.tsx:308, Rule 7.1 doc edit) and says "Engine: sonnet". Work is one label removal plus a grep sweep of renderer result states, a layout check (no gap, no height jump, Rule 6.2) and a doc wording change.
+Weighed: (a) `trivial`/haiku — rejected: removing a visible UI element changes layout and needs a visual check, and the sweep is judgment over several renderers. (b) `standard`/sonnet as the spec asks — defensible (long-and-explicit, tiny change). (c) `standard`/opus — chosen: the 09-29 override sends a non-trivial P0 to opus, same as the LeContexto card.
+Decision: `difficulty: standard`, `areas: frontend, ui, games`, `risk: low`, `engineModel: opus`, `planModel: sonnet`, `needsDesignRound: false`.
+Consequences: the planner should tag the Fan Favorites removal, doc edit and screenshots `[sonnet]` and keep `[opus]` only for the cross-renderer sweep and the layout-gap judgment. WhoWouldWin is out of scope (separate card).
+
+## 2026-10-04 — Friends tab text swap (SwapText adoption + polish): risk low vs high, standard vs hard, opus vs sonnet
+Context: P1 frontend card, Difficulty `standard`, spec has numbered steps naming files across FriendsPanel, FriendPlay, FeedbackTab, OnlineMatch, Leaderboard, SwapText, motion tokens and a UI-20 doc note. Core work is motion (SwapText adoption, timing, reserveWidth).
+Weighed: (a) `risk: high` because FriendsPanel.tsx is friends/blocking UI — rejected: the change modifies only presentational text rendering (labels, loading/empty states), not friends/blocking logic, backend, auth or throttles. (b) `hard` + design round because the spec spans six components — rejected: one area (frontend/ui), an existing shared component, and explicit steps; no protocol/security/data work. (c) engine `sonnet` — rejected: motion is always opus.
+Decision: `difficulty: standard`, `areas: frontend, ui`, `risk: low`, `engineModel: opus`, `planModel: sonnet`, `needsDesignRound: false`.
+Consequences: planner tags the doc note, token addition and mechanical per-site swaps `[sonnet]` and SwapText polish, merged Friends loading state and reduced-motion/no-height-jump judgment `[opus]`. If the merged loading state turns out to touch more than FriendsPanel (e.g. useFriends), the fix loop escalates.
