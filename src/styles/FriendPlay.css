@@ -41,6 +41,8 @@
 }
 .fp-copy:hover { color: var(--brand); border-color: var(--brand); }
 .fp-copy.is-copied { color: var(--good); border-color: var(--good); background: var(--good-soft); }
+/* SwapText's wrapper around the copy/check icon: hug the SVG (no inline line box). */
+.fp-copy-icon svg { display: block; }
 
 /* ---- Code entry (one hidden input drives the boxes) ---- */
 .fp-codein { position: relative; display: flex; gap: 6px; justify-content: center; cursor: text; }

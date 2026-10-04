@@ -129,7 +129,9 @@ function Leaderboard() {
             footer never gains/loses a line mid-switch — that step would break the
             body's smooth height tween. */}
         <span className="lb-foot-note">
-          <SwapText>{lastUpdated ? `Refreshed ${timeAgo(lastUpdated, now)}` : " "}</SwapText>
+          <SwapText swapKey={lastUpdated ? `ago:${timeAgo(lastUpdated, now)}` : "blank"}>
+            {lastUpdated ? `Refreshed ${timeAgo(lastUpdated, now)}` : " "}
+          </SwapText>
         </span>
       </div>
     </div>

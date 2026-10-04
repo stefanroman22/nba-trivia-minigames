@@ -674,7 +674,12 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
         {rows.length < total && (
           <div className="admin-rows-foot">
             <button className="btn btn-secondary btn-sm" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? "Loading…" : `Load more (${fmt(total - rows.length)} left)`}
+              <SwapText
+                swapKey={loadingMore ? "loading" : "more"}
+                reserveWidth={["Loading…", `Load more (${fmt(total - rows.length)} left)`]}
+              >
+                {loadingMore ? "Loading…" : `Load more (${fmt(total - rows.length)} left)`}
+              </SwapText>
             </button>
           </div>
         )}
