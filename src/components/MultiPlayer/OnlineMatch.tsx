@@ -380,7 +380,8 @@ function ResultActions({
     // Switch-game picker with a name/keyword search.
     const q = query.trim().toLowerCase();
     const others = games
-      .filter((g) => g.id !== "coming-soon" && g.id !== mp.game?.id)
+      // who-would-win has no turn/score logic for rooms (both players would score 0)
+      .filter((g) => g.id !== "coming-soon" && g.id !== "who-would-win" && g.id !== mp.game?.id)
       .filter((g) => !q || `${g.name} ${g.description} ${g.tag}`.toLowerCase().includes(q));
     key = "switch";
     content = (

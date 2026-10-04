@@ -373,8 +373,7 @@ alignment maths lands half a gap off and `:only-child` / `:empty` rules that sho
 
 A lone **label** centres — with nothing opposite it, pinning it to the left edge reads as a broken
 bar rather than a heading. A lone **score** stays right, so it never jumps sides when a game gains
-or loses its left label mid-run. Affected: Fan Favorites, Wordle, Who Would Win, Imposter's rules
-card.
+or loses its left label mid-run. Affected: Fan Favorites, Wordle, Imposter's rules card.
 
 This is the same principle as `GameFrame.Action` returning `null` when empty (Rule 0): **a slot with
 no content must contribute no node**. Do not "fix" alignment by passing `""`, `<span />` or `&nbsp;`
@@ -883,14 +882,16 @@ apply. These are reviewed and intentional:
 | Pack 5, Who Are Ya, NBA Grid, SuperDraft, Imposter | narrower roots (430–520px) | board shapes; 560 is a **max**, not a target |
 | Heatmap, Contexto, TicTacToe, Who Are Ya, Connections, Wordle, Starting Five, Fan Favorites | **no progress bar** | no linear progression, or the board/rows/lives already *are* the progress (§5 carve-out) |
 | Connections, Heatmap, Contexto, Wordle, Who Are Ya, Career Path, TicTacToe, Bingo, SuperDraft, Imposter | **no `ROUND n/total`** | these games have no rounds |
-| Fan Favorites, SuperDraft, Contexto, Who Would Win | correct-feedback copy is not `Correct! +N` | no per-answer points exist, so `+N` would be a lie |
+| Fan Favorites, SuperDraft, Contexto | correct-feedback copy is not `Correct! +N` | no per-answer points exist, so `+N` would be a lie |
+| Who Would Win | no per-matchup feedback popup; points (20 with the crowd, 5 against it, 0 for Skip) show in the status Score slot and the split bar | there is no right answer to flash — the crowd split is the feedback |
 | Bingo | keeps `Dabbed!` | scoring is terminal-only; there is no per-dab constant |
 | SuperDraft | keeps its bespoke `.sd-result` panel | it has a Share action with no shared equivalent; it now ends in place so there is only one end screen |
 | Imposter | keeps its custom explainer screen | MP-only; that is a rules screen inside the room, not the shell idle |
 | Imposter | lost the progress bar's `[data-low]` red state | swapped to the shared `ProgressBar`; `.imp-clock[data-low]` still signals low time |
 | Wordle | result shows `Close game` only, no `Play again` (`GameResult` without `onPlayAgain`) | once per day: a replay POSTs `daily-play` and hits the 423 lock |
 | Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | no white token exists; `ui.css:31` sets the same precedent |
-| Who Would Win | stays a fill game, not `is-content` | its vertical stacked arena genuinely fills; converting it would be a redesign |
+| Who Would Win | stays a fill game, not `is-content`; `.www-arena` is the board's scroller and its cards never shrink below their content | its vertical stacked arena genuinely fills; converting it would be a redesign. Below 700px of viewport height the arena tightens (`@media (max-height: 700px)`) so 360×640 fits with no scroll; only shorter still (320×568) does it scroll, with a bottom fade as the cue, never overlapping the action row |
+| Who Would Win | ends in place with the per-matchup list (crowd side, `+20`/`+5`/`0`) as the final board; `ScorePanel` has no label, no "sided with the crowd N/M" count | Rule 7.1 — the rows already carry the outcome, so a count would repeat them |
 | Career Path | no `loader` beat (`input -> score`); result line in the Status slot, the career/answer toggle in the Prompt slot, actions alone in the Action slot | the reveal is player-driven ("See full career" / "See the answer"), so nothing is calculated behind a spinner, and the owner's rule is that no button waits more than 400 ms; every slot keeps its play-time height so the frame never resizes (Rule 6.2) |
 
 **Known open items:**

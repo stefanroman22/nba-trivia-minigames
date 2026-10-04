@@ -609,7 +609,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "Ten hypothetical matchups between legendary teams from different eras." },
       { n: "2", t: "Tap the side you think wins. Your vote joins the live community split." },
-      { n: "3", t: "No points here. At the end, see how often you sided with the crowd." },
+      { n: "3", t: "Side with the crowd for 20 points, go against it for 5. Skip a matchup for 0." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -617,7 +617,7 @@ export const games: Game[] = [
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Vote for the side you think wins each of the 10 matchups.</li>
           <li><strong>Split:</strong> After every vote you see how the community voted, live.</li>
-          <li><strong>Reward:</strong> No points. Finish to see how often you sided with the crowd.</li>
+          <li><strong>Reward:</strong> 20 points when your side has at least as many votes as the other, 5 when it has fewer. Skips earn nothing. Up to 200.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
@@ -625,8 +625,8 @@ export const games: Game[] = [
     loadingMessage: "Setting up the matchups...",
     backgroundImage: `url('${thumb_who_would_win.src}')`,
     urlPath: "/who-would-win",
-    pointsPerCorrect: 0,
-    maxPoints: 0,
+    pointsPerCorrect: 20,
+    maxPoints: 200,
     roundsLabel: "10 matchups",
     fetchData: () => fetchGamePool("who-would-win", 10),
     handleError: handleErrorDefault,

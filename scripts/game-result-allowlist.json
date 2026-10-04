@@ -1,6 +1,5 @@
 {
   "series-winner": "Every round already reveals the winning team (green/red card) before it advances, so at the end there is only a total left and nothing unrevealed; the full-screen GameResult is correct.",
   "name-logo": "Every round already reveals the team name in a per-round answer flash before it advances, so nothing is left to reveal at the end; the full-screen GameResult is correct.",
-  "guess-mvps": "Every round already reveals the MVP in a per-round answer flash before it advances, so nothing is left to reveal at the end; the full-screen GameResult is correct.",
-  "who-would-win": "Handled by its own card, which will move it to the in-place pattern; it shows its own summary screen before onGameEnd(0). Remove this entry then (the stale-entry check will force it)."
+  "guess-mvps": "Every round already reveals the MVP in a per-round answer flash before it advances, so nothing is left to reveal at the end; the full-screen GameResult is correct."
 }
