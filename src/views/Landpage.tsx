@@ -73,9 +73,11 @@ const Landpage = () => {
             {/* Hero entrances are slide-only (no opacity fade): these elements
                 are server-rendered, and starting them at opacity 0 would make
                 the static page paint incomplete until hydration. */}
-            <motion.div className="hero-badge" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
+            <motion.div className="hero-badge" role="note" aria-label="FREE · NO SIGN-UP NEEDED · NEW GAME EVERY WEEK" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}>
               <span className="hero-badge-dot" />
-              FREE · NO SIGN-UP NEEDED · NEW GAME EVERY WEEK
+              <span className="hero-badge-t-full">FREE · NO SIGN-UP NEEDED · NEW GAME EVERY WEEK</span>
+              <span className="hero-badge-t-mid" aria-hidden="true">FREE · NO SIGN-UP · NEW GAME WEEKLY</span>
+              <span className="hero-badge-t-short" aria-hidden="true">FREE · NO SIGN-UP · WEEKLY GAMES</span>
             </motion.div>
             {/* LCP element: slide-only entrance (no opacity fade) so its first
                 paint isn't deferred to the animation — keeps mobile LCP honest. */}

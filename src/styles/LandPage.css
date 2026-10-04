@@ -42,12 +42,13 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) {
   .hero-grain { animation: none; }
 }
-.hero-inner { position: relative; display: flex; flex-direction: column; gap: 20px; max-width: 660px; }
+.hero-inner { position: relative; display: flex; flex-direction: column; gap: 20px; max-width: 660px; container-type: inline-size; container-name: hero; }
 .hero-badge {
   display: inline-flex;
   align-items: center;
   gap: 9px;
   align-self: flex-start;
+  max-width: 100%;
   padding: 6px 13px;
   border: 1px solid var(--line2);
   border-radius: 40px;
@@ -58,7 +59,22 @@ html { scroll-behavior: smooth; }
   color: var(--brand);
   white-space: nowrap;
 }
-.hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.hero-badge-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+/* One copy variant is visible at a time, chosen by the hero's own width (CSS
+   only, so the server-rendered HTML needs no measuring). The text always ends
+   on a whole word and the type never drops below 10px. These are container
+   widths, not viewport breakpoints, so they are not part of the UI-13 set. */
+.hero-badge-t-mid, .hero-badge-t-short { display: none; }
+@container hero (max-width: 539px) {
+  .hero-badge { font-size: 11px; letter-spacing: 1px; padding: 6px 12px; gap: 8px; }
+  .hero-badge-t-full { display: none; }
+  .hero-badge-t-mid { display: inline; }
+}
+@container hero (max-width: 399px) {
+  .hero-badge { font-size: 10px; letter-spacing: 0.4px; padding: 6px 8px; gap: 6px; }
+  .hero-badge-t-mid { display: none; }
+  .hero-badge-t-short { display: inline; }
+}
 .hero-h1 { font-size: clamp(30px, 6vw, 58px); line-height: 1.03; }
 .hero-lead { font-size: clamp(14px, 2vw, 18px); color: var(--muted); max-width: 520px; line-height: 1.55; }
 .hero-cta-row { display: flex; flex-wrap: wrap; gap: 12px; }
