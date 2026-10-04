@@ -53,14 +53,17 @@
   cursor: default;
 }
 
-/* ===== Grid: header column ~0.62fr + 3 equal cell columns =====
+/* ===== Grid: row-label column + 3 equal cell columns =====
    NOT flex:1 — the 3x3 is a fixed-size, non-scrolling board, so this is a
    content game (Rule 4.1) and the rows carry their own dvh-scaled height
-   instead of stretching into whatever is left of the stage. */
+   instead of stretching into whatever is left of the stage.
+   --ttt-crit-fs is the label font: 10px floor, and it also scales with width so
+   a tall-but-narrow phone (320x844) does not get 11.5px labels in 50px columns. */
 .ttt-grid {
+  --ttt-crit-fs: clamp(10px, min(1.5dvh, 2.7vw), 11.5px);
   display: grid;
-  grid-template-columns: minmax(52px, 0.62fr) repeat(3, minmax(0, 1fr));
-  grid-template-rows: auto repeat(3, clamp(56px, 11dvh, 104px));
+  grid-template-columns: clamp(76px, 22vw, 96px) repeat(3, minmax(0, 1fr));
+  grid-template-rows: auto repeat(3, clamp(48px, 9dvh, 88px));
   gap: clamp(5px, 1vw, 8px);
   width: 100%;
 }
@@ -75,14 +78,20 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  min-width: 0;
+  min-height: 0;
   padding: 4px 5px;
   border-radius: 10px;
   background: var(--surface2);
   border: 1px solid var(--line);
-  font-size: clamp(9.5px, 1.5dvh, 11.5px);
+  font-size: var(--ttt-crit-fs);
   font-weight: 700;
   line-height: 1.15;
   color: var(--muted);
+  /* Labels are never clipped: long words break (hyphenated where the browser
+     can, needs the lang attr on the span) instead of spilling out. */
+  overflow-wrap: anywhere;
+  hyphens: auto;
 }
 .ttt-crit--col {
   min-height: 34px;
@@ -145,11 +154,20 @@
   text-align: center;
   overflow-wrap: anywhere;
 }
+/* SwapText's wrapper inside a cell: never wider than the cell. */
+.ttt-cell-swap {
+  min-width: 0;
+  max-width: 100%;
+}
+/* Empty cell: an orange "?" glyph (aria-hidden — the cell's aria-label speaks). */
 .ttt-cell-blank {
-  width: 40%;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--surface3);
+  display: block;
+  color: var(--brand);
+  font-size: clamp(16px, 3.4dvh, 26px);
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
 }
 
 /* Winner banner (reserves no space until terminal — appears above the input) */
@@ -185,14 +203,17 @@
   text-align: center;
 }
 
-/* Small phones (390x844): tighter gaps so grid + input never scroll.
-   Cell height comes from .ttt-grid's dvh-scaled rows at every width now, so the
-   old aspect-ratio override here is gone (a stretched grid item ignores it). */
+/* Phones: every whole word must fit its label without a mid-word break, at
+   320px wide and any height. The label column is sized from the label font
+   (6.5 x the font fits "Timberwolves", the widest word in any team name, plus 2px padding
+   and border each side), which leaves the three cell columns wide enough for the
+   column headers ("Champion" needs ~53px at 10px; at 320px each gets ~55px). */
 @media (max-width: 480px) {
   .ttt-grid {
-    gap: 5px;
+    grid-template-columns: calc(var(--ttt-crit-fs) * 6.5 + 8px) repeat(3, minmax(0, 1fr));
+    gap: 4px;
   }
   .ttt-crit {
-    font-size: 9.5px;
+    padding: 4px 2px;
   }
 }
