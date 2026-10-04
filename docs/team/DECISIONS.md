@@ -1062,3 +1062,19 @@ Decision: `difficulty: standard`, `areas: frontend, ui, games`, `risk: low`, `en
 Contexto UX and per-game audit judgment `[opus]`.
 Consequences: if the audit finds a large violator (Wordle, TicTacToe), it is allowlisted with a follow-up note
 as the card allows, not turned into a design round here.
+
+## 2026-10-04 — Who Would Win points: clamp vs reject at the per-game cap, and where the constants live
+Context: the card says "reject scores above 200 for who-would-win" in `log_session`, and "put both
+points constants at the top of the renderer" while also asking for a unit test of the points function.
+Design: `designs/2026-10-04-who-would-win-fix-the-overlap.md`.
+Weighed: (a) a 4xx for a who-would-win score above 200 — rejected: `MiniGame.awardPoints` surfaces
+`data.error` as an alert, so a real player who hits a client/server disagreement would see "Saving your
+score failed!", and the global cap already clamps rather than rejects; (b) clamp to a per-game ceiling
+(`PER_GAME_MAX_POINTS.get(game, MAX_SESSION_POINTS)`) — chosen: nothing above 200 is ever awarded, the
+GameSession row still records the attempt, other games are untouched. Constants: (a) in the renderer
+`.tsx` — rejected because the spec's unit test cannot import a framer/JSX module under
+`node --experimental-strip-types`; (b) `src/utils/whoWouldWinPoints.ts` imported at the top of the
+renderer — chosen. Tally missing or errored at scoring time counts as majority (20): a network fault
+never costs the player points and the backend cap bounds abuse at the honest maximum.
+Consequences: the engine reports both readings under `assumed` in the build report so the owner can
+flip either; `PER_GAME_MAX_POINTS` is the place future per-game caps go.
