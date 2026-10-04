@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import "../styles/LandPage.css";
 import "../styles/GlobalStyles.css";
 import { visibleGames as games } from "../utils/GameUtils";
+import { dailyGameId } from "../utils/dailyGame";
 import Navigation from "../components/Navigation";
 import UserProfile from "../components/UserProfile";
 import Leaderboard from "../components/Leaderboard";
@@ -40,6 +41,19 @@ const Landpage = () => {
   const playableCount = games.filter((g) => g.id !== "coming-soon").length;
 
   const openGame = (id: string, urlPath: string) => navigate(urlPath, { state: { id } });
+  // Computed at call time (click / render), so a tab left open across Paris midnight picks the right game.
+  const todaysGame = () => {
+    const id = dailyGameId(games, new Date());
+    return games.find((g) => g.id === id) ?? games[0];
+  };
+  // The label is date-derived, so it is set after mount (not during SSR) and refreshed when a tab returns to view.
+  const [todaysName, setTodaysName] = useState("");
+  useEffect(() => {
+    const sync = () => setTodaysName(todaysGame().name);
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
+  }, []);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -72,7 +86,7 @@ const Landpage = () => {
               Bite-sized NBA trivia. Build a streak, climb the global board, and challenge friends when you're ready.
             </motion.p>
             <motion.div className="hero-cta-row" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}>
-              <Button size="lg" onClick={() => openGame(games[0].id, games[0].urlPath)}>
+              <Button size="lg" aria-label={todaysName ? `Play today's game: ${todaysName}` : undefined} onClick={() => { const g = todaysGame(); openGame(g.id, g.urlPath); }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 Play today's game
               </Button>
