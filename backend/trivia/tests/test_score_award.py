@@ -75,6 +75,16 @@ class ScoreAwardTests(TestCase):
         self.assertEqual(res.json()["awarded"], MAX_SESSION_POINTS)
         self.assertEqual(self.points(), MAX_SESSION_POINTS)
 
+    def test_who_would_win_is_capped_at_its_own_ceiling(self):
+        res = self._finish(game="who-would-win", score=999)
+        self.assertEqual(res.json()["awarded"], 200)
+        self.assertEqual(self.points(), 200)
+
+    def test_who_would_win_honest_max_is_awarded_in_full(self):
+        res = self._finish(game="who-would-win", score=200)
+        self.assertEqual(res.json()["awarded"], 200)
+        self.assertEqual(self.points(), 200)
+
     def test_multiplayer_results_award_nothing(self):
         """AUTH-7: a win or loss online never touches account points."""
         res = self._finish(mode="match", score=300)

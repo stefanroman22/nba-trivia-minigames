@@ -188,7 +188,8 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
                 </button>
               </div>
               <div className="fp-picker-list">
-                {games.filter((g) => g.id !== "coming-soon" && g.id !== mp.game?.id).map((g) => (
+                {/* who-would-win has no turn/score logic for rooms (both players would score 0) */}
+                {games.filter((g) => g.id !== "coming-soon" && g.id !== "who-would-win" && g.id !== mp.game?.id).map((g) => (
                   <button key={g.id} className="fp-picker-item" onClick={() => { setPicking(false); changeFriendGame(g); }}>
                     <span className="fp-picker-thumb" style={{ backgroundImage: g.backgroundImage }} />
                     <span className="fp-picker-name">{g.name}</span>

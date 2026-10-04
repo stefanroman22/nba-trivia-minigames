@@ -265,6 +265,9 @@ _MAX_DURATION_MS = 86_400_000
 # forged submission can't inflate an account. Per-game caps derived from real
 # GameSession data should eventually replace this single global number.
 MAX_SESSION_POINTS = 1000
+# Per-game ceilings: the highest honest score for that game (who-would-win: 10 matchups x 20).
+# Games not listed here stay on the global MAX_SESSION_POINTS.
+PER_GAME_MAX_POINTS = {"who-would-win": 200}
 
 
 @api_view(["POST"])
@@ -324,7 +327,7 @@ def log_session(request):
         score = 0
     # The largest score any renderer can produce is MAX_SCORE = 300, so this is >3x
     # headroom for real play while making an inflated submission worthless.
-    score = min(score, MAX_SESSION_POINTS)
+    score = min(score, PER_GAME_MAX_POINTS.get(game, MAX_SESSION_POINTS))
     try:
         duration = max(0, min(int(body.get('duration_ms', 0)), _MAX_DURATION_MS))
     except (TypeError, ValueError):

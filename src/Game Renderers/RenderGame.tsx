@@ -254,6 +254,8 @@ export const renderGame = ({
         <WhoWouldWin
           gameInfo={gameData as WwwMatchup[]}
           onGameEnd={onGameEnd}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 
