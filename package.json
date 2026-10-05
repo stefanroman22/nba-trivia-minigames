@@ -10,7 +10,7 @@
   "scripts": {
     "copy:data": "node scripts/copy-data.mjs",
     "predev": "node scripts/dev-env.mjs",
-    "dev": "npm run copy:data && next dev -p 5173",
+    "dev": "npm run copy:data && node scripts/dev.mjs",
     "build": "npm run copy:data && next build",
     "check:games": "node scripts/check-game-results.mjs",
     "lint": "eslint . && npm run check:games",
