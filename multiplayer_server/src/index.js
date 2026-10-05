@@ -47,13 +47,23 @@ const gameEndpoints = require("./gameEndpoints");
 const turnGames = require("./turnGames");
 const questions = require("./questions");
 const gameData = require("./gameData");
+const { createVerifier } = require("./auth");
 
-const CORS_ORIGINS = (
-  process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
-)
+// Which browser origins may use this server. Production must name them explicitly and
+// should never list localhost: that is what keeps a developer's local site off the
+// deployed (usage-billed) server — it gets pointed at a local one instead (scripts/dev-env.mjs).
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+if (IS_PRODUCTION && !process.env.CORS_ORIGINS) {
+  console.error("CORS_ORIGINS must be set in production (comma-separated site origins).");
+  process.exit(1);
+}
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
+
+// Who a socket is gets decided by the backend (see auth.js), never by what the client claims.
+const verifyToken = createVerifier({ apiBaseUrl: process.env.API_BASE_URL || "http://localhost:8000" });
 
 const MATCH_TIMEOUT_MS = 30000;    // how long to wait in the matchmaking queue
 const GRACE_MS = 30000;            // reconnect window before a dropped player forfeits
@@ -84,7 +94,16 @@ app.use(cors({ origin: CORS_ORIGINS, methods: ["GET", "POST"] }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: CORS_ORIGINS, methods: ["GET", "POST"] } });
+const io = new Server(server, {
+  cors: { origin: CORS_ORIGINS, methods: ["GET", "POST"] },
+  // CORS headers only bind browsers' reads; this refuses the connection itself when a
+  // browser presents an origin that isn't allowed (websocket upgrades ignore CORS).
+  // Requests with no Origin (non-browser clients) still need a valid token to do anything.
+  allowRequest: (req, callback) => {
+    const origin = req.headers.origin;
+    callback(null, !origin || CORS_ORIGINS.includes(origin));
+  },
+});
 
 // uid -> { socketId, user, roomCode }
 const players = new Map();
@@ -521,11 +540,33 @@ io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
   // --- Identity (sent on every (re)connect) ---
-  // Players are keyed by their permanent public id; the username fallback
-  // keeps not-yet-updated clients working (they can't share names anyway).
-  socket.on("identify", ({ user } = {}) => {
-    const uid = user?.id || user?.username;
-    if (!uid) return;
+  // The client proves who it is with its access token; the backend's answer (not the
+  // client's claim) supplies the id, name and points. Players are keyed by their
+  // permanent public id. Until identify succeeds the socket has no uid, so every
+  // game action is refused ("You need to be signed in").
+  //
+  // Clients emit identify and then an action back to back, so the middleware below holds
+  // every later packet until the pending verification settles.
+  socket.use((packet, next) => {
+    if (packet[0] === "identify" || !socket.identifying) return next();
+    socket.identifying.then(() => next());
+  });
+
+  socket.on("identify", ({ token } = {}) => {
+    const attempt = verifyToken(token).then((verdict) => {
+      if (!verdict.ok) {
+        socket.emit("identifyRejected", { reason: verdict.reason });
+        return;
+      }
+      identified(verdict.user);
+    });
+    socket.identifying = attempt.finally(() => {
+      if (socket.identifying === attempt) socket.identifying = null;
+    });
+  });
+
+  function identified(user) {
+    const uid = user.id;
     socket.uid = uid;
     const prev = players.get(uid);
     players.set(uid, { socketId: socket.id, user, roomCode: prev?.roomCode ?? null });
@@ -549,7 +590,7 @@ io.on("connection", (socket) => {
       }
       console.log(`${uid} resumed room ${room.code} (${room.phase})`);
     }
-  });
+  }
 
   // --- Matchmaking ---
   // Skill-aware: pair with the closest-points opponent whose fairness window

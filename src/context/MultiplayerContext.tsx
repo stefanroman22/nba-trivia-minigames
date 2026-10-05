@@ -23,6 +23,8 @@ import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { useNavigate } from "../hooks/useNavigate";
 import socket from "../socket";
+import { getAccessToken, refreshSession } from "../utils/Api";
+import { isAccessTokenExpired } from "../utils/session";
 import type { RootState } from "../store";
 import type { Game, GameData, PlayerInfo } from "../types/types";
 
@@ -369,6 +371,21 @@ interface MultiplayerContextValue {
 
 const Ctx = createContext<MultiplayerContextValue | null>(null);
 
+/** Proves who we are to the server with our access token (refreshed first when stale). The
+ *  server asks the backend who the token belongs to, so nothing the client claims about
+ *  itself is trusted. */
+async function sendIdentify(): Promise<void> {
+  let token = getAccessToken();
+  if (token && isAccessTokenExpired(token)) {
+    try {
+      token = (await refreshSession()).access;
+    } catch {
+      // Keep the stale token: the server rejects it and the player sees the notice below.
+    }
+  }
+  socket.emit("identify", { token });
+}
+
 export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const [mp, dispatch] = useReducer(reducer, initial);
   const { user } = useSelector((state: RootState) => state.user);
@@ -380,12 +397,15 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   codeRef.current = mp.code;
   userRef.current = user;
+  // One silent session refresh per rejected identify, so a bad token can't loop.
+  const identifyRetriedRef = useRef(false);
 
   // ---- Identity: (re)announce ourselves on every connect so the server can
   //      resume an in-flight match. ----
   useEffect(() => {
     const identify = () => {
-      if (userRef.current) socket.emit("identify", { user: userRef.current });
+      identifyRetriedRef.current = false;
+      if (userRef.current) void sendIdentify();
     };
     identify();
     socket.on("connect", identify);
@@ -437,6 +457,17 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       proposalCancelled: () => dispatch({ t: "PROPOSAL_CANCELLED" }),
       proposalTimeout: () => dispatch({ t: "PROPOSAL_TIMEOUT" }),
       resumeMatch: (snapshot: ResumeSnapshot) => dispatch({ t: "RESUME", snapshot }),
+      identifyRejected: (d: { reason?: string } = {}) => {
+        const fail = (text: string) => dispatch({ t: "NOTICE", notice: { kind: "error", text } });
+        if (d?.reason === "invalid" && !identifyRetriedRef.current) {
+          identifyRetriedRef.current = true;
+          refreshSession().then(sendIdentify).catch(() => fail("Your session expired. Please log in again."));
+        } else if (d?.reason === "invalid") {
+          fail("Your session expired. Please log in again.");
+        } else {
+          fail("Can't verify your account right now. Please try again.");
+        }
+      },
       matchError: (d: { message: string }) => dispatch({ t: "NOTICE", notice: { kind: "error", text: d.message } }),
       // Illegal turn move: transient feedback (warn auto-clears), shown by OnlineMatch's NoticeBar.
       turnReject: (d: { message?: string } = {}) =>
@@ -484,22 +515,19 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const findMatch = useCallback((game: Game) => {
     if (!guardOnline()) return;
     dispatch({ t: "FIND", game });
-    socket.emit("identify", { user: userRef.current });
-    socket.emit("findMatch", { game: serializeGame(game) });
+    void sendIdentify().then(() => socket.emit("findMatch", { game: serializeGame(game) }));
   }, [guardOnline]);
 
   const createFriendRoom = useCallback((game: Game) => {
     if (!guardOnline()) return;
     dispatch({ t: "FRIEND_CREATE" });
-    socket.emit("identify", { user: userRef.current });
-    socket.emit("createFriendRoom", { game: serializeGame(game) });
+    void sendIdentify().then(() => socket.emit("createFriendRoom", { game: serializeGame(game) }));
   }, [guardOnline]);
 
   const joinFriendRoom = useCallback((code: string) => {
     if (!guardOnline()) return;
     dispatch({ t: "FRIEND_JOIN" });
-    socket.emit("identify", { user: userRef.current });
-    socket.emit("joinFriendRoom", { code });
+    void sendIdentify().then(() => socket.emit("joinFriendRoom", { code }));
   }, [guardOnline]);
 
   const changeFriendGame = useCallback((game: Game) => {
