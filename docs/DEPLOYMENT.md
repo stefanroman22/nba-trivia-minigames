@@ -136,8 +136,9 @@ The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (s
 
 ### Multiplayer server (Render / Node host)
 ```
-API_BASE_URL=https://backend-kappa-one-42.vercel.app # REQUIRED in prod (else it tries localhost)
-CORS_ORIGINS=http://localhost:5173,https://<your-frontend-domain>
+NODE_ENV=production                                  # REQUIRED: the server refuses to start without CORS_ORIGINS
+API_BASE_URL=https://backend-kappa-one-42.vercel.app/api # REQUIRED in prod (else it tries localhost); also where it verifies login tokens (GET /me/)
+CORS_ORIGINS=https://nba-minigames.vercel.app        # production site origins ONLY — never localhost, that is what keeps local dev off this server
 DATA_PUBLIC_BASE=https://nba-minigames-data.vercel.app   # game-data host: pool games + published question games (unset = backend endpoints / questions store)
 QUESTIONS_PUBLIC_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>   # questions store: hidden games + fallback for the question games
 REDIS_URL=rediss://...                               # optional: enables the Socket.IO adapter
@@ -280,7 +281,7 @@ Design background: `docs/superpowers/specs/2026-08-29-three-environment-strategy
 
 | | Frontend | Backend | Socket | Database |
 |---|---|---|---|---|
-| **local** | Vite `:5173` | local `:8000`, else **prod fallback** | local `:4000`, else **prod fallback** | sqlite (default) or local Postgres |
+| **local** | Next `:5173` | local `:8000`, else **prod fallback** | **always local `:4000`** (started by `npm run dev`; never the deployed one) | sqlite (default) or local Postgres |
 | **dev** | dev-branch Vercel URL (`https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app`) | production backend | production socket | production Supabase |
 | **production** | `https://nba-minigames.vercel.app` | `https://backend-kappa-one-42.vercel.app/api` | production socket | production Supabase |
 
@@ -290,19 +291,22 @@ reintroduces the cost/pause problem below. "Isolated backend work" happens local
 
 **Note on the socket row:** there is currently no production multiplayer server deployed (the old
 Railway host is dead), so both `dev` and `production` actually get no socket today, and
-"Play Online" is broken in both. Redeploying it is a separate, owner-gated task. Locally, the
-socket falls back the same way the backend does — except that with nothing deployed to fall back
-*to*, the probe (below) reports `socket : UNAVAILABLE` instead of pointing at a remote host.
+"Play Online" is broken in both. Redeploying it is a separate, owner-gated task (hosting costs
+money). Set `VITE_SOCKET_URL` in `.env.production` once it exists.
 
 `npm run dev` runs `scripts/dev-env.mjs` first (via the `predev` hook), which TCP-probes
-`localhost:8000` and `localhost:4000` and writes the result to a gitignored `.env.local` — local
-if the service answers, the deployed production one otherwise. The terminal prints a banner
-naming each service's mode; whenever the *backend* resolves to the deployed one, a `PROD DATA`
-badge also appears in the running app (dev-only). The badge only tracks the backend — it does
-not read the socket's resolution, so it gives no warning if the socket ever falls back to a
-deployed one. That's harmless today because there's nothing for the socket to fall back to (see
-above), but whoever wires up `REMOTE_SOCKET_URL` for the Railway deploy (§5.5/E3) should extend
-the badge to cover `VITE_ENV_SOURCE_SOCKET` too, or a socket-only fallback will go unwarned.
+`localhost:8000` and writes the result to a gitignored `.env.local` — local backend if it answers,
+the deployed production one otherwise. The terminal prints a banner naming the mode; whenever the
+*backend* resolves to the deployed one, a `PROD DATA` badge also appears in the running app (dev-only).
+
+**Multiplayer never leaves your machine in local runs.** The socket is billed by usage, so
+`.env.local` always sets `VITE_SOCKET_URL=http://localhost:4000`, and `scripts/dev.mjs` (the `dev`
+script) starts `multiplayer_server/` there unless something already listens, then stops it with the
+dev server. Three layers keep it that way: `src/socket.ts` ignores any non-local `VITE_SOCKET_URL`
+outside production builds; a production build has no localhost fallback; and the deployed server
+refuses browsers whose origin is not in its `CORS_ORIGINS` (localhost is never listed). The local
+server verifies players against whichever backend the site uses, so sign in works either way.
+`NBA_DEV_ENV_SKIP=1` (pipeline QA) runs plain `next dev` and starts nothing extra.
 
 **Why dev and production intentionally share one backend and one Supabase project:** there is no
 second Supabase project. Decision, not oversight — an extra free-tier project can auto-pause
