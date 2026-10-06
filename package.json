@@ -16,6 +16,7 @@
     "lint": "eslint . && npm run check:games",
     "test:game-data": "node --experimental-strip-types scripts/test-game-data.mjs",
     "test:daily-game": "node --experimental-strip-types scripts/test-daily-game.mjs",
+    "test:in-app-browser": "node --experimental-strip-types scripts/test-in-app-browser.mjs",
     "test:wordle-countdown": "node --experimental-strip-types scripts/test-wordle-countdown.mjs",
     "test:www-points": "node --experimental-strip-types scripts/test-www-points.mjs",
     "team": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/team-run.ps1",
