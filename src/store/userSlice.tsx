@@ -1,5 +1,6 @@
 // src/store/userSlice.ts
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+import type { BanInfo } from "../utils/ban";
 
 export type User = {
   /** Permanent public player id (#K7F3QD) — usernames may repeat. */
@@ -18,12 +19,16 @@ type UserState = {
   user: User | null;
   /** True once the initial /me/ session check has resolved (either way). */
   authChecked: boolean;
+  /** Set when the backend answered 403 `account_banned` (utils/ban.ts); BanNotice renders it.
+   *  A ban is a session state, not a form state — the auth modal never owns it. */
+  banned: BanInfo | null;
 };
 
 const initialState: UserState = {
   isLoggedIn: false,
   user: null,
   authChecked: false,
+  banned: null,
 };
 
 const userSlice = createSlice({
@@ -34,11 +39,21 @@ const userSlice = createSlice({
       state.isLoggedIn = true;
       state.user = action.payload;
       state.authChecked = true;
+      state.banned = null;
     },
     logout: (state) => {
       state.isLoggedIn = false;
       state.user = null;
       state.authChecked = true;
+      state.banned = null;
+    },
+    /** The account is banned: drop the signed-in user and show the ban screen. Tokens and the
+     *  cached user are cleared by the handler in app/providers.tsx before this runs. */
+    accountBanned: (state, action: PayloadAction<BanInfo>) => {
+      state.isLoggedIn = false;
+      state.user = null;
+      state.authChecked = true;
+      state.banned = action.payload;
     },
     /** Optimistic restore from the cached /me/ payload (utils/session.ts) while the real
      *  check runs. Leaves `authChecked` false: only the server's answer settles it, and a
@@ -71,5 +86,5 @@ const userSlice = createSlice({
   },
 });
 
-export const { login, logout, hydrateSession, updatePoints, updateRank, updateUsername, updateProfilePhoto } = userSlice.actions;
+export const { login, logout, accountBanned, hydrateSession, updatePoints, updateRank, updateUsername, updateProfilePhoto } = userSlice.actions;
 export default userSlice.reducer;

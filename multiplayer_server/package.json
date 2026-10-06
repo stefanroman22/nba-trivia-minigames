@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "test:game-data": "node scripts/test_game_data.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test scripts/test_identity.js"
   },
   "engines": {
     "node": ">=18"

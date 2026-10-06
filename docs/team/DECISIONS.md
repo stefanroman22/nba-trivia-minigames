@@ -1096,3 +1096,24 @@ existing feedback modal on top of it and the state is not dismissible. Appeal: a
 Consequences: owner defaults 1-8 from the card ship as named constants/settings for review; the engine
 reports the measured corpus numbers and the fixed appeal rating under `assumed`; the photo card plugs into
 `strikes.record_strike(user, "photo", ...)` and `ban_reason="photo"` without touching the gate.
+
+## 2026-10-06 — Ban system and username moderation: 3 strikes, plain code, token-verified relay
+Context: card "Ban system and username moderation" (design `docs/team/designs/2026-10-06-ban-system-and-username.md`).
+Offensive names must be blocked without blocking real NBA names, repeat offenders banned, with no AI, LLM
+or external API. The relay trusted the client's `identify` payload, so anyone could claim any id.
+Decision: owner defaults, each a named constant or data file the owner can change: (1) severe tier
+(slurs, explicit sexual terms, f-word family; `users/moderation_data/severe.json`) strikes on a name
+change, mild/reserved reject without a strike; (2) the strike message says "(n of 3)"; (3) the ban
+screen's Appeal opens the existing feedback modal (`game="appeal"`, no personal email in the product);
+(4) banned accounts are hidden, never deleted, so an unban restores everything; (5) strikes never
+expire; (6) events store tier and reason codes only, no text or raw IP; (7) uncertain photo band is
+logged for review (photo card); (8) Romanian severe terms are a short hand-written list marked
+`needs-native-review`. Matching is run-aware (no collapse-then-compare, so "Niger" never matches the
+slur) with a per-term `except` list for Scunthorpe words; the player allowlist cancels mild hits only.
+Bans are `banned_at` + `BanAwareJWTAuthentication` + 403 `account_banned` (never 401). The relay now
+requires the access token and verifies it against `/api/me/`; token-less clients are refused (the relay
+is not deployed today, so nothing breaks in production). `BanNotice` is a page-level blocking state,
+not a dismissible overlay, so it is a deliberate UI-8 exception (it must sit under the appeal modal).
+Consequences: AUTH-3/AUTH-8/MP-1 rewritten, AUTH-13 added. Canonical-email and per-IP signup locks are
+weak anti-evasion (a new address or network defeats them) and are not a security boundary. Photo
+moderation plugs into `users.strikes.record_strike(user, "photo")` next.

@@ -1,0 +1,28 @@
+{
+ "note": "Rejected without a strike. 'token': any whole token ('admin1', 'Moderator_Joe'). 'whole_name': only when the letters-only name is exactly this ('NBA', 'nba_1'), so fan tags like 'NBA2KPro' stay allowed.",
+ "token": [
+  "admin",
+  "administrator",
+  "moderator",
+  "mod",
+  "mods",
+  "staff",
+  "support",
+  "official",
+  "system",
+  "root",
+  "superuser",
+  "sysadmin",
+  "webmaster"
+ ],
+ "whole_name": [
+  "nba",
+  "hoops24",
+  "hoops",
+  "nbaofficial",
+  "nbaminigames",
+  "minigames",
+  "owner",
+  "developer"
+ ]
+}

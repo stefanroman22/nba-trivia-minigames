@@ -14,7 +14,9 @@ class Command(BaseCommand):
         if r is None:
             raise CommandError("REDIS_URL is not set; nothing to sync.")
         mapping = {
-            u.public_id: u.points for u in User.objects.all().only("public_id", "points")
+            u.public_id: u.points
+            # Banned accounts are hidden from every board (users.strikes).
+            for u in User.objects.filter(banned_at__isnull=True).only("public_id", "points")
         }
         r.delete(leaderboard.ZKEY)
         if mapping:

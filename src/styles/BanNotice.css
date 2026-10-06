@@ -1,0 +1,71 @@
+/* ===========================================================================
+   Ban screen (components/BanNotice.tsx). A blocking full-viewport state, not a
+   modal: it sits above the sticky nav (40) and below .modal-backdrop (60) so
+   the Appeal feedback modal opens on top of it (UI-12 scale).
+   =========================================================================== */
+
+.ban-notice {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(env(safe-area-inset-top), 24px) 16px max(env(safe-area-inset-bottom), 24px);
+  background: var(--bg);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ban-card {
+  width: 100%;
+  max-width: 440px;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 24px 24px;
+  background: var(--surface);
+  border: 1px solid var(--line2);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  outline: none;
+}
+
+.ban-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--bad-soft);
+  color: var(--bad);
+}
+
+.ban-title { font-size: 24px; line-height: 1.2; color: var(--text); margin: 4px 0 0; }
+
+.ban-text,
+.ban-help { font-size: 14px; line-height: 1.55; color: var(--muted); margin: 0; max-width: 360px; }
+.ban-help { font-size: 13px; }
+
+.ban-strikes {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--bad-soft);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+.ban-pips { display: inline-flex; gap: 5px; }
+.ban-pip { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); }
+.ban-pip.is-on { background: var(--bad); }
+
+.ban-id { margin: 0; font-size: 13px; color: var(--muted); }
+
+.ban-actions { width: 100%; display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }

@@ -79,6 +79,8 @@ const stubs = {
   express: Object.assign(() => ({ use() {}, get() {} }), { json: () => () => {} }),
   cors: () => () => {},
   "socket.io": { Server: function Server() { return fakeIo; } },
+  // identify verifies a Django token (src/identity.js); here the token is the user JSON.
+  "./identity": { verifyToken: async (token) => ({ ok: true, user: JSON.parse(token) }) },
 };
 
 const originalLoad = Module._load;
@@ -226,8 +228,8 @@ async function playRound(gameId, suffix) {
   const b = makeSocket(`sb-${suffix}`);
   const userA = { id: `A${suffix}`, username: `alice${suffix}`, points: 100 };
   const userB = { id: `B${suffix}`, username: `bob${suffix}`, points: 100 };
-  a.send("identify", { user: userA });
-  b.send("identify", { user: userB });
+  a.send("identify", { user: userA, token: JSON.stringify(userA) });
+  b.send("identify", { user: userB, token: JSON.stringify(userB) });
   a.send("findMatch", { game: GAMES[gameId] });
   b.send("findMatch", { game: GAMES[gameId] });
   await settle(() => eventsFor(a.id, "roundData").length && eventsFor(b.id, "roundData").length);
@@ -260,7 +262,8 @@ async function playRound(gameId, suffix) {
     JSON.stringify(qA) === JSON.stringify(SUPERDRAFT_QUESTION));
 
   // 2. A reconnect re-serves the same round.
-  sd.a.send("identify", { user: sd.userA });
+  sd.a.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
+  await settle(() => eventsFor(sd.a.id, "resumeMatch").length > 0);
   const resume = eventsFor(sd.a.id, "resumeMatch");
   check("superdraft: reconnect resumed the match", resume.length === 1);
   check("superdraft: the resumed round is the same one",
@@ -303,7 +306,8 @@ async function playRound(gameId, suffix) {
   // Disconnect A, then resume the same user on a fresh socket.
   sd.a.send("disconnect");
   const a2 = makeSocket("sa-1b");
-  a2.send("identify", { user: sd.userA });
+  a2.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
+  await settle(() => eventsFor(a2.id, "resumeMatch").length > 0);
   const swResume = eventsFor(a2.id, "resumeMatch");
   check("switch: reconnect resumed the match", swResume.length === 1 && swResume[0]?.code === swCode);
   check("switch: the resume snapshot is for tictactoe", swResume[0]?.game?.id === "tictactoe",

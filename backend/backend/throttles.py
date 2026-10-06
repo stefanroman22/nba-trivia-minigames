@@ -62,3 +62,9 @@ class FriendActionRateThrottle(UserRateThrottle):
     """Sending a friend request or blocking someone. Genuine use is a handful
     per session; without a limit it's a spam-add / harassment vector."""
     scope = "friend-action"
+
+
+class NameCheckRateThrottle(UserRateThrottle):
+    """The live username check (users.views.check_name). Debounced typing needs a few per
+    form; unbounded, it would be an oracle for probing the server-side word lists."""
+    scope = "name-check"

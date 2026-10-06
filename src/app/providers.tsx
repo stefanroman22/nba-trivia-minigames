@@ -3,14 +3,16 @@ import { useEffect, type ReactNode } from "react";
 import { Provider, useDispatch } from "react-redux";
 import { MotionConfig } from "framer-motion";
 import { store } from "../store";
-import { hydrateSession, login, logout, type User } from "../store/userSlice";
+import { accountBanned, hydrateSession, login, logout, type User } from "../store/userSlice";
 import { apiFetch, clearTokens, getAccessToken, getRefreshToken, refreshSession, SessionNetworkError } from "../utils/Api";
 import { clearCachedUser, isAccessTokenExpired, prewarmBackend, readCachedUser, writeCachedUser } from "../utils/session";
 import { BACKEND_URL } from "../configurations/backend";
+import { setBanHandler } from "../utils/ban";
 import { ModalProvider } from "../context/ModalContext";
 import { MultiplayerProvider } from "../context/MultiplayerContext";
 import { PageTransitionProvider } from "../context/PageTransitionContext";
 import ModalHost from "../components/ModalHost";
+import BanNotice from "../components/BanNotice";
 import EnvBadge from "../components/EnvBadge";
 
 /** The app-wide effects that used to live in the App component. */
@@ -22,6 +24,20 @@ function AppEffects() {
     document.documentElement.classList.remove("light");
     try { localStorage.setItem("nba3via-theme", "dark"); } catch { /* ignore */ }
   }, []);
+
+  // The one place a 403 `account_banned` lands (utils/ban.ts: apiFetch, refreshSession, the
+  // auth form and the socket report it). The session is over: drop the tokens and the cached
+  // user, then switch the slice to its banned state (BanNotice). Registered before the bootstrap
+  // below so a ban answered by the very first /me/ or refresh is not missed.
+  useEffect(
+    () =>
+      setBanHandler((info) => {
+        clearTokens();
+        clearCachedUser();
+        dispatch(accountBanned(info));
+      }),
+    [dispatch],
+  );
 
   // Keep the cached /me/ payload (utils/session.ts) in step with the slice: every signed-in
   // user change (login, points, username, photo) is written through, a settled logout clears
@@ -91,7 +107,8 @@ function AppEffects() {
         // next load to settle (D4: only a dead session may flip chip -> guest).
         if (err instanceof SessionNetworkError || getRefreshToken()) {
           console.error("Session check failed:", err);
-        } else {
+        } else if (!store.getState().user.banned) {
+          // (A refused refresh that was a ban already settled the slice — keep the ban screen.)
           clearCachedUser();
           dispatch(logout());
         }
@@ -115,6 +132,8 @@ export default function Providers({ children }: { children: ReactNode }) {
             <ModalProvider>
               <AppEffects />
               {children}
+              {/* Blocking ban screen; sits under ModalHost so Appeal's feedback modal opens above it. */}
+              <BanNotice />
               <ModalHost />
               <EnvBadge />
             </ModalProvider>
