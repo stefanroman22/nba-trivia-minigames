@@ -3,7 +3,7 @@
 // Reads .team/run/<slug>/card.json + classify.json, writes brief.md, prints
 //   { brief, hasPlan, needsPlan, lines, rulesQuoted }
 // Usage: node scripts/team/brief.mjs <slug> [--design <path>] [--repo <dir>]
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT } from "../lib/team-config.mjs";
 import { detectSteps } from "./lib/steps.mjs";
@@ -69,6 +69,7 @@ const named = [];
 for (const f of [...new Set(planFiles)].slice(0, 6)) {
   const p = resolve(repo, f);
   if (!existsSync(p)) { named.push(`### ${f}\n_(does not exist yet — the plan creates it)_\n`); continue; }
+  if (!statSync(p).isFile()) continue;
   const head = readFileSync(p, "utf8").split(/\r?\n/).slice(0, 40).join("\n");
   named.push(`### ${f}\n\`\`\`\n${head}\n\`\`\`\n`);
 }
