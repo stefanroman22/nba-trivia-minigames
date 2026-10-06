@@ -7,9 +7,10 @@
 //
 // Design notes
 // ------------
-// Players are keyed by a STABLE identity (`uid`, derived from the logged-in
-// username) rather than by socket.id, because socket ids change on every
-// reconnect. Keying by uid is what makes the robustness features possible:
+// Players are keyed by a STABLE identity (`uid`, the account's permanent public
+// id as Django's /api/me/ reports it for the socket's access token — see
+// identity.js; never the client's own claim) rather than by socket.id, because
+// socket ids change on every reconnect. Keying by uid is what makes the robustness features possible:
 //
 //   • Reconnect / resume  — a dropped player keeps their seat for GRACE_MS; when
 //     a socket re-identifies with the same uid we re-join it to the room and push
@@ -47,6 +48,7 @@ const gameEndpoints = require("./gameEndpoints");
 const turnGames = require("./turnGames");
 const questions = require("./questions");
 const gameData = require("./gameData");
+const identity = require("./identity");
 
 const CORS_ORIGINS = (
   process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
@@ -520,12 +522,55 @@ function startFriendMatch(room) {
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
-  // --- Identity (sent on every (re)connect) ---
-  // Players are keyed by their permanent public id; the username fallback
-  // keeps not-yet-updated clients working (they can't share names anyway).
-  socket.on("identify", ({ user } = {}) => {
-    const uid = user?.id || user?.username;
-    if (!uid) return;
+  // --- Identity (sent on every (re)connect and before every gated action) ---
+  // The client sends { user, token }; only the token counts. identity.js asks
+  // Django's /api/me/ who it belongs to, and the player is keyed by THAT answer,
+  // so nobody can claim someone else's id and a banned account is refused.
+  // A token-less (old) client is not identified: keeping it would keep the
+  // id-spoofing hole (docs/constraints/AUTH_CONSTRAINTS.md AUTH-8).
+  socket.on("identify", ({ token } = {}) => {
+    const seq = (socket._identifySeq || 0) + 1;
+    socket._identifySeq = seq;
+    socket.identifying = identity.verifyToken(token).then((verdict) => {
+      // A newer identify superseded this one while Django answered.
+      if (socket._identifySeq !== seq || socket.disconnected) return;
+      if (!verdict.ok) {
+        refuseIdentity(verdict);
+        return;
+      }
+      socket.token = token;
+      onIdentified(verdict.user);
+    }).catch((err) => console.error("identify failed:", err));
+  });
+
+  // Gated actions: wait for any in-flight identify, then re-check the token
+  // (cached ~60 s in identity.js), so a ban takes effect before the next match.
+  async function verifiedUid() {
+    if (socket.identifying) await socket.identifying;
+    if (!socket.uid || !socket.token) return null;
+    const verdict = await identity.verifyToken(socket.token);
+    if (!verdict.ok) {
+      refuseIdentity(verdict);
+      return null;
+    }
+    return socket.disconnected ? null : socket.uid;
+  }
+
+  // A refused identify: tell the client why. A banned account is disconnected
+  // outright (its seat, if any, then goes through the normal disconnect path).
+  function refuseIdentity(verdict) {
+    socket.emit("identifyError", { code: verdict.code, message: verdict.message });
+    if (verdict.code === "account_banned") {
+      socket.token = null;
+      socket.disconnect(true);
+    }
+  }
+
+  // Verified: key the player by the server's payload (minus the email, which
+  // the relay never needs), then run the resume logic.
+  function onIdentified(serverUser) {
+    const { email: _email, ...user } = serverUser;
+    const uid = user.id;
     socket.uid = uid;
     const prev = players.get(uid);
     players.set(uid, { socketId: socket.id, user, roomCode: prev?.roomCode ?? null });
@@ -549,13 +594,13 @@ io.on("connection", (socket) => {
       }
       console.log(`${uid} resumed room ${room.code} (${room.phase})`);
     }
-  });
+  }
 
   // --- Matchmaking ---
   // Skill-aware: pair with the closest-points opponent whose fairness window
   // (and ours) accepts the gap; the sweep interval re-tries as windows widen.
-  socket.on("findMatch", ({ game } = {}) => {
-    const uid = uidOf(socket);
+  socket.on("findMatch", async ({ game } = {}) => {
+    const uid = await verifiedUid();
     if (!uid || !game?.id) {
       socket.emit("matchError", { message: "You need to be signed in to play online." });
       return;
@@ -603,8 +648,8 @@ io.on("connection", (socket) => {
   });
 
   // --- Friend rooms (private share-code lobbies for FRIEND_ROOM_SIZE players) ---
-  socket.on("createFriendRoom", ({ game } = {}) => {
-    const uid = uidOf(socket);
+  socket.on("createFriendRoom", async ({ game } = {}) => {
+    const uid = await verifiedUid();
     if (!uid || !game?.id) {
       socket.emit("friendError", { message: "You need to be signed in to create a room." });
       return;
@@ -630,8 +675,8 @@ io.on("connection", (socket) => {
     console.log(`Friend room ${code} created by ${uid} (${game.id})`);
   });
 
-  socket.on("joinFriendRoom", ({ code } = {}) => {
-    const uid = uidOf(socket);
+  socket.on("joinFriendRoom", async ({ code } = {}) => {
+    const uid = await verifiedUid();
     if (!uid) {
       socket.emit("friendJoinError", { message: "You need to be signed in to join a room." });
       return;

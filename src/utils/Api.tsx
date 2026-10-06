@@ -1,6 +1,7 @@
 import { BACKEND_URL } from "../configurations/backend";
 import type { User } from "../store/userSlice";
 import { isSessionUser } from "./session";
+import { banFromResponse, isBanPayload, reportBan } from "./ban";
 
 // Token-refresh queue: many requests can 401 at once, but only one refresh should
 // run. The rest wait here and are settled with the outcome.
@@ -112,6 +113,10 @@ export async function refreshSession(): Promise<RefreshResult> {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     console.error("Refresh failed:", errorData);
+
+    // A banned account's refresh answers 403 `account_banned` (not 401): hand it to the ban
+    // screen. The tokens are cleared below either way.
+    if (res.status === 403 && isBanPayload(errorData)) reportBan(errorData);
 
     // The server answered and said no: the refresh token is genuinely dead.
     clearTokens();
@@ -225,6 +230,13 @@ export async function apiFetch(url: string, options: RequestInit = {}) {
       console.error("Session expired:", err);
       throw new Error("Session expired. Please log in again.");
     }
+  }
+
+  // A banned account gets 403 `account_banned` from every authenticated endpoint (never 401, so
+  // the refresh path above never runs for it). Report it; the caller still gets the response.
+  if (response.status === 403) {
+    const ban = await banFromResponse(response);
+    if (ban) reportBan(ban);
   }
 
   return response;

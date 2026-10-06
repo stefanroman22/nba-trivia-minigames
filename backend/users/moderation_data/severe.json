@@ -1,0 +1,854 @@
+{
+ "attribution": "Seed terms from the List of Dirty, Naughty, Obscene, and Otherwise Bad Words (LDNOOBW), https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words, CC BY 4.0. Curated for this app; see ldnoobw/ATTRIBUTION.md.",
+ "note": "Severe tier: a name change matching one of these is a strike (3 = ban). 'substring': true opts a short term into compact-substring matching; 'token_only': true opts a long one out; 'except' lists benign words containing the term, removed from the name before the substring check. 'ro' entries are hand-written and await native review.",
+ "terms": [
+  {
+   "term": "fuck",
+   "lang": "en",
+   "source": "ldnoobw",
+   "substring": true
+  },
+  {
+   "term": "fuckin",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fucking",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fucktards",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "motherfucker",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "clusterfuck",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fuck buttons",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cunt",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nigger",
+   "lang": "en",
+   "source": "ldnoobw",
+   "substring": true,
+   "except": [
+    "snigger"
+   ]
+  },
+  {
+   "term": "nigga",
+   "lang": "en",
+   "source": "ldnoobw",
+   "substring": true
+  },
+  {
+   "term": "nig nog",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faggot",
+   "lang": "en",
+   "source": "ldnoobw",
+   "substring": true
+  },
+  {
+   "term": "fag",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "spic",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wetback",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "beaner",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "beaners",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jigaboo",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jiggaboo",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jiggerboo",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raghead",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "towelhead",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tranny",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "paki",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "darkie",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "slanteye",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "white power",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "neonazi",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blowjob",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blow job",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "handjob",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hand job",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cumshot",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cumshots",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "creampie",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gangbang",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gang bang",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bukkake",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dildo",
+   "lang": "en",
+   "source": "ldnoobw",
+   "substring": true
+  },
+  {
+   "term": "rimjob",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "footjob",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fingerbang",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fisting",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "deepthroat",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "deep throat",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cunnilingus",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "anilingus",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fellatio",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "masturbate",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "masturbating",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "masturbation",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jizz",
+   "lang": "en",
+   "source": "ldnoobw",
+   "substring": true
+  },
+  {
+   "term": "pussy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porn",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porno",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pornography",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pedophile",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "paedophile",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rape",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raping",
+   "lang": "en",
+   "source": "ldnoobw",
+   "token_only": true
+  },
+  {
+   "term": "rapist",
+   "lang": "en",
+   "source": "ldnoobw",
+   "token_only": true
+  },
+  {
+   "term": "date rape",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "daterape",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "incest",
+   "lang": "en",
+   "source": "ldnoobw",
+   "token_only": true
+  },
+  {
+   "term": "bestiality",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "beastiality",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zoophilia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "camwhore",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "camslut",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "slut",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "whore",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "orgasm",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "black cock",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shaved pussy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pedobear",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pthc",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "goatse",
+   "lang": "en",
+   "source": "ldnoobw",
+   "token_only": true
+  },
+  {
+   "term": "jailbait",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jail bait",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "piece of shit",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "eat my ass",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Hijo de puta",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Hijoputa",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Hija de puta",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Hijaputa",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Chupapollas",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Maricón",
+   "lang": "es",
+   "source": "ldnoobw",
+   "token_only": true
+  },
+  {
+   "term": "Mariconazo",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Soplapollas",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Concha de tu madre",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vete a la mierda",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "enculé",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "enculée",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "enculeur",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "enculeurs",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fils de pute",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fille de pute",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nique ta mère",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nique ta race",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "la putain de ta mère",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "salope",
+   "lang": "fr",
+   "source": "ldnoobw",
+   "token_only": true
+  },
+  {
+   "term": "sac à foutre",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arschficker",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fotze",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hurensohn",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schwanzlutscher",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schwuchtel",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kanake",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ficken",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "neger",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vaffanculo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "testa di cazzo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "figlio di puttana",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "puttana",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pompino",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bocchinara",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "frocio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "recchione",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "culattone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sborra",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ciucciami il cazzo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porca puttana",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "filho da puta",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "caralho",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "foda-se",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "boceta",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "paneleiro",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "puta que pariu",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "puta que te pariu",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vai tomar no cu",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vai-te foder",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pizda",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pizdetc",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "opizdenet",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "otpizdit",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sukin syn",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "trakhat'sya",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pidar gnoinyj",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bazmeg",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kibaszott",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "baszik",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "picsa",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurva",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fucker",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fuckers",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fucked",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fucks",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fuckface",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fuckhead",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fucktard",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "cunts",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "niggers",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "niggas",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "faggots",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "fags",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "sluts",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "whores",
+   "lang": "en",
+   "source": "ldnoobw-variant"
+  },
+  {
+   "term": "muie",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "pizda",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "futui",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "fututi",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "sugi pula",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "pula mea",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "poponar",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  },
+  {
+   "term": "bulangiu",
+   "lang": "ro",
+   "source": "hand",
+   "review": "needs-native-review"
+  }
+ ]
+}

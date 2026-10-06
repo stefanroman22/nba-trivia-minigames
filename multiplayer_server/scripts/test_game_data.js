@@ -246,6 +246,11 @@ const noSwap = () => 0.1; // rand() < 0.5 keeps the published side (and makes sh
   const backendCalls = [];
   const realFetch = global.fetch;
   global.fetch = async (url, init) => {
+    // The relay's identify check (src/identity.js): the sim's token is the user JSON itself.
+    if (String(url).endsWith("/api/me/")) {
+      const user = JSON.parse(init.headers.Authorization.slice("Bearer ".length));
+      return { status: 200, json: async () => ({ user }) };
+    }
     if (String(url).startsWith(process.env.API_BASE_URL)) {
       backendCalls.push(String(url));
       return { ok: true, json: async () => ({ series: EXPECTED.playoff.slice(0, 5) }) };
@@ -286,8 +291,10 @@ const noSwap = () => 0.1; // rand() < 0.5 keeps the published side (and makes sh
   const game = { id: "series-winner", name: "Guess the Series Winner", pointsPerCorrect: 10 };
   async function room(suffix, g = game) {
     const a = makeSocket(`a${suffix}`), b = makeSocket(`b${suffix}`);
-    a.send("identify", { user: { id: `A${suffix}`, username: `a${suffix}`, points: 100 } });
-    b.send("identify", { user: { id: `B${suffix}`, username: `b${suffix}`, points: 100 } });
+    const userA = { id: `A${suffix}`, username: `a${suffix}`, points: 100 };
+    const userB = { id: `B${suffix}`, username: `b${suffix}`, points: 100 };
+    a.send("identify", { user: userA, token: JSON.stringify(userA) });
+    b.send("identify", { user: userB, token: JSON.stringify(userB) });
     a.send("findMatch", { game: g });
     b.send("findMatch", { game: g });
     await settle(() => roundsFor(a.id).length && roundsFor(b.id).length);
