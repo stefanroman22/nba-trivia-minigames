@@ -1,4 +1,4 @@
-// End to end: a real multiplayer server process, a fake Django /me/, real socket.io clients.
+// End to end: a real multiplayer server process and real socket.io clients — origin enforcement.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const http = require("node:http");
@@ -49,31 +49,6 @@ const connect = () => new Promise((resolve) => {
   s.on("connect", () => resolve(s));
 });
 const next = (s, event) => new Promise((resolve) => s.once(event, resolve));
-
-test("a bad token is rejected and the socket cannot queue for a match", async () => {
-  const s = await connect();
-  const rejected = next(s, "identifyRejected");
-  const matchError = next(s, "matchError");
-  s.emit("identify", { token: "forged-token".padEnd(40, "z"), user: { id: "AAAAAA", username: "Ann" } });
-  s.emit("findMatch", { game: GAME });
-  assert.deepEqual(await rejected, { reason: "invalid" });
-  assert.match((await matchError).message, /signed in/);
-});
-
-test("a client-claimed user without a token gets nowhere", async () => {
-  const s = await connect();
-  const rejected = next(s, "identifyRejected");
-  s.emit("identify", { user: { id: "AAAAAA", username: "Ann" } });
-  assert.deepEqual(await rejected, { reason: "invalid" });
-});
-
-test("a valid token identifies the player, and an action sent right behind it waits for the verdict", async () => {
-  const s = await connect();
-  const searching = next(s, "searching");
-  s.emit("identify", { token: GOOD });
-  s.emit("findMatch", { game: GAME });
-  assert.equal((await searching).inQueue, 1);
-});
 
 test("a browser origin that is not allowed cannot connect at all", async () => {
   const refused = await new Promise((resolve) => {

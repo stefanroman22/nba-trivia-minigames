@@ -1,5 +1,6 @@
 import logging
 import re
+import secrets
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -12,10 +13,11 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from backend.throttles import LoginRateThrottle, SignupRateThrottle
+from backend.throttles import LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
-from users import leaderboard
+from users import leaderboard, strikes
 from users.google_auth import GoogleAuthError, verify_google_code
+from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
 from users.tokens import issue_session_tokens
 
@@ -25,12 +27,17 @@ User = get_user_model()
 # (#K7F3QD) is what tells two players with the same name apart.
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 USERNAME_RULES = "Username must be 3-20 characters using letters, numbers or underscores."
+EMAIL_IN_USE = "Email already in use! Please use a different email address."
 
 logger = logging.getLogger(__name__)
 
 
 class GoogleAccountConflict(Exception):
     """The email matches an account already linked to a different Google account."""
+
+
+class GoogleSignupBlocked(Exception):
+    """The email belongs to a banned account, so it can't open a new one."""
 
 
 # ---------------------------------------------------------------------------
@@ -107,11 +114,19 @@ def _user_for_google_identity(identity):
         user.save(update_fields=["password", "google_sub"])
         return user, False
 
+    # Not an oracle here: Google has just proven the caller owns this address.
+    if strikes.email_is_banned(email):
+        strikes.log_event(None, "name_signup", "none", strikes.SIGNUP_BLOCKED_CODE)
+        raise GoogleSignupBlocked()
+
     # Names may repeat (public id disambiguates) — use the address's
     # local part directly, trimmed to the allowed charset/length.
     base = re.sub(r"[^A-Za-z0-9_]", "", email.split("@")[0])[:20] or "Player"
     if len(base) < 3:
         base = f"{base}NBA"[:20]
+    # The player didn't choose this name, so a flagged one is replaced, never struck.
+    if check_username(base).tier != "ok":
+        base = f"Player{secrets.randbelow(9000) + 1000}"
     try:
         user = User.objects.create_user(username=base, email=email, password=None, google_sub=sub)
     except IntegrityError:
@@ -160,6 +175,9 @@ def login_view(request):
     authenticated_user = authenticate(request, username=users[0].email, password=password)
     if authenticated_user is None:
         return JsonResponse({"error": "Incorrect password"}, status=401)
+    # Checked after the password, so a stranger can't probe an email's ban status.
+    if authenticated_user.banned_at:
+        return Response(strikes.ban_payload(authenticated_user), status=status.HTTP_403_FORBIDDEN)
 
     return auth_response(request, authenticated_user)
 
@@ -169,6 +187,13 @@ def login_view(request):
 @throttle_classes([SignupRateThrottle])
 def signup_view(request):
     try:
+        ip_hash = strikes.client_ip_hash(request)
+        if strikes.signup_ip_locked(ip_hash):
+            return Response(
+                {"code": strikes.SIGNUP_LOCKED_CODE, "error": strikes.SIGNUP_LOCKED_MESSAGE},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         username = str(request.data.get("username") or "").strip()
         email = str(request.data.get("email") or "").strip().lower()
         password = request.data.get("password")
@@ -179,10 +204,27 @@ def signup_view(request):
         if not USERNAME_RE.match(username):
             return Response({"error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
 
+        # No account exists yet, so a severe name can't strike one: it counts against the IP
+        # instead, and the third locks sign-ups from it for 24 h (users.strikes).
+        verdict = check_username(username)
+        if verdict.tier == "severe":
+            strikes.log_event(None, "name_signup", "severe", "blocked", ip_hash)
+            strikes.note_blocked_signup(ip_hash)
+            return Response({"error": MESSAGE_SIGNUP_SEVERE}, status=status.HTTP_400_BAD_REQUEST)
+        if verdict.tier != "ok":
+            return Response({"error": message_for(verdict)}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             validate_email(email)
         except ValidationError:
             return Response({"error": "That email address doesn't look valid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # A banned account's canonical email can't sign up again. Answered exactly like a taken
+        # email, so this anonymous endpoint is not an oracle for "is this address banned" (login
+        # only reveals a ban after the right password); the reason lives in the event log only.
+        if strikes.email_is_banned(email):
+            strikes.log_event(None, "name_signup", "none", strikes.SIGNUP_BLOCKED_CODE, ip_hash)
+            return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
 
         try:
             validate_password(password)
@@ -192,13 +234,13 @@ def signup_view(request):
         # Usernames may repeat (players are distinguished by public id) — only
         # the email has to be unique.
         if User.objects.filter(email__iexact=email).exists():
-            return Response({"error": "Email already in use! Please use a different email address."}, status=status.HTTP_409_CONFLICT)
+            return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
 
         try:
             user = User.objects.create_user(username=username, email=email, password=password)
         except IntegrityError:
             # Race with a concurrent signup on the same email.
-            return Response({"error": "Email already in use! Please use a different email address."}, status=status.HTTP_409_CONFLICT)
+            return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
 
         leaderboard.record_score(user)
         return auth_response(request, user, status_code=status.HTTP_201_CREATED)
@@ -241,9 +283,20 @@ def update_profile(request):
 
         if username and username != user.username:
             # Names may repeat — the public id keeps players distinct — so the
-            # only gate is the format rule.
+            # gates are the format rule and the moderation check.
             if not USERNAME_RE.match(username):
                 return Response({"error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
+            verdict = check_username(username)
+            if verdict.tier == "severe":
+                count, banned = strikes.record_strike(user, "name_change", strikes.client_ip_hash(request))
+                if banned:
+                    return Response(strikes.ban_payload(user), status=status.HTTP_403_FORBIDDEN)
+                return Response(
+                    {"error": MESSAGE_STRIKE.format(n=count), "strikes": count},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if verdict.tier != "ok":
+                return Response({"error": message_for(verdict)}, status=status.HTTP_400_BAD_REQUEST)
             user.username = username
             updated = True
 
@@ -308,6 +361,11 @@ def google_login(request):
 
     try:
         user, new_account = _user_for_google_identity(identity)
+    except GoogleSignupBlocked:
+        return Response(
+            {"code": strikes.SIGNUP_BLOCKED_CODE, "error": strikes.SIGNUP_BLOCKED_MESSAGE},
+            status=status.HTTP_403_FORBIDDEN,
+        )
     except GoogleAccountConflict:
         return Response(
             {"error": "This email is already linked to a different Google account."},
@@ -320,9 +378,31 @@ def google_login(request):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
+    if user.banned_at:
+        return Response(strikes.ban_payload(user), status=status.HTTP_403_FORBIDDEN)
     if not user.is_active:
         return Response({"error": "This account is disabled."}, status=status.HTTP_403_FORBIDDEN)
     return auth_response(request, user, new_account=new_account)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([NameCheckRateThrottle])
+def check_name(request):
+    """POST {"username"} -> {"ok": true} or {"ok": false, "error": "<generic message>"}.
+
+    Instant feedback for the signup and profile forms. Never strikes, never logs, and never names
+    the matched term — the word lists stay on the server.
+    """
+    if not isinstance(request.data, dict):
+        return Response({"ok": False, "error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
+    username = str(request.data.get("username") or "").strip()
+    if not USERNAME_RE.match(username):
+        return Response({"ok": False, "error": USERNAME_RULES})
+    verdict = check_username(username)
+    if verdict.tier != "ok":
+        return Response({"ok": False, "error": message_for(verdict)})
+    return Response({"ok": True})
 
 
 @api_view(['GET'])

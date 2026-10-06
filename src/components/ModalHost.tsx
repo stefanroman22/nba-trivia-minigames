@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
-import { useModal, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
+import { useModal, type FeedbackPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import LogInSignUp from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
@@ -40,8 +40,9 @@ export default function ModalHost() {
     title = authMode === "signup" ? "Create account" : "Welcome back";
     content = <LogInSignUp mode={authMode} onModeChange={setAuthMode} onClose={close} />;
   } else if (kind === "feedback") {
-    title = "Share feedback";
-    content = <FeedbackModal onClose={close} />;
+    const p = payload as FeedbackPayload | undefined;
+    title = p?.preset === "appeal" ? "Appeal a ban" : "Share feedback";
+    content = <FeedbackModal onClose={close} preset={p?.preset} publicId={p?.publicId} />;
   } else if (kind === "leaderboard") {
     title = leaderboardScope === "friends" ? "Friends leaderboard" : "Global Top 100";
     wide = true;

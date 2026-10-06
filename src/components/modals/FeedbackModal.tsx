@@ -16,6 +16,11 @@ import type { RootState } from "../../store";
  */
 const STAR_COLOR = "#f5b301";
 
+/** An appeal (ban screen -> Appeal) is a feedback row: the endpoint requires a 1-5 rating, so it
+ *  carries this fixed, neutral one and the star row is hidden. The admin Feedback tab finds
+ *  appeals by game "appeal" or the "[Appeal #ID]" prefix. */
+const APPEAL_RATING = 3;
+
 /** The game being played, when the modal is opened from a game route.
  *
  * Every game is routed at `/<id>` (src/app/[game]/page.tsx), so the first path segment IS the
@@ -26,11 +31,19 @@ function currentGame() {
   return gameCatalog.some((g) => g.id === segment) ? segment : "";
 }
 
-export default function FeedbackModal({ onClose }: { onClose: () => void }) {
+interface FeedbackModalProps {
+  onClose: () => void;
+  /** "appeal": the ban screen's Appeal — no stars, text pre-filled with the account id. */
+  preset?: "appeal";
+  publicId?: string;
+}
+
+export default function FeedbackModal({ onClose, preset, publicId }: FeedbackModalProps) {
+  const isAppeal = preset === "appeal";
   const user = useSelector((state: RootState) => state.user.user);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(isAppeal ? APPEAL_RATING : 0);
   const [hover, setHover] = useState(0);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(isAppeal ? `[Appeal #${publicId ?? ""}] ` : "");
   const [email, setEmail] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,8 +59,8 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({
           rating,
           message: text.trim(),
-          page: window.location.pathname,
-          game: currentGame(),
+          page: isAppeal ? "/banned" : window.location.pathname,
+          game: isAppeal ? "appeal" : currentGame(),
           ...(user ? {} : { email: email.trim() }),
         }),
       });
@@ -74,9 +87,11 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
     return (
       <div className="fb-sent">
         <div className="fb-sent-icon">✓</div>
-        <h3 className="font-display" style={{ fontSize: 20 }}>Thank you!</h3>
+        <h3 className="font-display" style={{ fontSize: 20 }}>{isAppeal ? "Appeal sent" : "Thank you!"}</h3>
         <p style={{ fontSize: 14, color: "var(--muted)", maxWidth: 280, lineHeight: 1.5 }}>
-          Your feedback helps shape what we build next. Now back to the games.
+          {isAppeal
+            ? "We'll review the ban. If you left an email, we'll reply there."
+            : "Your feedback helps shape what we build next. Now back to the games."}
         </p>
         <button className="modal-primary-btn" style={{ height: 44, padding: "0 26px" }} onClick={onClose}>Done</button>
       </div>
@@ -85,42 +100,48 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fb-stack">
-      <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.5 }}>How's your experience so far? No account needed.</p>
+      <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.5 }}>
+        {isAppeal
+          ? "Tell us why the ban should be lifted. Keep the account tag at the start so we can find it."
+          : "How's your experience so far? No account needed."}
+      </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <span className="fb-label">RATE IT</span>
-        <div className="fb-stars" role="radiogroup" aria-label="Rating" onMouseLeave={() => setHover(0)}>
-          {[1, 2, 3, 4, 5].map((n) => {
-            const on = n <= (hover || rating);
-            return (
-              <button
-                key={n}
-                className="fb-star"
-                role="radio"
-                aria-checked={n === rating}
-                aria-label={`${n} star${n > 1 ? "s" : ""}`}
-                onClick={() => setRating(n)}
-                onMouseEnter={() => setHover(n)}
-                onFocus={() => setHover(n)}
-              >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill={on ? STAR_COLOR : "none"} stroke={on ? STAR_COLOR : "var(--line2)"} strokeWidth="1.6" strokeLinejoin="round">
-                  <path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z" />
-                </svg>
-              </button>
-            );
-          })}
+      {!isAppeal && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <span className="fb-label">RATE IT</span>
+          <div className="fb-stars" role="radiogroup" aria-label="Rating" onMouseLeave={() => setHover(0)}>
+            {[1, 2, 3, 4, 5].map((n) => {
+              const on = n <= (hover || rating);
+              return (
+                <button
+                  key={n}
+                  className="fb-star"
+                  role="radio"
+                  aria-checked={n === rating}
+                  aria-label={`${n} star${n > 1 ? "s" : ""}`}
+                  onClick={() => setRating(n)}
+                  onMouseEnter={() => setHover(n)}
+                  onFocus={() => setHover(n)}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill={on ? STAR_COLOR : "none"} stroke={on ? STAR_COLOR : "var(--line2)"} strokeWidth="1.6" strokeLinejoin="round">
+                    <path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 20.4l1.4-6.8L2.2 9l6.9-.7z" />
+                  </svg>
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <span className="fb-label">WHAT WOULD YOU CHANGE? (OPTIONAL)</span>
+        <span className="fb-label">{isAppeal ? "YOUR APPEAL" : "WHAT WOULD YOU CHANGE? (OPTIONAL)"}</span>
         <textarea
           className="modal-textarea"
           rows={4}
           value={text}
           onChange={(e) => setText(e.target.value)}
           maxLength={2000}
-          placeholder="More games? Faster rounds? Tell us anything…"
+          placeholder={isAppeal ? "What happened, and why should the ban be lifted?" : "More games? Faster rounds? Tell us anything…"}
         />
       </div>
 
@@ -132,7 +153,7 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Only if you'd like a reply"
+            placeholder={isAppeal ? "So we can tell you the outcome" : "Only if you'd like a reply"}
             style={{ height: 42 }}
           />
         </div>
@@ -143,7 +164,7 @@ export default function FeedbackModal({ onClose }: { onClose: () => void }) {
       )}
 
       <button className="modal-primary-btn" onClick={send} disabled={!rating || sending}>
-        <SwapText>{sending ? "Sending…" : "Send feedback"}</SwapText>
+        <SwapText>{sending ? "Sending…" : isAppeal ? "Send appeal" : "Send feedback"}</SwapText>
       </button>
     </div>
   );

@@ -151,7 +151,9 @@ if "https://*.vercel.app" not in CSRF_TRUSTED_ORIGINS:
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # simplejwt's JWTAuthentication plus the ban gate: a banned account gets
+        # 403 {"code": "account_banned"} on every authenticated request.
+        "users.authentication.BanAwareJWTAuthentication",
     ),
     # Applied per-view via backend/throttles.py — there is deliberately no
     # DEFAULT_THROTTLE_CLASSES, so game-data reads stay unthrottled and only the
@@ -174,6 +176,8 @@ REST_FRAMEWORK = {
         "user-search": "120/hour",
         # Sending requests / blocking — a handful per session is genuine use.
         "friend-action": "60/hour",
+        # Live username check while typing (debounced client-side); never strikes.
+        "name-check": "120/hour",
     },
 }
 

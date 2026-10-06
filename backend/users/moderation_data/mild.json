@@ -1,0 +1,4327 @@
+{
+ "attribution": "Seed terms from the List of Dirty, Naughty, Obscene, and Otherwise Bad Words (LDNOOBW), https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words, CC BY 4.0. Curated for this app; see ldnoobw/ATTRIBUTION.md.",
+ "note": "Mild tier: rejected, never a strike. 'strict': true (the owner's list) is cancelled only by a whole player name; other terms that are player-name tokens are skipped at load. 'excluded' lists LDNOOBW entries deliberately not used (benign everyday words, names, decoration).",
+ "terms": [
+  {
+   "term": "dick",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "gay",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "ass",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "cur",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "pula",
+   "lang": "ro",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "fut",
+   "lang": "ro",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "cum",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "cock",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "sex",
+   "lang": "en",
+   "source": "owner",
+   "strict": true
+  },
+  {
+   "term": "2g1c",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "2 girls 1 cup",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "acrotomophilia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "alabama hot pocket",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "alaskan pipeline",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "anal",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "anus",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "apeshit",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arsehole",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ass",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "asshole",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "assmunch",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "auto erotic",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "autoerotic",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "baby batter",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "baby juice",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ball gag",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ball gravy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ball kicking",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ball licking",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ball sack",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ball sucking",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bangbros",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bangbus",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bareback",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "barely legal",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "barenaked",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bastard",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bastardo",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bbw",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bdsm",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "beaver cleaver",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "beaver lips",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "big breasts",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "big knockers",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "big tits",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bimbos",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bitch",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bitches",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blonde action",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blonde on blonde action",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blow your load",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blue waffle",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "blumpkin",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bollocks",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bondage",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "boner",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "boob",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "boobs",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "booty call",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "brown showers",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "brunette action",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bulldyke",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bullet vibe",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bullshit",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bung hole",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bunghole",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "busty",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "butt",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "buttcheeks",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "butthole",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "camel toe",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "camgirl",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "carpet muncher",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "carpetmuncher",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chocolate rosebuds",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "circlejerk",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cleveland steamer",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "clit",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "clitoris",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "clover clamps",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cock",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cocks",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "coprolagnia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "coprophilia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cornhole",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "coon",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "coons",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cum",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cumming",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dendrophilia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dick",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dingleberry",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dingleberries",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dirty pillows",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dirty sanchez",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "doggie style",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "doggiestyle",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "doggy style",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "doggystyle",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dog style",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dominatrix",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dommes",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "donkey punch",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "double dong",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "double penetration",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dp action",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dry hump",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dvda",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ecchi",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ejaculation",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "erotic",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "erotism",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fecal",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "felch",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "feltch",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "female squirting",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "femdom",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fingering",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "foot fetish",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "frotting",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fudge packer",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fudgepacker",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "futanari",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gay sex",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "genitals",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "giant cock",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "girl on top",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "girls gone wild",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "goatcx",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "god damn",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gokkun",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "golden shower",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "goo girl",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "goregasm",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "group sex",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "g-spot",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "guro",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hard core",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hardcore",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hentai",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "homoerotic",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "honkey",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hooker",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "horny",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hot carl",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "humping",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "intercourse",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jack off",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "jerk off",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "juggs",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kike",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kinkster",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kinky",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "knobbing",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "leather restraint",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "leather straight jacket",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "lemon party",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "livesex",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "make me come",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "male squirting",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "menage a trois",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "milf",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "missionary position",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "mound of venus",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "mr hands",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "muff diver",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "muffdiving",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nambla",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "negro",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nimphomania",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nipple",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nipples",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nsfw",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nsfw images",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nude",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nudity",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nympho",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nymphomania",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "octopussy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "omorashi",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "one cup two girls",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "one guy one jar",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "orgy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "panties",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "panty",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pegging",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "penis",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "phone sex",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pissing",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "piss pig",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pisspig",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pole smoker",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ponyplay",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poon",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poontang",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "punany",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poop chute",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poopchute",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "prince albert piercing",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pubes",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "queaf",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "queef",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "quim",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raging boner",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rectum",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "reverse cowgirl",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rimming",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rosy palm and her 5 sisters",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rusty trombone",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sadism",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schlong",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "scissoring",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "semen",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sex",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sexcam",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sexo",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sexy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sexual",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sexually",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sexuality",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shaved beaver",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shemale",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shit",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shitblimp",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shitty",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shota",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shrimping",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "skeet",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "s&m",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "smut",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "snowballing",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sodomize",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sodomy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "splooge",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "splooge moose",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "spooge",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "spread legs",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "spunk",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "strap on",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "strapon",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "strappado",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "strip club",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "style doggy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "suck",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sucks",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "swastika",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tea bagging",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "threesome",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "throating",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tit",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tits",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "titties",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "titty",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "topless",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tosser",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tribadism",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tub girl",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tubgirl",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tushy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "twat",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "twink",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "twinkie",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "two girls one cup",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "upskirt",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "urethra play",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "urophilia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vagina",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "venus mound",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vibrator",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vorarephilia",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "voyeur",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "voyeurweb",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vulva",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wank",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wet dream",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "worldsex",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wrinkled starfish",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "xxx",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "yaoi",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "yellow showers",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "yiffy",
+   "lang": "en",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bastardo",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Bollera",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Cabrón",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Chupada",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Chupetón",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Coño",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Coprofagía",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Culo",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Esperma",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Fiesta de salchichas",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Follador",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Follar",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Gilipichis",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Gilipollas",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Hacer una paja",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Haciendo el amor",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Jilipollas",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Kapullo",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Lameculos",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Mamada",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Marica",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Mierda",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Pendejo",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Pervertido",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Pezón",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Pinche",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Prostituta",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Puta",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Ramera",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Sádico",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Semen",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Sexo",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Sexo oral",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Soplagaitas",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Tetas grandes",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Travesti",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Verga",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "Vulva",
+   "lang": "es",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "baiser",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bander",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bigornette",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bite",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bitte",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bloblos",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "brackmard",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "branlage",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "branler",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "branlette",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "branleur",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "branleuse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "brouter le cresson",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chatte",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chiasse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chier",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chiottes",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "clito",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "clitoris",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "connard",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "connasse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "conne",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "couilles",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cramouille",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cul",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "déconne",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "déconner",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "emmerdant",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "emmerder",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "emmerdeur",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "emmerdeuse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "enfoiré",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "enfoirée",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "étron",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "foutre",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gouine",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "grande folle",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "grogniasse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ménage à trois",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merde",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merdeuse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merdeux",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nègre",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "negro",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "palucher",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pédale",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pédé",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pisser",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pouffiasse",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pousse-crotte",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "putain",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pute",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sac à merde",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "salaud",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "suce",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tapette",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "teuch",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tringler",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "troncher",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "trou du cul",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "turlute",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zigounette",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zizi",
+   "lang": "fr",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "analritter",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arsch",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arschlecker",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arschloch",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bratze",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bumsen",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dödel",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fick",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "flittchen",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hackfresse",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "hure",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ische",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kackbratze",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kacke",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kacken",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kackwurst",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kampflesbe",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kimme",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "lümmel",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "möpse",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "morgenlatte",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "möse",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "muschi",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nigger",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nippel",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nutte",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "onanieren",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "orgasmus",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pimmel",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pimpern",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pinkeln",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pissen",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pisser",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poppen",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "reudig",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schabracke",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schlampe",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "scheiße",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "scheisser",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schiesser",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "schnackeln",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tittchen",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "titten",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vögeln",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vollpfosten",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wichse",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wichsen",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "wichser",
+   "lang": "de",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "allupato",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ammucchiata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "anale",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arrapato",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arrusa",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "arruso",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "assatanato",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bagascia",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bagassa",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bagnarsi",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "baldracca",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "battona",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "belino",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bocchino",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bofilo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "boiata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bordello",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bucaiolo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "budiùlo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "busone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cacca",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "caciocappella",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cagare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cagata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cagna",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cazzata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cazzimma",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cazzo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cazzone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "checca",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chiavare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chiavata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ciospo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "coglione",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "coglioni",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "culattina",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "culo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ditalino",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fica",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "figa",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "figlio di buona donna",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "figone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "finocchio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fottere",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fottersi",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fracicone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fregna",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "froscio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "goldone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "incazzarsi",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "incoglionirsi",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ingoio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "leccaculo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "lecchino",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "loffa",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "loffare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merda",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merdata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merdoso",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "mignotta",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "minchia",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "minchione",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "mussa",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "nerchia",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "padulo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "palloso",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "patonza",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pecorina",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pincare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pinnolone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pipì",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pippone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pisciare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "piscio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pisello",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pistolotto",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pomiciare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porca madonna",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porca miseria",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porco due",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porco zio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "potta",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "puppami",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rincoglionire",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rompiballe",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "rompipalle",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sborrata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sborrone",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sbrodolata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "scopare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "scopata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "scorreggiare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sega",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "slinguare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "slinguata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "smandrappata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "socmel",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sorca",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "spompinare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sticchio",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "stronza",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "stronzata",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "stronzo",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "succhiami",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "succhione",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sveltina",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sverginare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tarzanello",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "tette",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "troia",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "trombare",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zinne",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zoccola",
+   "lang": "it",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ânus",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "balalao",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bicha",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "biscate",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bosta",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "braulio de borracha",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cabrao",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cacete",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cagar",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "camisinha",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chochota",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chupar",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "colhoes",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "cona",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dar o rabo",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "esporra",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "foda",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "foder",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gozar",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "merda",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "peidar",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pênis",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "porra",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "puta",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "queca",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "sacanagem",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "transar",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vadia",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "veado",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vibrador",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "xana",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "xochota",
+   "lang": "pt",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bychara",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "chernozhopyi",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "dolboy'eb",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ebalnik",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ebalo",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ebalom sch'elkat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "mudack",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "osto'eblo",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ostokhuitel'no",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ot'ebis",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "otmudohat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "otsosi",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pedik",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pizdato",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pizdatyi",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "piz'det",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pizdoi nakryt'sja",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pizd'uk",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "piz`dyulina",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "podi ku'evo",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poeben",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "po'imat' na konchik",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "po'iti posrat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "po khuy",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "poluchit pizdy",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pososi moyu konfetku",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "prissat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "proebat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "promudobl'adsksya pizdopro'ebina",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "propezdoloch",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raspeezdeyi",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raspizdatyi",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raz'yebuy",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "raz'yoba",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "s'ebat'sya",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "shalava",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "styervo",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "svodit posrat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "svoloch",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "trimandoblydskiy pizdoproyob",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "ubl'yudok",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "u'ebitsche",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vafl'a",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vafli lovit",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "v pizdu",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vyperdysh",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "vzdrochennyi",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "yeb vas",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "za'ebat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zaebis",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zalupa",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zalupat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zasranetc",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zassat",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "zlo'ebuchy",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "траxать",
+   "lang": "ru",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "balfasz",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "balfaszok",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "balfaszokat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "balfaszt",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "buksza",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bukszák",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bukszákat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "bukszát",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "csöcs",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "csöcsök",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "csöcsöket",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "csöcsöt",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "fasz",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszfej",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszfejek",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszfejeket",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszfejet",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszok",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszokat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "faszt",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "geci",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gecibb",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gecik",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "geciket",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "gecit",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kibaszottabb",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurafi",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurafik",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurafikat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurafit",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurvák",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurvákat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "kurvát",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "leggecibb",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "legkibaszottabb",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "legszarabb",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "megdöglik",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "picsákat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "picsát",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pina",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pinák",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pinákat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pinát",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pöcs",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pöcsök",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pöcsöket",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "pöcsöt",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "punci",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "puncik",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "segg",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "seggek",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "seggeket",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "segget",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "seggfej",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "seggfejek",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "seggfejeket",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "seggfejet",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szajha",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szajhák",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szajhákat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szajhát",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szar",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szarabb",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szarik",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szarok",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szarokat",
+   "lang": "hu",
+   "source": "ldnoobw"
+  },
+  {
+   "term": "szart",
+   "lang": "hu",
+   "source": "ldnoobw"
+  }
+ ],
+ "excluded": [
+  {
+   "term": "babeland",
+   "lang": "en"
+  },
+  {
+   "term": "bastinado",
+   "lang": "en"
+  },
+  {
+   "term": "big black",
+   "lang": "en"
+  },
+  {
+   "term": "birdlock",
+   "lang": "en"
+  },
+  {
+   "term": "cialis",
+   "lang": "en"
+  },
+  {
+   "term": "dolcett",
+   "lang": "en"
+  },
+  {
+   "term": "domination",
+   "lang": "en"
+  },
+  {
+   "term": "escort",
+   "lang": "en"
+  },
+  {
+   "term": "eunuch",
+   "lang": "en"
+  },
+  {
+   "term": "figging",
+   "lang": "en"
+  },
+  {
+   "term": "girl on",
+   "lang": "en"
+  },
+  {
+   "term": "goodpoop",
+   "lang": "en"
+  },
+  {
+   "term": "grope",
+   "lang": "en"
+  },
+  {
+   "term": "hot chick",
+   "lang": "en"
+  },
+  {
+   "term": "how to kill",
+   "lang": "en"
+  },
+  {
+   "term": "how to murder",
+   "lang": "en"
+  },
+  {
+   "term": "huge fat",
+   "lang": "en"
+  },
+  {
+   "term": "jelly donut",
+   "lang": "en"
+  },
+  {
+   "term": "kinbaku",
+   "lang": "en"
+  },
+  {
+   "term": "lolita",
+   "lang": "en"
+  },
+  {
+   "term": "lovemaking",
+   "lang": "en"
+  },
+  {
+   "term": "mong",
+   "lang": "en"
+  },
+  {
+   "term": "nawashi",
+   "lang": "en"
+  },
+  {
+   "term": "nutten",
+   "lang": "en"
+  },
+  {
+   "term": "pikey",
+   "lang": "en"
+  },
+  {
+   "term": "playboy",
+   "lang": "en"
+  },
+  {
+   "term": "pleasure chest",
+   "lang": "en"
+  },
+  {
+   "term": "poof",
+   "lang": "en"
+  },
+  {
+   "term": "rosy palm",
+   "lang": "en"
+  },
+  {
+   "term": "santorum",
+   "lang": "en"
+  },
+  {
+   "term": "scat",
+   "lang": "en"
+  },
+  {
+   "term": "shibari",
+   "lang": "en"
+  },
+  {
+   "term": "snatch",
+   "lang": "en"
+  },
+  {
+   "term": "spastic",
+   "lang": "en"
+  },
+  {
+   "term": "suicide girls",
+   "lang": "en"
+  },
+  {
+   "term": "sultry women",
+   "lang": "en"
+  },
+  {
+   "term": "swinger",
+   "lang": "en"
+  },
+  {
+   "term": "tainted love",
+   "lang": "en"
+  },
+  {
+   "term": "taste my",
+   "lang": "en"
+  },
+  {
+   "term": "thumbzilla",
+   "lang": "en"
+  },
+  {
+   "term": "tied up",
+   "lang": "en"
+  },
+  {
+   "term": "tight white",
+   "lang": "en"
+  },
+  {
+   "term": "tongue in a",
+   "lang": "en"
+  },
+  {
+   "term": "undressing",
+   "lang": "en"
+  },
+  {
+   "term": "viagra",
+   "lang": "en"
+  },
+  {
+   "term": "violet wand",
+   "lang": "en"
+  },
+  {
+   "term": "voyuer",
+   "lang": "en"
+  },
+  {
+   "term": "wrapping men",
+   "lang": "en"
+  },
+  {
+   "term": "xx",
+   "lang": "en"
+  },
+  {
+   "term": "Asesinato",
+   "lang": "es"
+  },
+  {
+   "term": "asno",
+   "lang": "es"
+  },
+  {
+   "term": "Caca",
+   "lang": "es"
+  },
+  {
+   "term": "concha",
+   "lang": "es"
+  },
+  {
+   "term": "Drogas",
+   "lang": "es"
+  },
+  {
+   "term": "Heroína",
+   "lang": "es"
+  },
+  {
+   "term": "Idiota",
+   "lang": "es"
+  },
+  {
+   "term": "Imbécil",
+   "lang": "es"
+  },
+  {
+   "term": "infierno",
+   "lang": "es"
+  },
+  {
+   "term": "Maciza",
+   "lang": "es"
+  },
+  {
+   "term": "Macizorra",
+   "lang": "es"
+  },
+  {
+   "term": "maldito",
+   "lang": "es"
+  },
+  {
+   "term": "martillo",
+   "lang": "es"
+  },
+  {
+   "term": "Nazi",
+   "lang": "es"
+  },
+  {
+   "term": "Orina",
+   "lang": "es"
+  },
+  {
+   "term": "Pedo",
+   "lang": "es"
+  },
+  {
+   "term": "Pis",
+   "lang": "es"
+  },
+  {
+   "term": "Racista",
+   "lang": "es"
+  },
+  {
+   "term": "Tía buena",
+   "lang": "es"
+  },
+  {
+   "term": "Trio",
+   "lang": "es"
+  },
+  {
+   "term": "bordel",
+   "lang": "fr"
+  },
+  {
+   "term": "bourré",
+   "lang": "fr"
+  },
+  {
+   "term": "bourrée",
+   "lang": "fr"
+  },
+  {
+   "term": "caca",
+   "lang": "fr"
+  },
+  {
+   "term": "con",
+   "lang": "fr"
+  },
+  {
+   "term": "folle",
+   "lang": "fr"
+  },
+  {
+   "term": "gerbe",
+   "lang": "fr"
+  },
+  {
+   "term": "gerber",
+   "lang": "fr"
+  },
+  {
+   "term": "gueule",
+   "lang": "fr"
+  },
+  {
+   "term": "jouir",
+   "lang": "fr"
+  },
+  {
+   "term": "MALPT",
+   "lang": "fr"
+  },
+  {
+   "term": "meuf",
+   "lang": "fr"
+  },
+  {
+   "term": "péter",
+   "lang": "fr"
+  },
+  {
+   "term": "pipi",
+   "lang": "fr"
+  },
+  {
+   "term": "ramoner",
+   "lang": "fr"
+  },
+  {
+   "term": "tanche",
+   "lang": "fr"
+  },
+  {
+   "term": "trique",
+   "lang": "fr"
+  },
+  {
+   "term": "bimbo",
+   "lang": "de"
+  },
+  {
+   "term": "bonze",
+   "lang": "de"
+  },
+  {
+   "term": "fratze",
+   "lang": "de"
+  },
+  {
+   "term": "MILF",
+   "lang": "de"
+  },
+  {
+   "term": "mufti",
+   "lang": "de"
+  },
+  {
+   "term": "nackt",
+   "lang": "de"
+  },
+  {
+   "term": "penis",
+   "lang": "de"
+  },
+  {
+   "term": "popel",
+   "lang": "de"
+  },
+  {
+   "term": "porno",
+   "lang": "de"
+  },
+  {
+   "term": "rosette",
+   "lang": "de"
+  },
+  {
+   "term": "balle",
+   "lang": "it"
+  },
+  {
+   "term": "battere",
+   "lang": "it"
+  },
+  {
+   "term": "biga",
+   "lang": "it"
+  },
+  {
+   "term": "brinca",
+   "lang": "it"
+  },
+  {
+   "term": "cadavere",
+   "lang": "it"
+  },
+  {
+   "term": "casci",
+   "lang": "it"
+  },
+  {
+   "term": "cesso",
+   "lang": "it"
+  },
+  {
+   "term": "chiappa",
+   "lang": "it"
+  },
+  {
+   "term": "cornuto",
+   "lang": "it"
+  },
+  {
+   "term": "cozza",
+   "lang": "it"
+  },
+  {
+   "term": "fava",
+   "lang": "it"
+  },
+  {
+   "term": "femminuccia",
+   "lang": "it"
+  },
+  {
+   "term": "guardone",
+   "lang": "it"
+  },
+  {
+   "term": "imbecille",
+   "lang": "it"
+  },
+  {
+   "term": "lofare",
+   "lang": "it"
+  },
+  {
+   "term": "mannaggia",
+   "lang": "it"
+  },
+  {
+   "term": "mona",
+   "lang": "it"
+  },
+  {
+   "term": "monta",
+   "lang": "it"
+  },
+  {
+   "term": "montare",
+   "lang": "it"
+  },
+  {
+   "term": "nave scuola",
+   "lang": "it"
+  },
+  {
+   "term": "palle",
+   "lang": "it"
+  },
+  {
+   "term": "patacca",
+   "lang": "it"
+  },
+  {
+   "term": "pesce",
+   "lang": "it"
+  },
+  {
+   "term": "picio",
+   "lang": "it"
+  },
+  {
+   "term": "pippa",
+   "lang": "it"
+  },
+  {
+   "term": "pirla",
+   "lang": "it"
+  },
+  {
+   "term": "pompa",
+   "lang": "it"
+  },
+  {
+   "term": "porca",
+   "lang": "it"
+  },
+  {
+   "term": "porco",
+   "lang": "it"
+  },
+  {
+   "term": "quaglia",
+   "lang": "it"
+  },
+  {
+   "term": "regina",
+   "lang": "it"
+  },
+  {
+   "term": "rizzarsi",
+   "lang": "it"
+  },
+  {
+   "term": "ruffiano",
+   "lang": "it"
+  },
+  {
+   "term": "sbattere",
+   "lang": "it"
+  },
+  {
+   "term": "sbattersi",
+   "lang": "it"
+  },
+  {
+   "term": "soccia",
+   "lang": "it"
+  },
+  {
+   "term": "spagnola",
+   "lang": "it"
+  },
+  {
+   "term": "terrone",
+   "lang": "it"
+  },
+  {
+   "term": "tirare",
+   "lang": "it"
+  },
+  {
+   "term": "topa",
+   "lang": "it"
+  },
+  {
+   "term": "vacca",
+   "lang": "it"
+  },
+  {
+   "term": "vangare",
+   "lang": "it"
+  },
+  {
+   "term": "zio cantante",
+   "lang": "it"
+  },
+  {
+   "term": "aborto",
+   "lang": "pt"
+  },
+  {
+   "term": "amador",
+   "lang": "pt"
+  },
+  {
+   "term": "aranha",
+   "lang": "pt"
+  },
+  {
+   "term": "ariano",
+   "lang": "pt"
+  },
+  {
+   "term": "bastardo",
+   "lang": "pt"
+  },
+  {
+   "term": "bissexual",
+   "lang": "pt"
+  },
+  {
+   "term": "boob",
+   "lang": "pt"
+  },
+  {
+   "term": "bumbum",
+   "lang": "pt"
+  },
+  {
+   "term": "burro",
+   "lang": "pt"
+  },
+  {
+   "term": "cerveja",
+   "lang": "pt"
+  },
+  {
+   "term": "clitoris",
+   "lang": "pt"
+  },
+  {
+   "term": "cocaína",
+   "lang": "pt"
+  },
+  {
+   "term": "coito",
+   "lang": "pt"
+  },
+  {
+   "term": "comer",
+   "lang": "pt"
+  },
+  {
+   "term": "consolo",
+   "lang": "pt"
+  },
+  {
+   "term": "corno",
+   "lang": "pt"
+  },
+  {
+   "term": "cu",
+   "lang": "pt"
+  },
+  {
+   "term": "dum raio",
+   "lang": "pt"
+  },
+  {
+   "term": "fecal",
+   "lang": "pt"
+  },
+  {
+   "term": "frango assado",
+   "lang": "pt"
+  },
+  {
+   "term": "grelho",
+   "lang": "pt"
+  },
+  {
+   "term": "heroína",
+   "lang": "pt"
+  },
+  {
+   "term": "heterosexual",
+   "lang": "pt"
+  },
+  {
+   "term": "homem gay",
+   "lang": "pt"
+  },
+  {
+   "term": "homoerótico",
+   "lang": "pt"
+  },
+  {
+   "term": "homosexual",
+   "lang": "pt"
+  },
+  {
+   "term": "inferno",
+   "lang": "pt"
+  },
+  {
+   "term": "lésbica",
+   "lang": "pt"
+  },
+  {
+   "term": "lolita",
+   "lang": "pt"
+  },
+  {
+   "term": "mama",
+   "lang": "pt"
+  },
+  {
+   "term": "passar um cheque",
+   "lang": "pt"
+  },
+  {
+   "term": "pau",
+   "lang": "pt"
+  },
+  {
+   "term": "pinto",
+   "lang": "pt"
+  },
+  {
+   "term": "saco",
+   "lang": "pt"
+  },
+  {
+   "term": "torneira",
+   "lang": "pt"
+  },
+  {
+   "term": "byk",
+   "lang": "ru"
+  },
+  {
+   "term": "gol",
+   "lang": "ru"
+  },
+  {
+   "term": "padlo",
+   "lang": "ru"
+  },
+  {
+   "term": "perdet",
+   "lang": "ru"
+  },
+  {
+   "term": "petuh",
+   "lang": "ru"
+  },
+  {
+   "term": "prosrat",
+   "lang": "ru"
+  },
+  {
+   "term": "uboy",
+   "lang": "ru"
+  },
+  {
+   "term": "barmok",
+   "lang": "hu"
+  },
+  {
+   "term": "barmokat",
+   "lang": "hu"
+  },
+  {
+   "term": "barmot",
+   "lang": "hu"
+  },
+  {
+   "term": "barom",
+   "lang": "hu"
+  },
+  {
+   "term": "búr",
+   "lang": "hu"
+  },
+  {
+   "term": "búrok",
+   "lang": "hu"
+  },
+  {
+   "term": "fing",
+   "lang": "hu"
+  },
+  {
+   "term": "fingok",
+   "lang": "hu"
+  },
+  {
+   "term": "fingokat",
+   "lang": "hu"
+  },
+  {
+   "term": "fingot",
+   "lang": "hu"
+  },
+  {
+   "term": "franc",
+   "lang": "hu"
+  },
+  {
+   "term": "francok",
+   "lang": "hu"
+  },
+  {
+   "term": "francokat",
+   "lang": "hu"
+  },
+  {
+   "term": "francot",
+   "lang": "hu"
+  },
+  {
+   "term": "kúr",
+   "lang": "hu"
+  },
+  {
+   "term": "marha",
+   "lang": "hu"
+  },
+  {
+   "term": "marhák",
+   "lang": "hu"
+  },
+  {
+   "term": "marhákat",
+   "lang": "hu"
+  },
+  {
+   "term": "marhát",
+   "lang": "hu"
+  },
+  {
+   "term": "pele",
+   "lang": "hu"
+  },
+  {
+   "term": "pelék",
+   "lang": "hu"
+  },
+  {
+   "term": "pofa",
+   "lang": "hu"
+  },
+  {
+   "term": "pofákat",
+   "lang": "hu"
+  },
+  {
+   "term": "pofát",
+   "lang": "hu"
+  }
+ ]
+}

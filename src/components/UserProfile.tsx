@@ -5,6 +5,8 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../store";
 import { logout, updateProfilePhoto, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
+import { isBanPayload } from "../utils/ban";
+import { USERNAME_FORMAT, nameNoteSlot, useNameCheck } from "../utils/nameCheck";
 import { PhotoPrepError, prepareProfilePhoto } from "../utils/imagePrep";
 import { AnimatePresence, motion } from "framer-motion";
 import SwapText from "./motion/SwapText";
@@ -38,8 +40,10 @@ function UserProfile() {
   const usernameInputRef = useRef<HTMLInputElement | null>(null);
 
   // Display names don't need to be unique — the public ID keeps players
-  // distinct — so the only rule is the format.
-  const validateUsername = (username: string) => /^[A-Za-z0-9_]{3,20}$/.test(username);
+  // distinct. The format is checked here; the server also moderates the name
+  // (live via useNameCheck while editing, and again on save).
+  const validateUsername = (username: string) => USERNAME_FORMAT.test(username);
+  const nameNote = useNameCheck(tempUsername, isEditing && tempUsername !== (user?.username || ""));
 
   const copyPlayerId = () => {
     if (!user?.id) return;
@@ -75,6 +79,13 @@ function UserProfile() {
         body: JSON.stringify({ username: tempUsername }),
       });
       const data = await response.json();
+
+      // The third strike bans the account: apiFetch has already reported the 403 and the ban
+      // screen takes over, so there is nothing to revert or alert here.
+      if (response.status === 403 && isBanPayload(data)) {
+        setSaveState("idle");
+        return;
+      }
 
       if (data.error) {
         dispatch(updateUsername(previousUsername));
@@ -264,6 +275,22 @@ function UserProfile() {
                   (isEditing && tempUsername !== (user?.username || "")) || saveState !== "idle" ? " is-active" : ""
                 }`}
               />
+              <div className="profile-name-note-slot" role="status" aria-live="polite">
+                <AnimatePresence initial={false}>
+                  {nameNote && (
+                    <motion.div
+                      key="profile-name-note"
+                      style={{ overflow: "hidden" }}
+                      variants={nameNoteSlot}
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                    >
+                      <p className="profile-name-note"><SwapText>{nameNote}</SwapText></p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             <div className="profile-field">

@@ -78,7 +78,7 @@ def _photo_etag(request, public_id):
     so uppercasing the input here is the same case-insensitive contract, just indexed."""
     User = get_user_model()
     version = (
-        User.objects.filter(public_id=public_id.upper())
+        User.objects.filter(public_id=public_id.upper(), banned_at__isnull=True)
         .values_list("profile_photo_version", flat=True)
         .first()
     )
@@ -100,8 +100,9 @@ def profile_photo_view(request, public_id):
     names the bytes); missing or stale -> no-cache (stored, revalidated via the ETag = version).
     """
     User = get_user_model()
+    # A banned account is hidden: the same 404 as an unknown id or no photo (users.strikes).
     row = (
-        User.objects.filter(public_id=public_id.upper())
+        User.objects.filter(public_id=public_id.upper(), banned_at__isnull=True)
         .values_list("profile_photo_data", "profile_photo_version")
         .first()
     )

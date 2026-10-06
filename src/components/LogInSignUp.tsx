@@ -4,6 +4,8 @@ import { showErrorAlert, showNewUserAlert } from '../utils/Alerts';
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
 import { setTokens } from "../utils/Api";
+import { isBanPayload, reportBan } from "../utils/ban";
+import { nameNoteSlot, useNameCheck } from "../utils/nameCheck";
 import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
 import { isInAppBrowser } from "../utils/inAppBrowser";
@@ -39,6 +41,18 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
+  // Live server check of the sign-up name (reserved / not allowed); the server re-checks on submit.
+  const nameNote = useNameCheck(signupUsername, isSignup);
+
+  // 403 `account_banned` from login / signup / Google login: the ban screen takes over (the
+  // slice's `banned` state, not a form state), so close the form instead of alerting.
+  const handledBan = (response: Response, data: unknown) => {
+    if (response.status !== 403 || !isBanPayload(data)) return false;
+    setIsSubmitting(false);
+    reportBan(data);
+    onClose();
+    return true;
+  };
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -50,6 +64,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
         body: JSON.stringify({ id: userId, password: userPassword }),
       });
       const data = await response.json();
+      if (handledBan(response, data)) return;
       if (data.error) {
         showErrorAlert(data.error, "Authentication Failed");
         setIsSubmitting(false);
@@ -87,6 +102,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
         body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword }),
       });
       const data = await response.json();
+      if (handledBan(response, data)) return;
 
       if (!response.ok || data.error) {
         showErrorAlert(data.error || "Signup failed", "Authentication Failed");
@@ -117,6 +133,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
           body: JSON.stringify({ code: codeResponse.code }),
         });
         const data = await response.json();
+        if (handledBan(response, data)) return;
 
         if (!response.ok || data.error) {
           showErrorAlert(data.error || "Google Authentication Failed", "Login Failed");
@@ -199,6 +216,22 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
                 transition={{ duration: 0.25 }}
               />
             </AnimatePresence>
+            <div className="auth-field-note-slot" role="status" aria-live="polite">
+              <AnimatePresence initial={false}>
+                {nameNote && (
+                  <motion.div
+                    key="signup-name-note"
+                    style={{ overflow: "hidden" }}
+                    variants={nameNoteSlot}
+                    initial="hidden"
+                    animate="visible"
+                    exit="hidden"
+                  >
+                    <p className="auth-error auth-field-note"><SwapText>{nameNote}</SwapText></p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </>
         ) : (
           <input

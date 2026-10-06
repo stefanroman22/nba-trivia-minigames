@@ -8,6 +8,10 @@ and CI (no REDIS_URL) need not install it.
 Entries are keyed by the player's permanent PUBLIC ID (usernames are display
 names and may repeat), so renames never touch the board and two players with
 the same name can't collide.
+
+Banned accounts (users.strikes) are hidden, not deleted: every Postgres path filters them out,
+`remove()` drops them from the ZSET at ban time and `record_score` never re-adds them; an unban
+re-records the score, so the row comes back with its points.
 """
 import os
 
@@ -17,6 +21,11 @@ User = get_user_model()
 
 ZKEY = "leaderboard"
 _client = None
+
+
+def _ranked():
+    """Every account that may appear on a board: banned accounts are hidden (users.strikes)."""
+    return User.objects.filter(banned_at__isnull=True)
 
 
 def _redis():
@@ -36,12 +45,12 @@ def top(n=100):
     """Top `n` rows as [{"id", "username", "points"}], highest first."""
     r = _redis()
     if r is None:
-        rows = User.objects.order_by("-points")[:n].values("public_id", "username", "points")
+        rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points")
         return [{"id": u["public_id"], "username": u["username"], "points": u["points"]} for u in rows]
     entries = r.zrevrange(ZKEY, 0, n - 1, withscores=True)
     ids = [m for m, _ in entries]
     # One query resolves the display names for the whole page.
-    names = dict(User.objects.filter(public_id__in=ids).values_list("public_id", "username"))
+    names = dict(_ranked().filter(public_id__in=ids).values_list("public_id", "username"))
     return [
         {"id": m, "username": names.get(m, "Player"), "points": int(s)}
         for m, s in entries
@@ -52,11 +61,11 @@ def rank_of(user):
     """1-based rank of `user` (number of players with strictly more points, + 1)."""
     r = _redis()
     if r is None:
-        return User.objects.filter(points__gt=user.points).count() + 1
+        return _ranked().filter(points__gt=user.points).count() + 1
     rank = r.zrevrank(ZKEY, user.public_id)
     if rank is None:
         # Not in the ZSET yet (e.g. before the first sync) — fall back to a count.
-        return User.objects.filter(points__gt=user.points).count() + 1
+        return _ranked().filter(points__gt=user.points).count() + 1
     return rank + 1
 
 
@@ -66,16 +75,24 @@ def total():
     Postgres count, which would hide drift."""
     r = _redis()
     if r is None:
-        return User.objects.count()
+        return _ranked().count()
     return r.zcard(ZKEY)
 
 
 def record_score(user):
-    """Upsert a user's score into the ZSET (no-op without Redis)."""
+    """Upsert a user's score into the ZSET (no-op without Redis, and for a banned account)."""
+    r = _redis()
+    if r is None or getattr(user, "banned_at", None):
+        return
+    r.zadd(ZKEY, {user.public_id: user.points})
+
+
+def remove(user):
+    """Drop a user from the ZSET (no-op without Redis). Called when an account is banned."""
     r = _redis()
     if r is None:
         return
-    r.zadd(ZKEY, {user.public_id: user.points})
+    r.zrem(ZKEY, user.public_id)
 
 
 def friends_board(user):
@@ -98,7 +115,7 @@ def friends_board(user):
     ids = list(friend_ids) + [user.pk]
 
     rows = list(
-        User.objects.filter(pk__in=ids).order_by("-points").values("pk", "public_id", "username", "points")
+        _ranked().filter(pk__in=ids).order_by("-points").values("pk", "public_id", "username", "points")
     )
     board = [{"id": r["public_id"], "username": r["username"], "points": r["points"]} for r in rows]
     my_rank = next((i + 1 for i, r in enumerate(rows) if r["pk"] == user.pk), len(board))

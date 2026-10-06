@@ -16,8 +16,15 @@ export interface LeaderboardPayload {
   scope: LeaderboardScope;
 }
 
+/** Feedback modal variant. `preset: "appeal"` is the ban screen's Appeal (BanNotice). */
+export interface FeedbackPayload {
+  preset?: "appeal";
+  /** The banned account's public id, pre-filled into the appeal text. */
+  publicId?: string;
+}
+
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import login_view, get_current_user, update_profile, logout_view, signup_view, google_login, get_users
+from .views import login_view, get_current_user, update_profile, logout_view, signup_view, google_login, get_users, check_name
 from .friends import (
     search_users,
     search_friends,
@@ -23,6 +23,8 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('login/google/', google_login, name='google_login'),
     path('get-users/', get_users, name='get-users'),
+    # Live, throttled username moderation check for the signup/profile forms (never strikes).
+    path('check-name/', check_name, name='check-name'),
     # Rotating refresh with an absolute 90-day session cap (see users.tokens).
     path('token/refresh/', SessionRefreshView.as_view(), name='token_refresh'),
 
