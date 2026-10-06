@@ -25,10 +25,9 @@ if (process.env.NBA_DEV_ENV_SKIP) {
 
 const REMOTE_BACKEND_URL = 'https://backend-kappa-one-42.vercel.app/api';
 
-// null until a production multiplayer server exists again (see spec §4.2 / §5.5).
-// Setting this is the ONLY change needed to enable the socket fallback.
-const REMOTE_SOCKET_URL = null;
-
+// There is deliberately NO remote socket URL here. Multiplayer is billed by usage, so a
+// local run only ever talks to a local server (started by scripts/dev.mjs on :4000); it
+// never falls back to the deployed one, and the deployed one refuses localhost origins.
 const LOCAL_BACKEND_URL = 'http://localhost:8000/api';
 const LOCAL_SOCKET_URL = 'http://localhost:4000';
 
@@ -75,18 +74,11 @@ if (backendUrlPinned) {
   report.push(`  backend : REMOTE  ${REMOTE_BACKEND_URL}   *** PRODUCTION DATA ***`);
 }
 
-// --- socket ---
-if (socketUp) {
-  lines.push(`VITE_SOCKET_URL=${LOCAL_SOCKET_URL}`, 'VITE_ENV_SOURCE_SOCKET=local');
-  report.push(`  socket  : LOCAL   ${LOCAL_SOCKET_URL}`);
-} else if (REMOTE_SOCKET_URL) {
-  lines.push(`VITE_SOCKET_URL=${REMOTE_SOCKET_URL}`, 'VITE_ENV_SOURCE_SOCKET=remote');
-  report.push(`  socket  : REMOTE  ${REMOTE_SOCKET_URL}   *** PRODUCTION DATA ***`);
-} else {
-  // Write no VITE_SOCKET_URL: src/socket.ts already defaults to localhost:4000.
-  lines.push('VITE_ENV_SOURCE_SOCKET=unavailable');
-  report.push('  socket  : UNAVAILABLE — no local server and none deployed; multiplayer disabled');
-}
+// --- socket --- always local; scripts/dev.mjs starts the server if nothing answers on :4000.
+lines.push(`VITE_SOCKET_URL=${LOCAL_SOCKET_URL}`, 'VITE_ENV_SOURCE_SOCKET=local');
+report.push(socketUp
+  ? `  socket  : LOCAL   ${LOCAL_SOCKET_URL}   (already running)`
+  : `  socket  : LOCAL   ${LOCAL_SOCKET_URL}   (npm run dev will start it)`);
 
 try {
   writeFileSync(path.resolve('.env.local'), lines.join('\n') + '\n');

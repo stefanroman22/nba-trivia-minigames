@@ -1,5 +1,4 @@
-import os
-import json
+import logging
 import re
 import secrets
 from django.contrib.auth import authenticate, get_user_model
@@ -17,6 +16,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
 from users import leaderboard, strikes
+from users.google_auth import GoogleAuthError, verify_google_code
 from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
 from users.tokens import issue_session_tokens
@@ -29,9 +29,15 @@ USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{3,20}$")
 USERNAME_RULES = "Username must be 3-20 characters using letters, numbers or underscores."
 EMAIL_IN_USE = "Email already in use! Please use a different email address."
 
-GOOGLE_CLIENT_ID = os.getenv("CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-REDIRECT_URI = "postmessage"
+logger = logging.getLogger(__name__)
+
+
+class GoogleAccountConflict(Exception):
+    """The email matches an account already linked to a different Google account."""
+
+
+class GoogleSignupBlocked(Exception):
+    """The email belongs to a banned account, so it can't open a new one."""
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +78,63 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
         },
         status=status_code,
     )
+
+
+def _revoke_sessions(user):
+    """Blacklist every outstanding refresh token so existing sessions can't be refreshed."""
+    from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+    for outstanding in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=outstanding)
+
+
+def _user_for_google_identity(identity):
+    """Find or create the account for a VERIFIED Google identity -> (user, new_account).
+
+    Linked by Google's stable `sub` first, then by the verified email. Signup does not
+    verify email ownership, so a password account that merely carries this address may
+    belong to someone else (an attacker can pre-register a victim's email and wait for
+    them to use Google). The first Google sign-in therefore takes the account over: the
+    password is disabled and old sessions are revoked. The owner keeps access via Google.
+    """
+    sub, email = identity["sub"], identity["email"]
+
+    user = User.objects.filter(google_sub=sub).first()
+    if user:
+        return user, False
+
+    user = User.objects.filter(email__iexact=email).first()
+    if user:
+        if user.google_sub and user.google_sub != sub:
+            raise GoogleAccountConflict()
+        if user.has_usable_password():
+            user.set_unusable_password()
+            _revoke_sessions(user)
+        user.google_sub = sub
+        user.save(update_fields=["password", "google_sub"])
+        return user, False
+
+    # Not an oracle here: Google has just proven the caller owns this address.
+    if strikes.email_is_banned(email):
+        strikes.log_event(None, "name_signup", "none", strikes.SIGNUP_BLOCKED_CODE)
+        raise GoogleSignupBlocked()
+
+    # Names may repeat (public id disambiguates) — use the address's
+    # local part directly, trimmed to the allowed charset/length.
+    base = re.sub(r"[^A-Za-z0-9_]", "", email.split("@")[0])[:20] or "Player"
+    if len(base) < 3:
+        base = f"{base}NBA"[:20]
+    # The player didn't choose this name, so a flagged one is replaced, never struck.
+    if check_username(base).tier != "ok":
+        base = f"Player{secrets.randbelow(9000) + 1000}"
+    try:
+        user = User.objects.create_user(username=base, email=email, password=None, google_sub=sub)
+    except IntegrityError:
+        # A concurrent first sign-in created it between our lookup and insert.
+        user = User.objects.filter(google_sub=sub).first() or User.objects.get(email__iexact=email)
+        return user, False
+    leaderboard.record_score(user)
+    return user, True
 
 
 # ---------------------------------------------------------------------------
@@ -286,68 +349,40 @@ def logout_view(request):
 @permission_classes([AllowAny])
 @throttle_classes([LoginRateThrottle])
 def google_login(request):
+    code = request.data.get("code") if isinstance(request.data, dict) else None
+    if not code or not isinstance(code, str):
+        return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
+
     try:
-        # Lazy: requests (+charset_normalizer) and google-auth cost ~0.5 s to import and only
-        # this endpoint uses them (guard: trivia/tests/test_startup.py).
-        import requests
-        from google.oauth2 import id_token
-        from google.auth.transport import requests as google_requests
-        code = json.loads(request.body).get("code")
-        if not code:
-            return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
+        identity = verify_google_code(code)
+    except GoogleAuthError as exc:
+        logger.warning("google login rejected: %s", exc)
+        return Response({"error": exc.public_message}, status=status.HTTP_400_BAD_REQUEST)
 
-        token_json = requests.post(
-            "https://oauth2.googleapis.com/token",
-            data={
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": REDIRECT_URI,
-                "grant_type": "authorization_code",
-            },
-        ).json()
+    try:
+        user, new_account = _user_for_google_identity(identity)
+    except GoogleSignupBlocked:
+        return Response(
+            {"code": strikes.SIGNUP_BLOCKED_CODE, "error": strikes.SIGNUP_BLOCKED_MESSAGE},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+    except GoogleAccountConflict:
+        return Response(
+            {"error": "This email is already linked to a different Google account."},
+            status=status.HTTP_409_CONFLICT,
+        )
+    except Exception:
+        logger.exception("google login failed after verification")
+        return Response(
+            {"error": "Something went wrong signing you in. Please try again."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
 
-        if "id_token" not in token_json:
-            return Response({"error": "Failed to obtain id_token"}, status=status.HTTP_400_BAD_REQUEST)
-
-        idinfo = id_token.verify_oauth2_token(token_json["id_token"], google_requests.Request(), GOOGLE_CLIENT_ID)
-        email = idinfo.get("email")
-        if not email:
-            return Response({"error": "Invalid token: no email"}, status=status.HTTP_400_BAD_REQUEST)
-
-        new_account = False
-        try:
-            user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist:
-            # Not an oracle here: Google has just proven the caller owns this address.
-            if strikes.email_is_banned(email):
-                strikes.log_event(None, "name_signup", "none", strikes.SIGNUP_BLOCKED_CODE)
-                return Response(
-                    {"code": strikes.SIGNUP_BLOCKED_CODE, "error": strikes.SIGNUP_BLOCKED_MESSAGE},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            new_account = True
-            # Names may repeat (public id disambiguates) — use the address's
-            # local part directly, trimmed to the allowed charset/length.
-            base = re.sub(r"[^A-Za-z0-9_]", "", email.split("@")[0])[:20] or "Player"
-            if len(base) < 3:
-                base = f"{base}NBA"[:20]
-            # The player didn't choose this name, so a flagged one is replaced, never struck.
-            if check_username(base).tier != "ok":
-                base = f"Player{secrets.randbelow(9000) + 1000}"
-            user = User.objects.create_user(
-                username=base,
-                email=email.lower(),
-                password=None,
-            )
-            leaderboard.record_score(user)
-
-        if user.banned_at:
-            return Response(strikes.ban_payload(user), status=status.HTTP_403_FORBIDDEN)
-        return auth_response(request, user, new_account=new_account)
-
-    except Exception as e:
-        return Response({"error": f"Unexpected error: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+    if user.banned_at:
+        return Response(strikes.ban_payload(user), status=status.HTTP_403_FORBIDDEN)
+    if not user.is_active:
+        return Response({"error": "This account is disabled."}, status=status.HTTP_403_FORBIDDEN)
+    return auth_response(request, user, new_account=new_account)
 
 
 @api_view(["POST"])
