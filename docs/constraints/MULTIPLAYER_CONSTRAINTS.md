@@ -40,15 +40,19 @@ Each rule's ❌ is labelled **real** (exists in the repo today, cited) or **hypo
 
 ---
 
-## Rule MP-1: Players are keyed by a stable `uid`, never `socket.id`, and the relay trusts it unverified
+## Rule MP-1: Players are keyed by a stable, server-verified `uid`, never `socket.id`
 
 `multiplayer_server/src/index.js` keys the `players` Map (`uid -> { socketId, user, roomCode }`)
-and every room's `members` array by `uid = user?.id || user?.username` (the `identify` handler),
-because socket ids change on every reconnect. The client re-announces with
-`socket.emit("identify", { user })` on every `connect` (`MultiplayerContext.tsx`). The relay does
-**not** verify that payload against the Django JWT: there is no `jwt`/`verify`/`Authorization`
-handling anywhere in `multiplayer_server/src/` (Acceptance check 8). Do not assume the relay
-enforces anything the JWT-authenticated backend guarantees.
+and every room's `members` array by `uid` = the public id that Django's `GET /api/me/` returns for
+the socket's access token (`identity.js` `verifyToken`, cached 60 s per token; AUTH-8), because
+socket ids change on every reconnect. The client re-announces with
+`socket.emit("identify", { user, token })` on every `connect` and before `findMatch`/
+`createFriendRoom`/`joinFriendRoom` (`MultiplayerContext.tsx` `identifyNow`, which refreshes an
+expired token first); those three handlers `await socket.identifying` and re-check the token. The
+client's `user` object is ignored for identity; a token-less identify is refused (`identifyError`),
+and a banned token is refused and disconnected. `identity.js` is the only `Authorization` user in
+`multiplayer_server/src/` (Acceptance check 8). Scores and `game` objects are still client-claimed
+(MP-2).
 
 ```js
 ❌ hypothetical: a handler keyed by socket.id (breaks on reconnect)
@@ -110,7 +114,7 @@ if (room.gameId === "imposter") return initImposter(room, helpers);
 
 ## Rule MP-4: Event names are camelCase; client emits are action verbs, server emits pair a success event with a feature-scoped error event
 
-Client to server: `identify`, `findMatch`, `cancelFind`, `createFriendRoom`, `joinFriendRoom`,
+Client to server: `identify` (`{ user, token }`; refusal is `identifyError { code, message }`), `findMatch`, `cancelFind`, `createFriendRoom`, `joinFriendRoom`,
 `changeFriendGame`, `startRoomNow`, `turnAction`, `submitScore`, `reportProgress`, `proposeAgain`,
 `proposeSwitch`, `respondProposal`, `cancelProposal`, `leaveMatch`. Server to client pairs are
 feature-scoped, not a mechanical `<stem>Error`: `matchFound`/`matchError`, `roundData`/
@@ -441,11 +445,11 @@ grep -rl 'multiplayer?: boolean' "src/Game Renderers" | grep -v -E "RenderGame|C
 ```
 Observed: `4`; then exactly `BingoGame.tsx`, `CareerPath.tsx`, `NbaGrid.tsx`, `PackFive.tsx`, `WhoAreYa.tsx`.
 
-**8. No JWT handling in the relay (MP-1).**
+**8. Token verification lives only in `identity.js` (MP-1).**
 ```bash
-grep -rniE "jwt|verify|authorization" multiplayer_server/src
+grep -rlE "Authorization" multiplayer_server/src
 ```
-Observed: no output.
+Observed: `multiplayer_server/src/identity.js` only; `cd multiplayer_server && npm test` passes.
 
 **9. Renderers do not import the socket; `useMultiplayer` only in ImposterGame (MP-13).**
 ```bash

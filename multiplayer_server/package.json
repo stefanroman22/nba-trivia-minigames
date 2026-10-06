@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "test:game-data": "node scripts/test_game_data.js",
-    "test": "node --test test/auth.test.js test/identify.integration.test.js"
+    "test": "node --test scripts/test_identity.js test/origin.integration.test.js"
   },
   "engines": {
     "node": ">=18"

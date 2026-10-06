@@ -75,17 +75,12 @@ const fakeIo = {
   adapter() {},
 };
 
-// The real server asks the backend who a token belongs to (src/auth.js). Here the "token"
-// is just the player's id and the verifier answers from the registry `identify()` fills.
-const knownUsers = new Map();
 const stubs = {
-  "./auth": {
-    createVerifier: () => async (token) =>
-      knownUsers.has(token) ? { ok: true, user: knownUsers.get(token) } : { ok: false, reason: "invalid" },
-  },
   express: Object.assign(() => ({ use() {}, get() {} }), { json: () => () => {} }),
   cors: () => () => {},
   "socket.io": { Server: function Server() { return fakeIo; } },
+  // identify verifies a Django token (src/identity.js); here the token is the user JSON.
+  "./identity": { verifyToken: async (token) => ({ ok: true, user: JSON.parse(token) }) },
 };
 
 const originalLoad = Module._load;
@@ -196,29 +191,16 @@ function makeSocket(id) {
   const socket = {
     id,
     handlers: {},
-    middleware: [],
     on(event, fn) {
       this.handlers[event] = fn;
-    },
-    use(fn) {
-      this.middleware.push(fn);
     },
     emit(event, payload) {
       record(id, event, payload);
     },
     join() {},
     leave() {},
-    // Mirrors socket.io: every packet passes the socket's middleware before its handler runs.
     send(event, payload) {
-      const run = () => this.handlers[event]?.(payload);
-      if (!this.middleware.length) return run();
-      this.middleware[0]([event, payload], run);
-    },
-    /** Sign in as `user` (the verifier stub above stands in for the backend) and wait for the verdict. */
-    async identify(user) {
-      knownUsers.set(user.id, user);
-      this.send("identify", { token: user.id });
-      await new Promise((resolve) => setImmediate(resolve));
+      this.handlers[event]?.(payload);
     },
   };
   fakeIo.sockets.sockets.set(id, socket);
@@ -246,8 +228,8 @@ async function playRound(gameId, suffix) {
   const b = makeSocket(`sb-${suffix}`);
   const userA = { id: `A${suffix}`, username: `alice${suffix}`, points: 100 };
   const userB = { id: `B${suffix}`, username: `bob${suffix}`, points: 100 };
-  await a.identify(userA);
-  await b.identify(userB);
+  a.send("identify", { user: userA, token: JSON.stringify(userA) });
+  b.send("identify", { user: userB, token: JSON.stringify(userB) });
   a.send("findMatch", { game: GAMES[gameId] });
   b.send("findMatch", { game: GAMES[gameId] });
   await settle(() => eventsFor(a.id, "roundData").length && eventsFor(b.id, "roundData").length);
@@ -280,7 +262,8 @@ async function playRound(gameId, suffix) {
     JSON.stringify(qA) === JSON.stringify(SUPERDRAFT_QUESTION));
 
   // 2. A reconnect re-serves the same round.
-  await sd.a.identify(sd.userA);
+  sd.a.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
+  await settle(() => eventsFor(sd.a.id, "resumeMatch").length > 0);
   const resume = eventsFor(sd.a.id, "resumeMatch");
   check("superdraft: reconnect resumed the match", resume.length === 1);
   check("superdraft: the resumed round is the same one",
@@ -323,7 +306,8 @@ async function playRound(gameId, suffix) {
   // Disconnect A, then resume the same user on a fresh socket.
   sd.a.send("disconnect");
   const a2 = makeSocket("sa-1b");
-  await a2.identify(sd.userA);
+  a2.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
+  await settle(() => eventsFor(a2.id, "resumeMatch").length > 0);
   const swResume = eventsFor(a2.id, "resumeMatch");
   check("switch: reconnect resumed the match", swResume.length === 1 && swResume[0]?.code === swCode);
   check("switch: the resume snapshot is for tictactoe", swResume[0]?.game?.id === "tictactoe",

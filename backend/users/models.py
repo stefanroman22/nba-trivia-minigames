@@ -56,6 +56,17 @@ class CustomUser(AbstractUser):
     # carry instead of the bytes (users.friends._brief). Backfilled to 1 for pre-0006 photos.
     profile_photo_version = models.PositiveIntegerField(default=0, editable=False)
     rank = models.CharField(max_length=20, choices=RANK_CHOICES, default='Rookie')
+    # Moderation (users.strikes). Strikes never expire; the third one bans. `banned_at` is THE
+    # ban switch: users.authentication.BanAwareJWTAuthentication refuses every request with a
+    # 403 {"code": "account_banned"} while it is set, and banned accounts are hidden (leaderboard,
+    # search, public photo, relay) but never deleted, so an unban restores everything.
+    strike_count = models.PositiveSmallIntegerField(default=0)
+    banned_at = models.DateTimeField(null=True, blank=True)
+    # A reason CODE ("name_severe", "photo", "admin"), never the offending text.
+    ban_reason = models.CharField(max_length=40, blank=True, default="")
+    # Filled only when the account is banned (users.strikes.canonical_email); signup and Google
+    # sign-up refuse a new account whose canonical email matches. Weak by design (see docs).
+    canonical_email = models.CharField(max_length=254, blank=True, default="", db_index=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
@@ -177,3 +188,51 @@ class BlockedUser(models.Model):
 
     def __str__(self):
         return f"{self.blocker_id} blocked {self.blocked_id}"
+
+
+class ModerationEvent(models.Model):
+    """One moderation decision: a blocked name, a strike, a ban/unban, a signup IP lock.
+
+    Feeds the Django admin inline on CustomUser and the owner's review; never the UI and
+    never an API response. Deliberately stores no matched text and no raw IP (owner
+    decision 6): only the tier, a reason code and a salted SHA-256 of the IP.
+    """
+
+    KIND_CHOICES = [
+        ("name_signup", "Name at signup"),
+        ("name_change", "Name change"),
+        ("photo", "Profile photo"),
+    ]
+    TIER_CHOICES = [
+        ("severe", "Severe"),
+        ("mild", "Mild"),
+        ("reserved", "Reserved"),
+        ("none", "None"),
+    ]
+
+    # Null for signup attempts (no account exists) and kept (SET_NULL) if the account is deleted.
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="moderation_events",
+        # The composite (user, -created_at) index below already serves user lookups; a second
+        # FK-only index is the duplicate migration 0007 removed elsewhere.
+        db_index=False,
+    )
+    # Snapshot of the player's public id, like trivia.Feedback, so the row stays readable.
+    public_id = models.CharField(max_length=12, blank=True)
+    kind = models.CharField(max_length=20, choices=KIND_CHOICES)
+    tier = models.CharField(max_length=10, choices=TIER_CHOICES)
+    # Code: "blocked", "strike", "ban", "unban", "signup_ip_locked", "signup_blocked".
+    reason = models.CharField(max_length=40)
+    ip_hash = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # The admin inline lists one user's events newest first.
+        indexes = [models.Index(fields=["user", "-created_at"], name="modevent_user_created_idx")]
+
+    def __str__(self):
+        return f"{self.public_id or '-'} {self.kind} {self.tier} {self.reason}"

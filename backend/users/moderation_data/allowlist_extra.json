@@ -1,0 +1,13 @@
+{
+ "note": "Whole tokens that cancel a MILD hit (never a severe one), on top of every token of trivia/data/all-players.json. Team names and nicknames, cities, and basketball words.",
+ "words": [
+  "hawks", "celtics", "nets", "hornets", "bulls", "cavaliers", "cavs", "mavericks", "mavs", "nuggets",
+  "pistons", "warriors", "dubs", "rockets", "pacers", "clippers", "lakers", "grizzlies", "heat", "bucks",
+  "timberwolves", "wolves", "pelicans", "knicks", "thunder", "magic", "sixers", "suns", "blazers", "kings",
+  "spurs", "raptors", "jazz", "wizards", "sonics", "bobcats", "bullets",
+  "assist", "assists", "dunk", "dunker", "glass", "knight", "sexton", "hancock", "cockburn", "rebound",
+  "buckets", "bucket", "hooper", "hoops", "baller", "swish", "brick", "crossover", "fadeaway", "alleyoop",
+  "screen", "pick", "roll", "post", "paint", "triple", "double", "clutch", "goat", "mvp", "dime", "dimes",
+  "and one", "pick and roll", "poster", "slam", "jam", "shot", "shooter", "hustle", "board", "boards"
+ ]
+}

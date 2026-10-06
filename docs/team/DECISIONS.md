@@ -1078,3 +1078,42 @@ renderer — chosen. Tally missing or errored at scoring time counts as majority
 never costs the player points and the backend cap bounds abuse at the honest maximum.
 Consequences: the engine reports both readings under `assumed` in the build report so the owner can
 flip either; `PER_GAME_MAX_POINTS` is the place future per-game caps go.
+
+## 2026-10-06 — Ban system: where the ban is enforced, how the relay verifies identity, and where the ban screen lives
+Context: P1 hard card (risk high, auth + multiplayer + ui). Design: `designs/2026-10-06-ban-system-and-username.md`.
+Weighed: (a) ban check as a DRF permission or middleware on each view — rejected: forgetting one view leaks
+access; (b) a `JWTAuthentication` subclass raising `PermissionDenied` after simplejwt loads the user — chosen:
+one gate, no extra query, 403 (not 401, which the frontend treats as "refresh me"). Refresh: a ban blacklists
+every outstanding token, so the stock refresh path would answer 401 "blacklisted"; the serializer now decodes
+the token (signature + expiry) first and answers 403 `account_banned` for a banned user. Login checks the ban
+after the password so a stranger cannot probe ban status by email. Relay: (a) keep token-less `identify`
+for old clients — rejected, it keeps the id-spoofing hole (AUTH-8); (b) require `{ user, token }`, verify
+against Django `/api/me/` with a 60 s per-token cache, key the player by the server payload — chosen; the
+relay is not deployed today, so nothing breaks. Ban screen: a full-viewport `BanNotice` rendered under
+`ModalHost` rather than a modal — a deliberate UI-8 exception, because the Appeal button must open the
+existing feedback modal on top of it and the state is not dismissible. Appeal: a feedback row with
+`game="appeal"`, a `[Appeal #ID]` prefix and a fixed neutral rating — no Feedback schema change.
+Consequences: owner defaults 1-8 from the card ship as named constants/settings for review; the engine
+reports the measured corpus numbers and the fixed appeal rating under `assumed`; the photo card plugs into
+`strikes.record_strike(user, "photo", ...)` and `ban_reason="photo"` without touching the gate.
+
+## 2026-10-06 — Ban system and username moderation: 3 strikes, plain code, token-verified relay
+Context: card "Ban system and username moderation" (design `docs/team/designs/2026-10-06-ban-system-and-username.md`).
+Offensive names must be blocked without blocking real NBA names, repeat offenders banned, with no AI, LLM
+or external API. The relay trusted the client's `identify` payload, so anyone could claim any id.
+Decision: owner defaults, each a named constant or data file the owner can change: (1) severe tier
+(slurs, explicit sexual terms, f-word family; `users/moderation_data/severe.json`) strikes on a name
+change, mild/reserved reject without a strike; (2) the strike message says "(n of 3)"; (3) the ban
+screen's Appeal opens the existing feedback modal (`game="appeal"`, no personal email in the product);
+(4) banned accounts are hidden, never deleted, so an unban restores everything; (5) strikes never
+expire; (6) events store tier and reason codes only, no text or raw IP; (7) uncertain photo band is
+logged for review (photo card); (8) Romanian severe terms are a short hand-written list marked
+`needs-native-review`. Matching is run-aware (no collapse-then-compare, so "Niger" never matches the
+slur) with a per-term `except` list for Scunthorpe words; the player allowlist cancels mild hits only.
+Bans are `banned_at` + `BanAwareJWTAuthentication` + 403 `account_banned` (never 401). The relay now
+requires the access token and verifies it against `/api/me/`; token-less clients are refused (the relay
+is not deployed today, so nothing breaks in production). `BanNotice` is a page-level blocking state,
+not a dismissible overlay, so it is a deliberate UI-8 exception (it must sit under the appeal modal).
+Consequences: AUTH-3/AUTH-8/MP-1 rewritten, AUTH-13 added. Canonical-email and per-IP signup locks are
+weak anti-evasion (a new address or network defeats them) and are not a security boundary. Photo
+moderation plugs into `users.strikes.record_strike(user, "photo")` next.

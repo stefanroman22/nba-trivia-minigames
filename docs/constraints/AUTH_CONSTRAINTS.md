@@ -16,6 +16,10 @@ follows (`@api_view` usage, hand-built dict responses, broad `try/except`, trail
 | Custom user model, rank ladder, friend/block models | `backend/users/models.py` |
 | Public player ID generation | `backend/users/identity.py` |
 | Session/refresh-token lifetime + refresh view | `backend/users/tokens.py` |
+| The one DRF auth class (JWT + ban gate) | `backend/users/authentication.py` |
+| Strikes, bans, signup IP lock, canonical email | `backend/users/strikes.py` |
+| Username moderation (word lists, matcher) | `backend/users/moderation_text.py`, `backend/users/moderation_data/` |
+| Relay token verification | `multiplayer_server/src/identity.js` |
 | Auth endpoints (login/signup/google/logout/me/update-profile/get-users) | `backend/users/views.py` |
 | Friends, requests, blocks, search | `backend/users/friends.py` |
 | Profile photo normalization + public photo endpoint | `backend/users/photos.py` |
@@ -86,8 +90,9 @@ else:
 
 ## Rule AUTH-3: JWT is the only API authentication, and admin-ness is decided server-side from `is_staff`
 
-`REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]` lists exactly `JWTAuthentication`
-(`settings.py`); `django.contrib.sessions` exists only for Django admin. Every `users/` endpoint is
+`REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]` lists exactly
+`users.authentication.BanAwareJWTAuthentication` (`settings.py`): simplejwt's `JWTAuthentication` plus the
+ban gate of AUTH-13, adding no query; `django.contrib.sessions` exists only for Django admin. Every `users/` endpoint is
 `@api_view` plus `permission_classes` (`AllowAny` for login/signup/google/logout, `IsAuthenticated` for
 `me/`, `update-profile/` and every friends endpoint; `get_users` reads `request.user.is_authenticated`
 itself so guests can view the global board). Admin endpoints (`trivia/admin_api.py`,
@@ -205,20 +210,31 @@ awarded = 0
 if user is not None and mode == 'single' and score > 0:
 ```
 
-## Rule AUTH-8: The multiplayer server trusts the client-submitted `identify` payload and never checks the JWT
+## Rule AUTH-8: The multiplayer relay identifies a socket by its verified access token, never by the client's claim
 
-`multiplayer_server/src/index.js`'s `identify` handler takes `uid = user?.id || user?.username` and the whole
-`user` object straight from the socket; there is no JWT verification anywhere in `multiplayer_server/src/`.
-Nothing privilege-sensitive (moderation, awards, account mutation) may trust data arriving over this
-channel, and any change to what flows through `identify` is identity-adjacent (`risk: high`).
+`identify` carries `{ user, token }`, and only the token counts. `multiplayer_server/src/identity.js`
+`verifyToken` sends it as `Authorization: Bearer` to Django's `GET /api/me/` (so the same
+`BanAwareJWTAuthentication` gate applies) and caches the verdict per token for `VERIFY_TTL_MS` (60 s). The
+relay keys the player by the **server's** payload (`uid = /me/ user.id`, email stripped), never by
+`user.id` from the socket. 403 `account_banned` → `identifyError { code, message }` and
+`socket.disconnect(true)`; 401/other 4xx → `invalid_token`; network error/5xx → `auth_unavailable` (fails
+closed, not cached). `findMatch`, `createFriendRoom` and `joinFriendRoom` `await socket.identifying` and
+re-check the token before acting. A token-less (old) client is not identified — supporting it would keep
+the id-spoofing hole. The client (`MultiplayerContext.tsx` `identifyNow`) refreshes an expired access
+token before emitting. `identity.js` is the only `Authorization` user in `multiplayer_server/src/`. Scores
+and `game` objects sent over the socket are still client-claimed (MP-2): nothing privilege-sensitive
+(awards, account mutation) may trust this channel, and any change to `identify` is `risk: high`.
 
 ```js
-❌ WRONG — trusting the socket payload for something privileged
-socket.on("identify", ({ user } = {}) => { if (user?.isAdmin) grantModTools(socket); });
+❌ WRONG — keying by the client's own claim (anyone can be anyone, banned accounts included)
+socket.on("identify", ({ user } = {}) => { socket.uid = user?.id; });
 
-✅ RIGHT — index.js uses it only for realtime display/matchmaking
-const uid = user?.id || user?.username;
-players.set(uid, { socketId: socket.id, user, roomCode: prev?.roomCode ?? null });
+✅ RIGHT — multiplayer_server/src/index.js
+socket.identifying = identity.verifyToken(token).then((verdict) => {
+  if (!verdict.ok) return refuseIdentity(verdict);
+  socket.token = token;
+  onIdentified(verdict.user);   // uid = the server's user.id
+});
 ```
 
 ## Rule AUTH-9: Sensitive endpoints are throttled per view, and the cache backend is what makes that real
@@ -280,7 +296,8 @@ touching them must be classified `risk: high`:
 - `backend/trivia/views.py` `log_session` (the points writer) and `backend/trivia/admin_api.py` / `feedback_api.py` permission decorators
 - `backend/backend/settings.py` `AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`, `CACHES`; `backend/backend/throttles.py`
 - `src/utils/Api.tsx`, `src/utils/session.ts`, `src/store/userSlice.tsx`, `src/app/providers.tsx` (`restoreSession`)
-- `multiplayer_server/src/index.js` `identify` handler (AUTH-8)
+- `multiplayer_server/src/index.js` `identify` handler and `multiplayer_server/src/identity.js` (AUTH-8)
+- `backend/users/authentication.py`, `backend/users/strikes.py` (AUTH-13)
 
 Not on the list: `get_users` (read-only leaderboard), `LogInSignUp.tsx` and `UserProfile.tsx` UI-only
 edits that leave token keys, endpoints and payload shapes unchanged.
@@ -314,6 +331,39 @@ return {"id": u.public_id, "email": u.email, "profile_photo": data_url}
 ✅ RIGHT — backend/users/friends.py
 if BlockedUser.objects.filter(Q(blocker=me, blocked=target) | Q(blocker=target, blocked=me)).exists():
     return Response({"error": "You can't send a request to this player."}, status=403)
+```
+
+## Rule AUTH-13: Bans — `banned_at` is the switch, the auth class the gate, 403 `account_banned` the contract
+
+`CustomUser.banned_at` set = banned; nothing else (not `is_active`) means "banned". Strikes come only from
+`users.strikes.record_strike` (atomic, `select_for_update`); a severe username on `update-profile` is a
+strike, the `MAX_STRIKES` (3) th bans in the same transaction, and strikes never expire. `ban_user` sets
+`banned_at`/`ban_reason` (a code: `name_severe`, `photo`, `admin`) and `canonical_email`, blacklists every
+`OutstandingToken` and calls `leaderboard.remove`. Every refusal answers **403** (never 401, which the
+frontend treats as "refresh") with exactly `strikes.ban_payload(user)`:
+`{"code": "account_banned", "error", "public_id", "strikes", "reason", "banned_at"}` — from the auth class
+(every authenticated endpoint, raised as `strikes.AccountBanned` so DRF keeps the JSON types), `login_view`
+(checked **after** the password, so ban status can't be probed by email; never "Incorrect password"),
+`google_login`, and `SessionRefreshSerializer` (which decodes the token before the blacklist check, since a
+ban blacklists it). Banned accounts are hidden, not deleted: leaderboard Postgres paths, `record_score`,
+`sync_leaderboard`, `search_users` and the public photo endpoint (same 404) skip them; `unban_user` (the
+admin "Unban (reset strikes)" action) restores everything. Signup attempts can't strike (no account): a
+severe signup name counts per salted IP hash in the shared cache and the 3rd locks sign-ups from that IP
+for 24 h (403 `signup_locked`); a new account whose canonical email (lowercase, `+tag` and Gmail dots
+dropped) matches a banned one is refused — on `signup/` with exactly the taken-email 409, so the anonymous
+endpoint is no ban oracle (the reason is only in the event log), on Google sign-up (address ownership
+already proven) with 403 `signup_blocked`. That anti-evasion is weak by design (new address,
+new IP) and is not a security boundary. `ModerationEvent` stores tier and reason codes only — never the
+matched text or a raw IP. Word lists stay server-side: `check-name/` and every message are generic.
+
+```python
+❌ WRONG — a second ban flag, a 401, or a ban that only hides the UI
+if user.is_banned: return Response({"detail": "banned"}, status=401)
+
+✅ RIGHT — backend/users/authentication.py
+user = super().get_user(validated_token)
+if getattr(user, "banned_at", None):
+    raise AccountBanned(user)   # 403 ban_payload(user)
 ```
 
 ---
@@ -359,18 +409,20 @@ Run from the repo root. Expected outputs are from the current working tree.
    ```
    Expect one match (the award guard).
 
-7. **No JWT verification in the multiplayer server (AUTH-8).**
+7. **The relay verifies tokens in exactly one place (AUTH-8).**
    ```bash
-   grep -rniE "jsonwebtoken|jwt|Authorization" multiplayer_server/src
+   grep -rnlE "Authorization" multiplayer_server/src
+   cd multiplayer_server && npm test
    ```
-   Expect no output.
+   Expect only `multiplayer_server/src/identity.js`, and the `node --test` run passing (banned socket
+   dropped, spoofed id ignored, token-less identify refused).
 
-8. **JWT is the only DRF auth class; user model declared once (AUTH-3).**
+8. **The ban-aware JWT class is the only DRF auth class; user model declared once (AUTH-3, AUTH-13).**
    ```bash
-   grep -nE "AUTH_USER_MODEL|DEFAULT_AUTHENTICATION_CLASSES|IsAdminUser" backend/backend/settings.py
+   grep -nE "AUTH_USER_MODEL|BanAwareJWTAuthentication|IsAdminUser" backend/backend/settings.py
    ```
-   Expect `DEFAULT_AUTHENTICATION_CLASSES` and `AUTH_USER_MODEL = 'users.CustomUser'` once each, no
-   session/basic auth class.
+   Expect `users.authentication.BanAwareJWTAuthentication` and `AUTH_USER_MODEL = 'users.CustomUser'` once
+   each, no session/basic auth class.
 
 9. **Every admin view is `IsAdminUser`-gated (AUTH-3).**
    ```bash
@@ -418,3 +470,10 @@ Run from the repo root. Expected outputs are from the current working tree.
     ```
     Expect a match in `send_friend_request`; and `grep -n "email" backend/users/friends.py` returns no
     output (no email in friend payloads).
+
+16. **Bans answer 403 `account_banned` everywhere and hide the player (AUTH-13).**
+    ```bash
+    cd backend && python manage.py test users.test_strikes users.test_moderation
+    ```
+    Expect `OK` (three severe renames ban; `/me/`, login, Google login and refresh each 403; signup IP lock;
+    hidden from boards/search/photo; unban restores; 0 severe hits on the 5208 player names).

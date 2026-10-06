@@ -125,6 +125,8 @@ def search_users(request):
     me = request.user
     candidates = list(
         User.objects.exclude(pk=me.pk)
+        # Banned accounts are hidden, not deleted (users.strikes).
+        .filter(banned_at__isnull=True)
         .filter(Q(username__icontains=q) | Q(public_id__icontains=q))
         .only("id", "public_id", "username", "points", "rank", "profile_photo_version")[:MAX_RESULTS]
     )
