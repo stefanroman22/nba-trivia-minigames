@@ -68,6 +68,15 @@
     border-radius: 20px 20px 0 0;
     border-bottom: none;
   }
+  /* Auth success takeover: the sheet grows to the viewport (height + radius animated inline by
+     Modal.tsx); the body fills it and centres the success pane. */
+  .modal-panel--takeover { max-height: none; }
+  .modal-panel--takeover .modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
 }
 
 /* ---- Shared modal form controls ---- */
@@ -166,6 +175,25 @@
    margin cancels the .auth-stack gap while empty; the note's own padding spaces it when shown. */
 .auth-field-note-slot { margin-top: -14px; }
 .auth-field-note { margin: 0; padding-top: 6px; line-height: 1.4; }
+/* Popped (leaving) fields are positioned against the form during a mode switch. */
+.auth-form { position: relative; }
+/* Inline submit error: the slot's negative margin cancels the .auth-stack gap while empty; the
+   message's top padding restores it. The clip's side padding (cancelled by its margin) leaves room
+   for the shake so overflow:hidden never cuts the text. */
+.auth-error-slot { margin-top: -14px; }
+.auth-error-clip { overflow: hidden; margin: 0 -8px; padding: 0 8px; }
+.auth-error-msg { margin: 0; padding-top: 14px; line-height: 1.4; }
+/* Success pane: min-height is set inline to the form's height so the panel never jumps. */
+.auth-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  outline: none;
+}
+.auth-success-title { font-size: 20px; margin: 0; color: var(--text); }
 
 /* ---- Feedback ---- */
 .fb-stack { display: flex; flex-direction: column; gap: 16px; }

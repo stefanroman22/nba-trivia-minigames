@@ -3,7 +3,7 @@ import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
 import { useModal, type FeedbackPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
-import LogInSignUp from "./LogInSignUp";
+import LogInSignUp, { type AuthPhase } from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
@@ -26,19 +26,25 @@ export default function ModalHost() {
   // Adjusted during render (not in an effect) so the first frame already has the
   // right title and list — no Global -> Friends swap on open.
   const [leaderboardScope, setLeaderboardScope] = useState<LeaderboardScope>("global");
+  // The auth form's phase: "success" turns the shell into its success takeover. Reset with the kind
+  // (the exiting modal keeps the props it last rendered with, so its takeover exit still plays).
+  const [authPhase, setAuthPhase] = useState<AuthPhase>("idle");
   const [prevKind, setPrevKind] = useState(kind);
   if (kind !== prevKind) {
     setPrevKind(kind);
+    setAuthPhase("idle");
     if (kind === "leaderboard") setLeaderboardScope((payload as LeaderboardPayload | undefined)?.scope ?? "global");
   }
 
   let title = "";
   let wide = false;
+  let takeover = false;
   let content: React.ReactNode = null;
 
   if (kind === "login") {
     title = authMode === "signup" ? "Create account" : "Welcome back";
-    content = <LogInSignUp mode={authMode} onModeChange={setAuthMode} onClose={close} />;
+    takeover = authPhase === "success";
+    content = <LogInSignUp mode={authMode} onModeChange={setAuthMode} onClose={close} onPhaseChange={setAuthPhase} />;
   } else if (kind === "feedback") {
     const p = payload as FeedbackPayload | undefined;
     title = p?.preset === "appeal" ? "Appeal a ban" : "Share feedback";
@@ -59,7 +65,7 @@ export default function ModalHost() {
   return (
     <AnimatePresence>
       {kind && (
-        <Modal key={kind} title={title} onClose={close} wide={wide}>
+        <Modal key={kind} title={title} onClose={close} wide={wide} takeover={takeover}>
           {content}
         </Modal>
       )}

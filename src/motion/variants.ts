@@ -70,6 +70,14 @@ export const stackPane: Variants = {
   },
 };
 
+// The one error shake (6px, two oscillations): `errorIn` runs it on the message, and a form runs
+// it on the offending field (`animate(el, errorShake.keyframes, errorShake.transition)`). Skip it
+// entirely under reduced motion.
+export const errorShake = {
+  keyframes: { x: [0, -6, 6, -4, 4, 0] },
+  transition: { duration: durations.slow, ease: easing.inOut },
+};
+
 // Inline form error (role="alert"): fades up, then a short horizontal shake of the message only so
 // a repeat failure still reads as new. Key the element per error so the shake replays. Pair it
 // with `reducedFade` under reduced motion.
@@ -78,11 +86,11 @@ export const errorIn: Variants = {
   visible: {
     opacity: 1,
     y: 0,
-    x: [0, -6, 6, -4, 4, 0],
+    ...errorShake.keyframes,
     transition: {
       duration: durations.slow,
       ease: easing.out,
-      x: { duration: durations.slow, ease: easing.inOut, delay: durations.fast },
+      x: { ...errorShake.transition, delay: durations.fast },
     },
   },
   exit: { opacity: 0, transition: { duration: durations.fast, ease: easing.in } },

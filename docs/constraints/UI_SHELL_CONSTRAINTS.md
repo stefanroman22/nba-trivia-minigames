@@ -242,12 +242,16 @@ first when it opens a modal.
 
 ## Rule UI-9: One-shot system messages use SweetAlert2 via `src/utils/Alerts.tsx`, not a bespoke toast
 
-Errors and one-shot confirmations go through `showErrorAlert` / `showNewUserAlert` in
-`src/utils/Alerts.tsx`, which lazy-import `sweetalert2` (kept out of the startup bundle) and style it
+Errors and one-shot confirmations go through `showErrorAlert` in
+`src/utils/Alerts.tsx`, which lazy-imports `sweetalert2` (kept out of the startup bundle) and style it
 with `swal2-custom-popup` / `swal2-custom-button`. `MiniGame.tsx` uses it for "Finish your current
 game first." Reserve `ModalHost` for in-app content (forms, lists, instructions). There is no toast
 library; the in-game "Correct! +10" line is the game-owned feedback slot
 (`GAME_DESIGN_CONSTRAINTS.md`), not a shell toast.
+
+Forms inside a modal report their own outcome inline instead: the auth modal (`LogInSignUp.tsx`)
+and `FeedbackModal.tsx` show errors in an inline `role="alert"` slot and success as an in-modal
+pane (`SuccessBadge`), never a SweetAlert.
 
 ```tsx
 ❌ WRONG — a one-off error routed through the modal system

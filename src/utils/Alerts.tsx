@@ -22,18 +22,3 @@ export async function showErrorAlert(message: string, title: string = "Error", c
     iconColor: "#ff4d4d",
   });
 }
-
-export async function showNewUserAlert(username: string) {
-  const Swal = await getSwal();
-  Swal.fire({
-    icon: 'success',
-    title: 'Account Created!',
-    html: `<p style="font-size: 0.95rem; margin-top: 0.5rem;">Welcome, ${username}! Glad to have you here!</p>`,
-    background: "#1c1c1e",
-    color: "#f5f3ef",
-    customClass: { popup: "swal2-custom-popup" },
-    iconColor: "#2fc762",
-    timer: 1600,
-    showConfirmButton: false,
-  });
-}

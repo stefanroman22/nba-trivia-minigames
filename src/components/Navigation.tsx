@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type MouseEvent } from "react";
 import { useNavigate } from "../hooks/useNavigate";
 import { useFocusTrap } from "../hooks/useFocusTrap";
+import { useLoginReveal } from "../hooks/useLoginReveal";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import logo from "../assets/basketballLogo.webp";
@@ -41,21 +42,23 @@ function UserAvatar({ photo, name, size = 28 }: { photo?: string | null; name?: 
 }
 
 /** Avatar + username + #id chip — the same identity summary on desktop; avatar-only on mobile. */
-function UserChip({ user, onClick }: { user: { username: string; id: string | number; profile_photo?: string | null }; onClick: () => void }) {
+function UserChip({ user, onClick, reveal }: { user: { username: string; id: string | number; profile_photo?: string | null }; onClick: () => void; reveal: ReturnType<typeof useLoginReveal> }) {
   return (
-    <button onClick={onClick} className="nav3-user" aria-label={`${user.username} #${user.id}`}>
+    <motion.button onClick={onClick} className="nav3-user" aria-label={`${user.username} #${user.id}`} data-focus-fallback {...reveal}>
       <UserAvatar photo={user.profile_photo} name={user.username} />
       <span className="nav3-user-meta hide-md">
         <span style={{ fontSize: 12, fontWeight: 700 }}>{user.username}</span>
         <span className="tnum" style={{ fontSize: 9.5, fontWeight: 600, color: "var(--muted)" }}>#{user.id}</span>
       </span>
-    </button>
+    </motion.button>
   );
 }
 
 function Navigation({ type = "full" }: NavigationProps) {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.user);
+  // The chip fades in on a fresh login only (never on a cold load of an existing session).
+  const reveal = useLoginReveal();
   const { open } = useModal();
   const { mp, leaveMatch } = useMultiplayer();
   const [drawer, setDrawer] = useState(false);
@@ -128,7 +131,7 @@ function Navigation({ type = "full" }: NavigationProps) {
       {/* Desktop right */}
       <div className="nav3-right hide-md">
         {user ? (
-          <UserChip user={user} onClick={() => go("leaderboard")} />
+          <UserChip user={user} onClick={() => go("leaderboard")} reveal={reveal} />
         ) : (
           <Button size="sm" onClick={() => openModal("login")}>Log in</Button>
         )}
@@ -136,7 +139,7 @@ function Navigation({ type = "full" }: NavigationProps) {
 
       {/* Mobile: avatar-only chip (meta hidden ≤900px via hide-md), then the hamburger */}
       <div className="nav3-mobile-right show-md">
-        {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
+        {user && <UserChip user={user} onClick={() => go("leaderboard")} reveal={reveal} />}
         <button onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={drawer} aria-controls="nav-drawer" className="nav-icon-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
         </button>
@@ -170,7 +173,7 @@ function Navigation({ type = "full" }: NavigationProps) {
                 </div>
               </a>
               <div className="drawer-head-right">
-                {user && <UserChip user={user} onClick={() => go("leaderboard")} />}
+                {user && <UserChip user={user} onClick={() => go("leaderboard")} reveal={reveal} />}
                 <button onClick={() => setDrawer(false)} aria-label="Close" className="nav-icon-btn" style={{ width: 40, height: 40 }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                 </button>
