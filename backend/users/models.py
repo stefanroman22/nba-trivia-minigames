@@ -41,6 +41,9 @@ class CustomUser(AbstractUser):
     public_id = models.CharField(max_length=PUBLIC_ID_LENGTH, unique=True, editable=False)
     # The unique login identifier.
     email = models.EmailField(unique=True)
+    # Google's stable account id (the id_token `sub`). Accounts link by this, not by email,
+    # because a Google account's email can change. Null for accounts that never used Google.
+    google_sub = models.CharField(max_length=64, unique=True, null=True, blank=True, editable=False)
     points = models.IntegerField(default=0)
     # Legacy/unused: dev and prod share one Supabase DB, and the old backend stays live for a
     # window after this deploys, so the column must survive until it's retired. Drop in a follow-up.

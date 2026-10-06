@@ -430,3 +430,133 @@ class SessionLifetimeTests(TestCase):
         ).json()
         me = self.client.get(reverse("get_user"), HTTP_AUTHORIZATION=f"Bearer {refreshed['access']}").json()
         self.assertEqual(refreshed["user"], me["user"])
+
+
+GOOGLE_ID = {"sub": "g-123", "email": "Fan@Example.com".lower(), "name": "Fan"}
+
+
+def google(client, code="auth-code"):
+    return client.post(reverse("google_login"), data={"code": code}, content_type="application/json")
+
+
+class GoogleLoginTests(TestCase):
+    def setUp(self):
+        cache.clear()
+
+    def _verify(self, identity=None, error=None):
+        from users.google_auth import GoogleAuthError
+
+        side = GoogleAuthError(error) if error else None
+        return mock.patch("users.views.verify_google_code", return_value=identity or GOOGLE_ID, side_effect=side)
+
+    def test_new_google_user_is_created_with_tokens(self):
+        with self._verify():
+            resp = google(self.client)
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertTrue(body["new_account"])
+        self.assertIn("access", body)
+        self.assertIn("refresh", body)
+        user = User.objects.get(email="fan@example.com")
+        self.assertEqual(user.google_sub, "g-123")
+        self.assertFalse(user.has_usable_password())
+
+    def test_second_sign_in_reuses_the_account(self):
+        with self._verify():
+            google(self.client)
+            resp = google(self.client)
+        self.assertFalse(resp.json()["new_account"])
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_sign_in_follows_sub_when_google_email_changes(self):
+        with self._verify():
+            google(self.client)
+        with self._verify({"sub": "g-123", "email": "new@example.com", "name": ""}):
+            resp = google(self.client)
+        self.assertFalse(resp.json()["new_account"])
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_missing_or_non_string_code_is_rejected(self):
+        for payload in ({}, {"code": ""}, {"code": 5}, {"code": ["x"]}):
+            resp = self.client.post(reverse("google_login"), data=payload, content_type="application/json")
+            self.assertEqual(resp.status_code, 400, payload)
+
+    def test_unverified_google_identity_is_rejected_with_a_safe_message(self):
+        with self._verify(error="Verify your Google email address first, then try again."):
+            resp = google(self.client)
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn("Verify your Google email", resp.json()["error"])
+        self.assertFalse(User.objects.exists())
+
+    def test_existing_password_account_is_taken_over_by_first_google_sign_in(self):
+        # Pre-hijack: signup never verified the email, so the password may belong to someone else.
+        signup(self.client, username="Squatter", email="fan@example.com", password="Testpass123!")
+        old = login(self.client, "fan@example.com").json()
+        with self._verify():
+            resp = google(self.client)
+        self.assertEqual(resp.status_code, 200)
+        self.assertFalse(resp.json()["new_account"])
+        user = User.objects.get(email="fan@example.com")
+        self.assertEqual(user.google_sub, "g-123")
+        self.assertEqual(login(self.client, "fan@example.com").status_code, 401)  # password dead
+        refreshed = self.client.post(
+            reverse("token_refresh"), data={"refresh": old["refresh"]}, content_type="application/json"
+        )
+        self.assertEqual(refreshed.status_code, 401)  # old session revoked
+
+    def test_email_linked_to_another_google_account_conflicts(self):
+        User.objects.create_user(username="Fan", email="fan@example.com", password=None, google_sub="other")
+        with self._verify():
+            resp = google(self.client)
+        self.assertEqual(resp.status_code, 409)
+
+    def test_disabled_account_cannot_sign_in(self):
+        User.objects.create_user(
+            username="Fan", email="fan@example.com", password=None, google_sub="g-123", is_active=False
+        )
+        with self._verify():
+            resp = google(self.client)
+        self.assertEqual(resp.status_code, 403)
+
+    def test_unexpected_failure_does_not_leak_internals(self):
+        with self._verify(), mock.patch("users.views._user_for_google_identity", side_effect=RuntimeError("db secret")):
+            resp = google(self.client)
+        self.assertEqual(resp.status_code, 500)
+        self.assertNotIn("secret", resp.json()["error"])
+
+
+class VerifyGoogleCodeTests(TestCase):
+    ENV = {"CLIENT_ID": "cid", "CLIENT_SECRET": "sec"}
+
+    def _verify(self, token_json=None, info=None):
+        """Run verify_google_code with Google's two network calls mocked; returns (result, verify_mock)."""
+        from users import google_auth
+
+        resp = mock.Mock()
+        resp.json.return_value = {"id_token": "jwt"} if token_json is None else token_json
+        with mock.patch.dict("os.environ", self.ENV),                 mock.patch("requests.post", return_value=resp),                 mock.patch("google.oauth2.id_token.verify_oauth2_token", return_value=info) as verify:
+            return google_auth.verify_google_code("code"), verify
+
+    def test_returns_verified_identity_and_checks_our_audience(self):
+        out, verify = self._verify(info={"sub": "s", "email": "A@B.com", "email_verified": True, "name": "A"})
+        self.assertEqual(out, {"sub": "s", "email": "a@b.com", "name": "A"})
+        self.assertEqual(verify.call_args.args[2], "cid")
+
+    def test_unverified_email_is_rejected(self):
+        from users.google_auth import GoogleAuthError
+
+        with self.assertRaises(GoogleAuthError):
+            self._verify(info={"sub": "s", "email": "a@b.com", "email_verified": False})
+
+    def test_missing_client_config_is_a_clean_error(self):
+        from users import google_auth
+
+        with mock.patch.dict("os.environ", {"CLIENT_ID": "", "CLIENT_SECRET": ""}):
+            with self.assertRaises(google_auth.GoogleAuthError):
+                google_auth.verify_google_code("code")
+
+    def test_google_rejecting_the_code_is_a_clean_error(self):
+        from users.google_auth import GoogleAuthError
+
+        with self.assertRaises(GoogleAuthError):
+            self._verify(token_json={"error": "invalid_grant"})

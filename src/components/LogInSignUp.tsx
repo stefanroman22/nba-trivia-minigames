@@ -8,6 +8,7 @@ import { isBanPayload, reportBan } from "../utils/ban";
 import { nameNoteSlot, useNameCheck } from "../utils/nameCheck";
 import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
+import { isInAppBrowser } from "../utils/inAppBrowser";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -154,8 +155,25 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
     onError: () => {
       console.error("Google login failed");
       setIsSubmitting(false);
-    }
+      showErrorAlert("Google sign-in didn't complete. Please try again.", "Login Failed");
+    },
+    // The popup never opened (blocker) or was closed before Google answered.
+    onNonOAuthError: (err) => {
+      setIsSubmitting(false);
+      if (err.type === "popup_failed_to_open") {
+        showErrorAlert("Your browser blocked the Google sign-in window. Allow pop-ups for this site and try again.", "Pop-up blocked");
+      }
+    },
   });
+
+  const startGoogleLogin = () => {
+    // Google refuses OAuth inside social apps' built-in browsers; say so instead of failing.
+    if (isInAppBrowser(navigator.userAgent)) {
+      showErrorAlert("Google doesn't allow sign-in inside this app's browser. Open this page in Safari or Chrome, or log in with your email.", "Open in your browser");
+      return;
+    }
+    googleLogin();
+  };
 
   return (
     <div className="auth-stack">
@@ -292,7 +310,7 @@ function LogInSignUp({ mode, onModeChange, onClose }: LogInSignUpProps) {
 
       <div className="auth-divider"><span /> or <span /></div>
 
-      <button type="button" className="auth-google" onClick={() => googleLogin()} disabled={isSubmitting}>
+      <button type="button" className="auth-google" onClick={startGoogleLogin} disabled={isSubmitting}>
         <FontAwesomeIcon icon={faGoogle} />
         Continue with Google
       </button>

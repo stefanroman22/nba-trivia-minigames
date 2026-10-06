@@ -50,9 +50,15 @@ const questions = require("./questions");
 const gameData = require("./gameData");
 const identity = require("./identity");
 
-const CORS_ORIGINS = (
-  process.env.CORS_ORIGINS || "http://localhost:5173,https://nba-trivia-minigames.online"
-)
+// Which browser origins may use this server. Production must name them explicitly and
+// should never list localhost: that is what keeps a developer's local site off the
+// deployed (usage-billed) server — it gets pointed at a local one instead (scripts/dev-env.mjs).
+const IS_PRODUCTION = process.env.NODE_ENV === "production";
+if (IS_PRODUCTION && !process.env.CORS_ORIGINS) {
+  console.error("CORS_ORIGINS must be set in production (comma-separated site origins).");
+  process.exit(1);
+}
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:5173")
   .split(",")
   .map((s) => s.trim())
   .filter(Boolean);
@@ -86,7 +92,16 @@ app.use(cors({ origin: CORS_ORIGINS, methods: ["GET", "POST"] }));
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: CORS_ORIGINS, methods: ["GET", "POST"] } });
+const io = new Server(server, {
+  cors: { origin: CORS_ORIGINS, methods: ["GET", "POST"] },
+  // CORS headers only bind browsers' reads; this refuses the connection itself when a
+  // browser presents an origin that isn't allowed (websocket upgrades ignore CORS).
+  // Requests with no Origin (non-browser clients) still need a valid token to do anything.
+  allowRequest: (req, callback) => {
+    const origin = req.headers.origin;
+    callback(null, !origin || CORS_ORIGINS.includes(origin));
+  },
+});
 
 // uid -> { socketId, user, roomCode }
 const players = new Map();

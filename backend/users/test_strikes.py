@@ -159,11 +159,9 @@ class NameChangeTests(StrikeTestCase):
         self.assert_banned(self.google_login("hooper@example.com"))
 
     def google_login(self, email):
-        fake_post = mock.Mock()
-        fake_post.return_value.json.return_value = {"id_token": "x"}
-        with mock.patch("requests.post", fake_post), mock.patch(
-            "google.oauth2.id_token.verify_oauth2_token", return_value={"email": email}
-        ):
+        # A verified Google identity (users.google_auth is covered in users/tests.py).
+        identity = {"sub": f"google-{email}", "email": email, "name": ""}
+        with mock.patch("users.views.verify_google_code", return_value=identity):
             return self.client.post(reverse("google_login"), data={"code": "c"}, content_type="application/json")
 
     def test_google_new_account_with_banned_canonical_email_is_refused(self):
