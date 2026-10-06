@@ -173,25 +173,30 @@
 .fb-stars { display: flex; gap: 8px; }
 .fb-star { background: none; border: none; cursor: pointer; padding: 2px; transition: transform 0.15s; }
 .fb-star:hover { transform: scale(1.12); }
+.fb-star:disabled { cursor: default; }
+.fb-star:disabled:hover { transform: none; }
+.fb-intro { font-size: 14px; color: var(--muted); line-height: 1.5; }
+/* Error slot: the negative margin cancels .fb-stack's 16px gap while empty; the message's own
+   top padding restores it when shown. The clip's side padding (cancelled by its margin) leaves
+   room for the shake so overflow:hidden never cuts the text. */
+.fb-error-slot { margin-top: -16px; }
+.fb-error-clip { overflow: hidden; margin: 0 -8px; padding: 0 8px; }
+.fb-error { font-size: 13px; color: var(--bad); margin: 0; padding-top: 16px; line-height: 1.4; }
+.modal-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+/* Confirmation pane: min-height is set inline to the form's height so the panel never jumps. */
 .fb-sent {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 14px;
   padding: 18px 0 8px;
   text-align: center;
 }
-.fb-sent-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: var(--good-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  color: var(--good);
-}
+.fb-sent-copy { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.fb-sent-title { font-size: 20px; margin: 0; }
+.fb-sent-line { font-size: 14px; color: var(--muted); max-width: 300px; line-height: 1.5; margin: 0; }
+.fb-sent-btn { padding: 0 32px; }
 
 /* ---- Instructions ---- */
 .instr-stack { display: flex; flex-direction: column; gap: 16px; }

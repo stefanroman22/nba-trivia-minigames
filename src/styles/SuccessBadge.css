@@ -1,0 +1,18 @@
+/* SuccessBadge (src/components/motion/SuccessBadge.tsx). Brand colours from theme.css only. */
+.sbadge {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.sbadge-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--brand);
+  pointer-events: none;
+}
+.sbadge-icon { width: 50%; height: 50%; }

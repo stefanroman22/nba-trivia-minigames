@@ -69,3 +69,28 @@ export const stackPane: Variants = {
     transition: { duration: durations.base, ease: easing.out, delay: durations.fast, delayChildren: durations.fast },
   },
 };
+
+// Inline form error (role="alert"): fades up, then a short horizontal shake of the message only so
+// a repeat failure still reads as new. Key the element per error so the shake replays. Pair it
+// with `reducedFade` under reduced motion.
+export const errorIn: Variants = {
+  hidden: { opacity: 0, y: 8 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    x: [0, -6, 6, -4, 4, 0],
+    transition: {
+      duration: durations.slow,
+      ease: easing.out,
+      x: { duration: durations.slow, ease: easing.inOut, delay: durations.fast },
+    },
+  },
+  exit: { opacity: 0, transition: { duration: durations.fast, ease: easing.in } },
+};
+
+// Reduced-motion stand-in for any of the above: opacity only, short both ways, no travel/scale.
+export const reducedFade: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: durations.fast, ease: easing.out } },
+  exit: { opacity: 0, transition: { duration: durations.fast, ease: easing.in } },
+};
