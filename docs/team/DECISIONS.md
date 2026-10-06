@@ -1117,3 +1117,8 @@ not a dismissible overlay, so it is a deliberate UI-8 exception (it must sit und
 Consequences: AUTH-3/AUTH-8/MP-1 rewritten, AUTH-13 added. Canonical-email and per-IP signup locks are
 weak anti-evasion (a new address or network defeats them) and are not a security boundary. Photo
 moderation plugs into `users.strikes.record_strike(user, "photo")` next.
+
+## 2026-10-06 — Log in / Sign up modal smooth transitions: standard vs hard, design round or not
+Context: P1 frontend card, Difficulty field `standard`; spec describes an `idle | submitting | error | success` state machine but every target behavior (A-E) is exact, names files and tokens, and its own "Model routing" text asks for a Fable design round ("Hard").
+Weighed: (a) `hard` + Fable design round as the spec text asks — rejected: the Difficulty field wins, one area (frontend/ui, `LogInSignUp.tsx`, `Modal.tsx`/`Modal.css`, `Alerts.tsx` call sites), no protocol/security/data work, token handling explicitly untouched, shared motion tokens/variants already exist; (b) `standard`, no design round — chosen (same call as the 2026-10-03 LeContexto card). Engine: `opus` because motion is always opus; planner tags Alerts clean-up steps `[sonnet]`. Risk `low`: presentation and result-handling UI only, no token/auth logic modified.
+Consequences: if the single-height-animation mechanism proves unreliable on the bottom sheet, the fix loop escalates rather than reopening this call.

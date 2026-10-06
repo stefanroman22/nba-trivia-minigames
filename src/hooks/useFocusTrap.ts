@@ -6,7 +6,8 @@ export const FOCUSABLE =
 /**
  * Dialog keyboard behaviour: moves focus into `ref` on activation, wraps Tab /
  * Shift+Tab inside it, calls `onClose` on Escape, optionally locks background
- * scroll, and restores focus to the previously focused element on cleanup.
+ * scroll, and restores focus to the previously focused element on cleanup (or, if that element
+ * has been unmounted meanwhile, to the first visible `[data-focus-fallback]`).
  * `onClose` must be referentially stable (it is an effect dependency).
  */
 export function useFocusTrap(
@@ -60,6 +61,14 @@ export function useFocusTrap(
     return () => {
       document.removeEventListener("keydown", onKey);
       if (lockScroll) document.body.style.overflow = prevOverflow ?? "";
+      // The trigger can be gone by now (the header swaps "Log in" for the user chip after a login):
+      // fall back to the visible element that replaced it, marked `data-focus-fallback`.
+      if (prevFocus && !prevFocus.isConnected) {
+        Array.from(document.querySelectorAll<HTMLElement>("[data-focus-fallback]"))
+          .find((el) => el.offsetParent !== null)
+          ?.focus();
+        return;
+      }
       prevFocus?.focus?.();
     };
   }, [ref, onClose, active, lockScroll]);

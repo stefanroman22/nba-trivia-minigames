@@ -15,12 +15,15 @@ import Reveal from "../components/motion/Reveal";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
 import { useModal } from "../context/ModalContext";
 import { useWordleCardState } from "../hooks/useWordleCardState";
+import { useLoginReveal } from "../hooks/useLoginReveal";
 import { scrollToSection } from "../utils/ScrolllToSection";
 import type { RootState } from "../store";
 
 const Landpage = () => {
   const navigate = useNavigate();
   const { user } = useSelector((state: RootState) => state.user);
+  // The profile card fades in on a fresh login only (never on a cold load of an existing session).
+  const profileReveal = useLoginReveal();
   const { open } = useModal();
   const [query, setQuery] = useState("");
   const wordleCard = useWordleCardState();
@@ -161,7 +164,7 @@ const Landpage = () => {
           <Reveal>
             <div className="engage-strip">
               <Leaderboard />
-              {user ? <div className="profile-card"><UserProfile /></div> : <GuestPanel />}
+              {user ? <motion.div className="profile-card" {...profileReveal}><UserProfile /></motion.div> : <GuestPanel />}
             </div>
           </Reveal>
         </section>
