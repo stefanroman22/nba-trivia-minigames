@@ -1,7 +1,7 @@
 """Strikes, bans and the signup IP lock (docs/team/designs/2026-10-06-ban-system-and-username.md D2/D3).
 
-* Accounts collect strikes (a severe name on update-profile); they never expire (owner decision 5) and
-  the MAX_STRIKES-th one bans inside the same transaction.
+* Accounts collect strikes (a severe name or a blocked photo on update-profile); they never expire
+  (owner decision 5) and the MAX_STRIKES-th one bans inside the same transaction.
 * A ban sets `banned_at` (THE switch: users.authentication refuses every request), blacklists every
   outstanding refresh token, drops the player from the Redis leaderboard and stores the canonical email
   so the same address can't simply sign up again. Nothing is deleted, so `unban_user` restores everything.
@@ -27,6 +27,7 @@ MAX_STRIKES = 3
 BAN_CODE = "account_banned"
 BAN_MESSAGE = "This account has been banned."
 BAN_REASON_NAME = "name_severe"
+BAN_REASON_PHOTO = "photo"
 BAN_REASON_ADMIN = "admin"
 SIGNUP_IP_LIMIT = 3
 SIGNUP_IP_LOCK_SECONDS = 24 * 3600
@@ -118,7 +119,8 @@ def record_strike(user, kind, ip_hash=""):
         log_event(locked, kind, "severe", "strike", ip_hash)
         banned_now = locked.strike_count >= MAX_STRIKES
         if banned_now:
-            ban_user(locked, BAN_REASON_NAME, kind=kind, ip_hash=ip_hash)
+            reason = BAN_REASON_PHOTO if kind == "photo" else BAN_REASON_NAME
+            ban_user(locked, reason, kind=kind, ip_hash=ip_hash)
     user.refresh_from_db(fields=["strike_count", "banned_at", "ban_reason", "canonical_email"])
     return user.strike_count, banned_now
 

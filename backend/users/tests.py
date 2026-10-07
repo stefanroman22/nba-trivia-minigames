@@ -335,6 +335,8 @@ class ProfilePhotoEndpointTests(TestCase):
     def test_only_safe_methods(self):
         self.assertEqual(self.client.post(self.url).status_code, 405)
 
+    # Pin the local-dev skip path (users.photo_moderation) instead of inheriting it from backend/.env.
+    @override_settings(MODERATION_REQUIRED=False, IMAGE_MODERATION_URL=None)
     def test_upload_bumps_version_rows_carry_it_and_me_keeps_the_data_url(self):
         access = str(issue_session_tokens(self.user).access_token)
         for expected in (4, 5):

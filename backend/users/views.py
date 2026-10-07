@@ -15,7 +15,7 @@ from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
-from users import leaderboard, strikes
+from users import leaderboard, photo_moderation, strikes
 from users.google_auth import GoogleAuthError, verify_google_code
 from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
@@ -316,16 +316,41 @@ def update_profile(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            user.profile_photo_data = normalize_profile_photo(upload.read())
+            # Kept in a local: the user is only touched once moderation allows the photo.
+            photo = normalize_profile_photo(upload.read())
         except InvalidPhoto:
             return Response(
                 {"error": "We couldn't read that image. Try a JPG, PNG, WebP or GIF."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        # Fail closed (users.photo_moderation): an unchecked photo is never saved in production.
+        try:
+            decision = photo_moderation.moderate_photo(photo, user_pk=user.pk)
+        except photo_moderation.ModerationUnavailable:
+            return Response(
+                {"error": photo_moderation.MESSAGE_MODERATION_UNAVAILABLE, "code": "moderation_unavailable"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+        if decision == photo_moderation.BLOCK:
+            count, banned = strikes.record_strike(user, "photo", strikes.client_ip_hash(request))
+            if banned:
+                return Response(strikes.ban_payload(user), status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {
+                    "error": photo_moderation.MESSAGE_PHOTO_REJECTED.format(n=count),
+                    "code": "photo_rejected",
+                    "strikes": count,
+                },
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        user.profile_photo_data = photo
         # New bytes = new version: list rows carry it as ?v= on the public photo URL, so the
         # browser cache of the previous photo is left behind rather than invalidated.
         user.profile_photo_version += 1
         user.save(update_fields=["profile_photo_data", "profile_photo_version"])
+        if decision == photo_moderation.REVIEW:
+            # Allowed, but queued for the owner's review (tier/reason codes only, never the image).
+            strikes.log_event(user, "photo", "mild", "uncertain", strikes.client_ip_hash(request))
         return Response({"status": "success", "user": user_payload(request, user)}, status=status.HTTP_200_OK)
 
     return Response({"error": "Unsupported content type"}, status=status.HTTP_400_BAD_REQUEST)

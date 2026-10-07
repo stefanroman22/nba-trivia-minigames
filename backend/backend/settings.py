@@ -253,6 +253,15 @@ else:
         }
     }
 
+# Profile-photo moderation (users/photo_moderation.py -> the separate moderation_service project).
+# Fail closed: when MODERATION_REQUIRED (default: any DATABASE_URL deploy) an unset URL or an outage
+# refuses the upload with 503; only local sqlite without a URL skips the check, with a warning.
+IMAGE_MODERATION_URL = os.environ.get("IMAGE_MODERATION_URL")
+MODERATION_SHARED_SECRET = os.environ.get("MODERATION_SHARED_SECRET")
+MODERATION_REQUIRED = env_bool("MODERATION_REQUIRED", bool(DATABASE_URL))
+PHOTO_BLOCK_THRESHOLD = float(os.environ.get("PHOTO_BLOCK_THRESHOLD", "0.85"))
+PHOTO_REVIEW_THRESHOLD = float(os.environ.get("PHOTO_REVIEW_THRESHOLD", "0.50"))
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

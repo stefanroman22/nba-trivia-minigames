@@ -292,7 +292,7 @@ touching them must be classified `risk: high`:
 - `backend/users/models.py` (`CustomUser`, `RANK_CHOICES`, `update_rank`, `Friendship`/`FriendRequest`/`BlockedUser`) and any `backend/users/migrations/`
 - `backend/users/identity.py`, `backend/users/tokens.py`
 - `backend/users/views.py` auth endpoints: `login_view`, `signup_view`, `google_login`, `logout_view`, `get_current_user`, `update_profile`, `user_payload`, `auth_response`
-- `backend/users/friends.py` block/request enforcement and `backend/users/photos.py` (privacy, AUTH-12)
+- `backend/users/friends.py` block/request enforcement, `backend/users/photos.py` (privacy, AUTH-12) and `backend/users/photo_moderation.py` (the fail-closed photo gate)
 - `backend/trivia/views.py` `log_session` (the points writer) and `backend/trivia/admin_api.py` / `feedback_api.py` permission decorators
 - `backend/backend/settings.py` `AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`, `CACHES`; `backend/backend/throttles.py`
 - `src/utils/Api.tsx`, `src/utils/session.ts`, `src/store/userSlice.tsx`, `src/app/providers.tsx` (`restoreSession`)
@@ -321,7 +321,9 @@ only in the signed-in user's own `user_payload`). Photo bytes never travel in a 
 URL is only in the caller's own `user_payload`; everyone else's photo is the public, cacheable
 `/api/users/<public_id>/photo/?v=<profile_photo_version>` (`photos.profile_photo_view`, unauthenticated by
 design because an `<img>` cannot send a JWT; unknown id and no-photo both return the same 404). Uploads go
-through `normalize_profile_photo` (4 MB cap, 40M-pixel cap, 256x256 JPEG) and bump `profile_photo_version`.
+through `normalize_profile_photo` (4 MB cap, 40M-pixel cap, 256x256 JPEG), then `photo_moderation.moderate_photo`
+(a server-to-server classifier call, fail closed), and only an allowed photo is saved and bumps `profile_photo_version`;
+a refused or unchecked upload leaves `profile_photo_data` and the version untouched.
 
 ```python
 ❌ WRONG — acting on a client-claimed identity, or returning email/photo bytes in a list row
@@ -355,6 +357,16 @@ endpoint is no ban oracle (the reason is only in the event log), on Google sign-
 already proven) with 403 `signup_blocked`. That anti-evasion is weak by design (new address,
 new IP) and is not a security boundary. `ModerationEvent` stores tier and reason codes only — never the
 matched text or a raw IP. Word lists stay server-side: `check-name/` and every message are generic.
+
+A profile photo is the second strike source: `update_profile`'s multipart branch runs `moderate_photo` right after
+`normalize_profile_photo`. `max(nsfw, nsfl) >= PHOTO_BLOCK_THRESHOLD` (0.85, placeholder) is a strike via
+`record_strike(user, "photo", ...)` (ban reason `photo`, the 3rd bans) and answers **422**
+`{"error", "code": "photo_rejected", "strikes": n}` with nothing saved, or 403 `ban_payload` when that strike
+bans. A score between `PHOTO_REVIEW_THRESHOLD` (0.50) and block is allowed and logged as `ModerationEvent`
+(`kind=photo`, `tier=mild`, `reason=uncertain`). Any classifier failure (timeout, non-200, malformed body, or
+`MODERATION_REQUIRED` with no `IMAGE_MODERATION_URL`) fails closed: **503** `{"error", "code":
+"moderation_unavailable"}`, nothing saved, no strike. The check is skipped (warning logged) only when
+`MODERATION_REQUIRED` is false and the URL is unset. The image bytes are never logged or stored on a block.
 
 ```python
 ❌ WRONG — a second ban flag, a 401, or a ban that only hides the UI
