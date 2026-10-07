@@ -31,6 +31,18 @@ class PrunePersonalDataTests(TestCase):
         self.assertEqual(list(GuessLog.objects.all()), [new_guess])
         self.assertEqual(list(GameSession.objects.all()), [new_session])
 
+    def test_a_ban_record_is_erased_after_five_years_and_not_before(self):
+        recent = User.objects.create_user(username="recent", email="r@example.com", password="x")
+        old = User.objects.create_user(username="old", email="o@example.com", password="x")
+        for user in (recent, old):
+            strikes.ban_user(user, "name_severe")
+        User.objects.filter(pk=old.pk).update(banned_at=timezone.now() - timedelta(days=retention.BAN_RECORD_DAYS + 1))
+
+        deleted = retention.prune_personal_data()
+
+        self.assertEqual(deleted["expired_ban_records"], 1)
+        self.assertEqual(list(User.objects.values_list("email", flat=True)), ["r@example.com"])
+
     def test_only_resolved_feedback_expires(self):
         resolved = Feedback.objects.create(rating=4, status=Feedback.RESOLVED)
         pending = Feedback.objects.create(rating=2, status=Feedback.NEW)

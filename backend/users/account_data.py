@@ -82,6 +82,15 @@ def delete_account(user):
     return outcome
 
 
+def remove_photo(user):
+    """Delete the profile photo (the player withdraws it). Version 0 means "no photo", so the public
+    photo endpoint answers 404 from then on and list rows stop carrying a photo."""
+    user.profile_photo_data = None
+    user.profile_photo_version = 0
+    user.save(update_fields=["profile_photo_data", "profile_photo_version"])
+    friends_cache.invalidate_friends(user, *_counterpart_pks(user))
+
+
 def _iso(value):
     return value.isoformat() if value else None
 

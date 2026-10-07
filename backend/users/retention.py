@@ -21,6 +21,8 @@ GAME_SESSION_DAYS = 730
 MODERATION_EVENT_DAYS = 365
 # Feedback that has been dealt with. Unresolved feedback stays until someone handles it.
 RESOLVED_FEEDBACK_DAYS = 365
+# The Privacy Policy promises a ban record is never kept longer than five years after the ban.
+BAN_RECORD_DAYS = 365 * 5
 
 
 def prune_personal_data(now=None):
@@ -33,7 +35,13 @@ def prune_personal_data(now=None):
     # Events of a still-banned account are the ban record (users.account_data); keep those.
     banned_public_ids = get_user_model().objects.filter(banned_at__isnull=False).values_list("public_id", flat=True)
 
+    # Bans older than the cap are lifted by erasing the account (it can then simply sign up again).
+    expired_bans = get_user_model().objects.filter(banned_at__lt=before(BAN_RECORD_DAYS))
+    expired_ban_count = expired_bans.count()
+    expired_bans.delete()
+
     return {
+        "expired_ban_records": expired_ban_count,
         "guess_logs": GuessLog.objects.filter(created_at__lt=before(GUESS_LOG_DAYS)).delete()[0],
         "game_sessions": GameSession.objects.filter(finished_at__lt=before(GAME_SESSION_DAYS)).delete()[0],
         "moderation_events": ModerationEvent.objects.filter(created_at__lt=before(MODERATION_EVENT_DAYS))
