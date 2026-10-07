@@ -18,6 +18,7 @@ import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
+import { useWordleCardState } from '../../hooks/useWordleCardState';
 import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
@@ -218,6 +219,7 @@ function MiniGame() {
     return () => { cancelled = true; };
   }, [gameId, stage]);
 
+  const wordleCard = useWordleCardState();
   const wordleLocked = gameId === "wordle" && !!wordleStatus?.locked;
 
   // Tick the countdown copy once a minute while it's actually shown — the
@@ -323,7 +325,7 @@ function MiniGame() {
                 key={g.id}
                 aria-current={g.id === game?.id ? "true" : undefined}
                 className={`rail-chip${g.id === game?.id ? " is-active" : ""}`}
-                disabled={inProgress || g.id === "coming-soon"}
+                disabled={inProgress || g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
                 onClick={() => navigate(g.urlPath, { state: { id: g.id } })}
               >
                 {g.name}
@@ -338,7 +340,7 @@ function MiniGame() {
               {visibleGames.map((g) => (
                 <button
                   key={g.id}
-                  disabled={g.id === "coming-soon"}
+                  disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
                   onClick={() => {
                     if (inProgress) { showErrorAlert("Finish your current game first.", "Game in progress", "Continue playing"); return; }
                     navigate(g.urlPath, { state: { id: g.id } });

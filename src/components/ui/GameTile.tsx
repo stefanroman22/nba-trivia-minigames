@@ -15,7 +15,7 @@ interface GameTileProps {
   index?: number;
   /** Renders the tile as not-clickable (e.g. the "Coming soon" placeholder). */
   disabled?: boolean;
-  /** Grey, desaturated "already played" look. The tile stays clickable. */
+  /** Grey, desaturated "already played" look. Pair with `disabled` to block clicks. */
   dimmed?: boolean;
   /** "muted" paints the CTA in the neutral text token instead of the brand orange. */
   ctaTone?: "default" | "muted";
