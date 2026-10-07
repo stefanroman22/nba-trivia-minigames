@@ -3,7 +3,7 @@ import { faXTwitter, faLinkedinIn, faInstagram, faFacebookF } from "@fortawesome
 import { faArrowUp } from "@fortawesome/free-solid-svg-icons";
 import logo from "../assets/basketballLogo.webp"
 import { navItems } from "../constants/navigation";
-import { legalItems } from "../constants/legals";
+import { legalLinks } from "../constants/legals";
 
 
 
@@ -62,15 +62,15 @@ export default function Footer() {
 
         <div className="flex flex-col">
           <h1 className="mb-4">Legal</h1>
-          {legalItems.map((item) => {
+          {legalLinks.map((item) => {
             return (
               <a
-                key={item}
-                href={`#${item.toLowerCase().replace(" ", "")}`}
+                key={item.href}
+                href={item.href}
 
                 className="text-white hover:underline transition duration-500 mb-2"
               >
-                {item}
+                {item.label}
               </a>
             );
           })}

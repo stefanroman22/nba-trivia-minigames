@@ -6,5 +6,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const games = visibleGames
     .filter((g) => g.id !== "coming-soon")
     .map((g) => ({ url: `${SITE_URL}${g.urlPath}`, changeFrequency: "weekly" as const, priority: 0.8 }));
-  return [{ url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 }, ...games];
+  const legal = ["/privacy", "/terms"].map((path) => ({ url: `${SITE_URL}${path}`, changeFrequency: "yearly" as const, priority: 0.2 }));
+  return [{ url: `${SITE_URL}/`, changeFrequency: "weekly", priority: 1 }, ...games, ...legal];
 }
