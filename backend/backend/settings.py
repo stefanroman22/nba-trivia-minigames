@@ -178,6 +178,7 @@ REST_FRAMEWORK = {
         "friend-action": "60/hour",
         # Live username check while typing (debounced client-side); never strikes.
         "name-check": "120/hour",
+        "account-data": "10/hour",
     },
 }
 

@@ -68,3 +68,8 @@ class NameCheckRateThrottle(UserRateThrottle):
     """The live username check (users.views.check_name). Debounced typing needs a few per
     form; unbounded, it would be an oracle for probing the server-side word lists."""
     scope = "name-check"
+
+
+class AccountDataRateThrottle(UserRateThrottle):
+    """Account export and deletion: heavy or irreversible, and never needed more than a few times."""
+    scope = "account-data"
