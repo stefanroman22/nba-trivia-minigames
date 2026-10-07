@@ -157,7 +157,7 @@ const Landpage = () => {
                     ctaTone={wordlePlayed ? "muted" : "default"}
                     ctaSwapKey={game.id === "wordle" ? (wordlePlayed ? "locked" : "play") : undefined}
                     index={index}
-                    disabled={game.id === "coming-soon"}
+                    disabled={game.id === "coming-soon" || wordlePlayed}
                     onClick={() => openGame(game.id, game.urlPath)}
                   />
                 );
