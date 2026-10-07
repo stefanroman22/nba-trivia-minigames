@@ -1142,3 +1142,29 @@ Consequences: literal durations/easings in shipped shells (Stage, EndSequence, M
 three local multiplayer `swap` objects) are listed as minor and left for a token sweep; retuning them is an
 owner feel decision. The planner ran the six area reviews from the motion-reviewer checklist itself because the
 `Agent` tool was not available in the planning session; the review-gate motion-reviewer pass is the independent check.
+
+## 2026-10-07 — Photo moderation: separate ONNX service, fail-closed, model fetched at deploy, synthetic benign set
+Context: P2 hard card "Photo moderation with a small open-source classifier" (design
+`designs/2026-10-07-photo-moderation-with-a-small.md`). The orchestrator reported the ban-card precondition as unmet;
+`origin/dev` has `users/strikes.py`, `scan_existing_users` and `ModerationEvent` (kind `photo`), so the full
+integration ships. The sandbox proxy denies huggingface.co and every image host (PyPI and GitHub are reachable).
+Weighed (where the classifier runs): (a) onnxruntime inside the main Django function — rejected: +40 MB on the bundle
+the cold-start card is slimming; (b) a separate Vercel Python project called server-to-server with a shared secret —
+chosen; the main `requirements.txt` is untouched, so the bundle cannot move.
+Weighed (model): `OwenElliott/image-safety-classifier-xs` (MIT, 13 MB ONNX, NSFW/NSFL/SFW) — chosen; NudeNet v3 rejected
+on its MIT/AGPL license conflict; `Marqo/nsfw-image-detection-384` kept as an env-only second-opinion hook, not loaded.
+Weighed (model file): (a) commit the `.onnx` — impossible here and 13 MB of binary in git; (b) the deploy workflow
+fetches it from Hugging Face and verifies it against a committed SHA-256, shipped as `UNPINNED` so the first run prints
+the hash and fails until the owner commits it — chosen; the service also refuses an unpinned or mismatched file.
+Weighed (outage): fail open would let anything through while the service is down — rejected; 503
+`moderation_unavailable` with nothing saved, and a skip only when `MODERATION_REQUIRED` is false (local sqlite) and
+no URL is set, with a warning — chosen. Thresholds 0.85 block / 0.50 review are env-tunable placeholders until the
+owner's private recall check. The uncertain band is `ModerationEvent(kind="photo", tier="mild", reason="uncertain")`
+rather than a new tier choice, so no choices migration on a risk-high model. The third photo strike bans with
+`ban_reason="photo"` (AUTH-13's documented code), a one-line change in `record_strike`.
+Weighed (benign eval set): (a) ~60 downloaded licensed photos — not fetchable from this sandbox; (b) a seeded,
+Pillow-generated set (skin-tone swatches, beach/sports/drawing/selfie/group compositions) committed as CC0 — chosen,
+and labelled as a gross-failure check, not accuracy: real-photo false-positive and NSFW recall numbers are an owner
+step with the same harness on a gitignored folder.
+Consequences: deploy needs owner steps (pin checksum, create the Hobby project, secrets, env on both projects);
+latency, bundle size and false-block numbers are produced by the workflow's eval step and recorded after its first run.
