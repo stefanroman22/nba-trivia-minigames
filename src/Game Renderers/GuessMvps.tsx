@@ -83,7 +83,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   return (
     <GameFrame>
       <GameFrame.Status
-        left={<GameFrame.Label>ROUND <SwapText className="tnum">{`${currentIndex + 1}/${seasonsList.length}`}</SwapText></GameFrame.Label>}
+        left={<GameFrame.Label>ROUND <SwapText className="tnum">{currentIndex + 1}</SwapText><span className="tnum">/{seasonsList.length}</span></GameFrame.Label>}
         right={<GameFrame.Score value={score} />}
       />
       <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seasonsList.length} />

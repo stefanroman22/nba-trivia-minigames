@@ -95,7 +95,7 @@ function PlayOffSeries({
   return (
     <GameFrame>
       <GameFrame.Status
-        left={<GameFrame.Label>ROUND <SwapText className="tnum">{`${currentIndex + 1}/${seriesList.length}`}</SwapText></GameFrame.Label>}
+        left={<GameFrame.Label>ROUND <SwapText className="tnum">{currentIndex + 1}</SwapText><span className="tnum">/{seriesList.length}</span></GameFrame.Label>}
         right={<GameFrame.Score value={score} />}
       />
       <ProgressBar value={currentIndex + (showWinner ? 1 : 0)} max={seriesList.length} />
