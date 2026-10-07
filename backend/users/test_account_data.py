@@ -135,6 +135,7 @@ class AccountDeletionTests(TestCase):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
 
     def delete(self, **data):
+        data.setdefault("confirm", "DELETE")
         return self.client.post(reverse("account_delete"), data=data, content_type="application/json", **self.auth())
 
     def fill(self):
@@ -153,8 +154,12 @@ class AccountDeletionTests(TestCase):
         self.assertTrue(User.objects.filter(pk=self.ann.pk).exists())
 
     def test_requires_sign_in(self):
-        resp = self.client.post(reverse("account_delete"), data={"password": "x"}, content_type="application/json")
+        resp = self.client.post(reverse("account_delete"), data={"password": "x", "confirm": "DELETE"}, content_type="application/json")
         self.assertEqual(resp.status_code, 401)
+
+    def test_typing_delete_is_required_even_with_the_right_password(self):
+        self.assertEqual(self.delete(password="Testpass123!", confirm="").status_code, 400)
+        self.assertTrue(User.objects.filter(pk=self.ann.pk).exists())
 
     def test_deletion_removes_the_account_and_everything_tied_to_it(self):
         self.fill()
@@ -180,9 +185,9 @@ class AccountDeletionTests(TestCase):
         from users.tokens import issue_session_tokens
 
         self.token = str(issue_session_tokens(user).access_token)
-        self.assertEqual(self.delete().status_code, 400)
+        self.assertEqual(self.delete(confirm="").status_code, 400)
         self.assertEqual(self.delete(confirm="delete").status_code, 400)
-        self.assertEqual(self.delete(confirm="DELETE").status_code, 200)
+        self.assertEqual(self.delete().status_code, 200)
         self.assertFalse(User.objects.filter(pk=user.pk).exists())
 
     def test_banned_account_is_anonymised_keeping_only_the_ban_record(self):

@@ -287,3 +287,12 @@
   border: 1px solid var(--brand);
   box-shadow: 0 -2px 16px -6px rgba(0, 0, 0, 0.4);
 }
+
+/* Sign-up consent: age gate + Terms tick-box (components/ConsentFields) */
+.auth-consent { display: flex; flex-direction: column; gap: 10px; }
+.auth-consent-row { display: flex; gap: 8px; }
+.auth-consent-row select { flex: 1; min-width: 0; }
+.auth-check { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); line-height: 1.45; cursor: pointer; }
+.auth-check input { margin-top: 2px; accent-color: var(--brand); flex: none; }
+.auth-check a, .auth-note a { color: var(--brand); text-decoration: underline; }
+.auth-consent-panel { display: flex; flex-direction: column; gap: 12px; }

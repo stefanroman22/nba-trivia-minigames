@@ -292,16 +292,15 @@ def export_my_data(request):
 def delete_my_account(request):
     """Permanently delete the signed-in account and its data (GDPR Art 17).
 
-    Re-authenticates first: the password for password accounts, typing DELETE for Google-only
-    accounts (they have no password). See users.account_data for what is removed and the one
-    exception for banned accounts.
+    Always needs the word DELETE typed, and for password accounts the password too (Google-only
+    accounts have none). See users.account_data for what is removed and the one exception for
+    banned accounts.
     """
     user = request.user
-    if user.has_usable_password():
-        if not user.check_password(str(request.data.get("password") or "")):
-            return Response({"error": "That password is incorrect."}, status=status.HTTP_403_FORBIDDEN)
-    elif request.data.get("confirm") != "DELETE":
+    if request.data.get("confirm") != "DELETE":
         return Response({"error": "Type DELETE to confirm."}, status=status.HTTP_400_BAD_REQUEST)
+    if user.has_usable_password() and not user.check_password(str(request.data.get("password") or "")):
+        return Response({"error": "That password is incorrect."}, status=status.HTTP_403_FORBIDDEN)
     outcome = delete_account(user)
     return Response({"status": outcome})
 
