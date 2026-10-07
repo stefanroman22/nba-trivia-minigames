@@ -192,7 +192,7 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
             <ScorePanel
               score={endState?.score ?? 0}
               outOf={MAX_SCORE}
-              label={endState?.won ? "Solved!" : "Out of guesses"}
+              label={endState?.won ? "Solved!" : undefined}
               won={endState?.won}
               onClose={onClose}
             />

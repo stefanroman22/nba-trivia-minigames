@@ -263,7 +263,7 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
   const bannerTone = finished && lastHit === false && misses >= 2 ? "bad" : misses >= 1 ? "warn" : "neutral";
   const bannerText =
     misses >= 2
-      ? "Run over."
+      ? "Pack complete."
       : misses === 1
         ? "One life left."
         : "Pick a stat where your card beats the mystery card (ties win).";
