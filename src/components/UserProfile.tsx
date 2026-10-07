@@ -151,6 +151,54 @@ function UserProfile() {
     }
   };
 
+  // ---- Your data: download everything we hold, or delete the account (GDPR export / erasure) ----
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteWord, setDeleteWord] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  const handleExport = async () => {
+    try {
+      const res = await apiFetch(`${BACKEND_URL}/account/export/`);
+      if (!res.ok) throw new Error(`export ${res.status}`);
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "swish-quest-my-data.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Data export failed:", err);
+      showErrorAlert("We couldn't prepare your data. Please try again in a moment.", "Download failed");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      const res = await apiFetch(`${BACKEND_URL}/account/delete/`, {
+        method: "POST",
+        body: JSON.stringify({ password: deletePassword, confirm: deleteWord }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDeleteError(data.error || "We couldn't delete your account. Please try again.");
+        return;
+      }
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      dispatch(logout());
+    } catch (err) {
+      console.error("Account deletion failed:", err);
+      setDeleteError("Unable to contact the server. Please try again later.");
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken");
     localStorage.removeItem("accessToken");
@@ -335,6 +383,45 @@ function UserProfile() {
           <div className="profile-logout">
             <button className="feedback-band-btn" onClick={handleLogout}>Log out</button>
           </div>
+
+          <div className="profile-data">
+            <button type="button" className="profile-data-btn" onClick={handleExport}>Download my data</button>
+            <span aria-hidden="true">·</span>
+            <button type="button" className="profile-data-btn profile-data-btn--danger" onClick={() => setShowDelete((v) => !v)}>
+              Delete account
+            </button>
+          </div>
+          {showDelete && (
+            <div className="profile-delete">
+              <p>This permanently deletes your account, points, friends and game history. It can&apos;t be undone.</p>
+              <input
+                type="password"
+                className="modal-input"
+                aria-label="Password"
+                placeholder="Password (leave empty if you signed up with Google)"
+                autoComplete="current-password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+              />
+              <input
+                className="modal-input"
+                aria-label="Type DELETE to confirm"
+                placeholder="Type DELETE to confirm"
+                autoComplete="off"
+                value={deleteWord}
+                onChange={(e) => setDeleteWord(e.target.value)}
+              />
+              {deleteError && <p className="auth-error" role="alert">{deleteError}</p>}
+              <button
+                type="button"
+                className="feedback-band-btn"
+                disabled={deleteWord !== "DELETE" || deleteBusy}
+                onClick={handleDelete}
+              >
+                {deleteBusy ? "Deleting…" : "Delete my account"}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </motion.div>
