@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from '../../hooks/useNavigate';
 import { useDispatch } from 'react-redux';
 import { games, visibleGames } from '../../utils/GameUtils';
@@ -21,6 +22,8 @@ import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus }
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import { FOCUSABLE } from '../../hooks/useFocusTrap';
+import { reducedFade, swap } from "../../motion/variants";
+import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 import "../../styles/MiniGame.css";
 
 // NOTE: there is deliberately no CONTENT_STAGE_GAMES list here any more.
@@ -30,6 +33,8 @@ import "../../styles/MiniGame.css";
 // several games with 100-230px of dead space above the Exit button.
 
 function MiniGame() {
+  // Opacity-only idle swap under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
+  const swapVariants = useReducedMotionSafe() ? reducedFade : swap;
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { open } = useModal();
@@ -239,19 +244,33 @@ function MiniGame() {
                 <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>
               )}
             </div>
-            {inLobby ? (
-              <p className="idle-room-note">
-                You're in a private room.
-              </p>
-            ) : wordleLocked && wordleStatus ? (
-              <p className="idle-room-note">
-                Next word available in {formatWordleCountdown(wordleStatus.nextResetAt)}.
-              </p>
-            ) : (
-              <Button size="lg" onClick={handleStart}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg> Play
-              </Button>
-            )}
+            {/* One slot, three states: the Play button's height is reserved (.idle-action) so a
+                swap never moves the chips; the countdown tick inside "locked" stays instant (timer). */}
+            <div className="idle-action">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div
+                  key={inLobby ? "lobby" : wordleLocked && wordleStatus ? "locked" : "play"}
+                  variants={swapVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  {inLobby ? (
+                    <p className="idle-room-note">
+                      You're in a private room.
+                    </p>
+                  ) : wordleLocked && wordleStatus ? (
+                    <p className="idle-room-note">
+                      Next word available in {formatWordleCountdown(wordleStatus.nextResetAt)}.
+                    </p>
+                  ) : (
+                    <Button size="lg" onClick={handleStart}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg> Play
+                    </Button>
+                  )}
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         );
       case "loading":

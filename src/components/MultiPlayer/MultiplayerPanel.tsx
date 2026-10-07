@@ -66,13 +66,18 @@ export default function MultiplayerPanel({
               </>
             ) : (
               <div className="mp-row">
-                {mp.phase === "searching" ? (
-                  <Button variant="ghost" size="sm" onClick={leaveMatch}>Cancel</Button>
-                ) : (
-                  <Button size="sm" disabled={online} onClick={() => game && findMatch(game)}>
-                    <SwapText>{online ? "In a match" : "Play 1v1"}</SwapText>
-                  </Button>
-                )}
+                {/* One button across idle / searching / in a match: the label swaps inside a
+                    reserved box, so pressing Play 1v1 never replaces or resizes the control. */}
+                <Button
+                  variant={mp.phase === "searching" ? "ghost" : "primary"}
+                  size="sm"
+                  disabled={online && mp.phase !== "searching"}
+                  onClick={() => (mp.phase === "searching" ? leaveMatch() : game && findMatch(game))}
+                >
+                  <SwapText reserveWidth={["Play 1v1", "Cancel", "In a match"]}>
+                    {mp.phase === "searching" ? "Cancel" : online ? "In a match" : "Play 1v1"}
+                  </SwapText>
+                </Button>
                 <Button variant="secondary" size="sm" onClick={() => setFriendMode(true)}>
                   Play with a friend
                 </Button>
