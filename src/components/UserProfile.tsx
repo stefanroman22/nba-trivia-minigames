@@ -199,6 +199,17 @@ function UserProfile() {
     }
   };
 
+  const handleRemovePhoto = async () => {
+    try {
+      const res = await apiFetch(`${BACKEND_URL}/account/remove-photo/`, { method: "POST" });
+      if (!res.ok) throw new Error(`remove-photo ${res.status}`);
+      dispatch(updateProfilePhoto(null));
+    } catch (err) {
+      console.error("Photo removal failed:", err);
+      showErrorAlert("We couldn't remove your photo. Please try again.", "Something went wrong");
+    }
+  };
+
   const handleLogout = async () => {
     const refreshToken = localStorage.getItem("refreshToken");
     localStorage.removeItem("accessToken");
@@ -295,6 +306,9 @@ function UserProfile() {
               Change photo
             </label>
             <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+            {user?.profile_photo && (
+              <button type="button" className="profile-data-btn" onClick={handleRemovePhoto}>Remove photo</button>
+            )}
           </div>
 
           {/* Username + email */}

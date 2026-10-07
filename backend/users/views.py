@@ -17,7 +17,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
 from users import leaderboard, photo_moderation, strikes
-from users.account_data import delete_account, export_account
+from users.account_data import delete_account, export_account, remove_photo
 from users.consent import CONSENT_REQUIRED_MESSAGE, check_consent, stamp_consent
 from users.google_auth import GoogleAuthError, verify_google_code
 from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
@@ -285,6 +285,14 @@ def export_my_data(request):
     response["Content-Disposition"] = 'attachment; filename="swish-quest-my-data.json"'
     response["Cache-Control"] = "no-store"
     return response
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def remove_my_photo(request):
+    """Remove the signed-in player's profile photo."""
+    remove_photo(request.user)
+    return Response({"user": user_payload(request, request.user)})
 
 
 @api_view(["POST"])

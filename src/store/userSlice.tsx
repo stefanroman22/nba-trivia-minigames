@@ -78,7 +78,7 @@ const userSlice = createSlice({
         state.user.username = action.payload;
       }
     },
-    updateProfilePhoto: (state, action: PayloadAction<string>) => {
+    updateProfilePhoto: (state, action: PayloadAction<string | null>) => {
       if (state.user) {
         state.user.profile_photo = action.payload;
       }

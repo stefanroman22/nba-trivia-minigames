@@ -9,6 +9,7 @@ from .views import (
     get_users,
     export_my_data,
     delete_my_account,
+    remove_my_photo,
     check_name,
 )
 from .friends import (
@@ -33,6 +34,7 @@ urlpatterns = [
     path('update-profile/', update_profile, name='update'),
     path('account/export/', export_my_data, name='account_export'),
     path('account/delete/', delete_my_account, name='account_delete'),
+    path('account/remove-photo/', remove_my_photo, name='account_remove_photo'),
     path('logout/', logout_view, name='logout'),
     path('login/google/', google_login, name='google_login'),
     path('get-users/', get_users, name='get-users'),
