@@ -284,7 +284,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     if (nextWrong >= MAX_GUESSES) {
       setFinished(true);
       sendGuessLog();
-      flashPopup("Out of guesses", "var(--bad)");
+      flashPopup(`Not ${guessed.full_name}.`, "var(--bad)");
       setBottomPhase("loader");
       later(() => {
         onGameEnd?.(0, { inPlace: true });
@@ -437,7 +437,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
             <ScorePanel
               score={endState?.score ?? 0}
               outOf={MAX_SCORE}
-              label={endState?.won ? "Nailed it!" : "Out of guesses"}
+              label={endState?.won ? "Nailed it!" : undefined}
               won={endState?.won}
               onPlayAgain={onPlayAgain}
               onClose={onClose}

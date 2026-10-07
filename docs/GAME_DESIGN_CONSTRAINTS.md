@@ -711,7 +711,14 @@ new ResizeObserver(() => seen.add(gf.getBoundingClientRect().height.toFixed(2)))
 seen.size === 1   // MUST be true
 ```
 
-### RULE 6.3 — Lives running out is never announced in the feedback popup. **HARD RULE.**
+### RULE 6.3 — Lives running out is never announced, anywhere. **HARD RULE.**
+
+**No surface may announce the loss: not the popup, not the `ScorePanel`/`ScoreLine` label, not a
+status banner.** "Out of guesses", "Out of lives", "Out of hearts", "Game over", "Run over" are all
+banned strings. A loss ends with the plain points line alone (`0/700 pts`, no label) and the
+reveal; `label` is for wins only. This applies to **every** game; when adding or touching a
+game, grep it for these strings. (History: the popup half was fixed in Career Path only, so Who Are
+Ya, Connections, Wordle and Pack Five kept announcing it until the 2026-10-07 sweep.)
 
 When a wrong guess drops a game's remaining lives to zero, do **not** flash an "Out of lives" /
 "Game over" / "Run over" style message through `SubmitGuessPopup`. The lives indicator (hearts, a
@@ -838,7 +845,7 @@ already shows it; a count is redundant chrome that competes with the reveal.
 ```
 
 Only use `ScorePanel`'s `label` for a genuine state that colour can't convey (`Board cleared!`,
-`Out of guesses`) — never for a score the player can just read off the board. On a plain loss with
+`That's him!`) — never for a loss (RULE 6.3) and never for a score the player can just read off the board. On a plain loss with
 nothing extra to say, pass no `label` at all (Fan Favorites): the points line stands alone, with no
 placeholder in its place (Rule 4.2a).
 

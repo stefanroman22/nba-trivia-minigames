@@ -183,7 +183,7 @@ function ConnectionsGame({ gameInfo, onGameEnd, multiplayer }: ConnectionsGamePr
     setHearts(nextHearts);
     setSelected([]);
     if (nextHearts <= 0) {
-      flash("Out of hearts", "var(--bad)");
+      flash(bestOverlap === 3 ? "One away!" : "Not a group", "var(--bad)");
       revealRemaining(solved);
     } else {
       flash(bestOverlap === 3 ? "One away!" : "Not a group", "var(--bad)");

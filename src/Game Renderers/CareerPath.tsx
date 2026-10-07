@@ -270,7 +270,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
               <ScoreLine
                 score={endState?.score ?? 0}
                 outOf={stints * POINTS_PER_CARD}
-                label={endState?.won ? "That's him!" : "Out of guesses"}
+                label={endState?.won ? "That's him!" : undefined}
                 won={endState?.won}
               />
             </motion.div>
