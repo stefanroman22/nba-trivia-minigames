@@ -271,8 +271,9 @@ def signup_view(request):
 def get_current_user(request):
     try:
         return Response({"user": user_payload(request, request.user)})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("could not build the /me/ payload")
+        return JsonResponse({"error": "Could not load your account."}, status=400)
 
 
 @api_view(["GET"])
@@ -526,5 +527,6 @@ def get_users(request):
             },
             status=200,
         )
-    except Exception as e:
-        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=400)
+    except Exception:
+        logger.exception("could not build the leaderboard response")
+        return JsonResponse({"error": "Could not load the leaderboard."}, status=400)

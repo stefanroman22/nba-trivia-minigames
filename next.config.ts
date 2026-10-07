@@ -21,6 +21,22 @@ const nextConfig: NextConfig = {
   agentRules: false,
   // Six small stylesheets were render-blocking <link>s (Lighthouse: ~720 ms on mobile); inlined they arrive with the HTML.
   experimental: { inlineCss: true },
+  // Baseline response headers. Deliberately no Content-Security-Policy yet (it needs a tested allow-list for
+  // Google sign-in, the NBA image CDN and Vercel; see docs/legal/OPEN_ITEMS.md) and no Cross-Origin-Opener-Policy
+  // (same-origin would break the Google sign-in popup).
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
