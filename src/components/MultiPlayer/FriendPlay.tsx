@@ -248,11 +248,16 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
             Enter code
           </Button>
         </div>
-        {(blocked || searching) && (
-          <p className="fp-sub" style={{ fontSize: 12 }}>
-            {searching ? "Cancel matchmaking to open a room." : "Finish your current game first."}
-          </p>
-        )}
+        {/* Always rendered with both messages' box reserved, so the helper fades in and out
+            without shifting the row (same pattern as the "Copied." line). */}
+        <p className="fp-sub" style={{ fontSize: 12 }} aria-live="polite">
+          <SwapText
+            swapKey={searching ? "searching" : blocked ? "blocked" : "none"}
+            reserveWidth={["Cancel matchmaking to open a room.", "Finish your current game first."]}
+          >
+            {searching ? "Cancel matchmaking to open a room." : blocked ? "Finish your current game first." : "\u00a0"}
+          </SwapText>
+        </p>
       </>
     );
   }

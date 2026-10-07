@@ -561,6 +561,46 @@ timers, counters that already use `AnimatedNumber`) is exempt. Never build a sec
 
 ---
 
+## Rule UI-22: Every visible screen or conditional-block change enters and exits through the shared motion system; instant feedback is exempt
+
+Anything the player sees appear, disappear or be replaced — a pane, a loader, a result banner, an
+empty-state line — goes through the shared pieces in `src/motion/variants.ts` and `src/motion/tokens.ts`
+(durations and easing come from there; never a literal `duration:` or cubic). Text uses `SwapText`
+(UI-21); numbers that count use `AnimatedNumber`. Under reduced motion the shared pieces already
+collapse to a fade (UI-20), so there is nothing extra to write.
+
+- **Mutually exclusive screens or panes** (loader ↔ list, tab A ↔ tab B, grid ↔ empty state,
+  Play button ↔ room note) sit in `<AnimatePresence mode="wait" initial={false}>` with one
+  `motion.div` child using the `swap` variant (`initial="hidden" animate="visible" exit="exit"`),
+  keyed per state (`key={loading ? "loading" : scope}`). Do not animate the container's height.
+- **Blocks that appear or disappear** (`{cond && <X/>}`) are wrapped in an `AnimatePresence` and
+  render a `motion` element with `fadeIn` (quiet blocks) or `popIn` (banners that announce a result).
+  Keep the existing `role`/`aria-live` and class names on the motion element.
+- **Text** that changes with state uses `SwapText` (UI-21); **counters** (scores, counts) use
+  `AnimatedNumber`.
+- **Exempt (instant feedback):** typing feedback, per-keystroke validation and search/filter result
+  lists, timers and countdown ticks, and the click itself — animate the result of an action, never
+  delay the action. No animation may hold up a player action by more than 400 ms.
+
+```tsx
+❌ WRONG — src/components/modals/LeaderboardModal.tsx before: loader and list are a bare ternary,
+so the loader snaps to the list on open and again on every Global ↔ Friends toggle
+{loading ? (
+  <div style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}><CourtLoader … /></div>
+) : (
+  <>{/* head + list */}</>
+)}
+
+✅ RIGHT — src/components/modals/LeaderboardModal.tsx: one keyed swap, no height animation
+<AnimatePresence mode="wait" initial={false}>
+  <motion.div key={loading ? "loading" : scope} variants={swap} initial="hidden" animate="visible" exit="exit">
+    {loading ? <CourtLoader … /> : <>{/* head + list */}</>}
+  </motion.div>
+</AnimatePresence>
+```
+
+---
+
 ## Acceptance checks
 
 Concrete DevTools/console/grep checks a QA agent can run.

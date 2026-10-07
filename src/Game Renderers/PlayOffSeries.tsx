@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import ProgressBar from "../components/ui/ProgressBar";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import TeamCrest from "../components/ui/TeamCrest";
+import SwapText from "../components/motion/SwapText";
 import { GameFrame } from "../components/ui";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
 import type { TeamColor } from "../constants/nbaTeamColors";
@@ -136,7 +137,7 @@ function PlayOffSeries({
                   {/* always rendered so the reveal cannot resize the card (Rule 6.2);
                       a non-breaking space reserves the exact line box without spoiling the winner */}
                   <span aria-hidden={!showWinner} className="tnum" style={{ marginTop: "auto", paddingTop: 6, fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
-                    {showWinner ? `${t.wins} wins` : " "}
+                    <SwapText swapKey={showWinner ? "wins" : "blank"}>{showWinner ? `${t.wins} wins` : " "}</SwapText>
                   </span>
                 </motion.button>
               </div>

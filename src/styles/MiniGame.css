@@ -140,6 +140,9 @@
 .idle-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 
 .idle-room-note { font-size: 13px; color: var(--muted); max-width: 320px; line-height: 1.5; }
+/* Holds the Play button's height (.btn-lg, 52px) so Play <-> room note / Wordle lock cross-fade
+   without moving anything above it. */
+.idle-action { min-height: 52px; display: flex; align-items: center; justify-content: center; }
 
 /* A capped, definite play-area height: board games (whose root sets height:100%)
    fill it and shrink to fit; compact games size to content and center. Bounded
@@ -196,12 +199,13 @@
    game (the 12px gap) exactly like Series Winner; on filling games it rests at
    the bottom of the filled area. Same Exit→bottom distance everywhere. */
 .playing-wrap .exit-link { flex: none; margin-top: auto; }
-.exit-link { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.exit-link { transition: opacity 0.2s ease; font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .exit-link:hover { color: var(--text); }
 /* In-place game over: the ScorePanel owns the only Close game. visibility (not
    display) keeps the link's box, so the ended board doesn't re-center or jump,
    and the element leaves the tab order and accessibility tree. */
-.exit-link.is-ended { visibility: hidden; }
+/* Fades out on durations.base (0.2s); visibility flips only after the fade. */
+.exit-link.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s 0.2s; }
 
 /* ===== Aside ===== */
 .game-aside { display: flex; flex-direction: column; gap: 14px; align-self: start; }

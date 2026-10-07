@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import "../styles/Friends.css";
 import { Avatar } from "./ui";
 import SwapText from "./motion/SwapText";
 import SegmentedTabs from "./motion/SegmentedTabs";
+import { reducedFade, swap } from "../motion/variants";
 import {
   useFriends,
   searchUsers,
@@ -49,6 +51,7 @@ function EmptyLine({ state }: { state: EmptyState }) {
  * refresh-on-return-to-this-view a plain conditional render needs. */
 export default function FriendsPanel() {
   const [tab, setTab] = useState<Tab>("friends");
+  const swapVariants = useReducedMotion() ? reducedFade : swap;
   const {
     incoming, outgoing, blocked, loading, error,
     acceptRequest, declineRequest, cancelRequest, removeFriend, blockUser, unblockUser, sendRequest,
@@ -98,6 +101,10 @@ export default function FriendsPanel() {
 
       {actionError && <p role="alert" className="fr-error">{actionError}</p>}
 
+      {/* One keyed pane per tab: the body cross-fades as the SegmentedTabs thumb slides.
+          Opacity/transform only, the modal's height is never animated. */}
+      <AnimatePresence mode="wait" initial={false}>
+      <motion.div key={tab} variants={swapVariants} initial="hidden" animate="visible" exit="exit">
       {tab === "friends" && (
         <FriendsTab removeFriend={removeFriend} blockUser={blockUser} onError={setActionError} />
       )}
@@ -197,6 +204,8 @@ export default function FriendsPanel() {
           </div>
         )
       )}
+      </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

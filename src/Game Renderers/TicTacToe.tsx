@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useSelector } from "react-redux";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
@@ -15,6 +15,7 @@ import { buildNameLookup } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
 import type { RootState } from "../store";
 import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../types/types";
+import { popIn } from "../motion/variants";
 import "../styles/TicTacToe.css";
 
 const CELL_POINTS = 25; // 9 cells -> 225 max (registry maxPoints)
@@ -395,16 +396,23 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
               animateClaim={false}
             />
 
-            {terminal && (
-              <div
-                className={`ttt-banner${mpState.draw ? "" : winnerIsMe ? " is-win" : " is-loss"}`}
-                role="status"
-              >
-                <span className="font-display">
-                  {mpState.draw ? "Draw!" : winnerIsMe ? "You win!" : "Opponent wins"}
-                </span>
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {terminal && (
+                <motion.div
+                  key="banner"
+                  className={`ttt-banner${mpState.draw ? "" : winnerIsMe ? " is-win" : " is-loss"}`}
+                  role="status"
+                  variants={popIn}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                >
+                  <span className="font-display">
+                    {mpState.draw ? "Draw!" : winnerIsMe ? "You win!" : "Opponent wins"}
+                  </span>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </GameFrame.Board>
 
@@ -437,7 +445,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
                 setSelectedCell(null);
               }}
             >
-              Steal <span className="tnum">x{myStealsLeft}</span>
+              Steal <span className="tnum"><SwapText swapKey={myStealsLeft}>x{myStealsLeft}</SwapText></span>
             </button>
             <Button
               size="md"
@@ -445,7 +453,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
               onClick={handleMpSubmit}
               disabled={!myTurn || terminal || selectedCell == null || guess.trim() === ""}
             >
-              {stealMode ? "Steal" : "Claim"}
+              <SwapText reserveWidth={["Claim", "Steal"]}>{stealMode ? "Steal" : "Claim"}</SwapText>
             </Button>
           </GameFrame.InputRow>
         </GameFrame.Action>

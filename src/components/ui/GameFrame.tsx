@@ -1,4 +1,6 @@
 import { Children, type ReactNode } from "react";
+import AnimatedNumber from "../motion/AnimatedNumber";
+import { durations } from "../../motion/tokens";
 
 /** True when a slot was given nothing renderable. `Children.toArray` already
  *  drops null/undefined/booleans, so an empty result means "nothing to show". */
@@ -55,12 +57,14 @@ function Status({ left, right }: { left?: ReactNode; right?: ReactNode }) {
   );
 }
 
-/** The standard `SCORE 120` group — same type, colour and spacing in every game. */
+/** The standard `SCORE 120` group — same type, colour and spacing in every game.
+ *  The value counts to each new score on `durations.slow` so a live score change never
+ *  snaps and never lags the player (AnimatedNumber's 0.9s default is the end-of-game reveal). */
 function Score({ value, label = "SCORE" }: { value: number; label?: string }) {
   return (
     <span className="gf-score">
       <span className="gf-score-label">{label}</span>
-      <span className="gf-score-value tnum">{value}</span>
+      <span className="gf-score-value tnum"><AnimatedNumber value={value} duration={durations.slow} /></span>
     </span>
   );
 }

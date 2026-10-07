@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "../hooks/useNavigate";
 import { useSelector } from "react-redux";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import "../styles/LandPage.css";
 import "../styles/GlobalStyles.css";
 import { visibleGames as games } from "../utils/GameUtils";
@@ -12,6 +12,8 @@ import UserProfile from "../components/UserProfile";
 import Leaderboard from "../components/Leaderboard";
 import GuestPanel from "../components/GuestPanel";
 import Reveal from "../components/motion/Reveal";
+import { reducedFade, swap } from "../motion/variants";
+import { useReducedMotionSafe } from "../hooks/useReducedMotionSafe";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
 import { useModal } from "../context/ModalContext";
 import { useWordleCardState } from "../hooks/useWordleCardState";
@@ -21,6 +23,8 @@ import type { RootState } from "../store";
 
 const Landpage = () => {
   const navigate = useNavigate();
+  // Opacity-only swap under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
+  const swapVariants = useReducedMotionSafe() ? reducedFade : swap;
   const { user } = useSelector((state: RootState) => state.user);
   // The profile card fades in on a fresh login only (never on a cold load of an existing session).
   const profileReveal = useLoginReveal();
@@ -129,10 +133,13 @@ const Landpage = () => {
               </div>
             }
           />
+          {/* Grid <-> empty line cross-fade when the search crosses zero results. The query echo
+              inside the empty line stays instant (typing feedback). */}
+          <AnimatePresence mode="wait" initial={false}>
           {filtered.length === 0 ? (
-            <div className="games-empty">No games match “<strong style={{ color: "var(--text)" }}>{query}</strong>”. Try another keyword.</div>
+            <motion.div key="empty" className="games-empty" variants={swapVariants} initial="hidden" animate="visible" exit="exit">No games match “<strong style={{ color: "var(--text)" }}>{query}</strong>”. Try another keyword.</motion.div>
           ) : (
-            <div className="games-grid3">
+            <motion.div key="grid" className="games-grid3" variants={swapVariants} initial="hidden" animate="visible" exit="exit">
               {filtered.map((game, index) => {
                 // Today's Wordle already played: grey tile + "Next Wordle in …" countdown.
                 const playedLabel = game.id === "wordle" && wordleCard.locked ? wordleCard.label : null;
@@ -155,8 +162,9 @@ const Landpage = () => {
                   />
                 );
               })}
-            </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </section>
 
         {/* ===== ENGAGE STRIP: leaderboard + guest panel / profile ===== */}

@@ -26,6 +26,7 @@ import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
 import { buildNameLookup } from "../utils/questions";
 import type { OnGameEnd, ContextoQuestion } from "../types/types";
+import { fadeIn } from "../motion/variants";
 import "../styles/Contexto.css";
 
 export interface ContextoProps {
@@ -283,13 +284,16 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
       </div>
 
       <div className="cx-list" role="log" aria-live="polite">
-        {rows.length === 0 ? (
-          <div className="cx-empty">
-            <p className="cx-empty-title font-display">Name any player to begin.</p>
-            <p className="cx-empty-sub">#1 is the secret. Green is close, red is cold.</p>
-          </div>
-        ) : (
-          <AnimatePresence initial={false}>
+        {/* One presence for both states, so the empty prompt fades out as the first row enters.
+            popLayout pops the exiting prompt out of flow (over the positioned .cx-list), so the first
+            row mounts in its final place; rows have no exit, so popLayout doesn't change them. */}
+        <AnimatePresence mode="popLayout" initial={false}>
+          {rows.length === 0 && (
+            <motion.div key="empty" className="cx-empty" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+              <p className="cx-empty-title font-display">Name any player to begin.</p>
+              <p className="cx-empty-sub">#1 is the secret. Green is close, red is cold.</p>
+            </motion.div>
+          )}
             {rows.map((r) => {
               const color = rankColor(r.rank);
               return (
@@ -309,8 +313,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
                 </motion.div>
               );
             })}
-          </AnimatePresence>
-        )}
+        </AnimatePresence>
       </div>
       </GameFrame.Board>
 

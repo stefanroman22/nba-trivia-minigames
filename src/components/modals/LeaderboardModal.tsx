@@ -1,4 +1,6 @@
 import "../../styles/Leaderboard.css";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { reducedFade, swap } from "../../motion/variants";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
 import { Avatar, CourtLoader } from "../ui";
 import SegmentedTabs from "../motion/SegmentedTabs";
@@ -14,6 +16,7 @@ interface LeaderboardModalProps {
 
 export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardModalProps) {
   const { loading, leaders, self } = useLeaderboard(scope);
+  const swapVariants = useReducedMotion() ? reducedFade : swap;
   const loggedIn = self !== null;
   const selfInList = self ? leaders.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
@@ -25,12 +28,15 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
         </div>
       )}
 
+      {/* Loader <-> list (and Global <-> Friends) cross-fade; opacity/transform only, the
+          modal panel's height is never animated (Modal.tsx height+layout jitter rule). */}
+      <AnimatePresence mode="wait" initial={false}>
       {loading ? (
-        <div style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
+        <motion.div key="loading" variants={swapVariants} initial="hidden" animate="visible" exit="exit" style={{ display: "flex", justifyContent: "center", padding: "2rem 0" }}>
           <CourtLoader label="Loading the board…" scale={0.7} />
-        </div>
+        </motion.div>
       ) : (
-        <>
+        <motion.div key={scope} variants={swapVariants} initial="hidden" animate="visible" exit="exit">
           <div className="lbf-head">
             <span style={{ color: "var(--muted)" }}>{scope === "friends" ? "You and your friends" : "Top players worldwide"}</span>
             {self && (
@@ -77,8 +83,9 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
               </div>
             </div>
           )}
-        </>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

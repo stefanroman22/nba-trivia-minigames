@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
+import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 // Scoring constants (WWW_POINTS_MAJORITY = 20, WWW_POINTS_MINORITY = 5) live in
@@ -222,7 +223,7 @@ function WhoWouldWin({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoWouldWinP
         Skip
       </Button>
       <Button ref={nextRef} size="md" className="www-next" disabled={!picked} onClick={handleNext}>
-        {last ? "See results" : "Next matchup"}
+        <SwapText reserveWidth={["Next matchup", "See results"]}>{last ? "See results" : "Next matchup"}</SwapText>
       </Button>
     </div>
   );
