@@ -67,6 +67,12 @@ class CustomUser(AbstractUser):
     # Filled only when the account is banned (users.strikes.canonical_email); signup and Google
     # sign-up refuse a new account whose canonical email matches. Weak by design (see docs).
     canonical_email = models.CharField(max_length=254, blank=True, default="", db_index=True)
+    # Consent record (users.consent): when the player accepted the Terms/Privacy Policy, which
+    # version, and when they confirmed being old enough. No birth date is kept (data minimisation:
+    # only the fact that the age check passed). Null on accounts created before this existed.
+    terms_accepted_at = models.DateTimeField(null=True, blank=True, editable=False)
+    terms_version = models.CharField(max_length=20, blank=True, default="", editable=False)
+    age_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

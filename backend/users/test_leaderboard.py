@@ -133,6 +133,9 @@ class SignupSyncsLeaderboardTests(TestCase):
                     "username": "dave",
                     "email": "dave@example.com",
                     "password": "Testpass123!",
+                    "accepted_terms": True,
+                    "birth_year": 1990,
+                    "birth_month": 6,
                 },
                 content_type="application/json",
             )
