@@ -368,7 +368,7 @@ function WhoWouldWin({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoWouldWinP
   return (
     <GameFrame fill>
       <GameFrame.Status
-        left={<GameFrame.Label>MATCHUP <SwapText className="tnum">{`${idx + 1}/${total}`}</SwapText></GameFrame.Label>}
+        left={<GameFrame.Label>MATCHUP <SwapText className="tnum">{idx + 1}</SwapText><span className="tnum">/{total}</span></GameFrame.Label>}
         right={<GameFrame.Score value={score} />}
       />
       <ProgressBar value={idx + (picked ? 1 : 0)} max={total} label="Matchups played" />
