@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import ProgressBar from "../components/ui/ProgressBar";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import TeamCrest from "../components/ui/TeamCrest";
@@ -17,6 +17,9 @@ interface PlayOffSeriesProps {
   getContrastColor: (hex: string) => string;
   onGameEnd: OnGameEnd;
 }
+
+// Crest swap: opacity only (no travel), so the logo tile itself stays put.
+const LOGO_FADE = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 
 function PlayOffSeries({
   seriesList,
@@ -97,25 +100,18 @@ function PlayOffSeries({
       />
       <ProgressBar value={currentIndex + (showWinner ? 1 : 0)} max={seriesList.length} />
 
-      {/* round body — keyed so the prompt + VS cards cross-fade together */}
+      {/* The frame never re-mounts between rounds: only the pieces whose content
+          changes (eyebrow, team names, crests) fade, so the title and cards hold still. */}
       <GameFrame.Board>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={reduce ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduce ? undefined : { opacity: 0, y: -10 }}
-          transition={{ duration: 0.25 }}
-          style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}
-        >
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
           <GameFrame.Prompt
-            eyebrow={`${currentSeries.round} · ${currentSeries.season}`}
+            eyebrow={<SwapText>{`${currentSeries.round} · ${currentSeries.season}`}</SwapText>}
             title="Who won the series?"
           />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: 10, alignItems: "stretch" }}>
             {teams.map((t, i) => (
-              <div key={t.name} style={{ display: "contents" }}>
+              <div key={i} style={{ display: "contents" }}>
                 {i === 1 && (
                   <span className="font-display" style={{ fontSize: 13, color: "var(--muted)", alignSelf: "center" }}>VS</span>
                 )}
@@ -130,21 +126,25 @@ function PlayOffSeries({
                     width: 54, height: 54, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
                     background: nbaTeamColors[t.name]?.primary || "var(--surface3)",
                     boxShadow: "0 6px 16px -6px rgba(0,0,0,.5)", overflow: "hidden",
+                    transition: "background 0.25s ease",
                   }}>
-                    <TeamCrest src={t.logo} name={t.name} size={40} />
+                    <SwapText swapKey={t.name} variants={LOGO_FADE} className="series-crest">
+                      <TeamCrest src={t.logo} name={t.name} size={40} />
+                    </SwapText>
                   </span>
-                  <span className="font-display" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>{t.name}</span>
+                  <span className="font-display" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>
+                    <SwapText>{t.name}</SwapText>
+                  </span>
                   {/* always rendered so the reveal cannot resize the card (Rule 6.2);
                       a non-breaking space reserves the exact line box without spoiling the winner */}
                   <span aria-hidden={!showWinner} className="tnum" style={{ marginTop: "auto", paddingTop: 6, fontSize: 12, fontWeight: 700, color: t.name === currentSeries.winner ? "var(--good)" : "var(--muted)" }}>
-                    <SwapText swapKey={showWinner ? "wins" : "blank"}>{showWinner ? `${t.wins} wins` : " "}</SwapText>
+                    <SwapText swapKey={showWinner ? "wins" : "blank"}>{showWinner ? `${t.wins} wins` : " "}</SwapText>
                   </span>
                 </motion.button>
               </div>
             ))}
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
       </GameFrame.Board>
 
       {/* No input row: the slot renders nothing so this game stays aligned with
