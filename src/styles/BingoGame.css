@@ -44,6 +44,7 @@
   background: var(--surface3);
   border: 1px solid var(--brand);
 }
+.bng-deal-card .bng-deal-photo { display: block; }
 .bng-deal-card > div { display: flex; flex-direction: column; min-width: 0; }
 .bng-deal-name {
   font-size: clamp(13px, 2dvh, 16px);

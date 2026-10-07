@@ -321,8 +321,8 @@ function WhoWouldWin({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoWouldWinP
         whileHover={!picked && !reduce ? { y: -2 } : undefined}
         whileTap={!picked && !reduce ? { scale: 0.96 } : undefined}
       >
-        <span className="www-card-label font-display">{info.label}</span>
-        <span className="www-card-sub">{info.sub ?? " "}</span>
+        <span className="www-card-label font-display"><SwapText>{info.label}</SwapText></span>
+        <span className="www-card-sub"><SwapText>{info.sub ?? " "}</SwapText></span>
         {/* Reserved before the vote so the reveal never shifts layout (Rule 6.2).
             The picked card shows its loading / error line in the same space. */}
         <span className="www-split" aria-hidden={!hasSplit}>
@@ -368,7 +368,7 @@ function WhoWouldWin({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoWouldWinP
   return (
     <GameFrame fill>
       <GameFrame.Status
-        left={<GameFrame.Label>{`MATCHUP ${idx + 1}/${total}`}</GameFrame.Label>}
+        left={<GameFrame.Label>MATCHUP <SwapText className="tnum">{`${idx + 1}/${total}`}</SwapText></GameFrame.Label>}
         right={<GameFrame.Score value={score} />}
       />
       <ProgressBar value={idx + (picked ? 1 : 0)} max={total} label="Matchups played" />

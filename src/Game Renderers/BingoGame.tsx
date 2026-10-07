@@ -46,6 +46,9 @@ function DealFallback() {
   );
 }
 
+// Opacity-only swap (no travel) for blocks that must not move.
+const FADE_ONLY = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
+
 function DealPhoto({ player }: { player: PlayerIndexEntry }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [player.person_id]);
@@ -277,16 +280,17 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
             <AnimatePresence mode="wait">
               {dealt ? (
                 <motion.div
-                  key={dealt.person_id}
+                  key="deal"
                   className="bng-deal-card"
-                  initial={reduce ? false : { opacity: 0, x: 24 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={reduce ? undefined : { opacity: 0, x: -24 }}
+                  initial={reduce ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reduce ? undefined : { opacity: 0 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <DealPhoto player={dealt} />
+                  {/* The card stays; only the photo and name swap per deal. */}
+                  <SwapText swapKey={dealt.person_id} variants={FADE_ONLY}><DealPhoto player={dealt} /></SwapText>
                   <div>
-                    <span className="bng-deal-name font-display">{dealt.full_name}</span>
+                    <span className="bng-deal-name font-display"><SwapText>{dealt.full_name}</SwapText></span>
                     <span className="bng-deal-hint">Tap the category this player fits</span>
                   </div>
                 </motion.div>

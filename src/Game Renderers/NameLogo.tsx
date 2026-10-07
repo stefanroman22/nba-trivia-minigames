@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
@@ -85,21 +86,15 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   return (
     <GameFrame>
       <GameFrame.Status
-        left={<GameFrame.Label>ROUND <span className="tnum">{currentIndex + 1}/{seriesList.length}</span></GameFrame.Label>}
+        left={<GameFrame.Label>ROUND <SwapText className="tnum">{`${currentIndex + 1}/${seriesList.length}`}</SwapText></GameFrame.Label>}
         right={<GameFrame.Score value={score} />}
       />
       <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seriesList.length} />
 
       <GameFrame.Board>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={reduce ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduce ? undefined : { opacity: 0, y: -10 }}
-          transition={{ duration: 0.25 }}
-          style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}
-        >
+        {/* Not keyed per round: prompt and logo box hold still, the logo image
+            below swaps on its own key (team) so only the changing crest fades. */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
           <GameFrame.Prompt eyebrow="GUESS THE TEAM" title="Which franchise is this?" />
 
           {/* Logo */}
@@ -147,8 +142,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
               <TeamCrest src={null} name={currentTeam?.full_name || ""} size={120} style={{ filter: showAnswer ? "grayscale(100%)" : "none", opacity: showAnswer ? 0.5 : 1 }} />
             )}
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
       </GameFrame.Board>
 
       {/* Autocomplete Input and Confirm Button */}

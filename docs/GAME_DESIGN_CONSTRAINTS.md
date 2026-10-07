@@ -524,7 +524,7 @@ Your root is a single column. Copy these values:
 | ↳ "SCORE" | `color:var(--muted)`, `weight:500`, `font-size:11px`, `letter-spacing:.5px` |
 | ↳ score value | `.tnum`, `color:var(--brand)`, `font-size:16px` |
 | **2. progress bar** | `<ProgressBar value max />` — see below |
-| **3. round body** | keyed `AnimatePresence mode="wait"` block, `flex column`, **`gap:18px`** |
+| **3. round body** | one persistent `flex column` block, **`gap:18px`** — never keyed per round (RULE 5.1) |
 
 There is no feedback row: feedback is an overlay that lives in the shell's `.feedback-slot`, outside
 the game column entirely — see §6 RULE 6.1.
@@ -549,9 +549,27 @@ root's `gap:20px`. That distance from the top of the game container is identical
   it has one, it goes in that exact slot with that exact styling. Never move it, never restyle the
   track/fill, never substitute a custom bar.
 
-### Round body (inside the keyed block)
-Transition: `initial {opacity:0, y:10}` → `animate {opacity:1, y:0}` → `exit {opacity:0, y:-10}`,
-`duration 0.25`. Skip `initial`/`exit` when `useReducedMotion()` is true.
+### RULE 5.1 — Between rounds, only the content that changed animates. **HARD RULE.**
+The round body is **mounted once and never re-keyed per round**. Do not wrap it (or any group of
+elements) in `<AnimatePresence key={round}>` / `key={currentIndex}` so the whole thing fades out and
+back in. Instead, every element is classified:
+
+| Element | What it does when the round changes |
+|---|---|
+| Constant (title/question like "Who won the series?", "VS", labels, the cards/boxes/buttons themselves, the input row) | **Nothing.** Stays mounted, in place, no fade. |
+| Changing text (eyebrow, team/player name, `ROUND 4/5`, sub-labels) | `<SwapText>` (UI-21). It only animates when its text actually differs, so two consecutive "Conference Semifinals" rounds do not fade that line. |
+| Changing media (crest, logo, headshot) | Swap **only the media** inside its fixed box: `<SwapText swapKey={id} variants={opacity-only}>`. The tile/box keeps its size and position; a background colour that depends on the content (team colour) eases with a CSS `transition`. Same item next round = no animation. |
+
+The swap key is the *content identity* (team name, player id), never the round index. Repeated
+cells are keyed by **position** (`key={i}`), not by their content, so the box itself never remounts.
+Reveal states (correct/wrong border, wins line) already follow this pattern and are unchanged.
+Reference: `PlayOffSeries.tsx`. Under reduced motion `SwapText` already drops the travel.
+
+**Acceptance test:** play two consecutive rounds that share the same eyebrow/title. Only the names
+and crests may visibly change; the title, eyebrow (when equal), cards and progress bar must not blink.
+
+### Round body spec
+Layout only — see RULE 5.1 for how it changes between rounds.
 
 | Element | Spec |
 |---|---|
