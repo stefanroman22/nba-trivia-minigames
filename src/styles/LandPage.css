@@ -453,6 +453,5 @@ html { scroll-behavior: smooth; }
 }
 
 /* ===== Auth form / login box ===== */
-.auth-form { max-width: 400px; margin: 1.5rem auto; display: flex; padding: 1rem; flex-direction: column; gap: 1rem; }
 .password-toggle-icon { position: absolute; right: 0; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--muted); }
 
