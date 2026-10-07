@@ -142,6 +142,10 @@
 .ttt-cell.is-theirs .ttt-cell-name {
   color: var(--muted);
 }
+/* Unsolved at time-up: the answer fades in muted, so it reads as "what you missed". */
+.ttt-cell.is-revealed .ttt-cell-name {
+  color: var(--muted);
+}
 .ttt-cell.is-stealable {
   border-style: dashed;
   border-color: var(--brand);

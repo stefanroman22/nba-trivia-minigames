@@ -65,6 +65,11 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
+// Opacity-only swap for the end-of-game answer reveal ("?" fades out, the name fades in).
+const REVEAL_FADE = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
+const REVEAL_START_MS = 500; // beat after the final board lands
+const REVEAL_STEP_MS = 380; // one cell at a time, row by row
+
 /** What one board cell shows and how it behaves (derived per mode by the caller). */
 interface TttBoardCell {
   /** Claimed player's name; absent/null while the cell is empty. */
@@ -72,6 +77,8 @@ interface TttBoardCell {
   mine?: boolean;
   theirs?: boolean;
   stealable?: boolean;
+  /** Solo time-up: the answer shown for a cell the player never solved. */
+  revealed?: boolean;
   disabled: boolean;
 }
 
@@ -104,7 +111,7 @@ function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animate
           </span>
           {[0, 1, 2].map((ci) => {
             const index = ri * 3 + ci;
-            const { name, mine, theirs, stealable, disabled } = cell(index);
+            const { name, mine, theirs, stealable, revealed, disabled } = cell(index);
             const selected = selectedCell === index;
             return (
               <motion.button
@@ -113,14 +120,19 @@ function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animate
                 role="gridcell"
                 className={`ttt-cell${mine ? " is-mine" : theirs ? " is-theirs" : ""}${
                   selected ? " is-selected" : ""
-                }${stealable ? " is-stealable" : ""}`}
+                }${stealable ? " is-stealable" : ""}${revealed ? " is-revealed" : ""}`}
                 disabled={disabled}
                 aria-label={`${r.label} and ${cols[ci].label}${name ? `: ${name}` : ""}`}
                 onClick={() => onSelect(selected ? null : index)}
                 animate={animateClaim ? { scale: name ? [1, 1.06, 1] : 1 } : undefined}
                 transition={{ duration: 0.3 }}
               >
-                <SwapText swapKey={name ? `p:${name}` : "empty"} className="ttt-cell-swap">
+                <SwapText
+                  swapKey={name ? `p:${name}` : "empty"}
+                  className="ttt-cell-swap"
+                  variants={revealed ? REVEAL_FADE : undefined}
+                  duration={revealed ? 0.35 : undefined}
+                >
                   {name ? (
                     <span className="ttt-cell-name">{name}</span>
                   ) : (
@@ -147,6 +159,8 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   const [stealMode, setStealMode] = useState(false);
   const [guess, setGuess] = useState("");
   const [finished, setFinished] = useState(false);
+  // Solo time-up: answers for unsolved cells, filled in one by one (cell -> player name).
+  const [revealed, setRevealed] = useState<Record<number, string>>({});
   const [showPopup, setShowPopup] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const [now, setNow] = useState(() => Date.now());
@@ -191,6 +205,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   useEffect(() => {
     clearTimers();
     setSolved({});
+    setRevealed({});
     setSelectedCell(null);
     setStealMode(false);
     setGuess("");
@@ -237,6 +252,25 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   const soloSecondsLeft = Math.max(0, Math.ceil((soloDeadlineRef.current - now) / 1000));
   const soloScore = Object.keys(solved).length * CELL_POINTS;
 
+  // Rule 7.2: only unearned answers are revealed. Row-major, one cell every REVEAL_STEP_MS;
+  // prefer a player not used elsewhere so the board doesn't repeat one name.
+  const revealRemaining = () => {
+    if (!question || !lookup) return;
+    const taken = new Set(usedIdsRef.current);
+    let k = 0;
+    for (let i = 0; i < 9; i++) {
+      if (solved[i]) continue;
+      const pool = question.valid[i] ?? [];
+      const id = pool.find((p) => !taken.has(p)) ?? pool[0];
+      if (id === undefined) continue;
+      taken.add(id);
+      const name = lookup.nameOf(id);
+      if (!name) continue;
+      later(() => setRevealed((prev) => ({ ...prev, [i]: name })), REVEAL_START_MS + k * REVEAL_STEP_MS);
+      k++;
+    }
+  };
+
   // Ends in place (Rule 7b, Career Path split): the final board stays on screen,
   // the score line takes the status row's right slot and Play again / Close game
   // take the input row's slot. Both fit their slot, so nothing resizes (Rule 6.2).
@@ -244,6 +278,8 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     if (endedRef.current) return;
     endedRef.current = true;
     setFinished(true);
+    setSelectedCell(null);
+    revealRemaining();
     sendGuessLog();
     flashPopup(text, color);
     onGameEnd?.(score, { inPlace: true });
@@ -513,7 +549,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
             ariaLabel="Tic-tac-toe criteria board"
             rows={question.rows}
             cols={question.cols}
-            cell={(i) => ({ name: solved[i], mine: !!solved[i], disabled: !!solved[i] || finished })}
+            cell={(i) => ({ name: solved[i] ?? revealed[i], mine: !!solved[i], revealed: finished && !solved[i], disabled: !!solved[i] || finished })}
             selectedCell={selectedCell}
             onSelect={setSelectedCell}
             animateClaim={!reduce}
