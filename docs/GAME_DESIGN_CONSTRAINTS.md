@@ -349,14 +349,24 @@ a status row, or any header at all:
 
 | Distance | Value | Owned by |
 |---|---|---|
-| Stage top → top of the game UI | `28.6px` (the `.stage-inner` clamp at ≥1100px) | `.stage-inner` padding |
+| Stage top → top of the game UI | **`30px`** (`--stage-pad`; relaxes to `clamp(14px, 2.6vw, 30px)` only below 820px so 390×844 still fits) | `.stage-inner` padding |
 | Game bottom → Exit button | `28px` (content) / `12px` (fill) | `.playing-wrap` gap |
-| Exit button → stage bottom | `28.6px` | `.stage-inner` padding |
+| Last component (or Exit button) → stage bottom | **`30px`** — the same `--stage-pad` | `.stage-inner` padding |
 
 A game with no progress bar starts its first element at the **same** offset as a game with one —
 the bar is *inside* the game column, so its presence changes nothing about the shell spacing.
 If your game's top offset differs from Series Winner's, you have a layout-mode bug (Rule 4.1),
 **not** a padding problem. Never "fix" it by adding margin/padding to the game root.
+
+### RULE 4.2.1 — Top space == bottom space == `--stage-pad`, in EVERY state. **HARD RULE.**
+Before the game (idle), while loading, while playing, and after the game (in-place end or result
+screen) the space above the first component and the space below the last component are both the
+stage padding (`30px`). Never compensate with margin/padding on a game's root, and never leave an
+invisible element holding space under the last component. In particular, once a game ends in
+place its shell `Close game` link is collapsed (height **and** its flex gap, `.exit-link.is-ended`),
+because the ScorePanel's own buttons are then the last component. Verify with the harness
+(measure first-child top and last-child bottom against `.stage-inner`) in every state, not only
+while playing.
 
 ### RULE 4.2a — Never render an empty slot; omit it
 

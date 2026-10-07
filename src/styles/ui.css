@@ -167,7 +167,9 @@
      Exit button ended up sitting on/outside the shell's edge. */
   align-items: safe center;
   justify-content: center;
-  --stage-pad: clamp(14px, 2.6vw, 30px);
+  /* One value for top, sides and bottom, in every state (idle, loading, playing, result):
+     30px on desktop; the clamp only relaxes it on narrow screens to fit 390x844. */
+  --stage-pad: 30px;
   padding: var(--stage-pad);
   min-height: clamp(280px, 44dvh, 430px);
   --stage-max: calc(100dvh - 188px);
@@ -186,7 +188,7 @@
 .stage-inner:has(.gf:not(.gf--fill)) { min-height: 0; max-height: none; }
 @media (max-width: 819px) {
   /* mobile adds the horizontal game-chip strip above the stage */
-  .stage-inner { --stage-max: calc(100dvh - 216px); }
+  .stage-inner { --stage-max: calc(100dvh - 216px); --stage-pad: clamp(14px, 2.6vw, 30px); }
 }
 /* The motion wrapper and playing container inherit the budget so a game's root
    can rely on height:100% / max-height:100% resolving to the viewport. */

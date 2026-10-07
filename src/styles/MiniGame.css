@@ -165,7 +165,8 @@
   /* Board/feed games fill the height and are tuned to fit at this tight gap —
      a larger one overflows the viewport. The feedback popup floats above Exit
      via .feedback-slot regardless of the gap. */
-  gap: 12px;
+  --pw-gap: 12px;
+  gap: var(--pw-gap);
 }
 /* Content-sized games (which hug their content and have viewport room to spare)
    use Fan Favorites' roomier submission → Exit distance. */
@@ -173,7 +174,7 @@
    <GameFrame fill>. There is deliberately NO hand-maintained id list here — that
    list existed before and silently drifted out of sync, which is how games ended
    up with 100–230px of dead space above Exit. One source of truth: the prop. */
-.playing-wrap:has(> .gf:not(.gf--fill)) { gap: 28px; }
+.playing-wrap:has(> .gf:not(.gf--fill)) { --pw-gap: 28px; }
 /* Shell-owned slot the game feedback popups portal into — floats centered in the
    gap above Exit, takes no layout space (absolute + pointer-events:none). */
 .feedback-slot {
@@ -200,14 +201,20 @@
    content-sized (is-content) games there's no slack, so it sits snug under the
    game (the 12px gap) exactly like Series Winner; on filling games it rests at
    the bottom of the filled area. Same Exit→bottom distance everywhere. */
-.playing-wrap .exit-link { flex: none; margin-top: auto; }
+.playing-wrap .exit-link { flex: none; margin-top: auto; height: 18px; line-height: 18px; }
 .exit-link { transition: opacity 0.2s ease; font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .exit-link:hover { color: var(--text); }
-/* In-place game over: the ScorePanel owns the only Close game. visibility (not
-   display) keeps the link's box, so the ended board doesn't re-center or jump,
-   and the element leaves the tab order and accessibility tree. */
+/* In-place game over: the ScorePanel owns the only Close game. visibility hides
+   it and it leaves the tab order and accessibility tree. */
 /* Fades out on durations.base (0.2s); visibility flips only after the fade. */
 .exit-link.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s 0.2s; }
+/* Ended in place: also collapse the link AND its flex gap, so the space below the last
+   component equals the space above the first (the stage padding) instead of keeping an
+   invisible link's box. Animated so the stage settles rather than jumps. */
+.playing-wrap .exit-link.is-ended {
+  height: 0; margin-top: calc(-1 * var(--pw-gap)); padding: 0; overflow: hidden;
+  transition: opacity 0.2s ease, visibility 0s 0.2s, height 0.3s var(--ease-out), margin-top 0.3s var(--ease-out);
+}
 
 /* ===== Aside ===== */
 .game-aside { display: flex; flex-direction: column; gap: 14px; align-self: start; }
