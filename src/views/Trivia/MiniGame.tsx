@@ -18,6 +18,7 @@ import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
 import { apiFetch } from '../../utils/Api';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
+import SwapText from '../../components/motion/SwapText';
 import { useWordleCardState } from '../../hooks/useWordleCardState';
 import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
@@ -346,12 +347,16 @@ function MiniGame() {
                     navigate(g.urlPath, { state: { id: g.id } });
                   }}
                   aria-current={g.id === game?.id ? "true" : undefined}
-                  className={`rail-item${g.id === game?.id ? " is-active" : ""}`}
+                  className={`rail-item${g.id === game?.id ? " is-active" : ""}${g.id === "wordle" && wordleCard.locked ? " is-played" : ""}`}
                 >
                   <span className="rail-thumb" style={{ backgroundImage: g.backgroundImage }} />
                   <span className="rail-meta">
                     <span className="rail-name">{g.name}</span>
-                    <span className="rail-sub">{g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : g.id === "coming-soon" ? "soon" : "opinion vote"}</span>
+                    <span className="rail-sub">
+                      {g.id === "wordle" && wordleCard.label !== null
+                        ? <SwapText swapKey="locked">{wordleCard.label}</SwapText>
+                        : g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : g.id === "coming-soon" ? "soon" : "opinion vote"}
+                    </span>
                   </span>
                 </button>
               ))}

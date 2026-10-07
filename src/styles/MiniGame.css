@@ -91,7 +91,9 @@
 .rail-thumb { width: 40px; height: 40px; border-radius: 9px; background-size: cover; background-position: center; flex: none; }
 .rail-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .rail-name { font-weight: 700; font-size: 13.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.rail-sub { font-size: 11px; color: var(--muted); }
+.rail-sub { font-size: 11px; color: var(--muted); white-space: nowrap; line-height: 16px; }
+/* Played Wordle: same grey, desaturated photo as the landing tile. */
+.rail-item.is-played .rail-thumb { filter: grayscale(1) brightness(0.6); }
 
 /* ===== Stage column ===== */
 .stage-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
