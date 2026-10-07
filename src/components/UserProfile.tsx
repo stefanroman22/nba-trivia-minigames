@@ -135,6 +135,13 @@ function UserProfile() {
       if (response.ok && typeof data?.user?.profile_photo === "string") {
         // The server's normalized photo, not a local preview — what /me/ will return after reload.
         dispatch(updateProfilePhoto(data.user.profile_photo));
+      } else if (response.status === 403 && isBanPayload(data)) {
+        // apiFetch already reported the ban (same as the username path).
+        return;
+      } else if (data?.code === "photo_rejected") {
+        showErrorAlert(data.error, "Photo not allowed");
+      } else if (data?.code === "moderation_unavailable") {
+        showErrorAlert(data.error, "Try again later");
       } else {
         showErrorAlert(data?.error || "Photo upload failed", "Upload Error");
       }

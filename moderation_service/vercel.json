@@ -1,0 +1,10 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["fra1"],
+  "functions": {
+    "api/classify.py": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}

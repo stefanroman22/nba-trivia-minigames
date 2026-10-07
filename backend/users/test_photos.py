@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
 
@@ -128,6 +128,8 @@ class NormalizePhotoTests(TestCase):
         self.assertTrue(profile_photo_data_url(memoryview(b"\xff\xd8")).startswith("data:image/jpeg;base64,"))
 
 
+# Pin the local-dev moderation skip path instead of inheriting it from backend/.env (DATABASE_URL).
+@override_settings(MODERATION_REQUIRED=False, IMAGE_MODERATION_URL=None)
 class UpdateProfilePhotoTests(TestCase):
     def _upload(self, access, name, data, content_type):
         return self.client.post(

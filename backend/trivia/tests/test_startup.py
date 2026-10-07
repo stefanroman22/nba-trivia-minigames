@@ -11,7 +11,7 @@ from django.urls import reverse
 # `requests` is deliberately not listed: rest_framework/compat.py does `import requests` whenever
 # the package is installed (it must stay installed: google_login and google-auth's transport use
 # it), so DRF loads it at startup no matter what users/views.py does. ~51 ms on Linux.
-HEAVY = ("pandas", "numpy", "nba_api", "PIL", "google")
+HEAVY = ("pandas", "numpy", "nba_api", "PIL", "google", "onnxruntime")
 
 # Runs in a fresh interpreter: this test process has already imported PIL and nba_api through
 # sibling test modules, so inspecting its own sys.modules would prove nothing.

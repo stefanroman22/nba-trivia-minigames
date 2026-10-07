@@ -57,6 +57,7 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 |---|---|---|
 | Frontend + game content | **Vercel** (serves the app *and* the game-data JSON at `/data/` from its CDN) | repo root `src/` |
 | Django API | **Vercel** (serverless, Django auto-detected) | `backend/` |
+| Photo moderation | **Vercel** (separate Python project `nba-minigames-moderation`, called server-to-server by Django) | `moderation_service/` |
 | Multiplayer (Socket.IO) | small always-on Node host (Railway/Render/Fly — **not** Vercel) | `multiplayer_server/` |
 | Data refresh | **Your home machine** (residential IP) | `backend/` management commands |
 
@@ -130,6 +131,9 @@ DATABASE_URL=postgresql://postgres.<ref>:<password>@aws-1-eu-central-1.pooler.su
 REDIS_URL=rediss://...                                       # Upstash (see "Redis (Upstash) — setup" below). Unset -> Postgres leaderboard AND DatabaseCache for rate limiting + friends cache
 CLIENT_ID=...            # Google OAuth (existing)
 CLIENT_SECRET=...
+IMAGE_MODERATION_URL=https://<moderation-project>.vercel.app/api/classify   # photo moderation, see "Moderation service" below; unset in production = uploads answer 503
+MODERATION_SHARED_SECRET=<same random value as the moderation project>
+# optional: MODERATION_REQUIRED (default true when DATABASE_URL is set), PHOTO_BLOCK_THRESHOLD (0.85), PHOTO_REVIEW_THRESHOLD (0.50)
 ```
 The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the old questions pipeline only (`maintain_questions`, `upload_dataset`: hidden games + the fallback snapshot) — not needed on Vercel, nor by `publish_game_data_v3`.
 `DATA_PUBLIC_BASE` (the static game-data host's public URL) is read only by `manage.py publish_game_data_v3`, which runs in the manual `publish-game-data.yml` workflow (repo variable `vars.DATA_PUBLIC_BASE`) — not needed on Vercel either.
@@ -243,6 +247,79 @@ is near.
 
 Rollback = republish an older manifest from `manifest-history.json`; never `vercel rollback` the
 data project (it pins the domain, see above).
+
+## Moderation service (profile photos)
+
+Every profile photo upload is classified before it is saved. The classifier is a small open-source
+ONNX model (`OwenElliott/image-safety-classifier-xs`, MIT, classes NSFW / NSFL / SFW) that runs in its
+own tiny Vercel Python project, `nba-minigames-moderation` (`moderation_service/`), not inside the
+main Django function: `backend/requirements.txt` is unchanged and `onnxruntime` never loads at Django
+startup (`trivia/tests/test_startup.py` guards it). Django calls `POST /api/classify` with the 256x256
+JPEG from `normalize_profile_photo` (`users/photo_moderation.py`, 4 s timeout, one retry). Design:
+`docs/team/designs/2026-10-07-photo-moderation-with-a-small.md`; why: `docs/team/DECISIONS.md`.
+
+Policy: `score = max(nsfw, nsfl)`. At or above `PHOTO_BLOCK_THRESHOLD` the upload is refused (422
+`photo_rejected`), nothing is saved, and it counts as a strike through `users.strikes.record_strike`
+(the 3rd bans, 403 `account_banned`). Between `PHOTO_REVIEW_THRESHOLD` and block it is allowed and
+logged as a `ModerationEvent` (`kind=photo`, `tier=mild`, `reason=uncertain`) for owner review. If the
+service is down, times out or is misconfigured the upload answers 503 `moderation_unavailable` and
+nothing is saved (fail closed). Only when `MODERATION_REQUIRED` is false (default: false without
+`DATABASE_URL`, i.e. local sqlite) and `IMAGE_MODERATION_URL` is unset is the check skipped, with a
+warning in the log.
+
+### Environment variables
+
+| Variable | Where | Purpose |
+|---|---|---|
+| `MODERATION_SHARED_SECRET` | **both** Vercel projects (`backend` and `nba-minigames-moderation`), same value | sent by Django as `X-Moderation-Key`, compared in constant time; unset on the service = every request 401 |
+| `IMAGE_MODERATION_URL` | `backend` | full URL of the service's `/api/classify` |
+| `MODERATION_REQUIRED` | `backend` (optional) | default true when `DATABASE_URL` is set; true + no URL = 503 on every upload |
+| `PHOTO_BLOCK_THRESHOLD` | `backend` (optional) | default `0.85` (placeholder) |
+| `PHOTO_REVIEW_THRESHOLD` | `backend` (optional) | default `0.50` (placeholder) |
+| `MODERATION_MODEL_PATH` | moderation project (optional) | default `model/image-safety-classifier-xs.onnx` |
+| `MODERATION_MODEL_SHA256` | moderation project (optional) | overrides `model/model.sha256` |
+| `MODERATION_CLASS_ORDER` | moderation project (optional) | default `nsfw,nsfl,sfw` |
+| `MODERATION_SECOND_MODEL_PATH` | moderation project (optional) | second-opinion hook, read and logged only, never loaded |
+
+GitHub repository secrets for the deploy workflow: `VERCEL_TOKEN` and `VERCEL_ORG_ID` (reused),
+`VERCEL_MODERATION_PROJECT_ID` and `MODERATION_SHARED_SECRET` (new; the smoke test sends the shared secret
+as `X-Moderation-Key`, so it must also be a repository secret, same value as on the two Vercel projects).
+The workflow is manual only (`workflow_dispatch`, boolean input `deploy`; unticked = evaluation-only run).
+
+### Owner steps (the pipeline cannot do these)
+
+0. **Pin the model checksum.** The model file is not committed. Run Actions -> **Deploy moderation
+   service** once with `deploy` unticked: it downloads the model, prints its SHA-256 and fails because
+   `moderation_service/model/model.sha256` is `UNPINNED`. Commit the printed hash there (an unpinned
+   model can never deploy or load) and confirm the MIT licence text in `moderation_service/model/README.md`.
+1. Create the project (free Hobby): `vercel project add nba-minigames-moderation --scope stefanromanpers-5412s-projects`.
+2. Add the GitHub secrets `VERCEL_MODERATION_PROJECT_ID` and `MODERATION_SHARED_SECRET` (the same random value as in step 3).
+3. Set `MODERATION_SHARED_SECRET` (the same random value) on the moderation project and on `backend`,
+   and `IMAGE_MODERATION_URL` on `backend`.
+4. Run the workflow with `deploy` ticked (it ends with a smoke test), then run the private recall check
+   locally and confirm the thresholds: put real benign photos in `moderation_service/eval/private/benign/`
+   and your own NSFW samples in `moderation_service/eval/private/nsfw/` (gitignored, never commit explicit
+   imagery), then `python moderation_service/eval/run_eval.py --dir moderation_service/eval/private`.
+   Thresholds are env-tunable on `backend` without a redeploy of the service.
+
+The committed benign set (`moderation_service/eval/benign/`, 60 generated images) is synthetic: it catches
+gross failures (wrong class order, broken preprocessing) but is not production accuracy. CI runs only the
+false-block check on it (`--max-false-block 0`).
+
+### Measured numbers
+
+Thresholds `0.85` (block) and `0.50` (review) are **placeholders** until owner step 4. The model could not
+be fetched from the build sandbox, so nothing below is measured yet; the first workflow run prints these in
+its job summary.
+
+| Measurement | Value |
+|---|---|
+| False-block rate on the committed benign set at 0.50 / 0.70 / 0.85 / 0.95 | pending first workflow run |
+| Precision / recall on the owner's private NSFW set | pending owner step 4 |
+| Classifier latency p50 / p95, cold | pending first workflow run |
+| Classifier latency p50 / p95, warm | pending first workflow run |
+| Moderation service bundle size | pending first workflow run |
+| Main Django bundle size before / after | `backend/requirements.txt` unchanged, so no change expected |
 
 ## Recommended activation order
 
