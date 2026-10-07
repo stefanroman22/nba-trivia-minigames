@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
@@ -23,7 +23,6 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   const [score, setScore] = useState(0);
   const [allPlayers, setAllPlayers] = useState([]);
   const [playersError, setPlayersError] = useState(false);
-  const reduce = useReducedMotion();
 
   const currentSeason = seasonsList[currentIndex];
 
@@ -84,27 +83,17 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   return (
     <GameFrame>
       <GameFrame.Status
-        left={<GameFrame.Label>ROUND <span className="tnum">{currentIndex + 1}/{seasonsList.length}</span></GameFrame.Label>}
+        left={<GameFrame.Label>ROUND <SwapText className="tnum">{`${currentIndex + 1}/${seasonsList.length}`}</SwapText></GameFrame.Label>}
         right={<GameFrame.Score value={score} />}
       />
       <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seasonsList.length} />
 
       <GameFrame.Board>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentIndex}
-          initial={reduce ? false : { opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={reduce ? undefined : { opacity: 0, y: -10 }}
-          transition={{ duration: 0.25 }}
-          style={{ width: "100%" }}
-        >
-          <GameFrame.Prompt
-            eyebrow={<span className="tnum">{currentSeason.season}</span>}
-            title="Who won MVP?"
-          />
-        </motion.div>
-      </AnimatePresence>
+      {/* Title is constant; only the season swaps between rounds. */}
+      <GameFrame.Prompt
+        eyebrow={<SwapText className="tnum">{currentSeason.season}</SwapText>}
+        title="Who won MVP?"
+      />
       </GameFrame.Board>
 
       {/* Autocomplete Input and Confirm Button */}
