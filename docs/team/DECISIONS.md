@@ -1122,3 +1122,23 @@ moderation plugs into `users.strikes.record_strike(user, "photo")` next.
 Context: P1 frontend card, Difficulty field `standard`; spec describes an `idle | submitting | error | success` state machine but every target behavior (A-E) is exact, names files and tokens, and its own "Model routing" text asks for a Fable design round ("Hard").
 Weighed: (a) `hard` + Fable design round as the spec text asks — rejected: the Difficulty field wins, one area (frontend/ui, `LogInSignUp.tsx`, `Modal.tsx`/`Modal.css`, `Alerts.tsx` call sites), no protocol/security/data work, token handling explicitly untouched, shared motion tokens/variants already exist; (b) `standard`, no design round — chosen (same call as the 2026-10-03 LeContexto card). Engine: `opus` because motion is always opus; planner tags Alerts clean-up steps `[sonnet]`. Risk `low`: presentation and result-handling UI only, no token/auth logic modified.
 Consequences: if the single-height-animation mechanism proves unreliable on the bottom sheet, the fix loop escalates rather than reopening this call.
+
+## 2026-10-07 — Motion audit: UI-22 as a new rule, and which missing findings ship now
+Context: P2 hard card "Motion audit: every text and screen change smooth" (design
+`designs/2026-10-07-motion-audit-every-text-and.md`, which is also the card's audit table). The four
+prerequisite motion cards are on dev; every "already-known candidate" in the card is verified fixed by them.
+Weighed (rule): (a) widen UI-21's text to cover screens and conditional blocks — rejected: UI-21 is cited by
+`SwapText.tsx` and the Friends card as the text rule, and rewriting it would blur a rule that already has
+❌/✅ examples; (b) add UI-22 "every visible screen or conditional-block change enters and exits through the
+shared motion system; instant feedback is exempt" — chosen; UI-20/21 ids and text stay stable.
+Weighed (scope): 16 `missing` findings, ~15 minutes of opus build. (a) fix all 16 — rejected: three are inline
+error lines (GuessMvps, FriendsPanel, FriendPlay) that deserve one consistent `errorIn` treatment, not three
+rushed wrappers, and the WhoAreYa hard-mode photo toggle is at the tail of the impact order; (b) fix 12 missing
++ 1 one-line minor, ordered by impact with `GameFrame.Score` → `AnimatedNumber` first (one change covers every
+renderer's live score), defer 4 with written reasons — chosen. WhoWouldWin's summary frame was downgraded from
+major to minor: its board already has an entrance, and a true cross-fade needs one `GameFrame` with a keyed
+Board (RULE 0 forbids a motion wrapper around the frame), a refactor beyond this card.
+Consequences: literal durations/easings in shipped shells (Stage, EndSequence, Modal, GameTile, UserProfile, the
+three local multiplayer `swap` objects) are listed as minor and left for a token sweep; retuning them is an
+owner feel decision. The planner ran the six area reviews from the motion-reviewer checklist itself because the
+`Agent` tool was not available in the planning session; the review-gate motion-reviewer pass is the independent check.
