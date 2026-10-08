@@ -25,6 +25,14 @@ MAX_SESSION_AGE = timedelta(days=90)
 AUTH_TIME_CLAIM = "auth_time"
 
 
+def revoke_sessions(user):
+    """Blacklist every outstanding refresh token so existing sessions can't be refreshed."""
+    from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+    for outstanding in OutstandingToken.objects.filter(user=user):
+        BlacklistedToken.objects.get_or_create(token=outstanding)
+
+
 def issue_session_tokens(user):
     """A fresh refresh/access pair stamped with the session's start time."""
     refresh = RefreshToken.for_user(user)

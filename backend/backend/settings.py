@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -26,10 +27,11 @@ from .env_utils import env_bool, env_list, env_list_merge
 
 # SECURITY WARNING: keep the secret key used in production secret!
 # Defaults to the insecure dev key for local use; production sets DJANGO_SECRET_KEY.
-SECRET_KEY = os.environ.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-pw_*&+3^s%h!tcq=@l6mob&2g5nljbh(ck=ijudj)s54e^!)-s",
-)
+_DEV_SECRET_KEY = "django-insecure-pw_*&+3^s%h!tcq=@l6mob&2g5nljbh(ck=ijudj)s54e^!)-s"
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", _DEV_SECRET_KEY)
+if SECRET_KEY == _DEV_SECRET_KEY and os.environ.get("VERCEL_ENV") == "production":
+    # The committed dev key signs every login token and salts the IP hashes: never serve production with it.
+    raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set for production deployments.")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DJANGO_DEBUG", True)
@@ -178,6 +180,7 @@ REST_FRAMEWORK = {
         "friend-action": "60/hour",
         # Live username check while typing (debounced client-side); never strikes.
         "name-check": "120/hour",
+        "account-data": "10/hour",
     },
 }
 
@@ -340,7 +343,7 @@ if not DEBUG:
     CSRF_COOKIE_SECURE = True
     SECURE_SSL_REDIRECT = True
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
+    SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 

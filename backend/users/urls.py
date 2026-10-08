@@ -1,5 +1,17 @@
 from django.urls import path
-from .views import login_view, get_current_user, update_profile, logout_view, signup_view, google_login, get_users, check_name
+from .views import (
+    login_view,
+    get_current_user,
+    update_profile,
+    logout_view,
+    signup_view,
+    google_login,
+    get_users,
+    export_my_data,
+    delete_my_account,
+    remove_my_photo,
+    check_name,
+)
 from .friends import (
     search_users,
     search_friends,
@@ -20,6 +32,9 @@ urlpatterns = [
     path('signup/', signup_view, name='signup'),
     path('me/', get_current_user, name='get_user'),
     path('update-profile/', update_profile, name='update'),
+    path('account/export/', export_my_data, name='account_export'),
+    path('account/delete/', delete_my_account, name='account_delete'),
+    path('account/remove-photo/', remove_my_photo, name='account_remove_photo'),
     path('logout/', logout_view, name='logout'),
     path('login/google/', google_login, name='google_login'),
     path('get-users/', get_users, name='get-users'),

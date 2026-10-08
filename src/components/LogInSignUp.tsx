@@ -8,6 +8,8 @@ import { nameNoteSlot, useNameCheck } from "../utils/nameCheck";
 import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
 import { isInAppBrowser } from "../utils/inAppBrowser";
+import ConsentFields from "./ConsentFields";
+import { EMPTY_CONSENT, ageBlockActive, consentComplete, consentPayload, startAgeBlock, type ConsentValue } from "../utils/consent";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -30,6 +32,8 @@ type AuthField = "identifier" | "email" | "username" | "password" | "confirm";
 interface AuthError { id: number; message: string; field?: AuthField }
 
 const NETWORK_ERROR = "Unable to contact the server. Please try again later.";
+const CONSENT_NEEDED = "Please enter your birth month and year and agree to the Terms and Privacy Policy.";
+const AGE_BLOCKED = "You can't create an account right now.";
 /** How long the success pane holds before the modal leaves (after the form's fade-out). The sheet
  *  (mobile) and reduced-motion holds are shorter; a tap skips once SKIP_AFTER_MS has passed. */
 const SUCCESS_HOLD_MS = 800;
@@ -64,6 +68,9 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMatchError, setPasswordMatchError] = useState("");
   const [phase, setPhase] = useState<AuthPhase>("idle");
+  // Terms + age answers, and the signed token of a Google identity waiting for them (a new account).
+  const [consent, setConsent] = useState<ConsentValue>(EMPTY_CONSENT);
+  const [googleToken, setGoogleToken] = useState<string | null>(null);
   // `id` keys the alert and the field shake so a repeat of the same message replays both.
   const [error, setError] = useState<AuthError | null>(null);
   const [welcome, setWelcome] = useState<{ name: string; isNew: boolean; height: number } | null>(null);
@@ -281,16 +288,26 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       return;
     }
 
+    if (!consentComplete(consent)) {
+      fail(CONSENT_NEEDED);
+      return;
+    }
+    if (ageBlockActive()) {
+      fail(AGE_BLOCKED);
+      return;
+    }
+
     try {
       const response = await fetch(`${BACKEND_URL}/signup/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword }),
+        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword, ...consentPayload(consent) }),
       });
       const data = await response.json();
       if (handledBan(response, data)) return;
 
       if (!response.ok || data.error) {
+        if (data.code === "age_requirement") startAgeBlock();
         const message = data.error || "Signup failed";
         fail(message, fieldForMessage(message));
       } else {
@@ -305,33 +322,62 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
     }
   };
 
+  /** POST a Google code (or, for a new account, the consent token) and act on the answer. */
+  const sendGoogle = async (body: Record<string, unknown>) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/login/google/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await response.json();
+      if (handledBan(response, data)) return;
+
+      // A brand-new Google account: Google verified them, now we need the age + Terms answers.
+      if (response.status === 428 && data.consent_token) {
+        setGoogleToken(data.consent_token);
+        submittingRef.current = false;
+        setPhase("idle");
+        return;
+      }
+
+      if (!response.ok || data.error) {
+        if (data.code === "age_requirement") startAgeBlock();
+        if (body.consent_token && !data.code) setGoogleToken(null); // expired or tampered: start over
+        fail(data.error || "Google Authentication Failed");
+        return;
+      }
+
+      setGoogleToken(null);
+      localStorage.setItem("accessToken", data.access);
+      localStorage.setItem("refreshToken", data.refresh);
+      dispatch(login(data.user));
+      succeed(data.user.username, data.new_account === true);
+    } catch (err) {
+      console.error("Unexpected error during Google login:", err);
+      fail(NETWORK_ERROR);
+    }
+  };
+
+  const completeGoogleSignup = async () => {
+    if (!googleToken || !begin()) return;
+    if (!consentComplete(consent)) {
+      fail(CONSENT_NEEDED);
+      return;
+    }
+    if (ageBlockActive()) {
+      fail(AGE_BLOCKED);
+      return;
+    }
+    await sendGoogle({ consent_token: googleToken, ...consentPayload(consent) });
+  };
+
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSuccess: async (codeResponse: { code: any; }) => {
       if (!begin()) return;
-      try {
-        const response = await fetch(`${BACKEND_URL}/login/google/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code: codeResponse.code }),
-        });
-        const data = await response.json();
-        if (handledBan(response, data)) return;
-
-        if (!response.ok || data.error) {
-          fail(data.error || "Google Authentication Failed");
-          return;
-        }
-
-        localStorage.setItem("accessToken", data.access);
-        localStorage.setItem("refreshToken", data.refresh);
-        dispatch(login(data.user));
-        succeed(data.user.username, data.new_account === true);
-      } catch (err) {
-        console.error("Unexpected error during Google login:", err);
-        fail(NETWORK_ERROR);
-      }
+      await sendGoogle({ code: codeResponse.code, ...(consentComplete(consent) ? consentPayload(consent) : {}) });
     },
     onError: () => {
       console.error("Google login failed");
@@ -510,6 +556,12 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
                       {passwordMatchError && <p className="auth-error" style={{ marginTop: 8 }}>{passwordMatchError}</p>}
                     </motion.div>
                   )}
+
+                  {isSignup && (
+                    <motion.div key="signup-consent" variants={field} initial="hidden" animate="visible" exit="exit">
+                      <ConsentFields value={consent} onChange={setConsent} disabled={busy} />
+                    </motion.div>
+                  )}
                 </AnimatePresence>
 
                 {/* Everything below the field group moves as ONE block on a mode switch: its y is
@@ -557,6 +609,21 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
                     <FontAwesomeIcon icon={faGoogle} />
                     Continue with Google
                   </button>
+
+                  {googleToken ? (
+                    <div className="auth-consent-panel">
+                      <p className="auth-note">Looks like you&apos;re new here. One last step to create your account.</p>
+                      {!isSignup && <ConsentFields value={consent} onChange={setConsent} disabled={busy} />}
+                      <button type="button" className="modal-primary-btn" onClick={completeGoogleSignup} disabled={busy}>
+                        Create my account
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="auth-note">
+                      By continuing with Google you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and{" "}
+                      <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.
+                    </p>
+                  )}
 
                   <p className="auth-note">
                     {isSignup ? "Already have an account? " : "Don't have an account? "}
