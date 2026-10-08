@@ -9,13 +9,15 @@ export const LEGAL = {
   /** Where privacy requests, takedown notices, ban appeals and everything else legal goes. */
   contactEmail: "stefanromanpers@gmail.com",
   /** Full legal name of the person or company running the service. */
-  operatorName: "",
+  operatorName: "Roman Ioan-Stefan",
   /** Postal address where the operator can be reached. */
   operatorAddress: "",
   /** Country whose law governs the Terms, e.g. "Romania". */
   country: "",
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
-  version: "2026-10-07",
-  updated: "7 October 2026",
-  minimumAge: 16,
+  version: "2026-10-08",
+  updated: "8 October 2026",
+  minimumAge: 13,
+  /** Accounts younger than this cannot upload a public profile photo. Equals PHOTO_MIN_AGE in backend/users/consent.py. */
+  photoMinimumAge: 16,
 } as const;

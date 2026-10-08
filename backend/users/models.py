@@ -73,6 +73,9 @@ class CustomUser(AbstractUser):
     terms_accepted_at = models.DateTimeField(null=True, blank=True, editable=False)
     terms_version = models.CharField(max_length=20, blank=True, default="", editable=False)
     age_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
+    # "teen" (13-15) or "adult" (16+), set at sign-up from the age check; "" on older accounts. Teens
+    # cannot upload a public profile photo. The birth date itself is never stored.
+    age_group = models.CharField(max_length=5, blank=True, default="", editable=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

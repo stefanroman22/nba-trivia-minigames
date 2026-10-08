@@ -9,8 +9,8 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 |---|---|---|---|---|---|---|---|
 | 1 | Email, display name, public ID, password hash or Google `sub` | Account holders | Account and sign-in | Contract (Art 6(1)(b)) | Operator; name and ID public | Until deletion | Supabase Postgres (`users_customuser`) |
 | 2 | Points, rank | Account holders | Leaderboards, matchmaking | Contract | Public | Until deletion | Postgres; Redis ZSET if provisioned (it is not today) |
-| 3 | Consent record (terms version, accepted-at, age-confirmed-at) | Account holders | Prove valid sign-up | Legitimate interests; legal obligation | Operator | Until deletion | Postgres |
-| 4 | Profile photo (256x256 JPEG) | Account holders (optional) | Show to other players | Consent (Art 6(1)(a)), removable | Public | Until removed or deletion | Postgres (`profile_photo_data`) |
+| 3 | Consent record (terms version, accepted-at, age-confirmed-at, coarse age group teen/adult; no birth date) | Account holders | Prove valid sign-up | Legitimate interests; legal obligation | Operator | Until deletion | Postgres |
+| 4 | Profile photo (256x256 JPEG) | Account holders aged 16+ (optional) | Show to other players | Consent (Art 6(1)(a)), removable | Public | Until removed or deletion | Postgres (`profile_photo_data`) |
 | 5 | Friends, requests, blocks | Account holders | Friends features | Contract | The parties; operator | Until removed or deletion | Postgres |
 | 6 | Game sessions and per-guess answers | Account holders; guests (answers only, unlinked) | Player record, statistics, fair play | Contract (own record); legitimate interests (statistics) | Operator | Sessions 24 months; answers 12 months | Postgres (`GameSession`, `GuessLog`) |
 | 7 | Wordle play gate (user or random device ID, date) | Account holders, guests | One Wordle per day | Legitimate interests | Operator | Pruned daily after the day | Postgres (`WordlePlay`) |
@@ -46,7 +46,7 @@ No special-category data is collected on purpose. No ads, analytics, tracking pi
 | Trigger | Present? | Note |
 |---|---|---|
 | Large-scale processing of personal data | Possibly, as the user base grows | Public display data of many users |
-| Children's data | Mitigated: accounts 16+, age check, no birth date stored; teens still reachable by guests | Residual: minors lying about age |
+| Children's data | Mitigated: accounts 13+, age check, no birth date stored, no photo or chat for under-16s | Residual: minors lying about age; 13-15 year-olds on a public leaderboard |
 | User-generated photos shown publicly | Yes | Automated classifier, fail-closed, removable |
 | Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request |
 | Special categories, location, biometric | No | Photos are not used for identification |
