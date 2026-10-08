@@ -82,3 +82,6 @@ docs/games/PLAYERS_DATA.md
 # team pipeline v2: shared venv symlink/junction inside task worktrees
 backend/.venv
 backend/.venv/
+
+# Uploaded/profile media is user or third-party content, never source (audit C2).
+backend/media/

@@ -4,14 +4,15 @@ Nothing in this repository makes the service "impossible to sue" or "impossible 
 product to a documented, standards-based baseline. These are the things that still need a decision, money, or a
 lawyer. Ordered by how much they matter for launch at scale.
 
-## A. Must be filled in before promoting to production (blocking)
+## A. Blocking items
+
+Done: operator name, address and country are set; the Google consent screen is published. Remaining:
 
 | Item | Why | Where |
 |---|---|---|
-| **Operator identity**: name is set (Roman Ioan-Stefan); **postal address and country still missing** | EU e-Commerce Directive Art 5, DSA Arts 11-12, GDPR Art 13(1)(a). Anonymous operators get demand letters and complaints. A company (even a one-person one) keeps a personal home address off a public page. | `src/configurations/legal.ts` (`npm run check:legal` warns until set) |
-| **A dedicated privacy/legal mailbox** (for example privacy@swishquest.com) instead of the personal Gmail (kept for now by choice) | Public and permanent; a role address can be handed over or filtered. Cloudflare Email Routing is free once the domain is on Cloudflare. | `contactEmail` in `legal.ts` |
-| **Google consent screen**: Publishing status "In production"; branding with a homepage and privacy URL **on a domain verified in Google Search Console**; authorized JavaScript origins | Without it only test users can sign in; Google can disable a client whose homepage/privacy policy are not on a verified domain. | Google Cloud Console → Google Auth Platform |
-| **Governing-law country** | Terms section 14 | `country` in `legal.ts` |
+| **The public repository's history contains personal data** (a database snapshot with two users' emails, one a third party, plus the operator's password hash; and tracked personal photos). Choose: rewrite history and force-push, make the repo private, or both; ask GitHub to purge cached views; assess breach notification with counsel; the operator should rotate their password if reused | Audit finding C2: an ongoing personal-data exposure | See AUDIT-2026-10-08.md |
+| **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
+| **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice) | Public and permanent | `contactEmail` in `legal.ts` |
 
 ## B. Decisions that are yours
 
@@ -47,14 +48,14 @@ lawyer. Ordered by how much they matter for launch at scale.
 
 | Item | Risk it addresses |
 |---|---|
-| Existing accounts have no consent record. Show the Terms/Privacy on next sign-in and store acceptance (`terms_version`) | Pre-existing users are not covered by a recorded agreement |
-| Notice mechanism for changes to Terms/Privacy (site banner, ideally email) | Terms section 12 promises notice |
+| Existing accounts (created before the consent step) have no consent record and no age check; also needed for the 14-day change notice. Show the Terms and an age prompt on next sign-in and store acceptance | Pre-existing users are not covered by a recorded agreement |
+| Notice mechanism for changes to Terms/Privacy (home-page banner for 14 days is promised in the text; today it is a manual operator duty, see RUNBOOKS F) | Terms section 12 |
 | In-product "Report" button for players, names, photos | DSA notice-and-action is email-only today |
 | Email sending (verification, password reset, notices) | No password reset, no email change, no email verification today; also enables inactive-account warnings |
 | "Log out everywhere" and change-password | Account security basics |
 | Content-Security-Policy, and moving tokens to HttpOnly cookies | localStorage tokens are readable by any XSS; needs a tested allow-list (Google sign-in, NBA CDN) |
 | Admin: audit log of reads of feedback and raw game data, 2FA or IP allow-list, drop raw `user_id` from source-row views | Art 32 access accountability |
-| Supabase region: confirm it is in the EU, then state it in the Privacy Policy | Transfers |
+| Deploy and pin the photo-check service (`moderation_service`, set `IMAGE_MODERATION_URL`), then switch photo upload on and update the policy | Photo upload returns 503 in production today |
 | Block Russia and sanctioned regions at the edge (Vercel firewall) | Terms/Privacy say the service is not available there but nothing enforces it |
 | Remove `.sqlite3` data and `backend/media/profiles/*` personal-looking files, and `local deployment/ADMIN_CREDENTIALS.md`, from the OneDrive-synced tree | Personal data and a credential in a cloud-synced folder |
 | `StartingFive.tsx` has an unused `RevealedFace` component and a placeholder avatar URL (`i.pravatar.cc`) that would leak a player name if ever rendered | Dead today; delete it rather than ever wiring it in |

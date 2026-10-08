@@ -1,6 +1,6 @@
 name: Prune personal data
 # Enforces the retention periods the Privacy Policy states (backend/users/retention.py,
-# docs/legal/RETENTION.md). Deletes only rows past their period; safe to re-run.
+# docs/legal/RECORD_OF_PROCESSING.md). Deletes only rows past their period; safe to re-run.
 on:
   schedule:
     - cron: "17 3 * * 0"   # Sundays 03:17 UTC

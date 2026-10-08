@@ -1,0 +1,32 @@
+name: Rename email-derived display names
+# One-off remediation (docs/legal/AUDIT-2026-10-08.md, finding C1): Google sign-ups made before 2026-10-08 got a
+# public display name copied from the email address. Dry run by default; set apply=true to rename them.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply the renames (false = dry run, lists who would change)"
+        type: boolean
+        default: false
+concurrency:
+  group: rename-email-derived-names
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: pip install -r backend/requirements.txt
+      - name: Rename
+        working-directory: backend
+        run: python manage.py rename_email_derived_names ${{ inputs.apply && '--yes' || '' }}

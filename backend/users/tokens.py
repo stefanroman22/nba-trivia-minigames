@@ -73,7 +73,11 @@ class SessionRefreshSerializer(TokenRefreshSerializer):
         # expiry still bounds them.
         if auth_time is not None and time.time() - auth_time > MAX_SESSION_AGE.total_seconds():
             raise InvalidToken("Session expired. Please log in again.")
-        data = super().validate(attrs)
+        try:
+            data = super().validate(attrs)
+        except get_user_model().DoesNotExist:
+            # The account was deleted: its refresh tokens (on other devices) are simply invalid.
+            raise InvalidToken("Session expired. Please log in again.")
 
         # A return visit with an expired access token used to cost three round trips
         # (/me/ 401 -> refresh -> /me/). Handing the /me/ payload back with the new
