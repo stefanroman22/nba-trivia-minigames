@@ -1168,3 +1168,29 @@ and labelled as a gross-failure check, not accuracy: real-photo false-positive a
 step with the same harness on a gitignored folder.
 Consequences: deploy needs owner steps (pin checksum, create the Hobby project, secrets, env on both projects);
 latency, bundle size and false-block numbers are produced by the workflow's eval step and recorded after its first run.
+
+## 2026-10-08 — GAME_DESIGN_CONSTRAINTS cleanup: which ids may change, what leaves the rulebook, what the id checker ignores
+Context: P2 hard docs card "Clean up GAME_DESIGN_CONSTRAINTS.md" (design
+`designs/2026-10-08-clean-up-game-design.md`). 958 lines, three stated values for one padding, RULE 4.1
+still pointing at a deleted `CONTENT_STAGE_GAMES` list, and rules 7.0–7.3 nested as `####` headings that
+`scripts/team/lib/rules.mjs` never extracts, so briefs never quoted the end-of-game rules the reviewer cites most.
+Weighed (ids): (a) keep every id and heading level exactly — rejected: `4.2.1` is unparseable by the brief
+generator and `7a`/`7b` are sections, not rules, so neither can be quoted or checked; (b) rename only what the
+tooling cannot read — chosen: `4.2.1 → 4.5` (zero references outside the doc), `7a → RULE 7.4`, `7b → RULE 7.3`,
+every other id stable; unnumbered rules (tokens, idle, loading, Close game, progress bar, feedback copy, shared
+components, scoring) get ids so the code reviewer can cite them. The 8 renderer/CSS comments and
+`code-reviewer.md` that say `7b` are updated in the same commit and the checker rejects the retired forms.
+Weighed (shell-owned specs): (a) shorten the idle/CourtLoader/GameResult/ScorePanel pixel tables — rejected: a
+game author cannot act on them without editing the shell, and they drift the moment the component changes;
+(b) delete them and state "shell-owned, never rebuild or restyle" plus the owning file — chosen; values a game
+must choose (2000 ms loading hold, 1.5 s loader beat, 1800 ms reveal dwell, 260/300 ms stagger, 22 px slot)
+survive in one constants table. Incident history (8 root gaps, 11-of-18 at 854×694, Guess MVP 82 px, Starting
+Five 427 px / 480 ms) is recorded by the implementation in a DECISIONS entry, not the rulebook. The §9
+"always-visible SessionTimer" rule is dropped: no single-player game renders it and the doc said so itself;
+"time never adds points" stays.
+Weighed (checker scope): (a) scan every tracked file — rejected: dated design docs, DECISIONS and RETRO describe
+the document as it was and must keep `7b`; (b) scan live docs, agent/skill files, `src/` and `scripts/`, exclude
+`docs/team/designs/`, `DECISIONS.md`, `RETRO.md`, `docs/superpowers/` — chosen, with the exclusion list and reason
+at the top of the script. `backend/` is not scanned (its only ids are AUTH references; a follow-up if wanted).
+Consequences: briefs will start quoting 7.0–7.4 and the new ids; `npm run lint` (and so CI) fails on a dangling
+rule reference; the 60 % length target is expected to hold because the deleted specs are ~230 lines.
