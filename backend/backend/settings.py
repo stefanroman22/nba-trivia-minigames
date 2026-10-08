@@ -36,6 +36,9 @@ if SECRET_KEY == _DEV_SECRET_KEY and os.environ.get("VERCEL_ENV") == "production
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool("DJANGO_DEBUG", True)
 
+# Where privacy requests, takedown notices and ban appeals go (also shown in the legal pages).
+LEGAL_CONTACT_EMAIL = os.environ.get("LEGAL_CONTACT_EMAIL", "stefanromanpers@gmail.com")
+
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
 # Render injects the service's external hostname at runtime.
 _render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
@@ -181,6 +184,7 @@ REST_FRAMEWORK = {
         # Live username check while typing (debounced client-side); never strikes.
         "name-check": "120/hour",
         "account-data": "10/hour",
+        "guess-log": "120/hour",
     },
 }
 

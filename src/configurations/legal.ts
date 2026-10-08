@@ -1,8 +1,8 @@
 /** Facts the Privacy Policy and Terms state about the operator. Edit them here, nowhere else.
  *
- *  `operatorName`, `operatorAddress` and `country` are REQUIRED by law before launch at scale (EU
- *  e-Commerce Directive Art 5, DSA Arts 11-12, GDPR Art 13(1)(a)) and are left empty on purpose: the
- *  pages show them once they are filled in, and `npm run check:legal` warns until they are. */
+ *  `operatorName`, `operatorAddress` and `country` are REQUIRED by law (EU e-Commerce Directive Art 5,
+ *  DSA Arts 11-12, GDPR Art 13(1)(a)); the pages show them, and `npm run check:legal` warns if any is
+ *  emptied. */
 export const LEGAL = {
   service: "Swish Quest",
   formerName: "HOOPS24",
@@ -15,7 +15,7 @@ export const LEGAL = {
   /** Country whose law governs the Terms, e.g. "Romania". */
   country: "Romania",
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
-  version: "2026-10-08",
+  version: "2026-10-08.2",
   updated: "8 October 2026",
   minimumAge: 13,
   /** Accounts younger than this cannot upload a public profile photo. Equals PHOTO_MIN_AGE in backend/users/consent.py. */

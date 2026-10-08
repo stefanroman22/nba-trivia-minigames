@@ -82,7 +82,7 @@ export default function TermsPage() {
           an automatic tool was involved, and how to challenge it.
         </li>
         <li>
-          <strong>Appeals.</strong> Write to <MailLink /> from the account&apos;s email (or quoting your player ID) and a person will
+          <strong>Appeals.</strong> Press Appeal on the ban screen, or write to <MailLink /> from the account&apos;s email (or quoting your player ID), and a person will
           look again, normally within 14 days, and tell you the outcome and reasons. A wrongly applied strike or ban is reversed.
         </li>
         <li>
@@ -110,7 +110,7 @@ export default function TermsPage() {
         The site, its design, text and code belong to the operator or its licensors. {LEGAL.service} is an independent fan
         project. It is <strong>not affiliated with, endorsed by or sponsored by the NBA, any NBA team, the players&apos;
         association, or any player</strong>. NBA, team and player names, logos and images are the property of their owners and
-        are used here only to identify teams and players in trivia questions. If you own rights in anything shown and want it
+        appear here as part of the trivia games (for example team logos and player photos in questions). If you own rights in anything shown and want it
         changed or removed, email us and we will deal with it quickly.
       </p>
 
@@ -129,9 +129,10 @@ export default function TermsPage() {
 
       <LegalHeading id="changes">12. Changes to these terms</LegalHeading>
       <p>
-        We may update these terms, for example when we add a feature or the law changes. We will make the change clear on the
-        site and, for a change that matters to you, give you at least 14 days&apos; notice before it applies. If you do not accept
-        it you can delete your account before then, at no cost; using the service after the date means you accept it.
+        We may update these terms, for example when we add a feature or the law changes. We will update the date and describe what
+        changed, and for a significant change we will say so on the site&apos;s home page for at least 14 days before it
+        applies. If you do not accept it you can delete your account before then, at no cost; using the service after the
+        date means you accept it.
       </p>
 
       <LegalHeading id="liability">13. Our responsibility</LegalHeading>
@@ -162,7 +163,7 @@ export default function TermsPage() {
 
       <LegalHeading id="contact">16. Contact</LegalHeading>
       <p>
-        Questions, appeals, reports, privacy requests and legal notices: <MailLink />. A person reads it.
+        Questions, appeals, reports, privacy requests and legal notices: <MailLink />. A person reads it, and we answer in English or Romanian.
       </p>
     </LegalPage>
   );

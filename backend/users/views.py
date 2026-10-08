@@ -43,6 +43,9 @@ class GoogleConsentRequired(Exception):
     """A brand-new Google account needs the Terms/age consent before it can be created."""
 
 
+LOGIN_FAILED = "Incorrect email, username or password."
+
+
 GOOGLE_CONSENT_SALT = "google-consent"
 GOOGLE_CONSENT_MAX_AGE = 600  # seconds the player has to tick the boxes after Google verified them
 
@@ -126,14 +129,9 @@ def _user_for_google_identity(identity, age_group=None):
     if age_group is None:
         raise GoogleConsentRequired()
 
-    # Names may repeat (public id disambiguates) — use the address's
-    # local part directly, trimmed to the allowed charset/length.
-    base = re.sub(r"[^A-Za-z0-9_]", "", email.split("@")[0])[:20] or "Player"
-    if len(base) < 3:
-        base = f"{base}NBA"[:20]
-    # The player didn't choose this name, so a flagged one is replaced, never struck.
-    if check_username(base).tier != "ok":
-        base = f"Player{secrets.randbelow(9000) + 1000}"
+    # The display name is public (leaderboards, search, matches), so it must never be derived from the
+    # email address. A neutral placeholder is used; the player can pick their own in the profile.
+    base = f"Player{secrets.randbelow(9000) + 1000}"
     try:
         user = User.objects.create_user(username=base, email=email, password=None, google_sub=sub)
     except IntegrityError:
@@ -174,7 +172,7 @@ def login_view(request):
 
     users = list(matches[:2])
     if not users:
-        return JsonResponse({"error": "No account matches that email/username."}, status=401)
+        return JsonResponse({"error": LOGIN_FAILED}, status=401)
     if len(users) > 1:
         return JsonResponse(
             {"error": "Several players use that name. Log in with your email, or add your ID like Name#K7F3QD."},
@@ -183,7 +181,7 @@ def login_view(request):
 
     authenticated_user = authenticate(request, username=users[0].email, password=password)
     if authenticated_user is None:
-        return JsonResponse({"error": "Incorrect password"}, status=401)
+        return JsonResponse({"error": LOGIN_FAILED}, status=401)
     # Checked after the password, so a stranger can't probe an email's ban status.
     if authenticated_user.banned_at:
         return Response(strikes.ban_payload(authenticated_user), status=status.HTTP_403_FORBIDDEN)

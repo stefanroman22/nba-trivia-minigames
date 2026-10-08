@@ -76,6 +76,9 @@ def ban_payload(user):
         "strikes": user.strike_count,
         "reason": user.ban_reason,
         "banned_at": user.banned_at.isoformat() if user.banned_at else None,
+        # DSA Art 17 statement of reasons: whether an automatic tool decided, and where to appeal.
+        "automated": user.ban_reason != "admin",
+        "appeal_email": settings.LEGAL_CONTACT_EMAIL,
     }
 
 

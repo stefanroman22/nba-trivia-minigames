@@ -1,7 +1,7 @@
 """Sign-up consent: Terms/Privacy acceptance and the minimum-age check.
 
 Accounts are for players aged MIN_AGE and over (guests of any age can still play without an
-account, and nothing about them is stored). 13 is the COPPA line: below it, US law needs
+account; no name or email is stored for them). 13 is the COPPA line: below it, US law needs
 verifiable parental consent, so it is the practical floor. Between 13 and 15 several EU states
 still treat the player as a child for consent purposes, so those accounts are marked "teen" and
 cannot upload a public profile photo (PHOTO_MIN_AGE); see docs/legal/OPEN_ITEMS.md.
@@ -15,7 +15,7 @@ from datetime import date
 from django.utils import timezone
 
 # Bump when the Terms or Privacy Policy change materially; it is stored with each acceptance.
-TERMS_VERSION = "2026-10-08"
+TERMS_VERSION = "2026-10-08.2"
 MIN_AGE = 13
 PHOTO_MIN_AGE = 16
 

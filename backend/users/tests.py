@@ -302,7 +302,7 @@ class ProfilePhotoEndpointTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp["Content-Type"], "image/jpeg")
         self.assertEqual(resp.content, self.JPEG)
-        self.assertEqual(resp["Cache-Control"], "public, max-age=31536000, immutable")
+        self.assertEqual(resp["Cache-Control"], "public, max-age=86400")
         self.assertEqual(resp["ETag"], '"3"')
 
     def test_missing_or_stale_version_must_revalidate(self):

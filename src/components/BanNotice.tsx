@@ -6,6 +6,7 @@ import { logout } from "../store/userSlice";
 import { clearTokens } from "../utils/Api";
 import { clearCachedUser } from "../utils/session";
 import type { BanInfo } from "../utils/ban";
+import { LEGAL } from "../configurations/legal";
 import { useModal } from "../context/ModalContext";
 import { FOCUSABLE, useFocusTrap } from "../hooks/useFocusTrap";
 import { fadeIn, swap } from "../motion/variants";
@@ -103,6 +104,10 @@ function BanScreen({ info }: { info: BanInfo }) {
         <p id="ban-desc" className="ban-text">
           {reasonText} While the ban is in place you can&apos;t play, change your profile or use your
           account. Your points and history are kept, not deleted.
+        </p>
+        <p className="ban-text">
+          {info.reason !== "admin" && "This decision was made by an automatic check. "}
+          If you think it is wrong, press Appeal or write to {LEGAL.contactEmail}; a person will review it.
         </p>
 
         {strikes > 0 && (

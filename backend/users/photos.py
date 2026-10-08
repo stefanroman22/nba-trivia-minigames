@@ -64,7 +64,7 @@ def profile_photo_data_url(data):
 
 # A year: a URL whose ?v= names the current version can never go stale — a new upload bumps
 # the version, so every list row points at a new URL (users.friends._brief).
-PHOTO_MAX_AGE = 60 * 60 * 24 * 365
+PHOTO_MAX_AGE = 60 * 60 * 24  # one day: a removed photo must not linger in caches for a year
 
 
 def _photo_etag(request, public_id):
@@ -113,7 +113,7 @@ def profile_photo_view(request, public_id):
     data, version = row
     resp = HttpResponse(bytes(data), content_type="image/jpeg")
     if request.GET.get("v") == str(version):
-        resp["Cache-Control"] = f"public, max-age={PHOTO_MAX_AGE}, immutable"
+        resp["Cache-Control"] = f"public, max-age={PHOTO_MAX_AGE}"
     else:
         resp["Cache-Control"] = "no-cache"
     return resp

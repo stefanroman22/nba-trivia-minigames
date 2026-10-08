@@ -128,6 +128,8 @@ def search_users(request):
         # Banned accounts are hidden, not deleted (users.strikes).
         .filter(banned_at__isnull=True)
         .filter(Q(username__icontains=q) | Q(public_id__icontains=q))
+        # Teens (13-15) are findable only by their exact player ID, never by a name search.
+        .exclude(Q(age_group="teen") & ~Q(public_id__iexact=q))
         .only("id", "public_id", "username", "points", "rank", "profile_photo_version")[:MAX_RESULTS]
     )
     relationships, excluded = _relationship_map(me, [u.pk for u in candidates])

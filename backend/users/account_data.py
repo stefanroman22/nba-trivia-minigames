@@ -8,8 +8,12 @@ Policy (GDPR Art 17(3)(e) / Art 6(1)(f)), not a loophole: nothing else is kept.
 """
 import base64
 
+from django.contrib.admin.models import LogEntry
+from django.contrib.contenttypes.models import ContentType
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
 from trivia.models import Feedback, GameSession, GuessLog, WordlePlay
 from users import friends_cache, leaderboard
@@ -49,6 +53,10 @@ def delete_account(user):
         WordlePlay.objects.filter(user=user).delete()
         Feedback.objects.filter(user=user).delete()
         Feedback.objects.filter(public_id=public_id).delete()  # snapshot rows whose FK was nulled
+        Feedback.objects.filter(email__iexact=user.email).delete()  # feedback sent as a guest with this address
+        # Admin-site log lines that name this account (made by it, or about it).
+        LogEntry.objects.filter(user_id=pk).delete()
+        LogEntry.objects.filter(content_type=ContentType.objects.get_for_model(type(user)), object_id=str(pk)).delete()
 
         if banned:
             # Keep the ban record; drop everything that identifies or describes the person.
@@ -67,13 +75,18 @@ def delete_account(user):
             user.points = 0
             user.rank = "Rookie"
             user.first_name = user.last_name = ""
+            user.last_login = None
+            user.terms_version, user.terms_accepted_at = "", None
+            user.age_confirmed_at, user.age_group = None, ""
             user.is_active = False
             user.save()
+            OutstandingToken.objects.filter(user=user).delete()
             outcome = "anonymised"
         else:
             ModerationEvent.objects.filter(user=user).delete()
             ModerationEvent.objects.filter(public_id=public_id).delete()
-            user.delete()  # cascades friendships, requests, blocks, token rows
+            OutstandingToken.objects.filter(user=user).delete()  # SET_NULL by default: would keep the token ids
+            user.delete()  # cascades friendships, requests, blocks
             outcome = "deleted"
 
     # Best-effort caches, outside the transaction so a Redis hiccup can't undo the erasure.
@@ -115,6 +128,8 @@ def export_account(user):
             "username": user.username,
             "email": user.email,
             "signed_up_with_google": bool(user.google_sub),
+            "google_account_id": user.google_sub,
+            "canonical_email": user.canonical_email,
             "points": user.points,
             "rank": user.rank,
             "date_joined": _iso(user.date_joined),
@@ -146,16 +161,19 @@ def export_account(user):
             for s in GameSession.objects.filter(user=user).order_by("finished_at")
         ],
         "guesses": [
-            {"game": g.game, "question_id": g.question_id, "answer": g.answer, "correct": g.correct, "elapsed_ms": g.elapsed_ms}
+            {"game": g.game, "question_id": g.question_id, "answer": g.answer, "correct": g.correct, "elapsed_ms": g.elapsed_ms, "at": _iso(g.created_at)}
             for g in GuessLog.objects.filter(user=user).order_by("id")
         ],
-        "wordle_plays": [{"date": p.play_date.isoformat()} for p in WordlePlay.objects.filter(user=user)],
+        "wordle_plays": [{"date": p.play_date.isoformat(), "device_id": p.device_id} for p in WordlePlay.objects.filter(user=user)],
         "feedback": [
-            {"rating": f.rating, "message": f.message, "page": f.page, "game": f.game, "at": _iso(f.created_at)}
-            for f in Feedback.objects.filter(user=user).order_by("created_at")
+            {
+                "rating": f.rating, "message": f.message, "page": f.page, "game": f.game, "email": f.email,
+                "display_name": f.display_name, "status": f.status, "admin_note": f.admin_note, "at": _iso(f.created_at),
+            }
+            for f in Feedback.objects.filter(Q(user=user) | Q(public_id=user.public_id) | Q(email__iexact=user.email)).order_by("created_at")
         ],
         "moderation_events": [
             {"kind": e.kind, "tier": e.tier, "reason": e.reason, "ip_hash": e.ip_hash, "at": _iso(e.created_at)}
-            for e in ModerationEvent.objects.filter(user=user).order_by("created_at")
+            for e in ModerationEvent.objects.filter(Q(user=user) | Q(public_id=user.public_id)).order_by("created_at")
         ],
     }
