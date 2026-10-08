@@ -1,958 +1,504 @@
-# Game Design Constraints (the Series Winner standard)
+# Game Design Constraints
 
-**Every game — current and new — must follow these.** They exist so every game shares one
-consistent structure: shell, idle screen, loading, in-game chrome, feedback, and end-state.
+Every game renderer (`src/Game Renderers/*.tsx`) fits into one shared shell: idle screen, loading,
+playing frame, feedback, end of game. The shell and the shared components own the layout; a game
+owns only its board. Reference renderers: `PlayOffSeries.tsx` (Guess the Series Winner — standard
+path) and `FanFavorites.tsx` (in-place end with a progressive reveal).
 
-**Reference implementations** (read these before building anything):
+Verify layout with the harness, not by reading code: `npm run dev`, then `npm run ui:audit` (every
+visible game, at 1100×900, 854×694 and 390×844, one screenshot each). Never call a game compliant
+without a rendered screenshot. History and rationale for these rules live in `docs/team/DECISIONS.md`.
 
-| Concern | Reference |
+## Rules at a glance
+
+| ID | Rule | Enforced by |
+|---|---|---|
+| 0 | Your root MUST be `<GameFrame>`; a game MUST NOT set its own root width, gap, margin or padding | `ui:audit` (`usesGameFrame`, root gap 20 px) |
+| 0.1 | Colours MUST come from `theme.css` tokens, with one accent; every number MUST carry `.tnum` | review |
+| 1.0 | Children MUST size against `--stage-avail`, never `--stage-max` | review (`grep stage-max src/styles`) |
+| 1.1 | The play area MUST fit 390×844 with no in-game scroll | `ui:audit` mobile (`playAreaFitsViewport`, reported) + QA |
+| 1.2 | A game that cannot fit MUST let the shell grow (content game, page scrolls) — never clip, never squash — and MUST have a deviations entry | `ui:audit` (`shellContainsGame`) + review |
+| 2.1 | The idle screen is shell-owned; a game MUST NOT build its own | review |
+| 3.1 | Loading is shell-owned (`CourtLoader`, 2000 ms hold); a game MUST NOT add a full-stage loader | review |
+| 4.1 | Every game MUST be classified: a board that scrolls internally → `<GameFrame fill>`; anything else → `<GameFrame>` | `ui:audit` (`gameToExit` per family) |
+| 4.2 | The three shell distances MUST be identical in every game | `ui:audit` (`shellTop`, `gameToExit`, `exitToBottom`) |
+| 4.2a | An empty slot MUST be omitted, never rendered | `ui:audit` (lone-slot alignment) |
+| 4.2b | A content game MUST NOT be given a height floor | `ui:audit` (`shellTop`) |
+| 4.3 | Column counts MUST be explicit per breakpoint; media MUST keep its aspect ratio | review |
+| 4.4 | Labels above repeated cells MUST reserve their maximum line count | manual DevTools check |
+| 4.5 | Space above the first and below the last component MUST equal `--stage-pad` in every state | `ui:audit` (playing) + manual (idle, loading, ended) |
+| 4.6 | One leave control per screen, labelled `Close game`; a game MUST NOT render its own | review |
+| 5.0 | A progress bar MUST be the shared `<ProgressBar>` in the frame's second slot, or omitted | review |
+| 5.1 | Between rounds only the content that changed MUST animate | motion-reviewer |
+| 6.0 | Feedback copy MUST be `Correct! +N`, a statement of the truth, or neutral, in the fixed colours | review |
+| 6.1 | Per-guess feedback MUST be `<SubmitGuessPopup>` in the shell's `.feedback-slot` | manual DevTools check |
+| 6.2 | Transient content MUST NOT resize the container | manual ResizeObserver check / QA |
+| 6.3 | Running out of lives MUST NOT be announced anywhere | review (`grep` the banned strings) |
+| 7.0 | The score line MUST sit above Play again / Close game | review |
+| 7.1 | The result MUST NOT restate a count the board already shows | review |
+| 7.2 | A reveal MUST NOT re-animate what the player already earned | review |
+| 7.3 | A game that reveals something at the end MUST end in place (`{ inPlace: true }`, `EndSequence`, `ScorePanel`) | `scripts/check-game-results.mjs` (`npm run lint`) |
+| 7.4 | A full-screen result MUST appear at once — no "Calculating" beat, no loader, no timeout | review |
+| 8.1 | Shared components MUST be reused, never re-implemented | review + `docs/team/CODE_MAP.md` |
+| 9.1 | `pointsPerCorrect × rounds` MUST equal `maxPoints`; time MUST NOT add points | review |
+
+"Review" means the code reviewer checks it by reading; "manual" means a DevTools snippet given in the
+rule. Neither is automated — treat them as the rules most likely to regress.
+
+## Terms
+
+| Term | Meaning |
 |---|---|
-| Shell, idle, loading, round chrome, progress, feedback, standard end | `Game Renderers/PlayOffSeries.tsx` ("Guess the Series Winner") |
-| The answers-shown exception (in-place end, progressive reveal) | `Game Renderers/FanFavorites.tsx` |
-
-Everything below is measured from the live app. Numbers are exact — match them, don't approximate.
+| **shell** | Everything `MiniGame.tsx` + `Stage.tsx` render around your root: title row, `.stage-shell`, `.stage-inner`, `.playing-wrap`, `.feedback-slot`, the `Close game` link. |
+| **content game** | `<GameFrame>` without `fill`. It hugs its content; the shell sizes to it. |
+| **fill game** | `<GameFrame fill>`. Its board takes the remaining height and scrolls internally. |
+| **slot** | One of `GameFrame`'s fixed children: `Status`, `ProgressBar`, `Prompt`, `Board`, `Action`. |
+| **transient content** | Anything that appears and then goes away: feedback, reveal label, hint, badge, spinner, error. |
+| **standard path** | The game calls `onGameEnd(score)`; the shell swaps in the full-screen `GameResult`. |
+| **in place** | The game calls `onGameEnd(score, { inPlace: true })`; the game UI stays and `EndSequence` → `ScorePanel` shows the points under it. |
+| **Close game** | The one control that leaves a game. Never "Exit", "Leave" or "Quit" in UI copy. |
 
 ---
 
-## RULE 0 — Your root is `<GameFrame>`. This rule outranks every other rule here.
+## 0. Root and tokens
 
-Earlier versions of this document *described* the layout and let each game re-implement it. That
-produced **8 different root gaps** (20 / 16.2 / 14.4 / 14 / 13.5 / 12.6 / 12 / 11.7px) and **7
-different widths** (430–720px, plus one game with none) across 18 games — all of which passed every
-static check while looking nothing alike. Prose does not enforce layout. A component does.
+### RULE 0 — Your root is `<GameFrame>`. This rule outranks every other rule here.
+Your renderer's root is `<GameFrame>` (`src/components/ui/GameFrame.tsx`) in every state the game
+renders, including its own empty/error states. Never declare a root class, `max-width`, `gap`,
+`margin` or `padding` at the top level, and never hand-roll a status row. `Board` is the only
+free-form region. `GameFrame.Action` returns `null` when empty.
 
 ```tsx
 <GameFrame>                                   {/* owns width, max-width, 20px gap */}
-  <GameFrame.Status
-    left={<GameFrame.Label>ROUND 1/5</GameFrame.Label>}
-    right={<GameFrame.Score value={score} />}
-  />
-  <ProgressBar value={…} max={…} />           {/* optional — omit if no linear progression */}
+  <GameFrame.Status left={<GameFrame.Label>ROUND 1/5</GameFrame.Label>} right={<GameFrame.Score value={score} />} />
+  <ProgressBar value={…} max={…} />           {/* optional — Rule 5.0 */}
   <GameFrame.Prompt eyebrow="First Round · 1978-79" title="Who won the series?" />
   <GameFrame.Board>{/* the ONLY free-form region */}</GameFrame.Board>
   <GameFrame.Action>{/* input row, EndSequence, buttons */}</GameFrame.Action>
+  <SubmitGuessPopup … />                      {/* Rule 6.1 */}
 </GameFrame>
 ```
 
-**Non-negotiable:**
-- A game **never** declares its own root class, `max-width`, `gap`, `margin` or `padding` at the top
-  level. `GameFrame` owns all of it. If you find yourself writing `.xx-wrap`, stop.
-- A game **never** hand-rolls a status row. Pass content into `Status`.
-- `Board` is the only place bespoke markup belongs — a hex grid, a 4×4 tile grid and a survey board
-  genuinely differ; everything *around* them must not.
-- `fill` is only for boards that **actually scroll** (`overflow-y:auto`). A fixed-size board with
-  `flex:1` gets stranded in dead space — that was Heatmap's bug.
+**Why:** prose layout specs let each game re-implement the root, and they drifted. A component cannot.
+**Check:** `npm run ui:audit` fails on a root that is not `.gf` or whose gap is not 20 px. If you are
+writing `.xx-wrap`, stop. A width override needs a selector on `.gf:has(…)` and a deviations row.
 
-**Verification is not optional and is not `grep`.** Run the harness; it renders every game, measures
-it, and writes a screenshot per game:
-
-```bash
-npm run dev        # in another terminal
-npm run ui:audit   # renders all 18 at 3 viewports, asserts, exits 1 on any failure
-```
-
-Never claim a game is compliant without a rendered screenshot. Static checks pass on broken layouts.
-
-**One viewport is not verification.** `ui:audit` runs desktop (1100×900), laptop (854×694) and
-mobile (390×844) because the failures differ by size. Every game passed at 1100×900 while **11 of
-18 were broken at 854×694** — four of them rendering *outside* the shell border — purely because
-`--stage-max` shrinks with viewport height and content that fits at one size overflows at another.
-A single-viewport pass is how that shipped.
-
-Note also that the expected top/bottom offset is **not a constant**: it is the stage padding,
-`clamp(14px, 2.6vw, 30px)` — 30px on a wide screen, 22.2px at 854px, 14px on mobile. Assertions read
-the computed padding; never hardcode a pixel value.
-
----
-
-## 0. Design tokens (`src/styles/theme.css`)
-
-Never hardcode a hex that has a token. Never introduce a second accent colour.
+### RULE 0.1 — Colours come from tokens; one accent; `.tnum` on every number
+Use the `src/styles/theme.css` tokens below; never hardcode a hex that has one, and never add a second
+accent colour. `Russo One` (`.font-display` / `.disp`) is for headings, game, team and player names and
+the VS label; `Chakra Petch` is the body font (`.font-accent` forces it). Every number, score, timer,
+count and rank carries `.tnum`. Reduced motion is owned by UI-20 in `UI_SHELL_CONSTRAINTS.md`.
 
 | Token | Value | Use |
 |---|---|---|
 | `--bg` / `--bg2` | `#101010` / `#161616` | page background |
-| `--surface` | `#1c1c1e` | cards, stage shell |
-| `--surface2` | `#232327` | choice buttons, inputs |
-| `--surface3` | `#2b2b30` | progress track, inert fills |
+| `--surface` / `--surface2` / `--surface3` | `#1c1c1e` / `#232327` / `#2b2b30` | cards and stage / choice buttons, inputs / progress track, inert fills |
 | `--line` / `--line2` | `rgba(255,255,255,.09)` / `rgba(255,255,255,.17)` | hairlines / stronger borders |
 | `--text` / `--muted` | `#f5f3ef` / `#9c9a95` | body / secondary text |
 | `--brand` | `#ff6a1a` | the **only** accent |
-| `--brand2` / `--brand-deep` | `#ff8a3d` / `#c2510a` | gradient partners |
-| `--brand-soft` | `rgba(255,106,26,.14)` | tinted brand fills |
+| `--brand2` / `--brand-deep` / `--brand-soft` | `#ff8a3d` / `#c2510a` / `rgba(255,106,26,.14)` | gradient partners / tinted fills |
 | `--good` / `--good-soft` | `#2fc762` / `rgba(47,199,98,.16)` | correct |
 | `--bad` / `--bad-soft` | `#ff4d4d` / `rgba(255,77,77,.16)` | wrong |
-| `--shadow` | `0 22px 60px -18px rgba(0,0,0,.65)` | elevated surfaces |
-| `--radius` | `14px` | default corner |
-| `--ease-out` | `cubic-bezier(.22,1,.36,1)` | the house easing |
+| `--shadow` / `--radius` / `--ease-out` | `0 22px 60px -18px rgba(0,0,0,.65)` / `14px` / `cubic-bezier(.22,1,.36,1)` | elevation / corner / house easing |
 
-**Type** — `Russo One` via `.font-display` / `.disp` (letter-spacing `.4px`) for every heading,
-game name, team name, and VS label. `Chakra Petch` is the body font (`.font-accent` to force it).
-**`.tnum` is mandatory** on every number, score, timer, count, and rank.
-Respect `prefers-reduced-motion` (use framer-motion's `useReducedMotion()`).
+**Why:** one palette and tabular digits are what make every game read as one app.
+**Check:** `grep -nE '#[0-9a-fA-F]{3,6}\b' src/styles/<Game>.css` — every hit is either a token-less
+value with a deviations row (white on brand fills) or a bug.
 
 ---
 
-## 1. The shell — never rebuild it
+## 1. The shell
 
-Fixed DOM chain, owned by `MiniGame.tsx` + `Stage.tsx`. A game renderer supplies **only** the
-node marked *your root*:
+`MiniGame.tsx` + `Stage.tsx` own this chain; a renderer supplies only the node marked *your root*.
+Styles live in `src/styles/ui.css` (`.stage-*`) and `src/styles/MiniGame.css` (`.playing-wrap`,
+`.exit-link`, `.feedback-slot`). Never add your own outer padding; `.stage-inner`'s `--stage-pad` is
+the only one.
 
 ```
-section.stage-col            (flex column, gap 16px)
-├── div.stage-title          (flex, align center, gap 11px)
-│     h1.font-display        font-size clamp(19px, 2.6vw, 26px)  ← game name
-│     button.info-btn        30×30 circle, border 1px var(--line2), radius 50%
-│     Chip variant=brand dot margin-left:auto                    ← game tag (PREDICT, HEX…)
-└── div.stage-shell
-      ├── div.stage-dots     (aria-hidden decorative grid)
-      └── div.stage-inner
-            └── motion.div   (Stage phase cross-fade — width 100%, flex, centered)
-                  └── .idle | CourtLoader | .playing-wrap | GameResult   ← your root
-```
-
-**`.stage-shell`** — `border 1px var(--line)`, `radius 16px`, `box-shadow var(--shadow)`,
-`overflow: visible` (so autocomplete dropdowns can escape), background
-`radial-gradient(130% 120% at 50% -10%, var(--brand-soft), transparent 50%), var(--surface)`.
-
-**`.stage-dots`** — `inset 0`, `opacity .4`,
-`radial-gradient(circle at 1px 1px, var(--line) 1px, transparent 0)` at `24px 24px`,
-masked with `radial-gradient(120% 90% at 50% 0%, #000, transparent 75%)`.
-
-**`.stage-inner`** — the single source of the game's outer padding:
-
-```css
-.stage-inner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: clamp(14px, 2.6vw, 30px);
-  min-height: clamp(280px, 44dvh, 430px);
-  --stage-max: calc(100dvh - 188px);
-  max-height: var(--stage-max);
-}
-@media (max-width: 819px) { .stage-inner { --stage-max: calc(100dvh - 216px); } }
-.stage-inner > * { max-height: 100%; min-height: 0; }
-```
-
-- **Never add your own outer padding** — the clamp is what makes every game's top spacing match.
-- `--stage-max` is the height budget your root may consume. Size with `clamp()` / `dvh` so
-  content shrinks on short screens.
-
-**Phase transition** (`Stage.tsx`, `AnimatePresence mode="wait"`) — identical for every game:
-`initial {opacity:0, y:12}` → `animate {opacity:1, y:0}` → `exit {opacity:0, y:-12}`,
-`duration 0.25`, `ease [0.22, 1, 0.36, 1]`.
-
-### RULE 1.1 — The play area must fit one 390×844 viewport
-
-The **Exit button's bottom edge ≤ viewport height**, with no mid-game scrolling of the game itself.
-The multiplayer aside sits *below* the stage on mobile and **is** allowed to scroll — it is not the
-play area, so page-level overflow caused by the aside alone is fine.
-
-**Acceptance test** — resize to 390×844, start the game, and run:
-
-```js
-const r = el => el.getBoundingClientRect();
-const exit  = document.querySelector('.exit-link');
-const aside = document.querySelector('.game-aside');
-({
-  playAreaFits: r(exit).bottom <= window.innerHeight,        // MUST be true
-  overflowIsAsideOnly: r(aside).bottom > window.innerHeight  // fine if true
-});
+section.stage-col
+├── div.stage-title          h1 game name · info button · tag chip
+└── div.stage-shell          border, radius 16px, overflow visible (dropdowns escape)
+      ├── div.stage-dots     decorative
+      └── div.stage-inner    padding: var(--stage-pad); align-items: safe center
+            └── motion.div   Stage phase cross-fade (0.25 s)
+                  └── .idle | CourtLoader | .playing-wrap › your root + .feedback-slot + .exit-link | GameResult
 ```
 
 ### RULE 1.0 — Size children against `--stage-avail`, never `--stage-max`
-
-`.stage-inner` exposes two custom properties and they are not interchangeable:
-
-| Property | Meaning |
-|---|---|
-| `--stage-max` | the stage's own **border-box** cap — `calc(100dvh - 188px)` |
-| `--stage-avail` | what a **child** may occupy — `--stage-max` minus the stage's own padding |
-
-Sizing a child against `--stage-max` makes it consume the padding it is supposed to sit inside, so
-it renders flush against the shell border. That is why NBA Grid's status label sat at offset `0`
-with no top margin at all.
+`.stage-inner` exposes `--stage-max` (its own border-box cap, `calc(100dvh - 188px)`, `216px` below
+820 px) and `--stage-avail` (`--stage-max` minus twice `--stage-pad` — what a child may occupy).
 
 ```css
-❌ WRONG — eats the stage's padding, game sits on the border
-.playing-wrap { height: min(var(--stage-max, 620px), 600px); }
-
-✅ RIGHT
-.playing-wrap { height: min(var(--stage-avail, 620px), 600px); }
+❌ .playing-wrap { height: min(var(--stage-max, 620px), 600px); }   /* eats the padding, sits on the border */
+✅ .playing-wrap { height: min(var(--stage-avail, 620px), 600px); }
 ```
 
-Related: `.stage-inner` uses `align-items: safe center`, not `center`. Plain `center` overflows a
-too-tall child equally in **both** directions, pushing content out past the **top** border where it
-can't even be scrolled to. `safe` falls back to flex-start instead.
+**Why:** a child sized to `--stage-max` consumes the padding it should sit inside.
+**Check:** `grep -n 'stage-max' src/styles/*.css` — only `ui.css` may set it (a mention in a comment is fine).
 
-And a content game never gets a height cap at all — it hugs, so if it is taller than the budget the
-shell grows and the page scrolls (Rule 1.2) rather than spilling out:
+### RULE 1.1 — The play area must fit one 390×844 viewport
+At 390×844, the `Close game` link's bottom edge is at or above the viewport bottom, with no scrolling
+inside the game. The multiplayer aside below the stage may scroll the page; it is not the play area.
 
-```css
-.stage-inner:has(.gf:not(.gf--fill)) { min-height: 0; max-height: none; }
-```
+**Why:** a player must never scroll to reach the board's controls mid-round.
+**Check:** at 390×844, mid-game: `document.querySelector('.exit-link').getBoundingClientRect().bottom <= innerHeight`
+(also reported by `ui:audit` mobile as `playAreaFitsViewport`).
 
 ### RULE 1.2 — If it genuinely cannot fit, grow the stage; never clip and never squash
+When Rule 1.1 cannot hold without breaking Rule 4.3 (squashed media), the game is a content game: the
+stage has no height cap for content games (`ui.css`: `.stage-inner:has(.gf:not(.gf--fill))`), so the
+shell grows and the page scrolls. Never leave content clipped by `max-height` or rendered outside the
+shell border, and never shrink media to fit. Record the overflow in Accepted deviations.
 
-Some games can't honour Rule 1.1 without violating something more important (Rule 4.3's
-aspect-ratio guarantee). When that happens the game **explicitly opts out of the stage height cap**
-so the shell grows and the *page* scrolls. It must never be left in the default state, where
-`.stage-inner`'s `max-height` silently clips the content and the game renders **outside** the
-shell's rounded border:
-
-```css
-❌ WRONG — cards spill past the shell border (exit at 946px, shell ends at 824px)
-/* no opt-out: .stage-inner stays capped at --stage-max */
-
-✅ RIGHT — the shell grows to contain the game; the page scrolls
-@media (max-width: 620px) { .stage-inner:has(.s5-wrap) { max-height: none; } }
-```
-
-Opting out is a **last resort** and must be recorded in Accepted deviations with the reason.
-Verify with `r(exit).bottom <= r(shell).bottom` — the shell must always contain its game.
+**Why:** a page scroll is a small cost; content outside the shell border or a squashed photo is broken.
+**Check:** `exit.bottom <= shell.bottom` (`ui:audit` `shellContainsGame`) at every viewport.
 
 ---
 
-## 2. Idle screen — identical for every game
+## 2. Idle
 
-Driven entirely by the `Game` entry in `src/utils/GameUtils.tsx`. Do not build a custom idle.
+### RULE 2.1 — The idle screen is shell-owned
+`MiniGame.tsx` renders the idle screen from the `Game` entry in `src/utils/GameUtils.tsx`: thumbnail
+(`backgroundImage`), `name`, `description`, a rounds chip (`roundsLabel`, default `5 rounds`), an
+`up to {maxPoints} pts` chip, and the Play button. In a friend room the Play button is replaced by the
+room note. A game whose format differs changes its `Game` entry (e.g. `roundsLabel: "10 matchups"`),
+never the idle markup.
 
-```html
-<div class="idle">
-  <div class="idle-thumb" style="background-image: url(…)"></div>
-  <div class="idle-head">
-    <h2 class="font-display" style="font-size:23px">{game.name}</h2>
-    <p style="font-size:14px; color:var(--muted); line-height:1.5">{game.description}</p>
-  </div>
-  <div class="idle-chips">
-    <span class="chip">5 rounds</span>
-    <span class="chip">~1 min</span>
-    <span class="chip">up to <span class="tnum">{game.maxPoints}</span> pts</span>
-  </div>
-  <button class="btn btn-primary btn-lg"><svg …/> Play</button>
-</div>
-```
+**Why:** the idle screen is the same promise for every game; a fork drifts.
+**Check:** the renderer has no idle state of its own; `git diff src/views/Trivia/MiniGame.tsx` is empty
+for a new game.
 
-| Element | Spec |
-|---|---|
-| `.idle` | `flex column`, `align-items:center`, **`gap:18px`**, `text-align:center` |
-| `.idle-thumb` | `width: min(340px, 82vw)`, `aspect-ratio:16/9`, `radius:18px`, `background-size:cover`, `background-position:center`, `border:1px solid var(--line2)`, `box-shadow:var(--shadow)`, `overflow:hidden` |
-| `.idle-thumb::after` | vignette — `linear-gradient(180deg, transparent 55%, rgba(8,7,6,.45))` + `inset 0 0 32px rgba(0,0,0,.3)`, `pointer-events:none` |
-| `.idle-head` | `flex column`, `gap:7px`, `max-width:420px` |
-| title | `.font-display`, `font-size:23px` |
-| description | `font-size:14px`, `color:var(--muted)`, `line-height:1.5` |
-| `.idle-chips` | `flex`, `gap:10px`, `flex-wrap:wrap`, `justify-content:center` |
-| `.chip` | `padding:5px 12px`, `radius:30px`, `font-size:11px`, `weight:700`, `letter-spacing:.5px`, `border:1px solid var(--line)`, `color:var(--muted)` |
-| points chip inner | `.tnum`, `color:var(--brand)`, `weight:700`, `margin-left:4px` |
-| Play button | `<Button size="lg">` → `.btn.btn-primary.btn-lg`: `height:52px`, `padding:0 30px`, `font-size:16px`, `letter-spacing:.5px`, `radius:10px`, `gap:10px`, `background:var(--brand)`, `color:#fff`, `box-shadow:0 12px 30px -12px var(--brand)`. Hover `y:-2`, tap `scale:.95` (spring `stiffness 520`, `damping 30`). |
-| Play icon | inline `svg` 18×18, `viewBox="0 0 24 24"`, `fill="currentColor"`, `path d="M8 5v14l11-7z"`, before the word "Play" |
+## 3. Loading
 
-> The "5 rounds" and "~1 min" chips are currently **hardcoded** in `MiniGame.tsx`; only
-> `maxPoints` is per-game. A game whose format differs must make those chips data-driven off the
-> `Game` entry rather than fork the idle markup.
+### RULE 3.1 — Loading is shell-owned
+Pressing Play shows `<CourtLoader label="Warming up the court…" />` (scale 1) and holds it for
+**2000 ms** (`handleStart()` in `MiniGame.tsx`) so it never flashes. A game never adds its own
+full-stage loader. For a small inline wait (pending vote, end-of-game score) use `Spinner`.
 
-**Lobby variant:** when a friend room is open, the Play button is replaced by
-`<p class="idle-room-note">` (`font-size:13px`, `muted`, `max-width:320px`, `line-height:1.5`).
+**Why:** one loading moment for every game.
+**Check:** no `CourtLoader` import in `src/Game Renderers/`; a renderer's waiting state is a
+`<GameFrame>` with an inline `Spinner`, not a bare `<div>` root (Rule 0).
 
 ---
 
-## 3. Loading — one animation, one duration, every game
-
-Pressing Play always produces the **same** screen (image 1). No per-game loader.
-
-- `handleStart()` holds the loading phase for a fixed **2000 ms** before data resolves
-  (`MiniGame.tsx`), so the animation never flashes.
-- Render is exactly `<CourtLoader label="Warming up the court…" />` — **`scale: 1`** (default).
-
-`CourtLoader` internals (scale 1): wrapper `flex column`, `align-items:center`, `gap:14px`;
-stage box `90×118` carrying `--s` (the scale) so keyframe distances are `calc(Npx * var(--s))`;
-three stacked layers — back SVG `80×70` (backboard, full rim, far net strands at `opacity:.35`),
-the ball, then a front SVG `80×70` (near rim arc + near net strands at `opacity:.8`) so the ball
-visibly drops *through* the hoop; ball `26×26`, radial-gradient shaded (`#ffb266 → #ff7a1a → #bf4a0b`)
-with `drop-shadow(0 3px 3px rgba(0,0,0,.38))`. One **1.6 s** cycle shared by four keyframes:
-`clBallX` (linear, constant horizontal velocity, fades in 0–6% and out 74–80%),
-`clBallY` (quadratic ease-out up to the apex at 38%, quadratic ease-in down — a real parabola;
-rim at ~64%, clears the net ~71%, 80–100% is the reset), `clBallSpin` (linear `-600deg` backspin),
-`clNetSwish` (net `scaleY`+`skewX` whip starting at 63%, ringing down by 88%).
-Label `font-size:14px`, `color:var(--muted)`, `letter-spacing:.3px`, `loaderPulse 1.25s ease-in-out infinite`.
-Reduced motion: no animations; the ball rests in the net.
-
-Use `Spinner` (not `CourtLoader`) for small inline spots — see §7.
-
----
-
-## 4. Playing shell — `.playing-wrap`
-
-```html
-<div class="playing-wrap is-content">
-  <!-- your game root -->
-  <div class="feedback-slot" aria-hidden="true"></div>
-  <button class="exit-link">Close game</button>
-</div>
-```
-
-```css
-.playing-wrap {
-  position: relative; width: 100%;
-  height: min(var(--stage-max, 620px), 600px);
-  max-height: 100%; min-height: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 12px;
-}
-.playing-wrap.is-content { height: auto; gap: 28px; }
-.playing-wrap > :first-child { max-height: 100%; min-height: 0; width: 100%; }
-```
+## 4. Playing shell
 
 ### RULE 4.1 — Every game MUST be classified, and the classification is mechanical
+Ask: **does the board contain a `flex:1` region that scrolls internally (`overflow-y:auto`)?**
+- **Yes → fill game:** `<GameFrame fill>`. Game → `Close game` gap is **12 px**.
+- **No → content game:** `<GameFrame>`. It hugs its content. Game → `Close game` gap is **28 px**.
 
-Layout mode is **not** a style preference. Getting it wrong produces dead space or overflow, so run
-this test — it has exactly one right answer per game:
+There is no third option and no id list: `MiniGame.css` reads the prop through
+`.playing-wrap:has(> .gf:not(.gf--fill))`. Never use `fill` on a fixed-size board — `flex:1` strands
+it in dead space with `Close game` pushed to the bottom.
 
-> **Does the game root set `height:100%` AND contain a child with `flex:1` that scrolls internally
-> (`overflow-y:auto`)?**
-> - **Yes → fill game.** Keep it OUT of `CONTENT_STAGE_GAMES`. Game→Exit gap = **12px**.
-> - **No → content game.** It hugs its content. It **MUST** be added to `CONTENT_STAGE_GAMES` in
->   `MiniGame.tsx`. Game→Exit gap = **28px**.
-
-There is no third option. "It looks fine" is not a classification.
-
-**Why this is load-bearing:** `.exit-link` has `margin-top:auto`. Inside a fill `.playing-wrap`
-(`height: min(--stage-max, 600px)`), that auto margin absorbs **all** free space. So a
-content-shaped game left out of `CONTENT_STAGE_GAMES` gets its UI pinned to the top of a 600px box
-and Exit slammed to the bottom — an enormous dead gap, and a top offset that doesn't match any
-other game. This is exactly what happened to Starting Five and Wordle.
-
-```
-❌ WRONG — content-shaped game omitted from the set
-   .s5-wrap { display:flex; flex-direction:column; gap:…; }   /* no height:100%, no flex:1 scroller */
-   CONTENT_STAGE_GAMES = { …, /* starting-five missing */ }
-   → game pinned to top of a 600px box, ~170px of dead space above Exit
-
-✅ RIGHT
-   CONTENT_STAGE_GAMES = { …, "starting-five" }
-   → .playing-wrap.is-content { height:auto; gap:28px } → Exit sits 28px under the game
-```
-
-⚠️ **Never make a fill game `is-content`** — content-sizing unbounds its `flex:1` scroll area and it
-overflows the viewport (verified).
-
-Current set: `CONTENT_STAGE_GAMES = { "series-winner", "name-logo", "guess-mvps", "fan-favorites",
-"starting-five", "wordle" }`.
+**Why:** the wrong mode produces either dead space above `Close game` or a board that overflows.
+**Check:** `ui:audit` fails when `gameToExit` does not match the declared family.
 
 ### RULE 4.2 — The three shell distances are identical in every game
-
-These are shell-owned and **must not vary by game**, whether or not the game has a progress bar,
-a status row, or any header at all:
-
 | Distance | Value | Owned by |
 |---|---|---|
-| Stage top → top of the game UI | **`30px`** (`--stage-pad`; relaxes to `clamp(14px, 2.6vw, 30px)` only below 820px so 390×844 still fits) | `.stage-inner` padding |
-| Game bottom → Exit button | `28px` (content) / `12px` (fill) | `.playing-wrap` gap |
-| Last component (or Exit button) → stage bottom | **`30px`** — the same `--stage-pad` | `.stage-inner` padding |
+| Stage top → first component | `--stage-pad` | `.stage-inner` padding |
+| Game bottom → `Close game` | 28 px (content) / 12 px (fill) | `.playing-wrap` gap (`--pw-gap`) |
+| `Close game` (or last component) → stage bottom | `--stage-pad` | `.stage-inner` padding |
 
-A game with no progress bar starts its first element at the **same** offset as a game with one —
-the bar is *inside* the game column, so its presence changes nothing about the shell spacing.
-If your game's top offset differs from Series Winner's, you have a layout-mode bug (Rule 4.1),
-**not** a padding problem. Never "fix" it by adding margin/padding to the game root.
+`--stage-pad` is **30 px** at ≥ 820 px wide and `clamp(14px, 2.6vw, 30px)` below (`ui.css`). It is
+the same in every game whether or not it has a progress bar or a status row. A different top offset
+is a classification bug (Rule 4.1), never a reason to add margin or padding.
 
-### RULE 4.2.1 — Top space == bottom space == `--stage-pad`, in EVERY state. **HARD RULE.**
-Before the game (idle), while loading, while playing, and after the game (in-place end or result
-screen) the space above the first component and the space below the last component are both the
-stage padding (`30px`). Never compensate with margin/padding on a game's root, and never leave an
-invisible element holding space under the last component. In particular, once a game ends in
-place its shell `Close game` link is collapsed (height **and** its flex gap, `.exit-link.is-ended`),
-because the ScorePanel's own buttons are then the last component. Verify with the harness
-(measure first-child top and last-child bottom against `.stage-inner`) in every state, not only
-while playing.
+**Why:** these three numbers are what make games look like one product.
+**Check:** `ui:audit`, or in DevTools while playing (each value against `--stage-pad`, never a literal):
+
+```js
+const r = el => el.getBoundingClientRect(), inner = document.querySelector('.stage-inner');
+const game = document.querySelector('.playing-wrap').firstElementChild, exit = document.querySelector('.exit-link');
+({ pad: getComputedStyle(inner).paddingTop, top: r(game).top - r(inner).top,
+   toExit: r(exit).top - r(game).bottom, bottom: r(inner).bottom - r(exit).bottom });
+```
 
 ### RULE 4.2a — Never render an empty slot; omit it
+A slot with no content contributes no node. `GameFrame.Status` omits an empty side: a lone label
+centres, a lone score stays flush right. Never pass `""`, `<span />` or `&nbsp;` to fix alignment.
 
-An empty slot is not free. It still occupies a flex position and still triggers the row's `gap`, so
-alignment maths lands half a gap off and `:only-child` / `:empty` rules that should fire never do.
-
-`GameFrame.Status` therefore omits a slot it was given nothing for, which lets the row align itself:
-
-```css
-/* Both slots → space-between. One slot → align by which one it is. */
-.gf-status > .gf-status-left:only-child  { margin-inline: auto; }        /* lone label centres */
-.gf-status > .gf-status-right:only-child { margin-inline-start: auto; }  /* lone score stays right */
-```
-
-A lone **label** centres — with nothing opposite it, pinning it to the left edge reads as a broken
-bar rather than a heading. A lone **score** stays right, so it never jumps sides when a game gains
-or loses its left label mid-run. Affected: Fan Favorites, Wordle, Imposter's rules card.
-
-This is the same principle as `GameFrame.Action` returning `null` when empty (Rule 0): **a slot with
-no content must contribute no node**. Do not "fix" alignment by passing `""`, `<span />` or `&nbsp;`
-into a slot — that reintroduces the phantom element the rule exists to remove.
-
-The harness asserts it: a lone left slot must sit within 1.5px of the row's centre, a lone right
-slot must be flush right.
+**Why:** an empty node still takes a flex position and a gap, so alignment lands half a gap off.
+**Check:** `ui:audit` fails a lone left slot more than 1.5 px off centre or a lone right slot not flush.
 
 ### RULE 4.2b — A content game must never be given a height floor
+Nothing above a content game may impose a `min-height`; `ui.css` removes the stage floor for content
+games (`.stage-inner:has(.gf:not(.gf--fill)) { min-height: 0 }`). The floor stays for idle, loading
+and fill games. A content game's shell height is output, not input — two content games of different
+size SHOULD have different shell heights; only the padding around them must match.
 
-A content game hugs its content. If anything above it imposes a **minimum height**, the leftover
-gets split by `align-items: center` and the game floats — a bigger top *and* bottom offset than
-every other game, for no reason other than "this game has less content".
-
-That is exactly what made Guess the MVP sit at **82px** top/bottom while Name the Club sat at
-**28.6px**: identical structure, identical slot usage, both content games. The only difference was
-that Name the Club has a big logo image so its content exceeded `.stage-inner`'s
-`min-height: clamp(280px, 44dvh, 430px)` (~396px) and filled it, while Guess the MVP — same layout,
-no image — fell ~107px short and had that slack split evenly around it.
-
-```css
-❌ WRONG — the floor applies to content games too, so short ones float
-.stage-inner { min-height: clamp(280px, 44dvh, 430px); }
-
-✅ RIGHT — the floor still protects idle/loading and fill games, but never a content game
-.stage-inner { min-height: clamp(280px, 44dvh, 430px); }
-.stage-inner:has(.gf:not(.gf--fill)) { min-height: 0; }
-```
-
-**Generalised:** a content game's shell height is *output*, not input. Two content games with
-different amounts of content SHOULD produce different shell heights — what must be identical is the
-padding around them. Never reach for a min-height to make two games' shells the same size.
-
-The harness asserts this: `shellTop` and `exitToBottom` must both be 28.6 for every game, so a
-reintroduced floor fails `npm run ui:audit` instead of waiting to be spotted by eye.
+**Why:** a floor makes short games float, with a bigger top and bottom offset than every other game.
+**Check:** `ui:audit` (`shellTop` and `exitToBottom` equal `--stage-pad`).
 
 ### RULE 4.3 — Column counts are chosen per breakpoint, never left to `auto-fit`
-
-`auto-fit`/`minmax()` reflows silently and unpredictably on phones — and with a square
-(`aspect-ratio: 1/1`) cell, each extra row multiplies height. That is how Starting Five ended up
-427px past the viewport. Decide the count explicitly at each breakpoint instead:
-
-```css
-❌ WRONG — reflows to an unplanned 2x3 at 390px, blowing the viewport budget
-.s5-cards { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
-
-✅ RIGHT — an explicit count per breakpoint
-.s5-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-@media (max-width: 620px) { .s5-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-```
-
-**Legibility beats keeping the set on one line.** Squeezing five cards across a 390px screen leaves
-~59px each — too narrow for a full player name. Two per row (~157px) is correct even though it
-costs a row.
-
-**But media keeps its aspect ratio — always.** A card's photo/artwork is the point of the card, so
-its ratio is never squashed to reclaim height. Buy height back from everything *except* the media:
-lay the control row out horizontally (input beside its button), trim oversized headers, tighten
-labels. A cell may end up **larger** on mobile than desktop (Starting Five: ~157px vs ~133px) —
-that is fine. Smaller or letterboxed is not.
+Set the column count explicitly at each breakpoint; `auto-fit`/`minmax()` reflows unpredictably on
+phones. Prefer legible cells to one row (two per row at 390 px beats five unreadable ones). Centre an
+odd cell left alone on the last row. Media (photo, artwork) **always keeps its aspect ratio** — buy
+height back from controls, headers and labels; if it still cannot fit, apply Rule 1.2. `auto-fit` is
+allowed only for genuinely open-ended lists (a results feed, a guess list).
 
 ```css
-❌ WRONG — letterboxes the photo to save height
-@media (max-width: 620px) { .s5-card-stage { aspect-ratio: auto; height: clamp(58px, 8dvh, 116px); } }
-
-✅ RIGHT — ratio preserved at every width; height comes from elsewhere
-@media (max-width: 620px) { .s5-card-input { flex-direction: row; } }
+❌ .s5-cards { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+✅ .s5-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+   @media (max-width: 620px) { .s5-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+❌ @media (max-width: 620px) { .s5-card-stage { aspect-ratio: auto; height: clamp(58px, 8dvh, 116px); } }
 ```
 
-**If the layout still cannot fit, the game opts out of the stage cap — it does not shrink.** See
-Rule 1.2.
-
-Use `auto-fit` **only** where the count is genuinely open-ended (a results feed, a guess list).
-When cells shrink, scale their contents with them rather than letting text ellipse into nonsense —
-and remember a control's accessible name can come from `aria-label`, so the *visible* label may
-shrink freely.
-
-An odd cell left alone on the final row must be centred, not left dangling in column 1:
-
-```css
-.s5-card:last-child:nth-child(odd) { grid-column: 1 / -1; justify-self: center; width: calc(50% - 5px); }
-```
+**Why:** silent reflow multiplies square rows and blows the viewport budget.
+**Check:** `grep -n 'auto-fit' src/styles/<Game>.css`; resize through 390 / 620 / 1100 px.
 
 ### RULE 4.4 — Reserve label height across repeated cells
+A label above a row of repeated cells reserves its maximum line count (`min-height: 2.4em` for two
+lines), so one short label does not shift its column.
 
-Any label that sits above a row of repeated cells must reserve its **maximum** line count, or the
-one short label knocks its whole column out of alignment. "Center" is one line while "Point Guard"
-wraps to two — an 11px offset on that entire column.
+**Why:** "Center" (one line) next to "Point Guard" (two) knocks that column 11 px out of line.
+**Check:** `new Set([...document.querySelectorAll('<cell body>')].map(c => c.getBoundingClientRect().top.toFixed(1))).size === 1`
 
-```css
-❌ WRONG — "Center" rides 11px higher than the other four
-.s5-card-pos { line-height: 1.2; }
+### RULE 4.5 — Top space equals bottom space equals `--stage-pad`, in every state
+Idle, loading, playing and ended (in place or full-screen result): the space above the first
+component and below the last is the stage padding. Never compensate with margin or padding on a
+root, and never leave an invisible element holding space under the last component. When a game ends
+in place the shell adds `.is-ended` to `.exit-link`, which hides **and collapses** it (height and its
+flex gap, `MiniGame.css`), because the `ScorePanel` buttons are then the last component.
 
-✅ RIGHT — two lines always reserved, all five columns align
-.s5-card-pos { line-height: 1.2; min-height: 2.4em; }
-```
+**Why:** the padding must not change when the phase changes.
+**Check:** measure first-child top and last-child bottom against `.stage-inner` in each state.
 
-**Acceptance test** — every repeated cell's body must start at the same Y:
+### RULE 4.6 — One leave control per screen, labelled `Close game`
+While playing, the only leave control is the shell's `.exit-link` (`Close game`). On a result it is
+the end panel's `Close game` button (`GameResult` or `ScorePanel`); the shell link is then hidden
+(Rule 4.5). A game never renders its own leave control and never labels one anything else.
+Exception: the multiplayer `OnlineMatch` leave-match control.
 
-```js
-new Set([...document.querySelectorAll('.s5-card-stage')]
-  .map(c => c.getBoundingClientRect().top.toFixed(1))).size === 1  // MUST be true
-```
-
-### RULE 4.2 acceptance test
-
-Paste into DevTools while any game is in play. All three numbers must match Series Winner's:
-
-```js
-const r = el => el.getBoundingClientRect();
-const inner = document.querySelector('.stage-inner');
-const game  = document.querySelector('.playing-wrap').firstElementChild;
-const exit  = document.querySelector('.exit-link');
-({
-  top:    +(r(game).top - r(inner).top).toFixed(1),      // 28.6
-  toExit: +(r(exit).top - r(game).bottom).toFixed(1),    // 28 content / 12 fill
-  bottom: +(r(inner).bottom - r(exit).bottom).toFixed(1) // 28.6
-});
-```
-
-### Exit button
-**One leave control per screen, labeled Close game.**
-While playing it is one shell element only — `.exit-link` (text `Close game`) with `margin-top:auto`,
-so the distance beneath it is the `.stage-inner` clamp padding for **every** game. `font-size:12px`,
-`color:var(--muted)`, `text-decoration:underline`, `text-underline-offset:3px`; hover → `var(--text)`.
-On a result screen the leave control is the end panel's `Close game` button (7a `GameResult`, 7b
-`ScorePanel`); once an in-place game ends the shell adds `.is-ended` (`visibility:hidden`, box kept
-so the board doesn't shift) to `.exit-link`. **Never render your own exit**, and never label a leave
-control anything but `Close game` (multiplayer's `OnlineMatch` leave-match control is the exception).
+**Why:** two leave controls, or three names for one, make the player hesitate.
+**Check:** `grep -nE 'Exit|Leave|Quit' "src/Game Renderers/<Game>.tsx"` finds no button copy.
 
 ---
 
-## 5. Game root layout (the Series Winner column)
+## 5. Rounds
 
-Your root is a single column. Copy these values:
+### RULE 5.0 — Progress bar: the shared component, in the second slot, or nothing
+If a game has linear progression, it renders the shared `<ProgressBar value max />` as the second
+child of `<GameFrame>`, right under `Status`. Never move it, restyle its track or fill, or substitute a
+custom bar. A game with no linear progression (open boards, daily puzzles, lives-as-progress) omits
+it and gets a deviations row.
 
-```jsx
-<div style={{ position:"relative", width:"100%", maxWidth:560,
-              display:"flex", flexDirection:"column", gap:20 }}>
-```
-
-| Slot | Spec |
-|---|---|
-| **root** | `max-width:560px`, `flex column`, **`gap:20px`** |
-| **1. status row** | `flex`, `align-items:center`, `justify-content:space-between`, `gap:14px` |
-| ↳ round label | `font-size:11px`, `letter-spacing:1px`, `color:var(--muted)`, `weight:600` — `ROUND {n}/{total}` (uppercase) |
-| ↳ score group | `flex`, `align-items:center`, `gap:8px`, `font-size:13px`, `weight:700` |
-| ↳ "SCORE" | `color:var(--muted)`, `weight:500`, `font-size:11px`, `letter-spacing:.5px` |
-| ↳ score value | `.tnum`, `color:var(--brand)`, `font-size:16px` |
-| **2. progress bar** | `<ProgressBar value max />` — see below |
-| **3. round body** | one persistent `flex column` block, **`gap:18px`** — never keyed per round (RULE 5.1) |
-
-There is no feedback row: feedback is an overlay that lives in the shell's `.feedback-slot`, outside
-the game column entirely — see §6 RULE 6.1.
-
-### Progress bar — position is fixed
-The bar is **always the second child of the root**, directly under the status row, separated by the
-root's `gap:20px`. That distance from the top of the game container is identical in every game.
-
-```css
-.progress { height: 5px; border-radius: 5px; background: var(--surface3); overflow: hidden; }
-.progress > span {
-  display: block; height: 100%; border-radius: 5px;
-  background: linear-gradient(90deg, var(--brand), var(--brand2));
-  transition: width 0.4s var(--ease-out);
-}
-```
-
-- Use the shared `<ProgressBar value={…} max={…} />` (renders `role="progressbar"` +
-  `aria-valuenow` / `aria-valuemax`). Series Winner advances it on reveal:
-  `value={currentIndex + (revealing ? 1 : 0)}`.
-- **A game may omit the bar** if it has no linear progression (open boards, daily puzzles) — but if
-  it has one, it goes in that exact slot with that exact styling. Never move it, never restyle the
-  track/fill, never substitute a custom bar.
+**Why:** the bar's position is the same distance from the top in every game.
+**Check:** `grep -n 'ProgressBar' "src/Game Renderers/<Game>.tsx"` — one import from `components/ui`.
 
 ### RULE 5.1 — Between rounds, only the content that changed animates. **HARD RULE.**
-The round body is **mounted once and never re-keyed per round**. Do not wrap it (or any group of
-elements) in `<AnimatePresence key={round}>` / `key={currentIndex}` so the whole thing fades out and
-back in. Instead, every element is classified:
+The round body mounts once and is never re-keyed per round — no `<AnimatePresence key={round}>` or
+`key={currentIndex}` around a group.
 
-| Element | What it does when the round changes |
+| Element | When the round changes |
 |---|---|
-| Constant (title/question like "Who won the series?", "VS", labels, the cards/boxes/buttons themselves, the input row) | **Nothing.** Stays mounted, in place, no fade. |
-| Changing text (eyebrow, team/player name, `ROUND 4/5`, sub-labels) | `<SwapText>` (UI-21). It only animates when its text actually differs, so two consecutive "Conference Semifinals" rounds do not fade that line. |
-| Changing media (crest, logo, headshot) | Swap **only the media** inside its fixed box: `<SwapText swapKey={id} variants={opacity-only}>`. The tile/box keeps its size and position; a background colour that depends on the content (team colour) eases with a CSS `transition`. Same item next round = no animation. |
+| Constant (question, `VS`, labels, the cards and buttons themselves, the input row) | Nothing. Stays mounted. |
+| Changing text (eyebrow, names, `ROUND 4/5`) | `<SwapText>` (UI-21); it animates only when the text differs. |
+| Changing media (crest, logo, headshot) | Swap only the media inside its fixed box: `<SwapText swapKey={id}>` with opacity-only variants. |
 
-The swap key is the *content identity* (team name, player id), never the round index. Repeated
-cells are keyed by **position** (`key={i}`), not by their content, so the box itself never remounts.
-Reveal states (correct/wrong border, wins line) already follow this pattern and are unchanged.
-Reference: `PlayOffSeries.tsx`. Under reduced motion `SwapText` already drops the travel.
+Key the swap by content identity (team, player id), never by round index; key repeated cells by
+position (`key={i}`). Reference: `PlayOffSeries.tsx`.
 
-**Acceptance test:** play two consecutive rounds that share the same eyebrow/title. Only the names
-and crests may visibly change; the title, eyebrow (when equal), cards and progress bar must not blink.
+**Why:** a whole-card fade every round reads as a reload and hides what actually changed.
+**Check:** play two rounds that share an eyebrow; only names and crests may change, nothing blinks.
 
-### Round body spec
-Layout only — see RULE 5.1 for how it changes between rounds.
-
-| Element | Spec |
-|---|---|
-| header | `flex column`, `gap:6px`, `align-items:center`, `text-align:center` |
-| ↳ context line | `font-size:11px`, `letter-spacing:1.5px`, **`color:var(--brand)`**, `weight:600` (e.g. `First Round · 1978-79`) |
-| ↳ question | `.font-display`, `font-size:19px` (e.g. "Who won the series?") |
-| choice grid | `display:grid`, `grid-template-columns:"1fr auto 1fr"`, `gap:10px`, `align-items:stretch` |
-| VS divider | `.font-display`, `font-size:13px`, `color:var(--muted)`, `align-self:center` |
-
-**Choice button** (`.btn` is *not* used — these are bespoke cards):
-```
-flex column, align-items:center, gap:10px
-padding: 18px 14px
-border-radius: 14px
-border: 1px solid var(--line2)
-background: var(--surface2)
-height: 100%; justify-content: flex-start
-transition: background .35s ease, border-color .35s ease, opacity .35s ease
-hover: y -2   |   tap: scale .96   (both disabled once revealed)
-```
-Reveal states — correct: `border var(--good)` + `background var(--good-soft)`;
-the player's wrong pick: `border var(--bad)` + `background var(--bad-soft)`;
-every other option: `opacity .55`.
-
-Inside each button: crest tile `54×54`, `radius:14px`, centered, `background:` the team's primary
-colour (fallback `var(--surface3)`), `box-shadow:0 6px 16px -6px rgba(0,0,0,.5)`, `overflow:hidden`,
-containing `<TeamCrest size={40} />`; then the label `.font-display`, `font-size:15px`,
-`text-align:center`, `line-height:1.25`; then (after reveal only) a `.tnum` stat line with
-`margin-top:auto`, `padding-top:6px`, `font-size:12px`, `weight:700`, coloured `var(--good)` for the
-winner else `var(--muted)`.
-
-**Reveal dwell: 1800 ms** between locking an answer and advancing to the next round.
+### Shared constants
+| Constant | Value | Where it comes from |
+|---|---|---|
+| Loading hold | 2000 ms | `MiniGame.tsx` (Rule 3.1) |
+| Reveal dwell (lock → next round) | 1800 ms | game timer; `PlayOffSeries.tsx` |
+| In-place loader beat | 1.5 s | game timer (Rule 7.3) |
+| End-of-game stagger | 260 ms per item, ~300 ms lead-in | game timer (Rule 7.2) |
+| Feedback slot | `bottom: 22px`, absolute, `pointer-events: none` | `MiniGame.css` (Rule 6.1) |
 
 ---
 
-## 6. Feedback ("Correct! +10")
+## 6. Feedback
 
-**Copy format is fixed:**
+### RULE 6.0 — Feedback copy and colour are fixed
 - Correct → `` `Correct! +${pointsPerCorrect}` `` in `var(--good)`.
-- Wrong → a short statement of the truth, in `var(--bad)` — e.g. `It was the ${winner}`,
-  `Not on the board`. Never a bare "Wrong".
-- Neutral/no-op → `var(--muted)` (e.g. `Already tried`).
-- Never a distinct "Out of lives" / "Game over" announcement on the guess that empties the last
-  life — see RULE 6.3.
+- Wrong → a short statement of the truth in `var(--bad)` (`It was the ${winner}`, `Not on the board`).
+  Never a bare "Wrong".
+- Neutral / no-op → `var(--muted)` (`Already tried`).
+- The guess that empties the last life follows Rule 6.3.
 
-**Styling is fixed:** `.font-accent`, `font-size:14px`, `weight:700`, animated
-`initial {opacity:0, y:6}` → `animate {opacity:1, y:0}` (and `exit {opacity:0, y:6}`).
+`SubmitGuessPopup` owns the type and motion; never restyle it.
+
+**Why:** the same outcome reads the same in every game, and a wrong answer teaches the right one.
+**Check:** `grep -n 'SubmitGuessPopup\|setPopUpInfo\|flashPopup' "src/Game Renderers/<Game>.tsx"` and read the strings.
 
 ### RULE 6.1 — Feedback is an overlay in the shell slot. There is exactly one placement.
+Per-guess feedback is `<SubmitGuessPopup show text color />`, a direct child of `<GameFrame>` after
+`<GameFrame.Action>`. It portals into the shell's `.feedback-slot` (absolute, `bottom: 22px`,
+`pointer-events: none`) in the empty gap above `Close game`, so it has zero layout footprint. Never
+build a per-game popup and never reserve an in-flow row for the message. End-of-game panels are
+covered by Rule 7.3, not this rule.
 
-Render `<SubmitGuessPopup show={…} text={…} color={…} />` as a direct child of `<GameFrame>`,
-after `<GameFrame.Action>`. It **portals into `.feedback-slot`** — `position:absolute`,
-`left/right:0`, **`bottom:22px`**, `pointer-events:none`, `z-index:5` — a fixed spot in the gap
-between the game's bottom border and the Exit button.
-
-Being absolutely positioned with `pointer-events:none`, it has **zero layout footprint**: it never
-shifts any element regardless of message length, and it never covers game content, because it
-occupies gap that is otherwise empty. **Do not build a per-game popup, and never reserve an in-flow
-row for the message.**
-
-❌ A reserved in-flow row as the last child of the round body:
-```tsx
-<div style={{ height: 20, display: "flex", alignItems: "center", justifyContent: "center" }}>
-  {feedback && <motion.span …>{feedback.text}</motion.span>}
-</div>
-```
-This was Series Winner's original placement. It grows the card by the row height **plus** the
-column `gap`, it travels with the board instead of sitting in the shell's fixed spot, and it puts
-the message somewhere different in every game.
-
-✅ The shared overlay:
-```tsx
-<GameFrame.Action>{…}</GameFrame.Action>
-
-<SubmitGuessPopup
-  show={!!feedback}
-  text={feedback?.text ?? ""}
-  color={feedback?.color ?? "var(--good)"}
-/>
-```
-
-**All 17 games use this placement.** A game that renders per-guess feedback any other way is wrong.
-(The end-of-game reveal panels of §7b are a different thing and are not covered by this rule.)
-
-### RULE 6.1 acceptance test
-1. DevTools → select the game root; record `getBoundingClientRect().height` before answering.
-2. Trigger a correct answer, then a wrong one (wrong copy is longer — it names the answer).
-3. The height must be **identical** in all three states, and the message must sit between the
-   game's bottom border and Exit, overlapping neither.
-4. While a message shows, `document.querySelector(".feedback-slot").children.length` must be `1`.
-   If it is `0`, the game built its own popup instead of portalling into the shared slot.
+**Why:** an in-flow message row grows the card and puts the message somewhere different in each game.
+**Check:** with a message showing, `document.querySelector('.feedback-slot').children.length === 1`,
+and the root's height is the same before answering, after a correct and after a wrong answer.
 
 ### RULE 6.2 — Transient content must never resize the container. **HARD RULE.**
+The container changes size only when a permanent component mounts or unmounts (a real phase change).
+Transient content reserves its space up front and costs zero pixels. Techniques, in order:
+1. portal into `.feedback-slot` (Rule 6.1);
+2. keep the node mounted and swap its content, reserving the line with a non-breaking space;
+3. `min-height` / `min-width` sized to the longest state;
+4. `position: absolute` inside a parent that already reserves the space.
 
-The game container may change size **only** when a permanent structural component mounts or
-unmounts — a real phase change (board → result). Anything that appears temporarily and then goes
-away — a feedback message, a reveal label, a hint, a badge, a spinner, an error — must **reserve its
-space up front** and cost the container **zero pixels**.
+Never conditionally mount an in-flow node, toggle `display: none`, or change line count between states.
 
-A transient element that resizes the container is a bug even when the animation looks smooth: the
-board jumps under the player's cursor mid-interaction.
-
-❌ Conditional render of an in-flow node — the card grows on reveal:
 ```tsx
-{showWinner && <span>{t.wins} wins</span>}   // 24px label + 10px flex gap = 34px jump
+❌ {showWinner && <span>{t.wins} wins</span>}
+✅ <span aria-hidden={!showWinner}>{showWinner ? `${t.wins} wins` : " "}</span>
 ```
 
-✅ Always mounted, space reserved, content swapped:
-```tsx
-<span aria-hidden={!showWinner}>{showWinner ? `${t.wins} wins` : " "}</span>
-```
+**Why:** the board jumps under the player's cursor mid-interaction.
+**Check:** zero height variance across a round with one correct and one wrong answer:
 
-Allowed techniques, in order of preference:
-1. **Portal into `.feedback-slot`** — zero footprint. Correct for all per-guess feedback (6.1).
-2. **Keep the node mounted and swap its content**, reserving the line box with ` `.
-3. **`min-height` / `min-width`** sized to the longest state.
-4. **`position:absolute`** inside a parent that already reserves the space.
-
-Never: conditional mount of an in-flow node, `display:none` ↔ `block` toggles, or copy that changes
-line count between states.
-
-### RULE 6.2 acceptance test
-Zero variance in the game root height across a full round, including a wrong answer:
 ```js
-const gf = document.querySelector('.gf');
-const seen = new Set([gf.getBoundingClientRect().height.toFixed(2)]);
+const gf = document.querySelector('.gf'), seen = new Set([gf.getBoundingClientRect().height.toFixed(2)]);
 new ResizeObserver(() => seen.add(gf.getBoundingClientRect().height.toFixed(2))).observe(gf);
-// …play a round with one correct and one wrong answer…
-seen.size === 1   // MUST be true
+// …play a round… then: seen.size === 1
 ```
 
 ### RULE 6.3 — Lives running out is never announced, anywhere. **HARD RULE.**
+No surface announces the loss: not `SubmitGuessPopup`, not the `ScorePanel`/`ScoreLine` label, not a
+status banner. Banned strings: "Out of guesses", "Out of lives", "Out of hearts", "Game over",
+"Run over". A loss ends with the plain points line (no label) and the reveal. On the life-ending guess,
+either reuse the ordinary wrong-guess copy (Rule 6.0) or skip the popup. A warning before the last
+life is spent (Pack 5's `Missed.`) is ordinary feedback and is allowed.
 
-**No surface may announce the loss: not the popup, not the `ScorePanel`/`ScoreLine` label, not a
-status banner.** "Out of guesses", "Out of lives", "Out of hearts", "Game over", "Run over" are all
-banned strings. A loss ends with the plain points line alone (`0/700 pts`, no label) and the
-reveal; `label` is for wins only. This applies to **every** game; when adding or touching a
-game, grep it for these strings. (History: the popup half was fixed in Career Path only, so Who Are
-Ya, Connections, Wordle and Pack Five kept announcing it until the 2026-10-07 sweep.)
-
-When a wrong guess drops a game's remaining lives to zero, do **not** flash an "Out of lives" /
-"Game over" / "Run over" style message through `SubmitGuessPopup`. The lives indicator (hearts, a
-miss counter, etc.) already tracks this in real time, and the loss is always followed immediately
-by the §7b reveal sequence (or, for standard-path games, the §7a result screen) — a third message
-announcing the same fact is redundant on top of two other signals the player already sees.
-
-The ordinary wrong-guess copy from the "Copy format is fixed" list above (`Not on the board`,
-`It was the ${winner}`, etc.) still fires normally right up to and including the guess that empties
-the last life — or the popup can be skipped for that guess entirely. Only a distinct "you've lost /
-you're out of lives" string is disallowed.
-
-❌ `setPopUpInfo({ Text: "Out of lives", Color: "var(--bad)" })` on the life-ending guess.
-❌ `flashPopup("Two misses — run over", "var(--bad)")` on the life-ending guess.
-✅ Skip the popup call on the life-ending guess (or reuse the plain wrong-guess copy) and go
-straight into the reveal/result flow.
-
-This does **not** apply to a warning shown *before* the last life is spent (e.g. Pack 5's
-`"Missed."`) — that's ordinary in-play feedback, not a game-over announcement.
+**Why:** the lives indicator and the reveal already say it; a third message is noise.
+**Check:** `grep -rniE 'out of (guesses|lives|hearts)|game over|run over' "src/Game Renderers"` finds no user-facing string (hits inside code comments are fine).
 
 ---
 
 ## 7. End of game
 
-### 7a. Standard path — full-screen result (default)
-Call `onGameEnd(finalScore)` with **no options**. The shell flips to the `result` phase:
+A game ends exactly once, through `onGameEnd`. Which path it takes is decided by Rule 7.3.
 
-1. **No "Calculating…" beat.** The score is already known the instant a game ends, so nothing
-   is shown between the last round and the result — the only transition is the `Stage`
-   cross-fade (`0.25 s` out / `0.25 s` in). Points are logged and awarded **in the background**
-   (`awardPoints` in `MiniGame.tsx`, fired from `onGameEnd`); the reveal never waits on that
-   request, and a slow or failed `log-session` call must not delay or break the screen. Never
-   reintroduce a loader or an artificial timeout in front of the result.
-2. `GameResult` springs in immediately (`stiffness 240`, `damping 22`,
-   `initial {opacity:0, scale:.9, y:10}`), container `max-width:440px`, `margin:0 auto`,
-   `flex column`, `align-items:center`, `gap:8px`, centered:
+### RULE 7.4 — A full-screen result appears at once
+Standard path: `onGameEnd(finalScore)` with no options; the shell swaps in `GameResult`
+(`src/components/ui/GameResult.tsx` — shell-owned, never restyle). Nothing sits between the last
+round and the result except the `Stage` cross-fade: no "Calculating…" beat, no loader, no artificial
+timeout. Points are logged and awarded in the background (`awardPoints` in `MiniGame.tsx`); a slow or
+failed request never delays or breaks the screen.
 
-| Element | Spec |
-|---|---|
-| status icon | `64×64` circle, `background:var(--good-soft)` when scored else `var(--surface3)`, `margin-bottom:4px`; check `svg` 30×30, `stroke:var(--good)`, `stroke-width:2.6` |
-| title | `.font-display`, `font-size:24px` — `Perfect game!` / `Nice run!` / `Good try!` |
-| score row | `flex`, `align-items:baseline`, `gap:8px`, `margin:4px 0` |
-| ↳ score | `.font-display.tnum`, **`font-size:48px`**, `color:var(--brand)`, count-up via `AnimatedNumber` |
-| ↳ cap | `.font-display`, `font-size:20px`, `color:var(--muted)` — `/ {maxPoints}` |
-| message | `font-size:13.5px`, `color:var(--muted)`, `max-width:300px`, `line-height:1.5` |
-| buttons | `flex`, `gap:10px`, `margin-top:14px`, `width:100%` — `<Button block>Play again</Button>` + `<Button block variant="secondary">Close game</Button>` (both `btn-md`, `height:46px`); `Close game` is the screen's only leave control (§4 Exit button) |
-| confetti | only when score > 0 and motion allowed: 260 pieces, `gravity .25`, colours `#ff6a1a, #ff8a3d, #ffd166, #ffffff, #2fc762` |
+**Why:** the score is known the instant the game ends; any wait is fake.
+**Check:** no `setTimeout` between the final answer's dwell and `onGameEnd`; the result shows with the
+network throttled.
 
-### 7b. The exception — games that reveal answers (stay in place)
-Any game that reveals an answer, solution or final board at the end ends in place (RULE 7.3):
-**there is no screen change.** The player stays on the game UI while the answers fill in.
+### RULE 7.3 — A game that reveals something at the end MUST end in place. **HARD RULE.**
+If the end reveals an answer, solution or final board, there is no screen change: call
+`onGameEnd(finalScore, { inPlace: true })` and drive `<EndSequence phase input score />` through
+`input` (the live action row) → `loader` (`<Spinner label="Calculating score…" />`, 1.5 s, while the
+answers reveal — Rule 7.2) → `score` (`<ScorePanel>` with `onPlayAgain` and `onClose`). A game that
+puts its result at the top renders `ScoreLine` in `Status` and `ScoreActions` in the score slot.
+`EndSequence`, `ScorePanel` and `Spinner` are shell-owned; never restyle them.
 
-Call `onGameEnd(finalScore, { inPlace: true })` (awards points, suppresses the overview) and drive
-the shared `<EndSequence phase input score />` with a
-`bottomPhase: "input" | "loader" | "score"` state:
-
-```
-input  → the live submission row (input + Confirm)
-loader → <Spinner label="Calculating score…" />   ← shown for 1.5 s
-score  → the compact score line + buttons
-```
-
-- **The loader is small and sits at the bottom of the live game UI** — `.endseq` is
-  `width:100%`, `flex`, centered, `min-height:46px` — the `btn-md` input row's height (so the swap never collapses the layout);
-  `.endseq-slot` is a centered `flex column`.
-  `Spinner`: `.spinner-ring` `border:3px solid var(--brand-soft)`, `border-top-color:var(--brand)`,
-  `animation: spin .75s linear infinite`, default `size:30`; label `font-size:12.5px`,
-  `color:var(--muted)`, `letter-spacing:.3px`; wrapper `gap:10px`.
-- Phase cross-fades (`AnimatePresence mode="wait"`, `initial={false}`) — `input` exits
-  `{opacity:0, y:3}` @ `0.16s`; `loader` fades @ `0.16s`; `score` enters `{opacity:0, y:6}` →
-  `{opacity:1, y:0}` @ `0.16s`, ease `[.22, 1, .36, 1]`.
-- **Answers reveal progressively** while the loader runs — stagger each row (Fan Favorites uses
-  `260ms + i*260ms`), then settle into `score`.
-
-**The in-place score panel is deliberately quieter than 7a** — no 64px status icon, no green
-check, no 48px number, no message paragraph. Use `<ScorePanel>`:
-
-```css
-.scorepanel { display:flex; align-items:center; justify-content:center;
-              gap:14px; width:100%; max-width:420px; min-height:40px; flex-wrap:wrap; }
-.scorepanel-line  { display:flex; align-items:baseline; gap:9px; }
-.scorepanel-label { font-size:.9rem;   font-weight:600; color:var(--muted); }  /* var(--good) when won */
-.scorepanel-pts   { font-size:1.15rem; font-weight:700; color:var(--brand); letter-spacing:.3px; }
-```
-
-`ScorePanel` is `ScoreLine` (the line, score via `AnimatedNumber`) + `ScoreActions` (Play again / Close game),
-both exported from the same file; a game that puts its result at the top of the frame renders
-`ScoreLine` in the Status slot and `ScoreActions` in the score slot (Career Path).
-
-Optional `label` lead-in, optional `outOf` cap, `.tnum` on the number. **Below the score sit
-Play again + Close game**, using the same button treatment as 7a — pass `onPlayAgain` and
-`onClose` (both threaded through `RenderGame` from `MiniGame`). That `Close game` is the screen's
-only leave control: `onGameEnd(…, { inPlace: true })` hides the shell's `.exit-link` (§4 Exit button).
-
-#### RULE 7.0 — Score above the buttons, always
-
-`ScorePanel` is a **column**: the score line sits above Play again / Close game, at every width and
-in every game. The player reads the result, then chooses an action — never side by side, and never
-reflowed by `flex-wrap` so the order shifts with the viewport.
-
-```css
-❌ WRONG — wraps to a row on wide screens, buttons beside the score
-.scorepanel { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-
-✅ RIGHT — score always above the actions
-.scorepanel { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-```
-
-Verify: `r(scoreLine).bottom <= r(buttonRow).top`.
-
-#### RULE 7.1 — The answers carry the result; don't restate it as a count
-
-**The result line shows final points only. Never repeat counts of correct items that the board or
-answer list already shows.**
-
-When a game reveals per-answer outcomes, colour each revealed answer — `var(--good)` for what the
-player got, `var(--bad)` for what they missed — and **omit any "Found 3/5" style tally**. The board
-already shows it; a count is redundant chrome that competes with the reveal.
-
-```css
-✅ the result reads off the answers themselves
-.s5-card.is-correct  .s5-card-name { color: var(--good); }
-.s5-card.is-revealed .s5-card-name { color: var(--bad); }
-```
-
-Only use `ScorePanel`'s `label` for a genuine state that colour can't convey (`Board cleared!`,
-`That's him!`) — never for a loss (RULE 6.3) and never for a score the player can just read off the board. On a plain loss with
-nothing extra to say, pass no `label` at all (Fan Favorites): the points line stands alone, with no
-placeholder in its place (Rule 4.2a).
-
-#### RULE 7.2 — Never animate a reveal the player has already earned
-
-The end-of-game stagger applies **only to answers the player never got**. Anything they solved
-during play is already face-up and must cost zero reveal time, so the wait scales with how much
-they missed rather than with the size of the board.
-
-```js
-❌ WRONG — re-reveals everything; a strong player waits the longest
-SLOTS.forEach((s, i) => later(() => reveal(s.key), 300 + i * 260));
-
-✅ RIGHT — only the unsolved ones are staggered
-const toReveal = SLOTS.map(s => s.key).filter(k => !correctGuesses[k]);
-toReveal.forEach((key, i) => later(() => reveal(key), 300 + i * 260));
-```
-
-Stagger step is **260ms** with a ~300ms lead-in (matching Fan Favorites), then settle into `score`.
-Slower steps read as lag: Starting Five's 480ms step made a full miss take 4.5s; at 260ms it is 2.1s.
-
-#### RULE 7.3 — A game that reveals something at the end MUST end in place. **HARD RULE.**
-
-Any game that reveals an answer, solution or final board at the end MUST end in place: the answer
-stays on screen and points appear as one small ScorePanel. The full-screen GameResult is only for
-games with nothing to reveal.
+A game whose every round already reveals its answer before advancing may keep `GameResult`, with a
+written reason in `scripts/game-result-allowlist.json`. A call that ends through another flow is
+exempted with `// game-results: online-duel` on its line (TicTacToe's online duel).
 
 ```tsx
-❌ WRONG — the secret player / solution word / final board vanishes behind a full-screen card
-onGameEnd?.(finalScore);                      // shell swaps in <GameResult> "Good try! 0 / 200"
-
-✅ RIGHT — the answer stays on screen, points are the small ScorePanel under it
-onGameEnd?.(finalScore, { inPlace: true });   // EndSequence → ScorePanel, Rule 6.2: no resize
+❌ onGameEnd?.(finalScore);                      // the answer vanishes behind a full-screen card
+✅ onGameEnd?.(finalScore, { inPlace: true });   // answer stays; EndSequence → ScorePanel, no resize (Rule 6.2)
 ```
 
-A game whose every round already reveals its answer before advancing (nothing left unrevealed at
-the end) may keep `GameResult`, but only as an entry with a written reason in
-`scripts/game-result-allowlist.json`. This is enforced: `scripts/check-game-results.mjs`
-(`npm run check:games`, run by `npm run lint` and therefore CI) fails when a visible game calls
-`onGameEnd` without `{ inPlace: true }` and has no allowlist entry, and when an allowlist entry
-is stale. A call that ends through another flow (TicTacToe's online duel) is exempted with a
-`// game-results: online-duel` comment on the call line.
+**Why:** the answer is the payoff; hiding it behind a score card throws it away.
+**Check:** `npm run check:games` (run by `npm run lint`, so CI) fails on a visible game without
+`{ inPlace: true }` and no allowlist entry, and on a stale allowlist entry.
+
+### RULE 7.0 — Score above the buttons, always
+`ScorePanel` is a column: the score line sits above Play again / Close game at every width, never
+beside them and never reordered by wrapping.
+
+**Why:** the player reads the result, then chooses an action.
+**Check:** `scoreLine.getBoundingClientRect().bottom <= buttonRow.getBoundingClientRect().top` at 390 and 1100 px.
+
+### RULE 7.1 — The answers carry the result; don't restate it as a count
+The result line shows final points only. Colour each revealed answer (`var(--good)` got,
+`var(--bad)` missed) and omit any "Found 3/5" tally. Use `ScorePanel`'s `label` only for a win state
+colour cannot convey (`Board cleared!`, `That's him!`) — never for a loss (Rule 6.3) and never for a
+count. With nothing to say, pass no `label` at all (Rule 4.2a).
+
+**Why:** the board already shows the count; repeating it competes with the reveal.
+**Check:** read the `ScorePanel`/`ScoreLine` props and the result copy for digits or loss words.
+
+### RULE 7.2 — Never animate a reveal the player has already earned
+The end-of-game stagger applies only to answers the player never got; solved items are already face
+up and cost zero reveal time. Step 260 ms with a ~300 ms lead-in.
+
+```js
+✅ const toReveal = SLOTS.map(s => s.key).filter(k => !correctGuesses[k]);
+   toReveal.forEach((key, i) => later(() => reveal(key), 300 + i * 260));
+```
+
+**Why:** the wait should scale with what the player missed, not with the size of the board.
+**Check:** finish with everything solved — the score appears after the loader beat only.
 
 ---
 
-## 8. Reusable components — use these, don't re-invent
+## 8. Shared components
 
-`Stage`, `Button`, `Chip`, `ProgressBar`, `AutoCompleteInput` (pass `maxResults` for large pools),
-`EndSequence`, `ScorePanel`, `ScoreLine`, `ScoreActions`, `Spinner`, `SubmitGuessPopup`, `CourtLoader` (full-stage loading only),
-`TeamCrest`, `SessionTimer`, `AnimatedNumber`, `motion/*`.
-Alias-aware answer matching lives in `src/utils/answerMatch.ts`.
+### RULE 8.1 — Reuse the shared components; never re-implement them
+`GameFrame`, `Stage`, `Button`, `Chip`, `ProgressBar`, `AutoCompleteInput` (pass `maxResults` for
+large pools), `EndSequence`, `ScorePanel` / `ScoreLine` / `ScoreActions`, `Spinner`,
+`SubmitGuessPopup`, `CourtLoader` (full-stage loading only), `TeamCrest`, `SessionTimer`,
+`AnimatedNumber`, `SwapText`, `motion/*`. Alias-aware answer matching: `src/utils/answerMatch.ts`.
+
+**Why:** a copy drifts from the shell the first time the original changes.
+**Check:** search `docs/team/CODE_MAP.md` and `src/` before writing a component (reuse-first).
+
+## 9. Scoring
+
+### RULE 9.1 — Points add up, and time never adds points
+`pointsPerCorrect × rounds` equals the `maxPoints` on the idle chip. Aim for about 50 points per
+correct answer and 100–300 per session. Time is the multiplayer tiebreak only — it never adds points.
+Build single-player first, but shape score and state so online and friend modes slot in without a
+redesign (in multiplayer, show both players' running scores).
+
+**Why:** the idle chip is a promise; the result must be able to reach it.
+**Check:** compare the `Game` entry's `pointsPerCorrect`, round count and `maxPoints`.
 
 ---
 
-## 9. Scoring & multiplayer readiness
+## Accepted deviations
 
-- Always-visible `SessionTimer`; time is the multiplayer tiebreak **only** — it never adds points.
-- Roughly ~50 pts per correct answer, 100–300 per session; `pointsPerCorrect` × rounds must equal
-  the `maxPoints` advertised on the idle chip.
-- Build single-player first, but shape scoring/state so online + friend modes slot in with no
-  redesign. In MP, show both players' running scores over the correct answers.
+Deliberate and reviewed — do not "fix" these. A game may break a rule only with a row here.
 
----
-
-## Accepted deviations (deliberate — do not "fix" these)
-
-The spec is modelled on a 5-round quiz game. Most games are a different shape, and §4/§5/§7 carve-outs
-apply. These are reviewed and intentional:
-
-| Game | Deviation | Why |
-|---|---|---|
-| Starting Five | `max-width: 720px` (not 560) | the 5-card lineup row wraps below ~720px |
-| Starting Five | **opts out of the stage cap at ≤620px; the page scrolls** (Rule 1.2) | five 1:1 cards over three rows cannot fit 390×844, and Rule 4.3 forbids squashing the photo. The shell grows so the lineup stays inside its border. |
-| Pack 5, Who Are Ya, NBA Grid, SuperDraft, Imposter | narrower roots (430–520px) | board shapes; 560 is a **max**, not a target |
-| Heatmap, Contexto, TicTacToe, Who Are Ya, Connections, Wordle, Starting Five, Fan Favorites | **no progress bar** | no linear progression, or the board/rows/lives already *are* the progress (§5 carve-out) |
-| Connections, Heatmap, Contexto, Wordle, Who Are Ya, Career Path, TicTacToe, Bingo, SuperDraft, Imposter | **no `ROUND n/total`** | these games have no rounds |
-| Fan Favorites, SuperDraft, Contexto | correct-feedback copy is not `Correct! +N` | no per-answer points exist, so `+N` would be a lie |
-| Who Would Win | no per-matchup feedback popup; points (20 with the crowd, 5 against it, 0 for Skip) show in the status Score slot and the split bar | there is no right answer to flash — the crowd split is the feedback |
-| Bingo | keeps `Dabbed!` | scoring is terminal-only; there is no per-dab constant |
-| SuperDraft | keeps its bespoke `.sd-result` panel | it has a Share action with no shared equivalent; it now ends in place so there is only one end screen |
-| Imposter | keeps its custom explainer screen | MP-only; that is a rules screen inside the room, not the shell idle |
-| Imposter | lost the progress bar's `[data-low]` red state | swapped to the shared `ProgressBar`; `.imp-clock[data-low]` still signals low time |
-| Wordle | result shows `Close game` only, no `Play again` (`GameResult` without `onPlayAgain`) | once per day: a replay POSTs `daily-play` and hits the 423 lock |
-| Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | no white token exists; `ui.css:31` sets the same precedent |
-| Who Would Win | stays a fill game, not `is-content`; `.www-arena` is the board's scroller and its cards never shrink below their content | its vertical stacked arena genuinely fills; converting it would be a redesign. Below 700px of viewport height the arena tightens (`@media (max-height: 700px)`) so 360×640 fits with no scroll; only shorter still (320×568) does it scroll, with a bottom fade as the cue, never overlapping the action row |
-| Who Would Win | ends in place with the per-matchup list (crowd side, `+20`/`+5`/`0`) as the final board; `ScorePanel` has no label, no "sided with the crowd N/M" count | Rule 7.1 — the rows already carry the outcome, so a count would repeat them |
-| Career Path | no `loader` beat (`input -> score`); result line in the Status slot, the career/answer toggle in the Prompt slot, actions alone in the Action slot | the reveal is player-driven ("See full career" / "See the answer"), so nothing is calculated behind a spinner, and the owner's rule is that no button waits more than 400 ms; every slot keeps its play-time height so the frame never resizes (Rule 6.2) |
-
-**Known open items:**
-- §9's always-visible `SessionTimer` is not rendered by any game — a repo-wide product decision.
-- `src/components/CorrectAnswer.tsx` is now orphaned (both its callers moved to `SubmitGuessPopup`).
-- The other 17 games have **not** been re-measured against Rules 1.1 / 4.2 / 4.4 at 390×844.
-  Only Series Winner and Starting Five are verified.
+| Game | Deviation | Rule | Reason | Date |
+|---|---|---|---|---|
+| Starting Five | root `max-width: 720px` (`.gf:has(.s5-cards)`) | 0 | the five-card lineup wraps below ~720 px | ≤ 2026-10 |
+| Starting Five | taller than 390×844; the page scrolls | 1.1 | five 1:1 cards cannot fit without squashing the photo (Rule 4.3); as a content game the shell grows (Rule 1.2) | ≤ 2026-10 |
+| Contexto | `.endseq` min-height 100 px (`.gf:has(.cx-list)`) | 6.2 | its Give up + input row is taller than the default end slot | ≤ 2026-10 |
+| Heatmap, Contexto, TicTacToe, Who Are Ya, Connections, Wordle, Starting Five, Fan Favorites | no progress bar | 5.0 | no linear progression, or the board, rows or lives already are the progress | ≤ 2026-10 |
+| Connections, Heatmap, Contexto, Wordle, Who Are Ya, Career Path, TicTacToe, Bingo, SuperDraft, Imposter | no `ROUND n/total` label | 0 | these games have no rounds | ≤ 2026-10 |
+| Fan Favorites, SuperDraft, Contexto | correct copy is not `Correct! +N` | 6.0 | no per-answer points exist, so `+N` would be false | ≤ 2026-10 |
+| Bingo | keeps `Dabbed!` | 6.0 | scoring is terminal-only; there is no per-dab constant | ≤ 2026-10 |
+| Who Would Win | no per-matchup popup; points (20 with the crowd, 5 against, 0 for Skip) show in the Score slot and the split bar | 6.1 | there is no right answer to flash; the crowd split is the feedback | 2026-10 |
+| Who Would Win | fill game; `.www-arena` is the scroller; tightens under 700 px of viewport height; scrolls (with a bottom fade) only at 320×568 | 4.1, 1.1 | its stacked arena genuinely fills; converting it would be a redesign | 2026-10 |
+| Who Would Win | ends in place with the per-matchup list as the final board; `ScorePanel` has no label or count | 7.1 | the rows already carry the outcome | 2026-10 |
+| Career Path | no `loader` beat (`input → score`); result line in `Status`, career/answer toggle in `Prompt`, actions alone in `Action` | 7.3 | the reveal is player-driven, so nothing is calculated; the owner's bound is that no button waits more than 400 ms; every slot keeps its play-time height (Rule 6.2) | 2026-10 |
+| SuperDraft | bespoke `.sd-result` panel | 8.1 | it has a Share action with no shared equivalent; it ends in place, so there is one end screen | ≤ 2026-10 |
+| Imposter | custom explainer screen | 2.1 | multiplayer-only rules screen inside the room, not the shell idle | ≤ 2026-10 |
+| Wordle | `ScorePanel` without Play again | 7.3 | once per day: a replay POSTs `daily-play` and hits the 423 lock | 2026-10 |
+| Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | 0.1 | no white token exists; `ui.css` sets the same precedent | ≤ 2026-10 |
 
 ---
 
 ## Adding a game — the 4 touchpoints
 
-1. Nothing to route by hand — `src/app/[game]/page.tsx` serves every `urlPath` in `games[]` (`generateStaticParams`)
-2. `Game` entry in `src/utils/GameUtils.tsx` — `id`, `name`, `tag`, `description`, `intro`, `rules`,
+1. Routing is automatic: `src/app/[game]/page.tsx` serves every `urlPath` in `games[]` (UI-2).
+2. A `Game` entry in `src/utils/GameUtils.tsx` — `id`, `name`, `tag`, `description`, `intro`, `rules`,
    `instruction`, `loadingMessage`, `backgroundImage`, `urlPath`, `pointsPerCorrect`, `maxPoints`,
-   `fetchData`, `handleError`
-3. `case` in `src/Game Renderers/RenderGame.tsx` — the renderer receives
-   `{ gameInfo, onGameEnd, onPlayAgain }` and calls `onGameEnd` exactly once
-4. Server endpoint in `multiplayer_server/src/gameEndpoints.js` (only once MP is wired)
+   `fetchData`, `handleError` (and `roundsLabel` if not 5 rounds).
+3. A `case` in `src/Game Renderers/RenderGame.tsx` — the renderer receives
+   `{ gameInfo, onGameEnd, onPlayAgain, onClose }` and calls `onGameEnd` exactly once.
+4. A server endpoint in `multiplayer_server/src/gameEndpoints.js` (only once multiplayer is wired).
 
-**Then run Rule 4.1's classification test and add the id to `CONTENT_STAGE_GAMES` if it is a content
-game.** This is a required step, not an optional one — skipping it is the single most common way a
-game ends up with dead space above Exit. Finish by running Rule 4.2's acceptance test and confirming
-all three distances match Series Winner.
+Then classify it (Rule 4.1: `fill` or not), choose its end path (Rule 7.3), and run `npm run ui:audit`
+and `npm run lint` before calling it done.

@@ -161,7 +161,7 @@ export default function NbaGrid({ gameInfo, onGameEnd, onPlayAgain, onClose }: N
     later(() => setShowPopup(false), 1400);
   };
 
-  // The grid stays in place at the end (spec §7b): the breakdown strip IS the
+  // The grid stays in place at the end (Rule 7.3): the breakdown strip IS the
   // end screen, so points are awarded the moment the grid finishes.
   const finish = () => {
     if (overRef.current) return;

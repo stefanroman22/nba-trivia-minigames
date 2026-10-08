@@ -1168,3 +1168,63 @@ and labelled as a gross-failure check, not accuracy: real-photo false-positive a
 step with the same harness on a gitignored folder.
 Consequences: deploy needs owner steps (pin checksum, create the Hobby project, secrets, env on both projects);
 latency, bundle size and false-block numbers are produced by the workflow's eval step and recorded after its first run.
+
+## 2026-10-08 — GAME_DESIGN_CONSTRAINTS cleanup: which ids may change, what leaves the rulebook, what the id checker ignores
+Context: P2 hard docs card "Clean up GAME_DESIGN_CONSTRAINTS.md" (design
+`designs/2026-10-08-clean-up-game-design.md`). 958 lines, three stated values for one padding, RULE 4.1
+still pointing at a deleted `CONTENT_STAGE_GAMES` list, and rules 7.0–7.3 nested as `####` headings that
+`scripts/team/lib/rules.mjs` never extracts, so briefs never quoted the end-of-game rules the reviewer cites most.
+Weighed (ids): (a) keep every id and heading level exactly — rejected: `4.2.1` is unparseable by the brief
+generator and `7a`/`7b` are sections, not rules, so neither can be quoted or checked; (b) rename only what the
+tooling cannot read — chosen: `4.2.1 → 4.5` (zero references outside the doc), `7a → RULE 7.4`, `7b → RULE 7.3`,
+every other id stable; unnumbered rules (tokens, idle, loading, Close game, progress bar, feedback copy, shared
+components, scoring) get ids so the code reviewer can cite them. The 8 renderer/CSS comments and
+`code-reviewer.md` that say `7b` are updated in the same commit and the checker rejects the retired forms.
+Weighed (shell-owned specs): (a) shorten the idle/CourtLoader/GameResult/ScorePanel pixel tables — rejected: a
+game author cannot act on them without editing the shell, and they drift the moment the component changes;
+(b) delete them and state "shell-owned, never rebuild or restyle" plus the owning file — chosen; values a game
+must choose (2000 ms loading hold, 1.5 s loader beat, 1800 ms reveal dwell, 260/300 ms stagger, 22 px slot)
+survive in one constants table. Incident history (8 root gaps, 11-of-18 at 854×694, Guess MVP 82 px, Starting
+Five 427 px / 480 ms) is recorded by the implementation in a DECISIONS entry, not the rulebook. The §9
+"always-visible SessionTimer" rule is dropped: no single-player game renders it and the doc said so itself;
+"time never adds points" stays.
+Weighed (checker scope): (a) scan every tracked file — rejected: dated design docs, DECISIONS and RETRO describe
+the document as it was and must keep `7b`; (b) scan live docs, agent/skill files, `src/` and `scripts/`, exclude
+`docs/team/designs/`, `DECISIONS.md`, `RETRO.md`, `docs/superpowers/` — chosen, with the exclusion list and reason
+at the top of the script. `backend/` is not scanned (its only ids are AUTH references; a follow-up if wanted).
+Consequences: briefs will start quoting 7.0–7.4 and the new ids; `npm run lint` (and so CI) fails on a dangling
+rule reference; the 60 % length target is expected to hold because the deleted specs are ~230 lines.
+
+## 2026-10-08 — GAME_DESIGN_CONSTRAINTS rewrite: history leaves the rulebook, SessionTimer rule dropped
+Context: the rewrite of `docs/GAME_DESIGN_CONSTRAINTS.md` (958 → 504 lines; findings and the full
+old → new mapping in `designs/2026-10-03-game-constraints-review.md`) keeps one "why" line per rule. The
+incidents that justified the rules are recorded here instead, so the rulebook stays short and the evidence
+is not lost:
+- RULE 0: before `<GameFrame>`, prose-described roots produced 8 different root gaps (20 / 16.2 / 14.4 / 14 /
+  13.5 / 12.6 / 12 / 11.7 px) and 7 different widths (430–720 px, plus one game with none) across 18 games,
+  all passing static checks. Every game passed at 1100×900 while 11 of 18 were broken at 854×694 (four
+  rendering outside the shell border), because `--stage-max` shrinks with viewport height — hence the three
+  viewports in `ui:audit`.
+- RULE 1.0: NBA Grid's status label sat at offset 0 (flush to the shell border) because `.playing-wrap` was
+  sized against `--stage-max` instead of `--stage-avail`.
+- RULE 1.2: Starting Five once rendered its Close game link at 946 px while the shell ended at 824 px; the
+  per-game `.stage-inner:has(.s5-wrap)` opt-out was later superseded by the general content-game uncap in `ui.css`.
+- RULE 4.1: Starting Five and Wordle were left out of the old `CONTENT_STAGE_GAMES` list and got ~170 px of
+  dead space above Close game; the list was deleted in favour of `<GameFrame fill>` + `:has()`.
+- RULE 4.2b: Guess the MVP sat at 82 px top/bottom while Name the Club sat at 28.6 px (the stage padding at
+  that viewport) — the stage's `min-height` floor was split around the shorter game.
+- RULE 4.3: Starting Five's `auto-fit` card grid reflowed to an unplanned 2×3 at 390 px, 427 px past the
+  viewport; explicit counts (5, then 2 at ≤ 620 px) fixed it, and cells ended larger on mobile (~157 px vs ~133 px).
+- RULE 6.1: Series Winner's original feedback was a reserved 20 px in-flow row at the bottom of the round
+  body; it grew the card by the row plus the column gap and put the message in a different place per game.
+- RULE 6.3: the "out of lives" popup was first fixed in Career Path only; Who Are Ya, Connections, Wordle and
+  Pack Five kept announcing the loss until the 2026-10-07 sweep.
+- RULE 7.2: Starting Five's 480 ms stagger step made a full miss take 4.5 s; at 260 ms it is 2.1 s.
+- Imposter lost its progress bar's `[data-low]` red state when it moved to the shared `ProgressBar`;
+  `.imp-clock[data-low]` still signals low time. (Was a deviations row; it is a changelog line, not a deviation.)
+Decision (SessionTimer): the old §9 rule "always-visible `SessionTimer`" is dropped. No single-player game
+renders it (only `OnlineMatch` does) and the old document listed that as a known open item. "Time is the
+multiplayer tiebreak only and never adds points" stays as RULE 9.1. Reintroducing a visible timer is a
+product decision for its own card.
+Decision (rule count): the design's "29 rules" was a miscount of its own 28-row table; the rulebook has 28
+ids and no rule was invented to reach 29.

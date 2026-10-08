@@ -73,8 +73,8 @@ export default function NewGamePage() { return <NewGameScreen />; }
 { id: "new-game", name: "New Game", urlPath: "/new-game", /* … */ }
 ```
 
-Adding a game is a `Game` entry in `src/utils/GameUtils.tsx` (see `GAME_DESIGN_CONSTRAINTS.md`) —
-never a new file under `src/views/` or `src/app/`.
+Adding a game is a `Game` entry in `src/utils/GameUtils.tsx` — the touchpoints are in
+`GAME_DESIGN_CONSTRAINTS.md` → "Adding a game"; never a new file under `src/views/` or `src/app/`.
 
 ## Rule UI-3: `Navigation`'s `type` prop decides scroll-in-place vs navigate-then-scroll
 
@@ -246,8 +246,8 @@ Errors and one-shot confirmations go through `showErrorAlert` in
 `src/utils/Alerts.tsx`, which lazy-imports `sweetalert2` (kept out of the startup bundle) and style it
 with `swal2-custom-popup` / `swal2-custom-button`. `MiniGame.tsx` uses it for "Finish your current
 game first." Reserve `ModalHost` for in-app content (forms, lists, instructions). There is no toast
-library; the in-game "Correct! +10" line is the game-owned feedback slot
-(`GAME_DESIGN_CONSTRAINTS.md`), not a shell toast.
+library; the in-game "Correct! +10" line is the shell-owned feedback slot
+(`GAME_DESIGN_CONSTRAINTS.md` Rule 6.1), not a toast.
 
 Forms inside a modal report their own outcome inline instead: the auth modal (`LogInSignUp.tsx`)
 and `FeedbackModal.tsx` show errors in an inline `role="alert"` slot and success as an in-modal

@@ -32,9 +32,9 @@ Review focus, in priority order:
 2. TypeScript/type-safety issues; Django model/migration mistakes.
 3. Security: auth, input validation, leaked secrets, unsafe socket events.
 4. Constraint-doc compliance, citing the specific rule ID (`UI-n`/`BE-n`/`MP-n`/`AUTH-n`). For any
-   `Game Renderers/*.tsx` diff: compliance with `docs/GAME_DESIGN_CONSTRAINTS.md` — shell ownership
+   `Game Renderers/*.tsx` diff: compliance with `docs/GAME_DESIGN_CONSTRAINTS.md` ("Rules at a glance" table) — shell ownership
    (no per-game exit/loader/padding), layout-mode classification, feedback copy/placement, token
-   usage; result screen follows 7b / Rule 7.3: a game that reveals an answer ends in place
+   usage; result screen follows Rule 7.3: a game that reveals an answer ends in place
    (`{ inPlace: true }`, `ScorePanel`); full-screen `GameResult` only if allowlisted in
    `scripts/game-result-allowlist.json`. Cite the specific rule number when flagging a violation.
 5. Reuse — anything in the diff that duplicates a `docs/team/CODE_MAP.md` entry.

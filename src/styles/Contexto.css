@@ -7,7 +7,7 @@
    it needs a gap of its own (.gf-board is gapless by default). */
 .gf-board:has(.cx-list) { gap: 8px; }
 
-/* End sequence (Rule 7b): reserve the input phase's height (46px input row +
+/* End sequence (Rule 7.3): reserve the input phase's height (46px input row +
    10px gap + 44px Give up) so the swap to loader / ScorePanel never shrinks the
    action slot (Rule 6.2). */
 .gf:has(.cx-list) .endseq { min-height: 100px; }
