@@ -28,7 +28,7 @@ import { reducedFade, swap } from "../../motion/variants";
 import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 import "../../styles/MiniGame.css";
 
-// NOTE: there is deliberately no CONTENT_STAGE_GAMES list here any more.
+// NOTE: there is deliberately no hand-maintained list of content-stage game ids here any more.
 // Whether a game hugs its content or fills the stage is declared by the game
 // itself via <GameFrame fill>, and `.playing-wrap` reads that with :has() (see
 // MiniGame.css). The old hand-maintained id list drifted out of sync and left

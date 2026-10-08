@@ -49,7 +49,7 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
     if (endTimerRef.current) clearTimeout(endTimerRef.current);
   }, []);
 
-  // Ends in place (Rule 7b): the tile board stays. The keyboard stays up until the
+  // Ends in place (Rule 7.3): the tile board stays. The keyboard stays up until the
   // last row has finished flipping, then gives way to a short loader and the
   // ScorePanel, and the status label reveals the answer.
   const endGame = useCallback((points: number, won: boolean) => {
@@ -157,7 +157,7 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
         })}
       </div>
 
-      {/* End sequence (Rule 7b) shares the keyboard's grid cell: the keyboard stays
+      {/* End sequence (Rule 7.3) shares the keyboard's grid cell: the keyboard stays
           mounted (hidden once the game ends) so it keeps sizing the cell, and the
           loader / ScorePanel swap in over it — the board never resizes (Rule 6.2). */}
       <div className="wk-stack">
