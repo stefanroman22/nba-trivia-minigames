@@ -169,7 +169,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
     later(() => setShowPopup(false), 1500);
   };
 
-  // Ends in place (Rule 7b): the guess list and the revealed secret stay on
+  // Ends in place (Rule 7.3): the guess list and the revealed secret stay on
   // screen; the input row cross-fades to the loader, then to the ScorePanel.
   const endOnce = (finalScore: number, didWin: boolean) => {
     if (endedRef.current) return;
@@ -318,7 +318,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
       </GameFrame.Board>
 
       <GameFrame.Action>
-        {/* Input → spinner → score (shared answers-shown end sequence, Rule 7b) */}
+        {/* Input → spinner → score (shared answers-shown end sequence, Rule 7.3) */}
         <EndSequence
           phase={bottomPhase}
           input={

@@ -16,7 +16,7 @@ interface StartingFiveProps {
   pointsPerCorrect: number;
   onGameEnd: OnGameEnd;
   onPlayAgain?: () => void;
-  /** Closes the game and returns to the idle screen (spec §7b). */
+  /** Closes the game and returns to the idle screen (Rule 7.3). */
   onClose?: () => void;
 }
 
@@ -94,7 +94,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   const [correctGuesses, setCorrectGuesses] = useState<Record<string, string>>({});
   const [lostReveal, setLostReveal] = useState<Record<string, string>>({});
   // End-state: the lineup stays on screen while the bottom slot swaps
-  // submission → loader → score (spec §7b — see EndSequence).
+  // submission → loader → score (Rule 7.3 — see EndSequence).
   const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
@@ -165,7 +165,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
 
       if (Object.keys(correctGuesses).length + 1 === 5) {
         setTimeout(() => setShowPointsAnimation(false), 1500);
-        // Win → in-place (spec §7b): the completed lineup stays in view while the
+        // Win → in-place (Rule 7.3): the completed lineup stays in view while the
         // bottom slot runs loader → score.
         setBottomPhase("loader");
         setTimeout(() => {
@@ -204,7 +204,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
           setTimeout(() => setLostReveal((prev) => ({ ...prev, [key]: revealAll[key] })), 300 + i * 260);
         });
         const finishedAt = 300 + toReveal.length * 260 + 300;
-        // …then the score settles in place (spec §7b), awarding what was earned
+        // …then the score settles in place (Rule 7.3), awarding what was earned
         // and logging the session — a loss used to award nothing at all.
         setTimeout(() => {
           onGameEnd?.(finalScore, { inPlace: true });

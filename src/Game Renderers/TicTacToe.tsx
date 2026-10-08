@@ -164,7 +164,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   const [showPopup, setShowPopup] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const [now, setNow] = useState(() => Date.now());
-  // Solo end (Rule 7b, in place): the final board stays; the input row swaps to
+  // Solo end (Rule 7.3, in place): the final board stays; the input row swaps to
   // Play again / Close game and the status row shows the score line.
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [endState, setEndState] = useState<{ score: number; secondsLeft: number } | null>(null);
@@ -271,7 +271,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     }
   };
 
-  // Ends in place (Rule 7b, Career Path split): the final board stays on screen,
+  // Ends in place (Rule 7.3, Career Path split): the final board stays on screen,
   // the score line takes the status row's right slot and Play again / Close game
   // take the input row's slot. Both fit their slot, so nothing resizes (Rule 6.2).
   const finishSolo = (score: number, text: string, color: string) => {

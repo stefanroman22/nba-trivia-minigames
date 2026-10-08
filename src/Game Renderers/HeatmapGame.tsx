@@ -50,7 +50,7 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
   const [guess, setGuess] = useState("");
   const [raw, setRaw] = useState(0);
   const [finished, setFinished] = useState(false);
-  // End-state: the board stays in view; the bottom slot fades input → loader → score (§7b).
+  // End-state: the board stays in view; the bottom slot fades input → loader → score (Rule 7.3).
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [showPopup, setShowPopup] = useState(false);
   const [popup, setPopup] = useState({ text: "", color: "" });
@@ -138,7 +138,7 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
     onGameEnd(capped, { inPlace: true });
   };
 
-  // In-place end (§7b): the board stays on screen while the bottom slot swaps the
+  // In-place end (Rule 7.3): the board stays on screen while the bottom slot swaps the
   // input for a 1.5s loader, then the score panel.
   const endGame = () => {
     if (finished) return;
@@ -258,7 +258,7 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
         </div>
       )}
 
-      {/* Submission → loader → score, cross-faded in place (§7b) */}
+      {/* Submission → loader → score, cross-faded in place (Rule 7.3) */}
       <EndSequence
         phase={bottomPhase}
         input={
