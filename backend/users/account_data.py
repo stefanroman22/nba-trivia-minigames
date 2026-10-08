@@ -122,6 +122,7 @@ def export_account(user):
             "terms_accepted_at": _iso(user.terms_accepted_at),
             "terms_version": user.terms_version,
             "age_confirmed_at": _iso(user.age_confirmed_at),
+            "age_group": user.age_group,
             "strike_count": user.strike_count,
             "banned_at": _iso(user.banned_at),
             "ban_reason": user.ban_reason,

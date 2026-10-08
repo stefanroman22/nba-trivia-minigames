@@ -43,8 +43,9 @@ and vendor blogs rather than regulator pages, so re-check any citation before re
   16+ gate does not remove them (16-17 are children). M.
 - Brazil ECA Digital (in force 17 March 2026), India DPDP (verifiable parental consent under 18, duties from about
   May 2027), Australia (under-16 social media rules; trivia likely out of scope). L-M.
-- **Chosen policy**: accounts 16+ worldwide with a neutral month/year check (birth date not stored), guest play for all,
-  deletion on discovering an under-age account. Lowering it is a legal decision.
+- **Chosen policy** (owner decision 2026-10-08): accounts 13+ worldwide with a neutral month/year check (birth date not
+  stored), guest play for all, no public photo for under-16s, deletion on discovering an under-13 account. Below 13 needs
+  verifiable parental consent in the US and is not offered. Counsel should confirm the 13-15 exposure listed in OPEN_ITEMS.md.
 
 ## Platform rules (DSA, UK OSA)
 

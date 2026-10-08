@@ -27,12 +27,18 @@ class AgeCheckTests(TestCase):
         self.assertTrue(self.old_enough(1990, 6))
         self.assertFalse(self.old_enough(2015, 1))
 
-    def test_the_sixteenth_birthday_month_counts_only_from_its_last_day(self):
-        # Born October 2010: turns 16 sometime in October 2026. The day is unknown, so the
+    def test_the_thirteenth_birthday_month_counts_only_from_its_last_day(self):
+        # Born October 2013: turns 13 sometime in October 2026. The day is unknown, so the
         # younger reading applies and they pass only on 31 October.
-        self.assertFalse(consent.is_old_enough(2010, 10, date(2026, 10, 30)))
-        self.assertTrue(consent.is_old_enough(2010, 10, date(2026, 10, 31)))
-        self.assertTrue(consent.is_old_enough(2010, 9, self.TODAY))
+        self.assertFalse(consent.is_old_enough(2013, 10, date(2026, 10, 30)))
+        self.assertTrue(consent.is_old_enough(2013, 10, date(2026, 10, 31)))
+        self.assertTrue(consent.is_old_enough(2013, 9, self.TODAY))
+
+    def test_teen_and_adult_groups_split_at_sixteen(self):
+        thirty = {"birth_year": 1996, "birth_month": 1}
+        fourteen = {"birth_year": self.TODAY.year - 14, "birth_month": 1}
+        self.assertEqual(consent.age_group_for(thirty, self.TODAY), "adult")
+        self.assertEqual(consent.age_group_for(fourteen, self.TODAY), "teen")
 
     def test_leap_february_and_garbage_input(self):
         self.assertTrue(consent.is_old_enough(2008, 2, date(2024, 2, 29)))
@@ -60,6 +66,24 @@ class SignupConsentTests(TestCase):
         self.assertEqual(resp.json()["code"], "age_requirement")
         self.assertNotIn("16", resp.json()["error"])
         self.assertFalse(User.objects.exists())
+
+    def test_a_teen_can_sign_up_but_cannot_upload_a_photo(self):
+        teen = dict(accepted_terms=True, birth_year=date.today().year - 14, birth_month=1)
+        self.assertEqual(self.post(**teen).status_code, 201)
+        user = User.objects.get(email="h@example.com")
+        self.assertEqual(user.age_group, "teen")
+        token = self.client.post(reverse("login"), data={"id": "h@example.com", "password": "Testpass123!"}, content_type="application/json").json()["access"]
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from users.tests import png_bytes
+
+        upload = SimpleUploadedFile("p.png", png_bytes(), content_type="image/png")
+        resp = self.client.post(reverse("update"), data={"profile_photo": upload}, HTTP_AUTHORIZATION=f"Bearer {token}")
+        self.assertEqual(resp.status_code, 403)
+        self.assertIn("16", resp.json()["error"])
+
+    def test_an_adult_is_marked_adult(self):
+        self.post(**OK)
+        self.assertEqual(User.objects.get(email="h@example.com").age_group, "adult")
 
     def test_signup_records_consent_but_not_the_birth_date(self):
         self.assertEqual(self.post(**OK).status_code, 201)

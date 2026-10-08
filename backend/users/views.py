@@ -18,7 +18,7 @@ from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCh
 
 from users import leaderboard, photo_moderation, strikes
 from users.account_data import delete_account, export_account, remove_photo
-from users.consent import CONSENT_REQUIRED_MESSAGE, check_consent, stamp_consent
+from users.consent import CONSENT_REQUIRED_MESSAGE, PHOTO_MIN_AGE, age_group_for, check_consent, stamp_consent
 from users.google_auth import GoogleAuthError, verify_google_code
 from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
@@ -91,7 +91,7 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
     )
 
 
-def _user_for_google_identity(identity, consent_ok=False):
+def _user_for_google_identity(identity, age_group=None):
     """Find or create the account for a VERIFIED Google identity -> (user, new_account).
 
     Linked by Google's stable `sub` first, then by the verified email. Signup does not
@@ -123,7 +123,7 @@ def _user_for_google_identity(identity, consent_ok=False):
         raise GoogleSignupBlocked()
 
     # A new account needs the Terms/age consent first (existing accounts were consented already).
-    if not consent_ok:
+    if age_group is None:
         raise GoogleConsentRequired()
 
     # Names may repeat (public id disambiguates) — use the address's
@@ -140,8 +140,8 @@ def _user_for_google_identity(identity, consent_ok=False):
         # A concurrent first sign-in created it between our lookup and insert.
         user = User.objects.filter(google_sub=sub).first() or User.objects.get(email__iexact=email)
         return user, False
-    stamp_consent(user)
-    user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at"])
+    stamp_consent(user, age_group)
+    user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at", "age_group"])
     leaderboard.record_score(user)
     return user, True
 
@@ -251,8 +251,8 @@ def signup_view(request):
 
         try:
             user = User.objects.create_user(username=username, email=email, password=password)
-            stamp_consent(user)
-            user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at"])
+            stamp_consent(user, age_group_for(request.data))
+            user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at", "age_group"])
         except IntegrityError:
             # Race with a concurrent signup on the same email.
             return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
@@ -363,6 +363,11 @@ def update_profile(request):
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.content_type.startswith("multipart/form-data"):
+        if user.age_group == "teen":
+            return Response(
+                {"error": f"Profile photos are available from age {PHOTO_MIN_AGE}."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         upload = request.FILES.get("profile_photo")
         if not upload:
             return Response({"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST)
@@ -443,19 +448,19 @@ def google_login(request):
             identity = signing.loads(consent_token, salt=GOOGLE_CONSENT_SALT, max_age=GOOGLE_CONSENT_MAX_AGE)
         except signing.BadSignature:
             return Response({"error": "Your sign-in took too long. Please try again."}, status=status.HTTP_400_BAD_REQUEST)
-        consent_ok = True
+        age_group = age_group_for(data)
     elif code and isinstance(code, str):
         try:
             identity = verify_google_code(code)
         except GoogleAuthError as exc:
             logger.warning("google login rejected: %s", exc)
             return Response({"error": exc.public_message}, status=status.HTTP_400_BAD_REQUEST)
-        consent_ok = check_consent(data)[0]
+        age_group = age_group_for(data) if check_consent(data)[0] else None
     else:
         return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user, new_account = _user_for_google_identity(identity, consent_ok)
+        user, new_account = _user_for_google_identity(identity, age_group)
     except GoogleConsentRequired:
         return Response(
             {
