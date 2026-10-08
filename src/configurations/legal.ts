@@ -11,9 +11,9 @@ export const LEGAL = {
   /** Full legal name of the person or company running the service. */
   operatorName: "Roman Ioan-Stefan",
   /** Postal address where the operator can be reached. */
-  operatorAddress: "",
+  operatorAddress: "Orizontului 7, 407035 Apahida, Cluj County, Romania",
   /** Country whose law governs the Terms, e.g. "Romania". */
-  country: "",
+  country: "Romania",
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
   version: "2026-10-08",
   updated: "8 October 2026",
