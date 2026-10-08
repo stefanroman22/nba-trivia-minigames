@@ -1194,3 +1194,37 @@ the document as it was and must keep `7b`; (b) scan live docs, agent/skill files
 at the top of the script. `backend/` is not scanned (its only ids are AUTH references; a follow-up if wanted).
 Consequences: briefs will start quoting 7.0–7.4 and the new ids; `npm run lint` (and so CI) fails on a dangling
 rule reference; the 60 % length target is expected to hold because the deleted specs are ~230 lines.
+
+## 2026-10-08 — GAME_DESIGN_CONSTRAINTS rewrite: history leaves the rulebook, SessionTimer rule dropped
+Context: the rewrite of `docs/GAME_DESIGN_CONSTRAINTS.md` (958 → 504 lines; findings and the full
+old → new mapping in `designs/2026-10-03-game-constraints-review.md`) keeps one "why" line per rule. The
+incidents that justified the rules are recorded here instead, so the rulebook stays short and the evidence
+is not lost:
+- RULE 0: before `<GameFrame>`, prose-described roots produced 8 different root gaps (20 / 16.2 / 14.4 / 14 /
+  13.5 / 12.6 / 12 / 11.7 px) and 7 different widths (430–720 px, plus one game with none) across 18 games,
+  all passing static checks. Every game passed at 1100×900 while 11 of 18 were broken at 854×694 (four
+  rendering outside the shell border), because `--stage-max` shrinks with viewport height — hence the three
+  viewports in `ui:audit`.
+- RULE 1.0: NBA Grid's status label sat at offset 0 (flush to the shell border) because `.playing-wrap` was
+  sized against `--stage-max` instead of `--stage-avail`.
+- RULE 1.2: Starting Five once rendered its Close game link at 946 px while the shell ended at 824 px; the
+  per-game `.stage-inner:has(.s5-wrap)` opt-out was later superseded by the general content-game uncap in `ui.css`.
+- RULE 4.1: Starting Five and Wordle were left out of the old `CONTENT_STAGE_GAMES` list and got ~170 px of
+  dead space above Close game; the list was deleted in favour of `<GameFrame fill>` + `:has()`.
+- RULE 4.2b: Guess the MVP sat at 82 px top/bottom while Name the Club sat at 28.6 px (the stage padding at
+  that viewport) — the stage's `min-height` floor was split around the shorter game.
+- RULE 4.3: Starting Five's `auto-fit` card grid reflowed to an unplanned 2×3 at 390 px, 427 px past the
+  viewport; explicit counts (5, then 2 at ≤ 620 px) fixed it, and cells ended larger on mobile (~157 px vs ~133 px).
+- RULE 6.1: Series Winner's original feedback was a reserved 20 px in-flow row at the bottom of the round
+  body; it grew the card by the row plus the column gap and put the message in a different place per game.
+- RULE 6.3: the "out of lives" popup was first fixed in Career Path only; Who Are Ya, Connections, Wordle and
+  Pack Five kept announcing the loss until the 2026-10-07 sweep.
+- RULE 7.2: Starting Five's 480 ms stagger step made a full miss take 4.5 s; at 260 ms it is 2.1 s.
+- Imposter lost its progress bar's `[data-low]` red state when it moved to the shared `ProgressBar`;
+  `.imp-clock[data-low]` still signals low time. (Was a deviations row; it is a changelog line, not a deviation.)
+Decision (SessionTimer): the old §9 rule "always-visible `SessionTimer`" is dropped. No single-player game
+renders it (only `OnlineMatch` does) and the old document listed that as a known open item. "Time is the
+multiplayer tiebreak only and never adds points" stays as RULE 9.1. Reintroducing a visible timer is a
+product decision for its own card.
+Decision (rule count): the design's "29 rules" was a miscount of its own 28-row table; the rulebook has 28
+ids and no rule was invented to reach 29.
