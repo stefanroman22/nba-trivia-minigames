@@ -14,8 +14,8 @@ export default function PrivacyPage() {
       <LegalSummary>
         <strong>The short version.</strong>
         <LegalList>
-          <li>You can play without an account, and then we keep nothing that identifies you.</li>
-          <li>An account stores your email, a display name, your scores and the things you choose to add (a photo, friends). Your display name, player ID, rank, points and photo are visible to other players.</li>
+          <li>You can play without an account, and then we do not keep your name or email.</li>
+          <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players (players aged 13 to 15 are not shown on the public leaderboard). Your email is never shown.</li>
           <li>There are no ads, no analytics and no tracking cookies. We never sell your data.</li>
           <li>You can download everything we hold and delete your account yourself, from your profile.</li>
           <li>Accounts are for people aged {LEGAL.minimumAge} and over.</li>
@@ -43,11 +43,12 @@ export default function PrivacyPage() {
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
           ["Consent record: the Terms version you accepted, when, and that you confirmed the age requirement (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
-          [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
+          [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
           ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 12 months."],
           ["Feedback you send (rating, message, page, and your email and name if you are signed in)", "Improve the service and reply to you", "Legitimate interests", "Until handled; resolved feedback is deleted after 12 months, and with your account"],
-          ["Moderation records: strikes, a reason code (never the offending text), and a one-way hash of your network address", "Enforce the rules and stop repeat abuse", "Legitimate interests", "12 months, or while a ban stands (see section 7)"],
+          ["Moderation records: strikes, a reason code (never the offending text), and a one-way hash of your network address", "Enforce the rules and stop repeat abuse", "Legitimate interests", "The events and the address hash: 12 months (or while a ban stands). The strike count and ban status are part of your account and stay while it exists. See section 7 for banned accounts."],
+          ["Rate-limit counters (your IP address, in our database)", "Stop sign-in guessing and request flooding", "Legitimate interests", "About an hour"],
           ["Server logs kept by our hosting provider (IP address, time, address requested)", "Security and keeping the service running", "Legitimate interests", "A short period set by the provider"],
           ["Multiplayer: while you play online, your display name, ID, rank, points and photo are held in a game server's memory", "Run the match", "Contract", "Until the match ends; not stored"],
         ]}
@@ -79,12 +80,17 @@ export default function PrivacyPage() {
       <LegalTable
         head={["Provider", "What it does", "Where"]}
         rows={[
-          ["Vercel", "Hosts the website and the account server; our automatic photo check also runs there", "Global network; the account server runs in Frankfurt, Germany"],
-          ["Supabase", "Hosts the database that holds your account and game data", "See its subprocessor list"],
+          ["Vercel", "Hosts the website and the account server (and will host our automatic photo check)", "Global network; the account server runs in Frankfurt, Germany"],
+          ["Supabase", "Hosts the database that holds your account and game data", "Frankfurt, Germany (EU)"],
+          ["GitHub", "Stores our code and runs scheduled maintenance jobs (such as the weekly clean-up) that connect to the database", "United States and global"],
           ["A game-server host (to be named here when online play goes live)", "Runs real-time online matches", "To be stated"],
           ["Google", "Runs the sign-in window and holds your Google account, as its own controller", "Worldwide"],
         ]}
       />
+      <p>
+        The operator also uses development tools, including AI-assisted ones, to build and maintain the service. They may be
+        given access to the systems above for maintenance only.
+      </p>
       <p>
         These providers act on our instructions under data processing terms. Separately, some pictures are loaded straight
         from other websites: team logos and player photos from <strong>cdn.nba.com</strong> and some logos from{" "}
@@ -111,8 +117,9 @@ export default function PrivacyPage() {
         <li><strong>Sign-in sessions</strong> end after 90 days at most.</li>
         <li>
           <strong>Banned accounts.</strong> If you delete an account that was banned for breaking the rules, we remove
-          everything about you except a minimal record (your email in a normalised form, the reason code and the number of
-          strikes) so the ban cannot be dodged by opening a new account. We keep that record only while it is needed to
+          everything about you except a minimal record (your email in a normalised form, the reason code, the number of
+          strikes, the moderation events behind the ban with their one-way address hashes, and when the account was
+          created) so the ban cannot be dodged by opening a new account. We keep that record only while it is needed to
           protect the service and other players, and in any case no longer than five years after the ban.
         </li>
         <li>
@@ -126,7 +133,7 @@ export default function PrivacyPage() {
       <LegalList>
         <li><strong>See and take your data:</strong> Profile &rarr; Download my data gives you everything we hold, as a JSON file.</li>
         <li><strong>Correct it:</strong> change your display name and photo in your profile, or write to us for anything else.</li>
-        <li><strong>Delete it:</strong> Profile &rarr; Delete account removes your account, friends, game history and answers straight away. You can remove just your photo from the same screen.</li>
+        <li><strong>Delete it:</strong> Profile &rarr; Delete account removes your account, friends, game history and answers straight away. You can remove just your photo from the same screen. A copy of a photo can stay in other people&apos;s browsers for up to a day, and hosting logs and backups age out on their own schedule.</li>
         <li><strong>Object or restrict:</strong> where we rely on legitimate interests you can object, and ask us to limit processing while we look at it.</li>
         <li><strong>Withdraw consent</strong> (for your photo) at any time, by removing it.</li>
       </LegalList>
@@ -138,9 +145,10 @@ export default function PrivacyPage() {
 
       <LegalHeading id="automated">9. Automated checks</LegalHeading>
       <p>
-        Display names are checked automatically against a word list, and photos by an automatic image classifier that runs on
-        our own service and does not keep the picture. A name or photo that is clearly not allowed is refused and counts as a
-        strike; the third strike bans the account. Nothing else about you is profiled or scored. You can ask a person to
+        Display names are checked automatically against a word list. Photos will be checked by an automatic image classifier
+        on our own service before they are shown, and the classifier does not keep the picture; until that check is live,
+        photo upload is switched off. A name or photo that is clearly not allowed is refused and counts as a
+        strike (strikes do not expire); the third strike bans the account. Nothing else about you is profiled or scored. You can ask a person to
         review any strike or ban, and tell us your side, by writing to <MailLink /> (see the Terms, section 7).
       </p>
 
@@ -192,8 +200,9 @@ export default function PrivacyPage() {
 
       <LegalHeading id="changes">15. Changes to this policy</LegalHeading>
       <p>
-        When we change this policy we update the date at the top. For a change that matters to you, we will make it clear on
-        the site and give you notice before it applies. Earlier versions are available on request.
+        When we change this policy we update the date at the top and describe what changed. For a significant change we
+        will also say so on the site&apos;s home page for at least 14 days before it applies. Earlier versions are available
+        on request.
       </p>
     </LegalPage>
   );

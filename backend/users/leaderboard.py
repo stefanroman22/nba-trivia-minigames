@@ -24,8 +24,9 @@ _client = None
 
 
 def _ranked():
-    """Every account that may appear on a board: banned accounts are hidden (users.strikes)."""
-    return User.objects.filter(banned_at__isnull=True)
+    """Every account that may appear on a board. Banned accounts are hidden (users.strikes), and so
+    are 13-15 year-olds (age_group "teen"): minors are not public by default (GDPR Art 25)."""
+    return User.objects.filter(banned_at__isnull=True).exclude(age_group="teen")
 
 
 def _redis():
@@ -82,7 +83,7 @@ def total():
 def record_score(user):
     """Upsert a user's score into the ZSET (no-op without Redis, and for a banned account)."""
     r = _redis()
-    if r is None or getattr(user, "banned_at", None):
+    if r is None or getattr(user, "banned_at", None) or getattr(user, "age_group", "") == "teen":
         return
     r.zadd(ZKEY, {user.public_id: user.points})
 

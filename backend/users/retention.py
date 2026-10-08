@@ -1,6 +1,6 @@
 """How long personal data is kept, and the job that enforces it.
 
-These periods are the ones the Privacy Policy states (src/app/privacy/page.tsx, docs/legal/RETENTION.md):
+These periods are the ones the Privacy Policy states (src/app/privacy/page.tsx, docs/legal/RECORD_OF_PROCESSING.md):
 change them in all three places together. Everything here is deletion of rows that no longer have a
 purpose; nothing is rewritten.
 """

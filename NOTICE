@@ -1,0 +1,8 @@
+Swish Quest (nba-minigames)
+
+The MIT licence in LICENSE covers the source code in this repository only.
+
+It does not cover: team, league and player names, logos, photographs or statistics (these belong to their
+owners and are not licensed by this project); third-party images and data files; the word lists in
+backend/users/moderation_data (see their own ATTRIBUTION.md, CC BY 4.0 where stated); or any user-provided
+content. This project is not affiliated with or endorsed by the NBA or any team.

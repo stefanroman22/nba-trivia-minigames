@@ -19,7 +19,7 @@ from trivia.models import (
     StartingFiveGame,
     Team,
 )
-from backend.throttles import FeedbackRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
+from backend.throttles import FeedbackRateThrottle, GuessLogRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
 from users import leaderboard
 from trivia.data_pipeline.live_pool import load_dataset as load_curated_dataset
 from trivia.data_pipeline.starting_five import (
@@ -272,6 +272,7 @@ PER_GAME_MAX_POINTS = {"who-would-win": 200}
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@throttle_classes([GuessLogRateThrottle])
 def log_guesses(request):
     """Batch-log the answers of a finished round (the data flywheel: survey
     standings, rarity scores, difficulty tuning). Guests log anonymously."""

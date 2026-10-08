@@ -51,3 +51,9 @@ Awareness starts the clock: **72 hours** to the supervisory authority if the bre
 2. Take advice before disclosing if there is any doubt about validity or jurisdiction.
 3. Disclose the minimum that satisfies the order. Tell the player first unless the law or the order forbids it.
 4. Log date, requester, basis, data given, decision.
+
+## F. Changing the Privacy Policy or Terms
+
+1. Edit the pages, bump `LEGAL.version` and `TERMS_VERSION` (same value), update `docs/legal/`.
+2. For a significant change, put a notice on the site's home page for **at least 14 days before** the change takes effect (the text promises this), then promote.
+3. Keep the previous text (git history) and send it to anyone who asks.

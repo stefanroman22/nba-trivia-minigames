@@ -198,6 +198,16 @@ class AccountDeletionTests(TestCase):
         self.assertTrue(User.objects.filter(pk=self.bob.pk).exists())  # the other player is untouched
         self.assertEqual(login(self.client, "ann@example.com").status_code, 401)
 
+    def test_deletion_also_removes_guest_feedback_with_the_same_email_and_token_rows(self):
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
+
+        Feedback.objects.create(email="ann@example.com", rating=3, message="sent before I had an account")
+        self.assertTrue(OutstandingToken.objects.filter(user=self.ann).exists())
+        self.delete(password="Testpass123!")
+        self.assertFalse(Feedback.objects.exists())
+        self.assertFalse(OutstandingToken.objects.filter(user_id=self.ann.pk).exists())
+        self.assertFalse(OutstandingToken.objects.filter(user__isnull=True).exists())
+
     def test_deletion_signs_the_old_session_out(self):
         refresh = login(self.client, "ann@example.com").json()["refresh"]
         self.delete(password="Testpass123!")
@@ -231,6 +241,8 @@ class AccountDeletionTests(TestCase):
         self.assertEqual(kept.canonical_email, "ann@example.com")  # still blocks re-registration
         self.assertTrue(strikes.email_is_banned("ann@example.com"))
         self.assertFalse(GameSession.objects.exists() or Feedback.objects.exists() or Friendship.objects.exists())
+        self.assertIsNone(kept.last_login)
+        self.assertEqual((kept.terms_version, kept.age_group), ("", ""))
 
 
 class AccountExportTests(TestCase):
@@ -264,4 +276,6 @@ class AccountExportTests(TestCase):
         self.assertEqual([f["id"] for f in data["friends"]], [self.bob.public_id])
         self.assertEqual([s["score"] for s in data["game_sessions"]], [50])
         self.assertEqual(data["guesses"][0]["answer"], "lebron")
+        self.assertIn("at", data["guesses"][0])
+        self.assertIn("canonical_email", data["account"])
         self.assertNotIn("password", str(data["account"]).lower())

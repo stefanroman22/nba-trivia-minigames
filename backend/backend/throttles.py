@@ -73,3 +73,9 @@ class NameCheckRateThrottle(UserRateThrottle):
 class AccountDataRateThrottle(UserRateThrottle):
     """Account export and deletion: heavy or irreversible, and never needed more than a few times."""
     scope = "account-data"
+
+
+class GuessLogRateThrottle(UserRateThrottle):
+    """Anonymous answer logging for question statistics. A game sends one batch, so the limit is far above
+    real play and only stops someone flooding the table or poisoning the statistics."""
+    scope = "guess-log"
