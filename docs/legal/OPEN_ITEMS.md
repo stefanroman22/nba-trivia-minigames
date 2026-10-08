@@ -8,8 +8,8 @@ lawyer. Ordered by how much they matter for launch at scale.
 
 | Item | Why | Where |
 |---|---|---|
-| **Operator identity**: full legal name, postal address, country (person or company) | EU e-Commerce Directive Art 5, DSA Arts 11-12, GDPR Art 13(1)(a). Anonymous operators get demand letters and complaints. A company (even a one-person one) keeps a personal home address off a public page. | `src/configurations/legal.ts` (`npm run check:legal` warns until set) |
-| **A real privacy/legal mailbox** (for example privacy@your-domain) instead of a personal Gmail | Public, permanent, abusable. Cloudflare Email Routing is free once the domain is on Cloudflare. | `contactEmail` in `legal.ts` |
+| **Operator identity**: name is set (Roman Ioan-Stefan); **postal address and country still missing** | EU e-Commerce Directive Art 5, DSA Arts 11-12, GDPR Art 13(1)(a). Anonymous operators get demand letters and complaints. A company (even a one-person one) keeps a personal home address off a public page. | `src/configurations/legal.ts` (`npm run check:legal` warns until set) |
+| **A dedicated privacy/legal mailbox** (for example privacy@swishquest.com) instead of the personal Gmail (kept for now by choice) | Public and permanent; a role address can be handed over or filtered. Cloudflare Email Routing is free once the domain is on Cloudflare. | `contactEmail` in `legal.ts` |
 | **Google consent screen**: Publishing status "In production"; branding with a homepage and privacy URL **on a domain verified in Google Search Console**; authorized JavaScript origins | Without it only test users can sign in; Google can disable a client whose homepage/privacy policy are not on a verified domain. | Google Cloud Console → Google Auth Platform |
 | **Governing-law country** | Terms section 14 | `country` in `legal.ts` |
 
@@ -17,7 +17,7 @@ lawyer. Ordered by how much they matter for launch at scale.
 
 | Decision | Current setting | Trade-off |
 |---|---|---|
-| **Minimum age for accounts** | 16, worldwide, guests of any age | 16 avoids parental-consent mechanics (GDPR Art 8 ranges 13-16 by country; COPPA below 13; Brazil/India stricter) at the cost of 13-15 year-old fans. Lowering to 13 keeps most of the world workable but brings Art 8 and children's-code duties for under-16s in several countries. Change `MIN_AGE` in `backend/users/consent.py`, the pages, and re-bump the version. |
+| **Minimum age for accounts** | **13**, worldwide; guests of any age. 13-15 year-olds are marked "teen" and cannot upload a public photo (`PHOTO_MIN_AGE` 16) | 13 is the practical floor: below it US law (COPPA) needs verifiable parental consent, and several countries want it up to 16. Remaining exposure for 13-15: contract capacity under national law in 14-16 states, UK Children's Code defaults, Brazil ECA Digital, India (under 18). Mitigations in place: no chat, no photo, no birth date stored, deletion on request, parent contact route. A "private profile" default and friend-search limits for teens are the next steps if a lawyer asks. Constants: `MIN_AGE`, `PHOTO_MIN_AGE` in `backend/users/consent.py`; `minimumAge`, `photoMinimumAge` in `legal.ts`. |
 | **Public profile defaults** | Display name, ID, rank, points and photo are public; photo is optional and removable | Privacy-by-default arguments favour a "private profile" switch, especially for 16-17 year-olds under the UK Children's Code. Not built. |
 | **Inactive-account deletion** | None; accounts stay until deleted | Regulators (CNIL) expect a limit, normally with warning email. The site sends no email at all today, so it cannot warn. Building email (also needed for password reset, email verification) unlocks this. |
 

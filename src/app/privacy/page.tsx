@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
           ["Consent record: the Terms version you accepted, when, and that you confirmed the age requirement (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
-          ["Profile photo (optional), resized to 256x256", "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
+          [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
           ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 12 months."],
           ["Feedback you send (rating, message, page, and your email and name if you are signed in)", "Improve the service and reply to you", "Legitimate interests", "Until handled; resolved feedback is deleted after 12 months, and with your account"],
@@ -147,7 +147,9 @@ export default function PrivacyPage() {
       <LegalHeading id="children">10. Age and children</LegalHeading>
       <p>
         Accounts are only for people aged {LEGAL.minimumAge} or over. When you sign up we ask for your birth month and year
-        to check this, and we do not store the answer. If we learn that an account belongs to someone younger, we delete it.
+        to check this, and we do not store them: we keep only that the check passed and whether you are under or over{" "}
+        {LEGAL.photoMinimumAge}. Players under {LEGAL.photoMinimumAge} cannot add a profile photo. If we learn that an
+        account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
         Anyone can play as a guest, and a guest&apos;s answers are not tied to a person. Parents and guardians can write to{" "}
         <MailLink /> to ask us to remove a child&apos;s data.
       </p>
