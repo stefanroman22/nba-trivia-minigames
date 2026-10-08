@@ -10,7 +10,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 
 | Item | Why | Where |
 |---|---|---|
-| **The public repository's history contains personal data** (a database snapshot with two users' emails, one a third party, plus the operator's password hash; and tracked personal photos). Choose: rewrite history and force-push, make the repo private, or both; ask GitHub to purge cached views; assess breach notification with counsel; the operator should rotate their password if reused | Audit finding C2: an ongoing personal-data exposure | See AUDIT-2026-10-08.md |
+| **Git history cleaned (done 2026-10-08).** Remaining: rotate the Google OAuth client secret (it was public) and ask GitHub Support to purge cached views and old PR refs | Audit finding C2; see HISTORY-CLEANUP-2026-10-08.md for the exact steps and the request text | Google Cloud Console, Vercel env `CLIENT_SECRET`, GitHub Support |
 | **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
 | **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice) | Public and permanent | `contactEmail` in `legal.ts` |
 
