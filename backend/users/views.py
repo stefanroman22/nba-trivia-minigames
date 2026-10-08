@@ -1,6 +1,7 @@
 import logging
 import re
 import secrets
+from django.core import signing
 from django.contrib.auth import authenticate, get_user_model
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -13,13 +14,15 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from backend.throttles import LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
+from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
 from users import leaderboard, photo_moderation, strikes
+from users.account_data import delete_account, export_account, remove_photo
+from users.consent import CONSENT_REQUIRED_MESSAGE, check_consent, stamp_consent
 from users.google_auth import GoogleAuthError, verify_google_code
 from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
-from users.tokens import issue_session_tokens
+from users.tokens import issue_session_tokens, revoke_sessions
 
 User = get_user_model()
 
@@ -34,6 +37,14 @@ logger = logging.getLogger(__name__)
 
 class GoogleAccountConflict(Exception):
     """The email matches an account already linked to a different Google account."""
+
+
+class GoogleConsentRequired(Exception):
+    """A brand-new Google account needs the Terms/age consent before it can be created."""
+
+
+GOOGLE_CONSENT_SALT = "google-consent"
+GOOGLE_CONSENT_MAX_AGE = 600  # seconds the player has to tick the boxes after Google verified them
 
 
 class GoogleSignupBlocked(Exception):
@@ -80,15 +91,7 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
     )
 
 
-def _revoke_sessions(user):
-    """Blacklist every outstanding refresh token so existing sessions can't be refreshed."""
-    from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
-
-    for outstanding in OutstandingToken.objects.filter(user=user):
-        BlacklistedToken.objects.get_or_create(token=outstanding)
-
-
-def _user_for_google_identity(identity):
+def _user_for_google_identity(identity, consent_ok=False):
     """Find or create the account for a VERIFIED Google identity -> (user, new_account).
 
     Linked by Google's stable `sub` first, then by the verified email. Signup does not
@@ -109,7 +112,7 @@ def _user_for_google_identity(identity):
             raise GoogleAccountConflict()
         if user.has_usable_password():
             user.set_unusable_password()
-            _revoke_sessions(user)
+            revoke_sessions(user)
         user.google_sub = sub
         user.save(update_fields=["password", "google_sub"])
         return user, False
@@ -118,6 +121,10 @@ def _user_for_google_identity(identity):
     if strikes.email_is_banned(email):
         strikes.log_event(None, "name_signup", "none", strikes.SIGNUP_BLOCKED_CODE)
         raise GoogleSignupBlocked()
+
+    # A new account needs the Terms/age consent first (existing accounts were consented already).
+    if not consent_ok:
+        raise GoogleConsentRequired()
 
     # Names may repeat (public id disambiguates) — use the address's
     # local part directly, trimmed to the allowed charset/length.
@@ -133,6 +140,8 @@ def _user_for_google_identity(identity):
         # A concurrent first sign-in created it between our lookup and insert.
         user = User.objects.filter(google_sub=sub).first() or User.objects.get(email__iexact=email)
         return user, False
+    stamp_consent(user)
+    user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at"])
     leaderboard.record_score(user)
     return user, True
 
@@ -201,6 +210,10 @@ def signup_view(request):
         if not username or not email or not password:
             return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        consented, consent_code, consent_message = check_consent(request.data)
+        if not consented:
+            return Response({"code": consent_code, "error": consent_message}, status=status.HTTP_400_BAD_REQUEST)
+
         if not USERNAME_RE.match(username):
             return Response({"error": USERNAME_RULES}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -238,6 +251,8 @@ def signup_view(request):
 
         try:
             user = User.objects.create_user(username=username, email=email, password=password)
+            stamp_consent(user)
+            user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at"])
         except IntegrityError:
             # Race with a concurrent signup on the same email.
             return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
@@ -245,8 +260,10 @@ def signup_view(request):
         leaderboard.record_score(user)
         return auth_response(request, user, status_code=status.HTTP_201_CREATED)
 
-    except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception:
+        logger.exception("signup failed")
+        return Response({"error": "Something went wrong creating your account. Please try again."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @api_view(["GET"])
@@ -254,8 +271,47 @@ def signup_view(request):
 def get_current_user(request):
     try:
         return Response({"user": user_payload(request, request.user)})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    except Exception:
+        logger.exception("could not build the /me/ payload")
+        return JsonResponse({"error": "Could not load your account."}, status=400)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AccountDataRateThrottle])
+def export_my_data(request):
+    """Download everything we hold about the signed-in player as JSON (GDPR Art 15 / 20)."""
+    response = JsonResponse(export_account(request.user), json_dumps_params={"indent": 2})
+    response["Content-Disposition"] = 'attachment; filename="swish-quest-my-data.json"'
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def remove_my_photo(request):
+    """Remove the signed-in player's profile photo."""
+    remove_photo(request.user)
+    return Response({"user": user_payload(request, request.user)})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AccountDataRateThrottle])
+def delete_my_account(request):
+    """Permanently delete the signed-in account and its data (GDPR Art 17).
+
+    Always needs the word DELETE typed, and for password accounts the password too (Google-only
+    accounts have none). See users.account_data for what is removed and the one exception for
+    banned accounts.
+    """
+    user = request.user
+    if request.data.get("confirm") != "DELETE":
+        return Response({"error": "Type DELETE to confirm."}, status=status.HTTP_400_BAD_REQUEST)
+    if user.has_usable_password() and not user.check_password(str(request.data.get("password") or "")):
+        return Response({"error": "That password is incorrect."}, status=status.HTTP_403_FORBIDDEN)
+    outcome = delete_account(user)
+    return Response({"status": outcome})
 
 
 @api_view(["POST"])
@@ -374,18 +430,41 @@ def logout_view(request):
 @permission_classes([AllowAny])
 @throttle_classes([LoginRateThrottle])
 def google_login(request):
-    code = request.data.get("code") if isinstance(request.data, dict) else None
-    if not code or not isinstance(code, str):
+    data = request.data if isinstance(request.data, dict) else {}
+    consent_token = data.get("consent_token")
+    code = data.get("code")
+
+    if consent_token:
+        # Second step for a new account: Google already verified the identity (signed token).
+        ok, error_code, message = check_consent(data)
+        if not ok:
+            return Response({"code": error_code, "error": message}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            identity = signing.loads(consent_token, salt=GOOGLE_CONSENT_SALT, max_age=GOOGLE_CONSENT_MAX_AGE)
+        except signing.BadSignature:
+            return Response({"error": "Your sign-in took too long. Please try again."}, status=status.HTTP_400_BAD_REQUEST)
+        consent_ok = True
+    elif code and isinstance(code, str):
+        try:
+            identity = verify_google_code(code)
+        except GoogleAuthError as exc:
+            logger.warning("google login rejected: %s", exc)
+            return Response({"error": exc.public_message}, status=status.HTTP_400_BAD_REQUEST)
+        consent_ok = check_consent(data)[0]
+    else:
         return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        identity = verify_google_code(code)
-    except GoogleAuthError as exc:
-        logger.warning("google login rejected: %s", exc)
-        return Response({"error": exc.public_message}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        user, new_account = _user_for_google_identity(identity)
+        user, new_account = _user_for_google_identity(identity, consent_ok)
+    except GoogleConsentRequired:
+        return Response(
+            {
+                "code": "consent_required",
+                "error": CONSENT_REQUIRED_MESSAGE,
+                "consent_token": signing.dumps(identity, salt=GOOGLE_CONSENT_SALT),
+            },
+            status=status.HTTP_428_PRECONDITION_REQUIRED,
+        )
     except GoogleSignupBlocked:
         return Response(
             {"code": strikes.SIGNUP_BLOCKED_CODE, "error": strikes.SIGNUP_BLOCKED_MESSAGE},
@@ -456,5 +535,6 @@ def get_users(request):
             },
             status=200,
         )
-    except Exception as e:
-        return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=400)
+    except Exception:
+        logger.exception("could not build the leaderboard response")
+        return JsonResponse({"error": "Could not load the leaderboard."}, status=400)

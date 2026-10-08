@@ -1,0 +1,29 @@
+name: Prune personal data
+# Enforces the retention periods the Privacy Policy states (backend/users/retention.py,
+# docs/legal/RETENTION.md). Deletes only rows past their period; safe to re-run.
+on:
+  schedule:
+    - cron: "17 3 * * 0"   # Sundays 03:17 UTC
+  workflow_dispatch:
+concurrency:
+  group: prune-personal-data
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  prune:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - name: Install
+        run: pip install -r backend/requirements.txt
+      - name: Prune
+        working-directory: backend
+        run: python manage.py prune_personal_data

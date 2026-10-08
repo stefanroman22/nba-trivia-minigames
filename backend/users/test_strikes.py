@@ -162,7 +162,7 @@ class NameChangeTests(StrikeTestCase):
         # A verified Google identity (users.google_auth is covered in users/tests.py).
         identity = {"sub": f"google-{email}", "email": email, "name": ""}
         with mock.patch("users.views.verify_google_code", return_value=identity):
-            return self.client.post(reverse("google_login"), data={"code": "c"}, content_type="application/json")
+            return self.client.post(reverse("google_login"), data={"code": "c", "accepted_terms": True, "birth_year": 1990, "birth_month": 6}, content_type="application/json")
 
     def test_google_new_account_with_banned_canonical_email_is_refused(self):
         self.ban_via_names()
@@ -211,7 +211,7 @@ class SignupModerationTests(StrikeTestCase):
         # Another network can still sign up.
         other = self.client.post(
             reverse("signup"),
-            data={"username": "CleanName", "email": "clean@example.com", "password": PASSWORD},
+            data={"username": "CleanName", "email": "clean@example.com", "password": PASSWORD, "accepted_terms": True, "birth_year": 1990, "birth_month": 6},
             content_type="application/json",
             REMOTE_ADDR="10.9.9.9",
         )
