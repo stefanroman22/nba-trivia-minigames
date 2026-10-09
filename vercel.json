@@ -4,6 +4,24 @@
   "buildCommand": "npm run build",
   "redirects": [
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "nba-minigames.vercel.app" }],
+      "destination": "https://swishquest.com/",
+      "statusCode": 301
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "nba-minigames-stefanromanpers-5412s-projects.vercel.app" }],
+      "destination": "https://swishquest.com/",
+      "statusCode": 301
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "nba-minigames-git-main-stefanromanpers-5412s-projects.vercel.app" }],
+      "destination": "https://swishquest.com/",
+      "statusCode": 301
+    },
+    {
       "source": "/:path*",
       "has": [{ "type": "host", "value": "nba-minigames.vercel.app" }],
       "destination": "https://swishquest.com/:path*",
