@@ -164,8 +164,10 @@ setTokens(data.access, data.refresh);
 if (err instanceof SessionNetworkError || getRefreshToken()) { console.error("Session check failed:", err); }
 ```
 
-## Rule AUTH-6: `points`/`rank` have exactly one write site, `trivia.views.log_session`, and the client never names its own score
+## Rule AUTH-6: `points`/`rank` have exactly one write site, `trivia.views._award`, and the client never names its own score
 
+`_award` is the only code that adds points. It has two callers: `log_session` (solo games, the signed-in
+browser) and `multiplayer_result` (online matches, the relay only; see AUTH-7).
 `log_session` records the `GameSession` and awards its points in one step: the score is clamped to
 `MAX_SESSION_POINTS` (1000; the highest renderer score is 300), it is throttled by `ScoreSubmitRateThrottle`
 (`score-submit`, 60/hour), and it returns `{awarded, points, rank}`, which `MiniGame.tsx`'s `awardPoints`
@@ -190,16 +192,21 @@ if user is not None and mode == 'single' and score > 0:
     leaderboard.record_score(user)
 ```
 
-## Rule AUTH-7: Guests can play but are awarded nothing, and multiplayer results never touch account points
+## Rule AUTH-7: Guests are awarded nothing, and online results are credited only by the relay, never by the browser
 
 `log_session` is `AllowAny`: a guest's request has no JWT, `user` is `None`, a `GameSession` row is still
 written, and the response is `awarded: 0, points: 0, rank: None`. `MiniGame.tsx` says so ("guests log
 anonymously and are simply awarded nothing") and `GuestPanel.tsx` prompts sign-in. Only `mode == 'single'`
-awards; `match`/`friend` modes log a session but award 0. Online and friend play are signed-in only in the UI
-(`isLoggedIn` gates in `MultiPlayer/MultiplayerPanel.tsx` and `MultiPlayer/FriendPlay.tsx`), and
-`OnlineMatch.tsx`, `FriendPlay.tsx` and `MultiplayerContext.tsx` contain no `log-session`/`update-profile`
-call. Wiring multiplayer results into account points adds a second caller to AUTH-6's single writer:
-`risk: high`.
+awards there; a browser posting `match`/`friend` gets a session logged and 0 points. Online matches (random 1v1
+and friend rooms, since 2026-10-09) are credited by the relay instead: when a round settles (or a player leaves
+after others finished) `multiplayer_server/src/index.js` `creditRoom` POSTs the room's own clamped scores to
+`/trivia/multiplayer-result/` with `X-Relay-Key: MULTIPLAYER_SHARED_SECRET` (set on Railway and the backend
+Vercel project; unset = online play awards nothing). That view has no JWT auth at all, refuses a wrong/missing
+key with 403, clamps with the same per-game caps, skips banned/unknown public ids, and is credited once per
+round (`room.creditedRound`). The relay then emits `pointsAwarded` and `MultiplayerContext.tsx` applies it with
+`updatePoints`. `OnlineMatch.tsx`, `FriendPlay.tsx` and `MultiplayerContext.tsx` still contain no
+`log-session`/`update-profile` call. Known ceiling: scores originate in the browser (as for solo games), so a
+modified client can claim a round's maximum; the relay's 3 s restart throttle bounds how often.
 
 ```python
 ❌ WRONG — awarding regardless of mode/identity

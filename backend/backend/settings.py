@@ -270,6 +270,10 @@ IMAGE_MODERATION_URL = os.environ.get("IMAGE_MODERATION_URL")
 MODERATION_SHARED_SECRET = os.environ.get("MODERATION_SHARED_SECRET")
 MODERATION_REQUIRED = env_bool("MODERATION_REQUIRED", bool(DATABASE_URL))
 PHOTO_BLOCK_THRESHOLD = float(os.environ.get("PHOTO_BLOCK_THRESHOLD", "0.85"))
+
+# The multiplayer relay credits online matches through trivia.views.multiplayer_result, authenticated
+# by this value in its X-Relay-Key header (same value as the relay's env). Unset: online play awards nothing.
+MULTIPLAYER_SHARED_SECRET = os.environ.get("MULTIPLAYER_SHARED_SECRET")
 PHOTO_REVIEW_THRESHOLD = float(os.environ.get("PHOTO_REVIEW_THRESHOLD", "0.50"))
 
 

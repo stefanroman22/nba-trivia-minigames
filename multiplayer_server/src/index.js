@@ -317,9 +317,40 @@ function rankRoom(room) {
   }));
 }
 
+// Online matches add each player's score to their profile, like a solo game. Only the relay can
+// credit them: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET, and the
+// scores are this room's own (already clamped in submitScore / set by turnGames). Each round is
+// credited at most once. Unset secret (local dev): online play awards nothing.
+const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
+const RELAY_KEY = process.env.MULTIPLAYER_SHARED_SECRET || "";
+
+function creditRoom(room) {
+  if (!RELAY_KEY || room.creditedRound === room.dealtAt) return null;
+  room.creditedRound = room.dealtAt;
+  const results = room.members
+    .filter((uid) => room.scores[uid] != null)
+    .map((uid) => ({ public_id: uid, score: room.scores[uid], duration_ms: room.times[uid] ?? 0 }));
+  if (results.length === 0) return null;
+  return fetch(`${API_BASE_URL}/trivia/multiplayer-result/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Relay-Key": RELAY_KEY },
+    body: JSON.stringify({ game: room.gameId, mode: room.type === "friend" ? "friend" : "match", results }),
+    signal: AbortSignal.timeout(8000),
+  })
+    .then(async (res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const body = await res.json();
+      for (const r of body.results || []) {
+        if (r.awarded > 0) toUid(r.public_id, "pointsAwarded", { awarded: r.awarded, points: r.points, rank: r.rank });
+      }
+    })
+    .catch((err) => console.error(`Crediting room ${room.code} failed:`, err.message));
+}
+
 /** Compute and send the final result to every player (any room size). */
 function settleMatch(room) {
   room.phase = "results";
+  creditRoom(room);
   // Shared scoreboard, best score first — the client renders this for 3-player rooms.
   const standings = rankRoom(room);
   standings.forEach((row) => {
@@ -346,6 +377,8 @@ const turnHelpers = {
 /** Tear a room down completely and free all members. */
 function destroyRoom(room, reason) {
   if (!room) return;
+  // Someone left mid-round: whoever already finished still gets their points.
+  if (room.phase === "playing" || room.phase === "waiting") creditRoom(room);
   if (room.proposal?.timeout) clearTimeout(room.proposal.timeout);
   if (room.lobbyTimer) clearTimeout(room.lobbyTimer);
   if (room.turnTimer) clearTimeout(room.turnTimer); // turn-game per-turn/phase timer
@@ -1127,12 +1160,14 @@ process.on("SIGTERM", () => {
   shuttingDown = true;
   const message = "The game server is updating. Please start a new match.";
   for (const room of rooms.values()) {
+    if (room.phase === "playing" || room.phase === "waiting") creditRoom(room); // finished players keep their points
     const event = room.phase === "lobby" ? "friendRoomCancelled" : "opponentLeft";
     room.members.forEach((uid) => toUid(uid, event, { message }));
   }
   for (const q of queues.values()) q.forEach((entry) => toUid(entry.uid, "noOpponent", {}));
   console.log(`SIGTERM: notified ${rooms.size} rooms, closing`);
-  setTimeout(() => io.close(() => process.exit(0)), 1000).unref();
+  // 3 s: room for the credit calls above (Railway waits drainingSeconds = 5 before killing).
+  setTimeout(() => io.close(() => process.exit(0)), 3000).unref();
 });
 
 const PORT = process.env.PORT || 4000;

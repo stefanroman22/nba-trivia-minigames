@@ -1,12 +1,14 @@
 import csv
+import hmac
 import os
 import json
 import random
 from django.conf import settings
 from django.db.models.functions import Length
 from django.http import JsonResponse
-from rest_framework.decorators import api_view, permission_classes, throttle_classes
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
+from django.contrib.auth import get_user_model
 
 from trivia.models import (
     FanFavoritesQuestion,
@@ -343,15 +345,11 @@ def log_session(request):
         duration_ms=duration,
     )
 
-    # Multiplayer results deliberately never touch account points (AUTH-7), and
-    # guests have no account to credit.
+    # Online results are credited by the relay (multiplayer_result), never by the
+    # browser (AUTH-7), and guests have no account to credit.
     awarded = 0
     if user is not None and mode == 'single' and score > 0:
-        awarded = score
-        user.points += awarded
-        user.update_rank()
-        user.save(update_fields=['points', 'rank'])
-        leaderboard.record_score(user)
+        awarded = _award(user, score)
 
     return JsonResponse({
         'ok': True,
@@ -359,6 +357,64 @@ def log_session(request):
         'points': user.points if user is not None else 0,
         'rank': user.rank if user is not None else None,
     })
+
+
+def _award(user, score):
+    """Credit `score` (already clamped) to the account; the one place points are added (AUTH-6)."""
+    user.points += score
+    user.update_rank()
+    user.save(update_fields=['points', 'rank'])
+    leaderboard.record_score(user)
+    return score
+
+
+User = get_user_model()
+
+# A friend room seats at most 5 (imposter); anything longer is not from the relay.
+_MAX_MATCH_PLAYERS = 8
+
+
+@api_view(["POST"])
+@authentication_classes([])  # server to server: the shared secret is the only credential
+@permission_classes([AllowAny])
+def multiplayer_result(request):
+    """Record a finished online match (random 1v1 or friend room) and credit each player's score.
+
+    Called ONLY by the multiplayer relay (multiplayer_server/src/index.js creditRoom), authenticated
+    by MULTIPLAYER_SHARED_SECRET in X-Relay-Key. Browsers can't reach it: they never have the key,
+    and a match's scores come from the relay's own room state (clamped there and again here),
+    the same per-game caps as a solo game. Banned or unknown players are skipped.
+    """
+    secret = settings.MULTIPLAYER_SHARED_SECRET
+    given = request.headers.get('X-Relay-Key', '')
+    if not secret or not hmac.compare_digest(given.encode(), secret.encode()):
+        return JsonResponse({'error': 'forbidden'}, status=403)
+    body = request.data or {}
+    game = str(body.get('game', ''))[:40]
+    mode = str(body.get('mode', ''))
+    results = body.get('results')
+    if not game or mode not in ('match', 'friend') or not isinstance(results, list) or len(results) > _MAX_MATCH_PLAYERS:
+        return JsonResponse({'error': 'game, mode and results are required'}, status=400)
+    cap = PER_GAME_MAX_POINTS.get(game, MAX_SESSION_POINTS)
+    out = []
+    for r in results:
+        if not isinstance(r, dict):
+            continue
+        user = User.objects.filter(public_id=str(r.get('public_id', ''))[:20], banned_at__isnull=True).first()
+        if user is None:
+            continue
+        try:
+            score = min(max(0, int(r.get('score', 0))), cap)
+        except (TypeError, ValueError):
+            score = 0
+        try:
+            duration = max(0, min(int(r.get('duration_ms') or 0), _MAX_DURATION_MS))
+        except (TypeError, ValueError):
+            duration = 0
+        GameSession.objects.create(user=user, game=game, mode=mode, score=score, duration_ms=duration)
+        awarded = _award(user, score) if score > 0 else 0
+        out.append({'public_id': user.public_id, 'awarded': awarded, 'points': user.points, 'rank': user.rank})
+    return JsonResponse({'ok': True, 'results': out})
 
 
 # Long enough for a genuinely detailed report, short enough that the column

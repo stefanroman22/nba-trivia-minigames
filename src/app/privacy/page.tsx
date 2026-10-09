@@ -55,7 +55,7 @@ export default function PrivacyPage() {
           ["Moderation records: strikes, a reason code (never the offending text), and a one-way hash of your network address", "Enforce the rules and stop repeat abuse", "Legitimate interests", "The events and the address hash: 12 months (or while a ban stands). The strike count and ban status are part of your account and stay while it exists. See section 7 for banned accounts."],
           ["Rate-limit counters (your IP address, in our database)", "Stop sign-in guessing and request flooding", "Legitimate interests", "About an hour"],
           ["Server logs kept by our hosting provider (IP address, time, address requested)", "Security and keeping the service running", "Legitimate interests", "A short period set by the provider"],
-          ["Multiplayer: while you play online, your display name, ID, rank, points and photo are held in a game server's memory", "Run the match", "Contract", "Until the match ends; not stored"],
+          ["Multiplayer: while you play online, your display name, ID, rank, points and photo are held in a game server's memory", "Run the match", "Contract", "Until the match ends. Your final score is then saved to your game history and points, as for a solo game"],
         ]}
       />
       <p>

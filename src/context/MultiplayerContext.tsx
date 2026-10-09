@@ -19,11 +19,12 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef,
   type ReactNode,
 } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { useNavigate } from "../hooks/useNavigate";
 import socket, { socketConfigured } from "../socket";
-import type { RootState } from "../store";
+import type { AppDispatch, RootState } from "../store";
+import { updatePoints } from "../store/userSlice";
 import { getAccessToken, refreshSession } from "../utils/Api";
 import { BAN_CODE, reportBan } from "../utils/ban";
 import { isAccessTokenExpired } from "../utils/session";
@@ -384,6 +385,7 @@ const Ctx = createContext<MultiplayerContextValue | null>(null);
 export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const [mp, dispatch] = useReducer(reducer, initial);
   const { user } = useSelector((state: RootState) => state.user);
+  const reduxDispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const pathname = usePathname();
 
@@ -475,6 +477,12 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         snapshot: { ...snapshot, game: localGame(snapshot.game) as Game, lobby: snapshot.lobby ? withLocalGame(snapshot.lobby) : snapshot.lobby },
       }),
       matchError: (d: { message: string }) => dispatch({ t: "NOTICE", notice: { kind: "error", text: d.message } }),
+      // The relay credited this match to the account (Django already saved it); updatePoints is a delta.
+      pointsAwarded: (d: { awarded?: number } = {}) => {
+        if (!d?.awarded || d.awarded <= 0) return;
+        reduxDispatch(updatePoints(d.awarded));
+        dispatch({ t: "NOTICE", notice: { kind: "info", text: `+${d.awarded} pts added to your profile` } });
+      },
       // The relay refused our token. A ban ends the session app-wide (BanNotice); the relay
       // has already dropped the socket. Anything else is a transient notice.
       identifyError: (d: { code?: string; message?: string } = {}) => {
@@ -498,7 +506,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     };
     (Object.entries(on)).forEach(([evt, fn]) => socket.on(evt, fn as (...args: unknown[]) => void));
     return () => { Object.entries(on).forEach(([evt, fn]) => socket.off(evt, fn as (...args: unknown[]) => void)); };
-  }, []);
+  }, [reduxDispatch]);
 
   // ---- VS intro timer: hold the matchup card briefly, then start once data is in. ----
   useEffect(() => {
