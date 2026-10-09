@@ -9,6 +9,9 @@
    side by side instead of stacked. */
 .fp-actions--row { flex-direction: row; align-items: stretch; }
 .fp-actions--row > .btn { flex: 1; min-width: 0; padding: 0 10px; font-size: 12.5px; }
+/* One button on its own (Join room): the row's button, half the row wide, centred. */
+.fp-actions--single { justify-content: center; }
+.fp-actions--single > .btn { flex: 0 1 50%; }
 /* ---- Code tiles (host display + entry input share the look) ----
    Tiles flex-shrink to their row, so the card never overflows: they're compact
    in the 290px desktop aside and grow (to a cap) on full-width mobile. */

@@ -62,6 +62,7 @@ export default function MultiplayerPanel({
   };
   useEffect(() => () => { if (hintTimer.current) window.clearTimeout(hintTimer.current); }, []);
   const hint = hintShown && busy;
+  const message = hint ? GAME_IN_PROGRESS : !online && mp.notice ? mp.notice.text : null;
 
   return (
     <div ref={cardRef} className={`aside-card mp-panel${inLobby ? " is-room" : ""}`}>
@@ -116,14 +117,18 @@ export default function MultiplayerPanel({
                 </Button>
               </div>
             )}
-            <AnimatePresence initial={false}>
-              {hint && (
-                <motion.p key="mp-hint" className="fp-sub mp-hint" role="status" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
-                  {GAME_IN_PROGRESS}
-                </motion.p>
-              )}
-            </AnimatePresence>
+
           </motion.div>
+        )}
+      </AnimatePresence>
+      {/* One message slot under either view: the blocked-press hint, otherwise anything that went
+          wrong before a match (session expired, server unreachable, already in a match). These used
+          to show only inside a live match, so a failed Play 1v1 looked like nothing happened. */}
+      <AnimatePresence initial={false}>
+        {message && (
+          <motion.p key="mp-hint" className="fp-sub mp-hint" role="status" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+            <SwapText>{message}</SwapText>
+          </motion.p>
         )}
       </AnimatePresence>
       </AutoHeight>

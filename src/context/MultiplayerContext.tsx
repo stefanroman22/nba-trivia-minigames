@@ -159,6 +159,7 @@ type Action =
   | { t: "PROPOSAL_TIMEOUT" }
   | { t: "RESUME"; snapshot: ResumeSnapshot }
   | { t: "NOTICE"; notice: Notice }
+  | { t: "MATCH_ERROR"; message: string }
   | { t: "CLEAR_NOTICE" }
   | { t: "RESET" };
 
@@ -304,6 +305,12 @@ function reducer(state: MpState, a: Action): MpState {
       return { ...state, proposal: null, notice: { kind: "warn", text: "No response in time." } };
     case "NOTICE":
       return { ...state, notice: a.notice };
+    case "MATCH_ERROR":
+      // Refused before a room existed (not signed in, already in a match, game not available):
+      // drop back to idle so the player can try again, and say why.
+      return state.phase === "searching"
+        ? { ...initial, notice: { kind: "error", text: a.message } }
+        : { ...state, notice: { kind: "error", text: a.message } };
     case "CLEAR_NOTICE":
       return { ...state, notice: null };
     case "RESUME": {
@@ -476,7 +483,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         t: "RESUME",
         snapshot: { ...snapshot, game: localGame(snapshot.game) as Game, lobby: snapshot.lobby ? withLocalGame(snapshot.lobby) : snapshot.lobby },
       }),
-      matchError: (d: { message: string }) => dispatch({ t: "NOTICE", notice: { kind: "error", text: d.message } }),
+      matchError: (d: { message: string }) => dispatch({ t: "MATCH_ERROR", message: d?.message || "Couldn't start online play. Please try again." }),
       // The relay credited this match to the account (Django already saved it); updatePoints is a delta.
       pointsAwarded: (d: { awarded?: number } = {}) => {
         if (!d?.awarded || d.awarded <= 0) return;
@@ -531,10 +538,22 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     }
   }, [mp.code, mp.phase, mp.game, pathname, navigate]);
 
-  const guardOnline = useCallback((): boolean => {
+  // Before any online action: signed in, and a live connection. A socket the server dropped (or a
+  // network blip after which socket.io gave up) is reconnected here rather than failing silently.
+  const readyOnline = useCallback(async (): Promise<boolean> => {
+    dispatch({ t: "CLEAR_NOTICE" });
     if (!userRef.current) {
       dispatch({ t: "NOTICE", notice: { kind: "error", text: "You need to be signed in to play online." } });
       return false;
+    }
+    if (!socket.connected && socketConfigured) {
+      socket.connect();
+      await new Promise<void>((resolve) => {
+        const done = () => { window.clearTimeout(timer); socket.off("connect", done); socket.off("connect_error", done); resolve(); };
+        const timer = window.setTimeout(done, 6000);
+        socket.once("connect", done);
+        socket.once("connect_error", done);
+      });
     }
     if (!socket.connected) {
       dispatch({ t: "NOTICE", notice: { kind: "error", text: "Can't reach the game server. Please try again." } });
@@ -543,23 +562,23 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     return true;
   }, []);
 
-  const findMatch = useCallback((game: Game) => {
-    if (!guardOnline()) return;
+  const findMatch = useCallback(async (game: Game) => {
+    if (!(await readyOnline())) return;
     dispatch({ t: "FIND", game });
     void identifyNow().then(() => socket.emit("findMatch", { game: serializeGame(game) }));
-  }, [guardOnline, identifyNow]);
+  }, [readyOnline, identifyNow]);
 
-  const createFriendRoom = useCallback((game: Game) => {
-    if (!guardOnline()) return;
+  const createFriendRoom = useCallback(async (game: Game) => {
+    if (!(await readyOnline())) return;
     dispatch({ t: "FRIEND_CREATE" });
     void identifyNow().then(() => socket.emit("createFriendRoom", { game: serializeGame(game) }));
-  }, [guardOnline, identifyNow]);
+  }, [readyOnline, identifyNow]);
 
-  const joinFriendRoom = useCallback((code: string) => {
-    if (!guardOnline()) return;
+  const joinFriendRoom = useCallback(async (code: string) => {
+    if (!(await readyOnline())) return;
     dispatch({ t: "FRIEND_JOIN" });
     void identifyNow().then(() => socket.emit("joinFriendRoom", { code }));
-  }, [guardOnline, identifyNow]);
+  }, [readyOnline, identifyNow]);
 
   const changeFriendGame = useCallback((game: Game) => {
     socket.emit("changeFriendGame", { code: codeRef.current, game: serializeGame(game) });

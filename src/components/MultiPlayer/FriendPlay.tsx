@@ -236,8 +236,9 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
           hasError={!!mp.friendJoinError}
         />
         {mp.friendJoinError && <p className="fp-err" role="alert">{mp.friendJoinError}</p>}
-        <div className="fp-actions">
-          <Button size="lg" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
+        {/* Same size and type as Generate code / Enter code (fp-actions--row), centred alone. */}
+        <div className="fp-actions fp-actions--row fp-actions--single">
+          <Button size="sm" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
             <SwapText>{joining ? "Joining…" : "Join room"}</SwapText>
           </Button>
         </div>

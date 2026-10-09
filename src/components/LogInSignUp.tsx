@@ -11,7 +11,7 @@ import { isInAppBrowser } from "../utils/inAppBrowser";
 import ConsentFields from "./ConsentFields";
 import PasswordRules from "./PasswordRules";
 import { passwordRules } from "../utils/passwordRules";
-import { EMPTY_CONSENT, ageBlockActive, consentComplete, consentPayload, startAgeBlock, type ConsentValue } from "../utils/consent";
+import { EMPTY_CONSENT, consentComplete, consentPayload, type ConsentValue } from "../utils/consent";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -35,7 +35,6 @@ interface AuthError { id: number; message: string; field?: AuthField }
 
 const NETWORK_ERROR = "Unable to contact the server. Please try again later.";
 const CONSENT_NEEDED = "Please enter your birth month and year and agree to the Terms and Privacy Policy.";
-const AGE_BLOCKED = "You can't create an account right now.";
 /** How long the success pane holds before the modal leaves (after the form's fade-out). The sheet
  *  (mobile) and reduced-motion holds are shorter; a tap skips once SKIP_AFTER_MS has passed. */
 const SUCCESS_HOLD_MS = 800;
@@ -292,11 +291,6 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       fail(CONSENT_NEEDED);
       return;
     }
-    if (ageBlockActive()) {
-      fail(AGE_BLOCKED);
-      return;
-    }
-
     try {
       const response = await fetch(`${BACKEND_URL}/signup/`, {
         method: "POST",
@@ -307,7 +301,6 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       if (handledBan(response, data)) return;
 
       if (!response.ok || data.error) {
-        if (data.code === "age_requirement") startAgeBlock();
         const message = data.error || "Signup failed";
         fail(message, fieldForMessage(message));
       } else {
@@ -342,7 +335,6 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       }
 
       if (!response.ok || data.error) {
-        if (data.code === "age_requirement") startAgeBlock();
         if (body.consent_token && !data.code) setGoogleToken(null); // expired or tampered: start over
         fail(data.error || "Google Authentication Failed");
         return;
@@ -363,10 +355,6 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
     if (!googleToken || !begin()) return;
     if (!consentComplete(consent)) {
       fail(CONSENT_NEEDED);
-      return;
-    }
-    if (ageBlockActive()) {
-      fail(AGE_BLOCKED);
       return;
     }
     await sendGoogle({ consent_token: googleToken, ...consentPayload(consent) });
