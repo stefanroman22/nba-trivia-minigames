@@ -3,7 +3,6 @@ import copy from "copy-to-clipboard";
 import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import { AnimatePresence, motion } from "framer-motion";
-import SwapText from "./motion/SwapText";
 import SegmentedTabs from "./motion/SegmentedTabs";
 import defaultAvatar from "../assets/default.png";
 import FriendsPanel from "./FriendsPanel";
@@ -83,8 +82,9 @@ function UserProfile() {
         </div>
       ) : (
         <div className="profile-view-body pc">
-          {/* Identity on one row: photo (tap the camera to change it), name, player ID */}
-          <div className="pc-id">
+          {/* Identity on the left (photo, name, player ID), points and rank on the right,
+              Profile settings under the photo. */}
+          <div className="pc-grid">
             <div className="pc-avatar">
               <AnimatePresence mode="wait">
                 <motion.img
@@ -106,32 +106,54 @@ function UserProfile() {
               </label>
               <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
             </div>
+
             <div className="pc-meta">
               <h2 className="font-display pc-name">{user?.username}</h2>
-              <button type="button" className="pc-id-btn tnum" onClick={copyPlayerId} title="Copy your player ID">
+              <span className="pc-id tnum">
                 #{user?.id}
-                <span className="pc-id-copy"><SwapText>{idCopied ? "Copied" : "Copy"}</SwapText></span>
-              </button>
+                <button
+                  type="button"
+                  className={`pc-copy${idCopied ? " is-copied" : ""}`}
+                  onClick={copyPlayerId}
+                  aria-label={idCopied ? "Player ID copied" : "Copy player ID"}
+                  title={idCopied ? "Copied" : "Copy player ID"}
+                >
+                  <AnimatePresence mode="wait" initial={false}>
+                    <motion.svg
+                      key={idCopied ? "check" : "copy"}
+                      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                      initial={{ opacity: 0, scale: 0.6, rotate: idCopied ? -20 : 0 }}
+                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                      exit={{ opacity: 0, scale: 0.6 }}
+                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      {idCopied
+                        ? <path d="M20 6L9 17l-5-5" />
+                        : <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>}
+                    </motion.svg>
+                  </AnimatePresence>
+                </button>
+              </span>
             </div>
-          </div>
 
-          {/* Points & rank side by side */}
-          <div className="profile-stats">
-            <div className="profile-stat">
-              <span className="profile-stat-lbl">Points</span>
-              <span className="font-display tnum profile-stat-num">{user?.points}</span>
+            <div className="pc-stats">
+              <div className="pc-stat">
+                <span className="pc-stat-lbl">Points</span>
+                <span className="font-display tnum pc-stat-num is-brand">{user?.points}</span>
+              </div>
+              <span className="pc-stat-divider" aria-hidden="true" />
+              <div className="pc-stat">
+                <span className="pc-stat-lbl">Rank</span>
+                <span className="font-display pc-stat-num">{user?.rank}</span>
+              </div>
             </div>
-            <span className="profile-stat-divider" aria-hidden="true" />
-            <div className="profile-stat">
-              <span className="profile-stat-lbl">Rank</span>
-              <span className="font-display tnum profile-stat-num">{user?.rank}</span>
-            </div>
-          </div>
 
-          <button type="button" className="pc-settings" onClick={() => navigate("/profile")}>
-            Profile settings
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-          </button>
+            <button type="button" className="pc-settings" onClick={() => navigate("/profile")}>
+              Profile settings
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+            </button>
+          </div>
         </div>
       )}
     </motion.div>
