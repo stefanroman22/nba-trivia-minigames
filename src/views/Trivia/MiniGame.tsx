@@ -20,6 +20,7 @@ import { apiFetch, getAccessToken } from '../../utils/Api';
 import { addGuestPoints } from '../../utils/guestPoints';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
+import { AutoSize } from '../../components/motion/AutoHeight';
 import { useWordleCardState } from '../../hooks/useWordleCardState';
 import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
@@ -349,7 +350,7 @@ function MiniGame() {
       <Navigation type="back" />
 
       <main className="page game-page">
-        {/* is-room compacts the idle stage on small screens so the room card below it fits (MiniGame.css) */}
+        {/* is-room: a private room is open (MiniGame.css) */}
         <div className={`game-grid${inLobby ? " is-room" : ""}`}>
           {/* Mobile game strip */}
           <div className="rail-strip" ref={railStripRef} onScroll={saveRailStrip}>
@@ -402,11 +403,15 @@ function MiniGame() {
               <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" && !wordleLocked ? handleStart : undefined })}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
               </button>
-              {online
-                ? <Chip variant="brand" dot style={{ marginLeft: "auto" }}>{mp.roomType === "friend" ? "PRIVATE MATCH" : "ONLINE 1V1"}</Chip>
-                : inLobby
-                  ? <Chip variant="brand" dot style={{ marginLeft: "auto" }}>PRIVATE ROOM</Chip>
-                  : <Chip variant="brand" dot style={{ marginLeft: "auto" }}>{game?.tag}</Chip>}
+              {/* One chip whose label swaps (SwapText): three conditional <Chip>s reused one element and
+                  changed its text instantly (UI_SHELL_CONSTRAINTS "State labels swap, never snap"). */}
+              <AutoSize axis="width" style={{ marginLeft: "auto" }}>
+                <Chip variant="brand" dot>
+                  <SwapText>
+                    {online ? (mp.roomType === "friend" ? "PRIVATE MATCH" : "ONLINE 1V1") : inLobby ? "PRIVATE ROOM" : game?.tag}
+                  </SwapText>
+                </Chip>
+              </AutoSize>
             </div>
 
             <Stage phaseKey={online ? "online" : stage}>

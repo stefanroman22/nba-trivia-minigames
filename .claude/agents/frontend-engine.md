@@ -41,6 +41,19 @@ Duplicating a catalogued (or merely existing-but-uncatalogued) unit is a review-
 on top of what's already there — extending a hook, composing an existing component — beats a
 parallel implementation every time, even if the existing one isn't a perfect fit; adapt it first.
 
+## Motion and sizing (always — UI_SHELL_CONSTRAINTS UI-21/22/23)
+- **Text that changes with state** goes through `SwapText`, in ONE element: never
+  `cond ? <Chip>A</Chip> : <Chip>B</Chip>` (React reuses the element and the text snaps). A box whose
+  width follows the label (chip, pill) sits in `AutoSize axis="width"`.
+- **Boxes never jump:** any card, panel or container whose content can change size wraps the changing
+  part in `AutoHeight` (`src/components/motion/AutoHeight.tsx`); state-driven border/background/glow
+  changes get a CSS `transition` (0.3 s) on those properties.
+- **Content entering/leaving** uses the shared `swap` / `fadeIn` / `popIn` variants in
+  `AnimatePresence` — reuse them and `src/motion/tokens.ts`, never new durations, easings or a
+  second swap/resize component.
+- **Same component, same spacing:** every state of one card ends with the same bottom space; no
+  always-mounted empty placeholder lines at the end of a state.
+
 ## Design skills (use when available — they are optional, the docs above are not)
 If the environment offers any of these skills, invoke the relevant one **before** writing UI, and
 follow it for visual judgment the constraint docs don't cover (hierarchy, spacing rhythm, type

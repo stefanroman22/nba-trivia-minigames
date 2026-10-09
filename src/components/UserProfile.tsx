@@ -4,6 +4,8 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import { AnimatePresence, motion } from "framer-motion";
 import SegmentedTabs from "./motion/SegmentedTabs";
+import AutoHeight from "./motion/AutoHeight";
+import CopyIcon from "./motion/CopyIcon";
 import defaultAvatar from "../assets/default.png";
 import FriendsPanel from "./FriendsPanel";
 import { useProfilePhoto } from "../hooks/useProfilePhoto";
@@ -76,6 +78,8 @@ function UserProfile() {
         onChange={setView}
       />
 
+      {/* The card glides to the new height when the view (or a Friends sub-tab) changes. */}
+      <AutoHeight>
       {view === "friends" ? (
         <div className="profile-view-body">
           <FriendsPanel />
@@ -118,21 +122,7 @@ function UserProfile() {
                   aria-label={idCopied ? "Player ID copied" : "Copy player ID"}
                   title={idCopied ? "Copied" : "Copy player ID"}
                 >
-                  <AnimatePresence mode="wait" initial={false}>
-                    <motion.svg
-                      key={idCopied ? "check" : "copy"}
-                      width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                      strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
-                      initial={{ opacity: 0, scale: 0.6, rotate: idCopied ? -20 : 0 }}
-                      animate={{ opacity: 1, scale: 1, rotate: 0 }}
-                      exit={{ opacity: 0, scale: 0.6 }}
-                      transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                    >
-                      {idCopied
-                        ? <path d="M20 6L9 17l-5-5" />
-                        : <><rect x="9" y="9" width="12" height="12" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></>}
-                    </motion.svg>
-                  </AnimatePresence>
+                  <CopyIcon copied={idCopied} />
                 </button>
               </span>
             </div>
@@ -156,6 +146,7 @@ function UserProfile() {
           </div>
         </div>
       )}
+      </AutoHeight>
     </motion.div>
   );
 }

@@ -549,6 +549,11 @@ timers, counters that already use `AnimatedNumber`) is exempt. Never build a sec
 - A button/inline label whose states differ in width passes `reserveWidth={[…every state]}` so the
   control never resizes mid-swap (it also holds a line at its tallest state if one wraps).
 - Don't wrap static text: `<SwapText>Remove</SwapText>` animates nothing.
+- **Never pick between same-type elements for a label** (`cond ? <Chip>A</Chip> : <Chip>B</Chip>`):
+  React reuses the one element and just replaces its text, so it snaps with no transition at all.
+  Render the element once and put the choice inside its `SwapText`. If the label changes the
+  element's width (a chip, a pill), wrap the element in `AutoSize axis="width"` (UI-23) so the box
+  glides to the new width instead of jumping.
 
 ```tsx
 ❌ WRONG — src/components/FriendsPanel.tsx before: a separate <p> per state, so the text snaps
@@ -557,6 +562,14 @@ timers, counters that already use `AnimatedNumber`) is exempt. Never build a sec
 ✅ RIGHT — src/components/FriendsPanel.tsx (EmptyLine): one line, keyed per state
 <p className="fr-empty"><SwapText swapKey={state.key}>{state.text}</SwapText></p>
 <SwapText swapKey={sending ? "sending" : "add"} reserveWidth={["Add", "Sending…"]}>{sending ? "Sending…" : "Add"}</SwapText>
+
+❌ WRONG — src/views/Trivia/MiniGame.tsx before 2026-10-10: the game tag -> "PRIVATE ROOM" chip snapped
+{online ? <Chip …>ONLINE 1V1</Chip> : inLobby ? <Chip …>PRIVATE ROOM</Chip> : <Chip …>{game?.tag}</Chip>}
+
+✅ RIGHT — src/views/Trivia/MiniGame.tsx: one chip, the label swaps and the chip's width glides
+<AutoSize axis="width" style={{ marginLeft: "auto" }}>
+  <Chip variant="brand" dot><SwapText>{online ? "ONLINE 1V1" : inLobby ? "PRIVATE ROOM" : game?.tag}</SwapText></Chip>
+</AutoSize>
 ```
 
 ---
@@ -572,7 +585,8 @@ collapse to a fade (UI-20), so there is nothing extra to write.
 - **Mutually exclusive screens or panes** (loader ↔ list, tab A ↔ tab B, grid ↔ empty state,
   Play button ↔ room note) sit in `<AnimatePresence mode="wait" initial={false}>` with one
   `motion.div` child using the `swap` variant (`initial="hidden" animate="visible" exit="exit"`),
-  keyed per state (`key={loading ? "loading" : scope}`). Do not animate the container's height.
+  keyed per state (`key={loading ? "loading" : scope}`). Never animate the swapped child's height;
+  the container around the `AnimatePresence` resizes through `AutoHeight` (UI-23).
 - **Blocks that appear or disappear** (`{cond && <X/>}`) are wrapped in an `AnimatePresence` and
   render a `motion` element with `fadeIn` (quiet blocks) or `popIn` (banners that announce a result).
   Keep the existing `role`/`aria-live` and class names on the motion element.
@@ -591,12 +605,52 @@ so the loader snaps to the list on open and again on every Global ↔ Friends to
   <>{/* head + list */}</>
 )}
 
-✅ RIGHT — src/components/modals/LeaderboardModal.tsx: one keyed swap, no height animation
+✅ RIGHT — src/components/modals/LeaderboardModal.tsx: one keyed swap (the box around it resizes per UI-23)
 <AnimatePresence mode="wait" initial={false}>
   <motion.div key={loading ? "loading" : scope} variants={swap} initial="hidden" animate="visible" exit="exit">
     {loading ? <CourtLoader … /> : <>{/* head + list */}</>}
   </motion.div>
 </AnimatePresence>
+```
+
+---
+
+## Rule UI-23: Containers resize smoothly — every box, card or panel whose content can change size glides; nothing snaps
+
+Any box whose content can change — tabs or segmented views, a loader turning into a list, a collapsed
+section opening, a form step, a lobby filling, a chip whose label changes — must never jump to its
+new size. Reuse the shared primitives, never hand-roll one:
+
+- **Height:** wrap the changing part in `AutoHeight` (`src/components/motion/AutoHeight.tsx`): it
+  measures the content (ResizeObserver) and animates the box's height, clips only while moving
+  (focus rings and popovers are never cut off at rest), and is instant under reduced motion. Put it
+  around the `AnimatePresence` of UI-22, not on the swapped child. Used by the landing profile card
+  (Profile / Friends and the Friends sub-tabs) and the game page's Multiplayer card.
+- **Width:** inline boxes (chips, pills, badges) whose label changes use `AutoSize axis="width"`
+  (same file) around the element, with `SwapText` inside for the text (UI-21).
+- **State styling:** a box that changes border, background or glow with state (for example
+  `.aside-card.is-room`) carries a CSS `transition` on exactly those properties (0.3 s ease) so the
+  highlight fades in and out.
+- **New content inside the box** still enters through UI-22 (`swap` / `fadeIn` / `popIn`).
+- Fixed-height placeholders (`reserveWidth`, reserved slots such as `.idle-action`) remain the
+  right tool when a box should *not* change size at all.
+- **Same component, same spacing.** Every state of one card keeps the same padding and the same
+  space below its last element. Never leave an always-mounted empty or placeholder line (`\u00a0`,
+  an empty `<p>`) at the end of a state "to reserve room": with the flex `gap` it adds empty space
+  only that state has. Mount the line when it has content (UI-22 `fadeIn`) and let `AutoHeight`
+  absorb the change. (The friend-room menu once sat ~30 px taller at the bottom than the Play 1v1
+  view for exactly this reason.)
+
+```tsx
+❌ WRONG — the card snaps to each view's height on every tab switch
+<div className="profile-wrap">
+  {view === "friends" ? <FriendsPanel /> : <ProfileSummary />}
+</div>
+
+✅ RIGHT — src/components/UserProfile.tsx: the card glides between heights
+<div className="profile-wrap">
+  <AutoHeight>{view === "friends" ? <FriendsPanel /> : <ProfileSummary />}</AutoHeight>
+</div>
 ```
 
 ---

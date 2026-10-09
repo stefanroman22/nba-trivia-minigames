@@ -1,18 +1,25 @@
 import type { ReactNode } from "react";
 import { LEGAL } from "../configurations/legal";
 import "../styles/LegalTable.css";
+import LegalHeader from "./LegalHeader";
+import LegalPdfButton from "./LegalPdfButton";
 
-/** Long-form page for the privacy policy and terms: one readable column on the site's dark theme. */
-export default function LegalPage({ title, children }: { title: string; children: ReactNode }) {
+/** Long-form page for the privacy policy and terms: the site header on top (so it's part of the app,
+ *  not a dead end), one readable column, and a branded PDF download at the end. */
+export default function LegalPage({ title, path, children }: { title: string; path: string; children: ReactNode }) {
   return (
-    <main style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: "4rem 1.25rem 5rem" }}>
-      <article style={{ maxWidth: 820, margin: "0 auto", lineHeight: 1.7 }}>
-        <a href="/" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>← {LEGAL.service}</a>
-        <h1 style={{ fontSize: "2.25rem", fontWeight: 800, margin: "1.25rem 0 0.25rem" }}>{title}</h1>
-        <p style={{ color: "var(--muted)", marginBottom: "2rem" }}>Last updated {LEGAL.updated}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>{children}</div>
-      </article>
-    </main>
+    <>
+      <LegalHeader />
+      <main style={{ background: "var(--bg)", color: "var(--text)", minHeight: "100vh", padding: "2rem 1.25rem 5rem" }}>
+        <article style={{ maxWidth: 820, margin: "0 auto", lineHeight: 1.7 }}>
+          <h1 style={{ fontSize: "2.25rem", fontWeight: 800, margin: "0.5rem 0 0.25rem" }}>{title}</h1>
+          <p style={{ color: "var(--muted)", marginBottom: "2rem" }}>Last updated {LEGAL.updated}</p>
+          {/* data-legal-content: what LegalPdfButton reads to build the PDF (the page is the single source). */}
+          <div data-legal-content style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>{children}</div>
+          <LegalPdfButton title={title} path={path} />
+        </article>
+      </main>
+    </>
   );
 }
 

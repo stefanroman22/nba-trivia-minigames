@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   const law = LEGAL.country ? `the law of ${LEGAL.country}` : "the law of the country where the operator is established (see the contact details above)";
   return (
-    <LegalPage title="Terms of Service">
+    <LegalPage title="Terms of Service" path="/terms">
       <LegalSummary>
         <strong>The short version.</strong> {LEGAL.service} is a free game. Play fair, be kind, keep your name and photo
         appropriate, and don&apos;t cheat or attack the site. If we have to act against your account we tell you why and you

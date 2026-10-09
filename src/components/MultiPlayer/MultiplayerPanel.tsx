@@ -7,6 +7,7 @@ import { Button } from "../ui";
 import { showErrorAlert } from "../../utils/Alerts";
 import SwapText from "../motion/SwapText";
 import FriendPlay from "./FriendPlay";
+import AutoHeight from "../motion/AutoHeight";
 import type { RootState } from "../../store";
 import type { Game } from "../../types/types";
 
@@ -63,6 +64,8 @@ export default function MultiplayerPanel({
         </button>
       </div>
 
+      {/* Glides to each state's height (choice -> code/lobby -> match) instead of snapping. */}
+      <AutoHeight>
       <AnimatePresence mode="wait">
         {showFriend ? (
           <motion.div key="friend" {...swap} className="mp-friend">
@@ -106,6 +109,7 @@ export default function MultiplayerPanel({
           </motion.div>
         )}
       </AnimatePresence>
+      </AutoHeight>
     </div>
   );
 }
