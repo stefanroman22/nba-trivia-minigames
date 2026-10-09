@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { LEGAL } from "../../configurations/legal";
+import { SITE_NAME } from "../../configurations/site";
 import LegalPage, { LegalHeading, LegalList, LegalSummary, MailLink, OperatorBlock } from "../../components/LegalPage";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: `The rules for using ${LEGAL.service}: accounts, fair play, moderation, reporting content, and your rights.`,
   alternates: { canonical: "/terms" },
+  // A child openGraph replaces the layout's wholesale, so the shared fields are repeated.
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/terms", title: `Terms of Service | ${SITE_NAME}` },
 };
 
 export default function TermsPage() {

@@ -1,0 +1,46 @@
+/* Site-wide footer (components/SiteFooter) and the server-rendered "How to play" block on game pages
+   (components/GameGuide). Quiet, on the page background, using the theme tokens. */
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  padding: 40px 20px 28px;
+  font-size: 13.5px;
+}
+.site-footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.4fr 2fr 1fr;
+  gap: 28px;
+}
+.site-footer-name { color: var(--text); font-size: 17px; letter-spacing: 1px; margin: 0 0 8px; }
+.site-footer-note { margin: 0; line-height: 1.55; max-width: 34ch; }
+.site-footer-head {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+}
+.site-footer-col ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; }
+.site-footer-col:first-of-type ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+.site-footer a { color: var(--muted); text-decoration: none; transition: color 0.15s ease; }
+.site-footer a:hover, .site-footer a:focus-visible { color: var(--text); }
+.site-footer-copy { max-width: 1180px; margin: 28px auto 0; font-size: 12px; }
+
+@media (max-width: 760px) {
+  .site-footer-inner { grid-template-columns: 1fr; gap: 22px; }
+}
+
+.game-guide {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 8px 20px 44px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.game-guide h2 { color: var(--text); font-size: 19px; margin: 0 0 8px; }
+.game-guide-intro { margin: 0 0 12px; }
+.game-guide-rules { margin: 0; padding-left: 1.25rem; display: grid; gap: 6px; }

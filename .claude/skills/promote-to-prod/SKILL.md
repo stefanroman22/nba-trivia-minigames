@@ -14,7 +14,7 @@ themselves. Without that, stop — see CLAUDE.md "Shipping".
    Vercel projects.
 2. Watch both production deployments to READY (Vercel MCP `list_deployments` / `get_deployment`,
    `get_deployment_build_logs` on failure). The backend build runs `manage.py migrate` — read it.
-3. Verify production, not just the build: fetch https://nba-minigames.vercel.app and the routes
+3. Verify production, not just the build: fetch https://swishquest.com and the routes
    you touched (real content, right status codes), hit the API for JSON (e.g.
    https://backend-kappa-one-42.vercel.app/api/get-users/), and run a browser pass when the UI changed.
 4. Anything broken is yours to fix forward immediately — never leave production broken and just

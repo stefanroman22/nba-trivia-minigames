@@ -11,21 +11,21 @@ import "../App.css";
 // to "/" and a direct load of /wordle would lose the page padding.
 import "../styles/LandPage.css";
 import "../styles/GlobalStyles.css";
-import logo from "../assets/basketballLogo.webp";
 import Providers from "./providers";
-import { SITE_NAME, SITE_URL, SITE_DESCRIPTION } from "../configurations/site";
+import SiteFooter from "../components/SiteFooter";
+import { GOOGLE_SITE_VERIFICATION, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "../configurations/site";
 
+// No canonical here: every child would inherit "/" (each page sets its own). Icons, the manifest and the
+// share images come from the file conventions in this folder (favicon.ico, icon.png, apple-icon.png,
+// manifest.ts, opengraph-image.tsx, twitter-image.tsx).
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  title: { default: SITE_TITLE, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
-  openGraph: {
-    type: "website", siteName: SITE_NAME, locale: "en_US",
-    title: SITE_NAME, description: SITE_DESCRIPTION,
-    images: [{ url: logo.src, width: logo.width, height: logo.height, alt: SITE_NAME }],
-  },
-  twitter: { card: "summary", title: SITE_NAME, description: SITE_DESCRIPTION, images: [logo.src] },
-  icons: { icon: [{ url: logo.src, type: "image/webp" }] },
+  applicationName: SITE_NAME,
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  verification: { google: GOOGLE_SITE_VERIFICATION },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -49,6 +49,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <div id="root">
           <Providers>{children}</Providers>
+          <SiteFooter />
         </div>
       </body>
     </html>

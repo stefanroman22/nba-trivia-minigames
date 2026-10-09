@@ -1,4 +1,6 @@
-# NBA Trivia Minigames
+# Swish Quest (NBA trivia minigames)
+
+Live at https://swishquest.com (formerly HOOPS24).
 
 A web app where people play short NBA trivia minigames, earn points, climb a leaderboard, and
 optionally play head-to-head against another person online. 18 games are live today — playoff
