@@ -455,7 +455,7 @@ to the current path skips the transition and calls `router.push` directly.
 ## Rule UI-18: `src/app/` files are thin server-side wrappers; page logic lives in `src/views/` behind `"use client"`
 
 Route files (`page.tsx`, `not-found.tsx`, `coming-soon/page.tsx`, `admin/page.tsx`) only render a
-view and export `metadata`/`generateMetadata` (title template `%s | HOOPS24` from `layout.tsx`;
+view and export `metadata`/`generateMetadata` (title template `%s | Swish Quest` from `layout.tsx`;
 `/admin` also sets `robots: { index: false, follow: false }`). Views and providers that use hooks,
 Redux or framer-motion start with `"use client"` (`Landpage.tsx`, `Admin.tsx`, `NoPageFound.tsx`,
 `MiniGame.tsx`, `providers.tsx`, `template.tsx`, `PageTransitionContext.tsx`). Client-only

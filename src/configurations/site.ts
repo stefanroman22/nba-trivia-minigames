@@ -4,9 +4,6 @@ export const SITE_NAME = "Swish Quest";
 export const SITE_TITLE = "Swish Quest: Free NBA Trivia Games";
 /** Short line shown under the wordmark. */
 export const SITE_TAGLINE = "NBA TRIVIA GAMES";
-/** The previous brand. Only in Organization.alternateName and visible "formerly" copy: never in
- *  WebSite.alternateName, which Google may show as the site name (Search Central "site names"). */
-export const FORMER_NAME = "HOOPS24";
 export const SITE_DESCRIPTION =
   "Free NBA trivia games in your browser: NBA Wordle, Career Path, Who Are Ya?, Tic-Tac-Toe and more. Play solo, score points and climb the leaderboard.";
 

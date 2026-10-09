@@ -37,7 +37,7 @@ export const LegalSummary = ({ children }: { children: ReactNode }) => (
 /** Who is behind the service: only the facts that are filled in, plus the contact address. */
 export const OperatorBlock = () => (
   <address style={{ fontStyle: "normal", background: "var(--surface)", border: "1px solid var(--line)", borderRadius: "var(--radius)", padding: "1rem 1.25rem" }}>
-    <strong>{LEGAL.service}</strong> (previously {LEGAL.formerName})
+    <strong>{LEGAL.service}</strong>
     {LEGAL.operatorName && <><br />Operated by {LEGAL.operatorName}</>}
     {LEGAL.operatorAddress && <><br />{LEGAL.operatorAddress}</>}
     <br />Email: <MailLink />

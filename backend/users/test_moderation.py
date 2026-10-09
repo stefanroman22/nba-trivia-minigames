@@ -137,7 +137,7 @@ class RecallTests(SimpleTestCase):
 
 class TierAndMessageTests(SimpleTestCase):
     def test_reserved_names(self):
-        for name in ("admin", "admin1", "Admin_Joe", "Moderator", "official_hoops", "Hoops24", "NBA", "nba_1"):
+        for name in ("admin", "admin1", "Admin_Joe", "Moderator", "official_hoops", "NBA", "nba_1"):
             with self.subTest(name=name):
                 self.assertEqual(mt.check_username(name).tier, "reserved")
 

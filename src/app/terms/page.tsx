@@ -26,7 +26,7 @@ export default function TermsPage() {
 
       <LegalHeading id="who">1. Who we are and what these terms are</LegalHeading>
       <p>
-        These terms are an agreement between you and the operator of {LEGAL.service} (previously {LEGAL.formerName}), a free
+        These terms are an agreement between you and the operator of {LEGAL.service}, a free
         website of NBA trivia games with optional accounts, leaderboards, friends and online matches.
       </p>
       <OperatorBlock />

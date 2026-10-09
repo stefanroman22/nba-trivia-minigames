@@ -5,7 +5,6 @@
  *  emptied. */
 export const LEGAL = {
   service: "Swish Quest",
-  formerName: "HOOPS24",
   /** Where privacy requests, takedown notices, ban appeals and everything else legal goes. */
   contactEmail: "stefanromanpers@gmail.com",
   /** Full legal name of the person or company running the service. */

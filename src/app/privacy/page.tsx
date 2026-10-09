@@ -29,7 +29,7 @@ export default function PrivacyPage() {
 
       <LegalHeading id="who">1. Who we are</LegalHeading>
       <p>
-        {LEGAL.service} (previously {LEGAL.formerName}) is a free NBA trivia website. The person or company below is the
+        {LEGAL.service} is a free NBA trivia website. The person or company below is the
         controller of your personal data under the GDPR, and the contact for every privacy request.
       </p>
       <OperatorBlock />

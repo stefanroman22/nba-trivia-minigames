@@ -8,7 +8,7 @@
 
 **Tech Stack:** Node 18+ ESM scripts (zero deps, as `scripts/notion.mjs` / `scripts/slack.mjs`), `node --test` for pure helpers, Notion REST API (`2022-06-28`), Slack Web API, `gh` CLI. Skill files are Markdown instructions read by Claude Code agents.
 
-**Spec:** The research report published 2026-09-06 (Hoops24 Model Playbook artifact, §02 role table and §05 change list) plus the in-chat decisions recorded in `docs/team/DECISIONS.md` (three 2026-09-06 entries). Model policy of record: `docs/team/PIPELINE.md` §14.
+**Spec:** The research report published 2026-09-06 (Model Playbook artifact, §02 role table and §05 change list) plus the in-chat decisions recorded in `docs/team/DECISIONS.md` (three 2026-09-06 entries). Model policy of record: `docs/team/PIPELINE.md` §14.
 
 ## To-do list (the owner's view — one line per deliverable)
 

@@ -49,7 +49,7 @@ Vite never resolved but Next's resolver (`.tsx` before `.ts`) would.
 | Redux store | Keep the module singleton | Nothing dispatches during render; the per-request store pattern is not needed for correctness |
 | Lint/typecheck | `eslint .` stays the CI check; `next build` type-checks; `npx next typegen && npx tsc --noEmit` for a standalone typecheck | `next-env.d.ts` is generated and git-ignored (Next 16 recommendation) |
 | Vercel | `vercel.json`: `framework: "nextjs"`, drop `outputDirectory` + SPA rewrite, keep `/data/` cache headers | Framework preset drives the build; headers are edge config and work unchanged |
-| Metadata | Layout: `title` default `HOOPS24` (+ `%s | HOOPS24` template), the existing description, favicon from the asset import, the two font preloads. Games: `generateMetadata` → game name + description. Admin: `robots: noindex` | Direct SEO payoff of per-route HTML; `/admin` is already disallowed in robots.txt |
+| Metadata | Layout: `title` default `Swish Quest` (+ `%s | Swish Quest` template), the existing description, favicon from the asset import, the two font preloads. Games: `generateMetadata` → game name + description. Admin: `robots: noindex` | Direct SEO payoff of per-route HTML; `/admin` is already disallowed in robots.txt |
 | StrictMode | `reactStrictMode: false` | The Vite entry never used StrictMode; keeps dev-only double effects (socket identify, `/me/` check) from appearing |
 
 ## 4. Resulting layout

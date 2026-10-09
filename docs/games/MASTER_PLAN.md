@@ -1,7 +1,7 @@
 # NBA Minigames — Master Plan
 
 Single source of truth for every game the app has, is building, or should build.
-Compiled 2026-07-04 from: the "New Games – Hoops24 Games" spec (4 committed games), a full scan of
+Compiled 2026-07-04 from: the "New Games" spec (4 committed games), a full scan of
 playfootball.games (23 games), premierleague.com/en/games (9), hoopgoat.com (16), the NBA trivia
 market (Poeltl, Immaculate Grid, HoopGrids, Crossover Grid, Dribble Game, Sporcle, NBA Play…), and
 generic daily-puzzle mechanics (Wordle, Connections, higher/lower, Contexto…).
@@ -168,7 +168,7 @@ process before starting the next game.
 
 ---
 
-## 3. Wave 1 — the four committed games (from the Hoops24 spec)
+## 3. Wave 1 — the four committed games (from the new-games spec)
 
 ### W1-1 · Fan Favorites — "We asked 100 NBA fans…"
 
