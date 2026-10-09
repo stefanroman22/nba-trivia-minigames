@@ -7,8 +7,10 @@ export const metadata: Metadata = {
   title: "Terms of Service",
   description: `The rules for using ${LEGAL.service}: accounts, fair play, moderation, reporting content, and your rights.`,
   alternates: { canonical: "/terms" },
-  // A child openGraph replaces the layout's wholesale, so the shared fields are repeated.
-  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/terms", title: `Terms of Service | ${SITE_NAME}` },
+  // A child openGraph/twitter replaces the layout's wholesale (including the root share image), so the
+  // shared fields are repeated.
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/terms", title: `Terms of Service | ${SITE_NAME}`, images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: `Terms of Service | ${SITE_NAME}`, images: ["/opengraph-image"] },
 };
 
 export default function TermsPage() {

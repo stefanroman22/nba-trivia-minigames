@@ -7,8 +7,10 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description: `What ${LEGAL.service} collects, why, who handles it, how long it is kept, and how to see, export or delete it.`,
   alternates: { canonical: "/privacy" },
-  // A child openGraph replaces the layout's wholesale, so the shared fields are repeated.
-  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/privacy", title: `Privacy Policy | ${SITE_NAME}` },
+  // A child openGraph/twitter replaces the layout's wholesale (including the root share image), so the
+  // shared fields are repeated.
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/privacy", title: `Privacy Policy | ${SITE_NAME}`, images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: `Privacy Policy | ${SITE_NAME}`, images: ["/opengraph-image"] },
 };
 
 export default function PrivacyPage() {
