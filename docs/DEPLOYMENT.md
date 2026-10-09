@@ -14,7 +14,7 @@ Design background: `docs/superpowers/specs/2026-06-21-nba-data-architecture-desi
 | Django API (auth, leaderboard, game data) | **LIVE** | Vercel serverless — `https://backend-kappa-one-42.vercel.app` |
 | User database | **LIVE** | Supabase Postgres (migrated; signup/login/leaderboard verified) |
 | Frontend + game content | **LIVE** | Vercel CDN (`/data/` pools) |
-| Multiplayer ("Play Online") | **Dead** — old Railway host is gone, nothing currently deployed | needs a persistent Node host (see note) |
+| Multiplayer ("Play Online") | **LIVE** since 2026-10-09 | Railway project `nba-multiplayer`, Hobby plan, EU West (Amsterdam), 1 replica — `https://nba-multiplayer-production.up.railway.app` |
 
 **Supabase connection (important):** the project's *direct* host `db.<ref>.supabase.co` is
 **IPv6-only and unreachable from Vercel (IPv4)**. You must use the **transaction pooler** (port
@@ -70,7 +70,7 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 |---|---|---|
 | Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration; `vercel.json` selects the Next.js preset |
 | Django API | **manual CLI only** — `cd backend && vercel deploy --prod` | project is *not* git-connected |
-| Multiplayer | Railway | not yet deployed |
+| Multiplayer | **manual CLI only** — `cd multiplayer_server && railway up` | Railway, not git-connected; env vars set with `railway variable set` |
 
 The manual deploy uploads the **local working tree**, not a commit — such deployments show
 `gitDirty: 1` and can silently pin production to code matching no branch. Production once ran a
@@ -138,11 +138,11 @@ MODERATION_SHARED_SECRET=<same random value as the moderation project>
 The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the old questions pipeline only (`maintain_questions`, `upload_dataset`: hidden games + the fallback snapshot) — not needed on Vercel, nor by `publish_game_data_v3`.
 `DATA_PUBLIC_BASE` (the static game-data host's public URL) is read only by `manage.py publish_game_data_v3`, which runs in the manual `publish-game-data.yml` workflow (repo variable `vars.DATA_PUBLIC_BASE`) — not needed on Vercel either.
 
-### Multiplayer server (Render / Node host)
+### Multiplayer server (Railway)
 ```
 NODE_ENV=production                                  # REQUIRED: the server refuses to start without CORS_ORIGINS
-API_BASE_URL=https://backend-kappa-one-42.vercel.app/api # REQUIRED in prod (else it tries localhost); also where it verifies login tokens (GET /me/)
-CORS_ORIGINS=https://swishquest.com,https://www.swishquest.com   # production site origins ONLY — never localhost, that is what keeps local dev off this server
+API_BASE_URL=https://backend-kappa-one-42.vercel.app    # REQUIRED in prod (else it tries localhost). NO /api suffix: the relay calls <base>/api/me/ (login check) and <base>/trivia/...
+CORS_ORIGINS=https://swishquest.com,https://www.swishquest.com,https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app   # deployed site origins ONLY — never localhost, that is what keeps local dev off this server
 DATA_PUBLIC_BASE=https://nba-minigames-data.vercel.app   # game-data host: pool games + published question games (unset = backend endpoints / questions store)
 QUESTIONS_PUBLIC_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>   # questions store: hidden games + fallback for the question games
 REDIS_URL=rediss://...                               # optional: enables the Socket.IO adapter
@@ -152,7 +152,7 @@ PORT=4000
 ### Frontend build (Vercel project env)
 ```
 VITE_BACKEND_URL=https://backend-kappa-one-42.vercel.app/api
-VITE_SOCKET_URL=https://<your-multiplayer-host>     # set once the Node host is deployed
+VITE_SOCKET_URL=https://nba-multiplayer-production.up.railway.app   # set in .env.production
 # VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
 # Set it only to serve pools from an external CDN/domain instead.
 # NEXT_PUBLIC_SITE_URL is optional and for local QA only — canonical/OG/sitemap/robots/llms.txt URLs default to https://swishquest.com (src/configurations/site.ts).
@@ -331,8 +331,8 @@ its job summary.
    "Data publishing" above; R2 is that publisher's second target.)
 3. **Harden prod (Phase 4) — DONE:** Supabase `DATABASE_URL` (pooler) + `DJANGO_*` / CORS vars are
    set on the Vercel backend project; `migrate` runs in the build. Auth + leaderboard verified live.
-4. **Fix prod multiplayer (Phase 5a) — PENDING host:** deploy `multiplayer_server/` to an always-on
-   Node host, then set `API_BASE_URL` + `CORS_ORIGINS` on it and `VITE_SOCKET_URL` on the frontend.
+4. **Fix prod multiplayer (Phase 5a) — DONE 2026-10-09:** `multiplayer_server/` runs on Railway (EU West);
+   `API_BASE_URL`, `CORS_ORIGINS`, `DATA_PUBLIC_BASE`, `QUESTIONS_PUBLIC_BASE`, `NODE_ENV` set there.
 5. **Scale the leaderboard + realtime (Phase 5b):** set `REDIS_URL` (Upstash) on Django + the
    multiplayer host; run `manage.py sync_leaderboard` once to backfill. Also enables the friends-overview
    cache (`users/friends_cache.py`).
@@ -366,10 +366,8 @@ Design background: `docs/superpowers/specs/2026-08-29-three-environment-strategy
 separate deployed dev backend, because a deployed backend needs a hosted database and that
 reintroduces the cost/pause problem below. "Isolated backend work" happens locally.
 
-**Note on the socket row:** there is currently no production multiplayer server deployed (the old
-Railway host is dead), so both `dev` and `production` actually get no socket today, and
-"Play Online" is broken in both. Redeploying it is a separate, owner-gated task (hosting costs
-money). Set `VITE_SOCKET_URL` in `.env.production` once it exists.
+**Note on the socket row:** the production socket accepts only the origins in its Railway `CORS_ORIGINS`:
+swishquest.com, www.swishquest.com and the dev-branch URL above (never localhost).
 
 `npm run dev` runs `scripts/dev-env.mjs` first (via the `predev` hook), which TCP-probes
 `localhost:8000` and writes the result to a gitignored `.env.local` — local backend if it answers,
