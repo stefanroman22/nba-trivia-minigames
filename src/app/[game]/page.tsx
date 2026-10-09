@@ -3,7 +3,6 @@ import { preload } from "react-dom";
 import { games, visibleGames, backgroundUrl } from "../../utils/GameUtils";
 import MiniGame from "../../views/Trivia/MiniGame";
 import JsonLd from "../../components/JsonLd";
-import GameGuide from "../../components/GameGuide";
 import { ORG_ID, SITE_NAME, SITE_URL } from "../../configurations/site";
 
 /** Every playable, non-hidden game lives at /<slug>; "coming-soon" has its own page.
@@ -63,7 +62,6 @@ export default async function GamePage({ params }: { params: Promise<{ game: str
     <>
       <JsonLd data={gameJsonLd} />
       <MiniGame />
-      <GameGuide game={entry} />
     </>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from '../../hooks/useNavigate';
@@ -34,6 +34,8 @@ import "../../styles/MiniGame.css";
 // itself via <GameFrame fill>, and `.playing-wrap` reads that with :has() (see
 // MiniGame.css). The old hand-maintained id list drifted out of sync and left
 // several games with 100-230px of dead space above the Exit button.
+
+const RAIL_STRIP_KEY = "sq:rail-strip-x";
 
 function MiniGame() {
   // Opacity-only idle swap under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
@@ -81,6 +83,33 @@ function MiniGame() {
   // by game and by phase) so the "all games" list is as tall as the game
   // container instead of shrinking to its own content or a fixed cap.
   const stageColRef = useRef<HTMLElement | null>(null);
+
+  // Mobile game strip: keep the horizontal position the player left it at across game switches
+  // (each switch mounts a fresh page), instead of jumping back to the first chip. Before paint, so
+  // there's no visible jump; if the current game's chip would be off-screen, bring it into view.
+  const railStripRef = useRef<HTMLDivElement | null>(null);
+  useLayoutEffect(() => {
+    const strip = railStripRef.current;
+    if (!strip) return;
+    try {
+      strip.scrollLeft = Number(sessionStorage.getItem(RAIL_STRIP_KEY)) || 0;
+    } catch {
+      // storage blocked: start at the beginning
+    }
+    const active = strip.querySelector<HTMLElement>('[aria-current="true"]');
+    if (active) {
+      const a = active.getBoundingClientRect();
+      const box = strip.getBoundingClientRect();
+      if (a.left < box.left || a.right > box.right) strip.scrollLeft += a.left - box.left - 16;
+    }
+  }, [gameId]);
+  const saveRailStrip = () => {
+    try {
+      sessionStorage.setItem(RAIL_STRIP_KEY, String(railStripRef.current?.scrollLeft ?? 0));
+    } catch {
+      // storage blocked: the position just isn't remembered
+    }
+  };
   const [railHeight, setRailHeight] = useState<number | null>(null);
   // Wordle-only: whether this account/browser already played today's word.
   // Re-checked every time we land on idle for wordle, so it's fresh both on
@@ -320,10 +349,10 @@ function MiniGame() {
       <Navigation type="back" />
 
       <main className="page game-page">
-        {/* is-room floats the friend-room card to the top on small screens */}
+        {/* is-room compacts the idle stage on small screens so the room card below it fits (MiniGame.css) */}
         <div className={`game-grid${inLobby ? " is-room" : ""}`}>
           {/* Mobile game strip */}
-          <div className="rail-strip">
+          <div className="rail-strip" ref={railStripRef} onScroll={saveRailStrip}>
             {visibleGames.map((g) => (
               <button
                 key={g.id}

@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import { useModal } from "../../context/ModalContext";
 import { useMultiplayer } from "../../context/MultiplayerContext";
 import { Button } from "../ui";
+import { showErrorAlert } from "../../utils/Alerts";
 import SwapText from "../motion/SwapText";
 import FriendPlay from "./FriendPlay";
 import type { RootState } from "../../store";
@@ -36,8 +37,24 @@ export default function MultiplayerPanel({
   const online = mp.phase !== "idle" && !inLobby;
   const showFriend = friendMode || inLobby;
 
+  // Below the desktop layout the card sits under the game: when a room opens, glide just far
+  // enough to show it (code, seats, start) without losing the game above it.
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!inLobby || !cardRef.current || window.matchMedia("(min-width: 1200px)").matches) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    cardRef.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+  }, [inLobby]);
+  // A solo run in progress blocks online play the same way it blocks switching games from the rail.
+  const soloInProgress = gameStarted && !showResult;
+  const guardSolo = (): boolean => {
+    if (!soloInProgress) return false;
+    showErrorAlert("Finish or close your current game first.", "Game in progress", "Continue playing");
+    return true;
+  };
+
   return (
-    <div className="aside-card mp-panel">
+    <div ref={cardRef} className={`aside-card mp-panel${inLobby ? " is-room" : ""}`}>
       <div className="aside-card-head">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 .01M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
         <h3 className="font-display" style={{ fontSize: 15 }}>Multiplayer</h3>
@@ -72,13 +89,16 @@ export default function MultiplayerPanel({
                   variant={mp.phase === "searching" ? "ghost" : "primary"}
                   size="sm"
                   disabled={online && mp.phase !== "searching"}
-                  onClick={() => (mp.phase === "searching" ? leaveMatch() : game && findMatch(game))}
+                  onClick={() => {
+                    if (mp.phase === "searching") return leaveMatch();
+                    if (!guardSolo() && game) findMatch(game);
+                  }}
                 >
                   <SwapText reserveWidth={["Play 1v1", "Cancel", "In a match"]}>
                     {mp.phase === "searching" ? "Cancel" : online ? "In a match" : "Play 1v1"}
                   </SwapText>
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => setFriendMode(true)}>
+                <Button variant="secondary" size="sm" onClick={() => { if (!guardSolo()) setFriendMode(true); }}>
                   Play with a friend
                 </Button>
               </div>

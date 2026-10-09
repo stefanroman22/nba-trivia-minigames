@@ -1,5 +1,4 @@
-/* Site-wide footer (components/SiteFooter) and the server-rendered "How to play" block on game pages
-   (components/GameGuide). Quiet, on the page background, using the theme tokens. */
+/* Site-wide footer (components/SiteFooter). Quiet, on the page background, using the theme tokens. */
 .site-footer {
   border-top: 1px solid var(--line);
   background: var(--bg);
@@ -33,14 +32,3 @@
 @media (max-width: 760px) {
   .site-footer-inner { grid-template-columns: 1fr; gap: 22px; }
 }
-
-.game-guide {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 8px 20px 44px;
-  color: var(--muted);
-  line-height: 1.6;
-}
-.game-guide h2 { color: var(--text); font-size: 19px; margin: 0 0 8px; }
-.game-guide-intro { margin: 0 0 12px; }
-.game-guide-rules { margin: 0; padding-left: 1.25rem; display: grid; gap: 6px; }
