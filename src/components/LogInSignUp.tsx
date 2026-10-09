@@ -9,6 +9,8 @@ import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
 import { isInAppBrowser } from "../utils/inAppBrowser";
 import ConsentFields from "./ConsentFields";
+import PasswordRules from "./PasswordRules";
+import { passwordRules } from "../utils/passwordRules";
 import { EMPTY_CONSENT, ageBlockActive, consentComplete, consentPayload, startAgeBlock, type ConsentValue } from "../utils/consent";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
@@ -28,7 +30,7 @@ const AUTH_MODES: { key: "login" | "signup"; label: string }[] = [
 
 /** The form's one state machine. Extend the union (e.g. a moderation state) rather than adding flags. */
 export type AuthPhase = "idle" | "submitting" | "error" | "success";
-type AuthField = "identifier" | "email" | "username" | "password" | "confirm";
+type AuthField = "identifier" | "email" | "username" | "password";
 interface AuthError { id: number; message: string; field?: AuthField }
 
 const NETWORK_ERROR = "Unable to contact the server. Please try again later.";
@@ -65,8 +67,6 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
   const [signupUsername, setSignupUsername] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passwordMatchError, setPasswordMatchError] = useState("");
   const [phase, setPhase] = useState<AuthPhase>("idle");
   // Terms + age answers, and the signed token of a Google identity waiting for them (a new account).
   const [consent, setConsent] = useState<ConsentValue>(EMPTY_CONSENT);
@@ -276,15 +276,15 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
     e.preventDefault();
     if (!begin()) return;
 
-    if (!signupUsername || !signupEmail || !userPassword || !confirmPassword) {
+    if (!signupUsername || !signupEmail || !userPassword) {
       fail(
         "Please fill in all required fields.",
-        !signupEmail ? "email" : !signupUsername ? "username" : !userPassword ? "password" : "confirm",
+        !signupEmail ? "email" : !signupUsername ? "username" : "password",
       );
       return;
     }
-    if (userPassword !== confirmPassword) {
-      fail("Passwords do not match. Please try again.", "confirm");
+    if (passwordRules(userPassword, signupUsername, signupEmail).some((r) => !r.ok)) {
+      fail("Your password doesn't meet the requirements below it yet.", "password");
       return;
     }
 
@@ -515,47 +515,21 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
                         placeholder="Password"
                         required
                         minLength={isSignup ? 8 : undefined}
-                        title={isSignup ? "At least 8 characters; not too common or all numbers." : undefined}
+                        autoComplete={isSignup ? "new-password" : "current-password"}
                         aria-invalid={fieldBad("password") || undefined}
                         style={{ paddingRight: 44, borderColor: fieldBad("password") ? "var(--bad)" : undefined }}
                         value={userPassword}
-                        onChange={(e) => {
-                          setUserPassword(e.target.value);
-                          if (isSignup && confirmPassword && e.target.value !== confirmPassword) {
-                            setPasswordMatchError("Passwords do not match");
-                          } else {
-                            setPasswordMatchError("");
-                          }
-                        }}
+                        onChange={(e) => setUserPassword(e.target.value)}
                       />
                       <button type="button" className="auth-pw-toggle" aria-label="Toggle password visibility" onClick={() => setShowPassword(!showPassword)}>
                         <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
                       </button>
                     </div>
+                    {/* One password field: the rules glide open as soon as the player types, each with
+                        a live check or cross (replaces the old "Confirm password" field). */}
+                    <PasswordRules show={isSignup && userPassword.length > 0} rules={passwordRules(userPassword, signupUsername, signupEmail)} />
                   </motion.div>
 
-                  {isSignup && (
-                    <motion.div key="signup-confirm" variants={field} initial="hidden" animate="visible" exit="exit">
-                      <input
-                        ref={setFieldRef("confirm")}
-                        type="password"
-                        className="modal-input"
-                        aria-label="Confirm password"
-                        placeholder="Confirm password"
-                        required
-                        minLength={8}
-                        title="At least 8 characters; not too common or all numbers."
-                        aria-invalid={passwordMatchError || fieldBad("confirm") ? true : undefined}
-                        value={confirmPassword}
-                        onChange={(e) => {
-                          setConfirmPassword(e.target.value);
-                          setPasswordMatchError(e.target.value !== userPassword ? "Passwords do not match" : "");
-                        }}
-                        style={{ borderColor: passwordMatchError || fieldBad("confirm") ? "var(--bad)" : undefined }}
-                      />
-                      {passwordMatchError && <p className="auth-error" style={{ marginTop: 8 }}>{passwordMatchError}</p>}
-                    </motion.div>
-                  )}
 
                   {isSignup && (
                     <motion.div key="signup-consent" variants={field} initial="hidden" animate="visible" exit="exit">
