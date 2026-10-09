@@ -81,7 +81,7 @@ Data files under `backend/users/moderation_data/`:
 - `ldnoobw/<lang>.txt` for en es fr de it pt ru hu — verbatim downloads; `ldnoobw/ATTRIBUTION.md` (CC BY 4.0, source URL, date)
 - `severe.json`: `{"attribution": "...", "terms": [{"term": "...", "lang": "en", "source": "ldnoobw"}]}` — curated subset (slurs, explicit sexual terms, the f-word family); `ro` entries carry `"review": "needs-native-review"` (decision 8)
 - `mild.json`: same shape — every remaining LDNOOBW entry plus the owner's mild list (dick, gay, ass, cur, pula, fut, cum, cock, sex)
-- `reserved.json`: `["admin", "administrator", "moderator", "mod", "staff", "support", "official", "hoops24", "nba", "system", "root"]`
+- `reserved.json`: `["admin", "administrator", "moderator", "mod", "staff", "support", "official", "nba", "system", "root"]`
 - `allowlist_extra.json`: 30 team names/nicknames + basketball words (assist, dunk, glass, knight, sexton, ...)
 - `corpus/benign.json`: `{"nba": [60], "romanian": [30], "leet": [30], "embedded": [30]}` (about 150 names)
 The player allowlist is built at import from `trivia/data/all-players.json` (tokens split on space/hyphen/apostrophe, plus the compact full name).

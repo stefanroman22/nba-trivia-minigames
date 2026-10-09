@@ -1,5 +1,5 @@
 import { visibleGames } from "../../utils/GameUtils";
-import { FORMER_NAME, SITE_NAME, SITE_URL } from "../../configurations/site";
+import { SITE_NAME, SITE_URL } from "../../configurations/site";
 
 // Built from the game catalogue at build time, so it can never list a removed game or miss a new one.
 export const dynamic = "force-static";
@@ -13,7 +13,7 @@ export function GET() {
 
   const body = `# ${SITE_NAME}
 
-> ${SITE_NAME} (${SITE_URL.replace(/^https?:\/\//, "")}, formerly ${FORMER_NAME}) is a free, browser-based collection of NBA trivia games: guess players, teams, MVPs, lineups and playoff winners, then climb the leaderboard.
+> ${SITE_NAME} (${SITE_URL.replace(/^https?:\/\//, "")}) is a free, browser-based collection of NBA trivia games: guess players, teams, MVPs, lineups and playoff winners, then climb the leaderboard.
 
 Every game has its own server-rendered page with a "How to play" section. No download or account is needed to play; a free account (13+) keeps points and a place on the leaderboard. English only. Not affiliated with or endorsed by the NBA.
 

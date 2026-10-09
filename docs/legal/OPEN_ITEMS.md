@@ -28,7 +28,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 |---|---|---|
 | Production game-server host | From about $5/month (Railway Hobby) or a free tier that sleeps | Needs an EU region and a DPA; add it to the Privacy Policy table when chosen. |
 | US DMCA designated agent | $6, renew every 3 years | Only matters for the safe harbour on user-uploaded photos for US users. Cheap insurance. |
-| Trademark clearance for "Swish Quest" (and the old HOOPS24) | Lawyer or search-service fees | No register could be queried in research; a pending "24 8 HOOPS" mark exists. |
+| Trademark clearance for "Swish Quest" | Lawyer or search-service fees | No register could be queried in research; a pending "24 8 HOOPS" mark exists. |
 | A lawyer's review of the pages and these items | One-off | See D. Strongly recommended before launch at scale. |
 
 ## D. Needs a lawyer's judgement

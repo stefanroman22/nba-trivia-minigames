@@ -3,7 +3,7 @@ import Landpage from "../views/Landpage";
 import JsonLd from "../components/JsonLd";
 import { visibleGames } from "../utils/GameUtils";
 import {
-  FORMER_NAME, LOGO_URL, ORG_ID, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL, WEBSITE_ID,
+  LOGO_URL, ORG_ID, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL, WEBSITE_ID,
 } from "../configurations/site";
 
 // Root-only canonical: a layout-level one would be inherited by every page.
@@ -23,7 +23,7 @@ const homeJsonLd = {
       url: `${SITE_URL}/`, description: SITE_DESCRIPTION, inLanguage: "en", publisher: { "@id": ORG_ID },
     },
     {
-      "@type": "Organization", "@id": ORG_ID, name: SITE_NAME, alternateName: FORMER_NAME,
+      "@type": "Organization", "@id": ORG_ID, name: SITE_NAME,
       url: `${SITE_URL}/`, logo: { "@type": "ImageObject", url: LOGO_URL, width: 512, height: 512 },
     },
     {

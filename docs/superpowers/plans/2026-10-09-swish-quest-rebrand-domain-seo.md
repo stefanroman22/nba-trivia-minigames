@@ -11,14 +11,13 @@ Bing and AI assistants.
 |---|---|---|---|
 | D1 | Main address | `https://swishquest.com` (no www); `www` redirects to it | Vercel DNS supports the bare domain fully; one canonical host |
 | D2 | AI crawlers | Allow all (search, user-fetch and training bots) | We want to be cited; blocking `Google-Extended` would also drop Gemini grounding |
-| D3 | Old name | "HOOPS24" kept only as `Organization.alternateName` and a visible "formerly HOOPS24" line | Google may show `WebSite.alternateName` as the site name, so the old brand must not go there |
 | D4 | Navbar wordmark | "SWISH QUEST" with tagline "NBA TRIVIA GAMES" | Matches the title and the search keyword |
 | D5 | Social profiles for `sameAs` | None yet; add when created | Never invent profiles |
 | D6 | Share image | Generated 1200x630 card per page (brand + page title on the site's dark/orange theme) | No design asset exists; generated cards stay in sync with names |
 
 ## What the audit found
 
-- One constant (`src/configurations/site.ts` `SITE_NAME = "HOOPS24"`) feeds every title, Open Graph tag and JSON-LD block.
+- One constant (`src/configurations/site.ts` `SITE_NAME`) feeds every title, Open Graph tag and JSON-LD block.
   `SITE_URL` falls back to the vercel.app host unless `NEXT_PUBLIC_SITE_URL` is set.
 - `public/robots.txt` and `public/llms.txt` hard-code the old host; `llms.txt` uses the old brand and misses `/who-would-win`.
 - No redirects anywhere: the vercel.app host stays a full duplicate of the site.
@@ -27,9 +26,9 @@ Bing and AI assistants.
 - No footer is mounted: `/privacy` and `/terms` are linked only inside the login modal.
 - No favicon set (only a webp), no apple-icon, no web manifest, no 1200x630 share image (`summary` card with a small webp).
 - Game descriptions are 30-60 characters; game pages have little indexable text (rules live in a modal).
-- Legal pages inherit the layout's `og:title` "HOOPS24"; no `og:url` per page.
+- Legal pages inherit the layout's `og:title`; no `og:url` per page.
 - The API host (`backend-kappa-one-42.vercel.app`) has no robots rules or noindex header.
-- `swishquest` is not a reserved username (`hoops24` is).
+- `swishquest` is not a reserved username.
 
 ## Phase 1: code (one PR, no visible change to the address yet)
 
@@ -37,7 +36,7 @@ Bing and AI assistants.
 1. `site.ts`: `SITE_NAME = "Swish Quest"`, `SITE_URL = "https://swishquest.com"` (hard-coded; `NEXT_PUBLIC_SITE_URL` may
    override for local QA). Do not rely on `VERCEL_PROJECT_PRODUCTION_URL` (it changes if a shorter domain is ever added).
 2. Navbar desktop and mobile wordmark and logo alt (D4). Reserve `swishquest`, `swish_quest`, `swish` in `reserved.json`.
-3. A real site footer mounted on every page: game links, Privacy, Terms, "Swish Quest (formerly HOOPS24)", the NBA
+3. A real site footer mounted on every page: game links, Privacy, Terms, "Swish Quest", the NBA
    non-affiliation line. Replaces the dead `Footer.tsx`.
 
 **Metadata** (Next.js Metadata API)
@@ -59,7 +58,7 @@ Bing and AI assistants.
     `lastModified` only where it is genuinely known (legal pages from `LEGAL.updated`; games from a per-game `updated`
     field), never "now" on every build ([Google sitemaps](https://developers.google.com/search/docs/crawling-indexing/sitemaps/build-sitemap)).
 11. `llms.txt` generated from `visibleGames` by a route handler so it can never drift: H1 "Swish Quest", blockquote
-    summary with "formerly HOOPS24", one line of context, `## Games` (all 11 with descriptions), `## About`,
+    summary, one line of context, `## Games` (all 11 with descriptions), `## About`,
     `## Optional` (privacy, terms), per [llmstxt.org](https://llmstxt.org/). Expectation set honestly: Google says it
     does not use such files and log studies show little bot traffic; it costs nothing and helps coding agents.
 12. Host guard header: any request whose host is not `swishquest.com` (vercel.app aliases, per-deployment URLs) gets
@@ -68,7 +67,7 @@ Bing and AI assistants.
 
 **Rich results and share cards**
 14. JSON-LD, rendered safely (`<` escaped): home = `WebSite {name "Swish Quest", alternateName ["SwishQuest","swishquest.com"], url}`
-    + `Organization {name, alternateName "HOOPS24", url, logo (512px PNG), sameAs when D5 exists}`; each game =
+    + `Organization {name, url, logo (512px PNG), sameAs when D5 exists}`; each game =
     `["VideoGame","WebApplication"]` with `applicationCategory GameApplication`, `genre Trivia`, `isAccessibleForFree`,
     `inLanguage en`, free `Offer`, `publisher {"@id": org}`. No ratings (never invented). No FAQ markup (FAQ rich
     results ended 2026-05-07) and no `SearchAction` (sitelinks search box retired 2024).

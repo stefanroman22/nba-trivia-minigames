@@ -74,7 +74,7 @@ and vendor blogs rather than regulator pages, so re-check any citation before re
 - Nominative fair use covers names; logos and headshots carry trademark, copyright and publicity-rights risk. Enforcement
   examples found target commercial fan merchandise, not non-commercial trivia. M.
 - DMCA s512 safe harbour needs a registered designated agent ($6, renew every 3 years). H.
-- No trademark register could be queried; clearance of "Swish Quest" and "HOOPS24" is unverified.
+- No trademark register could be queried; clearance of "Swish Quest" is unverified.
 
 ## Google sign-in
 
