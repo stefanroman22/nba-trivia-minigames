@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { LEGAL } from "../configurations/legal";
+import "../styles/LegalTable.css";
 
 /** Long-form page for the privacy policy and terms: one readable column on the site's dark theme. */
 export default function LegalPage({ title, children }: { title: string; children: ReactNode }) {
@@ -46,12 +47,12 @@ export const OperatorBlock = () => (
 
 /** A small responsive table: header cells, then rows of plain strings. */
 export const LegalTable = ({ head, rows }: { head: string[]; rows: string[][] }) => (
-  <div style={{ overflowX: "auto" }}>
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.92rem" }}>
+  <div className="legal-table-wrap">
+    <table className="legal-table">
       <thead>
         <tr>
           {head.map((h) => (
-            <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", borderBottom: "1px solid var(--line2)", color: "var(--muted)", fontWeight: 600 }}>{h}</th>
+            <th key={h}>{h}</th>
           ))}
         </tr>
       </thead>
@@ -59,7 +60,8 @@ export const LegalTable = ({ head, rows }: { head: string[]; rows: string[][] })
         {rows.map((row) => (
           <tr key={row[0]}>
             {row.map((cell, i) => (
-              <td key={i} style={{ padding: "0.6rem 0.75rem", borderBottom: "1px solid var(--line)", verticalAlign: "top" }}>{cell}</td>
+              // data-label: the column name shown before each value in the phone layout (LegalTable.css).
+              <td key={i} data-label={head[i]}>{cell}</td>
             ))}
           </tr>
         ))}

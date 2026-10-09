@@ -1,0 +1,22 @@
+/* Legal data tables (components/LegalPage LegalTable). On phones four narrow columns left a few
+   words per line and very long rows, so each row becomes a block there: the first cell full width,
+   the others as full-width "Label: text" lines. */
+.legal-table-wrap { overflow-x: auto; }
+.legal-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.legal-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--line2);
+  color: var(--muted);
+  font-weight: 600;
+}
+.legal-table td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+
+@media (max-width: 640px) {
+  .legal-table thead { display: none; }
+  .legal-table, .legal-table tbody, .legal-table tr, .legal-table td { display: block; width: 100%; }
+  .legal-table tr { padding: 0.75rem 0; border-bottom: 1px solid var(--line); }
+  .legal-table td { padding: 0.12rem 0; border-bottom: 0; line-height: 1.5; }
+  .legal-table td:first-child { color: var(--text); font-weight: 600; margin-bottom: 0.2rem; }
+  .legal-table td:not(:first-child)::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 600; }
+}
