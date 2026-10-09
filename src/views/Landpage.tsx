@@ -89,7 +89,7 @@ const Landpage = () => {
             {/* LCP element: slide-only entrance (no opacity fade) so its first
                 paint isn't deferred to the animation — keeps mobile LCP honest. */}
             <motion.h1 className="font-display hero-h1" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}>
-              Test your <span style={{ color: "var(--brand)" }}>hoops IQ.</span><br />One quick game at a time.
+              Test your <span style={{ color: "var(--brand)" }}>hoops IQ.</span><br />Play one. Then play them all.
             </motion.h1>
             <motion.p className="hero-lead" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>
               NBA trivia. Build a streak, climb the global board, and challenge friends when you're ready.
