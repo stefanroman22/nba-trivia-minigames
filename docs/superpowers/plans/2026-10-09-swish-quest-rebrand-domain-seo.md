@@ -118,6 +118,15 @@ SEO and accessibility on home and one game page (target 100 SEO).
 - Weeks 1-8: Search Console Pages report (old URLs move to "Page with redirect"), site name shows "Swish Quest"
   (days to weeks), favicon updates (days to weeks), Core Web Vitals report (LCP < 2.5 s, INP < 200 ms, CLS < 0.1).
 
+## Status (2026-10-09)
+
+- Phase 1 and Phase 2 steps 1-6 done and live (PRs #44-#47). The `/:path*` host redirect did not match the bare
+  root, so `/` has its own rule per old host; the old home now 301s in one hop. Change of Address is active
+  ("This site is currently moving", started 2026-10-09). Sitemap submitted (first fetch pending).
+- Phase 3: curl checks pass; Lighthouse (local, mobile) SEO 100 on home and `/wordle`.
+- Left: request indexing (URL inspection errored on the brand-new property; retry later), Bing import (owner
+  sign-in), Rich Results Test, share-preview check, multiplayer `CORS_ORIGINS` when deployed, weeks 1-8 monitoring.
+
 ## Out of scope here
 
 NBA logo/headshot replacement (owner: later), trademark clearance for "Swish Quest", paid tools.
