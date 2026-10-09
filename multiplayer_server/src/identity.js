@@ -13,8 +13,12 @@ const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 const VERIFY_TTL_MS = 60000;
 const CACHE_MAX_KEYS = 10000;
 const VERIFY_TIMEOUT_MS = 5000;
+// Real access tokens are ~300 bytes. Anything far bigger is refused without a Django call, so
+// junk tokens can't fill the cache (keys are the raw token) or cost a round trip each.
+const MAX_TOKEN_LENGTH = 2048;
 
 const _cache = new Map(); // token -> { at, verdict }
+const _inFlight = new Map(); // token -> Promise<verdict>: concurrent checks share one request
 
 function prune(now) {
   if (_cache.size <= CACHE_MAX_KEYS) return;
@@ -38,13 +42,21 @@ async function readJson(res) {
  * @returns {Promise<{ok: true, user: object} | {ok: false, code: "account_banned"|"invalid_token"|"auth_unavailable", message: string}>}
  */
 async function verifyToken(token, { fetchImpl = globalThis.fetch, now = Date.now, apiBaseUrl = API_BASE_URL } = {}) {
-  if (!token || typeof token !== "string") {
+  if (!token || typeof token !== "string" || token.length > MAX_TOKEN_LENGTH) {
     return { ok: false, code: "invalid_token", message: "Sign in to play online." };
   }
   const t = now();
   const hit = _cache.get(token);
   if (hit && t - hit.at < VERIFY_TTL_MS) return hit.verdict;
+  // A page load identifies 2-3 times in a burst; one Django request answers all of them.
+  const pending = _inFlight.get(token);
+  if (pending) return pending;
+  const p = askDjango(token, t, fetchImpl, apiBaseUrl).finally(() => _inFlight.delete(token));
+  _inFlight.set(token, p);
+  return p;
+}
 
+async function askDjango(token, t, fetchImpl, apiBaseUrl) {
   let verdict;
   try {
     const res = await fetchImpl(`${apiBaseUrl}/api/me/`, {
@@ -70,4 +82,4 @@ async function verifyToken(token, { fetchImpl = globalThis.fetch, now = Date.now
   return verdict;
 }
 
-module.exports = { verifyToken, VERIFY_TTL_MS, _cache };
+module.exports = { verifyToken, VERIFY_TTL_MS, MAX_TOKEN_LENGTH, _cache, _inFlight };

@@ -56,8 +56,8 @@ does, where it lives, where it's hosted, and how safe it is.
 - Shows the landing page, the games, the leaderboard, and the login/signup popups.
 - Renders each minigame and tracks your score during play.
 - Talks to the backend for anything account-related (login, your points, the leaderboard).
-- Opens a live connection to the multiplayer server when you click **Play Online** or use
-  **Play with a friend** (private 3-player rooms with a share code).
+- Keeps a live connection to the multiplayer server while you are signed in (guests hold none), used
+  by **Play Online** and **Play with a friend** (private rooms with a share code).
 
 ### The games available
 18 live games (`src/utils/GameUtils.tsx` is the source of truth — update this table when a game
@@ -188,8 +188,7 @@ Rookie → Role Player → Sixth Man → Starter → All-Star → All-NBA → MV
 
 **Tech:** Node.js + Socket.IO (real-time websockets).
 **Lives in:** `multiplayer_server/`.
-**Hosted on:** nowhere yet — the old Railway host is gone and it needs a persistent Node host
-(see `docs/DEPLOYMENT.md`). Locally it listens on port 4000.
+**Hosted on:** Railway (EU West, one instance; see `docs/DEPLOYMENT.md`). Locally it listens on port 4000.
 
 ### Why it's a separate program
 Vercel's serverless functions are short-lived and can't keep a live connection open. A live
@@ -342,9 +341,10 @@ There are **two kinds of data**, handled very differently:
 - Sign-in tells you whether an account exists ("no account matches" vs "incorrect password"),
   which leaks which emails are registered. Kept because the *"Several players use that name"*
   message genuinely needs to say that; the rate limit is what makes it hard to exploit.
-- The **multiplayer server does not verify JWTs** — it trusts the identity the browser sends it.
-  Today that only affects the name and avatar shown in a match (match results never touch account
-  points), but it must be fixed before multiplayer ever awards anything.
+- The **multiplayer server verifies identity through Django** (`GET /api/me/` with the player's access
+  token, cached 60 s), so a ban takes effect within a minute. It never trusts game objects or page
+  links from a client (rebuilt from the game id) and bounds scores, but match results still never
+  touch account points: scores come from the browser, so a modified client can always win a round game.
 
 ---
 
@@ -354,7 +354,7 @@ There are **two kinds of data**, handled very differently:
 |---|---|---|---|
 | Frontend | React + Next.js | **Vercel** (prerendered HTML + CDN) | the public site domain |
 | Backend API | Django + DRF | **Vercel (serverless)** | https://backend-kappa-one-42.vercel.app |
-| Multiplayer | Node + Socket.IO | **Not deployed yet** (old Railway host is gone; needs a persistent Node host) | local: port 4000 |
+| Multiplayer | Node + Socket.IO | Railway, EU West (`nba-multiplayer-production.up.railway.app`) | local: port 4000 |
 | User database | Postgres | **Supabase** | via `DATABASE_URL` (session pooler) |
 | Game content | Static JSON | **Vercel CDN** (`/data/`) | bundled with the frontend build |
 | Data refresh | Python (`nba_api`) | **Home PC** (monthly) | residential IP required |

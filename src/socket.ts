@@ -12,16 +12,23 @@ const SOCKET_URL =
     ? configured
     : isLocalUrl(configured) ? configured : "http://localhost:4000";
 
+/** False when no game server is configured: the provider then never connects. */
+export const socketConfigured = Boolean(SOCKET_URL);
+
 // Next.js evaluates this module on the server as well (every page is
 // server-rendered), where a real connection must never open. Every consumer
 // touches the socket only from effects/handlers, which run in the browser, so
 // the server-side value is never dereferenced.
+// No auto-connect: only signed-in visitors can play online, so MultiplayerProvider
+// connects on sign-in and disconnects on sign-out (guests hold no connection).
 const socket: Socket =
   typeof window === "undefined"
     ? (null as unknown as Socket)
     : io(SOCKET_URL || "http://localhost:4000", {
         transports: ["websocket", "polling"],
-        autoConnect: Boolean(SOCKET_URL),
+        // Without this the client never falls back to polling when websockets are blocked.
+        tryAllTransports: true,
+        autoConnect: false,
       });
 
 export default socket;

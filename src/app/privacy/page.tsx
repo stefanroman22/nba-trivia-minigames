@@ -88,7 +88,7 @@ export default function PrivacyPage() {
           ["Vercel", "Hosts the website and the account server (and will host our automatic photo check)", "Global network; the account server runs in Frankfurt, Germany"],
           ["Supabase", "Hosts the database that holds your account and game data", "Frankfurt, Germany (EU)"],
           ["GitHub", "Stores our code and runs scheduled maintenance jobs (such as the weekly clean-up) that connect to the database", "United States and global"],
-          ["A game-server host (to be named here when online play goes live)", "Runs real-time online matches", "To be stated"],
+          ["Railway", "Runs the real-time game server for online matches (it holds match data in memory only)", "Amsterdam, Netherlands (EU)"],
           ["Google", "Runs the sign-in window and holds your Google account, as its own controller", "Worldwide"],
         ]}
       />

@@ -62,7 +62,7 @@ async function getJson(url) {
     if (!(url in testFiles)) throw new Error(`test file missing: ${url}`);
     return testFiles[url];
   }
-  const r = await fetch(url);
+  const r = await fetch(url, { signal: AbortSignal.timeout(8000) }); // a hung store must not hang the room
   if (!r.ok) throw new Error(`${url} ${r.status}`);
   return r.json();
 }

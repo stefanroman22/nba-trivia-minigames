@@ -6,10 +6,10 @@
   "scripts": {
     "start": "node src/index.js",
     "test:game-data": "node scripts/test_game_data.js",
-    "test": "node --test scripts/test_identity.js test/origin.integration.test.js"
+    "test": "node --test scripts/test_identity.js test/origin.integration.test.js test/hardening.integration.test.js scripts/sim_round_fanout.js scripts/sim_turngames.js scripts/test_game_data.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": "22.x"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +19,6 @@
     "@socket.io/redis-adapter": "^8.3.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
-    "node-fetch": "^3.3.2",
     "redis": "^4.7.0",
     "socket.io": "^4.8.1"
   }
