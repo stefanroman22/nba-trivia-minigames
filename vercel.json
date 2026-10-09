@@ -2,6 +2,26 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "npm run build",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "nba-minigames.vercel.app" }],
+      "destination": "https://swishquest.com/:path*",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "nba-minigames-stefanromanpers-5412s-projects.vercel.app" }],
+      "destination": "https://swishquest.com/:path*",
+      "statusCode": 301
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "nba-minigames-git-main-stefanromanpers-5412s-projects.vercel.app" }],
+      "destination": "https://swishquest.com/:path*",
+      "statusCode": 301
+    }
+  ],
   "headers": [
     {
       "source": "/data/manifest.json",

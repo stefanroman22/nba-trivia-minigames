@@ -35,6 +35,13 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
         ],
       },
+      {
+        // Only https://swishquest.com may be indexed. The production aliases 301 there (vercel.json); this
+        // covers everything else that serves the site (per-deployment URLs, the dev branch URL, previews).
+        source: "/:path*",
+        missing: [{ type: "host", value: "swishquest.com" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      },
     ];
   },
 };
