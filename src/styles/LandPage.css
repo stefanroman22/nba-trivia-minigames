@@ -134,8 +134,8 @@ html { scroll-behavior: smooth; }
   gap: 18px;
   padding: 24px;
 }
-/* Friends/Profile toggle — fixed at the top of the card, whichever view is
-   active fills the rest (Friends is the default view). */
+/* Profile/Friends toggle — fixed at the top of the card, whichever view is
+   active fills the rest (Profile is the default view). */
 .profile-view-toggle {
   display: flex;
   flex: none;
@@ -166,92 +166,45 @@ html { scroll-behavior: smooth; }
   flex-direction: column;
   gap: 18px;
 }
-.profile-head { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-.profile-avatar {
-  position: relative;
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-  overflow: hidden;
-  
-}
-.profile-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.profile-avatar-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Compact profile view (UserProfile): photo + name + player ID on one row, the stats pill, and a
+   link to Profile settings (account settings live on /profile, not on the landing card). */
+.pc { gap: 16px; justify-content: center; }
+.pc-id { display: flex; align-items: center; gap: 14px; }
+.pc-avatar { position: relative; width: 72px; height: 72px; flex: none; }
+.pc-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; background: var(--surface2); }
+.pc-avatar-busy {
+  position: absolute; inset: 0; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
   background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(2px);
 }
-.profile-welcome { font-size: 19px; text-align: center; }
-.profile-photo-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 15px;
-  border: 1px solid var(--line2);
-  border-radius: 999px;
-  background: var(--surface2);
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, background 0.2s;
+/* Camera badge on the photo's corner: the one-tap "change photo" control. */
+.pc-photo-btn {
+  position: absolute; right: -2px; bottom: -2px;
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface3); color: var(--text);
+  border: 2px solid var(--surface); cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
-.profile-photo-btn:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
-
-.profile-fields { display: flex; flex-direction: column; gap: 12px; }
-.profile-field { display: flex; flex-direction: column; gap: 6px; }
-/* Live name-check slot under the username editor (UserProfile): always mounted, so the negative
-   margin cancels the .profile-field gap while empty; the note's padding spaces it when shown. */
-.profile-name-note-slot { margin-top: -6px; }
-.profile-name-note { margin: 0; padding-top: 6px; color: var(--bad); font-size: 12.5px; font-weight: 600; line-height: 1.4; text-align: center; }
-.profile-field-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 600;
-  letter-spacing: 0.3px;
+.pc-photo-btn:hover { background: var(--brand); color: #fff; transform: scale(1.06); }
+.pc-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
+.pc-name { font-size: 20px; margin: 0; line-height: 1.15; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc-id-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 3px 4px 3px 0; background: none; border: 0; cursor: pointer;
+  font: inherit; font-size: 13px; color: var(--muted);
 }
-.profile-edit-btn {
-  background: none;
-  border: none;
-  color: var(--brand);
-  font-weight: 700;
-  font-size: 12.5px;
-  cursor: pointer;
-  padding: 2px 4px;
-  transition: filter 0.2s;
+.pc-id-copy { font-size: 11.5px; font-weight: 700; color: var(--brand); }
+.pc-id-btn:hover { color: var(--text); }
+.pc-settings {
+  align-self: center;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border: 1px solid var(--line2); border-radius: 999px;
+  background: var(--surface2); color: var(--muted);
+  font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
-.profile-edit-btn:hover { filter: brightness(1.2); }
-.profile-value,
-.profile-input {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 14px;
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  background: var(--surface2);
-  color: var(--text);
-  font-size: 14.5px;
-  font-family: inherit;
-  width: 100%;
-  outline: none;
-  text-align: center;
-  transition: border-color 0.25s ease, box-shadow 0.25s ease, color 0.3s ease;
-}
-.profile-value--muted { color: var(--muted); }
-.profile-input:focus:not(:read-only) { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
-.profile-username { color: var(--muted); }
-.profile-username:read-only { cursor: default; }
-.profile-username.is-active { color: var(--text); }
-.profile-edit-btn:disabled { opacity: 0.6; cursor: default; }
+.pc-settings:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
 
 /* A single compact pill (not two full-width cards) so points+rank read
    at a glance without eating vertical space; hugs its own content so it
@@ -273,13 +226,6 @@ html { scroll-behavior: smooth; }
 .profile-stat-num { font-size: 17px; color: var(--text); }
 .profile-stat:first-child .profile-stat-num { color: var(--brand); }
 
-.profile-logout { margin-top: auto; display: flex; justify-content: center; padding-top: 4px; }
-.profile-data { display: flex; justify-content: center; align-items: center; gap: 10px; padding-top: 10px; font-size: 12px; color: var(--muted); }
-.profile-data-btn { background: none; border: 0; padding: 4px 2px; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
-.profile-data-btn:hover { color: var(--text); }
-.profile-data-btn--danger:hover { color: var(--bad); }
-.profile-delete { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
-.profile-delete p { margin: 0; }
 
 /* ===== Guest teaser ===== */
 .guest-panel {
