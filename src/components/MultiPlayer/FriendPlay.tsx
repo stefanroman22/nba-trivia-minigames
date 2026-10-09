@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { fadeIn } from "../../motion/variants";
 import CopyIcon from "../motion/CopyIcon";
+import { GAME_IN_PROGRESS } from "../../constants/messages";
 import { useSelector } from "react-redux";
 import copy from "copy-to-clipboard";
 import { useMultiplayer } from "../../context/MultiplayerContext";
@@ -260,7 +261,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
         <AnimatePresence initial={false}>
           {(searching || blocked) && (
             <motion.p key="fp-hint" className="fp-sub" style={{ fontSize: 12 }} role="status" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
-              <SwapText>{searching ? "Cancel matchmaking to open a room." : "Finish your current game first."}</SwapText>
+              {GAME_IN_PROGRESS}
             </motion.p>
           )}
         </AnimatePresence>

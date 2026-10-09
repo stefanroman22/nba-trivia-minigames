@@ -166,9 +166,9 @@ html { scroll-behavior: smooth; }
   flex-direction: column;
   gap: 18px;
 }
-/* Compact profile view (UserProfile): identity on the left (photo, name, player ID with a copy
-   icon), points and rank on the right, the Profile settings button under the photo. Account
-   settings live on /profile, not on the landing card. */
+/* Compact profile view (UserProfile): identity on the left (photo level with the name and player
+   ID, copy icon), points over rank on the right, the Profile settings button under the photo.
+   Account settings live on /profile, not on the landing card. */
 /* Sized by the card, not the viewport: the same card is wide on desktop and narrow beside the
    leaderboard or on phones (container queries below). */
 .pc { justify-content: center; container: profile-card / inline-size; }
@@ -214,17 +214,19 @@ html { scroll-behavior: smooth; }
 .pc-copy:hover { color: var(--text); background: var(--surface2); }
 .pc-copy.is-copied { color: var(--good); }
 
+/* Points over rank on the right: two compact "label  value" rows split by a hairline. */
 .pc-stats {
   grid-area: stats;
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 18px;
+  display: flex; flex-direction: column; gap: 7px;
+  min-width: 128px;
+  padding: 10px 14px;
   background: var(--surface2); border: 1px solid var(--line); border-radius: 12px;
 }
-.pc-stat { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.pc-stat { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .pc-stat-lbl { font-size: 11.5px; color: var(--muted); }
-.pc-stat-num { font-size: 21px; color: var(--text); white-space: nowrap; }
+.pc-stat-num { font-size: 18px; color: var(--text); white-space: nowrap; }
 .pc-stat-num.is-brand { color: var(--brand); }
-.pc-stat-divider { width: 1px; height: 30px; background: var(--line2); }
+.pc-stat-divider { height: 1px; width: 100%; background: var(--line2); }
 
 .pc-settings {
   grid-area: btn;
@@ -237,21 +239,16 @@ html { scroll-behavior: smooth; }
 }
 .pc-settings:hover { color: var(--brand); border-color: var(--brand); background: var(--brand-soft); }
 
-/* A narrow card (beside the leaderboard, or a phone): points and rank move under the name so the
-   full username gets the row; the photo spans both lines. */
+/* A narrow card (beside the leaderboard, or a phone): same layout, just tighter. The photo stays
+   level with the name block and the stats stay on the right; a long name wraps rather than moving
+   the stats. */
 @container profile-card (max-width: 440px) {
-  .pc-grid {
-    grid-template-columns: auto minmax(0, 1fr);
-    grid-template-areas:
-      "photo meta"
-      "photo stats"
-      "btn   btn";
-    row-gap: 10px;
-  }
-  .pc-avatar { width: 64px; height: 64px; }
-  .pc-stats { justify-self: start; padding: 7px 14px; gap: 12px; }
-  .pc-stat-num { font-size: 17px; }
-  .pc-stat-divider { height: 24px; }
+  .pc-grid { column-gap: 10px; row-gap: 14px; }
+  .pc-avatar { width: 56px; height: 56px; }
+  .pc-photo-btn { width: 24px; height: 24px; }
+  .pc-stats { min-width: 104px; padding: 8px 10px; gap: 5px; }
+  .pc-stat { gap: 10px; }
+  .pc-stat-num { font-size: 15px; }
 }
 
 

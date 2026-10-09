@@ -233,6 +233,8 @@
 /* ---- MultiplayerPanel: the "Play 1v1" choice vs. FriendPlay's own flow ---- */
 .mp-panel { gap: 12px; }
 .mp-choice, .mp-friend { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+/* "Close or finish current game first." under the choice buttons, shown on a blocked press. */
+.mp-hint { margin: 0; font-size: 12.5px; text-align: center; }
 .mp-friend { align-items: stretch; }
 /* Play 1v1 / Play with a friend, paired on one row — smaller type so both
    labels sit comfortably without wrapping. */

@@ -21,6 +21,7 @@ import { addGuestPoints } from '../../utils/guestPoints';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { AutoSize } from '../../components/motion/AutoHeight';
+import { GAME_IN_PROGRESS } from '../../constants/messages';
 import { useWordleCardState } from '../../hooks/useWordleCardState';
 import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
@@ -376,7 +377,7 @@ function MiniGame() {
                   key={g.id}
                   disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
                   onClick={() => {
-                    if (inProgress) { showErrorAlert("Finish your current game first.", "Game in progress", "Continue playing"); return; }
+                    if (inProgress) { showErrorAlert(GAME_IN_PROGRESS, "Game in progress", "Continue playing"); return; }
                     navigate(g.urlPath, { state: { id: g.id } });
                   }}
                   aria-current={g.id === game?.id ? "true" : undefined}
