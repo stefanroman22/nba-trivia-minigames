@@ -16,7 +16,8 @@ import type { AppDispatch } from '../../store';
 import { updatePoints } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import type { GameData } from '../../types/types';
-import { apiFetch } from '../../utils/Api';
+import { apiFetch, getAccessToken } from '../../utils/Api';
+import { addGuestPoints } from '../../utils/guestPoints';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { useWordleCardState } from '../../hooks/useWordleCardState';
@@ -166,6 +167,8 @@ function MiniGame() {
     awardedRef.current = true;
     if (!game) return;
     const runId = runIdRef.current;
+    // Guests have no account to credit: keep a display-only total for this tab (GuestPanel).
+    if (!getAccessToken()) addGuestPoints(finalScore);
     try {
       // apiFetch only attaches the JWT when one exists, so guests log anonymously
       // and are simply awarded nothing.

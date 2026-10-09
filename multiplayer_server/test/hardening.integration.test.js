@@ -8,7 +8,7 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { io } = require(path.join(__dirname, "..", "..", "node_modules", "socket.io-client"));
 
-const NAMES = ["Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hank", "Ivy", "Jay", "Tina"];
+const NAMES = ["Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hank", "Ivy", "Jay", "Tina", "Kim", "Lee"];
 const tok = (name) => `tok-${name}-`.padEnd(40, "x");
 const USERS = Object.fromEntries(NAMES.map((n, i) => [tok(n), {
   id: n.toUpperCase().padEnd(6, "0"), username: n, email: `${n}@example.com`, points: 10 + i, is_teen: n === "Tina",
@@ -16,6 +16,7 @@ const USERS = Object.fromEntries(NAMES.map((n, i) => [tok(n), {
 
 let backend, server, backendPort, serverPort;
 let meCalls = 0;
+const credits = []; // { key, body } of every /trivia/multiplayer-result/ call
 const sockets = [];
 
 const freePort = () => new Promise((resolve) => {
@@ -26,6 +27,16 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 test.before(async () => {
   backend = http.createServer((req, res) => {
     res.setHeader("Content-Type", "application/json");
+    if (req.url.startsWith("/trivia/multiplayer-result/")) {
+      let raw = "";
+      req.on("data", (c) => { raw += c; });
+      req.on("end", () => {
+        const body = JSON.parse(raw);
+        credits.push({ key: req.headers["x-relay-key"], body });
+        res.end(JSON.stringify({ ok: true, results: body.results.map((r) => ({ public_id: r.public_id, awarded: r.score, points: 1000 + r.score, rank: "Rookie" })) }));
+      });
+      return;
+    }
     if (req.url.startsWith("/trivia/")) {
       res.end(JSON.stringify({ series: [{ q: 1 }, { q: 2 }] }));
       return;
@@ -39,7 +50,7 @@ test.before(async () => {
   backendPort = backend.address().port;
   serverPort = await freePort();
   server = spawn(process.execPath, [path.join(__dirname, "..", "src", "index.js")], {
-    env: { ...process.env, PORT: String(serverPort), API_BASE_URL: `http://127.0.0.1:${backendPort}`, CORS_ORIGINS: "http://localhost:5173", DATA_PUBLIC_BASE: "", QUESTIONS_PUBLIC_BASE: "" },
+    env: { ...process.env, PORT: String(serverPort), API_BASE_URL: `http://127.0.0.1:${backendPort}`, CORS_ORIGINS: "http://localhost:5173", DATA_PUBLIC_BASE: "", QUESTIONS_PUBLIC_BASE: "", MULTIPLAYER_SHARED_SECRET: "relay-key" },
     stdio: ["ignore", "pipe", "inherit"],
   });
   await new Promise((resolve, reject) => {
@@ -202,4 +213,25 @@ test("the join-code limit follows the player across reconnects", async () => {
   const err = next(b, "friendJoinError");
   b.emit("joinFriendRoom", { code: 123456 });
   assert.match((await err).message, /Too many attempts/);
+});
+
+test("a finished match credits both players' profiles once, through the relay key", async () => {
+  const kim = await player("Kim");
+  const lee = await player("Lee");
+  const { code } = await matchUp(kim, lee, "wordle");
+  const kimPts = next(kim, "pointsAwarded");
+  const leePts = next(lee, "pointsAwarded");
+  kim.emit("submitScore", { code, score: 120, elapsedMs: 9000 });
+  lee.emit("submitScore", { code, score: 80, elapsedMs: 9500 });
+  assert.equal((await kimPts).awarded, 120);
+  assert.equal((await leePts).awarded, 80);
+  const mine = credits.filter((c) => c.body.results.some((r) => r.public_id === USERS[tok("Kim")].id));
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].key, "relay-key");
+  assert.equal(mine[0].body.mode, "match");
+  assert.equal(mine[0].body.game, "wordle");
+  // Leaving afterwards must not credit the same round again.
+  kim.emit("leaveMatch", { code });
+  await wait(300);
+  assert.equal(credits.filter((c) => c.body.results.some((r) => r.public_id === USERS[tok("Kim")].id)).length, 1);
 });

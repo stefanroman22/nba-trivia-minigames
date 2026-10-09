@@ -18,17 +18,36 @@ import FriendsPanel from "./FriendsPanel";
 type ProfileView = "friends" | "profile";
 
 const PROFILE_VIEWS: { key: ProfileView; label: string }[] = [
-  { key: "friends", label: "Friends" },
   { key: "profile", label: "Profile" },
+  { key: "friends", label: "Friends" },
 ];
+
+// The view the player last picked, remembered per browser; Profile until they pick Friends.
+const VIEW_KEY = "sq:profile-view";
+const readView = (): ProfileView => {
+  try {
+    return localStorage.getItem(VIEW_KEY) === "friends" ? "friends" : "profile";
+  } catch {
+    return "profile";
+  }
+};
 
 function UserProfile() {
   const dispatch = useDispatch<AppDispatch>();
   const { user } = useSelector((state: RootState) => state.user);
 
-  // Friends is the default view — the profile details are one tap away,
-  // not the other way around.
-  const [view, setView] = useState<ProfileView>("friends");
+  // Profile is the default view; a player who switches to Friends keeps it on later visits.
+  // Read before the first paint (this card only renders in the browser, once a user is signed in),
+  // so a Friends pick doesn't flash Profile first.
+  const [view, setViewState] = useState<ProfileView>(readView);
+  const setView = (next: ProfileView) => {
+    setViewState(next);
+    try {
+      localStorage.setItem(VIEW_KEY, next);
+    } catch {
+      // storage blocked: the choice just isn't remembered
+    }
+  };
   const [isEditing, setIsEditing] = useState(false);
   const [tempUsername, setTempUsername] = useState(user?.username || "");
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
