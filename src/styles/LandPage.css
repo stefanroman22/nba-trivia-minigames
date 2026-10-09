@@ -169,7 +169,7 @@ html { scroll-behavior: smooth; }
 /* Compact profile view (UserProfile): photo + name + player ID on one row, the stats pill, and a
    link to Profile settings (account settings live on /profile, not on the landing card). */
 .pc { gap: 16px; justify-content: center; }
-.pc-id { display: flex; align-items: center; gap: 14px; }
+.pc-id { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .pc-avatar { position: relative; width: 72px; height: 72px; flex: none; }
 .pc-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; background: var(--surface2); }
 .pc-avatar-busy {
