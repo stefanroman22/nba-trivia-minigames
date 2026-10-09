@@ -132,6 +132,8 @@ CORS_ALLOW_CREDENTIALS = True
 # what happened once. Set the env var only to add an origin (a custom domain, say).
 FRONTEND_ORIGINS = [
     "https://nba-minigames.vercel.app",
+    "https://swishquest.com",
+    "https://www.swishquest.com",
     "https://nba-minigames-stefanromanpers-5412s-projects.vercel.app",
     "https://nba-minigames-git-main-stefanromanpers-5412s-projects.vercel.app",
     "https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app",
