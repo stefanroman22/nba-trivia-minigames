@@ -22,12 +22,13 @@ import {
 import { useSelector } from "react-redux";
 import { usePathname } from "next/navigation";
 import { useNavigate } from "../hooks/useNavigate";
-import socket from "../socket";
+import socket, { socketConfigured } from "../socket";
 import type { RootState } from "../store";
 import { getAccessToken, refreshSession } from "../utils/Api";
 import { BAN_CODE, reportBan } from "../utils/ban";
 import { isAccessTokenExpired } from "../utils/session";
 import type { Game, GameData, PlayerInfo } from "../types/types";
+import { games } from "../utils/GameUtils";
 
 type Phase = "idle" | "searching" | "lobby" | "intro" | "playing" | "waiting" | "results" | "ended";
 type Outcome = "win" | "loss" | "tie";
@@ -328,7 +329,9 @@ function reducer(state: MpState, a: Action): MpState {
           playerKey(o),
           { online: o.online !== false, done: !!o.finished, progress: null },
         ])),
-        gameData: s.gameData, introElapsed: false,
+        // A reconnect into the same room keeps the round already on screen: a new gameData
+        // object would make the game renderers restart it from the first question.
+        gameData: state.code === s.code && state.gameData ? state.gameData : s.gameData, introElapsed: false,
         yourScore: s.yourScore, opponentScore: s.opponentScore,
         standings: s.standings ?? null, outcome,
         proposal: s.proposal ? { ...s.proposal } : null,
@@ -341,6 +344,12 @@ function reducer(state: MpState, a: Action): MpState {
       return state;
   }
 }
+
+/** The relay echoes games back to every player in a room. Use this app's own definition of the
+ *  game with that id (it carries the real urlPath, points and functions), never the received
+ *  object: another player could have forged its urlPath to send us to a different site. */
+const localGame = (g?: { id?: string } | null): Game | null => games.find((x) => x.id === g?.id) ?? null;
+const withLocalGame = (l: LobbySnapshot): LobbySnapshot => ({ ...l, game: localGame(l.game) as Game });
 
 /** Strip non-serializable fields (functions) before sending a game over the socket. */
 function serializeGame(g: Game) {
@@ -408,7 +417,14 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     identify();
     socket.on("connect", identify);
     return () => { socket.off("connect", identify); };
-  }, [user, identifyNow]);
+  }, [user?.id, identifyNow]);
+
+  // ---- Connection: only signed-in visitors can play online, so only they hold a socket. ----
+  useEffect(() => {
+    if (!socketConfigured) return;
+    if (user?.id) socket.connect();
+    else socket.disconnect();
+  }, [user?.id]);
 
   // ---- Socket event wiring ----
   useEffect(() => {
@@ -418,22 +434,22 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       noOpponent: () => dispatch({ t: "NO_OPPONENT" }),
       matchFound: (d: { code: number; role: "host" | "guest"; opponent: PlayerInfo; opponents?: PlayerInfo[]; game: Game; roomType?: RoomType; roomSize?: number }) =>
         dispatch({
-          t: "MATCH_FOUND", code: d.code, role: d.role, game: d.game,
+          t: "MATCH_FOUND", code: d.code, role: d.role, game: localGame(d.game) as Game,
           opponents: d.opponents ?? [d.opponent],
           roomType: d.roomType ?? "match", roomSize: d.roomSize ?? 2,
         }),
       roundData: (d: { gameData: GameData[]; game?: Game }) =>
-        dispatch({ t: "ROUND_DATA", gameData: d.gameData, game: d.game }),
+        dispatch({ t: "ROUND_DATA", gameData: d.gameData, game: localGame(d.game) ?? undefined }),
       turnState: (d: { code: number; game?: string; state: unknown }) =>
         dispatch({ t: "TURN_STATE", state: d?.state ?? null }),
       roundDataError: (d: { message: string }) => dispatch({ t: "ROUND_ERROR", message: d.message }),
       waitingForOpponent: () => {/* local SUBMITTED already moved us to waiting */},
       matchResult: (d: { yourScore: number; opponentScore: number; outcome: Outcome; standings?: Standing[] }) =>
         dispatch({ t: "MATCH_RESULT", yourScore: d.yourScore, opponentScore: d.opponentScore, outcome: d.outcome, standings: d.standings ?? null }),
-      matchRestart: (d: { game?: Game }) => dispatch({ t: "MATCH_RESTART", game: d.game }),
-      friendRoomCreated: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: d }),
-      friendRoomJoined: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: d }),
-      friendLobbyUpdate: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: d }),
+      matchRestart: (d: { game?: Game }) => dispatch({ t: "MATCH_RESTART", game: localGame(d.game) ?? undefined }),
+      friendRoomCreated: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
+      friendRoomJoined: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
+      friendLobbyUpdate: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
       friendRoomCancelled: (d: { message: string }) =>
         dispatch({ t: "FRIEND_CANCELLED", message: d?.message || "The room was closed." }),
       friendError: (d: { message: string }) =>
@@ -454,7 +470,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       proposalDeclined: (d: { username?: string } = {}) => dispatch({ t: "PROPOSAL_DECLINED", username: d?.username }),
       proposalCancelled: () => dispatch({ t: "PROPOSAL_CANCELLED" }),
       proposalTimeout: () => dispatch({ t: "PROPOSAL_TIMEOUT" }),
-      resumeMatch: (snapshot: ResumeSnapshot) => dispatch({ t: "RESUME", snapshot }),
+      resumeMatch: (snapshot: ResumeSnapshot) => dispatch({
+        t: "RESUME",
+        snapshot: { ...snapshot, game: localGame(snapshot.game) as Game, lobby: snapshot.lobby ? withLocalGame(snapshot.lobby) : snapshot.lobby },
+      }),
       matchError: (d: { message: string }) => dispatch({ t: "NOTICE", notice: { kind: "error", text: d.message } }),
       // The relay refused our token. A ban ends the session app-wide (BanNotice); the relay
       // has already dropped the socket. Anything else is a transient notice.

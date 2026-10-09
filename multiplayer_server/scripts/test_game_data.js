@@ -266,7 +266,7 @@ const noSwap = () => 0.1; // rand() < 0.5 keeps the published side (and makes sh
     adapter() {},
   };
   const stubs = {
-    express: Object.assign(() => ({ use() {}, get() {} }), { json: () => () => {} }),
+    express: Object.assign(() => ({ use() {}, get() {}, disable() {} }), { json: () => () => {} }),
     cors: () => () => {},
     "socket.io": { Server: function Server() { return fakeIo; } },
     http: { createServer: () => ({ listen() {} }) },
@@ -281,7 +281,7 @@ const noSwap = () => 0.1; // rand() < 0.5 keeps the published side (and makes sh
   Module._load = originalLoad;
 
   const makeSocket = (id) => {
-    const socket = { id, handlers: {}, on(e, fn) { this.handlers[e] = fn; }, emit() {}, join() {}, leave() {}, send(e, p) { this.handlers[e]?.(p); } };
+    const socket = { id, handlers: {}, on(e, fn) { this.handlers[e] = fn; }, emit() {}, use() {}, join() {}, leave() {}, send(e, p) { this.handlers[e]?.(p); } };
     fakeIo.sockets.sockets.set(id, socket);
     fakeIo.handlers.connection(socket);
     return socket;

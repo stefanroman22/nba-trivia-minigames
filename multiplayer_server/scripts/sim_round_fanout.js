@@ -76,7 +76,7 @@ const fakeIo = {
 };
 
 const stubs = {
-  express: Object.assign(() => ({ use() {}, get() {} }), { json: () => () => {} }),
+  express: Object.assign(() => ({ use() {}, get() {}, disable() {} }), { json: () => () => {} }),
   cors: () => () => {},
   "socket.io": { Server: function Server() { return fakeIo; } },
   // identify verifies a Django token (src/identity.js); here the token is the user JSON.
@@ -197,6 +197,7 @@ function makeSocket(id) {
     emit(event, payload) {
       record(id, event, payload);
     },
+    use() {},
     join() {},
     leave() {},
     send(event, payload) {
@@ -261,10 +262,16 @@ async function playRound(gameId, suffix) {
   check("superdraft: the round is the dealt question, unchanged",
     JSON.stringify(qA) === JSON.stringify(SUPERDRAFT_QUESTION));
 
-  // 2. A reconnect re-serves the same round.
+  // 2. A reconnect (a fresh socket for the same player) re-serves the same round.
+  // (The same socket identifying again is not a reconnect and must not resume.)
   sd.a.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
-  await settle(() => eventsFor(sd.a.id, "resumeMatch").length > 0);
-  const resume = eventsFor(sd.a.id, "resumeMatch");
+  await settle(() => false, 5);
+  check("superdraft: re-identifying the same socket does not resume", eventsFor(sd.a.id, "resumeMatch").length === 0);
+  sd.a.send("disconnect");
+  const a1 = makeSocket("sa-1r");
+  a1.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
+  await settle(() => eventsFor(a1.id, "resumeMatch").length > 0);
+  const resume = eventsFor(a1.id, "resumeMatch");
   check("superdraft: reconnect resumed the match", resume.length === 1);
   check("superdraft: the resumed round is the same one",
     !!resume[0]?.gameData && JSON.stringify(resume[0].gameData) === JSON.stringify(sd.roundA[0]?.gameData));
@@ -290,21 +297,21 @@ async function playRound(gameId, suffix) {
   // check 2 above: while the room is still a round game, its snapshot carries
   // gameData (a plain null-everywhere snapshot could not tell the two apart).
   const swCode = resume[0]?.code;
-  sd.a.send("proposeSwitch", { code: swCode, game: GAMES.tictactoe });
+  a1.send("proposeSwitch", { code: swCode, game: GAMES.tictactoe });
   sd.b.send("respondProposal", { code: swCode, accept: true });
-  await settle(() => eventsFor(sd.a.id, "turnState").length && eventsFor(sd.b.id, "turnState").length);
+  await settle(() => eventsFor(a1.id, "turnState").length && eventsFor(sd.b.id, "turnState").length);
   check("switch: both players got matchRestart for tictactoe",
-    eventsFor(sd.a.id, "matchRestart")[0]?.game?.id === "tictactoe" &&
+    eventsFor(a1.id, "matchRestart")[0]?.game?.id === "tictactoe" &&
       eventsFor(sd.b.id, "matchRestart")[0]?.game?.id === "tictactoe");
   check("switch: both players received turnState",
-    eventsFor(sd.a.id, "turnState").length === 1 && eventsFor(sd.b.id, "turnState").length === 1,
-    `${eventsFor(sd.a.id, "turnState").length} vs ${eventsFor(sd.b.id, "turnState").length}`);
+    eventsFor(a1.id, "turnState").length === 1 && eventsFor(sd.b.id, "turnState").length === 1,
+    `${eventsFor(a1.id, "turnState").length} vs ${eventsFor(sd.b.id, "turnState").length}`);
   check("switch: no roundData for the turn game",
     eventsFor(sd.a.id, "roundData").length === 1 && eventsFor(sd.b.id, "roundData").length === 1,
     "the superdraft deal is the only roundData each player has");
 
   // Disconnect A, then resume the same user on a fresh socket.
-  sd.a.send("disconnect");
+  a1.send("disconnect");
   const a2 = makeSocket("sa-1b");
   a2.send("identify", { user: sd.userA, token: JSON.stringify(sd.userA) });
   await settle(() => eventsFor(a2.id, "resumeMatch").length > 0);

@@ -77,6 +77,15 @@ const LOBBY_GRACE_MS = 10000;      // reconnect window for a player who drops wh
 const JOIN_WINDOW_MS = 10000;      // join-attempt rate limit window…
 const JOIN_MAX_TRIES = 8;          // …and how many tries a socket gets per window (anti brute-force)
 const CODE_ALLOC_TRIES = 8;        // bounded retries against the 900k active-code space
+const IDENTIFY_WINDOW_MS = 10000;  // identify rate limit window…
+const IDENTIFY_MAX_TRIES = 6;      // …each identify with a new token costs a Django round trip
+const EVENT_WINDOW_MS = 1000;      // per-socket flood guard: at most EVENT_MAX events…
+const EVENT_MAX = 30;              // …per window; real clients send a handful per minute
+const IDENTIFY_HOLD_MS = 5000;     // longest a new socket's events wait for its first identify
+const ANON_IDLE_MS = 20000;        // a socket that never sends identify is dropped after this
+const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) again sooner than this
+const MAX_SCORE = 1000;            // above every game's maxPoints (career-path's 700 is the largest)
+const INTRO_ALLOWANCE_MS = 5000;   // the VS intro (2.6 s) + latency between the deal and the first answer
 
 // Fair matchmaking: pair players whose POINTS are close, widening the accepted
 // gap the longer someone waits so nobody queues forever. Both sides' windows
@@ -88,12 +97,20 @@ const MATCH_WINDOW_UNCAP_MS = 25000; // after this, any opponent is acceptable
 const MATCH_SWEEP_MS = 3000;       // re-check waiting players this often
 
 const app = express();
+app.disable("x-powered-by");
 app.use(cors({ origin: CORS_ORIGINS, methods: ["GET", "POST"] }));
-app.get("/health", (_req, res) => res.json({ ok: true }));
+app.get("/health", (_req, res) =>
+  res.json({ ok: true, rooms: rooms.size, players: players.size, sockets: io.engine.clientsCount, uptimeS: Math.round(process.uptime()) }),
+);
 
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: CORS_ORIGINS, methods: ["GET", "POST"] },
+  // Client events are a few hundred bytes; the 1 MB default let one client push huge payloads.
+  maxHttpBufferSize: 16 * 1024,
+  // Notice a dead connection within ~20 s (default up to 45 s) before the reconnect grace starts.
+  pingInterval: 10000,
+  pingTimeout: 10000,
   // CORS headers only bind browsers' reads; this refuses the connection itself when a
   // browser presents an origin that isn't allowed (websocket upgrades ignore CORS).
   // Requests with no Origin (non-browser clients) still need a valid token to do anything.
@@ -126,8 +143,9 @@ function allocateRoomCode() {
   return null;
 }
 
-/** Stable identity for a connected user. Falls back to the socket id for guests. */
-const uidOf = (socket) => socket.uid || null;
+/** Stable identity of a connected, identified socket. A socket that a newer one replaced (second
+ *  tab, reconnect) no longer acts for that player: null for it and for guests. */
+const uidOf = (socket) => (socket.uid && players.get(socket.uid)?.socketId === socket.id ? socket.uid : null);
 
 function makeRoom(code, gameId, game, members, type = "match") {
   return {
@@ -163,24 +181,59 @@ function toUid(uid, event, payload) {
   if (sid) io.to(sid).emit(event, payload);
 }
 
+/** 13-15 year-olds (Django's is_teen) are kept off public surfaces: strangers in a random match
+ *  see "Player". Friend rooms are joined by a code the teen chose to share, so names show there. */
+function maskedForStrangers(user) {
+  if (!user?.is_teen) return false;
+  const room = rooms.get(players.get(user.id)?.roomCode);
+  return !room || room.type === "match";
+}
+
 const publicUser = (user) =>
   user
     ? {
         id: user.id ?? null,                    // permanent public id (#K7F3QD)
-        username: user.username,
-        profile_photo: user.profile_photo ?? null,
+        username: maskedForStrangers(user) ? "Player" : user.username,
+        profile_photo: maskedForStrangers(user) ? null : user.profile_photo ?? null,
         rank: user.rank,
         points: user.points,
       }
     : { id: null, username: "Player" };
 
-/** Display name for log lines / "X left" messages. */
-const nameOf = (uid) => players.get(uid)?.user?.username || "A player";
+/** Display name for "X left" style messages (masked like publicUser). */
+const nameOf = (uid) => {
+  const user = players.get(uid)?.user;
+  if (!user) return "A player";
+  return maskedForStrangers(user) ? "Player" : user.username || "A player";
+};
 
 // Games dealt from the pre-generated questions (questions.js: the manifest-v3 data
 // host when it publishes the game, else the Supabase questions store) instead of
 // the Django backend (tictactoe/imposter are TURN_GAMES and never reach fetchRound).
 const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"]);
+
+// Every game id the relay can deal. A client's `game` object is rebuilt from its id (unknown ids
+// are refused) and its fields are type-checked, because the room broadcasts it to the opponent:
+// a forged urlPath used to navigate the opponent's browser off-site.
+const KNOWN_GAMES = new Set([...Object.keys(gameEndpoints), ...QUESTION_GAMES, ...TURN_GAMES]);
+
+function cleanGame(game) {
+  const id = typeof game?.id === "string" ? game.id : "";
+  if (!KNOWN_GAMES.has(id)) return null;
+  const text = (v, max) => (typeof v === "string" ? v.slice(0, max) : "");
+  const num = (v) => {
+    const n = Math.floor(Number(v));
+    return Number.isFinite(n) ? Math.min(Math.max(n, 0), MAX_SCORE) : 0;
+  };
+  return {
+    id,
+    name: text(game.name, 60) || id,
+    tag: text(game.tag, 30),
+    urlPath: `/${id}`,                      // every game's page is /<id> (src/utils/GameUtils.tsx)
+    pointsPerCorrect: num(game.pointsPerCorrect),
+    maxPoints: num(game.maxPoints),
+  };
+}
 
 // Fetch a fresh round of game data for a game id — either one pre-generated
 // question from the questions store, a round of a pool game from the published
@@ -192,7 +245,8 @@ async function fetchRound(gameId) {
   if (published) return published;
   const endpoint = gameEndpoints[gameId];
   if (!endpoint) throw new Error(`No endpoint configured for game id: ${gameId}`);
-  const response = await fetch(endpoint);
+  // Without a timeout a hung backend leaves the room on "Loading the game…" forever.
+  const response = await fetch(endpoint, { signal: AbortSignal.timeout(8000) });
   if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
   const body = await response.json();
   // Django wraps the array as { series: [...] }; static/raw arrays are also accepted.
@@ -209,6 +263,7 @@ async function dealRound(room) {
   room.turnTimer = null;
   room.turn = null;
   room.gameData = null;
+  room.dealtAt = Date.now();
   // Turn-based games don't fetch a shared round — they boot a server-authoritative
   // state machine that broadcasts turnState instead of roundData.
   if (TURN_GAMES.has(room.gameId)) {
@@ -339,7 +394,7 @@ function snapshotFor(room, uid) {
             type: room.proposal.type,
             gameId: room.proposal.gameId,
             gameName: room.proposal.game?.name,
-            fromName: players.get(room.proposal.fromUid)?.user?.username,
+            fromName: nameOf(room.proposal.fromUid),
           };
   }
   // The room's phase is shared, but "playing" vs "waiting" is per player: you
@@ -443,7 +498,7 @@ function createMatchRoom(game, entryA, entryB) {
     opponent: publicUser(players.get(host)?.user),
     opponents: [publicUser(players.get(host)?.user)], game,
   });
-  console.log(`Match ${code}: ${nameOf(host)}#${host} vs ${nameOf(guest)}#${guest} (${game.id})`);
+  console.log(`Match ${code} (${game.id})`);
 
   // Pre-load the first round during the VS intro.
   dealRound(room);
@@ -487,14 +542,25 @@ setInterval(() => {
   for (const gameId of [...queues.keys()]) sweepQueue(gameId);
 }, MATCH_SWEEP_MS).unref();
 
-/** Sliding-window rate limit on join attempts per socket (stops code brute-forcing). */
-function joinThrottled(socket) {
+/** Fixed-window rate limit: true once `tries` exceeds `max` within `windowMs` for this key. */
+function overLimit(map, key, windowMs, max) {
   const now = Date.now();
-  if (!socket._joinWin || now - socket._joinWin.start > JOIN_WINDOW_MS) {
-    socket._joinWin = { start: now, tries: 0 };
+  let w = map.get(key);
+  if (!w || now - w.start > windowMs) {
+    w = { start: now, tries: 0 };
+    map.set(key, w);
   }
-  return ++socket._joinWin.tries > JOIN_MAX_TRIES;
+  return ++w.tries > max;
 }
+
+// Join attempts per player (not per socket: reconnecting used to reset the count), so room
+// codes can't be brute-forced. Stale windows are pruned by the sweep below.
+const joinWindows = new Map();
+const joinThrottled = (uid) => overLimit(joinWindows, uid, JOIN_WINDOW_MS, JOIN_MAX_TRIES);
+setInterval(() => {
+  const now = Date.now();
+  for (const [uid, w] of joinWindows) if (now - w.start > JOIN_WINDOW_MS) joinWindows.delete(uid);
+}, 60000).unref();
 
 /** A friend lobby that never fills evaporates, freeing its code for reuse. */
 function armLobbyTimer(room) {
@@ -527,7 +593,7 @@ function startFriendMatch(room) {
       game: room.game,
     });
   });
-  console.log(`Friend match ${room.code}: ${room.members.join(", ")} (${room.gameId})`);
+  console.log(`Friend match ${room.code}: ${room.members.length} players (${room.gameId})`);
   dealRound(room);
 }
 
@@ -535,7 +601,33 @@ function startFriendMatch(room) {
 //  Socket logic
 // =========================
 io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
+  // Every client event passes through here before its handler:
+  //  • a null payload becomes undefined: the handlers' `({ ... } = {})` default only covers
+  //    undefined, and a throw there used to take down the process (and every live match);
+  //  • a per-socket flood guard drops events past EVENT_MAX a second;
+  //  • until the socket's first identify settles, other events wait (in order). socket.io-client
+  //    flushes what it buffered while offline (a final score, a turn) BEFORE our identify, and
+  //    the server would drop them as anonymous. Guests never identify, so the hold times out.
+  const eventWindows = new Map();
+  let held = [];
+  let identSettled = false;
+  const settleFirstIdentify = () => {
+    if (identSettled) return;
+    identSettled = true;
+    clearTimeout(holdTimer);
+    held.forEach((next) => next());
+    held = [];
+  };
+  const holdTimer = setTimeout(settleFirstIdentify, IDENTIFY_HOLD_MS);
+  // Only sockets that never even tried to identify: one whose identify failed (Django briefly down)
+  // keeps its connection, so the player's next action can identify again.
+  const anonTimer = setTimeout(() => { if (!socket.uid && !socket._identifySeq) socket.disconnect(true); }, ANON_IDLE_MS);
+  socket.use((packet, next) => {
+    if (packet[1] === null) packet[1] = undefined;
+    if (overLimit(eventWindows, "all", EVENT_WINDOW_MS, EVENT_MAX)) return;
+    if (identSettled || packet[0] === "identify") return next();
+    held.push(next);
+  });
 
   // --- Identity (sent on every (re)connect and before every gated action) ---
   // The client sends { user, token }; only the token counts. identity.js asks
@@ -543,7 +635,9 @@ io.on("connection", (socket) => {
   // so nobody can claim someone else's id and a banned account is refused.
   // A token-less (old) client is not identified: keeping it would keep the
   // id-spoofing hole (docs/constraints/AUTH_CONSTRAINTS.md AUTH-8).
+  const identifyWindows = new Map();
   socket.on("identify", ({ token } = {}) => {
+    if (overLimit(identifyWindows, "all", IDENTIFY_WINDOW_MS, IDENTIFY_MAX_TRIES)) return;
     const seq = (socket._identifySeq || 0) + 1;
     socket._identifySeq = seq;
     socket.identifying = identity.verifyToken(token).then((verdict) => {
@@ -555,7 +649,8 @@ io.on("connection", (socket) => {
       }
       socket.token = token;
       onIdentified(verdict.user);
-    }).catch((err) => console.error("identify failed:", err));
+    }).catch((err) => console.error("identify failed:", err.message))
+      .finally(settleFirstIdentify);
   });
 
   // Gated actions: wait for any in-flight identify, then re-check the token
@@ -568,7 +663,7 @@ io.on("connection", (socket) => {
       refuseIdentity(verdict);
       return null;
     }
-    return socket.disconnected ? null : socket.uid;
+    return socket.disconnected ? null : uidOf(socket);
   }
 
   // A refused identify: tell the client why. A banned account is disconnected
@@ -587,8 +682,12 @@ io.on("connection", (socket) => {
     const { email: _email, ...user } = serverUser;
     const uid = user.id;
     socket.uid = uid;
+    clearTimeout(anonTimer);
     const prev = players.get(uid);
     players.set(uid, { socketId: socket.id, user, roomCode: prev?.roomCode ?? null });
+    // The same socket identifying again (token refresh, profile change) is not a reconnect:
+    // resuming would reset the player's round and tell the opponent "X reconnected".
+    if (prev?.socketId === socket.id) return;
 
     // Reconnecting into a live room? Rejoin and resume.
     const room = prev?.roomCode ? rooms.get(prev.roomCode) : null;
@@ -598,26 +697,36 @@ io.on("connection", (socket) => {
         delete room.graceTimers[uid];
       }
       socket.join(room.code);
-      socket.emit("resumeMatch", snapshotFor(room, uid));
-      // Turn games carry live state outside the resume snapshot — re-push it.
-      if (room.turn) turnGames.resumeFor(room, uid, turnHelpers);
+      // After the events held for this identify have run (settleFirstIdentify releases them on
+      // the next ticks), so a final score sent while offline is already in the snapshot.
+      setImmediate(() => {
+        if (socket.disconnected || !rooms.has(room.code)) return;
+        socket.emit("resumeMatch", snapshotFor(room, uid));
+        // Turn games carry live state outside the resume snapshot — re-push it.
+        if (room.turn) turnGames.resumeFor(room, uid, turnHelpers);
+      });
       if (room.phase === "lobby") {
         const snap = lobbySnapshot(room);
         othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
       } else {
         othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { id: uid, username: nameOf(uid) }));
       }
-      console.log(`${uid} resumed room ${room.code} (${room.phase})`);
+      console.log(`Room ${room.code}: player resumed (${room.phase})`);
     }
   }
 
   // --- Matchmaking ---
   // Skill-aware: pair with the closest-points opponent whose fairness window
   // (and ours) accepts the gap; the sweep interval re-tries as windows widen.
-  socket.on("findMatch", async ({ game } = {}) => {
+  socket.on("findMatch", async ({ game: sent } = {}) => {
     const uid = await verifiedUid();
-    if (!uid || !game?.id) {
+    if (!uid) {
       socket.emit("matchError", { message: "You need to be signed in to play online." });
+      return;
+    }
+    const game = cleanGame(sent);
+    if (!game) {
+      socket.emit("matchError", { message: "That game can't be played online." });
       return;
     }
     // Guard against double-queueing / queueing while already in a room.
@@ -653,7 +762,7 @@ io.on("connection", (socket) => {
     socket._findTimeout = setTimeout(() => {
       if (dropFromQueues(uid)) toUid(uid, "noOpponent", { game });
     }, MATCH_TIMEOUT_MS);
-    console.log(`${nameOf(uid)}#${uid} queued for ${game.id} (${pointsOf(me.user)} pts)`);
+    console.log(`Queued for ${game.id} (${queue.length} waiting)`);
   });
 
   socket.on("cancelFind", () => {
@@ -663,10 +772,15 @@ io.on("connection", (socket) => {
   });
 
   // --- Friend rooms (private share-code lobbies for FRIEND_ROOM_SIZE players) ---
-  socket.on("createFriendRoom", async ({ game } = {}) => {
+  socket.on("createFriendRoom", async ({ game: sent } = {}) => {
     const uid = await verifiedUid();
-    if (!uid || !game?.id) {
+    if (!uid) {
       socket.emit("friendError", { message: "You need to be signed in to create a room." });
+      return;
+    }
+    const game = cleanGame(sent);
+    if (!game) {
+      socket.emit("friendError", { message: "That game can't be played online." });
       return;
     }
     if (players.get(uid)?.roomCode) {
@@ -687,7 +801,7 @@ io.on("connection", (socket) => {
     socket.join(code);
     armLobbyTimer(room);
     socket.emit("friendRoomCreated", lobbySnapshot(room));
-    console.log(`Friend room ${code} created by ${uid} (${game.id})`);
+    console.log(`Friend room ${code} created (${game.id})`);
   });
 
   socket.on("joinFriendRoom", async ({ code } = {}) => {
@@ -696,7 +810,7 @@ io.on("connection", (socket) => {
       socket.emit("friendJoinError", { message: "You need to be signed in to join a room." });
       return;
     }
-    if (joinThrottled(socket)) {
+    if (joinThrottled(uid)) {
       socket.emit("friendJoinError", { message: "Too many attempts. Wait a few seconds and try again." });
       return;
     }
@@ -729,7 +843,7 @@ io.on("connection", (socket) => {
     if (p) p.roomCode = room.code;
     socket.join(room.code);
     armLobbyTimer(room); // joining is activity — give the lobby a fresh TTL
-    console.log(`${uid} joined friend room ${room.code} (${room.members.length}/${room.capacity})`);
+    console.log(`Friend room ${room.code}: ${room.members.length}/${room.capacity} joined`);
     if (room.members.length === room.capacity) {
       startFriendMatch(room);
     } else {
@@ -740,11 +854,12 @@ io.on("connection", (socket) => {
   });
 
   // Host-only: swap which game the room will play (lobby phase only).
-  socket.on("changeFriendGame", ({ code, game } = {}) => {
+  socket.on("changeFriendGame", ({ code, game: sent } = {}) => {
     const room = rooms.get(Number(code));
     const uid = uidOf(socket);
+    const game = cleanGame(sent);
     if (!room || room.type !== "friend" || room.phase !== "lobby") return;
-    if (!uid || room.members[0] !== uid || !game?.id) return;
+    if (!uid || room.members[0] !== uid || !game) return;
     room.gameId = game.id;
     room.game = game;
     // Capacity follows the game (imposter seats 5, everything else 2). Never
@@ -777,20 +892,31 @@ io.on("connection", (socket) => {
     const room = rooms.get(Number(code));
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid) || !room.turn) return;
+    if (!action || typeof action !== "object") return;
     turnGames.handleAction(room, uid, action, turnHelpers);
   });
 
   // --- Score submission ---
   socket.on("submitScore", ({ code, score, elapsedMs } = {}) => {
-    const room = rooms.get(code);
     const uid = uidOf(socket);
-    if (!room || !uid || !room.members.includes(uid)) return;
+    if (!uid) return;
+    const room = rooms.get(code);
+    if (!room || !room.members.includes(uid)) {
+      // The match is gone (the server restarted, or it was closed): end the client's
+      // "Waiting for…" screen instead of leaving it there forever.
+      if (!room && !players.get(uid)?.roomCode) socket.emit("opponentLeft", { message: "This match is no longer running." });
+      return;
+    }
+    // Only a dealt round takes scores (not a lobby, the intro, or a turn game's own scoring).
+    if ((room.phase !== "playing" && room.phase !== "waiting") || room.turn) return;
     if (room.scores[uid] != null) return; // ignore duplicate submissions
 
-    room.scores[uid] = Number(score) || 0;
-    // Play time breaks equal-score ties (fastest wins); junk values count as slowest.
+    room.scores[uid] = Math.min(Math.max(Math.floor(Number(score) || 0), 0), MAX_SCORE);
+    // Play time breaks equal-score ties (fastest wins); junk values count as slowest. A claimed
+    // time can't undercut the real time since the deal (minus the intro), so 0 ms can't win ties.
     const ms = Number(elapsedMs);
-    room.times[uid] = Number.isFinite(ms) && ms >= 0 ? ms : null;
+    const floor = Math.max(0, Date.now() - (room.dealtAt || 0) - INTRO_ALLOWANCE_MS);
+    room.times[uid] = Number.isFinite(ms) && ms >= 0 ? Math.max(ms, floor) : null;
     const stillPlaying = room.members.filter((m) => room.scores[m] == null);
     if (stillPlaying.length === 0) {
       settleMatch(room);
@@ -807,7 +933,8 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentProgress", { id: uid, username: nameOf(uid), round, total }));
+    const int = (v) => Math.min(Math.max(Math.floor(Number(v)) || 0, 0), 1000);
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentProgress", { id: uid, username: nameOf(uid), round: int(round), total: int(total) }));
   });
 
   // --- Play-again / switch-game proposals ---
@@ -817,6 +944,8 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
+    // A lobby starts through startRoomNow / filling up (which enforce the game's minimum players).
+    if (room.phase === "lobby") return;
 
     // If someone else already has a proposal open, treat this as an accept.
     if (room.proposal && room.proposal.fromUid !== uid) {
@@ -827,9 +956,15 @@ io.on("connection", (socket) => {
       socket.emit("matchError", { message: "A request is already pending." });
       return;
     }
-    const gameId = type === "switch" ? game?.id : room.gameId;
-    const gameObj = type === "switch" ? game : room.game;
-    if (type === "switch" && !gameId) return;
+    // Each restart re-deals (and may re-fetch) a round: two accounts looping
+    // propose/accept would otherwise hammer the data sources.
+    if (Date.now() - (room.restartedAt || 0) < RESTART_MIN_MS) {
+      socket.emit("matchError", { message: "Wait a moment before starting another game." });
+      return;
+    }
+    const gameObj = type === "switch" ? cleanGame(game) : room.game;
+    if (!gameObj) return;
+    const gameId = gameObj.id;
 
     room.proposal = {
       type, fromUid: uid, gameId, game: gameObj, accepted: new Set(),
@@ -841,7 +976,7 @@ io.on("connection", (socket) => {
     socket.emit("proposalPending", { type, gameId, gameName: gameObj?.name });
     othersOf(room, uid).forEach((m) =>
       toUid(m, "proposalReceived", {
-        type, gameId, gameName: gameObj?.name, fromName: players.get(uid)?.user?.username,
+        type, gameId, gameName: gameObj?.name, fromName: nameOf(uid),
       })
     );
   };
@@ -858,6 +993,7 @@ io.on("connection", (socket) => {
       return;
     }
     clearProposal(room);
+    room.restartedAt = Date.now();
     room.gameId = prop.gameId;
     room.game = prop.game;
     room.phase = "intro";
@@ -903,7 +1039,7 @@ io.on("connection", (socket) => {
       if (uid) dropFromQueues(uid);
       return;
     }
-    const name = players.get(uid)?.user?.username || "A player";
+    const name = nameOf(uid);
     if (room.phase === "lobby") {
       const message = uid === room.members[0] ? "The host closed the room." : `${name} left, so the room was closed.`;
       othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message }));
@@ -911,27 +1047,31 @@ io.on("connection", (socket) => {
       const message = room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
       othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
     }
-    destroyRoom(room, `${uid} left`);
+    destroyRoom(room, "a player left");
   });
 
   // --- Disconnect → start the grace window ---
-  socket.on("disconnect", () => {
-    const uid = uidOf(socket);
-    console.log("Socket disconnected:", socket.id, uid || "(anon)");
-    if (!uid) return;
+  socket.on("disconnect", (reason) => {
+    clearTimeout(holdTimer);
+    clearTimeout(anonTimer);
+    held = [];
+    // This socket's queue timer must not fire against a newer socket's queue entry.
     if (socket._findTimeout) clearTimeout(socket._findTimeout);
+    // null when a newer socket already replaced this one: only the active socket going away
+    // makes the player offline.
+    const uid = uidOf(socket);
+    if (!uid) return;
+    console.log(`Player disconnected (${reason})`);
     dropFromQueues(uid);
 
     const p = players.get(uid);
-    // Only treat as offline if this socket is still the player's active socket.
-    if (!p || p.socketId !== socket.id) return;
 
     const room = p.roomCode ? rooms.get(p.roomCode) : null;
     if (!room) {
       players.delete(uid);
       return;
     }
-    const name = p.user?.username || "A player";
+    const name = nameOf(uid);
     if (room.phase === "lobby") {
       // Show the seat as offline, then close the room if they don't come back.
       const snap = lobbySnapshot(room);
@@ -940,7 +1080,7 @@ io.on("connection", (socket) => {
         othersOf(room, uid).forEach((m) =>
           toUid(m, "friendRoomCancelled", { message: `${name} disconnected, so the room was closed.` })
         );
-        destroyRoom(room, `${uid} lobby grace timeout`);
+        destroyRoom(room, "lobby grace timeout");
         players.delete(uid);
       }, LOBBY_GRACE_MS);
       return;
@@ -954,7 +1094,7 @@ io.on("connection", (socket) => {
         ? `${name} didn't reconnect, so the match ended.`
         : "Your opponent didn't reconnect in time.";
       othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
-      destroyRoom(room, `${uid} grace timeout`);
+      destroyRoom(room, "grace timeout");
       players.delete(uid);
     }, GRACE_MS);
   });
@@ -973,6 +1113,27 @@ async function setupRedisAdapter() {
   io.adapter(createAdapter(pubClient, subClient));
   console.log("Socket.IO Redis adapter enabled");
 }
+
+// Last resort: one bad packet or upstream hiccup must not drop every live match. Log and carry on;
+// Railway still restarts the process if it genuinely dies.
+process.on("unhandledRejection", (err) => console.error("Unhandled rejection:", err?.message || err));
+process.on("uncaughtException", (err) => console.error("Uncaught exception:", err?.stack || err));
+
+// A redeploy stops this process (SIGTERM). Rooms live in memory, so tell everyone their match
+// ended instead of leaving them on a screen the new process knows nothing about.
+let shuttingDown = false;
+process.on("SIGTERM", () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const message = "The game server is updating. Please start a new match.";
+  for (const room of rooms.values()) {
+    const event = room.phase === "lobby" ? "friendRoomCancelled" : "opponentLeft";
+    room.members.forEach((uid) => toUid(uid, event, { message }));
+  }
+  for (const q of queues.values()) q.forEach((entry) => toUid(entry.uid, "noOpponent", {}));
+  console.log(`SIGTERM: notified ${rooms.size} rooms, closing`);
+  setTimeout(() => io.close(() => process.exit(0)), 1000).unref();
+});
 
 const PORT = process.env.PORT || 4000;
 setupRedisAdapter()

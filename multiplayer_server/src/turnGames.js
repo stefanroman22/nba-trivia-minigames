@@ -30,6 +30,18 @@
 // questions.deal()/loadNames() read the manifest-v3 data host when it publishes the game
 // (tictactoe does; imposter is hidden and stays on the Supabase questions store).
 const questions = require("./questions");
+
+// questions.nameLookup builds a ~4,900-name index (~10 ms of blocked event loop); the names array is
+// cached by questions.js, so build each index once per array instead of once per match.
+const _lookups = new WeakMap();
+function lookupFor(names) {
+  let lookup = _lookups.get(names);
+  if (!lookup) {
+    lookup = questions.nameLookup(names);
+    _lookups.set(names, lookup);
+  }
+  return lookup;
+}
 const { normalizeAnswer } = require("./answerMatch");
 
 // --- Tunables -------------------------------------------------------------
@@ -200,7 +212,7 @@ async function initTTT(room, helpers) {
     winnerUid: null,
     draw: false,
   };
-  room.turn = { game: "tictactoe", state, valid: question.valid, lookup: questions.nameLookup(names), trustClient: false };
+  room.turn = { game: "tictactoe", state, valid: question.valid, lookup: lookupFor(names), trustClient: false };
   armTurnTimer(room, helpers);
   broadcastTurnState(room, helpers);
 }
@@ -224,7 +236,7 @@ function handleTTT(room, uid, action, helpers) {
   if (!Number.isInteger(cell) || cell < 0 || cell > 8) {
     return helpers.reject(uid, "Pick a square on the board.");
   }
-  const name = String(action.playerName || "").trim();
+  const name = String(action.playerName || "").slice(0, 80).trim();
   if (!name) return helpers.reject(uid, "Type a player's name.");
 
   const existing = s.board[cell];
@@ -431,7 +443,7 @@ function handleImposter(room, uid, action, helpers) {
   if (action.type === "guess") {
     if (s.phase !== "reveal" || !t.awaitingGuess) return helpers.reject(uid, "No guess to make.");
     if (uid !== t.imposterUid) return helpers.reject(uid, "Only the imposter guesses.");
-    const guess = String(action.playerName || "").trim();
+    const guess = String(action.playerName || "").slice(0, 80).trim();
     if (!guess) return helpers.reject(uid, "Name the mystery player.");
     const right = matchesMystery(t.mystery, guess);
     if (right) s.scores[t.imposterUid] += 3; // caught but nailed the reveal

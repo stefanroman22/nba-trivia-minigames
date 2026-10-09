@@ -77,7 +77,7 @@ function loadRelay() {
     adapter() {},
   };
   const stubs = {
-    express: Object.assign(() => ({ use() {}, get() {} }), { json: () => () => {} }),
+    express: Object.assign(() => ({ use() {}, get() {}, disable() {} }), { json: () => () => {} }),
     cors: () => () => {},
     "socket.io": { Server: function Server() { return fakeIo; } },
     http: { createServer: () => ({ listen() {} }) },
@@ -110,7 +110,7 @@ function loadRelay() {
       id: `s${++n}`, handlers: {}, events: [], disconnected: false,
       on(e, fn) { this.handlers[e] = fn; },
       emit(e, p) { this.events.push([e, p]); },
-      join() {}, leave() {},
+      use() {}, join() {}, leave() {},
       disconnect() { this.disconnected = true; this.handlers.disconnect?.(); },
       send(e, p) { return this.handlers[e]?.(p); },
     };

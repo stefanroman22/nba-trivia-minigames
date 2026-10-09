@@ -73,6 +73,9 @@ def user_payload(request, user):
         "profile_photo": profile_photo_url(request, user),
         # UI hint only — every admin endpoint re-checks is_staff server-side.
         "is_admin": bool(user.is_staff),
+        # 13-15 year-olds are kept off public surfaces; the multiplayer relay reads this to show
+        # them as "Player" to strangers in random matches (multiplayer_server/src/index.js publicUser).
+        "is_teen": getattr(user, "age_group", "") == "teen",
     }
 
 
