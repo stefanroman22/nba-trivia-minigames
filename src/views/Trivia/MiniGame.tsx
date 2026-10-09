@@ -238,7 +238,7 @@ function MiniGame() {
           <div className="idle">
             <div className="idle-thumb" style={{ backgroundImage: game?.backgroundImage }} />
             <div className="idle-head">
-              <h2 className="font-display" style={{ fontSize: 23 }}>{game?.name}</h2>
+              <p className="font-display" style={{ fontSize: 23, margin: 0 }}>{game?.name}</p>
               <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.5 }}>{game?.description}</p>
             </div>
             <div className="idle-chips">

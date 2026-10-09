@@ -142,7 +142,7 @@ The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (s
 ```
 NODE_ENV=production                                  # REQUIRED: the server refuses to start without CORS_ORIGINS
 API_BASE_URL=https://backend-kappa-one-42.vercel.app/api # REQUIRED in prod (else it tries localhost); also where it verifies login tokens (GET /me/)
-CORS_ORIGINS=https://nba-minigames.vercel.app        # production site origins ONLY — never localhost, that is what keeps local dev off this server
+CORS_ORIGINS=https://swishquest.com,https://www.swishquest.com   # production site origins ONLY — never localhost, that is what keeps local dev off this server
 DATA_PUBLIC_BASE=https://nba-minigames-data.vercel.app   # game-data host: pool games + published question games (unset = backend endpoints / questions store)
 QUESTIONS_PUBLIC_BASE=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>   # questions store: hidden games + fallback for the question games
 REDIS_URL=rediss://...                               # optional: enables the Socket.IO adapter
@@ -155,7 +155,7 @@ VITE_BACKEND_URL=https://backend-kappa-one-42.vercel.app/api
 VITE_SOCKET_URL=https://<your-multiplayer-host>     # set once the Node host is deployed
 # VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
 # Set it only to serve pools from an external CDN/domain instead.
-# NEXT_PUBLIC_SITE_URL is optional — canonical/OG/sitemap URLs use it, else Vercel's VERCEL_PROJECT_PRODUCTION_URL, else https://nba-minigames.vercel.app.
+# NEXT_PUBLIC_SITE_URL is optional and for local QA only — canonical/OG/sitemap/robots/llms.txt URLs default to https://swishquest.com (src/configurations/site.ts).
 ```
 The `VITE_*` names predate the Next.js migration and are kept on purpose: `next.config.ts`
 inlines these three into the browser bundle (Next only exposes `NEXT_PUBLIC_*` by itself).
@@ -360,7 +360,7 @@ Design background: `docs/superpowers/specs/2026-08-29-three-environment-strategy
 |---|---|---|---|---|
 | **local** | Next `:5173` | local `:8000`, else **prod fallback** | **always local `:4000`** (started by `npm run dev`; never the deployed one) | sqlite (default) or local Postgres |
 | **dev** | dev-branch Vercel URL (`https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app`) | production backend | production socket | production Supabase |
-| **production** | `https://nba-minigames.vercel.app` | `https://backend-kappa-one-42.vercel.app/api` | production socket | production Supabase |
+| **production** | `https://swishquest.com` (the old `nba-minigames.vercel.app` 301-redirects here) | `https://backend-kappa-one-42.vercel.app/api` | production socket | production Supabase |
 
 `dev` and `production` differ only in which frontend build is served — deliberately: there is no
 separate deployed dev backend, because a deployed backend needs a hosted database and that

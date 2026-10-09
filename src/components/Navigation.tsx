@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState, type MouseEvent } from "react";
+import { SITE_NAME, SITE_TAGLINE } from "../configurations/site";
 import { useNavigate } from "../hooks/useNavigate";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { useLoginReveal } from "../hooks/useLoginReveal";
@@ -117,10 +118,10 @@ function Navigation({ type = "full" }: NavigationProps) {
           className="nav3-brand"
           onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); goHome(); }}
         >
-          <img src={logo.src} alt="HOOPS24" className="nav3-logo" width={38} height={38} />
+          <img src={logo.src} alt={SITE_NAME} className="nav3-logo" width={38} height={38} />
           <div className="nav3-brand-text">
-            <span className="font-display" style={{ fontSize: 16, letterSpacing: 1 }}>HOOPS24</span>
-            <span className="nav3-tag">NBA MINIGAMES</span>
+            <span className="font-display" style={{ fontSize: 16, letterSpacing: 1 }}>{SITE_NAME.toUpperCase()}</span>
+            <span className="nav3-tag">{SITE_TAGLINE}</span>
           </div>
         </a>
       </div>
@@ -168,8 +169,8 @@ function Navigation({ type = "full" }: NavigationProps) {
               >
                 <img src={logo.src} alt="" className="nav3-logo" width={38} height={38} />
                 <div className="nav3-brand-text">
-                  <span className="font-display" style={{ fontSize: 15, letterSpacing: 1 }}>HOOPS24</span>
-                  <span className="nav3-tag">NBA MINIGAMES</span>
+                  <span className="font-display" style={{ fontSize: 15, letterSpacing: 1 }}>{SITE_NAME.toUpperCase()}</span>
+                  <span className="nav3-tag">{SITE_TAGLINE}</span>
                 </div>
               </a>
               <div className="drawer-head-right">

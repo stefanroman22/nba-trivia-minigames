@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 import { backgroundUrl } from "../../utils/GameUtils";
@@ -12,6 +12,9 @@ interface GameTileProps {
   pointLabel?: string;
   cta?: string;
   onClick?: () => void;
+  /** Renders the tile as a real link to this path (crawlable, opens in a new tab with a modified
+   *  click); a plain click still runs `onClick` so the page transition plays. */
+  href?: string;
   index?: number;
   /** Renders the tile as not-clickable (e.g. the "Coming soon" placeholder). */
   disabled?: boolean;
@@ -32,6 +35,7 @@ export default function GameTile({
   backgroundImage,
   cta = "Play now",
   onClick,
+  href,
   index = 0,
   disabled = false,
   dimmed = false,
@@ -47,12 +51,25 @@ export default function GameTile({
   const [showImg, setShowImg] = useState(false);
   useEffect(() => setShowImg(true), []);
 
+  // A link when it leads somewhere and is playable; otherwise the original button.
+  const asLink = Boolean(href) && !disabled;
+  const Tag = asLink ? motion.a : motion.button;
+  const tagProps = asLink
+    ? {
+        href,
+        onClick: (e: MouseEvent<HTMLElement>) => {
+          // Let the browser handle new-tab / new-window clicks; a plain click uses the app transition.
+          if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || !onClick) return;
+          e.preventDefault();
+          onClick();
+        },
+      }
+    : { onClick: disabled ? undefined : onClick, disabled, "aria-disabled": disabled };
+
   return (
-    <motion.button
+    <Tag
+      {...tagProps}
       className={`gtile${disabled ? " is-disabled" : ""}${dimmed ? " is-dimmed" : ""}`}
-      onClick={disabled ? undefined : onClick}
-      disabled={disabled}
-      aria-disabled={disabled}
       initial={reduce ? false : { opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.25 }}
@@ -82,6 +99,6 @@ export default function GameTile({
           </span>
         </div>
       </div>
-    </motion.button>
+    </Tag>
   );
 }

@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { LEGAL } from "../../configurations/legal";
+import { SITE_NAME } from "../../configurations/site";
 import LegalPage, { LegalHeading, LegalList, LegalSummary, LegalTable, MailLink, OperatorBlock } from "../../components/LegalPage";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description: `What ${LEGAL.service} collects, why, who handles it, how long it is kept, and how to see, export or delete it.`,
   alternates: { canonical: "/privacy" },
+  // A child openGraph replaces the layout's wholesale, so the shared fields are repeated.
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: "/privacy", title: `Privacy Policy | ${SITE_NAME}` },
 };
 
 export default function PrivacyPage() {

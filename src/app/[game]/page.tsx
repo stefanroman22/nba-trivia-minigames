@@ -3,7 +3,8 @@ import { preload } from "react-dom";
 import { games, visibleGames, backgroundUrl } from "../../utils/GameUtils";
 import MiniGame from "../../views/Trivia/MiniGame";
 import JsonLd from "../../components/JsonLd";
-import { SITE_NAME, SITE_URL } from "../../configurations/site";
+import GameGuide from "../../components/GameGuide";
+import { ORG_ID, SITE_NAME, SITE_URL } from "../../configurations/site";
 
 /** Every playable, non-hidden game lives at /<slug>; "coming-soon" has its own page.
  *  Hidden games are excluded from generateStaticParams and dynamicParams is false,
@@ -22,16 +23,15 @@ export async function generateMetadata({ params }: { params: Promise<{ game: str
   const { game } = await params;
   const entry = games.find((g) => g.urlPath === `/${game}`);
   if (!entry) return {};
-  const art = backgroundUrl(entry.backgroundImage);
+  const description = entry.seoDescription ?? entry.description;
+  const title = `${entry.name} | ${SITE_NAME}`;
+  // Share images come from ./opengraph-image.tsx and ./twitter-image.tsx (generated per game).
   return {
     title: entry.name,
-    description: entry.description,
+    description,
     alternates: { canonical: entry.urlPath },
-    openGraph: {
-      type: "website", siteName: SITE_NAME, locale: "en_US", url: entry.urlPath, title: `${entry.name} | ${SITE_NAME}`, description: entry.description,
-      images: [{ url: art, alt: entry.name }],
-    },
-    twitter: { card: "summary_large_image", title: `${entry.name} | ${SITE_NAME}`, description: entry.description, images: [art] },
+    openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", url: entry.urlPath, title, description },
+    twitter: { card: "summary_large_image", title, description },
   };
 }
 
@@ -42,17 +42,28 @@ export default async function GamePage({ params }: { params: Promise<{ game: str
   const art = backgroundUrl(entry.backgroundImage);
   // The idle thumbnail is the LCP element; preloading it with high priority lets the browser find it in the HTML.
   preload(art, { as: "image", fetchPriority: "high" });
+  // VideoGame must be co-typed with WebApplication (Search Central "software apps"). No ratings: never invented.
   const gameJsonLd = {
-    "@context": "https://schema.org", "@type": "VideoGame", name: entry.name, description: entry.description,
-    url: `${SITE_URL}${entry.urlPath}`, image: `${SITE_URL}${art}`,
-    genre: "Trivia", gamePlatform: "Web browser", applicationCategory: "GameApplication", operatingSystem: "Any",
-    isAccessibleForFree: true, offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-    publisher: { "@type": "Organization", name: SITE_NAME, url: `${SITE_URL}/` },
+    "@context": "https://schema.org",
+    "@type": ["VideoGame", "WebApplication"],
+    name: entry.name,
+    description: entry.seoDescription ?? entry.description,
+    url: `${SITE_URL}${entry.urlPath}`,
+    image: `${SITE_URL}${art}`,
+    genre: "Trivia",
+    gamePlatform: "Web browser",
+    applicationCategory: "GameApplication",
+    operatingSystem: "Any",
+    inLanguage: "en",
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+    publisher: { "@id": ORG_ID },
   };
   return (
     <>
       <JsonLd data={gameJsonLd} />
       <MiniGame />
+      <GameGuide game={entry} />
     </>
   );
 }

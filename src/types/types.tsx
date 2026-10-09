@@ -204,6 +204,8 @@ export interface Game {
   id: string;
   name: string;
   description: string;
+  /** 120-160 character search description (meta description, llms.txt); falls back to `description`. */
+  seoDescription?: string;
   /** Short uppercase category label shown on the card pill and game chip. */
   tag: string;
   instruction: string;

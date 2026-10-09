@@ -84,6 +84,7 @@ export const games: Game[] = [
     name: "Guess the Series Winner",
     tag: "PREDICT",
     description: "Pick the winner between two teams from a real NBA playoff series.",
+    seoDescription: "Guess the winner of real NBA playoff series. Two teams from a historic matchup, five rounds, 10 points per correct call. Free NBA trivia in your browser.",
     intro: "Travel back through historic NBA Finals and prove your memory of who lifted the trophy.",
     rules: [
       { n: "1", t: "Two teams from a real playoff series are shown each round." },
@@ -114,6 +115,7 @@ export const games: Game[] = [
     name: "Name the NBA Club",
     tag: "LOGOS",
     description: "Only real fans name every logo.",
+    seoDescription: "Name the NBA franchise behind each team logo. Five rounds, 10 points per correct answer. A free NBA logo quiz you can play right in your browser.",
     intro: "How sharp is your eye for NBA branding? Name the team behind the badge.",
     rules: [
       { n: "1", t: "A team logo appears each round." },
@@ -144,6 +146,7 @@ export const games: Game[] = [
     name: "Guess the MVP",
     tag: "LEGENDS",
     description: "Every season had a king. Name him.",
+    seoDescription: "Name the NBA MVP for each season shown. Five seasons, 10 points per correct answer. A free NBA MVP trivia quiz, playable in your browser.",
     intro: "Legends are made in the regular season. Recall who dominated each year.",
     rules: [
       { n: "1", t: "A specific season is shown." },
@@ -174,6 +177,7 @@ export const games: Game[] = [
     name: "Fill in the Starting 5",
     tag: "LINEUPS",
     description: "Remember who actually started that night.",
+    seoDescription: "Fill in the real starting five of a historic NBA game, point guard to center. Three lives; complete the lineup for 100 points. Free NBA lineup trivia.",
     intro: "Be the coach's memory.",
     rules: [
       { n: "1", t: "A real game and its winner are shown." },
@@ -205,6 +209,7 @@ export const games: Game[] = [
     name: "NBA Wordle",
     tag: "DAILY",
     description: "Guess the NBA player using Wordle rules.",
+    seoDescription: "NBA Wordle: guess the mystery NBA player's name in five tries with Wordle-style green and yellow letter hints. A new puzzle every day, free to play.",
     intro: "The classic word game for hoops fans.",
     rules: [
       { n: "1", t: "Green = right letter & spot, yellow = wrong spot, gray = not in name." },
@@ -238,6 +243,7 @@ export const games: Game[] = [
     name: "Fan Favorites",
     tag: "SURVEY",
     description: "Can you find out what other 100 NBA fans answered?",
+    seoDescription: "We asked 100 NBA fans a question. Guess their most popular answers to reveal the board before your three hearts run out. Free NBA survey trivia.",
     intro: "Think like the crowd. The most popular answers score the board.",
     rules: [
       { n: "1", t: "We asked 100 NBA fans a question. Their top answers are hidden on the board." },
@@ -330,6 +336,7 @@ export const games: Game[] = [
     name: "Career Path Challenge",
     tag: "JOURNEY",
     description: "Whose career path is this?",
+    seoDescription: "Name the NBA player from his career path, revealed team by team with years, games and points per game. The fewer cards you need, the more you score.",
     intro: "One career, card by card. Name the player before the trail runs out.",
     rules: [
       { n: "1", t: "The first team stint is revealed: years, team, GP, PPG." },
@@ -391,6 +398,7 @@ export const games: Game[] = [
     name: "Who Are Ya?",
     tag: "MYSTERY",
     description: "Find the player with hints and a blurred image.",
+    seoDescription: "Guess the mystery NBA player from a blurred photo and attribute hints that turn green or yellow as you get close. Eight guesses. A free NBA quiz.",
     intro: "Blur, clues, deduction. Unmask the mystery player in as few guesses as you can.",
     rules: [
       { n: "1", t: "Guess any player. Attributes come back green (exact) or yellow (close)." },
@@ -421,6 +429,7 @@ export const games: Game[] = [
     name: "NBA Tic-Tac-Toe",
     tag: "DUEL",
     description: "A more complex tic-tac-toe game.",
+    seoDescription: "NBA Tic-Tac-Toe: claim each square by naming a player who fits its row and column. Get three in a row to win. Free NBA grid trivia in your browser.",
     intro: "The PvP flagship. Out-think your opponent cell by cell.",
     rules: [
       { n: "1", t: "On your turn, claim a cell by naming a player who fits its row + column." },
@@ -482,6 +491,7 @@ export const games: Game[] = [
     name: "LeContexto",
     tag: "RADAR",
     description: "Every guess brings you closer to the truth.",
+    seoDescription: "LeContexto: guess the secret NBA player and get a similarity rank for every guess, from franchise, era, position, draft and stats. Free to play.",
     intro: "No fail state, just a similarity radar. Home in on the secret player.",
     rules: [
       { n: "1", t: "Guess any player. You get a similarity rank (#1 is the answer)." },
@@ -605,6 +615,7 @@ export const games: Game[] = [
     name: "Who Would Win?",
     tag: "VOTE",
     description: "Pick a side in 10 dream matchups, then see how the crowd voted.",
+    seoDescription: "Who Would Win? Pick a side in ten dream matchups between legendary NBA teams from different eras, then see how the community voted. Free to play.",
     intro: "No right answers, just takes. Back a side, then see where the community landed.",
     rules: [
       { n: "1", t: "Ten hypothetical matchups between legendary teams from different eras." },

@@ -17,6 +17,8 @@ export const LEGAL = {
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
   version: "2026-10-08.2",
   updated: "8 October 2026",
+  /** The same date as ISO, for the sitemap. */
+  updatedIso: "2026-10-08",
   minimumAge: 13,
   /** Accounts younger than this cannot upload a public profile photo. Equals PHOTO_MIN_AGE in backend/users/consent.py. */
   photoMinimumAge: 16,

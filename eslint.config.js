@@ -26,7 +26,7 @@ export default tseslint.config([
       // Next route files export their metadata/config next to the page component.
       'react-refresh/only-export-components': ['error', {
         allowConstantExport: true,
-        allowExportNames: ['metadata', 'generateMetadata', 'generateStaticParams', 'dynamicParams', 'dynamic', 'revalidate', 'viewport', 'generateViewport'],
+        allowExportNames: ['metadata', 'generateMetadata', 'generateStaticParams', 'dynamicParams', 'dynamic', 'revalidate', 'viewport', 'generateViewport', 'alt', 'size', 'contentType'],
       }],
     },
   },

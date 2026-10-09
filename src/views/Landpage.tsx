@@ -158,6 +158,7 @@ const Landpage = () => {
                     ctaSwapKey={game.id === "wordle" ? (wordlePlayed ? "locked" : "play") : undefined}
                     index={index}
                     disabled={game.id === "coming-soon" || wordlePlayed}
+                    href={game.urlPath}
                     onClick={() => openGame(game.id, game.urlPath)}
                   />
                 );

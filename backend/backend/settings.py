@@ -78,6 +78,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",          
     "django.contrib.auth.middleware.AuthenticationMiddleware", # 3. Required for request.user
     "django.contrib.messages.middleware.MessageMiddleware",
+    "backend.noindex.NoIndexMiddleware",                # the API host is never indexed
 ]
 
 # Cache tiers, mirroring the REDIS_URL-or-fallback pattern users/leaderboard.py uses.
