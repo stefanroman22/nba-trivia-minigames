@@ -610,10 +610,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(id);
   }, [mp.phase, mp.introElapsed, mp.code]);
 
-  // ---- Auto-clear transient info/warn notices. ----
+  // ---- Auto-clear transient info/warn/points notices. ----
   useEffect(() => {
-    // Errors wait for a dismiss; the points badge stays for the whole results screen.
-    if (!mp.notice || mp.notice.kind === "error" || mp.notice.kind === "points") return;
+    // Errors wait for a dismiss; everything else (including the "+N pts" badge) is a passing toast.
+    if (!mp.notice || mp.notice.kind === "error") return;
     const id = setTimeout(() => dispatch({ t: "CLEAR_NOTICE" }), 3200);
     return () => clearTimeout(id);
   }, [mp.notice]);
