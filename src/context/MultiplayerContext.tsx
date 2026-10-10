@@ -425,7 +425,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         token = getAccessToken();
       }
     }
-    socket.emit("identify", { user: current, token });
+    // Only the token: the relay never reads a client's user object, and sending it (a profile photo
+    // can be a large data URL) pushed the packet past the relay's 16 KB limit, which drops the socket.
+    socket.emit("identify", { token });
   }, []);
 
   useEffect(() => {
