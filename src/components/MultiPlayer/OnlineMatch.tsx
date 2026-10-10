@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
 import "../../styles/Multiplayer.css";
 import { playerKey, useMultiplayer } from "../../context/MultiplayerContext";
+import { useModal } from "../../context/ModalContext";
 import { renderGame } from "../../Game Renderers/RenderGame";
 import { popIn } from "../../motion/variants";
 import { CourtLoader } from "../ui";
@@ -51,7 +52,8 @@ function fmtElapsed(ms: number): string {
 
 /** The full online-match experience, driven entirely by the multiplayer store. */
 export default function OnlineMatch() {
-  const { mp, submitScore, sendTurnAction, proposeAgain, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice } = useMultiplayer();
+  const { mp, submitScore, sendTurnAction, proposeAgain, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice, stopMatch, restartRoom, proposeSwitch } = useMultiplayer();
+  const { open } = useModal();
 
   // Wall-clock start of the current round, re-armed on every transition INTO
   // "playing" (a matchRestart re-enters playing, so rematches re-arm too).
@@ -70,9 +72,17 @@ export default function OnlineMatch() {
     ? `Waiting for ${stillPlaying.map((o) => o.username || "Opponent").join(" & ")}...`
     : "Crunching the numbers...";
 
-  const ExitLink = (
-    <button className="om-exit" onClick={leaveMatch}>Exit game</button>
-  );
+  const isFriend = mp.roomType === "friend";
+  const isHost = isFriend && mp.role === "host";
+  // Friend rooms: the host stops the match (everyone back to the lobby); a guest leaves the room.
+  const ExitLink = isHost
+    ? <button className="om-exit" onClick={stopMatch}>Stop match</button>
+    : <button className="om-exit" onClick={leaveMatch}>{isFriend ? "Leave room" : "Exit game"}</button>;
+  const pickGame = () => open("gamePicker", {
+    currentId: mp.game?.id,
+    seated: mp.roomSize,
+    onPick: (g) => (isFriend ? restartRoom(g) : proposeSwitch(g)),
+  });
 
   // ---- Per-phase body ----
   let body: React.ReactNode = null;
@@ -169,11 +179,17 @@ export default function OnlineMatch() {
         )}
         <ResultActions
           mp={mp}
-          onAgain={proposeAgain}
+          isFriend={isFriend}
+          isHost={isHost}
+          onAgain={isFriend ? () => restartRoom() : proposeAgain}
+          onPickGame={pickGame}
+          onLobby={stopMatch}
           onRespond={respondProposal}
           onCancel={cancelProposal}
         />
-        {ExitLink}
+        {isHost
+          ? <button className="om-exit" onClick={leaveMatch}>Close room</button>
+          : <button className="om-exit" onClick={leaveMatch}>{isFriend ? "Leave room" : "Exit game"}</button>}
       </motion.div>
     );
   } else if (mp.phase === "ended") {
@@ -334,10 +350,14 @@ function ResultHeadline({ outcome }: { outcome: "win" | "loss" | "tie" | null })
 }
 
 function ResultActions({
-  mp, onAgain, onRespond, onCancel,
+  mp, isFriend, isHost, onAgain, onPickGame, onLobby, onRespond, onCancel,
 }: {
   mp: ReturnType<typeof useMultiplayer>["mp"];
+  isFriend: boolean;
+  isHost: boolean;
   onAgain: () => void;
+  onPickGame: () => void;
+  onLobby: () => void;
   onRespond: (accept: boolean) => void;
   onCancel: () => void;
 }) {
@@ -345,7 +365,7 @@ function ResultActions({
   let content: React.ReactNode;
 
   if (mp.proposal?.role === "theirs") {
-    // Incoming request from the opponent.
+    // Incoming request from the opponent (1v1 only).
     const label = mp.proposal.type === "switch"
       ? `wants to switch to ${mp.proposal.gameName || "another game"}`
       : "wants a rematch";
@@ -360,7 +380,6 @@ function ResultActions({
       </div>
     );
   } else if (mp.proposal?.role === "mine") {
-    // Outgoing request we're waiting on.
     const label = mp.proposal.type === "switch"
       ? `Switch to ${mp.proposal.gameName || "new game"} sent`
       : "Rematch request sent";
@@ -371,18 +390,22 @@ function ResultActions({
         <button className="om-btn om-btn--ghost" onClick={onCancel}>Cancel request</button>
       </div>
     );
+  } else if (isFriend && !isHost) {
+    // Guests wait for the host's call.
+    key = "guest";
+    content = (
+      <p className="om-prompt-text">Waiting for the host<span className="om-dots"><i /><i /><i /></span></p>
+    );
   } else {
-    // Default: rematch, and the game list (left on desktop, the strip above on phones) switches games.
+    // The host (friend room) or either player (1v1): rematch or a different game.
     key = "default";
     content = (
       <div className="om-result-actions">
         <div className="om-actions">
           <button className="om-btn om-btn--primary" onClick={onAgain}>Play again</button>
+          <button className="om-btn om-btn--secondary" onClick={onPickGame}>Change game</button>
         </div>
-        <p className="om-switch-hint">
-          <span className="om-hint-wide">To switch game, pick one from the list on the left.</span>
-          <span className="om-hint-narrow">To switch game, pick one from the games above.</span>
-        </p>
+        {isFriend && <button className="om-link" onClick={onLobby}>Back to lobby</button>}
       </div>
     );
   }
