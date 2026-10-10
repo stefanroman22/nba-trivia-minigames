@@ -269,12 +269,27 @@ async function dealRound(room) {
   room.turn = null;
   room.gameData = null;
   room.dealtAt = Date.now();
+  // This deal's generation: backToLobby/destroyRoom (and any newer deal) bump it, so a round
+  // that finishes loading after the room moved on can tell it is stale.
+  const gen = (room.dealGen = (room.dealGen || 0) + 1);
   room.credited = new Set(); // uids already credited for this round (see creditRoom)
   // Turn-based games don't fetch a shared round — they boot a server-authoritative
   // state machine that broadcasts turnState instead of roundData.
   if (TURN_GAMES.has(room.gameId)) {
     try {
-      await turnGames.init(room, turnHelpers);
+      await turnGames.init(room, turnHelpers); // sets phase "playing" up front, turn state once loaded
+      if (room.dealGen !== gen || room.phase !== "playing") {
+        // The room moved on while the game loaded: undo the state init just set up, and re-send
+        // the lobby (when the room still has one) so clients drop the stray turnState.
+        if (room.turnTimer) clearTimeout(room.turnTimer);
+        room.turnTimer = null;
+        room.turn = null;
+        if (rooms.get(room.code) === room && room.phase === "lobby") {
+          const snap = lobbySnapshot(room);
+          room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
+        }
+        return;
+      }
     } catch (err) {
       console.error(`Turn game init failed for room ${room.code}:`, err.message);
       room.members.forEach((uid) =>
@@ -285,6 +300,7 @@ async function dealRound(room) {
   }
   try {
     const gameData = await fetchRound(room.gameId);
+    if (room.dealGen !== gen || room.phase !== "intro") return; // the room moved on (left the intro, stopped, destroyed) while the round loaded
     if (!gameData || gameData.length === 0) throw new Error("empty round");
     room.gameData = gameData;
     room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
@@ -389,6 +405,7 @@ function destroyRoom(room, reason) {
   if (room.proposal?.timeout) clearTimeout(room.proposal.timeout);
   if (room.lobbyTimer) clearTimeout(room.lobbyTimer);
   if (room.turnTimer) clearTimeout(room.turnTimer); // turn-game per-turn/phase timer
+  room.dealGen = (room.dealGen || 0) + 1; // invalidates any deal still loading
   Object.values(room.graceTimers).forEach((t) => clearTimeout(t));
   room.members.forEach((uid) => {
     const p = players.get(uid);
@@ -408,6 +425,7 @@ function backToLobby(room, message, exceptUid = null) {
   room.turnTimer = null;
   room.turn = null;
   room.gameData = null;
+  room.dealGen = (room.dealGen || 0) + 1; // invalidates any deal still loading
   clearProposal(room);
   room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
   room.times = Object.fromEntries(room.members.map((m) => [m, null]));
@@ -418,6 +436,19 @@ function backToLobby(room, message, exceptUid = null) {
     if (m !== exceptUid) toUid(m, "matchStopped", { message });
     toUid(m, "friendLobbyUpdate", snap);
   });
+}
+
+/** Deal a fresh round of `gameObj` to the whole room (play again / switch). Shared by the 1v1
+ *  proposal handshake (registerAccept) and the friend-room host's restartRoom. */
+function restartRound(room, gameObj, why) {
+  clearProposal(room);
+  room.restartedAt = Date.now();
+  room.gameId = gameObj.id;
+  room.game = gameObj;
+  room.phase = "intro";
+  room.members.forEach((u) => toUid(u, "matchRestart", { game: gameObj }));
+  dealRound(room);
+  console.log(`Room ${room.code} restart (${why} -> ${gameObj.id})`);
 }
 
 /** A player is gone (left, or didn't reconnect). 1v1 rooms and a leaving HOST end the room for
@@ -1007,6 +1038,39 @@ io.on("connection", (socket) => {
     startFriendMatch(room);
   });
 
+  // Host-only: end the current match for everyone and return the room to its lobby.
+  socket.on("stopMatch", ({ code } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase === "lobby") return;
+    if (!uid || room.members[0] !== uid) return;
+    backToLobby(room, "The host ended the match.", uid);
+    console.log(`Room ${room.code}: host stopped the match`);
+  });
+
+  // Host-only, after a round: play the same game again, or a different one, for everyone at once.
+  socket.on("restartRoom", ({ code, game: sent } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase !== "results") return;
+    if (!uid || room.members[0] !== uid) return;
+    if (Date.now() - Math.max(room.restartedAt || 0, room.dealtAt || 0) < RESTART_MIN_MS) {
+      socket.emit("friendError", { message: "Wait a moment before starting another game." });
+      return;
+    }
+    const gameObj = sent ? cleanGame(sent) : room.game;
+    if (!gameObj) {
+      socket.emit("friendError", { message: "That game can't be played online." });
+      return;
+    }
+    const { max } = turnGames.roomConfigFor(gameObj.id);
+    if (room.members.length > max) {
+      socket.emit("friendError", { message: `${gameObj.name} is for ${max} players; ${room.members.length} are seated.` });
+      return;
+    }
+    restartRound(room, gameObj, "host");
+  });
+
   // --- Turn-based game actions (tictactoe / imposter) ---
   // The client emits turnAction; turnGames validates it against the authoritative
   // room state and broadcasts the resulting turnState (per-uid redaction inside).
@@ -1068,6 +1132,8 @@ io.on("connection", (socket) => {
     if (!room || !uid || !room.members.includes(uid)) return;
     // A lobby starts through startRoomNow (which enforces the game's minimum players).
     if (room.phase === "lobby") return;
+    // Friend rooms are run by their host (restartRoom); the handshake is for random 1v1 rooms.
+    if (room.type === "friend") return;
 
     // If someone else already has a proposal open, treat this as an accept.
     if (room.proposal && room.proposal.fromUid !== uid) {
@@ -1114,14 +1180,7 @@ io.on("connection", (socket) => {
       });
       return;
     }
-    clearProposal(room);
-    room.restartedAt = Date.now();
-    room.gameId = prop.gameId;
-    room.game = prop.game;
-    room.phase = "intro";
-    room.members.forEach((u) => toUid(u, "matchRestart", { game: prop.game }));
-    dealRound(room);
-    console.log(`Room ${room.code} restart (${prop.type} -> ${prop.gameId})`);
+    restartRound(room, prop.game, prop.type);
   }
 
   socket.on("proposeAgain", ({ code } = {}) => propose("again", code));

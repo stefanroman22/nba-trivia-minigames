@@ -117,11 +117,12 @@ if (room.gameId === "imposter") return initImposter(room, helpers);
 ## Rule MP-4: Event names are camelCase; client emits are action verbs, server emits pair a success event with a feature-scoped error event
 
 Client to server: `identify` (`{ token }`; refusal is `identifyError { code, message }`), `findMatch`, `cancelFind`, `createFriendRoom`, `joinFriendRoom`,
-`changeFriendGame`, `startRoomNow`, `turnAction`, `submitScore`, `reportProgress`, `proposeAgain`,
-`proposeSwitch`, `respondProposal`, `cancelProposal`, `leaveMatch`. Server to client pairs are
+`changeFriendGame`, `startRoomNow`, `setRoomSize`, `stopMatch`, `restartRoom`, `turnAction`,
+`submitScore`, `reportProgress`, `proposeAgain`, `proposeSwitch`, `respondProposal`,
+`cancelProposal`, `leaveMatch`. Server to client pairs are
 feature-scoped, not a mechanical `<stem>Error`: `matchFound`/`matchError`, `roundData`/
 `roundDataError`, `friendRoomCreated`+`friendRoomJoined`/`friendError`+`friendJoinError`,
-`turnState`/`turnReject`; multi-step flows share a stem (`proposalPending|Received|Progress|
+`turnState`/`turnReject`; friend rooms also announce `matchStopped` and `memberLeft`; multi-step flows share a stem (`proposalPending|Received|Progress|
 Declined|Cancelled|Timeout`). Payload conventions (dominant): every room-scoped emit is
 `{ code, ... }` with `code` a **number** (client sends `codeRef.current`; server `rooms` Map is
 keyed by integer); any `Game` sent over the wire goes through `serializeGame()` in
@@ -165,6 +166,11 @@ There is no `hostUid` field on a room. `lobbySnapshot()` derives `hostUid: room.
 `room.members[0] !== uid`. `FriendPlay.tsx` compares `lobby.hostUid` to the user's public id
 (username fallback) instead of a stored flag. Room destruction on any leave means the host never
 changes mid-room.
+
+A guest leaving (or dropping past the grace) is removed by `removeMember()`; the host never
+changes. A leaving host closes the room. Friend rooms are host-driven: `startRoomNow`,
+`setRoomSize`, `changeFriendGame`, `stopMatch`, `restartRoom` all guard `room.members[0] !== uid`;
+the propose/accept handshake is 1v1-only (`propose` returns for `room.type === "friend"`).
 
 ```js
 ❌ hypothetical: a separately stored host that can drift from members[]
@@ -220,21 +226,18 @@ Object.entries(room.scores).sort((a, b) => b[1] - a[1])[0];
 .sort((a, b) => b.score - a.score || timeKey(a.uid) - timeKey(b.uid))
 ```
 
-## Rule MP-9: Friend-room capacity and min-to-start come from `turnGames.roomConfigFor(gameId)`
+## Rule MP-9: Friend-room player bounds come from `turnGames.roomConfigFor(gameId)`
 
-`DEFAULT_ROOM_CONFIG = { capacity: 2, min: 2 }`, `ROOM_CONFIGS = { imposter: { capacity: 5,
-min: 3 } }` in `turnGames.js`. `makeRoom()`, `changeFriendGame` (`Math.max(room.members.length,
-capacity)`, never shrinks below seated players) and `startRoomNow` (`min`) all call it. Matchmaking
-rooms are always capacity 2. The auto-start fires when `members.length === capacity`;
-`startRoomNow` lets the host launch earlier at `>= min`. `FRIEND_ROOM_SIZE = 2` in `index.js` is a
-leftover that is only mentioned in comments; do not read it.
+Friend-room player bounds come from `turnGames.roomConfigFor(gameId) -> { min, max }`: default
+`{2, 4}`, `tictactoe {2, 2}`, `imposter {3, 4}`, `MAX_ROOM_SIZE = 4`. The host picks `capacity`
+within them (`createFriendRoom { size }`, `setRoomSize`); `clampRoomSize(gameId, size, seated)`
+never goes below seated players. Nothing auto-starts: `startRoomNow` needs `members.length >= min`
+and everyone online. `changeFriendGame`/`restartRoom` refuse a game whose `max` is below the seated
+count.
 
 ```js
-❌ real: multiplayer_server/src/index.js, stale constant (unused; header comments still cite it)
-const FRIEND_ROOM_SIZE = 2;
-
 ✅ multiplayer_server/src/turnGames.js: add a row, let makeRoom()/changeFriendGame read it
-const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };
+const ROOM_CONFIGS = { tictactoe: { min: 2, max: 2 }, imposter: { min: 3, max: 4 } };
 ```
 
 ## Rule MP-10: Every online game id resolves through exactly one of three deal paths, and a miss throws

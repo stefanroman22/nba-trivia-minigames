@@ -33,6 +33,8 @@ test.before(async () => {
       });
       return;
     }
+    // fan-favorites answers late, so a test can act while its round is still loading.
+    if (req.url.startsWith("/trivia/fan-favorites/")) { setTimeout(() => res.end(JSON.stringify({ series: [{ q: 1 }, { q: 2 }] })), 400); return; }
     if (req.url.startsWith("/trivia/")) { res.end(JSON.stringify({ series: [{ q: 1 }, { q: 2 }] })); return; }
     const user = USERS[(req.headers.authorization || "").replace("Bearer ", "")];
     res.statusCode = user ? 200 : 401;
@@ -321,4 +323,101 @@ test("a guest who finished and then leaves keeps their points; the others are st
   assert.equal(pi.awarded, 20);
   assert.equal(pn.awarded, 12);
   ivy.emit("leaveMatch", {});
+});
+
+/** Create a `size` room, seat `guests`, start it; resolves { code } once everyone has round data. */
+async function startedRoom(host, guests, gameId = "name-logo") {
+  const snap = await createRoom(host, gameId, guests.length + 1);
+  for (const g of guests) await join(g, snap.code);
+  const rounds = [host, ...guests].map((s) => next(s, "roundData"));
+  host.emit("startRoomNow", { code: snap.code });
+  await Promise.all(rounds);
+  return { code: snap.code };
+}
+
+test("the host stops a match: everyone returns to the lobby; a guest cannot", async () => {
+  const hank = await player("Hank");
+  const ivy = await player("Ivy");
+  const { code } = await startedRoom(hank, [ivy]);
+  ivy.emit("stopMatch", { code });
+  assert.equal(await arrives(hank, "matchStopped"), false, "a guest stopped the match");
+
+  const stopped = next(ivy, "matchStopped");
+  const lobbyH = next(hank, "friendLobbyUpdate");
+  const lobbyI = next(ivy, "friendLobbyUpdate");
+  hank.emit("stopMatch", { code });
+  assert.match((await stopped).message, /host ended/);
+  assert.equal((await lobbyH).members.length, 2);
+  assert.equal((await lobbyI).code, code);
+  hank.emit("leaveMatch", {});
+});
+
+test("after a round the host restarts or changes the game at once; guests cannot; spam is throttled", async () => {
+  const jay = await player("Jay");
+  const kim = await player("Kim");
+  const { code } = await startedRoom(jay, [kim]);
+  const results = [next(jay, "matchResult"), next(kim, "matchResult")];
+  jay.emit("submitScore", { code, score: 20, elapsedMs: 5000 });
+  kim.emit("submitScore", { code, score: 10, elapsedMs: 6000 });
+  await Promise.all(results);
+
+  kim.emit("restartRoom", { code, game: { id: "guess-mvps" } });
+  assert.equal(await arrives(jay, "matchRestart"), false, "a guest restarted the room");
+  kim.emit("proposeAgain", { code });
+  assert.equal(await arrives(jay, "proposalReceived"), false, "a proposal reached a friend room");
+
+  await wait(3100); // RESTART_MIN_MS since the deal
+  const restartK = next(kim, "matchRestart");
+  const roundK = next(kim, "roundData");
+  jay.emit("restartRoom", { code, game: { id: "guess-mvps" } });
+  assert.equal((await restartK).game.id, "guess-mvps");
+  await roundK;
+
+  // Finish the restarted round at once: back in results, but inside RESTART_MIN_MS of the deal.
+  const again = [next(jay, "matchResult"), next(kim, "matchResult")];
+  jay.emit("submitScore", { code, score: 5, elapsedMs: 5000 });
+  kim.emit("submitScore", { code, score: 5, elapsedMs: 5000 });
+  await Promise.all(again);
+  const err = next(jay, "friendError");
+  jay.emit("restartRoom", { code });
+  assert.match((await err).message, /moment/);
+  jay.emit("leaveMatch", {});
+});
+
+test("a round that finishes loading after the room went back to the lobby is dropped", async () => {
+  const lee = await player("Lee");
+  const mo = await player("Mo");
+  const snap = await createRoom(lee, "fan-favorites", 2);
+  const hostSeen = next(lee, "friendLobbyUpdate"); // drain the join update so `lobby` gets the stop
+  await join(mo, snap.code);
+  await hostSeen;
+  const stopped = next(lee, "matchStopped");
+  const lobby = next(lee, "friendLobbyUpdate");
+  const late = arrives(lee, "roundData", 900);
+  lee.emit("startRoomNow", { code: snap.code });
+  await wait(50);
+  mo.emit("leaveMatch", { code: snap.code });
+  assert.match((await stopped).message, /Mo left/);
+  assert.equal((await lobby).members.length, 1);
+  assert.equal(await late, false, "a round loaded after the stop reached the lobby");
+  lee.emit("leaveMatch", {});
+});
+
+test("the host stopping during the intro drops the loading round", async () => {
+  const ned = await player("Ned");
+  const oli = await player("Oli");
+  const snap = await createRoom(ned, "fan-favorites", 2);
+  const hostSeen = next(ned, "friendLobbyUpdate"); // drain the join update so `lobby` gets the stop
+  await join(oli, snap.code);
+  await hostSeen;
+  const stopped = next(oli, "matchStopped");
+  const lobby = next(ned, "friendLobbyUpdate");
+  const late = arrives(ned, "roundData", 900);
+  ned.emit("startRoomNow", { code: snap.code });
+  await wait(50);
+  ned.emit("stopMatch", { code: snap.code });
+  assert.match((await stopped).message, /host ended/);
+  assert.equal((await lobby).members.length, 2);
+  assert.equal(await late, false, "a round loaded after the stop reached the lobby");
+  ned.emit("leaveMatch", {});
 });
