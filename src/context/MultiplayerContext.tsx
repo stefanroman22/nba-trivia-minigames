@@ -265,7 +265,7 @@ function reducer(state: MpState, a: Action): MpState {
         ...initial, phase: "lobby", code: l.code, game: l.game,
         roomType: "friend", roomSize: l.members.length,
         lobby: { code: l.code, game: l.game, capacity: l.capacity, min: l.min, max: l.max, hostUid: l.hostUid, members: l.members },
-        notice: state.notice,
+        notice: state.notice?.kind === "points" ? null : state.notice,
       };
     }
     case "FRIEND_CANCELLED":

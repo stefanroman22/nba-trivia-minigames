@@ -85,7 +85,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
     key = "login";
     body = (
       <>
-        <p className="fp-sub">Set up a private room with a share code and play against 2 friends.</p>
+        <p className="fp-sub">Set up a private room with a share code and play with up to 3 friends.</p>
         <Button variant="secondary" size="lg" onClick={() => open("login")}>
           Log in to play with friends
         </Button>

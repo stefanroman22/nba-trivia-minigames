@@ -147,7 +147,8 @@ socket.emit("proposeSwitch", { code: codeRef.current, game: serializeGame(game) 
 results | ended`) drives every screen (`MiniGame.tsx`'s `online`/`inLobby`, `OnlineMatch.tsx`'s
 stage switch, `FriendPlay.tsx`'s `inMatch`/`lobby`, `MultiplayerPanel.tsx`). It changes only in
 `reducer()`, dispatched from socket handlers and the provider's own callbacks. Components may keep
-UI-only state (`FriendPlay`'s `mode`/`picking`/`collapsed`) but no parallel "am I in a match".
+UI-only state (`FriendPlay`'s `mode`/`size`/`collapsed`; game switching is the `gamePicker` modal,
+not a `picking` state) but no parallel "am I in a match".
 
 ```tsx
 ❌ hypothetical: a component tracking its own room flag
@@ -371,9 +372,13 @@ const objective = OBJECTIVES[Math.floor(Math.random() * OBJECTIVES.length)];
 
 `src/utils/GameUtils.tsx` flags games `hidden: true` (currently heatmap, connections, nba-grid,
 bingo, pack-five, superdraft, imposter) and exports `visibleGames = games.filter((g) => !g.hidden)`.
-The friend-room "Change game" picker (`FriendPlay.tsx`), the results "Switch game" picker
-(`OnlineMatch.tsx`) and the `MiniGame.tsx` rail/strip all import `visibleGames`; pickers also
-drop `"coming-soon"` and the current game. `games` stays correct for route resolution
+Game switching goes through one picker: the `gamePicker` modal
+(`src/components/modals/GamePickerModal.tsx`), opened via
+`useModal().open("gamePicker", { currentId, seated, onPick })` by the lobby's "Change game"
+(`FriendPlay.tsx`) and the results "Change game" (`OnlineMatch.tsx`). It lists `visibleGames`
+minus `NOT_ONLINE` (`src/utils/roomSizes.ts`: `"coming-soon"`, `"who-would-win"`), and disables
+the current game and any game whose cast (`roomBounds(id).max`) is below the seated count. The
+`MiniGame.tsx` rail/strip also import `visibleGames`. `games` stays correct for route resolution
 (`MiniGame.tsx` finds the game by `urlPath` so deep links to hidden games still resolve). The relay
 does not validate game ids against visibility, so the picker is the only gate.
 
@@ -381,9 +386,9 @@ does not validate game ids against visibility, so the picker is the only gate.
 ❌ hypothetical: a new picker importing the full list
 import { games } from "../../utils/GameUtils";
 
-✅ src/components/MultiPlayer/FriendPlay.tsx
-import { visibleGames as games } from "../../utils/GameUtils";
-{games.filter((g) => g.id !== "coming-soon" && g.id !== mp.game?.id).map((g) => (
+✅ src/components/modals/GamePickerModal.tsx
+import { visibleGames } from "../../utils/GameUtils";
+const games = visibleGames.filter((g) => !NOT_ONLINE.has(g.id));
 ```
 
 ---
@@ -465,9 +470,10 @@ Observed: first no output; second `src/Game Renderers/ImposterGame.tsx` only.
 
 **10. Pickers use `visibleGames` (MP-15).**
 ```bash
-grep -n "GameUtils" src/components/MultiPlayer/FriendPlay.tsx src/components/MultiPlayer/OnlineMatch.tsx
+grep -n "GameUtils" src/components/modals/GamePickerModal.tsx src/components/MultiPlayer/*.tsx
 ```
-Observed: both lines import `{ visibleGames as games }`. Any multiplayer component importing bare
+Observed: one line, `GamePickerModal.tsx` importing `{ visibleGames }`; `FriendPlay.tsx` and
+`OnlineMatch.tsx` import no game list (they open the `gamePicker` modal). Any picker importing bare
 `games` fails.
 
 **11. No hardcoded non-localhost socket URL in source (MP-11).**

@@ -2,8 +2,8 @@
 export default function MultiplayerInfoModal({ onClose }: { onClose: () => void }) {
   const rules = [
     { n: "1", t: "Play 1v1 matches you against a random opponent, live, at the same time." },
-    { n: "2", t: "Play with a friend opens a private room instead: generate a 6 digit code, or enter one a friend sent you." },
-    { n: "3", t: "Once the room fills up, the match starts automatically for everyone in it." },
+    { n: "2", t: "Play with a friend opens a private room: pick how many players (2 to 4), generate a 6 digit code, or enter one a friend sent you." },
+    { n: "3", t: "The host starts the game once everyone is in, and can change the game, stop the match or close the room at any time." },
   ];
 
   return (
