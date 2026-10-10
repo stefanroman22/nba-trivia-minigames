@@ -249,7 +249,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
     body = (
       <>
         <div className="fp-actions fp-actions--row">
-          <Button size="sm" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game)}>
+          <Button size="sm" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game, 2)}>
             <SwapText>{creating ? "Creating…" : "Generate code"}</SwapText>
           </Button>
           <Button variant="secondary" size="sm" disabled={blocked || searching || creating} onClick={() => setMode("enter")}>
