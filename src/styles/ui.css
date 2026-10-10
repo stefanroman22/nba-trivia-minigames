@@ -188,6 +188,11 @@
    MVP sat at 82px instead of 28.6px purely because it has no logo to fill the
    space. The floor still applies to idle/loading and to fill games, which need it. */
 .stage-inner:has(.gf:not(.gf--fill)) { min-height: 0; max-height: none; }
+/* Online-match screens outside live play (searching, intro, waiting, results, ended) are
+   content-sized too: the results screen with a rematch/switch prompt is taller than the
+   viewport cap on wide layouts and spilled past the stage border. During play the game's
+   own .gf rule above decides, so fill games keep the cap. */
+.stage-inner:has(.om-stage:not(.om-stage--play)) { min-height: 0; max-height: none; }
 @media (max-width: 819px) {
   /* mobile adds the horizontal game-chip strip above the stage */
   .stage-inner { --stage-max: calc(100dvh - 216px); --stage-pad: clamp(14px, 2.6vw, 30px); }
