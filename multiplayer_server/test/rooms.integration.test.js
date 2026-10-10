@@ -179,6 +179,15 @@ test("the host resizes the room within bounds; guests cannot", async () => {
   ivy.emit("leaveMatch", {});
 });
 
+test("setRoomSize caps the size at the game's max", async () => {
+  const ann = await player("Ann");
+  const snap = await createRoom(ann, "name-logo", 2);
+  const capped = next(ann, "friendLobbyUpdate");
+  ann.emit("setRoomSize", { code: snap.code, size: 9 });
+  assert.equal((await capped).capacity, 4);
+  ann.emit("leaveMatch", {});
+});
+
 test("a game whose max is below the seated count is refused; otherwise the size is re-clamped", async () => {
   const kim = await player("Kim");
   const lee = await player("Lee");
@@ -196,4 +205,91 @@ test("a game whose max is below the seated count is refused; otherwise the size 
   ned.emit("joinFriendRoom", { code: snap.code });
   assert.match((await refused).message, /full/);
   kim.emit("leaveMatch", {});
+});
+
+test("a guest leaving the lobby frees the seat; the host leaving closes it", async () => {
+  const oli = await player("Oli");
+  const pat = await player("Pat");
+  const snap = await createRoom(oli, "name-logo", 3);
+  const hostSeen = next(oli, "friendLobbyUpdate"); // drain the join update so `freed` gets the leave
+  await join(pat, snap.code);
+  await hostSeen;
+  const freed = next(oli, "friendLobbyUpdate");
+  pat.emit("leaveMatch", { code: snap.code });
+  assert.equal((await freed).members.length, 1);
+  const again = await join(pat, snap.code);
+  assert.equal(again.members.length, 2);
+
+  const closed = next(pat, "friendRoomCancelled");
+  oli.emit("leaveMatch", { code: snap.code });
+  assert.match((await closed).message, /host closed/);
+});
+
+test("a guest leaving a 3-player match lets the other two finish; two left settles at once", async () => {
+  const ann = await player("Ann");
+  const bob = await player("Bob");
+  const cat = await player("Cat");
+  const snap = await createRoom(ann, "name-logo", 3);
+  await join(bob, snap.code);
+  await join(cat, snap.code);
+  const rounds = [next(ann, "roundData"), next(bob, "roundData"), next(cat, "roundData")];
+  ann.emit("startRoomNow", { code: snap.code });
+  await Promise.all(rounds);
+
+  ann.emit("submitScore", { code: snap.code, score: 30, elapsedMs: 9000 });
+  cat.emit("submitScore", { code: snap.code, score: 10, elapsedMs: 9500 });
+  await wait(200);
+  const left = next(ann, "memberLeft");
+  const resultA = next(ann, "matchResult");
+  const resultC = next(cat, "matchResult");
+  bob.emit("leaveMatch", { code: snap.code });
+  assert.match((await left).message, /Bob left/);
+  const [ra, rc] = await Promise.all([resultA, resultC]);
+  assert.equal(ra.standings.length, 2);
+  assert.equal(rc.outcome, "loss");
+  ann.emit("leaveMatch", {});
+});
+
+test("a guest leaving a 2-player match sends the host back to the lobby", async () => {
+  const dan = await player("Dan");
+  const eve = await player("Eve");
+  const snap = await createRoom(dan, "name-logo", 2);
+  await join(eve, snap.code);
+  const round = next(dan, "roundData");
+  dan.emit("startRoomNow", { code: snap.code });
+  await round;
+  const stopped = next(dan, "matchStopped");
+  const lobby = next(dan, "friendLobbyUpdate");
+  eve.emit("leaveMatch", { code: snap.code });
+  assert.match((await stopped).message, /Eve left/);
+  assert.equal((await lobby).members.length, 1);
+  dan.emit("leaveMatch", {});
+});
+
+test("after a guest leaves, the host can switch to a smaller-cast game and the size re-clamps", async () => {
+  const kim = await player("Kim");
+  const lee = await player("Lee");
+  const mo = await player("Mo");
+  const snap = await createRoom(kim, "name-logo", 3);
+  await join(lee, snap.code);
+  await join(mo, snap.code);
+  mo.emit("leaveMatch", { code: snap.code });
+  await wait(200);
+  const upd = next(lee, "friendLobbyUpdate");
+  kim.emit("changeFriendGame", { code: snap.code, game: { id: "tictactoe" } });
+  const u = await upd;
+  assert.equal(u.game.id, "tictactoe");
+  assert.equal(u.capacity, 2);
+  assert.equal(u.max, 2);
+  kim.emit("leaveMatch", {});
+});
+
+test("host disconnect in the lobby closes it after the grace", async () => {
+  const fay = await player("Fay");
+  const gus = await player("Gus");
+  const snap = await createRoom(fay, "name-logo", 2);
+  await join(gus, snap.code);
+  const closed = next(gus, "friendRoomCancelled", 3000);
+  fay.close();
+  assert.match((await closed).message, /host closed/);
 });

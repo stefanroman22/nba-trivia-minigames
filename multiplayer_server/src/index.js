@@ -159,7 +159,7 @@ function makeRoom(code, gameId, game, members, type = "match", size = 2) {
     phase: type === "friend" ? "lobby" : "intro", // lobby | intro | playing | waiting | results
     proposal: null,                          // { type:"again"|"switch", fromUid, gameId, game, accepted:Set, timeout }
     graceTimers: {},                         // uid -> setTimeout handle
-    lobbyTimer: null,                        // TTL handle while a friend lobby waits to fill
+    lobbyTimer: null,                        // TTL handle while a friend lobby waits for the host to start
     turn: null,                              // turnGames per-room state (turn-based games only)
     turnTimer: null,                         // turnGames per-turn/phase timeout handle
   };
@@ -396,6 +396,67 @@ function destroyRoom(room, reason) {
   });
   rooms.delete(room.code);
   console.log(`Room ${room.code} destroyed (${reason})`);
+}
+
+/** Everyone back to the lobby: the room lives on with its code and seats, the round is dropped
+ *  (scores finished so far are credited). `exceptUid` gets the snapshot but not the message. */
+function backToLobby(room, message, exceptUid = null) {
+  if (room.phase === "playing" || room.phase === "waiting") creditRoom(room);
+  if (room.turnTimer) clearTimeout(room.turnTimer);
+  room.turnTimer = null;
+  room.turn = null;
+  room.gameData = null;
+  clearProposal(room);
+  room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
+  room.times = Object.fromEntries(room.members.map((m) => [m, null]));
+  room.phase = "lobby";
+  armLobbyTimer(room);
+  const snap = lobbySnapshot(room);
+  room.members.forEach((m) => {
+    if (m !== exceptUid) toUid(m, "matchStopped", { message });
+    toUid(m, "friendLobbyUpdate", snap);
+  });
+}
+
+/** A player is gone (left, or didn't reconnect). 1v1 rooms and a leaving HOST end the room for
+ *  everyone; a guest leaving a friend room frees the seat: the lobby carries on, a round carries on
+ *  if two or more remain (and it isn't a turn game), otherwise everyone returns to the lobby. */
+function removeMember(room, uid, why) {
+  const name = nameOf(uid);
+  if (room.type !== "friend" || room.members[0] === uid) {
+    if (room.phase === "lobby") {
+      othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message: "The host closed the room." }));
+    } else {
+      const message = room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
+      othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
+    }
+    destroyRoom(room, why);
+    return;
+  }
+  if (room.graceTimers[uid]) {
+    clearTimeout(room.graceTimers[uid]);
+    delete room.graceTimers[uid];
+  }
+  room.members = room.members.filter((m) => m !== uid);
+  delete room.scores[uid];
+  delete room.times[uid];
+  const p = players.get(uid);
+  if (p && p.roomCode === room.code) p.roomCode = null;
+  const sid = socketIdOf(uid);
+  if (sid) io.sockets.sockets.get(sid)?.leave(room.code);
+  if (room.phase === "lobby") {
+    const snap = lobbySnapshot(room);
+    room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
+    return;
+  }
+  if (room.members.length < 2 || room.turn) {
+    backToLobby(room, `${name} left, so the match ended.`);
+    return;
+  }
+  clearProposal(room);
+  room.members.forEach((m) => toUid(m, "memberLeft", { id: uid, username: name, message: `${name} left the match.` }));
+  // Their missing score no longer holds up the settle.
+  if (room.phase !== "results" && room.members.every((m) => room.scores[m] != null)) settleMatch(room);
 }
 
 function clearProposal(room) {
@@ -1085,8 +1146,8 @@ io.on("connection", (socket) => {
   });
 
   // --- Explicit leave ---
-  // One player leaving (or the host cancelling) ends the room for EVERYONE:
-  // lobby members get `friendRoomCancelled`, in-match members get `opponentLeft`.
+  // A guest leaving a friend room frees their seat; a 1v1 player or the host leaving ends the
+  // room for everyone (see removeMember).
   socket.on("leaveMatch", ({ code } = {}) => {
     const uid = uidOf(socket);
     // The search-cancel path funnels through here too — kill any queue timer.
@@ -1096,15 +1157,7 @@ io.on("connection", (socket) => {
       if (uid) dropFromQueues(uid);
       return;
     }
-    const name = nameOf(uid);
-    if (room.phase === "lobby") {
-      const message = uid === room.members[0] ? "The host closed the room." : `${name} left, so the room was closed.`;
-      othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message }));
-    } else {
-      const message = room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
-      othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
-    }
-    destroyRoom(room, "a player left");
+    removeMember(room, uid, "a player left");
   });
 
   // --- Disconnect → start the grace window ---
@@ -1133,28 +1186,21 @@ io.on("connection", (socket) => {
     }
     const name = nameOf(uid);
     if (room.phase === "lobby") {
-      // Show the seat as offline, then close the room if they don't come back.
+      // Show the seat as offline; if they don't come back, treat it as leaving.
       const snap = lobbySnapshot(room);
       othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
       room.graceTimers[uid] = setTimeout(() => {
-        othersOf(room, uid).forEach((m) =>
-          toUid(m, "friendRoomCancelled", { message: `${name} disconnected, so the room was closed.` })
-        );
-        destroyRoom(room, "lobby grace timeout");
+        removeMember(room, uid, "lobby grace timeout");
         players.delete(uid);
       }, LOBBY_GRACE_MS);
       return;
     }
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: nameOf(uid), graceMs: GRACE_MS }));
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: name, graceMs: GRACE_MS }));
     // Turn games: don't stall the round waiting out the grace window — a dropped
     // player's turn auto-passes (they can still reconnect and resume mid-game).
     if (room.turn) turnGames.onDisconnect(room, uid, turnHelpers);
     room.graceTimers[uid] = setTimeout(() => {
-      const message = room.members.length > 2
-        ? `${name} didn't reconnect, so the match ended.`
-        : "Your opponent didn't reconnect in time.";
-      othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
-      destroyRoom(room, "grace timeout");
+      removeMember(room, uid, "grace timeout");
       players.delete(uid);
     }, GRACE_MS);
   });
