@@ -18,6 +18,7 @@ export default function GamePickerModal({ currentId, seated = 0, onPick, onClose
               key={g.id}
               type="button"
               className={`gp-item${current ? " is-current" : ""}`}
+              aria-current={current ? "true" : undefined}
               disabled={current || tooSmall}
               onClick={() => { onClose(); onPick(g); }}
             >

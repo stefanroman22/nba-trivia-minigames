@@ -155,6 +155,7 @@ type Action =
   | { t: "OPP_DISCONNECTED"; id?: string; username?: string }
   | { t: "OPP_RECONNECTED"; id?: string; username?: string }
   | { t: "OPP_LEFT"; message: string }
+  | { t: "ROOM_LEFT"; message: string }
   | { t: "MATCH_STOPPED"; message: string }
   | { t: "MEMBER_LEFT"; id?: string; username?: string; message: string }
   | { t: "PROPOSAL_PENDING"; ptype: "again" | "switch"; gameId?: string; gameName?: string }
@@ -265,7 +266,8 @@ function reducer(state: MpState, a: Action): MpState {
         ...initial, phase: "lobby", code: l.code, game: l.game,
         roomType: "friend", roomSize: l.members.length,
         lobby: { code: l.code, game: l.game, capacity: l.capacity, min: l.min, max: l.max, hostUid: l.hostUid, members: l.members },
-        notice: state.notice?.kind === "points" ? null : state.notice,
+        // An error (a refused start, a game too big for the room) is about the lobby as it was.
+        notice: state.notice?.kind === "points" || state.notice?.kind === "error" ? null : state.notice,
       };
     }
     case "FRIEND_CANCELLED":
@@ -279,7 +281,8 @@ function reducer(state: MpState, a: Action): MpState {
       const opponents = state.opponents.filter((o) => playerKey(o) !== key);
       const oppStatus = { ...state.oppStatus };
       if (key) delete oppStatus[key];
-      return { ...state, opponents, oppStatus, roomSize: Math.max(2, state.roomSize - 1), notice: { kind: "warn", text: a.message } };
+      const roomSize = opponents.length < state.opponents.length ? Math.max(2, state.roomSize - 1) : state.roomSize;
+      return { ...state, opponents, oppStatus, roomSize, notice: { kind: "warn", text: a.message } };
     }
     case "FRIEND_ERROR":
       return { ...state, friendPending: null, notice: { kind: "error", text: a.message } };
@@ -309,6 +312,12 @@ function reducer(state: MpState, a: Action): MpState {
     }
     case "OPP_LEFT":
       return { ...state, phase: "ended", proposal: null, ended: { reason: "left", message: a.message } };
+    case "ROOM_LEFT":
+      // The relay removed us while we were away: a lobby closes like a cancelled room, a match
+      // ends like an opponent leaving. Nothing to end when we aren't in a room.
+      if (state.phase === "idle" || state.phase === "searching") return state;
+      if (state.phase === "lobby") return { ...initial, notice: { kind: "warn", text: a.message } };
+      return { ...state, phase: "ended", proposal: null, ended: { reason: "left", message: a.message } };
     case "PROPOSAL_PENDING":
       return { ...state, proposal: { role: "mine", type: a.ptype, gameId: a.gameId, gameName: a.gameName } };
     case "PROPOSAL_RECEIVED":
@@ -325,6 +334,9 @@ function reducer(state: MpState, a: Action): MpState {
     case "PROPOSAL_TIMEOUT":
       return { ...state, proposal: null, notice: { kind: "warn", text: "No response in time." } };
     case "NOTICE":
+      // A round's points landing after the room went back to the lobby must not replace the
+      // lobby's own notice ("The host ended the match."); the points still reach the profile.
+      if (a.notice.kind === "points" && state.phase === "lobby") return state;
       return { ...state, notice: a.notice };
     case "MATCH_ERROR":
       // Refused before a room existed (not signed in, already in a match, game not available):
@@ -545,6 +557,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       opponentDisconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", id: d?.id, username: d?.username }),
       opponentReconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", id: d?.id, username: d?.username }),
       opponentLeft: (d: { message: string }) => dispatch({ t: "OPP_LEFT", message: d?.message || "Your opponent left." }),
+      roomLeft: (d: { message?: string } = {}) =>
+        dispatch({ t: "ROOM_LEFT", message: d?.message || "You were away too long and left the room." }),
       proposalPending: (d: { type: "again" | "switch"; gameId?: string; gameName?: string }) =>
         dispatch({ t: "PROPOSAL_PENDING", ptype: d.type, gameId: d.gameId, gameName: d.gameName }),
       proposalReceived: (d: { type: "again" | "switch"; gameId?: string; gameName?: string; fromName?: string }) =>

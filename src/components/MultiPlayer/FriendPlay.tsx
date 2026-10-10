@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { fadeIn } from "../../motion/variants";
 import CopyIcon from "../motion/CopyIcon";
@@ -127,9 +127,12 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
     const startReason = seated < lobby.min
       ? `Waiting for ${lobby.min - seated} more player${lobby.min - seated === 1 ? "" : "s"}`
       : offline.length ? `Waiting for ${offline[0].username} to reconnect` : "";
-    const shareHint = lobby.capacity === 2
-      ? "Send this code to your friend."
-      : `Share this code with up to ${lobby.capacity - 1} friends.`;
+    // Counts the seats still open, not the room size: a guest in a half-full room shares for the rest.
+    const shareHint = empties === 0
+      ? "The room is full."
+      : empties === 1
+        ? "Send this code to a friend."
+        : `Share this code with up to ${empties} friends.`;
     key = "lobby";
     body = (
       <>
@@ -154,7 +157,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
         </div>
         <p className="fp-sub" style={{ textAlign: "center" }}>
           {/* Reserves the hint's box, so a two-line hint doesn't collapse to one line on "Copied." */}
-          <SwapText swapKey={copied ? "copied" : "hint"} reserveWidth={["Copied.", shareHint]}>
+          <SwapText swapKey={copied ? "copied" : shareHint} reserveWidth={["Copied.", shareHint]}>
             {copied ? "Copied." : shareHint}
           </SwapText>
         </p>
@@ -305,15 +308,16 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
 
 /** "Players  − 3 +" — the room size, bounded. The number swaps (UI-21); the buttons go blocked at the bounds. */
 function SizeStepper({ value, min, max, onChange, disabled = false }: { value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
+  const labelId = useId();
   // Drawn minus/plus in the card's icon stroke rather than text glyphs, so both sit optically centred.
   return (
-    <div className="fp-size" role="group" aria-label="Players">
-      <span className="fp-size-lbl">Players</span>
-      <button type="button" className="fp-size-btn" aria-label="Fewer players" disabled={disabled || value <= min} onClick={() => onChange(value - 1)}>
+    <div className="fp-size" role="group" aria-labelledby={labelId}>
+      <span className="fp-size-lbl" id={labelId}>Players</span>
+      <button type="button" className="fp-size-btn" aria-label={`Fewer players (now ${value})`} disabled={disabled || value <= min} onClick={() => onChange(value - 1)}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
       </button>
       <span className="fp-size-num tnum" aria-live="polite"><SwapText>{String(value)}</SwapText></span>
-      <button type="button" className="fp-size-btn" aria-label="More players" disabled={disabled || value >= max} onClick={() => onChange(value + 1)}>
+      <button type="button" className="fp-size-btn" aria-label={`More players (now ${value})`} disabled={disabled || value >= max} onClick={() => onChange(value + 1)}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
       </button>
     </div>

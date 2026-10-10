@@ -25,11 +25,18 @@ export async function showErrorAlert(message: string, title: string = "Error", c
 
 /** Yes/no question in the same popup style; resolves true when confirmed. Escape/Stay = false. */
 export async function showConfirm(message: string, title: string, confirmButtonText: string, cancelButtonText = "Stay"): Promise<boolean> {
-  const Swal = await getSwal();
+  let Swal: Awaited<ReturnType<typeof getSwal>>;
+  try {
+    Swal = await getSwal();
+  } catch {
+    // The sweetalert2 chunk failed to load (offline, a stale deploy): still ask, with the browser's own dialog.
+    return window.confirm(message);
+  }
   const result = await Swal.fire({
     icon: "question",
     title,
-    html: `<p style="font-size: 0.95rem; margin-top: 0.5rem;">${message}</p>`,
+    // Plain text, never HTML: the copy may one day carry a username.
+    text: message,
     background: "#1c1c1e",
     color: "#f5f3ef",
     confirmButtonText,

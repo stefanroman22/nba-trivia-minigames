@@ -180,4 +180,4 @@
 .fp-meta { flex-wrap: wrap; row-gap: 6px; }
 .fp-meta > .fp-size { margin-left: auto; }
 .fp-start-reason { margin: -2px 0 0; text-align: center; font-size: 12px; }
-.fp .fp-actions + .btn-ghost, .fp .fp-start-reason + .btn-ghost { align-self: center; }
+.fp .fp-start-reason + .btn-ghost { align-self: center; }
