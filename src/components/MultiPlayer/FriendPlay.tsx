@@ -7,7 +7,7 @@ import { useSelector } from "react-redux";
 import copy from "copy-to-clipboard";
 import { useMultiplayer } from "../../context/MultiplayerContext";
 import { useModal } from "../../context/ModalContext";
-import { visibleGames as games } from "../../utils/GameUtils";
+import { roomBounds } from "../../utils/roomSizes";
 import { Button } from "../ui";
 import SwapText from "../motion/SwapText";
 import CodeInput from "./CodeInput";
@@ -26,12 +26,12 @@ const swap = {
 
 /**
  * "Play with a friend" card: generate a 6-digit room code or enter one, then
- * the live lobby (seats, share code, host controls). The match itself starts
- * automatically the moment the room is full and takes over the stage.
+ * the live lobby (seats, share code, host controls). The host picks the room
+ * size and starts the match from the lobby; the match then takes over the stage.
  */
 export default function FriendPlay({ game, blocked = false, onBack }: { game: Game; blocked?: boolean; onBack?: () => void }) {
   const {
-    mp, createFriendRoom, joinFriendRoom, changeFriendGame, leaveMatch, resetFriendJoinError,
+    mp, createFriendRoom, joinFriendRoom, changeFriendGame, setRoomSize, startRoom, leaveMatch, resetFriendJoinError,
   } = useMultiplayer();
   const { user, isLoggedIn } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
@@ -39,7 +39,10 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
   const [mode, setMode] = useState<"menu" | "enter">("menu");
   const [code, setCode] = useState("");
   const [copied, setCopied] = useState(false);
-  const [picking, setPicking] = useState(false);
+  // How many players the host wants, chosen before generating the code; follows the game's bounds.
+  const bounds = roomBounds(game.id);
+  const [size, setSize] = useState(bounds.min);
+  useEffect(() => { setSize((s) => Math.min(bounds.max, Math.max(bounds.min, s))); }, [bounds.min, bounds.max]);
   // Mobile: the open room can collapse to a slim overview so the game stage
   // stays in view (the toggle is hidden on desktop widths via CSS).
   const [collapsed, setCollapsed] = useState(false);
@@ -56,7 +59,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
   // Leaving the flow (room closed, match started…) resets the card's local state.
   useEffect(() => {
     if (mp.phase !== "idle") { setMode("menu"); setCode(""); }
-    if (mp.phase !== "lobby") { setPicking(false); setCopied(false); setCollapsed(false); }
+    if (mp.phase !== "lobby") { setCopied(false); setCollapsed(false); }
   }, [mp.phase]);
 
   useEffect(() => () => { if (copyTimer.current) window.clearTimeout(copyTimer.current); }, []);
@@ -118,10 +121,15 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
     );
   } else if (lobby) {
     const empties = Math.max(0, lobby.capacity - lobby.members.length);
-    const shareHint =
-      lobby.capacity === 2
-        ? "Send this code to your friend."
-        : `Share this code. The game starts when ${lobby.capacity} players are in.`;
+    const seated = lobby.members.length;
+    const offline = lobby.members.filter((m) => !m.online);
+    const canStart = seated >= lobby.min && offline.length === 0;
+    const startReason = seated < lobby.min
+      ? `Waiting for ${lobby.min - seated} more player${lobby.min - seated === 1 ? "" : "s"}`
+      : offline.length ? `Waiting for ${offline[0].username} to reconnect` : "";
+    const shareHint = lobby.capacity === 2
+      ? "Send this code to your friend."
+      : `Share this code with up to ${lobby.capacity - 1} friends.`;
     key = "lobby";
     body = (
       <>
@@ -187,41 +195,42 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
 
         <div className="fp-meta">
           <span>Playing: <strong><SwapText>{mp.game?.name}</SwapText></strong></span>
-          <span className="tnum"><SwapText>{`${lobby.members.length}/${lobby.capacity}`}</SwapText></span>
+          {isHost ? (
+            <SizeStepper value={lobby.capacity} min={Math.max(lobby.min, seated)} max={lobby.max} onChange={setRoomSize} />
+          ) : (
+            <span className="tnum">Room for <strong><SwapText>{String(lobby.capacity)}</SwapText></strong></span>
+          )}
         </div>
 
-        <AnimatePresence mode="wait">
-          {picking ? (
-            <motion.div key="picker" {...swap} className="fp-picker">
-              <div className="fp-picker-head">
-                <span>Pick a game</span>
-                <button className="fp-picker-x" onClick={() => setPicking(false)} aria-label="Close">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                </button>
-              </div>
-              <div className="fp-picker-list">
-                {/* who-would-win has no turn/score logic for rooms (both players would score 0) */}
-                {games.filter((g) => g.id !== "coming-soon" && g.id !== "who-would-win" && g.id !== mp.game?.id).map((g) => (
-                  <button key={g.id} className="fp-picker-item" onClick={() => { setPicking(false); changeFriendGame(g); }}>
-                    <span className="fp-picker-thumb" style={{ backgroundImage: g.backgroundImage }} />
-                    <span className="fp-picker-name">{g.name}</span>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div key="actions" {...swap} className="fp-actions">
-              {isHost && (
-                <Button variant="secondary" size="sm" onClick={() => setPicking(true)}>
-                  Change game
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={leaveMatch}>
-                {isHost ? "Cancel room" : "Leave room"}
+        {isHost ? (
+          <>
+            <div className="fp-actions fp-actions--row">
+              <Button size="sm" blocked={!canStart} onClick={() => { if (canStart) startRoom(); }}>
+                Start game
               </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => open("gamePicker", { currentId: mp.game?.id, seated, onPick: changeFriendGame })}
+              >
+                Change game
+              </Button>
+            </div>
+            {/* Why Start is blocked, or that it's ready. One always-filled line whose text swaps
+                (UI-21), so Close room below never jumps when Start unblocks (UI-23). */}
+            <p className="fp-sub fp-start-reason" role="status">
+              <SwapText>{canStart ? "Ready to start" : startReason}</SwapText>
+            </p>
+            <Button variant="ghost" size="sm" onClick={leaveMatch}>Close room</Button>
+          </>
+        ) : (
+          <>
+            <p className="fp-sub fp-start-reason" role="status">
+              <SwapText>{canStart ? "Waiting for the host to start" : startReason}</SwapText>
+            </p>
+            <Button variant="ghost" size="sm" onClick={leaveMatch}>Leave room</Button>
+          </>
+        )}
       </>
     );
   } else if (mode === "enter") {
@@ -248,8 +257,9 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
     key = "menu";
     body = (
       <>
+        <SizeStepper value={size} min={bounds.min} max={bounds.max} onChange={setSize} disabled={blocked || searching || creating} />
         <div className="fp-actions fp-actions--row">
-          <Button size="sm" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game, 2)}>
+          <Button size="sm" disabled={blocked || searching || creating} onClick={() => createFriendRoom(game, size)}>
             <SwapText>{creating ? "Creating…" : "Generate code"}</SwapText>
           </Button>
           <Button variant="secondary" size="sm" disabled={blocked || searching || creating} onClick={() => setMode("enter")}>
@@ -289,6 +299,23 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
           {body}
         </motion.div>
       </AnimatePresence>
+    </div>
+  );
+}
+
+/** "Players  − 3 +" — the room size, bounded. The number swaps (UI-21); the buttons go blocked at the bounds. */
+function SizeStepper({ value, min, max, onChange, disabled = false }: { value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
+  // Drawn minus/plus in the card's icon stroke rather than text glyphs, so both sit optically centred.
+  return (
+    <div className="fp-size" role="group" aria-label="Players">
+      <span className="fp-size-lbl">Players</span>
+      <button type="button" className="fp-size-btn" aria-label="Fewer players" disabled={disabled || value <= min} onClick={() => onChange(value - 1)}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
+      </button>
+      <span className="fp-size-num tnum" aria-live="polite"><SwapText>{String(value)}</SwapText></span>
+      <button type="button" className="fp-size-btn" aria-label="More players" disabled={disabled || value >= max} onClick={() => onChange(value + 1)}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+      </button>
     </div>
   );
 }

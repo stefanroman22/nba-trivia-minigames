@@ -6,7 +6,7 @@
  * Covers both flavours of online play:
  *   • random 1v1 matchmaking ("Play online")
  *   • private friend rooms — the host generates a 6-digit code, friends join
- *     with it, and the match starts the moment the room is full.
+ *     with it, and the host starts the room from its lobby.
  *
  * The reducer is a small state machine whose `phase` drives the UI:
  *   idle → searching → intro → playing → waiting → results        (matchmaking)
