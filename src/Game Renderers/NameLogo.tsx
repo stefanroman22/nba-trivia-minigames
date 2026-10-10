@@ -20,11 +20,11 @@ interface NameLogoProps {
 
 const LOGO_SIZE = "clamp(92px, 18dvh, 140px)";
 const LOGO_IMG: React.CSSProperties = { display: "block", width: "100%", height: "100%", objectFit: "contain" };
-// Reveal: the scrambled logo blurs and twists away while the real one settles into place.
-const LOGO_SHOWN = { opacity: 1, scale: 1, rotate: 0, filter: "blur(0px)" };
-const LOGO_OUT = { opacity: 0, scale: 1.15, rotate: -14, filter: "blur(10px)" };
-const LOGO_IN = { opacity: 0, scale: 0.7, rotate: 14, filter: "blur(10px)" };
-const LOGO_REVEAL = { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const };
+// Reveal: a pure cross-fade, scrambled out and real in. Opacity only: the slot and both images keep
+// their size (scrambled files are generated at their real logo's footprint), so nothing grows or shrinks.
+const LOGO_SHOWN = { opacity: 1 };
+const LOGO_HIDDEN = { opacity: 0 };
+const LOGO_REVEAL = { duration: 0.6, ease: [0.4, 0, 0.2, 1] as const };
 
 function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLogoProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -114,7 +114,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
           <GameFrame.Prompt eyebrow="GUESS THE TEAM" title="Which franchise is this?" />
 
           {/* Logo: the scrambled mark is the puzzle; on reveal the real logo cross-fades in over it */}
-          <div style={{ position: "relative", display: "flex", justifyContent: "center", minHeight: "clamp(84px, 17dvh, 140px)", alignItems: "center" }}>
+          <div style={{ position: "relative", display: "flex", justifyContent: "center", height: LOGO_SIZE, alignItems: "center" }}>
             {puzzleSrc ? (
               <>
                 <AnimatePresence>
@@ -134,9 +134,9 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={currentTeam?.full_name}
-                    initial={reduce ? false : { opacity: 0, scale: 0.8, y: 10 }}
-                    animate={{ opacity: imgLoaded ? 1 : 0, scale: 1, y: 0 }}
-                    exit={reduce ? undefined : { opacity: 0, scale: 0.85 }}
+                    initial={reduce ? false : { opacity: 0 }}
+                    animate={{ opacity: imgLoaded ? 1 : 0 }}
+                    exit={reduce ? undefined : { opacity: 0 }}
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     style={{ position: "relative", width: LOGO_SIZE, height: LOGO_SIZE, maxHeight: "20dvh" }}
                   >
@@ -147,7 +147,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                       onLoad={() => setImgLoaded(true)}
                       onError={() => (scrambledSrc ? setScrambleFailed(true) : setSrcIdx((i) => i + 1))}
                       initial={false}
-                      animate={revealed && scrambledSrc ? LOGO_OUT : LOGO_SHOWN}
+                      animate={revealed && scrambledSrc ? LOGO_HIDDEN : LOGO_SHOWN}
                       transition={LOGO_REVEAL}
                       style={LOGO_IMG}
                     />
@@ -155,7 +155,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                       <motion.div
                         aria-hidden={!revealed}
                         initial={false}
-                        animate={revealed ? LOGO_SHOWN : LOGO_IN}
+                        animate={revealed ? LOGO_SHOWN : LOGO_HIDDEN}
                         transition={LOGO_REVEAL}
                         style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
                       >
