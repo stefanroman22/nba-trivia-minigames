@@ -7,7 +7,7 @@
 // and broadcasts it after every action (frozen contract #6).
 //
 // Public surface (consumed by index.js — the only file allowed to call in):
-//   roomConfigFor(gameId)            -> { capacity, min }   (friend-room sizing)
+//   roomConfigFor(gameId)            -> { min, max }        (friend-room sizing)
 //   init(room, helpers)              -> start a turn game in a live room
 //   handleAction(room, uid, action, helpers)  -> apply a client turnAction
 //   onDisconnect(room, uid, helpers) -> a dropped player's turn auto-passes
@@ -56,11 +56,14 @@ const TTT_WIN_SCORE = 225;       // matches the game's maxPoints
 const TTT_LOSS_SCORE = 90;
 const TTT_DRAW_SCORE = 150;
 
-// Friend-room sizing per game. Everything not listed is a plain 2-player room.
-const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };
-const DEFAULT_ROOM_CONFIG = { capacity: 2, min: 2 };
+// Friend-room sizing per game: how many players a room may hold. The host picks a size within these
+// bounds (index.js createFriendRoom / setRoomSize); the default lets 2-4 friends in. Turn games have
+// fixed casts. The site mirrors this table in src/utils/roomSizes.ts for its stepper; this is the truth.
+const MAX_ROOM_SIZE = 4;
+const ROOM_CONFIGS = { tictactoe: { min: 2, max: 2 }, imposter: { min: 3, max: 4 } };
+const DEFAULT_ROOM_CONFIG = { min: 2, max: MAX_ROOM_SIZE };
 
-/** Friend-room { capacity, min } for a game id (imposter is 3-5; else 2). */
+/** Friend-room { min, max } player bounds for a game id. */
 function roomConfigFor(gameId) {
   return ROOM_CONFIGS[gameId] || DEFAULT_ROOM_CONFIG;
 }

@@ -1,9 +1,9 @@
 // multiplayer_server/src/index.js
 //
 // Realtime match server for the NBA minigames: random 1v1 matchmaking and
-// private "play with a friend" rooms (share-code lobbies for FRIEND_ROOM_SIZE
-// players). Rooms are N-player throughout — matchmaking rooms hold 2 members,
-// friend rooms hold exactly FRIEND_ROOM_SIZE.
+// private "play with a friend" rooms (share-code lobbies for 2-4 players, the host
+// picks the size). Rooms are N-player throughout — matchmaking rooms hold 2 members,
+// friend rooms hold what the host chose, within the game's bounds (turnGames.roomConfigFor).
 //
 // Design notes
 // ------------
@@ -64,16 +64,15 @@ const CORS_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:5173")
   .filter(Boolean);
 
 const MATCH_TIMEOUT_MS = 30000;    // how long to wait in the matchmaking queue
-const GRACE_MS = 30000;            // reconnect window before a dropped player forfeits
+const GRACE_MS = Number(process.env.GRACE_MS) || 30000; // reconnect window before a dropped player forfeits
 const PROPOSAL_TIMEOUT_MS = 30000; // how long a play-again / switch request stays open
 
 // Turn-based games run their own server-authoritative state machine (see
 // turnGames.js) instead of the "everyone plays a round, submit a score" flow.
 const TURN_GAMES = new Set(["tictactoe", "imposter"]);
 
-const FRIEND_ROOM_SIZE = 2;        // default friend-room size; turn games override via turnGames.roomConfigFor
 const LOBBY_TTL_MS = 15 * 60000;   // unfilled lobbies self-destruct after this long
-const LOBBY_GRACE_MS = 10000;      // reconnect window for a player who drops while in a lobby
+const LOBBY_GRACE_MS = Number(process.env.LOBBY_GRACE_MS) || 10000; // reconnect window for a player who drops while in a lobby
 const JOIN_WINDOW_MS = 10000;      // join-attempt rate limit window…
 const JOIN_MAX_TRIES = 8;          // …and how many tries a socket gets per window (anti brute-force)
 const CODE_ALLOC_TRIES = 8;        // bounded retries against the 900k active-code space
@@ -145,13 +144,13 @@ function allocateRoomCode() {
  *  tab, reconnect) no longer acts for that player: null for it and for guests. */
 const uidOf = (socket) => (socket.uid && players.get(socket.uid)?.socketId === socket.id ? socket.uid : null);
 
-function makeRoom(code, gameId, game, members, type = "match") {
+function makeRoom(code, gameId, game, members, type = "match", size = 2) {
   return {
     code,
     type,                                    // "match" (random 1v1) | "friend" (code lobby)
     gameId,
     game,                                    // full Game object (carries pointsPerCorrect, name…)
-    capacity: type === "friend" ? turnGames.roomConfigFor(gameId).capacity : 2,
+    capacity: type === "friend" ? clampRoomSize(gameId, size, members.length) : 2,
     members: [...members],                   // members[0] is the host
     scores: Object.fromEntries(members.map((m) => [m, null])), // final scores, null until submitted
     times: Object.fromEntries(members.map((m) => [m, null])),  // final elapsed ms per member, null until submitted
@@ -163,6 +162,13 @@ function makeRoom(code, gameId, game, members, type = "match") {
     turn: null,                              // turnGames per-room state (turn-based games only)
     turnTimer: null,                         // turnGames per-turn/phase timeout handle
   };
+}
+
+/** A friend room's player count within its game's bounds, never below who is already seated. */
+function clampRoomSize(gameId, size, seated) {
+  const { min, max } = turnGames.roomConfigFor(gameId);
+  const n = Number.isInteger(Number(size)) ? Number(size) : min;
+  return Math.min(max, Math.max(min, seated, n));
 }
 
 function othersOf(room, uid) {
@@ -398,10 +404,13 @@ function clearProposal(room) {
 
 /** Public view of a friend lobby, broadcast on every membership/game change. */
 function lobbySnapshot(room) {
+  const { min, max } = turnGames.roomConfigFor(room.gameId);
   return {
     code: room.code,
     game: room.game,
     capacity: room.capacity,
+    min,                                     // the game's player bounds, for the host's size stepper
+    max,
     hostUid: room.members[0],
     members: room.members.map((uid) => ({
       ...publicUser(players.get(uid)?.user),
@@ -598,7 +607,7 @@ function armLobbyTimer(room) {
   }, LOBBY_TTL_MS);
 }
 
-/** The lobby is full — flip it into a live match (same flow as matchmaking). */
+/** The host started the room — flip it into a live match (same flow as matchmaking). */
 function startFriendMatch(room) {
   if (room.lobbyTimer) {
     clearTimeout(room.lobbyTimer);
@@ -796,8 +805,8 @@ io.on("connection", (socket) => {
     if (socket._findTimeout) clearTimeout(socket._findTimeout);
   });
 
-  // --- Friend rooms (private share-code lobbies for FRIEND_ROOM_SIZE players) ---
-  socket.on("createFriendRoom", async ({ game: sent } = {}) => {
+  // --- Friend rooms (private share-code lobbies for 2-4 players; the host starts the game) ---
+  socket.on("createFriendRoom", async ({ game: sent, size } = {}) => {
     const uid = await verifiedUid();
     if (!uid) {
       socket.emit("friendError", { message: "You need to be signed in to create a room." });
@@ -819,7 +828,7 @@ io.on("connection", (socket) => {
       socket.emit("friendError", { message: "Servers are busy. Please try again in a moment." });
       return;
     }
-    const room = makeRoom(code, game.id, game, [uid], "friend");
+    const room = makeRoom(code, game.id, game, [uid], "friend", size);
     rooms.set(code, room);
     const p = players.get(uid);
     if (p) p.roomCode = code;
@@ -869,13 +878,10 @@ io.on("connection", (socket) => {
     socket.join(room.code);
     armLobbyTimer(room); // joining is activity — give the lobby a fresh TTL
     console.log(`Friend room ${room.code}: ${room.members.length}/${room.capacity} joined`);
-    if (room.members.length === room.capacity) {
-      startFriendMatch(room);
-    } else {
-      const snap = lobbySnapshot(room);
-      socket.emit("friendRoomJoined", snap);
-      othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
-    }
+    // A full room waits for the host to start it (startRoomNow); nothing starts by itself.
+    const snap = lobbySnapshot(room);
+    socket.emit("friendRoomJoined", snap);
+    othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
   });
 
   // Host-only: swap which game the room will play (lobby phase only).
@@ -889,14 +895,13 @@ io.on("connection", (socket) => {
     room.game = game;
     // Capacity follows the game (imposter seats 5, everything else 2). Never
     // shrink below who's already seated.
-    room.capacity = Math.max(room.members.length, turnGames.roomConfigFor(game.id).capacity);
+    room.capacity = clampRoomSize(game.id, room.capacity, room.members.length);
     const snap = lobbySnapshot(room);
     room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
     console.log(`Friend room ${room.code} game -> ${game.id}`);
   });
 
-  // Host-only: launch a friend room early once at least `min` players are in
-  // (e.g. start Imposter with 3 of a possible 5 rather than waiting to fill).
+  // Host-only: start the room once at least `min` players are seated and everyone is online.
   socket.on("startRoomNow", ({ code } = {}) => {
     const room = rooms.get(Number(code));
     const uid = uidOf(socket);
@@ -905,6 +910,10 @@ io.on("connection", (socket) => {
     const { min } = turnGames.roomConfigFor(room.gameId);
     if (room.members.length < min) {
       socket.emit("friendError", { message: `Need at least ${min} players to start.` });
+      return;
+    }
+    if (!room.members.every((m) => socketIdOf(m))) {
+      socket.emit("friendError", { message: "Wait for everyone to reconnect before starting." });
       return;
     }
     startFriendMatch(room);
@@ -1090,6 +1099,9 @@ io.on("connection", (socket) => {
     dropFromQueues(uid);
 
     const p = players.get(uid);
+    // The socket is gone: until a new one identifies as this uid, the player is offline
+    // (socketIdOf -> null: toUid no-ops, snapshots show "Reconnecting", startRoomNow refuses).
+    p.socketId = null;
 
     const room = p.roomCode ? rooms.get(p.roomCode) : null;
     if (!room) {

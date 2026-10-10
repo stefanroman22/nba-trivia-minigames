@@ -202,8 +202,11 @@ test("teens show as Player to strangers in random matches, by name in friend roo
   const created = next(tina, "friendRoomCreated");
   tina.emit("createFriendRoom", { game: { id: "name-logo" } });
   const lobby = await created;
-  const found = next(ivy, "matchFound");
+  const joined = next(ivy, "friendRoomJoined");
   ivy.emit("joinFriendRoom", { code: lobby.code });
+  await joined;
+  const found = next(ivy, "matchFound");
+  tina.emit("startRoomNow", { code: lobby.code });
   assert.equal((await found).opponent.username, "Tina");
 });
 
