@@ -33,7 +33,7 @@ Everything below is measured from the working tree. Where the code is inconsiste
 pattern is documented and the exception is called out. Known doc drift: `docs/ARCHITECTURE.md`
 section 3 still says the relay fetches every round from Django, that friend rooms hold "exactly 2
 players", and that production is `nba-multiplayer-production.up.railway.app`. The code says: four
-round games plus both turn games are dealt from the questions store (MP-10), Imposter seats 3-5
+round games plus both turn games are dealt from the questions store (MP-10), Imposter seats 3-4
 (MP-9), and nothing is deployed.
 
 Each rule's ❌ is labelled **real** (exists in the repo today, cited) or **hypothetical**.
@@ -164,8 +164,8 @@ const online = mp.phase !== "idle" && !inLobby;
 There is no `hostUid` field on a room. `lobbySnapshot()` derives `hostUid: room.members[0]`,
 `snapshotFor()` derives `role`, and `changeFriendGame`/`startRoomNow` guard inline with
 `room.members[0] !== uid`. `FriendPlay.tsx` compares `lobby.hostUid` to the user's public id
-(username fallback) instead of a stored flag. Room destruction on any leave means the host never
-changes mid-room.
+(username fallback) instead of a stored flag. A leaving guest is removed; a leaving host closes
+the room; either way the host never changes mid-room.
 
 A guest leaving (or dropping past the grace) is removed by `removeMember()`; the host never
 changes. A leaving host closes the room. Friend rooms are host-driven: `startRoomNow`,
@@ -436,7 +436,7 @@ grep -n "ROOM_CONFIGS = " multiplayer_server/src/turnGames.js
 ```
 Observed: `63:const TURN_GAMES = new Set(["tictactoe", "imposter"]);`,
 `164:const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"]);`,
-`46:const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };`. No id may be in both
+`63:const ROOM_CONFIGS = { tictactoe: { min: 2, max: 2 }, imposter: { min: 3, max: 4 } };`. No id may be in both
 `QUESTION_GAMES` and `gameEndpoints.js`:
 ```bash
 node -e 'const g=Object.keys(require("./multiplayer_server/src/gameEndpoints"));for(const q of ["career-path","who-are-ya","contexto","superdraft","tictactoe","imposter"])if(g.includes(q))console.log("DUP",q)'

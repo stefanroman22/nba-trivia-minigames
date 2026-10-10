@@ -291,6 +291,7 @@ async function dealRound(room) {
         return;
       }
     } catch (err) {
+      if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
       console.error(`Turn game init failed for room ${room.code}:`, err.message);
       room.members.forEach((uid) =>
         toUid(uid, "roundDataError", { message: "Couldn't start the game. Please try again." })
@@ -308,6 +309,7 @@ async function dealRound(room) {
     room.phase = "playing";
     room.members.forEach((uid) => toUid(uid, "roundData", { gameData, game: room.game }));
   } catch (err) {
+    if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
     console.error(`Round load failed for room ${room.code}:`, err.message);
     room.members.forEach((uid) =>
       toUid(uid, "roundDataError", { message: "Couldn't load the game. Please try again." })
@@ -1063,7 +1065,11 @@ io.on("connection", (socket) => {
       socket.emit("friendError", { message: "That game can't be played online." });
       return;
     }
-    const { max } = turnGames.roomConfigFor(gameObj.id);
+    const { min, max } = turnGames.roomConfigFor(gameObj.id);
+    if (room.members.length < min) {
+      socket.emit("friendError", { message: `${gameObj.name} needs at least ${min} players; ${room.members.length} are seated.` });
+      return;
+    }
     if (room.members.length > max) {
       socket.emit("friendError", { message: `${gameObj.name} is for ${max} players; ${room.members.length} are seated.` });
       return;

@@ -413,11 +413,31 @@ test("the host stopping during the intro drops the loading round", async () => {
   const stopped = next(oli, "matchStopped");
   const lobby = next(ned, "friendLobbyUpdate");
   const late = arrives(ned, "roundData", 900);
+  const lateGuest = arrives(oli, "roundData", 900);
   ned.emit("startRoomNow", { code: snap.code });
   await wait(50);
   ned.emit("stopMatch", { code: snap.code });
   assert.match((await stopped).message, /host ended/);
   assert.equal((await lobby).members.length, 2);
   assert.equal(await late, false, "a round loaded after the stop reached the lobby");
+  assert.equal(await lateGuest, false, "a round loaded after the stop reached a guest");
   ned.emit("leaveMatch", {});
+});
+
+test("the host cannot restart into a game that needs more players than are seated", async () => {
+  const gus = await player("Gus");
+  const pat = await player("Pat");
+  const { code } = await startedRoom(gus, [pat]);
+  const results = [next(gus, "matchResult"), next(pat, "matchResult")];
+  gus.emit("submitScore", { code, score: 20, elapsedMs: 5000 });
+  pat.emit("submitScore", { code, score: 10, elapsedMs: 6000 });
+  await Promise.all(results);
+
+  await wait(3100); // past RESTART_MIN_MS, so the cast is what refuses it
+  const err = next(gus, "friendError");
+  const restarted = arrives(pat, "matchRestart");
+  gus.emit("restartRoom", { code, game: { id: "imposter" } });
+  assert.match((await err).message, /at least 3/);
+  assert.equal(await restarted, false, "the room restarted into a game it can't seat");
+  gus.emit("leaveMatch", {});
 });
