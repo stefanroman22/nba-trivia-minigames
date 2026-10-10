@@ -19,6 +19,8 @@ interface PlayerCardProps {
   state?: CardState;
   /** Highlight ring on the results screen. */
   result?: "win" | "tie" | null;
+  /** Play time (m:ss) shown under the card on the results screen. */
+  time?: string | null;
   delay?: number;
 }
 
@@ -28,9 +30,9 @@ const STATUS_LABEL: Record<CardState, string> = {
 
 /** Compact player tile used in the VS intro and the results matchup. */
 export default function PlayerCard({
-  name, photo, side, tag = null, sub = null, score = null, state, result = null, delay = 0,
+  name, photo, side, tag = null, sub = null, score = null, state, result = null, time = null, delay = 0,
 }: PlayerCardProps) {
-  return (
+  const card = (
     <motion.div
       className={`om-pc${result ? ` is-${result}` : ""}`}
       initial={{ opacity: 0, y: 16, scale: 0.95 }}
@@ -66,5 +68,12 @@ export default function PlayerCard({
         <span className="om-pc-score tnum"><AnimatedNumber value={Number(score)} /></span>
       )}
     </motion.div>
+  );
+  if (time == null) return card;
+  return (
+    <div className="om-pc-col">
+      {card}
+      <span className="om-pc-time tnum">{time}</span>
+    </div>
   );
 }

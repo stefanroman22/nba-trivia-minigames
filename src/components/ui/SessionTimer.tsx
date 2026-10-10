@@ -45,7 +45,8 @@ export default function SessionTimer({ startedAt }: SessionTimerProps) {
         <circle cx="12" cy="12" r="9" />
         <path d="M12 7v5l3 2" />
       </svg>
-      <span className="tnum">{minutes}:{seconds}</span>
+      {/* Fixed width + tabular figures: the pill never resizes as the clock ticks (0:09 -> 10:00). */}
+      <span className="tnum" style={{ display: "inline-block", minWidth: "4.6ch", textAlign: "center", fontVariantNumeric: "tabular-nums" }}>{minutes}:{seconds}</span>
     </span>
   );
 }

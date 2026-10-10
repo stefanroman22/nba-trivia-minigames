@@ -33,7 +33,7 @@ import { games } from "../utils/GameUtils";
 
 type Phase = "idle" | "searching" | "lobby" | "intro" | "playing" | "waiting" | "results" | "ended";
 type Outcome = "win" | "loss" | "tie";
-type NoticeKind = "info" | "warn" | "error";
+type NoticeKind = "info" | "warn" | "error" | "points";
 type RoomType = "match" | "friend";
 
 export interface Notice { kind: NoticeKind; text: string }
@@ -156,6 +156,7 @@ type Action =
   | { t: "PROPOSAL_PROGRESS"; username?: string }
   | { t: "PROPOSAL_DECLINED"; username?: string }
   | { t: "PROPOSAL_CANCELLED" }
+  | { t: "PROPOSAL_WITHDRAWN" }
   | { t: "PROPOSAL_TIMEOUT" }
   | { t: "RESUME"; snapshot: ResumeSnapshot }
   | { t: "NOTICE"; notice: Notice }
@@ -243,7 +244,7 @@ function reducer(state: MpState, a: Action): MpState {
       return {
         ...state, phase: "intro", introElapsed: false, gameData: null, turnState: null,
         game: a.game ?? state.game,
-        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null,
+        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null, notice: state.notice?.kind === "points" ? null : state.notice,
         ended: null, oppStatus: freshStatus(state.opponents), error: null,
       };
     case "FRIEND_CREATE":
@@ -301,6 +302,9 @@ function reducer(state: MpState, a: Action): MpState {
       return { ...state, proposal: null, notice: { kind: "warn", text: `${a.username || firstOppName(state)} declined.` } };
     case "PROPOSAL_CANCELLED":
       return { ...state, proposal: null, notice: { kind: "info", text: "The request was withdrawn." } };
+    case "PROPOSAL_WITHDRAWN":
+      // We cancelled our own request: the relay only tells the others, so clear it here.
+      return { ...state, proposal: null };
     case "PROPOSAL_TIMEOUT":
       return { ...state, proposal: null, notice: { kind: "warn", text: "No response in time." } };
     case "NOTICE":
@@ -529,7 +533,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       pointsAwarded: (d: { awarded?: number } = {}) => {
         if (!d?.awarded || d.awarded <= 0) return;
         reduxDispatch(updatePoints(d.awarded));
-        dispatch({ t: "NOTICE", notice: { kind: "info", text: `+${d.awarded} pts added to your profile` } });
+        dispatch({ t: "NOTICE", notice: { kind: "points", text: `+${d.awarded} pts added to your profile` } });
       },
       // The relay refused our token. A ban ends the session app-wide (BanNotice); the relay
       // has already dropped the socket. Anything else is a transient notice.
@@ -565,7 +569,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   // ---- Auto-clear transient info/warn notices. ----
   useEffect(() => {
-    if (!mp.notice || mp.notice.kind === "error") return;
+    // Errors wait for a dismiss; the points badge stays for the whole results screen.
+    if (!mp.notice || mp.notice.kind === "error" || mp.notice.kind === "points") return;
     const id = setTimeout(() => dispatch({ t: "CLEAR_NOTICE" }), 3200);
     return () => clearTimeout(id);
   }, [mp.notice]);
@@ -646,7 +651,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const proposeAgain = useCallback(() => socket.emit("proposeAgain", { code: codeRef.current }), []);
   const proposeSwitch = useCallback((game: Game) => socket.emit("proposeSwitch", { code: codeRef.current, game: serializeGame(game) }), []);
   const respondProposal = useCallback((accept: boolean) => socket.emit("respondProposal", { code: codeRef.current, accept }), []);
-  const cancelProposal = useCallback(() => socket.emit("cancelProposal", { code: codeRef.current }), []);
+  const cancelProposal = useCallback(() => {
+    socket.emit("cancelProposal", { code: codeRef.current });
+    dispatch({ t: "PROPOSAL_WITHDRAWN" });
+  }, []);
   const reportProgress = useCallback((round: number, total: number) => socket.emit("reportProgress", { code: codeRef.current, round, total }), []);
   const leaveMatch = useCallback(() => {
     actionSeq.current++;

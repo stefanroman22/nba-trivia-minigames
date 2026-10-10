@@ -15,7 +15,7 @@ import { renderGame } from '../../Game Renderers/RenderGame';
 import type { AppDispatch } from '../../store';
 import { updatePoints } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
-import type { GameData } from '../../types/types';
+import type { Game, GameData } from '../../types/types';
 import { apiFetch, getAccessToken } from '../../utils/Api';
 import { addGuestPoints } from '../../utils/guestPoints';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
@@ -45,7 +45,7 @@ function MiniGame() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { open } = useModal();
-  const { mp } = useMultiplayer();
+  const { mp, proposeAgain, proposeSwitch } = useMultiplayer();
   const pathname = usePathname();
   // Every game is routed at its urlPath, so the URL alone resolves the game —
   // deep-links and reloads included.
@@ -232,6 +232,21 @@ function MiniGame() {
   // rail until they finish/exit (in a lobby, the HOST changes the game from
   // the room card instead).
   const inProgress = (gameStarted && !showResult) || online || inLobby;
+  // After an online round the game list IS the "switch game" control (desktop rail and the phone
+  // strip): picking a game proposes it to the room instead of navigating away.
+  const inResults = online && mp.phase === "results";
+  const switchInRoom = (g: Game) => {
+    if (mp.proposal) {
+      showErrorAlert("Answer or cancel the current request first.", "Request pending", "OK");
+      return;
+    }
+    if (g.id === "who-would-win") {
+      showErrorAlert("This game can't be played in a match yet.", "Not available online", "OK");
+      return;
+    }
+    if (g.id === game?.id) proposeAgain();
+    else proposeSwitch(g);
+  };
 
   // ---- Derive the single-player stage phase ----
   let stage: "idle" | "loading" | "playing" | "result";
@@ -360,8 +375,8 @@ function MiniGame() {
                 key={g.id}
                 aria-current={g.id === game?.id ? "true" : undefined}
                 className={`rail-chip${g.id === game?.id ? " is-active" : ""}`}
-                disabled={inProgress || g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
-                onClick={() => navigate(g.urlPath, { state: { id: g.id } })}
+                disabled={(inProgress && !inResults) || g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked && !inResults)}
+                onClick={() => (inResults ? switchInRoom(g) : navigate(g.urlPath, { state: { id: g.id } }))}
               >
                 {g.name}
               </button>
@@ -375,8 +390,9 @@ function MiniGame() {
               {visibleGames.map((g) => (
                 <button
                   key={g.id}
-                  disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
+                  disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked && !inResults)}
                   onClick={() => {
+                    if (inResults) { switchInRoom(g); return; }
                     if (inProgress) { showErrorAlert(GAME_IN_PROGRESS, "Game in progress", "Continue playing"); return; }
                     navigate(g.urlPath, { state: { id: g.id } });
                   }}

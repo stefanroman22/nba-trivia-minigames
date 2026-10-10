@@ -4,7 +4,7 @@ import { useSelector } from "react-redux";
 import "../../styles/Multiplayer.css";
 import { playerKey, useMultiplayer } from "../../context/MultiplayerContext";
 import { renderGame } from "../../Game Renderers/RenderGame";
-import { visibleGames as games } from "../../utils/GameUtils";
+import { popIn } from "../../motion/variants";
 import { CourtLoader } from "../ui";
 import SessionTimer from "../ui/SessionTimer";
 import SwapText from "../motion/SwapText";
@@ -51,8 +51,7 @@ function fmtElapsed(ms: number): string {
 
 /** The full online-match experience, driven entirely by the multiplayer store. */
 export default function OnlineMatch() {
-  const { mp, submitScore, sendTurnAction, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice } = useMultiplayer();
-  const [switching, setSwitching] = useState(false);
+  const { mp, submitScore, sendTurnAction, proposeAgain, respondProposal, cancelProposal, leaveMatch, findMatch, clearNotice } = useMultiplayer();
 
   // Wall-clock start of the current round, re-armed on every transition INTO
   // "playing" (a matchRestart re-enters playing, so rematches re-arm too).
@@ -120,7 +119,7 @@ export default function OnlineMatch() {
         <div className="om-playbar">
           <SessionTimer startedAt={playStartedAt} />
           {mp.opponents.map((o, i) => (
-            <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} tag={o.id} photo={o.profile_photo} state={chipStateOf(mp, o)} />
+            <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} photo={o.profile_photo} state={chipStateOf(mp, o)} />
           ))}
         </div>
         {ExitLink}
@@ -131,14 +130,14 @@ export default function OnlineMatch() {
       <motion.div key="waiting" {...swap} className="om-stage">
         <div className="om-playbar">
           {mp.opponents.map((o, i) => (
-            <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} tag={o.id} photo={o.profile_photo} state={chipStateOf(mp, o)} />
+            <OpponentChip key={playerKey(o) || i} name={o.username || "Player"} photo={o.profile_photo} state={chipStateOf(mp, o)} />
           ))}
         </div>
         <div className="om-yourscore">
           <span className="om-yourscore-lbl">Your score</span>
           <span className="om-yourscore-num tnum font-display">{mp.yourScore ?? 0}</span>
         </div>
-        <CourtLoader label={waitingLabel} scale={0.7} />
+        <CourtLoader label={waitingLabel} scale={0.7} gap={2} />
         {ExitLink}
       </motion.div>
     );
@@ -149,23 +148,28 @@ export default function OnlineMatch() {
       mp.standings[0].score === mp.standings[1].score && mp.standings[0].outcome === "win"
     );
     body = (
-      <motion.div key="results" {...swap} className="om-stage">
+      <motion.div key="results" {...swap} className="om-stage om-stage--results">
+        {/* Reserved row: the "+N pts" badge sits top-right in its own space, so it never covers
+            the headline (phones included) and its arrival doesn't shift the layout. */}
+        <div className="om-result-top">
+          <AnimatePresence>
+            {mp.notice?.kind === "points" && (
+              <motion.span key="pts" className="om-points" variants={popIn} initial="hidden" animate="visible" exit="exit">
+                {mp.notice.text}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </div>
         <ResultHeadline outcome={mp.outcome} />
         {timeBrokeTie && <p className="om-time-note">Same score, faster time wins</p>}
         {mp.roomSize > 2 && mp.standings ? (
           <Standings mp={mp} />
         ) : (
-          <>
-            <Matchup mp={mp} showScores />
-            <MatchupTimes mp={mp} />
-          </>
+          <Matchup mp={mp} showScores />
         )}
         <ResultActions
           mp={mp}
-          switching={switching}
-          setSwitching={setSwitching}
           onAgain={proposeAgain}
-          onSwitch={(g) => { setSwitching(false); proposeSwitch(g); }}
           onRespond={respondProposal}
           onCancel={cancelProposal}
         />
@@ -192,7 +196,7 @@ export default function OnlineMatch() {
 
   return (
     <div className="om">
-      <NoticeBar notice={mp.notice} onClose={clearNotice} />
+      <NoticeBar notice={mp.notice?.kind === "points" ? null : mp.notice} onClose={clearNotice} />
       <AnimatePresence mode="wait">{body}</AnimatePresence>
     </div>
   );
@@ -206,6 +210,13 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
   const oppWin = mp.outcome === "loss";
   const tie = mp.outcome === "tie";
   const opp0 = mp.opponents[0];
+  // Results: each player's play time under their own card (bold, no "You · name" line).
+  const rowOf = (p?: { id?: string | null; username?: string } | null) =>
+    mp.standings?.find((r) => (p?.id ? r.id === p.id : p?.username != null && r.username === p.username));
+  const timeOf = (p?: { id?: string | null; username?: string } | null) => {
+    const ms = showScores ? rowOf(p)?.elapsedMs : null;
+    return ms != null ? fmtElapsed(ms) : null;
+  };
 
   // Rooms of 3+ (not used by the 2-player friend rooms, kept for flexibility):
   // a row of everyone in the room (scores come via Standings).
@@ -238,6 +249,7 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
         photo={user?.profile_photo}
         score={showScores ? mp.yourScore : null}
         result={showScores ? (youWin ? "win" : tie ? "tie" : null) : null}
+        time={timeOf(user)}
         delay={0}
       />
       <span className="om-vs font-display">VS</span>
@@ -250,25 +262,10 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
         score={showScores ? mp.opponentScore : null}
         state={!showScores && chipStateOf(mp, opp0) === "offline" ? "offline" : undefined}
         result={showScores ? (oppWin ? "win" : tie ? "tie" : null) : null}
+        time={timeOf(opp0)}
         delay={0.1}
       />
     </div>
-  );
-}
-
-/** 1v1 results: "You 1:23 · Opp 1:45" play-time line (only when both times exist). */
-function MatchupTimes({ mp }: { mp: Mp }) {
-  const { user } = useSelector((state: RootState) => state.user);
-  const opp0 = mp.opponents[0];
-  const rowOf = (p?: { id?: string | null; username?: string } | null) =>
-    mp.standings?.find((r) => (p?.id ? r.id === p.id : p?.username != null && r.username === p.username));
-  const yours = rowOf(user);
-  const theirs = rowOf(opp0);
-  if (yours?.elapsedMs == null || theirs?.elapsedMs == null) return null;
-  return (
-    <p className="om-time-note tnum">
-      You {fmtElapsed(yours.elapsedMs)} · {opp0?.username || "Opponent"} {fmtElapsed(theirs.elapsedMs)}
-    </p>
   );
 }
 
@@ -337,19 +334,13 @@ function ResultHeadline({ outcome }: { outcome: "win" | "loss" | "tie" | null })
 }
 
 function ResultActions({
-  mp, switching, setSwitching, onAgain, onSwitch, onRespond, onCancel,
+  mp, onAgain, onRespond, onCancel,
 }: {
   mp: ReturnType<typeof useMultiplayer>["mp"];
-  switching: boolean;
-  setSwitching: (v: boolean) => void;
   onAgain: () => void;
-  onSwitch: (g: Game) => void;
   onRespond: (accept: boolean) => void;
   onCancel: () => void;
 }) {
-  const [query, setQuery] = useState("");
-  const closeSwitch = () => { setQuery(""); setSwitching(false); };
-
   let key: string;
   let content: React.ReactNode;
 
@@ -380,60 +371,23 @@ function ResultActions({
         <button className="om-btn om-btn--ghost" onClick={onCancel}>Cancel request</button>
       </div>
     );
-  } else if (switching) {
-    // Switch-game picker with a name/keyword search.
-    const q = query.trim().toLowerCase();
-    const others = games
-      // who-would-win has no turn/score logic for rooms (both players would score 0)
-      .filter((g) => g.id !== "coming-soon" && g.id !== "who-would-win" && g.id !== mp.game?.id)
-      .filter((g) => !q || `${g.name} ${g.description} ${g.tag}`.toLowerCase().includes(q));
-    key = "switch";
-    content = (
-      <div className="om-switch">
-        <div className="om-switch-head">
-          <span>Pick a game</span>
-          <button className="om-switch-x" onClick={closeSwitch} aria-label="Close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
-          </button>
-        </div>
-        <div className="om-switch-search">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4.3-4.3" /></svg>
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search games…"
-            aria-label="Search games"
-            autoFocus
-          />
-        </div>
-        <div className="om-switch-list">
-          {others.length === 0 ? (
-            <p className="om-switch-empty">No games match “{query.trim()}”.</p>
-          ) : (
-            others.map((g) => (
-              <button key={g.id} className="om-switch-item" onClick={() => { closeSwitch(); onSwitch(g); }}>
-                <span className="om-switch-thumb" style={{ backgroundImage: g.backgroundImage }} />
-                <span className="om-switch-name">{g.name}</span>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-    );
   } else {
-    // Default result actions.
+    // Default: rematch, and the game list (left on desktop, the strip above on phones) switches games.
     key = "default";
     content = (
-      <div className="om-actions">
-        <button className="om-btn om-btn--primary" onClick={onAgain}>Play again</button>
-        <button className="om-btn om-btn--secondary" onClick={() => setSwitching(true)}>Switch game</button>
+      <div className="om-result-actions">
+        <div className="om-actions">
+          <button className="om-btn om-btn--primary" onClick={onAgain}>Play again</button>
+        </div>
+        <p className="om-switch-hint">
+          <span className="om-hint-wide">To switch game, pick one from the list on the left.</span>
+          <span className="om-hint-narrow">To switch game, pick one from the games above.</span>
+        </p>
       </div>
     );
   }
 
-  // Crossfade between actions / prompts / picker so rematch + switch + cancel
+  // Crossfade between actions / prompts so rematch + switch + cancel
   // notifications fade in and out smoothly.
   return (
     <AnimatePresence mode="wait">
@@ -451,14 +405,13 @@ function ResultActions({
   );
 }
 
-function OpponentChip({ name, tag, photo, state }: { name: string; tag?: string | null; photo?: string | null; state: "playing" | "finished" | "offline" }) {
+function OpponentChip({ name, photo, state }: { name: string; photo?: string | null; state: "playing" | "finished" | "offline" }) {
   const label = state === "offline" ? "Reconnecting" : state === "finished" ? "Finished" : "Playing";
   return (
     <div className={`om-chip is-${state}`}>
       <img className="om-chip-av" src={photo || defaultAvatar.src} alt="" onError={(e) => { (e.currentTarget as HTMLImageElement).src = defaultAvatar.src; }} />
       <span className="om-chip-meta">
-        <span className="om-chip-name" title={tag ? `${name} #${tag}` : name}>{name}</span>
-        {tag && <span className="om-chip-id tnum">#{tag}</span>}
+        <span className="om-chip-name" title={name}>{name}</span>
         <span className="om-chip-state">
           {state === "playing" && <span className="om-dots"><i /><i /><i /></span>}
           <SwapText>{label}</SwapText>

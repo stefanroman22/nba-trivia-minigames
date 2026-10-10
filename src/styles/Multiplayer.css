@@ -256,66 +256,8 @@
 .om-prompt-text strong { color: var(--brand); }
 
 /* ---- Switch-game picker ---- */
-.om-switch {
-  width: 100%;
-  max-width: 380px;
-  border: 1px solid var(--line2);
-  border-radius: 14px;
-  background: var(--surface2);
-  overflow: hidden;
-}
-.om-switch-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted);
-  border-bottom: 1px solid var(--line);
-}
-.om-switch-x { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
-.om-switch-x:hover { color: var(--brand); }
 /* Search filter */
-.om-switch-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 10px 4px;
-  padding: 0 10px;
-  height: 38px;
-  border: 1px solid var(--line2);
-  border-radius: 10px;
-  background: var(--surface3);
-  color: var(--muted);
-}
-.om-switch-search:focus-within { border-color: var(--brand); }
-.om-switch-search svg { flex: none; }
-.om-switch-search input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  outline: none;
-  color: var(--text);
-  font-family: inherit;
-  font-size: 13px;
-}
-.om-switch-search input::placeholder { color: var(--muted); }
 /* Caps the visible list to ~4 rows; anything more scrolls. */
-.om-switch-list { display: flex; flex-direction: column; padding: 6px; gap: 4px; max-height: 216px; overflow-y: auto; overscroll-behavior: contain; }
-.om-switch-empty { padding: 18px 12px; text-align: center; font-size: 12.5px; color: var(--muted); }
-.om-switch-item {
-  display: flex; align-items: center; gap: 11px;
-  padding: 8px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  color: var(--text);
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-.om-switch-item:hover { background: var(--surface3); border-color: var(--line2); }
-.om-switch-thumb { width: 34px; height: 34px; border-radius: 8px; background-size: cover; background-position: center; flex: none; }
-.om-switch-name { flex: 1; font-size: 13.5px; font-weight: 600; }
-.om-switch-item svg { color: var(--muted); }
 
 /* ---- Opponent presence chip (in-match) ----
    Sits in normal flow (centered, below the game's progress line) so it never
@@ -342,7 +284,6 @@
 .om-chip-av { width: 26px; height: 26px; border-radius: 50%; object-fit: cover; flex: none; border: 1px solid var(--line2); }
 .om-chip-meta { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
 .om-chip-name { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.om-chip-id { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.4px; }
 .om-chip-state { display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 600; color: var(--muted); }
 .om-chip.is-finished .om-chip-state { color: var(--good); }
 .om-chip.is-offline .om-chip-state { color: var(--bad); }
@@ -408,3 +349,26 @@
 @media (prefers-reduced-motion: reduce) {
   .om-dots i { animation: none; opacity: 0.7; }
 }
+
+/* ---- Results: "+N pts" badge in a reserved top-right row; times under the cards; switch hint ---- */
+.om-stage--results { gap: 12px; }
+.om-result-top { width: 100%; min-height: 30px; display: flex; justify-content: flex-end; align-items: center; }
+.om-points {
+  padding: 6px 12px;
+  border: 1px solid var(--brand);
+  border-radius: 999px;
+  background: var(--brand-soft);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.om-pc-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.om-pc-time { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: 0.3px; }
+.om-switch-hint { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+.om-hint-narrow { display: none; }
+@media (max-width: 819px) {
+  .om-hint-wide { display: none; }
+  .om-hint-narrow { display: inline; }
+}
+.om-result-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
