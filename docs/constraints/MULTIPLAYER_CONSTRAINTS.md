@@ -416,10 +416,11 @@ Observed: `sim_turngames.js` ends with `Tic-Tac-Toe reached a win : PASS`, `Id-l
 grep -ohE '(toUid\([^,]+, |socket\.emit\()"[a-zA-Z]+"' multiplayer_server/src/index.js multiplayer_server/src/turnGames.js | grep -oE '"[a-zA-Z]+"' | sort -u
 grep -n "helpers.toUid(uid, \"turnState\"" multiplayer_server/src/turnGames.js
 ```
-Observed: 28 distinct names from `index.js` (including `turnReject`, sent via `turnHelpers.reject`)
-plus `turnState` from `turnGames.js` = 29 server events. The client `on` map in
-`MultiplayerContext.tsx` registers 29 handlers, including `turnReject`. Any diff adding a server
-emit must add the matching key in that `on` map.
+Observed: 33 distinct names from `index.js` (including `turnReject`, sent via `turnHelpers.reject`,
+and `roomLeft`, sent to a player the relay removed while they were away) plus `turnState` from
+`turnGames.js` = 34 server events. The client `on` map in `MultiplayerContext.tsx` registers 34
+handlers, including `turnReject` and `roomLeft`. Any diff adding a server emit must add the matching
+key in that `on` map.
 
 **4. `turnReject` has a client listener (MP-2).**
 ```bash
