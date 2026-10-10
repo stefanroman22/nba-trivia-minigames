@@ -247,9 +247,9 @@ function reducer(state: MpState, a: Action): MpState {
         ended: null, oppStatus: freshStatus(state.opponents), error: null,
       };
     case "FRIEND_CREATE":
-      return { ...state, friendPending: "create", friendJoinError: null };
+      return { ...state, friendPending: "create", friendJoinError: null, notice: null };
     case "FRIEND_JOIN":
-      return { ...state, friendPending: "join", friendJoinError: null };
+      return { ...state, friendPending: "join", friendJoinError: null, notice: null };
     case "FRIEND_LOBBY": {
       // Covers created / joined / lobby-changed — the snapshot is authoritative.
       // Screens derive "am I the host?" by comparing hostUid to their own user.
@@ -401,6 +401,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   codeRef.current = mp.code;
   userRef.current = user;
+  // The UI flips to busy on click and the request goes out once the connection is ready; a cancel /
+  // leave in between bumps this, so the stale request is dropped instead of sent.
+  const actionSeq = useRef(0);
 
   // ---- Identity: (re)announce ourselves on every connect so the server can
   //      resume an in-flight match. The relay trusts only the access token: it
@@ -433,6 +436,24 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     if (!socketConfigured) return;
     if (user?.id) socket.connect();
     else socket.disconnect();
+  }, [user?.id]);
+
+  // A tab the browser froze or throttled while hidden (Memory/Energy Saver, extensions) misses the
+  // server's heartbeat and gets dropped. Reconnect as soon as the player is back (tab shown, window
+  // focused, network restored), so a click normally finds a live connection instead of waiting on one.
+  useEffect(() => {
+    if (!socketConfigured || !user?.id) return;
+    const revive = () => {
+      if (document.visibilityState === "visible" && !socket.connected) socket.connect();
+    };
+    document.addEventListener("visibilitychange", revive);
+    window.addEventListener("focus", revive);
+    window.addEventListener("online", revive);
+    return () => {
+      document.removeEventListener("visibilitychange", revive);
+      window.removeEventListener("focus", revive);
+      window.removeEventListener("online", revive);
+    };
   }, [user?.id]);
 
   // ---- Socket event wiring ----
@@ -540,12 +561,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   // Before any online action: signed in, and a live connection. A socket the server dropped (or a
   // network blip after which socket.io gave up) is reconnected here rather than failing silently.
-  const readyOnline = useCallback(async (): Promise<boolean> => {
-    dispatch({ t: "CLEAR_NOTICE" });
-    if (!userRef.current) {
-      dispatch({ t: "NOTICE", notice: { kind: "error", text: "You need to be signed in to play online." } });
-      return false;
-    }
+  // Callers switch the UI to its busy state FIRST and await this behind it: a click must answer
+  // instantly even when the connection needs a second to come back. Returns why it can't go, or null.
+  const readyOnline = useCallback(async (): Promise<string | null> => {
+    if (!userRef.current) return "You need to be signed in to play online.";
     if (!socket.connected && socketConfigured) {
       socket.connect();
       await new Promise<void>((resolve) => {
@@ -555,29 +574,37 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         socket.once("connect_error", done);
       });
     }
-    if (!socket.connected) {
-      dispatch({ t: "NOTICE", notice: { kind: "error", text: "Can't reach the game server. Please try again." } });
-      return false;
-    }
-    return true;
+    return socket.connected ? null : "Can't reach the game server. Please try again.";
   }, []);
 
   const findMatch = useCallback(async (game: Game) => {
-    if (!(await readyOnline())) return;
-    dispatch({ t: "FIND", game });
-    void identifyNow().then(() => socket.emit("findMatch", { game: serializeGame(game) }));
+    const id = ++actionSeq.current;
+    dispatch({ t: "FIND", game }); // instant: the button reads "Cancel" / searching straight away
+    const problem = await readyOnline();
+    if (problem) return dispatch({ t: "MATCH_ERROR", message: problem });
+    await identifyNow();
+    if (actionSeq.current !== id) return; // cancelled while connecting
+    socket.emit("findMatch", { game: serializeGame(game) });
   }, [readyOnline, identifyNow]);
 
   const createFriendRoom = useCallback(async (game: Game) => {
-    if (!(await readyOnline())) return;
-    dispatch({ t: "FRIEND_CREATE" });
-    void identifyNow().then(() => socket.emit("createFriendRoom", { game: serializeGame(game) }));
+    const id = ++actionSeq.current;
+    dispatch({ t: "FRIEND_CREATE" }); // instant "Creating…"
+    const problem = await readyOnline();
+    if (problem) return dispatch({ t: "FRIEND_ERROR", message: problem });
+    await identifyNow();
+    if (actionSeq.current !== id) return; // left the friend flow meanwhile
+    socket.emit("createFriendRoom", { game: serializeGame(game) });
   }, [readyOnline, identifyNow]);
 
   const joinFriendRoom = useCallback(async (code: string) => {
-    if (!(await readyOnline())) return;
-    dispatch({ t: "FRIEND_JOIN" });
-    void identifyNow().then(() => socket.emit("joinFriendRoom", { code }));
+    const id = ++actionSeq.current;
+    dispatch({ t: "FRIEND_JOIN" }); // instant "Joining…"
+    const problem = await readyOnline();
+    if (problem) return dispatch({ t: "FRIEND_JOIN_ERROR", message: problem });
+    await identifyNow();
+    if (actionSeq.current !== id) return; // left the friend flow meanwhile
+    socket.emit("joinFriendRoom", { code });
   }, [readyOnline, identifyNow]);
 
   const changeFriendGame = useCallback((game: Game) => {
@@ -585,7 +612,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resetFriendJoinError = useCallback(() => dispatch({ t: "FRIEND_JOIN_RESET" }), []);
-  const cancelFind = useCallback(() => { socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
+  const cancelFind = useCallback(() => { actionSeq.current++; socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
   const submitScore = useCallback((score: number, elapsedMs?: number) => {
     if (codeRef.current == null) return; // no live room — stale end-call, drop it
     dispatch({ t: "SUBMITTED", score });
@@ -601,6 +628,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const cancelProposal = useCallback(() => socket.emit("cancelProposal", { code: codeRef.current }), []);
   const reportProgress = useCallback((round: number, total: number) => socket.emit("reportProgress", { code: codeRef.current, round, total }), []);
   const leaveMatch = useCallback(() => {
+    actionSeq.current++;
     socket.emit("leaveMatch", { code: codeRef.current });
     dispatch({ t: "RESET" });
   }, []);
