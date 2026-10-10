@@ -9,6 +9,7 @@ import { popIn } from "../../motion/variants";
 import { CourtLoader } from "../ui";
 import SessionTimer from "../ui/SessionTimer";
 import SwapText from "../motion/SwapText";
+import AutoHeight from "../motion/AutoHeight";
 import PlayerCard from "./PlayerCard";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import defaultAvatar from "../../assets/default.png";
@@ -187,9 +188,7 @@ export default function OnlineMatch() {
           onRespond={respondProposal}
           onCancel={cancelProposal}
         />
-        {isHost
-          ? <button className="om-exit" onClick={leaveMatch}>Close room</button>
-          : <button className="om-exit" onClick={leaveMatch}>{isFriend ? "Leave room" : "Exit game"}</button>}
+        {isHost ? <button className="om-exit" onClick={leaveMatch}>Close room</button> : ExitLink}
       </motion.div>
     );
   } else if (mp.phase === "ended") {
@@ -411,20 +410,22 @@ function ResultActions({
   }
 
   // Crossfade between actions / prompts so rematch + switch + cancel
-  // notifications fade in and out smoothly.
+  // notifications fade in and out smoothly; the box glides between their heights (UI-23).
   return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={key}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.22, ease: EASE }}
-        style={{ width: "100%", display: "flex", justifyContent: "center" }}
-      >
-        {content}
-      </motion.div>
-    </AnimatePresence>
+    <AutoHeight style={{ width: "100%" }}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={key}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.22, ease: EASE }}
+          style={{ width: "100%", display: "flex", justifyContent: "center" }}
+        >
+          {content}
+        </motion.div>
+      </AnimatePresence>
+    </AutoHeight>
   );
 }
 
