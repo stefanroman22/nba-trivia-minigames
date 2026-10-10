@@ -8,11 +8,14 @@ const path = require("node:path");
 const { spawn } = require("node:child_process");
 const { io } = require(path.join(__dirname, "..", "..", "node_modules", "socket.io-client"));
 
-const NAMES = ["Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hank", "Ivy", "Jay", "Tina", "Kim", "Lee"];
+const NAMES = ["Ann", "Bob", "Cat", "Dan", "Eve", "Fay", "Gus", "Hank", "Ivy", "Jay", "Tina", "Kim", "Lee", "Mo", "Ned"];
 const tok = (name) => `tok-${name}-`.padEnd(40, "x");
 const USERS = Object.fromEntries(NAMES.map((n, i) => [tok(n), {
   id: n.toUpperCase().padEnd(6, "0"), username: n, email: `${n}@example.com`, points: 10 + i, is_teen: n === "Tina",
 }]));
+// Far apart on the rank ladder: MVP vs Rookie.
+Object.assign(USERS[tok("Mo")], { rank: "MVP", points: 2500 });
+Object.assign(USERS[tok("Ned")], { rank: "Rookie", points: 15 });
 
 let backend, server, backendPort, serverPort;
 let meCalls = 0;
@@ -234,4 +237,17 @@ test("a finished match credits both players' profiles once, through the relay ke
   kim.emit("leaveMatch", { code });
   await wait(300);
   assert.equal(credits.filter((c) => c.body.results.some((r) => r.public_id === USERS[tok("Kim")].id)).length, 1);
+});
+
+test("players far apart in rank are matched at once when nobody closer is waiting", async () => {
+  const mo = await player("Mo");
+  const ned = await player("Ned");
+  mo.emit("findMatch", { game: { id: "who-would-win" } });
+  await next(mo, "searching");
+  const t0 = Date.now();
+  const found = next(ned, "matchFound", 2000);
+  ned.emit("findMatch", { game: { id: "who-would-win" } });
+  const m = await found;
+  assert.equal(m.opponent.username, "Mo");
+  assert.ok(Date.now() - t0 < 1000, `took ${Date.now() - t0} ms`);
 });

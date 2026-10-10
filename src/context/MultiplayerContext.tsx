@@ -404,6 +404,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   // The UI flips to busy on click and the request goes out once the connection is ready; a cancel /
   // leave in between bumps this, so the stale request is dropped instead of sent.
   const actionSeq = useRef(0);
+  // The search request (by actionSeq id) that reached the server, so a reconnect can re-send it.
+  const searchSent = useRef(0);
+  const mpRef = useRef(mp);
+  mpRef.current = mp;
 
   // ---- Identity: (re)announce ourselves on every connect so the server can
   //      resume an in-flight match. The relay trusts only the access token: it
@@ -455,6 +459,20 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("online", revive);
     };
   }, [user?.id]);
+
+  // ---- Back online while searching: the server dropped us from the queue when the connection
+  //      went (a frozen background tab, a network blip) but the screen still says "searching", so
+  //      join the queue again. Only for a search that had already been sent (not the first connect). ----
+  useEffect(() => {
+    const requeue = () => {
+      const s = mpRef.current;
+      if (s.phase !== "searching" || !s.game || searchSent.current !== actionSeq.current) return;
+      const game = s.game;
+      void identifyNow().then(() => socket.emit("findMatch", { game: serializeGame(game) }));
+    };
+    socket.on("connect", requeue);
+    return () => { socket.off("connect", requeue); };
+  }, [identifyNow]);
 
   // ---- Socket event wiring ----
   useEffect(() => {
@@ -585,6 +603,7 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     await identifyNow();
     if (actionSeq.current !== id) return; // cancelled while connecting
     socket.emit("findMatch", { game: serializeGame(game) });
+    searchSent.current = id;
   }, [readyOnline, identifyNow]);
 
   const createFriendRoom = useCallback(async (game: Game) => {
