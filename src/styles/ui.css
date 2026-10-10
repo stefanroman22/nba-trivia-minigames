@@ -21,7 +21,7 @@
   transition: filter 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
   user-select: none;
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn:disabled, .btn.is-blocked { opacity: 0.5; cursor: not-allowed; }
 
 .btn-sm { height: 38px; padding: 0 15px; font-size: 13px; }
 .btn-md { height: 46px; padding: 0 20px; font-size: 14px; }
@@ -31,13 +31,13 @@
 /* Dark-on-orange: white on var(--brand) is 2.86:1 and fails WCAG AA (4.5:1);
    this near-black warm tone reads ~6:1 while keeping the brand background. */
 .btn-primary { background: var(--brand); color: #201005; box-shadow: 0 12px 30px -12px var(--brand); }
-.btn-primary:hover:not(:disabled) { filter: brightness(1.07); }
+.btn-primary:hover:not(:disabled):not(.is-blocked) { filter: brightness(1.07); }
 .btn-secondary { background: transparent; color: var(--text); border-color: var(--line2); }
-.btn-secondary:hover:not(:disabled) { background: var(--surface2); border-color: var(--brand); }
+.btn-secondary:hover:not(:disabled):not(.is-blocked) { background: var(--surface2); border-color: var(--brand); }
 .btn-ghost { background: transparent; color: var(--muted); }
-.btn-ghost:hover:not(:disabled) { color: var(--text); background: var(--surface2); }
+.btn-ghost:hover:not(:disabled):not(.is-blocked) { color: var(--text); background: var(--surface2); }
 .btn-danger { background: var(--bad); color: #fff; }
-.btn-danger:hover:not(:disabled) { filter: brightness(1.06); }
+.btn-danger:hover:not(:disabled):not(.is-blocked) { filter: brightness(1.06); }
 
 /* ---------- Chips / badges ---------- */
 .chip {

@@ -60,7 +60,9 @@ if (!process.env.NBA_DEV_ENV_SKIP) {
         ...process.env,
         PORT: String(SOCKET_PORT),
         CORS_ORIGINS: SITE_ORIGIN,
-        API_BASE_URL: chosenBackendUrl(),
+        // The relay wants the bare origin: it calls <base>/api/me/ and <base>/trivia/... itself,
+        // while the site's VITE_BACKEND_URL ends in /api.
+        API_BASE_URL: chosenBackendUrl().replace(/\/api\/?$/, ''),
       },
     });
   }

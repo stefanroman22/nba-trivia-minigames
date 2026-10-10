@@ -61,6 +61,15 @@ for visible changes that happen with no animation:
   with no `AnimatePresence`.
 - Result, game-over, success and error screens that replace the play area instantly.
 - Modals, sheets and popovers without an entrance and exit.
+- A label picked by a ternary between two elements of the same type
+  (`cond ? <Chip>A</Chip> : <Chip>B</Chip>`): React reuses the element, so the text snaps even though
+  each branch looks fine. Expected: one element with `SwapText`, plus `AutoSize axis="width"` when the
+  element's width follows the label (UI-21).
+- A card, panel or container whose height or width changes with its content (tabs, loader to list,
+  lobby states, expanding sections) with no `AutoHeight` / `AutoSize`, or a state-driven border,
+  background or glow change with no CSS `transition` (UI-23).
+- States of one component that end with different bottom spacing, typically an always-mounted empty
+  placeholder line in one state (UI-23 "Same component, same spacing").
 Report each as "missing" with file:line, what changes, and which shared piece to use. Do not demand
 animation on things that must be instant: typing feedback, per-keystroke validation, timers, the
 tick of a score counter that already uses `AnimatedNumber`, and anything where a delay would hurt

@@ -9,6 +9,9 @@
    side by side instead of stacked. */
 .fp-actions--row { flex-direction: row; align-items: stretch; }
 .fp-actions--row > .btn { flex: 1; min-width: 0; padding: 0 10px; font-size: 12.5px; }
+/* One button on its own (Join room): the row's button, half the row wide, centred. */
+.fp-actions--single { justify-content: center; }
+.fp-actions--single > .btn { flex: 0 1 50%; }
 /* ---- Code tiles (host display + entry input share the look) ----
    Tiles flex-shrink to their row, so the card never overflows: they're compact
    in the 290px desktop aside and grow (to a cap) on full-width mobile. */
@@ -80,7 +83,7 @@
   padding: 2px 7px; border-radius: 999px;
   background: var(--brand-soft); color: var(--brand);
 }
-.fp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-left: auto; flex: none; }
+.fp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--good); margin-left: auto; flex: none; transition: background 0.3s ease; }
 .fp-dot.is-off { background: var(--bad); }
 .fp-seat-hole {
   width: 28px; height: 28px; flex: none;
@@ -114,25 +117,37 @@
   cursor: pointer;
 }
 .fp-toggle:hover { color: var(--text); border-color: var(--line); }
+/* Collapsed room bar: code + copy on the left, then a button (the rest of the bar) that expands. */
 .fp-mini {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   width: 100%;
-  padding: 9px 12px;
+  padding: 5px 6px 5px 12px;
   border: 1px solid var(--line2);
   border-radius: 11px;
   background: var(--surface2);
   color: var(--muted);
-  font-family: inherit;
   font-size: 12.5px;
-  cursor: pointer;
-  text-align: left;
+  transition: border-color 0.2s ease;
 }
 .fp-mini:hover { border-color: var(--brand); }
 .fp-mini-code { font-weight: 800; font-size: 14px; color: var(--brand); letter-spacing: 1px; }
-.fp-mini-meta { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.fp-mini-meta .tnum { color: var(--text); font-weight: 700; }
+.fp-mini-copy {
+  width: 30px; height: 30px; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; background: transparent; color: var(--muted);
+  cursor: pointer; transition: color 0.2s ease, background 0.2s ease;
+}
+.fp-mini-copy:hover { color: var(--brand); background: var(--surface3); }
+.fp-mini-copy.is-copied { color: var(--good); }
+.fp-mini-expand {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 6px; border: 0; background: none; color: inherit;
+  font: inherit; cursor: pointer; text-align: left;
+}
+.fp-mini-meta { color: var(--text); font-weight: 700; }
 @media (max-width: 1199px) {
   .fp-toggle { display: inline-flex; }
 }

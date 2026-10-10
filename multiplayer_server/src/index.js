@@ -87,14 +87,12 @@ const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) a
 const MAX_SCORE = 1000;            // above every game's maxPoints (career-path's 700 is the largest)
 const INTRO_ALLOWANCE_MS = 5000;   // the VS intro (2.6 s) + latency between the deal and the first answer
 
-// Fair matchmaking: pair players whose POINTS are close, widening the accepted
-// gap the longer someone waits so nobody queues forever. Both sides' windows
-// must accept the gap.
-const MATCH_WINDOW_BASE = 200;     // points gap considered fair immediately
-const MATCH_WINDOW_GROWTH = 400;   // extra tolerance gained per step below
-const MATCH_WINDOW_STEP_MS = 5000;
-const MATCH_WINDOW_UNCAP_MS = 25000; // after this, any opponent is acceptable
-const MATCH_SWEEP_MS = 3000;       // re-check waiting players this often
+// Matchmaking: nobody waits for a "fair" opponent who may never come (few players online). A new
+// searcher is paired at once with a waiting player within RANK_REACH rank levels if there is one
+// (closest points first), otherwise straight away with a random waiting player of the same game.
+const RANK_LADDER = ["Rookie", "Role Player", "Sixth Man", "Starter", "All-Star", "All-NBA", "MVP", "Hall of Famer", "GOAT"]; // backend users.models RANK_CHOICES, lowest first
+const RANK_REACH = 1;              // "close" = the same level or one either side
+const MATCH_SWEEP_MS = 3000;       // safety net: pairs anyone left waiting (e.g. after a reconnect)
 
 const app = express();
 app.disable("x-powered-by");
@@ -478,27 +476,21 @@ function dropFromQueues(uid) {
 //  Fair matchmaking
 // =========================
 const pointsOf = (user) => Number(user?.points) || 0;
+/** Position on the rank ladder (an unknown rank counts as the bottom). */
+const levelOf = (user) => Math.max(0, RANK_LADDER.indexOf(user?.rank));
 
-/** How large a points gap this queue entry accepts right now (grows while waiting). */
-function windowFor(entry, now) {
-  const waited = now - entry.since;
-  if (waited >= MATCH_WINDOW_UNCAP_MS) return Infinity;
-  return MATCH_WINDOW_BASE + MATCH_WINDOW_GROWTH * Math.floor(waited / MATCH_WINDOW_STEP_MS);
-}
-
-/** The fairest (smallest points gap) waiting opponent BOTH windows accept. */
-function bestCandidate(queue, uid, myPoints, myWindow, now) {
-  let best = null;
-  let bestGap = Infinity;
-  for (const p of queue) {
-    if (p.uid === uid || !socketIdOf(p.uid)) continue;
-    const gap = Math.abs(pointsOf(p.user) - myPoints);
-    if (gap <= myWindow && gap <= windowFor(p, now) && gap < bestGap) {
-      best = p;
-      bestGap = gap;
-    }
+/** The opponent for `uid`: a waiting, online player within RANK_REACH levels (closest points), else
+ *  any waiting online player at random — never "keep waiting". null only when nobody else is here. */
+function pickOpponent(queue, uid, user) {
+  const waiting = queue.filter((p) => p.uid !== uid && socketIdOf(p.uid));
+  if (waiting.length === 0) return null;
+  const mine = levelOf(user);
+  const near = waiting.filter((p) => Math.abs(levelOf(p.user) - mine) <= RANK_REACH);
+  if (near.length) {
+    const gap = (p) => Math.abs(pointsOf(p.user) - pointsOf(user));
+    return near.reduce((best, p) => (gap(p) < gap(best) ? p : best));
   }
-  return best;
+  return waiting[crypto.randomInt(waiting.length)];
 }
 
 /** Seat two queue entries in a fresh 1v1 room and deal the first round. */
@@ -547,16 +539,16 @@ function broadcastQueueState(gameId) {
   });
 }
 
-/** Longest-waiting first, pair everyone whose widened windows now overlap. */
+/** Longest-waiting first, pair everyone still waiting (findMatch pairs on arrival; this catches
+ *  players who were offline at that moment and are back). */
 function sweepQueue(gameId) {
   const q = queues.get(gameId);
   if (!q || q.length < 2) return;
-  const now = Date.now();
   let paired = false;
   let i = 0;
   while (q.length >= 2 && i < q.length) {
     const entry = q[i];
-    const candidate = bestCandidate(q, entry.uid, pointsOf(entry.user), windowFor(entry, now), now);
+    const candidate = socketIdOf(entry.uid) ? pickOpponent(q, entry.uid, entry.user) : null;
     if (!candidate) {
       i += 1;
       continue;
@@ -570,7 +562,7 @@ function sweepQueue(gameId) {
   else if (paired) broadcastQueueState(gameId);
 }
 
-// One cheap global sweep keeps widening windows effective for waiting players.
+// One cheap global sweep (see sweepQueue).
 setInterval(() => {
   for (const gameId of [...queues.keys()]) sweepQueue(gameId);
 }, MATCH_SWEEP_MS).unref();
@@ -749,8 +741,8 @@ io.on("connection", (socket) => {
   }
 
   // --- Matchmaking ---
-  // Skill-aware: pair with the closest-points opponent whose fairness window
-  // (and ours) accepts the gap; the sweep interval re-tries as windows widen.
+  // Paired on arrival: a player within RANK_REACH levels if one is waiting, else anyone waiting
+  // (pickOpponent). Only an empty queue makes a player wait (up to MATCH_TIMEOUT_MS).
   socket.on("findMatch", async ({ game: sent } = {}) => {
     const uid = await verifiedUid();
     if (!uid) {
@@ -775,7 +767,7 @@ io.on("connection", (socket) => {
     const queue = queues.get(game.id);
     const me = { uid, user: players.get(uid)?.user, game, since: Date.now() };
 
-    const candidate = bestCandidate(queue, uid, pointsOf(me.user), windowFor(me, me.since), me.since);
+    const candidate = pickOpponent(queue, uid, me.user);
     if (candidate) {
       queue.splice(queue.indexOf(candidate), 1);
       if (queue.length === 0) queues.delete(game.id);

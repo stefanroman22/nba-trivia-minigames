@@ -4,12 +4,14 @@ import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 interface CourtLoaderProps {
   label?: string;
   scale?: number;
+  /** Space between the hoop and the caption (default 14). */
+  gap?: number;
 }
 
 const CYCLE = "1.6s";
 
 /** Basketball arcs up and swishes through the hoop — the brand loading state. */
-export default function CourtLoader({ label = "Warming up the court…", scale = 1 }: CourtLoaderProps) {
+export default function CourtLoader({ label = "Warming up the court…", scale = 1, gap = 14 }: CourtLoaderProps) {
   const reduce = useReducedMotionSafe();
   const s = scale;
   const gradId = useId();
@@ -27,7 +29,7 @@ export default function CourtLoader({ label = "Warming up the court…", scale =
       role="status"
       aria-live="polite"
       aria-label={label}
-      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}
+      style={{ display: "flex", flexDirection: "column", alignItems: "center", gap }}
     >
       <div style={{ position: "relative", width: 90 * s, height: 118 * s, "--s": s } as CSSProperties}>
         {/* Back layer: backboard, full rim, far side of the net. The ball renders on top of this. */}

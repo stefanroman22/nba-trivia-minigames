@@ -20,7 +20,10 @@ MIN_AGE = 13
 PHOTO_MIN_AGE = 16
 
 CONSENT_REQUIRED_MESSAGE = "Please agree to the Terms of Service and Privacy Policy to create an account."
-AGE_BLOCKED_MESSAGE = "You can't create an account right now."  # deliberately says nothing about why
+# Says the minimum plainly (owner decision 2026-10-10). GDPR doesn't require a "neutral" age screen;
+# that is US COPPA / UK AADC best practice, and the 13+ minimum is already public in the Terms and
+# Privacy Policy. Under-age sign-ups are still refused and nothing is stored.
+AGE_BLOCKED_MESSAGE = f"You need to be at least {MIN_AGE} years old to create an account."
 
 
 def is_old_enough(birth_year, birth_month, today=None, min_age=MIN_AGE):

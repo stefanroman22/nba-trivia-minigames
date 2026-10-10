@@ -46,10 +46,12 @@ Each rule's ❌ is labelled **real** (exists in the repo today, cited) or **hypo
 and every room's `members` array by `uid` = the public id that Django's `GET /api/me/` returns for
 the socket's access token (`identity.js` `verifyToken`, cached 60 s per token; AUTH-8), because
 socket ids change on every reconnect. The client re-announces with
-`socket.emit("identify", { user, token })` on every `connect` and before `findMatch`/
+`socket.emit("identify", { token })` on every `connect` and before `findMatch`/
 `createFriendRoom`/`joinFriendRoom` (`MultiplayerContext.tsx` `identifyNow`, which refreshes an
 expired token first); those three handlers `await socket.identifying` and re-check the token. The
-client's `user` object is ignored for identity; a token-less identify is refused (`identifyError`),
+client sends no `user` object (the relay never read it, and a profile photo stored as a data URL
+pushed the packet past the relay's 16 KB `maxHttpBufferSize`, which silently drops the socket: keep
+every client event small); a token-less identify is refused (`identifyError`),
 and a banned token is refused and disconnected. `identity.js` is the only `Authorization` user in
 `multiplayer_server/src/` (Acceptance check 8). Scores and `game` objects are still client-claimed
 (MP-2).
@@ -114,7 +116,7 @@ if (room.gameId === "imposter") return initImposter(room, helpers);
 
 ## Rule MP-4: Event names are camelCase; client emits are action verbs, server emits pair a success event with a feature-scoped error event
 
-Client to server: `identify` (`{ user, token }`; refusal is `identifyError { code, message }`), `findMatch`, `cancelFind`, `createFriendRoom`, `joinFriendRoom`,
+Client to server: `identify` (`{ token }`; refusal is `identifyError { code, message }`), `findMatch`, `cancelFind`, `createFriendRoom`, `joinFriendRoom`,
 `changeFriendGame`, `startRoomNow`, `turnAction`, `submitScore`, `reportProgress`, `proposeAgain`,
 `proposeSwitch`, `respondProposal`, `cancelProposal`, `leaveMatch`. Server to client pairs are
 feature-scoped, not a mechanical `<stem>Error`: `matchFound`/`matchError`, `roundData`/

@@ -4,9 +4,11 @@ import { useSelector } from "react-redux";
 import { useModal } from "../../context/ModalContext";
 import { useMultiplayer } from "../../context/MultiplayerContext";
 import { Button } from "../ui";
-import { showErrorAlert } from "../../utils/Alerts";
+import { fadeIn } from "../../motion/variants";
+import { GAME_IN_PROGRESS } from "../../constants/messages";
 import SwapText from "../motion/SwapText";
 import FriendPlay from "./FriendPlay";
+import AutoHeight from "../motion/AutoHeight";
 import type { RootState } from "../../store";
 import type { Game } from "../../types/types";
 
@@ -45,13 +47,22 @@ export default function MultiplayerPanel({
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     cardRef.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
   }, [inLobby]);
-  // A solo run in progress blocks online play the same way it blocks switching games from the rail.
+  // Online play can't start while a solo run, a search or a match is going. The buttons look
+  // disabled (Button `blocked`) but a press shows GAME_IN_PROGRESS inside this card — same view, no
+  // popup — and the card glides to fit it (AutoHeight); it fades out after a few seconds.
+  const searching = mp.phase === "searching";
   const soloInProgress = gameStarted && !showResult;
-  const guardSolo = (): boolean => {
-    if (!soloInProgress) return false;
-    showErrorAlert("Finish or close your current game first.", "Game in progress", "Continue playing");
-    return true;
+  const busy = soloInProgress || online || searching;
+  const [hintShown, setHintShown] = useState(false);
+  const hintTimer = useRef<number | null>(null);
+  const showHint = () => {
+    setHintShown(true);
+    if (hintTimer.current) window.clearTimeout(hintTimer.current);
+    hintTimer.current = window.setTimeout(() => setHintShown(false), 3500);
   };
+  useEffect(() => () => { if (hintTimer.current) window.clearTimeout(hintTimer.current); }, []);
+  const hint = hintShown && busy;
+  const message = hint ? GAME_IN_PROGRESS : !online && mp.notice ? mp.notice.text : null;
 
   return (
     <div ref={cardRef} className={`aside-card mp-panel${inLobby ? " is-room" : ""}`}>
@@ -63,6 +74,8 @@ export default function MultiplayerPanel({
         </button>
       </div>
 
+      {/* Glides to each state's height (choice -> code/lobby -> match) instead of snapping. */}
+      <AutoHeight>
       <AnimatePresence mode="wait">
         {showFriend ? (
           <motion.div key="friend" {...swap} className="mp-friend">
@@ -86,26 +99,39 @@ export default function MultiplayerPanel({
                 {/* One button across idle / searching / in a match: the label swaps inside a
                     reserved box, so pressing Play 1v1 never replaces or resizes the control. */}
                 <Button
-                  variant={mp.phase === "searching" ? "ghost" : "primary"}
+                  variant={searching ? "ghost" : "primary"}
                   size="sm"
-                  disabled={online && mp.phase !== "searching"}
+                  blocked={soloInProgress || (online && !searching)}
                   onClick={() => {
-                    if (mp.phase === "searching") return leaveMatch();
-                    if (!guardSolo() && game) findMatch(game);
+                    if (searching) return leaveMatch();
+                    if (soloInProgress || online) return showHint();
+                    if (game) findMatch(game);
                   }}
                 >
                   <SwapText reserveWidth={["Play 1v1", "Cancel", "In a match"]}>
                     {mp.phase === "searching" ? "Cancel" : online ? "In a match" : "Play 1v1"}
                   </SwapText>
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => { if (!guardSolo()) setFriendMode(true); }}>
+                <Button variant="secondary" size="sm" blocked={busy} onClick={() => (busy ? showHint() : setFriendMode(true))}>
                   Play with a friend
                 </Button>
               </div>
             )}
+
           </motion.div>
         )}
       </AnimatePresence>
+      {/* One message slot under either view: the blocked-press hint, otherwise anything that went
+          wrong before a match (session expired, server unreachable, already in a match). These used
+          to show only inside a live match, so a failed Play 1v1 looked like nothing happened. */}
+      <AnimatePresence initial={false}>
+        {message && (
+          <motion.p key="mp-hint" className="fp-sub mp-hint" role="status" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+            <SwapText>{message}</SwapText>
+          </motion.p>
+        )}
+      </AnimatePresence>
+      </AutoHeight>
     </div>
   );
 }

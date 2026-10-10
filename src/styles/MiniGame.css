@@ -218,25 +218,23 @@
 
 /* ===== Aside ===== */
 .game-aside { display: flex; flex-direction: column; gap: 14px; align-self: start; }
-.aside-card { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 11px; }
+.aside-card { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 11px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }
 .aside-card-head { display: flex; align-items: center; gap: 9px; }
 /* Aside actions match the stage's Play button: natural width, centred, never full-bleed. */
 .aside-card > .btn { align-self: center; }
 
 /* One merged Multiplayer card now (see MultiplayerPanel) — while a room is
-   open it's highlighted. Below the desktop 3-column layout the room card stays
-   UNDER the game (game tabs, then the game, then the room); the idle stage drops
-   its artwork and description while you're in a room so the code and seats fit on
-   screen with it, and MultiplayerPanel scrolls the card into view when the room opens. */
+   open it's highlighted (the border/glow fade in via .aside-card's transition).
+   Below the desktop 3-column layout the room card stays UNDER the game (game tabs,
+   then the full game card, artwork included, then the room), and MultiplayerPanel
+   scrolls the card smoothly into view when the room opens. */
 .game-aside .aside-card.is-room { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand-soft); }
-@media (max-width: 1199px) {
-  .game-grid.is-room .idle-thumb,
-  .game-grid.is-room .idle-head p + p { display: none; }
-}
 
 /* ---- MultiplayerPanel: the "Play 1v1" choice vs. FriendPlay's own flow ---- */
 .mp-panel { gap: 12px; }
 .mp-choice, .mp-friend { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+/* "Close or finish current game first." under the choice buttons, shown on a blocked press. */
+.mp-hint { margin: 0; font-size: 12.5px; text-align: center; }
 .mp-friend { align-items: stretch; }
 /* Play 1v1 / Play with a friend, paired on one row — smaller type so both
    labels sit comfortably without wrapping. */

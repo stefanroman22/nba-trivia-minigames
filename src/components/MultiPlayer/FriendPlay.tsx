@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { fadeIn } from "../../motion/variants";
+import CopyIcon from "../motion/CopyIcon";
+import { GAME_IN_PROGRESS } from "../../constants/messages";
 import { useSelector } from "react-redux";
 import copy from "copy-to-clipboard";
 import { useMultiplayer } from "../../context/MultiplayerContext";
@@ -93,17 +96,25 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
       </p>
     );
   } else if (lobby && collapsed) {
-    // Slim overview: code, fill state and game at a glance; tap to expand.
+    // Slim overview: the code (copyable right here) and how full the room is; tap the rest to expand.
     key = "lobby-mini";
     body = (
-      <button className="fp-mini" onClick={() => setCollapsed(false)} aria-label="Expand room details">
+      <div className="fp-mini">
         <span className="fp-mini-code tnum">#{lobby.code}</span>
-        <span className="fp-mini-meta">
-          <span className="tnum">{lobby.members.length}/{lobby.capacity}</span> in · {mp.game?.name}
-        </span>
-        <span className={`fp-dot${lobby.members.every((m) => m.online) ? "" : " is-off"}`} />
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
-      </button>
+        <button
+          className={`fp-mini-copy${copied ? " is-copied" : ""}`}
+          onClick={doCopy}
+          aria-label={copied ? "Code copied" : "Copy room code"}
+          title="Copy code"
+        >
+          <CopyIcon copied={copied} className="fp-copy-icon" />
+        </button>
+        <button className="fp-mini-expand" onClick={() => setCollapsed(false)} aria-label="Expand room details">
+          <span className="fp-mini-meta tnum"><SwapText>{`${lobby.members.length}/${lobby.capacity}`}</SwapText></span>
+          <span className={`fp-dot${lobby.members.every((m) => m.online) ? "" : " is-off"}`} />
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+      </div>
     );
   } else if (lobby) {
     const empties = Math.max(0, lobby.capacity - lobby.members.length);
@@ -130,13 +141,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
             aria-label={copied ? "Code copied" : "Copy room code"}
             title="Copy code"
           >
-            <SwapText swapKey={copied ? "copied" : "copy"} className="fp-copy-icon">
-              {copied ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-              ) : (
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-              )}
-            </SwapText>
+            <CopyIcon copied={copied} className="fp-copy-icon" />
           </button>
         </div>
         <p className="fp-sub" style={{ textAlign: "center" }}>
@@ -147,10 +152,11 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
         </p>
 
         <div className="fp-seats">
+          <AnimatePresence initial={false} mode="popLayout">
           {lobby.members.map((m) => {
             const isMe = user?.id ? m.id === user.id : m.username === user?.username;
             return (
-              <div key={m.id || m.username} className="fp-seat">
+              <motion.div key={m.id || m.username} className="fp-seat" layout variants={fadeIn} initial="hidden" animate="visible" exit="exit">
                 <img
                   className="fp-seat-av"
                   src={m.profile_photo || defaultAvatar.src}
@@ -165,22 +171,23 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
                 </span>
                 {m.isHost && <span className="fp-host-chip">HOST</span>}
                 <span className={`fp-dot${m.online ? "" : " is-off"}`} aria-label={m.online ? "Online" : "Reconnecting"} />
-              </div>
+              </motion.div>
             );
           })}
           {Array.from({ length: empties }).map((_, i) => (
-            <div key={`empty-${i}`} className="fp-seat is-empty">
+            <motion.div key={`empty-${i}`} className="fp-seat is-empty" layout variants={fadeIn} initial="hidden" animate="visible" exit="exit">
               <span className="fp-seat-hole" aria-hidden="true">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
               </span>
               <span className="fp-seat-wait">Waiting for a friend<span className="om-dots"><i /><i /><i /></span></span>
-            </div>
+            </motion.div>
           ))}
+          </AnimatePresence>
         </div>
 
         <div className="fp-meta">
-          <span>Playing: <strong>{mp.game?.name}</strong></span>
-          <span className="tnum">{lobby.members.length}/{lobby.capacity}</span>
+          <span>Playing: <strong><SwapText>{mp.game?.name}</SwapText></strong></span>
+          <span className="tnum"><SwapText>{`${lobby.members.length}/${lobby.capacity}`}</SwapText></span>
         </div>
 
         <AnimatePresence mode="wait">
@@ -229,8 +236,9 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
           hasError={!!mp.friendJoinError}
         />
         {mp.friendJoinError && <p className="fp-err" role="alert">{mp.friendJoinError}</p>}
-        <div className="fp-actions">
-          <Button size="lg" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
+        {/* Same size and type as Generate code / Enter code (fp-actions--row), centred alone. */}
+        <div className="fp-actions fp-actions--row fp-actions--single">
+          <Button size="sm" disabled={code.length < 6 || joining} onClick={() => submitCode()}>
             <SwapText>{joining ? "Joining…" : "Join room"}</SwapText>
           </Button>
         </div>
@@ -248,16 +256,16 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
             Enter code
           </Button>
         </div>
-        {/* Always rendered with both messages' box reserved, so the helper fades in and out
-            without shifting the row (same pattern as the "Copied." line). */}
-        <p className="fp-sub" style={{ fontSize: 12 }} aria-live="polite">
-          <SwapText
-            swapKey={searching ? "searching" : blocked ? "blocked" : "none"}
-            reserveWidth={["Cancel matchmaking to open a room.", "Finish your current game first."]}
-          >
-            {searching ? "Cancel matchmaking to open a room." : blocked ? "Finish your current game first." : "\u00a0"}
-          </SwapText>
-        </p>
+        {/* Only when there's something to say: an always-mounted blank line (plus the flex gap)
+            left this view with more empty space at the bottom than the other Multiplayer views.
+            The Multiplayer card's AutoHeight glides the size change (UI-23). */}
+        <AnimatePresence initial={false}>
+          {(searching || blocked) && (
+            <motion.p key="fp-hint" className="fp-sub" style={{ fontSize: 12 }} role="status" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+              {GAME_IN_PROGRESS}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </>
     );
   }

@@ -33,7 +33,7 @@ import { games } from "../utils/GameUtils";
 
 type Phase = "idle" | "searching" | "lobby" | "intro" | "playing" | "waiting" | "results" | "ended";
 type Outcome = "win" | "loss" | "tie";
-type NoticeKind = "info" | "warn" | "error";
+type NoticeKind = "info" | "warn" | "error" | "points";
 type RoomType = "match" | "friend";
 
 export interface Notice { kind: NoticeKind; text: string }
@@ -156,9 +156,11 @@ type Action =
   | { t: "PROPOSAL_PROGRESS"; username?: string }
   | { t: "PROPOSAL_DECLINED"; username?: string }
   | { t: "PROPOSAL_CANCELLED" }
+  | { t: "PROPOSAL_WITHDRAWN" }
   | { t: "PROPOSAL_TIMEOUT" }
   | { t: "RESUME"; snapshot: ResumeSnapshot }
   | { t: "NOTICE"; notice: Notice }
+  | { t: "MATCH_ERROR"; message: string }
   | { t: "CLEAR_NOTICE" }
   | { t: "RESET" };
 
@@ -242,13 +244,13 @@ function reducer(state: MpState, a: Action): MpState {
       return {
         ...state, phase: "intro", introElapsed: false, gameData: null, turnState: null,
         game: a.game ?? state.game,
-        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null,
+        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null, notice: state.notice?.kind === "points" ? null : state.notice,
         ended: null, oppStatus: freshStatus(state.opponents), error: null,
       };
     case "FRIEND_CREATE":
-      return { ...state, friendPending: "create", friendJoinError: null };
+      return { ...state, friendPending: "create", friendJoinError: null, notice: null };
     case "FRIEND_JOIN":
-      return { ...state, friendPending: "join", friendJoinError: null };
+      return { ...state, friendPending: "join", friendJoinError: null, notice: null };
     case "FRIEND_LOBBY": {
       // Covers created / joined / lobby-changed — the snapshot is authoritative.
       // Screens derive "am I the host?" by comparing hostUid to their own user.
@@ -300,10 +302,19 @@ function reducer(state: MpState, a: Action): MpState {
       return { ...state, proposal: null, notice: { kind: "warn", text: `${a.username || firstOppName(state)} declined.` } };
     case "PROPOSAL_CANCELLED":
       return { ...state, proposal: null, notice: { kind: "info", text: "The request was withdrawn." } };
+    case "PROPOSAL_WITHDRAWN":
+      // We cancelled our own request: the relay only tells the others, so clear it here.
+      return { ...state, proposal: null };
     case "PROPOSAL_TIMEOUT":
       return { ...state, proposal: null, notice: { kind: "warn", text: "No response in time." } };
     case "NOTICE":
       return { ...state, notice: a.notice };
+    case "MATCH_ERROR":
+      // Refused before a room existed (not signed in, already in a match, game not available):
+      // drop back to idle so the player can try again, and say why.
+      return state.phase === "searching"
+        ? { ...initial, notice: { kind: "error", text: a.message } }
+        : { ...state, notice: { kind: "error", text: a.message } };
     case "CLEAR_NOTICE":
       return { ...state, notice: null };
     case "RESUME": {
@@ -394,6 +405,13 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   codeRef.current = mp.code;
   userRef.current = user;
+  // The UI flips to busy on click and the request goes out once the connection is ready; a cancel /
+  // leave in between bumps this, so the stale request is dropped instead of sent.
+  const actionSeq = useRef(0);
+  // The search request (by actionSeq id) that reached the server, so a reconnect can re-send it.
+  const searchSent = useRef(0);
+  const mpRef = useRef(mp);
+  mpRef.current = mp;
 
   // ---- Identity: (re)announce ourselves on every connect so the server can
   //      resume an in-flight match. The relay trusts only the access token: it
@@ -411,7 +429,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         token = getAccessToken();
       }
     }
-    socket.emit("identify", { user: current, token });
+    // Only the token: the relay never reads a client's user object, and sending it (a profile photo
+    // can be a large data URL) pushed the packet past the relay's 16 KB limit, which drops the socket.
+    socket.emit("identify", { token });
   }, []);
 
   useEffect(() => {
@@ -427,6 +447,38 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     if (user?.id) socket.connect();
     else socket.disconnect();
   }, [user?.id]);
+
+  // A tab the browser froze or throttled while hidden (Memory/Energy Saver, extensions) misses the
+  // server's heartbeat and gets dropped. Reconnect as soon as the player is back (tab shown, window
+  // focused, network restored), so a click normally finds a live connection instead of waiting on one.
+  useEffect(() => {
+    if (!socketConfigured || !user?.id) return;
+    const revive = () => {
+      if (document.visibilityState === "visible" && !socket.connected) socket.connect();
+    };
+    document.addEventListener("visibilitychange", revive);
+    window.addEventListener("focus", revive);
+    window.addEventListener("online", revive);
+    return () => {
+      document.removeEventListener("visibilitychange", revive);
+      window.removeEventListener("focus", revive);
+      window.removeEventListener("online", revive);
+    };
+  }, [user?.id]);
+
+  // ---- Back online while searching: the server dropped us from the queue when the connection
+  //      went (a frozen background tab, a network blip) but the screen still says "searching", so
+  //      join the queue again. Only for a search that had already been sent (not the first connect). ----
+  useEffect(() => {
+    const requeue = () => {
+      const s = mpRef.current;
+      if (s.phase !== "searching" || !s.game || searchSent.current !== actionSeq.current) return;
+      const game = s.game;
+      void identifyNow().then(() => socket.emit("findMatch", { game: serializeGame(game) }));
+    };
+    socket.on("connect", requeue);
+    return () => { socket.off("connect", requeue); };
+  }, [identifyNow]);
 
   // ---- Socket event wiring ----
   useEffect(() => {
@@ -476,12 +528,12 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         t: "RESUME",
         snapshot: { ...snapshot, game: localGame(snapshot.game) as Game, lobby: snapshot.lobby ? withLocalGame(snapshot.lobby) : snapshot.lobby },
       }),
-      matchError: (d: { message: string }) => dispatch({ t: "NOTICE", notice: { kind: "error", text: d.message } }),
+      matchError: (d: { message: string }) => dispatch({ t: "MATCH_ERROR", message: d?.message || "Couldn't start online play. Please try again." }),
       // The relay credited this match to the account (Django already saved it); updatePoints is a delta.
       pointsAwarded: (d: { awarded?: number } = {}) => {
         if (!d?.awarded || d.awarded <= 0) return;
         reduxDispatch(updatePoints(d.awarded));
-        dispatch({ t: "NOTICE", notice: { kind: "info", text: `+${d.awarded} pts added to your profile` } });
+        dispatch({ t: "NOTICE", notice: { kind: "points", text: `+${d.awarded} pts added to your profile` } });
       },
       // The relay refused our token. A ban ends the session app-wide (BanNotice); the relay
       // has already dropped the socket. Anything else is a transient notice.
@@ -517,7 +569,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   // ---- Auto-clear transient info/warn notices. ----
   useEffect(() => {
-    if (!mp.notice || mp.notice.kind === "error") return;
+    // Errors wait for a dismiss; the points badge stays for the whole results screen.
+    if (!mp.notice || mp.notice.kind === "error" || mp.notice.kind === "points") return;
     const id = setTimeout(() => dispatch({ t: "CLEAR_NOTICE" }), 3200);
     return () => clearTimeout(id);
   }, [mp.notice]);
@@ -531,42 +584,61 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     }
   }, [mp.code, mp.phase, mp.game, pathname, navigate]);
 
-  const guardOnline = useCallback((): boolean => {
-    if (!userRef.current) {
-      dispatch({ t: "NOTICE", notice: { kind: "error", text: "You need to be signed in to play online." } });
-      return false;
+  // Before any online action: signed in, and a live connection. A socket the server dropped (or a
+  // network blip after which socket.io gave up) is reconnected here rather than failing silently.
+  // Callers switch the UI to its busy state FIRST and await this behind it: a click must answer
+  // instantly even when the connection needs a second to come back. Returns why it can't go, or null.
+  const readyOnline = useCallback(async (): Promise<string | null> => {
+    if (!userRef.current) return "You need to be signed in to play online.";
+    if (!socket.connected && socketConfigured) {
+      socket.connect();
+      await new Promise<void>((resolve) => {
+        const done = () => { window.clearTimeout(timer); socket.off("connect", done); socket.off("connect_error", done); resolve(); };
+        const timer = window.setTimeout(done, 6000);
+        socket.once("connect", done);
+        socket.once("connect_error", done);
+      });
     }
-    if (!socket.connected) {
-      dispatch({ t: "NOTICE", notice: { kind: "error", text: "Can't reach the game server. Please try again." } });
-      return false;
-    }
-    return true;
+    return socket.connected ? null : "Can't reach the game server. Please try again.";
   }, []);
 
-  const findMatch = useCallback((game: Game) => {
-    if (!guardOnline()) return;
-    dispatch({ t: "FIND", game });
-    void identifyNow().then(() => socket.emit("findMatch", { game: serializeGame(game) }));
-  }, [guardOnline, identifyNow]);
+  const findMatch = useCallback(async (game: Game) => {
+    const id = ++actionSeq.current;
+    dispatch({ t: "FIND", game }); // instant: the button reads "Cancel" / searching straight away
+    const problem = await readyOnline();
+    if (problem) return dispatch({ t: "MATCH_ERROR", message: problem });
+    await identifyNow();
+    if (actionSeq.current !== id) return; // cancelled while connecting
+    socket.emit("findMatch", { game: serializeGame(game) });
+    searchSent.current = id;
+  }, [readyOnline, identifyNow]);
 
-  const createFriendRoom = useCallback((game: Game) => {
-    if (!guardOnline()) return;
-    dispatch({ t: "FRIEND_CREATE" });
-    void identifyNow().then(() => socket.emit("createFriendRoom", { game: serializeGame(game) }));
-  }, [guardOnline, identifyNow]);
+  const createFriendRoom = useCallback(async (game: Game) => {
+    const id = ++actionSeq.current;
+    dispatch({ t: "FRIEND_CREATE" }); // instant "Creating…"
+    const problem = await readyOnline();
+    if (problem) return dispatch({ t: "FRIEND_ERROR", message: problem });
+    await identifyNow();
+    if (actionSeq.current !== id) return; // left the friend flow meanwhile
+    socket.emit("createFriendRoom", { game: serializeGame(game) });
+  }, [readyOnline, identifyNow]);
 
-  const joinFriendRoom = useCallback((code: string) => {
-    if (!guardOnline()) return;
-    dispatch({ t: "FRIEND_JOIN" });
-    void identifyNow().then(() => socket.emit("joinFriendRoom", { code }));
-  }, [guardOnline, identifyNow]);
+  const joinFriendRoom = useCallback(async (code: string) => {
+    const id = ++actionSeq.current;
+    dispatch({ t: "FRIEND_JOIN" }); // instant "Joining…"
+    const problem = await readyOnline();
+    if (problem) return dispatch({ t: "FRIEND_JOIN_ERROR", message: problem });
+    await identifyNow();
+    if (actionSeq.current !== id) return; // left the friend flow meanwhile
+    socket.emit("joinFriendRoom", { code });
+  }, [readyOnline, identifyNow]);
 
   const changeFriendGame = useCallback((game: Game) => {
     socket.emit("changeFriendGame", { code: codeRef.current, game: serializeGame(game) });
   }, []);
 
   const resetFriendJoinError = useCallback(() => dispatch({ t: "FRIEND_JOIN_RESET" }), []);
-  const cancelFind = useCallback(() => { socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
+  const cancelFind = useCallback(() => { actionSeq.current++; socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
   const submitScore = useCallback((score: number, elapsedMs?: number) => {
     if (codeRef.current == null) return; // no live room — stale end-call, drop it
     dispatch({ t: "SUBMITTED", score });
@@ -579,9 +651,13 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const proposeAgain = useCallback(() => socket.emit("proposeAgain", { code: codeRef.current }), []);
   const proposeSwitch = useCallback((game: Game) => socket.emit("proposeSwitch", { code: codeRef.current, game: serializeGame(game) }), []);
   const respondProposal = useCallback((accept: boolean) => socket.emit("respondProposal", { code: codeRef.current, accept }), []);
-  const cancelProposal = useCallback(() => socket.emit("cancelProposal", { code: codeRef.current }), []);
+  const cancelProposal = useCallback(() => {
+    socket.emit("cancelProposal", { code: codeRef.current });
+    dispatch({ t: "PROPOSAL_WITHDRAWN" });
+  }, []);
   const reportProgress = useCallback((round: number, total: number) => socket.emit("reportProgress", { code: codeRef.current, round, total }), []);
   const leaveMatch = useCallback(() => {
+    actionSeq.current++;
     socket.emit("leaveMatch", { code: codeRef.current });
     dispatch({ t: "RESET" });
   }, []);
