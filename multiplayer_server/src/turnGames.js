@@ -8,7 +8,7 @@
 //
 // Public surface (consumed by index.js — the only file allowed to call in):
 //   roomConfigFor(gameId)            -> { min, max }        (friend-room sizing)
-//   init(room, helpers)              -> start a turn game in a live room
+//   init(room, helpers, isCurrent)   -> start a turn game in a live room (unless isCurrent() went false meanwhile)
 //   handleAction(room, uid, action, helpers)  -> apply a client turnAction
 //   onDisconnect(room, uid, helpers) -> a dropped player's turn auto-passes
 //   resumeFor(room, uid, helpers)    -> re-push the current turnState on reconnect
@@ -141,14 +141,16 @@ function resumeFor(room, uid, helpers) {
 // =========================================================================
 //  Dispatch
 // =========================================================================
-async function init(room, helpers) {
+async function init(room, helpers, isCurrent = () => true) {
   // Turn games reset the shared score/time maps themselves (they never go
   // through dealRound's reset) and mark the room live before the first broadcast.
+  // `isCurrent()` turns false once the room moved on while the question loaded (back to the lobby,
+  // destroyed, a newer deal): the stale deal then sets up nothing — no turn state, timer or broadcast.
   room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
   room.times = Object.fromEntries(room.members.map((m) => [m, null]));
   room.phase = "playing";
-  if (room.gameId === "tictactoe") return initTTT(room, helpers);
-  if (room.gameId === "imposter") return initImposter(room, helpers);
+  if (room.gameId === "tictactoe") return initTTT(room, helpers, isCurrent);
+  if (room.gameId === "imposter") return initImposter(room, helpers, isCurrent);
 }
 
 function handleAction(room, uid, action, helpers) {
@@ -204,8 +206,9 @@ function tttWinner(board) {
   return null;
 }
 
-async function initTTT(room, helpers) {
+async function initTTT(room, helpers, isCurrent) {
   const [question, names] = await Promise.all([questions.deal("tictactoe"), questions.loadNames()]);
+  if (!isCurrent()) return;
   const state = {
     board: Array(9).fill(null),
     criteria: { rows: question.rows, cols: question.cols },
@@ -362,8 +365,9 @@ function imposterStateFor(room, uid) {
   };
 }
 
-async function initImposter(room, helpers) {
+async function initImposter(room, helpers, isCurrent) {
   const mystery = await pickMystery();
+  if (!isCurrent()) return;
   const members = [...room.members];
   const imposterUid = members[Math.floor(Math.random() * members.length)];
   const order = shuffle(members); // clue-speaking order

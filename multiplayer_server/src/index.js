@@ -84,6 +84,8 @@ const EVENT_MAX = 30;              // …per window; real clients send a handful
 const IDENTIFY_HOLD_MS = 5000;     // longest a new socket's events wait for its first identify
 const ANON_IDLE_MS = 20000;        // a socket that never sends identify is dropped after this
 const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) again sooner than this
+const AWAY_NOTICE_MS = 15 * 60000; // how long a player removed while away (grace ran out) is told so on return
+const AWAY_MESSAGE = "You were away too long and left the room.";
 const MAX_SCORE = 1000;            // above every game's maxPoints (career-path's 700 is the largest)
 const INTRO_ALLOWANCE_MS = 5000;   // the VS intro (2.6 s) + latency between the deal and the first answer
 
@@ -124,6 +126,9 @@ const players = new Map();
 const rooms = new Map();
 // gameId -> [{ uid, user }]
 const queues = new Map();
+// uid -> when a grace timeout removed them from their room (their player record is gone by then), so
+// the next identify can tell the client it left instead of leaving it on a dead screen.
+const awayRemoved = new Map();
 
 // =========================
 //  Helpers
@@ -162,6 +167,7 @@ function makeRoom(code, gameId, game, members, type = "match", size = 2) {
     lobbyTimer: null,                        // TTL handle while a friend lobby waits for the host to start
     turn: null,                              // turnGames per-room state (turn-based games only)
     turnTimer: null,                         // turnGames per-turn/phase timeout handle
+    credited: new Set(),                     // uids already credited for this round (dealRound renews it)
   };
 }
 
@@ -273,23 +279,19 @@ async function dealRound(room) {
   // that finishes loading after the room moved on can tell it is stale.
   const gen = (room.dealGen = (room.dealGen || 0) + 1);
   room.credited = new Set(); // uids already credited for this round (see creditRoom)
+  // The new round has no scores yet, from the start of the load: a leave while it loads must not
+  // see the previous round's scores and settle (and credit) that round again.
+  room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
+  room.times = Object.fromEntries(room.members.map((m) => [m, null]));
   // Turn-based games don't fetch a shared round — they boot a server-authoritative
   // state machine that broadcasts turnState instead of roundData.
   if (TURN_GAMES.has(room.gameId)) {
+    // A deal the room moved on from (back to the lobby, destroyed, a newer deal) must not touch
+    // room.turn, arm a timer or broadcast: init checks this before it sets anything up.
+    const isCurrent = () => room.dealGen === gen && room.phase === "playing";
     try {
-      await turnGames.init(room, turnHelpers); // sets phase "playing" up front, turn state once loaded
-      if (room.dealGen !== gen || room.phase !== "playing") {
-        // The room moved on while the game loaded: undo the state init just set up, and re-send
-        // the lobby (when the room still has one) so clients drop the stray turnState.
-        if (room.turnTimer) clearTimeout(room.turnTimer);
-        room.turnTimer = null;
-        room.turn = null;
-        if (rooms.get(room.code) === room && room.phase === "lobby") {
-          const snap = lobbySnapshot(room);
-          room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
-        }
-        return;
-      }
+      await turnGames.init(room, turnHelpers, isCurrent); // sets phase "playing" up front, turn state once loaded
+      if (!isCurrent()) return;
     } catch (err) {
       if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
       console.error(`Turn game init failed for room ${room.code}:`, err.message);
@@ -462,7 +464,9 @@ function removeMember(room, uid, why) {
     if (room.phase === "lobby") {
       othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message: "The host closed the room." }));
     } else {
-      const message = room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
+      // A friend room's host leaving (or timing out) closes the room in every phase.
+      const message = room.type === "friend" ? "The host closed the room."
+        : room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
       othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
     }
     destroyRoom(room, why);
@@ -486,14 +490,16 @@ function removeMember(room, uid, why) {
     room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
     return;
   }
-  if (room.members.length < 2 || room.turn) {
+  // A turn game can't continue a seat short, even while it is still loading (room.turn is null then).
+  if (room.members.length < 2 || TURN_GAMES.has(room.gameId)) {
     backToLobby(room, `${name} left, so the match ended.`);
     return;
   }
   clearProposal(room);
   room.members.forEach((m) => toUid(m, "memberLeft", { id: uid, username: name, message: `${name} left the match.` }));
-  // Their missing score no longer holds up the settle.
-  if (room.phase !== "results" && room.members.every((m) => room.scores[m] != null)) settleMatch(room);
+  // Their missing score no longer holds up the settle (only a round being played: not one still loading).
+  const live = room.phase === "playing" || room.phase === "waiting";
+  if (live && room.members.every((m) => room.scores[m] != null)) settleMatch(room);
 }
 
 function clearProposal(room) {
@@ -693,6 +699,7 @@ const joinThrottled = (uid) => overLimit(joinWindows, uid, JOIN_WINDOW_MS, JOIN_
 setInterval(() => {
   const now = Date.now();
   for (const [uid, w] of joinWindows) if (now - w.start > JOIN_WINDOW_MS) joinWindows.delete(uid);
+  for (const [uid, at] of awayRemoved) if (now - at > AWAY_NOTICE_MS) awayRemoved.delete(uid);
 }, 60000).unref();
 
 /** A friend lobby that never fills evaporates, freeing its code for reuse. */
@@ -824,7 +831,9 @@ io.on("connection", (socket) => {
 
     // Reconnecting into a live room? Rejoin and resume.
     const room = prev?.roomCode ? rooms.get(prev.roomCode) : null;
-    if (room) {
+    const away = awayRemoved.has(uid);
+    awayRemoved.delete(uid);
+    if (room?.members.includes(uid)) {
       if (room.graceTimers[uid]) {
         clearTimeout(room.graceTimers[uid]);
         delete room.graceTimers[uid];
@@ -845,6 +854,11 @@ io.on("connection", (socket) => {
         othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { id: uid, username: nameOf(uid) }));
       }
       console.log(`Room ${room.code}: player resumed (${room.phase})`);
+    } else if (away || prev?.roomCode) {
+      // Removed while away (the grace window ran out, so the player record went with it), or the
+      // room it names no longer seats them: end the client's room screen instead of leaving it stuck.
+      players.get(uid).roomCode = null;
+      socket.emit("roomLeft", { message: AWAY_MESSAGE });
     }
   }
 
@@ -1023,6 +1037,11 @@ io.on("connection", (socket) => {
     const uid = uidOf(socket);
     if (!room || room.type !== "friend" || room.phase !== "lobby") return;
     if (!uid || room.members[0] !== uid) return;
+    // Start / Stop / Start loops re-deal (and may re-fetch) a round each time, like restartRoom.
+    if (Date.now() - Math.max(room.restartedAt || 0, room.dealtAt || 0) < RESTART_MIN_MS) {
+      socket.emit("friendError", { message: "Wait a moment before starting another game." });
+      return;
+    }
     const { min, max } = turnGames.roomConfigFor(room.gameId);
     if (room.members.length < min) {
       socket.emit("friendError", { message: `Need at least ${min} players to start.` });
@@ -1046,7 +1065,8 @@ io.on("connection", (socket) => {
     const uid = uidOf(socket);
     if (!room || room.type !== "friend" || room.phase === "lobby") return;
     if (!uid || room.members[0] !== uid) return;
-    backToLobby(room, "The host ended the match.", uid);
+    // From the results the round already finished: nothing was "ended".
+    backToLobby(room, room.phase === "results" ? "The host went back to the lobby." : "The host ended the match.", uid);
     console.log(`Room ${room.code}: host stopped the match`);
   });
 
@@ -1074,6 +1094,9 @@ io.on("connection", (socket) => {
       socket.emit("friendError", { message: `${gameObj.name} is for ${max} players; ${room.members.length} are seated.` });
       return;
     }
+    // The size follows the new game's bounds (as changeFriendGame does), so the lobby this room
+    // returns to never holds more seats than its game can start with.
+    room.capacity = clampRoomSize(gameObj.id, room.capacity, room.members.length);
     restartRound(room, gameObj, "host");
   });
 
@@ -1094,9 +1117,13 @@ io.on("connection", (socket) => {
     if (!uid) return;
     const room = rooms.get(code);
     if (!room || !room.members.includes(uid)) {
-      // The match is gone (the server restarted, or it was closed): end the client's
-      // "Waiting for…" screen instead of leaving it there forever.
-      if (!room && !players.get(uid)?.roomCode) socket.emit("opponentLeft", { message: "This match is no longer running." });
+      // The match is gone (the server restarted, or it was closed), or it no longer seats this
+      // player (removed after the grace window): end the client's "Waiting for…" screen instead of
+      // leaving it there forever. Not while they sit in another live room (a stale score).
+      if (!rooms.get(players.get(uid)?.roomCode)?.members.includes(uid)) {
+        if (room) socket.emit("roomLeft", { message: AWAY_MESSAGE });
+        else socket.emit("opponentLeft", { message: "This match is no longer running." });
+      }
       return;
     }
     // Only a dealt round takes scores (not a lobby, the intro, or a turn game's own scoring).
@@ -1261,6 +1288,7 @@ io.on("connection", (socket) => {
       room.graceTimers[uid] = setTimeout(() => {
         removeMember(room, uid, "lobby grace timeout");
         players.delete(uid);
+        awayRemoved.set(uid, Date.now());
       }, LOBBY_GRACE_MS);
       return;
     }
@@ -1271,6 +1299,7 @@ io.on("connection", (socket) => {
     room.graceTimers[uid] = setTimeout(() => {
       removeMember(room, uid, "grace timeout");
       players.delete(uid);
+      awayRemoved.set(uid, Date.now());
     }, GRACE_MS);
   });
 });
