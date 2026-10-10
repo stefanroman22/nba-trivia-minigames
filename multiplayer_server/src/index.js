@@ -21,9 +21,10 @@
 //     everyone else must accept before a new round starts. Switching games does
 //     NOT require re-queuing — the players stay in their room.
 //   • Friend rooms        — the host creates a lobby and gets a 6-digit code;
-//     friends join with the code and the match starts the moment the room is
-//     full. The host can cancel or change the game while waiting; if anyone
-//     leaves (lobby or match) the room is cancelled for everyone.
+//     friends join with the code and the host starts the room from the lobby
+//     (see startRoomNow). The host can cancel or change the game while
+//     waiting; if anyone leaves (lobby or match) the room is cancelled for
+//     everyone.
 //
 // Scale notes (millions of concurrent rooms)
 // ------------------------------------------
@@ -891,14 +892,31 @@ io.on("connection", (socket) => {
     const game = cleanGame(sent);
     if (!room || room.type !== "friend" || room.phase !== "lobby") return;
     if (!uid || room.members[0] !== uid || !game) return;
+    // A game with a smaller cast than the seated players would strand someone: refuse it.
+    const { max } = turnGames.roomConfigFor(game.id);
+    if (room.members.length > max) {
+      socket.emit("friendError", { message: `${game.name} is for ${max} players; ${room.members.length} are seated.` });
+      return;
+    }
     room.gameId = game.id;
     room.game = game;
-    // Capacity follows the game (imposter seats 5, everything else 2). Never
-    // shrink below who's already seated.
+    // The size follows the new game's bounds, never shrinking below who is already seated.
     room.capacity = clampRoomSize(game.id, room.capacity, room.members.length);
     const snap = lobbySnapshot(room);
     room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
     console.log(`Friend room ${room.code} game -> ${game.id}`);
+  });
+
+  // Host-only (lobby): how many players the room is for, within the game's bounds and never below
+  // who is already seated.
+  socket.on("setRoomSize", ({ code, size } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase !== "lobby") return;
+    if (!uid || room.members[0] !== uid) return;
+    room.capacity = clampRoomSize(room.gameId, size, room.members.length);
+    const snap = lobbySnapshot(room);
+    room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
   });
 
   // Host-only: start the room once at least `min` players are seated and everyone is online.
@@ -907,9 +925,14 @@ io.on("connection", (socket) => {
     const uid = uidOf(socket);
     if (!room || room.type !== "friend" || room.phase !== "lobby") return;
     if (!uid || room.members[0] !== uid) return;
-    const { min } = turnGames.roomConfigFor(room.gameId);
+    const { min, max } = turnGames.roomConfigFor(room.gameId);
     if (room.members.length < min) {
       socket.emit("friendError", { message: `Need at least ${min} players to start.` });
+      return;
+    }
+    // Backstop: never start a game with more seated players than it supports.
+    if (room.members.length > max) {
+      socket.emit("friendError", { message: `${room.game.name} is for ${max} players; ${room.members.length} are seated.` });
       return;
     }
     if (!room.members.every((m) => socketIdOf(m))) {
@@ -978,7 +1001,7 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
-    // A lobby starts through startRoomNow / filling up (which enforce the game's minimum players).
+    // A lobby starts through startRoomNow (which enforces the game's minimum players).
     if (room.phase === "lobby") return;
 
     // If someone else already has a proposal open, treat this as an accept.

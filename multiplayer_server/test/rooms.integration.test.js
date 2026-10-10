@@ -159,3 +159,41 @@ test("the host cannot start while a seated player is reconnecting", async () => 
   assert.match((await err).message, /reconnect/);
   gus.emit("leaveMatch", {});
 });
+
+test("the host resizes the room within bounds; guests cannot", async () => {
+  const ivy = await player("Ivy");
+  const jay = await player("Jay");
+  const snap = await createRoom(ivy, "name-logo", 2);
+  await join(jay, snap.code);
+
+  const up = next(jay, "friendLobbyUpdate");
+  ivy.emit("setRoomSize", { code: snap.code, size: 4 });
+  assert.equal((await up).capacity, 4);
+
+  jay.emit("setRoomSize", { code: snap.code, size: 3 });
+  assert.equal(await arrives(ivy, "friendLobbyUpdate"), false, "a guest resized the room");
+
+  const floor = next(jay, "friendLobbyUpdate");
+  ivy.emit("setRoomSize", { code: snap.code, size: 1 });
+  assert.equal((await floor).capacity, 2, "size dropped below the seated count");
+  ivy.emit("leaveMatch", {});
+});
+
+test("a game whose max is below the seated count is refused; otherwise the size is re-clamped", async () => {
+  const kim = await player("Kim");
+  const lee = await player("Lee");
+  const mo = await player("Mo");
+  const snap = await createRoom(kim, "name-logo", 3);
+  await join(lee, snap.code);
+  await join(mo, snap.code);
+
+  const err = next(kim, "friendError");
+  kim.emit("changeFriendGame", { code: snap.code, game: { id: "tictactoe" } });
+  assert.match((await err).message, /2 players/);
+
+  const ned = await player("Ned");
+  const refused = next(ned, "friendJoinError");
+  ned.emit("joinFriendRoom", { code: snap.code });
+  assert.match((await refused).message, /full/);
+  kim.emit("leaveMatch", {});
+});
