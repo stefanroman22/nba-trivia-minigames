@@ -88,3 +88,13 @@ export function currentLogoUrl(name?: string | null): string | null {
   const id = NORMALIZED[name.trim().toLowerCase()];
   return id ? logoForId(id) : null;
 }
+
+/**
+ * The scrambled (text removed, recoloured, mirrored, rotated) logo Name the Logo shows before the
+ * guess, served from public/logos/scrambled/<team id>.webp. Built by scripts/scramble-logos for the
+ * 30 current franchises; returns null for anything else so callers can fall back.
+ */
+export function scrambledLogoUrl(teamId?: number | null, name?: string | null): string | null {
+  const id = teamId ?? (name ? NORMALIZED[name.trim().toLowerCase()] : undefined);
+  return id && id >= 1610612737 && id <= 1610612766 ? `/logos/scrambled/${id}.webp` : null;
+}

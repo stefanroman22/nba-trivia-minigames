@@ -33,6 +33,7 @@ export interface PlayoffSeries {
 }
 
 export interface NbaTeamLogo {
+  team_id?: number;
   full_name: string;
   logo: string;
 }
