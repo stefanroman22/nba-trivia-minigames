@@ -6,7 +6,7 @@
  * Covers both flavours of online play:
  *   • random 1v1 matchmaking ("Play online")
  *   • private friend rooms — the host generates a 6-digit code, friends join
- *     with it, and the match starts the moment the room is full.
+ *     with it, and the host starts the room from its lobby.
  *
  * The reducer is a small state machine whose `phase` drives the UI:
  *   idle → searching → intro → playing → waiting → results        (matchmaking)
@@ -68,6 +68,8 @@ export interface FriendLobby {
   code: number;
   game: Game;
   capacity: number;
+  min: number;
+  max: number;
   hostUid: string;
   members: LobbyMember[];
 }
@@ -123,6 +125,8 @@ interface LobbySnapshot {
   code: number;
   game: Game;
   capacity: number;
+  min: number;
+  max: number;
   hostUid: string;
   members: LobbyMember[];
 }
@@ -151,6 +155,9 @@ type Action =
   | { t: "OPP_DISCONNECTED"; id?: string; username?: string }
   | { t: "OPP_RECONNECTED"; id?: string; username?: string }
   | { t: "OPP_LEFT"; message: string }
+  | { t: "ROOM_LEFT"; message: string }
+  | { t: "MATCH_STOPPED"; message: string }
+  | { t: "MEMBER_LEFT"; id?: string; username?: string; message: string }
   | { t: "PROPOSAL_PENDING"; ptype: "again" | "switch"; gameId?: string; gameName?: string }
   | { t: "PROPOSAL_RECEIVED"; ptype: "again" | "switch"; gameId?: string; gameName?: string; fromName?: string }
   | { t: "PROPOSAL_PROGRESS"; username?: string }
@@ -258,12 +265,25 @@ function reducer(state: MpState, a: Action): MpState {
       return {
         ...initial, phase: "lobby", code: l.code, game: l.game,
         roomType: "friend", roomSize: l.members.length,
-        lobby: { code: l.code, game: l.game, capacity: l.capacity, hostUid: l.hostUid, members: l.members },
-        notice: state.notice,
+        lobby: { code: l.code, game: l.game, capacity: l.capacity, min: l.min, max: l.max, hostUid: l.hostUid, members: l.members },
+        // An error (a refused start, a game too big for the room) is about the lobby as it was.
+        notice: state.notice?.kind === "points" || state.notice?.kind === "error" ? null : state.notice,
       };
     }
     case "FRIEND_CANCELLED":
       return { ...initial, notice: { kind: "warn", text: a.message } };
+    case "MATCH_STOPPED":
+      // The host ended the match (or too few players remain): a FRIEND_LOBBY follows and keeps this notice.
+      return { ...state, notice: { kind: "info", text: a.message } };
+    case "MEMBER_LEFT": {
+      // A guest left mid-round; the rest of us keep playing.
+      const key = a.id || a.username;
+      const opponents = state.opponents.filter((o) => playerKey(o) !== key);
+      const oppStatus = { ...state.oppStatus };
+      if (key) delete oppStatus[key];
+      const roomSize = opponents.length < state.opponents.length ? Math.max(2, state.roomSize - 1) : state.roomSize;
+      return { ...state, opponents, oppStatus, roomSize, notice: { kind: "warn", text: a.message } };
+    }
     case "FRIEND_ERROR":
       return { ...state, friendPending: null, notice: { kind: "error", text: a.message } };
     case "FRIEND_JOIN_ERROR":
@@ -292,6 +312,12 @@ function reducer(state: MpState, a: Action): MpState {
     }
     case "OPP_LEFT":
       return { ...state, phase: "ended", proposal: null, ended: { reason: "left", message: a.message } };
+    case "ROOM_LEFT":
+      // The relay removed us while we were away: a lobby closes like a cancelled room, a match
+      // ends like an opponent leaving. Nothing to end when we aren't in a room.
+      if (state.phase === "idle" || state.phase === "searching") return state;
+      if (state.phase === "lobby") return { ...initial, notice: { kind: "warn", text: a.message } };
+      return { ...state, phase: "ended", proposal: null, ended: { reason: "left", message: a.message } };
     case "PROPOSAL_PENDING":
       return { ...state, proposal: { role: "mine", type: a.ptype, gameId: a.gameId, gameName: a.gameName } };
     case "PROPOSAL_RECEIVED":
@@ -308,6 +334,9 @@ function reducer(state: MpState, a: Action): MpState {
     case "PROPOSAL_TIMEOUT":
       return { ...state, proposal: null, notice: { kind: "warn", text: "No response in time." } };
     case "NOTICE":
+      // A round's points landing after the room went back to the lobby must not replace the
+      // lobby's own notice ("The host ended the match."); the points still reach the profile.
+      if (a.notice.kind === "points" && state.phase === "lobby") return state;
       return { ...state, notice: a.notice };
     case "MATCH_ERROR":
       // Refused before a room existed (not signed in, already in a match, game not available):
@@ -375,9 +404,17 @@ interface MultiplayerContextValue {
   mp: MpState;
   findMatch: (game: Game) => void;
   cancelFind: () => void;
-  createFriendRoom: (game: Game) => void;
+  createFriendRoom: (game: Game, size: number) => void;
   joinFriendRoom: (code: string) => void;
   changeFriendGame: (game: Game) => void;
+  /** Host (lobby): how many players the room is for. */
+  setRoomSize: (size: number) => void;
+  /** Host (lobby): start the match for everyone seated. */
+  startRoom: () => void;
+  /** Host (in a match): end it and return the room to its lobby. */
+  stopMatch: () => void;
+  /** Host (results): play again, or switch to `game`, for everyone at once. */
+  restartRoom: (game?: Game) => void;
   resetFriendJoinError: () => void;
   submitScore: (score: number, elapsedMs?: number) => void;
   /** Turn-engine games: send a player action to the authoritative server. */
@@ -506,6 +543,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       friendLobbyUpdate: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
       friendRoomCancelled: (d: { message: string }) =>
         dispatch({ t: "FRIEND_CANCELLED", message: d?.message || "The room was closed." }),
+      matchStopped: (d: { message?: string } = {}) =>
+        dispatch({ t: "MATCH_STOPPED", message: d?.message || "The match ended." }),
+      memberLeft: (d: { id?: string; username?: string; message?: string } = {}) =>
+        dispatch({ t: "MEMBER_LEFT", id: d?.id, username: d?.username, message: d?.message || "A player left the match." }),
       friendError: (d: { message: string }) =>
         dispatch({ t: "FRIEND_ERROR", message: d?.message || "Something went wrong. Please try again." }),
       friendJoinError: (d: { message: string }) =>
@@ -516,6 +557,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       opponentDisconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", id: d?.id, username: d?.username }),
       opponentReconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", id: d?.id, username: d?.username }),
       opponentLeft: (d: { message: string }) => dispatch({ t: "OPP_LEFT", message: d?.message || "Your opponent left." }),
+      roomLeft: (d: { message?: string } = {}) =>
+        dispatch({ t: "ROOM_LEFT", message: d?.message || "You were away too long and left the room." }),
       proposalPending: (d: { type: "again" | "switch"; gameId?: string; gameName?: string }) =>
         dispatch({ t: "PROPOSAL_PENDING", ptype: d.type, gameId: d.gameId, gameName: d.gameName }),
       proposalReceived: (d: { type: "again" | "switch"; gameId?: string; gameName?: string; fromName?: string }) =>
@@ -613,14 +656,14 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     searchSent.current = id;
   }, [readyOnline, identifyNow]);
 
-  const createFriendRoom = useCallback(async (game: Game) => {
+  const createFriendRoom = useCallback(async (game: Game, size: number) => {
     const id = ++actionSeq.current;
     dispatch({ t: "FRIEND_CREATE" }); // instant "Creating…"
     const problem = await readyOnline();
     if (problem) return dispatch({ t: "FRIEND_ERROR", message: problem });
     await identifyNow();
     if (actionSeq.current !== id) return; // left the friend flow meanwhile
-    socket.emit("createFriendRoom", { game: serializeGame(game) });
+    socket.emit("createFriendRoom", { game: serializeGame(game), size });
   }, [readyOnline, identifyNow]);
 
   const joinFriendRoom = useCallback(async (code: string) => {
@@ -636,6 +679,11 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const changeFriendGame = useCallback((game: Game) => {
     socket.emit("changeFriendGame", { code: codeRef.current, game: serializeGame(game) });
   }, []);
+  const setRoomSize = useCallback((size: number) => socket.emit("setRoomSize", { code: codeRef.current, size }), []);
+  const startRoom = useCallback(() => socket.emit("startRoomNow", { code: codeRef.current }), []);
+  const stopMatch = useCallback(() => socket.emit("stopMatch", { code: codeRef.current }), []);
+  const restartRoom = useCallback((game?: Game) =>
+    socket.emit("restartRoom", { code: codeRef.current, game: game ? serializeGame(game) : undefined }), []);
 
   const resetFriendJoinError = useCallback(() => dispatch({ t: "FRIEND_JOIN_RESET" }), []);
   const cancelFind = useCallback(() => { actionSeq.current++; socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
@@ -665,9 +713,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<MultiplayerContextValue>(() => ({
     mp, findMatch, cancelFind, createFriendRoom, joinFriendRoom, changeFriendGame,
+    setRoomSize, startRoom, stopMatch, restartRoom,
     resetFriendJoinError, submitScore, sendTurnAction, proposeAgain, proposeSwitch,
     respondProposal, cancelProposal, leaveMatch, reportProgress, clearNotice,
-  }), [mp, findMatch, cancelFind, createFriendRoom, joinFriendRoom, changeFriendGame, resetFriendJoinError, submitScore, sendTurnAction, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, reportProgress, clearNotice]);
+  }), [mp, findMatch, cancelFind, createFriendRoom, joinFriendRoom, changeFriendGame, setRoomSize, startRoom, stopMatch, restartRoom, resetFriendJoinError, submitScore, sendTurnAction, proposeAgain, proposeSwitch, respondProposal, cancelProposal, leaveMatch, reportProgress, clearNotice]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

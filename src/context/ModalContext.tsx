@@ -3,7 +3,7 @@ import type { Game } from "../types/types";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker";
 
 export interface InstructionsPayload {
   game: Game;
@@ -23,8 +23,18 @@ export interface FeedbackPayload {
   publicId?: string;
 }
 
+/** The game picker (lobby "Change game", results "Change game"). */
+export interface GamePickerPayload {
+  /** The room's current game: listed but not pickable. */
+  currentId?: string;
+  /** Players seated now: games with a smaller cast are shown but disabled. */
+  seated?: number;
+  onPick: (game: Game) => void;
+  title?: string;
+}
+
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

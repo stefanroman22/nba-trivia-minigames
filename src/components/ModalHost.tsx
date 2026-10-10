@@ -1,13 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
-import { useModal, type FeedbackPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
+import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
+import { useMultiplayer } from "../context/MultiplayerContext";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import LogInSignUp, { type AuthPhase } from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
 import MultiplayerInfoModal from "./modals/MultiplayerInfoModal";
+import GamePickerModal from "./modals/GamePickerModal";
 
 /**
  * Single overlay host (mounted once in App). The active modal is keyed so
@@ -21,6 +23,16 @@ export default function ModalHost() {
   useEffect(() => {
     if (kind === "login") setAuthMode("login");
   }, [kind]);
+
+  // The game picker belongs to the room phase it was opened in (lobby or results): once the room
+  // moves on (back to the lobby, a restart, the match ended), its pick would go nowhere, so close it.
+  const phase = useMultiplayer().mp.phase;
+  const pickerPhase = useRef<string | null>(null);
+  useEffect(() => {
+    if (kind !== "gamePicker") { pickerPhase.current = null; return; }
+    if (pickerPhase.current === null) pickerPhase.current = phase;
+    else if (pickerPhase.current !== phase) close();
+  }, [kind, phase, close]);
 
   // Each time the leaderboard modal opens, start on the scope the opener asked for.
   // Adjusted during render (not in an effect) so the first frame already has the
@@ -60,6 +72,11 @@ export default function ModalHost() {
   } else if (kind === "multiplayerInfo") {
     title = "Multiplayer";
     content = <MultiplayerInfoModal onClose={close} />;
+  } else if (kind === "gamePicker") {
+    const p = payload as GamePickerPayload | undefined;
+    title = p?.title ?? "Change game";
+    wide = true;
+    content = p?.onPick ? <GamePickerModal currentId={p.currentId} seated={p.seated} onPick={p.onPick} onClose={close} /> : null;
   }
 
   return (

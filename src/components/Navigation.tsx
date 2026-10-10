@@ -10,7 +10,7 @@ import defaultAvatar from "../assets/default.png";
 import type { RootState } from "../store";
 import { scrollToSection } from "../utils/ScrolllToSection";
 import { useModal, type ModalKind } from "../context/ModalContext";
-import { useMultiplayer } from "../context/MultiplayerContext";
+import { useRoomGuard } from "../hooks/useRoomGuard";
 import Button from "./ui/Button";
 import { useLogout } from "../hooks/useLogout";
 import "../styles/Navigation.css";
@@ -127,7 +127,7 @@ function Navigation({ type = "full" }: NavigationProps) {
   // The chip fades in on a fresh login only (never on a cold load of an existing session).
   const reveal = useLoginReveal();
   const { open } = useModal();
-  const { mp, leaveMatch } = useMultiplayer();
+  const { confirmLeave } = useRoomGuard();
   const { logOut } = useLogout();
   const [drawer, setDrawer] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
@@ -136,8 +136,8 @@ function Navigation({ type = "full" }: NavigationProps) {
   // Scroll lock stays off so the drawer keeps its current scrolling behaviour.
   useFocusTrap(drawerRef, closeDrawer, { active: drawer, lockScroll: false });
 
-  const goHome = () => {
-    if (mp.phase !== "idle") leaveMatch(); // leave any live match before heading home
+  const goHome = async () => {
+    if (!(await confirmLeave())) return; // asks only while in a room or match
     navigate("/");
   };
 
@@ -145,11 +145,12 @@ function Navigation({ type = "full" }: NavigationProps) {
   // as a hash so Next.js's router scrolls to it once the page has mounted
   // (native hash-fragment scroll, honoring .games-section's scroll-margin-top)
   // instead of racing a fixed delay against the route load.
-  const go = (section: string) => {
+  const go = async (section: string) => {
     setDrawer(false);
     if (type === "full") {
       scrollToSection(section);
     } else {
+      if (!(await confirmLeave())) return;
       navigate(`/#${section}`);
     }
   };
@@ -183,7 +184,7 @@ function Navigation({ type = "full" }: NavigationProps) {
         <a
           href="/"
           className="nav3-brand"
-          onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); goHome(); }}
+          onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); void goHome(); }}
         >
           <img src={logo.src} alt={SITE_NAME} className="nav3-logo" width={38} height={38} />
           <div className="nav3-brand-text">
@@ -232,7 +233,7 @@ function Navigation({ type = "full" }: NavigationProps) {
               <a
                 href="/"
                 className="nav3-brand"
-                onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); setDrawer(false); goHome(); }}
+                onClick={(e) => { if (isModifiedClick(e)) return; e.preventDefault(); setDrawer(false); void goHome(); }}
               >
                 <img src={logo.src} alt="" className="nav3-logo" width={38} height={38} />
                 <div className="nav3-brand-text">

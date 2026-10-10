@@ -1,9 +1,9 @@
 // multiplayer_server/src/index.js
 //
 // Realtime match server for the NBA minigames: random 1v1 matchmaking and
-// private "play with a friend" rooms (share-code lobbies for FRIEND_ROOM_SIZE
-// players). Rooms are N-player throughout — matchmaking rooms hold 2 members,
-// friend rooms hold exactly FRIEND_ROOM_SIZE.
+// private "play with a friend" rooms (share-code lobbies for 2-4 players, the host
+// picks the size). Rooms are N-player throughout — matchmaking rooms hold 2 members,
+// friend rooms hold what the host chose, within the game's bounds (turnGames.roomConfigFor).
 //
 // Design notes
 // ------------
@@ -21,9 +21,10 @@
 //     everyone else must accept before a new round starts. Switching games does
 //     NOT require re-queuing — the players stay in their room.
 //   • Friend rooms        — the host creates a lobby and gets a 6-digit code;
-//     friends join with the code and the match starts the moment the room is
-//     full. The host can cancel or change the game while waiting; if anyone
-//     leaves (lobby or match) the room is cancelled for everyone.
+//     friends join with the code and the host starts the room from the lobby
+//     (see startRoomNow). The host can cancel or change the game while
+//     waiting; if anyone leaves (lobby or match) the room is cancelled for
+//     everyone.
 //
 // Scale notes (millions of concurrent rooms)
 // ------------------------------------------
@@ -64,16 +65,15 @@ const CORS_ORIGINS = (process.env.CORS_ORIGINS || "http://localhost:5173")
   .filter(Boolean);
 
 const MATCH_TIMEOUT_MS = 30000;    // how long to wait in the matchmaking queue
-const GRACE_MS = 30000;            // reconnect window before a dropped player forfeits
+const GRACE_MS = Number(process.env.GRACE_MS) || 30000; // reconnect window before a dropped player forfeits
 const PROPOSAL_TIMEOUT_MS = 30000; // how long a play-again / switch request stays open
 
 // Turn-based games run their own server-authoritative state machine (see
 // turnGames.js) instead of the "everyone plays a round, submit a score" flow.
 const TURN_GAMES = new Set(["tictactoe", "imposter"]);
 
-const FRIEND_ROOM_SIZE = 2;        // default friend-room size; turn games override via turnGames.roomConfigFor
 const LOBBY_TTL_MS = 15 * 60000;   // unfilled lobbies self-destruct after this long
-const LOBBY_GRACE_MS = 10000;      // reconnect window for a player who drops while in a lobby
+const LOBBY_GRACE_MS = Number(process.env.LOBBY_GRACE_MS) || 10000; // reconnect window for a player who drops while in a lobby
 const JOIN_WINDOW_MS = 10000;      // join-attempt rate limit window…
 const JOIN_MAX_TRIES = 8;          // …and how many tries a socket gets per window (anti brute-force)
 const CODE_ALLOC_TRIES = 8;        // bounded retries against the 900k active-code space
@@ -84,6 +84,8 @@ const EVENT_MAX = 30;              // …per window; real clients send a handful
 const IDENTIFY_HOLD_MS = 5000;     // longest a new socket's events wait for its first identify
 const ANON_IDLE_MS = 20000;        // a socket that never sends identify is dropped after this
 const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) again sooner than this
+const AWAY_NOTICE_MS = 15 * 60000; // how long a player removed while away (grace ran out) is told so on return
+const AWAY_MESSAGE = "You were away too long and left the room.";
 const MAX_SCORE = 1000;            // above every game's maxPoints (career-path's 700 is the largest)
 const INTRO_ALLOWANCE_MS = 5000;   // the VS intro (2.6 s) + latency between the deal and the first answer
 
@@ -124,6 +126,9 @@ const players = new Map();
 const rooms = new Map();
 // gameId -> [{ uid, user }]
 const queues = new Map();
+// uid -> when a grace timeout removed them from their room (their player record is gone by then), so
+// the next identify can tell the client it left instead of leaving it on a dead screen.
+const awayRemoved = new Map();
 
 // =========================
 //  Helpers
@@ -145,13 +150,13 @@ function allocateRoomCode() {
  *  tab, reconnect) no longer acts for that player: null for it and for guests. */
 const uidOf = (socket) => (socket.uid && players.get(socket.uid)?.socketId === socket.id ? socket.uid : null);
 
-function makeRoom(code, gameId, game, members, type = "match") {
+function makeRoom(code, gameId, game, members, type = "match", size = 2) {
   return {
     code,
     type,                                    // "match" (random 1v1) | "friend" (code lobby)
     gameId,
     game,                                    // full Game object (carries pointsPerCorrect, name…)
-    capacity: type === "friend" ? turnGames.roomConfigFor(gameId).capacity : 2,
+    capacity: type === "friend" ? clampRoomSize(gameId, size, members.length) : 2,
     members: [...members],                   // members[0] is the host
     scores: Object.fromEntries(members.map((m) => [m, null])), // final scores, null until submitted
     times: Object.fromEntries(members.map((m) => [m, null])),  // final elapsed ms per member, null until submitted
@@ -159,10 +164,18 @@ function makeRoom(code, gameId, game, members, type = "match") {
     phase: type === "friend" ? "lobby" : "intro", // lobby | intro | playing | waiting | results
     proposal: null,                          // { type:"again"|"switch", fromUid, gameId, game, accepted:Set, timeout }
     graceTimers: {},                         // uid -> setTimeout handle
-    lobbyTimer: null,                        // TTL handle while a friend lobby waits to fill
+    lobbyTimer: null,                        // TTL handle while a friend lobby waits for the host to start
     turn: null,                              // turnGames per-room state (turn-based games only)
     turnTimer: null,                         // turnGames per-turn/phase timeout handle
+    credited: new Set(),                     // uids already credited for this round (dealRound renews it)
   };
+}
+
+/** A friend room's player count within its game's bounds, never below who is already seated. */
+function clampRoomSize(gameId, size, seated) {
+  const { min, max } = turnGames.roomConfigFor(gameId);
+  const n = Number.isInteger(Number(size)) ? Number(size) : min;
+  return Math.min(max, Math.max(min, seated, n));
 }
 
 function othersOf(room, uid) {
@@ -262,12 +275,25 @@ async function dealRound(room) {
   room.turn = null;
   room.gameData = null;
   room.dealtAt = Date.now();
+  // This deal's generation: backToLobby/destroyRoom (and any newer deal) bump it, so a round
+  // that finishes loading after the room moved on can tell it is stale.
+  const gen = (room.dealGen = (room.dealGen || 0) + 1);
+  room.credited = new Set(); // uids already credited for this round (see creditRoom)
+  // The new round has no scores yet, from the start of the load: a leave while it loads must not
+  // see the previous round's scores and settle (and credit) that round again.
+  room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
+  room.times = Object.fromEntries(room.members.map((m) => [m, null]));
   // Turn-based games don't fetch a shared round — they boot a server-authoritative
   // state machine that broadcasts turnState instead of roundData.
   if (TURN_GAMES.has(room.gameId)) {
+    // A deal the room moved on from (back to the lobby, destroyed, a newer deal) must not touch
+    // room.turn, arm a timer or broadcast: init checks this before it sets anything up.
+    const isCurrent = () => room.dealGen === gen && room.phase === "playing";
     try {
-      await turnGames.init(room, turnHelpers);
+      await turnGames.init(room, turnHelpers, isCurrent); // sets phase "playing" up front, turn state once loaded
+      if (!isCurrent()) return;
     } catch (err) {
+      if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
       console.error(`Turn game init failed for room ${room.code}:`, err.message);
       room.members.forEach((uid) =>
         toUid(uid, "roundDataError", { message: "Couldn't start the game. Please try again." })
@@ -277,6 +303,7 @@ async function dealRound(room) {
   }
   try {
     const gameData = await fetchRound(room.gameId);
+    if (room.dealGen !== gen || room.phase !== "intro") return; // the room moved on (left the intro, stopped, destroyed) while the round loaded
     if (!gameData || gameData.length === 0) throw new Error("empty round");
     room.gameData = gameData;
     room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
@@ -284,6 +311,7 @@ async function dealRound(room) {
     room.phase = "playing";
     room.members.forEach((uid) => toUid(uid, "roundData", { gameData, game: room.game }));
   } catch (err) {
+    if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
     console.error(`Round load failed for room ${room.code}:`, err.message);
     room.members.forEach((uid) =>
       toUid(uid, "roundDataError", { message: "Couldn't load the game. Please try again." })
@@ -317,18 +345,19 @@ function rankRoom(room) {
 
 // Online matches add each player's score to their profile, like a solo game. Only the relay can
 // credit them: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET, and the
-// scores are this room's own (already clamped in submitScore / set by turnGames). Each round is
-// credited at most once. Unset secret (local dev): online play awards nothing.
+// scores are this room's own (already clamped in submitScore / set by turnGames). Each player is
+// credited once per round (`only` credits just those uids, e.g. a finished guest who leaves early,
+// without blocking the rest). Unset secret (local dev): online play awards nothing.
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 const RELAY_KEY = process.env.MULTIPLAYER_SHARED_SECRET || "";
 
-function creditRoom(room) {
-  if (!RELAY_KEY || room.creditedRound === room.dealtAt) return null;
-  room.creditedRound = room.dealtAt;
-  const results = room.members
-    .filter((uid) => room.scores[uid] != null)
+function creditRoom(room, only = null) {
+  if (!RELAY_KEY) return null;
+  const uids = (only ?? room.members).filter((uid) => room.scores[uid] != null && !room.credited.has(uid));
+  if (uids.length === 0) return null;
+  uids.forEach((uid) => room.credited.add(uid));
+  const results = uids
     .map((uid) => ({ public_id: uid, score: room.scores[uid], duration_ms: room.times[uid] ?? 0 }));
-  if (results.length === 0) return null;
   return fetch(`${API_BASE_URL}/trivia/multiplayer-result/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Relay-Key": RELAY_KEY },
@@ -380,6 +409,7 @@ function destroyRoom(room, reason) {
   if (room.proposal?.timeout) clearTimeout(room.proposal.timeout);
   if (room.lobbyTimer) clearTimeout(room.lobbyTimer);
   if (room.turnTimer) clearTimeout(room.turnTimer); // turn-game per-turn/phase timer
+  room.dealGen = (room.dealGen || 0) + 1; // invalidates any deal still loading
   Object.values(room.graceTimers).forEach((t) => clearTimeout(t));
   room.members.forEach((uid) => {
     const p = players.get(uid);
@@ -391,6 +421,87 @@ function destroyRoom(room, reason) {
   console.log(`Room ${room.code} destroyed (${reason})`);
 }
 
+/** Everyone back to the lobby: the room lives on with its code and seats, the round is dropped
+ *  (scores finished so far are credited). `exceptUid` gets the snapshot but not the message. */
+function backToLobby(room, message, exceptUid = null) {
+  if (room.phase === "playing" || room.phase === "waiting") creditRoom(room);
+  if (room.turnTimer) clearTimeout(room.turnTimer);
+  room.turnTimer = null;
+  room.turn = null;
+  room.gameData = null;
+  room.dealGen = (room.dealGen || 0) + 1; // invalidates any deal still loading
+  clearProposal(room);
+  room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
+  room.times = Object.fromEntries(room.members.map((m) => [m, null]));
+  room.phase = "lobby";
+  armLobbyTimer(room);
+  const snap = lobbySnapshot(room);
+  room.members.forEach((m) => {
+    if (m !== exceptUid) toUid(m, "matchStopped", { message });
+    toUid(m, "friendLobbyUpdate", snap);
+  });
+}
+
+/** Deal a fresh round of `gameObj` to the whole room (play again / switch). Shared by the 1v1
+ *  proposal handshake (registerAccept) and the friend-room host's restartRoom. */
+function restartRound(room, gameObj, why) {
+  clearProposal(room);
+  room.restartedAt = Date.now();
+  room.gameId = gameObj.id;
+  room.game = gameObj;
+  room.phase = "intro";
+  room.members.forEach((u) => toUid(u, "matchRestart", { game: gameObj }));
+  dealRound(room);
+  console.log(`Room ${room.code} restart (${why} -> ${gameObj.id})`);
+}
+
+/** A player is gone (left, or didn't reconnect). 1v1 rooms and a leaving HOST end the room for
+ *  everyone; a guest leaving a friend room frees the seat: the lobby carries on, a round carries on
+ *  if two or more remain (and it isn't a turn game), otherwise everyone returns to the lobby. */
+function removeMember(room, uid, why) {
+  const name = nameOf(uid);
+  if (room.type !== "friend" || room.members[0] === uid) {
+    if (room.phase === "lobby") {
+      othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message: "The host closed the room." }));
+    } else {
+      // A friend room's host leaving (or timing out) closes the room in every phase.
+      const message = room.type === "friend" ? "The host closed the room."
+        : room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
+      othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
+    }
+    destroyRoom(room, why);
+    return;
+  }
+  if (room.graceTimers[uid]) {
+    clearTimeout(room.graceTimers[uid]);
+    delete room.graceTimers[uid];
+  }
+  // A finished leaver keeps their points (their score is dropped from the room just below).
+  if ((room.phase === "playing" || room.phase === "waiting") && room.scores[uid] != null) creditRoom(room, [uid]);
+  room.members = room.members.filter((m) => m !== uid);
+  delete room.scores[uid];
+  delete room.times[uid];
+  const p = players.get(uid);
+  if (p && p.roomCode === room.code) p.roomCode = null;
+  const sid = socketIdOf(uid);
+  if (sid) io.sockets.sockets.get(sid)?.leave(room.code);
+  if (room.phase === "lobby") {
+    const snap = lobbySnapshot(room);
+    room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
+    return;
+  }
+  // A turn game can't continue a seat short, even while it is still loading (room.turn is null then).
+  if (room.members.length < 2 || TURN_GAMES.has(room.gameId)) {
+    backToLobby(room, `${name} left, so the match ended.`);
+    return;
+  }
+  clearProposal(room);
+  room.members.forEach((m) => toUid(m, "memberLeft", { id: uid, username: name, message: `${name} left the match.` }));
+  // Their missing score no longer holds up the settle (only a round being played: not one still loading).
+  const live = room.phase === "playing" || room.phase === "waiting";
+  if (live && room.members.every((m) => room.scores[m] != null)) settleMatch(room);
+}
+
 function clearProposal(room) {
   if (room.proposal?.timeout) clearTimeout(room.proposal.timeout);
   room.proposal = null;
@@ -398,10 +509,13 @@ function clearProposal(room) {
 
 /** Public view of a friend lobby, broadcast on every membership/game change. */
 function lobbySnapshot(room) {
+  const { min, max } = turnGames.roomConfigFor(room.gameId);
   return {
     code: room.code,
     game: room.game,
     capacity: room.capacity,
+    min,                                     // the game's player bounds, for the host's size stepper
+    max,
     hostUid: room.members[0],
     members: room.members.map((uid) => ({
       ...publicUser(players.get(uid)?.user),
@@ -585,6 +699,7 @@ const joinThrottled = (uid) => overLimit(joinWindows, uid, JOIN_WINDOW_MS, JOIN_
 setInterval(() => {
   const now = Date.now();
   for (const [uid, w] of joinWindows) if (now - w.start > JOIN_WINDOW_MS) joinWindows.delete(uid);
+  for (const [uid, at] of awayRemoved) if (now - at > AWAY_NOTICE_MS) awayRemoved.delete(uid);
 }, 60000).unref();
 
 /** A friend lobby that never fills evaporates, freeing its code for reuse. */
@@ -598,7 +713,7 @@ function armLobbyTimer(room) {
   }, LOBBY_TTL_MS);
 }
 
-/** The lobby is full — flip it into a live match (same flow as matchmaking). */
+/** The host started the room — flip it into a live match (same flow as matchmaking). */
 function startFriendMatch(room) {
   if (room.lobbyTimer) {
     clearTimeout(room.lobbyTimer);
@@ -716,7 +831,9 @@ io.on("connection", (socket) => {
 
     // Reconnecting into a live room? Rejoin and resume.
     const room = prev?.roomCode ? rooms.get(prev.roomCode) : null;
-    if (room) {
+    const away = awayRemoved.has(uid);
+    awayRemoved.delete(uid);
+    if (room?.members.includes(uid)) {
       if (room.graceTimers[uid]) {
         clearTimeout(room.graceTimers[uid]);
         delete room.graceTimers[uid];
@@ -737,6 +854,11 @@ io.on("connection", (socket) => {
         othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { id: uid, username: nameOf(uid) }));
       }
       console.log(`Room ${room.code}: player resumed (${room.phase})`);
+    } else if (away || prev?.roomCode) {
+      // Removed while away (the grace window ran out, so the player record went with it), or the
+      // room it names no longer seats them: end the client's room screen instead of leaving it stuck.
+      players.get(uid).roomCode = null;
+      socket.emit("roomLeft", { message: AWAY_MESSAGE });
     }
   }
 
@@ -796,8 +918,8 @@ io.on("connection", (socket) => {
     if (socket._findTimeout) clearTimeout(socket._findTimeout);
   });
 
-  // --- Friend rooms (private share-code lobbies for FRIEND_ROOM_SIZE players) ---
-  socket.on("createFriendRoom", async ({ game: sent } = {}) => {
+  // --- Friend rooms (private share-code lobbies for 2-4 players; the host starts the game) ---
+  socket.on("createFriendRoom", async ({ game: sent, size } = {}) => {
     const uid = await verifiedUid();
     if (!uid) {
       socket.emit("friendError", { message: "You need to be signed in to create a room." });
@@ -819,7 +941,7 @@ io.on("connection", (socket) => {
       socket.emit("friendError", { message: "Servers are busy. Please try again in a moment." });
       return;
     }
-    const room = makeRoom(code, game.id, game, [uid], "friend");
+    const room = makeRoom(code, game.id, game, [uid], "friend", size);
     rooms.set(code, room);
     const p = players.get(uid);
     if (p) p.roomCode = code;
@@ -869,13 +991,10 @@ io.on("connection", (socket) => {
     socket.join(room.code);
     armLobbyTimer(room); // joining is activity — give the lobby a fresh TTL
     console.log(`Friend room ${room.code}: ${room.members.length}/${room.capacity} joined`);
-    if (room.members.length === room.capacity) {
-      startFriendMatch(room);
-    } else {
-      const snap = lobbySnapshot(room);
-      socket.emit("friendRoomJoined", snap);
-      othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
-    }
+    // A full room waits for the host to start it (startRoomNow); nothing starts by itself.
+    const snap = lobbySnapshot(room);
+    socket.emit("friendRoomJoined", snap);
+    othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
   });
 
   // Host-only: swap which game the room will play (lobby phase only).
@@ -885,29 +1004,100 @@ io.on("connection", (socket) => {
     const game = cleanGame(sent);
     if (!room || room.type !== "friend" || room.phase !== "lobby") return;
     if (!uid || room.members[0] !== uid || !game) return;
+    // A game with a smaller cast than the seated players would strand someone: refuse it.
+    const { max } = turnGames.roomConfigFor(game.id);
+    if (room.members.length > max) {
+      socket.emit("friendError", { message: `${game.name} is for ${max} players; ${room.members.length} are seated.` });
+      return;
+    }
     room.gameId = game.id;
     room.game = game;
-    // Capacity follows the game (imposter seats 5, everything else 2). Never
-    // shrink below who's already seated.
-    room.capacity = Math.max(room.members.length, turnGames.roomConfigFor(game.id).capacity);
+    // The size follows the new game's bounds, never shrinking below who is already seated.
+    room.capacity = clampRoomSize(game.id, room.capacity, room.members.length);
     const snap = lobbySnapshot(room);
     room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
     console.log(`Friend room ${room.code} game -> ${game.id}`);
   });
 
-  // Host-only: launch a friend room early once at least `min` players are in
-  // (e.g. start Imposter with 3 of a possible 5 rather than waiting to fill).
+  // Host-only (lobby): how many players the room is for, within the game's bounds and never below
+  // who is already seated.
+  socket.on("setRoomSize", ({ code, size } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase !== "lobby") return;
+    if (!uid || room.members[0] !== uid) return;
+    room.capacity = clampRoomSize(room.gameId, size, room.members.length);
+    const snap = lobbySnapshot(room);
+    room.members.forEach((m) => toUid(m, "friendLobbyUpdate", snap));
+  });
+
+  // Host-only: start the room once at least `min` players are seated and everyone is online.
   socket.on("startRoomNow", ({ code } = {}) => {
     const room = rooms.get(Number(code));
     const uid = uidOf(socket);
     if (!room || room.type !== "friend" || room.phase !== "lobby") return;
     if (!uid || room.members[0] !== uid) return;
-    const { min } = turnGames.roomConfigFor(room.gameId);
+    // Start / Stop / Start loops re-deal (and may re-fetch) a round each time, like restartRoom.
+    if (Date.now() - Math.max(room.restartedAt || 0, room.dealtAt || 0) < RESTART_MIN_MS) {
+      socket.emit("friendError", { message: "Wait a moment before starting another game." });
+      return;
+    }
+    const { min, max } = turnGames.roomConfigFor(room.gameId);
     if (room.members.length < min) {
       socket.emit("friendError", { message: `Need at least ${min} players to start.` });
       return;
     }
+    // Backstop: never start a game with more seated players than it supports.
+    if (room.members.length > max) {
+      socket.emit("friendError", { message: `${room.game.name} is for ${max} players; ${room.members.length} are seated.` });
+      return;
+    }
+    if (!room.members.every((m) => socketIdOf(m))) {
+      socket.emit("friendError", { message: "Wait for everyone to reconnect before starting." });
+      return;
+    }
     startFriendMatch(room);
+  });
+
+  // Host-only: end the current match for everyone and return the room to its lobby.
+  socket.on("stopMatch", ({ code } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase === "lobby") return;
+    if (!uid || room.members[0] !== uid) return;
+    // From the results the round already finished: nothing was "ended".
+    backToLobby(room, room.phase === "results" ? "The host went back to the lobby." : "The host ended the match.", uid);
+    console.log(`Room ${room.code}: host stopped the match`);
+  });
+
+  // Host-only, after a round: play the same game again, or a different one, for everyone at once.
+  socket.on("restartRoom", ({ code, game: sent } = {}) => {
+    const room = rooms.get(Number(code));
+    const uid = uidOf(socket);
+    if (!room || room.type !== "friend" || room.phase !== "results") return;
+    if (!uid || room.members[0] !== uid) return;
+    if (Date.now() - Math.max(room.restartedAt || 0, room.dealtAt || 0) < RESTART_MIN_MS) {
+      socket.emit("friendError", { message: "Wait a moment before starting another game." });
+      return;
+    }
+    const gameObj = sent ? cleanGame(sent) : room.game;
+    if (!gameObj) {
+      socket.emit("friendError", { message: "That game can't be played online." });
+      return;
+    }
+    const { min, max } = turnGames.roomConfigFor(gameObj.id);
+    if (room.members.length < min) {
+      socket.emit("friendError", { message: `${gameObj.name} needs at least ${min} players; ${room.members.length} are seated.` });
+      return;
+    }
+    if (room.members.length > max) {
+      socket.emit("friendError", { message: `${gameObj.name} is for ${max} players; ${room.members.length} are seated.` });
+      return;
+    }
+    // The size follows the new game's bounds (as changeFriendGame does), so the lobby this room
+    // returns to never holds more seats than its game can start with.
+    room.capacity = clampRoomSize(gameObj.id, room.capacity, room.members.length);
+    restartRound(room, gameObj, "host");
   });
 
   // --- Turn-based game actions (tictactoe / imposter) ---
@@ -927,9 +1117,13 @@ io.on("connection", (socket) => {
     if (!uid) return;
     const room = rooms.get(code);
     if (!room || !room.members.includes(uid)) {
-      // The match is gone (the server restarted, or it was closed): end the client's
-      // "Waiting for…" screen instead of leaving it there forever.
-      if (!room && !players.get(uid)?.roomCode) socket.emit("opponentLeft", { message: "This match is no longer running." });
+      // The match is gone (the server restarted, or it was closed), or it no longer seats this
+      // player (removed after the grace window): end the client's "Waiting for…" screen instead of
+      // leaving it there forever. Not while they sit in another live room (a stale score).
+      if (!rooms.get(players.get(uid)?.roomCode)?.members.includes(uid)) {
+        if (room) socket.emit("roomLeft", { message: AWAY_MESSAGE });
+        else socket.emit("opponentLeft", { message: "This match is no longer running." });
+      }
       return;
     }
     // Only a dealt round takes scores (not a lobby, the intro, or a turn game's own scoring).
@@ -969,8 +1163,10 @@ io.on("connection", (socket) => {
     const room = rooms.get(code);
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
-    // A lobby starts through startRoomNow / filling up (which enforce the game's minimum players).
+    // A lobby starts through startRoomNow (which enforces the game's minimum players).
     if (room.phase === "lobby") return;
+    // Friend rooms are run by their host (restartRoom); the handshake is for random 1v1 rooms.
+    if (room.type === "friend") return;
 
     // If someone else already has a proposal open, treat this as an accept.
     if (room.proposal && room.proposal.fromUid !== uid) {
@@ -1017,14 +1213,7 @@ io.on("connection", (socket) => {
       });
       return;
     }
-    clearProposal(room);
-    room.restartedAt = Date.now();
-    room.gameId = prop.gameId;
-    room.game = prop.game;
-    room.phase = "intro";
-    room.members.forEach((u) => toUid(u, "matchRestart", { game: prop.game }));
-    dealRound(room);
-    console.log(`Room ${room.code} restart (${prop.type} -> ${prop.gameId})`);
+    restartRound(room, prop.game, prop.type);
   }
 
   socket.on("proposeAgain", ({ code } = {}) => propose("again", code));
@@ -1053,8 +1242,8 @@ io.on("connection", (socket) => {
   });
 
   // --- Explicit leave ---
-  // One player leaving (or the host cancelling) ends the room for EVERYONE:
-  // lobby members get `friendRoomCancelled`, in-match members get `opponentLeft`.
+  // A guest leaving a friend room frees their seat; a 1v1 player or the host leaving ends the
+  // room for everyone (see removeMember).
   socket.on("leaveMatch", ({ code } = {}) => {
     const uid = uidOf(socket);
     // The search-cancel path funnels through here too — kill any queue timer.
@@ -1064,15 +1253,7 @@ io.on("connection", (socket) => {
       if (uid) dropFromQueues(uid);
       return;
     }
-    const name = nameOf(uid);
-    if (room.phase === "lobby") {
-      const message = uid === room.members[0] ? "The host closed the room." : `${name} left, so the room was closed.`;
-      othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message }));
-    } else {
-      const message = room.members.length > 2 ? `${name} left, so the match ended.` : "Your opponent left the match.";
-      othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
-    }
-    destroyRoom(room, "a player left");
+    removeMember(room, uid, "a player left");
   });
 
   // --- Disconnect → start the grace window ---
@@ -1090,6 +1271,9 @@ io.on("connection", (socket) => {
     dropFromQueues(uid);
 
     const p = players.get(uid);
+    // The socket is gone: until a new one identifies as this uid, the player is offline
+    // (socketIdOf -> null: toUid no-ops, snapshots show "Reconnecting", startRoomNow refuses).
+    p.socketId = null;
 
     const room = p.roomCode ? rooms.get(p.roomCode) : null;
     if (!room) {
@@ -1098,29 +1282,24 @@ io.on("connection", (socket) => {
     }
     const name = nameOf(uid);
     if (room.phase === "lobby") {
-      // Show the seat as offline, then close the room if they don't come back.
+      // Show the seat as offline; if they don't come back, treat it as leaving.
       const snap = lobbySnapshot(room);
       othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
       room.graceTimers[uid] = setTimeout(() => {
-        othersOf(room, uid).forEach((m) =>
-          toUid(m, "friendRoomCancelled", { message: `${name} disconnected, so the room was closed.` })
-        );
-        destroyRoom(room, "lobby grace timeout");
+        removeMember(room, uid, "lobby grace timeout");
         players.delete(uid);
+        awayRemoved.set(uid, Date.now());
       }, LOBBY_GRACE_MS);
       return;
     }
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: nameOf(uid), graceMs: GRACE_MS }));
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: name, graceMs: GRACE_MS }));
     // Turn games: don't stall the round waiting out the grace window — a dropped
     // player's turn auto-passes (they can still reconnect and resume mid-game).
     if (room.turn) turnGames.onDisconnect(room, uid, turnHelpers);
     room.graceTimers[uid] = setTimeout(() => {
-      const message = room.members.length > 2
-        ? `${name} didn't reconnect, so the match ended.`
-        : "Your opponent didn't reconnect in time.";
-      othersOf(room, uid).forEach((m) => toUid(m, "opponentLeft", { message }));
-      destroyRoom(room, "grace timeout");
+      removeMember(room, uid, "grace timeout");
       players.delete(uid);
+      awayRemoved.set(uid, Date.now());
     }, GRACE_MS);
   });
 });

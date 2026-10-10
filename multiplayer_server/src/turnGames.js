@@ -7,8 +7,8 @@
 // and broadcasts it after every action (frozen contract #6).
 //
 // Public surface (consumed by index.js — the only file allowed to call in):
-//   roomConfigFor(gameId)            -> { capacity, min }   (friend-room sizing)
-//   init(room, helpers)              -> start a turn game in a live room
+//   roomConfigFor(gameId)            -> { min, max }        (friend-room sizing)
+//   init(room, helpers, isCurrent)   -> start a turn game in a live room (unless isCurrent() went false meanwhile)
 //   handleAction(room, uid, action, helpers)  -> apply a client turnAction
 //   onDisconnect(room, uid, helpers) -> a dropped player's turn auto-passes
 //   resumeFor(room, uid, helpers)    -> re-push the current turnState on reconnect
@@ -56,11 +56,14 @@ const TTT_WIN_SCORE = 225;       // matches the game's maxPoints
 const TTT_LOSS_SCORE = 90;
 const TTT_DRAW_SCORE = 150;
 
-// Friend-room sizing per game. Everything not listed is a plain 2-player room.
-const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };
-const DEFAULT_ROOM_CONFIG = { capacity: 2, min: 2 };
+// Friend-room sizing per game: how many players a room may hold. The host picks a size within these
+// bounds (index.js createFriendRoom / setRoomSize); the default lets 2-4 friends in. Turn games have
+// fixed casts. The site mirrors this table in src/utils/roomSizes.ts for its stepper; this is the truth.
+const MAX_ROOM_SIZE = 4;
+const ROOM_CONFIGS = { tictactoe: { min: 2, max: 2 }, imposter: { min: 3, max: 4 } };
+const DEFAULT_ROOM_CONFIG = { min: 2, max: MAX_ROOM_SIZE };
 
-/** Friend-room { capacity, min } for a game id (imposter is 3-5; else 2). */
+/** Friend-room { min, max } player bounds for a game id. */
 function roomConfigFor(gameId) {
   return ROOM_CONFIGS[gameId] || DEFAULT_ROOM_CONFIG;
 }
@@ -138,14 +141,16 @@ function resumeFor(room, uid, helpers) {
 // =========================================================================
 //  Dispatch
 // =========================================================================
-async function init(room, helpers) {
+async function init(room, helpers, isCurrent = () => true) {
   // Turn games reset the shared score/time maps themselves (they never go
   // through dealRound's reset) and mark the room live before the first broadcast.
+  // `isCurrent()` turns false once the room moved on while the question loaded (back to the lobby,
+  // destroyed, a newer deal): the stale deal then sets up nothing — no turn state, timer or broadcast.
   room.scores = Object.fromEntries(room.members.map((m) => [m, null]));
   room.times = Object.fromEntries(room.members.map((m) => [m, null]));
   room.phase = "playing";
-  if (room.gameId === "tictactoe") return initTTT(room, helpers);
-  if (room.gameId === "imposter") return initImposter(room, helpers);
+  if (room.gameId === "tictactoe") return initTTT(room, helpers, isCurrent);
+  if (room.gameId === "imposter") return initImposter(room, helpers, isCurrent);
 }
 
 function handleAction(room, uid, action, helpers) {
@@ -201,8 +206,9 @@ function tttWinner(board) {
   return null;
 }
 
-async function initTTT(room, helpers) {
+async function initTTT(room, helpers, isCurrent) {
   const [question, names] = await Promise.all([questions.deal("tictactoe"), questions.loadNames()]);
+  if (!isCurrent()) return;
   const state = {
     board: Array(9).fill(null),
     criteria: { rows: question.rows, cols: question.cols },
@@ -359,8 +365,9 @@ function imposterStateFor(room, uid) {
   };
 }
 
-async function initImposter(room, helpers) {
+async function initImposter(room, helpers, isCurrent) {
   const mystery = await pickMystery();
+  if (!isCurrent()) return;
   const members = [...room.members];
   const imposterUid = members[Math.floor(Math.random() * members.length)];
   const order = shuffle(members); // clue-speaking order

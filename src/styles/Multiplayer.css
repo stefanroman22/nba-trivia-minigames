@@ -350,7 +350,7 @@
   .om-dots i { animation: none; opacity: 0.7; }
 }
 
-/* ---- Results: "+N pts" badge in a reserved top-right row; times under the cards; switch hint ---- */
+/* ---- Results: "+N pts" badge in a reserved top-right row; times under the cards; actions ---- */
 .om-stage--results { gap: 12px; }
 .om-result-top { width: 100%; min-height: 30px; display: flex; justify-content: flex-end; align-items: center; }
 .om-points {
@@ -365,10 +365,6 @@
 }
 .om-pc-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .om-pc-time { font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: 0.3px; }
-.om-switch-hint { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); text-align: center; }
-.om-hint-narrow { display: none; }
-@media (max-width: 819px) {
-  .om-hint-wide { display: none; }
-  .om-hint-narrow { display: inline; }
-}
 .om-result-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.om-link { background: none; border: 0; padding: 2px 4px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--brand); cursor: pointer; }
+.om-link:hover { filter: brightness(1.2); }

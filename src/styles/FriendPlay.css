@@ -152,24 +152,32 @@
   .fp-toggle { display: inline-flex; }
 }
 
-/* ---- Compact game picker (host: change game) ---- */
-.fp-picker { border: 1px solid var(--line2); border-radius: 12px; background: var(--surface2); overflow: hidden; }
-.fp-picker-head {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 9px 11px;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.5px; color: var(--muted);
-  border-bottom: 1px solid var(--line);
+/* ---- Room size stepper and the host's start row ---- */
+.fp-size { display: inline-flex; align-items: center; gap: 6px; }
+.fp-size-lbl { font-size: 11.5px; color: var(--muted); margin-right: 2px; }
+.fp-size-btn {
+  position: relative;
+  width: 28px; height: 28px; border-radius: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line2); background: var(--surface2); color: var(--text);
+  padding: 0; cursor: pointer;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, opacity 0.18s ease;
 }
-.fp-picker-x { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
-.fp-picker-x:hover { color: var(--brand); }
-.fp-picker-list { display: flex; flex-direction: column; padding: 5px; gap: 3px; max-height: 168px; overflow-y: auto; overscroll-behavior: contain; }
-.fp-picker-item {
-  display: flex; align-items: center; gap: 9px;
-  padding: 6px;
-  border: 1px solid transparent; border-radius: 9px;
-  background: none; cursor: pointer; text-align: left; color: var(--text);
-  transition: background 0.18s ease, border-color 0.18s ease;
-}
-.fp-picker-item:hover { background: var(--surface3); border-color: var(--line2); }
-.fp-picker-thumb { width: 28px; height: 28px; border-radius: 7px; background-size: cover; background-position: center; flex: none; }
-.fp-picker-name { font-size: 12.5px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A finger-sized hit area around the compact box (phones), without growing the row. */
+.fp-size-btn::after { content: ""; position: absolute; inset: -5px; }
+.fp-size-btn svg { display: block; }
+.fp-size-btn:hover:not(:disabled) { border-color: var(--brand); color: var(--brand); }
+.fp-size-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.fp-size-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.fp-size-num { min-width: 1.6ch; text-align: center; font-size: 14px; font-weight: 800; line-height: 1; color: var(--text); }
+.fp-body > .fp-size { align-self: center; }
+/* Menu: the stepper shares the back arrow's row (centred on it) instead of adding a row of its
+   own — the card stays as short as before on phones. 36px = the arrow's 24px + the .fp gap of 10px
+   + half the 4px the stepper is taller. */
+.fp > .mp-back + .fp-body > .fp-size:first-child { margin-top: -36px; }
+/* "Playing: <game>" and the host's stepper share a row; in the 290px sidebar a long game name
+   wraps the stepper under it (kept to the right) instead of pushing the card wider. */
+.fp-meta { flex-wrap: wrap; row-gap: 6px; }
+.fp-meta > .fp-size { margin-left: auto; }
+.fp-start-reason { margin: -2px 0 0; text-align: center; font-size: 12px; }
+.fp .fp-start-reason + .btn-ghost { align-self: center; }

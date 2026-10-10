@@ -33,7 +33,7 @@ Everything below is measured from the working tree. Where the code is inconsiste
 pattern is documented and the exception is called out. Known doc drift: `docs/ARCHITECTURE.md`
 section 3 still says the relay fetches every round from Django, that friend rooms hold "exactly 2
 players", and that production is `nba-multiplayer-production.up.railway.app`. The code says: four
-round games plus both turn games are dealt from the questions store (MP-10), Imposter seats 3-5
+round games plus both turn games are dealt from the questions store (MP-10), Imposter seats 3-4
 (MP-9), and nothing is deployed.
 
 Each rule's ❌ is labelled **real** (exists in the repo today, cited) or **hypothetical**.
@@ -117,11 +117,12 @@ if (room.gameId === "imposter") return initImposter(room, helpers);
 ## Rule MP-4: Event names are camelCase; client emits are action verbs, server emits pair a success event with a feature-scoped error event
 
 Client to server: `identify` (`{ token }`; refusal is `identifyError { code, message }`), `findMatch`, `cancelFind`, `createFriendRoom`, `joinFriendRoom`,
-`changeFriendGame`, `startRoomNow`, `turnAction`, `submitScore`, `reportProgress`, `proposeAgain`,
-`proposeSwitch`, `respondProposal`, `cancelProposal`, `leaveMatch`. Server to client pairs are
+`changeFriendGame`, `startRoomNow`, `setRoomSize`, `stopMatch`, `restartRoom`, `turnAction`,
+`submitScore`, `reportProgress`, `proposeAgain`, `proposeSwitch`, `respondProposal`,
+`cancelProposal`, `leaveMatch`. Server to client pairs are
 feature-scoped, not a mechanical `<stem>Error`: `matchFound`/`matchError`, `roundData`/
 `roundDataError`, `friendRoomCreated`+`friendRoomJoined`/`friendError`+`friendJoinError`,
-`turnState`/`turnReject`; multi-step flows share a stem (`proposalPending|Received|Progress|
+`turnState`/`turnReject`; friend rooms also announce `matchStopped` and `memberLeft`; multi-step flows share a stem (`proposalPending|Received|Progress|
 Declined|Cancelled|Timeout`). Payload conventions (dominant): every room-scoped emit is
 `{ code, ... }` with `code` a **number** (client sends `codeRef.current`; server `rooms` Map is
 keyed by integer); any `Game` sent over the wire goes through `serializeGame()` in
@@ -146,7 +147,8 @@ socket.emit("proposeSwitch", { code: codeRef.current, game: serializeGame(game) 
 results | ended`) drives every screen (`MiniGame.tsx`'s `online`/`inLobby`, `OnlineMatch.tsx`'s
 stage switch, `FriendPlay.tsx`'s `inMatch`/`lobby`, `MultiplayerPanel.tsx`). It changes only in
 `reducer()`, dispatched from socket handlers and the provider's own callbacks. Components may keep
-UI-only state (`FriendPlay`'s `mode`/`picking`/`collapsed`) but no parallel "am I in a match".
+UI-only state (`FriendPlay`'s `mode`/`size`/`collapsed`; game switching is the `gamePicker` modal,
+not a `picking` state) but no parallel "am I in a match".
 
 ```tsx
 ❌ hypothetical: a component tracking its own room flag
@@ -163,8 +165,13 @@ const online = mp.phase !== "idle" && !inLobby;
 There is no `hostUid` field on a room. `lobbySnapshot()` derives `hostUid: room.members[0]`,
 `snapshotFor()` derives `role`, and `changeFriendGame`/`startRoomNow` guard inline with
 `room.members[0] !== uid`. `FriendPlay.tsx` compares `lobby.hostUid` to the user's public id
-(username fallback) instead of a stored flag. Room destruction on any leave means the host never
-changes mid-room.
+(username fallback) instead of a stored flag. A leaving guest is removed; a leaving host closes
+the room; either way the host never changes mid-room.
+
+A guest leaving (or dropping past the grace) is removed by `removeMember()`; the host never
+changes. A leaving host closes the room. Friend rooms are host-driven: `startRoomNow`,
+`setRoomSize`, `changeFriendGame`, `stopMatch`, `restartRoom` all guard `room.members[0] !== uid`;
+the propose/accept handshake is 1v1-only (`propose` returns for `room.type === "friend"`).
 
 ```js
 ❌ hypothetical: a separately stored host that can drift from members[]
@@ -220,21 +227,18 @@ Object.entries(room.scores).sort((a, b) => b[1] - a[1])[0];
 .sort((a, b) => b.score - a.score || timeKey(a.uid) - timeKey(b.uid))
 ```
 
-## Rule MP-9: Friend-room capacity and min-to-start come from `turnGames.roomConfigFor(gameId)`
+## Rule MP-9: Friend-room player bounds come from `turnGames.roomConfigFor(gameId)`
 
-`DEFAULT_ROOM_CONFIG = { capacity: 2, min: 2 }`, `ROOM_CONFIGS = { imposter: { capacity: 5,
-min: 3 } }` in `turnGames.js`. `makeRoom()`, `changeFriendGame` (`Math.max(room.members.length,
-capacity)`, never shrinks below seated players) and `startRoomNow` (`min`) all call it. Matchmaking
-rooms are always capacity 2. The auto-start fires when `members.length === capacity`;
-`startRoomNow` lets the host launch earlier at `>= min`. `FRIEND_ROOM_SIZE = 2` in `index.js` is a
-leftover that is only mentioned in comments; do not read it.
+Friend-room player bounds come from `turnGames.roomConfigFor(gameId) -> { min, max }`: default
+`{2, 4}`, `tictactoe {2, 2}`, `imposter {3, 4}`, `MAX_ROOM_SIZE = 4`. The host picks `capacity`
+within them (`createFriendRoom { size }`, `setRoomSize`); `clampRoomSize(gameId, size, seated)`
+never goes below seated players. Nothing auto-starts: `startRoomNow` needs `members.length >= min`
+and everyone online. `changeFriendGame`/`restartRoom` refuse a game whose `max` is below the seated
+count.
 
 ```js
-❌ real: multiplayer_server/src/index.js, stale constant (unused; header comments still cite it)
-const FRIEND_ROOM_SIZE = 2;
-
 ✅ multiplayer_server/src/turnGames.js: add a row, let makeRoom()/changeFriendGame read it
-const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };
+const ROOM_CONFIGS = { tictactoe: { min: 2, max: 2 }, imposter: { min: 3, max: 4 } };
 ```
 
 ## Rule MP-10: Every online game id resolves through exactly one of three deal paths, and a miss throws
@@ -368,9 +372,13 @@ const objective = OBJECTIVES[Math.floor(Math.random() * OBJECTIVES.length)];
 
 `src/utils/GameUtils.tsx` flags games `hidden: true` (currently heatmap, connections, nba-grid,
 bingo, pack-five, superdraft, imposter) and exports `visibleGames = games.filter((g) => !g.hidden)`.
-The friend-room "Change game" picker (`FriendPlay.tsx`), the results "Switch game" picker
-(`OnlineMatch.tsx`) and the `MiniGame.tsx` rail/strip all import `visibleGames`; pickers also
-drop `"coming-soon"` and the current game. `games` stays correct for route resolution
+Game switching goes through one picker: the `gamePicker` modal
+(`src/components/modals/GamePickerModal.tsx`), opened via
+`useModal().open("gamePicker", { currentId, seated, onPick })` by the lobby's "Change game"
+(`FriendPlay.tsx`) and the results "Change game" (`OnlineMatch.tsx`). It lists `visibleGames`
+minus `NOT_ONLINE` (`src/utils/roomSizes.ts`: `"coming-soon"`, `"who-would-win"`), and disables
+the current game and any game whose cast (`roomBounds(id).max`) is below the seated count. The
+`MiniGame.tsx` rail/strip also import `visibleGames`. `games` stays correct for route resolution
 (`MiniGame.tsx` finds the game by `urlPath` so deep links to hidden games still resolve). The relay
 does not validate game ids against visibility, so the picker is the only gate.
 
@@ -378,9 +386,9 @@ does not validate game ids against visibility, so the picker is the only gate.
 ❌ hypothetical: a new picker importing the full list
 import { games } from "../../utils/GameUtils";
 
-✅ src/components/MultiPlayer/FriendPlay.tsx
-import { visibleGames as games } from "../../utils/GameUtils";
-{games.filter((g) => g.id !== "coming-soon" && g.id !== mp.game?.id).map((g) => (
+✅ src/components/modals/GamePickerModal.tsx
+import { visibleGames } from "../../utils/GameUtils";
+const games = visibleGames.filter((g) => !NOT_ONLINE.has(g.id));
 ```
 
 ---
@@ -408,10 +416,11 @@ Observed: `sim_turngames.js` ends with `Tic-Tac-Toe reached a win : PASS`, `Id-l
 grep -ohE '(toUid\([^,]+, |socket\.emit\()"[a-zA-Z]+"' multiplayer_server/src/index.js multiplayer_server/src/turnGames.js | grep -oE '"[a-zA-Z]+"' | sort -u
 grep -n "helpers.toUid(uid, \"turnState\"" multiplayer_server/src/turnGames.js
 ```
-Observed: 28 distinct names from `index.js` (including `turnReject`, sent via `turnHelpers.reject`)
-plus `turnState` from `turnGames.js` = 29 server events. The client `on` map in
-`MultiplayerContext.tsx` registers 29 handlers, including `turnReject`. Any diff adding a server
-emit must add the matching key in that `on` map.
+Observed: 33 distinct names from `index.js` (including `turnReject`, sent via `turnHelpers.reject`,
+and `roomLeft`, sent to a player the relay removed while they were away) plus `turnState` from
+`turnGames.js` = 34 server events. The client `on` map in `MultiplayerContext.tsx` registers 34
+handlers, including `turnReject` and `roomLeft`. Any diff adding a server emit must add the matching
+key in that `on` map.
 
 **4. `turnReject` has a client listener (MP-2).**
 ```bash
@@ -433,7 +442,7 @@ grep -n "ROOM_CONFIGS = " multiplayer_server/src/turnGames.js
 ```
 Observed: `63:const TURN_GAMES = new Set(["tictactoe", "imposter"]);`,
 `164:const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "contexto", "superdraft"]);`,
-`46:const ROOM_CONFIGS = { imposter: { capacity: 5, min: 3 } };`. No id may be in both
+`63:const ROOM_CONFIGS = { tictactoe: { min: 2, max: 2 }, imposter: { min: 3, max: 4 } };`. No id may be in both
 `QUESTION_GAMES` and `gameEndpoints.js`:
 ```bash
 node -e 'const g=Object.keys(require("./multiplayer_server/src/gameEndpoints"));for(const q of ["career-path","who-are-ya","contexto","superdraft","tictactoe","imposter"])if(g.includes(q))console.log("DUP",q)'
@@ -462,9 +471,10 @@ Observed: first no output; second `src/Game Renderers/ImposterGame.tsx` only.
 
 **10. Pickers use `visibleGames` (MP-15).**
 ```bash
-grep -n "GameUtils" src/components/MultiPlayer/FriendPlay.tsx src/components/MultiPlayer/OnlineMatch.tsx
+grep -n "GameUtils" src/components/modals/GamePickerModal.tsx src/components/MultiPlayer/*.tsx
 ```
-Observed: both lines import `{ visibleGames as games }`. Any multiplayer component importing bare
+Observed: one line, `GamePickerModal.tsx` importing `{ visibleGames }`; `FriendPlay.tsx` and
+`OnlineMatch.tsx` import no game list (they open the `gamePicker` modal). Any picker importing bare
 `games` fails.
 
 **11. No hardcoded non-localhost socket URL in source (MP-11).**
