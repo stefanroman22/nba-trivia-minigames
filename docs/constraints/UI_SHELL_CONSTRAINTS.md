@@ -213,7 +213,7 @@ Escape-to-close, focus trap, focus restore and body-scroll lock, and `ModalHost`
 `<AnimatePresence>` keyed by `kind`. A new overlay is a new `ModalKind` plus a branch in
 `ModalHost.tsx` and a presentational component in `src/components/modals/` that only receives
 `onClose` (never its own backdrop). Current kinds: `login`, `feedback`, `leaderboard`,
-`instructions`, `multiplayerInfo`.
+`instructions`, `multiplayerInfo`, `gamePicker`.
 
 ```tsx
 ❌ WRONG — a component rendering its own overlay outside ModalHost

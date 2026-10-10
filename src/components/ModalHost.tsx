@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
-import { useModal, type FeedbackPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
+import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import LogInSignUp, { type AuthPhase } from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
 import MultiplayerInfoModal from "./modals/MultiplayerInfoModal";
+import GamePickerModal from "./modals/GamePickerModal";
 
 /**
  * Single overlay host (mounted once in App). The active modal is keyed so
@@ -60,6 +61,11 @@ export default function ModalHost() {
   } else if (kind === "multiplayerInfo") {
     title = "Multiplayer";
     content = <MultiplayerInfoModal onClose={close} />;
+  } else if (kind === "gamePicker") {
+    const p = payload as GamePickerPayload | undefined;
+    title = p?.title ?? "Change game";
+    wide = true;
+    content = p ? <GamePickerModal currentId={p.currentId} seated={p.seated} onPick={p.onPick} onClose={close} /> : null;
   }
 
   return (
