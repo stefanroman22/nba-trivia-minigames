@@ -6,7 +6,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
-import { currentLogoUrl } from "../constants/teamLogos";
+import { currentLogoUrl, scrambledLogoUrl } from "../constants/teamLogos";
 import { matchAnswer } from "../utils/answerMatch";
 import type { NbaTeamLogo, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
@@ -17,6 +17,14 @@ interface NameLogoProps {
   onGameEnd: OnGameEnd;
   allTeams: string[];
 }
+
+const LOGO_SIZE = "clamp(92px, 18dvh, 140px)";
+const LOGO_IMG: React.CSSProperties = { display: "block", width: "100%", height: "100%", objectFit: "contain" };
+// Reveal: the scrambled logo blurs and twists away while the real one settles into place.
+const LOGO_SHOWN = { opacity: 1, scale: 1, rotate: 0, filter: "blur(0px)" };
+const LOGO_OUT = { opacity: 0, scale: 1.15, rotate: -14, filter: "blur(10px)" };
+const LOGO_IN = { opacity: 0, scale: 0.7, rotate: 14, filter: "blur(10px)" };
+const LOGO_REVEAL = { duration: 0.6, ease: [0.22, 1, 0.36, 1] as const };
 
 function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLogoProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -39,10 +47,18 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     return list;
   }, [currentTeam]);
   const [srcIdx, setSrcIdx] = useState(0);
+  const [scrambleFailed, setScrambleFailed] = useState(false);
 
-  // reset the logo source + loader each round (and on each candidate switch)
-  useEffect(() => { setSrcIdx(0); }, [currentIndex]);
-  useEffect(() => setImgLoaded(false), [currentIndex, srcIdx]);
+  // While guessing only the scrambled logo is shown; the real one waits underneath (preloaded) and
+  // cross-fades in once the guess is in. Without a scrambled file, the real logo is the puzzle.
+  const scrambledSrc = scrambleFailed ? null : scrambledLogoUrl(currentTeam?.team_id, currentTeam?.full_name);
+  const originalSrc = logoCandidates[srcIdx];
+  const puzzleSrc = scrambledSrc ?? originalSrc;
+  const revealed = showAnswer || showPointsAnimation;
+
+  // reset the logo sources + loader each round (and whenever the puzzle image changes)
+  useEffect(() => { setSrcIdx(0); setScrambleFailed(false); }, [currentIndex]);
+  useEffect(() => setImgLoaded(false), [currentIndex, puzzleSrc]);
 
   const handleGuessSubmit = (teamName: string) => {
     if (!teamName || typeof teamName !== "string" || teamName.trim() === "") {
@@ -97,9 +113,9 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
           <GameFrame.Prompt eyebrow="GUESS THE TEAM" title="Which franchise is this?" />
 
-          {/* Logo */}
+          {/* Logo: the scrambled mark is the puzzle; on reveal the real logo cross-fades in over it */}
           <div style={{ position: "relative", display: "flex", justifyContent: "center", minHeight: "clamp(84px, 17dvh, 140px)", alignItems: "center" }}>
-            {logoCandidates[srcIdx] ? (
+            {puzzleSrc ? (
               <>
                 <AnimatePresence>
                   {!imgLoaded && (
@@ -116,26 +132,46 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                   )}
                 </AnimatePresence>
                 <AnimatePresence mode="wait">
-                  <motion.img
-                    key={`${currentTeam?.full_name}-${srcIdx}`}
-                    src={logoCandidates[srcIdx]}
-                    alt="NBA Team"
-                    ref={(el) => { if (el?.complete && el.naturalWidth > 0) setImgLoaded(true); }}
-                    onLoad={() => setImgLoaded(true)}
-                    onError={() => setSrcIdx((i) => i + 1)}
+                  <motion.div
+                    key={currentTeam?.full_name}
                     initial={reduce ? false : { opacity: 0, scale: 0.8, y: 10 }}
-                    animate={{ opacity: imgLoaded ? (showAnswer ? 0.4 : 1) : 0, scale: 1, y: 0 }}
+                    animate={{ opacity: imgLoaded ? 1 : 0, scale: 1, y: 0 }}
                     exit={reduce ? undefined : { opacity: 0, scale: 0.85 }}
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      display: "block",
-                      width: "clamp(92px, 18dvh, 140px)",
-                      height: "auto",
-                      maxHeight: "20dvh",
-                      objectFit: "contain",
-                      filter: showAnswer ? "grayscale(100%)" : "none",
-                    }}
-                  />
+                    style={{ position: "relative", width: LOGO_SIZE, height: LOGO_SIZE, maxHeight: "20dvh" }}
+                  >
+                    <motion.img
+                      src={puzzleSrc}
+                      alt={scrambledSrc ? "Scrambled team logo" : "NBA Team"}
+                      ref={(el) => { if (el?.complete && el.naturalWidth > 0) setImgLoaded(true); }}
+                      onLoad={() => setImgLoaded(true)}
+                      onError={() => (scrambledSrc ? setScrambleFailed(true) : setSrcIdx((i) => i + 1))}
+                      initial={false}
+                      animate={revealed && scrambledSrc ? LOGO_OUT : LOGO_SHOWN}
+                      transition={LOGO_REVEAL}
+                      style={LOGO_IMG}
+                    />
+                    {scrambledSrc && (
+                      <motion.div
+                        aria-hidden={!revealed}
+                        initial={false}
+                        animate={revealed ? LOGO_SHOWN : LOGO_IN}
+                        transition={LOGO_REVEAL}
+                        style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
+                      >
+                        {originalSrc ? (
+                          <img
+                            src={originalSrc}
+                            alt={revealed ? `${currentTeam?.full_name} logo` : ""}
+                            onError={() => setSrcIdx((i) => i + 1)}
+                            style={LOGO_IMG}
+                          />
+                        ) : (
+                          <TeamCrest src={null} name={currentTeam?.full_name || ""} size={120} />
+                        )}
+                      </motion.div>
+                    )}
+                  </motion.div>
                 </AnimatePresence>
               </>
             ) : (
