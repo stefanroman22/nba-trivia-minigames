@@ -293,3 +293,32 @@ test("host disconnect in the lobby closes it after the grace", async () => {
   fay.close();
   assert.match((await closed).message, /host closed/);
 });
+
+test("a guest who finished and then leaves keeps their points; the others are still credited", async () => {
+  const ivy = await player("Ivy");
+  const jay = await player("Jay");
+  const ned = await player("Ned");
+  const snap = await createRoom(ivy, "name-logo", 3);
+  await join(jay, snap.code);
+  await join(ned, snap.code);
+  const rounds = [next(ivy, "roundData"), next(jay, "roundData"), next(ned, "roundData")];
+  ivy.emit("startRoomNow", { code: snap.code });
+  await Promise.all(rounds);
+
+  const waiting = next(jay, "waitingForOpponent");
+  jay.emit("submitScore", { code: snap.code, score: 15, elapsedMs: 9000 });
+  await waiting;
+  const jayPoints = next(jay, "pointsAwarded");
+  jay.emit("leaveMatch", { code: snap.code });
+  assert.equal((await jayPoints).awarded, 15);
+
+  const results = [next(ivy, "matchResult"), next(ned, "matchResult")];
+  const points = [next(ivy, "pointsAwarded"), next(ned, "pointsAwarded")];
+  ivy.emit("submitScore", { code: snap.code, score: 20, elapsedMs: 9000 });
+  ned.emit("submitScore", { code: snap.code, score: 12, elapsedMs: 9000 });
+  await Promise.all(results);
+  const [pi, pn] = await Promise.all(points);
+  assert.equal(pi.awarded, 20);
+  assert.equal(pn.awarded, 12);
+  ivy.emit("leaveMatch", {});
+});

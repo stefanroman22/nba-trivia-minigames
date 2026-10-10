@@ -269,6 +269,7 @@ async function dealRound(room) {
   room.turn = null;
   room.gameData = null;
   room.dealtAt = Date.now();
+  room.credited = new Set(); // uids already credited for this round (see creditRoom)
   // Turn-based games don't fetch a shared round — they boot a server-authoritative
   // state machine that broadcasts turnState instead of roundData.
   if (TURN_GAMES.has(room.gameId)) {
@@ -324,18 +325,19 @@ function rankRoom(room) {
 
 // Online matches add each player's score to their profile, like a solo game. Only the relay can
 // credit them: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET, and the
-// scores are this room's own (already clamped in submitScore / set by turnGames). Each round is
-// credited at most once. Unset secret (local dev): online play awards nothing.
+// scores are this room's own (already clamped in submitScore / set by turnGames). Each player is
+// credited once per round (`only` credits just those uids, e.g. a finished guest who leaves early,
+// without blocking the rest). Unset secret (local dev): online play awards nothing.
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 const RELAY_KEY = process.env.MULTIPLAYER_SHARED_SECRET || "";
 
-function creditRoom(room) {
-  if (!RELAY_KEY || room.creditedRound === room.dealtAt) return null;
-  room.creditedRound = room.dealtAt;
-  const results = room.members
-    .filter((uid) => room.scores[uid] != null)
+function creditRoom(room, only = null) {
+  if (!RELAY_KEY) return null;
+  const uids = (only ?? room.members).filter((uid) => room.scores[uid] != null && !room.credited.has(uid));
+  if (uids.length === 0) return null;
+  uids.forEach((uid) => room.credited.add(uid));
+  const results = uids
     .map((uid) => ({ public_id: uid, score: room.scores[uid], duration_ms: room.times[uid] ?? 0 }));
-  if (results.length === 0) return null;
   return fetch(`${API_BASE_URL}/trivia/multiplayer-result/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Relay-Key": RELAY_KEY },
@@ -437,6 +439,8 @@ function removeMember(room, uid, why) {
     clearTimeout(room.graceTimers[uid]);
     delete room.graceTimers[uid];
   }
+  // A finished leaver keeps their points (their score is dropped from the room just below).
+  if ((room.phase === "playing" || room.phase === "waiting") && room.scores[uid] != null) creditRoom(room, [uid]);
   room.members = room.members.filter((m) => m !== uid);
   delete room.scores[uid];
   delete room.times[uid];
