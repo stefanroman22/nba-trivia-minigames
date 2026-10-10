@@ -94,6 +94,8 @@
 .rail-sub { font-size: 11px; color: var(--muted); white-space: nowrap; line-height: 16px; }
 /* Played Wordle: same grey, desaturated photo as the landing tile. */
 .rail-item.is-played .rail-thumb { filter: grayscale(1) brightness(0.6); }
+/* Locked while a game, room or match is live: still pressable (the press explains or asks), just dimmed. */
+.rail-chip.is-locked, .rail-item.is-locked { opacity: 0.45; }
 
 /* ===== Stage column ===== */
 .stage-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }

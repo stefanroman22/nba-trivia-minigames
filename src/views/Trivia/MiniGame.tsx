@@ -8,6 +8,7 @@ import { games, visibleGames } from '../../utils/GameUtils';
 import Navigation from '../../components/Navigation';
 import { useModal } from '../../context/ModalContext';
 import { useMultiplayer } from '../../context/MultiplayerContext';
+import { useRoomGuard } from '../../hooks/useRoomGuard';
 import GameResult from '../../components/GameResult';
 import OnlineMatch from '../../components/MultiPlayer/OnlineMatch';
 import MultiplayerPanel from '../../components/MultiPlayer/MultiplayerPanel';
@@ -45,7 +46,8 @@ function MiniGame() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { open } = useModal();
-  const { mp, proposeAgain, proposeSwitch } = useMultiplayer();
+  const { mp } = useMultiplayer();
+  const { inRoom, confirmLeave } = useRoomGuard();
   const pathname = usePathname();
   // Every game is routed at its urlPath, so the URL alone resolves the game —
   // deep-links and reloads included.
@@ -232,20 +234,11 @@ function MiniGame() {
   // rail until they finish/exit (in a lobby, the HOST changes the game from
   // the room card instead).
   const inProgress = (gameStarted && !showResult) || online || inLobby;
-  // After an online round the game list IS the "switch game" control (desktop rail and the phone
-  // strip): picking a game proposes it to the room instead of navigating away.
-  const inResults = online && mp.phase === "results";
-  const switchInRoom = (g: Game) => {
-    if (mp.proposal) {
-      showErrorAlert("Answer or cancel the current request first.", "Request pending", "OK");
-      return;
-    }
-    if (g.id === "who-would-win") {
-      showErrorAlert("This game can't be played in a match yet.", "Not available online", "OK");
-      return;
-    }
-    if (g.id === game?.id) proposeAgain();
-    else proposeSwitch(g);
+  // Picking another game while in a room or match asks first (useRoomGuard), then goes.
+  const goToGame = (g: Game) => {
+    if (inRoom) { void confirmLeave().then((ok) => { if (ok) navigate(g.urlPath, { state: { id: g.id } }); }); return; }
+    if (inProgress) { showErrorAlert(GAME_IN_PROGRESS, "Game in progress", "Continue playing"); return; }
+    navigate(g.urlPath, { state: { id: g.id } });
   };
 
   // ---- Derive the single-player stage phase ----
@@ -374,9 +367,9 @@ function MiniGame() {
               <button
                 key={g.id}
                 aria-current={g.id === game?.id ? "true" : undefined}
-                className={`rail-chip${g.id === game?.id ? " is-active" : ""}`}
-                disabled={(inProgress && !inResults) || g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked && !inResults)}
-                onClick={() => (inResults ? switchInRoom(g) : navigate(g.urlPath, { state: { id: g.id } }))}
+                className={`rail-chip${g.id === game?.id ? " is-active" : ""}${inProgress && g.id !== game?.id ? " is-locked" : ""}`}
+                disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
+                onClick={() => goToGame(g)}
               >
                 {g.name}
               </button>
@@ -390,14 +383,10 @@ function MiniGame() {
               {visibleGames.map((g) => (
                 <button
                   key={g.id}
-                  disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked && !inResults)}
-                  onClick={() => {
-                    if (inResults) { switchInRoom(g); return; }
-                    if (inProgress) { showErrorAlert(GAME_IN_PROGRESS, "Game in progress", "Continue playing"); return; }
-                    navigate(g.urlPath, { state: { id: g.id } });
-                  }}
+                  disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
+                  onClick={() => goToGame(g)}
                   aria-current={g.id === game?.id ? "true" : undefined}
-                  className={`rail-item${g.id === game?.id ? " is-active" : ""}${g.id === "wordle" && wordleCard.locked ? " is-played" : ""}`}
+                  className={`rail-item${g.id === game?.id ? " is-active" : ""}${g.id === "wordle" && wordleCard.locked ? " is-played" : ""}${inProgress && g.id !== game?.id ? " is-locked" : ""}`}
                 >
                   <span className="rail-thumb" style={{ backgroundImage: g.backgroundImage }} />
                   <span className="rail-meta">
