@@ -28,7 +28,9 @@ export function useRoomGuard() {
   const { mp, leaveMatch } = useMultiplayer();
   const { user } = useSelector((state: RootState) => state.user);
   const inRoom = mp.phase !== "idle" && mp.phase !== "searching" && mp.phase !== "ended";
-  const isHost = mp.roomType === "friend" && (mp.phase === "lobby" ? mp.lobby?.hostUid === user?.id : mp.role === "host");
+  const isHost = mp.roomType === "friend" && (mp.phase === "lobby"
+    ? (user?.id ? mp.lobby?.hostUid === user.id : mp.lobby?.hostUid === user?.username)
+    : mp.role === "host");
 
   const confirmLeave = useCallback(async (): Promise<boolean> => {
     if (mp.phase === "idle") return true;

@@ -47,7 +47,7 @@ function MiniGame() {
   const navigate = useNavigate();
   const { open } = useModal();
   const { mp } = useMultiplayer();
-  const { inRoom, confirmLeave } = useRoomGuard();
+  const { confirmLeave } = useRoomGuard();
   const pathname = usePathname();
   // Every game is routed at its urlPath, so the URL alone resolves the game —
   // deep-links and reloads included.
@@ -230,13 +230,14 @@ function MiniGame() {
   };
 
   // A game is "locked in" while actively playing single-player, in an online
-  // match, or waiting in a friend room — the player can't hop games from the
-  // rail until they finish/exit (in a lobby, the HOST changes the game from
-  // the room card instead).
+  // match, or waiting in a friend room. Locked rail/strip items stay pressable:
+  // a press explains (solo) or asks before leaving (room or match).
   const inProgress = (gameStarted && !showResult) || online || inLobby;
-  // Picking another game while in a room or match asks first (useRoomGuard), then goes.
+  // Picking another game while in a room or match asks first (useRoomGuard), then goes;
+  // searching and the "Match ended" screen just leave. The current game's own item does nothing.
   const goToGame = (g: Game) => {
-    if (inRoom) { void confirmLeave().then((ok) => { if (ok) navigate(g.urlPath, { state: { id: g.id } }); }); return; }
+    if (g.id === game?.id) return;
+    if (mp.phase !== "idle") { void confirmLeave().then((ok) => { if (ok) navigate(g.urlPath, { state: { id: g.id } }); }); return; }
     if (inProgress) { showErrorAlert(GAME_IN_PROGRESS, "Game in progress", "Continue playing"); return; }
     navigate(g.urlPath, { state: { id: g.id } });
   };
