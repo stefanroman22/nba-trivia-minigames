@@ -194,6 +194,24 @@
   outline: none;
 }
 .auth-success-title { font-size: 20px; margin: 0; color: var(--text); }
+/* "Pick your username" after a new Google account (LogInSignUp NamePane): min-height is set inline to
+   the form's height so the panel never jumps between the form, this step and the success pane. */
+.auth-name { display: flex; flex-direction: column; justify-content: flex-start; gap: 16px; }
+.auth-name-lead { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.auth-secondary-btn {
+  height: 46px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.auth-secondary-btn:hover { border-color: var(--brand); }
+.auth-secondary-btn:disabled { opacity: 0.6; cursor: default; }
 
 /* ---- Feedback ---- */
 .fb-stack { display: flex; flex-direction: column; gap: 16px; }

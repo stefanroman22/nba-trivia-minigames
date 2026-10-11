@@ -2,11 +2,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
-import { setTokens } from "../utils/Api";
+import { apiFetch, setTokens } from "../utils/Api";
 import { isBanPayload, reportBan } from "../utils/ban";
 import { nameNoteSlot, useNameVerdict } from "../utils/nameCheck";
 import { usernameRules } from "../utils/usernameRules";
-import { login } from "../store/userSlice";
+import { login, updateUsername } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
 import { SITE_NAME } from "../configurations/site";
 import { isInAppBrowser } from "../utils/inAppBrowser";
@@ -31,7 +31,7 @@ const AUTH_MODES: { key: "login" | "signup"; label: string }[] = [
 ];
 
 /** The form's one state machine. Extend the union (e.g. a moderation state) rather than adding flags. */
-export type AuthPhase = "idle" | "submitting" | "error" | "success";
+export type AuthPhase = "idle" | "submitting" | "error" | "name" | "success";
 type AuthField = "identifier" | "email" | "username" | "password" | "consent";
 interface AuthError { id: number; message: string; field?: AuthField }
 
@@ -80,6 +80,8 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
   // `id` keys the alert and the field shake so a repeat of the same message replays both.
   const [error, setError] = useState<AuthError | null>(null);
   const [welcome, setWelcome] = useState<{ name: string; isNew: boolean; height: number } | null>(null);
+  // A brand-new Google account: its generated name, offered for change before the modal closes.
+  const [pickName, setPickName] = useState<{ name: string; height: number } | null>(null);
   const [canSkip, setCanSkip] = useState(false);
   const errorSeq = useRef(0);
   const submittingRef = useRef(false);
@@ -221,9 +223,9 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
   };
 
   /* ---- Success ---- */
-  const succeed = (name: string, isNew: boolean) => {
+  const succeed = (name: string, isNew: boolean, height = formRef.current?.offsetHeight ?? 0) => {
     // The pane holds the form's height so the panel does not jump when the form leaves.
-    setWelcome({ name, isNew, height: formRef.current?.offsetHeight ?? 0 });
+    setWelcome({ name, isNew, height });
     setPhase("success");
   };
 
@@ -362,7 +364,14 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       localStorage.setItem("accessToken", data.access);
       localStorage.setItem("refreshToken", data.refresh);
       dispatch(login(data.user));
-      succeed(data.user.username, data.new_account === true);
+      if (data.new_account === true) {
+        // Signed in already; the generated name can be kept or changed (closing keeps it).
+        submittingRef.current = false;
+        setPickName({ name: data.user.username, height: formRef.current?.offsetHeight ?? 0 });
+        setPhase("name");
+        return;
+      }
+      succeed(data.user.username, false);
     } catch (err) {
       console.error("Unexpected error during Google login:", err);
       fail(NETWORK_ERROR);
@@ -442,6 +451,15 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
               welcome={welcome}
               reduce={!!reduce}
               onSkip={canSkip ? finish : undefined}
+            />
+          ) : phase === "name" && pickName ? (
+            <NamePane
+              key="name"
+              generated={pickName.name}
+              minHeight={pickName.height}
+              reduce={!!reduce}
+              onDone={(name, height) => succeed(name, true, height)}
+              onBanned={onClose}
             />
           ) : (
             <motion.div key="form" ref={formRef} className="auth-stack" variants={pane} initial={false} animate="visible" exit="exit">
@@ -632,6 +650,126 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+interface NamePaneProps {
+  /** The neutral name the server generated for the new Google account. */
+  generated: string;
+  /** The form's height, held so the panel does not jump between the form, this pane and success. */
+  minHeight: number;
+  reduce: boolean;
+  /** Finish with the name now on the account (generated or the new one) and the pane's height. */
+  onDone: (name: string, height: number) => void;
+  /** The rename hit the third strike: the ban screen takes over (apiFetch reported it). */
+  onBanned: () => void;
+}
+
+/** One-time "Pick your username" step after a NEW Google account is created. The player is already
+ *  signed in with a generated neutral name; "Keep this name" or "Save" finish, and closing the modal
+ *  keeps the generated name (Profile settings can rename later), so it never blocks playing. */
+function NamePane({ generated, minHeight, reduce, onDone, onBanned }: NamePaneProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [name, setName] = useState(generated);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<{ id: number; message: string } | null>(null);
+  const errorSeq = useRef(0);
+  const verdict = useNameVerdict(name, true);
+  const rules = usernameRules(name, verdict);
+  const changed = name !== generated;
+
+  // Mounted once the form has left (mode="wait"): take focus, as the success pane does.
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+    inputRef.current?.select();
+  }, []);
+
+  const height = () => ref.current?.offsetHeight ?? minHeight;
+  const fail = (message: string) => setError({ id: ++errorSeq.current, message });
+
+  const save = async () => {
+    if (saving) return;
+    if (!changed) { onDone(generated, height()); return; }
+    if (rules.slice(0, 2).some((r) => !r.ok)) { fail("Usernames are 3-20 letters, numbers or underscores."); return; }
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await apiFetch(`${BACKEND_URL}/update-profile/`, {
+        method: "POST",
+        body: JSON.stringify({ username: name }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.status === 403 && isBanPayload(data)) { onBanned(); return; }
+      if (!response.ok || data.error) { fail(data.error || "We couldn't save that name. Please try another."); return; }
+      dispatch(updateUsername(name));
+      onDone(name, height());
+    } catch (err) {
+      console.error("Username save failed:", err);
+      fail(NETWORK_ERROR);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <motion.div
+      ref={ref}
+      className="auth-name"
+      style={{ minHeight }}
+      variants={reduce ? reducedFade : fadeIn}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
+      <p className="auth-name-lead">
+        Your account is ready. Other players see this name on leaderboards and in matches; keep it or pick your own.
+      </p>
+      <form
+        className="auth-stack"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void save();
+        }}
+      >
+        <div>
+          <input
+            ref={inputRef}
+            type="text"
+            className="modal-input"
+            aria-label="Username"
+            maxLength={20}
+            autoComplete="off"
+            value={name}
+            disabled={saving}
+            aria-invalid={!!error || undefined}
+            style={{ borderColor: error ? "var(--bad)" : undefined }}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <PasswordRules show rules={rules} label="Username requirements" />
+        </div>
+        <div className="auth-error-slot" role="status" aria-live="polite">
+          <AnimatePresence initial={false}>
+            {error && (
+              <motion.div key="name-error" className="auth-error-clip" variants={reduce ? reducedFade : nameNoteSlot} initial="hidden" animate="visible" exit={reduce ? "exit" : "hidden"}>
+                <motion.p key={error.id} className="auth-error auth-error-msg" variants={reduce ? reducedFade : errorIn} initial="hidden" animate="visible">
+                  {error.message}
+                </motion.p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <button type="submit" className="modal-primary-btn" disabled={saving}>
+          <SwapText>{saving ? "Saving…" : "Save"}</SwapText>
+        </button>
+        {/* Keeps the generated name even if they started typing another. */}
+        <button type="button" className="auth-secondary-btn" disabled={saving} onClick={() => onDone(generated, height())}>
+          Keep this name
+        </button>
+      </form>
+      <p className="auth-note">You can change it any time in Profile settings.</p>
+    </motion.div>
   );
 }
 

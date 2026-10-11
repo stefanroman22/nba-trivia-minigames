@@ -56,7 +56,7 @@ export default function ModalHost() {
   let content: React.ReactNode = null;
 
   if (kind === "login") {
-    title = authMode === "signup" ? "Create account" : "Welcome back";
+    title = authPhase === "name" ? "Pick your username" : authMode === "signup" ? "Create account" : "Welcome back";
     takeover = authPhase === "success";
     content = <LogInSignUp mode={authMode} onModeChange={setAuthMode} onClose={close} onPhaseChange={setAuthPhase} />;
   } else if (kind === "feedback") {
