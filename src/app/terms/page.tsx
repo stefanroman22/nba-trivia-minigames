@@ -141,6 +141,11 @@ export default function TermsPage() {
         applies. If you do not accept it you can delete your account before then, at no cost; using the service after the
         date means you accept it.
       </p>
+      <p>
+        This version was published on {LEGAL.updated}. Accounts created from that date accept it when they sign up. For
+        accounts created before, it applies from {LEGAL.changeNotice.effective}; until then the previous version applies
+        to them.
+      </p>
 
       <LegalHeading id="liability">13. Our responsibility</LegalHeading>
       <p>

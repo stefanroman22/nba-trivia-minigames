@@ -14,12 +14,13 @@ export const LEGAL = {
   /** Country whose law governs the Terms, e.g. "Romania". */
   country: "Romania",
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
-  version: "2026-10-11.1",
+  version: "2026-10-11.2",
   updated: "11 October 2026",
   /** The same date as ISO, for the sitemap. */
   updatedIso: "2026-10-11",
   /** The home-page notice of a significant change (components/LegalChangeNotice), shown for 14 days
-   *  before the change applies to existing accounts (Terms section 12, Privacy section 15). */
+   *  before the change applies to existing accounts (Terms section 12, Privacy section 15). Accounts
+   *  created from `updated` on accept the new version at sign-up; older accounts from `effective`. */
   changeNotice: {
     effective: "25 October 2026",
     /** First day the notice is no longer shown (14 days after `updatedIso`). */

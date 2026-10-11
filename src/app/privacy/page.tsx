@@ -215,6 +215,10 @@ export default function PrivacyPage() {
         will also say so on the site&apos;s home page for at least 14 days before it applies. Earlier versions are available
         on request.
       </p>
+      <p>
+        This version was published on {LEGAL.updated}. It applies straight away to accounts created from that date, which
+        accept it at sign-up. For accounts created before, it applies from {LEGAL.changeNotice.effective}.
+      </p>
     </LegalPage>
   );
 }
