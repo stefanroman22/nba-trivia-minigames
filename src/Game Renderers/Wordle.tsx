@@ -52,18 +52,18 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
   // Ends in place (Rule 7.3): the tile board stays. The keyboard stays up until the
   // last row has finished flipping, then gives way to a short loader and the
   // ScorePanel, and the status label reveals the answer.
-  const endGame = useCallback((points: number, won: boolean) => {
+  const endGame = useCallback((points: number, won: boolean, played: string[]) => {
     lockedRef.current = true;
     endTimerRef.current = setTimeout(() => {
       setBottomPhase("loader");
       endTimerRef.current = setTimeout(() => {
-        onGameEnd(points, { inPlace: true });
+        onGameEnd(points, { inPlace: true, review: { game: "wordle", solution, guesses: played, won } });
         setEndState({ score: points, won });
         setFeedback(null);
         setBottomPhase("score");
       }, LOADER_MS);
     }, ROW_LANDED_MS);
-  }, [onGameEnd]);
+  }, [onGameEnd, solution]);
 
   // Initialize solution (guarded against empty payloads)
   useEffect(() => {
@@ -90,13 +90,14 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
     });
 
     const solved = currentGuess === solution;
+    const played = nextGuesses.filter((g): g is string => g !== null);
     if (solved) {
       const points = (MAX_GUESSES - firstNullIndex) * POINTS_PER_GUESS;
       setFeedback({ text: `Correct! +${points}`, color: "var(--good)" });
-      endGame(points, true);
+      endGame(points, true, played);
     } else if (firstNullIndex === MAX_GUESSES - 1) {
       // No popup: the answer stays on screen in the status label once the game ends.
-      endGame(0, false);
+      endGame(0, false, played);
     }
 
     setCurrentGuess('');
@@ -256,7 +257,8 @@ function computeLetterStatuses(
   return out;
 }
 
-function Line({ guess, solution, isSubmitted }: { guess: string; solution: string; isSubmitted: boolean }) {
+/** One tile row; also the answer review's board (components/review). */
+export function Line({ guess, solution, isSubmitted }: { guess: string; solution: string; isSubmitted: boolean }) {
   const status = isSubmitted && guess.length === WORD_LENGTH ? gradeGuess(guess, solution) : Array(WORD_LENGTH).fill('');
 
   const tiles = [];

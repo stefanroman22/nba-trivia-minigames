@@ -5,6 +5,7 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import type { ConnectionsBoard, OnGameEnd } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/ConnectionsGame.css";
 
 export interface ConnectionsGameProps {
@@ -22,10 +23,12 @@ const START_HEARTS = 5;
 // tier so label contrast stays >= 4.5:1 on both the lightest and darkest fill.
 // Tier 4 uses a darkened one-off (not --brand-deep) because #c2510a only
 // clears 4.27:1 against the --tier-ink fff2e6 label; #b34a09 clears 4.5:1.
-const TIER_COLOR: Record<number, string> = {
+// eslint-disable-next-line react-refresh/only-export-components
+export const TIER_COLOR: Record<number, string> = {
   1: "#ffb347", 2: "var(--brand2)", 3: "var(--brand)", 4: "#b34a09",
 };
-const TIER_INK: Record<number, string> = {
+// eslint-disable-next-line react-refresh/only-export-components
+export const TIER_INK: Record<number, string> = {
   1: "#1a1206", 2: "#1a1206", 3: "#1a1206", 4: "#fff2e6",
 };
 
@@ -128,12 +131,15 @@ function ConnectionsGame({ gameInfo, onGameEnd, multiplayer }: ConnectionsGamePr
   };
 
   // onGameEnd exactly once (endedRef guard + timersRef cleared on unmount/reset).
-  const endGame = (solvedCount: number) => {
+  const endGame = (solvedIdx: number[]) => {
     if (endedRef.current) return;
     endedRef.current = true;
     setFinished(true);
     sendGuessLog();
-    later(() => onGameEnd?.(POINTS_PER_GROUP * solvedCount), 300);
+    const review: AnswerReview | undefined = board
+      ? { game: "connections", groups: board.groups.map((g, i) => ({ ...g, solved: solvedIdx.includes(i) })) }
+      : undefined;
+    later(() => onGameEnd?.(POINTS_PER_GROUP * solvedIdx.length, { review }), 300);
   };
 
   const revealRemaining = (currentSolved: SolvedGroup[]) => {
@@ -151,7 +157,7 @@ function ConnectionsGame({ gameInfo, onGameEnd, multiplayer }: ConnectionsGamePr
         setOrder((prev) => prev.filter((t) => !g.members.includes(t)));
       }, 300 + k * 260);
     });
-    later(() => endGame(currentSolved.length), 300 + remaining.length * 260 + 500);
+    later(() => endGame(currentSolved.map((s) => s.idx)), 300 + remaining.length * 260 + 500);
   };
 
   const handleSubmit = () => {
@@ -170,7 +176,7 @@ function ConnectionsGame({ gameInfo, onGameEnd, multiplayer }: ConnectionsGamePr
       setSelected([]);
       if (nextSolved.length === 4) {
         flash("Solved! Board cleared", "var(--good)");
-        endGame(4);
+        endGame(nextSolved.map((s) => s.idx));
       } else {
         flash(`Correct! +${POINTS_PER_GROUP}`, "var(--good)");
       }

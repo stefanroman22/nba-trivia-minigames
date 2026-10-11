@@ -9,6 +9,7 @@ import TeamCrest from "../components/ui/TeamCrest";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { matchAnswer } from "../utils/answerMatch";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/StartingFive.css";
 
 interface StartingFiveProps {
@@ -66,7 +67,7 @@ function UnknownFigure() {
 
 /** Back of the card: the player's photo, app-toned. Falls back to an orange
  *  silhouette if the placeholder photo can't load (so it never breaks). */
-function RevealedFace({ name }: { name: string }) {
+export function RevealedFace({ name }: { name: string }) {
   const [failed, setFailed] = useState(false);
   return (
     <>
@@ -130,6 +131,20 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   const currentGame = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
   const maxPoints = 5 * pointsPerCorrect + COMPLETION_BONUS;
 
+  /** The answer review handed back with the score: each card's player, found or revealed. */
+  const reviewOf = (found: Record<string, string>, all: Record<string, string>): AnswerReview | undefined =>
+    currentGame
+      ? {
+          game: "starting-five",
+          matchup: {
+            teamA: currentGame.team_a, teamB: currentGame.team_b,
+            logoA: currentGame.team_a_logo, logoB: currentGame.team_b_logo,
+            winner: currentGame.winning_team, score: currentGame.final_score, date: currentGame.game_date,
+          },
+          slots: SLOTS.map((s) => ({ key: s.key, label: s.label, name: found[s.key] ?? all[s.key] ?? null, found: !!found[s.key] })),
+        }
+      : undefined;
+
   const handleGuessSubmit = (posKey: string) => {
     if (!currentGame?.starting_5) return;
     const playerName = guesses[posKey];
@@ -168,8 +183,9 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
         // Win → in-place (Rule 7.3): the completed lineup stays in view while the
         // bottom slot runs loader → score.
         setBottomPhase("loader");
+        const found = { ...correctGuesses, [posKey]: match.name };
         setTimeout(() => {
-          onGameEnd?.(maxPoints, { inPlace: true });
+          onGameEnd?.(maxPoints, { inPlace: true, review: reviewOf(found, found) });
           setEndState({ score: maxPoints, won: true });
           setBottomPhase("score");
         }, 1500);
@@ -207,7 +223,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
         // …then the score settles in place (Rule 7.3), awarding what was earned
         // and logging the session — a loss used to award nothing at all.
         setTimeout(() => {
-          onGameEnd?.(finalScore, { inPlace: true });
+          onGameEnd?.(finalScore, { inPlace: true, review: reviewOf(correctGuesses, revealAll) });
           setEndState({ score: finalScore, won: false });
           setBottomPhase("score");
         }, finishedAt);

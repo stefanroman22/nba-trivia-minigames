@@ -42,6 +42,7 @@ import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
 import { buildNameLookup, fetchQuestion, hashStr } from "../utils/questions";
 import type { OnGameEnd, SuperDraftQuestion, SuperDraftSlot } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/SuperDraft.css";
 
 export interface SuperDraftProps {
@@ -216,7 +217,8 @@ function Silhouette() {
   );
 }
 
-function Headshot({ player }: { player: Pick }) {
+/** Slot face (also the answer review's slots). */
+export function Headshot({ player }: { player: { person_id: number } }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [player.person_id]);
   if (failed) return <Silhouette />;
@@ -404,9 +406,31 @@ export default function SuperDraft({
     // inPlace: the bespoke .sd-result panel below IS the end screen (spec §7).
     // Shown and reported in the same tick so the shell's "Close game" hides as
     // the panel's own Close game appears.
+    // Answer review: each slot's pick next to the best pick its pool had for this objective
+    // (taken greedily in slot order, so one player is never the "best" of two slots).
+    const taken = new Set<number>();
+    const reviewPick = (p: Pick) => ({ person_id: p.person_id, name: p.full_name, metric: objective.fmtPick(p) });
+    const review: AnswerReview = {
+      game: "superdraft",
+      objective: objective.label,
+      aggLabel: objective.aggLabel,
+      aggregate: objective.fmtAgg(finalPicks.map((p) => objective.perPick(p))),
+      percentile: pct,
+      slots: slots.map((s, i) => {
+        const best = s.eligible
+          .filter((p) => !taken.has(p.person_id))
+          .reduce<Pick | null>((a, p) => (!a || objective.perPick(p) > objective.perPick(a) ? p : a), null);
+        if (best) taken.add(best.person_id);
+        return {
+          label: s.label, sub: s.sub, kind: s.kind,
+          pick: finalPicks[i] ? reviewPick(finalPicks[i]) : null,
+          best: best ? reviewPick(best) : null,
+        };
+      }),
+    };
     later(() => {
       setShowResult(true);
-      onGameEnd?.(pct, { inPlace: true });
+      onGameEnd?.(pct, { inPlace: true, review });
     }, REVEAL_LEAD_MS + SLOT_COUNT * REVEAL_STEP_MS + 200);
   };
 

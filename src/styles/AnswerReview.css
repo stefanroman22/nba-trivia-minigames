@@ -1,0 +1,161 @@
+/* ===========================================================================
+   Answer review (prefix: ar-) — the "See answers" modal for a finished online
+   round (components/modals/AnswerReviewModal + components/review). Each game's
+   own board classes (wordle .line, .s5-*, .ff-*, .ttt-*, …) are reused read-only;
+   this file only frames them and adds the round-list rows the pool games use.
+   Tokens only (theme.css).
+   =========================================================================== */
+
+.ar { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+/* Game name + your score: one line above the board. */
+.ar-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+.ar-game { font-size: 15px; color: var(--text); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ar-score { flex: none; font-size: 13px; font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; }
+.ar-score span { color: var(--muted); font-weight: 600; }
+
+/* A one-line outcome under the meta ("3 of 5 right", "Draw", "Solved in 3"). */
+.ar-summary { margin: -8px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.ar-summary b { color: var(--text); font-weight: 700; }
+
+/* The question itself, when the game asks one (Fan Favorites). */
+.ar-prompt { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+.ar-prompt b { color: var(--text); font-weight: 700; }
+
+/* Section label inside one review ("Your guesses", "Clues"). */
+.ar-sub { margin: 0; font-size: 12px; font-weight: 700; color: var(--text); letter-spacing: 0.2px; }
+
+/* ---- Round rows (series, logos, MVPs, Pack 5, Heatmap hexes) ---- */
+.ar-rounds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ar-round {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface2);
+}
+.ar-round-no { font-size: 12px; font-weight: 700; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.ar-round-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ar-round-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.2px; }
+.ar-round-answer { display: flex; align-items: center; gap: 9px; min-width: 0; font-size: 14px; font-weight: 700; color: var(--text); line-height: 1.3; }
+.ar-round-answer > span { min-width: 0; overflow-wrap: anywhere; }
+.ar-pick { font-size: 12px; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+.ar-pick b { font-weight: 700; }
+.ar-pick.is-good b { color: var(--good); }
+.ar-pick.is-bad b { color: var(--bad); }
+
+/* Right / wrong mark: authored SVG on a soft disc. */
+.ar-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.ar-mark.is-good { color: var(--good); background: var(--good-soft); }
+.ar-mark.is-bad { color: var(--bad); background: var(--bad-soft); }
+
+/* Series: both teams on one line, the winner in green, a wrong pick in red. */
+.ar-teams { display: flex; flex-wrap: wrap; gap: 6px; }
+.ar-team {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 4px 10px 4px 5px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ar-team .tnum { font-size: 11.5px; }
+.ar-team.is-winner { border-color: var(--good); background: var(--good-soft); color: var(--text); }
+.ar-team.is-winner .tnum { color: var(--good); }
+.ar-team.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.ar-team-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Boards: the game's own board, centred, never wider than the panel ---- */
+.ar-board { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; min-width: 0; }
+
+/* Wordle: the answer as its own all-green row under the played board. */
+.ar-wordle-answer { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.ar-cap { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+
+/* Lists that scroll inside their game cap their height; in the modal the body scrolls instead. */
+.ar .cx-list,
+.ar .waya-feed { max-height: none; overflow: visible; }
+.ar .waya-feed { width: 100%; }
+
+/* Starting 5: five across at every width (the review has no inputs to make room for). */
+.ar .s5-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+.ar .s5-card:last-child:nth-child(odd) { grid-column: auto; justify-self: stretch; width: auto; }
+.ar .s5-card-name { font-size: 12px; padding-top: 4px; }
+@media (max-width: 560px) {
+  .ar .s5-cards { gap: 5px; }
+  .ar .s5-card-name { font-size: 10.5px; }
+  .ar .s5-card-pos { font-size: 8.5px; letter-spacing: 0.4px; }
+  .ar .s5-face { border-radius: 10px; }
+}
+
+/* Fan Favorites: answers you didn't name stay fully readable (muted text, not a faded slot). */
+.ar .ff-slot.is-missed { opacity: 1; }
+
+/* Board cells that are shown, not played: no pointer, no hover lift. */
+.ar .ng-cell,
+.ar .bng-cell,
+.ar .hm-hex,
+.ar .ttt-cell { cursor: default; }
+.ar .ng-cell:active { transform: none; }
+
+/* An answer the player didn't find, shown in a missed cell ("e.g. …"). */
+.ar-example { color: var(--muted); font-weight: 600; font-style: italic; }
+.ar .ng-cell.is-missed { opacity: 1; }
+.ar .ng-cell.is-missed .ar-example { font-size: clamp(8.5px, 1.35dvh, 10.5px); line-height: 1.15; text-align: center; padding: 0 3px; overflow-wrap: anywhere; }
+.ar .bng-cell:not(.is-claimed) { opacity: 1; }
+/* Bingo: rows grow to fit a full name (the card is read here, not played against a clock). */
+.ar .bng-grid { grid-template-rows: none; grid-auto-rows: minmax(clamp(52px, 9dvh, 76px), auto); }
+.ar .bng-cell { padding: 6px 5px; }
+.ar .bng-cell-claimer { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.15; }
+
+/* Career Path: the answer pane above the full, face-up rail. */
+.ar .cp-answer { padding: 4px 0 0; }
+.ar .cp-rail { padding-bottom: 6px; }
+
+/* Guess chips (Career Path, Wordle-style lists). */
+.ar-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ar-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ar-chip.is-good { border-color: var(--good); color: var(--good); background: var(--good-soft); }
+
+/* Superdraft: the pool's best pick under each slot's own pick. */
+.ar .sd-slots { overflow: visible; flex: none; }
+.ar-best { font-size: 11.5px; color: var(--muted); line-height: 1.35; overflow-wrap: anywhere; }
+.ar-best b { color: var(--good); font-weight: 700; }
+
+/* Imposter: clue log under the reveal. */
+.ar-clues { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ar-clue { display: flex; gap: 8px; font-size: 12.5px; line-height: 1.4; color: var(--muted); min-width: 0; }
+.ar-clue b { flex: none; color: var(--text); font-weight: 700; }
+.ar-clue span { min-width: 0; overflow-wrap: anywhere; }
+

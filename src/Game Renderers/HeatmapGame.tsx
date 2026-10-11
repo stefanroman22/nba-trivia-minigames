@@ -58,6 +58,8 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
   // Mirrors `raw` so a delayed endGame() never scores off a stale render closure.
   const rawRef = useRef(0);
   const failsRef = useRef<Record<number, number>>({});
+  // Who claimed each hex, for the answer review handed back with the score.
+  const claimedByRef = useRef<Record<number, string>>({});
   const guessLogRef = useRef<GuessEntry[]>([]);
   const startRef = useRef(Date.now());
   const endedRef = useRef(false);
@@ -108,7 +110,7 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
     clearTimers();
     setClaimed({}); setActiveId(null); setGuess(""); setRaw(0); rawRef.current = 0;
     setFinished(false); setBottomPhase("input"); setShowPopup(false);
-    failsRef.current = {}; setHintFor(null);
+    failsRef.current = {}; claimedByRef.current = {}; setHintFor(null);
     guessLogRef.current = []; startRef.current = Date.now();
     endedRef.current = false;
   }, [gameInfo]);
@@ -132,10 +134,27 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
     setGuess("");
   };
 
+  /** One hex in the answer review: who you named, or the best-known player who fit it (one the review
+   *  doesn't already show, when there is one). */
+  const reviewHex = (h: HeatmapBoard["hexes"][number], shown: Set<string>) => {
+    const claimedBy = claimedByRef.current[h.id] ?? null;
+    let example: PlayerIndexEntry | null = null;
+    if (!claimedBy) {
+      const required = [h.criterion, ...neighborCriteria(h.id)];
+      const rank = (p: PlayerIndexEntry) => p.fame_tier + (shown.has(p.full_name) ? 10 : 0);
+      for (const p of players) {
+        if ((!example || rank(p) < rank(example)) && required.every((c) => playerMatches(p, c))) example = p;
+      }
+      if (example) shown.add(example.full_name);
+    }
+    return { id: h.id, label: h.criterion.label, type: h.criterion.type, claimedBy, example: example?.full_name ?? null };
+  };
+
   const finish = (capped: number) => {
     if (endedRef.current) return;
     endedRef.current = true;
-    onGameEnd(capped, { inPlace: true });
+    const shown = new Set(Object.values(claimedByRef.current));
+    onGameEnd(capped, { inPlace: true, review: { game: "heatmap", rows: rows.map((row) => row.map((h) => reviewHex(h, shown))) } });
   };
 
   // In-place end (Rule 7.3): the board stays on screen while the bottom slot swaps the
@@ -184,6 +203,7 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
     if (ok) {
       rawRef.current += POINTS_PER_HEX;
       setRaw((prev) => prev + POINTS_PER_HEX);
+      claimedByRef.current[id] = player.full_name;
       const nextClaimed = { ...claimed, [id]: true };
       setClaimed(nextClaimed);
       setActiveId(null);

@@ -91,6 +91,19 @@ export default function OnlineMatch() {
     )
     : <button className="om-exit" onClick={leaveMatch}>{isFriend ? "Leave room" : "Exit game"}</button>;
 
+  // See answers: the round's answers, once YOU have finished it (the store holds a review only from
+  // your own submit until the next round starts). Same spot on every after-play screen: right above
+  // the exit links.
+  const ReviewButton = mp.review ? (
+    <button type="button" className="om-review" onClick={() => open("answerReview")}>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+      See answers
+    </button>
+  ) : null;
+
   // ---- Per-phase body ----
   let body: React.ReactNode = null;
 
@@ -125,7 +138,8 @@ export default function OnlineMatch() {
             // Turn games carry no round data (state comes via `turn`); renderers tolerate [].
             gameData: mp.gameData ?? EMPTY_ROUND,
             pointsPerCorrect: mp.game?.pointsPerCorrect,
-            onGameEnd: (score: number) => submitScore(score, Date.now() - startRef.current),
+            // The renderer's answer snapshot rides along; See answers shows it once you've finished (MP-16).
+            onGameEnd: (score, opts) => submitScore(score, Date.now() - startRef.current, opts?.review),
             turn: mp.turnState,
             onTurnAction: sendTurnAction,
             multiplayer: true,
@@ -155,6 +169,7 @@ export default function OnlineMatch() {
           <span className="om-yourscore-num tnum font-display">{mp.yourScore ?? 0}</span>
         </div>
         <CourtLoader label={waitingLabel} scale={0.7} gap={2} />
+        {ReviewButton}
         {ExitLink}
       </motion.div>
     );
@@ -192,6 +207,7 @@ export default function OnlineMatch() {
           onRespond={respondProposal}
           onCancel={cancelProposal}
         />
+        {ReviewButton}
         {isHost ? <button className="om-exit" onClick={leaveMatch}>Close room</button> : ExitLink}
       </motion.div>
     );
@@ -209,6 +225,7 @@ export default function OnlineMatch() {
           )}
           <button className="om-btn om-btn--ghost" onClick={leaveMatch}>Exit game</button>
         </div>
+        {ReviewButton}
       </motion.div>
     );
   }

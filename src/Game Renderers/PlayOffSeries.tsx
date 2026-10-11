@@ -34,6 +34,8 @@ function PlayOffSeries({
   const currentSeries = seriesList[currentIndex];
   const reduce = useReducedMotion();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Each round's pick, for the answer review handed back with the score.
+  const picksRef = useRef<(string | null)[]>([]);
 
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -43,6 +45,7 @@ function PlayOffSeries({
     if (showWinner) return;
     setSelectedTeam(picked);
     setShowWinner(true);
+    picksRef.current[currentIndex] = picked;
 
     const isCorrect = picked === currentSeries.winner;
     if (isCorrect) {
@@ -55,7 +58,20 @@ function PlayOffSeries({
       if (currentIndex < seriesList.length - 1) {
         setCurrentIndex((prev) => prev + 1);
       } else if (onGameEnd) {
-        onGameEnd(score + (isCorrect ? pointsPerCorrect : 0));
+        onGameEnd(score + (isCorrect ? pointsPerCorrect : 0), {
+          review: {
+            game: "series-winner",
+            rounds: seriesList.map((s, i) => ({
+              label: `${s.round} · ${s.season}`,
+              teams: [
+                { name: s.team_a, logo: s.team_a_logo, wins: s.team_a_wins },
+                { name: s.team_b, logo: s.team_b_logo, wins: s.team_b_wins },
+              ],
+              winner: s.winner,
+              pick: picksRef.current[i] ?? null,
+            })),
+          },
+        });
       }
     }, 1800);
   };

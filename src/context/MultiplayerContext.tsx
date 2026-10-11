@@ -29,6 +29,11 @@ import { getAccessToken, refreshSession } from "../utils/Api";
 import { BAN_CODE, reportBan } from "../utils/ban";
 import { isAccessTokenExpired } from "../utils/session";
 import type { Game, GameData, PlayerInfo } from "../types/types";
+import type { AnswerReview } from "../types/review";
+import { turnReview } from "../utils/turnReview";
+
+/** Who "you" are in a turn game's review (the matchResult handler reads it from the signed-in user). */
+type ReviewSelf = { uid: string; name: string; photo?: string | null };
 import { games } from "../utils/GameUtils";
 
 type Phase = "idle" | "searching" | "lobby" | "intro" | "playing" | "waiting" | "results" | "ended";
@@ -104,6 +109,9 @@ export interface MpState {
   turnState: unknown;
   introElapsed: boolean;
   yourScore: number | null;
+  /** This round's answer snapshot, handed back by the renderer with your score (MP-16). Set only once
+   *  you have finished (SUBMITTED), cleared by every new round, so it can never show answers mid-play. */
+  review: AnswerReview | null;
   opponentScore: number | null;
   standings: Standing[] | null;
   outcome: Outcome | null;
@@ -116,7 +124,7 @@ export interface MpState {
 const initial: MpState = {
   phase: "idle", code: null, game: null, roomType: null, roomSize: 2, role: null,
   queueInfo: null, opponents: [], oppStatus: {}, lobby: null, friendPending: null,
-  friendJoinError: null, gameData: null, turnState: null, introElapsed: false, yourScore: null,
+  friendJoinError: null, gameData: null, turnState: null, introElapsed: false, yourScore: null, review: null,
   opponentScore: null, standings: null, outcome: null, proposal: null, ended: null,
   notice: null, error: null,
 };
@@ -140,8 +148,8 @@ type Action =
   | { t: "TURN_STATE"; state: unknown }
   | { t: "ROUND_ERROR"; message: string }
   | { t: "INTRO_ELAPSED" }
-  | { t: "SUBMITTED"; score: number }
-  | { t: "MATCH_RESULT"; yourScore: number; opponentScore: number; outcome: Outcome; standings: Standing[] | null }
+  | { t: "SUBMITTED"; score: number; review?: AnswerReview }
+  | { t: "MATCH_RESULT"; yourScore: number; opponentScore: number; outcome: Outcome; standings: Standing[] | null; self?: ReviewSelf }
   | { t: "MATCH_RESTART"; game?: Game; message?: string }
   | { t: "FRIEND_CREATE" }
   | { t: "FRIEND_JOIN" }
@@ -244,14 +252,19 @@ function reducer(state: MpState, a: Action): MpState {
       // Only a live game can move to waiting — a stale onGameEnd (e.g. a
       // renderer's delayed end firing after leave/opponent-left) is ignored.
       if (state.phase !== "playing") return state;
-      return { ...state, phase: "waiting", yourScore: a.score };
+      return { ...state, phase: "waiting", yourScore: a.score, review: a.review ?? null };
     case "MATCH_RESULT":
-      return { ...state, phase: "results", yourScore: a.yourScore, opponentScore: a.opponentScore, outcome: a.outcome, standings: a.standings };
+      return {
+        ...state, phase: "results", yourScore: a.yourScore, opponentScore: a.opponentScore, outcome: a.outcome, standings: a.standings,
+        // A turn game's relay settles the instant its board ends, often before the renderer's delayed
+        // end call (which carries the review) can fire: build that round's review from the final state.
+        review: state.review ?? (a.self ? turnReview(state.game?.id, state.turnState, a.self, state.opponents) : null),
+      };
     case "MATCH_RESTART":
       return {
         ...state, phase: "intro", introElapsed: false, gameData: null, turnState: null,
         game: a.game ?? state.game,
-        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null,
+        yourScore: null, review: null, opponentScore: null, outcome: null, standings: null, proposal: null,
         // A guest whose round the host switched mid-play is told why the game changed under them.
         notice: a.message ? { kind: "info", text: a.message } : state.notice?.kind === "points" ? null : state.notice,
         ended: null, oppStatus: freshStatus(state.opponents), error: null,
@@ -375,6 +388,8 @@ function reducer(state: MpState, a: Action): MpState {
         // A reconnect into the same room keeps the round already on screen: a new gameData
         // object would make the game renderers restart it from the first question.
         gameData: state.code === s.code && state.gameData ? state.gameData : s.gameData, introElapsed: false,
+        // The answer review lives only on this client: keep it across a reconnect into the same finished round.
+        review: state.code === s.code && (phase === "waiting" || phase === "results") ? state.review : null,
         yourScore: s.yourScore, opponentScore: s.opponentScore,
         standings: s.standings ?? null, outcome,
         proposal: s.proposal ? { ...s.proposal } : null,
@@ -418,7 +433,8 @@ interface MultiplayerContextValue {
   /** Host (mid-match or results): play again, or switch to `game`, for everyone at once. */
   restartRoom: (game?: Game) => void;
   resetFriendJoinError: () => void;
-  submitScore: (score: number, elapsedMs?: number) => void;
+  /** review: the round's answer snapshot (the renderer's onGameEnd opts), kept client-side for See answers. */
+  submitScore: (score: number, elapsedMs?: number, review?: AnswerReview) => void;
   /** Turn-engine games: send a player action to the authoritative server. */
   sendTurnAction: (action: unknown) => void;
   proposeAgain: () => void;
@@ -538,7 +554,12 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       roundDataError: (d: { message: string }) => dispatch({ t: "ROUND_ERROR", message: d.message }),
       waitingForOpponent: () => {/* local SUBMITTED already moved us to waiting */},
       matchResult: (d: { yourScore: number; opponentScore: number; outcome: Outcome; standings?: Standing[] }) =>
-        dispatch({ t: "MATCH_RESULT", yourScore: d.yourScore, opponentScore: d.opponentScore, outcome: d.outcome, standings: d.standings ?? null }),
+        dispatch({
+          t: "MATCH_RESULT", yourScore: d.yourScore, opponentScore: d.opponentScore, outcome: d.outcome, standings: d.standings ?? null,
+          self: userRef.current
+            ? { uid: playerKey(userRef.current), name: userRef.current.username || "You", photo: userRef.current.profile_photo }
+            : undefined,
+        }),
       matchRestart: (d: { game?: Game; message?: string }) =>
         dispatch({ t: "MATCH_RESTART", game: localGame(d.game) ?? undefined, message: typeof d?.message === "string" ? d.message : undefined }),
       friendRoomCreated: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
@@ -690,9 +711,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   const resetFriendJoinError = useCallback(() => dispatch({ t: "FRIEND_JOIN_RESET" }), []);
   const cancelFind = useCallback(() => { actionSeq.current++; socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
-  const submitScore = useCallback((score: number, elapsedMs?: number) => {
+  const submitScore = useCallback((score: number, elapsedMs?: number, review?: AnswerReview) => {
     if (codeRef.current == null) return; // no live room — stale end-call, drop it
-    dispatch({ t: "SUBMITTED", score });
+    dispatch({ t: "SUBMITTED", score, review });
     socket.emit("submitScore", { code: codeRef.current, score, elapsedMs });
   }, []);
   const sendTurnAction = useCallback((action: unknown) => {

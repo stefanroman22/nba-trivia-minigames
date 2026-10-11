@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
 import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload } from "../context/ModalContext";
@@ -10,6 +10,9 @@ import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
 import MultiplayerInfoModal, { multiplayerInfoTitle } from "./modals/MultiplayerInfoModal";
 import GamePickerModal from "./modals/GamePickerModal";
+
+// Lazy: it bundles every game's review view, which only a game page in a match ever opens.
+const AnswerReviewModal = lazy(() => import("./modals/AnswerReviewModal"));
 
 /**
  * Single overlay host (mounted once in App). The active modal is keyed so
@@ -27,7 +30,8 @@ export default function ModalHost() {
   // The game picker belongs to the room phase it was opened in (lobby, a live round, results): once
   // the room moves on (back to the lobby, a restart, the match ended), its pick would go nowhere, so
   // close it. Finishing your own round mid-pick (playing -> waiting) is still the same live round.
-  const rawPhase = useMultiplayer().mp.phase;
+  const { mp } = useMultiplayer();
+  const rawPhase = mp.phase;
   const phase = rawPhase === "waiting" ? "playing" : rawPhase;
   const pickerPhase = useRef<string | null>(null);
   useEffect(() => {
@@ -35,6 +39,12 @@ export default function ModalHost() {
     if (pickerPhase.current === null) pickerPhase.current = phase;
     else if (pickerPhase.current !== phase) close();
   }, [kind, phase, close]);
+
+  // The answer review belongs to the round you finished: once a new round starts (a restart, the
+  // host switching games, back to the lobby) the store drops it, and the modal closes with it.
+  useEffect(() => {
+    if (kind === "answerReview" && !mp.review) close();
+  }, [kind, mp.review, close]);
 
   // Each time the leaderboard modal opens, start on the scope the opener asked for.
   // Adjusted during render (not in an effect) so the first frame already has the
@@ -80,6 +90,10 @@ export default function ModalHost() {
     title = p?.title ?? "Change game";
     wide = true;
     content = p?.onPick ? <GamePickerModal currentId={p.currentId} seated={p.seated} onPick={p.onPick} onClose={close} /> : null;
+  } else if (kind === "answerReview") {
+    title = "Answers";
+    wide = true;
+    content = <Suspense fallback={null}><AnswerReviewModal /></Suspense>;
   }
 
   return (

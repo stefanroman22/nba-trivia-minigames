@@ -1,4 +1,5 @@
 // Shared application types.
+import type { AnswerReview } from "./review";
 
 export interface User {
   username: string;
@@ -230,8 +231,10 @@ export interface Game {
 /** Called by a renderer when a game finishes, with the final score.
  *  `inPlace` (single-player) awards points but keeps the renderer mounted so it
  *  can show its own end panel (answers-in-view games) instead of the full-screen
- *  result overview. Omitted = today's overview flow. */
-export type OnGameEnd = (finalScore: number, opts?: { inPlace?: boolean }) => void;
+ *  result overview. Omitted = today's overview flow.
+ *  `review` is the round's read-only answer snapshot (types/review.ts): online it feeds the
+ *  "See answers" modal once the player has finished; single-player ignores it. */
+export type OnGameEnd = (finalScore: number, opts?: { inPlace?: boolean; review?: AnswerReview }) => void;
 
 export interface RoomState {
   status: "idle" | "loading" | "ready" | "active" | "complete" | "playing" | "matched";

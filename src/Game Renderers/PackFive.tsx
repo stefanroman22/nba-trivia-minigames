@@ -16,6 +16,7 @@ import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { sampleN } from "../utils/pool";
 import type { PlayerIndexEntry, OnGameEnd } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/PackFive.css";
 
 export interface PackFiveProps {
@@ -123,6 +124,8 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
   const endedRef = useRef(false);
   const startRef = useRef(Date.now());
   const guessLogRef = useRef<GuessEntry[]>([]);
+  // Every comparison played, for the answer review handed back with the score.
+  const turnsRef = useRef<Extract<AnswerReview, { game: "pack-five" }>["turns"]>([]);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const later = (fn: () => void, ms: number) => {
@@ -160,6 +163,7 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
     missRef.current = 0;
     endedRef.current = false;
     guessLogRef.current = [];
+    turnsRef.current = [];
     startRef.current = Date.now();
 
     const dealable = (gameInfo ?? []).filter(isDealable);
@@ -190,7 +194,8 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
     setFinished(true);
     sendGuessLog();
     const final = POINTS * correctRef.current + (reachedEnd ? COMPLETION_BONUS : 0);
-    later(() => onGameEnd?.(final), END_DELAY);
+    const review: AnswerReview = { game: "pack-five", turns: [...turnsRef.current] };
+    later(() => onGameEnd?.(final, { review }), END_DELAY);
   };
 
   const nextCard = () => {
@@ -210,6 +215,12 @@ export default function PackFive({ gameInfo, onGameEnd }: PackFiveProps) {
     const cv = stat.get(cur);
     const nv = stat.get(nxt);
     const hit = cv >= nv; // ties count as correct
+    turnsRef.current.push({
+      stat: stat.label,
+      card: { name: cur.full_name, value: stat.fmt(cv) },
+      next: { name: nxt.full_name, value: stat.fmt(nv) },
+      hit,
+    });
 
     setChosen(statKey);
     setLastHit(hit);

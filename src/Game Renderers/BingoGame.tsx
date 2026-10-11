@@ -12,6 +12,7 @@ import { apiFetch } from "../utils/Api";
 import { fetchWholePool, sampleN } from "../utils/pool";
 import { playerMatches } from "../utils/criteria";
 import type { BingoCard, GameError, OnGameEnd, PlayerIndexEntry } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/BingoGame.css";
 
 export interface BingoGameProps {
@@ -120,7 +121,27 @@ function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {
     setDealt(null);
     sendGuessLog();
     flashPopup(msg, color);
-    later(() => onGameEnd?.(score), 1700);
+    // Answer review: each square's dab, or the best-known dealable player who fit it (one the card
+    // doesn't already show, when there is one).
+    const shown = new Set(Object.values(claimedRef.current).map((c) => c.name));
+    const rank = (p: PlayerIndexEntry) => p.fame_tier + (shown.has(p.full_name) ? 10 : 0);
+    const review: AnswerReview | undefined = card
+      ? {
+          game: "bingo",
+          cells: card.cells.map((c, idx) => {
+            const claimedBy = claimedRef.current[idx]?.name ?? null;
+            let example: PlayerIndexEntry | null = null;
+            if (!claimedBy) {
+              for (const p of deckRef.current) {
+                if ((!example || rank(p) < rank(example)) && playerMatches(p, c)) example = p;
+              }
+              if (example) shown.add(example.full_name);
+            }
+            return { label: c.label, claimedBy, example: example?.full_name ?? null };
+          }),
+        }
+      : undefined;
+    later(() => onGameEnd?.(score, { review }), 1700);
   };
 
   const finishPartial = () => {

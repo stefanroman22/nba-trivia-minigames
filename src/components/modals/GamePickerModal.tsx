@@ -1,10 +1,14 @@
 import { visibleGames } from "../../utils/GameUtils";
 import { NOT_ONLINE, roomBounds } from "../../utils/roomSizes";
 import type { GamePickerPayload } from "../../context/ModalContext";
+import { useMultiplayer } from "../../context/MultiplayerContext";
 
 /** Grid of games to switch a room to. Scrolls inside the modal (a sheet on phones), never the page. */
 export default function GamePickerModal({ currentId, seated = 0, onPick, onClose }: GamePickerPayload & { onClose: () => void }) {
   const games = visibleGames.filter((g) => !NOT_ONLINE.has(g.id));
+  // Private rooms add no points to profiles (MP-6), so a friend room's tiles name the game's kind,
+  // not its points; 1v1 keeps "up to N pts".
+  const friend = useMultiplayer().mp.roomType === "friend";
   return (
     <div className="gp-scroll">
       <div className="gp-grid">
@@ -12,7 +16,7 @@ export default function GamePickerModal({ currentId, seated = 0, onPick, onClose
           const { max } = roomBounds(g.id);
           const current = g.id === currentId;
           const tooSmall = seated > max;
-          const note = current ? "Playing now" : tooSmall ? `${max} players only` : `up to ${g.maxPoints} pts`;
+          const note = current ? "Playing now" : tooSmall ? `${max} players only` : friend ? g.tag : `up to ${g.maxPoints} pts`;
           return (
             <button
               key={g.id}

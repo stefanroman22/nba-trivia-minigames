@@ -38,8 +38,16 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
+/** The last card's draft line. */
+function draftLabelOf(p: PlayerIndexEntry): string {
+  return p.draft
+    ? `Drafted ${p.draft.year} · Rd ${p.draft.round} · Pick ${p.draft.pick} (${p.draft.team_abbr})`
+    : "Undrafted";
+}
+
 /** "2019 – present" for a current stint; "2013" for a single-year stop. */
-function stintYears(s: PlayerTeamStint): string {
+// eslint-disable-next-line react-refresh/only-export-components
+export function stintYears(s: PlayerTeamStint): string {
   if (s.end_year === null) return `${s.start_year} – present`;
   if (s.end_year === s.start_year) return `${s.start_year}`;
   return `${s.start_year} – ${s.end_year}`;
@@ -49,7 +57,7 @@ const headshotUrl = (personId: number) =>
   `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 /** Player photo with an orange silhouette fallback (never renders broken). */
-function RevealHeadshot({ personId, name }: { personId: number; name: string }) {
+export function RevealHeadshot({ personId, name }: { personId: number; name: string }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [personId]);
   if (failed) {
@@ -90,6 +98,8 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const guessLogRef = useRef<GuessEntry[]>([]);
+  // Every guess this round, for the answer review handed back with the score.
+  const guessesRef = useRef<string[]>([]);
   const startRef = useRef(Date.now());
   const railRef = useRef<HTMLDivElement>(null);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -139,6 +149,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
     setEndState(null);
     setShowPointsAnimation(false);
     guessLogRef.current = [];
+    guessesRef.current = [];
     startRef.current = Date.now();
     const q = gameInfo?.[0];
     setPlayer(q ? (("player" in q ? q.player : q) as PlayerIndexEntry) : null);
@@ -185,6 +196,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
       correct,
       elapsed_ms: Date.now() - startRef.current,
     });
+    guessesRef.current.push(raw);
 
     if (correct) {
       const finalScore = (stints - wrong) * POINTS_PER_CARD;
@@ -221,7 +233,19 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
 
   /** The end, synchronous (no `later`): result line, default pane, buttons — all in one render. */
   const finish = (score: number, won: boolean) => {
-    onGameEnd?.(score, { inPlace: true });
+    onGameEnd?.(score, {
+      inPlace: true,
+      review: player
+        ? {
+            game: "career-path",
+            player: { person_id: player.person_id, full_name: player.full_name },
+            teams: player.teams,
+            draft: draftLabelOf(player),
+            guesses: [...guessesRef.current],
+            won,
+          }
+        : undefined,
+    });
     setEndState({ score, won });
     setView(won ? "answer" : "career");
     setBottomPhase("score");
@@ -244,9 +268,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
   const stints = player.teams.length;
   const guessesLeft = stints - wrong;
   const ended = phase !== "playing";
-  const draftLabel = player.draft
-    ? `Drafted ${player.draft.year} · Rd ${player.draft.round} · Pick ${player.draft.pick} (${player.draft.team_abbr})`
-    : "Undrafted";
+  const draftLabel = draftLabelOf(player);
 
   const toggle = (
     <button type="button" className="chip cp-toggle" onClick={toggleView}>
