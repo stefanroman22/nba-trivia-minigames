@@ -73,9 +73,14 @@ class CustomUser(AbstractUser):
     terms_accepted_at = models.DateTimeField(null=True, blank=True, editable=False)
     terms_version = models.CharField(max_length=20, blank=True, default="", editable=False)
     age_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
-    # "teen" (13-15) or "adult" (16+), set at sign-up from the age check; "" on older accounts. Teens
-    # cannot upload a public profile photo. The birth date itself is never stored.
+    # "teen" (13-15) or "adult" (16+), from a birth month + year (older sign-ups, or given when adding a
+    # profile photo); "" = unknown, which counts as teen (users.consent.is_teen). Teens cannot upload a
+    # public profile photo. The birth date itself is never stored.
     age_group = models.CharField(max_length=5, blank=True, default="", editable=False)
+    # How the 13+ confirmation was given: "signup_checkbox", "google_signup_checkbox", or "*_birth_date"
+    # from older clients; "" on accounts created before 2026-10-11. db_default so the previous backend
+    # (same shared database) can still insert rows while both versions are live.
+    consent_source = models.CharField(max_length=30, blank=True, default="", db_default="", editable=False)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]

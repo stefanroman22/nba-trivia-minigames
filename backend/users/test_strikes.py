@@ -36,7 +36,7 @@ LOCMEM = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"
 class StrikeTestCase(TestCase):
     def setUp(self):
         cache.clear()
-        self.user = User.objects.create_user(username="Hooper1", email="hooper@example.com", password=PASSWORD, points=150)
+        self.user = User.objects.create_user(username="Hooper1", email="hooper@example.com", password=PASSWORD, points=150, age_group="adult")
         self.tokens = login(self.client, "hooper@example.com").json()
 
     def auth(self, access=None):
@@ -258,7 +258,7 @@ class CheckNameTests(StrikeTestCase):
 class HiddenWhenBannedTests(StrikeTestCase):
     def setUp(self):
         super().setUp()
-        self.other = User.objects.create_user(username="Watcher", email="w@example.com", password=PASSWORD)
+        self.other = User.objects.create_user(username="Watcher", email="w@example.com", password=PASSWORD, age_group="adult")
         self.other_access = login(self.client, "w@example.com").json()["access"]
         self.user.profile_photo_data = b"\xff\xd8jpeg"
         self.user.profile_photo_version = 1
