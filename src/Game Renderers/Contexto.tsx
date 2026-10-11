@@ -286,9 +286,10 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
       <div className="cx-list" role="log" aria-live="polite">
         {/* One presence for both states, so the empty prompt fades out as the first row enters.
             popLayout pops the exiting prompt out of flow (over the positioned .cx-list), so the first
-            row mounts in its final place; rows have no exit, so popLayout doesn't change them. */}
+            row mounts in its final place; rows have no exit, so popLayout doesn't change them.
+            The prompt is only for a round in progress: once the round is solved or given up it fades. */}
         <AnimatePresence mode="popLayout" initial={false}>
-          {rows.length === 0 && (
+          {rows.length === 0 && !revealed && (
             <motion.div key="empty" className="cx-empty" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
               <p className="cx-empty-title font-display">Name any player to begin.</p>
               <p className="cx-empty-sub">#1 is the secret. Green is close, red is cold.</p>
