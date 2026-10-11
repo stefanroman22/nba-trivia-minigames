@@ -33,8 +33,16 @@ export interface GamePickerPayload {
   title?: string;
 }
 
+/** Where the Multiplayer card's (i) was pressed: the info modal explains that screen. */
+export type MultiplayerInfoContext =
+  | "choice" | "friendMenu" | "friendEnter" | "hostLobby" | "guestLobby" | "match" | "hostMatch" | "guestMatch";
+
+export interface MultiplayerInfoPayload {
+  context: MultiplayerInfoContext;
+}
+
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

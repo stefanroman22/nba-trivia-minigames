@@ -142,7 +142,7 @@ type Action =
   | { t: "INTRO_ELAPSED" }
   | { t: "SUBMITTED"; score: number }
   | { t: "MATCH_RESULT"; yourScore: number; opponentScore: number; outcome: Outcome; standings: Standing[] | null }
-  | { t: "MATCH_RESTART"; game?: Game }
+  | { t: "MATCH_RESTART"; game?: Game; message?: string }
   | { t: "FRIEND_CREATE" }
   | { t: "FRIEND_JOIN" }
   | { t: "FRIEND_LOBBY"; lobby: LobbySnapshot }
@@ -251,7 +251,9 @@ function reducer(state: MpState, a: Action): MpState {
       return {
         ...state, phase: "intro", introElapsed: false, gameData: null, turnState: null,
         game: a.game ?? state.game,
-        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null, notice: state.notice?.kind === "points" ? null : state.notice,
+        yourScore: null, opponentScore: null, outcome: null, standings: null, proposal: null,
+        // A guest whose round the host switched mid-play is told why the game changed under them.
+        notice: a.message ? { kind: "info", text: a.message } : state.notice?.kind === "points" ? null : state.notice,
         ended: null, oppStatus: freshStatus(state.opponents), error: null,
       };
     case "FRIEND_CREATE":
@@ -413,7 +415,7 @@ interface MultiplayerContextValue {
   startRoom: () => void;
   /** Host (in a match): end it and return the room to its lobby. */
   stopMatch: () => void;
-  /** Host (results): play again, or switch to `game`, for everyone at once. */
+  /** Host (mid-match or results): play again, or switch to `game`, for everyone at once. */
   restartRoom: (game?: Game) => void;
   resetFriendJoinError: () => void;
   submitScore: (score: number, elapsedMs?: number) => void;
@@ -537,7 +539,8 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       waitingForOpponent: () => {/* local SUBMITTED already moved us to waiting */},
       matchResult: (d: { yourScore: number; opponentScore: number; outcome: Outcome; standings?: Standing[] }) =>
         dispatch({ t: "MATCH_RESULT", yourScore: d.yourScore, opponentScore: d.opponentScore, outcome: d.outcome, standings: d.standings ?? null }),
-      matchRestart: (d: { game?: Game }) => dispatch({ t: "MATCH_RESTART", game: localGame(d.game) ?? undefined }),
+      matchRestart: (d: { game?: Game; message?: string }) =>
+        dispatch({ t: "MATCH_RESTART", game: localGame(d.game) ?? undefined, message: typeof d?.message === "string" ? d.message : undefined }),
       friendRoomCreated: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
       friendRoomJoined: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
       friendLobbyUpdate: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
@@ -612,9 +615,9 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
 
   // ---- Auto-clear transient info/warn/points notices. ----
   useEffect(() => {
-    // Errors wait for a dismiss; everything else (including the "+N pts" badge) is a passing toast.
+    // Errors wait for a dismiss; everything else is a passing toast ("+N pts" is a quick 1.5 s one).
     if (!mp.notice || mp.notice.kind === "error") return;
-    const id = setTimeout(() => dispatch({ t: "CLEAR_NOTICE" }), 3200);
+    const id = setTimeout(() => dispatch({ t: "CLEAR_NOTICE" }), mp.notice.kind === "points" ? 1500 : 3200);
     return () => clearTimeout(id);
   }, [mp.notice]);
 

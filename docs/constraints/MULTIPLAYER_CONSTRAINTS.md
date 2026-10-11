@@ -172,6 +172,13 @@ A guest leaving (or dropping past the grace) is removed by `removeMember()`; the
 changes. A leaving host closes the room. Friend rooms are host-driven: `startRoomNow`,
 `setRoomSize`, `changeFriendGame`, `stopMatch`, `restartRoom` all guard `room.members[0] !== uid`;
 the propose/accept handshake is 1v1-only (`propose` returns for `room.type === "friend"`).
+`restartRoom` works in every phase but the lobby: after a round, or mid-round (intro/playing/waiting),
+where it drops the live round with no scoring (`dealRound`'s new `dealGen`, cleared turn timer and reset
+scores; `SWITCH_STALE_MS` ignores a score for the dropped round still in flight) and sends guests
+`matchRestart { game, message: "The host switched to <game>." }`. It keeps the `RESTART_MIN_MS` throttle,
+the cast check (`min`/`max` vs seated, `friendError`) and the capacity re-clamp. Friend rooms never add
+points to profiles: `creditRoom` returns for `room.type === "friend"` (no `/trivia/multiplayer-result/`
+POST, no `pointsAwarded`); only random 1v1 rooms are credited.
 
 ```js
 ❌ hypothetical: a separately stored host that can drift from members[]
@@ -375,7 +382,8 @@ bingo, pack-five, superdraft, imposter) and exports `visibleGames = games.filter
 Game switching goes through one picker: the `gamePicker` modal
 (`src/components/modals/GamePickerModal.tsx`), opened via
 `useModal().open("gamePicker", { currentId, seated, onPick })` by the lobby's "Change game"
-(`FriendPlay.tsx`) and the results "Change game" (`OnlineMatch.tsx`). It lists `visibleGames`
+(`FriendPlay.tsx`), the results "Change game" and the friend-room host's in-match "Change game" next to
+"Stop match" (`OnlineMatch.tsx`). It lists `visibleGames`
 minus `NOT_ONLINE` (`src/utils/roomSizes.ts`: `"coming-soon"`, `"who-would-win"`), and disables
 the current game and any game whose cast (`roomBounds(id).max`) is below the seated count. The
 `MiniGame.tsx` rail/strip also import `visibleGames`. `games` stays correct for route resolution

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSelector } from "react-redux";
-import { useModal } from "../../context/ModalContext";
+import { useModal, type MultiplayerInfoContext } from "../../context/ModalContext";
 import { useMultiplayer } from "../../context/MultiplayerContext";
 import { Button } from "../ui";
 import { fadeIn } from "../../motion/variants";
@@ -30,14 +30,27 @@ const swap = {
 export default function MultiplayerPanel({
   game, gameStarted, showResult,
 }: { game?: Game; gameStarted: boolean; showResult: boolean }) {
-  const { isLoggedIn } = useSelector((state: RootState) => state.user);
+  const { isLoggedIn, user } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const { mp, findMatch, leaveMatch } = useMultiplayer();
   const [friendMode, setFriendMode] = useState(false);
+  const [friendEntering, setFriendEntering] = useState(false);
+  const onFriendMode = useCallback((m: "menu" | "enter") => setFriendEntering(m === "enter"), []);
 
   const inLobby = mp.phase === "lobby";
   const online = mp.phase !== "idle" && !inLobby;
   const showFriend = friendMode || inLobby;
+  const searching = mp.phase === "searching";
+
+  // The (i) explains the screen it is pressed on: the choice, the friend menu or code entry, the
+  // host's or a guest's lobby, a 1v1 match (or the search for one), the host's or a guest's private match.
+  const lobbyHost = !!mp.lobby && (user?.id ? mp.lobby.hostUid === user.id : mp.lobby.hostUid === user?.username);
+  const infoContext: MultiplayerInfoContext =
+    inLobby ? (lobbyHost ? "hostLobby" : "guestLobby")
+      : searching ? "match"
+        : online ? (mp.roomType === "friend" ? (mp.role === "host" ? "hostMatch" : "guestMatch") : "match")
+          : friendMode ? (friendEntering ? "friendEnter" : "friendMenu")
+            : "choice";
 
   // Below the desktop layout the card sits under the game: when a room opens, glide just far
   // enough to show it (code, seats, start) without losing the game above it.
@@ -50,7 +63,6 @@ export default function MultiplayerPanel({
   // Online play can't start while a solo run, a search or a match is going. The buttons look
   // disabled (Button `blocked`) but a press shows GAME_IN_PROGRESS inside this card — same view, no
   // popup — and the card glides to fit it (AutoHeight); it fades out after a few seconds.
-  const searching = mp.phase === "searching";
   const soloInProgress = gameStarted && !showResult;
   const busy = soloInProgress || online || searching;
   const [hintShown, setHintShown] = useState(false);
@@ -69,7 +81,7 @@ export default function MultiplayerPanel({
       <div className="aside-card-head">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 7a4 4 0 1 0 0 .01M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>
         <h3 className="font-display" style={{ fontSize: 15 }}>Multiplayer</h3>
-        <button className="info-btn" aria-label="How multiplayer works" style={{ marginLeft: "auto" }} onClick={() => open("multiplayerInfo")}>
+        <button className="info-btn" aria-label="How multiplayer works" style={{ marginLeft: "auto" }} onClick={() => open("multiplayerInfo", { context: infoContext })}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
         </button>
       </div>
@@ -84,6 +96,7 @@ export default function MultiplayerPanel({
                 game={game}
                 blocked={gameStarted && !showResult}
                 onBack={() => setFriendMode(false)}
+                onModeChange={onFriendMode}
               />
             )}
           </motion.div>

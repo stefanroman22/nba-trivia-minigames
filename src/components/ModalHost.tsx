@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
-import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload } from "../context/ModalContext";
+import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload } from "../context/ModalContext";
 import { useMultiplayer } from "../context/MultiplayerContext";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import LogInSignUp, { type AuthPhase } from "./LogInSignUp";
 import FeedbackModal from "./modals/FeedbackModal";
 import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
-import MultiplayerInfoModal from "./modals/MultiplayerInfoModal";
+import MultiplayerInfoModal, { multiplayerInfoTitle } from "./modals/MultiplayerInfoModal";
 import GamePickerModal from "./modals/GamePickerModal";
 
 /**
@@ -24,9 +24,11 @@ export default function ModalHost() {
     if (kind === "login") setAuthMode("login");
   }, [kind]);
 
-  // The game picker belongs to the room phase it was opened in (lobby or results): once the room
-  // moves on (back to the lobby, a restart, the match ended), its pick would go nowhere, so close it.
-  const phase = useMultiplayer().mp.phase;
+  // The game picker belongs to the room phase it was opened in (lobby, a live round, results): once
+  // the room moves on (back to the lobby, a restart, the match ended), its pick would go nowhere, so
+  // close it. Finishing your own round mid-pick (playing -> waiting) is still the same live round.
+  const rawPhase = useMultiplayer().mp.phase;
+  const phase = rawPhase === "waiting" ? "playing" : rawPhase;
   const pickerPhase = useRef<string | null>(null);
   useEffect(() => {
     if (kind !== "gamePicker") { pickerPhase.current = null; return; }
@@ -70,8 +72,9 @@ export default function ModalHost() {
     const p = payload as InstructionsPayload | undefined;
     content = p?.game ? <InstructionsModal game={p.game} onPlay={p.onPlay} onClose={close} /> : null;
   } else if (kind === "multiplayerInfo") {
-    title = "Multiplayer";
-    content = <MultiplayerInfoModal onClose={close} />;
+    const context = (payload as MultiplayerInfoPayload | undefined)?.context;
+    title = multiplayerInfoTitle(context);
+    content = <MultiplayerInfoModal context={context} onClose={close} />;
   } else if (kind === "gamePicker") {
     const p = payload as GamePickerPayload | undefined;
     title = p?.title ?? "Change game";

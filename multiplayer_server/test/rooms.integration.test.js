@@ -324,10 +324,11 @@ test("host disconnect in the lobby closes it after the grace", async () => {
   assert.match((await closed).message, /host closed/);
 });
 
-test("a guest who finished and then leaves keeps their points; the others are still credited", async () => {
+test("a friend room adds no points: not for a finished guest who leaves, not for the final standings", async () => {
   const ivy = await player("Ivy");
   const jay = await player("Jay");
   const ned = await player("Ned");
+  const from = credits.length;
   const snap = await createRoom(ivy, "name-logo", 3);
   await join(jay, snap.code);
   await join(ned, snap.code);
@@ -338,18 +339,18 @@ test("a guest who finished and then leaves keeps their points; the others are st
   const waiting = next(jay, "waitingForOpponent");
   jay.emit("submitScore", { code: snap.code, score: 15, elapsedMs: 9000 });
   await waiting;
-  const jayPoints = next(jay, "pointsAwarded");
+  const jayPoints = arrives(jay, "pointsAwarded", 500);
   jay.emit("leaveMatch", { code: snap.code });
-  assert.equal((await jayPoints).awarded, 15);
+  assert.equal(await jayPoints, false, "a guest leaving a friend room was credited");
 
   const results = [next(ivy, "matchResult"), next(ned, "matchResult")];
-  const points = [next(ivy, "pointsAwarded"), next(ned, "pointsAwarded")];
+  const points = [arrives(ivy, "pointsAwarded", 600), arrives(ned, "pointsAwarded", 600)];
   ivy.emit("submitScore", { code: snap.code, score: 20, elapsedMs: 9000 });
   ned.emit("submitScore", { code: snap.code, score: 12, elapsedMs: 9000 });
-  await Promise.all(results);
-  const [pi, pn] = await Promise.all(points);
-  assert.equal(pi.awarded, 20);
-  assert.equal(pn.awarded, 12);
+  const [ri] = await Promise.all(results);
+  assert.equal(ri.standings.length, 2, "the scoreboard still settles");
+  assert.deepEqual(await Promise.all(points), [false, false], "a friend room's standings were credited");
+  assert.equal(credits.length, from, "a friend room posted to /trivia/multiplayer-result/");
   ivy.emit("leaveMatch", {});
 });
 
@@ -470,13 +471,7 @@ test("the host cannot restart into a game that needs more players than are seate
   gus.emit("leaveMatch", {});
 });
 
-/** Public ids credited by the relay's POSTs from index `from` on, sorted. */
-const creditedSince = (from, game) => credits.slice(from)
-  .filter((c) => !game || c.game === game)
-  .flatMap((c) => c.results.map((r) => r.public_id))
-  .sort();
-
-test("a guest leaving while a restart loads neither re-settles nor re-credits the last round", async () => {
+test("a guest leaving while a restart loads does not re-settle the last round", async () => {
   const ann = await player("Ann");
   const bob = await player("Bob");
   const cat = await player("Cat");
@@ -487,10 +482,8 @@ test("a guest leaving while a restart loads neither re-settles nor re-credits th
   bob.emit("submitScore", { code, score: 20, elapsedMs: 5000 });
   cat.emit("submitScore", { code, score: 10, elapsedMs: 5000 });
   await Promise.all(results);
-  await wait(3100); // RESTART_MIN_MS since the deal; the round's credit has landed meanwhile
-  assert.deepEqual(creditedSince(from), ["ANN000", "BOB000", "CAT000"]);
+  await wait(3100); // RESTART_MIN_MS since the deal
 
-  const atRestart = credits.length;
   const restarted = next(ann, "matchRestart");
   ann.emit("restartRoom", { code, game: { id: "fan-favorites" } }); // its round loads slowly
   await restarted;
@@ -503,17 +496,15 @@ test("a guest leaving while a restart loads neither re-settles nor re-credits th
   assert.equal(ra.game.id, "fan-favorites");
   assert.equal(await stale, false, "the finished round was settled again");
   assert.equal(await staleGuest, false, "the finished round was settled again for a guest");
-  assert.equal(credits.length, atRestart, "the finished round was credited again");
 
-  // The two left play the new round, and only it is credited.
+  // The two left play the new round; a friend room credits none of it.
   const again = [next(ann, "matchResult"), next(bob, "matchResult")];
   ann.emit("submitScore", { code, score: 8, elapsedMs: 5000 });
   bob.emit("submitScore", { code, score: 6, elapsedMs: 5000 });
   const [r2] = await Promise.all(again);
   assert.equal(r2.standings.length, 2);
   await wait(200);
-  assert.deepEqual(creditedSince(from, "name-logo"), ["ANN000", "BOB000", "CAT000"]);
-  assert.deepEqual(creditedSince(atRestart, "fan-favorites"), ["ANN000", "BOB000"]);
+  assert.equal(credits.length, from, "a friend room posted a credit");
   ann.emit("leaveMatch", {});
 });
 
@@ -544,7 +535,7 @@ test("a guest back after the match grace is told they left; their late score cou
   const [rg] = await Promise.all(results);
   assert.deepEqual(rg.standings.map((s) => s.username).sort(), ["Gus", "Hank"]);
   await wait(200);
-  assert.deepEqual(creditedSince(from), ["GUS000", "HANK00"]);
+  assert.equal(credits.length, from, "a friend room posted a credit");
   gus.emit("leaveMatch", {});
 });
 
@@ -719,4 +710,143 @@ test("restarting into a smaller-cast game re-clamps the room size", async () => 
   fay.emit("joinFriendRoom", { code: snap.code });
   assert.match((await refused).message, /full/);
   dan.emit("leaveMatch", {});
+});
+
+// ---- The host changing the game in the middle of a round ----
+
+test("the host switches the game mid-round: everyone restarts on it, guests are told, the dropped round counts for nothing", async () => {
+  const ann = await player("Ann");
+  const bob = await player("Bob");
+  const cat = await player("Cat");
+  const from = credits.length;
+  const { code } = await startedRoom(ann, [bob, cat]);
+  const waiting = next(bob, "waitingForOpponent");
+  bob.emit("submitScore", { code, score: 40, elapsedMs: 5000 }); // Bob finished the round being dropped
+  await waiting;
+  await wait(3100); // RESTART_MIN_MS since the deal
+
+  const restarts = [ann, bob, cat].map((s) => next(s, "matchRestart"));
+  const rounds = [ann, bob, cat].map((s) => next(s, "roundData"));
+  const early = arrives(ann, "matchResult", 900);
+  ann.emit("restartRoom", { code, game: { id: "guess-mvps" } });
+  const [ra, rb, rc] = await Promise.all(restarts);
+  [ra, rb, rc].forEach((r) => assert.equal(r.game.id, "guess-mvps"));
+  assert.equal(ra.message, undefined, "the host was told about their own switch");
+  assert.match(rb.message, /host switched to guess-mvps/);
+  assert.match(rc.message, /host switched to guess-mvps/);
+  const dealt = await Promise.all(rounds);
+  dealt.forEach((d) => assert.equal(d.game.id, "guess-mvps"));
+
+  // A score for the dropped round still in flight right after the switch is not this round's.
+  cat.emit("submitScore", { code, score: 99, elapsedMs: 5000 });
+  assert.equal(await early, false, "the new round settled on old scores");
+  await wait(1500); // past SWITCH_STALE_MS since the switch
+
+  const results = [ann, bob, cat].map((s) => next(s, "matchResult"));
+  ann.emit("submitScore", { code, score: 5, elapsedMs: 5000 });
+  bob.emit("submitScore", { code, score: 7, elapsedMs: 5000 });
+  cat.emit("submitScore", { code, score: 6, elapsedMs: 5000 });
+  const [res] = await Promise.all(results);
+  const scoreOf = (name) => res.standings.find((s) => s.username === name).score;
+  assert.deepEqual([scoreOf("Ann"), scoreOf("Bob"), scoreOf("Cat")], [5, 7, 6]);
+  await wait(200);
+  assert.equal(credits.length, from, "a friend room posted a credit");
+  ann.emit("leaveMatch", {});
+});
+
+test("a guest cannot switch the game mid-round, and the switch is throttled like a restart", async () => {
+  const dan = await player("Dan");
+  const eve = await player("Eve");
+  const { code } = await startedRoom(dan, [eve]);
+
+  const tooSoon = next(dan, "friendError");
+  dan.emit("restartRoom", { code, game: { id: "guess-mvps" } });
+  assert.match((await tooSoon).message, /moment/);
+  await wait(3100); // RESTART_MIN_MS since the deal
+
+  eve.emit("restartRoom", { code, game: { id: "guess-mvps" } });
+  assert.equal(await arrives(dan, "matchRestart"), false, "a guest switched the game");
+
+  const restarted = next(eve, "matchRestart");
+  dan.emit("restartRoom", { code, game: { id: "guess-mvps" } });
+  assert.equal((await restarted).game.id, "guess-mvps");
+  const again = next(dan, "friendError");
+  const second = arrives(eve, "matchRestart", 300);
+  dan.emit("restartRoom", { code, game: { id: "series-winner" } });
+  assert.match((await again).message, /moment/);
+  assert.equal(await second, false, "a second switch got through the throttle");
+  dan.emit("leaveMatch", {});
+});
+
+test("mid-round, the host cannot switch to a game whose cast doesn't fit the seated players", async () => {
+  const fay = await player("Fay");
+  const gus = await player("Gus");
+  const hank = await player("Hank");
+  const two = await startedRoom(fay, [gus]);
+  await wait(3100);
+  const short = next(fay, "friendError");
+  const none = arrives(gus, "matchRestart");
+  fay.emit("restartRoom", { code: two.code, game: { id: "imposter" } });
+  assert.match((await short).message, /at least 3/);
+  assert.equal(await none, false, "the room switched into a game it can't seat");
+  fay.emit("leaveMatch", {});
+  await wait(200);
+
+  const ivy = await player("Ivy");
+  const three = await startedRoom(hank, [ivy, gus]);
+  await wait(3100);
+  const big = next(hank, "friendError");
+  const none3 = arrives(ivy, "matchRestart");
+  hank.emit("restartRoom", { code: three.code, game: { id: "tictactoe" } });
+  assert.match((await big).message, /2 players/);
+  assert.equal(await none3, false, "the room switched into a game too small for it");
+  hank.emit("leaveMatch", {});
+});
+
+test("switching into and out of a live turn game mid-round starts it cleanly and drops its state", async () => {
+  const jay = await player("Jay");
+  const kim = await player("Kim");
+  const { code } = await startedRoom(jay, [kim]);
+  await wait(3100);
+
+  // Round game -> Tic-Tac-Toe, mid-round.
+  const turns = [next(jay, "turnState"), next(kim, "turnState")];
+  const told = next(kim, "matchRestart");
+  jay.emit("restartRoom", { code, game: { id: "tictactoe" } });
+  assert.match((await told).message, /host switched to tictactoe/);
+  const [tj] = await Promise.all(turns);
+  assert.equal(tj.game, "tictactoe");
+  await wait(3100);
+
+  // Tic-Tac-Toe -> a round game, mid-game: the board and its turn timer are gone.
+  const rounds = [next(jay, "roundData"), next(kim, "roundData")];
+  const strayBoard = arrives(kim, "turnState", 900);
+  jay.emit("restartRoom", { code, game: { id: "series-winner" } });
+  await Promise.all(rounds);
+  jay.emit("turnAction", { code, action: { type: "claim", cell: 0, playerName: "Kobe Bryant" } });
+  assert.equal(await strayBoard, false, "the dropped Tic-Tac-Toe game still broadcast");
+  const reject = arrives(jay, "turnReject", 300);
+  assert.equal(await reject, false, "a move reached a dropped turn game");
+  jay.emit("leaveMatch", {});
+});
+
+test("switching away from a live Imposter game mid-round starts the new game for all four", async () => {
+  const lee = await player("Lee");
+  const mo = await player("Mo");
+  const ned = await player("Ned");
+  const oli = await player("Oli");
+  const snap = await createRoom(lee, "imposter", 4);
+  for (const g of [mo, ned, oli]) await join(g, snap.code);
+  const turns = [lee, mo, ned, oli].map((s) => next(s, "turnState"));
+  lee.emit("startRoomNow", { code: snap.code });
+  await Promise.all(turns);
+  await wait(3100);
+
+  const rounds = [lee, mo, ned, oli].map((s) => next(s, "roundData"));
+  const stray = arrives(mo, "turnState", 900);
+  lee.emit("restartRoom", { code: snap.code, game: { id: "name-logo" } });
+  const dealt = await Promise.all(rounds);
+  dealt.forEach((d) => assert.equal(d.game.id, "name-logo"));
+  assert.equal(await stray, false, "the dropped Imposter game still broadcast");
+  lee.emit("leaveMatch", {});
 });

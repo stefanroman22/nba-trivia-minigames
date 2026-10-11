@@ -29,7 +29,11 @@ const swap = {
  * the live lobby (seats, share code, host controls). The host picks the room
  * size and starts the match from the lobby; the match then takes over the stage.
  */
-export default function FriendPlay({ game, blocked = false, onBack }: { game: Game; blocked?: boolean; onBack?: () => void }) {
+export default function FriendPlay({ game, blocked = false, onBack, onModeChange }: {
+  game: Game; blocked?: boolean; onBack?: () => void;
+  /** Told when the card switches between its menu and the code entry (the card's (i) follows it). */
+  onModeChange?: (mode: "menu" | "enter") => void;
+}) {
   const {
     mp, createFriendRoom, joinFriendRoom, changeFriendGame, setRoomSize, startRoom, leaveMatch, resetFriendJoinError,
   } = useMultiplayer();
@@ -47,6 +51,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
   // stays in view (the toggle is hidden on desktop widths via CSS).
   const [collapsed, setCollapsed] = useState(false);
   const copyTimer = useRef<number | null>(null);
+  const sizeLblId = useId();
 
   const lobby = mp.phase === "lobby" ? mp.lobby : null;
   const searching = mp.phase === "searching";
@@ -63,6 +68,7 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
   }, [mp.phase]);
 
   useEffect(() => () => { if (copyTimer.current) window.clearTimeout(copyTimer.current); }, []);
+  useEffect(() => { onModeChange?.(mode); }, [mode, onModeChange]);
 
   const doCopy = () => {
     if (!lobby) return;
@@ -196,12 +202,18 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
           </AnimatePresence>
         </div>
 
+        {/* One meta block: labels on top, values under them (the game left, the size right), so a
+            long game name truncates instead of pushing the stepper onto a line of its own. */}
         <div className="fp-meta">
-          <span>Playing: <strong><SwapText>{mp.game?.name}</SwapText></strong></span>
+          <span className="fp-meta-lbl">Playing</span>
+          <span className="fp-meta-lbl is-end" id={sizeLblId}>{isHost ? "Players" : "Room for"}</span>
+          <strong className="fp-meta-game" title={mp.game?.name}>
+            <SwapText className="fp-meta-name">{mp.game?.name}</SwapText>
+          </strong>
           {isHost ? (
-            <SizeStepper value={lobby.capacity} min={Math.max(lobby.min, seated)} max={lobby.max} onChange={setRoomSize} />
+            <SizeStepper value={lobby.capacity} min={Math.max(lobby.min, seated)} max={lobby.max} onChange={setRoomSize} labelledBy={sizeLblId} />
           ) : (
-            <span className="tnum">Room for <strong><SwapText>{String(lobby.capacity)}</SwapText></strong></span>
+            <span className="fp-meta-size tnum"><SwapText>{`${lobby.capacity} players`}</SwapText></span>
           )}
         </div>
 
@@ -306,13 +318,14 @@ export default function FriendPlay({ game, blocked = false, onBack }: { game: Ga
   );
 }
 
-/** "Players  − 3 +" — the room size, bounded. The number swaps (UI-21); the buttons go blocked at the bounds. */
-function SizeStepper({ value, min, max, onChange, disabled = false }: { value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
-  const labelId = useId();
+/** "Players  − 3 +" — the room size, bounded. The number swaps (UI-21); the buttons go blocked at the bounds.
+ *  `labelledBy`: the caller shows the "Players" label itself (the lobby's meta block), so none here. */
+function SizeStepper({ value, min, max, onChange, disabled = false, labelledBy }: { value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean; labelledBy?: string }) {
+  const ownLabelId = useId();
   // Drawn minus/plus in the card's icon stroke rather than text glyphs, so both sit optically centred.
   return (
-    <div className="fp-size" role="group" aria-labelledby={labelId}>
-      <span className="fp-size-lbl" id={labelId}>Players</span>
+    <div className="fp-size" role="group" aria-labelledby={labelledBy ?? ownLabelId}>
+      {!labelledBy && <span className="fp-size-lbl" id={ownLabelId}>Players</span>}
       <button type="button" className="fp-size-btn" aria-label={`Fewer players (now ${value})`} disabled={disabled || value <= min} onClick={() => onChange(value - 1)}>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" aria-hidden="true"><path d="M5 12h14" /></svg>
       </button>
