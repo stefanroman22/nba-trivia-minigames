@@ -145,7 +145,7 @@ class FriendsPhotoTests(TestCase):
     def setUp(self):
         self.me = User.objects.create_user(username="Searcher1", email="searcher@example.com", password="Testpass123!")
         self.access = str(issue_session_tokens(self.me).access_token)
-        self.friend = User.objects.create_user(username="Photogenic", email="photo@example.com", password="Testpass123!")
+        self.friend = User.objects.create_user(username="Photogenic", email="photo@example.com", password="Testpass123!", age_group="adult")
         self.friend.profile_photo_data = b"fake-normalized-jpeg-bytes"
         self.friend.profile_photo_version = 1
         self.friend.save(update_fields=["profile_photo_data", "profile_photo_version"])
@@ -291,7 +291,7 @@ class ProfilePhotoEndpointTests(TestCase):
     JPEG = b"\xff\xd8\xff\xe0fake-jpeg-bytes"
 
     def setUp(self):
-        self.user = User.objects.create_user(username="Photogenic", email="photo@example.com", password="Testpass123!")
+        self.user = User.objects.create_user(username="Photogenic", email="photo@example.com", password="Testpass123!", age_group="adult")
         self.user.profile_photo_data = self.JPEG
         self.user.profile_photo_version = 3
         self.user.save(update_fields=["profile_photo_data", "profile_photo_version"])

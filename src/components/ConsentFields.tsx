@@ -1,62 +1,35 @@
 "use client";
-import type { ConsentValue } from "../utils/consent";
+import type { Ref } from "react";
 
-const MONTHS = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
-];
-
-/** The age gate and Terms/Privacy tick-box shown when an account is created. The age question
- *  is neutral on purpose (month + year, nothing pre-selected, no hint of the cut-off), and the
- *  answer is only sent to the server to be checked, never stored there. */
+/** The one sign-up tick-box: the 13+ confirmation and the Terms/Privacy agreement together. It sits
+ *  above "Create account" and the Google button, and covers both. `invalid` marks it when the player
+ *  tries to continue without it (or a Google log-in found no account yet). */
 export default function ConsentFields({
-  value,
+  checked,
   onChange,
   disabled,
+  invalid,
+  boxRef,
 }: {
-  value: ConsentValue;
-  onChange: (next: ConsentValue) => void;
+  checked: boolean;
+  onChange: (next: boolean) => void;
   disabled?: boolean;
+  invalid?: boolean;
+  boxRef?: Ref<HTMLLabelElement>;
 }) {
-  const thisYear = new Date().getFullYear();
-  const years = Array.from({ length: 101 }, (_, i) => thisYear - i);
-
   return (
-    <div className="auth-consent">
-      <div className="auth-consent-row">
-        <select
-          className="modal-input"
-          aria-label="Birth month"
-          value={value.month}
-          disabled={disabled}
-          onChange={(e) => onChange({ ...value, month: e.target.value })}
-        >
-          <option value="" disabled>Birth month</option>
-          {MONTHS.map((name, i) => <option key={name} value={String(i + 1)}>{name}</option>)}
-        </select>
-        <select
-          className="modal-input"
-          aria-label="Birth year"
-          value={value.year}
-          disabled={disabled}
-          onChange={(e) => onChange({ ...value, year: e.target.value })}
-        >
-          <option value="" disabled>Birth year</option>
-          {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-        </select>
-      </div>
-      <label className="auth-check">
-        <input
-          type="checkbox"
-          checked={value.agreed}
-          disabled={disabled}
-          onChange={(e) => onChange({ ...value, agreed: e.target.checked })}
-        />
-        <span>
-          I agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and have read the{" "}
-          <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.
-        </span>
-      </label>
-    </div>
+    <label ref={boxRef} className={`auth-check${invalid ? " is-invalid" : ""}`}>
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        aria-invalid={invalid || undefined}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span>
+        I&apos;m 13 or older and agree to the <a href="/terms" target="_blank" rel="noopener">Terms of Service</a> and{" "}
+        <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>
+      </span>
+    </label>
   );
 }

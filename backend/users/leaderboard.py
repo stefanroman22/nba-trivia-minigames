@@ -25,8 +25,9 @@ _client = None
 
 def _ranked():
     """Every account that may appear on a board. Banned accounts are hidden (users.strikes), and so
-    are 13-15 year-olds (age_group "teen"): minors are not public by default (GDPR Art 25)."""
-    return User.objects.filter(banned_at__isnull=True).exclude(age_group="teen")
+    are 13-15 year-olds and accounts whose age is unknown (only age_group "adult" is public; see
+    users.consent.is_teen): minors are not public by default (GDPR Art 25)."""
+    return User.objects.filter(banned_at__isnull=True, age_group="adult")
 
 
 def _redis():
@@ -83,7 +84,7 @@ def total():
 def record_score(user):
     """Upsert a user's score into the ZSET (no-op without Redis, and for a banned account)."""
     r = _redis()
-    if r is None or getattr(user, "banned_at", None) or getattr(user, "age_group", "") == "teen":
+    if r is None or getattr(user, "banned_at", None) or getattr(user, "age_group", "") != "adult":
         return
     r.zadd(ZKEY, {user.public_id: user.points})
 
@@ -115,8 +116,12 @@ def friends_board(user):
     friend_ids = {hi if lo == user.pk else lo for lo, hi in pairs}
     ids = list(friend_ids) + [user.pk]
 
+    # Not public (only the player and their friends see it), so teens and accounts of unknown age
+    # stay on it; banned accounts are still hidden.
     rows = list(
-        _ranked().filter(pk__in=ids).order_by("-points").values("pk", "public_id", "username", "points")
+        User.objects.filter(banned_at__isnull=True, pk__in=ids)
+        .order_by("-points")
+        .values("pk", "public_id", "username", "points")
     )
     board = [{"id": r["public_id"], "username": r["username"], "points": r["points"]} for r in rows]
     my_rank = next((i + 1 for i, r in enumerate(rows) if r["pk"] == user.pk), len(board))

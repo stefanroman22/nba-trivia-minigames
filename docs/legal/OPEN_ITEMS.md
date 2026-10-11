@@ -18,7 +18,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 
 | Decision | Current setting | Trade-off |
 |---|---|---|
-| **Minimum age for accounts** | **13**, worldwide; guests of any age. 13-15 year-olds are marked "teen" and cannot upload a public photo (`PHOTO_MIN_AGE` 16) | 13 is the practical floor: below it US law (COPPA) needs verifiable parental consent, and several countries want it up to 16. Remaining exposure for 13-15: contract capacity under national law in 14-16 states, UK Children's Code defaults, Brazil ECA Digital, India (under 18). Mitigations in place: no chat, no photo, no birth date stored, deletion on request, parent contact route. A "private profile" default and friend-search limits for teens are the next steps if a lawyer asks. Constants: `MIN_AGE`, `PHOTO_MIN_AGE` in `backend/users/consent.py`; `minimumAge`, `photoMinimumAge` in `legal.ts`. |
+| **Minimum age for accounts** | **13**, worldwide; guests of any age. Since 2026-10-11 sign-up is one self-declared tick-box (13+ and Terms/Privacy, email and Google); birth month/year is asked only when adding a profile photo. Accounts without a confirmed age of 16+ (unknown age or 13-15) are treated as "teen": no public photo (`PHOTO_MIN_AGE` 16), off the public leaderboard and name search | 13 is the practical floor: below it US law (COPPA) needs verifiable parental consent, and several countries want it up to 16. Remaining exposure for 13-15: contract capacity under national law in 14-16 states, UK Children's Code defaults, Brazil ECA Digital, India (under 18). Mitigations in place: no chat, no photo, no birth date stored, deletion on request, parent contact route. A "private profile" default and friend-search limits for teens are the next steps if a lawyer asks. Constants: `MIN_AGE`, `PHOTO_MIN_AGE` in `backend/users/consent.py`; `minimumAge`, `photoMinimumAge` in `legal.ts`. |
 | **Public profile defaults** | Display name, ID, rank, points and photo are public; photo is optional and removable | Privacy-by-default arguments favour a "private profile" switch, especially for 16-17 year-olds under the UK Children's Code. Not built. |
 | **Inactive-account deletion** | None; accounts stay until deleted | Regulators (CNIL) expect a limit, normally with warning email. The site sends no email at all today, so it cannot warn. Building email (also needed for password reset, email verification) unlocks this. |
 
@@ -49,7 +49,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | Item | Risk it addresses |
 |---|---|
 | Existing accounts (created before the consent step) have no consent record and no age check; also needed for the 14-day change notice. Show the Terms and an age prompt on next sign-in and store acceptance | Pre-existing users are not covered by a recorded agreement |
-| Notice mechanism for changes to Terms/Privacy (home-page banner for 14 days is promised in the text; today it is a manual operator duty, see RUNBOOKS F) | Terms section 12 |
+| Notice mechanism for changes to Terms/Privacy: a home-page banner now exists (`src/components/LegalChangeNotice.tsx`, dates in `LEGAL.changeNotice`); the operator still has to set its dates for each significant change and promote it at least 14 days before the change applies (RUNBOOKS F) | Terms section 12 |
 | In-product "Report" button for players, names, photos | DSA notice-and-action is email-only today |
 | Email sending (verification, password reset, notices) | No password reset, no email change, no email verification today; also enables inactive-account warnings |
 | "Log out everywhere" and change-password | Account security basics |
@@ -64,7 +64,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 
 ## F. Done in this change (for the record)
 
-Consent and age check at sign-up (email and Google); self-service data export, photo removal and account deletion;
+Consent and age check at sign-up (email and Google; since 2026-10-11 a single 13+/Terms tick-box, birth month/year only when adding a photo); self-service data export, photo removal and account deletion;
 `erase_user` for banned or emailed requests; weekly pruning job; production secret-key guard; 1-year HSTS; generic
 error messages; security headers; privacy policy and terms rewritten against the system; this record, runbooks and
 research.

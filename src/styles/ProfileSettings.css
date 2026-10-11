@@ -66,7 +66,8 @@
 .ps-link-btn--danger { color: var(--bad); }
 
 .ps-note-slot { margin-top: -8px; }
-.ps-note { margin: 0 0 8px; color: var(--bad); font-size: 12.5px; font-weight: 600; line-height: 1.4; }
+/* Username checklist (components/PasswordRules) under the field while a new name is typed. */
+.ps-note-slot .pw-rules { padding-bottom: 12px; }
 
 .ps-delete { overflow: hidden; }
 .ps-delete-inner { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 6px; }

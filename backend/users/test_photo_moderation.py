@@ -125,7 +125,7 @@ class ModeratePhotoTests(TestCase):
 
 class PhotoHookTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="Baller23", email="baller@example.com", password="Testpass123!")
+        self.user = User.objects.create_user(username="Baller23", email="baller@example.com", password="Testpass123!", age_group="adult")
         self.access = str(issue_session_tokens(self.user).access_token)
         User.objects.filter(pk=self.user.pk).update(profile_photo_data=SENTINEL, profile_photo_version=5)
 

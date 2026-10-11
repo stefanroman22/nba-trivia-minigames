@@ -18,9 +18,18 @@ from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCh
 
 from users import leaderboard, photo_moderation, strikes
 from users.account_data import delete_account, export_account, remove_photo
-from users.consent import CONSENT_REQUIRED_MESSAGE, PHOTO_MIN_AGE, age_group_for, check_consent, stamp_consent
+from users.consent import (
+    CONSENT_FIELDS,
+    PHOTO_MIN_AGE,
+    age_group_for,
+    check_consent,
+    consent_source_for,
+    is_teen,
+    set_age_from_birth_date,
+    stamp_consent,
+)
 from users.google_auth import GoogleAuthError, verify_google_code
-from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
+from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for, strip_accents
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
 from users.tokens import issue_session_tokens, revoke_sessions
 
@@ -40,14 +49,17 @@ class GoogleAccountConflict(Exception):
 
 
 class GoogleConsentRequired(Exception):
-    """A brand-new Google account needs the Terms/age consent before it can be created."""
+    """A brand-new Google account needs the 13+/Terms tick-box before it can be created."""
+
+
+NEEDS_SIGNUP_CONSENT_MESSAGE = "No account yet — tick the box to create one with Google."
 
 
 LOGIN_FAILED = "Incorrect email, username or password."
 
 
 GOOGLE_CONSENT_SALT = "google-consent"
-GOOGLE_CONSENT_MAX_AGE = 600  # seconds the player has to tick the boxes after Google verified them
+GOOGLE_CONSENT_MAX_AGE = 600  # seconds the player has to tick the box after Google verified them
 
 
 class GoogleSignupBlocked(Exception):
@@ -73,9 +85,10 @@ def user_payload(request, user):
         "profile_photo": profile_photo_url(request, user),
         # UI hint only — every admin endpoint re-checks is_staff server-side.
         "is_admin": bool(user.is_staff),
-        # 13-15 year-olds are kept off public surfaces; the multiplayer relay reads this to show
-        # them as "Player" to strangers in random matches (multiplayer_server/src/index.js publicUser).
-        "is_teen": getattr(user, "age_group", "") == "teen",
+        # 13-15 year-olds, and accounts whose age is unknown, are kept off public surfaces; the
+        # multiplayer relay reads this to show them as "Player" to strangers in random matches
+        # (multiplayer_server/src/index.js publicUser).
+        "is_teen": is_teen(user),
     }
 
 
@@ -97,7 +110,49 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
     )
 
 
-def _user_for_google_identity(identity, age_group=None):
+USERNAME_TRIES = 10
+
+
+def _username_taken(name):
+    return User.objects.filter(username__iexact=name).exists()
+
+
+def _username_usable(name):
+    return bool(USERNAME_RE.match(name)) and check_username(name).tier == "ok" and not _username_taken(name)
+
+
+def _digits(n):
+    return "".join(str(secrets.randbelow(10)) for _ in range(n))
+
+
+def username_from_email(email):
+    """A display name for a new Google account, from the email's local part (owner decision 2026-10-11).
+
+    The local part (before any "+tag") is cut down to what USERNAME_RE allows: accents stripped, other
+    characters dropped, at most 20. If that is free (no account uses it, any case) and passes
+    moderation it is used as is (the rules do not require a digit). Otherwise 4 random digits are
+    appended (the name trimmed to fit 20) for up to USERNAME_TRIES tries; a name moderation refuses
+    is not retried with digits (moderation ignores digits). The fallback is Player + 4 digits, then
+    Player + 6 digits. The player can change it in Profile settings.
+    """
+    local = str(email or "").split("@")[0].split("+")[0]
+    base = re.sub(r"[^A-Za-z0-9_]", "", strip_accents(local))[:20]
+    if base and _username_usable(base):
+        return base
+    if base and check_username(base).tier == "ok":
+        stem = base[:16]
+        for _ in range(USERNAME_TRIES):
+            candidate = stem + _digits(4)
+            if _username_usable(candidate):
+                return candidate
+    for _ in range(USERNAME_TRIES):
+        candidate = f"Player{_digits(4)}"
+        if not _username_taken(candidate):
+            return candidate
+    return f"Player{_digits(6)}"
+
+
+def _user_for_google_identity(identity, age_group=None, consent_source=""):
     """Find or create the account for a VERIFIED Google identity -> (user, new_account).
 
     Linked by Google's stable `sub` first, then by the verified email. Signup does not
@@ -128,21 +183,20 @@ def _user_for_google_identity(identity, age_group=None):
         strikes.log_event(None, "name_signup", "none", strikes.SIGNUP_BLOCKED_CODE)
         raise GoogleSignupBlocked()
 
-    # A new account needs the Terms/age consent first (existing accounts were consented already).
+    # A new account needs the 13+/Terms tick-box first (existing accounts were consented already).
     if age_group is None:
         raise GoogleConsentRequired()
 
-    # The display name is public (leaderboards, search, matches), so it must never be derived from the
-    # email address. A neutral placeholder is used; the player can pick their own in the profile.
-    base = f"Player{secrets.randbelow(9000) + 1000}"
+    # Owner decision 2026-10-11: the name comes from the email's local part (it is public on
+    # leaderboards, search and matches); the player can change it in Profile settings.
     try:
-        user = User.objects.create_user(username=base, email=email, password=None, google_sub=sub)
+        user = User.objects.create_user(username=username_from_email(email), email=email, password=None, google_sub=sub)
     except IntegrityError:
         # A concurrent first sign-in created it between our lookup and insert.
         user = User.objects.filter(google_sub=sub).first() or User.objects.get(email__iexact=email)
         return user, False
-    stamp_consent(user, age_group)
-    user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at", "age_group"])
+    stamp_consent(user, age_group, consent_source)
+    user.save(update_fields=CONSENT_FIELDS)
     leaderboard.record_score(user)
     return user, True
 
@@ -252,8 +306,8 @@ def signup_view(request):
 
         try:
             user = User.objects.create_user(username=username, email=email, password=password)
-            stamp_consent(user, age_group_for(request.data))
-            user.save(update_fields=["terms_accepted_at", "terms_version", "age_confirmed_at", "age_group"])
+            stamp_consent(user, age_group_for(request.data), consent_source_for(request.data))
+            user.save(update_fields=CONSENT_FIELDS)
         except IntegrityError:
             # Race with a concurrent signup on the same email.
             return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
@@ -315,6 +369,26 @@ def delete_my_account(request):
     return Response({"status": outcome})
 
 
+PHOTO_AGE_REQUIRED_MESSAGE = f"Profile photos are for players aged {PHOTO_MIN_AGE} and over. Tell us your birth month and year first."
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([AccountDataRateThrottle])
+def set_my_age(request):
+    """POST {"birth_month", "birth_year"}: give the age once, when adding a profile photo.
+
+    Only the coarse age group (adult 16+ / teen) is kept, never the date, and only while it is
+    still unknown, so a teen can't retry with an older year (409).
+    """
+    data = request.data if isinstance(request.data, dict) else {}
+    ok, message = set_age_from_birth_date(request.user, data)
+    if not ok:
+        code = status.HTTP_409_CONFLICT if request.user.age_group else status.HTTP_400_BAD_REQUEST
+        return Response({"error": message}, status=code)
+    return Response({"user": user_payload(request, request.user)})
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
@@ -364,6 +438,13 @@ def update_profile(request):
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.content_type.startswith("multipart/form-data"):
+        if not user.age_group:
+            # Age unknown (signed up with the 13+ tick-box): ask for the birth month + year now
+            # (POST account/age/), then the client retries the upload.
+            return Response(
+                {"code": "age_required", "error": PHOTO_AGE_REQUIRED_MESSAGE},
+                status=status.HTTP_428_PRECONDITION_REQUIRED,
+            )
         if user.age_group == "teen":
             return Response(
                 {"error": f"Profile photos are available from age {PHOTO_MIN_AGE}."},
@@ -436,6 +517,11 @@ def logout_view(request):
 @permission_classes([AllowAny])
 @throttle_classes([LoginRateThrottle])
 def google_login(request):
+    """Google sign-in / sign-up. An existing account signs in with the code alone. A brand-new account
+    is created only when the request carries the 13+/Terms tick-box (`accepted_terms` + `age_confirmed`);
+    without it the answer is 428 `needs_signup_consent` with a signed `consent_token` (the verified
+    identity, valid GOOGLE_CONSENT_MAX_AGE), which the client sends back with the tick-box so the
+    player does not pick their Google account again."""
     data = request.data if isinstance(request.data, dict) else {}
     consent_token = data.get("consent_token")
     code = data.get("code")
@@ -461,12 +547,12 @@ def google_login(request):
         return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user, new_account = _user_for_google_identity(identity, age_group)
+        user, new_account = _user_for_google_identity(identity, age_group, consent_source_for(data, google=True))
     except GoogleConsentRequired:
         return Response(
             {
-                "code": "consent_required",
-                "error": CONSENT_REQUIRED_MESSAGE,
+                "code": "needs_signup_consent",
+                "error": NEEDS_SIGNUP_CONSENT_MESSAGE,
                 "consent_token": signing.dumps(identity, salt=GOOGLE_CONSENT_SALT),
             },
             status=status.HTTP_428_PRECONDITION_REQUIRED,

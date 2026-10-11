@@ -41,9 +41,9 @@ class FakeRedis:
 
 
 def _make_users():
-    User.objects.create_user(username="alice", email="alice@example.com", password="x", points=300)
-    User.objects.create_user(username="bob", email="bob@example.com", password="x", points=100)
-    User.objects.create_user(username="carol", email="carol@example.com", password="x", points=200)
+    User.objects.create_user(username="alice", email="alice@example.com", password="x", points=300, age_group="adult")
+    User.objects.create_user(username="bob", email="bob@example.com", password="x", points=100, age_group="adult")
+    User.objects.create_user(username="carol", email="carol@example.com", password="x", points=200, age_group="adult")
 
 
 class LeaderboardPostgresFallbackTests(TestCase):

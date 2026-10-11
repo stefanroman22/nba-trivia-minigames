@@ -1,6 +1,6 @@
 # Record of processing (GDPR Art 30), legitimate-interests assessment, DPIA screening
 
-Verified against the code on 2026-10-07 (data audit of `backend/`, `src/`, `multiplayer_server/`). Controller and
+Verified against the code on 2026-10-07; consent rows updated 2026-10-11 (data audit of `backend/`, `src/`, `multiplayer_server/`). Controller and
 contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md for the thresholds to watch).
 
 ## 1. Processing activities
@@ -9,7 +9,7 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 |---|---|---|---|---|---|---|---|
 | 1 | Email, display name, public ID, password hash or Google `sub` | Account holders | Account and sign-in | Contract (Art 6(1)(b)) | Operator; name and ID public | Until deletion | Supabase Postgres (`users_customuser`) |
 | 2 | Points, rank | Account holders | Leaderboards, matchmaking | Contract | Public | Until deletion | Postgres; Redis ZSET if provisioned (it is not today) |
-| 3 | Consent record (terms version, accepted-at, age-confirmed-at, coarse age group teen/adult; no birth date) | Account holders | Prove valid sign-up | Legitimate interests; legal obligation | Operator | Until deletion | Postgres |
+| 3 | Consent record (terms version, accepted-at, 13+ confirmed-at, how it was given (`consent_source`: sign-up tick-box, Google sign-up tick-box, or birth date from an older client), coarse age group teen/adult only if a birth month/year was given for a profile photo; no birth date) | Account holders | Prove valid sign-up | Legitimate interests; legal obligation | Operator | Until deletion | Postgres |
 | 4 | Profile photo (256x256 JPEG); upload is OFF in production until the photo-check service is deployed | Account holders aged 16+ (optional) | Show to other players | Consent (Art 6(1)(a)), removable | Public | Until removed or deletion | Postgres (`profile_photo_data`) |
 | 5 | Friends, requests, blocks | Account holders | Friends features | Contract | The parties; operator | Until removed or deletion | Postgres |
 | 6 | Game sessions and per-guess answers | Account holders; guests (answers only, unlinked) | Player record, statistics, fair play | Contract (own record); legitimate interests (statistics) | Operator | Sessions 24 months; answers 12 months | Postgres (`GameSession`, `GuessLog`) |
@@ -20,7 +20,7 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 | 11a | Rate-limit counters (IP address) in the database cache table | Visitors | Stop guessing and flooding | Legitimate interests | Operator | About an hour | Postgres (`django_cache_table`) |
 | 11 | Server logs (IP, time, URL) | Visitors | Security, operations | Legitimate interests | Operator | Provider-defined short period | Vercel |
 | 12 | Multiplayer session (name, ID, rank, points, photo) | Players online | Run a match | Contract | Opponents | Memory only, until the match ends | Game server (not yet deployed) |
-| 13 | Browser storage: tokens, cached profile, device code, theme, game caches, 24h age-check note | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent banner | The user | Until cleared; tokens 90 days max | The user's browser |
+| 13 | Browser storage: tokens, cached profile, device code, theme, game caches, whether the legal-change notice was hidden | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent banner | The user | Until cleared; tokens 90 days max | The user's browser |
 
 No special-category data is collected on purpose. No ads, analytics, tracking pixels or data sales.
 
@@ -49,7 +49,7 @@ No special-category data is collected on purpose. No ads, analytics, tracking pi
 | Trigger | Present? | Note |
 |---|---|---|
 | Large-scale processing of personal data | Possibly, as the user base grows | Public display data of many users |
-| Children's data | Mitigated: accounts 13+, age check, no birth date stored, no photo or chat for under-16s | Residual: minors lying about age; 13-15 year-olds on a public leaderboard |
+| Children's data | Mitigated: accounts 13+ (self-declared tick-box since 2026-10-11, owner decision), no birth date stored, no photo or chat for under-16s; accounts without a confirmed 16+ age are kept off the public leaderboard and name search | Residual: minors lying about age (easier with a tick-box than with a birth-date screen) |
 | User-generated photos shown publicly | Yes | Automated classifier, fail-closed, removable |
 | Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request |
 | Special categories, location, biometric | No | Photos are not used for identification |

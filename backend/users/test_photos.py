@@ -18,7 +18,7 @@ User = get_user_model()
 def make_user(username="Baller23", email="baller@example.com"):
     """A signed-in user + access token, without going through the throttled signup
     endpoint (auth-signup is 10/hour and shared across the whole users test module)."""
-    user = User.objects.create_user(username=username, email=email, password="Testpass123!")
+    user = User.objects.create_user(username=username, email=email, password="Testpass123!", age_group="adult")
     access = str(issue_session_tokens(user).access_token)
     return user, access
 

@@ -20,10 +20,10 @@ export default function PrivacyPage() {
         <strong>The short version.</strong>
         <LegalList>
           <li>You can play without an account, and then we do not keep your name or email.</li>
-          <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players (players aged 13 to 15 are not shown on the public leaderboard). Your email is never shown.</li>
+          <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players (players under 16, and accounts whose age we do not know yet, are not shown on the public leaderboard). Your email is never shown.</li>
           <li>There are no ads, no analytics and no tracking cookies. We never sell your data.</li>
           <li>You can download everything we hold and delete your account yourself, from your profile.</li>
-          <li>Accounts are for people aged {LEGAL.minimumAge} and over.</li>
+          <li>Accounts are for people aged {LEGAL.minimumAge} and over: you confirm this with one tick-box when you sign up, by email or with Google.</li>
         </LegalList>
       </LegalSummary>
 
@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle limit", "Legitimate interests", "Answers: 12 months. Wordle plays: removed after the day ends. The device code stays in your browser until you clear it."],
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
-          ["Consent record: the Terms version you accepted, when, and that you confirmed the age requirement (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
+          ["Consent record: the Terms version you accepted, when, that you confirmed you are 13 or older and how (the sign-up tick-box, by email or with Google), and, if you gave your birth month and year when adding a photo, only whether you are 16 or over (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
           [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
           ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 12 months."],
@@ -64,8 +64,8 @@ export default function PrivacyPage() {
 
       <LegalHeading id="public">3. What other people can see</LegalHeading>
       <LegalList>
-        <li><strong>Everyone</strong> who opens the site can see leaderboard rows: display name, player ID, rank, points and photo (if you added one).</li>
-        <li><strong>Other players</strong> can find you by name or player ID, see your photo, and send a friend request; online opponents see your name, ID, rank, points and photo during a match.</li>
+        <li><strong>Everyone</strong> who opens the site can see leaderboard rows: display name, player ID, rank, points and photo (if you added one). Teen accounts (see section 10) are not on the public leaderboard.</li>
+        <li><strong>Other players</strong> can find you by name or player ID, see your photo, and send a friend request; online opponents see your name, ID, rank, points and photo during a match. Teen accounts can be found only by their exact player ID, and strangers in a random online match see them as &ldquo;Player&rdquo;.</li>
         <li><strong>Nobody else</strong> sees your email, your game history, your answers or your feedback. Only the operator, and anyone the operator authorises to run the service, can read those.</li>
       </LegalList>
       <p>Please do not use your real name as your display name, and do not upload a photo you do not want others to see.</p>
@@ -75,7 +75,9 @@ export default function PrivacyPage() {
         If you choose it, Google tells us your email address and a stable ID for your Google account. We do not receive your
         Google password and we read nothing else from your Google account. We use that information only to create and sign
         you in to your {LEGAL.service} account. We do not sell it, do not use it for advertising and do not transfer it to
-        anyone except our service providers listed below, and only as needed to run your account. Google&apos;s sign-in
+        anyone except our service providers listed below, and only as needed to run your account. Creating a new account
+        with Google needs the same tick-box as signing up by email: you confirm you are {LEGAL.minimumAge} or older and
+        agree to the Terms and this policy before we create it. Google&apos;s sign-in
         window loads only when you open the login box and is run by Google under its own privacy policy. Our use of
         information received from Google APIs follows the Google API Services User Data Policy, including its Limited Use
         requirements.
@@ -159,10 +161,14 @@ export default function PrivacyPage() {
 
       <LegalHeading id="children">10. Age and children</LegalHeading>
       <p>
-        Accounts are only for people aged {LEGAL.minimumAge} or over. When you sign up we ask for your birth month and year
-        to check this, and we do not store them: we keep only that the check passed and whether you are under or over{" "}
-        {LEGAL.photoMinimumAge}. Players under {LEGAL.photoMinimumAge} cannot add a profile photo. If we learn that an
-        account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
+        Accounts are only for people aged {LEGAL.minimumAge} or over. When you sign up, by email or with Google, you tick a
+        box to confirm you are {LEGAL.minimumAge} or older; we record that you confirmed it and when. We do not ask your
+        birth date at sign-up. We ask for your birth month and year only when you add a profile photo, and we do not
+        store them: we keep only whether you are under or over {LEGAL.photoMinimumAge}, and you can give it once.
+        Until you have told us you are {LEGAL.photoMinimumAge} or over, your account is treated as a teen account: no
+        profile photo, not on the public leaderboard, not found by a name search (only by its exact player ID), and shown
+        as &ldquo;Player&rdquo; to strangers in random online matches. Players under {LEGAL.photoMinimumAge} cannot add a
+        profile photo. If we learn that an account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
         Anyone can play as a guest, and a guest&apos;s answers are not tied to a person. Parents and guardians can write to{" "}
         <MailLink /> to ask us to remove a child&apos;s data.
       </p>
@@ -176,7 +182,7 @@ export default function PrivacyPage() {
         <li>your sign-in tokens, and a cached copy of your profile so the page loads signed in;</li>
         <li>a random device code, used for the one-Wordle-a-day limit for guests;</li>
         <li>your theme choice and cached game data so games start quickly;</li>
-        <li>a short note (24 hours) if a sign-up age check fails, so the same browser does not retry with another date.</li>
+        <li>whether you hid the home-page notice about a change to these documents.</li>
       </LegalList>
       <p>You can clear all of it in your browser settings; you will be signed out.</p>
 

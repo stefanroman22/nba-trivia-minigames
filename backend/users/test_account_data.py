@@ -109,7 +109,7 @@ class GoogleConsentTests(TestCase):
             first = self.post_google(code="c")
         self.assertEqual(first.status_code, 428)
         body = first.json()
-        self.assertEqual(body["code"], "consent_required")
+        self.assertEqual(body["code"], "needs_signup_consent")
         self.assertFalse(User.objects.exists())
 
         second = self.post_google(consent_token=body["consent_token"], **OK)

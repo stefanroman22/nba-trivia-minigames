@@ -1,4 +1,6 @@
-export interface PasswordRule { key: string; label: string; ok: boolean }
+/** One line of a live checklist (password or username). `pending`: not decided yet (a server check
+ *  still running), shown neutral instead of as a cross. */
+export interface PasswordRule { key: string; label: string; ok: boolean; pending?: boolean }
 
 /** True when one value contains the other (3+ characters, case-insensitive): a cheap stand-in for
  *  Django's UserAttributeSimilarityValidator, which the server still runs on submit. */

@@ -8,13 +8,16 @@ import { logout, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
 import { isBanPayload } from "../utils/ban";
 import { showErrorAlert } from "../utils/Alerts";
-import { USERNAME_FORMAT, nameNoteSlot, useNameCheck } from "../utils/nameCheck";
+import { USERNAME_FORMAT, useNameVerdict } from "../utils/nameCheck";
+import { usernameRules } from "../utils/usernameRules";
 import { BACKEND_URL } from "../configurations/backend";
 import { useModal } from "../context/ModalContext";
 import { useProfilePhoto } from "../hooks/useProfilePhoto";
 import { useLogout } from "../hooks/useLogout";
 import Navigation from "../components/Navigation";
 import SwapText from "../components/motion/SwapText";
+import PasswordRules from "../components/PasswordRules";
+import PhotoAgePrompt from "../components/PhotoAgePrompt";
 import { Button } from "../components/ui";
 import defaultAvatar from "../assets/default.png";
 import "../styles/ProfileSettings.css";
@@ -30,7 +33,7 @@ export default function ProfileSettings() {
   const dispatch = useDispatch<AppDispatch>();
   const { user, authChecked } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
-  const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto } = useProfilePhoto();
+  const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto, agePrompt, ageSaving, ageError, submitAge, cancelAge } = useProfilePhoto();
   const { loggingOut, logOut } = useLogout();
 
   // ---- Username ----
@@ -39,7 +42,9 @@ export default function ProfileSettings() {
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved">("idle");
   const savedTimer = useRef<number | null>(null);
   const usernameInputRef = useRef<HTMLInputElement | null>(null);
-  const nameNote = useNameCheck(tempUsername, isEditing && tempUsername !== (user?.username || ""));
+  // The live checklist opens once they type a new name (same pattern as the sign-up password).
+  const nameChanged = isEditing && tempUsername !== (user?.username || "");
+  const nameVerdict = useNameVerdict(tempUsername, nameChanged);
 
   const handleSave = async () => {
     if (!USERNAME_FORMAT.test(tempUsername)) {
@@ -221,13 +226,7 @@ export default function ProfileSettings() {
             </button>
           </div>
           <div className="ps-note-slot" role="status" aria-live="polite">
-            <AnimatePresence initial={false}>
-              {nameNote && (
-                <motion.div key="ps-name-note" style={{ overflow: "hidden" }} variants={nameNoteSlot} initial="hidden" animate="visible" exit="hidden">
-                  <p className="ps-note"><SwapText>{nameNote}</SwapText></p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <PasswordRules show={nameChanged} rules={usernameRules(tempUsername, nameVerdict)} label="Username requirements" />
           </div>
 
           <div className="ps-row">
@@ -256,6 +255,7 @@ export default function ProfileSettings() {
               {user.profile_photo && <button className="ps-link-btn ps-link-btn--muted" onClick={handleRemovePhoto}>Remove</button>}
             </div>
           </div>
+          <PhotoAgePrompt open={agePrompt} saving={ageSaving} error={ageError} onSubmit={submitAge} onCancel={cancelAge} />
         </section>
 
         {/* Your data */}
