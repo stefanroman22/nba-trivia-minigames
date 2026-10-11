@@ -4,14 +4,16 @@ import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
 import { setTokens } from "../utils/Api";
 import { isBanPayload, reportBan } from "../utils/ban";
-import { nameNoteSlot, useNameCheck } from "../utils/nameCheck";
+import { nameNoteSlot, useNameVerdict } from "../utils/nameCheck";
+import { usernameRules } from "../utils/usernameRules";
 import { login } from "../store/userSlice";
 import { BACKEND_URL } from "../configurations/backend";
+import { SITE_NAME } from "../configurations/site";
 import { isInAppBrowser } from "../utils/inAppBrowser";
 import ConsentFields from "./ConsentFields";
 import PasswordRules from "./PasswordRules";
 import { passwordRules } from "../utils/passwordRules";
-import { EMPTY_CONSENT, consentComplete, consentPayload, type ConsentValue } from "../utils/consent";
+import { CONSENT_NEEDED, consentPayload } from "../utils/consent";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -30,11 +32,11 @@ const AUTH_MODES: { key: "login" | "signup"; label: string }[] = [
 
 /** The form's one state machine. Extend the union (e.g. a moderation state) rather than adding flags. */
 export type AuthPhase = "idle" | "submitting" | "error" | "success";
-type AuthField = "identifier" | "email" | "username" | "password";
+type AuthField = "identifier" | "email" | "username" | "password" | "consent";
 interface AuthError { id: number; message: string; field?: AuthField }
 
 const NETWORK_ERROR = "Unable to contact the server. Please try again later.";
-const CONSENT_NEEDED = "Please enter your birth month and year and agree to the Terms and Privacy Policy.";
+const NO_ACCOUNT_YET = "No account yet — tick the box to create one with Google.";
 /** How long the success pane holds before the modal leaves (after the form's fade-out). The sheet
  *  (mobile) and reduced-motion holds are shorter; a tap skips once SKIP_AFTER_MS has passed. */
 const SUCCESS_HOLD_MS = 800;
@@ -67,9 +69,14 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
   const [signupEmail, setSignupEmail] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [phase, setPhase] = useState<AuthPhase>("idle");
-  // Terms + age answers, and the signed token of a Google identity waiting for them (a new account).
-  const [consent, setConsent] = useState<ConsentValue>(EMPTY_CONSENT);
+  // The one 13+/Terms tick-box (covers email and Google sign-up), and the signed token of a Google
+  // identity a log-in found no account for: ticking the box then creates it without a second popup.
+  const [agreed, setAgreed] = useState(false);
   const [googleToken, setGoogleToken] = useState<string | null>(null);
+  // An error to show once a pending mode switch lands (the switch itself clears the old one).
+  const [carriedError, setCarriedError] = useState<AuthError | null>(null);
+  // Whether the Google popup was opened from sign-up with the box ticked (read when it answers).
+  const googleSignupRef = useRef(false);
   // `id` keys the alert and the field shake so a repeat of the same message replays both.
   const [error, setError] = useState<AuthError | null>(null);
   const [welcome, setWelcome] = useState<{ name: string; isNew: boolean; height: number } | null>(null);
@@ -94,15 +101,17 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
 
   const dispatch = useDispatch<AppDispatch>();
   // Live server check of the sign-up name (reserved / not allowed); the server re-checks on submit.
-  const nameNote = useNameCheck(signupUsername, isSignup);
+  const nameVerdict = useNameVerdict(signupUsername, isSignup);
 
   // A mode switch drops the previous mode's error in the same commit as the field swap, so the
-  // panel changes height once.
+  // panel changes height once. A carried error (a Google log-in found no account) lands instead.
   const [prevMode, setPrevMode] = useState(mode);
   if (mode !== prevMode) {
     setPrevMode(mode);
-    setError(null);
-    if (phase === "error") setPhase("idle");
+    setError(carriedError);
+    setCarriedError(null);
+    if (carriedError) setPhase("error");
+    else if (phase === "error") setPhase("idle");
   }
 
   useEffect(() => { onPhaseChange?.(phase); }, [phase, onPhaseChange]);
@@ -287,15 +296,15 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       return;
     }
 
-    if (!consentComplete(consent)) {
-      fail(CONSENT_NEEDED);
+    if (!agreed) {
+      fail(CONSENT_NEEDED, "consent");
       return;
     }
     try {
       const response = await fetch(`${BACKEND_URL}/signup/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword, ...consentPayload(consent) }),
+        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword, ...consentPayload(agreed) }),
       });
       const data = await response.json();
       if (handledBan(response, data)) return;
@@ -326,17 +335,26 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       const data = await response.json();
       if (handledBan(response, data)) return;
 
-      // A brand-new Google account: Google verified them, now we need the age + Terms answers.
+      // A Google log-in with no account behind it: keep Google's verified identity (signed, ~10 min),
+      // switch to Sign up and point at the tick-box; one more press of Google then creates it.
       if (response.status === 428 && data.consent_token) {
         setGoogleToken(data.consent_token);
+        const notice = { id: ++errorSeq.current, message: NO_ACCOUNT_YET, field: "consent" as const };
         submittingRef.current = false;
-        setPhase("idle");
+        if (isSignup) {
+          setError(notice);
+          setPhase("error");
+        } else {
+          setCarriedError(notice);
+          setPhase("idle");
+          onModeChange("signup");
+        }
         return;
       }
 
       if (!response.ok || data.error) {
         if (body.consent_token && !data.code) setGoogleToken(null); // expired or tampered: start over
-        fail(data.error || "Google Authentication Failed");
+        fail(data.error || "Google Authentication Failed", data.code === "consent_required" ? "consent" : undefined);
         return;
       }
 
@@ -351,21 +369,14 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
     }
   };
 
-  const completeGoogleSignup = async () => {
-    if (!googleToken || !begin()) return;
-    if (!consentComplete(consent)) {
-      fail(CONSENT_NEEDED);
-      return;
-    }
-    await sendGoogle({ consent_token: googleToken, ...consentPayload(consent) });
-  };
-
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSuccess: async (codeResponse: { code: any; }) => {
       if (!begin()) return;
-      await sendGoogle({ code: codeResponse.code, ...(consentComplete(consent) ? consentPayload(consent) : {}) });
+      // From Sign up the tick-box travels with the code, so a new account is created on return. A
+      // log-in sends the code alone: an existing account signs in, a new one answers 428 (above).
+      await sendGoogle({ code: codeResponse.code, ...(googleSignupRef.current ? consentPayload(true) : {}) });
     },
     onError: () => {
       console.error("Google login failed");
@@ -389,7 +400,30 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       fail("Google doesn't allow sign-in inside this app's browser. Open this page in Safari or Chrome, or log in with your email.");
       return;
     }
+    if (isSignup) {
+      // Sign up with Google needs the same tick-box as the email form; nothing opens without it.
+      if (!agreed) {
+        fail(CONSENT_NEEDED, "consent");
+        return;
+      }
+      // Google already verified this player on the log-in tab: create the account without a popup.
+      if (googleToken) {
+        if (!begin()) return;
+        void sendGoogle({ consent_token: googleToken, ...consentPayload(true) });
+        return;
+      }
+    }
+    googleSignupRef.current = isSignup && agreed;
     googleLogin();
+  };
+
+  const onAgreedChange = (next: boolean) => {
+    setAgreed(next);
+    // Ticking answers the "tick the box" error, so it leaves with the tick.
+    if (next && error?.field === "consent") {
+      setError(null);
+      if (phase === "error") setPhase("idle");
+    }
   };
 
   const busy = phase === "submitting" || phase === "success";
@@ -476,21 +510,13 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
                     </motion.div>
                   )}
                   {isSignup && (
-                    <motion.div key="signup-name-note-slot" className="auth-field-note-slot" role="status" aria-live="polite" variants={field} initial="hidden" animate="visible" exit="exit">
-                      <AnimatePresence initial={false}>
-                        {nameNote && (
-                          <motion.div
-                            key="signup-name-note"
-                            style={{ overflow: "hidden" }}
-                            variants={nameNoteSlot}
-                            initial="hidden"
-                            animate="visible"
-                            exit="hidden"
-                          >
-                            <p className="auth-error auth-field-note"><SwapText>{nameNote}</SwapText></p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                    <motion.div key="signup-name-rules-slot" className="auth-field-note-slot" role="status" aria-live="polite" variants={field} initial="hidden" animate="visible" exit="exit">
+                      {/* The same live checklist as the password: glides open once they type. */}
+                      <PasswordRules
+                        show={signupUsername.length > 0}
+                        rules={usernameRules(signupUsername, nameVerdict)}
+                        label="Username requirements"
+                      />
                     </motion.div>
                   )}
 
@@ -521,7 +547,13 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
 
                   {isSignup && (
                     <motion.div key="signup-consent" variants={field} initial="hidden" animate="visible" exit="exit">
-                      <ConsentFields value={consent} onChange={setConsent} disabled={busy} />
+                      <ConsentFields
+                        checked={agreed}
+                        onChange={onAgreedChange}
+                        disabled={busy}
+                        invalid={fieldBad("consent")}
+                        boxRef={setFieldRef("consent")}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -572,20 +604,16 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
                     Continue with Google
                   </button>
 
-                  {googleToken ? (
-                    <div className="auth-consent-panel">
-                      <p className="auth-note">Looks like you&apos;re new here. One last step to create your account.</p>
-                      {!isSignup && <ConsentFields value={consent} onChange={setConsent} disabled={busy} />}
-                      <button type="button" className="modal-primary-btn" onClick={completeGoogleSignup} disabled={busy}>
-                        Create my account
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="auth-note">
-                      By continuing with Google you agree to our <a href="/terms" target="_blank" rel="noopener">Terms</a> and{" "}
-                      <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.
-                    </p>
-                  )}
+                  {/* Sign up: the tick-box above already covers Google. Log in: a new player learns
+                      the box comes before an account is made. popLayout so the leaving note is out
+                      of flow at once and the mode switch keeps its single height glide. */}
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {!isSignup && (
+                      <motion.p key="google-login-note" className="auth-note" variants={field} initial="hidden" animate="visible" exit="exit">
+                        New to {SITE_NAME}? You&apos;ll confirm you&apos;re 13+ before we create your account.
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
 
                   <p className="auth-note">
                     {isSignup ? "Already have an account? " : "Don't have an account? "}

@@ -34,27 +34,26 @@ export async function checkName(username: string): Promise<NameCheckResult> {
   }
 }
 
-/**
- * Debounced live check for a username field: returns the server's message once it has answered
- * "not allowed", else null. Runs only when `enabled` and the name passes the format rule. The
- * last message stays up while the check for a newer value is pending (so the note does not
- * blink on every keystroke); it clears when an answer comes back "ok", the name fails the format,
- * or the check is disabled. An answer for an earlier value is never applied.
- */
-export function useNameCheck(name: string, enabled = true): string | null {
-  const [error, setError] = useState<string | null>(null);
-  const active = enabled && USERNAME_FORMAT.test(name);
+/** The live server verdict on a name: "checking" while the debounced check for this exact value is
+ *  pending, then "ok" or "bad" (with the server's generic message). */
+export type NameVerdict = { status: "checking" | "ok" | "bad"; error: string | null };
 
-  // Adjusted during render, not in an effect: an inactive field shows nothing, so the kept
-  // message is dropped and cannot flash back when the field becomes active again.
-  if (!active && error !== null) setError(null);
+/**
+ * Debounced live check for a username field. Returns null when the check is off (`enabled` false, or
+ * the name fails the format rule, which the checklist shows on its own); otherwise the verdict for
+ * the current value, "checking" until its answer arrives. An answer for an earlier value is never
+ * applied, and a network/throttle failure reads as "ok" (the server judges again on submit).
+ */
+export function useNameVerdict(name: string, enabled = true): NameVerdict | null {
+  const [answer, setAnswer] = useState<{ name: string; ok: boolean; error: string | null } | null>(null);
+  const active = enabled && USERNAME_FORMAT.test(name);
 
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
     const timer = window.setTimeout(async () => {
       const result = await checkName(name);
-      if (!cancelled) setError(result.ok ? null : result.error ?? FALLBACK_ERROR);
+      if (!cancelled) setAnswer({ name, ok: result.ok, error: result.ok ? null : result.error ?? FALLBACK_ERROR });
     }, NAME_CHECK_DEBOUNCE_MS);
     return () => {
       cancelled = true;
@@ -62,12 +61,14 @@ export function useNameCheck(name: string, enabled = true): string | null {
     };
   }, [name, active]);
 
-  return active ? error : null;
+  if (!active) return null;
+  if (!answer || answer.name !== name) return { status: "checking", error: null };
+  return { status: answer.ok ? "ok" : "bad", error: answer.error };
 }
 
-/** The note's slot under a username field (sign-up form, profile editor): only its height and
- *  opacity animate, so the fields below glide instead of jumping. The text inside swaps with
- *  SwapText. Use with initial="hidden" animate="visible" exit="hidden". */
+/** The slot animation shared by the checklists under the password and username fields (and the
+ *  name and photo-age notes): only its height and opacity animate, so the fields below glide
+ *  instead of jumping. Use with initial="hidden" animate="visible" exit="hidden". */
 export const nameNoteSlot: Variants = {
   hidden: { height: 0, opacity: 0, transition: { duration: durations.fast, ease: easing.in } },
   visible: { height: "auto", opacity: 1, transition: { duration: durations.base, ease: easing.out } },

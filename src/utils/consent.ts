@@ -1,16 +1,5 @@
-export interface ConsentValue {
-  month: string;
-  year: string;
-  agreed: boolean;
-}
+/** What a sign-up request (email, or Google for a new account) sends for the one tick-box,
+ *  "I'm 13 or older and agree to the Terms of Service and Privacy Policy". */
+export const consentPayload = (agreed: boolean) => ({ accepted_terms: agreed, age_confirmed: agreed });
 
-export const EMPTY_CONSENT: ConsentValue = { month: "", year: "", agreed: false };
-
-/** What a sign-up request sends for the consent step. */
-export const consentPayload = (value: ConsentValue) => ({
-  accepted_terms: value.agreed,
-  birth_year: Number(value.year),
-  birth_month: Number(value.month),
-});
-
-export const consentComplete = (value: ConsentValue) => value.agreed && value.month !== "" && value.year !== "";
+export const CONSENT_NEEDED = "Please confirm you're 13 or older and agree to the Terms and Privacy Policy.";

@@ -288,14 +288,30 @@
   box-shadow: 0 -2px 16px -6px rgba(0, 0, 0, 0.4);
 }
 
-/* Sign-up consent: age gate + Terms tick-box (components/ConsentFields) */
-.auth-consent { display: flex; flex-direction: column; gap: 10px; }
+/* Sign-up tick-box: 13+ and Terms/Privacy in one (components/ConsentFields). It sits above "Create
+   account" and the Google button and covers both; red when continuing without it. The border and
+   background fade (UI-23 state styling). */
+.auth-check {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface2);
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.45;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease;
+}
+.auth-check:has(input:checked) { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); }
+.auth-check.is-invalid { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--surface2)); }
+.auth-check input { width: 16px; height: 16px; margin: 1px 0 0; accent-color: var(--brand); flex: none; cursor: pointer; }
+.auth-check a, .auth-note a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+/* Birth month + year selects (the profile photo age prompt, components/PhotoAgePrompt). */
 .auth-consent-row { display: flex; gap: 8px; }
 .auth-consent-row select { flex: 1; min-width: 0; }
-.auth-check { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--muted); line-height: 1.45; cursor: pointer; }
-.auth-check input { margin-top: 2px; accent-color: var(--brand); flex: none; }
-.auth-check a, .auth-note a { color: var(--brand); text-decoration: underline; }
-.auth-consent-panel { display: flex; flex-direction: column; gap: 12px; }
 
 /* ---- Sign-up password rules (components/PasswordRules): a red cross turns into a green check ---- */
 .pw-rules { list-style: none; margin: 0; padding: 10px 2px 0; display: grid; gap: 6px; }
@@ -303,6 +319,7 @@
 .pw-rule.is-ok { color: var(--text); }
 .pw-rule-icon { display: inline-flex; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); transition: color 0.2s ease, background 0.2s ease; }
 .pw-rule.is-ok .pw-rule-icon { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+.pw-rule.is-pending .pw-rule-icon { color: var(--muted); background: color-mix(in srgb, var(--muted) 14%, transparent); }
 .pw-rule-icon svg { display: block; }
 .pw-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
