@@ -51,7 +51,10 @@ export default function LegalChangeNotice() {
         >
           <div className="lcn">
             <p className="lcn-text">
-              <strong>Our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a> change on {LEGAL.changeNotice.effective}.</strong>{" "}
+              <strong>
+                We updated our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a> on {LEGAL.updated}.
+              </strong>{" "}
+              New accounts accept them at sign-up; for existing accounts they apply from {LEGAL.changeNotice.effective}.{" "}
               {LEGAL.changeNotice.summary}
             </p>
             <button type="button" className="lcn-close" onClick={dismiss} aria-label="Hide this notice">

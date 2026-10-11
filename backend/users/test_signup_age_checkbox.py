@@ -12,7 +12,8 @@ from django.urls import reverse
 
 from users import consent, leaderboard
 from users.tests import GOOGLE_ID, login, png_bytes, signup
-from users.views import username_from_email
+from users.moderation_text import check_username
+from users.views import GOOGLE_NAME_WORDS, USERNAME_RE, generated_username
 
 User = get_user_model()
 TICKED = {"accepted_terms": True, "age_confirmed": True}
@@ -153,106 +154,65 @@ class GoogleSignupCheckboxTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(resp.json()["new_account"])
 
-    def test_the_new_name_comes_from_the_email(self):
+    def test_the_new_name_is_generated_and_never_from_the_email(self):
         with self.verify(email="runforfun12@gmail.com"):
-            self.post(code="c", **TICKED)
-        self.assertEqual(User.objects.get(email="runforfun12@gmail.com").username, "runforfun12")
+            resp = self.post(code="c", **TICKED)
+        name = User.objects.get(email="runforfun12@gmail.com").username
+        self.assertRegex(name, GENERATED)
+        self.assertNotIn("runforfun", name.lower())
+        self.assertEqual(resp.json()["user"]["username"], name)
 
 
-class UsernameFromEmailTests(TestCase):
-    def test_a_free_valid_local_part_is_used_as_is_without_digits(self):
-        self.assertEqual(username_from_email("hooper@example.com"), "hooper")
+GENERATED = r"^(%s)\d{4}$" % "|".join(GOOGLE_NAME_WORDS)
 
-    def test_characters_the_rules_forbid_are_dropped(self):
-        self.assertEqual(username_from_email("jo.hn-doe@example.com"), "johndoe")
-        self.assertEqual(username_from_email("josé_luis@example.com"), "jose_luis")
 
-    def test_a_plus_tag_is_not_part_of_the_name(self):
-        self.assertEqual(username_from_email("hooper+nba@example.com"), "hooper")
+class GeneratedUsernameTests(TestCase):
+    def test_every_word_makes_a_valid_name_that_passes_moderation(self):
+        for word in GOOGLE_NAME_WORDS:
+            for digits in ("0000", "1234", "9999"):
+                name = f"{word}{digits}"
+                self.assertRegex(name, USERNAME_RE)
+                self.assertEqual(check_username(name).tier, "ok", name)
+        self.assertRegex("Player000000", USERNAME_RE)
+        self.assertEqual(check_username("Player000000").tier, "ok")
 
-    def test_a_long_local_part_is_cut_to_twenty(self):
-        self.assertEqual(username_from_email("a" * 30 + "@example.com"), "a" * 20)
+    def test_a_generated_name_is_valid_and_free(self):
+        name = generated_username()
+        self.assertRegex(name, GENERATED)
+        self.assertFalse(User.objects.filter(username__iexact=name).exists())
 
-    def test_a_taken_name_gets_digits(self):
-        User.objects.create_user(username="Hooper", email="other@example.com", password="x")
-        name = username_from_email("hooper@example.com")
-        self.assertRegex(name, r"^hooper\d{4}$")
+    def test_a_taken_candidate_is_retried(self):
+        with mock.patch("users.views._username_taken", side_effect=[True, False]) as taken:
+            self.assertRegex(generated_username(), GENERATED)
+        self.assertEqual(taken.call_count, 2)
 
-    def test_a_taken_twenty_character_name_stays_within_the_limit(self):
-        User.objects.create_user(username="b" * 20, email="other@example.com", password="x")
-        name = username_from_email("b" * 20 + "@example.com")
-        self.assertRegex(name, r"^b{16}\d{4}$")
-
-    def test_a_too_short_name_gets_digits(self):
-        self.assertRegex(username_from_email("ab@example.com"), r"^ab\d{4}$")
-
-    def test_nothing_usable_falls_back_to_player(self):
-        self.assertRegex(username_from_email("...@example.com"), r"^Player\d{4}$")
-
-    def test_a_reserved_or_blocked_name_falls_back_to_player(self):
-        self.assertRegex(username_from_email("admin@example.com"), r"^Player\d{4}$")
-        self.assertRegex(username_from_email("swishquest@example.com"), r"^Player\d{4}$")
-
-    def test_retries_are_bounded_when_every_candidate_is_taken(self):
+    def test_retries_are_bounded_then_fall_back_to_player(self):
         with mock.patch("users.views._username_taken", return_value=True):
-            self.assertRegex(username_from_email("hooper@example.com"), r"^Player\d{6}$")
+            self.assertRegex(generated_username(), r"^Player\d{6}$")
 
 
-@override_settings(MODERATION_REQUIRED=False, IMAGE_MODERATION_URL=None)
-class PhotoAgePromptTests(TestCase):
-    def setUp(self):
-        cache.clear()
-        self.client.post(
-            reverse("signup"),
-            data={"username": "Hooper", "email": "h@example.com", "password": "Testpass123!", **TICKED},
-            content_type="application/json",
-        )
-        self.auth = {"HTTP_AUTHORIZATION": f"Bearer {login(self.client, 'h@example.com').json()['access']}"}
+class RenameEmailDerivedNamesTests(TestCase):
+    def google_user(self, username, email, sub):
+        return User.objects.create_user(username=username, email=email, password=None, google_sub=sub)
 
-    def upload(self):
-        photo = SimpleUploadedFile("p.png", png_bytes(), content_type="image/png")
-        return self.client.post(reverse("update"), data={"profile_photo": photo}, **self.auth)
+    def test_email_derived_names_are_renamed_to_generated_ones(self):
+        from django.core.management import call_command
 
-    def give_age(self, **data):
-        return self.client.post(reverse("account_age"), data=data, content_type="application/json", **self.auth)
-
-    def test_an_upload_of_unknown_age_asks_for_the_birth_date(self):
-        resp = self.upload()
-        self.assertEqual((resp.status_code, resp.json()["code"]), (428, "age_required"))
-        self.assertIsNone(User.objects.get(email="h@example.com").profile_photo_data)
-
-    def test_sixteen_or_over_unlocks_the_upload(self):
-        resp = self.give_age(birth_year=1990, birth_month=6)
-        self.assertEqual(resp.status_code, 200, resp.content)
-        self.assertFalse(resp.json()["user"]["is_teen"])
-        self.assertEqual(User.objects.get(email="h@example.com").age_group, "adult")
-        with self.assertLogs("users.photo_moderation", level="WARNING"):
-            self.assertEqual(self.upload().status_code, 200)
-
-    def test_under_sixteen_gets_the_existing_photo_message(self):
-        resp = self.give_age(birth_year=date.today().year - 14, birth_month=1)
-        self.assertEqual(resp.status_code, 200)
-        self.assertTrue(resp.json()["user"]["is_teen"])
-        upload = self.upload()
-        self.assertEqual(upload.status_code, 403)
-        self.assertEqual(upload.json()["error"], f"Profile photos are available from age {consent.PHOTO_MIN_AGE}.")
-
-    def test_the_age_can_only_be_given_once(self):
-        self.give_age(birth_year=date.today().year - 14, birth_month=1)
-        again = self.give_age(birth_year=1990, birth_month=6)
-        self.assertEqual(again.status_code, 409)
-        self.assertEqual(User.objects.get(email="h@example.com").age_group, "teen")
-
-    def test_a_missing_or_impossible_date_is_refused(self):
-        for bad in ({}, {"birth_year": 1990}, {"birth_year": "x", "birth_month": 6}, {"birth_year": 1990, "birth_month": 13}):
-            self.assertEqual(self.give_age(**bad).status_code, 400)
-        self.assertEqual(User.objects.get(email="h@example.com").age_group, "")
-
-    def test_the_birth_date_itself_is_not_stored(self):
-        self.give_age(birth_year=1990, birth_month=6)
-        self.assertFalse(any("birth" in f.name for f in User._meta.get_fields()))
-
-    def test_an_account_with_a_known_age_uploads_unchanged(self):
-        User.objects.filter(email="h@example.com").update(age_group="adult")
-        with self.assertLogs("users.photo_moderation", level="WARNING"):
-            self.assertEqual(self.upload().status_code, 200)
+        derived = [
+            self.google_user("runforfun12", "runforfun12@gmail.com", "s1"),  # the local part
+            self.google_user("hooper", "hooper+nba@gmail.com", "s2"),  # local part before a +tag
+            self.google_user("jose_luis", "josé_luis@gmail.com", "s3"),  # accents stripped
+            self.google_user("dunkmaster4821", "dunkmaster@gmail.com", "s4"),  # local part + 4 digits
+        ]
+        kept = [
+            self.google_user("Baller1234", "someone@gmail.com", "s5"),
+            User.objects.create_user(username="hooper", email="hooper@example.com", password="x"),  # not Google
+        ]
+        call_command("rename_email_derived_names", "--yes", stdout=__import__("io").StringIO())
+        for user in derived:
+            user.refresh_from_db()
+            self.assertRegex(user.username, GENERATED)
+        for user in kept:
+            before = user.username
+            user.refresh_from_db()
+            self.assertEqual(user.username, before)

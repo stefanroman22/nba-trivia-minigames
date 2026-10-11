@@ -29,7 +29,7 @@ from users.consent import (
     stamp_consent,
 )
 from users.google_auth import GoogleAuthError, verify_google_code
-from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for, strip_accents
+from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
 from users.tokens import issue_session_tokens, revoke_sessions
 
@@ -125,32 +125,30 @@ def _digits(n):
     return "".join(str(secrets.randbelow(10)) for _ in range(n))
 
 
-def username_from_email(email):
-    """A display name for a new Google account, from the email's local part (owner decision 2026-10-11).
+# Neutral basketball words for new Google accounts' names (+ 4 digits): no real names, nothing the
+# moderation lists touch (users.test_signup_age_checkbox checks every word), at most 16 letters.
+GOOGLE_NAME_WORDS = (
+    "Hooper", "Baller", "Dunker", "Playmaker", "Fastbreak", "Crossover",
+    "Alleyoop", "Jumpshot", "Rimrunner", "Courtside", "Backboard", "Buzzerbeater",
+)
 
-    The local part (before any "+tag") is cut down to what USERNAME_RE allows: accents stripped, other
-    characters dropped, at most 20. If that is free (no account uses it, any case) and passes
-    moderation it is used as is (the rules do not require a digit). Otherwise 4 random digits are
-    appended (the name trimmed to fit 20) for up to USERNAME_TRIES tries; a name moderation refuses
-    is not retried with digits (moderation ignores digits). The fallback is Player + 4 digits, then
-    Player + 6 digits. The player can change it in Profile settings.
+
+def generated_username():
+    """A neutral display name for a new Google account: a GOOGLE_NAME_WORDS word + 4 random digits,
+    free in any case, retried up to USERNAME_TRIES times; then Player + 4 digits, then Player + 6.
+
+    Nothing from the email ever becomes public (audit finding C1, owner decision 2026-10-11). The
+    player is offered to pick their own name right after sign-up and can rename in Profile settings.
     """
-    local = str(email or "").split("@")[0].split("+")[0]
-    base = re.sub(r"[^A-Za-z0-9_]", "", strip_accents(local))[:20]
-    if base and _username_usable(base):
-        return base
-    if base and check_username(base).tier == "ok":
-        stem = base[:16]
-        for _ in range(USERNAME_TRIES):
-            candidate = stem + _digits(4)
-            if _username_usable(candidate):
-                return candidate
+    for _ in range(USERNAME_TRIES):
+        candidate = f"{secrets.choice(GOOGLE_NAME_WORDS)}{_digits(4)}"
+        if _username_usable(candidate):
+            return candidate
     for _ in range(USERNAME_TRIES):
         candidate = f"Player{_digits(4)}"
         if not _username_taken(candidate):
             return candidate
     return f"Player{_digits(6)}"
-
 
 def _user_for_google_identity(identity, age_group=None, consent_source=""):
     """Find or create the account for a VERIFIED Google identity -> (user, new_account).
@@ -187,10 +185,10 @@ def _user_for_google_identity(identity, age_group=None, consent_source=""):
     if age_group is None:
         raise GoogleConsentRequired()
 
-    # Owner decision 2026-10-11: the name comes from the email's local part (it is public on
-    # leaderboards, search and matches); the player can change it in Profile settings.
+    # The display name is public (leaderboards, search, matches), so it is never derived from the email:
+    # a generated neutral name, which the player is offered to change right after sign-up.
     try:
-        user = User.objects.create_user(username=username_from_email(email), email=email, password=None, google_sub=sub)
+        user = User.objects.create_user(username=generated_username(), email=email, password=None, google_sub=sub)
     except IntegrityError:
         # A concurrent first sign-in created it between our lookup and insert.
         user = User.objects.filter(google_sub=sub).first() or User.objects.get(email__iexact=email)
