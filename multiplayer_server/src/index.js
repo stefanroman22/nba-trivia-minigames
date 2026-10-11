@@ -22,9 +22,9 @@
 //     NOT require re-queuing — the players stay in their room.
 //   • Friend rooms        — the host creates a lobby and gets a 6-digit code;
 //     friends join with the code and the host starts the room from the lobby
-//     (see startRoomNow). The host can cancel or change the game while
-//     waiting; if anyone leaves (lobby or match) the room is cancelled for
-//     everyone.
+//     (see startRoomNow). The host can change the game in the lobby, after a
+//     round or in the middle of one (restartRoom), stop the match or close the
+//     room. Friend rooms never add points to profiles (creditRoom).
 //
 // Scale notes (millions of concurrent rooms)
 // ------------------------------------------
@@ -84,6 +84,7 @@ const EVENT_MAX = 30;              // …per window; real clients send a handful
 const IDENTIFY_HOLD_MS = 5000;     // longest a new socket's events wait for its first identify
 const ANON_IDLE_MS = 20000;        // a socket that never sends identify is dropped after this
 const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) again sooner than this
+const SWITCH_STALE_MS = 2000;      // after a mid-round switch, a score this soon is the dropped round's (the client's intro alone is 2.6 s)
 const AWAY_NOTICE_MS = 15 * 60000; // how long a player removed while away (grace ran out) is told so on return
 const AWAY_MESSAGE = "You were away too long and left the room.";
 const MAX_SCORE = 1000;            // above every game's maxPoints (career-path's 700 is the largest)
@@ -343,17 +344,17 @@ function rankRoom(room) {
   }));
 }
 
-// Online matches add each player's score to their profile, like a solo game. Only the relay can
-// credit them: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET, and the
-// scores are this room's own (already clamped in submitScore / set by turnGames). Each player is
-// credited once per round (`only` credits just those uids, e.g. a finished guest who leaves early,
-// without blocking the rest). Unset secret (local dev): online play awards nothing.
+// Random 1v1 matches add each player's score to their profile, like a solo game. Private friend
+// rooms never do (friends could farm points against each other): they play for the scoreboard only.
+// Only the relay can credit: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET,
+// and the scores are this room's own (already clamped in submitScore / set by turnGames). Each player
+// is credited once per round. Unset secret (local dev): online play awards nothing.
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 const RELAY_KEY = process.env.MULTIPLAYER_SHARED_SECRET || "";
 
-function creditRoom(room, only = null) {
-  if (!RELAY_KEY) return null;
-  const uids = (only ?? room.members).filter((uid) => room.scores[uid] != null && !room.credited.has(uid));
+function creditRoom(room) {
+  if (!RELAY_KEY || room.type === "friend") return null;
+  const uids = room.members.filter((uid) => room.scores[uid] != null && !room.credited.has(uid));
   if (uids.length === 0) return null;
   uids.forEach((uid) => room.credited.add(uid));
   const results = uids
@@ -361,7 +362,7 @@ function creditRoom(room, only = null) {
   return fetch(`${API_BASE_URL}/trivia/multiplayer-result/`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Relay-Key": RELAY_KEY },
-    body: JSON.stringify({ game: room.gameId, mode: room.type === "friend" ? "friend" : "match", results }),
+    body: JSON.stringify({ game: room.gameId, mode: "match", results }),
     signal: AbortSignal.timeout(8000),
   })
     .then(async (res) => {
@@ -422,9 +423,8 @@ function destroyRoom(room, reason) {
 }
 
 /** Everyone back to the lobby: the room lives on with its code and seats, the round is dropped
- *  (scores finished so far are credited). `exceptUid` gets the snapshot but not the message. */
+ *  (a friend room credits nothing). `exceptUid` gets the snapshot but not the message. */
 function backToLobby(room, message, exceptUid = null) {
-  if (room.phase === "playing" || room.phase === "waiting") creditRoom(room);
   if (room.turnTimer) clearTimeout(room.turnTimer);
   room.turnTimer = null;
   room.turn = null;
@@ -443,14 +443,15 @@ function backToLobby(room, message, exceptUid = null) {
 }
 
 /** Deal a fresh round of `gameObj` to the whole room (play again / switch). Shared by the 1v1
- *  proposal handshake (registerAccept) and the friend-room host's restartRoom. */
-function restartRound(room, gameObj, why) {
+ *  proposal handshake (registerAccept) and the friend-room host's restartRoom. `notice` (a host
+ *  switching mid-round) goes to everyone but members[0]. dealRound drops whatever round was live. */
+function restartRound(room, gameObj, why, notice = null) {
   clearProposal(room);
   room.restartedAt = Date.now();
   room.gameId = gameObj.id;
   room.game = gameObj;
   room.phase = "intro";
-  room.members.forEach((u) => toUid(u, "matchRestart", { game: gameObj }));
+  room.members.forEach((u, i) => toUid(u, "matchRestart", notice && i > 0 ? { game: gameObj, message: notice } : { game: gameObj }));
   dealRound(room);
   console.log(`Room ${room.code} restart (${why} -> ${gameObj.id})`);
 }
@@ -476,9 +477,7 @@ function removeMember(room, uid, why) {
     clearTimeout(room.graceTimers[uid]);
     delete room.graceTimers[uid];
   }
-  // A finished leaver keeps their points (their score is dropped from the room just below).
-  if ((room.phase === "playing" || room.phase === "waiting") && room.scores[uid] != null) creditRoom(room, [uid]);
-  room.members = room.members.filter((m) => m !== uid);
+  room.members =room.members.filter((m) => m !== uid);
   delete room.scores[uid];
   delete room.times[uid];
   const p = players.get(uid);
@@ -1070,11 +1069,14 @@ io.on("connection", (socket) => {
     console.log(`Room ${room.code}: host stopped the match`);
   });
 
-  // Host-only, after a round: play the same game again, or a different one, for everyone at once.
+  // Host-only, after a round or in the middle of one: play the same game again, or a different one,
+  // for everyone at once (no handshake). Mid-round, the live round is simply dropped: nothing is
+  // scored (friend rooms credit nothing anyway), and dealRound's new generation, cleared turn timer
+  // and reset scores keep anything from it (a loading deal, a turn timer, a late score) out.
   socket.on("restartRoom", ({ code, game: sent } = {}) => {
     const room = rooms.get(Number(code));
     const uid = uidOf(socket);
-    if (!room || room.type !== "friend" || room.phase !== "results") return;
+    if (!room || room.type !== "friend" || room.phase === "lobby") return;
     if (!uid || room.members[0] !== uid) return;
     if (Date.now() - Math.max(room.restartedAt || 0, room.dealtAt || 0) < RESTART_MIN_MS) {
       socket.emit("friendError", { message: "Wait a moment before starting another game." });
@@ -1097,7 +1099,11 @@ io.on("connection", (socket) => {
     // The size follows the new game's bounds (as changeFriendGame does), so the lobby this room
     // returns to never holds more seats than its game can start with.
     room.capacity = clampRoomSize(gameObj.id, room.capacity, room.members.length);
-    restartRound(room, gameObj, "host");
+    const midRound = room.phase !== "results";
+    if (midRound) room.switchedAt = Date.now();
+    const notice = !midRound ? null
+      : gameObj.id === room.gameId ? "The host restarted the game." : `The host switched to ${gameObj.name}.`;
+    restartRound(room, gameObj, midRound ? "host, mid-round" : "host", notice);
   });
 
   // --- Turn-based game actions (tictactoe / imposter) ---
@@ -1129,6 +1135,8 @@ io.on("connection", (socket) => {
     // Only a dealt round takes scores (not a lobby, the intro, or a turn game's own scoring).
     if ((room.phase !== "playing" && room.phase !== "waiting") || room.turn) return;
     if (room.scores[uid] != null) return; // ignore duplicate submissions
+    // A score sent for the round the host just switched away from (in flight while the new one dealt).
+    if (Date.now() - (room.switchedAt || 0) < SWITCH_STALE_MS) return;
 
     room.scores[uid] = Math.min(Math.max(Math.floor(Number(score) || 0), 0), MAX_SCORE);
     // Play time breaks equal-score ties (fastest wins); junk values count as slowest. A claimed

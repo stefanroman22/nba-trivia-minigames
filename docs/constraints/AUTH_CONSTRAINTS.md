@@ -197,13 +197,14 @@ if user is not None and mode == 'single' and score > 0:
 `log_session` is `AllowAny`: a guest's request has no JWT, `user` is `None`, a `GameSession` row is still
 written, and the response is `awarded: 0, points: 0, rank: None`. `MiniGame.tsx` says so ("guests log
 anonymously and are simply awarded nothing") and `GuestPanel.tsx` prompts sign-in. Only `mode == 'single'`
-awards there; a browser posting `match`/`friend` gets a session logged and 0 points. Online matches (random 1v1
-and friend rooms, since 2026-10-09) are credited by the relay instead: when a round settles (or a player leaves
-after others finished) `multiplayer_server/src/index.js` `creditRoom` POSTs the room's own clamped scores to
+awards there; a browser posting `match`/`friend` gets a session logged and 0 points. Random 1v1 matches are
+credited by the relay instead; private friend rooms are never credited (since 2026-10-11: `creditRoom` returns
+for `room.type === "friend"`, so no POST and no `pointsAwarded`). When a 1v1 round settles (or a player leaves
+after the other finished) `multiplayer_server/src/index.js` `creditRoom` POSTs the room's own clamped scores to
 `/trivia/multiplayer-result/` with `X-Relay-Key: MULTIPLAYER_SHARED_SECRET` (set on Railway and the backend
 Vercel project; unset = online play awards nothing). That view has no JWT auth at all, refuses a wrong/missing
 key with 403, clamps with the same per-game caps, skips banned/unknown public ids, and is credited once per
-round (`room.creditedRound`). The relay then emits `pointsAwarded` and `MultiplayerContext.tsx` applies it with
+round (`room.credited`). The relay then emits `pointsAwarded` and `MultiplayerContext.tsx` applies it with
 `updatePoints`. `OnlineMatch.tsx`, `FriendPlay.tsx` and `MultiplayerContext.tsx` still contain no
 `log-session`/`update-profile` call. Known ceiling: scores originate in the browser (as for solo games), so a
 modified client can claim a round's maximum; the relay's 3 s restart throttle bounds how often.
