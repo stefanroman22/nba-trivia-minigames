@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
@@ -23,6 +23,8 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   const [score, setScore] = useState(0);
   const [allPlayers, setAllPlayers] = useState([]);
   const [playersError, setPlayersError] = useState(false);
+  // Each round's guess and verdict, for the answer review handed back with the score.
+  const picksRef = useRef<{ pick: string; correct: boolean }[]>([]);
 
   const currentSeason = seasonsList[currentIndex];
 
@@ -49,6 +51,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
 
   const isCorrect =
     matchAnswer(playerName, [{ answer: currentSeason?.mvp || "" }]) === 0;
+  picksRef.current[currentIndex] = { pick: playerName.trim(), correct: isCorrect };
 
   if (isCorrect) {
     setScore((prev) => prev + pointsPerCorrect);
@@ -73,7 +76,17 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
     if (currentIndex < seasonsList.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else {
-      if (onGameEnd) onGameEnd(score + (wasCorrect ? pointsPerCorrect : 0));
+      if (onGameEnd) onGameEnd(score + (wasCorrect ? pointsPerCorrect : 0), {
+        review: {
+          game: "guess-mvps",
+          rounds: seasonsList.map((s, i) => ({
+            season: s.season,
+            mvp: s.mvp,
+            pick: picksRef.current[i]?.pick ?? null,
+            correct: !!picksRef.current[i]?.correct,
+          })),
+        },
+      });
     }
   };
 

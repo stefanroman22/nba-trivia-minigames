@@ -15,6 +15,7 @@ import { buildNameLookup } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
 import type { RootState } from "../store";
 import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../types/types";
+import { tttReview } from "../utils/turnReview";
 import { popIn } from "../motion/variants";
 import "../styles/TicTacToe.css";
 
@@ -95,7 +96,7 @@ interface TttBoardProps {
 
 /** The single 3x3 criteria grid shared by solo and duel, so the two modes cannot drift.
  *  Empty cells show an orange "?" (aria-hidden; the button's aria-label carries the meaning). */
-function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim }: TttBoardProps) {
+export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim }: TttBoardProps) {
   return (
     <div className="ttt-grid" role="grid" aria-label={ariaLabel}>
       <span className="ttt-corner" aria-hidden="true" />
@@ -348,7 +349,9 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   useEffect(() => {
     if (!isMultiplayer || !terminal || endedRef.current) return;
     endedRef.current = true;
-    later(() => onGameEnd?.(myCells * CELL_POINTS), 1800); // game-results: online-duel
+    // The final board is the duel's answer review (both players finish at once, so nothing leaks).
+    const review = mpState ? tttReview(mpState, selfUid) : undefined;
+    later(() => onGameEnd?.(myCells * CELL_POINTS, { review }), 1800); // game-results: online-duel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiplayer, terminal]);
 

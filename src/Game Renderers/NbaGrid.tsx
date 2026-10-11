@@ -176,7 +176,29 @@ export default function NbaGrid({ gameInfo, onGameEnd, onPlayAgain, onClose }: N
     sendGuessLog();
     if (endedRef.current) return;
     endedRef.current = true;
-    onGameEnd?.(score, { inPlace: true });
+    const cfg = configRef.current;
+    // Lead each missed cell with an example no other cell shows, so the review doesn't repeat a name.
+    const shown = new Set(Object.values(solvedRef.current).map((c) => c.name));
+    const examplesFor = (rc: Criterion, cc: Criterion) => {
+      const ex = exampleAnswers(rc, cc);
+      const lead = ex.find((n) => !shown.has(n));
+      if (lead) shown.add(lead);
+      return lead ? [lead, ...ex.filter((n) => n !== lead)] : ex;
+    };
+    onGameEnd?.(score, {
+      inPlace: true,
+      review: cfg
+        ? {
+            game: "nba-grid",
+            rows: cfg.rows.map((c) => c.label),
+            cols: cfg.cols.map((c) => c.label),
+            cells: [0, 1, 2].flatMap((r) => [0, 1, 2].map((c) => ({
+              pick: solvedRef.current[cellKey(r, c)]?.name ?? null,
+              examples: solvedRef.current[cellKey(r, c)] ? [] : examplesFor(cfg.rows[r], cfg.cols[c]),
+            }))),
+          }
+        : undefined,
+    });
   };
 
   const openCell = (r: number, c: number) => {

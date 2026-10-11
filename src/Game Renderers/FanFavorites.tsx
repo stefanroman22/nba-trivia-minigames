@@ -13,6 +13,7 @@ import { nbaTeams } from "../constants/nbaTeams";
 import { nbaCoaches } from "../constants/nbaCoaches";
 import { nbaSeasons } from "../utils/seasons";
 import type { FanFavoritesQuestion, OnGameEnd } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/FanFavorites.css";
 
 interface FanFavoritesProps {
@@ -116,6 +117,19 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
     return Array.from(new Set([...base, ...question.answers.map((a) => a.answer)]));
   }, [question, playerPool]);
 
+  /** The answer review handed back with the score: the whole board, hits marked. */
+  const reviewOf = (hits: Record<number, boolean>): AnswerReview | undefined =>
+    question
+      ? {
+          game: "fan-favorites",
+          prompt: question.prompt,
+          asked: `On ${question.survey_date
+            ? new Date(question.survey_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+            : "survey day"}, we asked 100 NBA fans to name…`,
+          answers: question.answers.map((a, i) => ({ answer: a.answer, count: a.count, hit: !!hits[i] })),
+        }
+      : undefined;
+
   const flashPopup = (text: string, color: string) => {
     setPopUpInfo({ Text: text, Color: color });
     setShowPointsAnimation(true);
@@ -163,7 +177,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
         // + Play again fade in (same sequence as the loss).
         setBottomPhase("loader");
         later(() => {
-          onGameEnd?.(MAX_SCORE, { inPlace: true });
+          onGameEnd?.(MAX_SCORE, { inPlace: true, review: reviewOf(nextRevealed) });
           setEndState({ score: MAX_SCORE, win: true });
           setBottomPhase("score");
         }, 700);
@@ -200,7 +214,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
       });
       // …then the score + Play again fade in once they've all shown.
       later(() => {
-        onGameEnd?.(finalScore, { inPlace: true });
+        onGameEnd?.(finalScore, { inPlace: true, review: reviewOf(revealed) });
         setEndState({ score: finalScore, win: false });
         setBottomPhase("score");
       }, 260 + toReveal.length * 260 + 380);

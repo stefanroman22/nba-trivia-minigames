@@ -12,6 +12,7 @@ import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
 import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, WhoAreYaQuestion, NamesEntry } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import "../styles/WhoAreYa.css";
 
 export interface WhoAreYaProps {
@@ -164,6 +165,37 @@ function buildFeedback(guess: PlayerIndexEntry, mystery: PlayerIndexEntry): Feed
 
 interface GuessEntry { question_id: string; answer: string; correct: boolean; elapsed_ms: number }
 
+function WayaChip({ label, v }: { label: string; v: ChipVal }) {
+  return (
+    <span className={`waya-chip is-${v.state}`}>
+      <span className="waya-chip-label">{label}</span>
+      <span className="waya-chip-val tnum">
+        {v.text}{v.arrow ? (v.arrow === "up" ? " ▲" : " ▼") : ""}
+      </span>
+    </span>
+  );
+}
+
+/** A feedback row's name + chips (the game's feed and the answer review share it). */
+export function WayaRowBody({ row: r }: { row: FeedbackRow }) {
+  return (
+    <>
+      <span className="waya-row-name">{r.name}</span>
+      <div className="waya-chips">
+        <WayaChip label="Conf" v={r.conf} /><WayaChip label="Div" v={r.div} /><WayaChip label="Team" v={r.team} />
+        <WayaChip label="Pos" v={r.pos} /><WayaChip label="Age" v={r.age} /><WayaChip label="No." v={r.jersey} /><WayaChip label="Draft" v={r.draft} />
+      </div>
+    </>
+  );
+}
+
+/** The mystery's sub-line under the reveal name ("LAL · F · #23 · Draft 2003 #1"). */
+function mysterySub(mystery: PlayerIndexEntry): string {
+  return `${currentTeam(mystery).name} · ${mystery.position}`
+    + (mystery.jersey != null ? ` · #${mystery.jersey}` : "")
+    + (mystery.draft ? ` · Draft ${mystery.draft.year} #${mystery.draft.pick}` : " · Undrafted");
+}
+
 function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) {
   const [mystery, setMystery] = useState<PlayerIndexEntry | null>(null);
   const [rows, setRows] = useState<FeedbackRow[]>([]);
@@ -257,6 +289,12 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
 
     const row = buildFeedback(guessed, mystery);
     setRows((prev) => [row, ...prev]); // newest on top
+    const review: AnswerReview = {
+      game: "who-are-ya",
+      mystery: { person_id: mystery.person_id, full_name: mystery.full_name, sub: mysterySub(mystery) },
+      rows: [row, ...rows],
+      won: row.correct,
+    };
     guessLogRef.current.push({
       question_id: String(mystery.person_id),
       answer: guessed.full_name,
@@ -272,7 +310,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
       flashPopup(`Correct! +${finalScore}`, "var(--good)");
       setBottomPhase("loader");
       later(() => {
-        onGameEnd?.(finalScore, { inPlace: true });
+        onGameEnd?.(finalScore, { inPlace: true, review });
         setEndState({ score: finalScore, won: true });
         setBottomPhase("score");
       }, 1500);
@@ -287,7 +325,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
       flashPopup(`Not ${guessed.full_name}.`, "var(--bad)");
       setBottomPhase("loader");
       later(() => {
-        onGameEnd?.(0, { inPlace: true });
+        onGameEnd?.(0, { inPlace: true, review });
         setEndState({ score: 0, won: false });
         setBottomPhase("score");
       }, 1500); // linger on the reveal card, then show the score
@@ -316,16 +354,6 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
   const blurPx = finished ? 0 : BLUR_STEPS[Math.min(wrongCount, BLUR_STEPS.length - 1)];
   const suggestions = lookup?.suggestions ?? [];
   const guessesLeft = MAX_GUESSES - wrongCount;
-  const mysteryStint = currentTeam(mystery);
-
-  const chip = (label: string, v: ChipVal) => (
-    <span className={`waya-chip is-${v.state}`}>
-      <span className="waya-chip-label">{label}</span>
-      <span className="waya-chip-val tnum">
-        {v.text}{v.arrow ? (v.arrow === "up" ? " ▲" : " ▼") : ""}
-      </span>
-    </span>
-  );
 
   return (
     <GameFrame>
@@ -376,11 +404,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
                 transition={{ duration: 0.35 }}
               >
                 <span className="waya-reveal-name font-display">{mystery.full_name}</span>
-                <span className="waya-reveal-sub tnum">
-                  {mysteryStint.name} · {mystery.position}
-                  {mystery.jersey != null ? ` · #${mystery.jersey}` : ""}
-                  {mystery.draft ? ` · Draft ${mystery.draft.year} #${mystery.draft.pick}` : " · Undrafted"}
-                </span>
+                <span className="waya-reveal-sub tnum">{mysterySub(mystery)}</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -399,11 +423,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
                 >
-                  <span className="waya-row-name">{r.name}</span>
-                  <div className="waya-chips">
-                    {chip("Conf", r.conf)}{chip("Div", r.div)}{chip("Team", r.team)}
-                    {chip("Pos", r.pos)}{chip("Age", r.age)}{chip("No.", r.jersey)}{chip("Draft", r.draft)}
-                  </div>
+                  <WayaRowBody row={r} />
                 </motion.div>
               ))}
             </AnimatePresence>

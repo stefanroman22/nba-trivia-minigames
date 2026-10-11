@@ -51,8 +51,9 @@ function scoreFor(guesses: number): number {
   return Math.max(50, MAX_SCORE - 5 * Math.max(0, guesses - 10));
 }
 
-/** Row/bar color bucket. */
-function rankColor(rank: number): "good" | "brand" | "bad" {
+/** Row/bar color bucket (also the answer review's rows). */
+// eslint-disable-next-line react-refresh/only-export-components
+export function rankColor(rank: number): "good" | "brand" | "bad" {
   if (rank <= 25) return "good";
   if (rank <= 100) return "brand";
   return "bad";
@@ -171,12 +172,23 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
 
   // Ends in place (Rule 7.3): the guess list and the revealed secret stay on
   // screen; the input row cross-fades to the loader, then to the ScorePanel.
-  const endOnce = (finalScore: number, didWin: boolean) => {
+  const endOnce = (finalScore: number, didWin: boolean, finalRows: GuessRow[]) => {
     if (endedRef.current) return;
     endedRef.current = true;
     setBottomPhase("loader");
     later(() => {
-      onGameEnd?.(finalScore, { inPlace: true });
+      onGameEnd?.(finalScore, {
+        inPlace: true,
+        review: secret
+          ? {
+              game: "contexto",
+              secret: { person_id: secret.person_id, full_name: secret.full_name },
+              rows: finalRows,
+              poolSize: rankById.size,
+              won: didWin,
+            }
+          : undefined,
+      });
       setEndState({ score: finalScore, won: didWin });
       setBottomPhase("score");
     }, 1500);
@@ -212,7 +224,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
       const finalScore = scoreFor(nextCount);
       flash(`Got it in ${nextCount}! +${finalScore}`, "var(--good)");
       sendGuessLog();
-      endOnce(finalScore, true);
+      endOnce(finalScore, true, [...rows, { pid, name, rank }].sort((a, b) => a.rank - b.rank));
     } else {
       flash(`#${rank}`, rank <= 25 ? "var(--good)" : rank <= 100 ? "var(--brand)" : "var(--bad)");
     }
@@ -223,7 +235,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
     setGaveUp(true);
     flash(`It was ${secret.full_name}`, "var(--bad)");
     sendGuessLog();
-    endOnce(0, false);
+    endOnce(0, false, rows);
   };
 
   // Loading / unplayable-round state. Once the shared names list has resolved

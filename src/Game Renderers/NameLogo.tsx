@@ -63,6 +63,8 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   // The round's one pending advance. The input stays live during the reveal, so a second Enter or
   // Confirm would queue another advance that later fires mid-round and swaps in the next logo.
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Each round's guess and verdict, for the answer review handed back with the score.
+  const picksRef = useRef<{ pick: string; correct: boolean }[]>([]);
   useEffect(() => () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
   }, []);
@@ -75,6 +77,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
 
     const isCorrect =
       matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
+    picksRef.current[currentIndex] = { pick: teamName.trim(), correct: isCorrect };
 
     if (isCorrect) {
       setScore((prev) => prev + pointsPerCorrect);
@@ -101,7 +104,18 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
       advanceTimer.current = null;
       setCurrentIndex((prev) => prev + 1);
     } else {
-      if (onGameEnd) onGameEnd(score + (wasCorrect ? pointsPerCorrect : 0));
+      if (onGameEnd) onGameEnd(score + (wasCorrect ? pointsPerCorrect : 0), {
+        review: {
+          game: "name-logo",
+          rounds: seriesList.map((t, i) => ({
+            team: t.full_name,
+            teamId: t.team_id,
+            logo: t.logo || currentLogoUrl(t.full_name) || null,
+            pick: picksRef.current[i]?.pick ?? null,
+            correct: !!picksRef.current[i]?.correct,
+          })),
+        },
+      });
     }
   };
 

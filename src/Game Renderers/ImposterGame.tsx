@@ -23,19 +23,20 @@ import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import { playerKey, useMultiplayer } from "../context/MultiplayerContext";
 import type { RootState } from "../store";
 import type { ImposterQuestion, OnGameEnd } from "../types/types";
+import { imposterReview } from "../utils/turnReview";
 import "../styles/ImposterGame.css";
 
 const CLUE_LIMIT = 30; // matches the server's clue slice
 const STEP_SECONDS = 45; // IMPOSTER_STEP_MS on the server → the deadline bar span
 
 /** One recorded clue in turn order (frozen contract #6). */
-interface ImposterClue {
+export interface ImposterClue {
   uid: string;
   text: string;
 }
 
 /** Per-uid imposter turn state broadcast by the server (redacted per viewer). */
-interface ImposterState {
+export interface ImposterState {
   phase: "clue" | "vote" | "reveal";
   round: number;
   order: string[];
@@ -99,6 +100,53 @@ function SeatAvatar({ seat }: { seat: Seat }) {
     <span className="imp-av imp-av--initials" aria-hidden="true">
       {initials || "?"}
     </span>
+  );
+}
+
+/** The reveal: who the imposter was, their steal guess, and the scoreboard (best first).
+ *  The live reveal phase and the answer review both render it. */
+export function ImposterReveal({ imposterName, imposterGuess, guessCorrect, seats }: {
+  imposterName: string;
+  imposterGuess: string | null;
+  guessCorrect: boolean | null;
+  seats: (Seat & { isImposter: boolean; score: number })[];
+}) {
+  return (
+    <div className="imp-reveal">
+      <div className="imp-verdict">
+        <span className="imp-verdict-name font-display">{imposterName}</span>
+        <span className="imp-verdict-tag">was the Imposter</span>
+        {imposterGuess != null && (
+          <span className={`imp-verdict-guess font-accent${guessCorrect ? " is-right" : " is-wrong"}`}>
+            Guessed “{imposterGuess}” —{" "}
+            {guessCorrect ? (
+              <>
+                nailed it, <span className="tnum">+3</span>
+              </>
+            ) : (
+              "missed"
+            )}
+          </span>
+        )}
+      </div>
+      <ul className="imp-score">
+        {seats.map((seat, i) => (
+          <li
+            key={seat.uid}
+            className={`imp-score-row${seat.isImposter ? " is-imposter" : ""}${seat.isSelf ? " is-you" : ""}`}
+          >
+            <span className="imp-score-place tnum font-display">{i + 1}</span>
+            <SeatAvatar seat={seat} />
+            <span className="imp-score-name font-display">
+              {seat.name}
+              {seat.isSelf && <span className="imp-you-tag">YOU</span>}
+              {seat.isImposter && <span className="imp-imp-tag">IMPOSTER</span>}
+            </span>
+            <span className="imp-score-num tnum">{seat.score}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -175,7 +223,9 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
     if (!isRoom || !finalized || endedRef.current) return;
     endedRef.current = true;
     const myScore = state?.scores?.[selfUid] ?? 0;
-    later(() => onGameEnd?.(myScore), 700);
+    // Answer review: the reveal as it stands, plus every clue each player gave.
+    const review = state ? imposterReview(state, seatOf) : undefined;
+    later(() => onGameEnd?.(myScore, { review }), 700);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRoom, finalized]);
 
@@ -333,41 +383,12 @@ export default function ImposterGame({ gameInfo, onGameEnd, turn, onTurnAction, 
       </div>
 
       {state.phase === "reveal" ? (
-        <div className="imp-reveal">
-          <div className="imp-verdict">
-            <span className="imp-verdict-name font-display">{seatOf(state.imposterUid ?? "").name}</span>
-            <span className="imp-verdict-tag">was the Imposter</span>
-            {state.imposterGuess != null && (
-              <span className={`imp-verdict-guess font-accent${state.guessCorrect ? " is-right" : " is-wrong"}`}>
-                Guessed “{state.imposterGuess}” —{" "}
-                {state.guessCorrect ? (
-                  <>
-                    nailed it, <span className="tnum">+3</span>
-                  </>
-                ) : (
-                  "missed"
-                )}
-              </span>
-            )}
-          </div>
-          <ul className="imp-score">
-            {scoreboard.map(({ seat, score }, i) => (
-              <li
-                key={seat.uid}
-                className={`imp-score-row${seat.uid === state.imposterUid ? " is-imposter" : ""}${seat.isSelf ? " is-you" : ""}`}
-              >
-                <span className="imp-score-place tnum font-display">{i + 1}</span>
-                <SeatAvatar seat={seat} />
-                <span className="imp-score-name font-display">
-                  {seat.name}
-                  {seat.isSelf && <span className="imp-you-tag">YOU</span>}
-                  {seat.uid === state.imposterUid && <span className="imp-imp-tag">IMPOSTER</span>}
-                </span>
-                <span className="imp-score-num tnum">{score}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ImposterReveal
+          imposterName={seatOf(state.imposterUid ?? "").name}
+          imposterGuess={state.imposterGuess}
+          guessCorrect={state.guessCorrect}
+          seats={scoreboard.map(({ seat, score }) => ({ ...seat, isImposter: seat.uid === state.imposterUid, score }))}
+        />
       ) : (
         <div className={`imp-ring imp-ring--n${seats.length}`}>
           {seats.map((seat) => {
