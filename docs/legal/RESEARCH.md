@@ -46,6 +46,12 @@ and vendor blogs rather than regulator pages, so re-check any citation before re
 - **Chosen policy** (owner decision 2026-10-08): accounts 13+ worldwide with a neutral month/year check (birth date not
   stored), guest play for all, no public photo for under-16s, deletion on discovering an under-13 account. Below 13 needs
   verifiable parental consent in the US and is not offered. Counsel should confirm the 13-15 exposure listed in OPEN_ITEMS.md.
+- **Changed 2026-10-11 (owner decision):** the month/year check at sign-up is replaced by one self-declaration tick-box
+  ("I'm 13 or older and agree to the Terms of Service and Privacy Policy"), for email and Google sign-up. The owner chose
+  this knowingly over a neutral age screen: it is a weaker age gate (the COPPA "neutral screen" practice above is no
+  longer followed at sign-up). Birth month/year is asked only when a player adds a profile photo; until an age proves
+  16+, the account is treated as a teen account (no photo, off the public leaderboard and name search, "Player" to
+  strangers in random matches). Counsel should confirm this is acceptable for the markets that matter.
 
 ## Platform rules (DSA, UK OSA)
 

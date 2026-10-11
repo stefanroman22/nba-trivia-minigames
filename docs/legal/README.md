@@ -14,7 +14,7 @@ system does.** When behaviour changes, change the code, these documents and the 
 
 | Promise | Enforced by |
 |---|---|
-| Accounts need Terms acceptance and an age check; no birth date stored | `backend/users/consent.py`, `signup_view`, `google_login` (two-step for new Google accounts) |
+| Accounts need the 13+/Terms tick-box (email and Google sign-up); no birth date stored; birth month/year asked only for a profile photo; unknown age is treated as teen | `backend/users/consent.py`, `signup_view`, `google_login` (a new Google account is created only with the tick-box), `set_my_age` (`POST /api/account/age/`) |
 | Delete your account / photo yourself | `backend/users/account_data.py`, `POST /api/account/delete/`, `POST /api/account/remove-photo/`, profile screen |
 | Download your data | `GET /api/account/export/`, profile screen |
 | Banned or locked-out players can still be erased | `python manage.py erase_user <public id or email> --yes` |
@@ -27,4 +27,4 @@ system does.** When behaviour changes, change the code, these documents and the 
 1. Edit `src/app/privacy/page.tsx` / `terms/page.tsx`.
 2. Bump `LEGAL.version` and `LEGAL.updated` in `src/configurations/legal.ts` and `TERMS_VERSION` in `backend/users/consent.py` (same value).
 3. Update `RECORD_OF_PROCESSING.md` and `retention.py` if data or periods changed.
-4. A material change needs notice to players before it applies (Terms section 12).
+4. A material change needs notice to players before it applies (Terms section 12): set `LEGAL.changeNotice` (the home-page banner, `src/components/LegalChangeNotice.tsx`) and keep it up for at least 14 days.

@@ -31,13 +31,15 @@ export default function TermsPage() {
       </p>
       <OperatorBlock />
       <p>
-        By creating an account, or by using the site, you agree to these terms. When you create an account you confirm that
-        you accept them (we record which version and when). If you do not agree, please do not use the service.
+        By creating an account, or by using the site, you agree to these terms. When you create an account, by email or
+        with Google, you tick one box to confirm that you are {LEGAL.minimumAge} or older and accept these terms and the
+        Privacy Policy (we record which version, when, and how). If you do not agree, please do not use the service.
       </p>
 
       <LegalHeading id="eligibility">2. Who can use it</LegalHeading>
       <LegalList>
         <li>Anyone can play as a guest. You must be at least {LEGAL.minimumAge} to create an account, and at least {LEGAL.photoMinimumAge} to add a profile photo.</li>
+        <li>We ask for your birth month and year only when you add a profile photo. Until you have told us you are {LEGAL.photoMinimumAge} or over, your account is treated as a teen account: no profile photo, and not shown on the public leaderboard or in name search (see the Privacy Policy, section 10).</li>
         <li>You may not use the service if the law of your country forbids it, if you are located in the Russian Federation, or in a country or region under comprehensive international sanctions, or if you are on a sanctions list.</li>
         <li>If you use the service for a company or other organisation, you confirm you can bind it to these terms.</li>
       </LegalList>
