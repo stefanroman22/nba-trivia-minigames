@@ -75,15 +75,21 @@ export default function OnlineMatch() {
 
   const isFriend = mp.roomType === "friend";
   const isHost = isFriend && mp.role === "host";
-  // Friend rooms: the host stops the match (everyone back to the lobby); a guest leaves the room.
-  const ExitLink = isHost
-    ? <button className="om-exit" onClick={stopMatch}>Stop match</button>
-    : <button className="om-exit" onClick={leaveMatch}>{isFriend ? "Leave room" : "Exit game"}</button>;
   const pickGame = () => open("gamePicker", {
     currentId: mp.game?.id,
     seated: mp.roomSize,
     onPick: (g) => (isFriend ? restartRoom(g) : proposeSwitch(g)),
   });
+  // Friend rooms: the host can switch everyone to another game mid-round (no handshake) or stop the
+  // match (everyone back to the lobby); a guest leaves the room. One line of quiet links either way.
+  const ExitLink = isHost
+    ? (
+      <div className="om-exitrow">
+        <button className="om-exit" onClick={pickGame}>Change game</button>
+        <button className="om-exit" onClick={stopMatch}>Stop match</button>
+      </div>
+    )
+    : <button className="om-exit" onClick={leaveMatch}>{isFriend ? "Leave room" : "Exit game"}</button>;
 
   // ---- Per-phase body ----
   let body: React.ReactNode = null;
@@ -160,17 +166,15 @@ export default function OnlineMatch() {
     );
     body = (
       <motion.div key="results" {...swap} className="om-stage om-stage--results">
-        {/* Reserved row: the "+N pts" badge sits top-right in its own space, so it never covers
-            the headline (phones included) and its arrival doesn't shift the layout. */}
-        <div className="om-result-top">
-          <AnimatePresence>
-            {mp.notice?.kind === "points" && (
-              <motion.span key="pts" className="om-points" variants={popIn} initial="hidden" animate="visible" exit="exit">
-                {mp.notice.text}
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* "+N pts" toast: an overlay in the card's top-right corner (absolute, so its arrival and
+            departure never move the layout); the "added to your profile" tail is hidden on phones. */}
+        <AnimatePresence>
+          {mp.notice?.kind === "points" && (
+            <motion.span key="pts" className="om-points" role="status" variants={popIn} initial="hidden" animate="visible" exit="exit">
+              {mp.notice.text.split(/(?= added)/).map((part, i) => <span key={i} className={i ? "om-points-tail" : undefined}>{part}</span>)}
+            </motion.span>
+          )}
+        </AnimatePresence>
         <ResultHeadline outcome={mp.outcome} />
         {timeBrokeTie && <p className="om-time-note">Same score, faster time wins</p>}
         {mp.roomSize > 2 && mp.standings ? (
