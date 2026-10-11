@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -60,10 +60,18 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   useEffect(() => { setSrcIdx(0); setScrambleFailed(false); }, [currentIndex]);
   useEffect(() => setImgLoaded(false), [currentIndex, puzzleSrc]);
 
+  // The round's one pending advance. The input stays live during the reveal, so a second Enter or
+  // Confirm would queue another advance that later fires mid-round and swaps in the next logo.
+  const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (advanceTimer.current) clearTimeout(advanceTimer.current);
+  }, []);
+
   const handleGuessSubmit = (teamName: string) => {
     if (!teamName || typeof teamName !== "string" || teamName.trim() === "") {
       return; // don't run if no valid team
     }
+    if (advanceTimer.current) return; // this round is already answered
 
     const isCorrect =
       matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
@@ -71,12 +79,12 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     if (isCorrect) {
       setScore((prev) => prev + pointsPerCorrect);
       setShowPointsAnimation(true);
-      setTimeout(() => {
+      advanceTimer.current = setTimeout(() => {
         moveToNext(true);
       }, 1500);
     } else {
       setShowAnswer(true);
-      setTimeout(() => {
+      advanceTimer.current = setTimeout(() => {
         moveToNext(false);
       }, 1800);
     }
@@ -90,6 +98,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     setSuggestions([]);
 
     if (currentIndex < seriesList.length - 1) {
+      advanceTimer.current = null;
       setCurrentIndex((prev) => prev + 1);
     } else {
       if (onGameEnd) onGameEnd(score + (wasCorrect ? pointsPerCorrect : 0));
