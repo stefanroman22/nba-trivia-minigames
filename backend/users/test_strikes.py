@@ -172,11 +172,12 @@ class NameChangeTests(StrikeTestCase):
         self.assertEqual(resp.json()["code"], "signup_blocked")
         self.assertFalse(User.objects.filter(email="hooper@gmail.com").exists())
 
-    def test_google_flagged_auto_name_falls_back_to_player(self):
+    def test_google_auto_name_ignores_a_flagged_email(self):
         resp = self.google_login("admin@example.com")
         self.assertEqual(resp.status_code, 200, resp.content)
         user = User.objects.get(email="admin@example.com")
-        self.assertRegex(user.username, r"^Player\d{4}$")
+        self.assertRegex(user.username, r"^[A-Za-z]+\d{4}$")
+        self.assertNotIn("admin", user.username.lower())
         self.assertEqual(user.strike_count, 0)
         self.assertFalse(ModerationEvent.objects.exists())
 

@@ -16,13 +16,12 @@ TEEN = {"accepted_terms": True, "birth_year": date.today().year - 14, "birth_mon
 
 
 class GoogleDisplayNameTests(TestCase):
-    # Reversed by the owner on 2026-10-11: a new Google account is named after the email's local part
-    # (users.views.username_from_email; covered in test_signup_age_checkbox).
-    def test_a_new_google_account_is_named_after_the_email_local_part(self):
+    def test_a_new_google_account_never_gets_a_name_derived_from_the_email(self):
         with mock.patch("users.views.verify_google_code", return_value={**GOOGLE_ID, "email": "runforfun12@gmail.com"}):
             google(self.client)
         user = User.objects.get(email="runforfun12@gmail.com")
-        self.assertEqual(user.username, "runforfun12")
+        self.assertRegex(user.username, r"^[A-Za-z]+\d{4}$")
+        self.assertNotIn("runforfun", user.username.lower())
 
 
 class UniformLoginErrorTests(TestCase):
