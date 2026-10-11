@@ -399,6 +399,35 @@ import { visibleGames } from "../../utils/GameUtils";
 const games = visibleGames.filter((g) => !NOT_ONLINE.has(g.id));
 ```
 
+## Rule MP-16: A round's answers reach the client only as the renderer's own end snapshot, and show only after you finished
+
+Every renderer hands back a read-only answer snapshot with its final score:
+`onGameEnd(score, { review })`, typed by the `AnswerReview` union in `src/types/review.ts` (plain
+data: names, labels, ids, flags; one case per online game). `OnlineMatch` passes it to
+`submitScore(score, elapsedMs, review)`; the `SUBMITTED` reducer stores it as `mp.review` in the same
+step that moves the player from playing to waiting, and `MATCH_RESTART` / `MATCH_FOUND` /
+`FRIEND_LOBBY` / `RESET` clear it, so the store only ever holds the latest round's review, and only
+from your own submit on. Turn games are the one exception to "playing to waiting": the relay settles
+them the instant the board ends, so `matchResult` can unmount TicTacToe / ImposterGame before their
+delayed end call fires. `MATCH_RESULT` then builds the review from the final `mp.turnState` with the
+same pure builders the renderers use (`src/utils/turnReview.ts`: `tttReview`, `imposterReview`). "See answers" (`.om-review`) renders only when `mp.review` is set, on the
+waiting, results and ended screens, and opens the `answerReview` modal, which reads `mp.review` live;
+`ModalHost` closes it the moment the store drops the review (a restart or switch). The review stays
+client-side: never emit it to the relay, never build it before the round ends, and never add a
+"See answers" to the playing stage. A live opponent may still be playing the same questions; a
+review shown mid-round would leak them. Single-player ignores `review`. A new online game adds an
+`AnswerReview` case, builds it at its one `onGameEnd` call, and adds a view in
+`src/components/review/` (`RoundReviews` for round lists, `BoardReviews` to redraw its own board).
+
+```tsx
+❌ hypothetical: answers derived from the dealt round while the player is still in it
+{mp.phase === "playing" && <button onClick={() => open("answerReview")}>See answers</button>}
+
+✅ src/components/MultiPlayer/OnlineMatch.tsx: the snapshot arrives with the score, the button follows it
+onGameEnd: (score, opts) => submitScore(score, Date.now() - startRef.current, opts?.review),
+const ReviewButton = mp.review ? <button className="om-review" onClick={() => open("answerReview")}>…</button> : null;
+```
+
 ---
 
 ## Acceptance checks

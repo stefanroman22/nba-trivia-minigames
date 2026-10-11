@@ -328,6 +328,18 @@
 .om-notice.is-error { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, var(--surface3)); }
 .om-notice-x { background: none; border: none; color: var(--muted); cursor: pointer; display: flex; }
 .om-notice-x:hover { color: var(--text); }
+/* Phones: the notice may span the card's padding band too (6px in from its edges, like the points
+   pill), so a typical notice ("The host switched to Guess the Series Winner.") stays on one line,
+   and a longer one that wraps is short enough to stay clear of the eyebrow under it. */
+@media (max-width: 480px) {
+  .om-notice {
+    top: calc(6px - var(--stage-pad, 30px));
+    max-width: calc(100% + 2 * var(--stage-pad, 30px) - 12px);
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 1.3;
+  }
+}
 
 /* ---- Ended ---- */
 .om-ended-icon {
@@ -389,3 +401,27 @@
 .om-result-actions { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .om-link { background: none; border: 0; padding: 2px 4px; font: inherit; font-size: 12.5px; font-weight: 600; color: var(--brand); cursor: pointer; }
 .om-link:hover { filter: brightness(1.2); }
+
+/* ---- "See answers": a quiet pill above the exit links on the waiting / results / ended screens.
+   It opens the answerReview modal (styles/AnswerReview.css). ---- */
+.om-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 14px 0 12px;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+.om-review svg { color: var(--brand); flex: none; }
+.om-review:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+@media (hover: hover) {
+  .om-review:hover { border-color: var(--brand); background: var(--brand-soft); }
+}

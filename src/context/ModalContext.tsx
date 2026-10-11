@@ -3,7 +3,7 @@ import type { Game } from "../types/types";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview";
 
 export interface InstructionsPayload {
   game: Game;
