@@ -132,6 +132,7 @@ class ApplyTests(CheckerJobsTestCase):
         self.assertEqual(row.quality["checked"]["verdict"], "valid")
         self.assertEqual(row.quality["checked"]["payload_sha"], row.quality["payload_sha"])
         self.assertIn("approved=1\n", self.gh_output())
+        self.assertIn("changed=1\n", self.gh_output())
         self.assertIn("games=career-path\n", self.gh_output())
 
     def test_invalid_is_quarantined_with_the_evidence(self):
@@ -142,6 +143,7 @@ class ApplyTests(CheckerJobsTestCase):
         self.assertEqual(row.status, "quarantined")
         self.assertEqual(row.quality["check_failed"]["claims"][0]["status"], "contradicted")
         self.assertIn("approved=0\n", self.gh_output())
+        self.assertIn("changed=1\n", self.gh_output())  # any change publishes, not only approvals
 
     def test_unsure_twice_goes_to_the_owner(self):
         row = self.rows[0]
@@ -151,6 +153,7 @@ class ApplyTests(CheckerJobsTestCase):
         row.refresh_from_db()
         self.assertEqual(row.status, "pending")
         self.assertEqual(row.quality["unsure_count"], 2)
+        self.assertIn("changed=0\n", self.gh_output())  # nothing players see changed
         self.assertIn("::warning::", output)
         run = FactoryRun.objects.order_by("-id").first()
         self.assertTrue(run.events.filter(action="needs_owner", qid=row.qid).exists())

@@ -10,13 +10,18 @@ name: Publish game data
 # DB write of the run (question maintenance, Fan Favorites re-rank) is rolled back, except the
 # factory journal (FactoryRun / FactoryEvent), which records the dry run itself.
 # Weekly schedule (question factory supply run, docs/superpowers/specs/2026-10-12-question-factory-design.md):
-# the four question games only, for real. New and changed questions are staged as pending and
-# go live only after the Checker (question-checker.yml) approves them, which then dispatches this
-# workflow (with maintenance, so changed live questions are staged, never shipped unchecked).
-# Pool games still publish by hand after a data sync.
+# every Saturday 00:00 Paris time, the four question games only, for real. New and changed
+# questions are staged as pending and go live only after the Checker (question-checker.yml)
+# approves them, which then dispatches this workflow (with maintenance, so changed live
+# questions are staged, never shipped unchecked). Retired questions leave production in the
+# run itself. Pool games still publish by hand after a data sync.
 on:
   schedule:
-    - cron: "0 5 * * 1"
+    # Cron is UTC only. Saturday 00:00 in Paris is Friday 23:00 UTC in winter (CET) and Friday
+    # 22:00 UTC in summer (CEST); both slots fire and the gate job lets through only the one
+    # that is midnight in Paris that week.
+    - cron: "0 22 * * 5"
+    - cron: "0 23 * * 5"
   workflow_dispatch:
     inputs:
       games:
@@ -48,7 +53,36 @@ concurrency:
 permissions:
   contents: read
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      go: ${{ steps.gate.outputs.go }}
+    steps:
+      - id: gate
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          SLOT: ${{ github.event.schedule }}
+        run: |
+          # Decided by the slot that fired, not the clock, so a delayed scheduled run still counts.
+          if [ "$EVENT" != "schedule" ]; then echo "go=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          offset=$(TZ=Europe/Paris date +%z)   # +0100 in winter (CET), +0200 in summer (CEST)
+          if [ "$offset" != "+0100" ] && [ "$offset" != "+0200" ]; then
+            echo "::error::Unexpected Paris UTC offset '$offset' (no tz database?); refusing to guess"
+            exit 1
+          fi
+          if { [ "$SLOT" = "0 23 * * 5" ] && [ "$offset" = "+0100" ]; } || { [ "$SLOT" = "0 22 * * 5" ] && [ "$offset" = "+0200" ]; }; then
+            go=true
+          else
+            go=false
+          fi
+          echo "Paris UTC offset $offset, slot '$SLOT': go=$go"
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+
   publish:
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:

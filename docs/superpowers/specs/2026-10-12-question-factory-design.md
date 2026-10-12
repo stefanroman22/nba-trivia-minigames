@@ -463,9 +463,9 @@ There is no cron per game. These schedules cover everything:
 | When | What | Where | Model? |
 |---|---|---|---|
 | Nightly | roll-ups → cleanup → doctor signal scan (and quarantine) | GitHub Actions | no |
-| Weekly (Mon) | supply run: re-materialize, refill, code gates → `pending` | GitHub Actions | no |
+| Weekly (Saturday 00:00 Paris time) | supply run: re-materialize, refill, code gates → `pending`; retirements leave production in the same run | GitHub Actions | no |
 | After a data refresh | the supply run, once | GitHub Actions | no |
-| Daily | **Checker**: `pending` questions + proposals + corrections → inbox → publish what it approved | cloud routine + inbox workflow | yes |
+| Daily | **Checker**: `pending` questions + proposals + corrections → inbox → publish every change it made (approvals go live, quarantines leave production) | cloud routine + inbox workflow | yes |
 | Weekly (Tue) | doctor research → inbox (corrections go through the Checker) | cloud routine + inbox workflow | yes |
 | Weekly (Wed) | editorial author → `pending` (the Checker approves) | cloud routine + inbox workflow | yes |
 | Weekly (Thu) | random audit of 20 live questions by the Checker | cloud routine | yes |
