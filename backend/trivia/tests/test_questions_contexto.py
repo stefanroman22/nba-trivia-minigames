@@ -24,12 +24,20 @@ class ContextoQuestionTests(SimpleTestCase):
         self.assertEqual(len({d["secret_person_id"] for d in defs}), 10)
         self.assertTrue(all(fame.at_least(ds.by_id[d["secret_person_id"]], fame.KNOWN) for d in defs))
 
-    def test_generate_continues_after_existing_days(self):
+    def test_generate_fills_free_days_from_today_skipping_taken_ones(self):
         ds = fixture_dataset()
-        ds.extra = {"contexto_existing": [{"secret_person_id": ds.playable[0]["person_id"], "day": "2026-09-14"}]}
-        defs = ctx.generate(ds, set(), random.Random(5), 2, today=datetime.date(2026, 9, 12))
-        self.assertEqual([d["day"] for d in defs], ["2026-09-15", "2026-09-16"])
+        ds.extra = {"contexto_existing": [{"secret_person_id": ds.playable[0]["person_id"], "day": "2026-09-13"}]}
+        defs = ctx.generate(ds, set(), random.Random(5), 3, today=datetime.date(2026, 9, 12))
+        self.assertEqual([d["day"] for d in defs], ["2026-09-12", "2026-09-14", "2026-09-15"])
         self.assertNotIn(ds.playable[0]["person_id"], [d["secret_person_id"] for d in defs])
+
+    def test_a_quarantined_day_is_refilled_with_another_secret(self):
+        ds = fixture_dataset()
+        bad = {"secret_person_id": ds.playable[0]["person_id"], "day": "2026-09-12"}
+        ds.extra = {"contexto_existing": [bad], "contexto_taken": []}
+        defs = ctx.generate(ds, set(), random.Random(5), 1, today=datetime.date(2026, 9, 12))
+        self.assertEqual(defs[0]["day"], "2026-09-12")
+        self.assertNotEqual(defs[0]["secret_person_id"], bad["secret_person_id"])
 
     def test_materialize_ranking(self):
         ds = fixture_dataset()

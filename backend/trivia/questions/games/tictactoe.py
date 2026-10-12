@@ -7,6 +7,7 @@ import os
 from django.conf import settings
 
 from trivia.games.tictactoe import player_matches
+from trivia.questions import fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -75,7 +76,10 @@ def _team_criteria(dataset):
 
 
 def _cell_valid(dataset, row_c, col_c):
-    return [p["person_id"] for p in dataset.playable if player_matches(p, row_c) and player_matches(p, col_c)]
+    """Matching ids, most famous first: the renderer reveals a cell's first unused id on
+    time-up, and checker_view samples the first three, so what is revealed was checked."""
+    players = [p for p in dataset.playable if player_matches(p, row_c) and player_matches(p, col_c)]
+    return [p["person_id"] for p in sorted(players, key=lambda p: (-fame.fame_score(p), p["person_id"]))]
 
 
 def generate(dataset, existing_hashes, rng, n):
@@ -133,6 +137,20 @@ def index_item(definition, materialized):
 
 def players_referenced(definition, materialized, dataset=None):
     return sorted({pid for cell in materialized["valid"] for pid in cell})
+
+
+def checker_view(materialized, dataset):
+    """Row and column labels plus each cell's first three valid answers (the most
+    famous, see _cell_valid), which include the one revealed on time-up. The
+    Checker confirms each fits his cell. Counts are left out, so a data refresh
+    that only adds obscure players does not trigger a re-check."""
+    cells, valid = [], iter(materialized["valid"])
+    for r in materialized["rows"]:
+        for c in materialized["cols"]:
+            sample = [dataset.by_id[pid]["full_name"] for pid in next(valid)[:3] if pid in dataset.by_id]
+            cells.append({"row": r["label"], "col": c["label"], "sample": sample})
+    return {"kind": SLUG, "rows": [r["label"] for r in materialized["rows"]],
+            "cols": [c["label"] for c in materialized["cols"]], "cells": cells}
 
 
 def qid_for(definition, seq):

@@ -58,6 +58,9 @@ class Command(BaseCommand):
                             help="Write the folder but roll back every DB write of this run "
                                  "(question maintenance, Fan Favorites re-rank) except the factory "
                                  "journal, which records the dry run; for dry runs")
+        parser.add_argument("--no-stage", action="store_true",
+                            help="Owner emergency / tests only: new and changed questions go live at once "
+                                 "instead of waiting as pending for the Checker (spec §4.12)")
         parser.add_argument("--trigger", default="manual", choices=("manual", "schedule", "data-refresh"),
                             help="What started this run, recorded in the factory journal "
                                  "(manual | schedule | data-refresh); dry runs record dry-run")
@@ -109,7 +112,8 @@ class Command(BaseCommand):
                     self.stdout.write(f"Question maintenance ({', '.join(to_maintain)}) against dataset "
                                       f"{dataset.version}: {len(dataset.playable)} playable players")
                     maintained, stats = runner.maintain(to_maintain, dataset, random.Random(opts["rng_seed"]),
-                                                        out=self.stdout.write, isolate=True, journal=journal)
+                                                        out=self.stdout.write, isolate=True, journal=journal,
+                                                        stage=not opts["no_stage"])
                     # A game below its minimum is held back: left out of this publish so
                     # its live manifest entry carries over, while every other game ships.
                     held_back = sorted(slug for slug, s in stats.items() if "held_back" in s)

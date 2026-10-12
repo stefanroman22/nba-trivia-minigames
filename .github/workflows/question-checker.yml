@@ -1,0 +1,155 @@
+name: Question checker
+# The Checker (docs/superpowers/specs/2026-10-12-question-factory-design.md §4.12): nothing new
+# reaches players unless this validity-only agent approved it. Daily:
+#   export  (has the DB secret)  pending questions -> small JSON batches of what players see
+#   check   (NO DB secret)       Claude (Max-plan OAuth token) judges each question; its web access
+#                                is limited to the four approved sites by Claude Code permissions
+#   apply   (has the DB secret)  re-validates every verdict in code, pending -> active/quarantined,
+#                                journals the evidence (FactoryRun kind "checker"), then dispatches
+#                                a staging publish of the question games when anything was approved
+# Instructions for the agent: .claude/skills/nba-question-writer/references/checker.md.
+on:
+  schedule:
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "most pending questions to check in this run"
+        required: false
+        default: "60"
+        type: string
+      batch_size:
+        description: "questions per Checker session"
+        required: false
+        default: "10"
+        type: string
+      model:
+        description: "Checker model"
+        required: false
+        default: opus
+        type: choice
+        options:
+          - opus
+          - sonnet
+          - fable
+concurrency:
+  group: question-checker
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      batches: ${{ steps.export.outputs.batches }}
+      count: ${{ steps.export.outputs.count }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Export pending questions
+        id: export
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          LIMIT: ${{ inputs.limit || '60' }}
+          BATCH_SIZE: ${{ inputs.batch_size || '10' }}
+        run: python manage.py export_checker_batches --out "$GITHUB_WORKSPACE/checker" --limit "$LIMIT" --batch-size "$BATCH_SIZE"
+      - name: Keep the batches for the Checker
+        if: steps.export.outputs.count != '0'
+        uses: actions/upload-artifact@v6
+        with:
+          name: checker-batches
+          path: checker/
+
+  check:
+    needs: export
+    if: needs.export.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # No database secret anywhere in this job (spec §3 principle 7).
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        batch: ${{ fromJSON(needs.export.outputs.batches) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v6
+        with:
+          name: checker-batches
+          path: checker
+      - name: Checker agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the Checker. Read .claude/skills/nba-question-writer/references/checker.md and follow it exactly.
+            Input batch: checker/batch-${{ matrix.batch }}.json
+            Write your verdicts to checker/verdicts-${{ matrix.batch }}.json and write no other file.
+          claude_args: >-
+            --model ${{ inputs.model || 'opus' }}
+            --max-turns 250
+            --allowedTools "Read,Write,WebFetch(domain:www.basketball-reference.com),WebFetch(domain:www.nba.com),WebFetch(domain:en.wikipedia.org),WebFetch(domain:www.espn.com)"
+            --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Agent,Task,NotebookEdit"
+      - name: Keep the verdicts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: checker-verdicts-${{ matrix.batch }}
+          path: checker/verdicts-${{ matrix.batch }}.json
+          if-no-files-found: warn
+
+  apply:
+    needs: [export, check]
+    if: always() && needs.export.result == 'success' && needs.export.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Collect verdicts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: checker-verdicts-*
+          path: verdicts
+          merge-multiple: true
+      - name: Apply verdicts
+        id: apply
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
+        run: python manage.py apply_checker_verdicts "$GITHUB_WORKSPACE/verdicts" --trigger "$TRIGGER"
+      # A full (staging) maintenance run, never skip_maintain: if the dataset changed since the
+      # last supply run, maintenance moves every changed live question back to pending instead
+      # of publishing content the Checker never saw. Approved rows are already active.
+      # Only from the default branch, so a manual run on another branch never publishes its data.
+      - name: Publish the approved questions
+        if: steps.apply.outputs.approved != '0' && steps.apply.outputs.approved != '' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-game-data.yml --ref "${{ github.ref_name }}" \
+            -f games=career-path,who-are-ya,tictactoe,contexto -f target=vercel -f dry_run=false
+          echo "Approved ${{ steps.apply.outputs.approved }} question(s) in: ${{ steps.apply.outputs.games }}; publish dispatched." >> "$GITHUB_STEP_SUMMARY"

@@ -22,6 +22,9 @@ Each live game gets its content one way. Read the matching game file before touc
 | Data pools from real records | guess-mvps, series-winner, starting-five, name-logo, wordle | source data and builders, never hand-typed rows |
 
 Game files, one per live game: `references/games/<slug>.md`.
+
+**If you are the Checker** (the validity-only agent in `.github/workflows/question-checker.yml`),
+read only `references/checker.md` and follow it; the rest of this skill is for writing content.
 Hidden games (`HIDDEN_GAMES` in `backend/trivia/games/__init__.py`) are out of scope unless asked.
 
 ## Workflow

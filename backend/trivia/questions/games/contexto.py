@@ -2,7 +2,7 @@
 """LeContexto: one secret per day, ranking precomputed over the whole playable pool."""
 import datetime
 
-from trivia.questions import fame
+from trivia.questions import checker, fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 from trivia.questions.similarity import rank_pool
@@ -19,19 +19,18 @@ def _existing(dataset):
 
 
 def generate(dataset, existing_hashes, rng, n, today=None):
+    """Schedule up to n secrets on the free days from `today` on. Every secret ever
+    scheduled (any status) is excluded for 365 days; only live or pending days
+    ("contexto_taken", set by the runner) are occupied, so a retired or quarantined
+    day is filled again."""
     today = today or datetime.datetime.now(datetime.timezone.utc).date()
     existing = _existing(dataset)
-    taken_days = {e["day"] for e in existing}
+    taken_days = {e["day"] for e in getattr(dataset, "extra", {}).get("contexto_taken", existing)}
     cutoff = (today - datetime.timedelta(days=NO_REPEAT_DAYS)).isoformat()
     recent_secrets = {e["secret_person_id"] for e in existing if e["day"] >= cutoff}
     candidates = [r for r in dataset.playable if fame.at_least(r, MIN_SECRET_BAND) and r["person_id"] not in recent_secrets]
     rng.shuffle(candidates)
-    start = today
-    if taken_days:
-        last_taken = max(datetime.date.fromisoformat(d) for d in taken_days)
-        if last_taken >= start:
-            start = last_taken + datetime.timedelta(days=1)
-    out, day = [], start
+    out, day = [], today
     while len(out) < n and candidates:
         stamp = day.isoformat()
         day += datetime.timedelta(days=1)
@@ -72,6 +71,13 @@ def index_item(definition, materialized):
 
 def players_referenced(definition, materialized, dataset=None):
     return [definition["secret_person_id"]]
+
+
+def checker_view(materialized, dataset=None):
+    """The secret and the facts the similarity ranking leans on (position, draft, teams).
+    The day and the computed ranking are not claims to check."""
+    profile = checker.player_profile(materialized["secret"])
+    return {"kind": SLUG, **{k: profile[k] for k in ("player", "position", "draft", "teams")}}
 
 
 def qid_for(definition, seq):

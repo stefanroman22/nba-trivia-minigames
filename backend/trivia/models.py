@@ -263,6 +263,8 @@ class Question(models.Model):
 
     STATUS_ACTIVE = "active"
     STATUS_RETIRED = "retired"
+    STATUS_PENDING = "pending"  # built, waiting for the Checker (never published)
+    STATUS_QUARANTINED = "quarantined"  # pulled from play, waiting for the doctor
 
     game = models.CharField(max_length=32, db_index=True)
     qid = models.CharField(max_length=48)

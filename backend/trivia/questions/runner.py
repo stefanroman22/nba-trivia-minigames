@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from trivia.data_pipeline.publish import upload_plan
 from trivia.models import Question
+from trivia.questions import checker
 from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES
 from trivia.questions.hashing import content_hash
@@ -65,7 +66,7 @@ def _kept(mod, row, m):
     return (row.qid, item, m)
 
 
-def _materialize_row(mod, row, dataset, now, journal):
+def _materialize_row(mod, row, dataset, now, journal, stage=False):
     m, problems = _materialize(mod, row.definition, dataset)
     if problems:
         row.status = Question.STATUS_RETIRED
@@ -75,10 +76,22 @@ def _materialize_row(mod, row, dataset, now, journal):
         journal.log("retired", "no_longer_valid", game=row.game, qid=row.qid, problems=problems[:5])
         return None
     m["qid"] = row.qid
-    row.quality = {"materialized": True}
+    quality = {**(row.quality or {}), "materialized": True}
+    view = getattr(mod, "checker_view", None)
+    if view is not None:
+        # What the Checker checks is what is hashed: a different view is different content.
+        sha = checker.payload_sha(view(m, dataset))
+        if quality.get("payload_sha") not in (None, sha):
+            quality.pop("checked", None)
+            quality.pop("unsure_count", None)  # new content starts a fresh check
+            if stage and row.status == Question.STATUS_ACTIVE:
+                row.status = Question.STATUS_PENDING
+                journal.log("staged_for_recheck", "view_changed", game=row.game, qid=row.qid)
+        quality["payload_sha"] = sha
+    row.quality = quality
     row.players_referenced = mod.players_referenced(row.definition, m, dataset)
     row.dataset_version = dataset.version
-    row.save(update_fields=["quality", "players_referenced", "dataset_version", "updated_at"])
+    row.save(update_fields=["status", "quality", "players_referenced", "dataset_version", "updated_at"])
     return _kept(mod, row, m)
 
 
@@ -90,28 +103,43 @@ def _active_count(slug, kept, today):
     return len(kept)
 
 
-def _process_game(slug, dataset, rng, now, out, journal):
+def _process_game(slug, dataset, rng, now, out, journal, stage=False):
     mod = GAME_MODULES[slug]
     today = now.date().isoformat()
+    # Staged games (phase 4): new and changed questions wait for the Checker as pending.
+    staged = stage and slug in checker.STAGED_GAMES
+    statuses = [Question.STATUS_ACTIVE, Question.STATUS_PENDING] if staged else [Question.STATUS_ACTIVE]
     if slug == "contexto":
+        # Every secret ever scheduled counts for the no-repeat rule; only live or pending
+        # days are taken, so a retired or quarantined day is scheduled again.
         dataset.extra["contexto_existing"] = list(
             Question.objects.filter(game=slug).values_list("definition", flat=True)
         )
-    kept, retired = [], 0
-    for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).order_by("id"):
-        result = _materialize_row(mod, row, dataset, now, journal)
+        dataset.extra["contexto_taken"] = list(
+            Question.objects.filter(game=slug, status__in=statuses).values_list("definition", flat=True)
+        )
+    kept, pending, retired = [], [], 0
+    for row in Question.objects.filter(game=slug, status__in=statuses).order_by("id"):
+        result = _materialize_row(mod, row, dataset, now, journal, staged)
         if result is None:
             retired += 1
+        elif row.status == Question.STATUS_PENDING:
+            pending.append(result)
         else:
             kept.append(result)
     target = mod.TARGET if mod.TARGET is not None else 10 ** 9
+
+    def supply():  # pending questions count toward the target, so none is generated twice
+        return _active_count(slug, kept, today) + _active_count(slug, pending, today)
+
     active_before = _active_count(slug, kept, today)
-    journal.log("refill_decision", "below_target" if active_before < target else "enough", game=slug,
-                active=active_before, target=mod.TARGET, retired=retired)
+    journal.log("refill_decision", "below_target" if supply() < target else "enough", game=slug,
+                active=active_before, target=mod.TARGET, retired=retired,
+                **({"pending": _active_count(slug, pending, today)} if staged else {}))
     existing = set(Question.objects.filter(game=slug).values_list("content_hash", flat=True))
     added, seq = 0, _next_seq(slug)
-    while _active_count(slug, kept, today) < target:
-        want = min(GENERATE_BATCH, target - _active_count(slug, kept, today)) if mod.TARGET is not None else GENERATE_BATCH
+    while supply() < target:
+        want = min(GENERATE_BATCH, target - supply()) if mod.TARGET is not None else GENERATE_BATCH
         defs = mod.generate(dataset, existing, rng, want)
         if not defs:
             break
@@ -120,24 +148,38 @@ def _process_game(slug, dataset, rng, now, out, journal):
             if h in existing:
                 continue
             existing.add(h)
-            row = Question(game=slug, qid=mod.qid_for(d, seq), definition=d, content_hash=h, created_by="generator")
+            qid = mod.qid_for(d, seq)
+            if Question.objects.filter(game=slug, qid=qid).exists():  # e.g. a refilled Contexto day
+                qid = f"{qid}-r{seq}"
+            row = Question(game=slug, qid=qid, definition=d, content_hash=h, created_by="generator",
+                           status=Question.STATUS_PENDING if staged else Question.STATUS_ACTIVE)
             seq += 1
             row.save()
-            result = _materialize_row(mod, row, dataset, now, journal)
+            result = _materialize_row(mod, row, dataset, now, journal, staged)
             if result is not None:
-                kept.append(result)
+                (pending if staged else kept).append(result)
                 added += 1
-                journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d)
+                journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d,
+                            **({"status": row.status} if staged else {}))
         if slug == "contexto":
             dataset.extra["contexto_existing"] += defs
+            dataset.extra["contexto_taken"] += defs
     active = _active_count(slug, kept, today)
+    stats = {"active": len(kept), "retired": retired, "added": added, "materialized": len(kept)}
+    if staged:
+        stats["pending"] = len(pending)
     if active < mod.MINIMUM:
-        raise BelowMinimum(slug, active, mod.MINIMUM)
-    out(f"  {slug}: active {len(kept)}, retired {retired}, added {added}")
-    return kept, {"active": len(kept), "retired": retired, "added": added, "materialized": len(kept)}
+        if not staged:
+            raise BelowMinimum(slug, active, mod.MINIMUM)
+        # Staged: keep the pending work (re-checks, new questions) so the Checker can bring
+        # the game back above its minimum; maintain() holds back only the publish.
+        stats["below_minimum"] = str(BelowMinimum(slug, active, mod.MINIMUM))
+    out(f"  {slug}: active {len(kept)}, retired {retired}, added {added}"
+        + (f", pending {len(pending)}" if staged else ""))
+    return kept, stats
 
 
-def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=None):
+def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=None, stage=False):
     """Re-materialize, retire, top up and gate each game; no publishing.
 
     Returns ({slug: [(qid, index_item, materialized), ...]}, {slug: stats}).
@@ -151,18 +193,33 @@ def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=No
 
     journal (trivia.questions.journal.Journal) receives every decision; events of a
     held-back game are marked rolled_back. Without one, decisions are discarded.
+
+    stage=True (publish_game_data_v3's default): for the Checker's games
+    (checker.STAGED_GAMES) new questions, and live ones whose checker view changed,
+    become pending; only active questions are returned for publishing.
     """
     now = now or timezone.now()
     journal = journal or Journal("supply")
     per_game, stats = {}, {}
     for slug in games:
         if not isolate:
-            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
+            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal, stage)
+            if "below_minimum" in stats[slug]:
+                active = stats[slug]["active"]
+                raise BelowMinimum(slug, active, GAME_MODULES[slug].MINIMUM)
             continue
         mark = len(journal.events)
         try:
             with transaction.atomic():
-                per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
+                kept, game_stats = _process_game(slug, dataset, rng, now, out, journal, stage)
+            if "below_minimum" in game_stats:  # staged: writes kept, publish held back
+                journal.log("held_back", "below_minimum", game=slug, active=game_stats["active"],
+                            minimum=GAME_MODULES[slug].MINIMUM, pending=game_stats.get("pending", 0))
+                stats[slug] = {"held_back": game_stats["below_minimum"],
+                               **{k: v for k, v in game_stats.items() if k != "below_minimum"}}
+                out(f"  {slug}: held back, {game_stats['below_minimum']}")
+                continue
+            per_game[slug], stats[slug] = kept, game_stats
         except BelowMinimum as e:
             journal.mark_rolled_back(since=mark)
             journal.log("held_back", "below_minimum", game=slug, active=e.count, minimum=e.minimum)
@@ -176,16 +233,24 @@ def materialize_active(games, dataset, now=None, out=None):
     without retiring, topping up or saving anything (no DB writes).
 
     A row that no longer materializes is left out (maintenance would retire it);
-    the minimum gate still applies and raises BelowMinimum.
+    the minimum gate still applies and raises BelowMinimum. So is a Checker game's
+    row whose checker view no longer matches the payload_sha it was published with
+    (the dataset changed since): that content was never checked, so it waits for
+    the next maintenance run to stage it for the Checker instead of shipping.
     """
     today = (now or timezone.now()).date().isoformat()
     per_game = {}
     for slug in games:
         mod = GAME_MODULES[slug]
+        view = getattr(mod, "checker_view", None) if slug in checker.STAGED_GAMES else None
         kept, skipped = [], 0
         for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).order_by("id"):
             m, problems = _materialize(mod, row.definition, dataset)
             if problems:
+                skipped += 1
+                continue
+            stored = (row.quality or {}).get("payload_sha")
+            if view is not None and stored is not None and checker.payload_sha(view(m, dataset)) != stored:
                 skipped += 1
                 continue
             kept.append(_kept(mod, row, m))
@@ -203,7 +268,8 @@ def run(games, publish, dry_run, rng, dataset, s3=None, cfg=None, out=print):
     now = timezone.now()
     summary = {"version": None}
     with transaction.atomic():
-        per_game, stats = maintain(games, dataset, rng, now, out)
+        # stage=True: this legacy path must not put unchecked questions live either.
+        per_game, stats = maintain(games, dataset, rng, now, out, stage=True)
         summary.update(stats)
         if publish:
             version = next_version(current_published_version(cfg))

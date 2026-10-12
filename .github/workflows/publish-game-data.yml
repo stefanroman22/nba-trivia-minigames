@@ -9,7 +9,14 @@ name: Publish game data
 # A dry run passes --no-commit: the folder is built (and uploaded as an artifact) but every
 # DB write of the run (question maintenance, Fan Favorites re-rank) is rolled back, except the
 # factory journal (FactoryRun / FactoryEvent), which records the dry run itself.
+# Weekly schedule (question factory supply run, docs/superpowers/specs/2026-10-12-question-factory-design.md):
+# the four question games only, for real. New and changed questions are staged as pending and
+# go live only after the Checker (question-checker.yml) approves them, which then dispatches this
+# workflow (with maintenance, so changed live questions are staged, never shipped unchecked).
+# Pool games still publish by hand after a data sync.
 on:
+  schedule:
+    - cron: "0 5 * * 1"
   workflow_dispatch:
     inputs:
       games:
@@ -29,6 +36,11 @@ on:
         description: "build and diff only; upload the folder as an artifact"
         required: true
         default: true
+        type: boolean
+      skip_maintain:
+        description: "publish the current active questions without maintenance (live questions whose content changed since they were checked are left out)"
+        required: false
+        default: false
         type: boolean
 concurrency:
   group: publish-game-data
@@ -58,12 +70,16 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          GAMES: ${{ inputs.games }}
+          # A scheduled run has no inputs: it is the weekly supply run of the four question games.
+          GAMES: ${{ github.event_name == 'schedule' && 'career-path,who-are-ya,tictactoe,contexto' || inputs.games }}
           DRY_RUN: ${{ inputs.dry_run }}
+          SKIP_MAINTAIN: ${{ inputs.skip_maintain }}
+          TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
         run: |
           extra=()
           if [ "$DRY_RUN" = "true" ]; then extra+=(--no-commit); fi
-          python manage.py publish_game_data_v3 --games "$GAMES" "${extra[@]}" \
+          if [ "$SKIP_MAINTAIN" = "true" ]; then extra+=(--skip-maintain); fi
+          python manage.py publish_game_data_v3 --games "$GAMES" --trigger "$TRIGGER" "${extra[@]}" \
             --out "$GITHUB_WORKSPACE/build/game-data" \
             --report "$GITHUB_WORKSPACE/build/game-data-report.json"
 
@@ -76,7 +92,7 @@ jobs:
           include-hidden-files: true
 
       - name: Check Vercel secrets
-        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && inputs.target == 'vercel'
+        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && (inputs.target || 'vercel') == 'vercel'
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -94,7 +110,7 @@ jobs:
 
       - name: Deploy to Vercel
         id: deploy
-        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && inputs.target == 'vercel'
+        if: steps.build.outputs.result == 'publish' && !inputs.dry_run && (inputs.target || 'vercel') == 'vercel'
         shell: bash
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
