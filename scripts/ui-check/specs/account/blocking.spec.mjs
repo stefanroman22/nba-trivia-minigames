@@ -5,7 +5,7 @@ import { test, expect, L, createAudit, seedContext } from '../../lib/fixtures.mj
 import { contextOptions } from '../../lib/viewports.mjs';
 import { mintTokens, credentials, soloUsername } from '../../lib/accounts.mjs';
 import { LOCAL_LOAD, openLogin, routeLatency } from '../../lib/guest.mjs';
-import { HASHING, apiCall, clearFriendship, openSignupTab, fillSignup, throwawayName, deleteAccountApi } from '../../lib/account.mjs';
+import { HASHING, apiCall, clearFriendship, openSignupTab, fillSignup, throwawayName, restoreUsername, removePhoto, clearFriendshipChecked, deleteThrowaway } from '../../lib/account.mjs';
 import { fileURLToPath } from 'node:url';
 
 const AVATAR = fileURLToPath(new URL('../../fixtures/upload/avatar.png', import.meta.url));
@@ -81,7 +81,7 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
       await expect(row).toBeVisible({ timeout: 15_000 });
       await submitGuard(audit, {
         label: 'friend Add', button: row.locator('button.fr-btn-primary'), urlRe: /\/api\/send-friend-request\/$/,
-        busy: `(() => { const b = document.querySelector('.fr-row button.fr-btn-primary'); return !b || b.disabled || /Sending/.test(b.textContent); })()`,
+        busy: `(() => { const b = document.querySelector('.fr-row button.fr-btn-primary'); return !!b && (b.disabled || /Sending/.test(b.textContent)); })()`,
       });
       await expect(row.locator('.fr-status')).toHaveText('Request sent', { timeout: 15_000 });
     });
@@ -101,7 +101,7 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
           await L(g.page, 'account.ageYear').selectOption(String(new Date().getFullYear() - 30));
           await submitGuard(g.audit, {
             label: 'photo age Continue', button: L(g.page, 'account.ageContinue'), urlRe: /\/api\/account\/age\/$/,
-            busy: `(() => { const b = document.querySelector('form.photo-age button[type=submit]'); return !b || b.disabled || /Saving/.test(b.textContent); })()`,
+            busy: `(() => { const b = document.querySelector('form.photo-age button[type=submit]'); return !!b && (b.disabled || /Saving/.test(b.textContent)); })()`,
           });
           await expect(L(g.page, 'account.psPhotoState')).toHaveText('Shown to other players', { timeout: 20_000 });
         });
@@ -134,7 +134,7 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
           await L(g.page, 'account.password').fill('not-the-password');
           await submitGuard(g.audit, {
             label: 'log in', button: L(g.page, 'account.submit'), urlRe: /\/api\/login\/$/,
-            busy: `(() => { const b = document.querySelector('.modal-panel button.modal-primary-btn'); return !b || b.disabled || /Logging in/.test(b.textContent); })()`,
+            busy: `(() => { const b = document.querySelector('.modal-panel button.modal-primary-btn'); return !!b && (b.disabled || /Logging in/.test(b.textContent)); })()`,
           });
           await expect(L(g.page, 'account.authError')).toBeVisible({ timeout: 10_000 });
           await g.audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of 401/, /^401 POST /] });
@@ -157,7 +157,7 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
             await L(g.page, 'account.consentBox').check();
             await submitGuard(g.audit, {
               label: 'sign up', button: L(g.page, 'account.submit'), urlRe: /\/api\/signup\/$/,
-              busy: `(() => { const b = document.querySelector('.modal-panel button.modal-primary-btn'); return !b || b.disabled || /Creating/.test(b.textContent); })()`,
+              busy: `(() => { const b = document.querySelector('.modal-panel button.modal-primary-btn'); return !!b && (b.disabled || /Creating/.test(b.textContent)); })()`,
             });
             await expect(L(g.page, 'account.authError')).toBeVisible({ timeout: 10_000 });
             await g.audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of 409/, /^409 POST /] });
@@ -171,12 +171,59 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
     }
     await audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of (403|428)/, /^(403|428) POST /] });
   } finally {
-    await apiCall(request, session.access, 'POST', 'update-profile/', { username: original });
-    await apiCall(request, session.access, 'POST', 'account/remove-photo/');
-    await clearFriendship(request, session.access, other.user.id);
-    if (throwaway) audit.metrics.push({ kind: 'note', label: `cleanup ${throwaway}`, value: String(await deleteAccountApi(request, throwaway)), unit: '', route: '/profile' });
-    const me = await apiCall(request, session.access, 'GET', 'me/');
-    if (me.body?.user?.username !== original) audit.violation('cleanup', { selector: `account ${original}`, measured: `username is "${me.body?.user?.username}"`, expected: `restored to ${original}` });
+    await restoreUsername(audit, request, original);
+    await removePhoto(audit, request, original);
+    await clearFriendshipChecked(audit, request, original, other.user.id);
+    if (throwaway) await deleteThrowaway(audit, request, throwaway);
   }
   await audit.done();
+});
+
+// ---------------------------------------------------------------------------------------------------
+// No action waits more than 400 ms on an animation: from the click (or from the server's answer, for the
+// log-in close) until the next control is interactable = enabled, visible and not covered (elementFromPoint).
+const WAIT_MS = 400;
+const interactable = (sel) => `(() => { const el = [...document.querySelectorAll(${JSON.stringify(sel)})].find((e) => e.getClientRects().length > 0); if (!el || el.disabled) return false; const r = el.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!h && el.contains(h); })()`;
+
+test.describe('animation waits', () => {
+  test.use({ persona: 'guest' });
+
+  test('[AC-BLOCK-02] @perf tab switches and closing the log-in modal leave the next control usable within 400 ms', async ({ page, audit, vp }) => {
+    test.setTimeout(240_000);
+    await audit.goto('/', { waitFor: '#games-grid .gtile' });
+    await openLogin(page, vp);
+    await page.waitForTimeout(600);
+    await routeLatency(audit, 'Log in -> Sign up: Email field usable', () => L(page, 'guest.authTabSignup').click(), interactable(".modal-panel input[aria-label='Email']"), WAIT_MS);
+    await page.waitForTimeout(600);
+    await routeLatency(audit, 'Sign up -> Log in: Email or username field usable', () => L(page, 'guest.authTabLogin').click(), interactable(".modal-panel input[aria-label='Email or username']"), WAIT_MS);
+    await page.waitForTimeout(600);
+    // The X: the page behind (the nav brand, covered by the backdrop while the modal is open) is usable again.
+    await routeLatency(audit, 'modal X: nav brand usable', () => L(page, 'guest.modalClose').click(), interactable('nav.nav3 a.nav3-brand'), WAIT_MS);
+    await expect(L(page, 'guest.modalBackdrop')).toHaveCount(0);
+    await audit.console({ allow: LOCAL_LOAD });
+    await audit.done();
+  });
+
+  test('[AC-BLOCK-03] @perf after a successful log in the page behind the modal is usable within 400 ms of the success message', async ({ page, audit, vp }, testInfo) => {
+    test.skip(!vp.core, 'throttled endpoint — core viewports only');
+    test.setTimeout(240_000);
+    const who = credentials(soloUsername(testInfo.parallelIndex));
+    await audit.goto('/', { waitFor: '#games-grid .gtile' });
+    await openLogin(page, vp);
+    await L(page, 'account.loginId').fill(who.username);
+    await L(page, 'account.password').fill(who.password);
+    await L(page, 'account.submit').click();
+    await expect(L(page, 'account.successTitle')).toBeVisible({ timeout: 15_000 });
+    // From the moment the success message shows (the server has answered) until the nav avatar can be pressed.
+    const ms = Math.round(await page.evaluate(({ predicate }) => new Promise((resolve, reject) => {
+      const t0 = performance.now();
+      const ok = new Function(`return (${predicate});`);
+      const tick = () => { if (ok()) resolve(performance.now() - t0); else if (performance.now() - t0 > 10000) reject(new Error('never usable')); else requestAnimationFrame(tick); };
+      tick();
+    }), { predicate: interactable('nav.nav3 button.nav3-user') }));
+    audit.metrics.push({ kind: 'timing', label: 'log in success -> nav avatar usable', value: ms, unit: 'ms', budget: WAIT_MS, route: audit.route });
+    if (ms > WAIT_MS) audit.violation('slow-action', { selector: 'log in success -> nav avatar usable', measured: `${ms}ms (success pane hold + modal exit)`, expected: `<= ${WAIT_MS}ms` });
+    await audit.console({ allow: [...LOCAL_LOAD, ...HASHING] });
+    await audit.done();
+  });
 });

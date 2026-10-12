@@ -37,16 +37,24 @@ export const throwawayEmail = (name) => `${name}@uicheck.test`;
 
 /** A request against the Django API as a user. -> { status, body } (never throws on a 4xx/5xx). */
 export async function apiCall(request, token, method, p, data) {
-  const res = await request.fetch(`${apiBase()}/${p}`, {
-    method,
-    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' },
-    data: method === 'GET' ? undefined : (data ?? {}),
-    failOnStatusCode: false,
-  });
-  const text = await res.text();
-  let body = text;
-  try { body = JSON.parse(text); } catch { /* not JSON */ }
-  return { status: res.status(), body };
+  // The local sqlite DB answers 500 "database is locked" when parallel workers write at once; the failed write was
+  // rolled back, so retrying a 5xx a couple of times is safe and keeps that harness noise out of the results.
+  let last;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await request.fetch(`${apiBase()}/${p}`, {
+      method,
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), 'Content-Type': 'application/json' },
+      data: method === 'GET' ? undefined : (data ?? {}),
+      failOnStatusCode: false,
+    });
+    const text = await res.text();
+    let body = text;
+    try { body = JSON.parse(text); } catch { /* not JSON */ }
+    last = { status: res.status(), body };
+    if (last.status < 500) break;
+    await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+  }
+  return last;
 }
 
 /** A fresh access token for a ui-check account. */
@@ -208,4 +216,51 @@ export async function clearFriendship(request, token, otherId) {
 export async function isFriend(request, token, otherId) {
   const r = await apiCall(request, token, 'GET', 'search-friends/?q=&limit=100&offset=0');
   return (r.body?.results || []).some((f) => f.id === otherId);
+}
+
+// --- cleanup that cannot be skipped -------------------------------------------------------------------
+// Every restore mints a FRESH token (the test's own may be expired, rotated or revoked), checks the answer
+// and records a `cleanup` violation when it is not what it should be. Each step runs on its own: a throw in one
+// never skips the next. The suite-level sweep (lib/stack.teardown.mjs) catches whatever a crashed worker left.
+
+/** Run one cleanup step; `fn` returns an HTTP status or { status }. A status outside `ok` (or a throw) is a `cleanup` violation. */
+export async function cleanupStep(audit, label, fn, ok = [200, 201, 204]) {
+  try {
+    const r = await fn();
+    const status = r && typeof r === 'object' ? r.status : r;
+    audit.metrics.push({ kind: 'note', label: `cleanup: ${label}`, value: String(status), unit: '', route: audit.route });
+    if (!ok.includes(status)) audit.violation('cleanup', { selector: label, measured: `HTTP ${status}`, expected: ok.join('/') });
+  } catch (e) {
+    audit.violation('cleanup', { selector: label, measured: `threw: ${String(e && e.message).split('\n')[0].slice(0, 140)}`, expected: 'the cleanup call succeeds' });
+  }
+}
+
+/** Solo account back to its own name (minting restores it), verified with /me/. */
+export function restoreUsername(audit, request, username) {
+  return cleanupStep(audit, `restore username ${username}`, async () => {
+    const t = await tokenFor(username); // the mint puts the username back
+    const me = await apiCall(request, t.access, 'GET', 'me/');
+    if (me.body?.user?.username !== username) return { status: `username is "${me.body?.user?.username}"` };
+    return me.status;
+  });
+}
+
+export function removePhoto(audit, request, username) {
+  return cleanupStep(audit, `remove photo ${username}`, async () => apiCall(request, (await tokenFor(username)).access, 'POST', 'account/remove-photo/'));
+}
+
+/** testuser3-family <-> other: no friendship, no request (verified). */
+export function clearFriendshipChecked(audit, request, username, otherId) {
+  return cleanupStep(audit, `clear friendship ${username} <-> ${otherId}`, async () => {
+    const t = await tokenFor(username);
+    await clearFriendship(request, t.access, otherId);
+    const o = await apiCall(request, t.access, 'GET', 'friends-overview/');
+    const left = [...(o.body?.outgoing_requests || []), ...(o.body?.incoming_requests || [])].filter((r) => r.id === otherId).length;
+    if (left || await isFriend(request, t.access, otherId)) return { status: 'friendship or request still there' };
+    return 200;
+  });
+}
+
+export function deleteThrowaway(audit, request, username) {
+  return cleanupStep(audit, `delete throwaway ${username}`, async () => deleteAccountApi(request, username));
 }

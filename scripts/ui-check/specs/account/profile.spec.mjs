@@ -6,7 +6,7 @@ import { mintTokens, credentials, forgetAge } from '../../lib/accounts.mjs';
 import { fileURLToPath } from 'node:url';
 import { LOCAL_LOAD } from '../../lib/guest.mjs';
 import {
-  THROTTLED, HASHING, motionStep, throwawayName, apiCall, deleteAccountApi, accountExists, navState, ruleStates, dismissSwal,
+  THROTTLED, HASHING, motionStep, throwawayName, apiCall, restoreUsername, removePhoto, deleteThrowaway, accountExists, navState, ruleStates, dismissSwal,
 } from '../../lib/account.mjs';
 
 const AVATAR = fileURLToPath(new URL('../../fixtures/upload/avatar.png', import.meta.url));
@@ -97,10 +97,7 @@ test('[AC-PROFILE-01] @perf /profile layout; username change saves and shows in 
     });
     await audit.console({ allow: LOCAL_LOAD });
   } finally {
-    const back = await apiCall(request, session.access, 'POST', 'update-profile/', { username: original });
-    audit.metrics.push({ kind: 'note', label: `username restored to ${original}`, value: String(back.status), unit: '', route: '/profile' });
-    const me = await apiCall(request, session.access, 'GET', 'me/');
-    if (me.body?.user?.username !== original) audit.violation('cleanup', { selector: `account ${original}`, measured: `username is "${me.body?.user?.username}"`, expected: `restored to ${original}` });
+    await restoreUsername(audit, request, original);
   }
   await audit.done();
 });
@@ -160,8 +157,7 @@ test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo 
     // 428 is the designed handshake: the first upload of an account of unknown age answers age_required.
     await audit.console({ allow: [...LOCAL_LOAD, /status of 428/, /^428 POST /] });
   } finally {
-    const r = await apiCall(request, session.access, 'POST', 'account/remove-photo/');
-    audit.metrics.push({ kind: 'note', label: 'photo removed (cleanup)', value: String(r.status), unit: '', route: '/profile' });
+    await removePhoto(audit, request, session.username);
   }
   await audit.done();
 });
@@ -230,10 +226,7 @@ test.describe('throwaway account', () => {
       });
       await audit.console({ allow: [...LOCAL_LOAD, ...HASHING, /status of 403/, /^403 POST /] });
     } finally {
-      if (!deleted) {
-        const status = await deleteAccountApi(request, name);
-        audit.metrics.push({ kind: 'note', label: `cleanup ${name}`, value: String(status), unit: '', route: '/profile' });
-      }
+      if (!deleted) await deleteThrowaway(audit, request, name);
     }
     await audit.done();
   });

@@ -97,7 +97,10 @@ test('[G-PERM-03] a guest gets the log-in prompt on /profile and "Log in to play
 
   for (const g of playableGames().filter((x) => x.online)) {
     await audit.goto(g.path, { waitFor: '.stage-col .idle' });
+    // Positive control first: the multiplayer card itself rendered, so the zero counts below cannot pass on a missing aside.
+    await expect(L(page, 'guest.mpAside')).toBeVisible();
     await expect(L(page, 'guest.mpLoginBtn')).toBeVisible();
+    await expect(L(page, 'guest.mpRow')).toHaveCount(0);
     await expect(L(page, 'guest.mpPlay1v1Btn')).toHaveCount(0);
     await expect(L(page, 'guest.mpFriendBtn')).toHaveCount(0);
   }

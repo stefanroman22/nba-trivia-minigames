@@ -150,6 +150,13 @@ export async function forgetAge(usernames) {
   await mintRequest({ op: 'forget_age', users: usernames.map((u) => ACCOUNTS[u] || acct(u)) });
 }
 
+/** Leftover cleanup for the account suite (local sqlite only, ui-check names only): delete uic<digits> throwaways,
+ *  clear testuser3-family <-> testuser2 friendships/requests, restore testuser3-family usernames, drop their photos. */
+export async function sweepAccounts() {
+  const { ok, ...rest } = await mintRequest({ op: 'sweep' });
+  return rest;
+}
+
 /** End this process's mint server (it also ends on its own when the process exits). */
 export function closeMinter() {
   if (minter) { minter.child.stdin.end(); minter = null; }

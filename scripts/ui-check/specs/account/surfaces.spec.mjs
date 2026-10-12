@@ -4,7 +4,7 @@ import { test, expect, L } from '../../lib/fixtures.mjs';
 import { mintTokens } from '../../lib/accounts.mjs';
 import { VIEWPORTS } from '../../lib/viewports.mjs';
 import { LOCAL_LOAD, playableGames, recordFrames, fadeSummary } from '../../lib/guest.mjs';
-import { motionStep, tabSlide, apiCall, clearFriendship, isFriend, expectSignedIn } from '../../lib/account.mjs';
+import { motionStep, tabSlide, apiCall, clearFriendship, clearFriendshipChecked, isFriend, expectSignedIn } from '../../lib/account.mjs';
 
 const LANDING = '#leaderboard .lb-card';
 
@@ -149,10 +149,7 @@ test('[AC-SURF-02] friend request round trip: testuser3 sends from the Find tab,
     });
     await audit.console({ allow: LOCAL_LOAD });
   } finally {
-    const r = await clearFriendship(request, session.access, otherId);
-    const still = await isFriend(request, session.access, otherId);
-    audit.metrics.push({ kind: 'note', label: `friendship ${session.username} <-> testuser2 removed (cleanup)`, value: `remove ${r.status}, still friends: ${still}`, unit: '', route: '/' });
-    if (still) audit.violation('cleanup', { selector: `friendship ${session.username} <-> testuser2`, measured: 'still friends after cleanup', expected: 'removed' });
+    await clearFriendshipChecked(audit, request, session.username, otherId);
   }
   await audit.done();
 });

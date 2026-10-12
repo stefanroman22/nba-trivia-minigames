@@ -39,8 +39,9 @@
   "mpAside": { "css": "aside.game-aside" },
   "mpInfoBtn": { "role": "button", "name": "How multiplayer works", "exact": true },
   "mpLoginBtn": { "css": "aside.game-aside button:text-is('Log in to play online')" },
-  "mpFriendBtn": { "css": "aside.game-aside button:text-is('Play with a friend')" },
-  "mpPlay1v1Btn": { "css": "aside.game-aside button:text-is('Play 1v1')" },
+  "mpFriendBtn": { "css": "aside.game-aside .mp-row button:has-text('Play with a friend')" },
+  "mpPlay1v1Btn": { "css": "aside.game-aside .mp-row button:has-text('Play 1v1')" },
+  "mpRow": { "css": "aside.game-aside .mp-row" },
 
   "modalBackdrop": { "css": ".modal-backdrop" },
   "modalPanel": { "css": ".modal-backdrop .modal-panel" },

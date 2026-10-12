@@ -12,6 +12,7 @@ seconds to start here; a mint takes milliseconds).
         -> {"ok": true, "users": {"testuser1": {"created": false, "id": "K7F3QD"}}}
     {"op": "mint", "users": [{"username": "testuser3", "email": "testuser3@uicheck.test"}]}
         -> {"ok": true, "tokens": {"testuser3": {"access": "...", "refresh": "...", "user": {...}}}}
+    {"op": "sweep"}   -> {"ok": true, "deleted": [...], "restored": [...], "photos": [...], "friend_rows": n}
     {"op": "forget_age", "users": [...]}   -> {"ok": true}   (age_group back to "": the photo age prompt shows again)
 
 Accounts are created the way users.views.signup_view does it (consent stamped as a checkbox
@@ -25,6 +26,7 @@ Refuses to run against anything but the local sqlite database.
 """
 import json
 import os
+import re
 import sys
 
 from django.conf import settings
@@ -83,7 +85,40 @@ def mint(spec, password):
     return {"access": str(refresh.access_token), "refresh": str(refresh), "user": user_payload(None, user)}
 
 
+def sweep():
+    """Leftovers of the account suite: delete `uic<digits>` throwaways, clear testuser3-family <-> testuser2
+    friendships / requests / blocks, put testuser3-family usernames back and drop their photos."""
+    from users.account_data import delete_account, remove_photo
+    from users.models import BlockedUser, FriendRequest, Friendship
+    out = {"deleted": [], "restored": [], "photos": [], "friend_rows": 0}
+    users = list(User.objects.filter(email__iendswith=EMAIL_DOMAIN))
+    for u in users:
+        if re.fullmatch(r"uic\d{4,17}", u.username) and u.email.lower() == u.username.lower() + EMAIL_DOMAIN:
+            delete_account(u)
+            out["deleted"].append(u.username)
+    fam = [u for u in User.objects.filter(email__iendswith=EMAIL_DOMAIN) if re.fullmatch(r"testuser3(w\d{1,2})?", u.email.split("@")[0])]
+    t2 = User.objects.filter(email__iexact="testuser2" + EMAIL_DOMAIN).first()
+    for u in fam:
+        want = u.email.split("@")[0]
+        if u.username != want:
+            u.username = want
+            u.save(update_fields=["username"])
+            out["restored"].append(want)
+        if u.profile_photo_version:
+            remove_photo(u)
+            out["photos"].append(want)
+        if t2:
+            from django.db.models import Q
+            lo, hi = sorted([u.pk, t2.pk])
+            out["friend_rows"] += FriendRequest.objects.filter(Q(sender=u, receiver=t2) | Q(sender=t2, receiver=u)).delete()[0]
+            out["friend_rows"] += Friendship.objects.filter(user_low_id=lo, user_high_id=hi).delete()[0]
+            out["friend_rows"] += BlockedUser.objects.filter(Q(blocker=u, blocked=t2) | Q(blocker=t2, blocked=u)).delete()[0]
+    return {"ok": True, **out}
+
+
 def handle(req, password):
+    if req.get("op") == "sweep":
+        return sweep()
     users = req.get("users", [])
     if req.get("op") == "ensure":
         out = {}
