@@ -85,3 +85,6 @@ backend/.venv/
 
 # Uploaded/profile media is user or third-party content, never source (audit C2).
 backend/media/
+
+# UI check runs, accounts and evidence (scripts/ui-check)
+.ui-check/

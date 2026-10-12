@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>snap raf good</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; }
+  main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  #toggle { width: 140px; height: 48px; }
+  .panel { height: 100px; background: #eef; border: 1px solid #99a; border-radius: 8px; overflow: hidden; }
+  .below { height: 160px; background: #efe; border: 1px solid #9a9; border-radius: 8px; }
+</style>
+</head>
+<body>
+<main class="page">
+  <button id="toggle">Toggle</button>
+  <section class="panel">Panel</section>
+  <section class="below">Below</section>
+</main>
+<script>
+  // framer-motion style: a rAF loop writes intermediate inline heights (no CSS transition, no WAAPI).
+  const panel = document.querySelector('.panel');
+  let open = false;
+  document.getElementById('toggle').addEventListener('click', () => {
+    open = !open;
+    const from = panel.getBoundingClientRect().height;
+    const to = open ? 300 : 100;
+    const t0 = performance.now();
+    const step = (now) => {
+      const p = Math.min(1, (now - t0) / 220);
+      const e = 1 - Math.pow(1 - p, 3);
+      panel.style.height = (from + (to - from) * e) + 'px';
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+</script>
+</body>
+</html>

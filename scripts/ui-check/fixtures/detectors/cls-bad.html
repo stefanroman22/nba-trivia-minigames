@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>cls bad</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; }
+  main { padding: 16px; }
+  .block { height: 220px; margin-bottom: 12px; background: #eef; border: 1px solid #99a; }
+  .late { height: 240px; background: #fdd; }
+</style>
+</head>
+<body>
+<main class="page">
+  <div class="block">Content 1</div>
+  <div class="block">Content 2</div>
+  <div class="block">Content 3</div>
+</main>
+<script>
+  // An image-less block is inserted above the content 300ms later, with no user input.
+  // `#manual` lets a test start the timer itself (window.scheduleShift) inside its window.
+  window.scheduleShift = () => setTimeout(() => {
+    const late = document.createElement('div');
+    late.className = 'late';
+    late.textContent = 'Late block';
+    document.querySelector('main').prepend(late);
+  }, 300);
+  if (!location.hash.includes('manual')) addEventListener('load', window.scheduleShift);
+</script>
+</body>
+</html>

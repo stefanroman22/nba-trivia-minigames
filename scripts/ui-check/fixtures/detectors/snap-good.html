@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>snap good</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; }
+  main { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  #toggle { width: 140px; height: 48px; }
+  /* Same toggle as snap-bad.html, animated: the panel and the box below move smoothly. */
+  .panel { height: 100px; background: #eef; border: 1px solid #99a; border-radius: 8px; overflow: hidden; transition: height .3s; }
+  .panel.open { height: 300px; }
+  .below { height: 160px; background: #efe; border: 1px solid #9a9; border-radius: 8px; }
+</style>
+</head>
+<body>
+<main class="page">
+  <button id="toggle">Toggle</button>
+  <section class="panel">Panel</section>
+  <section class="below">Below</section>
+</main>
+<script>
+  document.getElementById('toggle').addEventListener('click', () => {
+    document.querySelector('.panel').classList.toggle('open');
+  });
+</script>
+</body>
+</html>

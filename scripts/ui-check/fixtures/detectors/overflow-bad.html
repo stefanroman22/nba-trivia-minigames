@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>overflow bad</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; }
+  main { padding: 16px; }
+  /* 600px box inside a 360px viewport: the page scrolls sideways. */
+  .wide { position: relative; width: 600px; height: 64px; background: #c33; color: #fff; }
+  /* A control that ends up off the right edge (offscreen). */
+  .far { position: absolute; left: 520px; top: 8px; width: 48px; height: 48px; }
+</style>
+</head>
+<body>
+<main class="page">
+  <h1>Overflow</h1>
+  <div class="wide">wide box<button class="far" aria-label="far">x</button></div>
+</main>
+</body>
+</html>
