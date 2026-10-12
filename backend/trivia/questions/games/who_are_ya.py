@@ -1,16 +1,20 @@
-"""Who Are Ya — one famous (tier 1-2) mystery player. Rules moved from
-trivia/games/who_are_ya.py. TARGET None = every eligible player gets a question."""
+"""Who Are Ya — one recognizable mystery player (fame band KNOWN or better,
+trivia.questions.fame). Rules moved from trivia/games/who_are_ya.py; the gate
+moved from fame_tier 1-2 to fame bands in question-factory phase 1 (the tier
+is a floor, so every tier 1-2 player stays eligible). TARGET None = every
+eligible player gets a question."""
+from trivia.questions import fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "who-are-ya"
 TARGET = None
 MINIMUM = 30
-ELIGIBLE_FAME_TIERS = (1, 2)
+MIN_FAME_BAND = fame.KNOWN
 
 
 def _eligible(row):
-    return row.get("fame_tier") in ELIGIBLE_FAME_TIERS and bool(row.get("teams"))
+    return fame.at_least(row, MIN_FAME_BAND) and bool(row.get("teams"))
 
 
 def generate(dataset, existing_hashes, rng, n):
@@ -30,7 +34,7 @@ def materialize(definition, dataset):
     if row is None:
         raise Invalid(f"person_id {definition.get('person_id')} is not in the playable pool")
     if not _eligible(row):
-        raise Invalid(f"{row['full_name']} is fame tier {row.get('fame_tier')}; need 1-2")
+        raise Invalid(f"{row['full_name']} is fame band {fame.fame_band(row)}; need {MIN_FAME_BAND} or better")
     return envelope(SLUG, None, {"player": row})
 
 

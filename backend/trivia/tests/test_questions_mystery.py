@@ -2,6 +2,7 @@ import random
 
 from django.test import SimpleTestCase
 
+from trivia.questions import fame
 from trivia.questions.base import Invalid
 from trivia.questions.games import career_path, who_are_ya
 from trivia.questions.hashing import content_hash
@@ -37,15 +38,28 @@ class CareerPathTests(SimpleTestCase):
 
 
 class WhoAreYaTests(SimpleTestCase):
-    def test_generate_is_tier_1_2_only(self):
+    def _ids(self, ds):
+        return {d["person_id"] for d in who_are_ya.generate(ds, set(), random.Random(1), 10_000)}
+
+    def test_generate_is_known_band_or_better(self):
         ds = fixture_dataset()
-        defs = who_are_ya.generate(ds, set(), random.Random(1), 10_000)
-        self.assertTrue(defs)
-        self.assertTrue(all(ds.by_id[d["person_id"]]["fame_tier"] in (1, 2) for d in defs))
+        ids = self._ids(ds)
+        self.assertTrue(ids)
+        self.assertTrue(all(fame.at_least(ds.by_id[i], fame.KNOWN) for i in ids))
         self.assertIsNone(who_are_ya.TARGET)
 
-    def test_materialize_rejects_tier_drop(self):
+    def test_every_tier_1_2_player_is_still_eligible(self):
         ds = fixture_dataset()
-        deep = next(r for r in ds.playable if r["fame_tier"] in (3, 4))
-        with self.assertRaises(Invalid):
+        tier12 = {r["person_id"] for r in ds.playable if r["fame_tier"] in (1, 2)}
+        self.assertLessEqual(tier12, self._ids(ds))
+
+    def test_widens_beyond_tier_1_2(self):
+        ds = fixture_dataset()
+        self.assertTrue(any(ds.by_id[i]["fame_tier"] in (3, 4) for i in self._ids(ds)))
+
+    def test_materialize_rejects_band_drop(self):
+        ds = fixture_dataset()
+        deep = next(r for r in ds.playable if not fame.at_least(r, fame.KNOWN))
+        with self.assertRaises(Invalid) as ctx:
             who_are_ya.materialize({"person_id": deep["person_id"]}, ds)
+        self.assertIn("fame band", str(ctx.exception))
