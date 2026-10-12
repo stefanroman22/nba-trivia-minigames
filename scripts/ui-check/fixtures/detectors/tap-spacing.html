@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tap spacing</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; }
+  main { padding: 16px; }
+  section { margin: 0 0 60px; }
+  .s16 { box-sizing: border-box; width: 16px; height: 16px; padding: 0; border: 1px solid #333; font-size: 10px; line-height: 1; }
+  #spaced { display: flex; gap: 40px; }
+  #crowded { display: flex; gap: 2px; }
+  #list ul { list-style: none; margin: 0; padding: 0; }
+  #list li { margin: 0 0 10px; }
+  #list a { display: inline-block; font-size: 14px; line-height: 17px; }
+  .b38 { box-sizing: border-box; width: 38px; height: 38px; }
+</style>
+</head>
+<body>
+<main class="page">
+  <!-- small but spaced: 16px buttons 40px apart pass 2.5.8 (spacing exception) -->
+  <section id="spaced"><button class="s16" aria-label="one">1</button><button class="s16" aria-label="two">2</button></section>
+  <!-- small and crowded: 16px buttons 2px apart fail -->
+  <section id="crowded"><button class="s16" aria-label="three">3</button><button class="s16" aria-label="four">4</button></section>
+  <!-- inline in text: the link's parent span holds no text, its paragraph does; the two touching
+       one-letter links would fail on spacing alone, but links in a sentence are exempt -->
+  <section id="inline"><p>Read the <span><a href="#terms">terms</a></span> before you play.</p><p>Pick <a href="#x">x</a><a href="#y">y</a> now.</p></section>
+  <!-- stacked footer-style list: 17px-tall links 10px apart (centres 27px apart) pass on spacing -->
+  <section id="list"><ul><li><a href="#a">Privacy policy</a></li><li><a href="#b">Terms of service</a></li><li><a href="#c">Contact</a></li></ul></section>
+  <!-- 38px button: fine at 24px, short of 44px on touch → a tap-target-touch warning only -->
+  <section id="touch38"><button class="b38" aria-label="menu">≡</button></section>
+</main>
+</body>
+</html>

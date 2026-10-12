@@ -4,7 +4,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { test, expect, createAudit } from '../../lib/fixtures.mjs';
-import DigestReporter, { buildDigest } from '../../lib/digest-reporter.mjs';
+import DigestReporter, { buildDigest, mergeRun } from '../../lib/digest-reporter.mjs';
 import { VIEWPORTS } from '../../lib/viewports.mjs';
 import { runDir } from '../../lib/run-id.mjs';
 
@@ -85,15 +85,46 @@ test('[ST-OCCLUDED] occluded fires under a fixed layer, not under the sticky nav
   expect(await audit.layout()).toEqual([]);
 });
 
-test('[ST-TAP] tap-target fires on a 16×16 button, not on 48px buttons or inline links', async ({ audit, vp }) => {
-  await open(audit, 'tap-bad.html');
-  const bad = await audit.layout({ rules: ['tap-target'] });
+test('[ST-TAP] tap-target fires on a crowded <24px target only; spaced and inline pass; <44px on touch is just a warning', async ({ context, audit, vp }, testInfo) => {
+  // Hard failures on a separate audit, so this test's own done() below sees only warnings.
+  const strict = await createAudit(await context.newPage(), testInfo, { vp, label: 'strict' });
+  await open(strict, 'tap-bad.html');
+  const bad = await strict.layout({ rules: ['tap-target'] });
   expect(rulesOf(bad)).toEqual(['tap-target']);
   expect(bad[0].measured).toBe('16×16px');
-  expect(bad[0].expected).toBe(vp.hasTouch ? '≥ 44×44px' : '≥ 24×24px');
+  expect(bad[0].expected).toBe('≥ 24×24px');
+  expect(bad[0].note).toMatch(/^undersized and within 24px of .*button/);
+  await open(strict, 'tap-spacing.html');
+  const crowded = await strict.layout({ scope: '#crowded', rules: ['tap-target'] });
+  expect(crowded.map((v) => v.measured)).toEqual(['16×16px', '16×16px']);
+  await strict.finalize();
+
+  // WCAG 2.5.8 exceptions: spaced small targets, a link inside a sentence, a stacked footer-style list.
+  await open(audit, 'tap-spacing.html');
+  for (const scope of ['#spaced', '#inline', '#list', '#touch38']) {
+    expect(await audit.layout({ scope, rules: ['tap-target'] })).toEqual([]);
+  }
+  // On touch every target under 44px except the inline link is a soft tap-target-touch warning.
+  expect(vp.hasTouch).toBe(true);
+  expect(rulesOf(audit.warnings)).toEqual(['tap-target-touch']);
+  const warnedIn = (id) => audit.warnings.filter((w) => w.selector.includes(id)).map((w) => w.measured);
+  expect(warnedIn('#spaced')).toEqual(['16×16px', '16×16px']);
+  expect(warnedIn('#list')).toHaveLength(3);
+  expect(warnedIn('#touch38')).toEqual(['38×38px']);
+  expect(warnedIn('#inline')).toEqual([]);
+  expect(audit.warnings[0].expected).toBe('≥ 44×44px on touch');
+  expect(audit.violations).toEqual([]);
+
+  // Not on a non-touch viewport.
+  const desk = await createAudit(await context.newPage(), testInfo, { vp: VIEWPORTS['desktop-1366'] });
+  await open(desk, 'tap-spacing.html');
+  expect(await desk.layout({ scope: '#touch38' })).toEqual([]);
+  expect(desk.warnings).toEqual([]);
+  await desk.finalize();
 
   await open(audit, 'good.html');
   expect(await audit.layout({ rules: ['tap-target'] })).toEqual([]);
+  await audit.done(); // warnings never fail a test
 });
 
 test('[ST-CLIPPED] clipped fires on text cut by overflow:hidden, not on sr-only or fitting labels', async ({ audit }) => {
@@ -187,7 +218,9 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
   expect(md).toContain('## FAIL G-HOME [G-HOME] home layout');
   const overflow = lines.filter((l) => l.startsWith('- overflow-x'));
   expect(overflow).toHaveLength(1);
-  expect(overflow[0]).toBe('- overflow-x `div.wide` on /: scrollWidth 600px (expected ≤ 300px) — ' + vps.join(', ') + ' — shot: shots/G-HOME/guest@phone-360-overflow-x-1.jpg');
+  // A per-viewport threshold collapses into one row that lists every expected value (3 shown, then +N).
+  expect(overflow[0]).toBe('- overflow-x `div.wide` on /: scrollWidth 600px (expected ≤ 300px [phone-360] | ≤ 301px [phone-390] | ≤ 302px [phone-414] | +4 more) — '
+    + vps.join(', ') + ' — shot: shots/G-HOME/guest@phone-360-overflow-x-1.jpg');
   expect(lines.filter((l) => l.startsWith('- tap-target'))).toEqual(['- tap-target `button.x` on /: 16×16px (expected ≥ 44×44px) — phone-360 — shot: shots/G-HOME/guest@phone-360-home.jpg']);
   expect(md).toContain('## Coverage gaps');
   expect(md).toMatch(/G-ROOM .*needs a friend room/);
@@ -217,6 +250,46 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
   expect(mpLines.filter((l) => l.startsWith('- tap-target'))).toEqual(['- tap-target `button.ready` on /room: 30×30px (expected ≥ 44×44px) — phone-390 (joiner)']);
   expect(mpLines).toContain('| label | phone-390 (joiner) | desktop-1366 (host) |');
   expect(mpLines).toContain('| start match | 450ms | 300ms |');
+
+  // A collapsed row: expected differs per viewport → both shown; its shot is the member's own crop,
+  // not another crop of the first member (r.shots[0]).
+  const tap = (vp, expected, shot) => ({ ...base, checkId: 'G-TAP', title: '[G-TAP] tap', project: `guest@${vp}`, vp, status: 'failed',
+    shots: [`shots/G-TAP/guest@${vp}-tap-target-1.jpg`],
+    violations: [{ rule: 'tap-target', route: '/', selector: 'a.x', measured: '20×20px', expected, ...(shot ? { shot } : {}) }] });
+  const tapLines = buildDigest([tap('phone-390', '≥ 44×44px'), tap('desktop-1366', '≥ 24×24px', 'shots/G-TAP/guest@desktop-1366-tap-target-2.jpg')],
+    { runId: 't', mode: 'dev', durationMs: 0 }).split('\n');
+  expect(tapLines.filter((l) => l.startsWith('- tap-target'))).toEqual([
+    '- tap-target `a.x` on /: 20×20px (expected ≥ 44×44px [phone-390] | ≥ 24×24px [desktop-1366]) — phone-390, desktop-1366 — shot: shots/G-TAP/guest@desktop-1366-tap-target-2.jpg']);
+
+  // Warnings (soft rules): never a FAIL, one collapsed line per rule+selector+route, capped at 60 lines.
+  const warn = (i) => ({ rule: 'tap-target-touch', route: '/', selector: `a.w${i}`, measured: '38×38px', expected: '≥ 44×44px on touch' });
+  const soft = ['phone-360', 'tablet-768'].map((vp) => ({ ...base, checkId: 'G-W', title: '[G-W] w', project: `guest@${vp}`, vp, status: 'passed', violations: [], shots: [],
+    warnings: [warn(0)] }));
+  const softMd = buildDigest(soft, { runId: 'w', mode: 'dev', durationMs: 0 });
+  expect(softMd).not.toContain('## FAIL');
+  expect(softMd).toContain('## Warnings\n- tap-target-touch `a.w0` on /: 38×38px (expected ≥ 44×44px on touch) — phone-360, tablet-768 — G-W\n');
+  const lotsMd = buildDigest([{ ...soft[0], warnings: Array.from({ length: 100 }, (_, i) => warn(i)) }], { runId: 'w', mode: 'dev', durationMs: 0 }).split('\n');
+  const from = lotsMd.indexOf('## Warnings');
+  const section = lotsMd.slice(from + 1, lotsMd.indexOf('', from));
+  expect(section).toHaveLength(60);
+  expect(section[59]).toBe('+41 more (see results.json)');
+  // … and the reporter carries them from the uicheck attachment into results.json entries.
+  const wrep = new DigestReporter();
+  wrep.onTestEnd(
+    { id: 'w1', repeatEachIndex: 0, title: '[G-W] w', annotations: [], parent: { project: () => ({ name: 'guest@phone-390', use: { suite: 'guest', vpId: 'phone-390' } }) } },
+    { status: 'passed', duration: 5, annotations: [], attachments: [att({ checkId: 'G-W', vp: 'phone-390', routes: ['/'], shots: [], violations: [], metrics: [], warnings: [warn(1)] })] });
+  expect([...wrep.entries.values()][0].warnings).toEqual([{ ...warn(1), vp: 'phone-390' }]);
+
+  // Several invocations of one run (UI_CHECK_APPEND): results merge and the header spans first start → last end.
+  const merged = mergeRun({
+    entries: [{ project: 'mp@pairA', title: '[MP-X] x', status: 'passed' }],
+    prior: [{ project: 'guest@phone-390', title: '[G-X] x', status: 'passed' }, { project: 'mp@pairA', title: '[MP-X] x', status: 'failed' }],
+    priorMeta: { startedAt: 1_000, endedAt: 50_000 }, start: 61_000, end: 91_000,
+  });
+  expect(merged.results.map((r) => `${r.project} ${r.status}`)).toEqual(['guest@phone-390 passed', 'mp@pairA passed']);
+  expect(merged.meta).toEqual({ startedAt: 1_000, endedAt: 91_000 });
+  expect(buildDigest(merged.results, { runId: 'm', mode: 'dev', durationMs: merged.durationMs }).split('\n')[0]).toBe('# UI check digest — run m · mode dev · 2 tests · 1m30s');
+  expect(mergeRun({ entries: [], start: 5_000, end: 7_000 }).durationMs).toBe(2_000);
 
   const many = [];
   for (let i = 0; i < 600; i++) {

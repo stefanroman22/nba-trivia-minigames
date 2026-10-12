@@ -7,6 +7,8 @@
 //                                      in declaration order) or class state, same walk
 // Values are serialised: functions → '[fn name]', DOM nodes → '[node <tag>]', React elements →
 // '[element <type>]', cycles → '[circular]', nesting beyond 5 → '[…]'. null when nothing matches.
+// Component names are minified in prod builds (UserChip reads as 'w'): match components on their
+// props shape (e.g. the entry whose props have 'aria-label' and 'onClick'), never on `name`.
 function readFiber({ selector, depth, kind }) {
   const el = document.querySelector(selector);
   if (!el) return null;

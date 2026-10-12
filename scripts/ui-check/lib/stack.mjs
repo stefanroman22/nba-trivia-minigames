@@ -261,8 +261,13 @@ export async function ensureStack(mode = 'prod') {
       for (let i = 0; i < 30 && (await up(ports.web)); i++) await sleep(500);
       webUp = false;
     }
-    if (webUp) reuse('web', ports.web);
-    else {
+    if (webUp) {
+      reuse('web', ports.web);
+      if (!fresh) {
+        log(`WARNING: the source changed since the last ui-check build (stamp ${readStamp() || 'none'} ≠ ${stamp}), but the server on :${ports.web} `
+          + 'was not started by ui-check, so it is reused as is — it may serve a STALE build. Stop it to get a rebuild.');
+      }
+    } else {
       if (fresh) log(`build up to date (stamp ${stamp}) — skipping next build`);
       else nextBuild(env, stamp);
       started.push(startDetached(`web-${ports.web}`, ports.web, process.execPath, [NEXT_BIN, 'start', '-p', String(ports.web)], { env }));

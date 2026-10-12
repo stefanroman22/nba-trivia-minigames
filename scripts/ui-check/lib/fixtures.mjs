@@ -25,6 +25,8 @@ const AXE_TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'];
 const PERF_BUDGETS = { ttfb: 800, lcp: 2500, cls: 0.1 };
 const AUTO_CROPS_PER_CALL = 3;
 const AUTO_CROPS_PER_AUDIT = 12;
+/** Soft rules: recorded as audit.warnings (same shape as violations), never make done() throw. */
+export const SOFT_RULES = new Set(['tap-target-touch']);
 
 /** `[G-HOME] home layout` → 'G-HOME'. */
 export function checkIdOf(title) {
@@ -81,7 +83,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
     claimed.paths.add(p.rel);
     return p;
   };
-  const violations = [], metrics = [], shots = [], routes = [];
+  const violations = [], warnings = [], metrics = [], shots = [], routes = [];
   const logs = { console: [], pageErrors: [], responses: [], slowApi: [] };
   let crops = 0, attached = false;
 
@@ -100,41 +102,43 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
     if (t && t.responseEnd > 1000) logs.slowApi.push({ ms: Math.round(t.responseEnd), method: req.method(), url: req.url(), route: route() });
   });
 
-  /** Record one violation in the exact shape { rule, route, selector, measured, expected, note?, shot? }. */
+  /** Record one violation (or, for a SOFT_RULES rule, one warning) in the exact shape { rule, route, selector, measured, expected, note?, shot? }. */
   const record = ({ rule, route: r, selector, measured, expected, note, shot }) => {
     const v = { rule, route: r ?? route(), selector: selector ?? '', measured: String(measured ?? ''), expected: String(expected ?? '') };
     if (note) v.note = String(note);
     if (shot) v.shot = shot;
     noteRoute(v.route);
-    violations.push(v);
+    (SOFT_RULES.has(rule) ? warnings : violations).push(v);
     return v;
   };
 
-  /** Record in-page detector results, cropping evidence for the first few. */
+  /** Record in-page detector results, cropping evidence for the first few violations. Returns the violations (not warnings) added. */
   const recordAll = async (items) => {
     const out = [];
     const perRule = {};
     for (const { rect, ...item } of items) {
       let shot;
+      const soft = SOFT_RULES.has(item.rule);
       perRule[item.rule] = (perRule[item.rule] || 0) + 1;
-      if (rect && perRule[item.rule] <= AUTO_CROPS_PER_CALL && crops < AUTO_CROPS_PER_AUDIT) {
+      if (!soft && rect && perRule[item.rule] <= AUTO_CROPS_PER_CALL && crops < AUTO_CROPS_PER_AUDIT) {
         crops++;
         const { abs, rel } = claimShot(`${item.rule}-${++claimed.crops}`); // numbered per test: audits never collide
         if (await rectShot(page, rect, abs).catch(() => false)) { shot = rel; shots.push(rel); }
       }
-      out.push(record({ ...item, shot }));
+      const v = record({ ...item, shot });
+      if (!soft) out.push(v);
     }
     return out;
   };
 
   const attach = async () => {
     attached = true;
-    const body = { checkId, project, vp: vp ? vp.id : null, label, routes, metrics, violations, shots };
+    const body = { checkId, project, vp: vp ? vp.id : null, label, routes, metrics, violations, warnings, shots };
     await testInfo.attach('uicheck', { body: JSON.stringify(body), contentType: 'application/json' });
   };
 
   const audit = {
-    page, checkId, project, vp, label, violations, metrics, shots, routes,
+    page, checkId, project, vp, label, violations, warnings, metrics, shots, routes,
     get route() { return route(); },
 
     /** Navigate (baseURL-relative or absolute), wait for content, fonts, ≤5s network idle, settle 400ms, reset probe windows. */

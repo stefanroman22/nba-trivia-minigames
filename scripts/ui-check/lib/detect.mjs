@@ -81,12 +81,29 @@ export function interactiveSelector() {
   ].join(', ');
 }
 
-/** WCAG 2.5.8 inline exception: an inline target inside running text. */
+/**
+ * WCAG 2.5.8 inline exception: an inline target inside running text. The target is inline-level and
+ * its nearest block ancestor (skipping inline wrappers) holds other non-whitespace text outside any
+ * interactive element: a link in a sentence. Stacked list links (`ul > li > a`, nothing else in
+ * the li) are not inline-in-text; the spacing exception judges them.
+ */
 export function isInlineInText(el) {
-  if (getComputedStyle(el).display !== 'inline') return false;
-  const parent = el.parentElement;
-  if (!parent) return false;
-  return [...parent.childNodes].some((n) => n !== el && n.nodeType === 3 && n.nodeValue.trim().length > 0);
+  if (!getComputedStyle(el).display.startsWith('inline')) return false;
+  let block = el.parentElement;
+  for (let i = 0; block && i < 8; i++, block = block.parentElement) {
+    const d = getComputedStyle(block).display;
+    if (d !== 'inline' && d !== 'contents') break;
+  }
+  if (!block) return false;
+  const sel = interactiveSelector();
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.nodeValue.trim() || el.contains(n)) continue;
+    const owner = n.parentElement && n.parentElement.closest(sel);
+    if (owner && block.contains(owner)) continue; // text of another control is not running text
+    return true;
+  }
+  return false;
 }
 
 /** 'auto' snap watch set: the largest visible boxes (cards/panels/modal panels) in main, max 12. */
@@ -130,10 +147,10 @@ export function inPage(fn, arg) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// layout: overflow-x, offscreen, clipped, occluded, tap-target
+// layout: overflow-x, offscreen, clipped, occluded, tap-target (+ the soft tap-target-touch)
 
 export function layoutScan({ scope = null, ignore = [], rules = null, touch = false } = {}) {
-  const ALL = ['overflow-x', 'offscreen', 'clipped', 'occluded', 'tap-target'];
+  const ALL = ['overflow-x', 'offscreen', 'clipped', 'occluded', 'tap-target', 'tap-target-touch'];
   const want = new Set(rules && rules.length ? rules : ALL);
   const de = document.documentElement;
   const vw = de.clientWidth, vh = de.clientHeight || window.innerHeight;
@@ -190,21 +207,48 @@ export function layoutScan({ scope = null, ignore = [], rules = null, touch = fa
     }
   }
 
-  // tap-target: < 44×44 on touch, < 24×24 anywhere (WCAG 2.5.8; inline-in-text exempt).
-  if (want.has('tap-target')) {
-    const min = touch ? 44 : 24;
-    for (const el of interactive) {
-      if (el.disabled || el.getAttribute('aria-disabled') === 'true' || !isShown(el)) continue;
-      if (isInlineInText(el)) continue;
+  // tap-target (hard, WCAG 2.5.8): smaller than 24×24 unless inline in text, or spaced: a 24px circle
+  // centred on it meets no other target's box and no undersized target's own 24px circle.
+  // tap-target-touch (soft, a warning only): smaller than 44×44 on a touch viewport.
+  if (want.has('tap-target') || want.has('tap-target-touch')) {
+    const boxOf = (el) => {
       let r = el.getBoundingClientRect();
       const labels = el.labels ? [...el.labels].filter(isShown) : [];
       if (labels.length) {
         const rs = [r, ...labels.map((l) => l.getBoundingClientRect())];
         r = { left: Math.min(...rs.map((x) => x.left)), top: Math.min(...rs.map((x) => x.top)), right: Math.max(...rs.map((x) => x.right)), bottom: Math.max(...rs.map((x) => x.bottom)) };
       }
-      const w = r.right - r.left, h = r.bottom - r.top;
-      if (w >= min - 0.5 && h >= min - 0.5) continue;
-      add('tap-target', el, `${Math.round(w)}×${Math.round(h)}px`, `≥ ${min}×${min}px`, null, r);
+      return r;
+    };
+    const live = (el) => !el.disabled && el.getAttribute('aria-disabled') !== 'true' && isShown(el);
+    // Every live target on the page is a neighbour, in scope or not.
+    const targets = [...document.querySelectorAll(interactiveSelector())].filter(live).map((el) => ({ el, r: boxOf(el) }))
+      .filter((t) => t.r.right - t.r.left > 0 && t.r.bottom - t.r.top > 0);
+    const small = (r) => r.right - r.left < 23.5 || r.bottom - r.top < 23.5;
+    const centre = (r) => [(r.left + r.right) / 2, (r.top + r.bottom) / 2];
+    const toBox = ([x, y], r) => Math.hypot(Math.max(r.left - x, 0, x - r.right), Math.max(r.top - y, 0, y - r.bottom));
+    // Nested or labelled-by pairs are one target, not neighbours.
+    const related = (a, b) => a.contains(b) || b.contains(a)
+      || (a.labels && [...a.labels].some((l) => l.contains(b))) || (b.labels && [...b.labels].some((l) => l.contains(a)));
+    const crowdedBy = (t) => {
+      const c = centre(t.r);
+      for (const o of targets) {
+        if (o.el === t.el || related(t.el, o.el)) continue;
+        if (toBox(c, o.r) < 11.5) return o;
+        if (small(o.r)) { const oc = centre(o.r); if (Math.hypot(c[0] - oc[0], c[1] - oc[1]) < 23.5) return o; }
+      }
+      return null;
+    };
+    const inScan = new Set(interactive);
+    for (const t of targets) {
+      if (!inScan.has(t.el) || isInlineInText(t.el)) continue;
+      const w = t.r.right - t.r.left, h = t.r.bottom - t.r.top;
+      const size = `${Math.round(w)}×${Math.round(h)}px`;
+      if (want.has('tap-target') && small(t.r)) {
+        const o = crowdedBy(t);
+        if (o) { add('tap-target', t.el, size, '≥ 24×24px', `undersized and within 24px of ${cssPath(o.el)}`, t.r); continue; }
+      }
+      if (touch && (w < 43.5 || h < 43.5)) add('tap-target-touch', t.el, size, '≥ 44×44px on touch', null, t.r);
     }
   }
 

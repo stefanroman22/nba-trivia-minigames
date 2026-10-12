@@ -1,6 +1,7 @@
 // Playwright reporter: condenses a run into <runDir>/results.json and <runDir>/digest.md.
 // buildDigest() is pure so the selftest can exercise it without running a suite.
-// UI_CHECK_APPEND=1 merges into an existing results.json of the same run (several invocations, one run).
+// UI_CHECK_APPEND=1 merges into an existing results.json of the same run (several invocations, one run);
+// <runDir>/run-meta.json keeps the run's first start so the digest header spans every invocation.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { VIEWPORTS } from './viewports.mjs';
@@ -23,6 +24,16 @@ const whereOf = (item, r, auditLabel) => {
 const firstLine = (s) => String(s || '').split('\n').find((l) => l.trim()) || '';
 const isFail = (r) => r.status === 'failed' || r.status === 'timedOut';
 const fmt = (v, unit) => (typeof v === 'number' ? `${Math.round(v * 1000) / 1000}${unit || ''}` : String(v));
+const MAX_WARNING_LINES = 60;
+const MAX_EXPECTED_GROUPS = 3;
+/** One expected value as is; several (a threshold per viewport) as 'A [vps] | B [vps]', at most 3 then '+N more'. */
+const expectedText = (byValue) => {
+  const groups = [...byValue];
+  if (groups.length === 1) return groups[0][0];
+  const shown = groups.slice(0, MAX_EXPECTED_GROUPS).map(([e, vps]) => `${e} [${sortVps(vps).join(', ')}]`);
+  if (groups.length > MAX_EXPECTED_GROUPS) shown.push(`+${groups.length - MAX_EXPECTED_GROUPS} more`);
+  return shown.join(' | ');
+};
 
 /** Markdown digest for an array of result entries (see results.json shape). */
 export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs = 0 } = {}) {
@@ -53,23 +64,27 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     const rows = new Map();
     for (const r of group) {
       const vs = r.violations || [];
-      const items = vs.map((v) => ({ v, key: [v.rule, v.selector, v.route, measuredClass(v.measured)].join('\u0000') }));
+      const items = vs.map((v) => ({ v, key: [v.rule, v.selector, v.route, measuredClass(v.measured), measuredClass(v.expected)].join('\u0000') }));
       // The test's own error, unless it is just audit.done() restating the violations above.
       if (!vs.length || (r.error && !/UI violation\(s\) in /.test(r.error))) {
         items.push({ v: null, key: `error\u0000${measuredClass(firstLine(r.error) || r.status)}` });
       }
       for (const { v, key } of items) {
         let row = rows.get(key);
-        if (!row) rows.set(key, (row = { v, r, vps: [], shot: null }));
+        if (!row) rows.set(key, (row = { v, r, vps: [], expected: new Map(), shot: null, fallback: null }));
         const where = whereOf(v, r, v && v.label);
         if (where && !row.vps.includes(where)) row.vps.push(where);
-        row.shot ||= (v && v.shot) || (r.shots && r.shots[0]) || null;
+        if (v) { const e = row.expected.get(v.expected) || []; if (where && !e.includes(where)) e.push(where); row.expected.set(v.expected, e); }
+        // The row's own crop from whichever member has one; another crop of the test only as a last resort.
+        row.shot ||= (v && v.shot) || null;
+        row.fallback ||= (r.shots && r.shots[0]) || null;
       }
     }
-    const rendered = [...rows.values()].map(({ v, r, vps, shot }) => {
-      const tail = `${vps.length ? ` — ${sortVps(vps).join(', ')}` : ''}${shot ? ` — shot: ${shot}` : ''}`;
+    const rendered = [...rows.values()].map(({ v, r, vps, expected, shot, fallback }) => {
+      const s = shot || fallback;
+      const tail = `${vps.length ? ` — ${sortVps(vps).join(', ')}` : ''}${s ? ` — shot: ${s}` : ''}`;
       if (!v) return `- ${r.status === 'timedOut' ? 'timed out' : 'error'}: ${firstLine(r.error) || r.status}${tail}`;
-      return `- ${v.rule} \`${v.selector}\` on ${v.route}: ${v.measured} (expected ${v.expected})${v.note ? ` [${v.note}]` : ''}${tail}`;
+      return `- ${v.rule} \`${v.selector}\` on ${v.route}: ${v.measured} (expected ${expectedText(expected)})${v.note ? ` [${v.note}]` : ''}${tail}`;
     });
     if (rendered.length > MAX_LINES_PER_CHECK) {
       const extra = rendered.length - (MAX_LINES_PER_CHECK - 1);
@@ -91,6 +106,27 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
   if (!gaps.size) lines.push('- none');
   for (const { r, reason, vps } of gaps.values()) lines.push(`- ${r.checkId || '(no id)'} ${r.title}${vps.length ? ` (${sortVps(vps).join(', ')})` : ''}: ${reason}`);
   lines.push('');
+
+  // Warnings: soft rules (never fail a test), one line per rule+selector+route across checks and viewports
+  lines.push('## Warnings');
+  const warns = new Map();
+  for (const r of results) {
+    for (const w of r.warnings || []) {
+      const key = [w.rule, w.selector, w.route].join('\u0000');
+      let g = warns.get(key);
+      if (!g) warns.set(key, (g = { w, vps: [], checks: [] }));
+      const where = whereOf(w, r, w.label);
+      if (where && !g.vps.includes(where)) g.vps.push(where);
+      if (r.checkId && !g.checks.includes(r.checkId)) g.checks.push(r.checkId);
+    }
+  }
+  const warnLines = [...warns.values()].map(({ w, vps, checks }) =>
+    `- ${w.rule} \`${w.selector}\` on ${w.route}: ${w.measured} (expected ${w.expected})${vps.length ? ` — ${sortVps(vps).join(', ')}` : ''}${checks.length ? ` — ${checks.join(', ')}` : ''}`);
+  if (warnLines.length > MAX_WARNING_LINES) {
+    const extra = warnLines.length - (MAX_WARNING_LINES - 1);
+    warnLines.splice(MAX_WARNING_LINES - 1, warnLines.length, `+${extra} more (see results.json)`);
+  }
+  lines.push(...(warnLines.length ? warnLines : ['- none']), '');
 
   // Metrics: perf/timing only, one table per suite, label → value per vp (worst value when repeated)
   lines.push('## Metrics');
@@ -122,6 +158,22 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     lines.splice(MAX_LINES - 1, lines.length, `+${extra} more (see results.json)`);
   }
   return lines.join('\n');
+}
+
+/**
+ * Merge this invocation into an earlier one of the same run (UI_CHECK_APPEND: run.mjs's second, multiplayer
+ * invocation). Prior entries of the same project+title are replaced. The span runs from the first
+ * invocation's start to this one's end, so the digest header covers the whole run.
+ * → { results, meta: { startedAt, endedAt }, durationMs }
+ */
+export function mergeRun({ entries, prior = null, priorMeta = null, start, end }) {
+  let results = entries;
+  if (Array.isArray(prior)) {
+    const mine = new Set(entries.map((r) => `${r.project}|${r.title}`));
+    results = [...prior.filter((r) => !mine.has(`${r.project}|${r.title}`)), ...entries];
+  }
+  const startedAt = priorMeta && Number.isFinite(priorMeta.startedAt) && priorMeta.startedAt < start ? priorMeta.startedAt : start;
+  return { results, meta: { startedAt, endedAt: end }, durationMs: end - startedAt };
 }
 
 const STATUS = { passed: 'passed', failed: 'failed', timedOut: 'timedOut', skipped: 'skipped', interrupted: 'failed' };
@@ -161,6 +213,7 @@ export default class DigestReporter {
       status: STATUS[result.status] || 'failed',
       durationMs: result.duration,
       violations: datas.flatMap((d) => (d.violations || []).map(tag(d, 'label'))),
+      warnings: datas.flatMap((d) => (d.warnings || []).map(tag(d, 'label'))),
       metrics: datas.flatMap((d) => (d.metrics || []).map(tag(d, 'auditLabel'))),
       shots: datas.flatMap((d) => d.shots || []),
     };
@@ -173,23 +226,26 @@ export default class DigestReporter {
     this.entries.set(`${test.id}|${test.repeatEachIndex}`, entry);
   }
 
-  onEnd(result) {
+  onEnd() {
     const dir = runDir();
     mkdirSync(dir, { recursive: true });
     const file = path.join(dir, 'results.json');
-    let results = [...this.entries.values()];
-    if (process.env.UI_CHECK_APPEND === '1' && existsSync(file)) {
-      try {
-        const mine = new Set(results.map((r) => `${r.project}|${r.title}`));
-        const prior = JSON.parse(readFileSync(file, 'utf8')).filter((r) => !mine.has(`${r.project}|${r.title}`));
-        results = [...prior, ...results];
-      } catch { /* unreadable prior results: keep this invocation's */ }
-    }
+    const metaFile = path.join(dir, 'run-meta.json');
+    const append = process.env.UI_CHECK_APPEND === '1';
+    const readJson = (f) => { try { return existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null; } catch { return null; } };
+    const { results, meta, durationMs } = mergeRun({
+      entries: [...this.entries.values()],
+      prior: append ? readJson(file) : null,
+      priorMeta: append ? readJson(metaFile) : null,
+      start: this.start,
+      end: Date.now(),
+    });
     writeFileSync(file, JSON.stringify(results, null, 2));
+    writeFileSync(metaFile, JSON.stringify(meta, null, 2));
     const digest = buildDigest(results, {
       runId: runId(),
       mode: process.env.UI_CHECK_MODE || 'dev',
-      durationMs: (result && result.duration) || Date.now() - this.start,
+      durationMs,
     });
     writeFileSync(path.join(dir, 'digest.md'), digest + '\n');
     console.log(`ui-check: digest ${path.join(dir, 'digest.md')}`);

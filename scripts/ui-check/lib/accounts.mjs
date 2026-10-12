@@ -29,8 +29,8 @@ export function soloUsername(parallelIndex = 0) {
 
 const isTestUsername = (u) => /^testuser\d(w\d{1,2})?$/.test(u);
 
-/** Accounts touch the local DB only: refuse when the stack's API is anything but localhost. */
-export function assertLocalApi(api = readStack()?.api) {
+/** Accounts touch the local DB only: refuse when `api` (required) is anything but a localhost URL. */
+export function assertLocalApi(api) {
   let host = '';
   try { host = new URL(api).hostname; } catch { /* not a URL */ }
   if (host !== 'localhost') {
@@ -117,7 +117,7 @@ function startMinter(password) {
 }
 
 async function mintRequest(req) {
-  assertLocalApi();
+  assertLocalApi(readStack()?.api);
   const { password } = accountsFile();
   if (!minter) minter = startMinter(password);
   const m = minter;

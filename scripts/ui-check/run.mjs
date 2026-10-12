@@ -2,11 +2,12 @@
 // UI check runner: one stack, the suites as Playwright invocations, contact sheets, the digest.
 //   node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all]
 //                                 [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed]
-//   node scripts/ui-check/run.mjs --stop        stop a stack kept with --keep-stack
+//   node scripts/ui-check/run.mjs --stop        stop a stack kept with --keep-stack (or left by a killed run)
+// Ctrl+C / SIGTERM / an uncaught error stop the stack too (unless --keep-stack).
 // --vp takes viewport ids (and/or mp pair names), `core` or `all` (default). --only takes check ids;
 // `*` matches within an id (GM-wordle-*). Non-multiplayer suites run with 4 workers, multiplayer
 // with 1 (its two accounts are shared). Exits 1 when any test failed.
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
@@ -68,14 +69,46 @@ function grepFor(only) {
   return `\\[(${ids.join('|')})\\]`;
 }
 
+// The running Playwright child, so an interrupt can take it down with the stack.
+let child = null;
+
+/** Run one Playwright invocation (async, so signal handlers can run meanwhile) → its exit code. */
 function playwright(projects, { workers, grep, headed, env }) {
   const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, UIC), '--workers', String(workers), '--pass-with-no-tests'];
   for (const p of projects) args.push('--project', p);
   if (grep) args.push('--grep', grep);
   if (headed) args.push('--headed');
   console.log(`\nui-check: playwright ${projects.length} project(s), ${workers} worker(s)${grep ? `, --grep ${grep}` : ''}`);
-  const r = spawnSync(process.execPath, args, { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, ...env } });
-  return r.status ?? 1;
+  return new Promise((resolve) => {
+    child = spawn(process.execPath, args, { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, ...env } });
+    child.on('error', () => { child = null; resolve(1); });
+    child.on('exit', (code) => { child = null; resolve(code ?? 1); });
+  });
+}
+
+/**
+ * Ctrl+C / SIGTERM / an uncaught error: kill the Playwright child and stop the stack (unless --keep-stack),
+ * since main()'s `finally` never runs then. A hard kill (taskkill /F, SIGKILL) can't be caught: use --stop.
+ */
+function installEmergencyStop(keepStack) {
+  let stopping = false;
+  const bail = async (why, code) => {
+    if (stopping) return;
+    stopping = true;
+    console.error(`\nui-check: ${why} — stopping${keepStack ? ' (stack kept: --keep-stack)' : ' the stack'}`);
+    if (child?.pid) {
+      try {
+        if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
+        else child.kill('SIGTERM');
+      } catch { /* already gone */ }
+    }
+    if (!keepStack) await stopStack().catch((e) => console.error(`ui-check: stopStack failed: ${e.message}`));
+    process.exit(code);
+  };
+  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP', ...(process.platform === 'win32' ? ['SIGBREAK'] : [])];
+  for (const sig of signals) process.on(sig, () => bail(`received ${sig}`, 130));
+  process.on('uncaughtException', (e) => bail(`uncaught error: ${(e && e.stack) || e}`, 1));
+  process.on('unhandledRejection', (e) => bail(`unhandled rejection: ${(e && e.stack) || e}`, 1));
 }
 
 function readResults() {
@@ -132,8 +165,9 @@ async function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`ui-check: ${e.message}`); process.exit(2); }
   if (opts.help) {
-    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed]');
-    console.log('       node scripts/ui-check/run.mjs --stop   (stop a stack kept with --keep-stack)');
+    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed] [--stop]');
+    console.log('  --keep-stack  leave the local stack running after the run');
+    console.log('  --stop        stop a stack kept with --keep-stack (or left behind by a killed run) and exit');
     return 0;
   }
   if (opts.stop) { await stopStack(); return 0; }
@@ -141,6 +175,7 @@ async function main() {
   let suites, sel;
   try { suites = selectSuites(opts.suite); sel = selectViewports(opts.vp); } catch (e) { console.error(`ui-check: ${e.message}`); return 2; }
 
+  installEmergencyStop(opts.keepStack);
   process.env.UI_CHECK_MODE = opts.mode;
   const id = runId();
   const t0 = Date.now();
@@ -157,11 +192,11 @@ async function main() {
     for (const s of suites) if (!hasSpecs(s)) console.log(`ui-check: suite ${s} has no specs yet — skipped`);
     let ran = false;
     if (projects.length) {
-      exit = Math.max(exit, playwright(projects, { workers: 4, grep, headed: opts.headed, env: childEnv }));
+      exit = Math.max(exit, await playwright(projects, { workers: 4, grep, headed: opts.headed, env: childEnv }));
       ran = true;
     }
     if (mpProjects.length) {
-      exit = Math.max(exit, playwright(mpProjects, { workers: 1, grep, headed: opts.headed, env: { ...childEnv, ...(ran ? { UI_CHECK_APPEND: '1' } : {}) } }));
+      exit = Math.max(exit, await playwright(mpProjects, { workers: 1, grep, headed: opts.headed, env: { ...childEnv, ...(ran ? { UI_CHECK_APPEND: '1' } : {}) } }));
       ran = true;
     }
     if (!ran) { console.error('ui-check: nothing to run'); exit = 2; }
