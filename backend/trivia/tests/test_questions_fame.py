@@ -43,6 +43,10 @@ class FameScoreTests(SimpleTestCase):
         for tier in (None, 0, "2", 9):
             self.assertEqual(fame.fame_band({"fame_tier": tier}), fame.OBSCURE, tier)
 
+    def test_unhashable_and_bool_tiers_are_ignored(self):
+        for tier in ([1], {"t": 1}, True, False):
+            self.assertEqual(fame.fame_band({"fame_tier": tier}), fame.OBSCURE, tier)
+
     def test_at_least(self):
         row = {"fame_tier": 2}
         self.assertTrue(fame.at_least(row, fame.KNOWN))

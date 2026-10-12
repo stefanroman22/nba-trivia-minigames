@@ -87,5 +87,7 @@ runtime nba_api calls are avoided). Everything ships as validated static JSON:
 4. Commit `backend/trivia/data/` — the `scripts/copy-data.mjs` step (runs on `dev`/`build`) ships them
    to `public/data/` and the CDN.
 5. **fame_tier is still editorial**: only the 159 originally hand-authored players carry tiers 1-3;
-   every generated row defaults to tier 4. The tier-gated games (Imposter, Who Are Ya) therefore
-   still draw from ~99 names even though the pool is 4,900.
+   every generated row defaults to tier 4. Who Are Ya, Contexto and Career Path no longer gate on
+   it: they use the computed fame score in `backend/trivia/questions/fame.py` (about 500 players are
+   KNOWN or better), with fame_tier only as a floor. Imposter and the other hidden games still draw
+   from the tier and so from ~99 names.

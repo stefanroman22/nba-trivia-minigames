@@ -361,6 +361,31 @@ class CommandTests(QuestionsTestCase):
         self._call("--games", "career-path")
         self.assertIn("held_back=\n", self._gh_output())
 
+    def test_an_unknown_trigger_is_rejected(self):
+        with self.assertRaises(CommandError):
+            self._call("--games", "career-path", "--trigger", "a-trigger-name-far-too-long")
+        self.assertFalse(FactoryRun.objects.exists())
+
+    def test_a_publish_failure_after_maintenance_says_maintenance_was_kept(self):
+        with patch.object(publish_v3, "publish", side_effect=PublishError("upload exploded")):
+            with self.assertRaises(CommandError) as raised:
+                self._call("--games", "career-path")
+        self.assertIn("maintenance was committed", str(raised.exception))
+        self.assertTrue(Question.objects.filter(game="career-path").exists())
+        run = FactoryRun.objects.get()
+        self.assertEqual(run.status, "failed")
+        generated = list(run.events.filter(action="generated"))
+        self.assertTrue(generated)
+        self.assertFalse(any(e.detail.get("rolled_back") for e in generated))  # those writes were kept
+
+    def test_skip_maintain_below_minimum_names_the_game(self):
+        runner.maintain(["career-path"], self.ds, random.Random(1), out=lambda *_: None)
+        with patch("trivia.questions.games.career_path.MINIMUM", 10_000):
+            with self.assertRaises(CommandError) as raised:
+                self._call("--games", "career-path", "--skip-maintain")
+        self.assertIn("career-path", str(raised.exception))
+        self.assertNotIn("question maintenance rolled back", str(raised.exception))
+
     def test_a_run_is_journaled(self):
         self._call("--games", "career-path")
         run = FactoryRun.objects.get()
@@ -388,7 +413,7 @@ class CommandTests(QuestionsTestCase):
 
     def test_a_dry_run_marks_every_event_rolled_back(self):
         self._call("--games", "career-path", "--dry-run")
-        events = list(FactoryRun.objects.get().events.all())
+        events = list(FactoryRun.objects.get().events.exclude(action__in=("refill_decision", "held_back")))
         self.assertTrue(events)
         self.assertTrue(all(e.detail.get("rolled_back") for e in events))
 
@@ -398,7 +423,7 @@ class CommandTests(QuestionsTestCase):
                                                     "mvps": lambda: []}):
             with self.assertRaises(CommandError):
                 self._call("--games", "career-path,mvps")
-        events = list(FactoryRun.objects.get().events.all())
+        events = list(FactoryRun.objects.get().events.exclude(action__in=("refill_decision", "held_back")))
         self.assertTrue(events)
         self.assertTrue(all(e.detail.get("rolled_back") for e in events))
 

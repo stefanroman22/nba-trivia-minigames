@@ -572,7 +572,12 @@ def default_builders(read_only=False, maintained=None, dataset=None):
 
 def with_question_names(games):
     """``games`` plus the question names list whenever a question game is in it,
-    so names always match the dataset the questions were materialized against."""
+    so names always match the dataset the questions were materialized against.
+
+    Exception: a game held back by publish_game_data_v3 (below its minimum) keeps
+    its live files while the names list is rebuilt, so a guess for a player who
+    left the dataset cannot be scored in that game until it is repaired. That is
+    why a held-back game turns the publish workflow red: treat it as urgent."""
     games = list(games)
     if any(g in QUESTION_GAMES for g in games) and QNAMES_GAME not in games:
         games.append(QNAMES_GAME)

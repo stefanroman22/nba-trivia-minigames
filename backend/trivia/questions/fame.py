@@ -35,7 +35,9 @@ def fame_score(row):
 def fame_band(row):
     score = fame_score(row)
     band = next((b for b, t in THRESHOLDS if score >= t), OBSCURE)
-    return min(band, _TIER_FLOOR.get(row.get("fame_tier"), OBSCURE))
+    tier = row.get("fame_tier")
+    floor = _TIER_FLOOR.get(tier, OBSCURE) if type(tier) is int else OBSCURE  # not bool, not unhashable
+    return min(band, floor)
 
 
 def at_least(row, band):
