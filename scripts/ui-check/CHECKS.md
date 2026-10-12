@@ -42,13 +42,36 @@ because two sockets of one user displace each other in the relay and Django thro
 
 ## Smoke (temporary)
 
-Stack and persona smoke checks from Task 2. Tasks 3 and 4 replace them with the real suites.
+Persona smoke check from Task 2. Task 4 replaces it with the real account suite.
 `node scripts/ui-check/catalog.mjs` checks that every ID in the specs is listed in this file once.
 
 | ID | proves |
 |---|---|
-| `G-SMOKE` | The home page loads for a guest on the local stack, with a clean layout scan and no console errors. |
 | `AC-SMOKE` | The solo persona's minted session is restored on load. The nav shows that user's avatar chip and no Log in button, and the restore call (`/api/me/` or `token/refresh/`) answered 200. |
+
+## Guest (G-)
+
+Logged out, all 7 viewports. Specs are in `specs/guest/`, locators in `pagemap/guest.json`, helpers in
+`lib/guest.mjs`, the game list in `lib/games-catalog.mjs` (parsed from `src/utils/GameUtils.tsx`).
+Hard failures also include the check-specific rules named below. Learnings: `notes/guest.md`.
+
+| ID | proves |
+|---|---|
+| `G-LAYOUT-01` | `/`, `/privacy`, `/terms`, `/coming-soon`, `/profile`, `/admin`, the 404 page and the idle screen of each of the 11 playable games pass the layout scan (overflow-x, offscreen, clipped, occluded, tap-target); `.app-shell` and `main.page` exist on real pages (`shell-missing`); one idle shot per route. |
+| `G-LAYOUT-02` | `/`, `/privacy` and a game scroll to the bottom with the footer fully visible (`footer-reach`), the sticky nav stays at top 0 on every step (`sticky-nav`), the page never scrolls sideways and nothing sticks out sideways. |
+| `G-NAV-01` | Desktop: Games scrolls to the grid, Leaderboard / Feedback / Log in open their modals, Games from a game page routes home to the grid, the brand goes home, no Admin link. At 900px and below: the drawer closes with an animation (a part-way frame), Escape closes it and returns focus to the hamburger, every drawer item works and closes it, drawer Games from a game page routes home. |
+| `G-NAV-02` | Footer: one Games link per playable game with the right href (and it opens), Terms and Privacy open their pages, Contact is a `mailto:` link. |
+| `G-NAV-03` | Game page rail (above 820px) or chips (820px and below) list every visible game in catalogue order, "coming-soon" is disabled, each item switches to its game with the page fade (dips below 0.9, returns to 1, one dip only), the active item follows. |
+| `G-NAV-04` | Landing grid: one card per visible game; the search narrows the grid within 400ms and clearing restores it within 1s; a no-match query shows the empty line; each playable card links to and opens its game; "coming-soon" is disabled. |
+| `G-MODAL-01` | Login, feedback, leaderboard, instructions and multiplayer-info modals, each closed once with Escape and once with the X: exactly one `.modal-backdrop` holding exactly one `.modal-panel`; animated entrance and exit (at least one part-way opacity frame, so an instant mount or unmount fails); focus moves in on open and back to the trigger on close; `body` scroll is locked while open and released after; z-index fab 35 / nav 40 / modal 60 / drawer 70; the open modal passes the layout scan. |
+| `G-MOTION-01` | Hard load of a game has no entrance animation; card, brand and hero-CTA navigations fade the template wrapper out and back in to 1 with one dip (UI-14), with no snap, CLS or long frame while it runs. |
+| `G-MOTION-02` | The login modal's Log in / Sign up tabs: exactly one `.seg-thumb`, it slides (at least one frame between the start and end positions), the panel and form show no snap. (Leaderboard Global/Friends tabs need a signed-in user and belong to the account suite.) |
+| `G-MOTION-03` | With reduced motion: `.hero-grain` has `animation-name: none`, the hero button does not move on hover, no hydration warning on `/` or a game. |
+| `G-PERF-01` | TTFB, FCP, LCP, CLS and long frames recorded for `/` and a game (budgets enforced in prod: TTFB 800ms, LCP 2500ms, CLS 0.1); click-to-content latency for card -> game, rail/chip -> game and brand -> home is at most 1000ms in prod. |
+| `G-PERM-01` | `/admin` for a guest shows "Admins only" and "Back to the games", no admin tabs or tables, no Admin nav or drawer link, makes no `/api/admin/` call; every `/api/admin/*` endpoint answers 401 or 403 with no token and with a bogus token (`admin-api-open`). |
+| `G-PERM-02` | Each hidden game slug and `/definitely-not-a-route` answer HTTP 404 with the 404 page (`hidden-route`); no hidden game appears in the landing grid, rail, chips or footer (`hidden-listed`). |
+| `G-PERM-03` | `/profile` for a guest shows "Log in to see and manage your profile." and no account controls; online-capable game pages show "Log in to play online" and neither Play 1v1 nor Play with a friend; no websocket or `socket.io` request is made (`guest-socket`). |
+| `G-A11Y-01` | axe (WCAG 2.0 A/AA, 2.1 AA, 2.2 AA): no serious or critical issues on `/`, `/privacy`, a game idle screen and the open login modal. |
 
 ## Selftest
 
