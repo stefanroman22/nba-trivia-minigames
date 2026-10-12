@@ -123,3 +123,12 @@ jobs:
             echo "::warning::vars.DATA_PUBLIC_BASE is not set; verifying against the deployment URL $DEPLOY_URL. Set it to the data host's production URL."
           fi
           python backend/scripts/verify_game_data.py --base "$base" --report build/game-data-report.json
+
+      - name: Fail if a game was held back
+        if: steps.build.outputs.held_back != ''
+        shell: bash
+        env:
+          HELD_BACK: ${{ steps.build.outputs.held_back }}
+        run: |
+          echo "::error::Held back at their last published version (below minimum): $HELD_BACK. Every other game was published."
+          exit 1

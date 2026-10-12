@@ -313,14 +313,53 @@ class CommandTests(QuestionsTestCase):
                             "--previous", os.path.join(self.out, "manifest.json"))
         self.assertIn("nothing to publish", output)
 
-    def test_minimum_gate_aborts_with_nothing_published_and_rolls_back(self):
+    def _gh_output(self):
+        with open(os.path.join(self.tmp, "gh-output"), encoding="utf-8") as f:
+            return f.read()
+
+    def test_a_game_below_minimum_is_held_back_and_the_rest_publish(self):
         with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
-            with self.assertRaises(CommandError) as ctx:
-                self._call("--games", "career-path,contexto")
-        self.assertIn("contexto", str(ctx.exception))
-        self.assertIn("rolled back", str(ctx.exception))
+            output = self._call("--games", "career-path,contexto")
+        self.assertIn("contexto held back", output)
+        manifest = _load(self.out, "manifest.json")
+        self.assertIn("career-path", manifest["games"])
+        self.assertNotIn("contexto", manifest["games"])
+        self.assertEqual(Question.objects.filter(game="contexto").count(), 0)  # its writes rolled back
+        self.assertTrue(Question.objects.filter(game="career-path").exists())
+        self.assertIn("held_back=contexto\n", self._gh_output())
+
+    def test_a_held_back_game_keeps_its_live_entry(self):
+        self._call("--games", "career-path,contexto")
+        live = _load(self.out, "manifest.json")
+        row = Question.objects.filter(game="career-path", status="active").first()
+        row.status = "retired"  # forces a career-path change so the second run publishes
+        row.save()
+        second = os.path.join(self.tmp, "second")
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            call_command("publish_game_data_v3", "--out", second, "--rng-seed", "8",
+                         "--games", "career-path,contexto",
+                         "--previous", os.path.join(self.out, "manifest.json"), stdout=StringIO())
+        manifest = _load(second, "manifest.json")
+        self.assertEqual(manifest["games"]["contexto"], live["games"]["contexto"])
+        self.assertNotEqual(manifest["games"]["career-path"], live["games"]["career-path"])
+
+    def test_dry_run_reports_a_held_back_game_and_writes_nothing(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            output = self._call("--games", "career-path,contexto", "--dry-run")
+        self.assertIn("contexto held back", output)
         self.assertFalse(os.path.exists(self.out))
-        self.assertEqual(Question.objects.count(), 0)  # career-path's top-up rolled back too
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_every_question_game_held_back_still_exits_cleanly(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000), \
+             patch("trivia.questions.games.career_path.MINIMUM", 10_000):
+            self._call("--games", "career-path,contexto")
+        self.assertIn("held_back=career-path,contexto\n", self._gh_output())
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_no_held_back_games_writes_an_empty_output(self):
+        self._call("--games", "career-path")
+        self.assertIn("held_back=\n", self._gh_output())
 
     def test_a_failing_pool_game_rolls_the_maintenance_back(self):
         with patch.object(publish_v3, "default_builders",

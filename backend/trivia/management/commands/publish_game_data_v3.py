@@ -13,7 +13,10 @@ contexto, plus their names list question-names, added automatically with any of
 them). For the question games the run first does the question maintenance
 (trivia/questions/runner.maintain: re-materialize, retire, top up, minimum gate)
 against the committed curated dataset, in ONE transaction with every game's
-build: a gate or build failure rolls the maintenance back and writes nothing.
+build: a build failure rolls the maintenance back and writes nothing. A game
+below its minimum is held back instead (its own writes rolled back, left out of
+the publish so its live entry carries over) and reported as held_back=<games> in
+$GITHUB_OUTPUT.
 ``--skip-maintain`` publishes the current active questions instead (read-only).
 ``--no-commit`` writes the folder but rolls the DB writes back (workflow dry runs).
 
@@ -90,13 +93,20 @@ class Command(BaseCommand):
             # Maintenance and every game's build share one transaction: the minimum
             # gate or any build/validation failure rolls the question writes back.
             with transaction.atomic():
-                maintained, dataset = {}, None
+                maintained, dataset, held_back = {}, None, []
                 if to_maintain:
                     dataset = publish_v3.curated_dataset()
                     self.stdout.write(f"Question maintenance ({', '.join(to_maintain)}) against dataset "
                                       f"{dataset.version}: {len(dataset.playable)} playable players")
-                    maintained, _ = runner.maintain(to_maintain, dataset, random.Random(opts["rng_seed"]),
-                                                    out=self.stdout.write)
+                    maintained, stats = runner.maintain(to_maintain, dataset, random.Random(opts["rng_seed"]),
+                                                        out=self.stdout.write, isolate=True)
+                    # A game below its minimum is held back: left out of this publish so
+                    # its live manifest entry carries over, while every other game ships.
+                    held_back = sorted(slug for slug, s in stats.items() if "held_back" in s)
+                    games = [g for g in games if g not in held_back]
+                    for slug in held_back:
+                        self.stdout.write(self.style.WARNING(
+                            f"  warning: {slug} held back at its live version: {stats[slug]['held_back']}"))
                 builds = publish_v3.build_games(
                     games, publish_v3.default_builders(maintained=maintained, dataset=dataset))
                 if rollback:
@@ -114,7 +124,8 @@ class Command(BaseCommand):
             raise CommandError(f"Publish aborted, nothing written: {e}") from e
 
         self._print_table(report)
-        _github_output({"result": report["result"], "version": report["version"] or ""})
+        _github_output({"result": report["result"], "version": report["version"] or "",
+                        "held_back": ",".join(held_back)})
         _github_summary(report)
         if report["result"] == "nothing-to-publish":
             self.stdout.write(self.style.SUCCESS("nothing to publish"))
