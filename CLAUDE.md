@@ -69,6 +69,13 @@ The only stops beyond "wait for an explicit promote ask" are the standing ones: 
 costs money, a secret you don't have, and deleting data you didn't create. Merge only what
 actually works — a known error is a blocker.
 
+**Exception — game data from the question factory (owner, 2026-10-12).** The question factory may
+publish game data (questions, answer lists, data corrections) to production on its own schedule,
+**only** after the dedicated Checker agent has approved each item
+(`docs/superpowers/specs/2026-10-12-question-factory-design.md` §4.12). Until the Checker exists,
+game-data publishing stays manual. Code changes are never covered by this: they still need the
+owner's promote.
+
 ## Building or touching any game's UI — read this first
 **`docs/GAME_DESIGN_CONSTRAINTS.md` is mandatory reading before writing or reviewing any game
 renderer** (`src/Game Renderers/*.tsx`). It defines the shared shell every game must fit into

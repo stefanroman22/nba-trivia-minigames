@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-12 (v2, same day: adds self-healing, storage at scale, the run journal and
 the improvement loop, at the owner's request)
-**Status:** design, ready for phase 1
+**Status:** design with the owner's decisions recorded (§6), ready for phase 1
 **Scope:** how every game gets new, correct, interesting and consistent questions forever,
 finds and repairs its own mistakes, keeps its storage small, and records everything it does so
 a reviewing agent can make it better. Covers the 11 visible games and any game added later.
@@ -93,15 +93,20 @@ where they demonstrably help, and keep each model step small and checkable.
    that validates and applies them; that workflow already holds the DB secret.
 8. **Everything is journaled.** Every decision is written down with its reason, its numbers and,
    for model steps, its rationale and sources.
+9. **Nothing reaches production unchecked.** Every new or changed question passes a dedicated
+   Checker agent whose only job is validity (§4.12) before the machine may publish it. This is
+   the owner's condition for autonomous publishing (2026-10-12).
 
 ## 4. The machine: four loops
 
 ```
- SUPPLY (weekly)            DOCTOR (nightly scan + weekly research)
- count runway ─► generate   signals ─► quarantine ─► research online ─► verdict ─► act
- ─► gates ─► publish                                                    (fix data / fix
-        │                                                                question / retire)
-        ▼                               ▼
+ SUPPLY (weekly)              DOCTOR (nightly scan + weekly research)
+ count runway ─► generate     signals ─► quarantine ─► research online ─► verdict ─► act
+ ─► code gates ─► PENDING                                                 (fix data / fix
+        │                                                                  question / retire)
+        ▼
+ CHECKER (daily): validity only ─► approve ─► publish   |  reject ─► doctor  |  unsure ─► wait
+        │                               ▼
  ┌───────────────── JOURNAL (every run, every decision) ─────────────────┐
  └────────────────────────────────┬──────────────────────────────────────┘
                                   ▼
@@ -123,8 +128,14 @@ GitHub Actions, code only (the Claude part for editorial games is §4.6):
    their target share first.
 5. **Hard gates** (code): facts against the dataset, solvable, not ambiguous, not a duplicate or
    near-duplicate, inside consistency limits. A rejected candidate is journaled with the failed gate.
-6. **Publish each game separately** (§4.5).
+6. **Stage, don't publish.** New and changed questions get status `pending`. Only the Checker
+   (§4.12) moves them to `active`; the publish step (§4.5, each game separately) ships `active`
+   questions only. Until the Checker exists (phase 4), new questions are published by the owner's
+   manual run as today.
 7. **Gap report**: coverage holes it could not fill, games bound by capacity, data it would need.
+
+Question statuses after this design: `pending` (built, waiting for the Checker), `active`
+(published), `quarantined` (pulled from play, waiting for the doctor), `retired`.
 
 ### 4.2 Fame score (phase 1)
 
@@ -178,7 +189,7 @@ One JSON file per game, `backend/trivia/questions/specs/<slug>.json`, loaded and
 ```
 
 - **Difficulty** (0 = easiest) is a weighted sum of normalized features the module computes.
-  The owner sets weights, band edges and mix. Phase 6 recalibrates the weights from real solve
+  The owner sets weights, band edges and mix. Phase 7 recalibrates the weights from real solve
   rates (§4.8).
 - **Interest** is a separate score: a question can be easy and dull, or hard and great. Each
   module defines its features. Career Path: at least one memorable stop (a title, an All-Star
@@ -217,7 +228,7 @@ build). The command writes `held_back=<games>` to `$GITHUB_OUTPUT`, and the work
 fails when that is non-empty: the run is red, but everything else has shipped. The legacy
 `runner.run` (Supabase snapshot, hidden games) keeps all-or-nothing.
 
-### 4.6 Editorial games (phase 5)
+### 4.6 Editorial games (phase 6)
 
 Fan Favorites, Connections and Who Would Win need ideas a generator cannot have.
 
@@ -228,10 +239,10 @@ Fan Favorites, Connections and Who Would Win need ideas a generator cannot have.
   evaluates it to get the complete answer set and rejects empty, oversized or unanswerable rules.
   Who Would Win is a vote: Claude proposes notable team-season pairs, and code checks that both
   sides exist (`playoff.json` season + franchise) and that the pair is new.
-- **Author and verifier.** The author subagent proposes. The verifier subagent sees only the
-  proposal and the dataset (never the author's reasoning) and approves, rejects with a reason, or
-  asks for one revision.
-- **Delivery.** Approved items go to the factory inbox (§4.10). The inbox workflow runs the hard
+- **Author and Checker.** The author subagent proposes. The Checker (§4.12) is the verifier: it
+  sees only the finished question (never the author's reasoning) and approves or rejects it with
+  a reason; the author gets one revision.
+- **Delivery.** Approved items go to the factory inbox (§4.9). The inbox workflow runs the hard
   gates again before anything reaches the DB, so a model can never write content that fails them.
 - **Skill.** `.claude/skills/nba-question-writer` becomes the factory skill: `SKILL.md` gets the
   author, verifier and doctor workflows, and `references/games/<slug>.md` stays the per-game
@@ -263,9 +274,10 @@ day of activity, regardless of player count.
 **Cleanup (nightly, code).**
 - Raw `GuessLog` older than the window is deleted only **below the roll-up watermark**. A row is
   never deleted before it has been counted.
-- The window starts at today's 365 days (privacy policy). **Owner decision:** cut it to 30 days
-  once roll-ups have run for a month. That is privacy-positive, keeps the DB small at any scale,
-  and requires the policy text to change in the three places `retention.py` names.
+- The window starts at today's 365 days (privacy policy). **Approved by the owner 2026-10-12:**
+  cut it to 30 days once roll-ups have run for a month. That is privacy-positive and keeps the DB
+  small at any scale. The change touches the three places `retention.py` names
+  (`GUESS_LOG_DAYS`, `src/app/privacy/page.tsx`, `docs/legal/RECORD_OF_PROCESSING.md`) in one commit.
 - Retired questions older than 180 days are compacted: `definition`, `quality` and
   `players_referenced` are emptied; `game`, `qid`, `content_hash`, `retired_reason` and dates stay.
   The generator only needs the hash (dedupe) and Contexto only the secret and day (kept in a
@@ -279,7 +291,7 @@ day of activity, regardless of player count.
 aliases: when many different players type the same "wrong" answer, either the answer list is
 incomplete or our data is wrong.
 
-### 4.8 Journal and improvement loop (journal phase 1, review phase 4)
+### 4.8 Journal and improvement loop (journal phase 1, review phase 5)
 
 **Journal tables.**
 
@@ -307,14 +319,16 @@ steps it also holds the rationale and the source URLs. Events are collected in m
 
 | KPI | Target |
 |---|---|
-| Audit error rate (random audit, §4.9) | < 1% |
+| Audit error rate (random audit of live questions, §4.9) | < 1% |
+| Checker miss rate (questions it approved that a later audit or the doctor found wrong) | < 0.5% |
+| Checker "unsure" share and median time from `pending` to `active` | tracked; unsure < 10% |
 | Questions quarantined per week / false-alarm share | tracked; false alarms < 30% |
 | Runway per game | ≥ the spec's `runway_days` |
 | Difficulty calibration (solve rate monotonic easy → hard) | holds for every game with ≥ 300 answers |
 | Coverage cells empty | trending down |
 | Held-back games per run | 0 |
 
-### 4.9 Doctor loop: find, research and repair broken questions (phase 4)
+### 4.9 Doctor loop: find, research and repair broken questions (phase 5)
 
 **Signals (nightly scan, code).**
 
@@ -324,7 +338,7 @@ steps it also holds the rationale and the source URLs. Events are collected in m
 | Solve-rate anomaly | ≥ 30 attempts and solve rate < 3%, or far below its difficulty band's norm |
 | Wrong-answer cluster | the same wrong answer from ≥ 5 distinct players and ≥ 15% of a question's wrong answers |
 | Player report | a "Report a problem" button on the answer reveal (new; stored as `Feedback` with `qid`) |
-| Random audit | 20 random live questions per week, fact-checked even with no signal |
+| Random audit | 20 random live questions per week, re-checked by the Checker (§4.12) even with no signal |
 
 **Quarantine.** A strong signal (≥ 3 reports, or a solve-rate anomaly together with a
 wrong-answer cluster) sets the question to the new status `quarantined` immediately. Quarantined
@@ -338,7 +352,7 @@ before a fact counts. It returns a verdict with its rationale and the source URL
 
 | Verdict | Best course of action | Automatic? |
 |---|---|---|
-| Our data is wrong (2 sources agree) | add a **data correction** (below), re-materialize every question that uses the fact, release from quarantine | yes |
+| Our data is wrong (2 sources agree) | propose a **data correction** (below); once the Checker confirms it, apply it, re-materialize every question that uses the fact, release from quarantine | yes |
 | Answer list incomplete (Fan Favorites, grids) | add the missing answers, computed by code from the corrected rule | yes |
 | Correct answer typed differently | add an alias | yes |
 | Question is fine, just hard or easy | move it to the right difficulty band, release | yes |
@@ -360,11 +374,10 @@ that push validates each file against a schema, re-runs the hard gates, applies 
 journals everything, deletes the processed files, and triggers a publish. Anything that fails
 validation is journaled as `rejected` with the reason.
 
-**Routine setup the owner does once.** Add `www.basketball-reference.com`, `www.nba.com` and
-`en.wikipedia.org` to the cloud routine's network allowlist (today it allows Notion and Slack only).
-No new secret is needed.
+The doctor researches only on the approved reference sites, under the same safe-use rules as the
+Checker (§4.12). No new secret is needed.
 
-### 4.10 Contexto similarity v2 (phase 6)
+### 4.10 Contexto similarity v2 (phase 7)
 
 Today `similarity.py` v1 uses hand weights (franchise-season Jaccard 35, era 20, position 15,
 country 10, draft pick 10, awards 10), frozen by a golden test and never checked against anyone's
@@ -382,24 +395,80 @@ sense of "similar". v2:
 - **Learning:** the doctor's solve-rate and guess-path data (how many guesses it took) show which
   secrets were unfair; the review loop proposes weight changes, which must still pass the anchors.
 
-### 4.11 New data that unlocks capacity (phase 6)
+### 4.11 New data that unlocks capacity (phase 7)
 
 - **Award seasons** for Guess the MVP's format: Finals MVP, ROY, DPOY, Sixth Man, MIP, All-Star
   Game MVP, Coach of the Year, scoring champion (~480 seasons beyond the 71 MVPs).
-- **Team history:** former names, relocations, defunct franchises, team-seasons. Historical logos
-  are trademarks we would hotlink, so that part is an owner decision first.
+- **Team history:** former names, relocations, defunct franchises, team-seasons. **Historical
+  logos approved by the owner 2026-10-12** for Name the Logo, served the same way as today's
+  current logos. They are trademarks, so the source of each logo file is recorded with it.
+
+### 4.12 The Checker: one agent whose only job is validity (phase 4)
+
+The owner's condition for autonomous publishing: a dedicated agent that does nothing but check
+that questions are valid. It does not generate, fix, tune or publish. It decides.
+
+**What it checks.** Every `pending` question (new, changed, or re-materialized with a different
+answer), every editorial proposal, the doctor's corrections before they apply, and the weekly
+random audit of live questions.
+
+**What it sees.** The question exactly as a player will see it, plus its accepted answers. It does
+**not** see how the question was made: no generator, no author's reasoning, no doctor's verdict.
+An independent check is only independent if it starts from the question.
+
+**What it does, per question.**
+1. List every factual claim the question and its answers depend on (a draft pick, a stint, an award
+   year, "these 9 players have 3+ MVPs and nobody else does").
+2. Check each claim against the approved reference sites below.
+3. For answer lists, check completeness: no valid answer is missing.
+4. Check that the wording has exactly one reading.
+5. Return `valid`, `invalid` or `unsure`, with the claim-by-claim evidence and source URLs.
+
+| Verdict | Rule | What happens |
+|---|---|---|
+| `valid` | every claim confirmed by an approved source; none contradicted; answer list complete | `pending` → `active`; published in the next publish |
+| `invalid` | any claim contradicted by an approved source | stays out of play; handed to the doctor with the evidence |
+| `unsure` | a claim could not be confirmed either way | stays `pending`, retried next run; after the second `unsure` it goes to Slack for the owner |
+
+**How it runs.** A daily cloud routine (Opus) with the `nba-question-writer` skill's Checker
+workflow. It sends verdicts through the inbox (§4.9); the inbox workflow applies them and triggers
+the publish. Throughput is capped per run (start with 150 questions), taking games with the
+shortest runway first, so a big batch is released over several days instead of being rushed.
+
+**Approved reference sites (owner, 2026-10-12)** and safe-use rules:
+
+| Site | Used for |
+|---|---|
+| `www.basketball-reference.com` | stats, stints, awards, drafts, playoff series |
+| `www.nba.com` | official history, awards, team pages |
+| `en.wikipedia.org` | cross-check, franchise history, award lists |
+| `www.espn.com` | second source for recent seasons and transactions |
+
+- Read-only `GET` of the specific pages a check needs. No bulk crawling, no downloading datasets.
+- At most 20 requests a minute per site (Sports Reference's published limit, applied to all four),
+  and pages are cached for the run so the same page is never fetched twice.
+- Facts are used only to confirm or reject our own data. Their text, tables and images are never
+  copied into questions.
+- These four domains are the routine's whole web allowlist (plus Notion, Slack and GitHub, which
+  the pipeline already uses). Adding a site is an owner decision recorded here.
+
+**The Checker is checked too.** Every question it passes and something later finds wrong (the random
+audit, the doctor, a player report confirmed true) counts against its miss rate, a KPI in §4.8.
+The review loop reads those misses and proposes changes to the Checker's workflow.
 
 ## 5. When things run
 
-There is no cron per game. Five schedules cover everything:
+There is no cron per game. These schedules cover everything:
 
 | When | What | Where | Model? |
 |---|---|---|---|
 | Nightly | roll-ups → cleanup → doctor signal scan (and quarantine) | GitHub Actions | no |
-| Weekly (Mon) | supply run: re-materialize, refill, gates, publish | GitHub Actions | no |
+| Weekly (Mon) | supply run: re-materialize, refill, code gates → `pending` | GitHub Actions | no |
 | After a data refresh | the supply run, once | GitHub Actions | no |
-| Weekly (Tue) | doctor research + random audit → inbox → publish | cloud routine + inbox workflow | yes |
-| Weekly (Wed) | editorial author/verifier → inbox → publish | cloud routine + inbox workflow | yes |
+| Daily | **Checker**: `pending` questions + proposals + corrections → inbox → publish what it approved | cloud routine + inbox workflow | yes |
+| Weekly (Tue) | doctor research → inbox (corrections go through the Checker) | cloud routine + inbox workflow | yes |
+| Weekly (Wed) | editorial author → `pending` (the Checker approves) | cloud routine + inbox workflow | yes |
+| Weekly (Thu) | random audit of 20 live questions by the Checker | cloud routine | yes |
 | Every 2 weeks | improvement review → report, cards, PRs | cloud routine (Fable/Opus, high effort) | yes |
 
 All model work runs on the Max subscription; GitHub Actions stays within free minutes at this size.
@@ -408,18 +477,20 @@ All model work runs on the Max subscription; GitHub Actions stays within free mi
 
 | Runs alone | Waits for the owner |
 |---|---|
-| Generating, gating and publishing question data | Promoting **code** changes to production |
+| Generating and gating questions; publishing what the Checker approved | Promoting **code** changes to production |
 | Quarantining, retiring and releasing questions | Anything that costs money (a bigger Supabase plan, paid APIs) |
-| Data corrections backed by 2 sources | Verdicts where sources disagree (posted to Slack with evidence) |
-| Adding answers and aliases, re-banding difficulty | Changing the privacy retention periods (policy text) |
+| Data corrections backed by 2 sources and approved by the Checker | Verdicts where sources disagree, and second `unsure` from the Checker (posted to Slack with evidence) |
+| Adding answers and aliases, re-banding difficulty | Adding a site to the approved reference list |
 | Roll-ups, cleanup and compaction | Approving the Contexto anchor set |
-| Opening task cards and tuning PRs to `dev` | Historical logos (trademark question) |
+| Opening task cards and tuning PRs to `dev` | |
 
-**Standing authorization needed.** Today `CLAUDE.md` says production changes happen only on an
-explicit ask, and the publish workflow is manual with `dry_run` on by default. For the machine to
-be autonomous, the owner grants once: *"The question factory may publish game data (questions,
-corrections, answer lists) to production on its own schedule. Code changes still need my
-promote."* Phase 3 records this in `CLAUDE.md` and gives the publish workflow its schedules.
+**Owner decisions (2026-10-12).**
+1. **Autonomous publishing of game data is authorized, on one condition:** a dedicated Checker
+   agent whose only goal is question validity approves everything first (§4.12). Recorded in
+   `CLAUDE.md`. Until the Checker ships (phase 4), publishing stays manual as today.
+2. **Raw answer retention goes to 30 days** once roll-ups have run for a month (§4.7).
+3. **The Checker and the doctor may use the approved reference sites** in §4.12, under its safe-use rules.
+4. **Historical logos are approved** for Name the Logo (§4.11).
 
 ## 7. Phases
 
@@ -427,10 +498,11 @@ promote."* Phase 3 records this in `CLAUDE.md` and gives the publish workflow it
 |---|---|---|
 | **1** | Fame score; Who Are Ya, Contexto, Career Path on fame bands; per-game publish isolation; **run journal** (`FactoryRun`, `FactoryEvent`) for supply runs | Tests green on `dev`; a dry-run publish shows Who Are Ya ≈501, Career Path 500 with the obscure picks retired, Contexto ≥ 60 days ahead, and a journaled run. **In production before 2026-11-20.** |
 | 2 | Spec files; difficulty, interest and coverage scores; over-generate-and-select; near-duplicate and consistency gates; gap report | Every active question has a difficulty band and interest score; mix within 5 points of spec |
-| 3 | Answer logging in all games; roll-ups and cleanup; demand-driven targets; seen tracking; scheduled publishing (after the owner's authorization) | No repeat until a player has seen the whole pool; raw logs below the watermark cleaned nightly |
-| 4 | Doctor: signals, quarantine, "Report a problem", research routine, verdicts, `DataCorrection`, the inbox; `factory_digest` and the improvement review | A planted wrong fact is quarantined, researched, corrected and republished with no human step |
-| 5 | Editorial factory: DB-authoritative content, rule language, author/verifier; Fan Favorites → Who Would Win → Connections | A routine run lands new content through the inbox that passes every gate |
-| 6 | Contexto similarity v2 + anchors; difficulty recalibration from solve rates; award seasons; team history | All anchors hold; calibration KPI holds; Guess the MVP ≥ 500 seasons |
+| 3 | Answer logging in all games; roll-ups and cleanup (then the 30-day window); demand-driven targets; seen tracking | No repeat until a player has seen the whole pool; raw logs below the watermark cleaned nightly |
+| 4 | **The Checker**: `pending` status, the inbox, the daily Checker routine with the reference-site allowlist, scheduled publishing of approved questions | A planted wrong question is rejected and a correct one is published with no human step; Checker KPIs in the journal |
+| 5 | Doctor: signals, quarantine, "Report a problem", research routine, verdicts, `DataCorrection`; `factory_digest` and the improvement review | A planted wrong fact is quarantined, researched, corrected, re-checked and republished with no human step |
+| 6 | Editorial factory: DB-authoritative content, rule language, author + Checker; Fan Favorites → Who Would Win → Connections | A routine run lands new content that the Checker approved and that passes every gate |
+| 7 | Contexto similarity v2 + anchors; difficulty recalibration from solve rates; award seasons; team history with historical logos | All anchors hold; calibration KPI holds; Guess the MVP ≥ 500 seasons |
 
 Each phase gets its own implementation plan in `docs/superpowers/plans/` when it starts.
 
@@ -441,7 +513,10 @@ Each phase gets its own implementation plan in `docs/superpowers/plans/` when it
 | Widening a pool retires live questions | Fame bands use the tier as a floor, so new rules are supersets; only Career Path retires on purpose and refills in the same run |
 | A bad fame weight floods a game with unknowns | Shipped-data calibration test pins band sizes and named anchors |
 | The doctor "corrects" a true fact | Two independent sources required; corrections are switchable rows; every change journaled with sources; random audits measure the error rate |
-| A model writes a bad question or answer | Models never write answers; the inbox re-runs every hard gate; the verifier is a separate context |
+| A model writes a bad question or answer | Models never write answers; the inbox re-runs every hard gate; the Checker is a separate agent that never sees how a question was made |
+| The Checker approves something wrong | It needs a confirming source for every claim; random audits and the doctor measure its miss rate; the review loop tunes its workflow |
+| The Checker blocks supply (too many `unsure`) | Live questions stay live while new ones wait; runway is measured on `active` questions, so a slow Checker shows up as falling runway in the journal long before a game runs dry |
+| A reference site rate-limits or changes its pages | 20 requests a minute per site, page cache per run, four sites to fall back on; an unreachable claim is `unsure`, never `valid` |
 | Cleanup deletes data the machine still needs | Raw rows deleted only below the roll-up watermark; compaction keeps hashes and Contexto history; a test asserts identical generator output before and after |
 | Isolation hides a broken game | Red workflow step + `held_back` in the journal + daily freshness check |
 | Feedback loops (tuning chases noise) | Review changes need ≥ 300 answers of evidence and land as reviewed PRs, never direct edits |
@@ -456,6 +531,9 @@ Legacy `backend/trivia/games/*` modules (pre-question-store builders used by tes
 
 ## 10. Decisions
 
+- **The Checker is its own agent, separate from the doctor and the author.** The owner made a
+  validity-only agent the condition for autonomous publishing. Keeping it apart from the agents
+  that make or repair questions means no agent ever approves its own work.
 - **No agent or skill per game.** The shared steps are most of the work; per-game agents would
   duplicate and drift. Per-game knowledge lives in spec files (numbers) and per-game skill pages (prose).
 - **Fame is computed, not stored.** The row schema is frozen, and a computed score re-ranks itself
