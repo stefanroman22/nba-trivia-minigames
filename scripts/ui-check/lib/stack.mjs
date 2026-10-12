@@ -336,11 +336,12 @@ export async function ensureStack(mode = 'prod') {
     } catch (e) {
       // Django that never answered (or died while booting): kill that process and start it once more.
       const dead = booting(ports.django);
-      log(`django :${ports.django} did not come up (${String(e.message).slice(0, 120)}) — restarting it once`);
-      if (dead) {
-        killTree(dead);
-        for (const list of [known, started]) { const i = list.indexOf(dead); if (i >= 0) list.splice(i, 1); }
+      if (!dead) {
+        throw new Error(`django :${ports.django} is not ours (not started by ui-check) and failed its health check: ${String(e.message).slice(0, 200)} - stop whatever listens on that port; ui-check will not start a second server on it`);
       }
+      log(`django :${ports.django} did not come up (${String(e.message).slice(0, 120)}) — restarting it once`);
+      killTree(dead);
+      for (const list of [known, started]) { const i = list.indexOf(dead); if (i >= 0) list.splice(i, 1); }
       spawnDjango();
       await waitForUrl(`${api}/health/`, 150_000, booting(ports.django));
     }

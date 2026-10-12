@@ -26,7 +26,7 @@ const PERF_BUDGETS = { ttfb: 800, lcp: 2500, cls: 0.1 };
 const AUTO_CROPS_PER_CALL = 3;
 const AUTO_CROPS_PER_AUDIT = 12;
 /** Soft rules: recorded as audit.warnings (same shape as violations), never make done() throw. */
-export const SOFT_RULES = new Set(['tap-target-touch']);
+export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-explained']);
 
 /** `[G-HOME] home layout` → 'G-HOME'. */
 export function checkIdOf(title) {
@@ -151,7 +151,9 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
         const els = document.querySelectorAll('button, input, a[href]');
         for (let i = 0; i < els.length && i < 60; i++) if (Object.keys(els[i]).some((k) => k.startsWith('__reactProps$'))) return true;
         return false;
-      }, null, { timeout: 10_000 }).catch(() => {});
+      }, null, { timeout: 10_000 }).catch(() => {
+        record({ rule: 'not-hydrated', route: route(), selector: 'document', measured: 'no React event props on any button/input/link after 10s', expected: 'hydrated page', note: 'clicks on this page may be ignored' });
+      });
       await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch(() => {});
       await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(400);

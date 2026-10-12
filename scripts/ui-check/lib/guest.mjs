@@ -35,14 +35,14 @@ export function railTarget(page, vp, g) {
 /**
  * A game's rail item / chip / card is disabled. Explained: coming-soon (always) and Wordle when its
  * daily-status call said locked (today's play is used). Anything else is a `disabled-game` violation.
- * Explained skips leave a note metric so they show up in results.json. Returns true when the caller may skip.
+ * Explained skips are recorded as the soft warning `skip-explained` (shown under Warnings in the digest). Returns true when the caller may skip.
  */
 export async function explainDisabled(audit, cap, g, where) {
   if (g.id === 'coming-soon') return true;
   if (g.id === 'wordle') {
     const st = await cap.json(/daily-status/).catch(() => undefined);
     if (st && st.locked === true) {
-      audit.metrics.push({ kind: 'note', label: `skipped wordle on ${where}: daily play already used (daily-status locked)`, value: 1, unit: '', route: audit.route });
+      audit.violation('skip-explained', { selector: `${where}: wordle`, measured: 'disabled, skipped', expected: 'explained: daily play already used (daily-status locked)' });
       return true;
     }
   }

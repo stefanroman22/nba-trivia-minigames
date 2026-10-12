@@ -28,7 +28,7 @@ function parse() {
     const name = /\n {4}name: "([^"]*)"/.exec(body);
     const url = /\n {4}urlPath: "([^"]+)"/.exec(body);
     if (!name || !url) throw new Error(`games-catalog: cannot read name/urlPath of game "${m[1]}" in GameUtils.tsx`);
-    all.push({ id: m[1], path: url[1], name: name[1], online: !off.has(m[1]), hidden: /\n {4}hidden: true,/.test(body) });
+    all.push({ id: m[1], path: url[1], name: name[1], online: !off.has(m[1]), hidden: /\bhidden:\s*true\b/.test(body) });
   }
   if (all.length < 10) throw new Error(`games-catalog: parsed only ${all.length} games from GameUtils.tsx, the file layout changed`);
   cache = all;
