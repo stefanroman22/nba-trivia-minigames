@@ -8,7 +8,7 @@ is the secret ("HOME IN BY SIMILARITY").
 - Generator: `backend/trivia/questions/games/contexto.py`; similarity in `backend/trivia/questions/similarity.py`;
   renderer `src/Game Renderers/Contexto.tsx`.
 - Definition `{"secret_person_id": N, "day": "YYYY-MM-DD"}`. 60 days scheduled ahead, MINIMUM 30,
-  no secret repeats within 365 days. Secrets are fame tier 1-2.
+  no secret repeats within 365 days. Secrets are fame band KNOWN or better (`trivia/questions/fame.py`), about 500 candidates.
 - The ranking must start with the secret at rank 1, with no duplicates.
 
 ## What "writing content" means here

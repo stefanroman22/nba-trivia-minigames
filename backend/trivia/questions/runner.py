@@ -14,6 +14,7 @@ from trivia.models import Question
 from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES
 from trivia.questions.hashing import content_hash
+from trivia.questions.journal import Journal
 from trivia.questions.snapshot import apply_retention, build_names, build_questions_publish_plan, write_snapshot
 from trivia.questions.storage import StorageUnavailable, fetch_json, next_version, public_url
 
@@ -64,13 +65,14 @@ def _kept(mod, row, m):
     return (row.qid, item, m)
 
 
-def _materialize_row(mod, row, dataset, now):
+def _materialize_row(mod, row, dataset, now, journal):
     m, problems = _materialize(mod, row.definition, dataset)
     if problems:
         row.status = Question.STATUS_RETIRED
         row.retired_at = now
         row.retired_reason = "; ".join(problems)[:2000]
         row.save(update_fields=["status", "retired_at", "retired_reason", "updated_at"])
+        journal.log("retired", "no_longer_valid", game=row.game, qid=row.qid, problems=problems[:5])
         return None
     m["qid"] = row.qid
     row.quality = {"materialized": True}
@@ -88,7 +90,7 @@ def _active_count(slug, kept, today):
     return len(kept)
 
 
-def _process_game(slug, dataset, rng, now, out):
+def _process_game(slug, dataset, rng, now, out, journal):
     mod = GAME_MODULES[slug]
     today = now.date().isoformat()
     if slug == "contexto":
@@ -97,12 +99,15 @@ def _process_game(slug, dataset, rng, now, out):
         )
     kept, retired = [], 0
     for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).order_by("id"):
-        result = _materialize_row(mod, row, dataset, now)
+        result = _materialize_row(mod, row, dataset, now, journal)
         if result is None:
             retired += 1
         else:
             kept.append(result)
     target = mod.TARGET if mod.TARGET is not None else 10 ** 9
+    active_before = _active_count(slug, kept, today)
+    journal.log("refill_decision", "below_target" if active_before < target else "enough", game=slug,
+                active=active_before, target=mod.TARGET, retired=retired)
     existing = set(Question.objects.filter(game=slug).values_list("content_hash", flat=True))
     added, seq = 0, _next_seq(slug)
     while _active_count(slug, kept, today) < target:
@@ -118,10 +123,11 @@ def _process_game(slug, dataset, rng, now, out):
             row = Question(game=slug, qid=mod.qid_for(d, seq), definition=d, content_hash=h, created_by="generator")
             seq += 1
             row.save()
-            result = _materialize_row(mod, row, dataset, now)
+            result = _materialize_row(mod, row, dataset, now, journal)
             if result is not None:
                 kept.append(result)
                 added += 1
+                journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d)
         if slug == "contexto":
             dataset.extra["contexto_existing"] += defs
     active = _active_count(slug, kept, today)
@@ -131,18 +137,37 @@ def _process_game(slug, dataset, rng, now, out):
     return kept, {"active": len(kept), "retired": retired, "added": added, "materialized": len(kept)}
 
 
-def maintain(games, dataset, rng, now=None, out=print):
+def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=None):
     """Re-materialize, retire, top up and gate each game; no publishing.
 
     Returns ({slug: [(qid, index_item, materialized), ...]}, {slug: stats}).
     Writes to the questions table, so call it inside transaction.atomic(): a
     BelowMinimum (or any later failure in the caller's block) rolls every game's
     writes back. Used by run() (Supabase snapshot) and publish_game_data_v3.
+
+    isolate=True (publish_game_data_v3): each game runs in its own savepoint. A
+    game below its minimum is rolled back alone, left out of the result and
+    reported as stats[slug] = {"held_back": reason}; the other games go on.
+
+    journal (trivia.questions.journal.Journal) receives every decision; events of a
+    held-back game are marked rolled_back. Without one, decisions are discarded.
     """
     now = now or timezone.now()
+    journal = journal or Journal("supply")
     per_game, stats = {}, {}
     for slug in games:
-        per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out)
+        if not isolate:
+            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
+            continue
+        mark = len(journal.events)
+        try:
+            with transaction.atomic():
+                per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
+        except BelowMinimum as e:
+            journal.mark_rolled_back(since=mark)
+            journal.log("held_back", "below_minimum", game=slug, active=e.count, minimum=e.minimum)
+            stats[slug] = {"held_back": str(e)}
+            out(f"  {slug}: held back, {e}")
     return per_game, stats
 
 

@@ -342,3 +342,51 @@ class Feedback(models.Model):
 
     def __str__(self):
         return f"{self.rating}★ from {self.display_name or self.email or 'guest'}"
+
+
+class FactoryRun(models.Model):
+    """One run of the question factory: what it did and why (spec §4.8 of
+    docs/superpowers/specs/2026-10-12-question-factory-design.md).
+
+    Written after the run's own transaction, so rolled-back (dry-run) and failed
+    runs are on record too. The review loop reads these through factory_digest.
+    """
+
+    STATUS_OK, STATUS_DEGRADED, STATUS_FAILED = "ok", "degraded", "failed"
+
+    kind = models.CharField(max_length=16)  # supply | doctor | editorial | rollup | cleanup
+    trigger = models.CharField(max_length=16, blank=True)  # manual | schedule | dry-run | data-refresh
+    status = models.CharField(max_length=10)
+    started_at = models.DateTimeField()
+    finished_at = models.DateTimeField()
+    versions = models.JSONField(default=dict, blank=True)  # {"dataset": ..., "fame": 1, ...}
+    summary = models.JSONField(default=dict, blank=True)  # {game: {action: count}}
+    report_md = models.TextField(blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["kind", "-started_at"])]
+
+    def __str__(self):
+        return f"{self.kind} {self.status} @ {self.started_at:%Y-%m-%d %H:%M}"
+
+
+class FactoryEvent(models.Model):
+    """One decision inside a FactoryRun: action, machine reason, and the numbers
+    (or, for model steps, the rationale and sources) behind it."""
+
+    run = models.ForeignKey(FactoryRun, on_delete=models.CASCADE, related_name="events")
+    game = models.CharField(max_length=32, blank=True)
+    qid = models.CharField(max_length=48, blank=True)
+    action = models.CharField(max_length=24)  # refill_decision | generated | retired | held_back | ...
+    reason = models.CharField(max_length=64, blank=True)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["run", "game"]),
+            models.Index(fields=["action", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.game}/{self.qid} {self.action} ({self.reason})"

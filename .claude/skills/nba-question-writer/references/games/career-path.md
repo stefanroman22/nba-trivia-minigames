@@ -9,7 +9,7 @@ Fewer cards used scores more.
 - A question is just `{"person_id": N}`; the cards come from that player's `teams` stints in
   `players_curated.json`. There is no question text to write.
 - TARGET 500 active questions, MINIMUM 50 (publish aborts below it). 3-7 stints per player;
-  fame tier 2-3 weighted 3x so journeymen appear more than superstars.
+  fame band DEEP or better (`trivia/questions/fame.py`); KNOWN/DEEP players weighted 3x so journeymen appear more than superstars.
 
 ## What "writing content" means here
 

@@ -1,5 +1,8 @@
-"""Career Path — one mystery journeyman (3-7 stints), weighted to fame tier 2-3.
-Rules moved from trivia/games/career_path.py."""
+"""Career Path — one mystery journeyman (3-7 stints, fame band DEEP or better),
+weighted toward KNOWN/DEEP players over stars. Rules moved from
+trivia/games/career_path.py; the fame gate was added in question-factory phase 1
+(players nobody can name are no longer eligible)."""
+from trivia.questions import fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -8,14 +11,15 @@ SLUG = "career-path"
 TARGET = 500
 MINIMUM = 50
 MIN_STINTS, MAX_STINTS = 3, 7
+MIN_FAME_BAND = fame.DEEP
 
 
 def _eligible(row):
-    return MIN_STINTS <= len(row.get("teams") or []) <= MAX_STINTS
+    return MIN_STINTS <= len(row.get("teams") or []) <= MAX_STINTS and fame.at_least(row, MIN_FAME_BAND)
 
 
 def _weight(row):
-    return 3 if row.get("fame_tier") in (2, 3) else 1
+    return 3 if fame.fame_band(row) in (fame.KNOWN, fame.DEEP) else 1
 
 
 def generate(dataset, existing_hashes, rng, n):
@@ -37,7 +41,8 @@ def materialize(definition, dataset):
     if row is None:
         raise Invalid(f"person_id {definition.get('person_id')} is not in the playable pool")
     if not _eligible(row):
-        raise Invalid(f"{row['full_name']} has {len(row['teams'])} stints; need {MIN_STINTS}-{MAX_STINTS}")
+        raise Invalid(f"{row['full_name']} has {len(row['teams'])} stints and fame band {fame.fame_band(row)}; "
+                      f"need {MIN_STINTS}-{MAX_STINTS} stints and band {MIN_FAME_BAND} or better")
     return envelope(SLUG, None, {"player": row})
 
 
@@ -47,7 +52,7 @@ def validate(materialized):
     if not p.get("full_name"):
         problems.append("player has no full_name")
     if not _eligible(p):
-        problems.append("stint count out of range")
+        problems.append("stint count or fame band out of range")
     return problems
 
 

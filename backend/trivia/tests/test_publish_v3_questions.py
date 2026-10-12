@@ -31,7 +31,7 @@ from trivia.data_pipeline.publish_v3 import (
     publish,
     same_rows,
 )
-from trivia.models import Question
+from trivia.models import FactoryRun, Question
 from trivia.questions import runner
 from trivia.questions.snapshot import build_names, write_snapshot
 from trivia.tests.questions_fixture import fixture_dataset
@@ -313,14 +313,103 @@ class CommandTests(QuestionsTestCase):
                             "--previous", os.path.join(self.out, "manifest.json"))
         self.assertIn("nothing to publish", output)
 
-    def test_minimum_gate_aborts_with_nothing_published_and_rolls_back(self):
+    def _gh_output(self):
+        with open(os.path.join(self.tmp, "gh-output"), encoding="utf-8") as f:
+            return f.read()
+
+    def test_a_game_below_minimum_is_held_back_and_the_rest_publish(self):
         with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
-            with self.assertRaises(CommandError) as ctx:
-                self._call("--games", "career-path,contexto")
-        self.assertIn("contexto", str(ctx.exception))
-        self.assertIn("rolled back", str(ctx.exception))
+            output = self._call("--games", "career-path,contexto")
+        self.assertIn("contexto held back", output)
+        manifest = _load(self.out, "manifest.json")
+        self.assertIn("career-path", manifest["games"])
+        self.assertNotIn("contexto", manifest["games"])
+        self.assertEqual(Question.objects.filter(game="contexto").count(), 0)  # its writes rolled back
+        self.assertTrue(Question.objects.filter(game="career-path").exists())
+        self.assertIn("held_back=contexto\n", self._gh_output())
+
+    def test_a_held_back_game_keeps_its_live_entry(self):
+        self._call("--games", "career-path,contexto")
+        live = _load(self.out, "manifest.json")
+        row = Question.objects.filter(game="career-path", status="active").first()
+        row.status = "retired"  # forces a career-path change so the second run publishes
+        row.save()
+        second = os.path.join(self.tmp, "second")
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            call_command("publish_game_data_v3", "--out", second, "--rng-seed", "8",
+                         "--games", "career-path,contexto",
+                         "--previous", os.path.join(self.out, "manifest.json"), stdout=StringIO())
+        manifest = _load(second, "manifest.json")
+        self.assertEqual(manifest["games"]["contexto"], live["games"]["contexto"])
+        self.assertNotEqual(manifest["games"]["career-path"], live["games"]["career-path"])
+
+    def test_dry_run_reports_a_held_back_game_and_writes_nothing(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            output = self._call("--games", "career-path,contexto", "--dry-run")
+        self.assertIn("contexto held back", output)
         self.assertFalse(os.path.exists(self.out))
-        self.assertEqual(Question.objects.count(), 0)  # career-path's top-up rolled back too
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_every_question_game_held_back_still_exits_cleanly(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000), \
+             patch("trivia.questions.games.career_path.MINIMUM", 10_000):
+            self._call("--games", "career-path,contexto")
+        self.assertIn("held_back=career-path,contexto\n", self._gh_output())
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_no_held_back_games_writes_an_empty_output(self):
+        self._call("--games", "career-path")
+        self.assertIn("held_back=\n", self._gh_output())
+
+    def test_a_run_is_journaled(self):
+        self._call("--games", "career-path")
+        run = FactoryRun.objects.get()
+        self.assertEqual((run.kind, run.trigger, run.status), ("supply", "manual", "ok"))
+        self.assertEqual(run.versions["fame"], 1)
+        self.assertEqual(run.events.filter(game="career-path", action="generated").count(),
+                         Question.objects.filter(game="career-path").count())
+        self.assertTrue(run.events.filter(game="career-path", action="refill_decision").exists())
+        self.assertIn("career-path", run.report_md)
+
+    def test_a_held_back_run_is_degraded_and_marks_rolled_back_events(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            self._call("--games", "career-path,contexto")
+        run = FactoryRun.objects.get()
+        self.assertEqual(run.status, "degraded")
+        self.assertTrue(run.events.filter(game="contexto", action="held_back").exists())
+        generated = list(run.events.filter(game="contexto", action="generated"))
+        self.assertTrue(generated)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in generated))
+
+    def test_a_dry_run_is_journaled_as_dry_run(self):
+        self._call("--games", "career-path", "--dry-run")
+        self.assertEqual(FactoryRun.objects.get().trigger, "dry-run")
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_a_dry_run_marks_every_event_rolled_back(self):
+        self._call("--games", "career-path", "--dry-run")
+        events = list(FactoryRun.objects.get().events.all())
+        self.assertTrue(events)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in events))
+
+    def test_a_failed_run_marks_every_event_rolled_back(self):
+        with patch.object(publish_v3, "default_builders",
+                          side_effect=lambda **kw: {**publish_v3.question_builders(kw.get("maintained"), self.ds),
+                                                    "mvps": lambda: []}):
+            with self.assertRaises(CommandError):
+                self._call("--games", "career-path,mvps")
+        events = list(FactoryRun.objects.get().events.all())
+        self.assertTrue(events)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in events))
+
+    def test_a_failed_run_is_journaled_as_failed(self):
+        with patch.object(publish_v3, "default_builders",
+                          side_effect=lambda **kw: {**publish_v3.question_builders(kw.get("maintained"), self.ds),
+                                                    "mvps": lambda: []}):
+            with self.assertRaises(CommandError):
+                self._call("--games", "career-path,mvps")
+        self.assertEqual(FactoryRun.objects.get().status, "failed")
+        self.assertEqual(Question.objects.count(), 0)
 
     def test_a_failing_pool_game_rolls_the_maintenance_back(self):
         with patch.object(publish_v3, "default_builders",
