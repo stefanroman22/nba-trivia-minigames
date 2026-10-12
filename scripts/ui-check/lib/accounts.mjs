@@ -27,7 +27,8 @@ export function soloUsername(parallelIndex = 0) {
   return parallelIndex ? `testuser3w${parallelIndex}` : 'testuser3';
 }
 
-const isTestUsername = (u) => /^testuser\d(w\d{1,2})?$/.test(u);
+// testuser1-3 and a worker's testuser3w<i>, plus the account suite's throwaways uic<digits> (specs/account).
+const isTestUsername = (u) => /^(testuser\d(w\d{1,2})?|uic\d{4,17})$/.test(u);
 
 /** Accounts touch the local DB only: refuse when `api` (required) is anything but a localhost URL. */
 export function assertLocalApi(api) {
@@ -141,6 +142,12 @@ export async function mintTokens(usernames) {
   for (const u of usernames) if (!ACCOUNTS[u] && !isTestUsername(u)) throw new Error(`ui-check: unknown test account "${u}"`);
   const res = await mintRequest({ op: 'mint', users: usernames.map((u) => ACCOUNTS[u] || acct(u)) });
   return res.tokens;
+}
+
+/** Put accounts back to "age unknown", so the next photo upload asks for the birth month and year again. */
+export async function forgetAge(usernames) {
+  for (const u of usernames) if (!ACCOUNTS[u] && !isTestUsername(u)) throw new Error(`ui-check: unknown test account "${u}"`);
+  await mintRequest({ op: 'forget_age', users: usernames.map((u) => ACCOUNTS[u] || acct(u)) });
 }
 
 /** End this process's mint server (it also ends on its own when the process exits). */

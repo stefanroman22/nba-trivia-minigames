@@ -43,15 +43,6 @@ because two sockets of one user displace each other in the relay and Django thro
 | selftest | `ST-` | none (file:// fixtures) | `phone-360` | Proves every detector fires on a bad page and stays quiet on good ones, and checks the digest builder. Needs no app server. |
 | accept | `ACCEPT` | per assertion | per assertion | Acceptance assertions from findings, run by `verify.mjs`. |
 
-## Smoke (temporary)
-
-Persona smoke check from Task 2. Task 4 replaces it with the real account suite.
-`node scripts/ui-check/catalog.mjs` checks that every ID in the specs is listed in this file once.
-
-| ID | proves |
-|---|---|
-| `AC-SMOKE` | The solo persona's minted session is restored on load. The nav shows that user's avatar chip and no Log in button, and the restore call (`/api/me/` or `token/refresh/`) answered 200. |
-
 ## Guest (G-)
 
 Logged out, all 7 viewports. Specs are in `specs/guest/`, locators in `pagemap/guest.json`, helpers in
@@ -75,6 +66,38 @@ Hard failures also include the check-specific rules named below. Learnings: `not
 | `G-PERM-02` | Each hidden game slug and `/definitely-not-a-route` answer HTTP 404 with the 404 page (`hidden-route`); no hidden game appears in the landing grid, rail, chips or footer (`hidden-listed`). |
 | `G-PERM-03` | `/profile` for a guest shows "Log in to see and manage your profile." and no account controls; online-capable game pages show "Log in to play online" and neither Play 1v1 nor Play with a friend; no websocket or `socket.io` request is made (`guest-socket`). |
 | `G-A11Y-01` | axe (WCAG 2.0 A/AA, 2.1 AA, 2.2 AA): no serious or critical issues on `/`, `/privacy`, a game idle screen and the open login modal. |
+
+## Account (AC-)
+
+Solo persona (per-worker `testuser3` / `testuser3w<n>`, a minted session per test) plus throwaway users
+`uic<run digits><n>`. Specs: `specs/account/{auth,google,profile,surfaces,permissions,blocking}.spec.mjs`,
+locators `pagemap/account.json` (+ `guest.json` for the modal shell, `common.json` for nav and drawer), helpers
+`lib/account.mjs`. Learnings, throttle budget and exemptions: `notes/account.md`.
+
+`@perf` checks (they sample frames: long-frame and CLS noise from parallel browsers would otherwise show up as findings) run in the serial single-worker pass, like the guest motion checks.
+
+Throttled endpoints (sign-up 10/h, log-in 30/h per IP; export, delete and set-age 10/h per account) are hit only on
+the core viewports (`phone-390`, `tablet-768`, `desktop-1366`); layout-only variants run on all 7. Every
+throwaway is deleted by the end of the run (Delete-account UI in AC-PROFILE-03, the API in a `finally` otherwise);
+the solo account's username, photo and friendship with `testuser2` are restored in a `finally`.
+Names may repeat in this app (the player ID tells them apart), so there is no "username taken" error: sign-up and
+profile checks assert that an existing name such as `testuser2` passes every rule instead.
+
+| ID | proves |
+|---|---|
+| `AC-SIGNUP-01` | `@perf`, all 7 vps, logged out. The Log in / Sign up tabs slide (one thumb, a frame between start and end x) and the modal panel never snaps (`audit.motion`). Username rules open on the first character, update within 150 ms, the server verdict turns the third rule into its message in place (reserved name `admin`), and `testuser2` passes (no "taken"). Password rules (length, not only numbers, not like the username) flip within 150 ms of the value changing. The eye button shows and hides the password. With the consent box unticked the submit sends no `POST /api/signup/` and shows the consent message inline; ticking it clears the message. Layout scan of the modal in each state. |
+| `AC-SIGNUP-02` | `@perf`, core vps. A duplicate email shows the server error inline on the email field without the modal snapping. A real sign-up of `uic<run><n>` shows "Welcome", closes the modal with an animated exit, shows the avatar chip (`aria-label` `<name> #<id>`), and the click-to-avatar time is at most 1500 ms (measured in the page). The session survives a reload. The throwaway is deleted through the API afterwards. |
+| `AC-LOGIN-01` | `@perf`, core vps. A wrong password shows the error inline without a snap and leaves the form usable. Log in by username (click-to-avatar at most 1500 ms), the session survives a reload, log out through the profile menu (tablet, desktop) or the drawer (phones) clears both tokens and reverts the nav to guest; a fresh context logs in by email. |
+| `AC-LOGIN-02` | `@perf`, all 7 vps. With an expired (well-formed JWT, `exp` in the past) and then a garbage access token plus a valid refresh token, a reload stays signed in as the same user, the refresh answers 200 and rotates both tokens, and the nav shows no signed-out state for more than 300 ms (sampled on every frame from the first paint: `logged-out-flash`). The same reload with a valid token is recorded as a baseline metric. |
+| `AC-GOOGLE-01` | All 7 vps. "Continue with Google" is visible, enabled, at least 40 px tall and inside the modal panel without overflow. On the Sign up tab without the tick it opens nothing and shows the consent message. On the Log in tab a click opens the Google window (`context.waitForEvent('page')`, closed at once) or a Google iframe; closing it leaves the form usable. With an Instagram user agent it opens nothing and shows the in-app-browser warning. **Manual owner check:** the full OAuth round trip (Google consent screen, code exchange, new-account name pane, the 428 consent hand-off) is not automated. |
+| `AC-PROFILE-01` | `@perf`, all 7 vps. `/profile` passes the layout scan. Invalid characters flag the rule inline and Save raises the "Invalid Username" alert; the input stops at 20 characters; the reserved name `admin` turns the third rule into the server message; `testuser2` passes every rule (no "taken"); a valid rename updates the page title, the nav chip, the server (`/me/`) and the landing card, with no snap. The username is restored. |
+| `AC-PROFILE-02` | `@perf`, all 7 vps. Copy player ID swaps "Copy" to "Copied!" and back without a snap. An account of unknown age that picks a photo gets the age prompt (birth month and year, an adult year); after it the avatar and the nav chip show the photo ("Shown to other players"); Remove puts back the default avatar ("No photo"). The 428 from the first upload is the designed hand-off and is allowed. The photo is removed afterwards. |
+| `AC-PROFILE-03` | Core vps, throwaway user made like a sign-up (minted). Export downloads `swish-quest-my-data.json` holding this account. Delete account: the button stays disabled until the word is exactly `DELETE`; a wrong password shows the server error inline without a snap and keeps the account; the right password logs out, shows the guest profile prompt and the account can no longer log in. The password field may stay empty by design (Google-only accounts have none), so the button is not gated on it. |
+| `AC-SURF-01` | `@perf`, all 7 vps. Signed-in landing: profile card (name, points, rank, Profile settings, copy ID icon swaps and back), the "Your points" hero stat, the Profile and Friends tabs (thumb slides, card height glides, no snap), the four friends sub-tabs (Friends, Requests, Find, Blocked), and the leaderboard Global and Friends tabs (thumb slides, panel height glides, heading swaps, no snap); layout scan of each state. Owns the leaderboard scope tab motion that the guest suite cannot see. |
+| `AC-SURF-02` | Core vps. The solo account finds `testuser2` by player ID in Find and sends a request from the UI ("Request sent"); `testuser2` (minted token) accepts through `POST /api/accept-friend-request/`; after a fresh load the solo Friends list shows `testuser2`. The friendship and any request are removed through the API before and after, and the cleanup is verified. |
+| `AC-PERM-01` | All 7 vps. `/admin` for the solo (non-admin) account shows "Admins only" and "Back to the games", no admin tabs or tables, no Admin link in the nav or drawer, makes no `/api/admin/` call; every `/api/admin/*` endpoint answers 403 with the solo token. |
+| `AC-ONLINE-01` | `@perf`, all 7 vps (a different online game per viewport, so parallel workers never match each other). Play 1v1 shows "Finding an opponent" with a Cancel button and the side button turns into Cancel; Cancel (from the stage and from the side button) returns to the idle game card, the searching screen fades out (a part-way frame) and nothing snaps. The match itself belongs to the multiplayer suite. |
+| `AC-BLOCK-01` | `@perf`. Each submit has its answer held back 1.5 s: the button is disabled or shows its busy label within 100 ms of the click and two more clicks send no second request. Username Save and friend Add on all vps; photo age Continue and delete account (wrong password, nothing deleted) on core vps with a throwaway user (the per-account limit); log in (wrong password) on core vps; sign up (duplicate email, nothing created) on `phone-390` only, to stay under the sign-up throttle. |
 
 ## Selftest
 

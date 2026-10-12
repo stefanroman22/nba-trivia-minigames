@@ -12,6 +12,7 @@ seconds to start here; a mint takes milliseconds).
         -> {"ok": true, "users": {"testuser1": {"created": false, "id": "K7F3QD"}}}
     {"op": "mint", "users": [{"username": "testuser3", "email": "testuser3@uicheck.test"}]}
         -> {"ok": true, "tokens": {"testuser3": {"access": "...", "refresh": "...", "user": {...}}}}
+    {"op": "forget_age", "users": [...]}   -> {"ok": true}   (age_group back to "": the photo age prompt shows again)
 
 Accounts are created the way users.views.signup_view does it (consent stamped as a checkbox
 sign-up, leaderboard row recorded) and created on demand by "mint" too. Tokens are minted the way
@@ -92,6 +93,13 @@ def handle(req, password):
         return {"ok": True, "users": out}
     if req.get("op") == "mint":
         return {"ok": True, "tokens": {spec["username"]: mint(spec, password) for spec in users}}
+    if req.get("op") == "forget_age":
+        # Back to "age unknown" so the photo flow asks for the birth month + year again (account suite).
+        for spec in users:
+            user, _ = account(spec, password)
+            user.age_group = ""
+            user.save(update_fields=["age_group"])
+        return {"ok": True}
     return {"ok": False, "error": f"unknown op {req.get('op')!r}"}
 
 
