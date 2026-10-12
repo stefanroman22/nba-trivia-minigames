@@ -36,6 +36,28 @@ class CareerPathTests(SimpleTestCase):
         with self.assertRaises(Invalid):
             career_path.materialize({"person_id": -1}, ds)
 
+    def test_generate_skips_obscure_journeymen(self):
+        ds = fixture_dataset()
+        defs = career_path.generate(ds, set(), random.Random(3), 10_000)
+        self.assertTrue(defs)
+        self.assertTrue(all(fame.at_least(ds.by_id[d["person_id"]], fame.DEEP) for d in defs))
+
+    def test_materialize_rejects_an_obscure_journeyman(self):
+        ds = fixture_dataset()
+        obscure = next(r for r in ds.playable
+                       if 3 <= len(r["teams"]) <= 7 and not fame.at_least(r, fame.DEEP))
+        with self.assertRaises(Invalid) as raised:
+            career_path.materialize({"person_id": obscure["person_id"]}, ds)
+        self.assertIn("fame band", str(raised.exception))
+
+    def test_weight_favours_known_and_deep_over_stars(self):
+        ds = fixture_dataset()
+        for d in career_path.generate(ds, set(), random.Random(4), 10_000):
+            row = ds.by_id[d["person_id"]]
+            m = career_path.materialize(d, ds)
+            expected = 3 if fame.fame_band(row) in (fame.KNOWN, fame.DEEP) else 1
+            self.assertEqual(career_path.index_item(d, m)[1], expected)
+
 
 class WhoAreYaTests(SimpleTestCase):
     def _ids(self, ds):
