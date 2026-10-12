@@ -1,5 +1,5 @@
 // UI check test accounts (spec §3). One generated password for all of them, kept with the usernames
-// in the git-ignored .ui-check/accounts.json. Accounts are created and tokens minted by
+// in accounts.json under uicHome(). Accounts are created and tokens minted by
 // lib/mint_tokens.py inside `manage.py shell` against the local sqlite DB — one long-lived python
 // per Node process (Django needs seconds to start here, a mint takes milliseconds).
 import { spawn } from 'node:child_process';
@@ -127,7 +127,7 @@ async function mintRequest(req) {
   return res;
 }
 
-/** Create .ui-check/accounts.json once, then make sure testuser1-3 exist with that password. */
+/** Create <uicHome>/accounts.json once, then make sure testuser1-3 exist with that password. */
 export async function ensureAccounts() {
   const data = accountsFile();
   const res = await mintRequest({ op: 'ensure', users: Object.values(ACCOUNTS) });

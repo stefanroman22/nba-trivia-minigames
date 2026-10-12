@@ -1,12 +1,12 @@
 // Guest modals: the five public overlays obey the single-host contract (UI_SHELL acceptance checks 2-3).
 import { test, expect, L } from '../../lib/fixtures.mjs';
-import { drawerMode, openDrawer, openLogin, overlayState, recordFrames, fadeSummary, playableGames, LOCAL_LOAD } from '../../lib/guest.mjs';
+import { drawerMode, openDrawer, openLogin, overlayState, recordFrames, fadeSummary, gameById, LOCAL_LOAD } from '../../lib/guest.mjs';
 
 const Z = { fab: 35, nav: 40, modal: 60, drawer: 70 };
 
 test('[G-MODAL-01] login, feedback, leaderboard, instructions and multiplayer-info modals follow the overlay contract', async ({ page, audit, vp }) => {
   test.setTimeout(240_000);
-  const game = playableGames()[0];
+  const game = gameById('series-winner');
 
   /** The five modals: where to open them and what their title says. */
   const modals = [
@@ -63,8 +63,8 @@ test('[G-MODAL-01] login, feedback, leaderboard, instructions and multiplayer-in
           await expect(L(page, 'guest.modalBackdrop')).toHaveCount(0);
         }, { tail: 600 });
         const exit = fadeSummary(exitFrames);
-        if (exit.intermediate < 1 && closeWith === 'escape') {
-          audit.violation('snap', { selector: '.modal-panel', measured: `exit: no part-way frame among ${exit.frames} sampled before removal`, expected: 'an animated exit' });
+        if (exit.intermediate < 1) {
+          audit.violation('snap', { selector: '.modal-panel', measured: `exit via ${closeWith}: no part-way frame among ${exit.frames} sampled before removal`, expected: 'an animated exit' });
         }
 
         const after = await overlayState(page);

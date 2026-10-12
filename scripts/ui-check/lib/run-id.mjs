@@ -1,11 +1,12 @@
 // One id per run, shared by the runner, every worker and the reporter through UI_CHECK_RUN
-// (workers inherit the env the config set). Output lives in <repo>/.ui-check/ (git-ignored).
+// (workers inherit the env the config set). Output lives under uicHome() (lib/home.mjs).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { uicHome } from './home.mjs';
 
 export const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
-export const UIC_ROOT = path.join(REPO_ROOT, '.ui-check');
+export const UIC_ROOT = uicHome();
 
 const pad = (n) => String(n).padStart(2, '0');
 

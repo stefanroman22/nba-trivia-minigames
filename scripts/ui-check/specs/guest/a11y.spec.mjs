@@ -1,6 +1,6 @@
 // Guest accessibility: axe on the main public surfaces.
 import { test, expect, L } from '../../lib/fixtures.mjs';
-import { openLogin, playableGames, LOCAL_LOAD } from '../../lib/guest.mjs';
+import { openLogin, gameById, LOCAL_LOAD } from '../../lib/guest.mjs';
 
 test('[G-A11Y-01] axe finds no serious or critical issues on /, /privacy, a game idle screen and the login modal', async ({ page, audit, vp }) => {
   test.setTimeout(120_000);
@@ -8,7 +8,7 @@ test('[G-A11Y-01] axe finds no serious or critical issues on /, /privacy, a game
   await audit.a11y();
   await audit.goto('/privacy', { waitFor: 'main article h1' });
   await audit.a11y();
-  await audit.goto(playableGames()[0].path, { waitFor: '.stage-col .idle' });
+  await audit.goto(gameById('series-winner').path, { waitFor: '.stage-col .idle' });
   await audit.a11y();
   await audit.goto('/', { waitFor: '#games-grid .gtile' });
   await openLogin(page, vp);

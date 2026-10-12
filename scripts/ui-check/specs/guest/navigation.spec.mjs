@@ -1,6 +1,6 @@
 // Guest navigation: top nav / drawer, footer, game rail and chips, landing grid.
 import { test, expect, L } from '../../lib/fixtures.mjs';
-import { drawerMode, chipsMode, openDrawer, playableGames, recordFrames, fadeSummary, valleys, searchLatency, LOCAL_LOAD } from '../../lib/guest.mjs';
+import { drawerMode, chipsMode, openDrawer, playableGames, gameById, railTarget, explainDisabled, recordFrames, fadeSummary, valleys, searchLatency, LOCAL_LOAD } from '../../lib/guest.mjs';
 import { visibleGames } from '../../lib/games-catalog.mjs';
 
 /** Wait until #games-grid has been scrolled into the upper part of the viewport (the scroll is smooth). */
@@ -17,7 +17,7 @@ const pageScrollTop = (page) => page.evaluate(() => window.scrollY);
 test('[G-NAV-01] top nav links and the mobile drawer each do what they say', async ({ page, audit, vp }) => {
   test.setTimeout(150_000);
   await audit.goto('/', { waitFor: '#games-grid .gtile' });
-  const first = playableGames()[0];
+  const first = gameById('series-winner');
 
   if (!drawerMode(vp)) {
     await expect(L(page, 'common.navGames')).toBeVisible();
@@ -132,10 +132,12 @@ test('[G-NAV-02] footer links (Games, Terms, Privacy, Contact) work', async ({ p
     await expect(links).toHaveCount(games.length);
     const hrefs = await links.evaluateAll((as) => as.map((a) => a.getAttribute('href')));
     expect(hrefs).toEqual(games.map((g) => g.path));
-    await links.nth(2).scrollIntoViewIfNeeded();
-    await links.nth(2).click();
-    await expect(page).toHaveURL(new RegExp(`${games[2].path}$`));
-    await expect(L(page, 'guest.gameTitle')).toHaveText(games[2].name);
+    const opened = gameById('guess-mvps');
+    const link = page.locator(`footer.site-footer nav[aria-label='Games'] a[href="${opened.path}"]`);
+    await link.scrollIntoViewIfNeeded();
+    await link.click();
+    await expect(page).toHaveURL(new RegExp(`${opened.path}$`));
+    await expect(L(page, 'guest.gameTitle')).toHaveText(opened.name);
   });
   await test.step('Terms', async () => {
     await audit.goto('/', { waitFor: '#games-grid .gtile' });
@@ -161,27 +163,33 @@ test('[G-NAV-02] footer links (Games, Terms, Privacy, Contact) work', async ({ p
   await audit.done();
 });
 
-test('[G-NAV-03] game rail (desktop) or chips (mobile) switch games with the page fade; coming-soon is disabled', async ({ page, audit, vp }) => {
+test('[G-NAV-03] game rail (desktop) or chips (mobile) switch games with the page fade; coming-soon is disabled', async ({ page, audit, vp, cap }) => {
   test.setTimeout(240_000);
   const chips = chipsMode(vp);
   const items = L(page, chips ? 'guest.railChips' : 'guest.railItems');
   const games = visibleGames();
   const playable = playableGames();
-  await audit.goto(playable[0].path, { waitFor: '.stage-col .idle' });
+  const start = gameById('series-winner');
+  await audit.goto(start.path, { waitFor: '.stage-col .idle' });
 
   await expect(L(page, chips ? 'guest.railStrip' : 'guest.railList')).toBeVisible();
   await expect(L(page, chips ? 'guest.railList' : 'guest.railStrip')).toBeHidden();
   await expect(items).toHaveCount(games.length);
   const names = await items.evaluateAll((els, chipMode) => els.map((e) => (chipMode ? e.textContent : e.querySelector('.rail-name').textContent).trim()), chips);
   expect(names).toEqual(games.map((g) => g.name));
-  await expect(items.nth(games.findIndex((g) => g.id === 'coming-soon'))).toBeDisabled();
+  await expect(railTarget(page, vp, games.find((g) => g.id === 'coming-soon'))).toBeDisabled();
 
   const fadeProblems = []; // one violation per kind at the end, not one line per game
-  for (let i = 1; i < playable.length; i++) {
-    const g = playable[i];
+  const others = playable.filter((g) => g.id !== start.id);
+  for (const g of others) {
     await test.step(`-> ${g.id}`, async () => {
-      const target = items.nth(games.findIndex((x) => x.id === g.id));
-      if (await target.isDisabled()) return; // e.g. today's Wordle already played in this browser
+      const target = railTarget(page, vp, g);
+      await expect(target).toHaveCount(1);
+      if (await target.isDisabled()) {
+        // Only explained disables may be skipped (Wordle after the daily play); anything else is a finding.
+        await explainDisabled(audit, cap, g, chips ? 'chip' : 'rail item');
+        return;
+      }
       const frames = await recordFrames(page, '#root > div', async () => { await target.click(); await expect(page).toHaveURL(new RegExp(`${g.path}$`)); }, { tail: 900 });
       await expect(L(page, 'guest.gameTitle')).toHaveText(g.name);
       const ops = frames.filter((f) => f.present).map((f) => f.o);
@@ -189,13 +197,13 @@ test('[G-NAV-03] game rail (desktop) or chips (mobile) switch games with the pag
       if (ops[ops.length - 1] < 0.99) fadeProblems.push({ rule: 'fade-stuck', g, measured: `opacity ${ops[ops.length - 1].toFixed(2)} 0.9s after the URL changed` });
       if (valleys(ops) > 1) fadeProblems.push({ rule: 'double-transition', g, measured: `${valleys(ops)} fade dips (the wrapper's opacity reverts after an animation ends)` });
       await expect(L(page, chips ? 'guest.railChipActive' : 'guest.railItemActive')).toHaveCount(1);
-      await expect(items.nth(games.findIndex((x) => x.id === g.id))).toHaveAttribute('aria-current', 'true');
+      await expect(target).toHaveAttribute('aria-current', 'true');
     });
   }
   for (const rule of ['no-fade', 'fade-stuck', 'double-transition']) {
     const hits = fadeProblems.filter((p) => p.rule === rule);
     if (hits.length) {
-      audit.violation(rule, { selector: '#root > div', measured: hits[0].measured, expected: rule === 'double-transition' ? '1: out once, in once (UI-14)' : rule === 'fade-stuck' ? '1' : 'the page fades out and back in', route: `/${hits[0].g.id}`, note: `${hits.length} of ${playable.length - 1} switches: ${hits.map((h) => h.g.id).join(', ')}` });
+      audit.violation(rule, { selector: '#root > div', measured: hits[0].measured, expected: rule === 'double-transition' ? '1: out once, in once (UI-14)' : rule === 'fade-stuck' ? '1' : 'the page fades out and back in', route: `/${hits[0].g.id}`, note: `${hits.length} of ${others.length} switches: ${hits.map((h) => h.g.id).join(', ')}` });
     }
   }
   await audit.shot('after-rail-switch');
@@ -204,7 +212,7 @@ test('[G-NAV-03] game rail (desktop) or chips (mobile) switch games with the pag
   await audit.done();
 });
 
-test('[G-NAV-04] landing grid: search filters instantly, clearing restores, every card opens its game', async ({ page, audit }) => {
+test('[G-NAV-04] landing grid: search filters instantly, clearing restores, every card opens its game', async ({ page, audit, cap }) => {
   test.setTimeout(240_000);
   const games = visibleGames();
   const playable = playableGames();
@@ -213,7 +221,7 @@ test('[G-NAV-04] landing grid: search filters instantly, clearing restores, ever
   const search = L(page, 'guest.gamesSearch');
   await expect(tiles).toHaveCount(games.length);
 
-  const target = playable[3];
+  const target = gameById('career-path');
   // Timed inside the page (no CDP round trips or polling lag): typing -> the grid shows fewer cards.
   await searchLatency(audit, 'search filters the grid', target.name.split(' ').slice(-1)[0], `n > 0 && n < ${games.length}`, 300);
   const filtered = await tiles.allInnerTexts();
@@ -234,7 +242,7 @@ test('[G-NAV-04] landing grid: search filters instantly, clearing restores, ever
       const tile = tiles.nth(games.findIndex((x) => x.id === g.id));
       await tile.scrollIntoViewIfNeeded();
       if (g.id === 'coming-soon') { await expect(tile).toBeDisabled(); return; }
-      if (await tile.evaluate((e) => e.getAttribute('aria-disabled') === 'true')) return;
+      if (await tile.evaluate((e) => e.getAttribute('aria-disabled') === 'true')) { await explainDisabled(audit, cap, g, 'landing card'); return; }
       await expect(tile).toHaveAttribute('href', g.path);
       await tile.click();
       await expect(page).toHaveURL(new RegExp(`${g.path}$`));

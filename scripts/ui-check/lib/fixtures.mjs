@@ -145,6 +145,13 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
     async goto(target, { waitFor } = {}) {
       await page.goto(target, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector(waitFor || 'main.page, #root *', { timeout: 20_000 });
+      // Wait for React to attach to the page (event props on an interactive element): a click or a synthetic
+      // input before hydration is silently ignored, which a loaded machine turns into false failures.
+      if (/^https?:/.test(page.url())) await page.waitForFunction(() => {
+        const els = document.querySelectorAll('button, input, a[href]');
+        for (let i = 0; i < els.length && i < 60; i++) if (Object.keys(els[i]).some((k) => k.startsWith('__reactProps$'))) return true;
+        return false;
+      }, null, { timeout: 10_000 }).catch(() => {});
       await page.evaluate(() => (document.fonts ? document.fonts.ready.then(() => true) : true)).catch(() => {});
       await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(400);

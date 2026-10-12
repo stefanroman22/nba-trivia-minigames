@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { CORE, MP_PAIRS, VIEWPORTS } from './lib/viewports.mjs';
-import { REPO_ROOT, runDir, runId } from './lib/run-id.mjs';
+import { REPO_ROOT, UIC_ROOT, runDir, runId } from './lib/run-id.mjs';
 import { ensureStack, stopStack } from './lib/stack.mjs';
 import { JPEG } from './lib/evidence.mjs';
 
@@ -33,6 +33,7 @@ function parseArgs(argv) {
     else if (a === '--keep-stack') opts.keepStack = true;
     else if (a === '--headed') opts.headed = true;
     else if (a === '--stop') opts.stop = true;
+    else if (a === '--where') opts.where = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else throw new Error(`unknown argument ${a}`);
   }
@@ -69,16 +70,24 @@ function grepFor(only) {
   return `\\[(${ids.join('|')})\\]`;
 }
 
+const PERF_TAG = '@perf';
+/** Grep for the single-worker pass: @perf tests, narrowed by --only when given. */
+function perfGrep(only) {
+  const ids = grepFor(only);
+  return ids ? `^(?=.*${PERF_TAG})(?=.*${ids})` : PERF_TAG;
+}
+
 // The running Playwright child, so an interrupt can take it down with the stack.
 let child = null;
 
 /** Run one Playwright invocation (async, so signal handlers can run meanwhile) → its exit code. */
-function playwright(projects, { workers, grep, headed, env }) {
+function playwright(projects, { workers, grep, grepInvert, headed, env }) {
   const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, UIC), '--workers', String(workers), '--pass-with-no-tests'];
   for (const p of projects) args.push('--project', p);
   if (grep) args.push('--grep', grep);
+  if (grepInvert) args.push('--grep-invert', grepInvert);
   if (headed) args.push('--headed');
-  console.log(`\nui-check: playwright ${projects.length} project(s), ${workers} worker(s)${grep ? `, --grep ${grep}` : ''}`);
+  console.log(`\nui-check: playwright ${projects.length} project(s), ${workers} worker(s)${grep ? `, --grep ${grep}` : ''}${grepInvert ? `, --grep-invert ${grepInvert}` : ''}`);
   return new Promise((resolve) => {
     child = spawn(process.execPath, args, { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, ...env } });
     child.on('error', () => { child = null; resolve(1); });
@@ -165,9 +174,17 @@ async function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`ui-check: ${e.message}`); process.exit(2); }
   if (opts.help) {
-    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed] [--stop]');
+    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed] [--stop] [--where]');
     console.log('  --keep-stack  leave the local stack running after the run');
+    console.log('  --where       print where runs and the stack file live (uicHome) and the latest run directory');
     console.log('  --stop        stop a stack kept with --keep-stack (or left behind by a killed run) and exit');
+    return 0;
+  }
+  if (opts.where) {
+    let latest = null;
+    try { latest = readFileSync(path.join(UIC_ROOT, 'latest'), 'utf8').trim(); } catch { /* no run yet */ }
+    console.log(`ui-check home: ${UIC_ROOT}`);
+    console.log(`latest run:    ${latest ? path.join(UIC_ROOT, 'runs', latest) : '(none yet)'}`);
     return 0;
   }
   if (opts.stop) { await stopStack(); return 0; }
@@ -187,16 +204,19 @@ async function main() {
   let exit = 0;
   try {
     await ensureStack(opts.mode);
+    childEnv.UI_CHECK_STACK_READY = '1'; // the Playwright stack-setup project only verifies health from here on
     const projects = suites.filter((s) => s !== 'multiplayer' && hasSpecs(s)).flatMap((s) => sel.vps.map((v) => `${s}@${v}`));
     const mpProjects = suites.includes('multiplayer') && hasSpecs('multiplayer') ? sel.pairs.map((p) => `mp@${p}`) : [];
     for (const s of suites) if (!hasSpecs(s)) console.log(`ui-check: suite ${s} has no specs yet — skipped`);
     let ran = false;
     if (projects.length) {
-      exit = Math.max(exit, await playwright(projects, { workers: 4, grep, headed: opts.headed, env: childEnv }));
+      // Timing-sensitive tests (title tag @perf) run last and alone, so parallel browsers cannot distort them.
+      exit = Math.max(exit, await playwright(projects, { workers: 4, grep, grepInvert: PERF_TAG, headed: opts.headed, env: childEnv }));
+      exit = Math.max(exit, await playwright(projects, { workers: 1, grep: perfGrep(opts.only), headed: opts.headed, env: { ...childEnv, UI_CHECK_APPEND: '1' } }));
       ran = true;
     }
     if (mpProjects.length) {
-      exit = Math.max(exit, await playwright(mpProjects, { workers: 1, grep, headed: opts.headed, env: { ...childEnv, ...(ran ? { UI_CHECK_APPEND: '1' } : {}) } }));
+      exit = Math.max(exit, await playwright(mpProjects, { workers: 1, grep, headed: opts.headed, grepInvert: PERF_TAG, env: { ...childEnv, ...(ran ? { UI_CHECK_APPEND: '1' } : {}) } }));
       ran = true;
     }
     if (!ran) { console.error('ui-check: nothing to run'); exit = 2; }

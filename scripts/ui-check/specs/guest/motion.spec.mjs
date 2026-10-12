@@ -1,10 +1,10 @@
 // Guest motion: route fades, segmented-tab thumb, reduced motion.
 import { test, expect, L } from '../../lib/fixtures.mjs';
-import { openLogin, recordFrames, valleys, playableGames, LOCAL_LOAD } from '../../lib/guest.mjs';
+import { openLogin, recordFrames, valleys, playableGames, gameById, tileFor, LOCAL_LOAD } from '../../lib/guest.mjs';
 
-test('[G-MOTION-01] route transitions fade once and settle at opacity 1', async ({ page, audit }) => {
+test('[G-MOTION-01] @perf route transitions fade once and settle at opacity 1', async ({ page, audit }) => {
   test.setTimeout(150_000);
-  const games = playableGames();
+  const first = gameById('series-winner'), second = gameById('name-logo'), hardLoad = gameById('who-are-ya');
 
   await test.step('hard load: no entrance animation on first paint (UI-14)', async () => {
     await page.addInitScript(() => {
@@ -16,18 +16,18 @@ test('[G-MOTION-01] route transitions fade once and settle at opacity 1', async 
       };
       requestAnimationFrame(tick);
     });
-    await audit.goto(games[4].path, { waitFor: '.stage-col .idle' });
+    await audit.goto(hardLoad.path, { waitFor: '.stage-col .idle' });
     await page.waitForTimeout(1200);
     const first = await page.evaluate(() => window.__first);
     expect(first.length, "frames sampled during the first paint").toBeGreaterThan(0);
     const min = Math.min(...first);
-    if (min < 0.99) audit.violation('double-transition', { selector: '#root > div', measured: `opacity ${min.toFixed(2)} during the first paint of ${games[4].path}`, expected: '1 (no entrance animation on a hard load)' });
+    if (min < 0.99) audit.violation('double-transition', { selector: '#root > div', measured: `opacity ${min.toFixed(2)} during the first paint of ${hardLoad.path}`, expected: '1 (no entrance animation on a hard load)' });
   });
 
   /** Click-driven navigations. */
   const hops = [
-    { from: '/', label: 'home -> game (card)', go: async () => { await L(page, 'guest.gameTiles').nth(1).scrollIntoViewIfNeeded(); await L(page, 'guest.gameTiles').nth(1).click(); }, url: games[1].path },
-    { from: games[0].path, label: 'game -> home (brand)', go: () => L(page, 'common.navBrand').click(), url: '/' },
+    { from: '/', label: 'home -> game (card)', go: async () => { await tileFor(page, second).scrollIntoViewIfNeeded(); await tileFor(page, second).click(); }, url: second.path },
+    { from: first.path, label: 'game -> home (brand)', go: () => L(page, 'common.navBrand').click(), url: '/' },
     { from: '/', label: 'home -> game (Play today)', go: () => L(page, 'guest.heroPlayToday').click(), url: null },
   ];
   const fadeProblems = []; // one violation per kind at the end
@@ -59,7 +59,7 @@ test('[G-MOTION-01] route transitions fade once and settle at opacity 1', async 
   await audit.done();
 });
 
-test('[G-MOTION-02] segmented tabs: the thumb slides and the panel height glides', async ({ page, audit, vp }) => {
+test('[G-MOTION-02] @perf segmented tabs: the thumb slides and the panel height glides', async ({ page, audit, vp }) => {
   test.setTimeout(90_000);
   // The leaderboard's Global/Friends tabs only exist for a signed-in player (account suite). The guest
   // has the same SegmentedTabs in the login modal: Log in <-> Sign up.
@@ -95,7 +95,7 @@ test('[G-MOTION-03] reduced motion: the hero grain stops, no hydration warnings'
   page.on('pageerror', (e) => messages.push(String((e && e.message) || e)));
   const HYDRATION = /hydrat|did not match|server rendered|Minified React error #(418|423|425)/i;
 
-  for (const route of ['/', playableGames()[0].path]) {
+  for (const route of ['/', gameById('series-winner').path]) {
     await test.step(route, async () => {
       await audit.goto(route, { waitFor: route === '/' ? '#games-grid .gtile' : '.stage-col .idle' });
       if (route === '/') {

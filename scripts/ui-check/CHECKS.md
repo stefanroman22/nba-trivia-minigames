@@ -7,7 +7,10 @@ owns what. The spec is `docs/superpowers/specs/2026-10-11-ui-check-design.md`.
 
 - A test title starts with its ID in brackets, then a description: `[G-HOME] home page layout`.
   The `audit` fixture reads the ID from the title. It names the evidence folder
-  (`.ui-check/runs/<run>/shots/<ID>/`) and groups the digest by it.
+  (`<uicHome>/runs/<run>/shots/<ID>/`) and groups the digest by it.
+- `<uicHome>` is where everything is written (`lib/home.mjs`): `UI_CHECK_HOME` if set; on Windows with the repo under OneDrive `%LOCALAPPDATA%
+ba-ui-check`; else `<repo>/.ui-check`. `node scripts/ui-check/run.mjs --where` prints it and the latest run directory.
+- A test title may carry the tag `@perf` after its ID (`[G-PERF-01] @perf ...`). `run.mjs` runs `@perf` tests in a second, single-worker invocation so timing is not distorted by parallel browsers.
 - Prefixes: `G-` guest, `AC-` account, `GM-` games, `MP-` multiplayer, `ST-` selftest, `ACCEPT` acceptance.
 - Each ID appears once across all specs and is listed below. A generated family (one test per game ×
   scenario, say) is listed as a pattern such as `GM-<game>-<scenario>`.
@@ -64,10 +67,10 @@ Hard failures also include the check-specific rules named below. Learnings: `not
 | `G-NAV-03` | Game page rail (above 820px) or chips (820px and below) list every visible game in catalogue order, "coming-soon" is disabled, each item switches to its game with the page fade (dips below 0.9, returns to 1, one dip only), the active item follows. |
 | `G-NAV-04` | Landing grid: one card per visible game; the search narrows the grid within 400ms and clearing restores it within 1s; a no-match query shows the empty line; each playable card links to and opens its game; "coming-soon" is disabled. |
 | `G-MODAL-01` | Login, feedback, leaderboard, instructions and multiplayer-info modals, each closed once with Escape and once with the X: exactly one `.modal-backdrop` holding exactly one `.modal-panel`; animated entrance and exit (at least one part-way opacity frame, so an instant mount or unmount fails); focus moves in on open and back to the trigger on close; `body` scroll is locked while open and released after; z-index fab 35 / nav 40 / modal 60 / drawer 70; the open modal passes the layout scan. |
-| `G-MOTION-01` | Hard load of a game has no entrance animation; card, brand and hero-CTA navigations fade the template wrapper out and back in to 1 with one dip (UI-14), with no snap, CLS or long frame while it runs. |
-| `G-MOTION-02` | The login modal's Log in / Sign up tabs: exactly one `.seg-thumb`, it slides (at least one frame between the start and end positions), the panel and form show no snap. (Leaderboard Global/Friends tabs need a signed-in user and belong to the account suite.) |
+| `G-MOTION-01` | `@perf`. Hard load of a game has no entrance animation; card, brand and hero-CTA navigations fade the template wrapper out and back in to 1 with one dip (UI-14), with no snap, CLS or long frame while it runs. |
+| `G-MOTION-02` | `@perf`. The login modal's Log in / Sign up tabs: exactly one `.seg-thumb`, it slides (at least one frame between the start and end positions), the panel and form show no snap. The leaderboard's Global/Friends tab motion needs a signed-in user and is owned by the account suite (AC-SURF-01). |
 | `G-MOTION-03` | With reduced motion: `.hero-grain` has `animation-name: none`, the hero button does not move on hover, no hydration warning on `/` or a game. |
-| `G-PERF-01` | TTFB, FCP, LCP, CLS and long frames recorded for `/` and a game (budgets enforced in prod: TTFB 800ms, LCP 2500ms, CLS 0.1); click-to-content latency for card -> game, rail/chip -> game and brand -> home is at most 1000ms in prod. |
+| `G-PERF-01` | `@perf`. Cold load (first load in a fresh context) of `/` and a game: TTFB, FCP, LCP, CLS and long frames recorded; prod budgets (TTFB 800ms, LCP 2500ms, CLS 0.1) apply to the cold value; a warm reload is recorded as a metric only. Click-to-content latency for card -> game, rail/chip -> game and brand -> home is at most 1000ms in prod. No `slow-api` allowance: a slow `/api/get-users/` fails this check. |
 | `G-PERM-01` | `/admin` for a guest shows "Admins only" and "Back to the games", no admin tabs or tables, no Admin nav or drawer link, makes no `/api/admin/` call; every `/api/admin/*` endpoint answers 401 or 403 with no token and with a bogus token (`admin-api-open`). |
 | `G-PERM-02` | Each hidden game slug and `/definitely-not-a-route` answer HTTP 404 with the 404 page (`hidden-route`); no hidden game appears in the landing grid, rail, chips or footer (`hidden-listed`). |
 | `G-PERM-03` | `/profile` for a guest shows "Log in to see and manage your profile." and no account controls; online-capable game pages show "Log in to play online" and neither Play 1v1 nor Play with a friend; no websocket or `socket.io` request is made (`guest-socket`). |

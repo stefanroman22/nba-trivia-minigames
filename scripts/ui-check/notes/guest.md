@@ -27,8 +27,9 @@ Specs: `specs/guest/{layout,navigation,modals,motion,perf,permissions,a11y}.spec
 
 ## Intentional exemptions
 
-- `slow GET /api/get-users/` (`LOCAL_LOAD` in `lib/guest.mjs`) is allowed in every guest `audit.console()`: it
-  answers 161 bytes in ~0.25s idle, but four browsers on one local `runserver` push it past 1s. Not an app defect.
+- `slow GET /api/get-users/` (`LOCAL_LOAD` in `lib/guest.mjs`) is allowed in the parallel-pass guest `audit.console()` calls: it
+  answers 161 bytes in ~0.25s idle, but four browsers on one local `runserver` push it past 1s. The `@perf` tests run
+  alone (one worker) and do NOT allow it.
 - The 404 routes' document response and Chrome's "Failed to load resource ... 404" console line are allowed, and only
   in the loop that visits 404 routes (per route in G-LAYOUT-01, once after the loop in G-PERM-02).
 - Dev-server HMR websockets (`/_next/hmr`) are not counted as a guest socket in G-PERM-03.

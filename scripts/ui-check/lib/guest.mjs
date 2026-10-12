@@ -12,6 +12,44 @@ export const chipsMode = (vp) => vp.width <= 820;
 /** Visible games that have a page of their own (everything but the "coming-soon" tile). */
 export const playableGames = () => visibleGames().filter((g) => g.id !== 'coming-soon');
 
+/** One playable game by id (throws when the catalogue changed). */
+export function gameById(id) {
+  const g = playableGames().find((x) => x.id === id);
+  if (!g) throw new Error(`games-catalog: no playable game "${id}" (have ${playableGames().map((x) => x.id).join(', ')})`);
+  return g;
+}
+
+/** The landing card of a game, found by its link. */
+export const tileFor = (page, g) => page.locator(`#games-grid .gtile[href="${g.path}"]`);
+
+/** The rail item (above 820px) or chip (820px and below) of a game, found by its exact name. */
+const escRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export function railTarget(page, vp, g) {
+  const exact = new RegExp('^\\s*' + escRe(g.name) + '\\s*$');
+  return chipsMode(vp)
+    ? L(page, 'guest.railChips').filter({ hasText: exact })
+    : L(page, 'guest.railItems').filter({ has: page.locator('.rail-name', { hasText: exact }) });
+}
+
+
+/**
+ * A game's rail item / chip / card is disabled. Explained: coming-soon (always) and Wordle when its
+ * daily-status call said locked (today's play is used). Anything else is a `disabled-game` violation.
+ * Explained skips leave a note metric so they show up in results.json. Returns true when the caller may skip.
+ */
+export async function explainDisabled(audit, cap, g, where) {
+  if (g.id === 'coming-soon') return true;
+  if (g.id === 'wordle') {
+    const st = await cap.json(/daily-status/).catch(() => undefined);
+    if (st && st.locked === true) {
+      audit.metrics.push({ kind: 'note', label: `skipped wordle on ${where}: daily play already used (daily-status locked)`, value: 1, unit: '', route: audit.route });
+      return true;
+    }
+  }
+  audit.violation('disabled-game', { selector: `${where}: ${g.id}`, measured: 'disabled', expected: 'enabled (only coming-soon, or Wordle after the daily play, may be disabled)' });
+  return false;
+}
+
 export const IS_PROD = () => process.env.UI_CHECK_MODE === 'prod';
 export const apiBase = () => `http://localhost:${MODES[process.env.UI_CHECK_MODE || 'prod'].django}/api`;
 
@@ -21,7 +59,18 @@ export const slugOf = (p) => (p === '/' ? 'home' : p.replace(/^\//, '').replace(
 export async function openDrawer(page) {
   await L(page, 'common.navMenuButton').click();
   await expect(L(page, 'common.drawer')).toBeVisible();
-  await page.waitForTimeout(350); // the 0.28s slide-in
+  // Wait for the slide-in to finish: opaque and the same left edge on three consecutive frames.
+  await page.waitForFunction(() => new Promise((resolve) => {
+    const el = document.getElementById('nav-drawer');
+    let last = null, same = 0;
+    const tick = () => {
+      const r = el.getBoundingClientRect().left, o = +getComputedStyle(el).opacity;
+      same = last !== null && Math.abs(r - last) < 0.1 && o > 0.99 ? same + 1 : 0;
+      last = r;
+      if (same >= 3) resolve(true); else requestAnimationFrame(tick);
+    };
+    tick();
+  }), null, { timeout: 5000 });
 }
 
 /**

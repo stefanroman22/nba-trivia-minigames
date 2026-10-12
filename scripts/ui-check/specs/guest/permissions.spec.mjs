@@ -1,6 +1,6 @@
 // Guest permissions: admin and profile views, admin API, hidden games, no socket for guests.
 import { test, expect, L } from '../../lib/fixtures.mjs';
-import { drawerMode, openDrawer, apiBase, playableGames, LOCAL_LOAD } from '../../lib/guest.mjs';
+import { drawerMode, openDrawer, apiBase, playableGames, gameById, LOCAL_LOAD } from '../../lib/guest.mjs';
 import { hiddenGames } from '../../lib/games-catalog.mjs';
 
 const ADMIN_ENDPOINTS = [
@@ -49,10 +49,8 @@ test('[G-PERM-02] hidden game slugs and unknown routes answer 404 with the 404 p
     await test.step(path, async () => {
       const res = await page.goto(path, { waitUntil: 'domcontentloaded' });
       if (res.status() !== 404) audit.violation('hidden-route', { selector: `GET ${path}`, measured: `HTTP ${res.status()}`, expected: '404', route: path });
-      await page.waitForSelector('h1', { timeout: 15_000 });
-      const shown = await L(page, 'guest.notFoundCode').count();
-      const title = await L(page, 'guest.notFoundTitle').count();
-      if (!shown || !title) audit.violation('hidden-route', { selector: 'NoPageFound', measured: 'no 404 heading / "Nothing here yet"', expected: 'the 404 page', route: path });
+      await expect(L(page, 'guest.notFoundCode')).toBeVisible({ timeout: 15_000 });
+      await expect(L(page, 'guest.notFoundTitle')).toBeVisible();
       await audit.layout({ rules: ['overflow-x', 'offscreen'] });
     });
   }
@@ -62,13 +60,17 @@ test('[G-PERM-02] hidden game slugs and unknown routes answer 404 with the 404 p
 
   // UI-19: hidden games are in no listing (grid, rail, chips, footer).
   await audit.goto('/', { waitFor: '#games-grid .gtile' });
-  const tileText = (await L(page, 'guest.gameTiles').allInnerTexts()).join('\n');
-  const footerText = (await L(page, 'guest.footerGameLinks').evaluateAll((as) => as.map((a) => `${a.textContent} ${a.getAttribute('href')}`))).join('\n');
-  await audit.goto(playableGames()[0].path, { waitFor: '.stage-col .idle' });
-  const railText = (await L(page, 'guest.railItems').allInnerTexts()).concat(await L(page, 'guest.railChips').allInnerTexts()).join('\n');
+  const tileInfo = await L(page, 'guest.gameTiles').evaluateAll((els) => els.map((e) => ({ href: e.getAttribute('href'), lines: e.innerText.split('\n').map((l) => l.trim()) })));
+  const footerInfo = await L(page, 'guest.footerGameLinks').evaluateAll((els) => els.map((e) => ({ href: e.getAttribute('href'), lines: [e.textContent.trim()] })));
+  await audit.goto(gameById('series-winner').path, { waitFor: '.stage-col .idle' });
+  const railInfo = [
+    ...(await L(page, 'guest.railItems').evaluateAll((els) => els.map((e) => ({ href: null, lines: [e.querySelector('.rail-name')?.textContent.trim()] })))),
+    ...(await L(page, 'guest.railChips').evaluateAll((els) => els.map((e) => ({ href: null, lines: [e.textContent.trim()] })))),
+  ];
   for (const g of hidden) {
-    for (const [where, text] of [['landing grid', tileText], ['footer', footerText], ['rail/chips', railText]]) {
-      if (text.includes(g.name) || text.includes(g.path)) audit.violation('hidden-listed', { selector: where, measured: `"${g.name}" listed`, expected: 'hidden games appear nowhere (UI-19)' });
+    for (const [where, items] of [['landing grid', tileInfo], ['footer', footerInfo], ['rail/chips', railInfo]]) {
+      // Exact slug (href) or exact name line, never a substring.
+      if (items.some((it) => it.href === g.path || it.lines.includes(g.name))) audit.violation('hidden-listed', { selector: where, measured: `"${g.name}" listed`, expected: 'hidden games appear nowhere (UI-19)' });
     }
   }
   await audit.console({ allow: LOCAL_LOAD });
@@ -76,7 +78,7 @@ test('[G-PERM-02] hidden game slugs and unknown routes answer 404 with the 404 p
 });
 
 test('[G-PERM-03] a guest gets the log-in prompt on /profile and "Log in to play online" on games, and opens no socket', async ({ page, audit }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(240_000); // visits every online game
   const sockets = [];
   page.on('websocket', (ws) => { if (!/\/_next\//.test(ws.url())) sockets.push(ws.url()); }); // dev-server HMR is not the relay
   const polling = [];
@@ -93,7 +95,7 @@ test('[G-PERM-03] a guest gets the log-in prompt on /profile and "Log in to play
   await expect(L(page, 'guest.modalTitle')).toHaveText('Welcome back');
   await page.keyboard.press('Escape');
 
-  for (const g of playableGames().filter((x) => x.online).slice(0, 3)) {
+  for (const g of playableGames().filter((x) => x.online)) {
     await audit.goto(g.path, { waitFor: '.stage-col .idle' });
     await expect(L(page, 'guest.mpLoginBtn')).toBeVisible();
     await expect(L(page, 'guest.mpPlay1v1Btn')).toHaveCount(0);

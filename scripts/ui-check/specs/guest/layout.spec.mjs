@@ -1,6 +1,6 @@
 // Guest layout: every public route + every visible game's idle screen, and scrolling.
 import { test, expect, L } from '../../lib/fixtures.mjs';
-import { playableGames, slugOf, LOCAL_LOAD } from '../../lib/guest.mjs';
+import { playableGames, gameById, slugOf, LOCAL_LOAD } from '../../lib/guest.mjs';
 
 // The 404 route answers HTTP 404 on purpose: Chrome logs it as a console error and the detector sees the response.
 const EXPECTED_404 = [/^404 GET \S+\/definitely-not-a-route$/, /status of 404/];
@@ -51,7 +51,7 @@ const scrollTo = (page, y) => page.evaluate((y) => {
 
 test('[G-LAYOUT-02] pages scroll to the footer, the nav stays at the top, nothing is wider than the viewport', async ({ page, audit }) => {
   test.setTimeout(120_000);
-  const routes = [{ path: '/', ready: '#games-grid .gtile' }, { path: '/privacy', ready: 'main article h1' }, { path: playableGames()[0].path, ready: '.stage-col .idle' }];
+  const routes = [{ path: '/', ready: '#games-grid .gtile' }, { path: '/privacy', ready: 'main article h1' }, { path: gameById('series-winner').path, ready: '.stage-col .idle' }];
   for (const r of routes) {
     await test.step(r.path, async () => {
       await audit.goto(r.path, { waitFor: r.ready });
