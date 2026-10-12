@@ -12,7 +12,8 @@ name: Publish game data
 # Weekly schedule (question factory supply run, docs/superpowers/specs/2026-10-12-question-factory-design.md):
 # the four question games only, for real. New and changed questions are staged as pending and
 # go live only after the Checker (question-checker.yml) approves them, which then dispatches this
-# workflow with skip_maintain=true. Pool games still publish by hand after a data sync.
+# workflow (with maintenance, so changed live questions are staged, never shipped unchecked).
+# Pool games still publish by hand after a data sync.
 on:
   schedule:
     - cron: "0 5 * * 1"
@@ -37,7 +38,7 @@ on:
         default: true
         type: boolean
       skip_maintain:
-        description: "publish the current active questions without maintenance (used by the Checker)"
+        description: "publish the current active questions without maintenance (live questions whose content changed since they were checked are left out)"
         required: false
         default: false
         type: boolean

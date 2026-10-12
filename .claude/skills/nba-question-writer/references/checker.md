@@ -48,7 +48,7 @@ Only `WebFetch` on these four sites. You have no search engine and no other tool
 | Site | Use for | How to get the page |
 |---|---|---|
 | `www.basketball-reference.com` | stints, draft, awards, height, birth year, positions, jerseys | `https://www.basketball-reference.com/search/search.fcgi?search=First+Last` (redirects to the player page when the name is unique) |
-| `www.nba.com` | official bio, draft, country | `https://www.nba.com/stats/player/<id>` only when you already have the id; otherwise skip |
+| `www.nba.com` | official bio, draft | `https://www.nba.com/player/<id>/<first-last>` when you already know the id (the `/stats/` pages render nothing useful); otherwise skip |
 | `en.wikipedia.org` | cross-checks, franchise names and moves | `https://en.wikipedia.org/wiki/First_Last` or `https://en.wikipedia.org/wiki/Special:Search?search=First+Last+basketball` |
 | `www.espn.com` | second source for recent seasons and transactions | only when a page above is ambiguous |
 
@@ -60,7 +60,8 @@ your output except short quotes in `found`.
 
 The fields come from NBA.com's own data, so judge them by the meaning below, not a stricter one.
 
-**Player facts** (`who-are-ya`, `contexto`, and the teams of `career-path`):
+**Player facts** (the fields a view contains; `who-are-ya` shows player, position, birth year,
+jersey, draft and teams; `contexto` player, position, draft and teams):
 
 | Field | Means | Counts as confirmed when |
 |---|---|---|
@@ -73,13 +74,17 @@ The fields come from NBA.com's own data, so judge them by the meaning below, not
 | `jersey` | his listed number | he wore it in the NBA at some point |
 | `draft` | `"<year> round <r> pick <p> by <abbr>"` or `"undrafted"` | year, round and pick exact; the team is the team **that made the pick** (a draft-night trade is a mismatch: contradicted) in its modern abbreviation |
 
-**Career Path** (`kind: career-path`): the teams, in order, are the claims. A missing or extra stint
-is a contradiction.
+**Career Path** (`kind: career-path`): every card is a claim: `"<franchise> <years>, GP <n>, PPG <x>"`,
+in order, plus the `draft` line shown on the last card. A missing or extra stint is a
+contradiction. GP is regular-season games for that franchise in that stint (within 2 of the
+source); PPG is points per game in that stint (within 0.3). Use Basketball-Reference's per-team
+season rows, adding up the seasons of the stint.
 
 **Contexto** (`kind: contexto`): the secret player's facts as above; the ranking is computed by code
 and is not yours to check.
 
-**Tic-Tac-Toe** (`kind: tictactoe`): for every cell, each sampled player must have played for the
+**Tic-Tac-Toe** (`kind: tictactoe`): the sample is each cell's first three answers, which include the
+one the game reveals when time runs out. For every cell, each sampled player must have played for the
 row's team **and** meet the column's criterion: the award won at least once in the NBA (MVP, Finals
 MVP, Defensive Player of the Year, Rookie of the Year, Sixth Man), NBA champion (any team), All-NBA
 (any team, any year), Undrafted (never picked in an NBA draft), Lottery pick (picked 1-14 in his

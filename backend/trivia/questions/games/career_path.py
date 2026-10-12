@@ -65,8 +65,11 @@ def players_referenced(definition, materialized, dataset=None):
 
 
 def checker_view(materialized, dataset=None):
+    """Every card (team, years, games played, points per game) and the last card's draft line."""
     p = materialized["player"]
-    return {"kind": SLUG, "player": p["full_name"], "teams": checker.player_profile(p)["teams"]}
+    profile = checker.player_profile(p)
+    cards = [f"{label}, GP {s.get('gp')}, PPG {s.get('ppg')}" for label, s in zip(profile["teams"], p.get("teams") or [])]
+    return {"kind": SLUG, "player": p["full_name"], "draft": profile["draft"], "teams": cards}
 
 
 def qid_for(definition, seq):

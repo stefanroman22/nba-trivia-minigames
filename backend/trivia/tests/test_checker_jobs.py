@@ -196,3 +196,37 @@ class ApplyTests(CheckerJobsTestCase):
         self.assertTrue(run.events.filter(action="rejected", reason="malformed_file").exists())
         approved = run.events.get(action="approved")
         self.assertEqual(approved.detail["claims"][0]["sources"], [BREF])
+
+
+class ApplyConflictAndSizeTests(ApplyTests):
+    def test_a_contradiction_anywhere_beats_a_valid_verdict_for_the_same_question(self):
+        row = self.rows[0]
+        self.write("verdicts-001.json", [self.verdict(row)])
+        self.write("verdicts-002.json", [self.verdict(row, "invalid", "contradicted")])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "quarantined")
+
+    def test_valid_and_unsure_for_the_same_question_is_unsure(self):
+        row = self.rows[0]
+        self.write("verdicts-001.json", [self.verdict(row), self.verdict(row, "unsure", "unverified", sources=())])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "pending")
+        self.assertEqual(row.quality["unsure_count"], 1)
+
+    def test_evidence_is_capped(self):
+        row = self.rows[0]
+        v = self.verdict(row, "invalid", "contradicted")
+        v["claims"][0]["claim"] = "x" * 5000
+        v["claims"][0]["found"] = "y" * 5000
+        v["claims"][0]["sources"] = [BREF] * 50
+        v["claims"] += [dict(v["claims"][0]) for _ in range(100)]
+        self.write("verdicts-001.json", [v])
+        self.apply()
+        row.refresh_from_db()
+        claims = row.quality["check_failed"]["claims"]
+        self.assertLessEqual(len(claims), 50)
+        self.assertLessEqual(len(claims[0]["claim"]), 500)
+        self.assertLessEqual(len(claims[0]["found"]), 500)
+        self.assertLessEqual(len(claims[0]["sources"]), 10)

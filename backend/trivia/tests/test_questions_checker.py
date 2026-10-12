@@ -42,32 +42,40 @@ class CheckerViewTests(SimpleTestCase):
         d = mod.generate(self.ds, set(), random.Random(2), 1, **kw)[0]
         return mod.materialize(d, self.ds)
 
-    def test_who_are_ya_and_career_path_views(self):
+    def test_who_are_ya_view_holds_the_shown_clues_only(self):
         m = self._materialized(who_are_ya)
+        profile = checker.player_profile(m["player"])
         self.assertEqual(who_are_ya.checker_view(m, self.ds),
-                         {"kind": "who-are-ya", **checker.player_profile(m["player"])})
+                         {"kind": "who-are-ya", **{k: profile[k] for k in
+                                                   ("player", "position", "birth_year", "jersey", "draft", "teams")}})
+
+    def test_career_path_view_holds_every_card_and_the_draft_line(self):
         m = self._materialized(career_path)
+        p = m["player"]
         view = career_path.checker_view(m, self.ds)
-        self.assertEqual(view, {"kind": "career-path", "player": m["player"]["full_name"],
-                                "teams": checker.player_profile(m["player"])["teams"]})
+        self.assertEqual(view["player"], p["full_name"])
+        self.assertEqual(view["draft"], checker.player_profile(p)["draft"])
+        s = p["teams"][0]
+        end = s["end_year"] if s["end_year"] is not None else "present"
+        self.assertEqual(view["teams"][0], f"{s['name']} {s['start_year']}-{end}, GP {s['gp']}, PPG {s['ppg']}")
+        self.assertEqual(len(view["teams"]), len(p["teams"]))
 
     def test_contexto_view_leaves_out_day_and_ranking(self):
         m = self._materialized(contexto, today=datetime.date(2026, 9, 12))
         view = contexto.checker_view(m, self.ds)
-        self.assertEqual(view, {"kind": "contexto", **checker.player_profile(m["secret"])})
-        self.assertNotIn("ranking", view)
-        self.assertNotIn("day", view)
+        profile = checker.player_profile(m["secret"])
+        self.assertEqual(view, {"kind": "contexto", **{k: profile[k] for k in ("player", "position", "draft", "teams")}})
 
-    def test_tictactoe_view_samples_the_three_most_famous_per_cell(self):
+    def test_tictactoe_cells_are_ordered_by_fame_and_the_view_samples_the_first_three(self):
         m = self._materialized(tictactoe)
+        for cell in m["valid"]:
+            self.assertEqual(cell, sorted(cell, key=lambda i: (-fame.fame_score(self.ds.by_id[i]), i)))
         view = tictactoe.checker_view(m, self.ds)
         self.assertEqual(view["rows"], [r["label"] for r in m["rows"]])
         self.assertEqual(view["cols"], [c["label"] for c in m["cols"]])
         self.assertEqual(len(view["cells"]), 9)
-        first = sorted((self.ds.by_id[i] for i in m["valid"][0]),
-                       key=lambda p: (-fame.fame_score(p), p["person_id"]))[:3]
         self.assertEqual(view["cells"][0], {"row": m["rows"][0]["label"], "col": m["cols"][0]["label"],
-                                            "sample": [p["full_name"] for p in first]})
+                                            "sample": [self.ds.by_id[i]["full_name"] for i in m["valid"][0][:3]]})
 
 
 class JudgeTests(SimpleTestCase):

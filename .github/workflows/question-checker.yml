@@ -5,8 +5,8 @@ name: Question checker
 #   check   (NO DB secret)       Claude (Max-plan OAuth token) judges each question; its web access
 #                                is limited to the four approved sites by Claude Code permissions
 #   apply   (has the DB secret)  re-validates every verdict in code, pending -> active/quarantined,
-#                                journals the evidence (FactoryRun kind "checker"), then publishes
-#                                the question games when anything was approved
+#                                journals the evidence (FactoryRun kind "checker"), then dispatches
+#                                a staging publish of the question games when anything was approved
 # Instructions for the agent: .claude/skills/nba-question-writer/references/checker.md.
 on:
   schedule:
@@ -101,7 +101,7 @@ jobs:
             --model ${{ inputs.model || 'opus' }}
             --max-turns 250
             --allowedTools "Read,Write,WebFetch(domain:www.basketball-reference.com),WebFetch(domain:www.nba.com),WebFetch(domain:en.wikipedia.org),WebFetch(domain:www.espn.com)"
-            --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Task,NotebookEdit"
+            --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Agent,Task,NotebookEdit"
       - name: Keep the verdicts
         if: always()
         uses: actions/upload-artifact@v6
@@ -141,12 +141,15 @@ jobs:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
         run: python manage.py apply_checker_verdicts "$GITHUB_WORKSPACE/verdicts" --trigger "$TRIGGER"
+      # A full (staging) maintenance run, never skip_maintain: if the dataset changed since the
+      # last supply run, maintenance moves every changed live question back to pending instead
+      # of publishing content the Checker never saw. Approved rows are already active.
+      # Only from the default branch, so a manual run on another branch never publishes its data.
       - name: Publish the approved questions
-        if: steps.apply.outputs.approved != '0' && steps.apply.outputs.approved != ''
+        if: steps.apply.outputs.approved != '0' && steps.apply.outputs.approved != '' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run publish-game-data.yml --ref "${{ github.ref_name }}" \
-            -f games=career-path,who-are-ya,tictactoe,contexto -f target=vercel \
-            -f dry_run=false -f skip_maintain=true
+            -f games=career-path,who-are-ya,tictactoe,contexto -f target=vercel -f dry_run=false
           echo "Approved ${{ steps.apply.outputs.approved }} question(s) in: ${{ steps.apply.outputs.games }}; publish dispatched." >> "$GITHUB_STEP_SUMMARY"

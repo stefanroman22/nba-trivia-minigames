@@ -23,7 +23,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **opts):
         dataset = publish_v3.curated_dataset()
-        batches = export_batches(dataset, max(0, opts["limit"]), max(1, opts["batch_size"]))
+        batches = export_batches(dataset, max(0, opts["limit"]), max(1, opts["batch_size"]), out=self.stdout.write)
         os.makedirs(opts["out"], exist_ok=True)
         for b in batches:
             with open(os.path.join(opts["out"], f"batch-{b['batch']}.json"), "w", encoding="utf-8") as f:

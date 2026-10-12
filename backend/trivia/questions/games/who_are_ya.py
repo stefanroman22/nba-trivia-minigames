@@ -51,8 +51,12 @@ def players_referenced(definition, materialized, dataset=None):
     return [definition["person_id"]]
 
 
+SHOWN = ("player", "position", "birth_year", "jersey", "draft", "teams")  # WhoAreYa.tsx clues (age = birth year)
+
+
 def checker_view(materialized, dataset=None):
-    return {"kind": SLUG, **checker.player_profile(materialized["player"])}
+    profile = checker.player_profile(materialized["player"])
+    return {"kind": SLUG, **{k: profile[k] for k in SHOWN}}
 
 
 def qid_for(definition, seq):
