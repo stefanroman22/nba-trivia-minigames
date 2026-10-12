@@ -37,6 +37,13 @@ class JournalTests(TestCase):
         j.mark_rolled_back(since=1)
         self.assertEqual([e["detail"].get("rolled_back") for e in j.events], [None, True])
 
+    def test_mark_rolled_back_leaves_decisions_alone(self):
+        j = Journal("supply")
+        j.log("refill_decision", "below_target", game="a", active=0, target=5, retired=0)
+        j.log("generated", "top_up", game="a")
+        j.mark_rolled_back()
+        self.assertEqual([e["detail"].get("rolled_back") for e in j.events], [None, True])
+
     def test_events_without_a_game_stay_out_of_the_summary(self):
         j = Journal("cleanup")
         j.log("cleaned", "past_window", rows=10)

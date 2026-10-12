@@ -7,7 +7,8 @@ name: Publish game data
 # Design: docs/team/designs/2026-10-02-independent-game-data-publishing.md.
 # Never touches the website or backend deploys, and never calls stats.nba.com.
 # A dry run passes --no-commit: the folder is built (and uploaded as an artifact) but every
-# DB write of the run (question maintenance, Fan Favorites re-rank) is rolled back.
+# DB write of the run (question maintenance, Fan Favorites re-rank) is rolled back, except the
+# factory journal (FactoryRun / FactoryEvent), which records the dry run itself.
 on:
   workflow_dispatch:
     inputs:

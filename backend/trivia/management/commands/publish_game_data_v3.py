@@ -56,8 +56,9 @@ class Command(BaseCommand):
                                  "maintenance (no retire / top-up, no DB writes for them)")
         parser.add_argument("--no-commit", action="store_true",
                             help="Write the folder but roll back every DB write of this run "
-                                 "(question maintenance, Fan Favorites re-rank); for dry runs")
-        parser.add_argument("--trigger", default="manual",
+                                 "(question maintenance, Fan Favorites re-rank) except the factory "
+                                 "journal, which records the dry run; for dry runs")
+        parser.add_argument("--trigger", default="manual", choices=("manual", "schedule", "data-refresh"),
                             help="What started this run, recorded in the factory journal "
                                  "(manual | schedule | data-refresh); dry runs record dry-run")
         parser.add_argument("--rng-seed", type=int, default=None,
@@ -96,6 +97,7 @@ class Command(BaseCommand):
         rollback = opts["dry_run"] or opts["no_commit"]
         journal = Journal("supply", trigger="dry-run" if rollback else opts["trigger"])
         status = FactoryRun.STATUS_FAILED
+        committed = False  # True once this run's question maintenance is kept in the DB
         try:
             # Maintenance and every game's build share one transaction: the minimum
             # gate or any build/validation failure rolls the question writes back.
@@ -120,6 +122,7 @@ class Command(BaseCommand):
                 if rollback:
                     transaction.set_rollback(True)
                     self.stdout.write("  DB writes of this run rolled back (--dry-run / --no-commit)")
+            committed = bool(to_maintain) and not rollback
             report = publish_v3.publish(
                 games, out_dir, previous=previous,
                 origins=getattr(settings, "CORS_ALLOWED_ORIGINS", []),
@@ -127,15 +130,18 @@ class Command(BaseCommand):
                 warn=lambda msg: self.stdout.write(self.style.WARNING(f"  warning: {msg}")),
             )
             status = FactoryRun.STATUS_DEGRADED if held_back else FactoryRun.STATUS_OK
-        except runner.BelowMinimum as e:
-            raise CommandError(f"Publish aborted, nothing written, question maintenance rolled back: {e}") from e
         except publish_v3.PublishError as e:
+            # maintain(isolate=True) never raises BelowMinimum (a game below its minimum is
+            # held back), and build_games turns any builder failure into a PublishError.
+            if committed:
+                raise CommandError(f"Publish aborted, nothing published (question maintenance was "
+                                   f"committed): {e}") from e
             raise CommandError(f"Publish aborted, nothing written: {e}") from e
         finally:
             # Written after the transaction, so a rolled-back or failed run is journaled too.
             # Journaling must never fail a publish (e.g. before the migration reaches a DB).
             if to_maintain:
-                if rollback or status == FactoryRun.STATUS_FAILED:
+                if not committed:
                     journal.mark_rolled_back()  # none of this run's writes were kept
                 try:
                     run = journal.save(status)
