@@ -6,6 +6,7 @@ transaction, so a rolled-back or failed run still leaves its record
 """
 import json
 
+from django.db import transaction
 from django.utils import timezone
 
 
@@ -22,6 +23,12 @@ class Journal:
             "action": action, "reason": reason, "game": game, "qid": qid or "",
             "detail": detail, "created_at": timezone.now(),
         })
+
+    def mark_rolled_back(self, since=0):
+        """Flag events from `since` on whose DB writes were rolled back, so every
+        reader can tell what actually happened from the events alone."""
+        for event in self.events[since:]:
+            event["detail"]["rolled_back"] = True
 
     def summary(self):
         out = {}
@@ -47,10 +54,11 @@ class Journal:
     def save(self, status):
         from trivia.models import FactoryEvent, FactoryRun
 
-        run = FactoryRun.objects.create(
-            kind=self.kind, trigger=self.trigger, status=status, started_at=self.started_at,
-            finished_at=timezone.now(), versions=self.versions, summary=self.summary(),
-            report_md=self.report_md(status),
-        )
-        FactoryEvent.objects.bulk_create([FactoryEvent(run=run, **e) for e in self.events], batch_size=500)
+        with transaction.atomic():  # never a run row without its events
+            run = FactoryRun.objects.create(
+                kind=self.kind, trigger=self.trigger, status=status, started_at=self.started_at,
+                finished_at=timezone.now(), versions=self.versions, summary=self.summary(),
+                report_md=self.report_md(status),
+            )
+            FactoryEvent.objects.bulk_create([FactoryEvent(run=run, **e) for e in self.events], batch_size=500)
         return run

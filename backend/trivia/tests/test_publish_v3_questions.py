@@ -386,6 +386,22 @@ class CommandTests(QuestionsTestCase):
         self.assertEqual(FactoryRun.objects.get().trigger, "dry-run")
         self.assertEqual(Question.objects.count(), 0)
 
+    def test_a_dry_run_marks_every_event_rolled_back(self):
+        self._call("--games", "career-path", "--dry-run")
+        events = list(FactoryRun.objects.get().events.all())
+        self.assertTrue(events)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in events))
+
+    def test_a_failed_run_marks_every_event_rolled_back(self):
+        with patch.object(publish_v3, "default_builders",
+                          side_effect=lambda **kw: {**publish_v3.question_builders(kw.get("maintained"), self.ds),
+                                                    "mvps": lambda: []}):
+            with self.assertRaises(CommandError):
+                self._call("--games", "career-path,mvps")
+        events = list(FactoryRun.objects.get().events.all())
+        self.assertTrue(events)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in events))
+
     def test_a_failed_run_is_journaled_as_failed(self):
         with patch.object(publish_v3, "default_builders",
                           side_effect=lambda **kw: {**publish_v3.question_builders(kw.get("maintained"), self.ds),

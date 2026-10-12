@@ -164,8 +164,7 @@ def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=No
             with transaction.atomic():
                 per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
         except BelowMinimum as e:
-            for event in journal.events[mark:]:
-                event["detail"]["rolled_back"] = True
+            journal.mark_rolled_back(since=mark)
             journal.log("held_back", "below_minimum", game=slug, active=e.count, minimum=e.minimum)
             stats[slug] = {"held_back": str(e)}
             out(f"  {slug}: held back, {e}")

@@ -135,6 +135,8 @@ class Command(BaseCommand):
             # Written after the transaction, so a rolled-back or failed run is journaled too.
             # Journaling must never fail a publish (e.g. before the migration reaches a DB).
             if to_maintain:
+                if rollback or status == FactoryRun.STATUS_FAILED:
+                    journal.mark_rolled_back()  # none of this run's writes were kept
                 try:
                     run = journal.save(status)
                     self.stdout.write(f"Journal: factory run {run.pk} ({status}, {len(journal.events)} events)")
