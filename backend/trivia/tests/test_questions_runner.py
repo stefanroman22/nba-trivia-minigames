@@ -54,6 +54,23 @@ class RunnerTests(TestCase):
         self.assertEqual(s3.calls, [])
         self.assertEqual(Question.objects.count(), 0)
 
+    def test_isolated_maintain_holds_back_only_the_failing_game(self):
+        with mock.patch("trivia.questions.games.career_path.TARGET", 5), \
+             mock.patch("trivia.questions.games.career_path.MINIMUM", 50):
+            per_game, stats = runner.maintain(["career-path", "who-are-ya"], self.ds, self.rng,
+                                              out=lambda *_: None, isolate=True)
+        self.assertNotIn("career-path", per_game)
+        self.assertEqual(stats["career-path"], {"held_back": "career-path: 5 active < minimum 50"})
+        self.assertEqual(Question.objects.filter(game="career-path").count(), 0)
+        self.assertTrue(per_game["who-are-ya"])
+        self.assertTrue(Question.objects.filter(game="who-are-ya", status="active").exists())
+
+    def test_maintain_without_isolate_still_raises(self):
+        with mock.patch("trivia.questions.games.career_path.TARGET", 5), \
+             mock.patch("trivia.questions.games.career_path.MINIMUM", 50):
+            with self.assertRaises(runner.BelowMinimum):
+                runner.maintain(["career-path"], self.ds, self.rng, out=lambda *_: None)
+
     def test_failed_upload_rolls_back_db(self):
         class Boom(FakeS3):
             def put_object(self, *a, **k):

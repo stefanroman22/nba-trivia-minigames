@@ -131,18 +131,30 @@ def _process_game(slug, dataset, rng, now, out):
     return kept, {"active": len(kept), "retired": retired, "added": added, "materialized": len(kept)}
 
 
-def maintain(games, dataset, rng, now=None, out=print):
+def maintain(games, dataset, rng, now=None, out=print, isolate=False):
     """Re-materialize, retire, top up and gate each game; no publishing.
 
     Returns ({slug: [(qid, index_item, materialized), ...]}, {slug: stats}).
     Writes to the questions table, so call it inside transaction.atomic(): a
     BelowMinimum (or any later failure in the caller's block) rolls every game's
     writes back. Used by run() (Supabase snapshot) and publish_game_data_v3.
+
+    isolate=True (publish_game_data_v3): each game runs in its own savepoint. A
+    game below its minimum is rolled back alone, left out of the result and
+    reported as stats[slug] = {"held_back": reason}; the other games go on.
     """
     now = now or timezone.now()
     per_game, stats = {}, {}
     for slug in games:
-        per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out)
+        if not isolate:
+            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out)
+            continue
+        try:
+            with transaction.atomic():
+                per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out)
+        except BelowMinimum as e:
+            stats[slug] = {"held_back": str(e)}
+            out(f"  {slug}: held back, {e}")
     return per_game, stats
 
 
