@@ -2,18 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the hand-set fame tier with a computed fame score as the eligibility gate for Who Are Ya, Contexto and Career Path, and make the game-data publish hold back a game that falls below its minimum instead of failing every game.
+**Goal:** Replace the hand-set fame tier with a computed fame score as the eligibility gate for Who Are Ya, Contexto and Career Path; make the game-data publish hold back a game that falls below its minimum instead of failing every game; and journal every supply run's decisions so the improvement loop has history from day one.
 
-**Architecture:** A pure `trivia/questions/fame.py` computes a score and a band (STAR/KNOWN/DEEP/OBSCURE) from a curated row; the hand-set `fame_tier` only ever raises a band, so every new eligibility rule is a superset of today's. `runner.maintain(..., isolate=True)` wraps each game in its own savepoint; `publish_game_data_v3` drops held-back games from the run (their live manifest entries carry over) and reports them through `$GITHUB_OUTPUT`, which turns the workflow red after everything else has shipped.
+**Architecture:** A pure `trivia/questions/fame.py` computes a score and a band (STAR/KNOWN/DEEP/OBSCURE) from a curated row; the hand-set `fame_tier` only ever raises a band, so every new eligibility rule is a superset of today's. `runner.maintain(..., isolate=True)` wraps each game in its own savepoint; `publish_game_data_v3` drops held-back games from the run (their live manifest entries carry over) and reports them through `$GITHUB_OUTPUT`, which turns the workflow red after everything else has shipped. A `Journal` collects decisions in memory during the run and is written to two new tables (`FactoryRun`, `FactoryEvent`) after the run's transaction, so rolled-back and failed runs are on record too.
 
 **Tech Stack:** Django 5.1, Python 3.13, Django `TestCase`/`SimpleTestCase`, GitHub Actions.
 
-**Spec:** `docs/superpowers/specs/2026-10-12-question-factory-design.md` (§4.1 fame score, §4.5 isolation, §5 phase 1).
+**Spec:** `docs/superpowers/specs/2026-10-12-question-factory-design.md` (§4.2 fame score, §4.5 isolation, §4.8 journal, §7 phase 1).
 
 ## Global Constraints
 
 - The curated row schema is FROZEN (contract #1, `backend/trivia/data_pipeline/curated_players.py`): do not add, rename or remove row fields. The fame score is computed, never stored.
-- Fame formula, thresholds and tier floor exactly as spec §4.1: STAR ≥ 40, KNOWN ≥ 18, DEEP ≥ 10; tier 1 ⇒ ≥ STAR, tier 2 ⇒ ≥ KNOWN, tier 3 ⇒ ≥ DEEP; `fame.VERSION = 1`.
+- Journal events are collected in memory and persisted only after the run's transaction has committed or rolled back (spec §4.8); journaling must never change what maintenance does.
+- Fame formula, thresholds and tier floor exactly as spec §4.2: STAR ≥ 40, KNOWN ≥ 18, DEEP ≥ 10; tier 1 ⇒ ≥ STAR, tier 2 ⇒ ≥ KNOWN, tier 3 ⇒ ≥ DEEP; `fame.VERSION = 1`.
 - Eligibility: Who Are Ya = KNOWN or better + ≥ 1 stint; Contexto secret = KNOWN or better; Career Path = 3–7 stints + DEEP or better, weight 3 for KNOWN/DEEP and 1 for STAR.
 - Legacy `backend/trivia/games/*` modules are out of scope; do not touch them.
 - Surgical changes, match existing style; remove only what your change orphans.
@@ -28,6 +29,7 @@
 3. A live question whose player drops below the band after a data refresh must be retired with a readable reason, not crash maintenance — pinned in Tasks 2–4 (`materialize` raises `Invalid` with the band in the message).
 4. Every question game held back in the same run must still exit cleanly, publish the rest (question-names) and report all of them — pinned in Task 6.
 5. A dry run with a held-back game must report it and write nothing — pinned in Task 6.
+6. A run that fails or rolls back must still leave a journal entry saying so, and events of a held-back game must be marked as rolled back — pinned in Task 7.
 
 ---
 
@@ -736,7 +738,374 @@ git commit -m "feat(publish): hold back a game below minimum instead of failing 
 
 ---
 
-### Task 7: Full test run, real-data dry run, ship to dev
+### Task 7: Run journal for supply runs
+
+**Files:**
+- Modify: `backend/trivia/models.py` (append `FactoryRun`, `FactoryEvent`)
+- Create: `backend/trivia/migrations/<next>_factory_journal.py` (generated)
+- Create: `backend/trivia/questions/journal.py`
+- Modify: `backend/trivia/questions/runner.py` (`_materialize_row`, `_process_game`, `maintain`)
+- Modify: `backend/trivia/management/commands/publish_game_data_v3.py` (`add_arguments`, `handle`, imports)
+- Test: `backend/trivia/tests/test_questions_journal.py` (new), `backend/trivia/tests/test_questions_runner.py`, `backend/trivia/tests/test_publish_v3_questions.py`
+
+**Interfaces:**
+- Consumes: `runner.maintain(..., isolate=True)` and the held-back handling in the command (Tasks 5–6); `fame.VERSION` (Task 1).
+- Produces:
+  - `trivia.models.FactoryRun` (fields `kind`, `trigger`, `status`, `started_at`, `finished_at`, `versions`, `summary`, `report_md`; constants `STATUS_OK="ok"`, `STATUS_DEGRADED="degraded"`, `STATUS_FAILED="failed"`) and `trivia.models.FactoryEvent` (fields `run` FK with `related_name="events"`, `game`, `qid`, `action`, `reason`, `detail`, `created_at`).
+  - `trivia.questions.journal.Journal(kind: str, trigger: str = "")` with `.versions: dict`, `.events: list[dict]`, `.log(action, reason="", game="", qid="", **detail)`, `.summary() -> {game: {action: count}}`, `.report_md(status) -> str`, `.save(status) -> FactoryRun`.
+  - `runner.maintain(..., journal=None)`: logs `refill_decision` (detail `active`, `target`, `retired`), `generated` (detail `definition`), `retired` (detail `problems`), `held_back` (detail `active`, `minimum`); events of a held-back game get `detail["rolled_back"] = True`.
+  - `publish_game_data_v3 --trigger <name>` (default `manual`); a `--dry-run`/`--no-commit` run is journaled with trigger `dry-run`.
+
+- [ ] **Step 1: Write the failing journal tests**
+
+```python
+# backend/trivia/tests/test_questions_journal.py
+from django.test import TestCase
+
+from trivia.questions.journal import Journal
+
+
+class JournalTests(TestCase):
+    def test_log_summary_and_save(self):
+        j = Journal("supply", trigger="manual")
+        j.versions = {"fame": 1}
+        j.log("generated", "top_up", game="career-path", qid="cp-000001", definition={"person_id": 1})
+        j.log("generated", "top_up", game="career-path", qid="cp-000002", definition={"person_id": 2})
+        j.log("held_back", "below_minimum", game="contexto", active=3, minimum=30)
+        self.assertEqual(j.summary(), {"career-path": {"generated": 2}, "contexto": {"held_back": 1}})
+        run = j.save("degraded")
+        self.assertEqual((run.kind, run.trigger, run.status), ("supply", "manual", "degraded"))
+        self.assertEqual(run.events.count(), 3)
+        self.assertEqual(run.summary, j.summary())
+        self.assertEqual(run.versions, {"fame": 1})
+        self.assertIn("contexto held_back: below_minimum", run.report_md)
+        self.assertEqual(run.events.get(qid="cp-000002").detail, {"definition": {"person_id": 2}})
+
+    def test_events_without_a_game_stay_out_of_the_summary(self):
+        j = Journal("cleanup")
+        j.log("cleaned", "past_window", rows=10)
+        self.assertEqual(j.summary(), {})
+        self.assertEqual(j.save("ok").events.get().detail, {"rows": 10})
+```
+
+Add to `RunnerTests` in `backend/trivia/tests/test_questions_runner.py` (import `from trivia.questions.journal import Journal`):
+
+```python
+    def test_maintain_journals_its_decisions(self):
+        journal = Journal("supply")
+        with mock.patch("trivia.questions.games.career_path.TARGET", 5):
+            runner.maintain(["career-path"], self.ds, self.rng, out=lambda *_: None, journal=journal)
+        first = journal.events[0]
+        self.assertEqual((first["action"], first["reason"], first["game"]),
+                         ("refill_decision", "below_target", "career-path"))
+        self.assertEqual(first["detail"], {"active": 0, "target": 5, "retired": 0})
+        self.assertEqual(sum(1 for e in journal.events if e["action"] == "generated"), 5)
+
+    def test_retirements_are_journaled_with_the_problem(self):
+        Question.objects.create(game="career-path", qid="cp-999999", definition={"person_id": -1},
+                                content_hash=content_hash({"person_id": -1}))
+        journal = Journal("supply")
+        with mock.patch("trivia.questions.games.career_path.TARGET", 5):
+            runner.maintain(["career-path"], self.ds, self.rng, out=lambda *_: None, journal=journal)
+        retired = [e for e in journal.events if e["action"] == "retired"]
+        self.assertEqual(retired[0]["qid"], "cp-999999")
+        self.assertIn("not in the playable pool", retired[0]["detail"]["problems"][0])
+```
+
+Add to `CommandTests` in `backend/trivia/tests/test_publish_v3_questions.py` (import `FactoryRun` from `trivia.models` next to `Question`):
+
+```python
+    def test_a_run_is_journaled(self):
+        self._call("--games", "career-path")
+        run = FactoryRun.objects.get()
+        self.assertEqual((run.kind, run.trigger, run.status), ("supply", "manual", "ok"))
+        self.assertEqual(run.versions["fame"], 1)
+        self.assertEqual(run.events.filter(game="career-path", action="generated").count(),
+                         Question.objects.filter(game="career-path").count())
+        self.assertTrue(run.events.filter(game="career-path", action="refill_decision").exists())
+        self.assertIn("career-path", run.report_md)
+
+    def test_a_held_back_run_is_degraded_and_marks_rolled_back_events(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            self._call("--games", "career-path,contexto")
+        run = FactoryRun.objects.get()
+        self.assertEqual(run.status, "degraded")
+        self.assertTrue(run.events.filter(game="contexto", action="held_back").exists())
+        generated = list(run.events.filter(game="contexto", action="generated"))
+        self.assertTrue(generated)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in generated))
+
+    def test_a_dry_run_is_journaled_as_dry_run(self):
+        self._call("--games", "career-path", "--dry-run")
+        self.assertEqual(FactoryRun.objects.get().trigger, "dry-run")
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_a_failed_run_is_journaled_as_failed(self):
+        with patch.object(publish_v3, "default_builders",
+                          side_effect=lambda **kw: {**publish_v3.question_builders(kw.get("maintained"), self.ds),
+                                                    "mvps": lambda: []}):
+            with self.assertRaises(CommandError):
+                self._call("--games", "career-path,mvps")
+        self.assertEqual(FactoryRun.objects.get().status, "failed")
+        self.assertEqual(Question.objects.count(), 0)
+```
+
+- [ ] **Step 2: Run them to verify they fail**
+
+Run: `python manage.py test trivia.tests.test_questions_journal trivia.tests.test_questions_runner trivia.tests.test_publish_v3_questions`
+Expected: ERROR, `ModuleNotFoundError: No module named 'trivia.questions.journal'` / `ImportError: cannot import name 'FactoryRun'`.
+
+- [ ] **Step 3: Add the models and the migration**
+
+Append to `backend/trivia/models.py`:
+
+```python
+class FactoryRun(models.Model):
+    """One run of the question factory: what it did and why (spec §4.8 of
+    docs/superpowers/specs/2026-10-12-question-factory-design.md).
+
+    Written after the run's own transaction, so rolled-back (dry-run) and failed
+    runs are on record too. The review loop reads these through factory_digest.
+    """
+
+    STATUS_OK, STATUS_DEGRADED, STATUS_FAILED = "ok", "degraded", "failed"
+
+    kind = models.CharField(max_length=16)  # supply | doctor | editorial | rollup | cleanup
+    trigger = models.CharField(max_length=16, blank=True)  # manual | schedule | dry-run | data-refresh
+    status = models.CharField(max_length=10)
+    started_at = models.DateTimeField()
+    finished_at = models.DateTimeField()
+    versions = models.JSONField(default=dict, blank=True)  # {"dataset": ..., "fame": 1, ...}
+    summary = models.JSONField(default=dict, blank=True)  # {game: {action: count}}
+    report_md = models.TextField(blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["kind", "-started_at"])]
+
+    def __str__(self):
+        return f"{self.kind} {self.status} @ {self.started_at:%Y-%m-%d %H:%M}"
+
+
+class FactoryEvent(models.Model):
+    """One decision inside a FactoryRun: action, machine reason, and the numbers
+    (or, for model steps, the rationale and sources) behind it."""
+
+    run = models.ForeignKey(FactoryRun, on_delete=models.CASCADE, related_name="events")
+    game = models.CharField(max_length=32, blank=True)
+    qid = models.CharField(max_length=48, blank=True)
+    action = models.CharField(max_length=24)  # refill_decision | generated | retired | held_back | ...
+    reason = models.CharField(max_length=64, blank=True)
+    detail = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["run", "game"]),
+            models.Index(fields=["action", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.game}/{self.qid} {self.action} ({self.reason})"
+```
+
+Run: `python manage.py makemigrations trivia --name factory_journal`
+Expected: `Migrations for 'trivia': trivia/migrations/0008_factory_journal.py` (the number is whatever comes next) creating both models. Then `python manage.py makemigrations --check --dry-run` prints `No changes detected`.
+
+- [ ] **Step 4: Write the journal**
+
+```python
+# backend/trivia/questions/journal.py
+"""In-memory journal of one factory run, persisted as FactoryRun + FactoryEvent.
+
+Events are collected during the run and written by save() AFTER the run's
+transaction, so a rolled-back or failed run still leaves its record
+(docs/superpowers/specs/2026-10-12-question-factory-design.md §4.8).
+"""
+import json
+
+from django.utils import timezone
+
+
+class Journal:
+    def __init__(self, kind, trigger=""):
+        self.kind = kind
+        self.trigger = trigger
+        self.started_at = timezone.now()
+        self.versions = {}
+        self.events = []
+
+    def log(self, action, reason="", game="", qid="", **detail):
+        self.events.append({
+            "action": action, "reason": reason, "game": game, "qid": qid or "",
+            "detail": detail, "created_at": timezone.now(),
+        })
+
+    def summary(self):
+        out = {}
+        for e in self.events:
+            if e["game"]:
+                per_game = out.setdefault(e["game"], {})
+                per_game[e["action"]] = per_game.get(e["action"], 0) + 1
+        return out
+
+    def report_md(self, status):
+        lines = [f"# {self.kind} run ({self.trigger or 'manual'}): {status}", ""]
+        if self.versions:
+            lines += ["Versions: " + ", ".join(f"{k} {v}" for k, v in sorted(self.versions.items())), ""]
+        for game, counts in sorted(self.summary().items()):
+            lines.append(f"- **{game}**: " + ", ".join(f"{a} {n}" for a, n in sorted(counts.items())))
+        decisions = [e for e in self.events if e["action"] in ("refill_decision", "held_back")]
+        if decisions:
+            lines += ["", "## Decisions"]
+            lines += [f"  - {e['game']} {e['action']}: {e['reason']} "
+                      f"{json.dumps(e['detail'], default=str, sort_keys=True)}" for e in decisions]
+        return "\n".join(lines)
+
+    def save(self, status):
+        from trivia.models import FactoryEvent, FactoryRun
+
+        run = FactoryRun.objects.create(
+            kind=self.kind, trigger=self.trigger, status=status, started_at=self.started_at,
+            finished_at=timezone.now(), versions=self.versions, summary=self.summary(),
+            report_md=self.report_md(status),
+        )
+        FactoryEvent.objects.bulk_create([FactoryEvent(run=run, **e) for e in self.events], batch_size=500)
+        return run
+```
+
+- [ ] **Step 5: Journal the runner's decisions**
+
+In `backend/trivia/questions/runner.py` add `from trivia.questions.journal import Journal` to the imports, then:
+
+`_materialize_row` takes the journal and logs a retirement (the rest of the function is unchanged):
+
+```python
+def _materialize_row(mod, row, dataset, now, journal):
+    m, problems = _materialize(mod, row.definition, dataset)
+    if problems:
+        row.status = Question.STATUS_RETIRED
+        row.retired_at = now
+        row.retired_reason = "; ".join(problems)[:2000]
+        row.save(update_fields=["status", "retired_at", "retired_reason", "updated_at"])
+        journal.log("retired", "no_longer_valid", game=row.game, qid=row.qid, problems=problems[:5])
+        return None
+```
+
+`_process_game` takes the journal as its last parameter (`def _process_game(slug, dataset, rng, now, out, journal):`), passes it to both `_materialize_row(...)` calls (`_materialize_row(mod, row, dataset, now, journal)`), logs the refill decision right after the `target = ...` line:
+
+```python
+    target = mod.TARGET if mod.TARGET is not None else 10 ** 9
+    active_before = _active_count(slug, kept, today)
+    journal.log("refill_decision", "below_target" if active_before < target else "enough", game=slug,
+                active=active_before, target=mod.TARGET, retired=retired)
+```
+
+and logs each kept new question inside the generation loop:
+
+```python
+            if result is not None:
+                kept.append(result)
+                added += 1
+                journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d)
+```
+
+`maintain` gains `journal=None` (Task 5's version, extended):
+
+```python
+def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=None):
+    """(docstring from Task 5, plus:)
+
+    journal (trivia.questions.journal.Journal) receives every decision; events of a
+    held-back game are marked rolled_back. Without one, decisions are discarded.
+    """
+    now = now or timezone.now()
+    journal = journal or Journal("supply")
+    per_game, stats = {}, {}
+    for slug in games:
+        if not isolate:
+            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
+            continue
+        mark = len(journal.events)
+        try:
+            with transaction.atomic():
+                per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal)
+        except BelowMinimum as e:
+            for event in journal.events[mark:]:
+                event["detail"]["rolled_back"] = True
+            journal.log("held_back", "below_minimum", game=slug, active=e.count, minimum=e.minimum)
+            stats[slug] = {"held_back": str(e)}
+            out(f"  {slug}: held back, {e}")
+    return per_game, stats
+```
+
+- [ ] **Step 6: Journal every maintaining publish run**
+
+In `backend/trivia/management/commands/publish_game_data_v3.py`:
+
+Imports: replace `from trivia.questions import runner` with
+
+```python
+from trivia.models import FactoryRun
+from trivia.questions import fame, runner
+from trivia.questions.journal import Journal
+```
+
+In `add_arguments`, add:
+
+```python
+        parser.add_argument("--trigger", default="manual",
+                            help="What started this run, recorded in the factory journal "
+                                 "(manual | schedule | data-refresh); dry runs record dry-run")
+```
+
+In `handle`, right after `rollback = opts["dry_run"] or opts["no_commit"]`, add:
+
+```python
+        journal = Journal("supply", trigger="dry-run" if rollback else opts["trigger"])
+        status = FactoryRun.STATUS_FAILED
+```
+
+Inside the `if to_maintain:` block, right after `dataset = publish_v3.curated_dataset()`, add:
+
+```python
+                    journal.versions = {"dataset": dataset.version, "fame": fame.VERSION}
+```
+
+pass `journal=journal` to the `runner.maintain(...)` call, and right after the `report = publish_v3.publish(...)` call (still inside `try`) add:
+
+```python
+            status = FactoryRun.STATUS_DEGRADED if held_back else FactoryRun.STATUS_OK
+```
+
+Then add a `finally:` clause after the two `except` clauses of that same `try`:
+
+```python
+        finally:
+            # Written after the transaction, so a rolled-back or failed run is journaled too.
+            # Journaling must never fail a publish (e.g. before the migration reaches a DB).
+            if to_maintain:
+                try:
+                    run = journal.save(status)
+                    self.stdout.write(f"Journal: factory run {run.pk} ({status}, {len(journal.events)} events)")
+                except Exception as e:  # noqa: BLE001 - report and carry on
+                    self.stdout.write(self.style.WARNING(f"  warning: journal not saved: {e}"))
+```
+
+- [ ] **Step 7: Run the tests to verify they pass**
+
+Run: `python manage.py test trivia.tests.test_questions_journal trivia.tests.test_questions_runner trivia.tests.test_publish_v3_questions`
+Expected: `OK`. `test_skip_maintain_publishes_current_rows_without_writes` must still pass: `--skip-maintain` journals nothing.
+
+- [ ] **Step 8: Commit**
+
+```powershell
+git add backend/trivia/models.py backend/trivia/migrations backend/trivia/questions/journal.py backend/trivia/questions/runner.py backend/trivia/management/commands/publish_game_data_v3.py backend/trivia/tests/test_questions_journal.py backend/trivia/tests/test_questions_runner.py backend/trivia/tests/test_publish_v3_questions.py
+git commit -m "feat(questions): journal every supply run's decisions (FactoryRun, FactoryEvent)"
+```
+
+---
+
+### Task 8: Full test run, real-data dry run, ship to dev
 
 **Files:** none new.
 
@@ -750,7 +1119,7 @@ Expected: `OK`. Any failure in a file this plan did not touch is a real regressi
 ```powershell
 gh auth switch -u stefanroman22
 git push -u origin HEAD
-gh pr create --base dev --title "Question factory phase 1: fame bands + per-game publish isolation" --body "Implements docs/superpowers/plans/2026-10-12-question-factory-phase-1.md (spec: docs/superpowers/specs/2026-10-12-question-factory-design.md). Who Are Ya ~500 players, Contexto ~500 secrets (fixes the 2026-11-20 run-out), Career Path drops unguessable journeymen, a game below its minimum is held back instead of failing the whole publish."
+gh pr create --base dev --title "Question factory phase 1: fame bands + per-game publish isolation" --body "Implements docs/superpowers/plans/2026-10-12-question-factory-phase-1.md (spec: docs/superpowers/specs/2026-10-12-question-factory-design.md). Who Are Ya ~500 players, Contexto ~500 secrets (fixes the 2026-11-20 run-out), Career Path drops unguessable journeymen, a game below its minimum is held back instead of failing the whole publish, and every supply run is journaled (FactoryRun / FactoryEvent)."
 ```
 
 - [ ] **Step 3: Dry-run the publish against the real data from the branch**
@@ -764,6 +1133,7 @@ A dry run passes `--no-commit`, so every DB write is rolled back. Read the "Buil
 - `who-are-ya: active` ≈ 501, `retired 0`
 - `career-path: active 500`, `retired` between 200 and 300, `added` equal to `retired`
 - `contexto: retired 0`, and no `held back` line for any game
+- a `Journal: factory run <id> (ok, <n> events)` line. Before the new migration has reached the production database (the backend deploy runs `manage.py migrate`) this prints `warning: journal not saved: ...` instead; that is expected on the branch and must be gone in a dry run after the merge has deployed.
 
 If GitHub refuses to dispatch from the branch (the workflow is only dispatchable from refs that contain it, which this branch does), wait for the merge in Step 4 and dispatch with `--ref dev`.
 
