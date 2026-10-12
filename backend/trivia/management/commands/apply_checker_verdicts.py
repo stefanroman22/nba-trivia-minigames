@@ -3,8 +3,9 @@
 Job 3 of .github/workflows/question-checker.yml. Reads every verdicts-*.json under the
 given folder, re-validates each verdict in code (trivia.questions.checker_jobs), moves
 questions pending -> active / quarantined, and journals every decision with its
-claim-by-claim evidence (FactoryRun kind "checker"). Writes approved=N and
-games=<comma list> to $GITHUB_OUTPUT so the workflow can trigger a publish.
+claim-by-claim evidence (FactoryRun kind "checker"). Writes approved=N, changed=N
+(approved + quarantined) and games=<comma list> to $GITHUB_OUTPUT; the workflow
+publishes whenever changed > 0.
 """
 import os
 
@@ -46,4 +47,7 @@ class Command(BaseCommand):
         if path:
             with open(path, "a", encoding="utf-8") as f:
                 f.write(f"approved={summary['approved']}\n")
+                # Anything that changes what is (or may be) live: approvals go live, and a
+                # quarantine must leave production. Publishing is a no-op when nothing differs.
+                f.write(f"changed={summary['approved'] + summary['quarantined']}\n")
                 f.write(f"games={','.join(summary['games'])}\n")

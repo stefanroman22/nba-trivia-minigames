@@ -144,12 +144,14 @@ jobs:
       # A full (staging) maintenance run, never skip_maintain: if the dataset changed since the
       # last supply run, maintenance moves every changed live question back to pending instead
       # of publishing content the Checker never saw. Approved rows are already active.
-      # Only from the default branch, so a manual run on another branch never publishes its data.
-      - name: Publish the approved questions
-        if: steps.apply.outputs.approved != '0' && steps.apply.outputs.approved != '' && github.ref_name == github.event.repository.default_branch
+      # Runs on any change (approved -> goes live, quarantined -> leaves production), with no
+      # human step. Only from the default branch, so a manual run on another branch never
+      # publishes its data.
+      - name: Publish the Checker's changes
+        if: steps.apply.outputs.changed != '0' && steps.apply.outputs.changed != '' && github.ref_name == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh workflow run publish-game-data.yml --ref "${{ github.ref_name }}" \
             -f games=career-path,who-are-ya,tictactoe,contexto -f target=vercel -f dry_run=false
-          echo "Approved ${{ steps.apply.outputs.approved }} question(s) in: ${{ steps.apply.outputs.games }}; publish dispatched." >> "$GITHUB_STEP_SUMMARY"
+          echo "Checker changed ${{ steps.apply.outputs.changed }} question(s) (approved ${{ steps.apply.outputs.approved }}); publish dispatched." >> "$GITHUB_STEP_SUMMARY"
