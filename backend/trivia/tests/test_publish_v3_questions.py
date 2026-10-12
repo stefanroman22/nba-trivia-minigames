@@ -291,7 +291,9 @@ class CommandTests(QuestionsTestCase):
 
     def _call(self, *args):
         buf = StringIO()
-        call_command("publish_game_data_v3", "--out", self.out, "--rng-seed", "7", *args, stdout=buf)
+        # --no-stage: these tests exercise publishing itself, so new questions go live
+        # at once; the Checker's staging has its own tests below.
+        call_command("publish_game_data_v3", "--out", self.out, "--rng-seed", "7", "--no-stage", *args, stdout=buf)
         return buf.getvalue()
 
     def test_maintains_then_publishes_every_question_game(self):
@@ -360,6 +362,21 @@ class CommandTests(QuestionsTestCase):
     def test_no_held_back_games_writes_an_empty_output(self):
         self._call("--games", "career-path")
         self.assertIn("held_back=\n", self._gh_output())
+
+    def test_new_questions_wait_for_the_checker_by_default(self):
+        self._call("--games", "career-path")
+        row = Question.objects.filter(game="career-path", status="active").first()
+        row.status = "retired"  # the staged run below must top up one question
+        row.save()
+        second = os.path.join(self.tmp, "second")
+        call_command("publish_game_data_v3", "--out", second, "--rng-seed", "8", "--games", "career-path",
+                     "--previous", os.path.join(self.out, "manifest.json"), stdout=StringIO())
+        new = Question.objects.get(game="career-path", status="pending")
+        entry = _load(second, "manifest.json")["games"]["career-path"]
+        self.assertEqual(entry["rows"], Question.objects.filter(game="career-path", status="active").count())
+        self.assertNotIn(new.qid, _load(second, entry["index"])["files"])
+        run = FactoryRun.objects.order_by("-id").first()
+        self.assertEqual(run.events.get(action="generated").detail["status"], "pending")
 
     def test_an_unknown_trigger_is_rejected(self):
         with self.assertRaises(CommandError):
