@@ -3,7 +3,7 @@ trivia.questions.fame). Rules moved from trivia/games/who_are_ya.py; the gate
 moved from fame_tier 1-2 to fame bands in question-factory phase 1 (the tier
 is a floor, so every tier 1-2 player stays eligible). TARGET None = every
 eligible player gets a question."""
-from trivia.questions import fame
+from trivia.questions import checker, fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -49,6 +49,10 @@ def index_item(definition, materialized):
 
 def players_referenced(definition, materialized, dataset=None):
     return [definition["person_id"]]
+
+
+def checker_view(materialized, dataset=None):
+    return {"kind": SLUG, **checker.player_profile(materialized["player"])}
 
 
 def qid_for(definition, seq):

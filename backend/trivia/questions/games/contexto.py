@@ -2,7 +2,7 @@
 """LeContexto: one secret per day, ranking precomputed over the whole playable pool."""
 import datetime
 
-from trivia.questions import fame
+from trivia.questions import checker, fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 from trivia.questions.similarity import rank_pool
@@ -72,6 +72,11 @@ def index_item(definition, materialized):
 
 def players_referenced(definition, materialized, dataset=None):
     return [definition["secret_person_id"]]
+
+
+def checker_view(materialized, dataset=None):
+    """The secret's facts; the day and the computed ranking are not claims to check."""
+    return {"kind": SLUG, **checker.player_profile(materialized["secret"])}
 
 
 def qid_for(definition, seq):

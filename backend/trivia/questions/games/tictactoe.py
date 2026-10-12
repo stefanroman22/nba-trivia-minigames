@@ -7,6 +7,7 @@ import os
 from django.conf import settings
 
 from trivia.games.tictactoe import player_matches
+from trivia.questions import fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -133,6 +134,20 @@ def index_item(definition, materialized):
 
 def players_referenced(definition, materialized, dataset=None):
     return sorted({pid for cell in materialized["valid"] for pid in cell})
+
+
+def checker_view(materialized, dataset):
+    """Row and column labels plus the 3 most famous valid answers per cell: the
+    Checker confirms each sampled player fits his cell. Counts are left out, so
+    a data refresh that only adds obscure players does not trigger a re-check."""
+    cells, valid = [], iter(materialized["valid"])
+    for r in materialized["rows"]:
+        for c in materialized["cols"]:
+            players = sorted((dataset.by_id[pid] for pid in next(valid) if pid in dataset.by_id),
+                             key=lambda p: (-fame.fame_score(p), p["person_id"]))[:3]
+            cells.append({"row": r["label"], "col": c["label"], "sample": [p["full_name"] for p in players]})
+    return {"kind": SLUG, "rows": [r["label"] for r in materialized["rows"]],
+            "cols": [c["label"] for c in materialized["cols"]], "cells": cells}
 
 
 def qid_for(definition, seq):

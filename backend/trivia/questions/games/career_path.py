@@ -2,7 +2,7 @@
 weighted toward KNOWN/DEEP players over stars. Rules moved from
 trivia/games/career_path.py; the fame gate was added in question-factory phase 1
 (players nobody can name are no longer eligible)."""
-from trivia.questions import fame
+from trivia.questions import checker, fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -62,6 +62,11 @@ def index_item(definition, materialized):
 
 def players_referenced(definition, materialized, dataset=None):
     return [definition["person_id"]]
+
+
+def checker_view(materialized, dataset=None):
+    p = materialized["player"]
+    return {"kind": SLUG, "player": p["full_name"], "teams": checker.player_profile(p)["teams"]}
 
 
 def qid_for(definition, seq):
