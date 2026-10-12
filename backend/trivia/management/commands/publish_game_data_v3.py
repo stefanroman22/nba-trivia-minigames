@@ -40,7 +40,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from trivia.data_pipeline import publish_v3
-from trivia.questions import runner
+from trivia.models import FactoryRun
+from trivia.questions import fame, runner
+from trivia.questions.journal import Journal
 
 
 class Command(BaseCommand):
@@ -55,6 +57,9 @@ class Command(BaseCommand):
         parser.add_argument("--no-commit", action="store_true",
                             help="Write the folder but roll back every DB write of this run "
                                  "(question maintenance, Fan Favorites re-rank); for dry runs")
+        parser.add_argument("--trigger", default="manual",
+                            help="What started this run, recorded in the factory journal "
+                                 "(manual | schedule | data-refresh); dry runs record dry-run")
         parser.add_argument("--rng-seed", type=int, default=None,
                             help="Seed for the question top-up generator (tests / reproducible runs)")
         parser.add_argument("--out", default=os.path.join("build", "game-data"),
@@ -89,6 +94,8 @@ class Command(BaseCommand):
                                f"(known: {', '.join(publish_v3.SPECS)})")
         to_maintain = [] if opts["skip_maintain"] else [g for g in games if g in publish_v3.QUESTION_GAMES]
         rollback = opts["dry_run"] or opts["no_commit"]
+        journal = Journal("supply", trigger="dry-run" if rollback else opts["trigger"])
+        status = FactoryRun.STATUS_FAILED
         try:
             # Maintenance and every game's build share one transaction: the minimum
             # gate or any build/validation failure rolls the question writes back.
@@ -96,10 +103,11 @@ class Command(BaseCommand):
                 maintained, dataset, held_back = {}, None, []
                 if to_maintain:
                     dataset = publish_v3.curated_dataset()
+                    journal.versions = {"dataset": dataset.version, "fame": fame.VERSION}
                     self.stdout.write(f"Question maintenance ({', '.join(to_maintain)}) against dataset "
                                       f"{dataset.version}: {len(dataset.playable)} playable players")
                     maintained, stats = runner.maintain(to_maintain, dataset, random.Random(opts["rng_seed"]),
-                                                        out=self.stdout.write, isolate=True)
+                                                        out=self.stdout.write, isolate=True, journal=journal)
                     # A game below its minimum is held back: left out of this publish so
                     # its live manifest entry carries over, while every other game ships.
                     held_back = sorted(slug for slug, s in stats.items() if "held_back" in s)
@@ -118,10 +126,20 @@ class Command(BaseCommand):
                 dry_run=opts["dry_run"], builds=builds,
                 warn=lambda msg: self.stdout.write(self.style.WARNING(f"  warning: {msg}")),
             )
+            status = FactoryRun.STATUS_DEGRADED if held_back else FactoryRun.STATUS_OK
         except runner.BelowMinimum as e:
             raise CommandError(f"Publish aborted, nothing written, question maintenance rolled back: {e}") from e
         except publish_v3.PublishError as e:
             raise CommandError(f"Publish aborted, nothing written: {e}") from e
+        finally:
+            # Written after the transaction, so a rolled-back or failed run is journaled too.
+            # Journaling must never fail a publish (e.g. before the migration reaches a DB).
+            if to_maintain:
+                try:
+                    run = journal.save(status)
+                    self.stdout.write(f"Journal: factory run {run.pk} ({status}, {len(journal.events)} events)")
+                except Exception as e:  # noqa: BLE001 - report and carry on
+                    self.stdout.write(self.style.WARNING(f"  warning: journal not saved: {e}"))
 
         self._print_table(report)
         _github_output({"result": report["result"], "version": report["version"] or "",

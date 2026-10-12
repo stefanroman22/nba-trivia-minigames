@@ -31,7 +31,7 @@ from trivia.data_pipeline.publish_v3 import (
     publish,
     same_rows,
 )
-from trivia.models import Question
+from trivia.models import FactoryRun, Question
 from trivia.questions import runner
 from trivia.questions.snapshot import build_names, write_snapshot
 from trivia.tests.questions_fixture import fixture_dataset
@@ -360,6 +360,40 @@ class CommandTests(QuestionsTestCase):
     def test_no_held_back_games_writes_an_empty_output(self):
         self._call("--games", "career-path")
         self.assertIn("held_back=\n", self._gh_output())
+
+    def test_a_run_is_journaled(self):
+        self._call("--games", "career-path")
+        run = FactoryRun.objects.get()
+        self.assertEqual((run.kind, run.trigger, run.status), ("supply", "manual", "ok"))
+        self.assertEqual(run.versions["fame"], 1)
+        self.assertEqual(run.events.filter(game="career-path", action="generated").count(),
+                         Question.objects.filter(game="career-path").count())
+        self.assertTrue(run.events.filter(game="career-path", action="refill_decision").exists())
+        self.assertIn("career-path", run.report_md)
+
+    def test_a_held_back_run_is_degraded_and_marks_rolled_back_events(self):
+        with patch("trivia.questions.games.contexto.MINIMUM", 10_000):
+            self._call("--games", "career-path,contexto")
+        run = FactoryRun.objects.get()
+        self.assertEqual(run.status, "degraded")
+        self.assertTrue(run.events.filter(game="contexto", action="held_back").exists())
+        generated = list(run.events.filter(game="contexto", action="generated"))
+        self.assertTrue(generated)
+        self.assertTrue(all(e.detail.get("rolled_back") for e in generated))
+
+    def test_a_dry_run_is_journaled_as_dry_run(self):
+        self._call("--games", "career-path", "--dry-run")
+        self.assertEqual(FactoryRun.objects.get().trigger, "dry-run")
+        self.assertEqual(Question.objects.count(), 0)
+
+    def test_a_failed_run_is_journaled_as_failed(self):
+        with patch.object(publish_v3, "default_builders",
+                          side_effect=lambda **kw: {**publish_v3.question_builders(kw.get("maintained"), self.ds),
+                                                    "mvps": lambda: []}):
+            with self.assertRaises(CommandError):
+                self._call("--games", "career-path,mvps")
+        self.assertEqual(FactoryRun.objects.get().status, "failed")
+        self.assertEqual(Question.objects.count(), 0)
 
     def test_a_failing_pool_game_rolls_the_maintenance_back(self):
         with patch.object(publish_v3, "default_builders",
