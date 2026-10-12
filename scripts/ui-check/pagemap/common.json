@@ -1,0 +1,22 @@
+{
+  "_about": "Shared chrome: top nav (src/components/Navigation.tsx) and the mobile drawer. Desktop nav links and the Log in button are hidden at <=900px (hide-md); the hamburger and the avatar-only chip show there instead (show-md).",
+  "navBrand": { "css": "nav.nav3 > .nav3-left a.nav3-brand" },
+  "navGames": { "css": "nav.nav3 .nav3-links button.nav-link:text-is('Games')" },
+  "navLeaderboard": { "css": "nav.nav3 .nav3-links button.nav-link:text-is('Leaderboard')" },
+  "navFeedback": { "css": "nav.nav3 .nav3-links button.nav-link:text-is('Feedback')" },
+  "navAdmin": { "css": "nav.nav3 .nav3-links button.nav-link--admin" },
+  "navLogin": { "css": "nav.nav3 .nav3-right button:text-is('Log in')" },
+  "navUserChip": { "css": "nav.nav3 button.nav3-user:visible" },
+  "profileMenu": { "role": "menu", "name": "Profile" },
+  "profileMenuSettings": { "role": "menuitem", "name": "Profile settings" },
+  "profileMenuLogout": { "role": "menuitem", "name": "Log out" },
+  "navMenuButton": { "role": "button", "name": "Open menu", "exact": true },
+  "drawer": { "css": "#nav-drawer" },
+  "drawerClose": { "css": "#nav-drawer button[aria-label='Close']" },
+  "drawerGames": { "css": "#nav-drawer button.drawer-link:has-text('Games')" },
+  "drawerLeaderboard": { "css": "#nav-drawer button.drawer-link:has-text('Leaderboard')" },
+  "drawerFeedback": { "css": "#nav-drawer button.drawer-link:has-text('Feedback')" },
+  "drawerProfile": { "css": "#nav-drawer button.drawer-link:has-text('Profile settings')" },
+  "drawerLogin": { "css": "#nav-drawer button:text-is('Log in / Sign up')" },
+  "drawerLogout": { "css": "#nav-drawer .drawer-foot button:text-is('Log out')" }
+}

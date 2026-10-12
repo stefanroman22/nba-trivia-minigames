@@ -139,6 +139,8 @@ export default class DigestReporter {
 
   onTestEnd(test, result) {
     const project = test.parent.project();
+    // stack-setup/-teardown are plumbing: only a failure of theirs belongs in the digest.
+    if (project && /^stack-/.test(project.name) && result.status === 'passed') return;
     const use = (project && project.use) || {};
     const datas = result.attachments
       .filter((a) => a.name === 'uicheck' && a.body)

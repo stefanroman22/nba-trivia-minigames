@@ -30,6 +30,16 @@ owns what. The spec is `docs/superpowers/specs/2026-10-11-ui-check-design.md`.
 | selftest | `ST-` | none (file:// fixtures) | `phone-360` | Proves every detector fires on a bad page and stays quiet on good ones, and checks the digest builder. Needs no app server. |
 | accept | `ACCEPT` | per assertion | per assertion | Acceptance assertions from findings, run by `verify.mjs`. |
 
+## Smoke (temporary)
+
+Stack and persona smoke checks from Task 2. Tasks 3 and 4 replace them with the real suites.
+`node scripts/ui-check/catalog.mjs` checks that every ID in the specs is listed in this file once.
+
+| ID | proves |
+|---|---|
+| `G-SMOKE` | The home page loads for a guest on the local stack, with a clean layout scan and no console errors. |
+| `AC-SMOKE` | The solo persona's minted session is restored on load. The nav shows that user's avatar chip and no Log in button, and the restore call (`/api/me/` or `token/refresh/`) answered 200. |
+
 ## Selftest
 
 Fixtures are in `fixtures/detectors/` and the spec is `specs/selftest/detectors.spec.mjs`.

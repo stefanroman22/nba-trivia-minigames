@@ -1,16 +1,21 @@
-// Shared fixtures: `vp` (the project's VIEWPORTS entry) and `audit` (detectors + evidence).
-// Options carried in a project's `use`: { vpId, persona, suite }. Later tasks add persona/cap/fiber/mp
-// fixtures with test.extend on top of this `test`; they build extra audits with createAudit().
+// Shared fixtures: `vp` (the project's VIEWPORTS entry), `audit` (detectors + evidence), `session`
+// (the persona's minted login, seeded into `context`), `cap` (network capture), `fiber` (React
+// internals) and `mp` (two logged-in players). Options carried in a project's `use`:
+// { vpId, persona, suite, mpPair }. Extra audits (other pages) come from createAudit().
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test as base, expect } from '@playwright/test';
-import { VIEWPORTS } from './viewports.mjs';
+import { VIEWPORTS, MP_PAIRS, contextOptions } from './viewports.mjs';
 import { REPO_ROOT } from './run-id.mjs';
 import { inPage, layoutScan, snapStart, snapCollect, windowStats, perfSnapshot } from './detect.mjs';
 import { PROBE_SCRIPT } from './probes.mjs';
 import { shotPath, viewportShot, rectShot, locatorShot } from './evidence.mjs';
+import { mintTokens, soloUsername } from './accounts.mjs';
+import { capture } from './capture.mjs';
+import { fiberReader } from './fiber.mjs';
 
 export { expect };
+export { L } from './pagemap.mjs';
 
 const AXE_PATH = path.join(REPO_ROOT, 'node_modules', 'axe-core', 'axe.min.js');
 let axeSource = null;
@@ -278,14 +283,86 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
   return audit;
 }
 
+/**
+ * Init script: put a minted session where the app looks for it (utils/Api.tsx `accessToken` /
+ * `refreshToken`, utils/session.ts `nba3via-session-user`) — once per context, on the app's origin
+ * only. Later loads keep whatever the app did with it (a rotated refresh token, a logout).
+ */
+function seedSession({ origin, access, refresh, user }) {
+  try {
+    if (location.origin !== origin || localStorage.getItem('uicheck-seeded')) return;
+    localStorage.setItem('accessToken', access);
+    localStorage.setItem('refreshToken', refresh);
+    localStorage.setItem('nba3via-session-user', JSON.stringify(user));
+    localStorage.setItem('uicheck-seeded', '1');
+  } catch { /* storage unavailable: the page loads as a guest */ }
+}
+
+const originOf = (baseURL) => { try { return new URL(baseURL).origin; } catch { return null; } };
+
+/** Log a context in as a freshly minted session (a real return visit: tokens + cached /me/ payload). */
+export async function seedContext(context, baseURL, { access, refresh, user }) {
+  const origin = originOf(baseURL);
+  if (!origin) throw new Error('ui-check: a logged-in persona needs a baseURL (run through run.mjs or a suite project)');
+  await context.addInitScript(seedSession, { origin, access, refresh, user });
+}
+
 export const test = base.extend({
   vpId: [null, { option: true }],
   persona: ['guest', { option: true }],
   suite: [null, { option: true }],
+  mpPair: [null, { option: true }],
   vp: async ({ vpId }, use) => { await use(vpId ? VIEWPORTS[vpId] : null); },
+
+  /** Who the default page is: { persona: 'guest' } or, for 'solo', { persona, username, access, refresh, user }.
+   *  Each parallel worker has its own solo account (soloUsername), each test a fresh token pair. */
+  session: async ({ persona }, use, testInfo) => {
+    if (persona !== 'solo') { await use({ persona }); return; }
+    const username = soloUsername(testInfo.parallelIndex);
+    const minted = (await mintTokens([username]))[username];
+    await use({ persona, username, ...minted });
+  },
+  context: async ({ context, session, baseURL }, use) => {
+    if (session.access) await seedContext(context, baseURL, session);
+    await use(context);
+  },
+
   audit: async ({ page, vp }, use, testInfo) => {
     const audit = await createAudit(page, testInfo, { project: testInfo.project.name, vp });
     await use(audit);
     await audit.finalize();
+  },
+  /** JSON responses and socket.io frames of the default page (lib/capture.mjs). */
+  cap: async ({ page }, use) => { await use(capture(page)); },
+  /** React props/state reader for the default page (lib/fiber.mjs). */
+  fiber: async ({ page }, use) => { await use(fiberReader(page)); },
+
+  /**
+   * Multiplayer: `await mp.pair()` → { host, joiner }, each { page, audit, cap, context, vp, username, user }.
+   * Host is testuser1 on MP_PAIRS[project][0], joiner testuser2 on [1], each in its own context with
+   * its own fresh token pair. Audits carry labels 'host' / 'joiner'. Contexts close after the test.
+   */
+  mp: async ({ browser, mpPair, baseURL }, use, testInfo) => {
+    const opened = [];
+    const pair = async () => {
+      const vps = MP_PAIRS[mpPair];
+      if (!vps) throw new Error(`ui-check: mp.pair() needs an mp project (use.mpPair one of ${Object.keys(MP_PAIRS).join(', ')}), got ${mpPair}`);
+      const tokens = await mintTokens(['testuser1', 'testuser2']);
+      const player = async (label, username, vpId) => {
+        const context = await browser.newContext({ ...contextOptions(vpId), baseURL });
+        await seedContext(context, baseURL, tokens[username]);
+        const page = await context.newPage();
+        const vp = VIEWPORTS[vpId];
+        const audit = await createAudit(page, testInfo, { project: testInfo.project.name, vp, label });
+        opened.push({ context, audit });
+        return { page, audit, cap: capture(page), context, vp, username, user: tokens[username].user };
+      };
+      return { host: await player('host', 'testuser1', vps[0]), joiner: await player('joiner', 'testuser2', vps[1]) };
+    };
+    await use({ pair });
+    for (const { context, audit } of opened) {
+      await audit.finalize();
+      await context.close().catch(() => {});
+    }
   },
 });

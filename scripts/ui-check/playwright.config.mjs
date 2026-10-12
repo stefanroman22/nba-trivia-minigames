@@ -3,11 +3,17 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@playwright/test';
-import { VIEWPORTS, contextOptions } from './lib/viewports.mjs';
+import { VIEWPORTS, MP_PAIRS, contextOptions } from './lib/viewports.mjs';
 import { UIC_ROOT, runId } from './lib/run-id.mjs';
+import { MODES } from './lib/stack.mjs';
 
 // Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN.
 runId();
+
+// Stack mode (spec §4): run.mjs sets UI_CHECK_MODE; a direct invocation defaults to prod, like stack-setup.
+const MODE = process.env.UI_CHECK_MODE || 'prod';
+if (!MODES[MODE]) throw new Error(`UI_CHECK_MODE must be prod or dev, got "${MODE}"`);
+const BASE_URL = `http://localhost:${MODES[MODE].web}`;
 
 /**
  * Browser channel, mirroring scripts/qa-browser.mjs#launchBrowser: installed Chrome on win32,
@@ -33,6 +39,9 @@ export function suiteProjects(suite, { vps = Object.keys(VIEWPORTS), persona = '
   }));
 }
 
+/** A project that runs against the app: needs the stack (stack-setup) and the mode's baseURL. */
+const onApp = (p) => ({ ...p, dependencies: ['stack-setup'], use: { ...p.use, baseURL: BASE_URL } });
+
 export default defineConfig({
   testDir: './specs',
   outputDir: path.join(UIC_ROOT, 'pw-output'),
@@ -54,5 +63,17 @@ export default defineConfig({
       testDir: './specs/selftest',
       use: { ...contextOptions('phone-360'), vpId: 'phone-360', persona: 'guest', suite: 'selftest' },
     },
+    // Local stack as project dependencies (not globalSetup), so selftest never starts a server.
+    // Teardown stops what setup started unless UI_CHECK_KEEP_STACK=1 (run.mjs stops it itself).
+    { name: 'stack-setup', testDir: './lib', testMatch: /stack\.setup\.mjs$/, teardown: 'stack-teardown' },
+    { name: 'stack-teardown', testDir: './lib', testMatch: /stack\.teardown\.mjs$/ },
+    ...suiteProjects('guest', { persona: 'guest' }).map(onApp),
+    ...suiteProjects('account', { persona: 'solo' }).map(onApp),
+    ...suiteProjects('games', { persona: 'solo' }).map(onApp),
+    ...Object.keys(MP_PAIRS).map((pair) => onApp({
+      name: `mp@${pair}`,
+      testDir: './specs/multiplayer',
+      use: { mpPair: pair, persona: 'pair', suite: 'multiplayer' },
+    })),
   ],
 });
