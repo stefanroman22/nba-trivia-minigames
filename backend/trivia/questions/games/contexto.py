@@ -2,6 +2,7 @@
 """LeContexto: one secret per day, ranking precomputed over the whole playable pool."""
 import datetime
 
+from trivia.questions import fame
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 from trivia.questions.similarity import rank_pool
@@ -9,7 +10,7 @@ from trivia.questions.similarity import rank_pool
 SLUG = "contexto"
 TARGET = 60            # days scheduled ahead
 MINIMUM = 30
-SECRET_FAME_TIERS = (1, 2)
+MIN_SECRET_BAND = fame.KNOWN  # ~500 candidates: a full year without a repeat
 NO_REPEAT_DAYS = 365
 
 
@@ -23,7 +24,7 @@ def generate(dataset, existing_hashes, rng, n, today=None):
     taken_days = {e["day"] for e in existing}
     cutoff = (today - datetime.timedelta(days=NO_REPEAT_DAYS)).isoformat()
     recent_secrets = {e["secret_person_id"] for e in existing if e["day"] >= cutoff}
-    candidates = [r for r in dataset.playable if r.get("fame_tier") in SECRET_FAME_TIERS and r["person_id"] not in recent_secrets]
+    candidates = [r for r in dataset.playable if fame.at_least(r, MIN_SECRET_BAND) and r["person_id"] not in recent_secrets]
     rng.shuffle(candidates)
     start = today
     if taken_days:
@@ -48,8 +49,8 @@ def materialize(definition, dataset):
     secret = dataset.by_id.get(definition.get("secret_person_id"))
     if secret is None:
         raise Invalid(f"secret {definition.get('secret_person_id')} is not in the playable pool")
-    if secret.get("fame_tier") not in SECRET_FAME_TIERS:
-        raise Invalid(f"{secret['full_name']} is fame tier {secret.get('fame_tier')}; need 1-2")
+    if not fame.at_least(secret, MIN_SECRET_BAND):
+        raise Invalid(f"{secret['full_name']} is fame band {fame.fame_band(secret)}; need {MIN_SECRET_BAND} or better")
     year = int(definition["day"][:4])
     ranking = [[pid, rank] for pid, rank in rank_pool(secret, dataset.playable, year)]
     return envelope(SLUG, None, {"day": definition["day"], "secret": secret, "ranking": ranking})
