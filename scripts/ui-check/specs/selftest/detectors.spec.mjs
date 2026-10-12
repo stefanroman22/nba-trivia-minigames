@@ -3,8 +3,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { test, expect } from '../../lib/fixtures.mjs';
-import { buildDigest } from '../../lib/digest-reporter.mjs';
+import { test, expect, createAudit } from '../../lib/fixtures.mjs';
+import DigestReporter, { buildDigest } from '../../lib/digest-reporter.mjs';
+import { VIEWPORTS } from '../../lib/viewports.mjs';
 import { runDir } from '../../lib/run-id.mjs';
 
 const FX = fileURLToPath(new URL('../../fixtures/detectors/', import.meta.url));
@@ -134,12 +135,27 @@ test('[ST-PROBES] console, timing, perf and a11y record what they should', async
   expect(rulesOf(await audit.a11y())).toEqual(['a11y']);
 });
 
-test('[ST-EVIDENCE] shots are JPEG files under the run dir and done() fails with a compact message', async ({ page, audit }) => {
+test('[ST-EVIDENCE] shots are JPEG files under the run dir and done() fails with a compact message', async ({ page, context, audit }, testInfo) => {
   await open(audit, 'tap-bad.html');
   const full = await audit.shot('state');
-  expect(full).toBe('shots/ST-EVIDENCE/selftest-state.jpg');
+  // the selftest project name does not name its viewport, so the vp id is part of the file name
+  expect(full).toBe('shots/ST-EVIDENCE/selftest-phone-360-state.jpg');
+  await expect(audit.shot('state')).rejects.toThrow(/already taken/);
   const crop = await audit.shot('tiny', page.locator('button.tiny'));
-  for (const rel of [full, crop]) {
+
+  // A second audit in the same test (multiplayer style) at another viewport never overwrites the first one's shots.
+  const page2 = await context.newPage();
+  const second = await createAudit(page2, testInfo, { vp: VIEWPORTS['desktop-1366'] });
+  await open(second, 'tap-bad.html');
+  const other = await second.shot('state');
+  expect(other).toBe('shots/ST-EVIDENCE/selftest-desktop-1366-state.jpg');
+  const twin = await createAudit(page2, testInfo, { vp: VIEWPORTS['desktop-1366'] });
+  await expect(twin.shot('state')).rejects.toThrow(/already taken/);
+  const host = await createAudit(page2, testInfo, { vp: VIEWPORTS['desktop-1366'], label: 'host' });
+  expect(await host.shot('state')).toBe('shots/ST-EVIDENCE/selftest-host-state.jpg');
+  await Promise.all([second.finalize(), twin.finalize(), host.finalize()]);
+
+  for (const rel of [full, crop, other]) {
     const file = path.join(runDir(), rel);
     expect(existsSync(file)).toBe(true);
     const head = readFileSync(file).subarray(0, 2);
@@ -177,6 +193,30 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
   expect(md).toMatch(/G-ROOM .*needs a friend room/);
   expect(md).toContain('## Metrics');
   expect(md).toMatch(/\| home lcp \| 1000ms \| 1001ms/);
+
+  // Two audits in one test (multiplayer pair): the reporter tags each audit's records with its vp/label …
+  const rep = new DigestReporter();
+  const att = (d) => ({ name: 'uicheck', contentType: 'application/json', body: Buffer.from(JSON.stringify(d)) });
+  const same = { rule: 'overflow-x', route: '/room', selector: 'div.room', measured: 'right edge 500px', expected: '≤ 390px' };
+  rep.onTestEnd(
+    { id: 'mp1', repeatEachIndex: 0, title: '[MP-ROOM] room', annotations: [], parent: { project: () => ({ name: 'mp@pairA', use: { suite: 'multiplayer' } }) } },
+    { status: 'failed', duration: 10, annotations: [], attachments: [
+      att({ checkId: 'MP-ROOM', project: 'mp@pairA', vp: 'desktop-1366', label: 'host', routes: ['/room'], shots: [],
+        violations: [same], metrics: [{ kind: 'timing', label: 'start match', value: 300, unit: 'ms' }] }),
+      att({ checkId: 'MP-ROOM', project: 'mp@pairA', vp: 'phone-390', label: 'joiner', routes: ['/room'], shots: [],
+        violations: [{ ...same, measured: 'right edge 520px' }, { rule: 'tap-target', route: '/room', selector: 'button.ready', measured: '30×30px', expected: '≥ 44×44px' }],
+        metrics: [{ kind: 'timing', label: 'start match', value: 450, unit: 'ms' }] }),
+    ] });
+  const [mp] = [...rep.entries.values()];
+  expect(mp.vp).toBe('desktop-1366+phone-390');
+  expect(mp.violations.map((v) => `${v.rule}@${v.vp}/${v.label}`)).toEqual(['overflow-x@desktop-1366/host', 'overflow-x@phone-390/joiner', 'tap-target@phone-390/joiner']);
+  expect(mp.metrics.map((m) => `${m.label}@${m.vp}/${m.auditLabel}`)).toEqual(['start match@desktop-1366/host', 'start match@phone-390/joiner']);
+  // … and the digest attributes each line to the right player: shared violation lists both, the joiner-only one only the joiner.
+  const mpLines = buildDigest([mp], { runId: 'mp', mode: 'dev', durationMs: 0 }).split('\n');
+  expect(mpLines.filter((l) => l.startsWith('- overflow-x'))).toEqual(['- overflow-x `div.room` on /room: right edge 500px (expected ≤ 390px) — phone-390 (joiner), desktop-1366 (host)']);
+  expect(mpLines.filter((l) => l.startsWith('- tap-target'))).toEqual(['- tap-target `button.ready` on /room: 30×30px (expected ≥ 44×44px) — phone-390 (joiner)']);
+  expect(mpLines).toContain('| label | phone-390 (joiner) | desktop-1366 (host) |');
+  expect(mpLines).toContain('| start match | 450ms | 300ms |');
 
   const many = [];
   for (let i = 0; i < 600; i++) {

@@ -15,6 +15,10 @@ owns what. The spec is `docs/superpowers/specs/2026-10-11-ui-check-design.md`.
   `clipped`, `occluded`, `tap-target`, `snap`, `cls`, `loaf`, `slow-action`, `console`, `slow-api`,
   `a11y`, `perf`, plus check-specific rules.
 
+- `audit.timing(label, action, done, budget)` is measured in node, from before `action` to after `done`.
+  It includes the CDP round trips of every Playwright call inside, so it reads a little higher than
+  in-page time. Set budgets with that in mind.
+
 ## Ownership matrix
 
 | suite | prefix | persona | viewports | owns |
@@ -41,5 +45,5 @@ Run it with `npm run ui:selftest`.
 | `ST-TAP` | `tap-target` fires on a 16×16 button (44px minimum on touch, 24px otherwise). It stays quiet on 48px buttons and on an inline link in running text. |
 | `ST-CLIPPED` | `clipped` fires on nowrap text inside a 40px `overflow:hidden` box. It stays quiet on sr-only text and on an ellipsis label that fits. |
 | `ST-PROBES` | `console` reports console errors and uncaught errors, and `allow` patterns silence them. `timing` records a metric every time and adds `slow-action` only when over budget. `perf` records fcp. `a11y` is clean on `good.html` and reports serious axe violations. |
-| `ST-EVIDENCE` | `shot` writes JPEGs under `<runDir>/shots/<ID>/<project>-<name>.jpg` (full viewport and locator crop). Layout violations get an automatic crop. `done()` fails with a compact message. |
-| `ST-DIGEST` | `buildDigest` collapses one violation seen on 7 viewports into one line, keeps a different violation separate, lists coverage gaps and metric tables, and caps the digest at 400 lines with `+N more (see results.json)`. |
+| `ST-EVIDENCE` | `shot` writes JPEGs under `<runDir>/shots/<ID>/<project>[-<label or vp>]-<name>.jpg` (full viewport and locator crop). A second audit at another viewport in the same test gets its own files, and a duplicate shot path throws. Layout violations get an automatic crop. `done()` fails with a compact message. |
+| `ST-DIGEST` | `buildDigest` collapses one violation seen on 7 viewports into one line, keeps a different violation separate, lists coverage gaps and metric tables, and caps the digest at 400 lines with `+N more (see results.json)`. With two audits in one test (a multiplayer pair), each violation and metric keeps its own vp and label: a shared violation lists both players, a one-sided one lists only that player. |

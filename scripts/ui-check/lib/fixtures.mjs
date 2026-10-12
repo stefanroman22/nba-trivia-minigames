@@ -46,15 +46,36 @@ const ownHost = (pageUrl, url) => {
 };
 const pathOf = (url) => { try { const u = new URL(url); return u.pathname + u.search; } catch { return url; } };
 
+// Shot paths taken so far in each test (shared by every audit of that test) + the auto-crop counter.
+const SHOTS_BY_TEST = new WeakMap();
+const testShots = (testInfo) => {
+  let s = SHOTS_BY_TEST.get(testInfo);
+  if (!s) SHOTS_BY_TEST.set(testInfo, (s = { paths: new Set(), crops: 0 }));
+  return s;
+};
+
 /**
  * Build an audit for any page (the default `page` fixture or a page from another context).
  * opts: { project = testInfo.project.name, vp = VIEWPORTS entry | null, label = null }
  * `label` tells two audits of one test apart (shot names, attachment) — e.g. 'host' / 'joiner'.
+ * Without a label the shot names use vp.id, so two audits at different viewports never share a file;
+ * the name is left out when the project already names that viewport (`guest@phone-390`).
+ * Two audits that would still write the same shot path in one test throw (pass distinct labels).
  */
 export async function createAudit(page, testInfo, { project = testInfo.project.name, vp = null, label = null } = {}) {
   await page.addInitScript(PROBE_SCRIPT);
   const checkId = checkIdOf(testInfo.title) || 'NOID';
-  const fileProject = label ? `${project}-${label}` : project;
+  const fileLabel = label || (vp ? vp.id : null);
+  const fileProject = fileLabel && !project.endsWith(`@${fileLabel}`) ? `${project}-${fileLabel}` : project;
+  const claimed = testShots(testInfo);
+  const claimShot = (name) => {
+    const p = shotPath(checkId, fileProject, name);
+    if (claimed.paths.has(p.rel)) {
+      throw new Error(`ui-check: shot ${p.rel} already taken in this test (checkId ${checkId}, project ${project}, label ${fileLabel}, name ${name}) — use a distinct shot name or audit label`);
+    }
+    claimed.paths.add(p.rel);
+    return p;
+  };
   const violations = [], metrics = [], shots = [], routes = [];
   const logs = { console: [], pageErrors: [], responses: [], slowApi: [] };
   let crops = 0, attached = false;
@@ -93,7 +114,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
       perRule[item.rule] = (perRule[item.rule] || 0) + 1;
       if (rect && perRule[item.rule] <= AUTO_CROPS_PER_CALL && crops < AUTO_CROPS_PER_AUDIT) {
         crops++;
-        const { abs, rel } = shotPath(checkId, fileProject, `${item.rule}-${crops}`);
+        const { abs, rel } = claimShot(`${item.rule}-${++claimed.crops}`); // numbered per test: audits never collide
         if (await rectShot(page, rect, abs).catch(() => false)) { shot = rel; shots.push(rel); }
       }
       out.push(record({ ...item, shot }));
@@ -233,7 +254,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
 
     /** JPEG into <runDir>/shots/<checkId>/<project>-<name>.jpg (crop when a locator is given). Returns the rel path or null. */
     async shot(name, locator) {
-      const { abs, rel } = shotPath(checkId, fileProject, name);
+      const { abs, rel } = claimShot(name);
       const ok = locator ? await locatorShot(page, locator, abs) : await viewportShot(page, abs);
       if (!ok) return null;
       shots.push(rel);

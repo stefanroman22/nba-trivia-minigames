@@ -13,7 +13,13 @@ const MAX_LINES_PER_CHECK = 20;
 const idOf = (title) => { const m = /\[([A-Za-z][\w.-]*)\]/.exec(title || ''); return m ? m[1] : null; };
 const measuredClass = (s) => String(s ?? '').replace(/-?\d+(\.\d+)?/g, '#');
 const vpRank = (v) => { const i = VP_ORDER.indexOf(v); return i < 0 ? VP_ORDER.length : i; };
-const sortVps = (vps) => [...vps].sort((a, b) => vpRank(a) - vpRank(b) || String(a).localeCompare(String(b)));
+// Entries are a vp id, optionally followed by ' (<audit label>)' — rank by the vp id.
+const sortVps = (vps) => [...vps].sort((a, b) => vpRank(String(a).split(' ')[0]) - vpRank(String(b).split(' ')[0]) || String(a).localeCompare(String(b)));
+// Where a violation/metric was seen: its own audit's vp (several audits per test, e.g. multiplayer), else the test's.
+const whereOf = (item, r, auditLabel) => {
+  const vp = (item && item.vp) || r.vp;
+  return vp && auditLabel ? `${vp} (${auditLabel})` : vp;
+};
 const firstLine = (s) => String(s || '').split('\n').find((l) => l.trim()) || '';
 const isFail = (r) => r.status === 'failed' || r.status === 'timedOut';
 const fmt = (v, unit) => (typeof v === 'number' ? `${Math.round(v * 1000) / 1000}${unit || ''}` : String(v));
@@ -55,7 +61,8 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
       for (const { v, key } of items) {
         let row = rows.get(key);
         if (!row) rows.set(key, (row = { v, r, vps: [], shot: null }));
-        if (r.vp && !row.vps.includes(r.vp)) row.vps.push(r.vp);
+        const where = whereOf(v, r, v && v.label);
+        if (where && !row.vps.includes(where)) row.vps.push(where);
         row.shot ||= (v && v.shot) || (r.shots && r.shots[0]) || null;
       }
     }
@@ -93,7 +100,7 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
       if (m.kind !== 'perf' && m.kind !== 'timing') continue;
       if (!bySuite.has(r.suite)) bySuite.set(r.suite, { vps: new Set(), rows: new Map() });
       const s = bySuite.get(r.suite);
-      const vp = r.vp || r.project;
+      const vp = whereOf(m, r, m.auditLabel) || r.project;
       s.vps.add(vp);
       if (!s.rows.has(m.label)) s.rows.set(m.label, new Map());
       const cells = s.rows.get(m.label);
@@ -140,6 +147,9 @@ export default class DigestReporter {
     const annotations = [...(test.annotations || []), ...(result.annotations || [])];
     const skip = annotations.find((a) => (a.type === 'skip' || a.type === 'fixme') && a.description);
     const attVps = [...new Set(datas.map((d) => d.vp).filter(Boolean))];
+    // Tag each audit's records with where it was seen, so several audits per test (multiplayer) keep their vp.
+    // Metrics already use `label` for their own name, so their audit label goes in `auditLabel`.
+    const tag = (d, labelKey) => (x) => ({ ...x, ...(d.vp ? { vp: d.vp } : {}), ...(d.label ? { [labelKey]: d.label } : {}) });
     const entry = {
       checkId: idOf(test.title),
       title: test.title,
@@ -148,8 +158,8 @@ export default class DigestReporter {
       vp: use.vpId || (attVps.length ? attVps.join('+') : null),
       status: STATUS[result.status] || 'failed',
       durationMs: result.duration,
-      violations: datas.flatMap((d) => d.violations || []),
-      metrics: datas.flatMap((d) => d.metrics || []),
+      violations: datas.flatMap((d) => (d.violations || []).map(tag(d, 'label'))),
+      metrics: datas.flatMap((d) => (d.metrics || []).map(tag(d, 'auditLabel'))),
       shots: datas.flatMap((d) => d.shots || []),
     };
     if (entry.status === 'skipped') entry.skipReason = skip ? skip.description : null;
