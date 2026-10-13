@@ -320,6 +320,20 @@ export async function seedContext(context, baseURL, { access, refresh, user }) {
   await context.addInitScript(seedSession, { origin, access, refresh, user });
 }
 
+/** FNV-1a of a string: a hash that is the same in every worker and every run. */
+const stableHash = (s) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; } return h; };
+
+/**
+ * Which solo account a test uses. Games suite only: a full run finishes far more games than one account's
+ * 60/h score-submit throttle allows, so each test takes one of 4 accounts per worker (parallelIndex + 4 * hash % 4
+ * → testuser3, testuser3w1..w15) by its title. The @perf pass (single worker) stays on testuser3; every other suite
+ * keeps one account per worker.
+ */
+function rotatedIndex(suite, testInfo) {
+  if (suite !== 'games' || testInfo.title.includes('@perf')) return testInfo.parallelIndex;
+  return testInfo.parallelIndex + 4 * (stableHash(testInfo.titlePath.join('>')) % 4);
+}
+
 export const test = base.extend({
   vpId: [null, { option: true }],
   persona: ['guest', { option: true }],
@@ -329,9 +343,9 @@ export const test = base.extend({
 
   /** Who the default page is: { persona: 'guest' } or, for 'solo', { persona, username, access, refresh, user }.
    *  Each parallel worker has its own solo account (soloUsername), each test a fresh token pair. */
-  session: async ({ persona }, use, testInfo) => {
+  session: async ({ persona, suite }, use, testInfo) => {
     if (persona !== 'solo') { await use({ persona }); return; }
-    const username = soloUsername(testInfo.parallelIndex);
+    const username = soloUsername(rotatedIndex(suite, testInfo));
     const minted = (await mintTokens([username]))[username];
     await use({ persona, username, ...minted });
   },

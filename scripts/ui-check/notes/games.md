@@ -59,6 +59,10 @@ is the one on screen (name-logo checks the logo, guess-mvps the season, series-w
 | name-logo | `name-logo` | puzzle `img` src `/logos/scrambled/<team_id>.webp` (else the row's `logo`) | `full_name` | another franchise from the pool |
 | guess-mvps | `mvps` | eyebrow (season; one row per season) | `mvp` | another season's MVP |
 | who-would-win | (none; tallies from `/trivia/who-would-win/tally/`) | `MATCHUP n/10` + card labels | no right answer | — (Skip) |
+| starting-five | `starting-five` (one game per play) | scoreboard: both team names + final score (+ date) | the lineup player of the first empty card's position family (G / F / C) | a player from another game's lineup, in nobody's normalised lineup, never repeated |
+| fan-favorites | `fan-favorites` | the prompt (`.gf-title`) + slot count | the first unrevealed answer's canonical text (an alias if another answer claims it under `answerMatch.ts`) | an answer or alias of another survey that `matchAnswer` finds on no slot of this board, never repeated |
+| career-path | question payload `{ game: 'career-path', qid, player }` (`capQuestions`: questions store in dev, v3 host in prod) | newest captured payload whose stint count and face-up cards (team + years) equal the rail | `player.full_name` | a name from the captured autocomplete list (`capNames`) matching neither the name nor an alias |
+| who-are-ya | question payload `{ game: 'who-are-ya', … }` | the headshot URL's person id (newest payload when the photo is missing) | the mystery's full name, only when the game's own name lookup (rebuilt from the captured list, first claim wins) resolves it to the mystery | a listed player whose name resolves to himself, not to the mystery, never repeated (a repeat or an unlisted name costs nothing in the game) |
 
 Who Would Win has no right answer: `correct: true` = vote (sides alternate), `false` = Skip. So `perfect` = vote on all
 10 (titled "vote on every matchup"), `wrong` = skip all, `partial` = alternate. Expected score: each vote's captured
@@ -80,9 +84,16 @@ checked per round through the feedback copy; the driver flags `not-in-place` onl
 | name-logo | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | guess-mvps | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | who-would-win | vote all | skip all | vote / skip | no clock | no give-up control | not daily |
+| starting-five | 5 right (100 with the bonus) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
+| fan-favorites | whole board (300) | 3 misses → board revealed, 0 | 2 misses, then the whole board | no clock | no give-up | not daily |
+| career-path | right first guess (cards × 100) | a miss per card → 0 | 1 miss, then right (never the last guess) | no clock | no give-up | not daily |
+| who-are-ya | right first guess (240) | 8 misses → 0 | 2 misses, then right (180) | no clock | no give-up | not daily |
 
-`partial` for games without lives is "a mix of right and wrong" (right on even turns); with lives it is one miss,
-then right answers (finish with lives to spare).
+`partial` for games without lives is "a mix of right and wrong" (right on even turns); with lives or limited guesses it
+spends all but one on misses (`lives - 1`, or the adapter's `partialMisses`), then answers right (finish with one to
+spare): Starting Five / Fan Favorites 2 misses, Who Are Ya 2 (8 guesses, the brief's "all but one" would be 7 misses,
+which only slows the test), Career Path 1 (its guess count is the stint count; the adapter answers right instead of
+missing the last guess, so a one-stint player still wins).
 
 ## Post-game flow
 
@@ -95,12 +106,33 @@ the log-session assertion.
 
 | endpoint | limit | used |
 |---|---|---|
-| `POST /trivia/log-session/` (`score-submit`) | 60/h per account | 58 finished games: 4 games × 3 scenarios × 3 core vps (36) + 4 `perfect` × 4 other vps (16) + GM-LATENCY-01's 2 finished games (Series Winner, Who Would Win) × 3 core vps (6, all on worker 0's account in the serial pass). Spread over the per-worker accounts; worst case all on one account: 58 < 60. GM-SHELL-01 finishes no game. `freshAccount` scenarios count against their own new account. |
-| `POST /trivia/log-guesses/` (`guess-log`) | 120/h per account (guests per IP) | Who Would Win votes: 10 (`perfect`) + 5 (`partial`) per core vp, 10 per other vp, 2 per core vp in GM-LATENCY-01 (the rest of that game is skips): 91 |
+| `POST /trivia/log-session/` (`score-submit`) | 60/h per account | 8 adapted games finish: 8 games x 3 scenarios x 3 core vps (72) + 8 `perfect` x 4 other vps (32) = **104** in the 4-worker pass, + GM-LATENCY-01's 4 finished games (Series Winner, Who Would Win, Career Path, Who Are Ya) x 3 core vps (**12**, single-worker pass, always `testuser3`). 116 per run in all. GM-SHELL-01 finishes no game. `freshAccount` scenarios count against their own new account. |
+| `POST /trivia/log-guesses/` (`guess-log`) | 120/h per account (guests per IP) | Who Would Win votes: 10 (`perfect`) + 5 (`partial`) per core vp, 10 per other vp, 2 per core vp in GM-LATENCY-01 (the rest of that game is skips): 91. |
 
-Counters live in Django's LocMem cache: a second full run on the same kept stack within the hour can reach the
-score-submit limit (the assertion then shows `HTTP 429 … (score-submit throttle)`). `node scripts/ui-check/run.mjs
---stop` resets them. The log-session assertion stays on in every core scenario.
+**Account rotation (Task 6).** One account per worker could not carry 104 + 12 games: 4 workers x 60 = 240/h in theory, but
+the dynamic split is uneven and Tasks 7/8 add more games. In the games suite the `session` fixture
+(`lib/fixtures.mjs` `rotatedIndex`) takes the account of `parallelIndex + 4 * (stableHash(titlePath) % 4)`: 16 accounts,
+`testuser3`, `testuser3w1` .. `testuser3w15` (`isTestUsername` accepts `w1`-`w99`, `mintTokens` creates them on demand, the
+stack teardown sweep already restores every `testuser3` family name). The hash is FNV-1a of the test's title path, so a
+test always lands in the same class (the same title at every viewport), whatever worker runs it. `@perf` tests keep
+`testuser3`; the account suite and every other suite are unchanged (`rotatedIndex` returns `parallelIndex` unless the
+suite is `games`).
+
+Worst case per account: an account's games are the tests of one hash class that ran on one worker, so the bound is the
+largest class. Counted from the log-session rows of the final prod run (run `20261013-1119`, 106 sessions in 54 min):
+class 0 (`testuser3`, `w1`..`w3`) 11, class 1 (`w4`..`w7`) 28, class 2 (`w8`..`w11`) 36, class 3 (`w12`..`w15`) 28 (+6 Fan
+Favorites games that errored before finishing in that run, class unknown). Even if one worker ran a whole class:
+36 + 6 = **42 <= 60** (the largest observed single account: `testuser3w8`, 12). `testuser3` additionally takes the @perf
+pass: 12 games + its class-0 share <= 11 + 6 = 29 < 60. Margin check when adding games (Tasks 7/8): each new game adds
+3 x 3 + 4 = 13 finished games spread over four classes (about 3 per class); even all 13 in the largest class would give
+42 + 13 = 55 < 60, so three more games fit; re-count with `GameSession` (`finished_at`, `user__username__startswith='testuser3'`) if it gets close.
+
+Evidence for "every log-session 2xx": the final run has no `points-not-logged` finding and no `429` anywhere in the digest or
+the runner log (`grep -c 429`: 0).
+
+Counters live in Django's LocMem cache: a second full run on the same kept stack within the hour can still reach a limit
+on an account the first run used heavily (the assertion then shows `HTTP 429 ... (score-submit throttle)`). `node
+scripts/ui-check/run.mjs --stop` resets them. The log-session assertion stays on in every core scenario.
 
 ## Intentional exemptions
 
@@ -151,3 +183,65 @@ score-submit limit (the assertion then shows `HTTP 429 … (score-submit throttl
   dev server; the games specs use `audit.goto`, which waits for hydration.
 - GuessMvps has no guard against a second submit in one round (NameLogo has `advanceTimer`): a double Enter would
   advance twice. Adapters submit once; noted as a possible app bug, not asserted.
+
+## Autocomplete games with lives / limited guesses (Task 6)
+
+Adapters `starting-five`, `fan-favorites`, `career-path`, `who-are-ya` (answer sources, coverage: tables above).
+Contract and driver additions (all optional; the Task 5 adapters are unaffected):
+
+- `partialMisses`: how many misses `partial` spends before answering right [`lives - 1`]. `planFor` uses it.
+- `latencyPlan(turn) -> right?`: GM-LATENCY-01's answer plan [right, wrong, right]. Career Path and Who Are Ya end on
+  their first right answer, so they play miss first (Career Path: miss, right; Who Are Ya: miss, miss, right) and are
+  played to the end like Who Would Win.
+- Answer result `correct` (the adapter overrode the plan: Career Path never spends its last guess in `partial`) and
+  `points` (the `+N` of this turn's `Correct!` popup: Career Path `(cards - misses) x 100`, Who Are Ya
+  `240 - 30 x misses`).
+- `feedback.copy: 'wrong'`: check the copy and colour of misses only (Fan Favorites: its hit popup `+N fans said it!` is the
+  documented 6.0 deviation, constraints doc).
+- `endGeometry` / `shellIsOver` / the ResizeObserver `ending()` also accept `.scorepanel-actions` alone: Career Path ends
+  with the result line in the status row and Play again / Close game in the action slot (no `.scorepanel`).
+- The `replay` round-label check runs only when the label contains an `n/m` counter (these games say `FILL THE LINEUP`,
+  `NAME THE TOP ANSWERS`, ... no round number).
+- `games/helpers.mjs`: `normAnswer` (answerMatch.ts), `capQuestions(ctx, game)`, `capNames(ctx)`; `typeAndConfirm` takes
+  `{ input, confirm }` (Starting Five types into the card's own input; Who Are Ya's button reads `Guess`, its aria-label
+  is `Confirm guess`, hence the `confirmGuess` locator).
+
+Per game:
+
+- **Starting Five**: the key is `found|hearts` and goes `null` once 5 are found or hearts hit 0, so `nextTurn` waits for the
+  end sequence instead of returning a half-ended turn. The miss that spends the last heart shows NO popup (Rule 6.3), so
+  that turn returns `feedback: false`. Final score `right x 10 (+50 when 5)`. End reveal: all five cards named (the real
+  lineup), `is-correct` = right answers, `is-revealed` = the rest.
+- **Fan Favorites**: prod loads only one chunk of the pool (often just this survey), so wrong guesses cannot come from other
+  surveys alone: candidates are other surveys, the `all-players` list, then a fixed list of famous names; each is checked
+  against this board with the game's own `matchAnswer` before use (the check is the guarantee). The third miss still
+  shows `Not on the board` (allowed: ordinary wrong copy). Score `300` on a clear, else `round(300 x found / total)`.
+- **Career Path**: the question comes from the questions store (dev) / data host (prod); several can be captured, so the
+  payload is chosen by the rail (stint count + team + years of every face-up card), newest first. Each miss flips a card;
+  after a loss the name is behind `See the answer` (the end check clicks it and asserts the name is visible).
+- **Who Are Ya**: the typed name must resolve through the game's own lookup (first claim wins over canonical names and
+  aliases); an unlisted name or a repeat costs nothing, so the adapter only guesses names that resolve to themselves.
+  The mystery is found by the headshot URL's person id. Wrong copy `Not <name>.` names the guessed player, which is the
+  `truth` the driver matches.
+
+### REAL findings (checks stay strict; each has a shot in the run's `shots/`)
+
+1. **Who Are Ya's feedback feed grows the stage** (Rule 6.2): every guess adds a row of chips and the stage grows by 80-130 px
+   (`stage-resized`, e.g. 351->475 px on turn 1 at phone-390), plus the reveal card at the end; the row appears in one frame
+   (`snap`, height 321->445 px) and lands in one long frame in prod (`loaf` 105-110 ms in GM-LATENCY-01 on all three core
+   vps). The feed is mounted only when it has rows (a code comment says why) and has no reserved or scrolling area. Fix
+   direction: reserve the feed's height (8 rows) or give it an internal scroller.
+2. **Starting Five** (a) when the lineup completes, the stage grows ~79 px in one frame as the EndSequence mounts
+   (`snap` on all 7 vps in `perfect`/`partial`; the loss path is hidden by the card-flip animations); (b) on phones a
+   found card swaps its input + Confirm for the one-line name and the stage shrinks ~16 px (`stage-resized` -15.8 px on
+   turn 2 at phone-360/390/414, shot `resized-turn2.jpg`).
+3. **Fan Favorites** at phone-360: a long answer wraps when its slot is revealed and the stage grows 10 px
+   (`stage-resized` +10.2 px on turn 14); data-dependent like the Series Winner finding.
+4. Series Winner (Task 5) shows again at phone-360/390/414 (card height 18.8 px, depends on the sampled series).
+
+### False positives and flakes met
+
+- `no guaranteed-wrong answer available` (Fan Favorites, prod): adapter bug, fixed (candidate list above).
+- GM-LATENCY-01 phone-390 once timed out in the `session` fixture ("Test timeout of 60000ms exceeded while setting up
+  session", mint of `testuser3` under load); the re-run was clean. Not reproduced.
+- Dev mode: Career Path / Who Are Ya show `not-hydrated` once per worker (cold dev server), same as Task 5.

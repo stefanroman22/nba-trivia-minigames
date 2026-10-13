@@ -63,7 +63,11 @@ export async function realUserAgent({ browser }, use) {
 /** Which answers a scenario gives: turn index → correct? */
 export function planFor(adapter, scenario) {
   if (scenario === 'perfect') return () => true;
-  if (scenario === 'partial') return adapter.lives ? (t) => t !== 0 : (t) => t % 2 === 0; // lives: one miss, then right
+  if (scenario === 'partial') {
+    // Limited lives / guesses: spend all but one on misses (adapter.partialMisses overrides the count), then answer right.
+    const misses = adapter.partialMisses ?? (adapter.lives ? adapter.lives - 1 : null);
+    return misses != null ? (t) => t >= misses : (t) => t % 2 === 0;
+  }
   return () => false; // wrong, giveup, timeout, daily-lock: misses
 }
 
@@ -87,7 +91,7 @@ function installResizeWatch() {
   const w = (window.__gmRO = { log: [], turn: 0, h: shell.getBoundingClientRect().height, ro: null });
   // A phase change (end of game) may resize the stage; a resize while still playing may not (Rule 6.2).
   const ending = () => !document.querySelector('.playing-wrap')
-    || !!document.querySelector('.playing-wrap .endseq [role="status"], .playing-wrap .scorepanel, .exit-link.is-ended');
+    || !!document.querySelector('.playing-wrap .endseq [role="status"], .playing-wrap .scorepanel, .playing-wrap .scorepanel-actions, .exit-link.is-ended');
   w.ro = new ResizeObserver(() => {
     const h = shell.getBoundingClientRect().height;
     if (Math.abs(h - w.h) > 0.5) { w.log.push({ from: +w.h.toFixed(1), to: +h.toFixed(1), turn: w.turn, ending: ending() }); w.h = h; }
@@ -157,16 +161,19 @@ function endGeometry() {
   const inner = document.querySelector('.stage-inner');
   const buttons = inner ? [...inner.querySelectorAll('button:not(.exit-link)')].filter((b) => vis(b) && /^(Play again|Close game)$/.test((b.textContent || '').trim())) : [];
   const panel = document.querySelector('.playing-wrap .scorepanel');
+  // In place the score line is the ScorePanel's, or (Career Path) a ScoreLine in the status row above the actions.
+  const line = document.querySelector('.playing-wrap .scorepanel-line');
   let score = null;
   if (vis(panel)) score = panel.querySelector('.scorepanel-line');
+  else if (vis(line) && vis(document.querySelector('.playing-wrap .scorepanel-actions'))) score = line;
   else if (inner && !document.querySelector('.playing-wrap')) {
     // GameResult: the big number (.tnum) row above the buttons.
     score = [...inner.querySelectorAll('.tnum')].find(vis);
     if (score && score.parentElement && score.parentElement !== inner) score = score.parentElement;
   }
   const r = (el) => { const b = el.getBoundingClientRect(); return { top: +b.top.toFixed(1), bottom: +b.bottom.toFixed(1), left: +b.left.toFixed(1), right: +b.right.toFixed(1) }; };
-  const scoreText = panel && vis(panel)
-    ? (panel.querySelector('.scorepanel-num')?.textContent || '').trim()
+  const scoreText = score && score.matches('.scorepanel-line')
+    ? (score.querySelector('.scorepanel-num')?.textContent || '').trim()
     : (score ? ([...score.querySelectorAll('.tnum')].find(vis) || score).textContent.trim() : null);
   return {
     inPlace: !!document.querySelector('.playing-wrap'),
@@ -214,7 +221,8 @@ export async function playTurns(page, adapter, ctx, { plan, stopAfter = MAX_TURN
     const res = await adapter.answer(page, ctx, { correct });
     if (shot) await shot;
     const rec = await page.evaluate(readFeedback);
-    turns.push({ turn: t, correct, truth: res.truth ?? null, expectFeedback: res.feedback !== false, feedback: rec });
+    // `correct` / `points` in the result: the adapter overrode the plan for this turn / the popup's "+N" is not constant.
+    turns.push({ turn: t, correct: res.correct ?? correct, truth: res.truth ?? null, points: res.points ?? null, expectFeedback: res.feedback !== false, feedback: rec });
     over = !!res.over;
     // Evidence for Rule 6.2: the board right after the first two turns that resized the stage while playing.
     const resized = await page.evaluate(() => (window.__gmRO ? window.__gmRO.log.filter((e) => !e.ending).length : 0));
@@ -249,7 +257,8 @@ export async function checkTurns(audit, adapter, turns, { enforceLatency = false
     }
     if (!fb.copy || !copyRules) continue;
     if (t.correct) {
-      const want = `Correct! +${adapter.pointsPerCorrect}`;
+      if (fb.copy === 'wrong') continue; // documented deviation: the correct popup is not `Correct! +N` (constraints doc, Fan Favorites)
+      const want = `Correct! +${t.points ?? adapter.pointsPerCorrect}`;
       if (r.text !== want) audit.violation('feedback-copy', { selector: fb.selector, measured: `"${r.text}" on ${where}`, expected: `"${want}" (Rule 6.0)` });
       if (r.color !== colors.good) audit.violation('feedback-color', { selector: fb.selector, measured: `${r.color} on ${where}`, expected: `var(--good) ${colors.good} (Rule 6.0)` });
     } else {
@@ -531,9 +540,10 @@ export async function afterEnd(audit, adapter, { closeFromEnd = false } = {}) {
     await expect(L(page, 'games.exitLink')).toBeVisible();
     const r = await page.evaluate(() => {
       const t = document.querySelector('.playing-wrap .gf-status-left');
-      return { ended: !!document.querySelector('.playing-wrap .scorepanel'), label: t ? t.textContent.replace(/\s+/g, ' ').trim() : null };
+      return { ended: !!document.querySelector('.playing-wrap .scorepanel, .playing-wrap .scorepanel-actions'), label: t ? t.textContent.replace(/\s+/g, ' ').trim() : null };
     });
-    if (r.ended || (r.label && !/\b1\s*\//.test(r.label))) {
+    // Only a round counter ("ROUND 2/5") can say which round it is; games without one just must not show an end state.
+    if (r.ended || (r.label && /\d\s*\/\s*\d/.test(r.label) && !/\b1\s*\//.test(r.label))) {
       audit.violation('replay', { selector: '.playing-wrap', measured: `after Play again: ${JSON.stringify(r)}`, expected: 'a fresh game at round 1' });
     }
     await page.waitForTimeout(800);

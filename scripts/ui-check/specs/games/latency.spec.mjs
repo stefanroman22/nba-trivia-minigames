@@ -14,7 +14,7 @@ import { checkTurns, newCtx, playTurns, realUserAgent, startGame, waitOver } fro
 test.use({ userAgent: realUserAgent });
 
 /** Games played to the end, one per end-of-game kind. */
-const FINISH = new Set(['series-winner', 'who-would-win']);
+const FINISH = new Set(['series-winner', 'who-would-win', 'career-path', 'who-are-ya']);
 
 test.describe(() => {
   test.skip(({ vpId }) => !CORE.includes(vpId), 'core viewports only');
@@ -31,7 +31,7 @@ test.describe(() => {
         let turns = [];
         let over = false;
         await audit.motion(async () => {
-          ({ turns, over } = await playTurns(page, adapter, ctx, { plan: (t) => t === 0 || t === 2, stopAfter: finish ? undefined : 3 }));
+          ({ turns, over } = await playTurns(page, adapter, ctx, { plan: adapter.latencyPlan || ((t) => t === 0 || t === 2), stopAfter: finish ? undefined : 3 }));
           if (finish) {
             if (!over) over = await waitOver(page, adapter);
             await page.waitForTimeout(1500); // the end entrance (GameResult spring / EndSequence score) inside the window

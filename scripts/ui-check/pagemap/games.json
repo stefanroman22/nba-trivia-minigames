@@ -28,5 +28,16 @@
   "wwwMine": { "css": ".playing-wrap .www-card.is-mine" },
   "wwwSkip": { "css": ".playing-wrap .www-skip" },
   "wwwNext": { "css": ".playing-wrap .www-next" },
-  "wwwSummaryRows": { "css": ".playing-wrap .www-summary-row" }
+  "wwwSummaryRows": { "css": ".playing-wrap .www-summary-row" },
+  "confirmGuess": { "css": ".playing-wrap .gf-inputrow button[aria-label^='Confirm']" },
+  "title": { "css": ".playing-wrap .gf-title" },
+  "s5Cards": { "css": ".playing-wrap .s5-card" },
+  "s5Lives": { "css": ".playing-wrap .s5-lives" },
+  "ffSlots": { "css": ".playing-wrap .ff-slot" },
+  "ffLives": { "css": ".playing-wrap .ff-lives" },
+  "cpCards": { "css": ".playing-wrap .cp-rail .cp-card" },
+  "cpCounter": { "css": ".playing-wrap .cp-counter" },
+  "wayaRows": { "css": ".playing-wrap .waya-row" },
+  "wayaPhoto": { "css": ".playing-wrap .waya-photo" },
+  "wayaReveal": { "css": ".playing-wrap .waya-reveal" }
 }

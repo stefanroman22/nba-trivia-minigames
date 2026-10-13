@@ -5,6 +5,7 @@
 //   {
 //     id, path, online,                 // catalogue id, route, has an online mode
 //     lives,                            // number | null   (null: no lives; `partial` then mixes right and wrong)
+//     partialMisses,                    // optional: misses `partial` spends before answering right [lives - 1]
 //     timerMs,                          // number | null   (a clock the `timeout` scenario runs out with page.clock)
 //     scenarios: { perfect, wrong, partial, timeout, giveup, 'daily-lock' },   // true | 'reason string'
 //     async answer(page, ctx, { correct }) → { over: boolean, truth?: string|null, feedback?: boolean },
@@ -19,6 +20,7 @@
 //     freshAccount,                     // true | ['daily-lock', …]: run those scenarios as a brand-new throwaway
 //                                       //   account (per-account state such as Wordle's daily play) [none]
 //     labels: { <scenario>: 'title' },  // test-title wording per scenario [the generic wording]
+//     latencyPlan,                      // optional (turn) → right?  for GM-LATENCY-01 [right, wrong, right]
 //     expectedScore(turns, ctx) → number|null,         // [right answers × pointsPerCorrect]
 //     async endReveal(page, ctx, turns) → string[],   // problems with the answers shown at the end;
 //                                       //   REQUIRED for a game that ends in place (else `answer-hidden`)
@@ -39,12 +41,20 @@ import seriesWinner from './series-winner.mjs';
 import whoWouldWin from './who-would-win.mjs';
 import nameLogo from './name-logo.mjs';
 import guessMvps from './guess-mvps.mjs';
+import startingFive from './starting-five.mjs';
+import fanFavorites from './fan-favorites.mjs';
+import careerPath from './career-path.mjs';
+import whoAreYa from './who-are-ya.mjs';
 
 export const ADAPTERS = {
   'series-winner': seriesWinner,
   'who-would-win': whoWouldWin,
   'name-logo': nameLogo,
   'guess-mvps': guessMvps,
+  'starting-five': startingFive,
+  'fan-favorites': fanFavorites,
+  'career-path': careerPath,
+  'who-are-ya': whoAreYa,
 };
 
 /** The adapter for a catalogue id, or null when none exists yet. */

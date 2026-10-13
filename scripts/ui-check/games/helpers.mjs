@@ -136,7 +136,7 @@ export async function nextTurn(page, readKey, prevKey, isOver, { timeout = 15_00
 export async function shellIsOver(page) {
   return page.evaluate(() => {
     const vis = (el) => !!el && el.getBoundingClientRect().height > 0 && getComputedStyle(el).visibility !== 'hidden';
-    if (vis(document.querySelector('.playing-wrap .scorepanel'))) return true;
+    if (vis(document.querySelector('.playing-wrap .scorepanel')) || vis(document.querySelector('.playing-wrap .scorepanel-actions'))) return true; // Career Path: actions alone
     if (document.querySelector('.playing-wrap')) return false;
     const inner = document.querySelector('.stage-inner');
     return !!inner && [...inner.querySelectorAll('button')].some((b) => /Close game/.test(b.textContent || '') && vis(b));
@@ -144,21 +144,46 @@ export async function shellIsOver(page) {
 }
 
 /** Type a guess into the game's autocomplete and press Confirm (the click is the submitting input event). */
-export async function typeAndConfirm(page, text) {
-  const input = L(page, 'games.comboInput');
+export async function typeAndConfirm(page, text, { input = L(page, 'games.comboInput'), confirm = L(page, 'games.confirmBtn') } = {}) {
   await input.fill(text);
   await page.keyboard.press('Escape'); // close the suggestion list so it never covers Confirm
-  await L(page, 'games.confirmBtn').click();
+  await confirm.click();
 }
 
 /** RegExp matching exactly `text` (trimmed), for Playwright `hasText`. */
 export const exactly = (text) => new RegExp(`^\\s*${String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
 
+/** src/utils/answerMatch.ts normalizeAnswer. */
+export const normAnswer = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’.,-]/g, '').replace(/\s+/g, ' ').trim();
+
 /** A pool value different from `right` (normalised like src/utils/answerMatch.ts), for a wrong guess. */
 export function wrongFrom(values, right) {
-  const norm = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’.,-]/g, '').replace(/\s+/g, ' ').trim();
-  const r = norm(right);
-  const pick = values.find((v) => v && norm(v) !== r);
+  const r = normAnswer(right);
+  const pick = values.find((v) => v && normAnswer(v) !== r);
   if (!pick) throw new Error(`adapter: no wrong answer available besides "${right}"`);
   return pick;
+}
+
+/**
+ * The single-question payloads (career-path, who-are-ya: `{ schema, game, qid, player }`) the page received, in
+ * arrival order, newest last. Dev reads them from the questions store, prod from the manifest-v3 host; either way
+ * the body carries `game` and `player`. → [{ qid, player }]
+ */
+export async function capQuestions(ctx, game) {
+  const out = [];
+  for (const e of await ctx.cap.entries(/./)) {
+    const b = e.body;
+    if (b && typeof b === 'object' && !Array.isArray(b) && b.game === game && b.player && typeof b.player.full_name === 'string') out.push({ qid: b.qid, player: b.player });
+  }
+  return out;
+}
+
+/** The question games' autocomplete list the page received ([{ id, full_name, … }]), or []. */
+export async function capNames(ctx) {
+  let best = [];
+  for (const e of await ctx.cap.entries(/./)) {
+    const b = e.body;
+    if (Array.isArray(b) && b.length > best.length && b[0] && typeof b[0] === 'object' && typeof b[0].full_name === 'string' && b[0].id != null) best = b;
+  }
+  return best;
 }
