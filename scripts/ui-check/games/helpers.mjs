@@ -153,6 +153,13 @@ export async function typeAndConfirm(page, text, { input = L(page, 'games.comboI
 /** RegExp matching exactly `text` (trimmed), for Playwright `hasText`. */
 export const exactly = (text) => new RegExp(`^\\s*${String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*$`);
 
+/**
+ * Wrong guesses that never run out: made-up names no board or lineup can contain. Fan Favorites and Starting Five take free
+ * text (Confirm / Enter submit whatever is typed; the autocomplete only suggests), so these are submittable; callers still
+ * filter them with the game's own matcher.
+ */
+export const syntheticNames = (count = 20) => Array.from({ length: count }, (_, i) => `Zzq Notaplayer ${i + 1}`);
+
 /** src/utils/answerMatch.ts normalizeAnswer. */
 export const normAnswer = (s) => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/['’.,-]/g, '').replace(/\s+/g, ' ').trim();
 

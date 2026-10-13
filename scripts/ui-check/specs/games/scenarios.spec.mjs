@@ -31,7 +31,8 @@ for (const g of playableGames()) {
     continue;
   }
   for (const scenario of SCENARIOS) {
-    const can = adapter.scenarios[scenario];
+    // One life: the "all but one" misses of `partial` would be none, i.e. `perfect` again.
+    const can = scenario === 'partial' && adapter.lives === 1 && adapter.partialMisses == null ? 'partial needs more than one life or guess (it would equal perfect)' : adapter.scenarios[scenario];
     test.describe(() => {
       test.skip(can !== true, typeof can === 'string' ? can : `adapter declares no "${scenario}" scenario`);
       test.skip(({ vpId }) => !CORE.includes(vpId) && scenario !== 'perfect', 'core viewports only (the other viewports run `perfect` as a layout-only pass)');

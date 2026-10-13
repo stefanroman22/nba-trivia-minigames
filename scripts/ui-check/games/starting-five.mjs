@@ -11,7 +11,7 @@
 // not yet used. Fallback: fiber — StartingFive props `gameInfo`. Wrong guess: a player from another game's
 // lineup whose normalised name matches nobody in this lineup, never repeated.
 import { L } from '../lib/pagemap.mjs';
-import { answerFrom, fiberRound, nextTurn, normAnswer, shellIsOver, typeAndConfirm } from './helpers.mjs';
+import { answerFrom, fiberRound, nextTurn, normAnswer, shellIsOver, syntheticNames, typeAndConfirm } from './helpers.mjs';
 
 const POOL = 'starting-five';
 const FAMILY = { 'Point Guard': 'G', 'Shooting Guard': 'G', 'Small Forward': 'F', 'Power Forward': 'F', Center: 'C' };
@@ -111,7 +111,8 @@ export default {
       st.used.add(name);
     } else {
       const inLineup = new Set(st.lineup.map((x) => normAnswer(x.name)));
-      const pool = rows.flatMap((r) => r.starting_5.map((x) => x.name));
+      // Other lineups first, then made-up names that cannot run out (free text is submittable: handleGuessSubmit takes the typed text).
+      const pool = rows.flatMap((r) => r.starting_5.map((x) => x.name)).concat(syntheticNames());
       name = pool.find((x) => !inLineup.has(normAnswer(x)) && !st.tried.has(normAnswer(x)));
       if (!name) throw new Error('starting-five: no guaranteed-wrong name available');
       st.tried.add(normAnswer(name));

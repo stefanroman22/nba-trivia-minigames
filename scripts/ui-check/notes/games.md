@@ -1,7 +1,7 @@
 # Games suite notes (for adapter authors and the judge agents)
 
 Specs: `specs/games/scenarios.spec.mjs` (`GM-<game>-<scenario>`, `GM-<game>-adapter`), `specs/games/shell.spec.mjs`
-(`GM-SHELL-01`), `specs/games/latency.spec.mjs` (`GM-LATENCY-01`, `@perf`). Driver: `lib/game-driver.mjs`. Adapters:
+(`GM-SHELL-01`), `specs/games/latency.spec.mjs` (`GM-LATENCY-<game>`, `@perf`). Driver: `lib/game-driver.mjs`. Adapters:
 `games/<id>.mjs`, registered in `games/index.mjs` (the contract is written out at the top of that file). Shared
 adapter helpers: `games/helpers.mjs`. Locators: `pagemap/games.json`. Shell measurement shared with
 `scripts/ui-audit.mjs`: `scripts/lib/game-shell.mjs`.
@@ -106,20 +106,21 @@ the log-session assertion.
 
 | endpoint | limit | used |
 |---|---|---|
-| `POST /trivia/log-session/` (`score-submit`) | 60/h per account | 8 adapted games finish: 8 games x 3 scenarios x 3 core vps (72) + 8 `perfect` x 4 other vps (32) = **104** in the 4-worker pass, + GM-LATENCY-01's 4 finished games (Series Winner, Who Would Win, Career Path, Who Are Ya) x 3 core vps (**12**, single-worker pass, always `testuser3`). 116 per run in all. GM-SHELL-01 finishes no game. `freshAccount` scenarios count against their own new account. |
-| `POST /trivia/log-guesses/` (`guess-log`) | 120/h per account (guests per IP) | Who Would Win votes: 10 (`perfect`) + 5 (`partial`) per core vp, 10 per other vp, 2 per core vp in GM-LATENCY-01 (the rest of that game is skips): 91. |
+| `POST /trivia/log-session/` (`score-submit`) | 60/h per account | 8 adapted games finish: 8 games x 3 scenarios x 3 core vps (72) + 8 `perfect` x 4 other vps (32) = **104** in the 4-worker pass, + GM-LATENCY-<game>'s 4 finished games (Series Winner, Who Would Win, Career Path, Who Are Ya) x 3 core vps (**12**, single-worker pass, always `testuser3`). 116 per run in all. GM-SHELL-01 finishes no game. `freshAccount` scenarios count against their own new account. |
+| `POST /trivia/log-guesses/` (`guess-log`) | 120/h per account (guests per IP) | Who Would Win votes: 10 (`perfect`) + 5 (`partial`) per core vp, 10 per other vp, 2 per core vp in GM-LATENCY-<game> (the rest of that game is skips): 91. |
 
 **Account rotation (Task 6).** One account per worker could not carry 104 + 12 games: 4 workers x 60 = 240/h in theory, but
 the dynamic split is uneven and Tasks 7/8 add more games. In the games suite the `session` fixture
 (`lib/fixtures.mjs` `rotatedIndex`) takes the account of `parallelIndex + 4 * (stableHash(titlePath) % 4)`: 16 accounts,
 `testuser3`, `testuser3w1` .. `testuser3w15` (`isTestUsername` accepts `w1`-`w99`, `mintTokens` creates them on demand, the
-stack teardown sweep already restores every `testuser3` family name). The hash is FNV-1a of the test's title path, so a
-test always lands in the same class (the same title at every viewport), whatever worker runs it. `@perf` tests keep
+stack teardown sweep already restores every `testuser3` family name). The hash is FNV-1a of the test's title path (which includes the project, so the same
+check at different viewports can land in different classes); a given test + project always lands in the same class, whatever worker runs it. `@perf` tests keep
 `testuser3`; the account suite and every other suite are unchanged (`rotatedIndex` returns `parallelIndex` unless the
 suite is `games`).
 
 Worst case per account: an account's games are the tests of one hash class that ran on one worker, so the bound is the
-largest class. Counted from the log-session rows of the final prod run (run `20261013-1119`, 106 sessions in 54 min):
+largest class (class membership is fixed by title path + project, so the class sums below are deterministic and stay valid;
+only the claim that every viewport of a check shares a class was wrong). Counted from the log-session rows of the final prod run (run `20261013-1119`, 106 sessions in 54 min):
 class 0 (`testuser3`, `w1`..`w3`) 11, class 1 (`w4`..`w7`) 28, class 2 (`w8`..`w11`) 36, class 3 (`w12`..`w15`) 28 (+6 Fan
 Favorites games that errored before finishing in that run, class unknown). Even if one worker ran a whole class:
 36 + 6 = **42 <= 60** (the largest observed single account: `testuser3w8`, 12). `testuser3` additionally takes the @perf
@@ -141,12 +142,12 @@ scripts/ui-check/run.mjs --stop` resets them. The log-session assertion stays on
   the same URL answers 200 with the normal UA, verified with raw Playwright). Without it every shot shows placeholder
   crests and every game logs console errors that no visitor would see.
 - **`loaf` in the scenario pass** is moved to a note metric (`longest frame while playing (parallel pass)`): 4
-  browsers on one machine make 110-520 ms frames at random. GM-LATENCY-01 (`@perf`, one worker) owns long frames while
+  browsers on one machine make 110-520 ms frames at random. GM-LATENCY-<game> (`@perf`, one worker) owns long frames while
   answering and while two games end (GameResult and EndSequence transitions) and fails on them.
 - **`slow GET /api/me/` and `/api/get-users/`** (`GAMES_LOCAL_LOAD`) are allowed in the scenario and shell tests only
-  (4 workers on one local runserver push the session restore past 1 s; idle it answers in ~0.2 s). GM-LATENCY-01
+  (4 workers on one local runserver push the session restore past 1 s; idle it answers in ~0.2 s). GM-LATENCY-<game>
   allows nothing.
-- **Feedback latency** in the scenario pass is a note metric (`<game> <scenario> feedback max`); GM-LATENCY-01 asserts
+- **Feedback latency** in the scenario pass is a note metric (`<game> <scenario> feedback max`); GM-LATENCY-<game> asserts
   the 150 ms budget.
 - **GM-SHELL-01 runs logged out**: a guest's daily Wordle play is keyed by a fresh device id per context, so it never
   locks the solo accounts' daily word (Task 7's `daily-lock` needs that).
@@ -159,7 +160,7 @@ scripts/ui-check/run.mjs --stop` resets them. The log-session assertion stays on
 ## Measurement notes
 
 - Feedback latency = last capture-phase click / Enter before the feedback element is present with height in an
-  animation frame. In-page, so no CDP round trips. Prod, single worker (GM-LATENCY-01): 6-17 ms; the 4-worker
+  animation frame. In-page, so no CDP round trips. Prod, single worker (GM-LATENCY-<game>): 6-17 ms; the 4-worker
   scenario pass reads 6-291 ms (load), which is why it is only a note there.
 - Feedback copy is read from the first frame the element shows; its colour is compared with `var(--good)` /
   `var(--bad)` resolved in the page.
@@ -190,7 +191,7 @@ Adapters `starting-five`, `fan-favorites`, `career-path`, `who-are-ya` (answer s
 Contract and driver additions (all optional; the Task 5 adapters are unaffected):
 
 - `partialMisses`: how many misses `partial` spends before answering right [`lives - 1`]. `planFor` uses it.
-- `latencyPlan(turn) -> right?`: GM-LATENCY-01's answer plan [right, wrong, right]. Career Path and Who Are Ya end on
+- `latencyPlan(turn) -> right?`: GM-LATENCY-<game>'s answer plan [right, wrong, right]. Career Path and Who Are Ya end on
   their first right answer, so they play miss first (Career Path: miss, right; Who Are Ya: miss, miss, right) and are
   played to the end like Who Would Win.
 - Answer result `correct` (the adapter overrode the plan: Career Path never spends its last guess in `partial`) and
@@ -228,7 +229,7 @@ Per game:
 
 1. **Who Are Ya's feedback feed grows the stage** (Rule 6.2): every guess adds a row of chips and the stage grows by 80-130 px
    (`stage-resized`, e.g. 351->475 px on turn 1 at phone-390), plus the reveal card at the end; the row appears in one frame
-   (`snap`, height 321->445 px) and lands in one long frame in prod (`loaf` 105-110 ms in GM-LATENCY-01 on all three core
+   (`snap`, height 321->445 px) and lands in one long frame in prod (`loaf` 105-110 ms in GM-LATENCY-<game> on all three core
    vps). The feed is mounted only when it has rows (a code comment says why) and has no reserved or scrolling area. Fix
    direction: reserve the feed's height (8 rows) or give it an internal scroller.
 2. **Starting Five** (a) when the lineup completes, the stage grows ~79 px in one frame as the EndSequence mounts
@@ -242,6 +243,6 @@ Per game:
 ### False positives and flakes met
 
 - `no guaranteed-wrong answer available` (Fan Favorites, prod): adapter bug, fixed (candidate list above).
-- GM-LATENCY-01 phone-390 once timed out in the `session` fixture ("Test timeout of 60000ms exceeded while setting up
+- GM-LATENCY-<game> phone-390 once timed out in the `session` fixture ("Test timeout of 60000ms exceeded while setting up
   session", mint of `testuser3` under load); the re-run was clean. Not reproduced.
 - Dev mode: Career Path / Who Are Ya show `not-hydrated` once per worker (cold dev server), same as Task 5.

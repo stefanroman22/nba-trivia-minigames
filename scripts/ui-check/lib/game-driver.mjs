@@ -23,7 +23,7 @@ import { capPool } from '../games/helpers.mjs';
 import { MODES } from './stack.mjs';
 
 /**
- * `slow-api` allowances for the 4-worker scenario pass only (never in GM-LATENCY-01): the session restore
+ * `slow-api` allowances for the 4-worker scenario pass only (never in GM-LATENCY-<game>): the session restore
  * `GET /api/me/` on page load answers in ~0.1-0.3 s idle, but four browsers on one local runserver push it past
  * 1 s (same reason as LOCAL_LOAD in lib/guest.mjs for /api/get-users/).
  */
@@ -409,7 +409,7 @@ export async function watchStage(page) {
 
 /**
  * Loop-time `loaf` (long animation frames) depends on CPU load: in the 4-worker pass it is moved from the violations
- * to a note metric, and GM-LATENCY-01 (@perf, single worker) owns long frames while answering.
+ * to a note metric, and GM-LATENCY-<game> (@perf, single worker) owns long frames while answering.
  */
 export function demoteLoaf(audit, added) {
   for (const v of added.filter((x) => x.rule === 'loaf')) {

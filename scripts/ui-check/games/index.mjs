@@ -20,7 +20,7 @@
 //     freshAccount,                     // true | ['daily-lock', …]: run those scenarios as a brand-new throwaway
 //                                       //   account (per-account state such as Wordle's daily play) [none]
 //     labels: { <scenario>: 'title' },  // test-title wording per scenario [the generic wording]
-//     latencyPlan,                      // optional (turn) → right?  for GM-LATENCY-01 [right, wrong, right]
+//     latencyPlan,                      // optional (turn) → right?  for GM-LATENCY-<game> [right, wrong, right]
 //     expectedScore(turns, ctx) → number|null,         // [right answers × pointsPerCorrect]
 //     async endReveal(page, ctx, turns) → string[],   // problems with the answers shown at the end;
 //                                       //   REQUIRED for a game that ends in place (else `answer-hidden`)

@@ -66,6 +66,9 @@ export default {
     if (!st.mystery) {
       const src = (await L(page, 'games.wayaPhoto').first().getAttribute('src', { timeout: 1000 }).catch(() => null)) || '';
       const id = Number((/\/(\d+)\.png/.exec(src) || [])[1]) || null;
+      // Id-space assumption: the autocomplete list's `id` is the question payload's `player.person_id` (buildNameLookup
+      // keys on NamesEntry.id; the game itself compares guessed.person_id === mystery.person_id). A mismatch would show
+      // up as a right answer that the game scores wrong, or as no-wrong-player.
       st.names = await capNames(ctx);
       st.toId = lookupOf(st.names);
       st.wrong = 0;
@@ -123,7 +126,8 @@ export default {
     if (!card.reveal || !card.reveal.visible) problems.push('no reveal card with the mystery player at the end');
     else if (normAnswer(card.reveal.name) !== normAnswer(m.full_name)) problems.push(`the reveal card names "${card.reveal.name}", the mystery was ${m.full_name}`);
     else if (card.reveal.won !== won) problems.push(`reveal card is-won=${card.reveal.won} after a ${won ? 'win' : 'loss'}`);
-    if (card.filter && !/^(none|blur\(0(px)?\))$/.test(card.filter)) problems.push(`the photo is still blurred at the end (${card.filter})`);
+    if (card.filter == null) problems.push('no .waya-photo at the end (the headshot is missing or replaced by the silhouette), so the blur could not be checked');
+    else if (!/^(none|blur\(0(px)?\))$/.test(card.filter)) problems.push(`the photo is still blurred at the end (${card.filter})`);
     if (card.rows !== turns.length) problems.push(`${card.rows} feedback rows for ${turns.length} guesses`);
     if (card.correctRows !== (won ? 1 : 0)) problems.push(`${card.correctRows} rows marked correct after a ${won ? 'win' : 'loss'}`);
     return problems;

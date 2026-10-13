@@ -17,7 +17,7 @@
 // loaded, often just this survey), the page's player list (`all-players`), then a fixed list of famous names, teams
 // and seasons (WRONG_FALLBACK).
 import { L } from '../lib/pagemap.mjs';
-import { answerFrom, fiberRound, nextTurn, normAnswer, shellIsOver, typeAndConfirm } from './helpers.mjs';
+import { answerFrom, fiberRound, nextTurn, normAnswer, shellIsOver, syntheticNames, typeAndConfirm } from './helpers.mjs';
 
 const POOL = 'fan-favorites';
 /** Last-resort wrong guesses: each is checked against the board with matchIdx before use, so a board that does claim one skips it. */
@@ -93,7 +93,7 @@ export default {
       const same = rows.filter((r) => r.category === st.survey.category && r.qid !== st.survey.qid);
       const others = rows.filter((r) => r.category !== st.survey.category && r.qid !== st.survey.qid);
       const players = (await ctx.pool('all-players')).filter((x) => typeof x === 'string');
-      const candidates = [...same, ...others].flatMap((r) => r.answers.flatMap((a) => [a.answer, ...(a.aliases || [])])).concat(players.slice(0, 200), WRONG_FALLBACK);
+      const candidates = [...same, ...others].flatMap((r) => r.answers.flatMap((a) => [a.answer, ...(a.aliases || [])])).concat(players.slice(0, 200), WRONG_FALLBACK, syntheticNames()); // the synthetic tail cannot run out (free text is submittable)
       text = candidates.find((c) => normAnswer(c) && matchIdx(c, answers) < 0 && !st.tried.has(normAnswer(c)));
       if (text == null) throw new Error('fan-favorites: no guaranteed-wrong answer available');
       st.tried.add(normAnswer(text));

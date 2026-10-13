@@ -84,7 +84,10 @@ export default {
     const player = st.player;
     const left = st.stints - st.wrong;
     let right = correct;
-    if (!right && ctx.scenario === 'partial' && left === 1) right = true; // keep one guess: partial must still win
+    if (!right && ctx.scenario === 'partial' && left === 1) {
+      right = true; // keep one guess: partial must still win
+      if (st.wrong === 0 && ctx.audit) ctx.audit.metrics.push({ kind: 'note', label: 'partial degenerated to perfect (one-stint player: right answer forced)', value: st.stints, unit: 'stints', route: ctx.audit.route });
+    }
     let guess;
     if (right) {
       guess = player.full_name;
