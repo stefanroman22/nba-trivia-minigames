@@ -78,6 +78,8 @@ export default {
     if (!st.solution) {
       st.solution = await answerFrom(ctx, 'the daily word',
         async () => {
+          // Online the relay deals the word itself (roundData gameData: [WORD]); there is no daily-play call.
+          if (ctx.online) { const w = (await ctx.pool('wordle')).find((x) => typeof x === 'string' && x); return w ? w.toUpperCase() : null; }
           const hits = (await ctx.cap.entries(/\/trivia\/wordle\/daily-play\/?(\?|$)/)).filter((e) => e.status === 200 && e.body && Array.isArray(e.body.series) && e.body.series[0]);
           return hits.length ? String(hits[hits.length - 1].body.series[0]).toUpperCase() : null;
         },

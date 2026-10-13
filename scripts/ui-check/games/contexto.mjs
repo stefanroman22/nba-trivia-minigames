@@ -7,12 +7,12 @@
 // replaced by `feedback.copy` below (the game's own copy).
 //
 // Right answer: the question payload `{ schema, game: 'contexto', qid, day, secret, ranking: [[person_id, rank], …] }`
-// the page received (dev questions store / prod manifest-v3 host): the secret AND the whole ranking are in the
-// captured data. Fallback: fiber — Contexto props `gameInfo[0]`. The typed text must resolve through the game's own name
+// the page received (dev questions store / prod manifest-v3 host; online the round the relay dealt, helpers payloads):
+// the secret AND the whole ranking are in the captured data. Fallback: fiber — Contexto props `gameInfo[0]`. The typed text must resolve through the game's own name
 // lookup (the captured autocomplete list, first claim wins); the secret is typed only when its text resolves to it.
 // Misses are players ranked 20 / 80 / 400 / 5 … in the ranking whose name resolves to themselves; never repeated.
 import { L } from '../lib/pagemap.mjs';
-import { answerFrom, capNames, fiberRound, nextTurn, normAnswer, shellIsOver, typeAndConfirm } from './helpers.mjs';
+import { answerFrom, capNames, fiberRound, nextTurn, normAnswer, payloads, shellIsOver, typeAndConfirm } from './helpers.mjs';
 
 const MAX_SCORE = 200;
 const scoreFor = (guesses) => Math.max(50, MAX_SCORE - 5 * Math.max(0, guesses - 10));
@@ -89,7 +89,7 @@ export default {
       st.guesses = 0;
       st.q = await answerFrom(ctx, 'the secret player',
         async () => {
-          for (const e of (await ctx.cap.entries(/./)).reverse()) if (isQuestion(e.body)) return e.body;
+          for (const b of (await payloads(ctx, 'contexto')).reverse()) if (isQuestion(b)) return b;
           return null;
         },
         async () => {

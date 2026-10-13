@@ -44,5 +44,8 @@
   "cxGiveUp": { "css": ".playing-wrap .cx-giveup" },
   "tttCells": { "css": ".playing-wrap .ttt-cell" },
   "tttConfirm": { "css": ".playing-wrap .gf-inputrow button[aria-label='Confirm player']" },
-  "tttClock": { "css": ".playing-wrap .ttt-clock" }
+  "tttClock": { "css": ".playing-wrap .ttt-clock" },
+  "tttConfirmMove": { "css": ".playing-wrap .gf-inputrow button[aria-label='Confirm move']" },
+  "tttTurnYou": { "css": ".playing-wrap .ttt-turn.is-you" },
+  "tttBanner": { "css": ".playing-wrap .ttt-banner" }
 }

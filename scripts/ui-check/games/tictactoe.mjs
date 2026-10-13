@@ -227,6 +227,63 @@ export default {
     }
   },
 
+  /**
+   * Online duel (the multiplayer suite, lib/mp-play.mjs playDuel). Not the solo board: OnlineMatch renders TicTacToe with
+   * `multiplayer` and the relay owns the game (multiplayer_server/src/turnGames.js): turns alternate, host first, 25 s per
+   * turn (a turn that runs out passes to the other player), 3 steals each, three cells in a line win (225 vs 90; a full
+   * board without a line is a draw, 150 each). The board shows only the criteria labels; the cells' valid players come
+   * from the published question with the same labels (ctx.pool('tictactoe'), lib/mp-pool.mjs), names resolve through
+   * the page's own names list (capNames + lookupOf, as solo).
+   *   move(page, ctx, { correct }) — ONE move, on this player's turn:
+   *     correct → claim the next free cell of the top row with a valid, unused player (three of them win the line);
+   *     wrong   → claim a free cell (the bottom-right first) with a listed player who does NOT fit it: the relay refuses
+   *               it ("<name> doesn't fit that square.", a warn notice) and the turn stays until its clock passes it.
+   *   → { cell, name, kind: 'claim' | 'miss' }
+   */
+  online: {
+    turnBased: true,
+    myTurn: (page) => L(page, 'games.tttTurnYou').first().isVisible({ timeout: 300 }).catch(() => false),
+    async move(page, ctx, { correct }) {
+      const st = ctx.state;
+      if (!st.q) {
+        const labels = await readLabels(page);
+        st.names = await capNames(ctx);
+        st.toId = lookupOf(st.names);
+        st.nameOf = new Map(st.names.map((n) => [n.id, n.full_name]));
+        st.resolves = (id) => st.nameOf.has(id) && st.toId(st.nameOf.get(id)) === id;
+        st.q = await answerFrom(ctx, `duel board ${labels.rows.join(' / ')} x ${labels.cols.join(' / ')}`,
+          async () => (await ctx.pool('tictactoe'))[0] || null,
+          async () => null); // the online renderer holds no `valid` lists: the published question is the only source
+        st.used = new Set();
+        st.tried = new Set();
+      }
+      const q = st.q;
+      const cells = await readCells(page);
+      const free = (i) => !cells[i].name;
+      let cell, name;
+      if (correct) {
+        cell = [0, 1, 2].find(free);
+        if (cell == null) throw new Error('tictactoe online: the top row is already full');
+        const id = q.valid[cell].find((x) => st.resolves(x) && !st.used.has(x));
+        if (id == null) return noTruth(ctx, `cell ${cell + 1} of ${q.qid}`, 'no unused, resolvable player fits it');
+        st.used.add(id);
+        name = st.nameOf.get(id);
+      } else {
+        cell = [8, 7, 6, 5, 4, 3].find(free);
+        if (cell == null) throw new Error('tictactoe online: no free cell for a miss');
+        const miss = st.names.find((n) => !q.valid[cell].includes(n.id) && st.resolves(n.id) && !st.tried.has(n.id) && !st.used.has(n.id));
+        if (!miss) throw new Error('tictactoe online: no listed player outside the cell\'s valid list');
+        st.tried.add(miss.id);
+        name = miss.full_name;
+      }
+      await L(page, 'games.tttCells').nth(cell).click();
+      await L(page, 'games.comboInput').fill(name);
+      await page.keyboard.press('Escape');
+      await L(page, 'games.tttConfirmMove').click();
+      return { cell, name, kind: correct ? 'claim' : 'miss' };
+    },
+  },
+
   /** In place: the final board stays, every cell shows a player that fits it (unsolved ones revealed), solved cells keep theirs. */
   async endReveal(page, ctx, turns) {
     const problems = [];
