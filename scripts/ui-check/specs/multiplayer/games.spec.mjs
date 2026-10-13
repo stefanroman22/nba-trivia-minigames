@@ -18,6 +18,24 @@ test.afterEach(async () => { await releasePair(); });
 
 const ONLINE = playableGames().filter((g) => g.online);
 
+/**
+ * Stage snaps while playing online that are the same renderer resize the games suite already reports in single player
+ * (notes/games.md "REAL findings"): the violation gets a note naming that check, so the judges merge them. Tic-Tac-Toe's
+ * jump (final board → results) is online-only and gets no note.
+ */
+const GM_SAME = {
+  'starting-five': 'same as GM-starting-five-perfect / -partial (the stage grows ~79 px in one frame as the EndSequence mounts)',
+  'who-are-ya': 'same as GM-who-are-ya-* (the feedback feed adds a row per guess and grows the stage)',
+  contexto: 'same as GM-contexto-* (the guess list grows the stage per guess)',
+  'fan-favorites': 'same as GM-fan-favorites-perfect (a revealed long answer wraps and grows the stage)',
+};
+function markSameAsGames(game, p) {
+  if (!GM_SAME[game]) return;
+  for (const v of p.audit.violations) {
+    if (v.rule === 'snap' && /stage-shell/.test(v.selector) && !/same as GM-/.test(v.note || '')) v.note = [v.note, GM_SAME[game]].filter(Boolean).join(' · ');
+  }
+}
+
 for (const g of ONLINE) {
   const adapter = adapterFor(g.id);
   const turnBased = !!(adapter && adapter.online && adapter.online.turnBased);
@@ -49,6 +67,7 @@ for (const g of ONLINE) {
         want = { host: { outcome: 'win', score: h.expected }, joiner: { outcome: 'loss', score: j.expected } };
       }
       await checkResults(pair, want);
+      for (const p of [host, joiner]) markSameAsGames(g.id, p);
       for (const p of [host, joiner]) {
         const credited = p.cap.frames('pointsAwarded', { dir: 'in' });
         if (credited.length) p.audit.violation('points', { selector: 'pointsAwarded', measured: JSON.stringify(credited), expected: 'a friend room never adds points to profiles (MP-6)' });

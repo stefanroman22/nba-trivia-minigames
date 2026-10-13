@@ -6,8 +6,8 @@ import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
 import { adapterFor } from '../../games/index.mjs';
-import { both, checkResults, creditsEnabled, finishBoth, layoutBoth, openPair, recordTexts, releasePair, reviewRoundTrip, shotBoth, startMatch } from '../../lib/mp.mjs';
-import { playBoth } from '../../lib/mp-play.mjs';
+import { both, checkResults, creditsEnabled, finishBoth, layoutBoth, openPair, recordTexts, releasePair, reviewRoundTrip, roomWithBoth, shotBoth, startMatch, startRoom } from '../../lib/mp.mjs';
+import { TTT_SCORES, playBoth, playDuel } from '../../lib/mp-play.mjs';
 
 test.use({ userAgent: realUserAgent });
 test.afterEach(async () => { await releasePair(); });
@@ -55,5 +55,27 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
   // See answers on both: the review modal shows the player's own score, closes with its X.
   await reviewRoundTrip(host, h.expected);
   await reviewRoundTrip(joiner, j.expected);
+  await finishBoth(pair);
+});
+
+// The draw headline needs equal scores AND equal (or no) play times (relay rankRoom): a Tic-Tac-Toe duel scores the board,
+// not the clock, and submits no times, so a full board without a line is a deterministic draw (lib/mp-play.mjs
+// DUEL_SCRIPTS.draw: X O X / X O O / O X X). Both players claim, so no turn clock is waited out: it runs on every pair.
+test('[MP-RESULT-02] a draw: a Tic-Tac-Toe duel filled without a line ends "Draw!" on the board and "It\'s a draw" on both results screens, equal scores (150), both cards marked tie, no crown, no time line', async ({ mp }) => {
+  test.setTimeout(300_000);
+  const ttt = gameById('tictactoe');
+  const pair = await openPair(mp, ttt.path);
+  await roomWithBoth(pair);
+  await startRoom(pair);
+  const duel = await playDuel(pair, adapterFor('tictactoe'), { script: 'draw' });
+  pair.host.audit.metrics.push({ kind: 'note', label: 'duel moves', value: duel.moves.map((m) => `${m.who}:${m.kind}@${m.cell + 1}`).join(' '), unit: '', route: pair.host.audit.route });
+  await checkResults(pair, { host: { outcome: 'tie', score: TTT_SCORES.draw }, joiner: { outcome: 'tie', score: TTT_SCORES.draw }, times: false });
+  for (const p of [pair.host, pair.joiner]) {
+    if (p.cap.frames('pointsAwarded', { dir: 'in' }).length) p.audit.violation('points', { selector: 'pointsAwarded', measured: 'credited', expected: 'a friend room never adds points to profiles (MP-6)' });
+  }
+  await layoutBoth(pair);
+  await shotBoth(pair, 'draw');
+  await reviewRoundTrip(pair.host, TTT_SCORES.draw);
+  await reviewRoundTrip(pair.joiner, TTT_SCORES.draw);
   await finishBoth(pair);
 });

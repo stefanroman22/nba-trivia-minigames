@@ -6,7 +6,7 @@
 // Servers are detached with their output in <uicHome>/logs/, so they outlive the process that
 // started them (a Playwright worker) until stopStack().
 import { spawn, spawnSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, writeSync } from 'node:fs';
 import { connect } from 'node:net';
 import path from 'node:path';
@@ -231,18 +231,20 @@ runpy.run_path('manage.py', run_name='__main__')`;
 
 /**
  * Shared key between the local relay and the local Django (MULTIPLAYER_SHARED_SECRET, X-Relay-Key), so a finished 1v1
- * match is credited like in production (`/trivia/multiplayer-result/`, "+N pts" in the results). Not a real secret:
- * both processes are local and talk over localhost only. A Django or relay not started by ui-check lacks it, and then
- * nothing is credited (the relay logs "Crediting room … failed: HTTP 403").
+ * match is credited like in production (`/trivia/multiplayer-result/`, "+N pts" in the results). Random per stack
+ * (`randomBytes`, made by the ensureStack that starts the first of the two and kept in <uicHome>/stack.json, outside the
+ * repo, while either process lives), never logged. A Django or relay not started by ui-check lacks it: nothing is credited.
  */
-export const RELAY_KEY = 'uicheck-local-relay-key';
+function relayKeyFor(prev, known) {
+  return (prev && prev.relayKey && known.length) ? prev.relayKey : randomBytes(24).toString('hex');
+}
 
-function startDjango(port, webPort) {
+function startDjango(port, webPort, relayKey) {
   migrate();
   const { cmd, args } = djangoCommand(port);
   return startDetached(`django-${port}`, port, cmd, args, {
     cwd: path.join(REPO_ROOT, 'backend'),
-    env: djangoEnv({ CORS_ALLOWED_ORIGINS: `http://localhost:${webPort}`, MULTIPLAYER_SHARED_SECRET: RELAY_KEY }),
+    env: djangoEnv({ CORS_ALLOWED_ORIGINS: `http://localhost:${webPort}`, MULTIPLAYER_SHARED_SECRET: relayKey }),
   });
 }
 
@@ -258,12 +260,12 @@ export function relayDataEnv() {
 }
 
 /** The socket server with the env scripts/dev.mjs passes, on the given ports, plus the data hosts and the relay key. */
-function startSocket(port, webPort, djangoPort) {
+function startSocket(port, webPort, djangoPort, relayKey) {
   if (!existsSync(path.join(REPO_ROOT, 'multiplayer_server', 'node_modules'))) {
     throw new Error('multiplayer_server has no node_modules — run `npm ci --prefix multiplayer_server`');
   }
   return startDetached(`socket-${port}`, port, process.execPath, ['multiplayer_server/src/index.js'], {
-    env: { ...process.env, ...relayDataEnv(), MULTIPLAYER_SHARED_SECRET: RELAY_KEY, PORT: String(port), CORS_ORIGINS: `http://localhost:${webPort}`, API_BASE_URL: `http://localhost:${djangoPort}` },
+    env: { ...process.env, ...relayDataEnv(), MULTIPLAYER_SHARED_SECRET: relayKey, PORT: String(port), CORS_ORIGINS: `http://localhost:${webPort}`, API_BASE_URL: `http://localhost:${djangoPort}` },
   });
 }
 
@@ -291,14 +293,15 @@ export async function ensureStack(mode = 'prod') {
   // stack.json by whoever spawned it, possibly another process) is waited for, never spawned twice.
   const up = async (port) => isPortOpen(port);
   const booting = (port) => ours(port) || started.find((e) => e.port === port);
-  const record = () => writeStack({ mode, base, api, socket, started: [...known, ...started] }); // before waiting: the "starting" entry
+  const relayKey = relayKeyFor(prev, known);
+  const record = () => writeStack({ mode, base, api, socket, relayKey, started: [...known, ...started] }); // before waiting: the "starting" entry
   const reuse = (what, port) => log(`${what} :${port} already up — reusing${ours(port) ? ' (started by ui-check)' : ' (not ours: never stopped)'}`);
 
   const base = `http://localhost:${ports.web}`;
   let api = `http://localhost:${ports.django}/api`;
   const socket = `http://localhost:${ports.socket}`;
 
-  const spawnDjango = () => { const e = startDjango(ports.django, ports.web); started.push(e); record(); return e; };
+  const spawnDjango = () => { const e = startDjango(ports.django, ports.web, relayKey); started.push(e); record(); return e; };
   if (await up(ports.django)) reuse('django', ports.django);
   else if (booting(ports.django)) log(`django :${ports.django} is still starting (pid ${booting(ports.django).pid}) — waiting, not spawning`);
   else spawnDjango();
@@ -306,7 +309,7 @@ export async function ensureStack(mode = 'prod') {
   if (mode === 'prod') {
     if (await up(ports.socket)) reuse('socket', ports.socket);
     else if (booting(ports.socket)) log(`socket :${ports.socket} is still starting — waiting, not spawning`);
-    else { started.push(startSocket(ports.socket, ports.web, ports.django)); record(); }
+    else { started.push(startSocket(ports.socket, ports.web, ports.django, relayKey)); record(); }
 
     const { env, resolved } = prodBuildEnv(ports);
     const stamp = buildStamp(resolved);
@@ -340,12 +343,12 @@ export async function ensureStack(mode = 'prod') {
       reuse('web', ports.web);
       // `npm run dev` starts the socket; when the site is already up without one, start it here.
       if (await up(ports.socket)) reuse('socket', ports.socket);
-      else started.push(startSocket(ports.socket, ports.web, ports.django));
+      else started.push(startSocket(ports.socket, ports.web, ports.django, relayKey));
     } else {
       // Our relay first (data hosts + relay key): scripts/dev.mjs reuses a socket already listening on its port.
       if (await up(ports.socket)) reuse('socket', ports.socket);
       else {
-        started.push(startSocket(ports.socket, ports.web, ports.django));
+        started.push(startSocket(ports.socket, ports.web, ports.django, relayKey));
         record();
         for (let i = 0; i < 40 && !(await up(ports.socket)); i++) await sleep(250);
       }

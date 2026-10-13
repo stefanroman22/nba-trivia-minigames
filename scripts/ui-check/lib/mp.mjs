@@ -7,7 +7,7 @@
 // results | ended | online (an om-stage this helper does not know) | unknown (not a game page). It is read from the
 // DOM only (the MultiplayerContext phase is not reachable from outside): the stage's `.om-stage` variant, else the
 // Multiplayer card (`.fp-code-row` / `.fp-mini` = lobby).
-import { expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { L } from './pagemap.mjs';
 import { motionStep } from './account.mjs';
 import { readStack } from './stack.mjs';
@@ -61,24 +61,44 @@ export async function waitState(p, states, timeout = 20_000) {
   throw new Error(`${p.label} (${p.username}) never reached ${want.join(' | ')} within ${Math.round(timeout / 1000)} s (screen: ${s})`);
 }
 
+/** In-page: the VS intro as shown (eyebrow text, You / Opponent cards with their names and #id tags). */
+function introInPage() {
+  const s = [...document.querySelectorAll('.stage-inner .om-stage')].pop();
+  if (!s || !s.querySelector('.om-eyebrow')) return null;
+  const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : null);
+  return {
+    eyebrow: txt(s.querySelector('.om-eyebrow')),
+    line: txt(s.querySelector('.om-introline')),
+    cards: [...s.querySelectorAll('.om-matchup .om-pc')].map((c) => ({ side: txt(c.querySelector('.om-pc-side')), name: txt(c.querySelector('.om-pc-name')), tag: txt(c.querySelector('.om-pc-tag')) })),
+  };
+}
+
 /**
  * Record the sequence of screens one player passes through (a rAF loop in the page; survives client-side route
- * changes, not reloads). read() → [{ state, t }] (t in ms since start), consecutive duplicates collapsed.
+ * changes, not reloads), and a snapshot of the VS intro on the first frame it is complete (two cards): the intro lasts
+ * 2.6 s and may be over before the test could look at it. readStateLog → [{ state, t }] (t in ms since start,
+ * consecutive duplicates collapsed); readIntro → { eyebrow, line, cards: [{ side, name, tag }], t } | null.
  */
 export async function startStateLog(page) {
   await page.evaluate(`(() => {
     const read = ${mpStateInPage.toString()};
-    const log = (window.__mpLog = { rows: [], t0: performance.now(), stop: false });
+    const intro = ${introInPage.toString()};
+    const log = (window.__mpLog = { rows: [], intro: null, t0: performance.now(), stop: false });
     const tick = () => {
       const s = read();
       const last = log.rows[log.rows.length - 1];
       if (!last || last.state !== s) log.rows.push({ state: s, t: Math.round(performance.now() - log.t0) });
+      if (s === 'intro' && !log.intro) {
+        const snap = intro();
+        if (snap && snap.cards.length === 2 && snap.cards.every((c) => c.name)) log.intro = { ...snap, t: Math.round(performance.now() - log.t0) };
+      }
       if (!log.stop) requestAnimationFrame(tick);
     };
     tick();
   })()`);
 }
 export const readStateLog = (page) => page.evaluate(() => (window.__mpLog ? window.__mpLog.rows : [])).catch(() => []);
+export const readIntro = (page) => page.evaluate(() => (window.__mpLog ? window.__mpLog.intro : null)).catch(() => null);
 export const stateTrail = (rows) => rows.map((r) => r.state).join(' > ');
 
 /**
@@ -113,10 +133,10 @@ export async function recordTexts(page, selector, fn, { tail = 500 } = {}) {
 }
 
 /**
- * Long animation frames are not enforced here: every multiplayer step makes TWO browsers render the same event at once
- * on one machine (both players' screens change), so a frame's length is not attributable to the page. Long frames are
- * owned by the single-browser @perf passes (guest G-MOTION/G-PERF, account, GM-LATENCY-<game>). A `loaf` from a
- * motion window becomes a note metric with its step; snap and CLS stay enforced.
+ * Long animation frames are not enforced while BOTH pages render the same event at once on one machine (motionBoth,
+ * playOnline, playDuel): a frame's length is then not attributable to the page. A `loaf` from such a window becomes a
+ * note metric with its step; snap and CLS stay enforced. A single-side motion() (one player acting, the other page
+ * idle) keeps `loaf` strict. Long frames are also owned by the single-browser @perf passes (guest, account, GM-LATENCY).
  */
 export function demoteMpLoaf(audit, added) {
   for (const v of added.filter((x) => x.rule === 'loaf')) {
@@ -128,15 +148,29 @@ export function demoteMpLoaf(audit, added) {
   return added.filter((x) => x.rule !== 'loaf');
 }
 
-/** audit.motion with a step name, watching the Multiplayer card and the stage (loaf demoted, see demoteMpLoaf). */
-export const motion = async (p, step, fn, watch = [...WATCH_CARD, ...WATCH_STAGE], settleMs = 700) => demoteMpLoaf(p.audit, await motionStep(p.audit, step, fn, { watch, settleMs }));
+/** audit.motion with a step name, watching the Multiplayer card and the stage. One side: every rule strict (`loaf` too). */
+export const motion = (p, step, fn, watch = [...WATCH_CARD, ...WATCH_STAGE], settleMs = 700) => motionStep(p.audit, step, fn, { watch, settleMs });
 
-/** Both pages sampled at once while `fn` runs (one player's action shows on both screens). */
-export const motionBoth = (pair, step, fn, watch, settleMs) => motion(pair.host, step, () => motion(pair.joiner, step, fn, watch, settleMs), watch, settleMs);
+/** Both pages sampled at once while `fn` runs (one player's action shows on both screens): `loaf` demoted on both. */
+export const motionBoth = async (pair, step, fn, watch = [...WATCH_CARD, ...WATCH_STAGE], settleMs = 700) => demoteMpLoaf(pair.host.audit, await motionStep(pair.host.audit, step,
+  async () => { demoteMpLoaf(pair.joiner.audit, await motionStep(pair.joiner.audit, step, fn, { watch, settleMs })); }, { watch, settleMs }));
 
 // ---------------------------------------------------------------- pair lifecycle
 
 let current = null;
+
+const QUIET_MS = 800;
+/** No socket frame in or out on this page for QUIET_MS (after its identify), or `max` ms passed. */
+async function framesQuiet(p, max = 8000) {
+  const until = Date.now() + max;
+  while (Date.now() < until) {
+    const ev = p.cap.events();
+    const last = ev.length ? ev[ev.length - 1].at : 0;
+    if (Date.now() - last >= QUIET_MS) return true;
+    await sleep(100);
+  }
+  return false;
+}
 
 /** Has this player's page sent its socket `identify` (the app connects once the user is loaded)? */
 async function waitIdentified(p, timeout = 20_000) {
@@ -194,12 +228,16 @@ export async function ensureIdle(p, { path = null, rounds = 10 } = {}) {
  * failed test left on the relay resumed and left through the UI, both on the idle card. Remembered for releasePair().
  */
 export async function openPair(mp, path) {
+  const workers = test.info().config.workers;
+  if (workers > 1) throw new Error(`ui-check: the multiplayer suite shares two accounts and needs ONE worker (got ${workers}); run it through run.mjs or with --workers=1`);
   const pair = await mp.pair();
   current = pair;
   pair.path = path;
   await Promise.all([pair.host, pair.joiner].map((p) => p.audit.goto(path, { waitFor: '.stage-col' })));
   await Promise.all([pair.host, pair.joiner].map((p) => waitIdentified(p)));
-  await sleep(1500); // a resumeMatch / roomLeft for a seat the relay still holds arrives right after identify
+  // A resumeMatch / roomLeft for a seat the relay still holds arrives right after identify: wait until neither page has
+  // received a socket frame for QUIET_MS (at most 8 s).
+  await Promise.all([pair.host, pair.joiner].map((p) => framesQuiet(p)));
   for (let round = 0; round < 2; round++) {
     for (const p of [pair.host, pair.joiner]) await ensureIdle(p, { path });
   }
@@ -223,6 +261,19 @@ export async function releasePair() {
       if (p.page.isClosed()) continue;
       await ensureIdle(p, { rounds: 4 }).catch(() => {});
     }
+  }
+  // Verify: both end on the idle card (or the friend menu, which is out of every room). Otherwise an annotation on the
+  // test (the next openPair still resumes and leaves whatever the relay holds).
+  const left = [];
+  for (const p of [pair.host, pair.joiner]) {
+    if (p.page.isClosed()) continue;
+    const s = await mpState(p.page);
+    if (s !== 'idle' && s !== 'friend-menu') left.push(`${p.label} on "${s}"`);
+  }
+  if (left.length) {
+    const msg = `releasePair: not idle after cleanup: ${left.join(', ')} (the next test's openPair leaves it)`;
+    console.warn(`ui-check: ${msg}`);
+    try { test.info().annotations.push({ type: 'cleanup', description: msg }); } catch { /* outside a test */ }
   }
 }
 
@@ -339,8 +390,11 @@ export async function startMatch(pair) {
  */
 export async function checkWaiting(pair, score, { tag = '' } = {}) {
   const { host, joiner } = pair;
+  // Called while the joiner has not played yet: the host can only be waiting. Results here means the match settled
+  // without the joiner's score (or the waiting screen never showed).
   if ((await waitState(host, ['waiting', 'results'])) !== 'waiting') {
-    host.audit.metrics.push({ kind: 'note', label: 'waiting screen skipped (the other player had finished)', value: 0, unit: '', route: host.audit.route });
+    host.audit.violation('waiting', { selector: '.om-stage', measured: 'the host went straight to the results while the joiner had not played', expected: 'the waiting screen until every player has finished' });
+    await host.audit.shot(`${tag}waiting`);
     return;
   }
   const bad = (p, sel, measured, expected) => p.audit.violation('waiting', { selector: sel, measured, expected });
@@ -417,6 +471,7 @@ export async function checkResults(pair, want) {
     if (you.name !== p.username) bad(`own card names "${you.name}"`, p.username);
     const oppName = shownName(pair[other], pair.type);
     if (opp.name !== oppName) bad(`opponent card names "${opp.name}"`, `${oppName}${oppName !== pair[other].username ? ` (${pair[other].username} is of unknown age: masked in a random match)` : ''}`);
+    if (oppName === 'Player' && opp.tag) p.audit.violation('teen-masking', { selector: '.om-stage--results .om-pc-tag', measured: `the opponent is shown as "Player" but with its player ID ${opp.tag}`, expected: 'a masked stranger shows no permanent player ID (it lets anyone find and friend-request them by ID)' });
     if (w.score != null && Number(you.score) !== w.score) bad(`own score ${you.score}`, `${w.score} (from the answers given)`);
     if (want[other].score != null && Number(opp.score) !== want[other].score) bad(`opponent score ${opp.score}`, `${want[other].score}`);
     // Mirror: my card on my screen = my card on the other screen.
@@ -429,6 +484,7 @@ export async function checkResults(pair, want) {
     const winCard = w.outcome === 'win' ? you : w.outcome === 'loss' ? opp : null;
     if (winCard && !(winCard.win && winCard.crown)) bad(`winner card is-win=${winCard.win} crown=${winCard.crown}`, 'the winner\'s card ringed with a crown');
     if (w.outcome === 'tie' && !(you.tie && opp.tie)) bad('draw without both cards marked is-tie', 'both cards is-tie');
+    if (w.outcome === 'tie' && (you.crown || opp.crown || you.win || opp.win)) bad('a draw with a winner card (crown / is-win)', 'no winner on a draw');
     const wantNote = !!want.timeTie && w.outcome !== 'tie';
     if (wantNote && r.timeNote !== 'Same score, faster time wins') bad(`time note "${r.timeNote}"`, '"Same score, faster time wins" (equal scores, the clock decided)');
     if (!wantNote && r.timeNote) bad(`time note "${r.timeNote}" with scores ${you.score} / ${opp.score}`, 'no time note unless equal scores were split by time');
@@ -473,7 +529,7 @@ export async function waitNotice(p, re, { where = 'stage', timeout = 8000 } = {}
   return null;
 }
 
-/** Was this run's relay and Django started by ui-check (so both share RELAY_KEY and 1v1 matches are credited)? */
+/** Was this run's relay and Django started by ui-check (so both share the stack's relay key and 1v1 matches are credited)? */
 export function creditsEnabled() {
   const names = (readStack()?.started || []).map((s) => s.name);
   return names.some((n) => n.startsWith('django-')) && names.some((n) => n.startsWith('socket-'));

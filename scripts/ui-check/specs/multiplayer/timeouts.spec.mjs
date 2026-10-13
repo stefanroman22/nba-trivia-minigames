@@ -1,7 +1,7 @@
 // Multiplayer: the relay's real-time limits, waited out for real (they live in the relay process and cannot be
 // fast-forwarded from the browser): the 30 s matchmaking queue, the 30 s play-again proposal and the 30 s reconnect
 // grace (multiplayer_server/src/index.js MATCH_TIMEOUT_MS, PROPOSAL_TIMEOUT_MS, GRACE_MS). Pair A only (playwright
-// config), once per run: about two minutes of waiting.
+// config), once per run: about two minutes of waiting. Tagged @slow: `run.mjs --skip-slow` leaves it out of verify loops.
 import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
@@ -23,7 +23,7 @@ function limit(p, label, ms) {
   if (ms < LIMIT_MS - 1500 || ms > LIMIT_MS + SLACK_MS) p.audit.violation('timeout', { selector: label, measured: `${Math.round(ms / 100) / 10} s`, expected: `${LIMIT_MS / 1000} s (+ up to ${SLACK_MS / 1000} s)` });
 }
 
-test('[MP-TIMEOUT-01] the relay\'s 30 s limits, for real: a lone search ends with "No opponent found", an unanswered rematch request with "No response in time.", a dropped opponent with "Match ended" after the grace window', async ({ mp }) => {
+test('[MP-TIMEOUT-01] @slow the relay\'s 30 s limits, for real: a lone search ends with "No opponent found", an unanswered rematch request with "No response in time.", a dropped opponent with "Match ended" after the grace window', async ({ mp }) => {
   test.setTimeout(420_000);
   const pair = await openPair(mp, SW.path);
   const { host, joiner } = pair;
@@ -36,7 +36,7 @@ test('[MP-TIMEOUT-01] the relay\'s 30 s limits, for real: a lone search ends wit
   limit(host, 'matchmaking queue timeout', Date.now() - t0);
   const none = await waitNotice(host, /No opponent found/, { where: 'card', timeout: 3000 });
   if (none !== 'No opponent found. Please try again.') host.audit.violation('notice', { selector: '.mp-panel .mp-hint', measured: `"${none}"`, expected: '"No opponent found. Please try again."' });
-  await host.audit.shot('no-opponent');
+  await shotBoth(pair, 'no-opponent');
 
   // 2. Play-again request nobody answers: after 30 s both are told "No response in time." and the request is gone.
   const adapter = adapterFor('series-winner');
@@ -60,14 +60,14 @@ test('[MP-TIMEOUT-01] the relay\'s 30 s limits, for real: a lone search ends wit
   // 3. Reconnect grace: the joiner's tab goes away mid-match; the host sees "<joiner> disconnected. Trying to reconnect...",
   // the chip Reconnecting, and after 30 s "Match ended" / "Your opponent left the match.".
   await startMatch(pair);
-  await joiner.audit.shot('before-close');
+  await shotBoth(pair, 'before-close');
   t0 = Date.now();
   await joiner.page.close();
   const jName = shownName(joiner, 'match');
   const gone = await waitNotice(host, /disconnected/, { timeout: 15_000 });
   if (gone !== `${jName} disconnected. Trying to reconnect...`) host.audit.violation('notice', { selector: '.om-notice', measured: `"${gone}"`, expected: `"${jName} disconnected. Trying to reconnect..."` });
   await expect(L(host.page, 'multiplayer.playbarChip').first()).toHaveClass(/\bis-offline\b/, { timeout: 5000 }).catch(() => host.audit.violation('grace', { selector: '.om-chip', measured: 'the opponent chip never showed Reconnecting', expected: 'is-offline while the opponent is away' }));
-  await host.audit.shot('opponent-away');
+  await host.audit.shot('opponent-away'); // host only from here: the joiner's tab is closed (that is the check)
   await waitState(host, 'ended', LIMIT_MS + SLACK_MS + 20_000);
   // The relay notices a closed tab only after its ping timeout (pingInterval + pingTimeout = 10 + 10 s) at worst, then
   // waits GRACE_MS: measured from the close, so up to 20 s more than the grace itself.

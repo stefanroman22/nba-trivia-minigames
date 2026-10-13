@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // UI check runner: one stack, the suites as Playwright invocations, contact sheets, the digest.
 //   node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all]
-//                                 [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed]
+//                                 [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed] [--skip-slow]
 //   node scripts/ui-check/run.mjs --stop        stop a stack kept with --keep-stack (or left by a killed run)
 // Ctrl+C / SIGTERM / an uncaught error stop the stack too (unless --keep-stack).
 // --vp takes viewport ids (and/or mp pair names), `core` or `all` (default). --only takes check ids;
 // `*` matches within an id (GM-wordle-*). Non-multiplayer suites run with 4 workers, multiplayer
-// with 1 (its two accounts are shared). Exits 1 when any test failed.
+// with 1 (its two accounts are shared). --skip-slow leaves out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01's
+// three 30 s relay limits) for quick verify loops. Exits 1 when any test failed.
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -22,7 +23,7 @@ const PW_CLI = path.join(REPO_ROOT, 'node_modules', '@playwright', 'test', 'cli.
 const SHEET_MAX = 24;
 
 function parseArgs(argv) {
-  const opts = { suite: 'all', vp: 'all', only: null, mode: 'prod', keepStack: false, headed: false };
+  const opts = { suite: 'all', vp: 'all', only: null, mode: 'prod', keepStack: false, headed: false, skipSlow: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -32,6 +33,7 @@ function parseArgs(argv) {
     else if (a === '--mode') opts.mode = val();
     else if (a === '--keep-stack') opts.keepStack = true;
     else if (a === '--headed') opts.headed = true;
+    else if (a === '--skip-slow') opts.skipSlow = true;
     else if (a === '--stop') opts.stop = true;
     else if (a === '--where') opts.where = true;
     else if (a === '--help' || a === '-h') opts.help = true;
@@ -71,6 +73,7 @@ function grepFor(only) {
 }
 
 const PERF_TAG = '@perf';
+const SLOW_TAG = '@slow';
 /** Grep for the single-worker pass: @perf tests, narrowed by --only when given. */
 function perfGrep(only) {
   const ids = grepFor(only);
@@ -174,8 +177,9 @@ async function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`ui-check: ${e.message}`); process.exit(2); }
   if (opts.help) {
-    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed] [--stop] [--where]');
+    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--keep-stack] [--headed] [--skip-slow] [--stop] [--where]');
     console.log('  --keep-stack  leave the local stack running after the run');
+    console.log('  --skip-slow   leave out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01) for quick verify loops');
     console.log('  --where       print where runs and the stack file live (uicHome) and the latest run directory');
     console.log('  --stop        stop a stack kept with --keep-stack (or left behind by a killed run) and exit');
     return 0;
@@ -201,6 +205,8 @@ async function main() {
   const childEnv = { UI_CHECK_MODE: opts.mode, UI_CHECK_RUN: id, UI_CHECK_KEEP_STACK: '1' };
   const hasSpecs = (suite) => existsSync(path.join(UIC, 'specs', suite));
   const grep = grepFor(opts.only);
+  // Tests left out of every pass: @slow with --skip-slow (combined with the @perf split of each pass).
+  const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null].filter(Boolean).join('|') || undefined;
   let exit = 0;
   try {
     await ensureStack(opts.mode);
@@ -211,12 +217,12 @@ async function main() {
     let ran = false;
     if (projects.length) {
       // Timing-sensitive tests (title tag @perf) run last and alone, so parallel browsers cannot distort them.
-      exit = Math.max(exit, await playwright(projects, { workers: 4, grep, grepInvert: PERF_TAG, headed: opts.headed, env: childEnv }));
-      exit = Math.max(exit, await playwright(projects, { workers: 1, grep: perfGrep(opts.only), headed: opts.headed, env: { ...childEnv, UI_CHECK_APPEND: '1' } }));
+      exit = Math.max(exit, await playwright(projects, { workers: 4, grep, grepInvert: invert(PERF_TAG), headed: opts.headed, env: childEnv }));
+      exit = Math.max(exit, await playwright(projects, { workers: 1, grep: perfGrep(opts.only), grepInvert: invert(null), headed: opts.headed, env: { ...childEnv, UI_CHECK_APPEND: '1' } }));
       ran = true;
     }
     if (mpProjects.length) {
-      exit = Math.max(exit, await playwright(mpProjects, { workers: 1, grep, headed: opts.headed, grepInvert: PERF_TAG, env: { ...childEnv, ...(ran ? { UI_CHECK_APPEND: '1' } : {}) } }));
+      exit = Math.max(exit, await playwright(mpProjects, { workers: 1, grep, headed: opts.headed, grepInvert: invert(PERF_TAG), env: { ...childEnv, ...(ran ? { UI_CHECK_APPEND: '1' } : {}) } }));
       ran = true;
     }
     if (!ran) { console.error('ui-check: nothing to run'); exit = 2; }

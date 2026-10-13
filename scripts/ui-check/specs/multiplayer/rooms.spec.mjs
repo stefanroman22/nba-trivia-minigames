@@ -38,7 +38,7 @@ test('[MP-ROOM-01] friend room: generate code ("Creating…"), copy code ("Code 
   expect(await innerText(L(host.page, 'multiplayer.menuSizeNum'))).toBe('2');
   await expect(L(host.page, 'multiplayer.enterCodeBtn')).toBeVisible();
   await host.audit.layout({ scope: 'aside.game-aside' });
-  await host.audit.shot('friend-menu');
+  await shotBoth(pair, 'friend-menu');
 
   // Generate code: "Generate code" → "Creating…" in the same button, then the lobby with the code.
   const gen = await recordTexts(host.page, 'aside.game-aside .fp-body:not(:has(.fp-code-row)) .fp-actions--row:not(.fp-actions--single) button.btn-primary', async () => {
@@ -61,7 +61,7 @@ test('[MP-ROOM-01] friend room: generate code ("Creating…"), copy code ("Code 
   await expect(L(host.page, 'multiplayer.startBtn')).toHaveAttribute('aria-disabled', 'true');
   expect(await innerText(L(host.page, 'multiplayer.stageTitleChip'))).toBe('PRIVATE ROOM');
   await host.audit.layout({ scope: 'aside.game-aside' });
-  await host.audit.shot('lobby');
+  await shotBoth(pair, 'lobby');
 
   // Copy code: the icon button's label swaps to "Code copied" and the hint to "Copied.", then both swap back.
   await host.context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() => {});
@@ -70,7 +70,7 @@ test('[MP-ROOM-01] friend room: generate code ("Creating…"), copy code ("Code 
       await motion(host, 'Copy code', async () => {
         await L(host.page, 'multiplayer.copyBtn').click();
         await expect(L(host.page, 'multiplayer.copyBtn')).toHaveAttribute('aria-label', 'Code copied');
-        await host.audit.shot('copied');
+        await shotBoth(pair, 'copied');
       }, [ASIDE, 'aside.game-aside .fp-code-row', 'aside.game-aside .fp-code-row + p.fp-sub']);
       await expect(L(host.page, 'multiplayer.copyBtn')).toHaveAttribute('aria-label', 'Copy room code', { timeout: 4000 });
     }, { tail: 300 });
@@ -145,7 +145,7 @@ test('[MP-ROOM-02] joining: a wrong code shows an inline error without a jump; t
   await joiner.page.keyboard.type(code.slice(0, 3));
   await expect(L(joiner.page, 'multiplayer.joinBtn')).toBeDisabled();
   await joiner.audit.layout({ scope: 'aside.game-aside' });
-  await joiner.audit.shot('code-entry');
+  await shotBoth(pair, 'code-entry');
 
   // A wrong code (another six digits): inline error under the boxes, the boxes marked, nothing jumps.
   const wrong = String((Number(code) + 1) % 900000 + 100000);
@@ -157,7 +157,11 @@ test('[MP-ROOM-02] joining: a wrong code shows an inline error without a jump; t
   expect(await innerText(L(joiner.page, 'multiplayer.joinError'))).toBe('No room found for that code.');
   await expect(L(joiner.page, 'multiplayer.codeBox')).toHaveClass(/\bis-error\b/);
   expect(await mpState(joiner.page)).toBe('friend-menu');
-  await joiner.audit.shot('wrong-code');
+  // The host's lobby is untouched by a failed join: still one seat taken, one waiting.
+  expect(await mpState(host.page)).toBe('lobby');
+  await expect(L(host.page, 'multiplayer.seats')).toHaveCount(1);
+  await expect(L(host.page, 'multiplayer.emptySeats')).toHaveCount(1);
+  await shotBoth(pair, 'wrong-code');
   // Editing the code clears the error.
   await L(joiner.page, 'multiplayer.codeInput').fill('');
   await expect(L(joiner.page, 'multiplayer.joinError')).toHaveCount(0, { timeout: 3000 });
@@ -216,7 +220,7 @@ test('[MP-ROOM-03] game picker: the host changes the game, both see the new game
   if (current.length !== 1 || current[0].name !== SW.name || current[0].note !== 'Playing now') host.audit.violation('picker', { selector: '.gp-item.is-current', measured: JSON.stringify(current), expected: `only "${SW.name}" disabled, noted "Playing now"` });
   if (items.some((i) => /who would win|coming soon/i.test(i.name))) host.audit.violation('picker', { selector: '.gp-grid', measured: items.map((i) => i.name).join(', '), expected: 'only games with an online mode (no Who Would Win, no coming-soon)' });
   await host.audit.layout({ scope: '.modal-panel' });
-  await host.audit.shot('picker');
+  await shotBoth(pair, 'picker');
 
   // Pick: the modal closes and both players' pages move to the new game's route (MultiplayerContext navigates every
   // member to the room's game), where the lobby shows the new game. The lobby is re-mounted by that route change, so

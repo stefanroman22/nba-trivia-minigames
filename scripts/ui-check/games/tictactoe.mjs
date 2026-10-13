@@ -234,8 +234,9 @@ export default {
    * board without a line is a draw, 150 each). The board shows only the criteria labels; the cells' valid players come
    * from the published question with the same labels (ctx.pool('tictactoe'), lib/mp-pool.mjs), names resolve through
    * the page's own names list (capNames + lookupOf, as solo).
-   *   move(page, ctx, { correct }) — ONE move, on this player's turn:
-   *     correct → claim the next free cell of the top row with a valid, unused player (three of them win the line);
+   *   move(page, ctx, { correct, cell? }) — ONE move, on this player's turn:
+   *     correct → claim `cell` (default: the next free cell of the top row) with its player in a one-player-per-cell
+   *               matching of the whole board (the same on both pages, so the two players never name the same person);
    *     wrong   → claim a free cell (the bottom-right first) with a listed player who does NOT fit it: the relay refuses
    *               it ("<name> doesn't fit that square.", a warn notice) and the turn stays until its clock passes it.
    *   → { cell, name, kind: 'claim' | 'miss' }
@@ -243,7 +244,7 @@ export default {
   online: {
     turnBased: true,
     myTurn: (page) => L(page, 'games.tttTurnYou').first().isVisible({ timeout: 300 }).catch(() => false),
-    async move(page, ctx, { correct }) {
+    async move(page, ctx, { correct, cell: want = null }) {
       const st = ctx.state;
       if (!st.q) {
         const labels = await readLabels(page);
@@ -262,9 +263,13 @@ export default {
       const free = (i) => !cells[i].name;
       let cell, name;
       if (correct) {
-        cell = [0, 1, 2].find(free);
+        cell = want ?? [0, 1, 2].find(free);
         if (cell == null) throw new Error('tictactoe online: the top row is already full');
-        const id = q.valid[cell].find((x) => st.resolves(x) && !st.used.has(x));
+        if (!free(cell)) throw new Error(`tictactoe online: cell ${cell + 1} is already taken`);
+        // One player per cell over the WHOLE board (the same deterministic matching on both pages, from the same question
+        // and names list), so the two players never name the same person (the relay refuses "already on the board").
+        if (st.plan === undefined) st.plan = assign(q.valid.map((ids) => ids.filter(st.resolves)));
+        const id = st.plan ? st.plan[cell] : q.valid[cell].find((x) => st.resolves(x) && !st.used.has(x));
         if (id == null) return noTruth(ctx, `cell ${cell + 1} of ${q.qid}`, 'no unused, resolvable player fits it');
         st.used.add(id);
         name = st.nameOf.get(id);

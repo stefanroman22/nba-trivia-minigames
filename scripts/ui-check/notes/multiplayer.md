@@ -16,7 +16,8 @@ for the adapters' own keys). App side: `src/context/MultiplayerContext.tsx` (pha
 - `games.spec.mjs` (MP-GAME-<game>) and `timeouts.spec.mjs` (MP-TIMEOUT-01) load on `mp@pairA` only (playwright config
   `testIgnore` on the other pairs): one full match per online game, and the real-time waits, once per run.
 - Iterate with `--only MP-ROOM-01 --vp pairA --mode prod --keep-stack` (prod is faster to iterate than dev here: no
-  compile on first visit of each game page; the build is reused while `src/` is unchanged).
+  compile on first visit of each game page; the build is reused while `src/` is unchanged). Add `--skip-slow` to leave
+  out `@slow` tests (MP-TIMEOUT-01: three real 30 s waits) in verify loops; full runs keep them.
 
 ## Stack additions (lib/stack.mjs, Task 8)
 
@@ -24,22 +25,25 @@ for the adapters' own keys). App side: `src/context/MultiplayerContext.tsx` (pha
   `QUESTIONS_PUBLIC_BASE` = `VITE_QUESTIONS_BASE`, env files in Next's order, `relayDataEnv()`). Without them the relay
   cannot deal Career Path, Who Are Ya, Contexto or Tic-Tac-Toe (`roundDataError` "Couldn't load the game."); pool games
   fall back to the Django endpoints either way.
-- Relay and Django share `MULTIPLAYER_SHARED_SECRET=uicheck-local-relay-key` (`RELAY_KEY`), so a finished 1v1 match is
-  credited like in production (`/trivia/multiplayer-result/` → `pointsAwarded` → "+N pts added to your profile"). Local
-  only. A relay or Django not started by ui-check lacks the key: nothing is credited, and `creditsEnabled()` turns the
-  MP-RESULT-01 points assertion into a note.
+- Relay and Django share a `MULTIPLAYER_SHARED_SECRET` (`relayKeyFor` in lib/stack.mjs: random per stack, `randomBytes`,
+  kept in `<uicHome>/stack.json` while either process lives, never logged), so a finished 1v1 match is credited like in
+  production (`/trivia/multiplayer-result/` → `pointsAwarded` → "+N pts added to your profile"). Local only. A relay or
+  Django not started by ui-check lacks the key: nothing is credited, and `creditsEnabled()` turns the MP-RESULT-01
+  points assertion into a note.
 - Dev mode: ui-check starts its own relay on :4000 before `npm run dev` (scripts/dev.mjs reuses a socket already
   listening), so the dev relay gets the same env.
 
 ## Pair lifecycle (the guarantees)
 
-- `openPair(mp, path)`: `mp.pair()` (testuser1 host, testuser2 joiner, fresh minted tokens, own contexts, real UA), both
-  `audit.goto(path)`, wait for each page's socket `identify` frame, then 1.5 s (a `resumeMatch` / `roomLeft` for a seat
-  the relay still holds arrives right after identify), then `ensureIdle` on both twice: whatever screen a player is on
+- `openPair(mp, path)`: throws when Playwright runs more than one worker (the two accounts are shared); `mp.pair()` (testuser1 host, testuser2 joiner, fresh minted tokens, own contexts, real UA), both
+  `audit.goto(path)`, wait for each page's socket `identify` frame, then until neither page has received a socket frame
+  for 800 ms (at most 8 s: a `resumeMatch` / `roomLeft` for a seat the relay still holds arrives right after identify),
+  then `ensureIdle` on both twice: whatever screen a player is on
   (searching, intro, playing, waiting, results, ended, lobby, friend menu) is left through the app's own controls
   (Cancel, Exit game, Stop match → Close room, Leave room, Back). Both must end on the idle card or the test fails at
   setup. Then `cap.clear()` on both, so frame assertions see only this test.
-- `afterEach` → `releasePair()`: the same UI-only leave loop for both (3 rounds, never throws). Then the fixture closes
+- `afterEach` → `releasePair()`: the same UI-only leave loop for both (3 rounds, never throws), then it verifies both
+  ended idle (or on the friend menu); otherwise a `cleanup` annotation on the test and a console warning. Then the fixture closes
   both contexts (sockets disconnect while idle: the relay deletes the player). Anything still held (a crash mid-step)
   is resumed and left by the next test's `openPair`; at worst the relay's own grace (30 s match, 10 s lobby) or lobby
   TTL (15 min) frees it.
@@ -119,7 +123,13 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   with "<name> doesn't fit that square.", the turn stays). `playDuel` waits for whoever shows YOUR TURN; each joiner
   turn passes to the host only when its 25 s clock runs out (waited for real twice per run, pair A only: `turn-pass`).
   Host three in a row → banners "You win!" / "Opponent wins" (held 1.8 s, read inside the motion window) → results
-  225 / 90 (no play times in a duel: `times: false`).
+  225 / 90 (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
+  player from a one-player-per-cell matching of the whole board (`assign`, the same on both pages), so the two players
+  never name the same person. `playDuel(pair, adapter, { script })` plays `DUEL_SCRIPTS.win` (MP-GAME-tictactoe) or
+  `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 150 / 150; the duel submits no play
+  times, so the relay's rankRoom calls it a tie: the only deterministic way to the draw headline, no clock waited out).
+- MP-MATCH-01's intro is asserted from a snapshot the in-page state log takes on the first complete intro frame
+  (`readIntro`): the 2.6 s intro is often over before the test can look at it (pair A matched in 3.8 s once).
 
 ## Waits and timings that matter
 
@@ -153,9 +163,10 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
 
 ## False positives met and how they were handled
 
-- `loaf` is a note in this suite (`demoteMpLoaf`, label `longest frame (two browsers at once, not enforced)` with the
-  step): every multiplayer step makes two browsers render at once on one machine, so a frame's length is not
-  attributable to the page; long frames are owned by the single-browser @perf passes (guest, account, GM-LATENCY).
+- `loaf` is a note only while BOTH pages render the same event (`motionBoth`, `playOnline`, `playDuel` → `demoteMpLoaf`,
+  label `longest frame (two browsers at once, not enforced)` with the step): two browsers render at once on one machine,
+  so a frame's length is not attributable to the page. A one-sided `motion()` (Copy code, collapse / expand, Enter code,
+  the picker, a lone search) keeps `loaf` strict; long frames are owned by the single-browser @perf passes (guest, account, GM-LATENCY).
   Values seen: 110-140 ms on lobby / room steps, 250-710 ms on a game page's first mount after a route change or start
   (the same mounts the guest suite reports in its @perf pass).
 - `slow GET /api/me/` (`MP_LOCAL_LOAD`): both sessions restore at once on one runserver, and the first test of a run also

@@ -6,7 +6,7 @@ import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById, fadeSummary, recordFrames } from '../../lib/guest.mjs';
 import {
-  ASIDE, both, finishBoth, layoutBoth, motion, motionBoth, openPair, play1v1Label, readStateLog, recordTexts, releasePair,
+  ASIDE, both, finishBoth, layoutBoth, motion, motionBoth, mpState, openPair, play1v1Label, readIntro, readStateLog, recordTexts, releasePair,
   shotBoth, shownName, startStateLog, stateTrail, waitState,
 } from '../../lib/mp.mjs';
 
@@ -15,8 +15,6 @@ test.afterEach(async () => { await releasePair(); });
 
 const SW = gameById('series-winner');
 const innerText = (loc) => loc.first().innerText({ timeout: 3000 }).then((t) => t.replace(/\s+/g, ' ').trim(), () => null);
-/** The DOM text (innerText applies the CSS uppercase of eyebrows). */
-const textOf = (loc) => loc.first().textContent({ timeout: 3000 }).then((t) => (t || '').replace(/\s+/g, ' ').trim(), () => null);
 
 test('[MP-MATCH-01] Play 1v1 on the same game: searching → match found → VS intro → playing on both; a lone search cancels back to the idle card without a snap', async ({ mp }) => {
   test.setTimeout(240_000);
@@ -49,21 +47,25 @@ test('[MP-MATCH-01] Play 1v1 on the same game: searching → match found → VS 
     });
   });
   joiner.audit.metrics.push({ kind: 'timing', label: 'Play 1v1 → match found (second player)', value: Date.now() - t0, unit: 'ms', budget: 5000, route: joiner.audit.route });
-  // Intro: "Match found", You vs Opponent with both names (mirrored), the loading / get-ready line.
+  // Intro: "Match found", You vs Opponent with both names (mirrored), the loading / get-ready line. Asserted from the
+  // snapshot the state log took on the first complete intro frame (the 2.6 s intro may be over before the test looks).
   await both(pair, async (p) => {
-    if ((await waitState(p, ['intro', 'playing'])) !== 'intro') return; // the 2.6 s intro already ran out (slow machine)
-    expect(await textOf(L(p.page, 'multiplayer.introEyebrow'))).toBe('Match found');
-    const cards = await p.page.evaluate(() => [...document.querySelectorAll('.stage-inner .om-stage .om-matchup .om-pc')].map((c) => ({ side: c.querySelector('.om-pc-side')?.textContent.trim(), name: c.querySelector('.om-pc-name')?.textContent.trim(), tag: c.querySelector('.om-pc-tag')?.textContent.trim() || null })));
+    if ((await mpState(p.page)) === 'intro') { await p.audit.layout({ scope: 'section.stage-col' }); await p.audit.shot('intro'); }
+    const snap = await readIntro(p.page);
+    if (!snap) {
+      p.audit.violation('intro', { selector: '.om-stage .om-matchup', measured: `no complete VS intro frame sampled (screens ${stateTrail(await readStateLog(p.page))})`, expected: 'the VS intro with both cards before playing' });
+      return;
+    }
+    if (snap.eyebrow !== 'Match found') p.audit.violation('intro', { selector: '.om-eyebrow', measured: `"${snap.eyebrow}"`, expected: '"Match found"' });
+    if (!/^(Loading the game\.\.\.|Get ready\.\.\.)$/.test(snap.line || '')) p.audit.violation('intro', { selector: '.om-introline', measured: `"${snap.line}"`, expected: '"Loading the game..." or "Get ready..."' });
     const other = p === host ? joiner : host;
     const want = [{ side: 'You', name: p.username }, { side: 'Opponent', name: shownName(other, 'match') }];
-    const got = cards.map(({ side, name }) => ({ side, name }));
+    const got = snap.cards.map(({ side, name }) => ({ side, name }));
     if (JSON.stringify(got) !== JSON.stringify(want)) p.audit.violation('intro', { selector: '.om-matchup', measured: JSON.stringify(got), expected: JSON.stringify(want) });
     // A stranger shown as "Player" (age unknown or 13-15) should not carry their permanent player ID either: teens are
     // findable by exact player ID only (backend users/friends.py search_users), so the ID under "Player" undoes the mask.
-    if (want[1].name === 'Player' && cards[1] && cards[1].tag) p.audit.violation('teen-masking', { selector: '.om-matchup .om-pc-tag', measured: `the opponent is shown as "Player" but with its player ID ${cards[1].tag}`, expected: 'a masked stranger shows no permanent player ID (it lets anyone find and friend-request them by ID)' });
-    expect(await innerText(L(p.page, 'multiplayer.introLine'))).toMatch(/^(Loading the game\.\.\.|Get ready\.\.\.)$/);
-    await p.audit.layout({ scope: 'section.stage-col' });
-    await p.audit.shot('intro');
+    if (want[1].name === 'Player' && snap.cards[1] && snap.cards[1].tag) p.audit.violation('teen-masking', { selector: '.om-matchup .om-pc-tag', measured: `the opponent is shown as "Player" but with its player ID ${snap.cards[1].tag}`, expected: 'a masked stranger shows no permanent player ID (it lets anyone find and friend-request them by ID)' });
+    p.audit.metrics.push({ kind: 'note', label: 'intro snapshot at', value: snap.t, unit: 'ms', route: p.audit.route });
   });
   await both(pair, (p) => waitState(p, 'playing', 30_000));
   await both(pair, async (p) => {

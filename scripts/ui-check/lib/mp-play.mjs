@@ -43,15 +43,30 @@ const rewriteFn = (fn) => {
   return mapped;
 };
 
+/** A Locator whose chained locator() / first / last / nth / filter / and / or stay mapped (MAP), and whose evaluate* map their source. */
+const LOC_CHAIN = new Set(['first', 'last', 'nth', 'filter', 'and', 'or']);
+function onlineLocator(loc) {
+  return new Proxy(loc, {
+    get(target, prop) {
+      if (prop === 'locator') return (sel, opts) => onlineLocator(target.locator(typeof sel === 'string' ? rewrite(sel) : sel, opts));
+      if (LOC_CHAIN.has(prop)) return (...args) => onlineLocator(target[prop](...args));
+      if (prop === 'evaluate' || prop === 'evaluateAll') return (fn, arg, opts) => target[prop](rewriteFn(fn), rewriteArg(arg), opts);
+      const v = Reflect.get(target, prop, target);
+      return typeof v === 'function' ? v.bind(target) : v;
+    },
+  });
+}
+
 /**
- * The page as an adapter sees it online: locator / evaluate / waitForFunction / waitForSelector / $eval / $$eval / getByRole
- * map the solo shell's scopes to the online ones (MAP); `uicOnline` is true (helpers shellIsOver); everything else is the page.
+ * The page as an adapter sees it online: locator / evaluate / waitForFunction / waitForSelector / $eval / $$eval map the solo
+ * shell's scopes to the online ones (MAP); `uicOnline` is true (helpers shellIsOver); everything else is the page. The
+ * locators it returns are wrapped too (onlineLocator), so a chained `.locator('.playing-wrap …')` is mapped as well.
  */
 export function onlinePage(page) {
   return new Proxy(page, {
     get(target, prop) {
       if (prop === 'uicOnline') return true;
-      if (prop === 'locator') return (sel, opts) => target.locator(rewrite(sel), opts);
+      if (prop === 'locator') return (sel, opts) => onlineLocator(target.locator(rewrite(sel), opts));
       if (prop === 'evaluate' || prop === 'waitForFunction') return (fn, arg, opts) => target[prop](rewriteFn(fn), rewriteArg(arg), opts);
       if (prop === 'waitForSelector') return (sel, opts) => target.waitForSelector(rewrite(sel), opts);
       if (prop === '$eval' || prop === '$$eval') return (sel, fn, arg) => target[prop](rewrite(sel), rewriteFn(fn), rewriteArg(arg));
@@ -116,27 +131,44 @@ export async function playBoth(pair, adapter, { host = 'perfect', joiner = lossS
   return { h, j };
 }
 
-/** The relay's Tic-Tac-Toe duel scores (multiplayer_server/src/turnGames.js TTT_WIN_SCORE / TTT_LOSS_SCORE). */
-export const TTT_SCORES = { win: 225, loss: 90 };
+/** The relay's Tic-Tac-Toe duel scores (multiplayer_server/src/turnGames.js TTT_WIN_SCORE / TTT_LOSS_SCORE / TTT_DRAW_SCORE). */
+export const TTT_SCORES = { win: 225, loss: 90, draw: 150 };
 export const TTT_TURN_MS = 25_000;
 
 /**
- * A turn-based duel (adapter.online.turnBased): the host wins with three claims in the top row, the joiner only misses.
- * Each joiner miss is refused by the relay (warn notice) and its turn passes to the host only when its 25 s clock runs
- * out, so a duel waits that clock out twice (pair A only; that wait IS the check that a turn passes on time).
- * Records `turn-pass` / `turn-reject` / `duel` violations. → { moves, passes: [ms] }
+ * Duel scripts: the cells each side claims, in order ('miss' = a refused move whose turn passes on the 25 s clock).
+ *   win  — the host claims the top row (0, 1, 2); the joiner only misses → host three in a row.
+ *   draw — both claim, filling the board without a line:   X O X / X O O / O X X   (host X = 0 2 3 7 8, joiner O = 1 4 5 6;
+ *          no row, column or diagonal is one player's, so no subset of it is either) → a full board, equal scores (150),
+ *          no play times on either side → the relay's rankRoom calls it a tie.
  */
-export async function playDuel(pair, adapter) {
-  const sides = { host: onlineCtx(pair.host, 'perfect'), joiner: onlineCtx(pair.joiner, 'wrong') };
+export const DUEL_SCRIPTS = {
+  win: { host: [0, 1, 2], joiner: ['miss', 'miss', 'miss'], banners: ['You win!', 'Opponent wins'] },
+  draw: { host: [0, 2, 3, 7, 8], joiner: [1, 4, 5, 6], banners: ['Draw!', 'Draw!'] },
+};
+
+/**
+ * A turn-based duel (adapter.online.turnBased) played to a DUEL_SCRIPTS script. A claim must land on both boards; a joiner
+ * miss is refused by the relay (warn notice, which must not cover the turn label / clock) and its turn passes to the host
+ * only when its 25 s clock runs out (`win` waits that clock out twice: pair A only; that wait IS the check that a turn
+ * passes on time). Records `turn-pass` / `turn-reject` / `notice-covers` / `duel`. → { moves, passes: [ms] }
+ */
+export async function playDuel(pair, adapter, { script = 'win' } = {}) {
+  const plan = DUEL_SCRIPTS[script];
+  const sides = { host: onlineCtx(pair.host, 'perfect'), joiner: onlineCtx(pair.joiner, script === 'win' ? 'wrong' : 'perfect') };
   for (const p of [pair.host, pair.joiner]) {
     await expect(L(p.page, 'multiplayer.gameRoot')).toBeVisible({ timeout: 30_000 });
     await p.page.waitForTimeout(900);
     await p.audit.layout({ scope: 'section.stage-col' });
     await p.audit.shot('playing');
   }
-  const moves = [], passes = [];
+  const moves = [], passes = [], next = { host: 0, joiner: 0 };
   let banners = [null, null];
-  const ended = () => pair.host.page.locator('.stage-inner .om-stage--play .ttt-banner, .stage-inner .om-stage--results').count().catch(() => 0);
+  // Decided: a banner (or already the results) on EITHER page.
+  const ended = async () => {
+    for (const p of [pair.host, pair.joiner]) if (await p.page.locator('.stage-inner .om-stage--play .ttt-banner, .stage-inner .om-stage--results').count().catch(() => 0)) return true;
+    return false;
+  };
   const run = async () => {
     for (let i = 0; i < 12 && !(await ended()); i++) {
       // Whose turn: the side whose status says YOUR TURN (neither once the board is decided).
@@ -151,14 +183,22 @@ export async function playDuel(pair, adapter) {
         if (await ended()) break;
         throw new Error('tictactoe duel: neither player shows YOUR TURN');
       }
+      const step = plan[who][next[who]++];
+      if (step === undefined) throw new Error(`tictactoe duel (${script}): the ${who} has no move left in the script`);
       const p = pair[who], { pg, ctx } = sides[who];
-      const before = JSON.stringify(await readBoard(p.page));
-      const m = await adapter.online.move(pg, ctx, { correct: who === 'host' });
+      const before = await readBoard(p.page);
+      const m = await adapter.online.move(pg, ctx, step === 'miss' ? { correct: false } : { correct: true, cell: step });
       moves.push({ who, ...m });
-      if (who === 'host') {
-        await p.page.waitForFunction((b) => JSON.stringify([...document.querySelectorAll('.stage-inner .om-stage--play .ttt-cell')].map((c) => (c.querySelector('.ttt-cell-name')?.textContent || '').trim())) !== b, before, { timeout: 10_000 })
-          .catch(() => p.audit.violation('duel', { selector: '.ttt-cell', measured: `the claim of ${m.name} on cell ${m.cell + 1} never showed on the board`, expected: 'a valid claim lands within 10 s' }));
-        if (moves.filter((x) => x.who === 'host').length === 1) await p.audit.shot('claimed');
+      if (step !== 'miss') {
+        // The claim lands on both boards (the relay broadcasts one turnState).
+        for (const q of [pair.host, pair.joiner]) {
+          await q.page.waitForFunction(({ was, cell }) => {
+            const c = [...document.querySelectorAll('.stage-inner .om-stage--play .ttt-cell')][cell];
+            return !!c && (c.querySelector('.ttt-cell-name')?.textContent || '').trim() !== was;
+          }, { was: before[m.cell], cell: m.cell }, { timeout: 10_000 })
+            .catch(() => q.audit.violation('duel', { selector: '.ttt-cell', measured: `the ${who}'s claim of ${m.name} on cell ${m.cell + 1} never showed on the ${q.label}'s board`, expected: 'a valid claim lands on both boards within 10 s' }));
+        }
+        if (moves.filter((x) => x.who === who && x.kind === 'claim').length === 1) await p.audit.shot('claimed');
       } else {
         // The relay refuses the move (turnReject → warn notice); the turn stays until the clock passes it.
         const t0 = Date.now();
@@ -175,12 +215,13 @@ export async function playDuel(pair, adapter) {
             return hit.map(([s]) => s);
           });
           if (cover.length) p.audit.violation('notice-covers', { selector: '.om-notice', measured: `the "${m.name} doesn't fit" notice covers ${cover.join(' and ')} while the turn clock runs`, expected: 'a notice never hides the turn label or the clock' });
-          if (moves.filter((x) => x.who === 'joiner').length === 1) await p.audit.shot('rejected');
+          if (moves.filter((x) => x.kind === 'miss').length === 1) await p.audit.shot('rejected');
         }
-        const passed = await pair.host.page.waitForFunction(() => !!document.querySelector('.stage-inner .om-stage--play .ttt-turn.is-you'), null, { timeout: TTT_TURN_MS + 8000 }).then(() => true, () => false);
+        const other = who === 'host' ? pair.joiner : pair.host;
+        const passed = await other.page.waitForFunction(() => !!document.querySelector('.stage-inner .om-stage--play .ttt-turn.is-you'), null, { timeout: TTT_TURN_MS + 8000 }).then(() => true, () => false);
         const ms = Date.now() - t0;
         passes.push(ms);
-        if (!passed) p.audit.violation('turn-pass', { selector: '.ttt-turn', measured: `the host still waits ${Math.round(ms / 1000)} s after the joiner's turn began`, expected: `a turn passes when its ${TTT_TURN_MS / 1000} s clock runs out` });
+        if (!passed) p.audit.violation('turn-pass', { selector: '.ttt-turn', measured: `the ${other.label} still waits ${Math.round(ms / 1000)} s after the ${who}'s turn began`, expected: `a turn passes when its ${TTT_TURN_MS / 1000} s clock runs out` });
       }
     }
     // The decided board: a banner on both sides (held 1.8 s before the results), read while it shows.
@@ -193,8 +234,9 @@ export async function playDuel(pair, adapter) {
     demoteMpLoaf(pair.joiner.audit, inner);
   }, { watch: STAGE_BOX, settleMs: 400 });
   demoteMpLoaf(pair.host.audit, outer);
-  if (banners[0] !== 'You win!') pair.host.audit.violation('duel', { selector: '.ttt-banner', measured: `host banner "${banners[0]}"`, expected: '"You win!" after three in a row' });
-  if (banners[1] !== 'Opponent wins') pair.joiner.audit.violation('duel', { selector: '.ttt-banner', measured: `joiner banner "${banners[1]}"`, expected: '"Opponent wins"' });
+  [pair.host, pair.joiner].forEach((p, i) => {
+    if (banners[i] !== plan.banners[i]) p.audit.violation('duel', { selector: '.ttt-banner', measured: `${p.label} banner "${banners[i]}"`, expected: `"${plan.banners[i]}" (${script})` });
+  });
   for (const s of Object.values(sides)) if (s.ctx.state.sources) s.ctx.audit.metrics.push({ kind: 'note', label: 'answer source', value: JSON.stringify(s.ctx.state.sources), unit: '', route: s.ctx.audit.route });
   return { moves, passes };
 }

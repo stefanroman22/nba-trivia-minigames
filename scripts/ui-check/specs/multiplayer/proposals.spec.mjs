@@ -25,6 +25,9 @@ async function toResults(pair, tag = '') {
   await checkResults(pair, { host: { outcome: 'win', score: h.expected }, joiner: { outcome: 'loss', score: j.expected } });
 }
 
+/** The joiner has received its `n`-th play-again / switch request (a new socket frame, not a prompt left on screen). */
+const newRequest = (p, n) => expect.poll(() => p.cap.frames('proposalReceived', { dir: 'in' }).length, { timeout: 5000, message: `request #${n} reaches the ${p.label}` }).toBe(n);
+
 /** The default result actions (Play again + Change game) are back on a player's screen. */
 const actionsBack = (p) => expect(L(p.page, 'multiplayer.playAgain')).toBeVisible({ timeout: 5000 });
 
@@ -34,6 +37,7 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
   const { host, joiner } = pair;
   await toResults(pair);
   const hostShown = shownName(host, 'match');
+  let requests = 0;
 
   // 1. Request → the host waits ("Rematch request sent"), the joiner is asked (Accept / Decline). The actions box glides.
   await motionBoth(pair, 'Play again → request', async () => {
@@ -41,6 +45,7 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
     await expect(L(host.page, 'multiplayer.cancelRequest')).toBeVisible({ timeout: 5000 });
     await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   }, WATCH);
+  await newRequest(joiner, ++requests);
   expect(await text(L(host.page, 'multiplayer.promptText'))).toBe('Rematch request sent. Waiting for your opponent...');
   expect(await text(L(joiner.page, 'multiplayer.promptText'))).toBe(`${hostShown} wants a rematch`);
   await expect(L(joiner.page, 'multiplayer.decline')).toBeVisible();
@@ -65,7 +70,9 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
   await shotBoth(pair, 'declined');
 
   // 3. Request again, then the host cancels it: the joiner's request disappears with "The request was withdrawn."
+  // (The joiner's Accept may still be the stale one from step 2: wait for a NEW proposalReceived frame.)
   await L(host.page, 'multiplayer.playAgain').click();
+  await newRequest(joiner, ++requests);
   await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   await motionBoth(pair, 'Cancel request', async () => {
     await L(host.page, 'multiplayer.cancelRequest').click();
@@ -79,6 +86,7 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
   // 4. Request → Accept: a new match for both (VS intro, a fresh round), same game.
   const rounds = host.cap.frames('roundData', { dir: 'in' }).length;
   await L(host.page, 'multiplayer.playAgain').click();
+  await newRequest(joiner, ++requests);
   await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   await motionBoth(pair, 'Accept → new match', async () => {
     await L(joiner.page, 'multiplayer.accept').click();
@@ -113,7 +121,7 @@ test('[MP-PROP-02] change-game proposal from the results: the picker (1v1 notes 
   const other = items.find((i) => i.name === target.name);
   if (!other || !/^up to \d+ pts$/.test(other.note || '')) host.audit.violation('picker', { selector: '.gp-note', measured: JSON.stringify(other), expected: '1v1 tiles name the points: "up to N pts"' });
   await host.audit.layout({ scope: '.modal-panel' });
-  await host.audit.shot('picker');
+  await shotBoth(pair, 'picker');
 
   await motionBoth(pair, `propose ${target.name}`, async () => {
     await L(host.page, 'multiplayer.pickerItems').filter({ has: host.page.locator('.gp-name', { hasText: target.name }) }).click();
