@@ -128,6 +128,10 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   never name the same person. `playDuel(pair, adapter, { script })` plays `DUEL_SCRIPTS.win` (MP-GAME-tictactoe) or
   `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 150 / 150; the duel submits no play
   times, so the relay's rankRoom calls it a tie: the only deterministic way to the draw headline, no clock waited out).
+- The decided duel board: the relay settles a duel in the same tick as its last move and MultiplayerContext switches to
+  the results at once, so TicTacToe.tsx's 1.8 s "hold the banner" never happens: the mover sees no banner at all, the
+  other player ~0.4 s (dev). `watchBanner` records the banner per frame on both pages; `duel-banner` (< 1 s or never) is
+  a REAL finding, not a timing flake. A claim after which the results are already up counts as landed.
 - MP-MATCH-01's intro is asserted from a snapshot the in-page state log takes on the first complete intro frame
   (`readIntro`): the 2.6 s intro is often over before the test can look at it (pair A matched in 3.8 s once).
 

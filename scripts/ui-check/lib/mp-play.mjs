@@ -190,9 +190,11 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
       const m = await adapter.online.move(pg, ctx, step === 'miss' ? { correct: false } : { correct: true, cell: step });
       moves.push({ who, ...m });
       if (step !== 'miss') {
-        // The claim lands on both boards (the relay broadcasts one turnState).
+        // The claim lands on both boards (the relay broadcasts one turnState). The deciding claim may be followed at once
+        // by the results (the relay settles in the same tick), so the results screen also counts as "landed".
         for (const q of [pair.host, pair.joiner]) {
           await q.page.waitForFunction(({ was, cell }) => {
+            if (document.querySelector('.stage-inner .om-stage--results')) return true;
             const c = [...document.querySelectorAll('.stage-inner .om-stage--play .ttt-cell')][cell];
             return !!c && (c.querySelector('.ttt-cell-name')?.textContent || '').trim() !== was;
           }, { was: before[m.cell], cell: m.cell }, { timeout: 10_000 })
@@ -224,21 +226,51 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
         if (!passed) p.audit.violation('turn-pass', { selector: '.ttt-turn', measured: `the ${other.label} still waits ${Math.round(ms / 1000)} s after the ${who}'s turn began`, expected: `a turn passes when its ${TTT_TURN_MS / 1000} s clock runs out` });
       }
     }
-    // The decided board: a banner on both sides (held 1.8 s before the results), read while it shows.
-    banners = await Promise.all([pair.host, pair.joiner].map((p) => p.page.locator('.stage-inner .om-stage--play .ttt-banner').first().innerText({ timeout: 5000 }).then((t) => t.trim(), () => null)));
+    // The results follow the deciding move (the relay settles in the same tick); the banner was recorded per frame.
+    await Promise.all([pair.host, pair.joiner].map((p) => waitState(p, 'results', 15_000).catch(() => null)));
     await Promise.all([pair.host, pair.joiner].map((p) => p.audit.shot('final-board')));
   };
+  // The decided board's banner on both pages, per animation frame: its text and how long it stayed visible.
+  await Promise.all([pair.host, pair.joiner].map((p) => p.page.evaluate(watchBanner)));
   // Both pages sampled for snap / CLS while the duel runs (loaf demoted: two browsers at once).
   const outer = await pair.host.audit.motion(async () => {
     const inner = await pair.joiner.audit.motion(run, { watch: STAGE_BOX, settleMs: 400 });
     demoteMpLoaf(pair.joiner.audit, inner);
   }, { watch: STAGE_BOX, settleMs: 400 });
   demoteMpLoaf(pair.host.audit, outer);
+  const seen = await Promise.all([pair.host, pair.joiner].map((p) => p.page.evaluate(() => { const b = window.__mpBanner || {}; b.stop = true; return { texts: b.texts || [], ms: b.first == null ? 0 : Math.round(b.last - b.first) }; }).catch(() => ({ texts: [], ms: 0 }))));
+  banners = seen.map((x) => x.texts[0] || null);
   [pair.host, pair.joiner].forEach((p, i) => {
-    if (banners[i] !== plan.banners[i]) p.audit.violation('duel', { selector: '.ttt-banner', measured: `${p.label} banner "${banners[i]}"`, expected: `"${plan.banners[i]}" (${script})` });
+    p.audit.metrics.push({ kind: 'timing', label: 'decided board (banner) on screen', value: seen[i].ms, unit: 'ms', budget: BANNER_HOLD_MS, route: p.audit.route });
+    if (!seen[i].texts.length) p.audit.violation('duel-banner', { selector: '.ttt-banner', measured: `"${plan.banners[i]}" was never on screen: the results replaced the board in the frame the duel was decided`, expected: `the decided board held about ${TTT_BANNER_MS / 1000} s (TicTacToe.tsx), at least ${BANNER_HOLD_MS} ms` });
+    else if (!seen[i].texts.includes(plan.banners[i])) p.audit.violation('duel', { selector: '.ttt-banner', measured: `${p.label} banner ${JSON.stringify(seen[i].texts)}`, expected: `"${plan.banners[i]}" (${script})` });
+    // TicTacToe.tsx holds the banner and hands its score back after 1.8 s ("Terminal state: hold the banner"), but the
+    // relay settles the duel in the same tick and MultiplayerContext switches to the results at once.
+    else if (seen[i].ms < BANNER_HOLD_MS) p.audit.violation('duel-banner', { selector: '.ttt-banner', measured: `"${plan.banners[i]}" and the decided board were on screen ${seen[i].ms} ms before the results replaced them`, expected: `the decided board held about ${TTT_BANNER_MS / 1000} s (TicTacToe.tsx), at least ${BANNER_HOLD_MS} ms` });
   });
   for (const s of Object.values(sides)) if (s.ctx.state.sources) s.ctx.audit.metrics.push({ kind: 'note', label: 'answer source', value: JSON.stringify(s.ctx.state.sources), unit: '', route: s.ctx.audit.route });
   return { moves, passes };
+}
+
+/** TicTacToe.tsx's intended hold of the decided board (the delay before it hands its score to the match), and the floor this suite asserts. */
+const TTT_BANNER_MS = 1800;
+const BANNER_HOLD_MS = 1000;
+
+/** In-page: record `.ttt-banner` in the playing screen on every frame (texts seen, first / last visible time) until stopped. */
+function watchBanner() {
+  const b = (window.__mpBanner = { texts: [], first: null, last: null, stop: false });
+  const tick = () => {
+    const el = document.querySelector('.stage-inner .om-stage--play .ttt-banner');
+    if (el && el.getBoundingClientRect().height > 0) {
+      const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (t && !b.texts.includes(t)) b.texts.push(t);
+      const now = performance.now();
+      if (b.first == null) b.first = now;
+      b.last = now;
+    }
+    if (!b.stop) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 /** Cell names of the duel board, in order. */
