@@ -17,6 +17,9 @@
 //                                       //   [{ selector: '.feedback-slot > *', copy: true }]
 //     endsInPlace,                      // [not in scripts/game-result-allowlist.json]
 //     playAgain,                        // false: the end screen legitimately has no Play again (Wordle) [true]
+//     idleAfterPlay,                    // pagemap key the idle card shows after a finished play instead of Play (Wordle: 'games.idleNote') [games.playBtn]
+//     checkLocked(page, ctx) → problems[],  // daily-lock: extra checks after the reload (countdown copy, disabled rail item)
+//     giveUpAfter, timeoutAfter, timeoutPlan(turn) → right?   // turns played before Give up / before the clock is run out
 //     freshAccount,                     // true | ['daily-lock', …]: run those scenarios as a brand-new throwaway
 //                                       //   account (per-account state such as Wordle's daily play) [none]
 //     labels: { <scenario>: 'title' },  // test-title wording per scenario [the generic wording]
@@ -45,6 +48,9 @@ import startingFive from './starting-five.mjs';
 import fanFavorites from './fan-favorites.mjs';
 import careerPath from './career-path.mjs';
 import whoAreYa from './who-are-ya.mjs';
+import wordle from './wordle.mjs';
+import contexto from './contexto.mjs';
+import tictactoe from './tictactoe.mjs';
 
 export const ADAPTERS = {
   'series-winner': seriesWinner,
@@ -55,6 +61,9 @@ export const ADAPTERS = {
   'fan-favorites': fanFavorites,
   'career-path': careerPath,
   'who-are-ya': whoAreYa,
+  wordle,
+  contexto,
+  tictactoe,
 };
 
 /** The adapter for a catalogue id, or null when none exists yet. */

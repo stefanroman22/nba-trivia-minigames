@@ -142,7 +142,7 @@ function readFeedback() {
 /** var(--good) / var(--bad) / var(--muted) as computed colours. */
 function tokenColors() {
   const out = {};
-  for (const t of ['good', 'bad', 'muted']) {
+  for (const t of ['good', 'bad', 'muted', 'brand']) {
     const s = document.createElement('span');
     s.style.color = `var(--${t})`;
     document.body.appendChild(s);
@@ -222,7 +222,7 @@ export async function playTurns(page, adapter, ctx, { plan, stopAfter = MAX_TURN
     if (shot) await shot;
     const rec = await page.evaluate(readFeedback);
     // `correct` / `points` in the result: the adapter overrode the plan for this turn / the popup's "+N" is not constant.
-    turns.push({ turn: t, correct: res.correct ?? correct, truth: res.truth ?? null, points: res.points ?? null, expectFeedback: res.feedback !== false, feedback: rec });
+    turns.push({ turn: t, correct: res.correct ?? correct, truth: res.truth ?? null, points: res.points ?? null, meta: res.meta ?? null, expectFeedback: res.feedback !== false, feedback: rec });
     over = !!res.over;
     // Evidence for Rule 6.2: the board right after the first two turns that resized the stage while playing.
     const resized = await page.evaluate(() => (window.__gmRO ? window.__gmRO.log.filter((e) => !e.ending).length : 0));
@@ -256,6 +256,13 @@ export async function checkTurns(audit, adapter, turns, { enforceLatency = false
       if (BANNED_LOSS.test(text || '')) audit.violation('loss-announced', { selector: fb.selector, measured: `"${text}" on ${where}`, expected: 'running out of lives is never announced (Rule 6.3)' });
     }
     if (!fb.copy || !copyRules) continue;
+    if (typeof fb.copy === 'function') {
+      // Per-game copy check (documented deviations): (turn, record, colors, index) → problems[]
+      for (const problem of fb.copy(t, r, colors, turns.indexOf(t)) || []) {
+        audit.violation('feedback-copy', { selector: fb.selector, measured: `${problem} on ${where}`, expected: `the game's documented feedback copy (${adapter.id})` });
+      }
+      continue;
+    }
     if (t.correct) {
       if (fb.copy === 'wrong') continue; // documented deviation: the correct popup is not `Correct! +N` (constraints doc, Fan Favorites)
       const want = `Correct! +${t.points ?? adapter.pointsPerCorrect}`;
@@ -478,7 +485,10 @@ export async function useFreshAccount(page, seed) {
 
 async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, { full, logSession, online, pool, fresh }) {
   const ctx = newCtx({ cap, fiber, vp, audit }, scenario, { online, pool });
-  if (fresh) ctx.account = fresh;
+  if (fresh) {
+    ctx.account = fresh;
+    audit.metrics.push({ kind: 'note', label: 'fresh account', value: fresh, unit: '', route: adapter.path });
+  }
   const sessionLog = watchLogSession(page);
   if (scenario === 'timeout') await page.clock.install(); // before the first load, so the game's clock is ours
   await audit.goto(adapter.path, { waitFor: '.stage-col .idle' });
@@ -492,10 +502,12 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
   const plan = planFor(adapter, scenario);
   const added = await audit.motion(async () => {
     if (scenario === 'timeout') {
+      // `timeoutAfter` turns first (adapter.timeoutPlan: right?), then the clock runs out.
+      if (adapter.timeoutAfter) result = await playTurns(page, adapter, ctx, { plan: adapter.timeoutPlan || plan, stopAfter: adapter.timeoutAfter, onFirstFeedback: () => audit.shot('feedback') });
       await adapter.timeout(page, ctx);
       result.over = await waitOver(page, adapter);
     } else if (scenario === 'giveup') {
-      result = await playTurns(page, adapter, ctx, { plan, stopAfter: 1, onFirstFeedback: () => audit.shot('feedback') });
+      result = await playTurns(page, adapter, ctx, { plan, stopAfter: adapter.giveUpAfter ?? 1, onFirstFeedback: () => audit.shot('feedback') });
       if (!result.over) { await adapter.giveUp(page, ctx); result.over = await waitOver(page, adapter); }
     } else {
       result = await playTurns(page, adapter, ctx, { plan, onFirstFeedback: () => audit.shot('feedback') });
@@ -504,7 +516,7 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
   demoteLoaf(audit, added);
 
   await checkTurns(audit, adapter, result.turns, { scenario });
-  const known = scenario === 'perfect' || scenario === 'wrong' || scenario === 'partial';
+  const known = scenario === 'perfect' || scenario === 'wrong' || scenario === 'partial' || (scenario === 'timeout' && !!adapter.timeoutAfter && !!adapter.expectedScore);
   await checkEnd(audit, adapter, ctx, { ...result, sessionLog, logged: logSession, scoreKnown: known });
   if (ctx.state.sources) audit.metrics.push({ kind: 'note', label: 'answer source', value: JSON.stringify(ctx.state.sources), unit: '', route: audit.route });
   if (full) await afterEnd(audit, adapter, { closeFromEnd: scenario === 'wrong' || scenario === 'daily-lock' });
@@ -517,6 +529,11 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
     } catch (e) {
       audit.violation('daily-lock', { selector: '.stage-col .idle', measured: `after the daily play: ${String(e.message).split('\n')[0]}`, expected: 'the idle card shows the next-play countdown and no Play button' });
     }
+    if (adapter.checkLocked) {
+      for (const problem of await adapter.checkLocked(page, ctx)) {
+        audit.violation('daily-lock', { selector: '.stage-col .idle', measured: `after the daily play: ${problem}`, expected: 'the locked game shows its countdown, a disabled rail item and no Play' });
+      }
+    }
     await audit.shot('locked');
   }
   return { ctx, ...result };
@@ -526,7 +543,8 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
 export async function afterEnd(audit, adapter, { closeFromEnd = false } = {}) {
   const page = audit.page;
   const again = L(page, 'games.endPlayAgain');
-  const idleReady = async () => { await expect(L(page, 'games.playBtn')).toBeVisible({ timeout: 10_000 }); };
+  // A daily game (Wordle) is locked once its play is used: closing lands on the countdown note, not on a Play button.
+  const idleReady = async () => { await expect(L(page, adapter.idleAfterPlay || 'games.playBtn')).toBeVisible({ timeout: 10_000 }); };
   if (!closeFromEnd && adapter.playAgain !== false) {
     const shown = await again.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
     if (!shown) {

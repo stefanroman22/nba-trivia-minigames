@@ -39,5 +39,10 @@
   "cpCounter": { "css": ".playing-wrap .cp-counter" },
   "wayaRows": { "css": ".playing-wrap .waya-row" },
   "wayaPhoto": { "css": ".playing-wrap .waya-photo" },
-  "wayaReveal": { "css": ".playing-wrap .waya-reveal" }
+  "wayaReveal": { "css": ".playing-wrap .waya-reveal" },
+  "cxSubmit": { "css": ".playing-wrap .gf-inputrow button[aria-label='Submit guess']" },
+  "cxGiveUp": { "css": ".playing-wrap .cx-giveup" },
+  "tttCells": { "css": ".playing-wrap .ttt-cell" },
+  "tttConfirm": { "css": ".playing-wrap .gf-inputrow button[aria-label='Confirm player']" },
+  "tttClock": { "css": ".playing-wrap .ttt-clock" }
 }
