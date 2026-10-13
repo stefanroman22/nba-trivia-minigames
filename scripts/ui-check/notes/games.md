@@ -28,20 +28,29 @@ adapter helpers: `games/helpers.mjs`. Locators: `pagemap/games.json`. Shell meas
    `playAgain: false` (the end screen legitimately has only Close game — Wordle; otherwise both buttons are required,
    `end-buttons` / `replay`), `freshAccount` (`true` or a list of scenarios run as a brand-new throwaway account),
    `labels` (test-title wording per scenario), `expectedScore(turns, ctx)`, `endReveal(page, ctx, turns)`, `giveUp`,
-   `timeout`.
+   `timeout`, and (Task 7) `giveUpAfter` / `timeoutAfter` + `timeoutPlan` (turns played before Give up / before the clock is
+   run out), `feedback.copy` as a function `(turn, record, colours) -> problems[]` (a game's own documented copy; the turn
+   record carries the answer's `truth` and `meta`), `idleAfterPlay` (the pagemap key the idle card shows after a finished play
+   instead of Play: Wordle's countdown note), `checkLocked(page, ctx)` (extra `daily-lock` checks after the reload).
 7. **A game that ends in place must have `endReveal`** (Rule 7.3): without it every finished scenario records
    `answer-hidden` "adapter has no endReveal".
 8. `timeout` runs after `page.clock.install()` (the driver installs it before the first load, in that scenario only).
-   The fake clock keeps flowing at real speed, so the game and every rAF sampler run normally; end the clock with
-   `page.clock.runFor(timerMs + 1000)`. Proven by `[ST-GAMES]` (selftest, `fixtures/detectors/game-clock.html`), which
-   also runs `giveup` through the real driver.
+   The fake clock keeps flowing at real speed, so the game and every rAF sampler run normally. Proven by `[ST-GAMES]`
+   (selftest, `fixtures/detectors/game-clock.html`), which also runs `giveup` through the real driver. **How to end the game's
+   clock (Task 7 finding):** for a React game that reads `Date.now()` (Tic-Tac-Toe) shift the system time,
+   `page.clock.setSystemTime(Date.now() + timerMs + 1000)`; do NOT `fastForward` / `runFor` it. Those also jump
+   `performance.now()`, framer-motion starts its native (WAAPI) animations at `performance.now()` while the document timeline
+   stays real, so after a 180 s jump every enter/exit animation (SwapText, EndSequence, the popup) sits 180 s in the future:
+   the end sequence never arrives (probed: `Time!` shown, then the stage frozen mid-transition for the rest of the test; the
+   same game timed out for real shows `FINAL BOARD` 1 s later). The fixture in `[ST-GAMES]` has no framer-motion, which is
+   why `runFor` was fine there. A game that counts ticks instead of reading `Date.now()` needs `runFor`.
 9. `daily-lock`: the driver finishes a play with wrong answers, closes from the end screen, reloads and expects
    (`toBeVisible`) `.idle .idle-room-note` and no Play button. Wordle's scenarios must use `freshAccount` (each one
    gets its own `uic<digits>` account, so one scenario's daily play never locks another's). The account is minted by
    `lib/mint_tokens.py`, seeded over the persona's session on the first load, deleted through the API after the
    scenario, and swept by the stack teardown if a worker dies (the sweep already deletes every `uic<digits>` user).
 
-## Answer source per game
+## Answer source per game (Tasks 5-7; Wordle, Contexto, Tic-Tac-Toe are in "Wordle, Contexto, Tic-Tac-Toe (Task 7)" below)
 
 The pools are sampled client-side with `Math.random` (`utils/pool.ts sampleN`, `utils/gameData.ts fetchGameRows`),
 so the captured network data holds the whole pool, not the five rounds. Each adapter reads what the round shows
@@ -113,8 +122,7 @@ the log-session assertion.
 the dynamic split is uneven and Tasks 7/8 add more games. In the games suite the `session` fixture
 (`lib/fixtures.mjs` `rotatedIndex`) takes the account of `parallelIndex + 4 * (stableHash(titlePath) % 4)`: 16 accounts,
 `testuser3`, `testuser3w1` .. `testuser3w15` (`isTestUsername` accepts `w1`-`w99`, `mintTokens` creates them on demand, the
-stack teardown sweep already restores every `testuser3` family name). The hash is FNV-1a of the test's title path (which includes the project, so the same
-check at different viewports can land in different classes); a given test + project always lands in the same class, whatever worker runs it. `@perf` tests keep
+stack teardown sweep already restores every `testuser3` family name). The hash is FNV-1a of the test's title path (Task 7 correction: `testInfo.titlePath` is `[file, title]`, it does NOT include the project, so every viewport of a check lands in the same class); a given test always lands in the same class, whatever worker runs it. `@perf` tests keep
 `testuser3`; the account suite and every other suite are unchanged (`rotatedIndex` returns `parallelIndex` unless the
 suite is `games`).
 
@@ -246,3 +254,49 @@ Per game:
 - GM-LATENCY-<game> phone-390 once timed out in the `session` fixture ("Test timeout of 60000ms exceeded while setting up
   session", mint of `testuser3` under load); the re-run was clean. Not reproduced.
 - Dev mode: Career Path / Who Are Ya show `not-hydrated` once per worker (cold dev server), same as Task 5.
+
+## Wordle, Contexto, Tic-Tac-Toe (Task 7)
+
+All 11 visible games now have adapters (`coming-soon` excluded).
+
+| game | perfect | wrong | partial | timeout | giveup | daily-lock |
+|---|---|---|---|---|---|---|
+| series-winner / name-logo / guess-mvps | driven | driven | driven | no clock | no give-up | not daily |
+| who-would-win | vote all | skip all | vote / skip | no clock | no give-up | not daily |
+| starting-five / fan-favorites | driven | driven | driven | no clock | no give-up | not daily |
+| career-path / who-are-ya | driven | driven | driven | no clock | no give-up | not daily |
+| wordle | driven (500) | driven (5 misses, 0) | driven (2 misses, 300) | no clock | no give-up | **driven** |
+| contexto | secret first guess (200) | reason: never ends on its own, Give up covers it | 3 misses then the secret (200) | no clock | **driven** (4 misses, Give up, 0) | not daily for the player |
+| tictactoe | 9 valid players (225) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (225) | **driven** (page.clock) | no give-up | not daily |
+
+Answer methods: Wordle = the `daily-play` POST response `{series:[WORD]}` (by design the word is in the response), fiber `gameInfo`
+fallback; misses are fixed non-solution strings (no dictionary), even guesses typed on the physical keyboard, odd ones on the
+on-screen keys. Contexto = the question payload (`secret` + whole `ranking`) captured; misses are players ranked ~20/80/400/5
+whose name resolves to themselves in the game's lookup. Tic-Tac-Toe = payload `valid[9][ids]` matched to the board by its criteria
+labels; a one-player-per-cell matching (augmenting paths) over resolvable names; misses: outside `valid[cell]` ("doesn't fit"),
+synthetic name ("Not in our player index"), a solved player reused ("already used"). All answers came from captured data.
+
+Wordle gate/throttle: the daily gate is per account OR per device id (`WordlePlay` union in `wordle_daily.has_played_today`; id =
+localStorage `nba-mg:wordle-device-id`, fresh per browser context). The throttle `wordle-play` 20/h is a DRF UserRateThrottle: per
+account when logged in, per IP for guests. So every Wordle scenario and GM-LATENCY-wordle is its own throwaway account in a fresh
+context (`freshAccount: true`): per full run 16 scenario plays + 3 latency plays on 19 accounts (1 each), plus 7 guest plays
+(GM-SHELL-01, one IP bucket: a third full run inside an hour would pass 20 there; `--stop` resets). Account lifecycle: minted
+(`uic<digits>`, note metric `fresh account`), used (daily play + log-session awarded to it), deleted in `finally`; after the final run
+no `uic%` user remains and the teardown sweep reported `deleted []`.
+
+Clock path (tictactoe `timeout`): see adapter rule 8: `page.clock.setSystemTime`, not `fastForward`/`runFor` (framer-motion WAAPI
+vs a jumped `performance.now`). Proven: after the shift `Time!` (bad) shows, clock 0:00, `FINAL BOARD`, unsolved cells revealed one by
+one, solved ones unchanged, score 50 logged, Play again -> Close game.
+
+Rotation re-count (title path = file + title, same class for every viewport; computed for the 34 driven checks, Wordle excluded as it
+runs on throwaway accounts): N=4 classes hold 21 / 42 / 33 / 34 finished games (the `perfect` checks weigh 7, others 3). Largest class
+42 <= 50 even if one worker ran it all, so the pool stays at 16 accounts. `testuser3`: class 0 (21) + @perf finishers
+(5 games x 3 core vps = 15) = 36. No `points-not-logged` finding and no HTTP 429 in the final digest.
+
+### Findings
+REAL: (1) Contexto: the stage height changes with every guess (`stage-resized` -52 px on the first guess, when the empty prompt
+leaves, then +50 px per row; Rule 6.2; all 7 vps, shots `resized-turn<n>.jpg`). No accepted deviation covers it (the table only
+lists the end-slot min-height). Fix direction: reserve/scroll the guess list. Wordle and Tic-Tac-Toe: no finding in any scenario.
+Soft warnings only: Wordle keys 42x47 px and ScorePanel buttons 38 px tall on touch (`tap-target-touch`).
+Observation (not asserted): Wordle's Play button shows for a moment after Close game before the status fetch swaps it to the lock note.
+Flake, not real: GM-LATENCY-contexto phone-390 one 110 ms frame in the full run; passes twice alone in prod.
