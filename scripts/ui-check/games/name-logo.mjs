@@ -3,13 +3,13 @@
 // "It was the <team>" and advances after 1.8 s; the last round hands over to the full-screen GameResult
 // (allowlisted).
 //
-// Right answer: ctx.cap. The pool is `name-logo` (fetchGamePool("name-logo", 5)): /data/name-logo.json in dev,
-// the manifest-v3 single file in prod; rows { team_id, full_name, logo }. The round is identified by the puzzle
+// Right answer: ctx.pool('name-logo') (single player: captured HTTP JSON, capPool). The pool is `name-logo`
+// (fetchGamePool("name-logo", 5)): /data/name-logo.json in dev, the manifest-v3 single file in prod; rows { team_id, full_name, logo }. The round is identified by the puzzle
 // image: `/logos/scrambled/<team_id>.webp` (constants/teamLogos.ts scrambledLogoUrl) for the 30 current
 // franchises, else the row's own `logo` URL. Fallback: fiber — NameLogo props `seriesList` + hook 0.
 // Wrong guess: another franchise from the same pool. NameLogo ignores a second submit in a round (advanceTimer).
 import { L } from '../lib/pagemap.mjs';
-import { answerFrom, capPool, fiberRound, nextTurn, roundLabel, shellIsOver, typeAndConfirm, wrongFrom } from './helpers.mjs';
+import { answerFrom, fiberRound, nextTurn, roundLabel, shellIsOver, typeAndConfirm, wrongFrom } from './helpers.mjs';
 
 const POOL = 'name-logo';
 
@@ -43,17 +43,20 @@ export default {
     const keyOf = () => readRound(page);
     if (!st.key) st.key = (await nextTurn(page, keyOf, null, shellIsOver)).key;
     const src = st.key;
-    const rows = await capPool(ctx, POOL);
+    const rows = await ctx.pool(POOL);
     const scrambled = /\/logos\/scrambled\/(\d+)\.webp/.exec(src);
+    // The row on screen: its scrambled file (team id), its own logo URL, or the current-logo fallback (.../<team_id>/...).
+    const shows = (x) => (scrambled ? String(x.team_id) === scrambled[1]
+      : !!((x.logo && src.endsWith(new URL(x.logo, 'http://x').pathname)) || (x.team_id && src.includes(`/${x.team_id}/`))));
     const team = await answerFrom(ctx, `logo ${src}`,
       async () => {
-        const hit = rows.find((x) => (scrambled ? String(x.team_id) === scrambled[1] : x.logo && src.endsWith(new URL(x.logo, 'http://x').pathname)));
+        const hit = rows.find(shows);
         return hit ? hit.full_name : null;
       },
       async () => {
         const f = await fiberRound(ctx, 'seriesList');
         const row = f && f.index != null ? f.rows[f.index] : null;
-        return row ? row.full_name : null;
+        return row && shows(row) ? row.full_name : null; // only when that row is the logo on screen
       });
     const names = rows.length ? rows.map((x) => x.full_name) : ['Boston Celtics', 'Los Angeles Lakers'];
     await typeAndConfirm(page, correct ? team : wrongFrom(names, team));

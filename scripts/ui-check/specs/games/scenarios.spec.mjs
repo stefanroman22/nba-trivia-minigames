@@ -36,7 +36,7 @@ for (const g of playableGames()) {
       test.skip(can !== true, typeof can === 'string' ? can : `adapter declares no "${scenario}" scenario`);
       test.skip(({ vpId }) => !CORE.includes(vpId) && scenario !== 'perfect', 'core viewports only (the other viewports run `perfect` as a layout-only pass)');
       // @catalog-family GM-<game>-<scenario>
-      test(`[GM-${g.id}-${scenario}] ${g.name}: ${WHAT[scenario]}`, async ({ page, audit, cap, fiber, vp }) => {
+      test(`[GM-${g.id}-${scenario}] ${g.name}: ${(adapter.labels && adapter.labels[scenario]) || WHAT[scenario]}`, async ({ page, audit, cap, fiber, vp }) => {
         test.setTimeout(240_000);
         await runScenario({ page, audit, cap, fiber, vp }, adapter, scenario, { full: vp.core });
         await audit.console({ allow: GAMES_LOCAL_LOAD });

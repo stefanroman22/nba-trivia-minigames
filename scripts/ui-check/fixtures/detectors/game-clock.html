@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game driver fixture: clock, give up, in-place end</title>
+<!-- Selftest page for lib/game-driver.mjs (ST-GAMES): the shared game shell's class names (.stage-shell,
+     .stage-inner > div phase wrapper, .idle Play, .playing-wrap > .gf, .feedback-slot, .exit-link, in-place
+     .scorepanel with Play again / Close game), a 30 s countdown that ends the game, a Give up button, one
+     "Guess A" answer whose feedback is "It was B" in var(--bad). Phase swaps cross-fade the wrapper; the board and
+     action rows have fixed heights so nothing resizes. #jump-box is a deliberate snap target. -->
+<style>
+  :root { --good: rgb(47, 199, 98); --bad: rgb(255, 77, 77); --muted: rgb(150, 150, 150); }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; background: #111; color: #eee; }
+  main.page { padding: 16px; }
+  section.stage-col { max-width: 520px; margin: 0 auto; }
+  .stage-shell { border: 1px solid #444; border-radius: 12px; }
+  .stage-inner { padding: 20px; }
+  .stage-inner > div { transition: opacity 0.25s ease; }
+  .idle { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .playing-wrap { position: relative; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .gf { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+  .gf-status { display: flex; justify-content: space-between; }
+  .gf-board { height: 80px; display: flex; align-items: center; justify-content: center; }
+  .gf-action { height: 120px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .feedback-slot { position: absolute; left: 0; right: 0; bottom: 60px; display: flex; justify-content: center; pointer-events: none; }
+  button { min-width: 96px; min-height: 48px; font: inherit; }
+  .exit-link { background: none; border: 0; color: #aaa; text-decoration: underline; }
+  .exit-link.is-ended { visibility: hidden; }
+  .scorepanel { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .scorepanel-actions { display: flex; gap: 10px; }
+  #jump-box { height: 40px; margin-top: 16px; background: #333; }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="stage-col">
+    <div class="stage-shell"><div class="stage-inner"></div></div>
+    <div id="jump-box"></div>
+  </section>
+</main>
+<script>
+  const TIMER_S = 30;
+  const inner = document.querySelector('.stage-inner');
+  let countdown = null;
+  const IDLE = '<div class="idle"><p>Clock game</p><button class="btn btn-primary btn-lg" id="play">Play</button></div>';
+  const PLAYING = '<div class="playing-wrap"><div class="gf">'
+    + '<div class="gf-status"><span class="gf-status-left">ROUND 1/1</span><span class="gf-status-right">Time <span id="clock">' + TIMER_S + '</span>s</span></div>'
+    + '<div class="gf-board"><p id="prompt">Which side?</p></div>'
+    + '<div class="gf-action" id="action"><button id="guess">Guess A</button><button id="giveup">Give up</button></div>'
+    + '</div><div class="feedback-slot"></div><button class="exit-link" id="exit">Close game</button></div>';
+  const END = '<div class="endseq"><div class="scorepanel"><div class="scorepanel-line"><span class="scorepanel-num">0</span> pts</div>'
+    + '<div class="scorepanel-actions"><button id="again">Play again</button><button id="close">Close game</button></div></div></div>';
+
+  function show(html, then) {
+    const old = inner.firstElementChild;
+    const mount = () => {
+      inner.innerHTML = '';
+      const d = document.createElement('div');
+      d.style.opacity = old ? '0' : '1';
+      d.innerHTML = html;
+      inner.appendChild(d);
+      bind();
+      if (then) then();
+      if (old) requestAnimationFrame(() => requestAnimationFrame(() => { d.style.opacity = '1'; }));
+    };
+    if (!old) return mount();
+    old.style.opacity = '0';
+    setTimeout(mount, 260);
+  }
+  function startClock() {
+    let left = TIMER_S;
+    clearInterval(countdown);
+    countdown = setInterval(() => {
+      left -= 1;
+      const c = document.getElementById('clock');
+      if (c) c.textContent = String(Math.max(0, left));
+      if (left <= 0) end();
+    }, 1000);
+  }
+  function end() {
+    clearInterval(countdown);
+    document.getElementById('prompt').textContent = 'Answer: B';
+    document.getElementById('action').innerHTML = END;
+    document.getElementById('exit').classList.add('is-ended');
+    bind();
+  }
+  function feedback() {
+    const slot = document.querySelector('.feedback-slot');
+    slot.innerHTML = '<span style="color: var(--bad); font-weight: 700">It was B</span>';
+    setTimeout(() => { slot.innerHTML = ''; }, 900);
+  }
+  function on(id, fn) { const el = document.getElementById(id); if (el) el.onclick = fn; }
+  function bind() {
+    on('play', () => show(PLAYING, startClock));
+    on('again', () => show(PLAYING, startClock));
+    on('guess', feedback);
+    on('giveup', end);
+    on('exit', () => { clearInterval(countdown); show(IDLE); });
+    on('close', () => show(IDLE));
+  }
+  window.jump = () => { document.getElementById('jump-box').style.height = '140px'; };
+  show(IDLE);
+</script>
+</body>
+</html>

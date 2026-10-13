@@ -15,19 +15,26 @@
 //     feedback: { selector, copy },     // per-answer feedback element and whether Rule 6.0 copy applies
 //                                       //   [{ selector: '.feedback-slot > *', copy: true }]
 //     endsInPlace,                      // [not in scripts/game-result-allowlist.json]
-//     expectedScore(turns) → number|null,              // [right answers × pointsPerCorrect]
-//     async endReveal(page, ctx, turns) → string[],   // problems with the answers shown at the end [none]
+//     playAgain,                        // false: the end screen legitimately has no Play again (Wordle) [true]
+//     freshAccount,                     // true | ['daily-lock', …]: run those scenarios as a brand-new throwaway
+//                                       //   account (per-account state such as Wordle's daily play) [none]
+//     labels: { <scenario>: 'title' },  // test-title wording per scenario [the generic wording]
+//     expectedScore(turns, ctx) → number|null,         // [right answers × pointsPerCorrect]
+//     async endReveal(page, ctx, turns) → string[],   // problems with the answers shown at the end;
+//                                       //   REQUIRED for a game that ends in place (else `answer-hidden`)
 //   }
-// answer() plays ONE turn: it waits until the turn is ready, finds the right answer (ctx.cap first, then
-// ctx.fiber — see games/helpers.mjs), gives the right or a wrong one, and returns once the next turn is ready or
+// answer() plays ONE turn: it waits until the turn is ready, finds the right answer (ctx.pool(key) first, then
+// ctx.fiber — see games/helpers.mjs; neither → noTruth(): a `no-truth` violation and a thrown error), gives the right or a wrong one, and returns once the next turn is ready or
 // the game is over. `truth` is the right answer as the player should see it (the driver checks wrong-answer
 // feedback names it); `feedback: false` marks a turn that shows no feedback by design (Who Would Win's Skip).
 // A scenario the adapter cannot drive is a reason string: the spec turns it into a skipped test (coverage gap).
 //
-// ctx = { cap, fiber, vp, audit, online:boolean, scenario, turn, state }
-//   cap / fiber / vp / audit are the test fixtures; online is false in single player (Task 8 sets true and feeds
-//   round data from socket frames); turn is the 0-based turn index; state is the adapter's scratch object for one
-//   game run (round keys, answer-source counts in state.sources).
+// ctx = { cap, fiber, vp, audit, online:boolean, pool(key), scenario, turn, state, account? }
+//   cap / fiber / vp / audit are the test fixtures; online is false in single player; pool(key) → the game's
+//   question rows (single player: games/helpers.mjs capPool over ctx.cap; Task 8 calls
+//   newCtx(fx, scenario, { online: true, pool: (key, ctx) => rowsFromSocketFrames }) instead); turn is the 0-based
+//   turn index; state is the adapter's scratch object for one game run (round keys, answer-source counts in
+//   state.sources); account is the throwaway username when the scenario runs on a fresh account.
 import seriesWinner from './series-winner.mjs';
 import whoWouldWin from './who-would-win.mjs';
 import nameLogo from './name-logo.mjs';

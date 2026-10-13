@@ -2,13 +2,13 @@
 // + Confirm; right → "Correct! +10" (advance 1.5 s), wrong → "It was <mvp>" (advance 1.8 s); the last round hands
 // over to the full-screen GameResult (allowlisted).
 //
-// Right answer: ctx.cap. The pool is `mvps` (fetchGamePool("mvps", 5)): /data/mvps.json in dev, the manifest-v3
-// single file in prod; rows { season, mvp, … }, one per season. The round is the eyebrow (the season); the row's
+// Right answer: ctx.pool('mvps') (single player: captured HTTP JSON, capPool). The pool is `mvps`
+// (fetchGamePool("mvps", 5)): /data/mvps.json in dev, the manifest-v3 single file in prod; rows { season, mvp, … }, one per season. The round is the eyebrow (the season); the row's
 // `mvp` is the answer. Fallback: fiber — GuessMvps props `seasonsList` + hook 0. Wrong guess: another season's MVP.
 // Note: GuessMvps has no guard against a second submit in the same round (NameLogo has one); the adapter submits
 // exactly once per round.
 import { L } from '../lib/pagemap.mjs';
-import { answerFrom, capPool, fiberRound, nextTurn, roundLabel, shellIsOver, typeAndConfirm, wrongFrom } from './helpers.mjs';
+import { answerFrom, fiberRound, nextTurn, roundLabel, shellIsOver, typeAndConfirm, wrongFrom } from './helpers.mjs';
 
 const POOL = 'mvps';
 
@@ -45,7 +45,7 @@ export default {
     const keyOf = () => readRound(page);
     if (!st.key) st.key = (await nextTurn(page, keyOf, null, shellIsOver)).key;
     const season = st.key;
-    const rows = await capPool(ctx, POOL);
+    const rows = await ctx.pool(POOL);
     const mvp = await answerFrom(ctx, `season ${season}`,
       async () => {
         const hit = rows.find((x) => x.season === season);

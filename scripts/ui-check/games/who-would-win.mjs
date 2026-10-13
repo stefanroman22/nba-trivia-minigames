@@ -8,10 +8,26 @@
 //                    picked card (`.www-card.is-mine`) — accepted deviation 6.1: no per-matchup popup, so no
 //                    Rule 6.0 copy check;
 //   correct: false → Skip (no vote, no feedback by design).
-// So `perfect` = vote on every matchup, `wrong` = skip all (score 0, the only score the driver can predict),
-// `partial` = alternate vote / skip. Nothing to look up: ctx.cap / ctx.fiber are not needed.
+// So `perfect` = vote on every matchup, `wrong` = skip all, `partial` = alternate vote / skip.
+// Expected score: each vote's tally response (GET /trivia/who-would-win/tally/, captured by ctx.cap, counted
+// AFTER the player's own vote) scored with the game's own rule (src/utils/whoWouldWinPoints.ts pointsFor): 20
+// when the picked side has at least as many votes as the other, 5 when fewer, 20 when the tally failed (a network
+// fault never costs points), 0 for a skip. The driver asserts that sum on the ScorePanel, in the log-session body
+// and as `awarded`.
 import { L } from '../lib/pagemap.mjs';
 import { nextTurn, shellIsOver } from './helpers.mjs';
+
+const TALLY = /\/trivia\/who-would-win\/tally\//;
+const MAJORITY = 20, MINORITY = 5; // WWW_POINTS_MAJORITY / WWW_POINTS_MINORITY
+
+/** utils/whoWouldWinPoints.ts pointsFor, mirrored: choice 'a'|'b'|null, tally {a,b} | 'error'. */
+export function pointsFor(choice, tally) {
+  if (choice === null) return 0;
+  if (!tally || tally === 'error') return MAJORITY;
+  const mine = choice === 'a' ? tally.a : tally.b;
+  const other = choice === 'a' ? tally.b : tally.a;
+  return mine >= other ? MAJORITY : MINORITY;
+}
 
 /** One key per matchup: "<n>|<card A label>|<card B label>", only while both cards are pressable. */
 async function readMatchup(page) {
@@ -34,6 +50,7 @@ export default {
   timerMs: null,
   pointsPerCorrect: null,
   feedback: { selector: '.playing-wrap .www-card.is-mine', copy: false },
+  labels: { perfect: 'vote on every matchup', wrong: 'skip every matchup', partial: 'vote and skip alternately' },
   scenarios: {
     perfect: true, // vote on every matchup
     wrong: true, // skip every matchup (no right answer exists; skipping is the 0-point path)
@@ -43,9 +60,15 @@ export default {
     'daily-lock': 'not a daily game (any number of plays per day)',
   },
 
-  /** Only an all-skip game has a known score (0); crowd points depend on the live split. */
-  expectedScore(turns) {
-    return turns.every((t) => !t.correct) ? 0 : null;
+  /** Sum of the per-matchup points from the captured tallies (see the header). */
+  expectedScore(turns, ctx) {
+    const picks = (ctx && ctx.state.picks) || [];
+    return turns.reduce((sum, t) => {
+      if (!t.correct) return sum;
+      const p = picks[t.turn];
+      if (!p) throw new Error(`who-would-win: no recorded pick for turn ${t.turn + 1}`);
+      return sum + pointsFor(p.side, p.tally);
+    }, 0);
   },
 
   async answer(page, ctx, { correct }) {
@@ -54,12 +77,19 @@ export default {
     if (!st.key) st.key = (await nextTurn(page, keyOf, null, shellIsOver)).key;
     if (correct) {
       st.votes = (st.votes || 0) + 1;
-      await L(page, 'games.wwwCards').nth(st.votes % 2 ? 0 : 1).click();
+      const side = st.votes % 2 ? 'a' : 'b';
+      const before = (await ctx.cap.entries(TALLY)).length;
+      await L(page, 'games.wwwCards').nth(side === 'a' ? 0 : 1).click();
       // The vote resolves to a split, or "No split yet" when the tally failed; Next is enabled either way.
       await page.waitForFunction(() => {
         const mine = document.querySelector('.playing-wrap .www-card.is-mine .www-split');
         return !!mine && (!!mine.querySelector('.www-split-nums') || /No split yet/.test(mine.textContent || ''));
       }, null, { timeout: 12_000 });
+      // This vote's tally: the newest response after the click (none or non-2xx = the game's "error" case).
+      const got = (await ctx.cap.entries(TALLY)).slice(before);
+      const last = got[got.length - 1];
+      const tally = last && last.status === 200 && last.body && typeof last.body.a === 'number' ? { a: last.body.a, b: last.body.b } : 'error';
+      (st.picks ||= [])[ctx.turn] = { side, tally };
       await L(page, 'games.wwwNext').click();
     } else {
       await L(page, 'games.wwwSkip').click();

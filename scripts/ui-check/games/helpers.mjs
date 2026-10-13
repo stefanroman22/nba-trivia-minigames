@@ -2,7 +2,9 @@
 // that calls it live in games/index.mjs and lib/game-driver.mjs; this file only knows how to read a
 // round's data and how to act on the shared shell (autocomplete input, round label, end screens).
 //
-// Where an adapter gets the right answer (spec §7): ctx.cap first, ctx.fiber as the fallback.
+// Where an adapter gets the right answer (spec §7): the round data source first, ctx.fiber as the fallback.
+//   ctx.pool(key)           the game's question rows. Single player (lib/game-driver.mjs newCtx default):
+//                           capPool(ctx, key) over ctx.cap. Online (Task 8) the driver passes a socket-frame source.
 //   capPool(ctx, key)       the game's whole pool as the client received it, from captured JSON:
 //                           the bundled `/data/<key>.json` (raw rows) or the manifest-v3 data host
 //                           (`<host>/manifest.json` schema 3 + its chunk/single files + lookups,
@@ -11,7 +13,8 @@
 //                           component whose props hold `prop` (e.g. 'seriesList'), hook 0 = round index.
 // The pool is sampled client-side (Math.random), so a round is identified from what the DOM shows
 // (season, team names, logo file) and looked up in the captured pool; fiber is used only when that
-// lookup finds nothing. answerFrom() returns which one answered (ctx.state.sources counts them).
+// lookup finds nothing. answerFrom() returns which one answered (ctx.state.sources counts them); when neither
+// knows, noTruth() records a `no-truth` violation and throws — a scenario never passes by guessing.
 import { L } from '../lib/pagemap.mjs';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -86,6 +89,12 @@ export async function fiberRound(ctx, prop, selector = '.playing-wrap > .gf') {
   return { rows: props[i].props[prop], index };
 }
 
+/** No right answer for a round: record `no-truth` (the digest shows it) and fail the test loudly. */
+export function noTruth(ctx, what, why = 'not in the round data (ctx.pool) nor in React state') {
+  if (ctx.audit) ctx.audit.violation('no-truth', { selector: what, measured: `the adapter cannot tell the right answer: ${why}`, expected: 'every round answerable from captured data' });
+  throw new Error(`adapter: cannot determine the right answer for ${what}: ${why}`);
+}
+
 /**
  * Resolve a round's answer: `fromCap()` first, `fromFiber()` when it returns nothing. Counts the source in
  * ctx.state.sources. Throws when neither knows the answer — a scenario must never pass by guessing.
@@ -96,7 +105,7 @@ export async function answerFrom(ctx, what, fromCap, fromFiber) {
   if (a != null) { src.cap++; return a; }
   const b = await fromFiber();
   if (b != null) { src.fiber++; return b; }
-  throw new Error(`adapter: cannot determine the right answer for ${what} from captured data or React state`);
+  return noTruth(ctx, what);
 }
 
 /** `ROUND 2/5` / `MATCHUP 3/10` → { n, total } from the status label, or null. */

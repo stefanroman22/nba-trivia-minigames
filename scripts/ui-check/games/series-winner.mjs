@@ -2,13 +2,14 @@
 // team buttons; the round reveals the winner (green/red card + "Correct! +10" / "It was the <winner>")
 // and advances after 1.8 s; the last round hands over to the full-screen GameResult (allowlisted).
 //
-// Right answer: ctx.cap. The pool is `playoff` (GameUtils fetchGamePool("playoff", 5)): the bundled
-// /data/playoff.json in dev, the manifest-v3 host's `playoff` chunks + `teams` lookup in prod. The
-// round is the eyebrow "<round> · <season>" plus the two team names on the buttons (sides are swapped
-// at random per round, so the pair is matched unordered); the row's `winner` is the answer.
-// Fallback: fiber — PlayOffSeries props `seriesList` + hook 0 `currentIndex`.
+// Right answer: ctx.pool('playoff') (single player: captured HTTP JSON, capPool). The pool is `playoff`
+// (GameUtils fetchGamePool("playoff", 5)): the bundled /data/playoff.json in dev, the manifest-v3 host's
+// `playoff` chunks + `teams` lookup in prod. The round is the eyebrow "<round> · <season>" plus the two team
+// names on the buttons (sides are swapped at random per round, so the pair is matched unordered); the row's
+// `winner` is the answer. Fallback: fiber — PlayOffSeries props `seriesList` + hook 0 `currentIndex`.
+// An empty pool fails loudly (`no-truth`): a round is only accepted when it matches a pool row.
 import { L } from '../lib/pagemap.mjs';
-import { answerFrom, capPool, exactly, fiberRound, nextTurn, shellIsOver } from './helpers.mjs';
+import { answerFrom, exactly, fiberRound, nextTurn, noTruth, shellIsOver } from './helpers.mjs';
 
 const POOL = 'playoff';
 
@@ -50,13 +51,14 @@ export default {
 
   async answer(page, ctx, { correct }) {
     const st = ctx.state;
+    // Without the pool nothing can validate a round or know its winner: fail loudly, never accept any key.
+    if (!(await ctx.pool(POOL)).length) noTruth(ctx, `${POOL} pool`, 'no playoff series in the round data');
     // A round is ready once its eyebrow and both names match one captured series: the eyebrow and the names
     // are separate SwapTexts, so a half-swapped round (new season, old teams) never counts as a turn.
     const keyOf = async () => {
       const x = await readRound(page);
       if (!x) return null;
-      const rows = await capPool(ctx, POOL);
-      return !rows.length || matchRow(rows, x) ? x.key : null;
+      return matchRow(await ctx.pool(POOL), x) ? x.key : null;
     };
     if (!st.round) {
       await nextTurn(page, keyOf, null, shellIsOver);
@@ -65,7 +67,7 @@ export default {
     const r = st.round;
     const winner = await answerFrom(ctx, `series "${r.key}"`,
       async () => {
-        const hit = matchRow(await capPool(ctx, POOL), r);
+        const hit = matchRow(await ctx.pool(POOL), r);
         return hit ? hit.winner : null;
       },
       async () => {

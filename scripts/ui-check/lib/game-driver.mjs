@@ -17,6 +17,10 @@ import { expect } from '@playwright/test';
 import { L } from './pagemap.mjs';
 import { REPO_ROOT } from './run-id.mjs';
 import { recordFrames, fadeSummary } from './guest.mjs';
+import { mintTokens } from './accounts.mjs';
+import { deleteAccountApi, runDigits } from './account.mjs';
+import { capPool } from '../games/helpers.mjs';
+import { MODES } from './stack.mjs';
 
 /**
  * `slow-api` allowances for the 4-worker scenario pass only (never in GM-LATENCY-01): the session restore
@@ -63,8 +67,15 @@ export function planFor(adapter, scenario) {
   return () => false; // wrong, giveup, timeout, daily-lock: misses
 }
 
-export function newCtx({ cap, fiber, vp, audit }, scenario) {
-  return { cap, fiber, vp, audit, online: false, scenario, turn: 0, state: {} };
+/**
+ * The adapter's context. `pool(key)` is where adapters read a game's question rows: single player defaults to the
+ * HTTP JSON captured by `cap` (games/helpers.mjs capPool); the multiplayer suite passes `online: true` and its own
+ * `pool(key, ctx)` built from socket frames.
+ */
+export function newCtx({ cap, fiber, vp, audit }, scenario, { online = false, pool = null } = {}) {
+  const ctx = { cap, fiber, vp, audit, online, scenario, turn: 0, state: {} };
+  ctx.pool = pool ? (key) => pool(key, ctx) : (key) => capPool(ctx, key);
+  return ctx;
 }
 
 // ---------------------------------------------------------------- in-page instruments
@@ -177,8 +188,8 @@ export async function startGame(page) {
   await page.waitForTimeout(1200);
 }
 
-/** Wait until no element matches `selector` (an exiting popup from the previous turn), ≤ 3 s. */
-const feedbackGone = (page, selector) => page.waitForFunction((s) => ![...document.querySelectorAll(s)].some((e) => e.getBoundingClientRect().height > 0), selector, { timeout: 3000 }).catch(() => {});
+/** Wait until no element matches `selector` (an exiting popup from the previous turn), ≤ 3 s. → gone? */
+const feedbackGone = (page, selector) => page.waitForFunction((s) => ![...document.querySelectorAll(s)].some((e) => e.getBoundingClientRect().height > 0), selector, { timeout: 3000 }).then(() => true, () => false);
 
 /**
  * Play turns until the adapter says over (≤ MAX_TURNS). Records per turn: {correct, truth, feedback:{latency,
@@ -192,7 +203,10 @@ export async function playTurns(page, adapter, ctx, { plan, stopAfter = MAX_TURN
   for (let t = 0; t < Math.min(stopAfter, MAX_TURNS) && !over; t++) {
     ctx.turn = t;
     const correct = plan(t);
-    await feedbackGone(page, fb.selector);
+    if (!(await feedbackGone(page, fb.selector)) && ctx.audit) {
+      // Still on screen 3 s into the next turn: the next turn's latency may be read off this element. Noted, not failed.
+      ctx.audit.metrics.push({ kind: 'note', label: 'previous feedback still visible after 3 s', value: t + 1, unit: 'turn', route: ctx.audit.route });
+    }
     await page.evaluate(armFeedback, { selector: fb.selector, turn: t });
     const shot = t === 0 && onFirstFeedback
       ? page.waitForFunction(() => window.__gmFb && window.__gmFb.at !== null, null, { timeout: 10_000 }).then(onFirstFeedback).catch(() => null)
@@ -254,8 +268,8 @@ export async function checkTurns(audit, adapter, turns, { enforceLatency = false
 }
 
 /** Score the driver expects from the answers given (null = not knowable, e.g. Who Would Win's crowd points). */
-export function expectedScore(adapter, turns) {
-  if (adapter.expectedScore) return adapter.expectedScore(turns);
+export function expectedScore(adapter, turns, ctx) {
+  if (adapter.expectedScore) return adapter.expectedScore(turns, ctx);
   if (adapter.pointsPerCorrect == null) return null;
   return turns.filter((t) => t.correct).length * adapter.pointsPerCorrect;
 }
@@ -282,8 +296,12 @@ export function watchLogSession(page) {
   };
 }
 
+/** The end screen's buttons (Rule 7.0): Play again + Close game, or Close game alone for `playAgain: false` (Wordle). */
+export const endButtons = (adapter) => (adapter.playAgain === false ? ['Close game'] : ['Play again', 'Close game']);
+const missingEndButtons = (adapter, geo) => endButtons(adapter).filter((n) => !geo.buttons.some((b) => b.text === n));
+
 /** End-state assertions (7.0, 7.3, 6.3, 6.2, score, points logged). */
-export async function checkEnd(audit, adapter, ctx, { turns, over, log, logged = true, resize = true, scoreKnown = true }) {
+export async function checkEnd(audit, adapter, ctx, { turns, over, sessionLog, logged = true, resize = true, scoreKnown = true }) {
   const page = audit.page;
   if (!over) {
     audit.violation('never-ended', { selector: adapter.id, measured: `still playing after ${turns.length} turns`, expected: `the game ends within ${MAX_TURNS} turns` });
@@ -301,8 +319,9 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, log, logged =
   // Rule 7.0: the score line sits above Play again / Close game.
   if (!geo.score) {
     audit.violation('end-score', { selector: inPlace ? '.scorepanel-line' : 'GameResult score', measured: 'no visible score line', expected: 'score line above the end buttons (Rule 7.0)' });
-  } else if (!geo.buttons.length) {
-    audit.violation('end-buttons', { selector: '.stage-inner', measured: 'no Play again / Close game', expected: 'end buttons under the score (Rule 7.0)' });
+  } else if (missingEndButtons(adapter, geo).length) {
+    const want = endButtons(adapter);
+    audit.violation('end-buttons', { selector: '.stage-inner', measured: `missing ${missingEndButtons(adapter, geo).join(' + ')} (shown: ${geo.buttons.map((b) => b.text).join(', ') || 'none'})`, expected: `${want.join(' and ')} under the score (Rule 7.0)${adapter.playAgain === false ? '; this game declares no Play again' : ''}` });
   } else {
     const top = Math.min(...geo.buttons.map((b) => b.top));
     if (geo.score.bottom > top + 0.5) {
@@ -310,7 +329,7 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, log, logged =
     }
   }
   // Final score (GameResult / ScorePanel count up with AnimatedNumber: wait for it to land).
-  const want = scoreKnown ? expectedScore(adapter, turns) : null;
+  const want = scoreKnown ? expectedScore(adapter, turns, ctx) : null;
   if (want != null) {
     const got = await page.waitForFunction((w) => {
       const panel = document.querySelector('.playing-wrap .scorepanel-num');
@@ -319,29 +338,33 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, log, logged =
       return t === String(w) ? t : false;
     }, want, { timeout: 5000 }).then((h) => h.jsonValue()).catch(async () => (await page.evaluate(endGeometry)).scoreText);
     if (String(got).replace(/[^\d]/g, '') !== String(want)) {
-      audit.violation('end-score', { selector: inPlace ? '.scorepanel-num' : 'GameResult score', measured: `shows ${got}`, expected: `${want} (${turns.filter((t) => t.correct).length} right × ${adapter.pointsPerCorrect})` });
+      audit.violation('end-score', { selector: inPlace ? '.scorepanel-num' : 'GameResult score', measured: `shows ${got}`, expected: adapter.expectedScore ? `${want} (adapter's expected score)` : `${want} (${turns.filter((t) => t.correct).length} right × ${adapter.pointsPerCorrect})` });
     }
   }
   // Rule 6.3: the end state never announces the loss.
   const text = await stageText(page);
   const banned = BANNED_LOSS.exec(text);
   if (banned) audit.violation('loss-announced', { selector: '.stage-inner', measured: `"${banned[0]}" in the end state`, expected: 'running out of lives is never announced (Rule 6.3)' });
-  // Adapter-specific reveal (in-place games: the answers stay visible).
-  if (adapter.endReveal) for (const problem of await adapter.endReveal(page, ctx, turns)) {
-    audit.violation('answer-hidden', { selector: '.playing-wrap', measured: problem, expected: 'every answer visible at the end (Rule 7.3)' });
+  // Adapter-specific reveal (in-place games: the answers stay visible). An in-place game must say how (Rule 7.3).
+  if (adapter.endReveal) {
+    for (const problem of await adapter.endReveal(page, ctx, turns)) {
+      audit.violation('answer-hidden', { selector: '.playing-wrap', measured: problem, expected: 'every answer visible at the end (Rule 7.3)' });
+    }
+  } else if (inPlace) {
+    audit.violation('answer-hidden', { selector: adapter.id, measured: 'adapter has no endReveal', expected: 'an in-place game\'s adapter checks that the answers stay visible at the end (Rule 7.3)' });
   }
   // Rule 6.2: the stage never resized while playing (end-of-game phase change excepted).
   if (resize) {
-    const log = await page.evaluate(() => (window.__gmRO ? window.__gmRO.log : null));
+    const resizes = await page.evaluate(() => (window.__gmRO ? window.__gmRO.log : null));
     const evidence = ctx.state.resizeEvidence || [];
-    for (const [i, e] of (log || []).filter((x) => !x.ending).entries()) {
+    for (const [i, e] of (resizes || []).filter((x) => !x.ending).entries()) {
       const v = audit.violation('stage-resized', { selector: '.stage-shell', measured: `${e.from}→${e.to}px (Δ${+(e.to - e.from).toFixed(1)}) on turn ${e.turn + 1}`, expected: 'stage height constant while playing (Rule 6.2)' });
       if (evidence.length) v.shot = evidence[Math.min(i, evidence.length - 1)]; // the board after the resizing turn
     }
   }
   // Points logged for the solo user.
-  if (logged && log) {
-    const calls = await log.settled(1);
+  if (logged && sessionLog) {
+    const calls = await sessionLog.settled(1);
     if (calls.length !== 1) {
       audit.violation('points-not-logged', { selector: 'POST /trivia/log-session/', measured: `${calls.length} request(s)`, expected: 'exactly one per finished game' });
     }
@@ -354,7 +377,9 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, log, logged =
           measured: `HTTP ${c.status} body ${JSON.stringify(c.body)}${c.status === 429 ? ' (score-submit throttle, 60/h per account)' : ''}`,
           expected: `2xx with {game:"${adapter.id}", mode:"single"${want != null ? `, score:${want}` : ''}}`,
         });
-      } else if (want > 0 && c.json && c.json.awarded !== want) {
+      } else if (!c.json) {
+        audit.violation('points-not-logged', { selector: 'POST /trivia/log-session/', measured: `HTTP ${c.status} without a JSON body`, expected: '{ ok, awarded, points, rank }' });
+      } else if (want > 0 && c.json.awarded !== want) {
         audit.violation('points-not-logged', { selector: 'POST /trivia/log-session/', measured: `awarded ${c.json.awarded}`, expected: `awarded ${want}` });
       }
     }
@@ -400,9 +425,52 @@ export async function waitOver(page, adapter, ms = 15_000) {
  * One scenario of one game (see the header). `full` = core viewport: post-game Play again / Close game and the
  * log-session assertion run; otherwise (non-core `perfect`) the play is layout-only.
  */
-export async function runScenario({ page, audit, cap, fiber, vp }, adapter, scenario, { full = true } = {}) {
-  const ctx = newCtx({ cap, fiber, vp, audit }, scenario);
-  const log = watchLogSession(page);
+export async function runScenario(fx, adapter, scenario, { full = true, logSession = full, online = false, pool = null } = {}) {
+  const fresh = wantsFreshAccount(adapter, scenario) ? await useFreshAccount(fx.page, `${adapter.id}|${scenario}|${fx.vp ? fx.vp.id : ''}`) : null;
+  try {
+    return await playScenario(fx, adapter, scenario, { full, logSession, online, pool, fresh });
+  } finally {
+    if (fresh) await deleteAccountApi(fx.page.request, fresh).catch(() => {}); // the teardown sweep catches a miss
+  }
+}
+
+/** Adapter `freshAccount`: true (every scenario) or a list of scenarios that need an account of their own. */
+const wantsFreshAccount = (adapter, scenario) => adapter.freshAccount === true || (Array.isArray(adapter.freshAccount) && adapter.freshAccount.includes(scenario));
+
+const usedFresh = new Set();
+/**
+ * Log this page's context in as a brand-new throwaway account `uic<run digits>4<4 digits>` (accounts.mjs
+ * isTestUsername; deleted after the scenario, and by the stack-teardown sweep otherwise). For scenarios that change
+ * per-account state another scenario depends on — e.g. Wordle's once-a-day play. The init script runs after the
+ * persona's own seed (registered later) and overwrites it on the first load only.
+ */
+export async function useFreshAccount(page, seed) {
+  let name;
+  for (let i = 0; !name || usedFresh.has(name); i++) {
+    let h = 2166136261;
+    for (const ch of `${seed}|${Date.now()}|${process.pid}|${i}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+    name = `uic${runDigits().slice(-12)}4${String((h >>> 0) % 10000).padStart(4, '0')}`;
+  }
+  usedFresh.add(name);
+  const t = (await mintTokens([name]))[name];
+  const origin = `http://localhost:${MODES[process.env.UI_CHECK_MODE || 'prod'].web}`;
+  await page.context().addInitScript(({ access, refresh, user, origin }) => {
+    try {
+      if (location.origin !== origin || localStorage.getItem('uicheck-fresh')) return;
+      localStorage.setItem('accessToken', access);
+      localStorage.setItem('refreshToken', refresh);
+      localStorage.setItem('nba3via-session-user', JSON.stringify(user));
+      localStorage.setItem('uicheck-seeded', '1');
+      localStorage.setItem('uicheck-fresh', '1');
+    } catch { /* storage unavailable */ }
+  }, { access: t.access, refresh: t.refresh, user: t.user, origin });
+  return name;
+}
+
+async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, { full, logSession, online, pool, fresh }) {
+  const ctx = newCtx({ cap, fiber, vp, audit }, scenario, { online, pool });
+  if (fresh) ctx.account = fresh;
+  const sessionLog = watchLogSession(page);
   if (scenario === 'timeout') await page.clock.install(); // before the first load, so the game's clock is ours
   await audit.goto(adapter.path, { waitFor: '.stage-col .idle' });
   await audit.shot('idle');
@@ -428,25 +496,36 @@ export async function runScenario({ page, audit, cap, fiber, vp }, adapter, scen
 
   await checkTurns(audit, adapter, result.turns, { scenario });
   const known = scenario === 'perfect' || scenario === 'wrong' || scenario === 'partial';
-  await checkEnd(audit, adapter, ctx, { ...result, log, logged: full, scoreKnown: known });
+  await checkEnd(audit, adapter, ctx, { ...result, sessionLog, logged: logSession, scoreKnown: known });
   if (ctx.state.sources) audit.metrics.push({ kind: 'note', label: 'answer source', value: JSON.stringify(ctx.state.sources), unit: '', route: audit.route });
-  if (full) await afterEnd(audit, { closeFromEnd: scenario === 'wrong' || scenario === 'daily-lock' });
+  if (full) await afterEnd(audit, adapter, { closeFromEnd: scenario === 'wrong' || scenario === 'daily-lock' });
   if (scenario === 'daily-lock') {
     // After a finished daily play, a fresh load of the game shows the lock note instead of Play.
     await audit.goto(adapter.path, { waitFor: '.stage-col .idle' });
-    const locked = (await L(page, 'games.idleNote').count()) > 0 && (await L(page, 'games.playBtn').count()) === 0;
-    if (!locked) audit.violation('daily-lock', { selector: '.stage-col .idle', measured: 'Play is offered again after the daily play', expected: 'the idle card shows the next-play countdown and no Play button' });
+    try {
+      await expect(L(page, 'games.idleNote')).toBeVisible({ timeout: 10_000 });
+      await expect(L(page, 'games.playBtn')).toHaveCount(0, { timeout: 5000 });
+    } catch (e) {
+      audit.violation('daily-lock', { selector: '.stage-col .idle', measured: `after the daily play: ${String(e.message).split('\n')[0]}`, expected: 'the idle card shows the next-play countdown and no Play button' });
+    }
     await audit.shot('locked');
   }
   return { ctx, ...result };
 }
 
-/** After the end: Play again → playing shell → Close game → idle; or (closeFromEnd) the end screen's Close game → idle. */
-export async function afterEnd(audit, { closeFromEnd = false } = {}) {
+/** After the end: Play again → playing shell → Close game → idle; or (closeFromEnd, or `playAgain: false`) the end screen's Close game → idle. */
+export async function afterEnd(audit, adapter, { closeFromEnd = false } = {}) {
   const page = audit.page;
   const again = L(page, 'games.endPlayAgain');
   const idleReady = async () => { await expect(L(page, 'games.playBtn')).toBeVisible({ timeout: 10_000 }); };
-  if (!closeFromEnd && await again.count()) {
+  if (!closeFromEnd && adapter.playAgain !== false) {
+    const shown = await again.first().waitFor({ state: 'visible', timeout: 5000 }).then(() => true, () => false);
+    if (!shown) {
+      audit.violation('replay', { selector: '.stage-inner', measured: 'no Play again on the end screen', expected: 'Play again under the score (Rule 7.0); declare `playAgain: false` only for a game that has none' });
+      closeFromEnd = true;
+    }
+  }
+  if (!closeFromEnd && adapter.playAgain !== false) {
     await again.click();
     await page.waitForSelector('.playing-wrap', { timeout: 30_000 });
     await expect(L(page, 'games.exitLink')).toBeVisible();
