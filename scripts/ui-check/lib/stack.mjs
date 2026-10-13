@@ -229,22 +229,41 @@ runpy.run_path('manage.py', run_name='__main__')`;
   return { cmd: py, args: manage };
 }
 
+/**
+ * Shared key between the local relay and the local Django (MULTIPLAYER_SHARED_SECRET, X-Relay-Key), so a finished 1v1
+ * match is credited like in production (`/trivia/multiplayer-result/`, "+N pts" in the results). Not a real secret:
+ * both processes are local and talk over localhost only. A Django or relay not started by ui-check lacks it, and then
+ * nothing is credited (the relay logs "Crediting room … failed: HTTP 403").
+ */
+export const RELAY_KEY = 'uicheck-local-relay-key';
+
 function startDjango(port, webPort) {
   migrate();
   const { cmd, args } = djangoCommand(port);
   return startDetached(`django-${port}`, port, cmd, args, {
     cwd: path.join(REPO_ROOT, 'backend'),
-    env: djangoEnv({ CORS_ALLOWED_ORIGINS: `http://localhost:${webPort}` }),
+    env: djangoEnv({ CORS_ALLOWED_ORIGINS: `http://localhost:${webPort}`, MULTIPLAYER_SHARED_SECRET: RELAY_KEY }),
   });
 }
 
-/** The socket server with the env scripts/dev.mjs passes, on the given ports. */
+/**
+ * The relay's data hosts as production sets them (docs/constraints/MULTIPLAYER_CONSTRAINTS.md env table): the same public,
+ * read-only hosts the site's build reads (VITE_DATA_BASE / VITE_QUESTIONS_BASE, env files in Next's order). Without them
+ * the relay cannot deal the question games (career-path, who-are-ya, contexto) nor Tic-Tac-Toe: `roundDataError`.
+ */
+export function relayDataEnv() {
+  const files = BUILD_ENV_FILES.map(parseEnvFile);
+  const pick = (k) => process.env[k] || files.find((f) => k in f)?.[k] || '';
+  return { DATA_PUBLIC_BASE: process.env.DATA_PUBLIC_BASE || pick('VITE_DATA_BASE'), QUESTIONS_PUBLIC_BASE: process.env.QUESTIONS_PUBLIC_BASE || pick('VITE_QUESTIONS_BASE') };
+}
+
+/** The socket server with the env scripts/dev.mjs passes, on the given ports, plus the data hosts and the relay key. */
 function startSocket(port, webPort, djangoPort) {
   if (!existsSync(path.join(REPO_ROOT, 'multiplayer_server', 'node_modules'))) {
     throw new Error('multiplayer_server has no node_modules — run `npm ci --prefix multiplayer_server`');
   }
   return startDetached(`socket-${port}`, port, process.execPath, ['multiplayer_server/src/index.js'], {
-    env: { ...process.env, PORT: String(port), CORS_ORIGINS: `http://localhost:${webPort}`, API_BASE_URL: `http://localhost:${djangoPort}` },
+    env: { ...process.env, ...relayDataEnv(), MULTIPLAYER_SHARED_SECRET: RELAY_KEY, PORT: String(port), CORS_ORIGINS: `http://localhost:${webPort}`, API_BASE_URL: `http://localhost:${djangoPort}` },
   });
 }
 
@@ -323,6 +342,13 @@ export async function ensureStack(mode = 'prod') {
       if (await up(ports.socket)) reuse('socket', ports.socket);
       else started.push(startSocket(ports.socket, ports.web, ports.django));
     } else {
+      // Our relay first (data hosts + relay key): scripts/dev.mjs reuses a socket already listening on its port.
+      if (await up(ports.socket)) reuse('socket', ports.socket);
+      else {
+        started.push(startSocket(ports.socket, ports.web, ports.django));
+        record();
+        for (let i = 0; i < 40 && !(await up(ports.socket)); i++) await sleep(250);
+      }
       const env = {};
       for (const [k, v] of Object.entries(process.env)) if (!k.startsWith('VITE_') && k !== 'NBA_DEV_ENV_SKIP') env[k] = v;
       started.push(startDetached(`web-${ports.web}`, ports.web, 'npm run dev', [], { env, shell: true }));

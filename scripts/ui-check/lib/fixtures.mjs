@@ -365,24 +365,25 @@ export const test = base.extend({
   fiber: async ({ page }, use) => { await use(fiberReader(page)); },
 
   /**
-   * Multiplayer: `await mp.pair()` → { host, joiner }, each { page, audit, cap, context, vp, username, user }.
+   * Multiplayer: `await mp.pair()` → { host, joiner }, each { page, audit, cap, context, vp, username, user, label }.
    * Host is testuser1 on MP_PAIRS[project][0], joiner testuser2 on [1], each in its own context with
    * its own fresh token pair. Audits carry labels 'host' / 'joiner'. Contexts close after the test.
    */
-  mp: async ({ browser, mpPair, baseURL }, use, testInfo) => {
+  mp: async ({ browser, mpPair, baseURL, userAgent }, use, testInfo) => {
     const opened = [];
     const pair = async () => {
       const vps = MP_PAIRS[mpPair];
       if (!vps) throw new Error(`ui-check: mp.pair() needs an mp project (use.mpPair one of ${Object.keys(MP_PAIRS).join(', ')}), got ${mpPair}`);
       const tokens = await mintTokens(['testuser1', 'testuser2']);
       const player = async (label, username, vpId) => {
-        const context = await browser.newContext({ ...contextOptions(vpId), baseURL });
+        // `userAgent` from test.use (the multiplayer specs pass game-driver's realUserAgent, like the games specs).
+        const context = await browser.newContext({ ...contextOptions(vpId), baseURL, ...(userAgent ? { userAgent } : {}) });
         await seedContext(context, baseURL, tokens[username]);
         const page = await context.newPage();
         const vp = VIEWPORTS[vpId];
         const audit = await createAudit(page, testInfo, { project: testInfo.project.name, vp, label });
         opened.push({ context, audit });
-        return { page, audit, cap: capture(page), context, vp, username, user: tokens[username].user };
+        return { page, audit, cap: capture(page), context, vp, username, user: tokens[username].user, label };
       };
       return { host: await player('host', 'testuser1', vps[0]), joiner: await player('joiner', 'testuser2', vps[1]) };
     };

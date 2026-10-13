@@ -132,8 +132,13 @@ export async function nextTurn(page, readKey, prevKey, isOver, { timeout = 15_00
   throw new Error(`adapter: the next turn never became ready (last key ${JSON.stringify(last)}, previous ${JSON.stringify(prevKey)})`);
 }
 
-/** The shell's end states: a ScorePanel in place, or the full-screen GameResult (no .playing-wrap, end buttons). */
+/**
+ * The shell's end states: a ScorePanel in place, or the full-screen GameResult (no .playing-wrap, end buttons).
+ * Online (`page.uicOnline`, the multiplayer suite's page view, lib/mp-play.mjs): the renderer hands its score to the
+ * match (submitScore) when it ends, so the game is over once the playing screen gave way to waiting / results.
+ */
 export async function shellIsOver(page) {
+  if (page.uicOnline) return page.evaluate(() => !document.querySelector('.stage-inner .om-stage--play') && !!document.querySelector('.stage-inner .om-stage'));
   return page.evaluate(() => {
     const vis = (el) => !!el && el.getBoundingClientRect().height > 0 && getComputedStyle(el).visibility !== 'hidden';
     if (vis(document.querySelector('.playing-wrap .scorepanel')) || vis(document.querySelector('.playing-wrap .scorepanel-actions'))) return true; // Career Path: actions alone
@@ -178,11 +183,19 @@ export function wrongFrom(values, right) {
  */
 export async function capQuestions(ctx, game) {
   const out = [];
-  for (const e of await ctx.cap.entries(/./)) {
-    const b = e.body;
+  for (const b of await payloads(ctx, game)) {
     if (b && typeof b === 'object' && !Array.isArray(b) && b.game === game && b.player && typeof b.player.full_name === 'string') out.push({ qid: b.qid, player: b.player });
   }
   return out;
+}
+
+/**
+ * Every JSON body that may hold a question game's payload, oldest first: single player the captured HTTP bodies,
+ * online (ctx.online) the round the relay dealt over the socket (ctx.pool(game): lib/mp-pool.mjs).
+ */
+export async function payloads(ctx, game) {
+  if (ctx.online) return ctx.pool(game);
+  return (await ctx.cap.entries(/./)).map((e) => e.body);
 }
 
 /** The question games' autocomplete list the page received ([{ id, full_name, … }]), or []. */

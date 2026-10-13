@@ -70,9 +70,15 @@ export default defineConfig({
     ...suiteProjects('guest', { persona: 'guest' }).map(onApp),
     ...suiteProjects('account', { persona: 'solo' }).map(onApp),
     ...suiteProjects('games', { persona: 'solo' }).map(onApp),
+    // Multiplayer: the two accounts are shared, so tests of a file run one after another in file order (fullyParallel
+    // off; run.mjs also gives mp one worker) without the skip-the-rest of serial mode: a finding in one test never
+    // hides the next. One full match per online game (games.spec) and the real-time timeouts (timeouts.spec) run on
+    // pair A only (spec §5); the other pairs do not load those files.
     ...Object.keys(MP_PAIRS).map((pair) => onApp({
       name: `mp@${pair}`,
       testDir: './specs/multiplayer',
+      fullyParallel: false,
+      ...(pair === 'pairA' ? {} : { testIgnore: /[\\/](games|timeouts)\.spec\.mjs$/ }),
       use: { mpPair: pair, persona: 'pair', suite: 'multiplayer' },
     })),
   ],
