@@ -101,6 +101,27 @@ profile checks assert that an existing name such as `testuser2` passes every rul
 | `AC-BLOCK-02` | `@perf`, all 7 vps, logged out. "No action waits more than 400 ms on an animation": from the click until the next control is interactable (enabled, visible, `elementFromPoint` hits it): Log in -> Sign up (Email field), Sign up -> Log in (Email or username field), the modal X (the nav brand behind the backdrop). `slow-action` above 400 ms. |
 | `AC-BLOCK-03` | `@perf`, core vps. After a successful log in, from the moment the "Welcome back" message shows (the server has answered) until the nav avatar is pressable. The success pane holds 600-800 ms by design (a tap skips it after 300 ms), so this check is expected to fail until that hold is shortened. |
 
+## Games (GM-)
+
+Solo persona (per-worker `testuser3` / `testuser3w<n>`, a minted session per test) except GM-SHELL-01 (guest).
+Specs: `specs/games/{scenarios,shell,latency}.spec.mjs`; driver `lib/game-driver.mjs`; adapters `games/<id>.mjs`
+(contract in `games/index.mjs`, shared helpers in `games/helpers.mjs`); locators `pagemap/games.json`; the shell
+measurement shared with `scripts/ui-audit.mjs` is `scripts/lib/game-shell.mjs`. Learnings, answer sources, throttle
+budget and exemptions: `notes/games.md`. The games specs run with the browser's own user agent minus "Headless"
+(cdn.nba.com refuses the headless one, see notes).
+
+Game-specific rules recorded as violations: `stage-resized` (6.2), `loss-announced` (6.3), `feedback-copy` /
+`feedback-color` / `feedback-missing` (6.0, 6.1), `not-in-place` (7.3), `score-not-above` / `end-score` /
+`end-buttons` (7.0, final score), `answer-hidden` (in-place reveal), `points-not-logged`, `replay`,
+`no-transition`, `never-ended`, `daily-lock`, `shell-contract` / `no-playing` (GM-SHELL-01).
+
+| ID | proves |
+|---|---|
+| `GM-<game>-<scenario>` | One test per visible game with an adapter × scenario (`perfect`, `wrong`, `partial`, `timeout`, `giveup`, `daily-lock`). A scenario the adapter cannot drive is skipped with the adapter's reason (coverage gap). Core viewports run every scenario; the other four run `perfect` only, layout-only (no Play again / Close game, no log-session assertion). Open the game (idle shot), Play, then answer turn by turn (≤ 60) inside `audit.motion` (watch `.stage-shell`, `.playing-wrap`; snap and CLS enforced, long frames recorded as a note here and enforced in GM-LATENCY-01): each answer gets feedback (6.1), correct copy is exactly `Correct! +N` in `var(--good)`, wrong copy names the right answer in `var(--bad)` and is never a bare "Wrong" (6.0), no loss announcement (6.3). At the end: the game is over, in place unless allowlisted in `scripts/game-result-allowlist.json` (7.3), the score line sits above Play again / Close game (7.0), the final score equals right answers × points, no loss announcement in the end state (6.3), the adapter's end reveal is visible, the stage height never changed while playing (6.2, `stage-resized` with delta and turn), exactly one `POST /trivia/log-session/` answered 2xx with the game, mode `single`, the score and the same `awarded`; layout scan of the stage column while playing and at the end; then Play again starts a fresh round 1 and the shell's Close game cross-fades back to idle (scenario `wrong`: the end screen's own Close game instead). Shots: idle, playing, feedback, end, replay, closed. |
+| `GM-<game>-adapter` | A visible game with no adapter yet: one skipped test, reason "no adapter yet" (coverage gap until Tasks 6/7 add it). |
+| `GM-SHELL-01` | All 7 vps, logged out. Every visible game, while playing, keeps the GAME_DESIGN_CONSTRAINTS shell contract measured exactly like `scripts/ui-audit.mjs` (`measureInPage` + `shellFailures`): `<GameFrame>` root with a 20px gap (Rule 0), top offset and Close game → bottom equal the stage padding and Game → Close game is 28px (content) / 12px (fill) (4.1, 4.2), a lone status slot is centred / flush right (4.2a), the game stays inside the shell border (1.2). Replaces ui-audit's hand-kept game list with the live catalogue. |
+| `GM-LATENCY-01` | `@perf`, core vps. For every game with an adapter, three answers (right, wrong, right): the answer (click / Enter) to its feedback on screen is at most 150 ms, measured in the page, and no long animation frame (> 100 ms) while answering. No game is finished (nothing logged). |
+
 ## Selftest
 
 Fixtures are in `fixtures/detectors/` and the spec is `specs/selftest/detectors.spec.mjs`.
