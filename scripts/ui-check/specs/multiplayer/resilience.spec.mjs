@@ -5,7 +5,7 @@ import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
 import {
-  both, finishBoth, layoutBoth, motionBoth, openPair, recordTexts, releasePair, roomWithBoth, shotBoth, shownName, startMatch, startRoom,
+  STAGE_BOX, both, finishBoth, layoutBoth, motionBoth, openPair, recordTexts, releasePair, roomWithBoth, shotBoth, shownName, startMatch, startRoom,
   waitNotice, waitState,
 } from '../../lib/mp.mjs';
 
@@ -28,7 +28,7 @@ test('[MP-RES-01] the host leaves a 1v1 mid-game → the joiner sees "Match ende
     await L(host.page, 'multiplayer.exitGameLink').click();
     await waitState(host, 'idle');
     await waitState(joiner, 'ended', 10_000);
-  }, ['.stage-shell', '.stage-inner .om']);
+  }, STAGE_BOX);
   expect(await text(L(joiner.page, 'multiplayer.endedTitle'))).toBe('Match ended');
   const msg = await text(L(joiner.page, 'multiplayer.endedMsg'));
   if (msg !== 'Your opponent left the match.') joiner.audit.violation('ended', { selector: '.om-ended-msg', measured: `"${msg}"`, expected: '"Your opponent left the match."' });

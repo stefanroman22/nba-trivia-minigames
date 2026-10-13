@@ -17,6 +17,13 @@ export const ASIDE = 'aside.game-aside .mp-panel';
 /** Boxes watched for `snap` around Multiplayer card / stage swaps. */
 export const WATCH_CARD = [ASIDE, 'aside.game-aside'];
 export const WATCH_STAGE = ['.stage-shell', '.stage-col'];
+/**
+ * The visible box of the online stage. OnlineMatch's inner `.om` is NOT watched: between phases (AnimatePresence
+ * mode="wait") the old screen fades to opacity 0 and is then removed, so `.om` changes height in one frame while
+ * nothing visible moves (a false `snap`: −203 px results → intro on a phone); `.stage-shell` around it is what the
+ * player sees resize.
+ */
+export const STAGE_BOX = ['.stage-shell'];
 
 /** In-page: the player's multiplayer screen right now (see the header). */
 function mpStateInPage() {
@@ -255,9 +262,6 @@ export const layoutBoth = (pair) => both(pair, async (p) => {
   await p.audit.layout({ scope: 'aside.game-aside' });
 });
 
-/** The players' own ids (public ids from the minted /me/ payload). */
-export const uidOf = (p) => p.user && p.user.id;
-
 /**
  * The name the OTHER player sees for `p`: in a random 1v1 match the relay shows a 13-15 year-old (and an account of
  * unknown age, which counts as one: backend users/consent.py is_teen) as "Player" with no photo (multiplayer_server
@@ -274,19 +278,11 @@ export async function lobbyCode(p) {
   return t.replace(/\D/g, '');
 }
 
-/** Host: Play with a friend → (stepper to `size`) → Generate code → lobby. → the room code. */
-export async function createRoom(host, { size = null } = {}) {
+/** Host: Play with a friend → Generate code (room size: the game's minimum) → lobby. → the room code. */
+export async function createRoom(host) {
   const page = host.page;
   await L(page, 'multiplayer.friendBtn').click();
   await expect(L(page, 'multiplayer.generateBtn')).toBeVisible();
-  if (size != null) {
-    for (let i = 0; i < 4; i++) {
-      const n = Number((await L(page, 'multiplayer.menuSizeNum').innerText()).trim());
-      if (n === size) break;
-      await page.locator(`aside.game-aside .fp-body > .fp-size button[aria-label^='${n < size ? 'More' : 'Fewer'} players']`).click();
-      await page.waitForTimeout(350);
-    }
-  }
   await L(page, 'multiplayer.generateBtn').click();
   await waitState(host, 'lobby');
   await expect(L(page, 'multiplayer.lobbyCode')).toBeVisible();

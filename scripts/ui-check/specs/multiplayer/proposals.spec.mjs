@@ -6,7 +6,7 @@ import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
 import { adapterFor } from '../../games/index.mjs';
 import {
-  both, checkResults, finishBoth, layoutBoth, motionBoth, openPair, releasePair, shotBoth, shownName, startMatch, waitNotice, waitState,
+  STAGE_BOX, both, checkResults, finishBoth, layoutBoth, motionBoth, openPair, releasePair, shotBoth, shownName, startMatch, waitNotice, waitState,
 } from '../../lib/mp.mjs';
 import { playBoth } from '../../lib/mp-play.mjs';
 
@@ -83,7 +83,7 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
   await motionBoth(pair, 'Accept → new match', async () => {
     await L(joiner.page, 'multiplayer.accept').click();
     await both(pair, (p) => waitState(p, ['intro', 'playing'], 15_000));
-  }, ['.stage-shell', '.stage-inner .om']);
+  }, STAGE_BOX);
   await both(pair, (p) => waitState(p, 'playing', 30_000));
   if (host.cap.frames('roundData', { dir: 'in' }).length !== rounds + 1) host.audit.violation('rematch', { selector: 'roundData', measured: `${host.cap.frames('roundData', { dir: 'in' }).length - rounds} new rounds`, expected: 'exactly one new round dealt' });
   await shotBoth(pair, 'rematch-started');
@@ -129,7 +129,7 @@ test('[MP-PROP-02] change-game proposal from the results: the picker (1v1 notes 
   await motionBoth(pair, 'Accept the switch', async () => {
     await L(joiner.page, 'multiplayer.accept').click();
     await both(pair, (p) => waitState(p, ['intro', 'playing'], 15_000));
-  }, ['.stage-shell', '.stage-inner .om']);
+  }, STAGE_BOX);
   await both(pair, (p) => waitState(p, 'playing', 30_000));
   await both(pair, async (p) => {
     await expect(p.page).toHaveURL(new RegExp(`${target.path}$`), { timeout: 10_000 });

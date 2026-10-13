@@ -13,7 +13,7 @@ import { fiberReader } from './fiber.mjs';
 import { L } from './pagemap.mjs';
 import { checkTurns, expectedScore, newCtx, planFor, playTurns, waitOver } from './game-driver.mjs';
 import { framePool } from './mp-pool.mjs';
-import { checkWaiting, demoteMpLoaf, sleep, waitState } from './mp.mjs';
+import { STAGE_BOX, checkWaiting, demoteMpLoaf, sleep, waitState } from './mp.mjs';
 
 /** The popup span of SubmitGuessPopup's inline fallback (no FeedbackSlotContext online). */
 export const ONLINE_FEEDBACK = '.stage-inner .om-stage--play div[style*="pointer-events: none"] > span.font-accent';
@@ -95,7 +95,7 @@ export async function playOnline(p, adapter, scenario, { tag = '' } = {}) {
     } else {
       result = await playTurns(pg, adapter, ctx, { plan, onFirstFeedback: () => p.audit.shot(`${tag}feedback`) });
     }
-  }, { watch: ['.stage-shell', '.stage-inner .om'], settleMs: 800 });
+  }, { watch: STAGE_BOX, settleMs: 800 });
   demoteMpLoaf(p.audit, added);
   await checkTurns(p.audit, adapter, result.turns, { scenario, copyRules: false });
   if (!result.over) p.audit.violation('never-ended', { selector: adapter.id, measured: `still playing after ${result.turns.length} turns`, expected: 'the online round ends and the score goes to the match' });
@@ -189,9 +189,9 @@ export async function playDuel(pair, adapter) {
   };
   // Both pages sampled for snap / CLS while the duel runs (loaf demoted: two browsers at once).
   const outer = await pair.host.audit.motion(async () => {
-    const inner = await pair.joiner.audit.motion(run, { watch: ['.stage-shell', '.stage-inner .om'], settleMs: 400 });
+    const inner = await pair.joiner.audit.motion(run, { watch: STAGE_BOX, settleMs: 400 });
     demoteMpLoaf(pair.joiner.audit, inner);
-  }, { watch: ['.stage-shell', '.stage-inner .om'], settleMs: 400 });
+  }, { watch: STAGE_BOX, settleMs: 400 });
   demoteMpLoaf(pair.host.audit, outer);
   if (banners[0] !== 'You win!') pair.host.audit.violation('duel', { selector: '.ttt-banner', measured: `host banner "${banners[0]}"`, expected: '"You win!" after three in a row' });
   if (banners[1] !== 'Opponent wins') pair.joiner.audit.violation('duel', { selector: '.ttt-banner', measured: `joiner banner "${banners[1]}"`, expected: '"Opponent wins"' });
