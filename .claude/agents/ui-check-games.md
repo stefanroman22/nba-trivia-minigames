@@ -97,7 +97,12 @@ searching screen (account); the friend menu, online play, lobbies and results (m
 ## Procedure
 1. Slice the digest; list candidates: one per distinct defect (rule + selector + route; the
    viewports of one defect go into one finding; the same defect in several games is one finding
-   per game route), plus the visual issues the sheets show.
+   per game route), plus the visual issues the sheets show. One finding per cause: a jump recorded
+   on an ancestor and its descendant in the same frame (`.stage-shell` and its `.playing-wrap`) is
+   ONE finding on the outermost selector; a `stage-resized` and a `snap` from the same turn are one
+   finding (keep `stage-resized`); an online recurrence of a single-player defect (an `MP-GAME-<game>`
+   line on the same element) adds `pairA` to `where.viewports` and `MP-GAME-<game>` on `mp@pairA` to
+   `acceptance.checks` of the games finding instead of a new finding.
 2. Drop what the notes call intentional, a false positive or flaky, adapter-declared deviations
    (`feedback.copy` exemptions in notes), allowlisted full-screen results and `accepted.json` entries.
 3. Confirm each candidate (next section). Not reproducible → drop it, and add a notes bullet when

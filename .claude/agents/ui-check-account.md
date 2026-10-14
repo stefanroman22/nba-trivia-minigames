@@ -101,7 +101,12 @@ is on an account surface.
 
 ## Procedure
 1. Slice the digest; list candidates: one per distinct defect (rule + selector + route; the
-   viewports of one defect go into one finding), plus the visual issues the sheets show.
+   viewports of one defect go into one finding), plus the visual issues the sheets show. One finding
+   per cause: a jump recorded on an ancestor and its descendant in the same frame is ONE finding on
+   the outermost selector; a `stage-resized` and a `snap` from the same turn are one finding (keep
+   `stage-resized`); an online recurrence of a single-player defect adds `pairA` to
+   `where.viewports` and `MP-GAME-<game>` to `acceptance.checks` of the games finding instead of a
+   new finding.
 2. Drop what the notes call intentional, a false positive or flaky, and what `accepted.json` holds.
 3. Confirm each candidate with `probe.mjs` (next section). Not reproducible → drop it, and add a
    notes bullet when it was a false positive.

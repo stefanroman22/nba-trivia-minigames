@@ -246,10 +246,86 @@ const unionBy = (lists, key) => {
 };
 const longest = (vals) => vals.reduce((a, b) => (String(b || '').length > String(a || '').length ? b : a), vals[0]);
 
+/** Members (base first) → one finding: lists unioned, longest current/expected. */
+function combine(ordered, fp) {
+  const base = ordered[0];
+  const m = structuredClone(base);
+  m.fingerprint = fp;
+  if (ordered.length > 1) {
+    m.severity = SEVERITIES[Math.min(...ordered.map((f) => rank(SEVERITIES, f.severity)))] || base.severity;
+    m.where.viewports = unionBy(ordered.map((f) => f.where.viewports), String).sort((a, b) => rank(VP_ORDER, a) - rank(VP_ORDER, b));
+    m.current = longest(ordered.map((f) => f.current));
+    m.expected = longest(ordered.map((f) => f.expected));
+    m.evidence.checkId = base.evidence.checkId || (ordered.find((f) => f.evidence.checkId) || {}).evidence?.checkId || null;
+    m.evidence.shots = unionBy(ordered.map((f) => f.evidence.shots), String);
+    m.evidence.metrics = unionBy(ordered.map((f) => f.evidence.metrics), canonical);
+    m.files = unionBy(ordered.map((f) => f.files), (x) => `${x.path}:${x.line ?? ''}`);
+    for (const k of ['change', 'reuse', 'build', 'rules']) {
+      const u = unionBy(ordered.map((f) => (f.fix && f.fix[k]) || []), String);
+      if (u.length || m.fix[k]) m.fix[k] = u;
+    }
+    m.acceptance.checks = unionBy(ordered.map((f) => f.acceptance.checks), canonical);
+    m.acceptance.assertions = unionBy(ordered.map((f) => f.acceptance.assertions), canonical);
+    m.acceptance.criteria = unionBy(ordered.map((f) => f.acceptance.criteria), String);
+    m.mergedFrom = [...new Set(ordered.flatMap((f) => f.mergedFrom || [f.suite]))].sort();
+  }
+  return m;
+}
+
+const bySeverity = (list) => list.map((f, i) => ({ f, i }))
+  .sort((a, b) => rank(SEVERITIES, a.f.severity) - rank(SEVERITIES, b.f.severity) || rank(SUITES, a.f.suite) - rank(SUITES, b.f.suite) || a.i - b.i)
+  .map((x) => x.f);
+
+// Pass 2 (one finding per cause): the same defect seen on an element and on its ancestor, or as a stage `snap` and a
+// `stage-resized` of the same turn. Selector compounds compare without their tag name (".stage-shell" = "div.stage-shell").
+const compounds = (sel) => normSelector(sel).split(' ').filter((t) => t && t !== '>').map((t) => t.replace(/^[a-z][\w-]*(?=[.#[:])/i, ''));
+const STAGE_TARGET = /^\.(?:[\w-]+\.)*(stage-shell|playing-wrap)(?![\w-])/;
+const stageTarget = (sel) => STAGE_TARGET.exec(compounds(sel).at(-1) || '')?.[1] || null;
+const ruleFamily = (f) => (['snap', 'stage-resized'].includes(f.rule) && stageTarget(f.where.selector) ? 'stage-size' : f.rule);
+/** True when selector a's target is a (proper) ancestor of b's: a's last compound sits before b's last, chains aligned. */
+export function isAncestorSelector(a, b) {
+  const ta = compounds(a), tb = compounds(b);
+  if (!ta.length) return false;
+  for (let i = tb.length - 2; i >= 0; i--) {
+    if (tb[i] !== ta[ta.length - 1]) continue;
+    let ok = true;
+    for (let j = 1; ok && j < ta.length && i - j >= 0; j++) ok = ta[ta.length - 1 - j] === tb[i - j];
+    if (ok) return true;
+  }
+  return false;
+}
+/** The size a finding's first metric measures: |b − a| for "a->b", else the first number (absolute). */
+export function metricMagnitude(f) {
+  const m = ((f.evidence && f.evidence.metrics) || [])[0];
+  if (m === undefined) return null;
+  const s = typeof m === 'string' ? m : String(m.value);
+  const d = /(-?\d+(?:\.\d+)?)\s*(?:px)?\s*(?:->|→)\s*(-?\d+(?:\.\d+)?)/.exec(s);
+  if (d) return Math.abs(Number(d[2]) - Number(d[1]));
+  const n = /-?\d+(?:\.\d+)?/.exec(s);
+  return n ? Math.abs(Number(n[0])) : null;
+}
+const close = (a, b) => a !== null && b !== null && (Math.abs(a - b) <= 10 || Math.abs(a - b) <= 0.1 * Math.max(a, b));
+const fileLines = (f) => new Set((f.files || []).filter((x) => x.line != null).map((x) => `${x.path}:${x.line}`));
+/** Same cause: same rule family and route, related selectors, and a matching size (within 10 px or 10 %) or code line. */
+function sameCause(a, b) {
+  if (ruleFamily(a) !== ruleFamily(b) || normRoute(a.where.route) !== normRoute(b.where.route)) return false;
+  const sa = a.where.selector, sb = b.where.selector;
+  const related = (stageTarget(sa) && stageTarget(sb)) || isAncestorSelector(sa, sb) || isAncestorSelector(sb, sa);
+  if (!related) return false;
+  const lines = fileLines(b);
+  return close(metricMagnitude(a), metricMagnitude(b)) || [...fileLines(a)].some((l) => lines.has(l));
+}
+
 /**
- * Merge findings with equal fingerprints: the highest-severity member is the base (ties: suite order, then input
- * order); viewports, shots, metrics, files (path:line), fix items, checks, assertions and criteria are unioned; the
- * longest current/expected wins. Adds `fingerprint` (and `mergedFrom`, the member suites, when several merged).
+ * Merge findings in two passes.
+ * 1. Equal fingerprints: the highest-severity member is the base (ties: suite order, then input order); viewports,
+ *    shots, metrics, files (path:line), fix items, checks, assertions and criteria are unioned; the longest
+ *    current/expected wins. Adds `fingerprint` (and `mergedFrom`, the member suites, when several merged).
+ * 2. One finding per cause: same rule family (`snap` and `stage-resized` on .stage-shell/.playing-wrap are one), same
+ *    route, one selector an ancestor of the other (or both the stage shell/playing wrap), and the first metric within
+ *    10 px or 10 % (or a shared file:line). The outermost selector is the base and keeps its fingerprint (between
+ *    equals, `stage-resized` over `snap`, then the shorter selector); the severity is the highest; everything else is
+ *    unioned as in pass 1. `mergedFingerprints` lists the absorbed fingerprints.
  */
 export function mergeFindings(list) {
   const groups = new Map();
@@ -258,31 +334,31 @@ export function mergeFindings(list) {
     if (!groups.has(fp)) groups.set(fp, []);
     groups.get(fp).push(f);
   }
+  const once = [...groups].map(([fp, members]) => combine(bySeverity(members), fp));
+
+  // Pass 2: union-find over pass-1 findings.
+  const parent = once.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  for (let i = 0; i < once.length; i++) for (let j = i + 1; j < once.length; j++) if (sameCause(once[i], once[j])) parent[find(j)] = find(i);
   const out = [];
-  for (const [fp, members] of groups) {
-    const ordered = members.map((f, i) => ({ f, i }))
-      .sort((a, b) => rank(SEVERITIES, a.f.severity) - rank(SEVERITIES, b.f.severity) || rank(SUITES, a.f.suite) - rank(SUITES, b.f.suite) || a.i - b.i)
-      .map((x) => x.f);
-    const base = ordered[0];
-    const m = structuredClone(base);
-    m.fingerprint = fp;
-    if (members.length > 1) {
-      m.where.viewports = unionBy(ordered.map((f) => f.where.viewports), String).sort((a, b) => rank(VP_ORDER, a) - rank(VP_ORDER, b));
-      m.current = longest(ordered.map((f) => f.current));
-      m.expected = longest(ordered.map((f) => f.expected));
-      m.evidence.checkId = base.evidence.checkId || (ordered.find((f) => f.evidence.checkId) || {}).evidence?.checkId || null;
-      m.evidence.shots = unionBy(ordered.map((f) => f.evidence.shots), String);
-      m.evidence.metrics = unionBy(ordered.map((f) => f.evidence.metrics), canonical);
-      m.files = unionBy(ordered.map((f) => f.files), (x) => `${x.path}:${x.line ?? ''}`);
-      for (const k of ['change', 'reuse', 'build', 'rules']) {
-        const u = unionBy(ordered.map((f) => (f.fix && f.fix[k]) || []), String);
-        if (u.length || m.fix[k]) m.fix[k] = u;
-      }
-      m.acceptance.checks = unionBy(ordered.map((f) => f.acceptance.checks), canonical);
-      m.acceptance.assertions = unionBy(ordered.map((f) => f.acceptance.assertions), canonical);
-      m.acceptance.criteria = unionBy(ordered.map((f) => f.acceptance.criteria), String);
-      m.mergedFrom = [...new Set(members.map((f) => f.suite))].sort();
-    }
+  const seen = new Set();
+  for (let i = 0; i < once.length; i++) {
+    const root = find(i);
+    if (seen.has(root)) continue;
+    seen.add(root);
+    const members = once.filter((_, j) => find(j) === root);
+    if (members.length === 1) { out.push(members[0]); continue; }
+    const sels = members.map((f) => f.where.selector);
+    const key = (f) => [
+      -sels.filter((s) => isAncestorSelector(f.where.selector, s)).length,
+      { 'stage-shell': 0, 'playing-wrap': 1 }[stageTarget(f.where.selector)] ?? 2,
+      f.rule === 'stage-resized' ? 0 : 1,
+      normSelector(f.where.selector).length,
+    ];
+    const cmp = (a, b) => { const ka = key(a), kb = key(b); for (let k = 0; k < ka.length; k++) if (ka[k] !== kb[k]) return ka[k] - kb[k]; return 0; };
+    const base = [...members].sort(cmp)[0];
+    const m = combine([base, ...bySeverity(members.filter((f) => f !== base))], base.fingerprint);
+    m.mergedFingerprints = [...new Set(members.filter((f) => f !== base).flatMap((f) => [f.fingerprint, ...(f.mergedFingerprints || [])]))];
     out.push(m);
   }
   return out;

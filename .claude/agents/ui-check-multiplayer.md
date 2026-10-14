@@ -110,6 +110,13 @@ is the same defect, handled the same way.
 ## Procedure
 1. Slice the digest; list candidates: one per distinct defect (rule + selector + route; the
    viewports and players of one defect go into one finding), plus the visual issues the sheets show.
+   One finding per cause: a jump recorded on an ancestor and its descendant in the same frame is ONE
+   finding on the outermost selector; a `stage-resized` and a `snap` from the same turn are one
+   finding (keep `stage-resized`); an online recurrence of a single-player defect is not a new
+   finding but an addition to the games finding: write it in your own file as the same fingerprint
+   (the games finding's `rule`, `where.route`, `where.selector` verbatim, see Cross-suite duplicates)
+   with `pairA` in `where.viewports` and `MP-GAME-<game>` on `mp@pairA` in `acceptance.checks`, so
+   `report.mjs` merges it into the games finding.
 2. Drop what the notes call intentional, a false positive or flaky, and what `accepted.json` holds.
 3. Confirm each candidate (next section). Not reproducible → drop it, and add a notes bullet when it
    was a false positive.

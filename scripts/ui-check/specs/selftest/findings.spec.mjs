@@ -117,6 +117,50 @@ test('[ST-FINDINGS] schema, acceptance DSL parser, fingerprint dedupe, accepted.
     expect(m.mergedFrom).toEqual(['account', 'guest']);
   });
 
+  await test.step('one finding per cause: ancestor/descendant jumps and snap + stage-resized of one turn merge (run 20261014-1153 shapes)', () => {
+    const SHELL = 'main.page.game-page > div.game-grid > section.stage-col > div.stage-shell';
+    const WRAP = 'section.stage-col > div.stage-shell > div.stage-inner > div > div.playing-wrap';
+    const f = (rule, route, selector, metric, file, checks, suite = 'games') => ({
+      suite, persona: 'solo', category: 'motion', owner: 'frontend', rule, title: `${rule} ${route} ${metric}`, severity: 'major',
+      where: { selector, route, viewports: ['phone-390'] }, current: `${metric} measured`, expected: 'no jump',
+      evidence: { checkId: checks[0], metrics: [{ label: 'measured', value: metric }], shots: [] },
+      files: [{ path: file.split(':')[0], line: Number(file.split(':')[1]), why: 'x' }],
+      fix: { change: ['reserve the slot'] },
+      acceptance: { checks: checks.map((id) => ({ id, projects: ['games@phone-390'] })), assertions: [], criteria: [] },
+    });
+    const S5 = 'src/Game Renderers/StartingFive.tsx', WAYA = 'src/Game Renderers/WhoAreYa.tsx';
+    const f011 = f('snap', '/starting-five', SHELL, '868->947px one frame', `${S5}:366`, ['GM-starting-five-perfect', 'GM-starting-five-partial']);
+    const f012 = f('snap', '/starting-five', WRAP, '838->917px', `${S5}:366`, ['GM-starting-five-perfect', 'GM-LATENCY-starting-five']);
+    const f016 = f('stage-resized', '/starting-five', '.stage-shell', '-15.8px', `${S5}:343`, ['GM-starting-five-perfect']);
+    const f013 = f('snap', '/who-are-ya', WRAP, '321->445px; loaf 102ms', `${WAYA}:416`, ['GM-who-are-ya-partial', 'GM-LATENCY-who-are-ya']);
+    const f017 = f('stage-resized', '/who-are-ya', '.stage-shell', '+195.9px turn 1', `${WAYA}:416`, ['GM-who-are-ya-perfect']);
+    const other = f('snap', '/contexto', WRAP, '838->917px', `${S5}:366`, ['GM-contexto-perfect']); // another route: never merged
+
+    const merged = mergeFindings([f011, f012, f016, f013, f017, other]);
+    expect(merged).toHaveLength(4);
+    // 011 + 012: playing-wrap is a descendant of the stage shell, both jump 79 px → one finding on the outer selector.
+    const s5 = merged.find((m) => m.fingerprint === fingerprint(f011));
+    expect(s5.mergedFingerprints).toEqual([fingerprint(f012)]);
+    expect(s5.acceptance.checks.map((c) => c.id)).toEqual(['GM-starting-five-perfect', 'GM-starting-five-partial', 'GM-LATENCY-starting-five']);
+    expect(s5.evidence.metrics).toHaveLength(2);
+    // 016 (16 px, another line) is a different cause on the same stage.
+    expect(merged.find((m) => m.fingerprint === fingerprint(f016)).mergedFingerprints).toBeUndefined();
+    // 013 + 017: snap of the playing wrap and stage-resized of the shell in the same turn → keep stage-resized.
+    const waya = merged.find((m) => m.where.route === '/who-are-ya');
+    expect(waya.fingerprint).toBe(fingerprint(f017));
+    expect(waya.rule).toBe('stage-resized');
+    expect(waya.mergedFingerprints).toEqual([fingerprint(f013)]);
+    expect(waya.acceptance.checks.map((c) => c.id)).toEqual(['GM-who-are-ya-perfect', 'GM-who-are-ya-partial', 'GM-LATENCY-who-are-ya']);
+    // An online recurrence written as its own finding on the shell merges into the games finding (major wins).
+    const online = { ...f('snap', '/starting-five', SHELL, '551->629px', `${S5}:366`, ['MP-GAME-starting-five']), suite: 'multiplayer' };
+    online.acceptance.checks[0].projects = ['mp@pairA'];
+    online.where.viewports = ['pairA'];
+    const withOnline = mergeFindings([f011, f012, online]);
+    expect(withOnline).toHaveLength(1);
+    expect(withOnline[0].mergedFrom).toEqual(['games', 'multiplayer']);
+    expect(withOnline[0].where.viewports).toEqual(['phone-390', 'pairA']);
+  });
+
   await test.step('accepted.json drops fingerprints; ids are stable within a run and carried across runs', () => {
     const merged = mergeFindings(sample());
     const { kept, dropped } = dropAccepted(merged, [{ fingerprint: 'contrast|/room/G8RW2B|.lobby-code', reason: 'owner accepted' }]);
