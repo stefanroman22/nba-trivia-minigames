@@ -51,9 +51,9 @@
     "current": "The show/hide password toggle measures 20×16 px on every viewport, under the WCAG 2.5.8 minimum.",
     "expected": "24×24",
     "evidence": {
-      "checkId": "AC-AUTH-01",
+      "checkId": "AC-SIGNUP-01",
       "metrics": [{ "label": "toggle size", "value": "20×16px", "vp": "phone-390" }, { "label": "toggle size", "value": "20×16px", "vp": "desktop-1366" }],
-      "shots": ["shots/AC-AUTH-01/account@desktop-1366-tap-target-1.jpg"]
+      "shots": ["shots/AC-SIGNUP-01/account@desktop-1366-tap-target-1.jpg"]
     },
     "files": [
       { "path": "src/components/AuthForm.tsx", "line": 120, "why": "renders the toggle" },
