@@ -5,6 +5,13 @@ Specs: `specs/guest/{layout,navigation,modals,motion,perf,permissions,a11y}.spec
 `lib/games-catalog.mjs` (`visibleGames()`, `hiddenGames()`, parsed from `src/utils/GameUtils.tsx` and
 `NOT_ONLINE` in `src/utils/roomSizes.ts`).
 
+## How judges use this file
+
+The `ui-check-guest` judge reads "Intentional exemptions", "Measurement notes" and "Flaky spots" before judging
+(what they describe is not a finding) and "Selector tips" when it writes acceptance assertions. After judging it
+appends what a later run can reuse (a false positive and why, a selector that works, a flaky spot) as one bullet
+`- (<runId>) …` under the matching heading; it never edits or deletes existing lines.
+
 ## Selector tips
 
 - The app has no `data-testid`. Stable hooks: `.nav3`, `.nav3-links`, `#nav-drawer` / `.drawer-panel`,

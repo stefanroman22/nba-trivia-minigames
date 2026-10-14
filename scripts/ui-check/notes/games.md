@@ -6,6 +6,15 @@ Specs: `specs/games/scenarios.spec.mjs` (`GM-<game>-<scenario>`, `GM-<game>-adap
 adapter helpers: `games/helpers.mjs`. Locators: `pagemap/games.json`. Shell measurement shared with
 `scripts/ui-audit.mjs`: `scripts/lib/game-shell.mjs`.
 
+## How judges use this file
+
+The `ui-check-games` judge reads "Intentional exemptions", "Measurement notes", "Flaky spots" and both "False
+positives and flakes met" lists before judging (what they describe is not a finding), and "Scenario coverage" for
+the coverage gaps. The "REAL findings" and "Findings" lists name defects already seen: they become findings when
+the digest shows them again. The adapter-writing and answer-source sections are for adapter authors; the judge
+skips them. After judging it appends what a later run can reuse (a false positive and why, a flaky spot, an
+adapter limit) as one bullet `- (<runId>) …` under the matching heading; it never edits or deletes existing lines.
+
 ## Writing an adapter (Tasks 6, 7)
 
 1. `games/<id>.mjs` default-exports the contract object; add it to `ADAPTERS` in `games/index.mjs`. The scenarios

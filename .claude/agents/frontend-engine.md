@@ -99,3 +99,39 @@ Rules:
   pipeline task the brief quotes the rules that apply; open the doc only for a rule id the brief
   points to. Gate 2 runs the layout audit (`scripts/ui-audit.mjs`) on the games you touched — do not
   run `npm run ui:audit` yourself. Outside the pipeline, read the doc first and run the audit.
+
+## Fixing a UI-check finding
+When the `ui-fix` skill hands you finding ids and a `runDir`, the finding is your brief: this
+replaces "Required reading" above and the outside-the-pipeline doc read and audit run for
+`Game Renderers/` (steps 2 and 7), and every other rule in this file still applies (reuse-first,
+UI-21/22/23, `<GameFrame>`, no generic design skill on `Game Renderers/*.tsx`).
+1. Read only your finding (Bash tool), never `REPORT.md`, the digest, `results.json` or other findings:
+   `node -e 'const [f,id]=process.argv.slice(1);const d=require(f);console.log(JSON.stringify((d.findings||d).find(x=>x.id===id),null,1))' "<runDir>/findings.json" <id>`
+2. Read only the constraint sections its `fix.rules` name (Grep the heading, e.g. `^## Rule UI-23`,
+   `^### RULE 6.2`, then Read that section). For a `Game Renderers/*.tsx` edit also read the "Rules at
+   a glance" table of `docs/GAME_DESIGN_CONSTRAINTS.md`.
+3. Implement `fix.change`, reusing `fix.reuse`; build anything in `fix.build` only after the
+   reuse-first checks come back empty.
+4. `node scripts/ui-check/verify.mjs <id> --keep-stack` (the mode follows the finding: dev with HMR,
+   or prod for one validated in prod, which rebuilds the frontend first). FAIL → read its first
+   failing line (and `<runDir>/verify/<id>.json` when the line is not enough), adjust, verify again.
+   At most 4 attempts (one attempt = one verify after a change). A failing line about another
+   finding of your cluster (shared check): work on that one; a line no finding of your cluster
+   explains: stop, `blocked` with that line.
+5. Once it passes, cover all 7 viewports when the acceptance's assertions do not. Write the missing
+   variants (same assertion, other `viewport`; Bash tool):
+   `node -e 'const [f,id,dir]=process.argv.slice(1);const x=require(f).findings.find(y=>y.id===id);const V=["phone-360","phone-390","phone-414","tablet-768","tablet-1280","desktop-1366","desktop-1920"];(x.acceptance.assertions||[]).forEach((a,i)=>V.filter(v=>v!==a.viewport).forEach(v=>{const p=require("path").join(dir,id+"-a"+(i+1)+"-"+v+".json");require("fs").writeFileSync(p,JSON.stringify({...a,viewport:v}));console.log(p)}))' "<runDir>/findings.json" <id> "<runDir>/probe"`
+   and run each printed file with
+   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode <the mode verify printed> --run <runId> --keep-stack`.
+   FAIL → back to step 4 (same attempt budget). ERROR from a step whose control does not exist at
+   that viewport (the drawer on desktop, a desktop-only nav link) does not apply: list it in `why`.
+   The acceptance's checks run on all 7 viewports in the orchestrator's regression gate, not here.
+6. **Never edit `scripts/ui-check/**`** (specs, detectors, assertions, thresholds, pagemaps,
+   `accepted.json`, notes, findings files) to make a finding pass. If the check or its acceptance is
+   wrong (it demands what a constraint doc forbids, measures the wrong element, or cannot pass on a
+   correct UI), stop and report `check-bug` with why.
+7. Do not commit, do not run `node scripts/ui-check/run.mjs --stop`, and skip lint/typecheck/build
+   and `npm run ui:audit` (the orchestrator runs lint and typecheck once before the PR; `GM-SHELL-01`
+   in its regression gate is the same shell measurement).
+8. Return one JSON line per finding:
+   `{"finding": "<id>", "status": "fixed|blocked|check-bug", "attempts": <n>, "touched": ["<path>"], "why": "<one line, for blocked and check-bug>"}`

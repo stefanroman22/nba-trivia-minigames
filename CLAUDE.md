@@ -21,6 +21,8 @@ window — same tab, same session, visible to you. Prefer its `mcp__chrome__*`
 tools over the sandboxed `mcp__plugin_playwright_playwright__*` ones, which get
 a blank throwaway profile and cannot see logged-in state.
 
+For a full automated UI audit use the `ui-check` skill; to fix its findings, the `ui-fix` skill.
+
 ## Commands that aren't guessable
 - Standalone typecheck: `npx next typegen && npx tsc --noEmit` (`npm run build` also type-checks).
 
@@ -87,6 +89,7 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `docs/games/MASTER_PLAN.md` | adding a new game or checking what's already shipped/planned |
 | `.claude/README.md` | changing the coding-agent model/effort profile |
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
+| `docs/ui-check/README.md` | running UI audits or fixing UI-check findings |
 | `docs/CACHING_SCALING_PLAN.md` | deciding whether friends/leaderboard data needs Redis caching, or touching `users/leaderboard.py`/`users/friends.py`'s query shape |
 
 ## Coding engines & profiles

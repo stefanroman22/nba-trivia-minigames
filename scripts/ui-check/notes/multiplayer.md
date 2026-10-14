@@ -7,6 +7,14 @@ reader, frame recorders), `lib/mp-play.mjs` (an online round with the single-pla
 for the adapters' own keys). App side: `src/context/MultiplayerContext.tsx` (phases), `src/components/MultiPlayer/*`,
 `src/components/modals/{GamePickerModal,AnswerReviewModal}.tsx`; relay `multiplayer_server/src/index.js` + `turnGames.js`.
 
+## How judges use this file
+
+The `ui-check-multiplayer` judge reads "False positives met and how they were handled", "Flaky spots" and "Waits
+and timings that matter" before judging (what they describe is not a finding), and "Screen state" when it maps a
+digest line to a phase. The rest is for spec authors; the judge opens it only when a digest line needs it. After
+judging it appends what a later run can reuse (a false positive and why, a flaky spot, a timing) as one bullet
+`- (<runId>) …` under the matching heading; it never edits or deletes existing lines.
+
 ## Running
 
 - `node scripts/ui-check/run.mjs --suite multiplayer --mode prod` runs all four pairs with ONE worker (run.mjs). The mp

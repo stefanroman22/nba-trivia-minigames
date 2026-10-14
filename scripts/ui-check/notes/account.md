@@ -6,6 +6,14 @@ minted user, throwaway names, in-page typing latency, nav flash sampler, `tabSli
 Harness additions: `lib/accounts.mjs` accepts throwaway names `uic<digits>` and has `forgetAge()`; `lib/mint_tokens.py`
 has the `forget_age` op; `fixtures/upload/avatar.png` (64x64).
 
+## How judges use this file
+
+The `ui-check-account` judge reads "Intentional exemptions", "Measurement notes" and "Flaky spots" before judging
+(what they describe is not a finding), "Throttle budget" before it probes anything (probes never submit), and
+"Personas" and "Selector tips" when it writes acceptance assertions. After judging it appends what a later run can
+reuse (a false positive and why, a selector that works, a flaky spot) as one bullet `- (<runId>) …` under the
+matching heading; it never edits or deletes existing lines.
+
 ## Personas
 
 - `solo` (project default): a minted session for the worker's account (`testuser3`, `testuser3w<n>`).
