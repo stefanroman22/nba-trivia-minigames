@@ -1,0 +1,26 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "layout-transition",
+        "value": "*",
+        "files": [
+          "scripts/ui-check/fixtures/detectors/*.html"
+        ],
+        "createdAt": "2026-10-12T10:23:13.616Z",
+        "reason": "Agent: detector selftest fixtures deliberately animate height to prove the snap detector"
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "scripts/ui-check/fixtures/detectors/*.html"
+        ],
+        "createdAt": "2026-10-12T10:23:14.076Z",
+        "reason": "Agent: unstyled detector selftest fixture pages, not product UI"
+      }
+    ]
+  }
+}

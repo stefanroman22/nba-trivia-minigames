@@ -1,0 +1,26 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>transient panel</title>
+<style>
+  body { margin: 0; font: 16px system-ui, sans-serif; }
+  #open { margin: 16px; width: 120px; height: 48px; }
+  #transient { margin: 0 16px; width: 200px; height: 100px; background: #c33; }
+  #transient.tall { height: 300px; }
+</style></head>
+<body><div id="root">
+  <button id="open" type="button">Open</button>
+  <p>A panel that exists only between Open and its own removal 600 ms later (a modal opened and closed within the
+  steps). ?mode=snap: 200 ms after it appears its height jumps 100→300px in one frame (class swap, no transition).
+  ?mode=still: it never moves.</p>
+</div>
+<script>
+  const snap = new URLSearchParams(location.search).get('mode') === 'snap';
+  document.getElementById('open').addEventListener('click', () => {
+    const p = document.createElement('div');
+    p.id = 'transient';
+    document.getElementById('root').appendChild(p);
+    if (snap) setTimeout(() => p.classList.add('tall'), 200);
+    setTimeout(() => p.remove(), 600);
+  });
+</script>
+</body></html>

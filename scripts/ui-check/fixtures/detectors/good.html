@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>good</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; color: #111; background: #fff; }
+  /* Sticky nav: content scrolled under it is legitimately covered. */
+  .nav { position: sticky; top: 0; z-index: 10; height: 56px; display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: #fff; border-bottom: 1px solid #ccc; }
+  .nav button { min-width: 48px; height: 48px; }
+  main { padding: 16px; }
+  .card { margin: 0 0 16px; padding: 16px; border: 1px solid #ccc; border-radius: 8px; background: #f7f7f7; }
+  .card button { min-width: 48px; height: 48px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  /* Horizontal carousel: controls beyond the edge live in their own scroller. */
+  .carousel { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+  .carousel button { flex: 0 0 140px; height: 48px; }
+  /* Closed off-canvas drawer: moved off screen and hidden. */
+  .drawer { position: fixed; top: 0; right: 0; width: 280px; height: 100%; transform: translateX(100%); visibility: hidden; background: #fff; }
+  .drawer button { width: 48px; height: 48px; }
+  .label { display: inline-block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .spacer { height: 900px; }
+</style>
+</head>
+<body>
+<header class="nav">
+  <button type="button" aria-label="Menu">Menu</button>
+  <button type="button">Log in</button>
+</header>
+<main class="page">
+  <h1>Good page</h1>
+  <section class="card">
+    <h2>Card</h2>
+    <p>A sentence with an <a href="#inline">inline link</a> inside running text is exempt from target size.</p>
+    <span class="label">Short label</span>
+    <span class="sr-only">Screen reader only text that is visually hidden on purpose</span>
+    <button type="button" id="primary">Play</button>
+  </section>
+  <section class="card">
+    <h2>Carousel</h2>
+    <div class="carousel" tabindex="0" aria-label="Carousel">
+      <button type="button">One</button><button type="button">Two</button><button type="button">Three</button><button type="button">Four</button>
+    </div>
+  </section>
+  <div class="spacer"></div>
+  <section class="card">
+    <button type="button" id="under-nav">Under the nav</button>
+  </section>
+  <div class="spacer"></div>
+</main>
+<aside class="drawer" aria-hidden="true"><button type="button" tabindex="-1">Close</button></aside>
+</body>
+</html>

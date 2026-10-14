@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>occluded bad</title>
+<style>
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; }
+  main { padding: 16px; }
+  #covered { margin-top: 140px; width: 160px; height: 48px; }
+  /* A fixed layer in the middle of the screen sits on top of the button. */
+  .cover { position: fixed; left: 0; right: 0; top: 130px; height: 90px; background: rgba(40, 40, 40, .85); color: #fff; }
+</style>
+</head>
+<body>
+<main class="page">
+  <button id="covered">Covered</button>
+</main>
+<div class="cover">Fixed layer</div>
+</body>
+</html>

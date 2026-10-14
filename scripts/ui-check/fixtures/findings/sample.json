@@ -1,0 +1,116 @@
+[
+  {
+    "rule": "tap-target",
+    "title": "Password show/hide toggle is a 20×16 px target",
+    "severity": "minor",
+    "category": "a11y",
+    "owner": "frontend",
+    "suite": "guest",
+    "persona": "guest",
+    "where": {
+      "route": "/?login=1",
+      "state": "login modal open",
+      "viewports": ["phone-390"],
+      "selector": "div.auth-pw-wrap >  button.auth-pw-toggle"
+    },
+    "current": "20×16 px",
+    "expected": "at least 24×24 px",
+    "evidence": {
+      "checkId": "G-MOTION-02",
+      "metrics": [{ "label": "toggle size", "value": "20×16px", "vp": "phone-390" }],
+      "shots": ["shots/G-MOTION-02/guest@phone-390-tap-target-1.jpg"]
+    },
+    "files": [{ "path": "src/components/AuthForm.tsx", "line": 120, "why": "renders the toggle" }],
+    "fix": { "change": ["Give .auth-pw-toggle a 24×24 hit area"], "reuse": [], "build": [], "rules": ["WCAG 2.5.8"] },
+    "acceptance": {
+      "checks": [{ "id": "G-MOTION-02", "projects": ["guest@phone-390"] }],
+      "assertions": [
+        {
+          "persona": "guest", "viewport": "phone-390", "route": "/",
+          "steps": [{ "click": "@guest.guestPanelCta" }, { "waitFor": ".modal-panel .auth-pw-toggle" }],
+          "expect": [{ "minSize": [".auth-pw-toggle", 24, 24] }]
+        }
+      ],
+      "criteria": ["The toggle is at least 24×24 px"]
+    }
+  },
+  {
+    "rule": "tap-target",
+    "title": "Password toggle too small",
+    "severity": "major",
+    "category": "a11y",
+    "owner": "frontend",
+    "suite": "account",
+    "persona": "solo",
+    "where": {
+      "route": "/",
+      "state": "login modal open",
+      "viewports": ["desktop-1366", "phone-390"],
+      "selector": "div.auth-pw-wrap > button.auth-pw-toggle"
+    },
+    "current": "The show/hide password toggle measures 20×16 px on every viewport, under the WCAG 2.5.8 minimum.",
+    "expected": "24×24",
+    "evidence": {
+      "checkId": "AC-SIGNUP-01",
+      "metrics": [{ "label": "toggle size", "value": "20×16px", "vp": "phone-390" }, { "label": "toggle size", "value": "20×16px", "vp": "desktop-1366" }],
+      "shots": ["shots/AC-SIGNUP-01/account@desktop-1366-tap-target-1.jpg"]
+    },
+    "files": [
+      { "path": "src/components/AuthForm.tsx", "line": 120, "why": "renders the toggle" },
+      { "path": "src/styles/auth.css", "line": 44, "why": "sets width 20px" }
+    ],
+    "fix": { "change": ["Give .auth-pw-toggle a 24×24 hit area"], "reuse": ["the .icon-btn padding"], "build": [], "rules": [] },
+    "acceptance": {
+      "checks": [],
+      "assertions": [
+        {
+          "persona": "guest", "viewport": "phone-390", "route": "/",
+          "steps": [{ "click": "@guest.guestPanelCta" }, { "waitFor": ".modal-panel .auth-pw-toggle" }],
+          "expect": [{ "minSize": [".auth-pw-toggle", 24, 24] }]
+        },
+        {
+          "persona": "guest", "viewport": "desktop-1366", "route": "/",
+          "steps": [{ "click": "@common.navLogin" }],
+          "expect": [{ "minSize": [".auth-pw-toggle", 24, 24] }, { "axe": ["target-size"] }]
+        }
+      ],
+      "criteria": ["The toggle is at least 24×24 px", "axe target-size passes"]
+    }
+  },
+  {
+    "rule": "cls",
+    "title": "Legal-change notice shifts the home page on phones",
+    "severity": "major",
+    "category": "perf",
+    "owner": "frontend",
+    "suite": "guest",
+    "persona": "guest",
+    "where": { "route": "/", "state": "cold load", "viewports": ["phone-360", "phone-390", "phone-414"], "selector": "document" },
+    "current": "CLS 0.3 on a cold load on phones",
+    "expected": "CLS ≤ 0.1",
+    "evidence": { "checkId": "G-PERF-01", "metrics": [{ "label": "home cold cls", "value": 0.327, "vp": "phone-360" }], "shots": [] },
+    "files": [{ "path": "src/components/LegalNotice.tsx", "line": 30, "why": "mounts after hydration above the hero" }],
+    "fix": { "change": ["Reserve the notice's space before hydration"], "reuse": [], "build": [], "rules": ["UI-21"] },
+    "acceptance": {
+      "checks": [],
+      "assertions": [{ "persona": "guest", "viewport": "phone-390", "route": "/", "steps": [{ "wait": 3000 }], "expect": [{ "maxCls": 0.1 }] }],
+      "criteria": ["Cold-load CLS on / at phone-390 is at most 0.1"]
+    }
+  },
+  {
+    "rule": "contrast",
+    "title": "Room code page polish",
+    "severity": "polish",
+    "category": "visual",
+    "owner": "frontend",
+    "suite": "multiplayer",
+    "persona": "pair",
+    "where": { "route": "/room/G8RW2B", "state": "lobby", "viewports": ["tablet-768"], "selector": ".lobby-code" },
+    "current": "Low contrast",
+    "expected": "4.5:1",
+    "evidence": { "checkId": "MP-ROOM-01", "metrics": [], "shots": [] },
+    "files": [{ "path": "src/components/Lobby.tsx", "line": 12, "why": "code colour" }],
+    "fix": { "change": ["Use the text token"], "reuse": [], "build": [], "rules": [] },
+    "acceptance": { "checks": [{ "id": "MP-ROOM-01", "projects": ["mp@pairC"] }], "assertions": [], "criteria": ["MP-ROOM-01 passes"] }
+  }
+]
