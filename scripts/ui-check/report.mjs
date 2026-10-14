@@ -5,19 +5,21 @@
 // acceptance DSL, merges equal fingerprints (rule|route|selector), drops accepted.json fingerprints, assigns ids
 // UIC-<runId>-NNN (a fingerprint already seen in this run or the previous run keeps its id: --prev, else the newest
 // earlier run with a findings.json), and with --validate proves every new acceptance FAILS on the current code
-// (verify --expect-fail, batched; default mode dev): a finding whose acceptance passes, partly passes or cannot run
-// moves to <runDir>/rejected.json with the reason. Writes <runDir>/findings.json, rejected.json and REPORT.md.
-// Validation results are cached by acceptance hash: an unchanged finding is not re-run.
+// (verify --expect-fail, batched; default mode = the run's own mode, recorded as validatedMode). A finding is kept when at
+// least one criterion FAILS cleanly and none errors; criteria that already pass are kept as guards. Rejected to
+// <runDir>/rejected.json: no criterion fails (kind 'validation', cached while the acceptance is unchanged) or one
+// errors (kind 'validation-error', retried by the next --validate). An infra failure (stack, mint, setup: no result at
+// all) exits 1 and writes nothing. Writes <runDir>/findings.json, rejected.json and REPORT.md.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
-  ACCEPTED_PATH, acceptanceHash, assignIds, dropAccepted, fingerprint, latestRunId, listRuns, loadJudgeFindings,
+  ACCEPTED_PATH, acceptanceHash, assignIds, carriedRejection, dropAccepted, fingerprint, latestRunId, listRuns, loadJudgeFindings,
   mergeFindings, readFindingsDoc, readJson, runMode, runPath, sortFindings, validateFinding, writeJson, writeReport,
 } from './lib/findings.mjs';
 import { stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
 
 function parseArgs(argv) {
-  const o = { run: null, prev: null, validate: false, mode: 'dev', keepStack: false };
+  const o = { run: null, prev: null, validate: false, mode: null, keepStack: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -77,20 +79,24 @@ async function main() {
     const hash = acceptanceHash(f);
     const out = { ...f, status: (was && was.status) || 'open' };
     if (was && was.fixedAt) out.fixedAt = was.fixedAt;
-    if (was && was.validatedHash === hash) { out.validatedAt = was.validatedAt; out.validatedHash = hash; }
+    if (was && was.validatedHash === hash) {
+      for (const k of ['validatedAt', 'validatedHash', 'validatedMode', 'guards']) if (was[k] !== undefined) out[k] = was[k];
+    }
     return out;
   });
 
-  // 4. Validation (or its cached verdicts).
-  const cachedReject = new Map(ownRejected.filter((r) => r.kind === 'validation').map((r) => [`${r.fingerprint}|${r.acceptanceHash}`, r]));
-  const rejectFor = (f, reason, detail) => ({
+  // 4. Validation (or its cached verdicts). Default mode: the audited run's own mode.
+  const runOwnMode = runMode(dir);
+  const mode = o.mode || (['dev', 'prod'].includes(runOwnMode) ? runOwnMode : 'dev');
+  const rejectFor = (f, r, detail) => ({
     id: f.id, fingerprint: f.fingerprint, title: f.title, suite: f.suite, source: (sources.get(f.fingerprint) || []).join(', '),
-    reason, kind: 'validation', acceptanceHash: acceptanceHash(f), ...(detail ? { detail } : {}),
+    reason: r.reason || 'acceptance did not fail as expected', kind: r.kind || 'validation-error', mode,
+    acceptanceHash: acceptanceHash(f), ...(detail ? { detail } : {}),
   });
   const keep = [];
   const toRun = [];
   for (const f of findings) {
-    const cached = cachedReject.get(`${f.fingerprint}|${acceptanceHash(f)}`);
+    const cached = carriedRejection(ownRejected, f, { validate: o.validate });
     if (cached) rejected.push({ ...cached, id: f.id });
     else if (o.validate && f.status !== 'fixed' && !f.validatedHash) toRun.push(f);
     else keep.push(f);
@@ -101,20 +107,25 @@ async function main() {
     const log = path.join(dir, 'verify', `pw-${stamp()}.log`);
     let results;
     try {
-      results = await withStack({ mode: o.mode, keepStack: o.keepStack, log }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode: o.mode }));
+      results = await withStack({ mode, keepStack: o.keepStack, log }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode }));
     } catch (e) {
-      console.error(`report: validation failed to run: ${e.message}`);
+      // Infra (stack, mint, setup): no verdict exists, so nothing is written — fix the cause and run again.
+      console.error(`report: validation failed to run, nothing written: ${e.message}`);
       return 1;
     }
     const now = new Date().toISOString();
-    let ok = 0;
+    let ok = 0, guarded = 0;
     for (const r of results) {
       const f = toRun.find((x) => x.id === r.id);
-      const detail = writeDetail(runId, r, { mode: o.mode, expectFail: true, log });
-      if (r.asExpected) { ok++; keep.push({ ...f, validatedAt: now, validatedHash: acceptanceHash(f) }); }
-      else rejected.push(rejectFor(f, r.reason || 'acceptance did not fail as expected', detail));
+      const detail = writeDetail(runId, r, { mode, expectFail: true, log });
+      if (r.asExpected) {
+        ok++;
+        const v = { ...f, validatedAt: now, validatedHash: acceptanceHash(f), validatedMode: mode };
+        if (r.guards.length) { v.guards = r.guards; guarded++; } else delete v.guards;
+        keep.push(v);
+      } else rejected.push(rejectFor(f, r, detail));
     }
-    validateLine = `validate: ${toRun.length} finding(s) · mode ${o.mode} · ${Math.round((Date.now() - t0) / 1000)}s → ${ok} reproduce, ${toRun.length - ok} rejected`;
+    validateLine = `validate: ${toRun.length} finding(s) · mode ${mode} · ${Math.round((Date.now() - t0) / 1000)}s → ${ok} reproduce${guarded ? ` (${guarded} with guard criteria)` : ''}, ${toRun.length - ok} rejected`;
   } else if (o.validate) validateLine = 'validate: nothing new to validate (unchanged acceptance is cached)';
   findings = sortFindings(keep);
 
@@ -126,7 +137,7 @@ async function main() {
   const carried = prev ? findings.filter((f) => !f.id.startsWith(`UIC-${runId}-`)).length : 0;
   console.log(`report: run ${runId} · ${items.length} judge finding(s) from ${new Set(items.map((x) => x.source.split('[')[0])).size} file(s) → ${merged.length} after dedupe · ${dropped.length} accepted dropped${prevId ? ` · previous run ${prevId} (${carried} id(s) carried)` : ''}`);
   if (validateLine) console.log(validateLine);
-  for (const r of rejected) console.log(`rejected: ${r.id || r.source} ${trunc(r.title || '', 60)} — ${trunc(r.reason)}`);
+  for (const r of rejected) console.log(`rejected: ${r.id || r.source} ${trunc(r.title || '', 60)} — [${r.kind}] ${trunc(r.reason)}`);
   const unvalidated = findings.filter((f) => !f.validatedAt && f.status !== 'fixed').length;
   console.log(`report: ${findings.length} finding(s) in findings.json · ${rejected.length} in rejected.json${unvalidated ? ` · ${unvalidated} not validated (add --validate)` : ''}`);
   console.log(`report: ${report}`);

@@ -94,6 +94,8 @@
     "fixedAt": { "type": "string" },
     "validatedAt": { "type": "string" },
     "validatedHash": { "type": "string" },
+    "validatedMode": { "enum": ["dev", "prod"], "description": "Stack mode the acceptance was proven to fail in; verify.mjs defaults to prod when this is prod." },
+    "guards": { "$ref": "#/$defs/strings", "description": "Criterion labels ('assertion #2', 'check G-X @ guest@phone-390') that already passed before the fix: kept as regression guards." },
     "mergedFrom": { "$ref": "#/$defs/strings" }
   },
   "$defs": {
@@ -103,6 +105,7 @@
     "metric": {
       "type": "object",
       "required": ["label", "value"],
+      "additionalProperties": false,
       "properties": {
         "label": { "type": "string" },
         "value": { "type": ["number", "string"] },

@@ -2,6 +2,9 @@
 //   noOverflow → audit.layout (overflow-x, offscreen)   noSnap → audit.motion's snap sampler around the steps
 //   maxCls / maxLoafMs → the probe buffers (perfSnapshot / windowStats)   axe → audit.a11y (filtered to the rule ids)
 //   noConsoleErrors → audit.console (rule `console` only)
+// `style` compares computed strings: colours come back as "rgb(r, g, b)" / "rgba(…)", lengths in px.
+// `visible` / `count` with no match in the DOM stay a FAIL (absence can be the defect) but say "0 in DOM", so a
+// mistyped selector is easy to spot. A `noSnap` watch selector that matches nothing before and after the steps is an error.
 // Every expect yields one line { ok, error, text } with what was measured. Outcome:
 //   'pass'  every expect holds
 //   'fail'  an expect does not hold (the assertion reproduces the defect)
@@ -81,10 +84,15 @@ export async function runAssertion({ page, audit, assertion }) {
     win = await page.evaluate(() => ({ since: performance.now(), origin: performance.timeOrigin }));
     if (a.expect.some((x) => x.kind === 'noSnap')) {
       // The steps run inside the audit's motion window: its rAF snap sampler watches `watch` (or 'auto').
+      const counts = () => Promise.all(a.watch.map((s) => page.locator(s).count().catch(() => 0)));
+      const before = await counts();
       try {
         const added = await audit.motion(runSteps, { watch: a.watch.length ? a.watch : 'auto' });
         snaps = added.filter((v) => v.rule === 'snap');
       } catch (e) { stepError ||= `snap sampler: ${firstLine(e)}`; }
+      const after = await counts();
+      const unwatched = a.watch.filter((_, i) => !before[i] && !after[i]);
+      if (!stepError && unwatched.length) stepError = `noSnap watch ${unwatched.join(', ')}: 0 in DOM before and after the steps — nothing was watched`;
     } else {
       await runSteps();
       if (a.steps.length) await page.waitForTimeout(300);
@@ -94,7 +102,8 @@ export async function runAssertion({ page, audit, assertion }) {
   const EXPECT = {
     visible: async (s) => {
       const ok = await visible(s).waitFor({ state: 'visible', timeout: WAIT }).then(() => true, () => false);
-      add(ok, `visible ${s}: ${ok ? 'visible' : `not visible (${await loc(s).count()} in the DOM)`}`, s);
+      const n = ok ? null : await loc(s).count();
+      add(ok, `visible ${s}: ${ok ? 'visible' : n === 0 ? 'not visible — 0 in DOM (check the selector)' : `not visible (${n} in DOM)`}`, s);
     },
     hidden: async (s) => {
       const n = await poll(() => loc(s).filter({ visible: true }).count(), (c) => c === 0);
@@ -103,7 +112,7 @@ export async function runAssertion({ page, audit, assertion }) {
     count: async ([s, op, n]) => {
       const cmp = (c) => (op === '>=' ? c >= n : op === '<=' ? c <= n : c === n);
       const c = await poll(() => loc(s).count(), cmp);
-      add(cmp(c), `count ${s}: ${c} (expected ${op} ${n})`, s);
+      add(cmp(c), `count ${s}: ${c === 0 ? '0 in DOM' : c} (expected ${op} ${n})`, s);
     },
     text: async ([s, sub]) => {
       const el = await needVisible(s);

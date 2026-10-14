@@ -393,15 +393,21 @@ export async function ensureStack(mode = 'prod') {
   return { mode, base, api, socket, started: started.map(({ name, pid, port }) => ({ name, pid, port })) };
 }
 
-/** Stop every process recorded in <uicHome>/stack.json (only those — never anything else). */
-export async function stopStack() {
+/**
+ * Stop every process recorded in <uicHome>/stack.json (only those — never anything else).
+ * `only`: [{ pid }] — stop just these (e.g. what one ensureStack call started); the rest stay recorded and running.
+ */
+export async function stopStack({ only = null } = {}) {
   const stack = readStack();
   if (!stack || !stack.started?.length) { log('nothing to stop'); return []; }
+  const pids = only ? new Set(only.map((e) => e.pid)) : null;
+  const targets = pids ? stack.started.filter((e) => pids.has(e.pid)) : stack.started;
+  if (!targets.length) { log('nothing of ours to stop — the rest of the stack keeps running'); return []; }
   const stopped = [];
-  for (const entry of stack.started) {
+  for (const entry of targets) {
     if (killTree(entry)) stopped.push(entry.name);
   }
-  writeStack({ ...stack, started: [] });
+  writeStack({ ...stack, started: stack.started.filter((e) => !targets.includes(e)) });
   log(stopped.length ? `stopped ${stopped.join(', ')}` : 'recorded processes were already gone');
   return stopped;
 }

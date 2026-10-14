@@ -45,9 +45,10 @@ export function playwright(projects, { workers, grep, grepInvert, headed, env, l
 /**
  * Ctrl+C / SIGTERM / an uncaught error: kill the Playwright child and stop the stack (unless keepStack),
  * since the caller's `finally` never runs then. A hard kill (taskkill /F, SIGKILL) can't be caught: use run.mjs --stop.
- * `onExit` runs first (e.g. restore a pointer file).
+ * `onExit` runs first (e.g. restore a pointer file). `stop` replaces the whole-stack stop (verify/probe/report stop
+ * only what they started).
  */
-export function installEmergencyStop(keepStack, onExit = null) {
+export function installEmergencyStop(keepStack, onExit = null, stop = () => stopStack()) {
   let stopping = false;
   const bail = async (why, code) => {
     if (stopping) return;
@@ -60,7 +61,7 @@ export function installEmergencyStop(keepStack, onExit = null) {
       } catch { /* already gone */ }
     }
     try { if (onExit) onExit(); } catch { /* best effort */ }
-    if (!keepStack) await stopStack().catch((e) => console.error(`ui-check: stopStack failed: ${e.message}`));
+    if (!keepStack) await Promise.resolve().then(stop).catch((e) => console.error(`ui-check: stopStack failed: ${e.message}`));
     process.exit(code);
   };
   const signals = ['SIGINT', 'SIGTERM', 'SIGHUP', ...(process.platform === 'win32' ? ['SIGBREAK'] : [])];

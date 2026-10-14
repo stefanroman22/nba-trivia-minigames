@@ -4,7 +4,9 @@
 // Prints at most 20 lines: the outcome, one line per expect (ok / FAIL / ERROR with the measured value), then one crop
 // path. Use it to confirm a suspicion and to author acceptance assertions that FAIL now (a finding's acceptance must
 // fail before the fix: report.mjs --validate rejects one that passes). Default mode dev. Scratch output goes under
-// <runDir>/probe/ (runDir = --run, else the latest run). Exit 0 pass, 1 fail or error, 2 bad usage / invalid assertion.
+// <runDir>/probe/ (runDir = --run, else the latest run): the crop is kept in probe/shots/, the scratch run deleted.
+// Without --keep-stack only what this call started is stopped; when probing repeatedly pass --keep-stack and stop
+// once with `node scripts/ui-check/run.mjs --stop`. Exit 0 pass, 1 fail or error, 2 bad usage / invalid assertion.
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { describeAssertion, latestRunId, listRuns, parseAssertion, readText, runPath } from './lib/findings.mjs';

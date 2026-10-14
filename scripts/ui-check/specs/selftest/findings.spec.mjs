@@ -8,6 +8,7 @@ import { test, expect } from '@playwright/test';
 import {
   validateFinding, assertionErrors, parseAssertion, fingerprint, normRoute, normSelector,
   mergeFindings, dropAccepted, assignIds, buildReport, sortFindings, loadJudgeFindings,
+  expectFailVerdict, carriedRejection, acceptanceHash,
 } from '../../lib/findings.mjs';
 
 const SAMPLE = fileURLToPath(new URL('../../fixtures/findings/sample.json', import.meta.url));
@@ -46,6 +47,10 @@ test('[ST-FINDINGS] schema, acceptance DSL parser, fingerprint dedupe, accepted.
     badEnum.severity = 'critical';
     expect(validateFinding(badEnum).join('\n')).toMatch(/severity: must be one of blocker, major, minor, polish/);
 
+    const badMetric = sample()[0];
+    badMetric.evidence.metrics = [{ label: 'x', value: 1, colour: 'red' }];
+    expect(validateFinding(badMetric).join('\n')).toMatch(/evidence\.metrics\[0\]: a metric is a string or \{ label, value, unit\?, vp\? \}/);
+
     const badProject = sample()[0];
     badProject.acceptance.checks = [{ id: 'G-MOTION-02', projects: ['guest@phone-999'] }];
     expect(validateFinding(badProject).join('\n')).toMatch(/projects\[0\].*guest@phone-999/);
@@ -74,6 +79,9 @@ test('[ST-FINDINGS] schema, acceptance DSL parser, fingerprint dedupe, accepted.
     expect(assertionErrors({ ...FULL, expect: [{ minSize: ['.a', 44] }] }).join('\n')).toMatch(/minSize: needs \["<loc>", width, height\]/);
     expect(assertionErrors({ ...FULL, expect: [{ url: '([' }] }).join('\n')).toMatch(/url: invalid regex/);
     expect(assertionErrors({ ...FULL, steps: [{ scroll: 'middle' }] }).join('\n')).toMatch(/scroll: needs "bottom", "top" or a pixel offset/);
+    expect(assertionErrors({ ...FULL, expect: [{ axe: ['target-size', 'tap-size'] }] }).join('\n')).toMatch(/axe: unknown axe rule id\(s\) "tap-size"/);
+    expect(assertionErrors({ ...FULL, expect: [{ maxCls: 0.1 }] }).join('\n')).toMatch(/watch: only used by noSnap/);
+    expect(assertionErrors({ ...FULL, watch: undefined, expect: [{ maxCls: 0.1 }] })).toEqual([]);
     expect(assertionErrors({ ...FULL, steps: [{ click: '@guest.noSuchKey' }] }).join('\n')).toMatch(/pagemap: no "noSuchKey" in pagemap\/guest\.json/);
     expect(assertionErrors({ ...FULL, steps: [{ click: '@nodot' }] }).join('\n')).toMatch(/must look like "@area\.key"/);
   });
@@ -141,6 +149,27 @@ test('[ST-FINDINGS] schema, acceptance DSL parser, fingerprint dedupe, accepted.
     expect(re.map((f) => f.id)).toEqual(['UIC-20261014-1000-008', 'UIC-20261014-1000-009', 'UIC-20261014-1000-007']);
   });
 
+  await test.step('validation verdict: one clean FAIL keeps a finding (passing criteria become guards); all pass or any error rejects', () => {
+    const c = (label, outcome, text = outcome) => ({ label, outcome, lines: [{ ok: outcome === 'pass', error: outcome === 'error', text }] });
+    const kept = expectFailVerdict([c('assertion #1', 'fail', 'minSize 20×16'), c('assertion #2', 'pass')]);
+    expect(kept).toEqual({ asExpected: true, kind: null, reason: null, guards: ['assertion #2'] });
+    const allPass = expectFailVerdict([c('assertion #1', 'pass'), c('check G-NAV-02 @ guest@desktop-1366', 'pass')]);
+    expect(allPass).toMatchObject({ asExpected: false, kind: 'validation', reason: 'acceptance passes on current code — does not reproduce' });
+    const errored = expectFailVerdict([c('assertion #1', 'fail'), c('assertion #2', 'error', 'step 1 click @guest.x: timeout')]);
+    expect(errored).toMatchObject({ asExpected: false, kind: 'validation-error' });
+    expect(errored.reason).toBe('acceptance could not run cleanly — assertion #2: step 1 click @guest.x: timeout');
+    expect(expectFailVerdict([])).toMatchObject({ asExpected: false, kind: 'validation-error' });
+
+    // Cached verdicts: "does not reproduce" holds while the acceptance is unchanged; an error is retried by --validate.
+    const f = mergeFindings([sample()[2]])[0];
+    const rej = (kind, extra = {}) => ({ fingerprint: f.fingerprint, acceptanceHash: acceptanceHash(f), kind, ...extra });
+    expect(carriedRejection([rej('validation')], f, { validate: true })).toMatchObject({ kind: 'validation' });
+    expect(carriedRejection([rej('validation-error')], f, { validate: true })).toBeNull();
+    expect(carriedRejection([rej('validation-error')], f, { validate: false })).toMatchObject({ kind: 'validation-error' });
+    expect(carriedRejection([rej('validation', { acceptanceHash: 'changed' })], f, { validate: true })).toBeNull();
+    expect(carriedRejection([rej('schema')], f, { validate: false })).toBeNull();
+  });
+
   await test.step('judge files load as an array or { findings }, with or without a UTF-8 BOM; broken files are reported', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'uic-findings-'));
     mkdirSync(path.join(dir, 'findings'));
@@ -158,6 +187,7 @@ test('[ST-REPORT] REPORT.md has the sections in order, a coverage matrix, gaps a
   const findings = assignIds(sortFindings(mergeFindings(sample())), '20261014-1000', new Map());
   findings[0].status = 'fixed';
   findings[0].fixedAt = '2026-10-14T10:30:00.000Z';
+  Object.assign(findings[1], { validatedAt: '2026-10-14T10:00:00.000Z', validatedMode: 'prod', guards: ['assertion #2', 'check G-MOTION-02 @ guest@phone-390'] });
   const results = [
     { checkId: 'G-MOTION-02', title: '[G-MOTION-02] tabs', project: 'guest@phone-390', suite: 'guest', vp: 'phone-390', status: 'failed' },
     { checkId: 'G-MOTION-02', title: '[G-MOTION-02] tabs', project: 'guest@desktop-1366', suite: 'guest', vp: 'desktop-1366', status: 'passed' },
@@ -206,6 +236,11 @@ test('[ST-REPORT] REPORT.md has the sections in order, a coverage matrix, gaps a
   expect(fixed).toMatch(/fixed 2026-10-14/);
   expect(md).toMatch(/Rejected: 1/);
   expect(md).toContain('· account (also seen by: guest) ·'); // the merged finding names the other suite
+  // Guards (criteria that already passed before the fix) are labelled; the validation mode is shown.
+  expect(md).toContain('axe target-size — guard (passes before fix)');
+  expect(md).toContain('- check `G-MOTION-02` passes on guest@phone-390 — guard (passes before fix)');
+  expect(md).not.toMatch(/assertion #1: .* — guard/);
+  expect(md).toContain('acceptance proven to fail before the fix (prod mode)');
   expect(md).toContain('- Change: Give .auth-pw-toggle a 24×24 hit area');
   expect(md).toContain('[guest@phone-390-tap-target-1.jpg](shots/G-MOTION-02/guest@phone-390-tap-target-1.jpg)');
 });

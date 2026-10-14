@@ -2,6 +2,7 @@
 // fingerprints (rule|route|selector), merge/dedupe, accepted.json filtering, run-stable ids, and REPORT.md.
 // Everything here is pure or file-only (no browser), so the selftest ([ST-FINDINGS], [ST-REPORT]) covers it directly.
 import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -90,6 +91,8 @@ export function validateFinding(f) {
 
 // ---------------------------------------------------------------------------------------------
 // Acceptance DSL (spec §8, task 9 brief). <loc> = Playwright selector string, or "@area.key" (pagemap via L()).
+// Notes: `style` compares the COMPUTED value as a string (colours read "rgb(255, 106, 26)", lengths "24px");
+// `watch` only feeds `noSnap`; `axe` takes axe-core rule ids (checked against axe.getRules()).
 
 export const STEP_KEYS = ['click', 'fill', 'press', 'hover', 'waitFor', 'wait', 'scroll'];
 export const EXPECT_KEYS = ['visible', 'hidden', 'count', 'text', 'noOverflow', 'withinViewport', 'minSize', 'style', 'transition', 'noSnap', 'maxCls', 'maxLoafMs', 'status', 'url', 'noConsoleErrors', 'axe'];
@@ -134,8 +137,18 @@ const EXPECT_CHECK = {
   maxLoafMs: (v) => (num(v) && v >= 0 ? null : 'needs milliseconds ≥ 0'),
   status: (v) => (Array.isArray(v) && v.length === 2 && Number.isInteger(v[1]) && v[1] >= 100 && v[1] <= 599 ? regexError(v[0]) : 'needs ["urlRegex", httpStatus]'),
   url: regexError,
-  axe: (v) => (Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && x) ? null : 'needs a list of axe rule ids, e.g. ["target-size"]'),
+  axe: (v) => {
+    if (!(Array.isArray(v) && v.length && v.every((x) => typeof x === 'string' && x))) return 'needs a list of axe rule ids, e.g. ["target-size"]';
+    const bad = v.filter((id) => !axeRuleIds().has(id));
+    return bad.length ? `unknown axe rule id(s) ${bad.map((x) => JSON.stringify(x)).join(', ')} (see axe-core getRules(), e.g. target-size, color-contrast)` : null;
+  },
 };
+
+let axeIds = null;
+/** Rule ids axe-core knows (the installed version), read once. */
+function axeRuleIds() {
+  return (axeIds ??= new Set(createRequire(import.meta.url)('axe-core').getRules().map((r) => r.ruleId)));
+}
 
 function oneKey(item, where, known, kind, errs) {
   if (!isType('object', item)) { errs.push(`${where}: must be an object like {"${known[0]}": …}`); return null; }
@@ -161,6 +174,9 @@ export function assertionErrors(a, base = 'assertion') {
     if (e) errs.push(`${where}: ${k}: ${e}`);
   });
   if (a.watch !== undefined && !(Array.isArray(a.watch) && a.watch.every((w) => typeof w === 'string' && w.trim()))) errs.push(`${base}.watch: must be a list of CSS selectors`);
+  else if (Array.isArray(a.watch) && a.watch.length && !(Array.isArray(a.expect) && a.expect.some((x) => x && x.noSnap === true))) {
+    errs.push(`${base}.watch: only used by noSnap — add {"noSnap": true} to expect or drop watch`);
+  }
   if (!Array.isArray(a.expect) || !a.expect.length) errs.push(`${base}.expect: needs at least one item`);
   (Array.isArray(a.expect) ? a.expect : []).forEach((x, i) => {
     const where = `${base}.expect[${i}]`;
@@ -305,6 +321,38 @@ export function assignIds(list, runId, known) {
 /** Short hash of a finding's acceptance: re-validation is needed only when it changed. */
 export function acceptanceHash(f) {
   return createHash('sha1').update(canonical(f.acceptance)).digest('hex').slice(0, 12);
+}
+
+export const GUARD_LABEL = 'guard (passes before fix)';
+/** Criterion labels shared by verify detail, guards and REPORT.md. */
+export const checkLabel = (id, project) => `check ${id} @ ${project}`;
+const badText = (c) => ((c.lines || []).find((l) => !l.ok) || (c.lines || [])[0] || {}).text || c.outcome;
+
+/**
+ * Verdict of a validation (verify --expect-fail) from its criteria [{ label, outcome: pass|fail|error, lines }]:
+ * - any criterion ERRORS → rejected, kind 'validation-error' (infra or authoring; retried on the next --validate);
+ * - no criterion FAILS cleanly → rejected, kind 'validation' ("does not reproduce"; cached while unchanged);
+ * - else kept; criteria that already pass are kept as guards (they must keep passing after the fix).
+ * → { asExpected, kind, reason, guards: [label] }
+ */
+export function expectFailVerdict(criteria) {
+  const guards = criteria.filter((c) => c.outcome === 'pass').map((c) => c.label);
+  const errored = criteria.find((c) => c.outcome === 'error');
+  if (!criteria.length) return { asExpected: false, kind: 'validation-error', reason: 'no acceptance criterion ran', guards };
+  if (errored) return { asExpected: false, kind: 'validation-error', reason: `acceptance could not run cleanly — ${errored.label}: ${badText(errored)}`, guards };
+  if (!criteria.some((c) => c.outcome === 'fail')) return { asExpected: false, kind: 'validation', reason: 'acceptance passes on current code — does not reproduce', guards };
+  return { asExpected: true, kind: null, reason: null, guards };
+}
+
+/**
+ * A rejection in this run's rejected.json that still holds for `f` (same fingerprint, same acceptance) without
+ * re-running: 'validation' (does not reproduce) always; 'validation-error' only when not validating now, since an
+ * error may be infra and is retried by the next --validate.
+ */
+export function carriedRejection(rejected, f, { validate }) {
+  const hash = acceptanceHash(f);
+  return (rejected || []).find((r) => r.fingerprint === f.fingerprint && r.acceptanceHash === hash
+    && (r.kind === 'validation' || (r.kind === 'validation-error' && !validate))) || null;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -460,7 +508,9 @@ export function buildReport({ runId, mode = '?', date = '?', findings = [], resu
   for (const f of sortFindings(findings)) {
     const w = f.where || {};
     const status = f.status === 'fixed' ? `fixed ${String(f.fixedAt || '').replace('T', ' ').slice(0, 16)}` : 'open';
-    const checked = f.validatedAt ? 'acceptance proven to fail before the fix' : 'acceptance not validated (report.mjs --validate)';
+    const checked = f.validatedAt ? `acceptance proven to fail before the fix (${f.validatedMode || '?'} mode)` : 'acceptance not validated (report.mjs --validate)';
+    const guards = new Set(f.guards || []);
+    const guardTag = (label) => (guards.has(label) ? ` — ${GUARD_LABEL}` : '');
     out.push(`### ${f.id} · ${f.title}`, '');
     const also = (f.mergedFrom || []).filter((s) => s !== f.suite);
     out.push(`**${f.severity}** · ${f.owner} · ${f.category} · ${f.suite}${also.length ? ` (also seen by: ${also.join(', ')})` : ''} · persona ${f.persona} · viewports ${(w.viewports || []).join(', ')} · status ${status}`);
@@ -483,8 +533,8 @@ export function buildReport({ runId, mode = '?', date = '?', findings = [], resu
     out.push('**Acceptance criteria**');
     const ac = f.acceptance || {};
     for (const c of ac.criteria || []) out.push(`- ${c}`);
-    for (const c of ac.checks || []) out.push(`- check \`${c.id}\` passes on ${c.projects.join(', ')}`);
-    (ac.assertions || []).forEach((a, i) => out.push(`- assertion #${i + 1}: ${describeAssertion(a)}`));
+    for (const c of ac.checks || []) out.push(`- check \`${c.id}\` passes on ${c.projects.map((p) => `${p}${guardTag(checkLabel(c.id, p))}`).join(', ')}`);
+    (ac.assertions || []).forEach((a, i) => out.push(`- assertion #${i + 1}: ${describeAssertion(a)}${guardTag(`assertion #${i + 1}`)}`));
     out.push(`- verify: \`node scripts/ui-check/verify.mjs ${f.id}\``, '');
   }
   while (out.length && out[out.length - 1] === '') out.pop();
