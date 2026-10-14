@@ -8,12 +8,12 @@
 // `*` matches within an id (GM-wordle-*). Non-multiplayer suites run with 4 workers, multiplayer
 // with 1 (its two accounts are shared). --skip-slow leaves out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01's
 // three 30 s relay limits) for quick verify loops. Exits 1 when any test failed.
-import { existsSync, mkdirSync, readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { CORE, MP_PAIRS, VIEWPORTS } from './lib/viewports.mjs';
 import { UIC_ROOT, runDir, runId } from './lib/run-id.mjs';
-import { ensureStack, stopStack } from './lib/stack.mjs';
+import { codeState, ensureStack, stopStack } from './lib/stack.mjs';
 import { JPEG } from './lib/evidence.mjs';
 import { UIC, grepFor, installEmergencyStop, playwright } from './lib/runner.mjs';
 
@@ -159,6 +159,9 @@ async function main() {
   let exit = 0;
   try {
     await ensureStack(opts.mode);
+    // The app code under test, so `report.mjs --validate` can reuse this run's check results while it is unchanged.
+    let code = null;
+    try { code = codeState(opts.mode); } catch (e) { console.error(`ui-check: code state not recorded (validation will re-run checks): ${e.message.split('\n')[0]}`); }
     childEnv.UI_CHECK_STACK_READY = '1'; // the Playwright stack-setup project only verifies health from here on
     const projects = suites.filter((s) => s !== 'multiplayer' && hasSpecs(s)).flatMap((s) => sel.vps.map((v) => `${s}@${v}`));
     const mpProjects = suites.includes('multiplayer') && hasSpecs('multiplayer') ? sel.pairs.map((p) => `mp@${p}`) : [];
@@ -175,6 +178,11 @@ async function main() {
       ran = true;
     }
     if (!ran) { console.error('ui-check: nothing to run'); exit = 2; }
+    // After the invocations: the digest reporter rewrites run-meta.json ({ startedAt, endedAt }) on each of them.
+    const metaFile = path.join(runDir(), 'run-meta.json');
+    if (code && existsSync(metaFile)) {
+      try { writeFileSync(metaFile, JSON.stringify({ ...JSON.parse(readFileSync(metaFile, 'utf8')), code }, null, 2)); } catch (e) { console.error(`ui-check: run-meta.json not updated: ${e.message}`); }
+    }
 
     const results = readResults();
     if (results.some(isFail)) exit = Math.max(exit, 1);

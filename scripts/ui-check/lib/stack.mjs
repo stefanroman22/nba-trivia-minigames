@@ -7,7 +7,7 @@
 // started them (a Playwright worker) until stopStack().
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from 'node:fs';
 import { connect } from 'node:net';
 import path from 'node:path';
 import { REPO_ROOT, UIC_ROOT } from './run-id.mjs';
@@ -74,13 +74,32 @@ export function djangoEnv(extra = {}) {
   return { ...process.env, DATABASE_URL: '', REDIS_URL: '', NBA_DEV_ENV_SKIP: '1', PYTHONUNBUFFERED: '1', ...extra };
 }
 
+const sleepSync = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/** <uicHome>/stack.json, or null when there is none. A parse error (a concurrent writer) gets one short retry. */
 export function readStack() {
-  try { return JSON.parse(readFileSync(STACK_FILE, 'utf8')); } catch { return null; }
+  for (let attempt = 0; ; attempt++) {
+    let text;
+    try { text = readFileSync(STACK_FILE, 'utf8'); } catch { return null; }
+    try { return JSON.parse(text); } catch {
+      if (attempt) return null;
+      sleepSync(50);
+    }
+  }
 }
 
+/** Atomic: write a temp file, then rename it over stack.json, so a reader never sees a half-written file. */
 function writeStack(data) {
   mkdirSync(UIC_ROOT, { recursive: true });
-  writeFileSync(STACK_FILE, JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2));
+  const tmp = `${STACK_FILE}.${process.pid}.tmp`;
+  writeFileSync(tmp, JSON.stringify({ ...data, updatedAt: new Date().toISOString() }, null, 2));
+  for (let attempt = 0; ; attempt++) {
+    try { renameSync(tmp, STACK_FILE); return; } catch (e) {
+      // Windows: a reader holding stack.json open makes the rename fail for a moment.
+      if (attempt >= 20 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) { rmSync(tmp, { force: true }); throw e; }
+      sleepSync(25);
+    }
+  }
 }
 
 /** Image name of a live pid ('python.exe', 'node'…) or null when it is gone. */
@@ -178,6 +197,33 @@ function buildStamp(resolved) {
   return h.digest('hex').slice(0, 16);
 }
 
+// The app's code (what a check result depends on). scripts/ui-check is left out on purpose: a runner/doc commit
+// does not make a run's results stale.
+const APP_PATHS = ['src', 'backend', 'multiplayer_server'];
+const CODE_KEYS = ['mode', 'appTree', 'diffHash', 'buildStamp'];
+
+/**
+ * The app code a run tested, for run-meta.json: { mode, head, appTree, dirty, diffHash, buildStamp }.
+ * head is informational; equality (sameCode) compares mode, the HEAD trees of src/ backend/ multiplayer_server/
+ * (appTree), their uncommitted diff + untracked files (diffHash, null when clean) and the frontend build stamp.
+ */
+export function codeState(mode) {
+  const sha = (...parts) => { const h = createHash('sha256'); for (const p of parts) h.update(p); return h.digest('hex').slice(0, 16); };
+  const head = git(['rev-parse', 'HEAD']).toString('utf8').trim();
+  const appTree = sha(git(['ls-tree', 'HEAD', '--', ...APP_PATHS]));
+  const diff = git(['diff', 'HEAD', '--binary', '--', ...APP_PATHS]);
+  const untracked = git(['ls-files', '--others', '--exclude-standard', '-z', '--', ...APP_PATHS]).toString('utf8').split('\0').filter(Boolean).sort();
+  const dirty = diff.length > 0 || untracked.length > 0;
+  const files = untracked.flatMap((f) => { try { return [f, readFileSync(path.join(REPO_ROOT, f))]; } catch { return [f]; } });
+  return { mode, head, appTree, dirty, diffHash: dirty ? sha(diff, ...files) : null, buildStamp: buildStamp(prodBuildEnv(MODES[mode]).resolved) };
+}
+
+/** Keys on which two codeState()s differ ([] = the same app code; a missing state differs on every key). */
+export function codeDiff(a, b) {
+  if (!a || !b) return [...CODE_KEYS];
+  return CODE_KEYS.filter((k) => (a[k] ?? null) !== (b[k] ?? null));
+}
+
 function readStamp() {
   try { return readFileSync(STAMP_FILE, 'utf8').trim(); } catch { return null; }
 }
@@ -218,8 +264,15 @@ function djangoCommand(port) {
       const base = /^executable\s*=\s*(.+)$/m.exec(cfg)?.[1]?.trim();
       const sitePackages = path.join(venv, 'Lib', 'site-packages');
       if (base && existsSync(base) && existsSync(sitePackages)) {
+        // addsitedir appends: move the venv's entries in front of the base interpreter's own site-packages (after the
+        // stdlib, as in a real venv) so a package installed in both resolves to the venv's version.
         const code = `import site,sys,runpy
+n=len(sys.path)
 site.addsitedir(${JSON.stringify(sitePackages)})
+venv=sys.path[n:]
+del sys.path[n:]
+i=next((k for k,p in enumerate(sys.path) if 'site-packages' in p.lower()),len(sys.path))
+sys.path[i:i]=venv
 sys.argv=${JSON.stringify(manage)}
 runpy.run_path('manage.py', run_name='__main__')`;
         return { cmd: base, args: ['-c', code] };
@@ -294,7 +347,13 @@ export async function ensureStack(mode = 'prod') {
   const up = async (port) => isPortOpen(port);
   const booting = (port) => ours(port) || started.find((e) => e.port === port);
   const relayKey = relayKeyFor(prev, known);
-  const record = () => writeStack({ mode, base, api, socket, relayKey, started: [...known, ...started] }); // before waiting: the "starting" entry
+  // Before waiting: the "starting" entry. Nothing started or dropped and the same mode/base/api: no rewrite, so the
+  // Playwright workers that all ensure the same running stack do not race each other on stack.json.
+  const record = () => {
+    if (prev && !started.length && known.length === (prev.started || []).length
+      && prev.mode === mode && prev.base === base && prev.api === api && prev.relayKey === relayKey) return;
+    writeStack({ mode, base, api, socket, relayKey, started: [...known, ...started] });
+  };
   const reuse = (what, port) => log(`${what} :${port} already up — reusing${ours(port) ? ' (started by ui-check)' : ' (not ours: never stopped)'}`);
 
   const base = `http://localhost:${ports.web}`;

@@ -1,7 +1,10 @@
 // Re-runs findings' acceptance criteria (verify.mjs, report.mjs --validate, probe.mjs).
 // - assertions of ALL given findings: one `accept` Playwright invocation (the spec groups them per persona + viewport);
-// - checks: one invocation per distinct project set of a finding (--project list, --grep of the ids that use exactly
-//   that set; one worker for mp or @perf), so ids never run on projects nobody asked for.
+// - checks, batched across ALL findings: per check id the union of the projects any finding names, then one invocation
+//   per distinct project set (--project list, --grep of every id with exactly that set; @perf ids in their own
+//   invocation; one worker for mp or @perf), so ids never run on projects nobody asked for and no id × project twice.
+//   With `reuse` (report.mjs --validate on unchanged app code) check × project results come from the audited run's
+//   results.json instead; only the ones absent or skipped there re-run. verify.mjs never passes it.
 // Each invocation writes into its own scratch run <runDir>/<area>/pw-<stamp>-<tag>/ (UI_CHECK_RUN = '<runId>/<area>/…'),
 // so the audited run's results.json is never touched. After reading it, the evidence crops are copied to
 // <runDir>/<area>/shots/ and the scratch dir is deleted; the `latest` pointer is restored.
@@ -126,8 +129,9 @@ function keepShot(file, runId, area, name) {
  *                        : every criterion passes (guards included — the fix-loop exit is all-pass).
  * Throws when an invocation produced no result at all (infra), so callers never record a verdict for it.
  * The stack must be up (withStack). area: 'verify' | 'probe' (scratch folder name).
+ * reuse: { results, dir } — the audited run's results.json and run dir (report.mjs --validate only). say: progress lines.
  */
-export async function verifyFindings(findings, { runId, expectFail = false, log, area = 'verify', mode = process.env.UI_CHECK_MODE || 'dev', keepScratch = false }) {
+export async function verifyFindings(findings, { runId, expectFail = false, log, area = 'verify', mode = process.env.UI_CHECK_MODE || 'dev', keepScratch = false, reuse = null, say = console.log }) {
   const base = stamp();
   const env = { UI_CHECK_MODE: mode, UI_CHECK_KEEP_STACK: '1', UI_CHECK_STACK_READY: '1' };
   const scratches = [];
@@ -167,27 +171,46 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
         }
       }
     }
-    // 2. Checks: one invocation per distinct project set of each finding.
-    for (const f of findings) {
-      const sets = new Map();
-      for (const c of f.acceptance.checks || []) {
-        const key = [...new Set(c.projects)].sort().join(',');
-        if (!sets.has(key)) sets.set(key, { projects: key.split(','), checks: [] });
-        sets.get(key).checks.push(c);
+    // 2. Checks, across ALL findings: every check × project once. With `reuse` (the audited run's results.json, code
+    //    unchanged since) a result that FAILED or passed there is the verdict; absent or skipped ones re-run. Re-runs are
+    //    batched: per check id the union of the projects still needed, then ONE invocation per distinct project set
+    //    (--grep of all its ids; @perf ids apart, on one worker, as in run.mjs; mp sets on one worker).
+    const source = new Map(); // `${id}|${project}` → { results, dir } the criterion is read from
+    const need = new Map(); // check id → Set(project) to run
+    let reused = 0;
+    for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of c.projects) {
+      const key = `${c.id}|${p}`;
+      if (source.has(key) || (need.get(c.id) || new Set()).has(p)) continue;
+      const rs = reuse ? reuse.results.filter((r) => r.checkId === c.id && r.project === p) : [];
+      if (rs.length && !rs.every((r) => r.status === 'skipped')) { source.set(key, reuse); reused++; continue; }
+      if (!need.has(c.id)) need.set(c.id, new Set());
+      need.get(c.id).add(p);
+    }
+    const groups = new Map();
+    for (const [id, ps] of need) {
+      const projects = [...ps].sort();
+      const perf = perfIds().has(id);
+      const key = `${projects.join(',')}${perf ? ' @perf' : ''}`;
+      if (!groups.has(key)) groups.set(key, { projects, perf, ids: [] });
+      groups.get(key).ids.push(id);
+    }
+    if (reused || groups.size) say(`checks: ${reuse ? `${reused} check × project result(s) reused from the run's results.json · ` : ''}${groups.size} Playwright invocation(s)`
+      + [...groups.values()].map((g) => `\n  [${g.projects.join(' ')}]${g.perf ? ' @perf' : ''} ${g.ids.join(', ')}`).join(''));
+    let k = 0;
+    for (const { projects, perf, ids } of groups.values()) {
+      const serial = perf || projects.some((p) => p.startsWith('mp@'));
+      const { run, dir } = scratch(`checks-${++k}`);
+      const code = await playwright(projects, { workers: serial ? 1 : Math.min(4, projects.length * ids.length), grep: grepFor(ids.join(',')), env: { ...env, UI_CHECK_RUN: run }, log });
+      const results = readJson(path.join(dir, 'results.json'), []);
+      if (code !== 0 && !results.some((r) => ids.includes(r.checkId))) {
+        const setup = results.find((r) => /^stack-/.test(r.project) && isFail(r));
+        throw new Error(`the check invocation for ${ids.join(', ')} failed before any check ran (exit ${code}${setup ? `; ${setup.project}: ${firstLine(setup.error)}` : ''}) — infra, no verdict recorded; see ${log}`);
       }
-      let k = 0;
-      for (const { projects, checks } of sets.values()) {
-        const ids = [...new Set(checks.map((c) => c.id))];
-        const serial = projects.some((p) => p.startsWith('mp@')) || ids.some((id) => perfIds().has(id));
-        const { run, dir } = scratch(`checks-${f.id}-${++k}`);
-        const code = await playwright(projects, { workers: serial ? 1 : Math.min(4, projects.length * ids.length), grep: grepFor(ids.join(',')), env: { ...env, UI_CHECK_RUN: run }, log });
-        const results = readJson(path.join(dir, 'results.json'), []);
-        if (code !== 0 && !results.some((r) => ids.includes(r.checkId))) {
-          const setup = results.find((r) => /^stack-/.test(r.project) && isFail(r));
-          throw new Error(`the check invocation for ${f.id} (${ids.join(', ')}) failed before any check ran (exit ${code}${setup ? `; ${setup.project}: ${firstLine(setup.error)}` : ''}) — infra, no verdict recorded; see ${log}`);
-        }
-        for (const c of checks) for (const p of c.projects) crit.get(f.id).push(checkCriterion(c.id, p, results, dir));
-      }
+      for (const id of ids) for (const p of projects) source.set(`${id}|${p}`, { results, dir });
+    }
+    for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of c.projects) {
+      const s = source.get(`${c.id}|${p}`);
+      crit.get(f.id).push(checkCriterion(c.id, p, s.results, s.dir));
     }
     // 3. Keep the evidence, drop the scratch runs.
     for (const [id, list] of crit) for (const c of list) c.shot = keepShot(c.shot, runId, area, `${id}-${c.label}`);

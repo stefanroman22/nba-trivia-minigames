@@ -66,6 +66,7 @@ async function main() {
   const results = [];
   for (const [mode, list] of groups) {
     try {
+      // Always re-run (no `reuse`): the fix loop judges the code as it is now.
       const rs = await withStack({ mode, keepStack: o.keepStack, log }, () => verifyFindings(list, { runId, expectFail: o.expectFail, log, mode }));
       for (const r of rs) { r.mode = mode; results.push(r); }
     } catch (e) {

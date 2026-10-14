@@ -10,12 +10,17 @@
 // <runDir>/rejected.json: no criterion fails (kind 'validation', cached while the acceptance is unchanged) or one
 // errors (kind 'validation-error', retried by the next --validate). An infra failure (stack, mint, setup: no result at
 // all) exits 1 and writes nothing. Writes <runDir>/findings.json, rejected.json and REPORT.md.
+// Check criteria: when the app code equals what the run tested (run-meta.json `code`: src/ backend/ multiplayer_server/
+// trees + diff, frontend build stamp, mode; scripts/ui-check is ignored) they are read from the run's results.json
+// (FAILED there = fails, passed = guard; absent/skipped re-run); otherwise they re-run, batched per project set.
+// Assertions always run. The path taken is printed.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   ACCEPTED_PATH, acceptanceHash, assignIds, carriedRejection, dropAccepted, fingerprint, latestRunId, listRuns, loadJudgeFindings,
   mergeFindings, readFindingsDoc, readJson, runMode, runPath, sortFindings, validateFinding, writeJson, writeReport,
 } from './lib/findings.mjs';
+import { codeDiff, codeState } from './lib/stack.mjs';
 import { stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
 
 function parseArgs(argv) {
@@ -89,7 +94,7 @@ async function main() {
   const runOwnMode = runMode(dir);
   const mode = o.mode || (['dev', 'prod'].includes(runOwnMode) ? runOwnMode : 'dev');
   const rejectFor = (f, r, detail) => ({
-    id: f.id, fingerprint: f.fingerprint, title: f.title, suite: f.suite, source: (sources.get(f.fingerprint) || []).join(', '),
+    id: f.id, fingerprint: f.fingerprint, title: f.title, suite: f.suite, source: [f.fingerprint, ...(f.mergedFingerprints || [])].flatMap((fp) => sources.get(fp) || []).join(', '),
     reason: r.reason || 'acceptance did not fail as expected', kind: r.kind || 'validation-error', mode,
     acceptanceHash: acceptanceHash(f), ...(detail ? { detail } : {}),
   });
@@ -105,9 +110,19 @@ async function main() {
   if (toRun.length) {
     const t0 = Date.now();
     const log = path.join(dir, 'verify', `pw-${stamp()}.log`);
+    // Reuse path: the app code (src/ backend/ multiplayer_server/ + the frontend build stamp, same mode) is what the run
+    // tested → its results.json already holds every check's verdict. Assertions always run.
+    const ran = (readJson(path.join(dir, 'run-meta.json'), {}) || {}).code;
+    let cur = null;
+    try { cur = codeState(mode); } catch (e) { console.error(`report: code state unavailable (${e.message.split('\n')[0]})`); }
+    const differs = codeDiff(ran, cur);
+    const reuse = differs.length ? null : { results: readJson(path.join(dir, 'results.json'), []), dir };
+    console.log(reuse
+      ? `validate: reuse path — app code unchanged since the run (app tree ${cur.appTree}${cur.dirty ? ' + uncommitted diff' : ''}, build stamp ${cur.buildStamp}, mode ${mode}; HEAD ${String(ran.head).slice(0, 7)} → ${String(cur.head).slice(0, 7)}): check verdicts from results.json, assertions re-run`
+      : `validate: re-run path — ${!ran ? 'run-meta.json records no code state' : !cur ? 'current code state unknown' : `changed since the run: ${differs.join(', ')}`}; checks re-run, batched per project set`);
     let results;
     try {
-      results = await withStack({ mode, keepStack: o.keepStack, log }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode }));
+      results = await withStack({ mode, keepStack: o.keepStack, log }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode, reuse }));
     } catch (e) {
       // Infra (stack, mint, setup): no verdict exists, so nothing is written — fix the cause and run again.
       console.error(`report: validation failed to run, nothing written: ${e.message}`);
