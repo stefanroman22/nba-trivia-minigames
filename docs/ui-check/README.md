@@ -30,8 +30,8 @@ Design: `docs/superpowers/specs/2026-10-11-ui-check-design.md`. Check catalogue 
  <runDir>/findings/<suite>.json
    │
    ▼
- report.mjs --validate ── schema + DSL check, merge by fingerprint (rule|route|selector),
-   │                       drop accepted.json, prove every acceptance fails (verify --expect-fail)
+ report.mjs --validate ── schema + DSL check, merge by fingerprint (rule|route|selector), then one
+   │                       per cause, drop accepted.json, prove every acceptance fails (verify --expect-fail)
    ▼
  <runDir>/findings.json + REPORT.md (+ rejected.json)
    │
@@ -67,7 +67,8 @@ MP-TIMEOUT-01). It exits 1 when any check failed, which is the normal input for 
 `--keep-stack` and stop once at the end with `run.mjs --stop`.
 
 From Windows PowerShell 5.1 pass assertions with `--assert-file`: it splits JSON arguments that
-contain spaces.
+contain spaces. The inline `node` snippets in the `ui-fix` skill must run from the repo root (they
+import `./scripts/ui-check/lib/…` relative to it).
 
 ## Where artifacts live
 
@@ -108,6 +109,10 @@ with a bounded `results.json` filter (≤ 40 lines per call) given in its agent 
 The stack helper starts only what is not already listening and stops only what it started. Prod
 mode rebuilds only when the source stamp changed (about 70 s or more). Django and the relay run
 without autoreload: after a server-side edit, `run.mjs --stop` and the next call starts them again.
+Prod mode leaves its build in `.next/`, with `localhost` API and socket URLs baked in: run
+`npm run build` before `npm run preview` (or any deploy-like check) so you never serve that build.
+The local relay and the prod build read the public data hosts (`VITE_DATA_BASE`,
+`VITE_QUESTIONS_BASE`) from the env files; they are read-only CDN URLs, nothing is written there.
 `report.mjs --validate` uses the run's own mode. Without `--mode`, `verify.mjs` uses prod for
 findings validated in prod (`validatedMode`), dev otherwise. In the fix loop the engines verify with
 `--mode dev` (HMR, no rebuild) and switch to `--mode prod` only for perf criteria (`maxCls`,
@@ -136,7 +141,8 @@ logged-in persona refuses to run when the API host is not `localhost`.
 |---|---|
 | full audit, all suites, prod | 1-3 h (games ≈ 35-55 min, multiplayer ≈ 35 min, plus guest and account) |
 | judges (4 in parallel) | tens of minutes, mostly probes (20-40 s each on a warm stack) |
-| `report.mjs --validate` | about 5-10 min for 30 assertion-only findings; each check-based finding adds a check run |
+| `report.mjs --validate`, reuse path (app code unchanged since the run) | about 3 min: run 20261014-1153's 30 findings took 175 s, its 78 check × project criteria read from results.json, only the assertions ran (one invocation) |
+| `report.mjs --validate`, re-run path (app code changed) | the assertions plus one check invocation per distinct project set; on 20261014-1153 the old per-finding runs took almost 2 h |
 | one `verify` on a warm stack | 20-60 s; a cold dev stack adds about 90 s, a prod rebuild about 70 s |
 
 ## Findings and the fix loop
@@ -149,6 +155,23 @@ projects and / or DSL assertions (`scripts/ui-check/lib/findings.mjs`). `report.
 keeps a finding only when at least one criterion FAILS cleanly before the fix and none errors;
 criteria that already pass are kept as guards. `verify.mjs <id> --mark` marks it fixed once every
 criterion passes.
+
+Validation cost. `run.mjs` records the app code it tested in `run-meta.json` (`code`: HEAD, the
+trees of `src/`, `backend/`, `multiplayer_server/` plus their uncommitted diff, the frontend build
+stamp, the mode). When `report.mjs --validate` finds the same code (a change under
+`scripts/ui-check/` does not count), it takes every check × project verdict from the run's
+`results.json`: FAILED there = the criterion fails, passed = a guard; only absent or skipped ones
+re-run. Otherwise every check re-runs. Re-runs are batched over all findings: per check id the union
+of the projects any finding names, then one Playwright invocation per distinct project set (`@perf`
+ids in their own single-worker invocation). DSL assertions always run, all in one invocation. The
+first output line says which path was taken. `verify.mjs` (the fix loop) never reuses: it always
+re-runs, batched the same way.
+
+Merging: equal fingerprints merge first; then one finding per cause: the same rule family (`snap`
+and `stage-resized` on `.stage-shell` / `.playing-wrap` count as one) on the same route, one
+selector an ancestor of the other (or both the stage shell / playing wrap), with the first metric
+within 10 px or 10 % or a shared `file:line`. The outermost selector keeps its fingerprint and id;
+`mergedFingerprints` lists the absorbed ones.
 
 The judges are `.claude/agents/ui-check-{guest,account,games,multiplayer}.md`; each owns a fixed,
 disjoint checklist (its suite's digest lines plus visual judgement on its own surfaces). The

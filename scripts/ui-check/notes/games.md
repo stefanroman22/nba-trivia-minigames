@@ -136,8 +136,8 @@ stack teardown sweep already restores every `testuser3` family name). The hash i
 suite is `games`).
 
 Worst case per account: an account's games are the tests of one hash class that ran on one worker, so the bound is the
-largest class (class membership is fixed by title path + project, so the class sums below are deterministic and stay valid;
-only the claim that every viewport of a check shares a class was wrong). Counted from the log-session rows of the final prod run (run `20261013-1119`, 106 sessions in 54 min):
+largest class (class membership is fixed by the title path alone — file + title, not the project — so every viewport of a
+check shares a class, and the class sums below are deterministic and stay valid). Counted from the log-session rows of the final prod run (run `20261013-1119`, 106 sessions in 54 min):
 class 0 (`testuser3`, `w1`..`w3`) 11, class 1 (`w4`..`w7`) 28, class 2 (`w8`..`w11`) 36, class 3 (`w12`..`w15`) 28 (+6 Fan
 Favorites games that errored before finishing in that run, class unknown). Even if one worker ran a whole class:
 36 + 6 = **42 <= 60** (the largest observed single account: `testuser3w8`, 12). `testuser3` additionally takes the @perf

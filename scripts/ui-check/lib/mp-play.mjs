@@ -37,7 +37,6 @@ const rewriteFn = (fn) => {
   if (fnCache.has(fn)) return fnCache.get(fn);
   const src = fn.toString();
   const out = rewrite(src);
-  // eslint-disable-next-line no-eval
   const mapped = out === src ? fn : (0, eval)(`(${out})`);
   fnCache.set(fn, mapped);
   return mapped;
