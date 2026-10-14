@@ -8,8 +8,19 @@ import { VIEWPORTS } from './viewports.mjs';
 import { runId, runDir } from './run-id.mjs';
 
 const VP_ORDER = Object.keys(VIEWPORTS);
-const MAX_LINES = 400;
+// Caps per section and suite, so one noisy suite or section never pushes the others out of the digest.
+// Worst case with the 4 app suites: 8 header + 4 × (80 FAIL + 15 gaps + 20 warnings + 29 metrics) + 8 ≈ 600 lines.
 const MAX_LINES_PER_CHECK = 20;
+const MAX_FAIL_LINES_PER_SUITE = 80;
+const MAX_GAP_LINES_PER_SUITE = 15;
+const MAX_WARNING_LINES_PER_SUITE = 20;
+const MAX_METRIC_ROWS_PER_SUITE = 25;
+const MAX_LINES = 700; // safety net only (many suites); the per-section caps keep a normal run near 600
+const WHERE = 'see results.json in the run dir (`node scripts/ui-check/run.mjs --where`)';
+/** Trailer of a capped section: names the suite so each judge's digest slice keeps its own. */
+const moreLine = (n, what, suite) => `- +${n} more ${what} (suite ${suite}) — ${WHERE}, filter by suite "${suite}"`;
+/** At most `max` lines; the last kept slot becomes the trailer. */
+const capLines = (list, max, what, suite) => (list.length > max ? [...list.slice(0, max - 1), moreLine(list.length - (max - 1), what, suite)] : list);
 
 const idOf = (title) => { const m = /\[([A-Za-z][\w.-]*)\]/.exec(title || ''); return m ? m[1] : null; };
 const measuredClass = (s) => String(s ?? '').replace(/-?\d+(\.\d+)?/g, '#');
@@ -24,7 +35,6 @@ const whereOf = (item, r, auditLabel) => {
 const firstLine = (s) => String(s || '').split('\n').find((l) => l.trim()) || '';
 const isFail = (r) => r.status === 'failed' || r.status === 'timedOut';
 const fmt = (v, unit) => (typeof v === 'number' ? `${Math.round(v * 1000) / 1000}${unit || ''}` : String(v));
-const MAX_WARNING_LINES = 60;
 const MAX_EXPECTED_GROUPS = 3;
 /** One expected value as is; several (a threshold per viewport) as 'A [vps] | B [vps]', at most 3 then '+N more'. */
 const expectedText = (byValue) => {
@@ -58,9 +68,12 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(r);
   }
+  const failBySuite = new Map();
   for (const group of groups.values()) {
-    const { checkId, title } = group[0];
-    lines.push(`## FAIL ${checkId || '(no id)'} ${title}`);
+    const { checkId, title, suite } = group[0];
+    if (!failBySuite.has(suite)) failBySuite.set(suite, []);
+    const out = failBySuite.get(suite);
+    out.push(`## FAIL ${checkId || '(no id)'} ${title}`);
     const rows = new Map();
     for (const r of group) {
       const vs = r.violations || [];
@@ -88,9 +101,13 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     });
     if (rendered.length > MAX_LINES_PER_CHECK) {
       const extra = rendered.length - (MAX_LINES_PER_CHECK - 1);
-      rendered.splice(MAX_LINES_PER_CHECK - 1, rendered.length, `+${extra} more (see results.json)`);
+      rendered.splice(MAX_LINES_PER_CHECK - 1, rendered.length, `- +${extra} more line(s) of ${checkId || 'this check'} — ${WHERE}`);
     }
-    lines.push(...rendered, '');
+    out.push(...rendered, '');
+  }
+  for (const [suite, out] of failBySuite) {
+    while (out.length && out[out.length - 1] === '') out.pop();
+    lines.push(...capLines(out, MAX_FAIL_LINES_PER_SUITE, 'FAIL line(s)', suite), '');
   }
 
   // Coverage gaps: skipped tests with their reason
@@ -99,12 +116,17 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
   for (const r of results.filter((x) => x.status === 'skipped')) {
     const reason = r.skipReason || 'skipped (no reason given)';
     const key = `${r.checkId}|${r.title}|${reason}`;
-    const g = gaps.get(key) || { r, reason, vps: [] };
+    const g = gaps.get(key) || { r, reason, vps: [], suite: r.suite };
     if (r.vp && !g.vps.includes(r.vp)) g.vps.push(r.vp);
     gaps.set(key, g);
   }
   if (!gaps.size) lines.push('- none');
-  for (const { r, reason, vps } of gaps.values()) lines.push(`- ${r.checkId || '(no id)'} ${r.title}${vps.length ? ` (${sortVps(vps).join(', ')})` : ''}: ${reason}`);
+  const gapsBySuite = new Map();
+  for (const { r, reason, vps, suite } of gaps.values()) {
+    if (!gapsBySuite.has(suite)) gapsBySuite.set(suite, []);
+    gapsBySuite.get(suite).push(`- ${r.checkId || '(no id)'} ${r.title}${vps.length ? ` (${sortVps(vps).join(', ')})` : ''}: ${reason}`);
+  }
+  for (const [suite, list] of gapsBySuite) lines.push(...capLines(list, MAX_GAP_LINES_PER_SUITE, 'coverage gap(s)', suite));
   lines.push('');
 
   // Warnings: soft rules (never fail a test), one line per rule+selector+route across checks and viewports
@@ -114,19 +136,23 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     for (const w of r.warnings || []) {
       const key = [w.rule, w.selector, w.route].join('\u0000');
       let g = warns.get(key);
-      if (!g) warns.set(key, (g = { w, vps: [], checks: [] }));
+      if (!g) warns.set(key, (g = { w, vps: [], checks: [], suite: null, anySuite: r.suite }));
       const where = whereOf(w, r, w.label);
       if (where && !g.vps.includes(where)) g.vps.push(where);
-      if (r.checkId && !g.checks.includes(r.checkId)) g.checks.push(r.checkId);
+      if (r.checkId && !g.checks.includes(r.checkId)) { g.checks.push(r.checkId); g.suite ||= r.suite; }
     }
   }
-  const warnLines = [...warns.values()].map(({ w, vps, checks }) =>
-    `- ${w.rule} \`${w.selector}\` on ${w.route}: ${w.measured} (expected ${w.expected})${vps.length ? ` — ${sortVps(vps).join(', ')}` : ''}${checks.length ? ` — ${checks.join(', ')}` : ''}`);
-  if (warnLines.length > MAX_WARNING_LINES) {
-    const extra = warnLines.length - (MAX_WARNING_LINES - 1);
-    warnLines.splice(MAX_WARNING_LINES - 1, warnLines.length, `+${extra} more (see results.json)`);
+  // Grouped and capped per owning suite: the suite of the first check listed. A warning no check id saw is
+  // tagged `(suite <s>)` with the suite of the result that saw it, so that suite's judge picks it up.
+  const warnBySuite = new Map();
+  for (const { w, vps, checks, suite, anySuite } of warns.values()) {
+    const owner = suite || anySuite;
+    if (!warnBySuite.has(owner)) warnBySuite.set(owner, []);
+    warnBySuite.get(owner).push(`- ${w.rule} \`${w.selector}\` on ${w.route}: ${w.measured} (expected ${w.expected})${vps.length ? ` — ${sortVps(vps).join(', ')}` : ''} — ${checks.length ? checks.join(', ') : `(suite ${owner})`}`);
   }
-  lines.push(...(warnLines.length ? warnLines : ['- none']), '');
+  if (!warnBySuite.size) lines.push('- none');
+  for (const [suite, list] of warnBySuite) lines.push(...capLines(list, MAX_WARNING_LINES_PER_SUITE, 'warning(s)', suite));
+  lines.push('');
 
   // Metrics: perf/timing only, one table per suite, label → value per vp (worst value when repeated)
   lines.push('## Metrics');
@@ -148,14 +174,19 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
   for (const [suite, { vps, rows }] of bySuite) {
     const cols = sortVps(vps);
     lines.push(`### ${suite}`, `| label | ${cols.join(' | ')} |`, `|---|${cols.map(() => '---').join('|')}|`);
-    for (const [label, cells] of rows) lines.push(`| ${label} | ${cols.map((c) => (cells.has(c) ? fmt(cells.get(c).value, cells.get(c).unit) : '')).join(' | ')} |`);
+    const rowLines = [...rows].map(([label, cells]) => `| ${label} | ${cols.map((c) => (cells.has(c) ? fmt(cells.get(c).value, cells.get(c).unit) : '')).join(' | ')} |`);
+    if (rowLines.length > MAX_METRIC_ROWS_PER_SUITE) {
+      const extra = rowLines.length - (MAX_METRIC_ROWS_PER_SUITE - 1);
+      rowLines.splice(MAX_METRIC_ROWS_PER_SUITE - 1, rowLines.length, `| +${extra} more metric row(s) (suite ${suite}) — ${WHERE}, filter by suite "${suite}" |`);
+    }
+    lines.push(...rowLines);
     lines.push('');
   }
 
   while (lines.length && lines[lines.length - 1] === '') lines.pop();
   if (lines.length > MAX_LINES) {
     const extra = lines.length - (MAX_LINES - 1);
-    lines.splice(MAX_LINES - 1, lines.length, `+${extra} more (see results.json)`);
+    lines.splice(MAX_LINES - 1, lines.length, `+${extra} more line(s) — ${WHERE}`);
   }
   return lines.join('\n');
 }

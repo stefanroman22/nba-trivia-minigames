@@ -41,8 +41,8 @@ appends what a later run can reuse (a false positive and why, a selector that wo
   in the loop that visits 404 routes (per route in G-LAYOUT-01, once after the loop in G-PERM-02).
 - Dev-server HMR websockets (`/_next/hmr`) are not counted as a guest socket in G-PERM-03.
 - `tap-target-touch` warnings (44px on touch) are soft by design. The footer, rail chips (40px high), the
-  hamburger (38px), `(i)` buttons (30px) and the nav brand all warn on touch viewports. The digest shows only the
-  first 60 lines of warnings.
+  hamburger (38px), `(i)` buttons (30px) and the nav brand all warn on touch viewports. The digest shows at most
+  20 warning lines per suite, then a `(suite guest)` trailer pointing at results.json.
 
 ## Measurement notes
 

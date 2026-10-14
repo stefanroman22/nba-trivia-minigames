@@ -197,7 +197,7 @@ test('[ST-EVIDENCE] shots are JPEG files under the run dir and done() fails with
   await expect(audit.done()).rejects.toThrow(/1 UI violation[\s\S]*tap-target/);
 });
 
-test('[ST-DIGEST] buildDigest collapses identical violations across viewports and caps at 400 lines', async () => {
+test('[ST-DIGEST] buildDigest collapses identical violations across viewports and caps each section per suite', async () => {
   const vps = ['phone-360', 'phone-390', 'phone-414', 'tablet-768', 'tablet-1280', 'desktop-1366', 'desktop-1920'];
   const base = { checkId: 'G-HOME', title: '[G-HOME] home layout', suite: 'guest', durationMs: 1000, metrics: [] };
   const results = vps.map((vp, i) => ({
@@ -261,7 +261,7 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
   expect(tapLines.filter((l) => l.startsWith('- tap-target'))).toEqual([
     '- tap-target `a.x` on /: 20×20px (expected ≥ 44×44px [phone-390] | ≥ 24×24px [desktop-1366]) — phone-390, desktop-1366 — shot: shots/G-TAP/guest@desktop-1366-tap-target-2.jpg']);
 
-  // Warnings (soft rules): never a FAIL, one collapsed line per rule+selector+route, capped at 60 lines.
+  // Warnings (soft rules): never a FAIL, one collapsed line per rule+selector+route, capped at 20 lines per suite.
   const warn = (i) => ({ rule: 'tap-target-touch', route: '/', selector: `a.w${i}`, measured: '38×38px', expected: '≥ 44×44px on touch' });
   const soft = ['phone-360', 'tablet-768'].map((vp) => ({ ...base, checkId: 'G-W', title: '[G-W] w', project: `guest@${vp}`, vp, status: 'passed', violations: [], shots: [],
     warnings: [warn(0)] }));
@@ -271,8 +271,8 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
   const lotsMd = buildDigest([{ ...soft[0], warnings: Array.from({ length: 100 }, (_, i) => warn(i)) }], { runId: 'w', mode: 'dev', durationMs: 0 }).split('\n');
   const from = lotsMd.indexOf('## Warnings');
   const section = lotsMd.slice(from + 1, lotsMd.indexOf('', from));
-  expect(section).toHaveLength(60);
-  expect(section[59]).toBe('+41 more (see results.json)');
+  expect(section).toHaveLength(20);
+  expect(section[19]).toBe('- +81 more warning(s) (suite guest) — see results.json in the run dir (`node scripts/ui-check/run.mjs --where`), filter by suite "guest"');
   // … and the reporter carries them from the uicheck attachment into results.json entries.
   const wrep = new DigestReporter();
   wrep.onTestEnd(
@@ -296,7 +296,25 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
     many.push({ ...base, checkId: `G-X${i}`, title: `[G-X${i}] x`, project: 'guest@phone-390', vp: 'phone-390', status: 'failed', shots: [],
       violations: [{ rule: 'clipped', route: `/r${i}`, selector: `p.t${i}`, measured: 'text 90px in 40px box', expected: 'no clipping' }] });
   }
+  // Caps are per section and suite: a huge guest FAIL section must not push out the other suites' FAIL
+  // sections, the coverage gaps, the warnings or the metrics; each capped part ends with its own trailer.
+  const other = (suite, extra) => ({ ...base, suite, project: `${suite}@phone-390`, vp: 'phone-390', shots: [], violations: [], ...extra });
+  many.push(other('games', { checkId: 'GM-x-perfect', title: '[GM-x-perfect] x', status: 'failed',
+    violations: [{ rule: 'snap', route: '/x', selector: 'div.stage-shell', measured: 'height 400→480px in one frame', expected: '≤ 8px per frame' }] }));
+  for (let i = 0; i < 30; i++) many.push(other('games', { checkId: `GM-g${i}-timeout`, title: `[GM-g${i}-timeout] t`, status: 'skipped', skipReason: `no clock ${i}` }));
+  many.push(other('account', { checkId: 'AC-W', title: '[AC-W] w', status: 'passed', warnings: [warn(1)], metrics: [{ kind: 'timing', label: 'login', value: 900, unit: 'ms' }] }));
+  many.push(other('games', { checkId: null, title: 'no id', status: 'passed', warnings: [warn(2)] }));
   const big = buildDigest(many, { runId: 'x', mode: 'prod', durationMs: 1000 }).split('\n');
-  expect(big.length).toBeLessThanOrEqual(400);
-  expect(big[big.length - 1]).toMatch(/^\+\d+ more \(see results\.json\)$/);
+  // A warning that no check id saw is tagged with the suite that saw it, so that suite's judge picks it up.
+  expect(big).toContain('- tap-target-touch `a.w2` on /: 38×38px (expected ≥ 44×44px on touch) — phone-390 — (suite games)');
+  expect(big.length).toBeLessThanOrEqual(620);
+  const failGuest = big.filter((l) => l.startsWith('## FAIL G-X'));
+  expect(failGuest.length).toBeGreaterThan(20);
+  expect(big).toContain('- +' + (600 * 3 - 1 - 79) + ' more FAIL line(s) (suite guest) — see results.json in the run dir (`node scripts/ui-check/run.mjs --where`), filter by suite "guest"');
+  expect(big).toContain('## FAIL GM-x-perfect [GM-x-perfect] x');
+  expect(big).toContain('- GM-g0-timeout [GM-g0-timeout] t (phone-390): no clock 0');
+  expect(big).toContain('- +16 more coverage gap(s) (suite games) — see results.json in the run dir (`node scripts/ui-check/run.mjs --where`), filter by suite "games"');
+  expect(big.filter((l) => l.startsWith('- tap-target-touch `a.w1`'))).toHaveLength(1);
+  expect(big).toContain('### account');
+  expect(big.some((l) => l.startsWith('| login |'))).toBe(true);
 });

@@ -23,12 +23,18 @@ anything else under `scripts/ui-check/`; never run git commands that change stat
 
 ## Read budget
 1. Your digest slice only (Bash tool; prints the header, your `## FAIL GM-…` sections, your
-   coverage gaps, the warnings whose first listed check is yours, your metrics table):
+   coverage gaps, the warnings whose first listed check is yours (or tagged `(suite games)`), your metrics
+   table, and the `+N more … (suite games)` trailers):
    ```
-   node -e 'const [f,s]=process.argv.slice(1);const P={guest:"G",account:"AC",games:"GM",multiplayer:"MP"}[s]+"-";let keep=false,sec="";for(const l of require("fs").readFileSync(f,"utf8").split("\n")){if(/^#{1,3} /.test(l)){sec=l;keep=l.startsWith("# ")||l.startsWith("## FAIL "+P)||l==="### "+s;if(keep||/^## (Coverage gaps|Warnings)/.test(l))console.log(l);continue}if(keep||(sec==="## Coverage gaps"&&l.startsWith("- "+P))||(sec==="## Warnings"&&l.slice(l.lastIndexOf(" — ")+3).startsWith(P)))console.log(l)}' "<runDir>/digest.md" games
+   node -e 'const [f,s]=process.argv.slice(1);const P={guest:"G",account:"AC",games:"GM",multiplayer:"MP"}[s]+"-";const mine=l=>l.includes("(suite "+s+")");let keep=false,sec="";for(const l of require("fs").readFileSync(f,"utf8").split("\n")){if(/^#{1,3} /.test(l)){sec=l;keep=l.startsWith("# ")||l.startsWith("## FAIL "+P)||l==="### "+s;if(keep||/^## (Coverage gaps|Warnings)/.test(l))console.log(l);continue}if(keep||(sec==="## Coverage gaps"&&(l.startsWith("- "+P)||mine(l)))||(sec==="## Warnings"&&(mine(l)||l.slice(l.lastIndexOf(" — ")+3).startsWith(P))))console.log(l)}' "<runDir>/digest.md" games
    ```
-   Never read the whole digest, `results.json` or another suite's sections (a Grep of digest.md
+   Never read the whole digest, another suite's sections or `results.json` except through the fallback below (a Grep of digest.md
    for one selector is fine).
+   When a part of your slice ends with a `+N more …` trailer, page through the rest in results.json
+   (≤ 40 lines per call; `<kind>` is `fail`, `warn` or `gap`; `<offset>` comes from the last line of the previous call):
+   ```
+   node -e 'const [f,s,k="fail",o="0"]=process.argv.slice(1);const seen=new Map();for(const r of JSON.parse(require("fs").readFileSync(f,"utf8")).filter(r=>r.suite===s)){const items=k==="gap"?(r.status==="skipped"?[{rule:"gap",selector:r.checkId,route:"",measured:r.skipReason}]:[]):k==="warn"?r.warnings||[]:/^(failed|timedOut)$/.test(r.status)?r.violations||[]:[];for(const v of items){const key=[r.checkId,v.rule,v.selector,v.route].join("|");const e=seen.get(key)||{c:r.checkId,v,vps:new Set()};e.vps.add(v.vp||r.vp);seen.set(key,e)}}const all=[...seen.values()],n=+o;all.slice(n,n+39).forEach(({c,v,vps})=>console.log(c+" "+v.rule+" `"+v.selector+"` "+v.route+" "+String(v.measured).slice(0,100)+" — "+[...vps].join(",")));console.log(Math.min(all.length,n+39)+"/"+all.length+(all.length>n+39?" (next: offset "+(n+39)+")":""))' "<runDir>/results.json" games <kind> <offset>
+   ```
 2. `scripts/ui-check/notes/games.md`: "How judges use this file" says which sections to read.
 3. `scripts/ui-check/accepted.json` (owner-accepted fingerprints, never reported),
    `scripts/game-result-allowlist.json` (games allowed a full-screen result, Rule 7.3) and the

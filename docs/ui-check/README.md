@@ -19,6 +19,7 @@ Design: `docs/superpowers/specs/2026-10-11-ui-check-design.md`. Check catalogue 
    │
    ▼
  digest.md ── compact: one section per failing check, coverage gaps, warnings, metrics
+              (each capped per suite; a `+N more … (suite <s>)` trailer points at results.json)
    │
    ▼
  judges (4 Sonnet agents, one per suite, in parallel)
@@ -35,9 +36,9 @@ Design: `docs/superpowers/specs/2026-10-11-ui-check-design.md`. Check catalogue 
  <runDir>/findings.json + REPORT.md (+ rejected.json)
    │
    ▼
- ui-fix loop ── per file cluster: engine fixes → verify.mjs → repeat (≤ 4) → 7-viewport sweep
-                → regression run → code-reviewer (+ motion-reviewer) → verify --mark → commit
-                → PR to dev, merge, stop at dev
+ ui-fix loop ── per file cluster: engine fixes → verify.mjs (dev; perf criteria in prod) → repeat
+                (≤ 4) → 7-viewport sweep → code-reviewer (+ motion-reviewer) → regression run
+                → verify --mark (the finding's validated mode) → commit → PR to dev, merge, stop at dev
 ```
 
 Scripts measure, agents judge: agents never explore the app from scratch, so a run costs tens of
@@ -70,7 +71,9 @@ contain spaces.
 
 ## Where artifacts live
 
-Nothing is written into the repo. `lib/home.mjs` (`uicHome()`) picks:
+Run output never goes into the repo; the only repo files a run changes are
+`scripts/ui-check/notes/<suite>.md`, where the judges append what they learned (the `ui-fix` skill
+commits them as `ui-check: notes from <runId>`). `lib/home.mjs` (`uicHome()`) picks:
 `UI_CHECK_HOME` when set; on Windows with the repo under OneDrive `%LOCALAPPDATA%\nba-ui-check`
 (OneDrive would sync thousands of JPEGs); otherwise `<repo>/.ui-check` (git-ignored).
 
@@ -88,7 +91,12 @@ Nothing is written into the repo. `lib/home.mjs` (`uicHome()`) picks:
 ```
 
 Every `run.mjs` call (including a fix loop's regression run) creates a new run and moves `latest`;
-pass `--run <runId>` to `report.mjs` and `probe.mjs` whenever another run may have happened since.
+the skills and agents always pass `--run <runId>` to `verify.mjs`, `probe.mjs` and `report.mjs`.
+
+The digest caps each section per suite (FAIL lines 80, coverage gaps 15, warnings 20, metric rows
+25; about 600 lines in all), so one noisy suite never pushes another out. A capped part ends with
+`- +N more … (suite <s>) — see results.json …`; each judge pages through the rest of its own suite
+with a bounded `results.json` filter (≤ 40 lines per call) given in its agent file.
 
 ## Modes
 
@@ -100,8 +108,12 @@ pass `--run <runId>` to `report.mjs` and `probe.mjs` whenever another run may ha
 The stack helper starts only what is not already listening and stops only what it started. Prod
 mode rebuilds only when the source stamp changed (about 70 s or more). Django and the relay run
 without autoreload: after a server-side edit, `run.mjs --stop` and the next call starts them again.
-`report.mjs --validate` uses the run's own mode; `verify.mjs` uses prod for findings validated in
-prod (`validatedMode`), dev otherwise.
+`report.mjs --validate` uses the run's own mode. Without `--mode`, `verify.mjs` uses prod for
+findings validated in prod (`validatedMode`), dev otherwise. In the fix loop the engines verify with
+`--mode dev` (HMR, no rebuild) and switch to `--mode prod` only for perf criteria (`maxCls`,
+`maxLoafMs`, an `@perf` check, or a finding with rule perf / loaf / cls / slow-action / slow-api),
+because budgets are enforced only in prod. The `ui-fix` skill's final `verify --mark` passes no
+`--mode`, so it is the one gate in the finding's validated mode.
 
 ## Accounts
 

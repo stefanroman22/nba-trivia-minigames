@@ -78,5 +78,7 @@ Give the owner:
 - the summary table from REPORT.md's header and `## Summary` (findings by severity × owner and
   severity × suite), the rejected count, and the coverage gaps (scenarios no adapter could drive);
 - one line per judge from its return (findings count, anything that blocked it);
-- the next step: the `ui-fix` skill fixes open findings (`ui-fix <runId>`).
+- the next step: the `ui-fix` skill fixes open findings (`ui-fix <runId>`);
+- the judges' notes appends (`git status --short scripts/ui-check/notes`) are left uncommitted: `ui-fix`
+  commits them first as `ui-check: notes from <runId>`.
 The owner's manual check (Google OAuth round trip) is listed in `docs/ui-check/README.md`.

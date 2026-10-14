@@ -24,12 +24,18 @@ or anything else under `scripts/ui-check/`; never run git commands that change s
 
 ## Read budget
 1. Your digest slice only (Bash tool; prints the header, your `## FAIL MP-…` sections, your
-   coverage gaps, the warnings whose first listed check is yours, your metrics table):
+   coverage gaps, the warnings whose first listed check is yours (or tagged `(suite multiplayer)`), your metrics
+   table, and the `+N more … (suite multiplayer)` trailers):
    ```
-   node -e 'const [f,s]=process.argv.slice(1);const P={guest:"G",account:"AC",games:"GM",multiplayer:"MP"}[s]+"-";let keep=false,sec="";for(const l of require("fs").readFileSync(f,"utf8").split("\n")){if(/^#{1,3} /.test(l)){sec=l;keep=l.startsWith("# ")||l.startsWith("## FAIL "+P)||l==="### "+s;if(keep||/^## (Coverage gaps|Warnings)/.test(l))console.log(l);continue}if(keep||(sec==="## Coverage gaps"&&l.startsWith("- "+P))||(sec==="## Warnings"&&l.slice(l.lastIndexOf(" — ")+3).startsWith(P)))console.log(l)}' "<runDir>/digest.md" multiplayer
+   node -e 'const [f,s]=process.argv.slice(1);const P={guest:"G",account:"AC",games:"GM",multiplayer:"MP"}[s]+"-";const mine=l=>l.includes("(suite "+s+")");let keep=false,sec="";for(const l of require("fs").readFileSync(f,"utf8").split("\n")){if(/^#{1,3} /.test(l)){sec=l;keep=l.startsWith("# ")||l.startsWith("## FAIL "+P)||l==="### "+s;if(keep||/^## (Coverage gaps|Warnings)/.test(l))console.log(l);continue}if(keep||(sec==="## Coverage gaps"&&(l.startsWith("- "+P)||mine(l)))||(sec==="## Warnings"&&(mine(l)||l.slice(l.lastIndexOf(" — ")+3).startsWith(P))))console.log(l)}' "<runDir>/digest.md" multiplayer
    ```
-   Never read the whole digest, `results.json` or another suite's sections. Grepping digest.md for
-   one selector is fine and is how you spot cross-suite duplicates (below).
+   Never read the whole digest, another suite's sections or `results.json` except through the
+   fallback below (a Grep of digest.md for one selector is fine).
+   When a part of your slice ends with a `+N more …` trailer, page through the rest in results.json
+   (≤ 40 lines per call; `<kind>` is `fail`, `warn` or `gap`; `<offset>` comes from the last line of the previous call):
+   ```
+   node -e 'const [f,s,k="fail",o="0"]=process.argv.slice(1);const seen=new Map();for(const r of JSON.parse(require("fs").readFileSync(f,"utf8")).filter(r=>r.suite===s)){const items=k==="gap"?(r.status==="skipped"?[{rule:"gap",selector:r.checkId,route:"",measured:r.skipReason}]:[]):k==="warn"?r.warnings||[]:/^(failed|timedOut)$/.test(r.status)?r.violations||[]:[];for(const v of items){const key=[r.checkId,v.rule,v.selector,v.route].join("|");const e=seen.get(key)||{c:r.checkId,v,vps:new Set()};e.vps.add(v.vp||r.vp);seen.set(key,e)}}const all=[...seen.values()],n=+o;all.slice(n,n+39).forEach(({c,v,vps})=>console.log(c+" "+v.rule+" `"+v.selector+"` "+v.route+" "+String(v.measured).slice(0,100)+" — "+[...vps].join(",")));console.log(Math.min(all.length,n+39)+"/"+all.length+(all.length>n+39?" (next: offset "+(n+39)+")":""))' "<runDir>/results.json" multiplayer <kind> <offset>
+   ```
 2. `scripts/ui-check/notes/multiplayer.md`: "How judges use this file" says which sections to read.
 3. `scripts/ui-check/accepted.json`: fingerprints the owner accepted, never reported.
 4. Constraint docs: only the rule sections your findings cite (rule map below). Grep the heading
@@ -70,13 +76,16 @@ logged-out pages and idle screens (guest); the logged-in side card in its idle s
 searching screen before a match is found (account); the game's own board, feedback copy and end
 rules inside a round (games: the renderers are the same online).
 
-**Cross-suite duplicates.** An `MP-GAME-<game>` stage snap (`snap` on `.stage-shell` or `.om`) is
-often the same defect the games suite saw on that game route. Grep digest.md for the selector: when
-a `## FAIL GM-…` section lists the same rule, route and selector, write a short entry with that exact
-`rule`, `where.route` and `where.selector` (copied verbatim), `current`: "Same defect as the games
-suite's <rule> on <route>, also seen online", the same `files`, and the `MP-GAME-<game>` check as
-the criterion. `report.mjs` merges it into the games finding by fingerprint. Do not re-describe or
-re-probe it.
+**Cross-suite duplicates.** A FAIL line that carries `[same as GM-…]` (the note the MP-GAME spec adds
+to a stage snap the games suite also sees) is the duplicate marker. Write a short entry for it: the
+GM line's `rule`, `where.route` and `where.selector` copied verbatim (the same strings your line
+shows; when the games suite ran in this run, Grep digest.md for the selector under the named
+`## FAIL GM-…` section to confirm), `current`: "Same defect as the games suite's <rule> on <route>
+(<GM id>), also seen online", real `files` and `fix` (the schema needs them), and the
+`MP-GAME-<game>` check on `mp@pairA` as the criterion. `report.mjs` merges it into the games finding
+by fingerprint. Do not re-describe or re-probe it. Only when a stage snap has no marker, Grep
+digest.md for its selector as a fallback: a `## FAIL GM-…` line with the same rule, route and selector
+is the same defect, handled the same way.
 
 ## Rule map (what a finding's `fix.rules` cites)
 | issue / digest rule | rule |

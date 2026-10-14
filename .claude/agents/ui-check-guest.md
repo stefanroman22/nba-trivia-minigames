@@ -23,12 +23,18 @@ anything else under `scripts/ui-check/`; never run git commands that change stat
 
 ## Read budget
 1. Your digest slice only (Bash tool; prints the header, your `## FAIL G-…` sections, your
-   coverage gaps, the warnings whose first listed check is yours, your metrics table):
+   coverage gaps, the warnings whose first listed check is yours (or tagged `(suite guest)`), your metrics
+   table, and the `+N more … (suite guest)` trailers):
    ```
-   node -e 'const [f,s]=process.argv.slice(1);const P={guest:"G",account:"AC",games:"GM",multiplayer:"MP"}[s]+"-";let keep=false,sec="";for(const l of require("fs").readFileSync(f,"utf8").split("\n")){if(/^#{1,3} /.test(l)){sec=l;keep=l.startsWith("# ")||l.startsWith("## FAIL "+P)||l==="### "+s;if(keep||/^## (Coverage gaps|Warnings)/.test(l))console.log(l);continue}if(keep||(sec==="## Coverage gaps"&&l.startsWith("- "+P))||(sec==="## Warnings"&&l.slice(l.lastIndexOf(" — ")+3).startsWith(P)))console.log(l)}' "<runDir>/digest.md" guest
+   node -e 'const [f,s]=process.argv.slice(1);const P={guest:"G",account:"AC",games:"GM",multiplayer:"MP"}[s]+"-";const mine=l=>l.includes("(suite "+s+")");let keep=false,sec="";for(const l of require("fs").readFileSync(f,"utf8").split("\n")){if(/^#{1,3} /.test(l)){sec=l;keep=l.startsWith("# ")||l.startsWith("## FAIL "+P)||l==="### "+s;if(keep||/^## (Coverage gaps|Warnings)/.test(l))console.log(l);continue}if(keep||(sec==="## Coverage gaps"&&(l.startsWith("- "+P)||mine(l)))||(sec==="## Warnings"&&(mine(l)||l.slice(l.lastIndexOf(" — ")+3).startsWith(P))))console.log(l)}' "<runDir>/digest.md" guest
    ```
-   Never read the whole digest, `results.json` or another suite's sections (a Grep of digest.md
+   Never read the whole digest, another suite's sections or `results.json` except through the fallback below (a Grep of digest.md
    for one selector is fine).
+   When a part of your slice ends with a `+N more …` trailer, page through the rest in results.json
+   (≤ 40 lines per call; `<kind>` is `fail`, `warn` or `gap`; `<offset>` comes from the last line of the previous call):
+   ```
+   node -e 'const [f,s,k="fail",o="0"]=process.argv.slice(1);const seen=new Map();for(const r of JSON.parse(require("fs").readFileSync(f,"utf8")).filter(r=>r.suite===s)){const items=k==="gap"?(r.status==="skipped"?[{rule:"gap",selector:r.checkId,route:"",measured:r.skipReason}]:[]):k==="warn"?r.warnings||[]:/^(failed|timedOut)$/.test(r.status)?r.violations||[]:[];for(const v of items){const key=[r.checkId,v.rule,v.selector,v.route].join("|");const e=seen.get(key)||{c:r.checkId,v,vps:new Set()};e.vps.add(v.vp||r.vp);seen.set(key,e)}}const all=[...seen.values()],n=+o;all.slice(n,n+39).forEach(({c,v,vps})=>console.log(c+" "+v.rule+" `"+v.selector+"` "+v.route+" "+String(v.measured).slice(0,100)+" — "+[...vps].join(",")));console.log(Math.min(all.length,n+39)+"/"+all.length+(all.length>n+39?" (next: offset "+(n+39)+")":""))' "<runDir>/results.json" guest <kind> <offset>
+   ```
 2. `scripts/ui-check/notes/guest.md`: "How judges use this file" says which sections to read.
 3. `scripts/ui-check/accepted.json`: fingerprints the owner accepted, never reported.
 4. Constraint docs: only the rule sections your findings cite (rule map below). Grep the heading
@@ -50,7 +56,9 @@ no admin data, `/api/admin/*` 401/403, no Admin nav link, hidden game slugs 404,
 online" and no socket for guests).
 
 **B. Visual judgement on guest surfaces only** (the pages above, nav/drawer/footer/rail/chips, the
-shell and content of public modals, game idle screens), from the sheets and crops:
+shell and opening of every public modal including the auth modal, the content of the feedback,
+leaderboard (as a guest), instructions and multiplayer-info modals, game idle screens; the auth
+modal's content belongs to account), from the sheets and crops:
 1. Spacing and alignment of the same component across these surfaces (card padding, gaps, edges).
 2. Type hierarchy (one clear title per surface, consistent heading and label sizes).
 3. Colour and token consistency (UI-7 theme tokens; no stray literal colours).
