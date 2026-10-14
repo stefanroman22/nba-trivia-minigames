@@ -40,6 +40,9 @@ async function quietly(log, fn) {
   }
 }
 
+let active = null; // the running withStack call: { latest, stop }
+let emergencyInstalled = false;
+
 /**
  * Ensure the stack for `mode` once (quietly, into `log`), run fn(), then — unless keepStack — stop ONLY the processes
  * this call started (ensureStack().started; while it is still starting, the stack.json entries that appeared since).
@@ -54,13 +57,20 @@ export async function withStack({ mode, keepStack, log }, fn) {
   let mine = null;
   const ours = () => mine || ((readStack() || {}).started || []).filter((e) => !before.has(e.pid));
   const stopOurs = () => { const only = ours(); return only.length ? stopStack({ only }) : []; };
-  installEmergencyStop(keepStack, () => restoreLatest(latest), stopOurs);
+  // One signal handler per process (verify runs a dev group, then a prod group): it stops the ACTIVE group's
+  // processes. A handler per group would race — the first to finish calls process.exit before the other stops.
+  active = { latest, stop: stopOurs };
+  if (!emergencyInstalled) {
+    emergencyInstalled = true;
+    installEmergencyStop(keepStack, () => active && restoreLatest(active.latest), () => (active ? active.stop() : []));
+  }
   try {
     try { mine = (await quietly(log, () => ensureStack(mode))).started; } catch (e) { throw new Error(`stack (${mode}) did not come up: ${firstLine(e.message)} — see ${log}`); }
     return await fn();
   } finally {
     restoreLatest(latest);
     if (!keepStack) await quietly(log, stopOurs).catch(() => {});
+    active = null;
   }
 }
 

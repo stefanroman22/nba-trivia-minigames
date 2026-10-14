@@ -4,7 +4,8 @@
 //   noConsoleErrors → audit.console (rule `console` only)
 // `style` compares computed strings: colours come back as "rgb(r, g, b)" / "rgba(…)", lengths in px.
 // `visible` / `count` with no match in the DOM stay a FAIL (absence can be the defect) but say "0 in DOM", so a
-// mistyped selector is easy to spot. A `noSnap` watch selector that matches nothing before and after the steps is an error.
+// mistyped selector is easy to spot. A `noSnap` watch selector that matched nothing in EVERY frame the snap sampler
+// took (from before the steps to the end of the settle) is an error; one that exists only during the steps is fine.
 // Every expect yields one line { ok, error, text } with what was measured. Outcome:
 //   'pass'  every expect holds
 //   'fail'  an expect does not hold (the assertion reproduces the defect)
@@ -84,15 +85,15 @@ export async function runAssertion({ page, audit, assertion }) {
     win = await page.evaluate(() => ({ since: performance.now(), origin: performance.timeOrigin }));
     if (a.expect.some((x) => x.kind === 'noSnap')) {
       // The steps run inside the audit's motion window: its rAF snap sampler watches `watch` (or 'auto').
-      const counts = () => Promise.all(a.watch.map((s) => page.locator(s).count().catch(() => 0)));
-      const before = await counts();
       try {
         const added = await audit.motion(runSteps, { watch: a.watch.length ? a.watch : 'auto' });
         snaps = added.filter((v) => v.rule === 'snap');
       } catch (e) { stepError ||= `snap sampler: ${firstLine(e)}`; }
-      const after = await counts();
-      const unwatched = a.watch.filter((_, i) => !before[i] && !after[i]);
-      if (!stepError && unwatched.length) stepError = `noSnap watch ${unwatched.join(', ')}: 0 in DOM before and after the steps — nothing was watched`;
+      // The sampler counts, per frame, whether each watch selector matched: an element that exists only during the
+      // steps (a modal opened and closed) counts. Unknown after a navigation (the sampler went with the old document).
+      const seen = await page.evaluate(() => (window.__uicSnap ? window.__uicSnap.seen : null)).catch(() => null);
+      const unwatched = seen ? a.watch.filter((s) => !seen[s]) : [];
+      if (!stepError && unwatched.length) stepError = `noSnap watch ${unwatched.join(', ')}: 0 in DOM in every sampled frame — nothing was watched`;
     } else {
       await runSteps();
       if (a.steps.length) await page.waitForTimeout(300);

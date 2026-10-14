@@ -340,6 +340,7 @@ export function snapStart({ watch = 'auto', ignore = [] } = {}) {
   const LAYOUT = /^(all|height|width|max-|min-|margin|padding|top|left|right|bottom|inset|flex|grid|font-size|line-height|border)/;
   const tracks = new Map();
   const styleFrames = new Map();
+  const seen = {}; // explicit watch selector → number of sampled frames in which it matched ≥ 1 element
   let frame = 0, raf = 0, stopped = false;
   const track = (el) => {
     if (tracks.has(el) || tracks.size >= 40 || isIgnored(el)) return;
@@ -382,7 +383,12 @@ export function snapStart({ watch = 'auto', ignore = [] } = {}) {
   const sample = () => {
     if (stopped) return;
     frame++;
-    if (Array.isArray(watch)) for (const s of watch) { try { document.querySelectorAll(s).forEach(track); } catch { /* bad selector */ } }
+    if (Array.isArray(watch)) {
+      for (const s of watch) {
+        seen[s] = seen[s] || 0;
+        try { const els = document.querySelectorAll(s); if (els.length) seen[s]++; els.forEach(track); } catch { /* bad selector */ }
+      }
+    }
     const anims = animTargets();
     for (const tr of tracks.values()) {
       const el = tr.el;
@@ -404,6 +410,7 @@ export function snapStart({ watch = 'auto', ignore = [] } = {}) {
   sample(); // baseline now, before the interaction starts; then every frame
 
   window.__uicSnap = {
+    seen, // read after the window: a watch selector at 0 matched nothing in any sampled frame
     stop() { stopped = true; cancelAnimationFrame(raf); mo.disconnect(); },
     collect() {
       this.stop();
