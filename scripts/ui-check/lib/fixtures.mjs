@@ -28,8 +28,10 @@ const AUTO_CROPS_PER_AUDIT = 12;
 /** Soft rules: recorded as audit.warnings (same shape as violations), never make done() throw. */
 export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-explained']);
 
-/** `[G-HOME] home layout` → 'G-HOME'. */
+/** `[G-HOME] home layout` → 'G-HOME'; `[ACCEPT UIC-x-001#2] …` (verify.mjs) → 'ACCEPT-UIC-x-001-2'. */
 export function checkIdOf(title) {
+  const a = /\[ACCEPT ([\w.-]+)#(\d+)\]/.exec(title || '');
+  if (a) return `ACCEPT-${a[1]}-${a[2]}`;
   const m = /\[([A-Za-z][\w.-]*)\]/.exec(title || '');
   return m ? m[1] : null;
 }

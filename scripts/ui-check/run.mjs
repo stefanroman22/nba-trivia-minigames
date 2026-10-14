@@ -8,18 +8,16 @@
 // `*` matches within an id (GM-wordle-*). Non-multiplayer suites run with 4 workers, multiplayer
 // with 1 (its two accounts are shared). --skip-slow leaves out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01's
 // three 30 s relay limits) for quick verify loops. Exits 1 when any test failed.
-import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { CORE, MP_PAIRS, VIEWPORTS } from './lib/viewports.mjs';
-import { REPO_ROOT, UIC_ROOT, runDir, runId } from './lib/run-id.mjs';
+import { UIC_ROOT, runDir, runId } from './lib/run-id.mjs';
 import { ensureStack, stopStack } from './lib/stack.mjs';
 import { JPEG } from './lib/evidence.mjs';
+import { UIC, grepFor, installEmergencyStop, playwright } from './lib/runner.mjs';
 
 const SUITES = ['guest', 'account', 'games', 'multiplayer'];
-const UIC = path.join(REPO_ROOT, 'scripts', 'ui-check');
-const PW_CLI = path.join(REPO_ROOT, 'node_modules', '@playwright', 'test', 'cli.js');
 const SHEET_MAX = 24;
 
 function parseArgs(argv) {
@@ -66,61 +64,12 @@ function selectViewports(arg) {
   return { vps, pairs };
 }
 
-function grepFor(only) {
-  if (!only) return null;
-  const ids = list(only).map((id) => id.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[\\w.-]*'));
-  return `\\[(${ids.join('|')})\\]`;
-}
-
 const PERF_TAG = '@perf';
 const SLOW_TAG = '@slow';
 /** Grep for the single-worker pass: @perf tests, narrowed by --only when given. */
 function perfGrep(only) {
   const ids = grepFor(only);
   return ids ? `^(?=.*${PERF_TAG})(?=.*${ids})` : PERF_TAG;
-}
-
-// The running Playwright child, so an interrupt can take it down with the stack.
-let child = null;
-
-/** Run one Playwright invocation (async, so signal handlers can run meanwhile) → its exit code. */
-function playwright(projects, { workers, grep, grepInvert, headed, env }) {
-  const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, UIC), '--workers', String(workers), '--pass-with-no-tests'];
-  for (const p of projects) args.push('--project', p);
-  if (grep) args.push('--grep', grep);
-  if (grepInvert) args.push('--grep-invert', grepInvert);
-  if (headed) args.push('--headed');
-  console.log(`\nui-check: playwright ${projects.length} project(s), ${workers} worker(s)${grep ? `, --grep ${grep}` : ''}${grepInvert ? `, --grep-invert ${grepInvert}` : ''}`);
-  return new Promise((resolve) => {
-    child = spawn(process.execPath, args, { cwd: REPO_ROOT, stdio: 'inherit', env: { ...process.env, ...env } });
-    child.on('error', () => { child = null; resolve(1); });
-    child.on('exit', (code) => { child = null; resolve(code ?? 1); });
-  });
-}
-
-/**
- * Ctrl+C / SIGTERM / an uncaught error: kill the Playwright child and stop the stack (unless --keep-stack),
- * since main()'s `finally` never runs then. A hard kill (taskkill /F, SIGKILL) can't be caught: use --stop.
- */
-function installEmergencyStop(keepStack) {
-  let stopping = false;
-  const bail = async (why, code) => {
-    if (stopping) return;
-    stopping = true;
-    console.error(`\nui-check: ${why} — stopping${keepStack ? ' (stack kept: --keep-stack)' : ' the stack'}`);
-    if (child?.pid) {
-      try {
-        if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true });
-        else child.kill('SIGTERM');
-      } catch { /* already gone */ }
-    }
-    if (!keepStack) await stopStack().catch((e) => console.error(`ui-check: stopStack failed: ${e.message}`));
-    process.exit(code);
-  };
-  const signals = ['SIGINT', 'SIGTERM', 'SIGHUP', ...(process.platform === 'win32' ? ['SIGBREAK'] : [])];
-  for (const sig of signals) process.on(sig, () => bail(`received ${sig}`, 130));
-  process.on('uncaughtException', (e) => bail(`uncaught error: ${(e && e.stack) || e}`, 1));
-  process.on('unhandledRejection', (e) => bail(`unhandled rejection: ${(e && e.stack) || e}`, 1));
 }
 
 function readResults() {

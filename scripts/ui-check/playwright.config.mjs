@@ -81,5 +81,8 @@ export default defineConfig({
       ...(pair === 'pairA' ? {} : { testIgnore: /[\\/](games|timeouts)\.spec\.mjs$/ }),
       use: { mpPair: pair, persona: 'pair', suite: 'multiplayer' },
     })),
+    // Acceptance assertions (verify.mjs / probe.mjs / report.mjs --validate): the spec sets each assertion's
+    // viewport and persona itself (grouped describes), from the file in UI_CHECK_ASSERT_FILE.
+    onApp({ name: 'accept', testDir: './specs/accept', use: { suite: 'accept' } }),
   ],
 });

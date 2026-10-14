@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "ui-check/findings.schema.json",
+  "title": "UI check finding",
+  "description": "One finding as a judge writes it to <runDir>/findings/<suite>.json (an array of these, or { \"findings\": [...] }). report.mjs adds id, fingerprint and status. lib/findings.mjs validates with this file (a JSON Schema subset: type, enum, required, properties, additionalProperties, items, minItems, minLength, pattern, minimum, anyOf, $ref) and then parses each acceptance assertion with the DSL parser (parseAssertion), which reports unknown step/expect keys by name. x-message is the error text when an anyOf fails.",
+  "type": "object",
+  "required": ["rule", "title", "severity", "category", "owner", "suite", "persona", "where", "current", "expected", "evidence", "files", "fix", "acceptance"],
+  "additionalProperties": false,
+  "properties": {
+    "id": { "type": "string", "pattern": "^UIC-[\\w-]+-\\d{3,}$" },
+    "fingerprint": { "type": "string" },
+    "rule": { "type": "string", "minLength": 1, "description": "Detector rule id (overflow-x, snap, cls, tap-target, ...) or a check-specific / judge rule (spacing, copy, hierarchy, ...). Part of the fingerprint rule|route|selector." },
+    "title": { "type": "string", "minLength": 3 },
+    "severity": { "enum": ["blocker", "major", "minor", "polish"] },
+    "category": { "type": "string", "minLength": 1, "description": "layout, motion, a11y, perf, copy, visual, flow, data, ..." },
+    "owner": { "enum": ["frontend", "backend", "ci"] },
+    "suite": { "enum": ["guest", "account", "games", "multiplayer"] },
+    "persona": { "enum": ["guest", "solo", "pair", "throwaway"] },
+    "where": {
+      "type": "object",
+      "required": ["route", "viewports", "selector"],
+      "additionalProperties": false,
+      "properties": {
+        "route": { "type": "string", "pattern": "^/" },
+        "state": { "type": "string" },
+        "viewports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/where-viewport" } },
+        "selector": { "type": "string", "minLength": 1 }
+      }
+    },
+    "current": { "type": "string", "minLength": 1 },
+    "expected": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "object",
+      "required": ["metrics", "shots"],
+      "additionalProperties": false,
+      "properties": {
+        "checkId": { "type": ["string", "null"] },
+        "metrics": { "type": "array", "items": { "anyOf": [{ "type": "string" }, { "$ref": "#/$defs/metric" }], "x-message": "a metric is a string or { label, value, unit?, vp? }" } },
+        "shots": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "why"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "line": { "type": "integer", "minimum": 1 },
+          "why": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "fix": {
+      "type": "object",
+      "required": ["change"],
+      "additionalProperties": false,
+      "properties": {
+        "change": { "$ref": "#/$defs/strings1" },
+        "reuse": { "$ref": "#/$defs/strings" },
+        "build": { "$ref": "#/$defs/strings" },
+        "rules": { "$ref": "#/$defs/strings" }
+      }
+    },
+    "acceptance": {
+      "type": "object",
+      "required": ["criteria"],
+      "additionalProperties": false,
+      "properties": {
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "projects"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^(G|AC|GM|MP)-[\\w.-]+$" },
+              "projects": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^((guest|account|games)@(phone-360|phone-390|phone-414|tablet-768|tablet-1280|desktop-1366|desktop-1920)|mp@pair[A-D])$" } }
+            }
+          }
+        },
+        "assertions": { "type": "array", "items": { "type": "object", "description": "Acceptance DSL; checked in detail by parseAssertion (lib/findings.mjs)." } },
+        "criteria": { "$ref": "#/$defs/strings1" }
+      },
+      "anyOf": [
+        { "required": ["checks"], "properties": { "checks": { "minItems": 1 } } },
+        { "required": ["assertions"], "properties": { "assertions": { "minItems": 1 } } }
+      ],
+      "x-message": "needs at least one check or assertion (machine-checkable acceptance)"
+    },
+    "status": { "enum": ["open", "fixed"] },
+    "fixedAt": { "type": "string" },
+    "validatedAt": { "type": "string" },
+    "validatedHash": { "type": "string" },
+    "mergedFrom": { "$ref": "#/$defs/strings" }
+  },
+  "$defs": {
+    "strings": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "strings1": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+    "where-viewport": { "type": "string", "pattern": "^(phone-360|phone-390|phone-414|tablet-768|tablet-1280|desktop-1366|desktop-1920|pair[A-D])$" },
+    "metric": {
+      "type": "object",
+      "required": ["label", "value"],
+      "properties": {
+        "label": { "type": "string" },
+        "value": { "type": ["number", "string"] },
+        "unit": { "type": "string" },
+        "vp": { "type": "string" }
+      }
+    }
+  }
+}
