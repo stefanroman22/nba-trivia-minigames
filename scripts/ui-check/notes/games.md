@@ -309,3 +309,6 @@ lists the end-slot min-height). Fix direction: reserve/scroll the guess list. Wo
 Soft warnings only: Wordle keys 42x47 px and ScorePanel buttons 38 px tall on touch (`tap-target-touch`).
 Observation (not asserted): Wordle's Play button shows for a moment after Close game before the status fetch swaps it to the lock note.
 Flake, not real: GM-LATENCY-contexto phone-390 one 110 ms frame in the full run; passes twice alone in prod.
+- (20261014-1153) False positive: `tap-target` on `button.chip.cp-toggle` (Career Path, phone-390, 114x22 px): `.cp-toggle::after` already extends the hit area to 44 px (CareerPath.css:42); the detector measures the visible box only.
+- (20261014-1153) Unproven: HTTP 500 on `log-session` (series-winner) and `log-guesses` (fan-favorites), both desktop-1366 only, other games fine; may be a transient prod blip.
+- (20261014-1153) Environment artefact: the log-session / log-guesses HTTP 500 did not reproduce on re-validation; most likely a local sqlite lock under 4 parallel workers. Dropped. Series Winner name wrap: deterministic probe = minSize 0x56 on `.playing-wrap .gf-board button span.font-display` (fails now: 18.8 px with short names; would pass spuriously if a 3-line name is drawn).

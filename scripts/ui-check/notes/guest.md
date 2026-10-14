@@ -69,3 +69,4 @@ appends what a later run can reuse (a false positive and why, a selector that wo
   viewport, so they are treated as real, but compare against a single-worker run before filing.
 - G-MODAL-01 saw one `net::ERR_CONNECTION_REFUSED` console error on `/` (prod, run 20261012-1350, right after Django
   was started by hand). It never repeated in 3 later full runs.
+- (20261014-1153) Probes took 60-100s each with the full stack under load; `axe: ["color-contrast"]` with the guest-panel login modal open reproduces the white-on-#ff6a1a failures; `style` with `main article p a[href^='mailto:'] >> nth=0` works on /privacy.

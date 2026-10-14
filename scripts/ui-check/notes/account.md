@@ -85,3 +85,6 @@ several times in one hour on one stack hits the limit and shows up as HTTP 429 i
   before calling it real.
 - AC-LOGIN-02's flash number is dominated by hydration time; it grows with machine load.
 - The Google click needs `accounts.google.com/gsi/client` to load; offline it records the soft warning `skip-explained`.
+
+- (20261014-1153) Probes: `/?login=1` does not open the auth modal; open it on `/profile` as guest via `@guest.profileLoginBtn`. Two probes in parallel can make one fail as infra (no verdict); run them serially.
+- (20261014-1153) Dropped as noise: slow-api GET /api/me and /api/account/export (1.3-1.4 s, one vp each), signup submit 3886 ms on tablet-768 only (others 1.3-1.5 s, password hashing), loaf 103-272 ms on single viewports.
