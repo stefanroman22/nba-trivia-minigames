@@ -19,7 +19,9 @@ export const SUITES = ['guest', 'account', 'games', 'multiplayer'];
 const VP_ORDER = [...Object.keys(VIEWPORTS), ...Object.keys(MP_PAIRS)];
 const rank = (order, v) => { const i = order.indexOf(v); return i < 0 ? order.length : i; };
 
-export const readJson = (file, fallback = null) => { try { return JSON.parse(readFileSync(file, 'utf8')); } catch { return fallback; } };
+/** File text without a leading UTF-8 BOM (Windows PowerShell 5.1 writes one; JSON.parse rejects it). */
+export const readText = (file) => readFileSync(file, 'utf8').replace(/^﻿/, '');
+export const readJson = (file, fallback = null) => { try { return JSON.parse(readText(file)); } catch { return fallback; } };
 const writeJson = (file, data) => writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
 
 // ---------------------------------------------------------------------------------------------
@@ -342,7 +344,7 @@ export function loadJudgeFindings(dir) {
   try { files = readdirSync(fdir).filter((f) => f.endsWith('.json')).sort(); } catch { /* no judge output */ }
   for (const name of files) {
     let data;
-    try { data = JSON.parse(readFileSync(path.join(fdir, name), 'utf8')); } catch (e) { errors.push({ source: name, error: `not JSON: ${e.message}` }); continue; }
+    try { data = JSON.parse(readText(path.join(fdir, name))); } catch (e) { errors.push({ source: name, error: `not JSON: ${e.message}` }); continue; }
     const list = Array.isArray(data) ? data : data && Array.isArray(data.findings) ? data.findings : null;
     if (!list) { errors.push({ source: name, error: 'expected an array of findings or { "findings": [...] }' }); continue; }
     list.forEach((finding, i) => items.push({ finding, source: `${name}[${i}]` }));
@@ -460,7 +462,8 @@ export function buildReport({ runId, mode = '?', date = '?', findings = [], resu
     const status = f.status === 'fixed' ? `fixed ${String(f.fixedAt || '').replace('T', ' ').slice(0, 16)}` : 'open';
     const checked = f.validatedAt ? 'acceptance proven to fail before the fix' : 'acceptance not validated (report.mjs --validate)';
     out.push(`### ${f.id} · ${f.title}`, '');
-    out.push(`**${f.severity}** · ${f.owner} · ${f.category} · ${f.suite}${f.mergedFrom ? ` (merged: ${f.mergedFrom.join(', ')})` : ''} · persona ${f.persona} · viewports ${(w.viewports || []).join(', ')} · status ${status}`);
+    const also = (f.mergedFrom || []).filter((s) => s !== f.suite);
+    out.push(`**${f.severity}** · ${f.owner} · ${f.category} · ${f.suite}${also.length ? ` (also seen by: ${also.join(', ')})` : ''} · persona ${f.persona} · viewports ${(w.viewports || []).join(', ')} · status ${status}`);
     out.push(`Where: \`${w.route}\`${w.state ? ` (${w.state})` : ''} · \`${w.selector}\` · rule \`${f.rule}\` · ${checked}`, '');
     out.push(`**Current** — ${f.current}`, '');
     out.push(`**Expected** — ${f.expected}`, '');

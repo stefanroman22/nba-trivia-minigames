@@ -123,10 +123,12 @@ async function main() {
   writeJson(files.rejected, rejected);
   const report = writeReport(runId);
 
-  console.log(`report: run ${runId} · ${items.length} judge finding(s) from ${new Set(items.map((x) => x.source.split('[')[0])).size} file(s) → ${merged.length} after dedupe · ${dropped.length} accepted dropped${prevId ? ` · ids carried from ${prevId}` : ''}`);
+  const carried = prev ? findings.filter((f) => !f.id.startsWith(`UIC-${runId}-`)).length : 0;
+  console.log(`report: run ${runId} · ${items.length} judge finding(s) from ${new Set(items.map((x) => x.source.split('[')[0])).size} file(s) → ${merged.length} after dedupe · ${dropped.length} accepted dropped${prevId ? ` · previous run ${prevId} (${carried} id(s) carried)` : ''}`);
   if (validateLine) console.log(validateLine);
   for (const r of rejected) console.log(`rejected: ${r.id || r.source} ${trunc(r.title || '', 60)} — ${trunc(r.reason)}`);
-  console.log(`report: ${findings.length} finding(s) in findings.json · ${rejected.length} in rejected.json${o.validate ? '' : ' · not validated (add --validate)'}`);
+  const unvalidated = findings.filter((f) => !f.validatedAt && f.status !== 'fixed').length;
+  console.log(`report: ${findings.length} finding(s) in findings.json · ${rejected.length} in rejected.json${unvalidated ? ` · ${unvalidated} not validated (add --validate)` : ''}`);
   console.log(`report: ${report}`);
   return 0;
 }

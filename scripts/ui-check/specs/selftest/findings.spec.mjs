@@ -1,11 +1,13 @@
 // Selftest for the findings layer (lib/findings.mjs): schema validation, the acceptance DSL parser, fingerprints,
 // dedupe/merge, accepted.json filtering, id stability across runs, and the REPORT.md layout. Pure node, no browser.
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import {
   validateFinding, assertionErrors, parseAssertion, fingerprint, normRoute, normSelector,
-  mergeFindings, dropAccepted, assignIds, buildReport, sortFindings,
+  mergeFindings, dropAccepted, assignIds, buildReport, sortFindings, loadJudgeFindings,
 } from '../../lib/findings.mjs';
 
 const SAMPLE = fileURLToPath(new URL('../../fixtures/findings/sample.json', import.meta.url));
@@ -138,6 +140,18 @@ test('[ST-FINDINGS] schema, acceptance DSL parser, fingerprint dedupe, accepted.
     const re = assignIds(sortFindings(mergeFindings(sample())), '20261014-1000', sameRun);
     expect(re.map((f) => f.id)).toEqual(['UIC-20261014-1000-008', 'UIC-20261014-1000-009', 'UIC-20261014-1000-007']);
   });
+
+  await test.step('judge files load as an array or { findings }, with or without a UTF-8 BOM; broken files are reported', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'uic-findings-'));
+    mkdirSync(path.join(dir, 'findings'));
+    writeFileSync(path.join(dir, 'findings', 'account.json'), `﻿${JSON.stringify(sample().slice(0, 2))}`);
+    writeFileSync(path.join(dir, 'findings', 'games.json'), JSON.stringify({ findings: [sample()[2]] }));
+    writeFileSync(path.join(dir, 'findings', 'multiplayer.json'), '{ not json');
+    const { items, errors } = loadJudgeFindings(dir);
+    expect(items.map((x) => x.source)).toEqual(['account.json[0]', 'account.json[1]', 'games.json[0]']);
+    expect(errors.map((e) => e.source)).toEqual(['multiplayer.json']);
+    rmSync(dir, { recursive: true, force: true });
+  });
 });
 
 test('[ST-REPORT] REPORT.md has the sections in order, a coverage matrix, gaps and one verify command per finding', () => {
@@ -191,6 +205,7 @@ test('[ST-REPORT] REPORT.md has the sections in order, a coverage matrix, gaps a
   const fixed = lines.slice(at(new RegExp(`^### ${findings[0].id}`))).slice(0, 3).join('\n');
   expect(fixed).toMatch(/fixed 2026-10-14/);
   expect(md).toMatch(/Rejected: 1/);
+  expect(md).toContain('· account (also seen by: guest) ·'); // the merged finding names the other suite
   expect(md).toContain('- Change: Give .auth-pw-toggle a 24×24 hit area');
   expect(md).toContain('[guest@phone-390-tap-target-1.jpg](shots/G-MOTION-02/guest@phone-390-tap-target-1.jpg)');
 });

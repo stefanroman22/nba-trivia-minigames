@@ -5,9 +5,9 @@
 // path. Use it to confirm a suspicion and to author acceptance assertions that FAIL now (a finding's acceptance must
 // fail before the fix: report.mjs --validate rejects one that passes). Default mode dev. Scratch output goes under
 // <runDir>/probe/ (runDir = --run, else the latest run). Exit 0 pass, 1 fail or error, 2 bad usage / invalid assertion.
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { describeAssertion, latestRunId, listRuns, parseAssertion, runPath } from './lib/findings.mjs';
+import { describeAssertion, latestRunId, listRuns, parseAssertion, readText, runPath } from './lib/findings.mjs';
 import { stamp, verifyFindings, withStack } from './lib/verify-core.mjs';
 
 const MAX_LINES = 20;
@@ -37,7 +37,7 @@ async function main() {
   }
   let assertion;
   try {
-    assertion = JSON.parse(o.assert ?? readFileSync(o.file, 'utf8'));
+    assertion = JSON.parse(o.assert ?? readText(o.file));
     parseAssertion(assertion);
   } catch (e) {
     const lines = String(e.message).split('\n');
