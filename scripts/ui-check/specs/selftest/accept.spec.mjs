@@ -52,3 +52,25 @@ test('[ST-ACCEPT] noSnap watches an element that exists only during the steps; a
 
   for (const a of audits) await a.finalize();
 });
+
+const SCALE = pathToFileURL(path.join(fileURLToPath(new URL('../../fixtures/detectors/', import.meta.url)), 'scale-in.html')).pathname;
+const scaleIn = (expect) => ({ persona: 'guest', viewport: 'phone-360', route: SCALE, steps: [{ click: '#open' }], expect });
+
+test('[ST-ACCEPT-SETTLE] minSize and withinViewport measure after an animating ancestor settles; a truly small target still fails', async ({ page, audit, context, vp }, testInfo) => {
+  test.setTimeout(60_000);
+  const p2 = await context.newPage();
+  const a2 = await createAudit(p2, testInfo, { vp, label: 'small' });
+
+  await test.step('24×24 button inside a panel scaling in from .9 → pass (not 21.6px mid-animation)', async () => {
+    const r = await runAssertion({ page, audit, assertion: scaleIn([{ minSize: ['#toggle', 24, 24] }, { withinViewport: '#toggle' }]) });
+    expect(r.outcome, JSON.stringify(r.lines)).toBe('pass');
+  });
+
+  await test.step('20×16 button in the same panel → clean fail at its settled size', async () => {
+    const r = await runAssertion({ page: p2, audit: a2, assertion: scaleIn([{ minSize: ['#small', 24, 24] }]) });
+    expect(r.outcome, JSON.stringify(r.lines)).toBe('fail');
+    expect(r.lines[0].text).toMatch(/minSize #small: 20×16px/);
+  });
+
+  await a2.finalize();
+});

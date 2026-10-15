@@ -37,6 +37,26 @@ async function poll(fn, ok, ms = WAIT) {
   return v;
 }
 
+/**
+ * The element's box once it holds still: an entering modal or card scales/slides in (framer-motion writes inline
+ * transforms per frame), so a size or position read right after it turns visible measures it mid-animation. Waits
+ * until the rect is unchanged (±0.05 px) for 3 consecutive frames, at most 1.5 s, then returns it.
+ */
+async function settledBox(el) {
+  return el.evaluate((node) => new Promise((resolve) => {
+    const end = performance.now() + 1500;
+    let last = null; let same = 0;
+    const tick = () => {
+      const r = node.getBoundingClientRect();
+      const box = { x: r.x, y: r.y, width: r.width, height: r.height };
+      same = last && ['x', 'y', 'width', 'height'].every((k) => Math.abs(box[k] - last[k]) <= 0.05) ? same + 1 : 0;
+      last = box;
+      if (same >= 3 || performance.now() > end) resolve(box); else requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }));
+}
+
 /** → { outcome, lines: [{ ok, error, text }], shot, url } */
 export async function runAssertion({ page, audit, assertion }) {
   const a = parseAssertion(assertion);
@@ -126,12 +146,12 @@ export async function runAssertion({ page, audit, assertion }) {
       add(!v, v ? `noOverflow: ${v.rule} ${v.selector}: ${v.measured} (expected ${v.expected})${found.length > 1 ? ` +${found.length - 1} more` : ''}` : `noOverflow: fits ${vs.width}px`, v && v.selector !== 'html' ? v.selector : null);
     },
     withinViewport: async (s) => {
-      const box = await (await needVisible(s)).boundingBox();
+      const box = await settledBox(await needVisible(s));
       const ok = box.x >= -1 && box.y >= -1 && box.x + box.width <= vs.width + 1 && box.y + box.height <= vs.height + 1;
       add(ok, `withinViewport ${s}: x ${Math.round(box.x)}–${Math.round(box.x + box.width)}, y ${Math.round(box.y)}–${Math.round(box.y + box.height)} in ${vs.width}×${vs.height}`, s);
     },
     minSize: async ([s, w, h]) => {
-      const box = await (await needVisible(s)).boundingBox();
+      const box = await settledBox(await needVisible(s));
       const ok = box.width + 0.01 >= w && box.height + 0.01 >= h;
       add(ok, `minSize ${s}: ${r1(box.width)}×${r1(box.height)}px (need ≥ ${w}×${h})`, s);
     },
