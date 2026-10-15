@@ -75,3 +75,4 @@ appends what a later run can reuse (a false positive and why, a selector that wo
 - G-MODAL-01 saw one `net::ERR_CONNECTION_REFUSED` console error on `/` (prod, run 20261012-1350, right after Django
   was started by hand). It never repeated in 3 later full runs.
 - (20261014-1153) Probes took 60-100s each with the full stack under load; `axe: ["color-contrast"]` with the guest-panel login modal open reproduces the white-on-#ff6a1a failures; `style` with `main article p a[href^='mailto:'] >> nth=0` works on /privacy.
+- (20261016-0003) Probes run in parallel clobber each other result output (all four printed probe 1); run them one at a time. loaf on /name-logo (205ms) was not probed or filed. prod main lacks the min-size on .auth-pw-toggle; home CLS on tablet-768 (~0.135) comes from LegalChangeNotice mounting post-hydration.
