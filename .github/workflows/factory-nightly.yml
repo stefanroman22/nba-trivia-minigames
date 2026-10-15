@@ -9,8 +9,6 @@ on:
   schedule:
     - cron: "0 2 * * *"   # 02:00 UTC
   workflow_dispatch:
-  push:
-    branches: [feat/question-factory-phases-2-7]
 concurrency:
   group: factory-nightly
   cancel-in-progress: false
