@@ -214,7 +214,7 @@ async function main() {
     // After the invocations: the digest reporter rewrites run-meta.json ({ startedAt, endedAt }) on each of them.
     const metaFile = path.join(runDir(), 'run-meta.json');
     if (existsSync(metaFile)) {
-      const extra = { ref: app.ref, head: app.head, repo: app.repo, ...(code ? { code } : {}) };
+      const extra = { ref: app.ref, head: app.head, repo: app.repo, mode: opts.mode, ports, ...(code ? { code } : {}) };
       try { writeFileSync(metaFile, JSON.stringify({ ...JSON.parse(readFileSync(metaFile, 'utf8')), ...extra }, null, 2)); } catch (e) { console.error(`ui-check: run-meta.json not updated: ${e.message}`); }
     }
 

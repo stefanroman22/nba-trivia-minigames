@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // Re-run findings' acceptance criteria (checks + DSL assertions) against the local stack — the fix loop's judge.
-//   node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--expect-fail] [--mark] [--keep-stack]
+//   node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--ref .|main|<sha>] [--repo <dir>] [--expect-fail] [--mark] [--keep-stack]
 //   node scripts/ui-check/verify.mjs --from <findings.json> [--mode dev|prod] [--repo <dir>] [--ports django=…,socket=…,web=…]
 // Mode: --mode when given; else dev (HMR, no rebuild), except prod for a finding whose acceptance was validated in
 // prod (validatedMode). Without --run, each id is looked up in the newest run whose findings.json holds it.
 // --from: the finding objects themselves (an array, or { findings: [...] }, e.g. a Notion card's attachment), no run
 // needed; ids given as well narrow the file to those; output goes to <home>/adhoc/<timestamp>/verify/.
-// --repo: the checkout whose app runs (default this one); --ports: the stack's ports (default the mode's checker set),
-// so a pipeline QA lane verifies its worktree on its own ports.
+// --repo: the checkout whose app runs; --ports: the stack's ports (default the mode's checker set), so a pipeline QA lane
+// verifies its worktree on its own ports. For a run's findings the defaults are the run's own checkout and, in its mode,
+// its ports (run-meta.json: a `--ref main` run verifies the main worktree); `--ref .` verifies this checkout (a fix loop),
+// `--ref <ref>` a worktree of that ref. --from defaults to this checkout.
 // Prints one line per finding — `PASS|FAIL <id> — <first failing line>` — and totals; the full detail goes to
 // <runDir>/verify/<id>.json (guards marked), Playwright's output to <runDir>/verify/pw-<stamp>.log.
 // Exit 0 iff every finding passes, guards included (with --expect-fail: iff every finding reproduces: at least one
@@ -18,15 +20,18 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { readFindingsDoc, readJson, runOfFinding, runPath, writeJson, writeReport } from './lib/findings.mjs';
-import { resultDir, stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
-import { parsePorts } from '../check-core/lib/ports.mjs';
+import { resultDir, runApp, stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
+import { PORT_SETS, parsePorts } from '../check-core/lib/ports.mjs';
+import { ensureCheckout } from '../check-core/lib/checkout.mjs';
+import { ROOT } from '../check-core/lib/home.mjs';
 
 const USAGE = [
-  'usage: node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--expect-fail] [--mark] [--keep-stack]',
+  'usage: node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--ref .|main|<sha>] [--repo <dir>] [--ports …] [--expect-fail] [--mark] [--keep-stack]',
   '       node scripts/ui-check/verify.mjs --from <findings.json> [<findingId…>] [--mode dev|prod] [--repo <dir>] [--ports django=…,socket=…,web=…]',
   '  --mode        default dev; prod for findings validated in prod (validatedMode)',
   '  --from        finding objects from a file (array or {findings}); no run needed; output in <home>/adhoc/<ts>/',
-  '  --repo        run the app from this checkout (default: this one)',
+  '  --ref         the app code: . = this checkout (fix loops), main/dev/<sha> = a worktree (default: the run\'s own checkout, else this one)',
+  '  --repo        run the app from this checkout directory (overrides --ref)',
   '  --ports       stack ports (default the mode\'s: prod 8200/4200/5374, dev 8000/4000/5173)',
   '  --keep-stack  leave the stack running. Without it only what this call started is stopped.',
   '                In a fix loop always pass --keep-stack; stop once at the end with `node scripts/ui-check/run.mjs --stop`.',
@@ -35,7 +40,7 @@ const USAGE = [
 ].join('\n');
 
 function parseArgs(argv) {
-  const o = { ids: [], run: null, mode: null, expectFail: false, mark: false, keepStack: false, from: null, repo: null, ports: null };
+  const o = { ids: [], run: null, mode: null, expectFail: false, mark: false, keepStack: false, from: null, repo: null, ref: null, ports: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -43,6 +48,7 @@ function parseArgs(argv) {
     else if (a === '--mode') o.mode = val();
     else if (a === '--from') o.from = val();
     else if (a === '--repo') o.repo = val();
+    else if (a === '--ref') o.ref = val();
     else if (a === '--ports') o.ports = parsePorts(val());
     else if (a === '--expect-fail') o.expectFail = true;
     else if (a === '--mark') o.mark = true;
@@ -103,10 +109,22 @@ async function main() {
   const outDir = path.join(resultDir(runId), 'verify');
   const log = path.join(outDir, `pw-${stamp()}.log`);
   const results = [];
+  // The app: --repo, else --ref's checkout, else (a run's findings) the checkout the run tested, else this one.
+  let refRepo = null;
+  const envPorts = process.env.UI_CHECK_PORTS;
+  if (!o.repo && o.ref) {
+    try { refRepo = (await ensureCheckout(o.ref)).repo; } catch (e) { console.error(`verify: ${e.message}`); return 1; }
+  }
   for (const [mode, list] of groups) {
+    const app = o.from ? { repo: null, ports: null, gone: null } : runApp(runId, mode);
+    const repo = o.repo || refRepo || app.repo;
+    // Explicit per group: withStack exports UI_CHECK_PORTS, so a dev group's ports must not leak into the prod group.
+    const ports = o.ports || app.ports || (envPorts ? parsePorts(envPorts) : PORT_SETS[mode]);
+    if (!o.repo && !refRepo && app.gone) console.error(`verify: run ${runId}'s checkout ${app.gone} no longer exists — using this checkout`);
+    if (repo && path.resolve(repo).toLowerCase() !== ROOT.toLowerCase()) console.log(`verify: app ${path.resolve(repo)}${!o.repo && !refRepo ? ` (run ${runId}'s checkout; --ref . verifies this one)` : ''}`);
     try {
       // Always re-run (no `reuse`): the fix loop judges the code as it is now.
-      const rs = await withStack({ mode, keepStack: o.keepStack, log, repo: o.repo, ports: o.ports }, () => verifyFindings(list, { runId, expectFail: o.expectFail, log, mode }));
+      const rs = await withStack({ mode, keepStack: o.keepStack, log, repo, ports }, () => verifyFindings(list, { runId, expectFail: o.expectFail, log, mode }));
       for (const r of rs) { r.mode = mode; results.push(r); }
     } catch (e) {
       console.error(`verify: ${e.message}`);

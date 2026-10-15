@@ -49,6 +49,18 @@ async function quietly(log, fn) {
   }
 }
 
+/**
+ * The app checkout a run tested, from its run-meta.json (run.mjs records repo, mode and ports) → { repo, ports, gone }:
+ * `repo` when that checkout still exists (a `--ref main` worktree), `ports` only when `mode` is the run's own mode;
+ * null fields fall back to the caller's defaults. `gone` names a recorded checkout that no longer exists.
+ */
+export function runApp(runId, mode) {
+  const meta = readJson(path.join(resultDir(runId), 'run-meta.json'), {}) || {};
+  const repo = meta.repo && existsSync(path.join(meta.repo, 'package.json')) ? path.resolve(meta.repo) : null;
+  const ports = meta.ports && meta.mode === mode ? meta.ports : null;
+  return { repo, ports, gone: meta.repo && !repo ? meta.repo : null };
+}
+
 let active = null; // the running withStack call: { latest, stop }
 let emergencyInstalled = false;
 

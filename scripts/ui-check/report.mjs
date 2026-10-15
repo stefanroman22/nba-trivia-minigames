@@ -13,15 +13,17 @@
 // Check criteria: when the app code equals what the run tested (run-meta.json `code`: src/ backend/ multiplayer_server/
 // trees + diff, frontend build stamp, mode; scripts/ui-check is ignored) they are read from the run's results.json
 // (FAILED there = fails, passed = guard; absent/skipped re-run); otherwise they re-run, batched per project set.
-// Assertions always run. The path taken is printed.
+// Assertions always run. The path taken is printed. The stack runs the checkout the run tested (run-meta.json `repo`,
+// e.g. the `--ref main` worktree) on the run's ports when validating in the run's own mode.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
   ACCEPTED_PATH, acceptanceHash, assignIds, carriedRejection, dropAccepted, fingerprint, latestRunId, listRuns, loadJudgeFindings,
   mergeFindings, readFindingsDoc, readJson, runMode, runPath, sortFindings, validateFinding, writeJson, writeReport,
 } from './lib/findings.mjs';
-import { codeDiff, codeState } from './lib/stack.mjs';
-import { stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
+import { appRepo, codeDiff, codeState } from './lib/stack.mjs';
+import { runApp, stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
+import { PORT_SETS, formatPorts } from '../check-core/lib/ports.mjs';
 
 function parseArgs(argv) {
   const o = { run: null, prev: null, validate: false, mode: null, keepStack: false };
@@ -113,8 +115,13 @@ async function main() {
     // Reuse path: the app code (src/ backend/ multiplayer_server/ + the frontend build stamp, same mode) is what the run
     // tested → its results.json already holds every check's verdict. Assertions always run.
     const ran = (readJson(path.join(dir, 'run-meta.json'), {}) || {}).code;
+    // The checkout the run tested (a `--ref main` worktree) and, in the run's own mode, its ports.
+    const app = runApp(runId, mode);
+    if (app.gone) console.error(`report: the run's checkout ${app.gone} no longer exists — validating ${appRepo()} instead`);
+    const repo = app.repo || appRepo(), ports = app.ports || PORT_SETS[mode];
+    console.log(`validate: app ${repo} · ports ${formatPorts(ports)}${app.repo ? ' (from run-meta.json)' : ''}`);
     let cur = null;
-    try { cur = codeState(mode); } catch (e) { console.error(`report: code state unavailable (${e.message.split('\n')[0]})`); }
+    try { cur = codeState(mode, { repo, ports }); } catch (e) { console.error(`report: code state unavailable (${e.message.split('\n')[0]})`); }
     const differs = codeDiff(ran, cur);
     const reuse = differs.length ? null : { results: readJson(path.join(dir, 'results.json'), []), dir };
     console.log(reuse
@@ -122,7 +129,7 @@ async function main() {
       : `validate: re-run path — ${!ran ? 'run-meta.json records no code state' : !cur ? 'current code state unknown' : `changed since the run: ${differs.join(', ')}`}; checks re-run, batched per project set`);
     let results;
     try {
-      results = await withStack({ mode, keepStack: o.keepStack, log }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode, reuse }));
+      results = await withStack({ mode, keepStack: o.keepStack, log, repo, ports }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode, reuse }));
     } catch (e) {
       // Infra (stack, mint, setup): no verdict exists, so nothing is written — fix the cause and run again.
       console.error(`report: validation failed to run, nothing written: ${e.message}`);

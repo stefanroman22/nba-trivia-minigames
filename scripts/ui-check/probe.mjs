@@ -7,10 +7,11 @@
 // <runDir>/probe/ (runDir = --run, else the latest run): the crop is kept in probe/shots/, the scratch run deleted.
 // Without --keep-stack only what this call started is stopped; when probing repeatedly pass --keep-stack and stop
 // once with `node scripts/ui-check/run.mjs --stop`. Exit 0 pass, 1 fail or error, 2 bad usage / invalid assertion.
+// With --run the app is that run's checkout (run-meta.json `repo`, e.g. the `--ref main` worktree) and, in its mode, its ports.
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { describeAssertion, latestRunId, listRuns, parseAssertion, readText, runPath } from './lib/findings.mjs';
-import { stamp, verifyFindings, withStack } from './lib/verify-core.mjs';
+import { runApp, stamp, verifyFindings, withStack } from './lib/verify-core.mjs';
 
 const MAX_LINES = 20;
 
@@ -55,7 +56,8 @@ async function main() {
   const t0 = Date.now();
   let r;
   try {
-    [r] = await withStack({ mode: o.mode, keepStack: o.keepStack, log }, () => verifyFindings([{ id, acceptance: { assertions: [assertion] } }], { runId, log, area: 'probe', mode: o.mode }));
+    const app = o.run ? runApp(runId, o.mode) : { repo: null, ports: null };
+    [r] = await withStack({ mode: o.mode, keepStack: o.keepStack, log, repo: app.repo, ports: app.ports }, () => verifyFindings([{ id, acceptance: { assertions: [assertion] } }], { runId, log, area: 'probe', mode: o.mode }));
   } catch (e) {
     console.error(`probe: ${e.message}`);
     return 1;

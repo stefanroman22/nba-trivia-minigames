@@ -11,7 +11,7 @@
 // started them (a Playwright worker) until stopStack().
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs';
 import { connect } from 'node:net';
 import path from 'node:path';
 import { ROOT, uicHome } from './home.mjs';
@@ -135,10 +135,44 @@ function writeStack(data) {
   }
 }
 
+const LOCK_FILE = `${STACK_FILE}.lock`;
+const LOCK_STALE_MS = 30_000;
+const LOCK_WAIT_MS = 15_000;
+
+/**
+ * Run fn() holding <uicHome>/stack.json.lock (created with 'wx', so one holder at a time across processes): every
+ * read-modify-write of stack.json goes through here, so a checker stack and a pipeline lane writing at once never
+ * lose an entry. A lock older than 30 s is a crashed holder's and is removed; waiting longer than 15 s throws.
+ */
+function withStackLock(fn) {
+  mkdirSync(UIC_ROOT, { recursive: true });
+  const deadline = Date.now() + LOCK_WAIT_MS;
+  let fd = null;
+  while (fd === null) {
+    try { fd = openSync(LOCK_FILE, 'wx'); } catch (e) {
+      if (e.code !== 'EEXIST' && e.code !== 'EPERM' && e.code !== 'EBUSY') throw e;
+      let age = 0;
+      try { age = Date.now() - statSync(LOCK_FILE).mtimeMs; } catch { continue; } // released meanwhile: retry now
+      if (age > LOCK_STALE_MS) { rmSync(LOCK_FILE, { force: true }); continue; }
+      if (Date.now() > deadline) throw new Error(`stack.json is locked by another process (${LOCK_FILE}, ${Math.round(age / 1000)}s old)`);
+      sleepSync(10 + Math.floor(Math.random() * 20));
+    }
+  }
+  try {
+    writeSync(fd, String(process.pid));
+    return fn();
+  } finally {
+    closeSync(fd);
+    rmSync(LOCK_FILE, { force: true });
+  }
+}
+
 /** Replace the record of one port set (its meta and its processes), re-reading the file so other stacks' entries survive. */
-function updateStack(ports, meta, entries) {
-  const raw = readStackFile() || { stacks: {}, started: [] };
-  writeStack({ stacks: { ...raw.stacks, [portsKey(ports)]: meta }, started: [...raw.started.filter((e) => !onPorts(ports)(e)), ...entries] });
+export function updateStack(ports, meta, entries) {
+  withStackLock(() => {
+    const raw = readStackFile() || { stacks: {}, started: [] };
+    writeStack({ stacks: { ...raw.stacks, [portsKey(ports)]: meta }, started: [...raw.started.filter((e) => !onPorts(ports)(e)), ...entries] });
+  });
 }
 
 /** Image name of a live pid ('python.exe', 'node'…) or null when it is gone. */
@@ -539,8 +573,10 @@ export async function stopStack({ only = null, ports = null } = {}) {
     if (killTree(entry)) stopped.push(entry.name);
   }
   const gone = (e) => targets.some((t) => t.pid === e.pid && t.port === e.port);
-  const fresh = readStackFile() || raw; // re-read: another stack may have written meanwhile
-  writeStack({ stacks: fresh.stacks, started: fresh.started.filter((e) => !gone(e)) });
+  withStackLock(() => {
+    const fresh = readStackFile() || raw; // re-read: another stack may have written meanwhile
+    writeStack({ stacks: fresh.stacks, started: fresh.started.filter((e) => !gone(e)) });
+  });
   log(stopped.length ? `stopped ${stopped.join(', ')}` : 'recorded processes were already gone');
   return stopped;
 }
