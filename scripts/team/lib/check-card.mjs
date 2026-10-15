@@ -86,7 +86,7 @@ export function renderFinding(f, max = 60) {
     ...((fix.rules || []).length ? [`- Rules: ${fix.rules.join(", ")}`] : []),
     `**Acceptance:**`,
     ...bullets(acc.criteria),
-    ...bullets(acc.checks, (c) => `check ${c.id} @ ${(c.projects || []).join(", ")} passes`),
+    ...bullets(acc.checks, (c) => `check ${c.id || c.lc} @ ${(c.projects || []).join(", ") || "its project"} passes`),
     ...((acc.assertions || []).length ? [`- ${acc.assertions.length} DSL assertion(s) pass (see the findings file)`] : []),
     ``,
   ];

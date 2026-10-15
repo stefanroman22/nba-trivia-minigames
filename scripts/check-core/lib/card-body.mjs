@@ -3,7 +3,7 @@
 // Spec: docs/superpowers/specs/2026-10-15-checks-prod-logic-design.md §3.4.
 import { createHash } from 'node:crypto';
 import path from 'node:path';
-import { SEVERITIES, describeAssertion } from './findings.mjs';
+import { SEVERITIES, checkId, describeAssertion } from './findings.mjs';
 
 /** Short, comma/space-free key of a fingerprint for the card's Source property (Notion `contains` search). */
 export const fpKey = (fp) => createHash('sha1').update(String(fp)).digest('hex').slice(0, 12);
@@ -47,6 +47,13 @@ export function evidenceImage(f, runDir, exists) {
   return shot || null;
 }
 
+/** The engine protocol section a card points to, per checker. */
+export const PROTOCOL = { ui: 'Fixing a UI-check finding', logic: 'Fixing a Logic-check finding' };
+/** The verify command a card names for one finding: UI cards verify the attachment, Logic cards the run (`<id>-logic`). */
+export const verifyCommand = (f, { checker = 'ui', runId }) => (checker === 'logic'
+  ? `node scripts/ui-check/verify.mjs ${f.id} --run ${runId}`
+  : `node scripts/ui-check/verify.mjs --from <attached findings.json> ${f.id}`);
+
 const metric = (m) => (typeof m === 'string' ? m : `${m.label} ${m.value}${m.unit || ''}${m.vp ? ` @${m.vp}` : ''}`);
 
 /**
@@ -82,14 +89,14 @@ export function renderBody(cluster, { checker = 'ui', runId, runDir, meta = {}, 
     L.push('Acceptance:');
     const ac = f.acceptance || {};
     for (const c of ac.criteria || []) L.push(`- ${one(c)}`);
-    for (const c of ac.checks || []) L.push(`- check ${c.id}${(c.projects || []).length ? ` @ ${c.projects.join(', ')}` : ''} passes`);
+    for (const c of ac.checks || []) L.push(`- check ${checkId(c)}${(c.projects || []).length ? ` @ ${c.projects.join(', ')}` : ''} passes`);
     (ac.assertions || []).forEach((a, i) => L.push(`- assertion #${i + 1}: ${one(describeAssertion(a))}`));
-    L.push(`- verify: node scripts/ui-check/verify.mjs --from <attached findings.json> ${f.id}`);
+    L.push(`- verify: ${verifyCommand(f, { checker, runId })}`);
   }
   const rest = items.slice(BODY_FULL);
   if (rest.length) L.push(`Also in this cluster (${rest.length} more; full objects in the attached findings.json): ${rest.map((f) => `${f.id} ${f.severity}`).join(', ')}`);
   L.push('## Pipeline');
-  L.push(`- Engine protocol: "Fixing a UI-check finding" in .claude/agents/${cluster.engine}.md; the full finding objects are in the attached findings.json (this body is a summary).`);
+  L.push(`- Engine protocol: "${PROTOCOL[checker] || PROTOCOL.ui}" in .claude/agents/${cluster.engine}.md; the full finding objects are in the attached findings.json (this body is a summary).`);
   L.push('- QA: verify assertion runs the attached findings (node scripts/ui-check/verify.mjs --from <attached findings.json>); every finding must PASS.');
   L.push(target === 'main'
     ? `- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev.${items.some((f) => (f.files || []).some((x) => String(x.path).startsWith('multiplayer_server/'))) ? ' Relay (multiplayer_server/) deploys are parked for the owner.' : ''}`
