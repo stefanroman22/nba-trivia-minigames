@@ -250,7 +250,8 @@ sandbox. The report workflow needs its own copy of the token as a GitHub repo se
 `SLACK_BOT_TOKEN` (`gh secret set SLACK_BOT_TOKEN`), separate from the routine's env var.
 
 **Setup script (since 2026-10-03).** The routine's "Setup script" field holds
-`infra/routine/setup.sh` verbatim. It installs `node_modules`, Playwright Chromium (into
+`infra/routine/setup.sh` verbatim — after every change to the file (latest 2026-10-15: `--with-deps`,
+relay deps for check cards, §15) the owner must re-paste it there. It installs `node_modules`, Playwright Chromium (into
 `/opt/pw-browsers`), the backend venv and migrates the dev sqlite once; the platform caches the
 result as a filesystem snapshot (the script must finish in ~5 minutes), so a run starts with
 everything in place and the workspace step installs nothing. It also guards the environment's
@@ -316,3 +317,47 @@ explicitly (never relying on agent frontmatter or the `npm run engine` profile):
 | CTO review (GitHub Actions) | **fable**, pinned in `.github/workflows/claude.yml`. |
 
 History: `docs/team/DECISIONS.md` 2026-09-06 (Opus ban), 2026-09-29 (reversal), 2026-10-03 (v2).
+
+## 15. Check cards
+
+**What they are.** Cards created by `scripts/check-core/notion-push.mjs` from validated UI Check
+(later Logic Check) findings — one card per cluster of findings that share files or checks. Name
+`[ui-check] …`, Category from the findings' owner, Priority P0 blocker / P1 major / P2 minor,
+Difficulty set, `Source` = `ui-check fp:<keys> ids:<ids> run:<runId>` (the dedupe key), `Target` =
+`main` (production hotfix) or `dev`, and a `findings.json` attachment holding every finding object
+of the cluster. The card body is a summary (it may list only the top findings); the attachment is
+the truth. Design: `docs/superpowers/specs/2026-10-15-checks-prod-logic-design.md` §3.3–§3.5.
+
+**How each stage treats them** (detected by `Source` starting `ui-check`/`logic-check`):
+- **intake** writes `source`, `target` (default `dev`) and `findingsFile` (the downloaded
+  `.team/attachments/<pageId>/findings.json`, or null) into `card.json`.
+- **classify** pre-classifies: areas from Category, tier = Difficulty, docs from the findings'
+  `fix.rules` prefixes (`UI-`/`RULE`/`MP-`/`AUTH-`/`BE-`), CODE_MAP hits from their `files`. No plan
+  writer and no design round, even for a `hard` card.
+- **brief** adds `## Check findings` right after `## Spec` (per finding: Current, Expected, Files, How
+  to fix, Acceptance — verbatim from the attachment, ≤ 60 lines each, ≤ 400 in all; a check card's
+  brief may run to 500 lines), quotes exactly the rule ids `fix.rules` names, and writes the QA
+  assertion `{"verify": "<findingsFile>"}`. The engine follows "Fixing a UI-check finding" in its
+  agent file and does not run verify itself.
+- **QA (gate 2)** runs its usual smoke, then `scripts/ui-check/verify.mjs --from <findingsFile>
+  --mode dev --repo <worktree> --ports <lane>` on the lane stack it started (verify reuses Django and
+  the web server and starts only the relay; the lane's ui-check processes are stopped before and after).
+  Every `FAIL <id> — …` line is a QA failure verbatim; a verify that ends without verdict lines is
+  `verify infra: …`; a missing attachment fails. A check card is never "skipped" by QA.
+- **ship** with `Target = main`: the worktree is cut from `origin/main`, ship rebases on `origin/main`,
+  fast-forwards `main` (production: frontend and backend deploy from it), then back-merges `main →
+  dev` through an auto-merged PR. A back-merge conflict leaves `main` shipped, comments on the card and
+  sets Needs human. `Target = dev` ships exactly like any other card.
+
+**Efficiency.** A check card costs one classify (no judgment left to make), no plan writer, no design
+round, one engine pass that starts from file:line pointers, and a QA gate that is the finding's own
+acceptance re-run — the same judge the checker used.
+
+**Relay rule.** The relay (`multiplayer_server/`, Railway) is billed and never deployed by the
+pipeline. A fix that touches it still ships its code, but the card is parked instead of going to QA:
+status To Do + **Needs human**, Commit recorded, and the comment "relay change — needs owner `railway
+up`". After deploying the relay, set the card to Done yourself.
+
+**Cloud.** `infra/routine/setup.sh` now installs Chromium with `--with-deps` and runs `npm ci --prefix
+multiplayer_server` so `verify.mjs` can start the relay on the VM. **Re-paste `infra/routine/setup.sh`
+into the routine's "Setup script" field** (claude.ai/code/routines) — the routine keeps its own copy.
