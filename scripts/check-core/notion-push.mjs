@@ -95,7 +95,7 @@ export function pushRun({ doc, runId, checker = 'ui', target = 'main', severitie
       if (d.action === 'skip') {
         const cards = d.open.length ? d.open : d.done;
         for (const c of cards) {
-          if (d.why === 'open' && !commented.has(c.id)) {
+          if (d.why === 'open' && c.status !== 'QA' && !commented.has(c.id)) {
             commented.add(c.id);
             const extra = m.ids.filter((id) => !String(c.source || '').includes(id));
             const text = `${seenText(runId)}${extra.length ? ` · also in this cluster now: ${extra.join(', ')}` : ''}`;

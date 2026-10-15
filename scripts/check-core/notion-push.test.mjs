@@ -104,6 +104,13 @@ test('open hit → no card; no comment from the run that created it; one "seen a
   assert.ok(out.some((l) => l.startsWith('skip ') && l.endsWith('already open card new-1')));
 });
 
+test('open hit in QA (shipped, awaiting main-sync) → skipped without a "seen again" comment', () => {
+  const client = fakeClient({ cards: [{ id: 'qa-1', title: 't', source: `ui-check fp:${K1} ids:X run:r0`, status: 'QA', commit: 'abc1234' }] });
+  push(client);
+  assert.equal(client.calls.create.length, 0);
+  assert.deepEqual(client.calls.comment, []);
+});
+
 test('run ids are matched anchored: run 20261014-1153 does not count as run 20261014-1153x', () => {
   assert.equal(sourceHasRun(`ui-check fp:${K1} ids:X run:20261014-1153`, '20261014-1153x'), false);
   assert.equal(sourceHasRun(`ui-check fp:${K1} ids:X run:20261014-1153x`, '20261014-1153'), false);
