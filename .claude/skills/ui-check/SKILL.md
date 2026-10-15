@@ -13,13 +13,19 @@ or `findings.json`. You read only: the run's console output tail, the first 8 li
 sections of `REPORT.md`.
 
 ## 1. Run the suites
-Default (full audit):
+Default (full audit of production code):
 ```
-node scripts/ui-check/run.mjs --suite all --mode prod --keep-stack
+node scripts/ui-check/run.mjs --suite all --ref main --mode prod --keep-stack
 ```
+`--ref main` audits `origin/main` (what swishquest.com runs) in the worktree `<worktreeRoot>/check-main`,
+built and served there on the checker ports with a local sqlite; this checkout only supplies the
+harness. The first run in a fresh worktree adds an `npm ci` (about 8-11 min here). Findings of a
+`--ref main` run ship to production through `ui-fix`. Other code when asked: `--ref dev`, `--ref .`
+(this checkout) or a sha; their findings ship to dev.
 Subsets when asked: `--suite guest,account` · `--vp core` (phone-390, tablet-768, desktop-1366) or
 viewport ids / `pairA`… · `--only "G-NAV-01,GM-wordle-*"` · `--skip-slow` (leaves out MP-TIMEOUT-01's
-real 30 s waits) · `--mode dev` (no prod build; performance budgets become informational).
+real 30 s waits) · `--mode dev` (no prod build; performance budgets become informational; the
+default ref becomes `.`).
 
 - Run it with the Bash tool in the background (`run_in_background: true`). A full run takes 1-3 h
   here. Tell the owner once that it started and the expected time, then wait for the completion
@@ -43,7 +49,8 @@ so report it to the owner before anything else. `--only`/`--vp` narrow it as usu
 only choose the game catalogue (default main's). Its digest header reads `· env live` and its lines
 `phone-390 (live)`: judge it like any guest run, and the judge sets `where.env: ["live"]` on its
 findings. A finding seen locally and live merges into one with both envs. Never run account, game or
-multiplayer checks against the live site (the live leaderboard and the billed relay).
+multiplayer checks against the live site (the live leaderboard and the billed relay). Its runId
+ends in `-live`; give it its own steps 2-3b with that runId.
 
 ## 2. Dispatch the judges (one message, in parallel)
 Read the digest's first 8 lines for the suites that ran. Dispatch one judge per suite that ran, all
@@ -81,6 +88,21 @@ Then run `node scripts/ui-check/report.mjs --run <runId> --validate` once more. 
 entries are re-run by every `--validate`; whatever is still rejected stays in `rejected.json` and is
 listed for the owner. No third round.
 
+## 3b. Notion cards
+After validation, hand the findings to the team pipeline as one Notion card per cluster:
+```
+node scripts/check-core/notion-push.mjs --run <runId> --checker ui --target main
+```
+`--target main` for a `--ref main` run (and the live run); `--target dev` for any other ref. Add
+`--dry-run` when the owner asked for a preview or no cards (it reads Notion and writes nothing).
+It pushes validated blocker / major / minor findings (`--severities all` adds polish) and dedupes
+on the cards' `Source` keys, so a re-run adds no duplicate. Read only its result lines: `card <id>
+<title> findings=<ids>`, `skip <keys> <why> card <id>`, `regression <old> → <new>`, `error <keys>
+<message>`, and the last line `notion-push done: N new · N regression · N skipped · N error(s)`.
+An `error` line or exit 1 → run it once more (it skips what it already made), then list what is
+left for the owner. The nightly scheduler that runs steps 1-3b on its own is Phase B; today this
+skill runs them.
+
 ## 4. Stop the stack
 ```
 node scripts/ui-check/run.mjs --stop
@@ -93,7 +115,11 @@ Give the owner:
 - the summary table from REPORT.md's header and `## Summary` (findings by severity × owner and
   severity × suite), the rejected count, and the coverage gaps (scenarios no adapter could drive);
 - one line per judge from its return (findings count, anything that blocked it);
-- the next step: the `ui-fix` skill fixes open findings (`ui-fix <runId>`);
+- the Notion cards from step 3b: each created card (id, title, findings), each regression card and
+  the card it reopens, each skipped cluster with its reason and card, and any error;
+- the next step: the cards are in To Do for the team pipeline, or the `ui-fix` skill fixes open
+  findings now (`ui-fix <runId>`; it ships a `--ref main` run's fixes to production and updates the
+  same cards);
 - the judges' notes appends (`git status --short scripts/ui-check/notes`) are left uncommitted: `ui-fix`
   commits them first as `ui-check: notes from <runId>`.
 The owner's manual check (Google OAuth round trip) is listed in `docs/ui-check/README.md`.

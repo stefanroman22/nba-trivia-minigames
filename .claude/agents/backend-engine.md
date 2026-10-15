@@ -76,6 +76,18 @@ When the `ui-fix` skill hands you finding ids, a `runDir` and a `runId` (owner `
 latency or data shape, relay behaviour; owner `ci`: build warnings, env/config, deploy), the finding
 is your brief: this replaces "Required reading" above, and every other rule in this file still
 applies (reuse-first, BE-rules, migrations, secrets from env).
+
+**From a pipeline check card** (the brief names the card's `findings.json` attachment, an absolute
+path ending in `.team/attachments/<pageId>/findings.json`, instead of a `runDir`): steps 1-3, 8 and 9
+apply with that file in place of `<runDir>/findings.json`; skip steps 4-7 and 10. Gate 2 (QA) runs
+the attached acceptance on the card's lane from your worktree,
+`node scripts/ui-check/verify.mjs --from <findingsFile> --mode dev --repo <worktree> --ports django=<lane>,socket=<lane>,web=<lane> --keep-stack`
+(lane 1 `django=8100,socket=4100,web=5273`, lane 2 `django=8101,socket=4101,web=5274`), on servers
+it starts fresh for every gate run (so a `backend/` edit is picked up), and relays every FAIL line to you: read it as step 5 says. Do not run
+verify, probe or `run.mjs --stop` yourself there (the lane stack is the pipeline's), and answer in
+the brief's format. A relay (`multiplayer_server/`) change is deployed only by the owner
+(Railway is billed): the ship step leaves it as an unmerged PR to `main` for them.
+
 1. Read only your finding (Bash tool), never `REPORT.md`, the digest, `results.json` or other findings:
    `node -e 'const [f,id]=process.argv.slice(1);const d=require(f);console.log(JSON.stringify((d.findings||d).find(x=>x.id===id),null,1))' "<runDir>/findings.json" <id>`
 2. Read only the constraint sections its `fix.rules` name (Grep the heading, e.g. `^## Rule BE-19`,
@@ -87,7 +99,9 @@ applies (reuse-first, BE-rules, migrations, secrets from env).
    `multiplayer_server/` run `node scripts/ui-check/run.mjs --stop` before the next verify (its
    `--keep-stack` starts the stack again). If the stop line does not name `django-<port>` (or
    `socket-<port>` for a relay edit), that server is not ui-check's: `blocked: restart <service>`.
-5. Verify in dev: `node scripts/ui-check/verify.mjs <id> --run <runId> --mode dev --keep-stack`.
+5. Verify in dev: `node scripts/ui-check/verify.mjs <id> --run <runId> --ref . --mode dev --keep-stack`.
+   `--ref .` tests this checkout (your fix); without it verify tests the checkout the run audited
+   (for a `--ref main` run the unfixed `check-main` worktree).
    FAIL → read its first failing line (and `<runDir>/verify/<id>.json` when the line is not enough),
    adjust, verify again. At most 4 attempts (one attempt = one verify after a change). A failing line
    about another finding of your cluster (shared check): work on that one; a line no finding of your
@@ -103,8 +117,9 @@ applies (reuse-first, BE-rules, migrations, secrets from env).
    variants (same assertion, other `viewport`; Bash tool):
    `node -e 'const [f,id,dir]=process.argv.slice(1);const x=require(f).findings.find(y=>y.id===id);const V=["phone-360","phone-390","phone-414","tablet-768","tablet-1280","desktop-1366","desktop-1920"];(x.acceptance.assertions||[]).forEach((a,i)=>V.filter(v=>v!==a.viewport).forEach(v=>{const p=require("path").join(dir,id+"-a"+(i+1)+"-"+v+".json");require("fs").writeFileSync(p,JSON.stringify({...a,viewport:v}));console.log(p)}))' "<runDir>/findings.json" <id> "<runDir>/probe"`
    and run each printed file with
-   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode dev --run <runId> --keep-stack`
-   (`--mode prod` for an assertion that expects `maxCls` or `maxLoafMs`).
+   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode dev --keep-stack`
+   (`--mode prod` for an assertion that expects `maxCls` or `maxLoafMs`). No `--run` here: probe has
+   no `--ref`, and with `--run` it would test the run's own checkout instead of this one.
    FAIL → back to step 5 (same attempt budget). ERROR from a step whose control does not exist at
    that viewport does not apply: list it in `why`. The acceptance's checks run on all 7 viewports in
    the orchestrator's regression gate, not here.
