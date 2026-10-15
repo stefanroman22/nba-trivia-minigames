@@ -1,4 +1,4 @@
-// Shared helpers for the game-card pipeline (see README.md in this folder).
+﻿// Shared helpers for the game-card pipeline (see README.md in this folder).
 import path from "node:path";
 import fs from "node:fs/promises";
 import { fileURLToPath } from "node:url";
@@ -159,6 +159,7 @@ export async function finishCard(inputPath, outPath, opts = {}) {
     height = HEIGHT,
     position = "attention",
     exposure = 1,
+    ramp = true,
     mix = 0,
     glow = 0.32,
     vignette = 0.72,
@@ -168,14 +169,20 @@ export async function finishCard(inputPath, outPath, opts = {}) {
   } = opts;
 
   const base = sharp(inputPath).rotate().resize(width, height, { fit: "cover", position });
-  const { data, info } = await base.clone().greyscale().normalise().raw().toBuffer({ resolveWithObject: true });
-  const lut = buildLut();
-  const rgb = Buffer.alloc(width * height * 3);
-  for (let i = 0; i < width * height; i++) {
-    const v = Math.min(255, Math.round(data[i * info.channels] * exposure));
-    rgb[i * 3] = lut[v * 3];
-    rgb[i * 3 + 1] = lut[v * 3 + 1];
-    rgb[i * 3 + 2] = lut[v * 3 + 2];
+  let rgb;
+  if (ramp) {
+    const { data, info } = await base.clone().greyscale().normalise().raw().toBuffer({ resolveWithObject: true });
+    const lut = buildLut();
+    rgb = Buffer.alloc(width * height * 3);
+    for (let i = 0; i < width * height; i++) {
+      const v = Math.min(255, Math.round(data[i * info.channels] * exposure));
+      rgb[i * 3] = lut[v * 3];
+      rgb[i * 3 + 1] = lut[v * 3 + 1];
+      rgb[i * 3 + 2] = lut[v * 3 + 2];
+    }
+  } else {
+    // Input is already on-brand (our own SVG renders): keep its colours, only add the finish.
+    rgb = (await base.clone().removeAlpha().toColourspace("srgb").raw().toBuffer({ resolveWithObject: true })).data;
   }
 
   const layers = [];

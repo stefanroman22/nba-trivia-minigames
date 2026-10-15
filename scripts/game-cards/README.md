@@ -1,11 +1,20 @@
-# Game card pipeline
+﻿# Game card pipeline
 
 Generates the 800×450 images behind the game tiles (`src/assets/Games Backrounds/`) so every
 card looks like the Series Winner card: dark charcoal, one orange accent, cinematic 3D feel.
 The tile overlays the title and description itself (`GameTile.tsx`), so **cards never contain
 text**.
 
-Two stages. The first is free and runs offline; the second calls an image model.
+Three ways to get a card, from free to paid:
+
+1. **render.mjs** — hand-built SVG scenes (`scenes.mjs`), one per game, screenshotted with the
+   Playwright Chromium that ui-check installs. Free, deterministic, no key. **This is what the
+   current assets were made with** (2026-10-16). Edit a scene, run `npm run cards:render -- --ids
+   <id>`, review, apply.
+2. **finish.mjs** on a photo you supply (free).
+3. **generate.mjs** with an image model (paid or free-tier key).
+
+The first two are free and run offline; the third calls an image model.
 
 ```
 sources/<id>.jpg   (optional real photo)        out/raw/<id>.png   (AI render)
@@ -19,6 +28,7 @@ sources/<id>.jpg   (optional real photo)        out/raw/<id>.png   (AI render)
 
 | Command | What it does | Cost |
 |---|---|---|
+| `npm run cards:render` | Render every SVG scene in `scenes.mjs` to `out/raw/<id>.png` and finish it to `out/cards/<id>.jpg` | free |
 | `npm run cards:finish -- --from existing` | Translate the current assets into the palette (preview of the look) | free |
 | `npm run cards:finish` | Finish the best input per game: `out/raw` > `sources/<id>.*` > current asset | free |
 | `npm run cards:sheet` | Contact sheet of `out/cards` at `out/contact-sheet.jpg` (`-- --dir out/raw` for renders) | free |
@@ -33,7 +43,8 @@ All commands take `--ids a,b,c` to limit to some games. Ids and the asset mappin
 ### finish.mjs knobs
 
 `--exposure 0.55` darkens a bright source before the ramp (the Wordle image needs it),
-`--mix 0.15` keeps some original colour, `--glow`, `--vignette`, `--floor`, `--grain`,
+`--mix 0.15` keeps some original colour, `--ramp 0` skips the palette map for inputs that are
+already on-brand (render.mjs does this itself), `--glow`, `--vignette`, `--floor`, `--grain`,
 `--quality`, `--position attention|centre`.
 
 ## Workflow for a game

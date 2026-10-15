@@ -1,4 +1,4 @@
-// Stage A (free, offline): turn an input picture into a finished on-brand card.
+﻿// Stage A (free, offline): turn an input picture into a finished on-brand card.
 //
 //   node scripts/game-cards/finish.mjs                 # all games, best available input
 //   node scripts/game-cards/finish.mjs --ids wordle,mvp
@@ -18,6 +18,7 @@ const games = pick(args.ids);
 const from = args.from || "auto";
 const opts = {};
 for (const k of ["exposure", "mix", "glow", "vignette", "floor", "grain", "quality"]) if (args[k] !== undefined) opts[k] = Number(args[k]);
+if (args.ramp !== undefined) opts.ramp = !["0", "false", "no"].includes(String(args.ramp));
 if (args.position) opts.position = args.position;
 
 await fs.mkdir(CARDS, { recursive: true });
