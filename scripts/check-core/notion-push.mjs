@@ -3,7 +3,7 @@
 // card's Source property (fingerprint keys). Spec: docs/superpowers/specs/2026-10-15-checks-prod-logic-design.md §3.4.
 //   node scripts/check-core/notion-push.mjs --run <id> --checker ui|logic [--target main|dev] [--dry-run] [--severities blocker,major,minor|all]
 // Cards are titled `[ui-check] …` / `[logic-check] …`; a logic card points the engine at "Fixing a Logic-check finding" and
-// verifies with `node scripts/ui-check/verify.mjs <id> --run <runId>` (lib/card-body.mjs).
+// both checkers' cards verify with `node scripts/ui-check/verify.mjs <id> --from <attached findings.json> --mode dev`.
 // Prints one line per cluster:
 //   card <id|DRY> <title> findings=<ids>
 //   skip <key…> already open card <id>            (or: done without commit (closed by hand) / done, fix not on origin/main yet)

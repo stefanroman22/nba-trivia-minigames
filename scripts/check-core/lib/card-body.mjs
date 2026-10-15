@@ -49,10 +49,9 @@ export function evidenceImage(f, runDir, exists) {
 
 /** The engine protocol section a card points to, per checker. */
 export const PROTOCOL = { ui: 'Fixing a UI-check finding', logic: 'Fixing a Logic-check finding' };
-/** The verify command a card names for one finding: UI cards verify the attachment, Logic cards the run (`<id>-logic`). */
-export const verifyCommand = (f, { checker = 'ui', runId }) => (checker === 'logic'
-  ? `node scripts/ui-check/verify.mjs ${f.id} --run ${runId}`
-  : `node scripts/ui-check/verify.mjs --from <attached findings.json> ${f.id}`);
+/** The verify command a card names for one finding, the same for both checkers: the pipeline lane has no run dir, so it
+ *  verifies the attached findings.json in dev mode. (`--run <runId>` stays in the local ui-fix / logic-check skill flows.) */
+export const verifyCommand = (f) => `node scripts/ui-check/verify.mjs ${f.id} --from <attached findings.json> --mode dev`;
 
 const metric = (m) => (typeof m === 'string' ? m : `${m.label} ${m.value}${m.unit || ''}${m.vp ? ` @${m.vp}` : ''}`);
 
@@ -91,7 +90,7 @@ export function renderBody(cluster, { checker = 'ui', runId, runDir, meta = {}, 
     for (const c of ac.criteria || []) L.push(`- ${one(c)}`);
     for (const c of ac.checks || []) L.push(`- check ${checkId(c)}${(c.projects || []).length ? ` @ ${c.projects.join(', ')}` : ''} passes`);
     (ac.assertions || []).forEach((a, i) => L.push(`- assertion #${i + 1}: ${one(describeAssertion(a))}`));
-    L.push(`- verify: ${verifyCommand(f, { checker, runId })}`);
+    L.push(`- verify: ${verifyCommand(f)}`);
   }
   const rest = items.slice(BODY_FULL);
   if (rest.length) L.push(`Also in this cluster (${rest.length} more; full objects in the attached findings.json): ${rest.map((f) => `${f.id} ${f.severity}`).join(', ')}`);

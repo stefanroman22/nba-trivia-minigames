@@ -59,5 +59,25 @@ test('clusters, REPORT.md and the card body handle lc checks and API assertions'
   const { markdown } = renderBody(clusters[0], { checker: 'logic', runId: '20261016-0200-logic', runDir: '/runs/x' });
   assert.ok(markdown.includes('- check LC-SIGNUP-03 @ api passes'));
   assert.ok(markdown.includes('- check LC-SIGNUP-00 passes'));
-  assert.ok(markdown.includes('- verify: node scripts/ui-check/verify.mjs UIC-20261016-0200-logic-001 --run 20261016-0200-logic'));
+  assert.ok(markdown.includes('- verify: node scripts/ui-check/verify.mjs UIC-20261016-0200-logic-001 --from <attached findings.json> --mode dev'));
+});
+
+test('a finding uses its own checker\'s suites, personas, viewports and acceptance forms', () => {
+  // ui (checker absent): logic values are rejected
+  const ui = { ...logicFinding(), checker: undefined, persona: 'logic.actor' };
+  delete ui.checker;
+  const e = validateFinding(ui).join('\n');
+  assert.match(e, /suite: "signup" is a Logic Check suite — a UI check finding \(no "checker"\) uses guest, account, games, multiplayer/);
+  assert.match(e, /persona: "logic\.actor" is a Logic Check persona/);
+  assert.match(e, /where\.viewports: api only for Logic Check findings/);
+  assert.match(e, /acceptance\.assertions\[0\]: API assertions are for Logic Check findings/);
+  assert.match(e, /acceptance\.checks\[0\]: lc criteria are for Logic Check findings/);
+  assert.match(e, /acceptance\.checks\[1\]: lc criteria are for Logic Check findings/);
+  // logic: UI suites and the solo/pair personas are rejected; guest and throwaway are fine
+  const lg = { ...logicFinding(), suite: 'account', persona: 'solo' };
+  const e2 = validateFinding(lg).join('\n');
+  assert.match(e2, /suite: "account" is a UI check suite — a Logic Check finding uses live, pages/);
+  assert.match(e2, /persona: "solo" is a UI check persona — a Logic Check finding uses logic\.actor/);
+  assert.deepEqual(validateFinding({ ...logicFinding(), persona: 'throwaway' }), []);
+  assert.deepEqual(validateFinding({ ...logicFinding(), checker: 'logic', persona: 'logic.admin' }), []);
 });

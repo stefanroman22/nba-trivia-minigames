@@ -99,6 +99,34 @@ export function validateFinding(f) {
   cs.forEach((c, i) => { if (isType('object', c)) check(root.$defs['lc' in c ? 'lc-check' : 'ui-check'], c, `acceptance.checks[${i}]`, root, errs); });
   const as = f && f.acceptance && Array.isArray(f.acceptance.assertions) ? f.acceptance.assertions : [];
   as.forEach((a, i) => errs.push(...assertionErrors(a, `acceptance.assertions[${i}]`)));
+  if (isType('object', f)) errs.push(...checkerErrors(f, cs, as));
+  return errs;
+}
+
+export const UI_PERSONAS = ['guest', 'solo', 'pair', 'throwaway'];
+export const LOGIC_PERSONAS = ['logic.actor', 'logic.peer', 'logic.admin', 'guest', 'throwaway'];
+const NO_BROWSER_VPS = ['api', 'socket'];
+
+/**
+ * The shared schema allows both checkers' values; a finding must use its own checker's (absent checker = ui):
+ * ui → UI suites and personas, browser viewports only, no API assertions, no `lc` criteria;
+ * logic → Logic suites, logic roles / guest / throwaway personas. Values the schema already rejects are not repeated.
+ */
+function checkerErrors(f, checks, assertions) {
+  const errs = [];
+  const logic = f.checker === 'logic';
+  if (logic) {
+    if (SUITES.includes(f.suite)) errs.push(`suite: "${f.suite}" is a UI check suite — a Logic Check finding uses ${LOGIC_SUITES.join(', ')}`);
+    if (UI_PERSONAS.includes(f.persona) && !LOGIC_PERSONAS.includes(f.persona)) errs.push(`persona: "${f.persona}" is a UI check persona — a Logic Check finding uses ${LOGIC_PERSONAS.join(', ')}`);
+    return errs;
+  }
+  const who = f.checker === undefined ? 'a UI check finding (no "checker")' : 'a UI check finding';
+  if (LOGIC_SUITES.includes(f.suite)) errs.push(`suite: "${f.suite}" is a Logic Check suite — ${who} uses ${SUITES.join(', ')} (or set "checker": "logic")`);
+  if (LOGIC_PERSONAS.includes(f.persona) && !UI_PERSONAS.includes(f.persona)) errs.push(`persona: "${f.persona}" is a Logic Check persona — ${who} uses ${UI_PERSONAS.join(', ')}`);
+  const vps = (f.where && Array.isArray(f.where.viewports) ? f.where.viewports : []).filter((v) => NO_BROWSER_VPS.includes(v));
+  if (vps.length) errs.push(`where.viewports: ${vps.join(', ')} only for Logic Check findings (set "checker": "logic")`);
+  assertions.forEach((a, i) => { if (isApiAssertion(a)) errs.push(`acceptance.assertions[${i}]: API assertions are for Logic Check findings (set "checker": "logic")`); });
+  checks.forEach((c, i) => { if (isType('object', c) && 'lc' in c) errs.push(`acceptance.checks[${i}]: lc criteria are for Logic Check findings (set "checker": "logic")`); });
   return errs;
 }
 

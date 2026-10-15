@@ -20,7 +20,7 @@ re-export these files, so every existing import keeps working. Design: `docs/sup
 | `lib/clusters.mjs` | `planClusters(findings, {checksMd, perfIds})` → `[{engine, prod, items, keys}]`; CLI `node scripts/check-core/lib/clusters.mjs [run\|-] [sev] [owners] [suites] [ids]` prints the ui-fix plan |
 | `lib/card-body.mjs` | `fpKey(fp)` (12-hex Source key), `cardMeta`, `renderBody` (markdown-lite card body), `attachmentDoc` (the attached findings.json) |
 | `lib/cards-ledger.mjs` | `<home>/notion-cards.json`: fingerprint → card decision mirror (Notion is the truth) |
-| `notion-push.mjs` | `--run <id> --checker ui\|logic [--target main\|dev] [--dry-run] [--severities …\|all]`: one Notion card per cluster, deduped by Source (§3.4); logic cards: `[logic-check]` title, "Fixing a Logic-check finding" protocol, `verify.mjs <id> --run <runId>`; tests in `notion-push.test.mjs` |
+| `notion-push.mjs` | `--run <id> --checker ui\|logic [--target main\|dev] [--dry-run] [--severities …\|all]`: one Notion card per cluster, deduped by Source (§3.4); logic cards: `[logic-check]` title, "Fixing a Logic-check finding" protocol; every card (both checkers) verifies with `verify.mjs <id> --from <attached findings.json> --mode dev`; tests in `notion-push.test.mjs` |
 
 Env read by the stack and the Playwright children: `UI_CHECK_MODE` (prod|dev), `UI_CHECK_REPO` (app checkout, default `ROOT`),
 `UI_CHECK_PORTS` (`django=…,socket=…,web=…`, default the mode's set), `UI_CHECK_BASE` (Playwright baseURL override),

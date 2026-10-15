@@ -17,7 +17,9 @@ ba-ui-check`; else `<repo>/.ui-check`. `node scripts/ui-check/run.mjs --where` p
 - Every row's `services` column names the app services the check depends on (`scripts/check-core/lib/services.mjs`:
   `pages, auth, signup, profile, friends, leaderboard, games.<id>, game-data, rooms, matchmaking, relay`; a family row
   may say `games.<game>`; `-` only for ST-/ACCEPT rows). When Logic Check blocks a service (`<uicHome>/channel.json`),
-  the checks tagged with it are deferred. `catalog.mjs` rejects a row without services.
+  the checks tagged with it are deferred. `catalog.mjs` rejects a row without services. A block on one game
+  (`games.<id>`) defers only that game's checks (`GM-<id>-*`, `GM-LATENCY-<id>`, `MP-GAME-<id>`); the cross-game checks
+  `GM-SHELL-01` and `G-LAYOUT-01` are not tagged with any single game and keep running by design.
 - Each ID appears once across all specs and is listed below. A generated family (one test per game ×
   scenario, say) is listed as a pattern such as `GM-<game>-<scenario>`.
 - Detector rule IDs (spec §6) are not check IDs. Any check can report them: `overflow-x`, `offscreen`,

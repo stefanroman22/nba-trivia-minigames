@@ -118,3 +118,21 @@ test('the newest run of each checker survives keepRuns 0', async () => {
   assert.ok(existsSync(path.join(home, 'runs', '20261009-0300-live')));
   assert.ok(existsSync(path.join(home, 'runs', '20261003-0100-x')));
 });
+
+test('only run ids count: scratch dirs are never deleted and never the "newest" run', async () => {
+  const { home, notes } = fixtureHome();
+  for (const d of ['explore', 'fix1-selftest', 'zz-scratch', '20261099-tmp']) {
+    mkdirSync(path.join(home, 'runs', d, 'shots'), { recursive: true });
+    writeFileSync(path.join(home, 'runs', d, 'x.txt'), 'keep me');
+  }
+  const r = await retain({ home, keepRuns: 1, notesDirs: [notes], now: NOW, log: () => {} });
+  for (const d of ['explore', 'fix1-selftest', 'zz-scratch', '20261099-tmp']) {
+    assert.ok(existsSync(path.join(home, 'runs', d, 'x.txt')), `${d} untouched`);
+    assert.ok(existsSync(path.join(home, 'runs', d, 'shots')), `${d} shots untouched`);
+  }
+  assert.deepEqual(r.runs.ignored.sort(), ['20261099-tmp', 'explore', 'fix1-selftest', 'zz-scratch']);
+  // `zz-scratch` sorts after every run id: it must not take the ui "newest" slot.
+  assert.ok(r.runs.kept.some((k) => k.id === '20261009-0300-live' && k.why === 'newest'));
+  assert.ok(existsSync(path.join(home, 'runs', '20261009-0300-live')));
+  assert.ok(!r.runs.deleted.some((d) => !/^\d{8}-\d{4}/.test(d.id)));
+});

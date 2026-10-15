@@ -2,14 +2,15 @@
 // Retention (spec §7), end of every nightly run. Each checker prunes its own data:
 // - runs (<home>/runs/<id>): keep the newest `keepRuns` per checker (run-meta.json `checker`, else the id: `-logic` →
 //   logic, anything else → ui) plus every run in `openRunIds` or named by a non-Done entry of <home>/notion-cards.json;
-//   older runs lose their shots/ first, then the whole directory. The newest run of each checker is never deleted.
+//   older runs lose their shots/ first, then the whole directory. Only names that are run ids count (YYYYMMDD-HHmm[x|-<suffix>]):
+//   any other directory under runs/ (`explore`, `fix1-selftest`, …) is never touched and never counts as the newest run. The newest run of each checker is never deleted.
 // - notes (scripts/{ui,logic}-check/notes/*.md): a bullet dated `(YYYY-MM-DD)` (or a run id `(YYYYMMDD-HHmm…)`) older
 //   than `notesDays` that names no open finding id moves to notes/archive/<file>.md; a file still over `notesMax` lines
 //   then moves its oldest dated bullets (same open-id rule) until it fits, else it is reported as over the cap.
 // - channel.json: resolved blocks and resolved deferred items older than `channelDays` are dropped.
 // - notion-cards.json: Done entries older than `cardsDays` are dropped. Notion itself is never pruned.
 // dryRun: reports (and prints) what would go, changes nothing.
-//   node scripts/check-core/lib/retain.mjs [--dry-run] [--keep 5]
+//   node scripts/check-core/lib/retain.mjs [--dry-run] [--keep 5] [--home <dir>]   (prints every kept run and ignored dir too)
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +23,9 @@ export const NOTES_DIRS = [path.join(ROOT, 'scripts', 'ui-check', 'notes'), path
 const FINDING_ID = /\b[A-Z]{2,5}-\d{8}-\d{4}[\w-]*?-\d{3,}\b/g;
 
 const readJson = (f, d) => { try { return JSON.parse(readFileSync(f, 'utf8').replace(/^﻿/, '')); } catch { return d; } };
+
+/** A run directory name: YYYYMMDD-HHmm, optionally `x` (copied run) or `-<suffix>` (`-live`, `-logic`). Nothing else is a run. */
+export const isRunDirName = (name) => /^\d{8}-\d{4}(x|-[a-z]+)?$/.test(String(name));
 
 /** The checker a run belongs to: run-meta.json `checker`, else `-logic` in the id → logic, else ui. */
 export function runChecker(home, id) {
@@ -66,7 +70,7 @@ export function pruneNotes(text, { now = Date.now(), notesMax = 150, notesDays =
 }
 
 /**
- * → report { dryRun, runs: { deleted: [{ id, checker }], kept: [{ id, checker, why }] }, notes: [{ file, archived, overCap }],
+ * → report { dryRun, runs: { deleted: [{ id, checker }], kept: [{ id, checker, why }], ignored: [dir names that are not run ids] }, notes: [{ file, archived, overCap }],
  *   channel: { blocks, deferred }, cards: [fingerprint] }
  */
 export async function retain({ home = uicHome(), keepRuns = 5, openRunIds = new Set(), openFindingIds = new Set(), notesMax = 150, notesDays = 90,
@@ -85,7 +89,9 @@ export async function retain({ home = uicHome(), keepRuns = 5, openRunIds = new 
   // 1. Runs.
   const runsDir = path.join(home, 'runs');
   let ids = [];
-  try { ids = readdirSync(runsDir, { withFileTypes: true }).filter((d) => d.isDirectory()).map((d) => d.name).sort().reverse(); } catch { /* no runs yet */ }
+  // Only real run ids count (newest-per-checker included); scratch dirs such as `explore` or `fix1-selftest` are ignored.
+  try { ids = readdirSync(runsDir, { withFileTypes: true }).filter((d) => d.isDirectory() && isRunDirName(d.name)).map((d) => d.name).sort().reverse(); } catch { /* no runs yet */ }
+  report.runs.ignored = (() => { try { return readdirSync(runsDir, { withFileTypes: true }).filter((d) => d.isDirectory() && !isRunDirName(d.name)).map((d) => d.name); } catch { return []; } })();
   const seen = new Map(); // checker → count kept as newest
   for (const id of ids) {
     const checker = runChecker(home, id);
@@ -151,6 +157,10 @@ export async function retain({ home = uicHome(), keepRuns = 5, openRunIds = new 
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const a = process.argv.slice(2);
-  const k = a.indexOf('--keep');
-  await retain({ dryRun: a.includes('--dry-run'), keepRuns: k >= 0 ? Number(a[k + 1]) : 5 });
+  const arg = (name) => { const i = a.indexOf(name); return i >= 0 ? a[i + 1] : undefined; };
+  const home = arg('--home') ? path.resolve(arg('--home')) : uicHome();
+  console.log(`retain: home ${home}`);
+  const r = await retain({ home, dryRun: a.includes('--dry-run'), keepRuns: arg('--keep') !== undefined ? Number(arg('--keep')) : 5 });
+  for (const k of r.runs.kept) console.log(`  keep ${k.id} (${k.checker}, ${k.why})`);
+  for (const d of r.runs.ignored) console.log(`  ignore ${d} (not a run id)`);
 }

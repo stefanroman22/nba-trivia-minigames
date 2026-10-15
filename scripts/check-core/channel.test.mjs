@@ -34,6 +34,9 @@ test('block is idempotent per (service, by) and keeps since', () => {
   assert.equal(blockFor('auth', o).by, 'LC-AUTH-01');
   assert.equal(blockFor('rooms', o), null);
   assert.throws(() => block({ service: 'auth' }, o), /needs \{ service, by \}/);
+  assert.throws(() => block({ service: 'rooms', by: 'LC-ROOMS-01', card: null }, o), /channel\.block rooms by LC-ROOMS-01: needs the finding's Notion card id/);
+  assert.throws(() => block({ service: 'rooms', by: 'LC-ROOMS-01' }, o), /needs the finding's Notion card id/);
+  assert.equal(readChannel(o).blocks.length, 3, 'a rejected block writes nothing');
 });
 
 test('defer is idempotent per (checker, checkId, project, blockedBy)', () => {

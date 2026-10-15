@@ -9,6 +9,8 @@
 // (isOnMain(sha)); a Done card without a commit (closed by hand) resolves too (`how: 'closed without commit'`) so it never
 // blocks forever — Logic re-blocks it on its next failure. The callers inject the lookups (Notion card status, git
 // merge-base --is-ancestor), so this module needs neither. Every function takes { file } (default <home>/channel.json).
+// No lock: every write is an atomic replace, but two concurrent read-modify-writes can lose one update. That is fine
+// because the nightly run (check-run.ps1) is sequential; add a lock (like stack.json's) before running checkers in parallel.
 //   node scripts/check-core/lib/channel.mjs show    print the channel (blocks, pending deferred, resolved count)
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -38,6 +40,7 @@ export function writeChannel(c, { file = channelPath() } = {}) {
  *  keeps `since` and updates finding/card/runId. → { added, block } */
 export function block({ service, by, finding = null, card = null, runId = null }, { file = channelPath(), now } = {}) {
   if (!service || !by) throw new Error('channel.block needs { service, by }');
+  if (!card) throw new Error(`channel.block ${service} by ${by}: needs the finding's Notion card id (a block is written once its card exists; resolve() needs it)`);
   const c = readChannel({ file });
   let b = c.blocks.find((x) => x.service === service && x.by === by);
   const added = !b;
