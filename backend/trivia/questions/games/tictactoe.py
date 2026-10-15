@@ -7,15 +7,16 @@ import os
 from django.conf import settings
 
 from trivia.games.tictactoe import player_matches
-from trivia.questions import fame
+from trivia.questions import fame, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "tictactoe"
+_SPEC = specs.load(SLUG)  # specs/tictactoe.json
 # 2026-09-30: raised from 60 (expand-question-pools); eligible pool comfortably larger, see docs/team/designs/2026-09-30-expand-question-pools.md
-TARGET = 120
-MINIMUM = 12
-MIN_VALID, MAX_VALID = 3, 400
+TARGET = _SPEC["refill"]["target"]
+MINIMUM = _SPEC["refill"]["minimum"]
+MIN_VALID, MAX_VALID = _SPEC["eligibility"]["min_valid"], _SPEC["eligibility"]["max_valid"]
 
 SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "tictactoe_seed.json")
 

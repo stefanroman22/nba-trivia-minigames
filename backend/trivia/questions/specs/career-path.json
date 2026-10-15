@@ -1,0 +1,14 @@
+{
+  "slug": "career-path",
+  "version": 1,
+  "eligibility": {"min_fame_band": "DEEP", "min_stints": 3, "max_stints": 7},
+  "difficulty": {
+    "features": {"fame_band": 0.6, "stint_count": 0.25, "memorable_stop": 0.15},
+    "bands": {"easy": [0, 0.35], "medium": [0.35, 0.65], "hard": [0.65, 1]},
+    "mix": {"easy": 0.4, "medium": 0.4, "hard": 0.2}
+  },
+  "interest": {"features": {"memorable_stop": 1.0}, "min": 0.3},
+  "coverage": {"axes": ["decade", "team", "position"], "min_decades": 4},
+  "refill": {"runway_days": 90, "minimum": 50, "target": 500, "max_new_per_run": 200},
+  "consistency": {"max_player_share": 0.02}
+}

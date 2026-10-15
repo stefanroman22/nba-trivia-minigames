@@ -3,14 +3,15 @@ trivia.questions.fame). Rules moved from trivia/games/who_are_ya.py; the gate
 moved from fame_tier 1-2 to fame bands in question-factory phase 1 (the tier
 is a floor, so every tier 1-2 player stays eligible). TARGET None = every
 eligible player gets a question."""
-from trivia.questions import checker, fame
+from trivia.questions import checker, fame, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "who-are-ya"
-TARGET = None
-MINIMUM = 30
-MIN_FAME_BAND = fame.KNOWN
+_SPEC = specs.load(SLUG)  # specs/who-are-ya.json
+TARGET = _SPEC["refill"]["target"]
+MINIMUM = _SPEC["refill"]["minimum"]
+MIN_FAME_BAND = getattr(fame, _SPEC["eligibility"]["min_fame_band"])
 
 
 def _eligible(row):

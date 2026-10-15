@@ -2,16 +2,17 @@
 weighted toward KNOWN/DEEP players over stars. Rules moved from
 trivia/games/career_path.py; the fame gate was added in question-factory phase 1
 (players nobody can name are no longer eligible)."""
-from trivia.questions import checker, fame
+from trivia.questions import checker, fame, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "career-path"
+_SPEC = specs.load(SLUG)  # specs/career-path.json
 # 2026-09-30: raised from 300 (expand-question-pools); eligible pool comfortably larger, see docs/team/designs/2026-09-30-expand-question-pools.md
-TARGET = 500
-MINIMUM = 50
-MIN_STINTS, MAX_STINTS = 3, 7
-MIN_FAME_BAND = fame.DEEP
+TARGET = _SPEC["refill"]["target"]
+MINIMUM = _SPEC["refill"]["minimum"]
+MIN_STINTS, MAX_STINTS = _SPEC["eligibility"]["min_stints"], _SPEC["eligibility"]["max_stints"]
+MIN_FAME_BAND = getattr(fame, _SPEC["eligibility"]["min_fame_band"])
 
 
 def _eligible(row):

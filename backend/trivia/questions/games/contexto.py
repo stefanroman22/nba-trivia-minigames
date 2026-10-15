@@ -2,16 +2,17 @@
 """LeContexto: one secret per day, ranking precomputed over the whole playable pool."""
 import datetime
 
-from trivia.questions import checker, fame
+from trivia.questions import checker, fame, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 from trivia.questions.similarity import rank_pool
 
 SLUG = "contexto"
-TARGET = 60            # days scheduled ahead
-MINIMUM = 30
-MIN_SECRET_BAND = fame.KNOWN  # ~500 candidates: a full year without a repeat
-NO_REPEAT_DAYS = 365
+_SPEC = specs.load(SLUG)  # specs/contexto.json
+TARGET = _SPEC["refill"]["target"]            # days scheduled ahead
+MINIMUM = _SPEC["refill"]["minimum"]
+MIN_SECRET_BAND = getattr(fame, _SPEC["eligibility"]["min_secret_band"])  # ~500 candidates: a full year without a repeat
+NO_REPEAT_DAYS = _SPEC["eligibility"]["no_repeat_days"]
 
 
 def _existing(dataset):
