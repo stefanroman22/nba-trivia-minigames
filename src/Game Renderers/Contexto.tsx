@@ -20,6 +20,7 @@ import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useNames } from "../hooks/useNames";
 import { apiFetch } from "../utils/Api";
@@ -42,9 +43,6 @@ export interface ContextoProps {
 }
 
 const MAX_SCORE = 200;
-
-const headshotUrl = (personId: number) =>
-  `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 /** 200 - 5 per guess past the tenth, floor 50. */
 function scoreFor(guesses: number): number {
@@ -84,7 +82,6 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
   const [gaveUp, setGaveUp] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popup, setPopup] = useState({ Text: "", Color: "" });
-  const [photoFailed, setPhotoFailed] = useState(false);
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
 
@@ -147,7 +144,6 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
     setWon(false);
     setGaveUp(false);
     setShowPopup(false);
-    setPhotoFailed(false);
     setBottomPhase("input");
     setEndState(null);
     endedRef.current = false;
@@ -274,13 +270,8 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
         aria-live="polite"
       >
         <span className="cx-reveal-photo">
-          {revealed && !photoFailed ? (
-            <img
-              src={headshotUrl(secret.person_id)}
-              alt={secret.full_name}
-              onError={() => setPhotoFailed(true)}
-              draggable={false}
-            />
+          {revealed ? (
+            <PlayerPhoto personId={secret.person_id} alt={secret.full_name} />
           ) : (
             <svg viewBox="0 0 64 72" aria-hidden="true">
               <circle cx="32" cy="26" r="13" />
