@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.utils import timezone
 
-from trivia.models import Feedback, GameSession, GuessLog
+from trivia.models import Feedback, GameSession, GuessLog, RollupWatermark
 from users import retention, strikes
 from users.models import ModerationEvent
 
@@ -21,6 +21,7 @@ class PrunePersonalDataTests(TestCase):
         old_guess = GuessLog.objects.create(game="wordle", answer="a")
         new_guess = GuessLog.objects.create(game="wordle", answer="b")
         age(old_guess, retention.GUESS_LOG_DAYS + 1, "created_at")
+        RollupWatermark.objects.create(name="guess_log", last_id=new_guess.pk)  # both rolled up
         old_session = GameSession.objects.create(game="wordle")
         new_session = GameSession.objects.create(game="wordle")
         age(old_session, retention.GAME_SESSION_DAYS + 1, "finished_at")
@@ -30,6 +31,24 @@ class PrunePersonalDataTests(TestCase):
         self.assertEqual((deleted["guess_logs"], deleted["game_sessions"]), (1, 1))
         self.assertEqual(list(GuessLog.objects.all()), [new_guess])
         self.assertEqual(list(GameSession.objects.all()), [new_session])
+
+    def test_old_answers_go_only_once_rolled_up(self):
+        counted = GuessLog.objects.create(game="wordle", answer="a")
+        uncounted = GuessLog.objects.create(game="wordle", answer="b")
+        for row in (counted, uncounted):
+            age(row, 40, "created_at")
+        RollupWatermark.objects.create(name="guess_log", last_id=counted.pk)
+
+        deleted = retention.prune_personal_data()
+
+        self.assertEqual(deleted["guess_logs"], 1)
+        self.assertEqual(list(GuessLog.objects.all()), [uncounted])
+
+    def test_no_answer_goes_before_the_first_roll_up(self):
+        row = GuessLog.objects.create(game="wordle", answer="a")
+        age(row, 400, "created_at")
+        self.assertEqual(retention.prune_personal_data()["guess_logs"], 0)
+        self.assertEqual(list(GuessLog.objects.all()), [row])
 
     def test_a_ban_record_is_erased_after_five_years_and_not_before(self):
         recent = User.objects.create_user(username="recent", email="r@example.com", password="x")
