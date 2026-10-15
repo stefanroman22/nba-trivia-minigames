@@ -212,12 +212,22 @@ Daily games (Wordle, Contexto) use `runway_days` directly. A game whose capacity
 target is reported as **capacity-bound**, the signal that it needs new data or a new question
 type rather than more generation.
 
-**Seen tracking.** Each picker deals from questions the player has not seen: a per-game seen set
-in `localStorage` (pruned to qids still in the index, reset when exhausted). It is used by the pool
-games (`sampleN` in `src/utils/pool.ts`) and the question games (`PICKERS` in
-`src/utils/gameData.ts`, mirrored in `multiplayer_server/src/gameData.js`). A second refill
-trigger: 20% of the last 14 days' players have seen 70% or more of a pool, measured from the stats
-tables.
+**Seen tracking (owner decision 2026-10-15: browser and account, never lagging).** Each picker
+deals from questions the player has not seen:
+- **Browser:** a per-game seen set in `localStorage` (qids, pruned to ids still in the index, reset
+  when exhausted) is the source of truth while playing; it is read synchronously, so picking never
+  waits on the network.
+- **Account:** for a signed-in player the same set is kept server-side (`SeenQuestion`: user, game,
+  qid, seen_at — one small row per question seen, no answer text). It is fetched once when a game
+  starts (one request, a few KB, cached in memory for the session) and merged into the browser set;
+  new ids are sent back in one batched request at game end, never per round. If the request fails or
+  is slow the browser set alone is used. Guests get the browser set only.
+- Rows are deleted with the account and when the question is retired; they appear in the privacy
+  policy and the record of processing as "which questions you have already been shown".
+- Single-player only. Online rooms deal one shared question per room and stay as they are.
+
+A second refill trigger: 20% of the last 14 days' players have seen 70% or more of a pool, measured
+from the stats tables.
 
 ### 4.5 Per-game publish isolation (phase 1)
 
@@ -397,11 +407,33 @@ sense of "similar". v2:
 
 ### 4.11 New data that unlocks capacity (phase 7)
 
-- **Award seasons** for Guess the MVP's format: Finals MVP, ROY, DPOY, Sixth Man, MIP, All-Star
-  Game MVP, Coach of the Year, scoring champion (~480 seasons beyond the 71 MVPs).
-- **Team history:** former names, relocations, defunct franchises, team-seasons. **Historical
-  logos approved by the owner 2026-10-12** for Name the Logo, served the same way as today's
-  current logos. They are trademarks, so the source of each logo file is recorded with it.
+- **Award seasons** for Guess the MVP's format, derived from the per-player awards the dataset
+  already holds (`awards.fmvp/dpoy/roty/smoy` years): Finals MVP, Defensive Player of the Year,
+  Rookie of the Year, Sixth Man (~180 seasons beyond the 71 MVPs today; more as the refresh adds
+  award types). The game becomes "Guess the winner" with the award named in the prompt.
+- **Team history** (former names, relocations) only as far as `franchisehistory` already provides it.
+  Historical logos are **out** (owner decision 2026-10-15: trademark risk, no safe source).
+
+### 4.13 Data refresh in the cloud
+
+The NBA stats API refuses datacenter addresses: from a GitHub runner `stats.nba.com` hangs and
+`cdn.nba.com` answers 403 (probed 2026-10-15), which is why the refresh has run on the owner's PC.
+A Cloudflare Worker gets 200 from both (same probe). So:
+
+- **Relay:** a Worker (`infra/nba-relay/`, deployed with wrangler to the owner's Cloudflare account,
+  free plan) that forwards `GET /stats/<endpoint>?<query>` to `https://stats.nba.com/stats/<endpoint>`
+  with the browser headers the NBA expects, and refuses any request without the shared header
+  `X-Relay-Key`. Nothing else is proxied. Usage is ~16k requests per full regeneration, under the
+  free plan's 100k/day; a monthly run stays at zero cost. The key lives in GitHub secrets
+  (`NBA_RELAY_KEY`) and the Worker's secret store; the Worker URL in a repo variable (`NBA_RELAY_BASE`).
+- **Backend:** when `NBA_RELAY_BASE` is set, `nba_api`'s `NBAStatsHTTP.base_url` is pointed at the
+  relay (`<base>/stats/{endpoint}`) and the key header is added; otherwise direct, as on the PC today.
+- **Workflow `data-refresh.yml`** (monthly, dispatchable): `sync_nba_data` → `generate_players_curated`
+  (resumable; the raw cache is a workflow cache keyed by month) → commit the regenerated
+  `players_curated.json` + `data_static` outputs to `dev` through a PR that merges itself when the
+  dataset validators pass → `upload_dataset` → dispatch the supply run. A failed refresh leaves the
+  previous dataset in place and posts to Slack.
+- The team-history and award-season data of §4.11 rides the same refresh.
 
 ### 4.12 The Checker: one agent whose only job is validity (phase 4)
 
@@ -460,18 +492,27 @@ The review loop reads those misses and proposes changes to the Checker's workflo
 
 There is no cron per game. These schedules cover everything:
 
-| When | What | Where | Model? |
-|---|---|---|---|
-| Nightly | roll-ups → cleanup → doctor signal scan (and quarantine) | GitHub Actions | no |
-| Weekly (Saturday 00:00 Paris time) | supply run: re-materialize, refill, code gates → `pending`; retirements leave production in the same run | GitHub Actions | no |
-| After a data refresh | the supply run, once | GitHub Actions | no |
-| Daily | **Checker**: `pending` questions + proposals + corrections → inbox → publish every change it made (approvals go live, quarantines leave production) | cloud routine + inbox workflow | yes |
-| Weekly (Tue) | doctor research → inbox (corrections go through the Checker) | cloud routine + inbox workflow | yes |
-| Weekly (Wed) | editorial author → `pending` (the Checker approves) | cloud routine + inbox workflow | yes |
-| Weekly (Thu) | random audit of 20 live questions by the Checker | cloud routine | yes |
-| Every 2 weeks | improvement review → report, cards, PRs | cloud routine (Fable/Opus, high effort) | yes |
+Everything runs in GitHub Actions on the public repo (free minutes). Every AI step is a
+`claude-code-action` job on the owner's Max-plan OAuth token with no database secret, exactly like
+the Checker (§4.12): a code job with the secret prepares its input, the AI job writes files, a code
+job with the secret validates and applies them. No claude.ai routine and no owner PC is involved
+(owner decision 2026-10-15; the `factory-inbox` branch of earlier drafts is replaced by workflow
+artifacts between jobs).
 
-All model work runs on the Max subscription; GitHub Actions stays within free minutes at this size.
+| When (UTC unless noted) | What | AI? |
+|---|---|---|
+| Nightly 02:00 | roll-ups → cleanup → doctor signal scan (quarantine strong signals) | no |
+| Daily 07:00 | **Checker**: pending questions, author proposals and doctor corrections; every change it makes is published | yes |
+| Weekly, Saturday 00:00 Paris | supply run: re-materialize, refill (quality-selected), code gates → `pending`; retirements leave production in the same run | no |
+| Weekly, Tuesday 03:00 | doctor research → corrections proposed → re-check by the Checker | yes |
+| Weekly, Wednesday 03:00 | editorial author → `pending` boards/matchups/groups (the Checker approves) | yes |
+| Weekly, Thursday 03:00 | random audit of 20 live questions by the Checker | yes |
+| Monthly, 1st 01:00 | **data refresh in the cloud** (§4.13) → supply run | no |
+| Every 2 weeks, Sunday 06:00 | improvement review → report + task cards | yes |
+
+The nightly job also publishes a short health line to Slack `#agent-backend` when something is off
+(a Checker run that checked nothing while questions were pending, a held-back game, a refresh that
+failed), so a silent failure like the 2026-10-13/14 token bug cannot go unnoticed again.
 
 ## 6. What runs alone and what waits for the owner
 
@@ -490,7 +531,21 @@ All model work runs on the Max subscription; GitHub Actions stays within free mi
    `CLAUDE.md`. Until the Checker ships (phase 4), publishing stays manual as today.
 2. **Raw answer retention goes to 30 days** once roll-ups have run for a month (§4.7).
 3. **The Checker and the doctor may use the approved reference sites** in §4.12, under its safe-use rules.
-4. **Historical logos are approved** for Name the Logo (§4.11).
+4. ~~Historical logos are approved~~ — withdrawn 2026-10-15, see decision 6 below.
+
+**Owner decisions (2026-10-15), for phases 2–7 built as one plan.**
+1. **No promotion to production until phases 2–7 are built**, the data refresh has run, and the
+   Checker has checked every pending question of every game; the owner promotes after that report.
+2. **Checker cap:** 150 questions a day until the backlog is gone, then 60.
+3. **The data refresh runs in the cloud, never on the owner's PC** (§4.13).
+4. **A "Report a problem" control** goes on every game's answer reveal, through the frontend-engine +
+   ui-check route the project uses for UI changes.
+5. **Seen tracking is both browser and account**, built so the app never lags (§4.4).
+6. **Historical logos are skipped.** Phase 7 grows Guess the MVP from award seasons already in the data.
+7. **Connections** (hidden) gets its writer anyway.
+8. **Contexto anchor pairs** are written by the machine's author; the owner reviews only on request.
+9. **Improvement-review task cards** land on `dev` through the team pipeline and wait for the owner's promote.
+10. **No spending, ever.** A wall that needs money is posted to Slack and the machine parks.
 
 ## 7. Phases
 
@@ -504,7 +559,8 @@ All model work runs on the Max subscription; GitHub Actions stays within free mi
 | 6 | Editorial factory: DB-authoritative content, rule language, author + Checker; Fan Favorites → Who Would Win → Connections | A routine run lands new content that the Checker approved and that passes every gate |
 | 7 | Contexto similarity v2 + anchors; difficulty recalibration from solve rates; award seasons; team history with historical logos | All anchors hold; calibration KPI holds; Guess the MVP ≥ 500 seasons |
 
-Each phase gets its own implementation plan in `docs/superpowers/plans/` when it starts.
+Phases 1 and 4 shipped with their own plans. Phases 2, 3, 5, 6 and 7 plus §4.13 are built as one
+program: `docs/superpowers/plans/2026-10-15-question-factory-phases-2-7.md`.
 
 ## 8. Risks
 
