@@ -81,7 +81,7 @@ test("renderFinding: heading, meta line, verbatim fields and acceptance", () => 
   assert.match(md, /- multiplayer_server\/src\/index\.js:206 — publicUser still sends the id/);
   assert.match(md, /- Change: send no public tag for a masked user/);
   assert.match(md, /- Reuse: maskedForStrangers/);
-  assert.match(md, /- Rules: docs\/legal\/README\.md, MP-3, RULE 6\.2/);
+  assert.ok(md.includes("- Rules: docs/legal/README.md, MP-3, RULE 6.2"));
   assert.match(md, /\*\*Acceptance:\*\*\n- tag lines disappear from MP-MATCH-01\n- check MP-MATCH-01 @ mp@pairA passes/);
 });
 
