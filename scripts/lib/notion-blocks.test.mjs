@@ -29,3 +29,12 @@ test("the pipeline's spec assembler reads the blocks back as plain spec text", a
   const out = await assembleSpec({ blocks: asRead, files: [], comments: [], botId: "bot", download: async () => null });
   assert.equal(out, "## Goal\n- one\nplain");
 });
+
+test("an attached findings.json is downloaded under its own name and listed as a file", async () => {
+  const seen = [];
+  const download = async (url, index, name) => { seen.push({ url, index, name }); return `/att/p1/${name}`; };
+  const files = [{ name: "findings.json", type: "file", file: { url: "https://s3/x/findings.json?sig=1" } }];
+  const out = await assembleSpec({ blocks: [], files, comments: [], botId: "bot", download });
+  assert.deepEqual(seen, [{ url: "https://s3/x/findings.json?sig=1", index: 0, name: "findings.json" }]);
+  assert.equal(out, "[File attached: /att/p1/findings.json (findings.json)]");
+});
