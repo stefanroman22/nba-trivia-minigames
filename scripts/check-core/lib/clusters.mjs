@@ -13,9 +13,12 @@ export const CHECKS_MD = path.join(ROOT, 'scripts', 'ui-check', 'CHECKS.md');
 export const PERF_RULES = ['perf', 'loaf', 'cls', 'slow-action', 'slow-api'];
 export const DEFAULT_SEVERITIES = 'blocker,major,minor';
 
-/** Check-id patterns of the `@perf` rows in CHECKS.md (`<game>` style placeholders match any id segment). */
+/**
+ * Check-id patterns of the `@perf` rows in CHECKS.md (`<game>` style placeholders match any id segment). The tag may sit
+ * in any cell after the id (the guest table has an extra `live` column before the description since 2026-10-15).
+ */
 export function perfIdsFrom(checksMd) {
-  return [...String(checksMd).matchAll(/^\| `([^`]+)` \| `@perf`/gm)].map((m) => new RegExp('^' + m[1].replace(/<[^>]+>/g, '[A-Za-z0-9_.-]+') + '$'));
+  return [...String(checksMd).matchAll(/^\| `([^`]+)` \|(?:[^|\n]*\|)*?\s*`@perf`/gm)].map((m) => new RegExp('^' + m[1].replace(/<[^>]+>/g, '[A-Za-z0-9_.-]+') + '$'));
 }
 
 export function isPerfFinding(f, perfIds) {

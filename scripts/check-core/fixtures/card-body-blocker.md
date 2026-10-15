@@ -6,7 +6,7 @@ Current: The 1v1 opponent is shown as "Player" (teen masking) but the card still
 Expected: A masked stranger shows no #ID tag on any online surface (intro, results).
 Evidence: check MP-MATCH-01 · opponent tag #G8RW2B shown next to Player · selector .om-matchup .om-pc-tag
 ![UIC-20261014-1153-001 MP-MATCH-01](/runs/20261014-1153x/sheets/MP-MATCH-01.jpg)
-- shot: /runs/20261014-1153x/shots/MP-MATCH-01/mp@pairA-host-host-searching.jpg
+- shot (run dir): shots/MP-MATCH-01/mp@pairA-host-host-searching.jpg
 Files:
 - multiplayer_server/src/index.js:206 — publicUser masks username and photo but still sends the permanent id
 - src/components/MultiPlayer/OnlineMatch.tsx:295 — passes tag={opp0?.id} to the opponent PlayerCard
@@ -26,7 +26,7 @@ Current: The 1v1 opponent is shown as "Player" (teen masking) but the card still
 Expected: A masked stranger shows no #ID tag on any online surface (intro, results).
 Evidence: check MP-RESULT-01 · opponent tag #G8RW2B shown next to Player · selector .om-stage--results .om-pc-tag
 ![UIC-20261014-1153-002 MP-RESULT-01](/runs/20261014-1153x/sheets/MP-RESULT-01.jpg)
-- shot: /runs/20261014-1153x/shots/MP-RESULT-01/mp@pairA-host-playing.jpg
+- shot (run dir): shots/MP-RESULT-01/mp@pairA-host-playing.jpg
 Files:
 - multiplayer_server/src/index.js:206 — publicUser masks username and photo but still sends the permanent id
 - src/components/MultiPlayer/OnlineMatch.tsx:295 — passes tag={opp0?.id} to the opponent PlayerCard

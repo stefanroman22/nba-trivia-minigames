@@ -5,7 +5,7 @@ import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, STATUS, CATEGORIES, loadEnvTeam, loadConfig, text } from "./lib/team-config.mjs";
 import { assembleSpec } from "./lib/notion-spec.mjs";
-import { markdownToBlocks } from "./lib/notion-blocks.mjs";
+import { markdownToBlocks, blockBatches } from "./lib/notion-blocks.mjs";
 
 loadEnvTeam();
 const TOKEN = process.env.NOTION_TOKEN;
@@ -302,9 +302,14 @@ async function cmdCreateCard(title, args) {
   const page = { parent: { database_id: DB }, properties: props };
   const body = arg(args, "--body");
   const bodyFile = arg(args, "--body-file");
-  if (bodyFile) page.children = await markdownToBlocks(readFileSync(bodyFile, "utf8"), uploadedImageBlock);
-  else if (body) page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
+  let children = [];
+  if (bodyFile) children = await markdownToBlocks(readFileSync(bodyFile, "utf8"), uploadedImageBlock);
+  else if (body) children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
+  // Notion takes at most 100 children per request: create with the first batch, append the rest.
+  const [first = [], ...more] = blockBatches(children);
+  if (first.length) page.children = first;
   const r = await api("pages", "POST", page);
+  for (const batch of more) await api(`blocks/${r.id}/children`, "PATCH", { children: batch });
   console.log(r.id);
 }
 

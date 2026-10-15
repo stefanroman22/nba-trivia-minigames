@@ -7,6 +7,12 @@ import { SEVERITIES, describeAssertion } from './findings.mjs';
 
 /** Short, comma/space-free key of a fingerprint for the card's Source property (Notion `contains` search). */
 export const fpKey = (fp) => createHash('sha1').update(String(fp)).digest('hex').slice(0, 12);
+/** Keys of a finding: its fingerprint and every fingerprint merged into it (a later run may report either). */
+export const findingKeys = (f) => [...new Set([f.fingerprint, ...(f.mergedFingerprints || [])].filter(Boolean).map(fpKey))];
+/** notion.mjs text() keeps 1900 chars of a rich_text value. */
+export const SOURCE_MAX = 1900;
+/** Findings rendered in full on a card; the rest are listed by id (the attachment holds every finding object). */
+export const BODY_FULL = 8;
 
 const CATEGORY = { frontend: 'frontend', backend: 'backend', ci: 'CI/CD' };
 const PRIORITY = { blocker: 'P0', major: 'P1' };
@@ -20,7 +26,7 @@ export function cardMeta(cluster, { checker = 'ui', runId, target = 'main', regr
   const items = bySeverity(cluster.items);
   const lead = items[0];
   const more = items.length > 1 ? ` (+${items.length - 1})` : '';
-  const keys = [...new Set(items.map((f) => fpKey(f.fingerprint)))];
+  const keys = [...new Set(items.flatMap(findingKeys))];
   return {
     title: `[${checker}-check] ${regression ? 'Regression: ' : ''}${one(lead.title)}${more}`,
     category: CATEGORY[lead.owner] || 'backend',
@@ -55,7 +61,7 @@ export function renderBody(cluster, { checker = 'ui', runId, runDir, meta = {}, 
   if (regressionOf.length) L.push(`Regression: these came back after ${regressionOf.map((r) => `${r.url} (Done, commit ${String(r.commit || '?').slice(0, 7)} on origin/main)`).join(', ')}.`);
   L.push('## Findings');
   const used = new Set();
-  for (const f of items) {
+  for (const f of items.slice(0, BODY_FULL)) {
     L.push(`### ${f.id} · ${one(f.title)}`);
     L.push(`${f.severity} · ${f.owner} · ${f.category || '-'} · route ${f.where?.route || '/'} · viewports ${(f.where?.viewports || []).join(', ') || '-'}${f.where?.state ? ` · state: ${one(f.where.state)}` : ''}`);
     L.push(`Current: ${one(f.current)}`);
@@ -64,7 +70,7 @@ export function renderBody(cluster, { checker = 'ui', runId, runDir, meta = {}, 
     L.push(`Evidence: check ${ev.checkId || '-'}${(ev.metrics || []).length ? ` · ${ev.metrics.map(metric).join('; ')}` : ''} · selector ${one(f.where?.selector) || '-'}`);
     const img = evidenceImage(f, runDir, exists);
     if (img && !used.has(img)) { used.add(img); L.push(`![${f.id} ${ev.checkId || ''}](${img})`); } else if (img) L.push(`- contact sheet (above): ${img}`);
-    for (const s of ev.shots || []) { const p = path.join(runDir, s); if (p !== img) L.push(`- shot: ${p}`); }
+    for (const s of ev.shots || []) if (path.join(runDir, s) !== img) L.push(`- shot (run dir): ${s}`);
     L.push('Files:');
     for (const x of f.files || []) L.push(`- ${x.path}${x.line ? `:${x.line}` : ''} — ${one(x.why)}`);
     L.push('How to fix:');
@@ -80,14 +86,16 @@ export function renderBody(cluster, { checker = 'ui', runId, runDir, meta = {}, 
     (ac.assertions || []).forEach((a, i) => L.push(`- assertion #${i + 1}: ${one(describeAssertion(a))}`));
     L.push(`- verify: node scripts/ui-check/verify.mjs --from <attached findings.json> ${f.id}`);
   }
+  const rest = items.slice(BODY_FULL);
+  if (rest.length) L.push(`Also in this cluster (${rest.length} more; full objects in the attached findings.json): ${rest.map((f) => `${f.id} ${f.severity}`).join(', ')}`);
   L.push('## Pipeline');
   L.push(`- Engine protocol: "Fixing a UI-check finding" in .claude/agents/${cluster.engine}.md; the full finding objects are in the attached findings.json (this body is a summary).`);
   L.push('- QA: verify assertion runs the attached findings (node scripts/ui-check/verify.mjs --from <attached findings.json>); every finding must PASS.');
   L.push(target === 'main'
-    ? '- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev. Relay (multiplayer_server/) deploys are parked for the owner.'
+    ? `- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev.${items.some((f) => (f.files || []).some((x) => String(x.path).startsWith('multiplayer_server/'))) ? ' Relay (multiplayer_server/) deploys are parked for the owner.' : ''}`
     : '- Ship: Target dev — the normal pipeline flow.');
   L.push('- Fingerprints (Source key = rule|route|selector):');
-  for (const f of items) L.push(`- ${fpKey(f.fingerprint)} = ${f.fingerprint}`);
+  for (const f of items) for (const fp of [f.fingerprint, ...(f.mergedFingerprints || [])]) L.push(`- ${fpKey(fp)} = ${fp}`);
   return { markdown: L.join('\n') + '\n', images: [...used] };
 }
 
