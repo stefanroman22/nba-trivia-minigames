@@ -6,14 +6,16 @@ import { defineConfig } from '@playwright/test';
 import { VIEWPORTS, MP_PAIRS, contextOptions } from './lib/viewports.mjs';
 import { UIC_ROOT, runId } from './lib/run-id.mjs';
 import { MODES } from './lib/stack.mjs';
+import { activePorts } from '../check-core/lib/ports.mjs';
 
 // Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN.
 runId();
 
 // Stack mode (spec §4): run.mjs sets UI_CHECK_MODE; a direct invocation defaults to prod, like stack-setup.
+// baseURL: UI_CHECK_BASE when set, else the web port of UI_CHECK_PORTS or of the mode.
 const MODE = process.env.UI_CHECK_MODE || 'prod';
 if (!MODES[MODE]) throw new Error(`UI_CHECK_MODE must be prod or dev, got "${MODE}"`);
-const BASE_URL = `http://localhost:${MODES[MODE].web}`;
+const BASE_URL = process.env.UI_CHECK_BASE || `http://localhost:${activePorts(MODE).web}`;
 
 /**
  * Browser channel, mirroring scripts/qa-browser.mjs#launchBrowser: installed Chrome on win32,

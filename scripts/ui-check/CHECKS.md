@@ -30,7 +30,7 @@ ba-ui-check`; else `<repo>/.ui-check`. `node scripts/ui-check/run.mjs --where` p
 
 ## Ownership matrix
 
-Personas log in with tokens minted straight into the local sqlite DB (`lib/mint_tokens.py`), a fresh
+Personas log in with tokens minted straight into the local sqlite DB (`scripts/check-core/lib/mint_tokens.py`), a fresh
 pair per test. Each mint adds one `OutstandingToken` row to `backend/db.sqlite3`; that is harmless
 (local only, expires with the 90-day refresh lifetime). Each parallel worker has its own solo account,
 because two sockets of one user displace each other in the relay and Django throttles per account.
@@ -182,6 +182,7 @@ Fixtures are in `fixtures/detectors/` and the spec is `specs/selftest/detectors.
 | `ST-ACCEPT` | `specs/selftest/accept.spec.mjs` runs `lib/accept.mjs` on `fixtures/detectors/snap-transient.html` (a panel added on click and removed 600 ms later): a `noSnap` watch on it passes with no error although it matches nothing before or after the steps (the sampler counts matches per frame); with `?mode=snap` its 100→300px one-frame jump while present is a clean `fail`; a watch selector that matches in no sampled frame makes the assertion an `error`. |
 | `ST-ACCEPT-SETTLE` | `specs/selftest/accept.spec.mjs` on `fixtures/detectors/scale-in.html` (a panel that scales in from .9 over 400 ms via per-frame inline transforms, like the modal popIn): `minSize` / `withinViewport` measure the settled box (rect unchanged for 3 frames, ≤ 1.5 s), so a 24×24 button passes instead of reading 21.7 px mid-animation, and a 20×16 button still fails at its real size. |
 | `ST-GAMES` | The games driver's unexercised paths on `fixtures/detectors/game-clock.html` (the shell's class names, a 30 s countdown, Give up, an in-place end) with a fake adapter: the `timeout` scenario through the real `runScenario` (driver installs `page.clock`, the adapter ends the countdown with one `clock.runFor`: still running before, over after) and the `giveup` scenario (one wrong answer whose "It was B" copy and colour pass, then Give up) both end with no violation, including Play again → Close game cross-fade; with `page.clock` installed (a 60 s jump moves `performance.now` 60 s) the feedback recorder still records text and latency and the snap sampler still catches a 100 px jump. |
+| `ST-CHECKOUT` | `specs/selftest/checkout.spec.mjs` (no browser; runs `npm ci` once, 10-15 min on this machine): `check-core/lib/checkout.mjs#ensureCheckout(<HEAD sha>)` creates `<worktreeRoot>/check-<sha7>` detached at that sha (`created: true`), with `backend/.venv` and `multiplayer_server/node_modules` as junctions to the main checkout's (the venv python resolves through it) and its own `npm ci`'d `node_modules`; a second call reuses it (`created: false, reinstalled: false`); `ensureCheckout('.')` returns the main checkout untouched; `removeCheckout` deletes the worktree and its git registration while the main checkout's venv and relay `node_modules` (the junction targets) survive. |
 
 ## Acceptance (ACCEPT)
 

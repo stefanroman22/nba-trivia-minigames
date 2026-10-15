@@ -4,10 +4,11 @@
 //   hiddenGames()  → [{ id, path, name, online }]   entries flagged `hidden: true`
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { REPO_ROOT } from './run-id.mjs';
+import { appRepo } from './stack.mjs';
 
-const GAME_UTILS = path.join(REPO_ROOT, 'src', 'utils', 'GameUtils.tsx');
-const ROOM_SIZES = path.join(REPO_ROOT, 'src', 'utils', 'roomSizes.ts');
+// The app under test's catalogue (a checkout of main may list other games than the harness checkout).
+const GAME_UTILS = path.join(appRepo(), 'src', 'utils', 'GameUtils.tsx');
+const ROOM_SIZES = path.join(appRepo(), 'src', 'utils', 'roomSizes.ts');
 
 let cache = null;
 

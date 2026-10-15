@@ -56,14 +56,16 @@ thousands of tokens, not millions.
 | merge judge files into REPORT.md | `npm run ui:report -- --run <runId> --validate` |
 | harness self-test (no app server) | `npm run ui:selftest` |
 | catalogue check | `node scripts/ui-check/catalog.mjs` |
-| stop a kept stack | `node scripts/ui-check/run.mjs --stop` |
+| stop a kept stack | `node scripts/ui-check/run.mjs --stop` (checker ports; a lane: `--stop --ports …`) |
 | where are the runs | `node scripts/ui-check/run.mjs --where` |
 
 `run.mjs` flags: `--suite guest,account,games,multiplayer|all`, `--vp <ids>|core|all` (mp pairs as
 `pairA`…`pairD`), `--only ID,ID` (`*` inside an id: `GM-wordle-*`), `--mode prod|dev`,
+`--ref main|dev|.|<sha>` (the app code under test, see Modes), `--repo <dir>`, `--ports django=…,socket=…,web=…`,
 `--keep-stack`, `--headed`, `--skip-slow` (leaves out `@slow` real-time waits such as
 MP-TIMEOUT-01). It exits 1 when any check failed, which is the normal input for the judges.
-`verify.mjs`, `probe.mjs` and `report.mjs` print their usage with `--help`. In any loop pass
+`verify.mjs`, `probe.mjs` and `report.mjs` print their usage with `--help`; `verify.mjs --from <findings.json>`
+verifies finding objects from a file (a Notion card's attachment) with no run, output in `<uicHome>/adhoc/<ts>/`. In any loop pass
 `--keep-stack` and stop once at the end with `run.mjs --stop`.
 
 From Windows PowerShell 5.1 pass assertions with `--assert-file`: it splits JSON arguments that
@@ -74,14 +76,15 @@ import `./scripts/ui-check/lib/…` relative to it).
 
 Run output never goes into the repo; the only repo files a run changes are
 `scripts/ui-check/notes/<suite>.md`, where the judges append what they learned (the `ui-fix` skill
-commits them as `ui-check: notes from <runId>`). `lib/home.mjs` (`uicHome()`) picks:
+commits them as `ui-check: notes from <runId>`). `scripts/check-core/lib/home.mjs` (`uicHome()`) picks:
 `UI_CHECK_HOME` when set; on Windows with the repo under OneDrive `%LOCALAPPDATA%\nba-ui-check`
 (OneDrive would sync thousands of JPEGs); otherwise `<repo>/.ui-check` (git-ignored).
 
 ```
 <uicHome>/
   latest                 last run id (verify, probe and report restore it after their own children)
-  stack.json             services the stack helper started (only those are ever stopped)
+  stack.json             per port set: the stack's repo/mode/URLs, and every service the helper started with its
+                         {repo, ports} (only those are ever stopped; a lane's and a checker's stack coexist)
   accounts.json          test usernames + the one generated password (secret, never committed)
   logs/, pw-output/
   runs/<YYYYMMDD-HHMM>/
@@ -89,6 +92,7 @@ commits them as `ui-check: notes from <runId>`). `lib/home.mjs` (`uicHome()`) pi
     findings/<suite>.json      judge output
     findings.json  REPORT.md  rejected.json
     verify/<id>.json  verify/shots/  probe/shots/   (verify and probe detail and crops)
+  adhoc/<YYYYMMDD-HHMMSS>/verify/   verify.mjs --from output (no run)
 ```
 
 Every `run.mjs` call (including a fix loop's regression run) creates a new run and moves `latest`;
@@ -106,10 +110,21 @@ with a bounded `results.json` filter (≤ 40 lines per call) given in its agent 
 | `prod` (audits) | :8200 sqlite | :4200 | `next build` + `next start` :5374 | real speed numbers, budgets enforced |
 | `dev` (default for verify / probe) | :8000 | :4000 | `npm run dev` :5173 | fix loops with HMR; budgets informational |
 
+Shared modules (stack, accounts, findings, home, the worktree checkout, port sets) live in
+`scripts/check-core/lib/`; `scripts/ui-check/lib/` re-exports them. The app under test comes from
+`--ref`: `main` by default in prod mode (a worktree `<worktreeRoot>/check-main` of `origin/main`, built
+there; `npm ci` only when its lockfile changed; `backend/.venv` and `multiplayer_server/node_modules`
+are junctions to this checkout's), `.` (this checkout) by default in dev mode; `--repo <dir>` runs any
+checkout. The harness (specs, Playwright) always runs from this checkout. `--ports` moves the whole
+stack (a pipeline QA lane: `django=8100,socket=4100,web=5273`); in dev mode on non-default ports the
+frontend is `next dev -p <web>` pinned to the lane's Django and socket, and since Next allows one
+`next dev` per directory a lane runs from its own worktree (`--repo`). `UI_CHECK_BASE` overrides the
+Playwright baseURL.
+
 The stack helper starts only what is not already listening and stops only what it started. Prod
 mode rebuilds only when the source stamp changed (about 70 s or more). Django and the relay run
 without autoreload: after a server-side edit, `run.mjs --stop` and the next call starts them again.
-Prod mode leaves its build in `.next/`, with `localhost` API and socket URLs baked in: run
+Prod mode leaves its build in `<repo>/.next/` (stamp `.next/UICHECK_STAMP`), with `localhost` API and socket URLs baked in: run
 `npm run build` before `npm run preview` (or any deploy-like check) so you never serve that build.
 The local relay and the prod build read the public data hosts (`VITE_DATA_BASE`,
 `VITE_QUESTIONS_BASE`) from the env files; they are read-only CDN URLs, nothing is written there.
@@ -122,7 +137,8 @@ because budgets are enforced only in prod. The `ui-fix` skill's final `verify --
 
 ## Accounts
 
-Local sqlite only: tokens are minted inside `manage.py shell` (`lib/mint_tokens.py`), and a
+Local sqlite only (the app repo's `backend/db.sqlite3`): tokens are minted inside `manage.py shell`
+(`scripts/check-core/lib/mint_tokens.py`), and a
 logged-in persona refuses to run when the API host is not `localhost`.
 
 - `testuser1` (host) + `testuser2` (joiner): the multiplayer pair, one worker.
