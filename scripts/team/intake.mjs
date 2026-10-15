@@ -5,11 +5,12 @@
 //   { picks: [{ slug, id, title, tier, budgetMin, laneKeys, category, priority, resumed, stage }], leftTodo, remainingMin }
 // Usage: node scripts/team/intake.mjs --remaining <min> [--only <pageId>] [--running <slug,...>] [--lanes 2]
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, loadConfig, loadEnvTeam } from "../lib/team-config.mjs";
 import { tierBudget, areasOf, laneKeys, pickNext } from "./lib/budget.mjs";
 import { runDir, writeJson, readJson, readState, writeState, slugFor, RUN_ROOT } from "./lib/state.mjs";
+import { checkFields } from "./lib/check-card.mjs";
 
 loadEnvTeam();
 const argv = process.argv.slice(2);
@@ -82,7 +83,9 @@ for (const c of picks) {
     try { spec = notion("get-spec", c.id); } catch (e) { fail(`notion get-spec ${c.id} failed: ${String(e.message).split("\n")[0]}`); }
     const attachments = [...spec.matchAll(/\[(?:Image|File) attached: ([^\]]+)\]/g)].map((m) => m[1].trim());
     const tier = c.difficulty || "standard";
-    writeJson(resolve(dir, "card.json"), { ...c, slug, spec, attachments, tier, budgetMin: tierBudget(tier), areas: [...areasOf(c)], laneKeys: [...laneKeys(c)] });
+    // check cards: Source / Target props and the findings.json attachment (a file that parses as JSON) for brief + QA
+    const readable = (f) => { try { JSON.parse(readFileSync(f, "utf8")); return true; } catch { return false; } };
+    writeJson(resolve(dir, "card.json"), { ...c, slug, spec, attachments, tier, budgetMin: tierBudget(tier), areas: [...areasOf(c)], laneKeys: [...laneKeys(c)], ...checkFields(c, spec, readable) });
     writeState(slug, { pageId: c.id, tier, stage: "classify", resumed: false });
   } else {
     writeState(slug, { resumed: true });

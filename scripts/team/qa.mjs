@@ -15,6 +15,7 @@ import { ROOT, loadConfig } from "../lib/team-config.mjs";
 import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
 import { loadQaMap, resolveQa } from "./lib/qa-map.mjs";
 import { runDir, readState, writeState } from "./lib/state.mjs";
+import { verifyFilesOf, verifyArgs, parseVerifyOutput } from "./lib/check-card.mjs";
 
 process.chdir(ROOT); // qa-browser.mjs resolves .team/qa against cwd — pin it to the main checkout
 if (process.env.TEAM_CLOUD === "1" && !process.env.PLAYWRIGHT_BROWSERS_PATH) process.env.PLAYWRIGHT_BROWSERS_PATH = "/opt/pw-browsers"; // where infra/routine/setup.sh installed Chromium
@@ -50,11 +51,13 @@ async function finish(pass, failures, notesArr, extra = {}) {
   process.exit(pass ? 0 : 1);
 }
 
-if (cls.docsOnly || (!cls.frontend && !cls.backend)) {
+const assertions = readAssertions(resolve(dir, "brief.md"));
+// check cards: `{"verify": "<findings.json>"}` → verify.mjs --from on this lane after the smoke; such a card is never skipped
+const verifies = verifyFilesOf(assertions);
+if (!verifies.length && (cls.docsOnly || (!cls.frontend && !cls.backend))) {
   await finish(true, [], [`skipped: ${cls.docsOnly ? "docs-only" : "no frontend/backend files"} diff`], { skipped: cls.docsOnly ? "docs-only" : "no-ui", touched });
 }
 const plan = resolveQa(touched, loadQaMap());
-const assertions = readAssertions(resolve(dir, "brief.md"));
 for (const a of assertions) if (a.route && !a.flow && !plan.routes.includes(a.route)) plan.routes.push(a.route);
 const failures = [];
 const notes = [];
@@ -95,7 +98,27 @@ function venvPython() {
   return win ? "python" : "python3";
 }
 
-log(`touched ${touched.length} files → routes ${plan.routes.join(",") || "-"} games ${plan.games === "*" ? "all" : plan.games.join(",") || "-"} backend ${plan.backend}`);
+// verify.mjs runs async: a blocking spawnSync would stop draining the lane servers' piped output while it runs.
+function runAsync(cmd, args, { timeoutMs }) {
+  return new Promise((res) => {
+    const child = spawn(cmd, args, { cwd: ROOT, env: process.env, stdio: ["ignore", "pipe", "pipe"], detached: !win });
+    let stdout = "", stderr = "", timedOut = false;
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try { if (win) spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-child.pid, "SIGTERM"); } catch { /* gone */ }
+    }, timeoutMs);
+    child.on("close", (status) => { clearTimeout(timer); res({ status, stdout, stderr: timedOut ? `${stderr}\nverify timed out after ${Math.round(timeoutMs / 60000)} min` : stderr }); });
+  });
+}
+const lanePorts = `django=${ports.django},socket=${ports.socket},web=${ports.vite}`;
+// Processes ui-check recorded on this lane's ports (the relay verify starts): stopped before and after, so a relay edit
+// is never judged by a relay still running the previous round's code. Never touches what qa.mjs itself started.
+const stopLaneChecker = () => spawnSync(process.execPath, [resolve(ROOT, "scripts/ui-check/run.mjs"), "--stop", "--ports", lanePorts], { cwd: ROOT, encoding: "utf8", timeout: 60000 });
+if (verifies.length) stopLaneChecker();
+
+log(`touched ${touched.length} files → routes ${plan.routes.join(",") || "-"} games ${plan.games === "*" ? "all" : plan.games.join(",") || "-"} backend ${plan.backend}${verifies.length ? ` · verify ${verifies.length} findings file(s)` : ""}`);
 try {
   for (const p of [ports.vite, ports.django]) if (!(await portFree(p))) throw new Error(`port ${p} is busy (another QA lane or an orphaned server) — free it or use the other lane`);
 
@@ -109,7 +132,7 @@ try {
   if (mig.status !== 0) notes.push(`migrate failed: ${((mig.stderr || "") + (mig.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
   start("django", py, ["manage.py", "runserver", String(ports.django), "--noreload"], dj);
 
-  const feEnv = { NBA_DEV_ENV_SKIP: "1", PORT: String(ports.vite), VITE_BACKEND_URL: `http://localhost:${ports.django}/api` };
+  const feEnv = { NBA_DEV_ENV_SKIP: "1", PORT: String(ports.vite), VITE_BACKEND_URL: `http://localhost:${ports.django}/api`, VITE_SOCKET_URL: `http://localhost:${ports.socket}` };
   const prodBuild = existsSync(resolve(repo, ".next/BUILD_ID"));
   // Call Next's bin through node directly: no shell, no npx (whose string form fails on this Windows setup).
   const nextBin = resolve(repo, "node_modules/next/dist/bin/next");
@@ -130,7 +153,9 @@ try {
   try { browser = await launchBrowser(); }
   catch (e) {
     log(`no browser: ${String(e.message).split("\n")[0]}`);
-    await finish(true, [], [`skipped: no browser available (${String(e.message).split("\n")[0].slice(0, 120)})`, ...notes], { skipped: "no-browser" });
+    // a check card is judged by verify (its own Playwright browser): no skipped pass, only the smoke is dropped
+    if (!verifies.length) await finish(true, [], [`skipped: no browser available (${String(e.message).split("\n")[0].slice(0, 120)})`, ...notes], { skipped: "no-browser" });
+    notes.push(`smoke skipped: no browser (${String(e.message).split("\n")[0].slice(0, 120)})`);
   }
 
   // --- ui-audit for touched games. A shared-component change maps to "*"; auditing all 18 games
@@ -161,7 +186,7 @@ try {
   // --- route smoke + assertions
   log("route smoke");
   try {
-    for (const route of plan.routes.length ? plan.routes : ["/"]) {
+    for (const route of !browser ? [] : plan.routes.length ? plan.routes : ["/"]) {
       for (const [w, h] of [[390, 844], [1100, 900]]) {
         const page = await browser.newPage({ viewport: { width: w, height: h } });
         const errors = [];
@@ -197,14 +222,32 @@ try {
         } finally { await page.close(); }
       }
     }
-  } finally { await browser.close(); }
+  } finally { await browser?.close(); }
   const flows = assertions.filter((a) => a.flow);
   if (flows.length) notes.push(`${flows.length} flow assertion(s) need the browser-qa agent`);
+
+  // --- check card: verify.mjs --from on the lane stack started above (it reuses our Django + web, starts only the relay)
+  for (const file of verifies) {
+    if (!existsSync(file)) { failures.push(`verify: findings file missing: ${file} (the card's findings.json attachment did not download)`); continue; }
+    if (!existsSync(resolve(repo, "multiplayer_server/node_modules"))) {
+      log("npm ci --prefix multiplayer_server (the relay verify starts needs its deps in the worktree)");
+      const r = spawnSync("npm ci --prefix multiplayer_server --prefer-offline --no-audit --no-fund", { cwd: repo, encoding: "utf8", shell: true, timeout: 300000 });
+      if (r.status !== 0) notes.push(`npm ci --prefix multiplayer_server failed: ${((r.stderr || "") + (r.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
+    }
+    const args = verifyArgs({ root: ROOT, file, repo, ports });
+    log(`verify --from ${file}`);
+    const r = await runAsync(process.execPath, args, { timeoutMs: 20 * 60000 });
+    const v = parseVerifyOutput(r.stdout, r.stderr, r.status);
+    log(`verify exit ${r.status}: ${v.passes.length} pass · ${v.failures.length} failure line(s)`);
+    failures.push(...v.failures);
+    if (v.summary) notes.push(v.summary);
+  }
 } catch (e) {
   failures.push(`qa harness: ${String(e.message || e).split("\n")[0].slice(0, 300)}`);
 } finally {
   log("stopping servers");
   stopAll();
+  if (verifies.length) stopLaneChecker();
 }
 
 await finish(failures.length === 0, failures.slice(0, 30), [`lane ${lane}`, `routes ${plan.routes.join(",") || "-"}`, `games ${plan.games === "*" ? "all(sampled)" : plan.games.join(",") || "-"}`, ...notes], { plan, flows: assertions.filter((a) => a.flow) });

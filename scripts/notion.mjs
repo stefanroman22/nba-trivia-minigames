@@ -239,6 +239,7 @@ async function cmdSetProps(pageId, args) {
   const title = arg(args, "--title"); if (title) props.Name = { title: text(title) };
   const source = arg(args, "--source"); if (source) props.Source = { rich_text: text(source) };
   const target = targetProp(args); if (target) props.Target = target;
+  if (args.includes("--needs-human")) props["Needs human"] = { checkbox: true }; // parks the card (list-todo skips it)
   await api(`pages/${pageId}`, "PATCH", { properties: props });
   console.log("props set");
 }
