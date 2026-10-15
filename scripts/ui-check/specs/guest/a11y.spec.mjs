@@ -2,7 +2,7 @@
 import { test, expect, L } from '../../lib/fixtures.mjs';
 import { openLogin, gameById, LOCAL_LOAD } from '../../lib/guest.mjs';
 
-test('[G-A11Y-01] axe finds no serious or critical issues on /, /privacy, a game idle screen and the login modal', async ({ page, audit, vp }) => {
+test('[G-A11Y-01] @live axe finds no serious or critical issues on /, /privacy, a game idle screen and the login modal', async ({ page, audit, vp }) => {
   test.setTimeout(120_000);
   await audit.goto('/', { waitFor: '#games-grid .gtile' });
   await audit.a11y();

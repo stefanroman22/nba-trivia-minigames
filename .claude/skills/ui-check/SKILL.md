@@ -30,6 +30,21 @@ real 30 s waits) · `--mode dev` (no prod build; performance budgets become info
 - Infra failure (`digest (none written)`, exit 2, or a stack error): read the last 30 output lines,
   run step 4, report the error. Do not dispatch judges.
 
+## 1b. The live subset (when asked, or with a full audit of production code)
+```
+node scripts/ui-check/run.mjs --live            # https://swishquest.com; or --live <url>
+```
+Runs only the guest checks tagged `@live` (CHECKS.md `live` column: public routes, idle screens, perf,
+a11y, permissions) against the live site on the core viewports, as its own run (own runId). It starts
+no stack and uses no accounts, and it never writes: every request other than GET/HEAD to a
+non-localhost origin, or a websocket, fails the test as `live-write`. The last lines print
+`ui-check: live requests: N GET/HEAD · 0 live-write`; any non-zero live-write count is a harness bug,
+so report it to the owner before anything else. `--only`/`--vp` narrow it as usual; `--ref`/`--repo`
+only choose the game catalogue (default main's). Its digest header reads `· env live` and its lines
+`phone-390 (live)`: judge it like any guest run, and the judge sets `where.env: ["live"]` on its
+findings. A finding seen locally and live merges into one with both envs. Never run account, game or
+multiplayer checks against the live site (the live leaderboard and the billed relay).
+
 ## 2. Dispatch the judges (one message, in parallel)
 Read the digest's first 8 lines for the suites that ran. Dispatch one judge per suite that ran, all
 in ONE message, each with `model: "sonnet"` and `subagent_type` `ui-check-guest`, `ui-check-account`,

@@ -18,6 +18,8 @@ export const ACCEPTED_PATH = path.join(UIC, 'accepted.json');
 export const SEVERITIES = ['blocker', 'major', 'minor', 'polish'];
 export const OWNERS = ['frontend', 'backend', 'ci'];
 export const SUITES = ['guest', 'account', 'games', 'multiplayer'];
+/** Where a finding was seen (`where.env`): the local stack, or the live site (`run.mjs --live`). */
+export const ENVS = ['local', 'live'];
 const VP_ORDER = [...Object.keys(VIEWPORTS), ...Object.keys(MP_PAIRS)];
 const rank = (order, v) => { const i = order.indexOf(v); return i < 0 ? order.length : i; };
 
@@ -255,6 +257,8 @@ function combine(ordered, fp) {
   if (ordered.length > 1) {
     m.severity = SEVERITIES[Math.min(...ordered.map((f) => rank(SEVERITIES, f.severity)))] || base.severity;
     m.where.viewports = unionBy(ordered.map((f) => f.where.viewports), String).sort((a, b) => rank(VP_ORDER, a) - rank(VP_ORDER, b));
+    // Where it was seen: a member without `where.env` was seen locally. Only set when some member names an env.
+    if (ordered.some((f) => f.where.env)) m.where.env = unionBy(ordered.map((f) => f.where.env || ['local']), String).sort((a, b) => rank(ENVS, a) - rank(ENVS, b));
     m.current = longest(ordered.map((f) => f.current));
     m.expected = longest(ordered.map((f) => f.expected));
     m.evidence.checkId = base.evidence.checkId || (ordered.find((f) => f.evidence.checkId) || {}).evidence?.checkId || null;
@@ -590,7 +594,7 @@ export function buildReport({ runId, mode = '?', date = '?', findings = [], resu
     const guardTag = (label) => (guards.has(label) ? ` — ${GUARD_LABEL}` : '');
     out.push(`### ${f.id} · ${f.title}`, '');
     const also = (f.mergedFrom || []).filter((s) => s !== f.suite);
-    out.push(`**${f.severity}** · ${f.owner} · ${f.category} · ${f.suite}${also.length ? ` (also seen by: ${also.join(', ')})` : ''} · persona ${f.persona} · viewports ${(w.viewports || []).join(', ')} · status ${status}`);
+    out.push(`**${f.severity}** · ${f.owner} · ${f.category} · ${f.suite}${also.length ? ` (also seen by: ${also.join(', ')})` : ''} · persona ${f.persona} · viewports ${(w.viewports || []).join(', ')}${(w.env || []).some((e) => e !== 'local') ? ` · env ${w.env.join(', ')}` : ''} · status ${status}`);
     out.push(`Where: \`${w.route}\`${w.state ? ` (${w.state})` : ''} · \`${w.selector}\` · rule \`${f.rule}\` · ${checked}`, '');
     out.push(`**Current** — ${f.current}`, '');
     out.push(`**Expected** — ${f.expected}`, '');

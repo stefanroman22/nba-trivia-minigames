@@ -1,7 +1,10 @@
 // Shared fixtures: `vp` (the project's VIEWPORTS entry), `audit` (detectors + evidence), `session`
 // (the persona's minted login, seeded into `context`), `cap` (network capture), `fiber` (React
 // internals) and `mp` (two logged-in players). Options carried in a project's `use`:
-// { vpId, persona, suite, mpPair }. Extra audits (other pages) come from createAudit().
+// { vpId, persona, suite, mpPair, env }. Extra audits (other pages) come from createAudit().
+// env 'live' (run.mjs --live, projects guest-live@<vp>): every audit guards its browser context — any request to a
+// non-localhost origin other than GET/HEAD, or a websocket, is a `live-write` violation (the test fails), and the
+// `request` fixture refuses anything but GET/HEAD. The audit attachment counts the live requests it saw.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test as base, expect } from '@playwright/test';
@@ -55,6 +58,18 @@ const ownHost = (pageUrl, url) => {
 };
 const pathOf = (url) => { try { const u = new URL(url); return u.pathname + u.search; } catch { return url; } };
 
+/** Where a test runs: its project's `use.env`, else UI_CHECK_ENV, else the local stack. */
+export const envOf = (testInfo) => (testInfo && testInfo.project && testInfo.project.use && testInfo.project.use.env) || process.env.UI_CHECK_ENV || 'local';
+const READ_METHODS = new Set(['GET', 'HEAD']);
+/** A network request that leaves this machine (http/ws to anything but localhost); data:, blob: etc. never do. */
+export const isRemote = (url) => {
+  try {
+    const u = new URL(url);
+    return /^(https?|wss?):$/.test(u.protocol) && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname);
+  } catch { return false; }
+};
+const GUARDED = new WeakSet(); // browser contexts whose live-write guard is installed (one per context)
+
 // Shot paths taken so far in each test (shared by every audit of that test) + the auto-crop counter.
 const SHOTS_BY_TEST = new WeakMap();
 const testShots = (testInfo) => {
@@ -88,6 +103,9 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
   const violations = [], warnings = [], metrics = [], shots = [], routes = [];
   const logs = { console: [], pageErrors: [], responses: [], slowApi: [] };
   let crops = 0, attached = false;
+  const env = envOf(testInfo);
+  const liveRequests = env === 'live' ? { read: 0, write: 0 } : null;
+  const late = []; // live-write violations recorded after done() attached the audit
 
   const route = () => routeOf(page.url());
   const noteRoute = (r) => { if (r && !routes.includes(r)) routes.push(r); };
@@ -114,6 +132,25 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
     return v;
   };
 
+  if (liveRequests) {
+    // --live: GET/HEAD only. Recorded as a hard violation, so the test fails; counted for run.mjs's summary line.
+    const write = (method, url, what) => {
+      liveRequests.write++;
+      const v = record({ rule: 'live-write', selector: `${method} ${url.split('?')[0]}`, measured: what, expected: 'GET/HEAD only: run.mjs --live never writes to the live site' });
+      if (attached) late.push(v);
+    };
+    const ctx = page.context();
+    if (!GUARDED.has(ctx)) {
+      GUARDED.add(ctx);
+      ctx.on('request', (req) => {
+        if (!isRemote(req.url())) return;
+        if (READ_METHODS.has(req.method())) liveRequests.read++;
+        else write(req.method(), req.url(), `a ${req.method()} request left the browser`);
+      });
+    }
+    page.on('websocket', (ws) => { if (isRemote(ws.url())) write('WEBSOCKET', ws.url(), 'a websocket was opened'); });
+  }
+
   /** Record in-page detector results, cropping evidence for the first few violations. Returns the violations (not warnings) added. */
   const recordAll = async (items) => {
     const out = [];
@@ -135,7 +172,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
 
   const attach = async () => {
     attached = true;
-    const body = { checkId, project, vp: vp ? vp.id : null, label, routes, metrics, violations, warnings, shots };
+    const body = { checkId, project, vp: vp ? vp.id : null, label, env, routes, metrics, violations, warnings, shots, ...(liveRequests ? { liveRequests: { ...liveRequests } } : {}) };
     await testInfo.attach('uicheck', { body: JSON.stringify(body), contentType: 'application/json' });
   };
 
@@ -290,9 +327,12 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
       throw new Error(`${violations.length} UI violation(s) in ${checkId} @ ${fileProject}:\n${lines.join('\n')}`);
     },
 
-    /** Fixture teardown: attach the data even when the test threw before done(). */
+    /** Fixture teardown: attach the data even when the test threw before done(); a live write after done() fails the test. */
     async finalize() {
-      if (!attached) await attach();
+      if (!attached) { await attach(); return; }
+      if (!late.length) return;
+      await testInfo.attach('uicheck', { body: JSON.stringify({ checkId, project, vp: vp ? vp.id : null, label, env, routes: [], metrics: [], violations: late, warnings: [], shots: [] }), contentType: 'application/json' });
+      throw new Error(`${late.length} live-write(s) after done() in ${checkId}: ${late[0].selector}`);
     },
   };
   return audit;
@@ -341,6 +381,7 @@ export const test = base.extend({
   persona: ['guest', { option: true }],
   suite: [null, { option: true }],
   mpPair: [null, { option: true }],
+  env: ['local', { option: true }],
   vp: async ({ vpId }, use) => { await use(vpId ? VIEWPORTS[vpId] : null); },
 
   /** Who the default page is: { persona: 'guest' } or, for 'solo', { persona, username, access, refresh, user }.
@@ -360,6 +401,24 @@ export const test = base.extend({
     const audit = await createAudit(page, testInfo, { project: testInfo.project.name, vp });
     await use(audit);
     await audit.finalize();
+  },
+  /** --live: the API request context refuses anything but GET/HEAD (the browser side is guarded by the audit). */
+  request: async ({ request }, use, testInfo) => {
+    if (envOf(testInfo) !== 'live') { await use(request); return; }
+    const deny = (what) => { throw new Error(`ui-check --live: ${what} is not allowed — the live site is GET/HEAD only`); };
+    await use(new Proxy(request, {
+      get(target, key) {
+        if (['post', 'put', 'patch', 'delete'].includes(key)) return () => deny(`request.${key}()`);
+        if (key === 'fetch') {
+          return (url, opts = {}) => {
+            const method = String(opts.method || (url && typeof url.method === 'function' ? url.method() : 'GET')).toUpperCase();
+            return READ_METHODS.has(method) ? target.fetch(url, opts) : deny(`request.fetch(${method})`);
+          };
+        }
+        const v = target[key];
+        return typeof v === 'function' ? v.bind(target) : v;
+      },
+    }));
   },
   /** JSON responses and socket.io frames of the default page (lib/capture.mjs). */
   cap: async ({ page }, use) => { await use(capture(page)); },

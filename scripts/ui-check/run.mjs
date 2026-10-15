@@ -5,6 +5,11 @@
 //                                 [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…]
 //   node scripts/ui-check/run.mjs --stop [--ports …]   stop a stack kept with --keep-stack (or left by a killed run):
 //                                 the checker ports (prod + dev) by default, or only the given port set
+//   node scripts/ui-check/run.mjs --live [url] [--vp …] [--only …] [--ref …|--repo …]   the guest checks tagged @live
+//                                 against the live site (default https://swishquest.com), read-only: projects
+//                                 guest-live@<vp> (core vps by default), no stack, no accounts, GET/HEAD only (any
+//                                 other request or a websocket fails the test as `live-write`); results carry env 'live'.
+//                                 --ref/--repo only pick the game catalogue the checks expect (default: main's).
 // --ref: the app code under test, built in a worktree by check-core/lib/checkout.mjs (default main in prod mode,
 // '.' = this checkout in dev mode); --repo <dir> runs an existing checkout instead. run-meta.json records ref/head/repo.
 // Ctrl+C / SIGTERM / an uncaught error stop the stack too (unless --keep-stack).
@@ -44,6 +49,10 @@ function parseArgs(argv) {
     else if (a === '--skip-slow') opts.skipSlow = true;
     else if (a === '--stop') opts.stop = true;
     else if (a === '--where') opts.where = true;
+    else if (a === '--live') {
+      opts.live = true;
+      if (argv[i + 1] !== undefined && !argv[i + 1].startsWith('--')) opts.liveUrl = argv[++i];
+    }
     else if (a === '--help' || a === '-h') opts.help = true;
     else throw new Error(`unknown argument ${a}`);
   }
@@ -80,6 +89,14 @@ const SLOW_TAG = '@slow';
 function perfGrep(only) {
   const ids = grepFor(only);
   return ids ? `^(?=.*${PERF_TAG})(?=.*${ids})` : PERF_TAG;
+}
+
+const LIVE_TAG = '@live';
+const LIVE_DEFAULT = 'https://swishquest.com';
+/** Grep for a live pass: @live tests (and only @perf ones when `perf`), narrowed by --only when given. */
+function liveGrep(only, perf) {
+  const ids = grepFor(only);
+  return `^${perf ? `(?=.*${PERF_TAG})` : ''}(?=.*${LIVE_TAG})${ids ? `(?=.*${ids})` : ''}`;
 }
 
 function readResults() {
@@ -136,13 +153,15 @@ async function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`ui-check: ${e.message}`); process.exit(2); }
   if (opts.help) {
-    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…] [--keep-stack] [--headed] [--skip-slow] [--stop] [--where]');
+    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…] [--keep-stack] [--headed] [--skip-slow] [--stop] [--where] [--live [url]]');
     console.log('  --ref         app code under test, checked out in a worktree (default main; dev mode: . = this checkout)');
     console.log('  --repo        run the app from this checkout directory instead (overrides --ref)');
     console.log('  --ports       stack ports (default prod 8200/4200/5374, dev 8000/4000/5173)');
     console.log('  --keep-stack  leave the local stack running after the run');
     console.log('  --skip-slow   leave out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01) for quick verify loops');
     console.log('  --where       print where runs and the stack file live (uicHome) and the latest run directory');
+    console.log('  --live [url]  the guest checks tagged @live against the live site (default https://swishquest.com), core vps,');
+    console.log('                no stack, no accounts, GET/HEAD only: any other request or a websocket fails the test (live-write)');
     console.log('  --stop        stop a stack kept with --keep-stack (or left behind by a killed run) and exit: the checker');
     console.log('                ports (prod + dev), or with --ports only that port set (a pipeline lane)');
     return 0;
@@ -159,6 +178,7 @@ async function main() {
     else for (const ports of Object.values(PORT_SETS)) await stopStack({ ports });
     return 0;
   }
+  if (opts.live) return runLive(opts);
   if (!['prod', 'dev'].includes(opts.mode)) { console.error(`ui-check: --mode must be prod or dev`); return 2; }
   let suites, sel;
   try { suites = selectSuites(opts.suite); sel = selectViewports(opts.vp); } catch (e) { console.error(`ui-check: ${e.message}`); return 2; }
@@ -232,6 +252,73 @@ async function main() {
   } finally {
     if (opts.keepStack) console.log('ui-check: stack kept running (--keep-stack); stop it with `node scripts/ui-check/run.mjs --stop`');
     else await stopStack({ ports });
+  }
+  const digest = path.join(runDir(), 'digest.md');
+  console.log(`\nui-check: ${Math.round((Date.now() - t0) / 1000)}s · exit ${exit}`);
+  console.log(`ui-check: digest ${existsSync(digest) ? digest : '(none written)'}`);
+  return exit;
+}
+
+/**
+ * --live: the guest checks tagged @live against the live site, read-only. No stack and no accounts: the guest-live@<vp>
+ * projects have no stack-setup dependency, and the audits' guard fails a test on any non-GET/HEAD request or websocket
+ * to a non-localhost origin (`live-write`). The checkout (--ref, default main, or --repo) only supplies the game catalogue.
+ */
+async function runLive(opts) {
+  let url;
+  try { url = new URL(opts.liveUrl || LIVE_DEFAULT); } catch { console.error(`ui-check: --live ${opts.liveUrl} is not a URL`); return 2; }
+  if (!/^https?:$/.test(url.protocol)) { console.error(`ui-check: --live needs an http(s) URL, got ${url.href}`); return 2; }
+  if (!['all', 'guest'].includes(opts.suite)) { console.error('ui-check: --live runs the guest suite only (the @live checks)'); return 2; }
+  if (opts.mode !== 'prod' || opts.ports || opts.keepStack) { console.error('ui-check: --live starts no stack: --mode dev, --ports and --keep-stack do not apply'); return 2; }
+  let vps;
+  try { vps = opts.vp === 'all' ? CORE : selectViewports(opts.vp).vps; } catch (e) { console.error(`ui-check: ${e.message}`); return 2; }
+  const live = vps.filter((v) => CORE.includes(v));
+  if (live.length < vps.length) console.log(`ui-check: --live runs on the core viewports only (${CORE.join(', ')}); skipping ${vps.filter((v) => !live.includes(v)).join(', ')}`);
+  if (!live.length) { console.error('ui-check: no core viewport selected'); return 2; }
+
+  let app;
+  try {
+    if (opts.repo) {
+      const repo = path.resolve(opts.repo);
+      if (!existsSync(path.join(repo, 'package.json'))) throw new Error(`--repo ${repo} is not a checkout of the app`);
+      app = { repo, ref: null, head: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8', windowsHide: true }).stdout.trim() || null };
+    } else {
+      app = await ensureCheckout(opts.ref || 'main');
+    }
+  } catch (e) { console.error(`ui-check: ${e.message}`); return 1; }
+  const childEnv = { UI_CHECK_MODE: 'prod', UI_CHECK_ENV: 'live', UI_CHECK_LIVE_URL: url.origin, UI_CHECK_REPO: app.repo };
+  Object.assign(process.env, childEnv);
+  installEmergencyStop(false, null, () => []); // nothing of ours runs: never touch a local stack
+  const id = runId();
+  childEnv.UI_CHECK_RUN = id;
+  const t0 = Date.now();
+  console.log(`ui-check: run ${id} · LIVE ${url.origin} (read-only, GET/HEAD only) · guest @live · vps ${live.join(',')}${opts.only ? ` · only ${opts.only}` : ''}`);
+  console.log(`ui-check: game catalogue from ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)}`);
+
+  const projects = live.map((v) => `guest-live@${v}`);
+  const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null].filter(Boolean).join('|') || undefined;
+  let exit = 0;
+  exit = Math.max(exit, await playwright(projects, { workers: 4, grep: liveGrep(opts.only, false), grepInvert: invert(PERF_TAG), headed: opts.headed, env: childEnv }));
+  exit = Math.max(exit, await playwright(projects, { workers: 1, grep: liveGrep(opts.only, true), grepInvert: invert(null), headed: opts.headed, env: { ...childEnv, UI_CHECK_APPEND: '1' } }));
+  const metaFile = path.join(runDir(), 'run-meta.json');
+  if (existsSync(metaFile)) {
+    const extra = { env: 'live', url: url.origin, ref: app.ref, head: app.head, repo: app.repo, mode: 'prod' };
+    try { writeFileSync(metaFile, JSON.stringify({ ...JSON.parse(readFileSync(metaFile, 'utf8')), ...extra }, null, 2)); } catch (e) { console.error(`ui-check: run-meta.json not updated: ${e.message}`); }
+  }
+  const results = readResults();
+  if (!results.length) { console.error('ui-check: nothing ran'); exit = Math.max(exit, 2); }
+  if (results.some(isFail)) exit = Math.max(exit, 1);
+  // The proof that the run never wrote: what the guards counted (every remote request of every guarded context).
+  const reads = results.reduce((n, r) => n + ((r.liveRequests && r.liveRequests.read) || 0), 0);
+  const writes = results.reduce((n, r) => n + ((r.liveRequests && r.liveRequests.write) || 0), 0);
+  const guarded = results.filter((r) => r.liveRequests).length;
+  console.log(`ui-check: live requests: ${reads} GET/HEAD · ${writes} live-write (other methods / websockets) · guard on ${guarded} of ${results.length} test(s)`);
+  if (writes) exit = Math.max(exit, 1);
+  try {
+    const sheets = await contactSheets(results);
+    if (sheets.length) console.log(`ui-check: ${sheets.length} contact sheet(s) in ${path.join(runDir(), 'sheets')}`);
+  } catch (e) {
+    console.error(`ui-check: contact sheets failed: ${e.message.split('\n')[0]}`);
   }
   const digest = path.join(runDir(), 'digest.md');
   console.log(`\nui-check: ${Math.round((Date.now() - t0) / 1000)}s · exit ${exit}`);

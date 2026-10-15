@@ -3,7 +3,7 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@playwright/test';
-import { VIEWPORTS, MP_PAIRS, contextOptions } from './lib/viewports.mjs';
+import { VIEWPORTS, MP_PAIRS, CORE, contextOptions } from './lib/viewports.mjs';
 import { UIC_ROOT, runId } from './lib/run-id.mjs';
 import { MODES } from './lib/stack.mjs';
 import { activePorts } from '../check-core/lib/ports.mjs';
@@ -16,6 +16,8 @@ runId();
 const MODE = process.env.UI_CHECK_MODE || 'prod';
 if (!MODES[MODE]) throw new Error(`UI_CHECK_MODE must be prod or dev, got "${MODE}"`);
 const BASE_URL = process.env.UI_CHECK_BASE || `http://localhost:${activePorts(MODE).web}`;
+// The live site for `run.mjs --live` (guest-live@<vp> projects): read-only, no stack, no accounts.
+const LIVE_URL = process.env.UI_CHECK_LIVE_URL || 'https://swishquest.com';
 
 /**
  * Browser channel, mirroring scripts/qa-browser.mjs#launchBrowser: installed Chrome on win32,
@@ -44,6 +46,13 @@ export function suiteProjects(suite, { vps = Object.keys(VIEWPORTS), persona = '
 /** A project that runs against the app: needs the stack (stack-setup) and the mode's baseURL. */
 const onApp = (p) => ({ ...p, dependencies: ['stack-setup'], use: { ...p.use, baseURL: BASE_URL } });
 
+/**
+ * The live site, read-only (run.mjs --live): only tests tagged @live (project grep, so a direct --project run cannot
+ * pick up anything else), no stack-setup dependency, service workers blocked so every request passes the audit's
+ * live-write guard (lib/fixtures.mjs), env 'live' on every result.
+ */
+const onLive = (p) => ({ ...p, name: p.name.replace(/^guest@/, 'guest-live@'), grep: /@live\b/, use: { ...p.use, baseURL: LIVE_URL, env: 'live', serviceWorkers: 'block' } });
+
 export default defineConfig({
   testDir: './specs',
   outputDir: path.join(UIC_ROOT, 'pw-output'),
@@ -70,6 +79,7 @@ export default defineConfig({
     { name: 'stack-setup', testDir: './lib', testMatch: /stack\.setup\.mjs$/, teardown: 'stack-teardown' },
     { name: 'stack-teardown', testDir: './lib', testMatch: /stack\.teardown\.mjs$/ },
     ...suiteProjects('guest', { persona: 'guest' }).map(onApp),
+    ...suiteProjects('guest', { persona: 'guest', vps: CORE }).map(onLive),
     ...suiteProjects('account', { persona: 'solo' }).map(onApp),
     ...suiteProjects('games', { persona: 'solo' }).map(onApp),
     // Multiplayer: the two accounts are shared, so tests of a file run one after another in file order (fullyParallel
