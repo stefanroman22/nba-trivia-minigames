@@ -367,7 +367,8 @@ comments "merge with a merge commit + `railway up`; do not untick Needs human". 
 merge commit (not squash/rebase)**, then run `cd multiplayer_server && railway up` in the same window;
 `main-sync` then marks the card Done. A squash or rebase rewrites the SHA, so main-sync never finds it:
 then set the card Done by hand. The run
-reports it as `SHIPPED-PR <url>`.
+reports it as `SHIPPED-PR <url>`. In the cloud (no `gh`) ship pushes `team/<slug>`, runs `ship-card --target main --branch team/<slug>` and
+`set-props --needs-human`, comments "open the PR to main by hand (merge commit) + railway up", and ends with `SHIPPED-PR <branch>`.
 
 **Cloud.** `infra/routine/setup.sh` now installs Chromium with `--with-deps` and runs `npm ci --prefix
 multiplayer_server` so `verify.mjs` can start the relay on the VM. **Re-paste `infra/routine/setup.sh`

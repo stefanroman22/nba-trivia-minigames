@@ -107,7 +107,7 @@ before the relay deploy: such a card ships as an **unmerged PR to `main`**.
    `git push origin --delete team/<slug>` first; never force).
 2. `gh pr create --base main --head team/<slug> --title "<type>: <task title>" --body "Check card: <card url>
    relay change: merge this PR with a merge commit (not squash/rebase), then run \`cd multiplayer_server && railway up\` in the same window. A squash or rebase rewrites the SHA: then set the card Done by hand."` → `<url>`.
-   Do NOT merge it. **[CLOUD]** without a working `gh`: `SHIP-FAIL relay PR needs gh: branch team/<slug> pushed`.
+   Do NOT merge it. **[CLOUD]** without a working `gh`: skip the PR, keep the same bookkeeping (step 3: `ship-card ... --target main --branch team/<slug>`, no `--pr`, then `set-props --needs-human`) plus a card comment "open the PR to main by hand (merge commit) + railway up", and end with `SHIPPED-PR <branch>` instead of `<url>`.
 3. `node scripts/notion.mjs ship-card <pageId> --commit <SHA> --branch team/<slug> --target main --pr <url> --model "<model text>"`
    (status QA with the PR's head SHA: `main-sync` marks the card Done once the owner merges the PR; its
    comment says "merge with a merge commit, not squash/rebase, + railway up; do not untick Needs human" — a
