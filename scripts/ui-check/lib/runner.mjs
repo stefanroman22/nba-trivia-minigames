@@ -5,6 +5,7 @@ import { closeSync, mkdirSync, openSync } from 'node:fs';
 import path from 'node:path';
 import { REPO_ROOT } from './run-id.mjs';
 import { stopStack } from './stack.mjs';
+import { activePorts } from '../../check-core/lib/ports.mjs';
 
 export const UIC = path.join(REPO_ROOT, 'scripts', 'ui-check');
 const PW_CLI = path.join(REPO_ROOT, 'node_modules', '@playwright', 'test', 'cli.js');
@@ -45,10 +46,10 @@ export function playwright(projects, { workers, grep, grepInvert, headed, env, l
 /**
  * Ctrl+C / SIGTERM / an uncaught error: kill the Playwright child and stop the stack (unless keepStack),
  * since the caller's `finally` never runs then. A hard kill (taskkill /F, SIGKILL) can't be caught: use run.mjs --stop.
- * `onExit` runs first (e.g. restore a pointer file). `stop` replaces the whole-stack stop (verify/probe/report stop
- * only what they started).
+ * `onExit` runs first (e.g. restore a pointer file). `stop` replaces the default stop of this process's stack (the
+ * ports of UI_CHECK_PORTS or the mode; verify/probe/report stop only what they started).
  */
-export function installEmergencyStop(keepStack, onExit = null, stop = () => stopStack()) {
+export function installEmergencyStop(keepStack, onExit = null, stop = () => stopStack({ ports: activePorts() })) {
   let stopping = false;
   const bail = async (why, code) => {
     if (stopping) return;

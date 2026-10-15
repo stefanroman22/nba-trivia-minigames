@@ -16,7 +16,7 @@ const ROUTES = [
   ...playableGames().map((g) => ({ path: g.path, ready: '.stage-col .idle', shell: true, game: g })),
 ];
 
-test('[G-LAYOUT-01] every public route and each game idle screen lays out cleanly', async ({ page, audit }) => {
+test('[G-LAYOUT-01] @live every public route and each game idle screen lays out cleanly', async ({ page, audit }) => {
   test.setTimeout(300_000);
   for (const r of ROUTES) {
     await test.step(r.path, async () => {
@@ -49,7 +49,7 @@ const scrollTo = (page, y) => page.evaluate((y) => {
   };
 }, y);
 
-test('[G-LAYOUT-02] pages scroll to the footer, the nav stays at the top, nothing is wider than the viewport', async ({ page, audit }) => {
+test('[G-LAYOUT-02] @live pages scroll to the footer, the nav stays at the top, nothing is wider than the viewport', async ({ page, audit }) => {
   test.setTimeout(120_000);
   const routes = [{ path: '/', ready: '#games-grid .gtile' }, { path: '/privacy', ready: 'main article h1' }, { path: gameById('series-winner').path, ready: '.stage-col .idle' }];
   for (const r of routes) {

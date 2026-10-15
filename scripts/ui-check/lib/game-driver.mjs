@@ -20,7 +20,7 @@ import { recordFrames, fadeSummary } from './guest.mjs';
 import { mintTokens } from './accounts.mjs';
 import { deleteAccountApi, runDigits } from './account.mjs';
 import { capPool } from '../games/helpers.mjs';
-import { MODES } from './stack.mjs';
+import { activePorts } from '../../check-core/lib/ports.mjs';
 
 /**
  * `slow-api` allowances for the 4-worker scenario pass only (never in GM-LATENCY-<game>): the session restore
@@ -469,7 +469,7 @@ export async function useFreshAccount(page, seed) {
   }
   usedFresh.add(name);
   const t = (await mintTokens([name]))[name];
-  const origin = `http://localhost:${MODES[process.env.UI_CHECK_MODE || 'prod'].web}`;
+  const origin = `http://localhost:${activePorts().web}`;
   await page.context().addInitScript(({ access, refresh, user, origin }) => {
     try {
       if (location.origin !== origin || localStorage.getItem('uicheck-fresh')) return;

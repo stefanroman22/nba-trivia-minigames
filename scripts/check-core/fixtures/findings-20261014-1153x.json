@@ -1,0 +1,2730 @@
+{
+  "runId": "20261014-1153x",
+  "mode": "prod",
+  "generatedAt": "2026-10-14T15:11:42.495Z",
+  "previousRun": "20261014-1153",
+  "findings": [
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "teen-masking",
+      "title": "Masked stranger \"Player\" still shows a permanent player ID (VS intro)",
+      "severity": "blocker",
+      "category": "security",
+      "owner": "backend",
+      "where": {
+        "route": "/series-winner",
+        "state": "1v1 random match, searching / match found; both players",
+        "viewports": [
+          "pairA",
+          "pairB",
+          "pairC",
+          "pairD"
+        ],
+        "selector": ".om-matchup .om-pc-tag"
+      },
+      "current": "The 1v1 opponent is shown as \"Player\" (teen masking) but the card still prints the #ID (#G8RW2B / #RG8H3M), which lets anyone find and friend-request a masked teen.",
+      "expected": "A masked stranger shows no #ID tag on any online surface (intro, results).",
+      "evidence": {
+        "checkId": "MP-MATCH-01",
+        "metrics": [
+          {
+            "label": "opponent tag",
+            "value": "#G8RW2B shown next to Player"
+          }
+        ],
+        "shots": [
+          "shots/MP-MATCH-01/mp@pairA-host-host-searching.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "multiplayer_server/src/index.js",
+          "line": 206,
+          "why": "publicUser masks username and photo but still sends the permanent id"
+        },
+        {
+          "path": "src/components/MultiPlayer/OnlineMatch.tsx",
+          "line": 295,
+          "why": "passes tag={opp0?.id} to the opponent PlayerCard"
+        },
+        {
+          "path": "src/components/MultiPlayer/PlayerCard.tsx",
+          "line": 56,
+          "why": "renders #tag whenever a tag is given"
+        }
+      ],
+      "fix": {
+        "change": [
+          "In publicUser, send no public tag for a masked user (e.g. masked:true, or the id only in friend rooms) while keeping the internal uid for seat keys",
+          "In OnlineMatch hide the tag on the opponent PlayerCard when the opponent is masked"
+        ],
+        "reuse": [
+          "maskedForStrangers in multiplayer_server/src/index.js"
+        ],
+        "build": [],
+        "rules": [
+          "docs/legal/README.md"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-MATCH-01",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "Digest lines teen-masking `.om-matchup .om-pc-tag` disappear from MP-MATCH-01"
+        ]
+      },
+      "fingerprint": "teen-masking|/series-winner|.om-matchup .om-pc-tag",
+      "id": "UIC-20261014-1153-001",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "13292f467661",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "teen-masking",
+      "title": "Masked stranger \"Player\" still shows a permanent player ID (results)",
+      "severity": "blocker",
+      "category": "security",
+      "owner": "backend",
+      "where": {
+        "route": "/series-winner",
+        "state": "1v1 random match, results; both players",
+        "viewports": [
+          "pairA",
+          "pairB",
+          "pairC",
+          "pairD"
+        ],
+        "selector": ".om-stage--results .om-pc-tag"
+      },
+      "current": "The 1v1 opponent is shown as \"Player\" (teen masking) but the card still prints the #ID (#G8RW2B / #RG8H3M), which lets anyone find and friend-request a masked teen.",
+      "expected": "A masked stranger shows no #ID tag on any online surface (intro, results).",
+      "evidence": {
+        "checkId": "MP-RESULT-01",
+        "metrics": [
+          {
+            "label": "opponent tag",
+            "value": "#G8RW2B shown next to Player"
+          }
+        ],
+        "shots": [
+          "shots/MP-RESULT-01/mp@pairA-host-playing.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "multiplayer_server/src/index.js",
+          "line": 206,
+          "why": "publicUser masks username and photo but still sends the permanent id"
+        },
+        {
+          "path": "src/components/MultiPlayer/OnlineMatch.tsx",
+          "line": 295,
+          "why": "passes tag={opp0?.id} to the opponent PlayerCard"
+        },
+        {
+          "path": "src/components/MultiPlayer/PlayerCard.tsx",
+          "line": 56,
+          "why": "renders #tag whenever a tag is given"
+        }
+      ],
+      "fix": {
+        "change": [
+          "In publicUser, send no public tag for a masked user (e.g. masked:true, or the id only in friend rooms) while keeping the internal uid for seat keys",
+          "In OnlineMatch hide the tag on the opponent PlayerCard when the opponent is masked"
+        ],
+        "reuse": [
+          "maskedForStrangers in multiplayer_server/src/index.js"
+        ],
+        "build": [],
+        "rules": [
+          "docs/legal/README.md"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-RESULT-01",
+            "projects": [
+              "mp@pairA"
+            ]
+          },
+          {
+            "id": "MP-PROP-01",
+            "projects": [
+              "mp@pairA"
+            ]
+          },
+          {
+            "id": "MP-PROP-02",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "Digest lines teen-masking `.om-stage--results .om-pc-tag` disappear from MP-RESULT-01, MP-PROP-01, MP-PROP-02"
+        ]
+      },
+      "fingerprint": "teen-masking|/series-winner|.om-stage--results .om-pc-tag",
+      "id": "UIC-20261014-1153-002",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "98fdbd1a3ac4",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "cls",
+      "title": "Cold home load shifts layout when the legal notice appears",
+      "severity": "major",
+      "category": "perf",
+      "where": {
+        "route": "/",
+        "state": "cold load",
+        "viewports": [
+          "phone-360",
+          "tablet-768"
+        ],
+        "selector": "document"
+      },
+      "current": "Cold-load CLS 0.282 at phone-360 and 0.139 at tablet-768 (budget 0.1); the legal change notice is inserted after hydration and pushes the hero down.",
+      "expected": "CLS <= 0.1 on cold load",
+      "evidence": {
+        "checkId": "G-PERF-01",
+        "metrics": [
+          {
+            "label": "CLS",
+            "value": "0.282",
+            "vp": "phone-360"
+          },
+          {
+            "label": "CLS",
+            "value": "0.139",
+            "vp": "tablet-768"
+          }
+        ],
+        "shots": []
+      },
+      "files": [
+        {
+          "path": "src/components/LegalChangeNotice.tsx",
+          "line": 17,
+          "why": "visible starts false and is set in useEffect, so the notice mounts after first paint"
+        },
+        {
+          "path": "src/views/Landpage.tsx",
+          "line": 77,
+          "why": "notice sits above the hero in main.page"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Reserve the notice space on first paint (decide visibility without a post-hydration insert, or overlay it) so the hero does not move"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-PERF-01",
+            "projects": [
+              "guest@phone-360",
+              "guest@tablet-768"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "Cold home CLS <= 0.1 at phone-360 and tablet-768"
+        ]
+      },
+      "fingerprint": "cls|/|document",
+      "id": "UIC-20261014-1153-003",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "7805ce1f3ba9",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "color-contrast",
+      "title": "White label on the active segmented tab is 2.86:1",
+      "severity": "major",
+      "category": "a11y",
+      "where": {
+        "route": "/",
+        "state": "login modal open (guest panel CTA) / landing leaderboard",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ],
+        "selector": ".is-active > .seg-label"
+      },
+      "current": "Active Log in / Sign up tab label is #fff on the #ff6a1a thumb (13px).",
+      "expected": "Contrast of at least 4.5:1 for normal text (white on #ff6a1a is 2.86:1); use a darker brand-on token or dark text on the orange",
+      "evidence": {
+        "checkId": "G-A11Y-01",
+        "metrics": [
+          {
+            "label": "contrast",
+            "value": "2.86",
+            "unit": ":1"
+          }
+        ],
+        "shots": [
+          "shots/G-MODAL-01/guest@phone-360-tap-target-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/Modal.css",
+          "line": 135,
+          "why": ".auth-tab.is-active sets color #fff over the --brand thumb"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Make text on the --brand fill meet 4.5:1 (darker fill for text-bearing surfaces, or dark ink colour)",
+          "Apply the same token to the other white-on-brand spots axe lists"
+        ],
+        "reuse": [
+          "theme.css tokens (--brand, --brand-soft)"
+        ],
+        "build": [],
+        "rules": [
+          "UI-7",
+          "color-contrast"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-A11Y-01",
+            "projects": [
+              "guest@phone-390"
+            ]
+          }
+        ],
+        "assertions": [
+          {
+            "persona": "guest",
+            "viewport": "phone-390",
+            "route": "/",
+            "steps": [
+              {
+                "click": "@guest.guestPanelCta"
+              },
+              {
+                "waitFor": ".modal-panel .modal-primary-btn"
+              }
+            ],
+            "expect": [
+              {
+                "axe": [
+                  "color-contrast"
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "axe reports no color-contrast violation on / with the login modal open"
+        ]
+      },
+      "fingerprint": "color-contrast|/|.is-active > .seg-label",
+      "id": "UIC-20261014-1153-004",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "9cab11f41f3a",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "color-contrast",
+      "title": "Rank-1 leaderboard row text fails contrast on the landing page",
+      "severity": "major",
+      "category": "a11y",
+      "where": {
+        "route": "/",
+        "state": "login modal open (guest panel CTA) / landing leaderboard",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768"
+        ],
+        "selector": ".lb-row:nth-child(1) > span:nth-child(2)"
+      },
+      "current": "First leaderboard row has an element with 2.86:1 contrast (white on #ff6a1a, 11px) at phone widths and tablet-768.",
+      "expected": "Contrast of at least 4.5:1 for normal text (white on #ff6a1a is 2.86:1); use a darker brand-on token or dark text on the orange",
+      "evidence": {
+        "checkId": "G-A11Y-01",
+        "metrics": [
+          {
+            "label": "contrast",
+            "value": "2.86",
+            "unit": ":1"
+          }
+        ],
+        "shots": []
+      },
+      "files": [
+        {
+          "path": "src/components/Leaderboard.tsx",
+          "line": 92,
+          "why": "row elements coloured on brand"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Make text on the --brand fill meet 4.5:1 (darker fill for text-bearing surfaces, or dark ink colour)",
+          "Apply the same token to the other white-on-brand spots axe lists"
+        ],
+        "reuse": [
+          "theme.css tokens (--brand, --brand-soft)"
+        ],
+        "build": [],
+        "rules": [
+          "UI-7",
+          "color-contrast"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-A11Y-01",
+            "projects": [
+              "guest@phone-390"
+            ]
+          }
+        ],
+        "assertions": [
+          {
+            "persona": "guest",
+            "viewport": "phone-390",
+            "route": "/",
+            "steps": [
+              {
+                "click": "@guest.guestPanelCta"
+              },
+              {
+                "waitFor": ".modal-panel .modal-primary-btn"
+              }
+            ],
+            "expect": [
+              {
+                "axe": [
+                  "color-contrast"
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "axe reports no color-contrast violation on / with the login modal open"
+        ]
+      },
+      "fingerprint": "color-contrast|/|.lb-row:nth-child(1) > span:nth-child(2)",
+      "id": "UIC-20261014-1153-005",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "9cab11f41f3a",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "color-contrast",
+      "title": "White text on the orange primary button is 2.86:1",
+      "severity": "major",
+      "category": "a11y",
+      "where": {
+        "route": "/",
+        "state": "login modal open (guest panel CTA) / landing leaderboard",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ],
+        "selector": ".modal-primary-btn > span"
+      },
+      "current": "Primary modal button label is #fff on #ff6a1a (15px bold), 2.86:1.",
+      "expected": "Contrast of at least 4.5:1 for normal text (white on #ff6a1a is 2.86:1); use a darker brand-on token or dark text on the orange",
+      "evidence": {
+        "checkId": "G-A11Y-01",
+        "metrics": [
+          {
+            "label": "contrast",
+            "value": "2.86",
+            "unit": ":1"
+          }
+        ],
+        "shots": [
+          "shots/G-MODAL-01/guest@phone-360-tap-target-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/Modal.css",
+          "line": 99,
+          "why": ".modal-primary-btn background var(--brand) + color #fff"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Make text on the --brand fill meet 4.5:1 (darker fill for text-bearing surfaces, or dark ink colour)",
+          "Apply the same token to the other white-on-brand spots axe lists"
+        ],
+        "reuse": [
+          "theme.css tokens (--brand, --brand-soft)"
+        ],
+        "build": [],
+        "rules": [
+          "UI-7",
+          "color-contrast"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-A11Y-01",
+            "projects": [
+              "guest@phone-390"
+            ]
+          }
+        ],
+        "assertions": [
+          {
+            "persona": "guest",
+            "viewport": "phone-390",
+            "route": "/",
+            "steps": [
+              {
+                "click": "@guest.guestPanelCta"
+              },
+              {
+                "waitFor": ".modal-panel .modal-primary-btn"
+              }
+            ],
+            "expect": [
+              {
+                "axe": [
+                  "color-contrast"
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "axe reports no color-contrast violation on / with the login modal open"
+        ]
+      },
+      "fingerprint": "color-contrast|/|.modal-primary-btn > span",
+      "id": "UIC-20261014-1153-006",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:11:42.477Z",
+      "validatedHash": "9cab11f41f3a",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "double-transition",
+      "title": "Route changes dip the page opacity more than once",
+      "severity": "major",
+      "category": "motion",
+      "where": {
+        "route": "/name-logo",
+        "state": "home -> game, game -> game (rail/chips), game -> home",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ],
+        "selector": "#root > div"
+      },
+      "current": "Each game switch shows 3 fade dips (2 on card/brand transitions) instead of one out and one in; the wrapper opacity reverts after the animation ends (one-frame flash).",
+      "expected": "One fade out, one fade in per route change (UI-14)",
+      "evidence": {
+        "checkId": "G-NAV-03",
+        "metrics": [
+          {
+            "label": "fade dips",
+            "value": "3",
+            "unit": "per switch"
+          },
+          {
+            "label": "fade dips (G-MOTION-01)",
+            "value": "2"
+          }
+        ],
+        "shots": [
+          "shots/G-NAV-03/guest@phone-360-after-rail-switch.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/app/template.tsx",
+          "line": 14,
+          "why": "initial re-applies opacity 0 on remount while animate toggles between leaving and entered targets"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Make the enter animation start from the state the exit left so opacity goes 1 -> 0 -> 1 once and the final inline style stays at 1"
+        ],
+        "reuse": [
+          "fadeIn variant in src/motion/variants.ts",
+          "src/motion/tokens.ts"
+        ],
+        "build": [],
+        "rules": [
+          "UI-14"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-NAV-03",
+            "projects": [
+              "guest@phone-360",
+              "guest@desktop-1366"
+            ]
+          },
+          {
+            "id": "G-MOTION-01",
+            "projects": [
+              "guest@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "G-NAV-03 and G-MOTION-01 report no double-transition"
+        ]
+      },
+      "fingerprint": "double-transition|/name-logo|#root > div",
+      "id": "UIC-20261014-1153-007",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "36dfd06292a6",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "link-in-text-block",
+      "title": "Mailto links in privacy text are distinguishable only by colour (2.58:1)",
+      "severity": "major",
+      "category": "a11y",
+      "where": {
+        "route": "/privacy",
+        "state": "page loaded",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ],
+        "selector": "p:nth-child(5) > a"
+      },
+      "current": "MailLink renders orange #ff6a1a with no underline; contrast against surrounding text is 2.58:1 (needs 3:1). Four links on /privacy (p:nth-child 5, 28, 30, 32); /terms uses the same component.",
+      "expected": "Links carry an underline (or another non-colour cue)",
+      "evidence": {
+        "checkId": "G-A11Y-01",
+        "metrics": [
+          {
+            "label": "link vs text contrast",
+            "value": "2.58",
+            "unit": ":1"
+          }
+        ],
+        "shots": []
+      },
+      "files": [
+        {
+          "path": "src/components/LegalPage.tsx",
+          "line": 35,
+          "why": "MailLink sets only color, no underline"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Add textDecoration underline (with underline-offset, as .lcn-text a does) to MailLink"
+        ],
+        "reuse": [
+          "LegalChangeNotice.css .lcn-text a underline style"
+        ],
+        "build": [],
+        "rules": [
+          "link-in-text-block",
+          "UI-7"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-A11Y-01",
+            "projects": [
+              "guest@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [
+          {
+            "persona": "guest",
+            "viewport": "desktop-1366",
+            "route": "/privacy",
+            "steps": [],
+            "expect": [
+              {
+                "style": [
+                  "main article p a[href^='mailto:'] >> nth=0",
+                  "text-decoration-line",
+                  "underline"
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "Mailto links on /privacy are underlined"
+        ]
+      },
+      "fingerprint": "link-in-text-block|/privacy|p:nth-child(5) > a",
+      "id": "UIC-20261014-1153-008",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "29b896bb27ac",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "account",
+      "persona": "solo",
+      "owner": "frontend",
+      "rule": "snap",
+      "title": "Profile cards jump when the delete error appears and when the photo age prompt closes",
+      "severity": "major",
+      "category": "motion",
+      "where": {
+        "route": "/profile",
+        "state": "wrong delete password; photo upload after age prompt",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ],
+        "selector": "main.page.ps-page > div.ps-stack > section.ps-card:nth-of-type(3)"
+      },
+      "current": "Data card height 427->456 px (delete error row) and delete panel 200->229 px in one frame; Account card 455->329 px and the card below moves y 740->614 in one frame when the age prompt closes.",
+      "expected": "Cards resize with an animation (<= 8 px per frame)",
+      "evidence": {
+        "checkId": "AC-PROFILE-03",
+        "metrics": [
+          {
+            "label": "delete panel jump",
+            "value": "29",
+            "unit": "px"
+          },
+          {
+            "label": "account card jump",
+            "value": "126",
+            "unit": "px"
+          }
+        ],
+        "shots": [
+          "shots/AC-PROFILE-03/account@phone-390-snap-1.jpg",
+          "shots/AC-PROFILE-02/account@phone-360-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/views/ProfileSettings.tsx",
+          "line": 262,
+          "why": "Your data card is a plain section; the error p at line 309 mounts without animation"
+        },
+        {
+          "path": "src/views/ProfileSettings.tsx",
+          "line": 194,
+          "why": "Account card holding PhotoAgePrompt (line 258) is a plain section"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Wrap the ps-card contents in AutoHeight so card height animates",
+          "Render the deleteError p inside AnimatePresence with the shared fadeIn variant"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx",
+          "fadeIn in src/motion/variants.ts"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23",
+          "UI-22"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "AC-PROFILE-03",
+            "projects": [
+              "account@phone-390",
+              "account@desktop-1366"
+            ]
+          },
+          {
+            "id": "AC-PROFILE-02",
+            "projects": [
+              "account@phone-390",
+              "account@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "No snap violations on /profile during wrong delete password or photo upload"
+        ]
+      },
+      "fingerprint": "snap|/profile|main.page.ps-page > div.ps-stack > section.ps-card:nth-of-type(3)",
+      "id": "UIC-20261014-1153-009",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "1601e910b040",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "games",
+      "persona": "solo",
+      "category": "motion",
+      "owner": "frontend",
+      "rule": "snap",
+      "title": "Starting Five stage jumps 79 px in one frame when the lineup completes",
+      "severity": "major",
+      "where": {
+        "selector": "main.page.game-page > div.game-grid > section.stage-col > div.stage-shell",
+        "route": "/starting-five",
+        "state": "perfect / partial, last card",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920",
+          "pairA"
+        ]
+      },
+      "current": "Same defect as the games suite's snap on /starting-five (GM-starting-five-perfect / -partial), also seen online",
+      "expected": "No unanimated change over 8 px per frame; end slot height reserved (Rule 6.2/7.3).",
+      "evidence": {
+        "checkId": "GM-starting-five-perfect",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "868->947px one frame"
+          },
+          {
+            "label": "measured",
+            "value": "551->629px"
+          },
+          {
+            "label": "measured",
+            "value": "838->917px"
+          }
+        ],
+        "shots": [
+          "shots/GM-starting-five-perfect/games@phone-360-snap-1.jpg",
+          "shots/MP-GAME-starting-five/mp@pairA-host-snap-1.jpg",
+          "shots/GM-starting-five-perfect/games@phone-360-snap-2.jpg",
+          "shots/GM-LATENCY-starting-five/games@phone-390-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/StartingFive.tsx",
+          "line": 366,
+          "why": "EndSequence mounts after the lineup completes"
+        },
+        {
+          "path": "src/components/ui/Stage.tsx",
+          "line": 14,
+          "why": "stage-shell box that jumps"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Reserve the end slot height from play time so EndSequence mounting does not grow the stage, or animate with AutoHeight",
+          "See the games finding: glide the stage height with AutoHeight",
+          "Same fix as the stage-shell snap: reserve the end slot; animate any remaining height change"
+        ],
+        "reuse": [
+          "AutoHeight",
+          "EndSequence",
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "RULE 6.2",
+          "RULE 7.3",
+          "UI-23",
+          "RULE 5.1"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "GM-starting-five-perfect",
+            "projects": [
+              "games@phone-360",
+              "games@phone-390",
+              "games@phone-414",
+              "games@tablet-768",
+              "games@tablet-1280",
+              "games@desktop-1366",
+              "games@desktop-1920"
+            ]
+          },
+          {
+            "id": "GM-starting-five-partial",
+            "projects": [
+              "games@phone-390",
+              "games@tablet-768",
+              "games@desktop-1366"
+            ]
+          },
+          {
+            "id": "MP-GAME-starting-five",
+            "projects": [
+              "mp@pairA"
+            ]
+          },
+          {
+            "id": "GM-LATENCY-starting-five",
+            "projects": [
+              "games@phone-390"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "snap lines for .stage-shell on /starting-five disappear",
+          "snap line disappears from MP-GAME-starting-five",
+          "snap lines for playing-wrap on /starting-five disappear from both checks"
+        ]
+      },
+      "fingerprint": "snap|/starting-five|main.page.game-page > div.game-grid > section.stage-col > div.stage-shell",
+      "mergedFrom": [
+        "games",
+        "multiplayer"
+      ],
+      "mergedFingerprints": [
+        "snap|/starting-five|section.stage-col > div.stage-shell > div.stage-inner > div > div.playing-wrap"
+      ],
+      "id": "UIC-20261014-1153-011",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "6d371eaddb46",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "games",
+      "persona": "solo",
+      "category": "layout",
+      "owner": "frontend",
+      "rule": "stage-resized",
+      "title": "Contexto stage shrinks 52 px on the first guess",
+      "severity": "major",
+      "where": {
+        "selector": ".stage-shell",
+        "route": "/contexto",
+        "state": "turn 1 (every scenario)",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920",
+          "pairA"
+        ]
+      },
+      "current": "Same defect as the games suite's snap on /contexto (GM-contexto-*), also seen online",
+      "expected": "Stage height constant while playing (Rule 6.2); no accepted deviation covers it.",
+      "evidence": {
+        "checkId": "GM-contexto-perfect",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "-52px turn 1"
+          },
+          {
+            "label": "measured",
+            "value": "398->446px"
+          }
+        ],
+        "shots": [
+          "shots/GM-contexto-perfect/games@phone-360-resized-turn1.jpg",
+          "shots/MP-GAME-contexto/mp@pairA-host-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/Contexto.tsx",
+          "line": 298,
+          "why": ".cx-list log with empty prompt that exits and rows that enter"
+        },
+        {
+          "path": "src/components/ui/Stage.tsx",
+          "line": 14,
+          "why": "stage-shell box that jumps"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Reserve a fixed height (or scroller) for .cx-list so the empty prompt and rows share it",
+          "See the games finding: glide the stage height with AutoHeight"
+        ],
+        "reuse": [
+          "AutoHeight",
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "RULE 6.2",
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "GM-contexto-perfect",
+            "projects": [
+              "games@phone-360",
+              "games@phone-390",
+              "games@phone-414",
+              "games@tablet-768",
+              "games@tablet-1280",
+              "games@desktop-1366",
+              "games@desktop-1920"
+            ]
+          },
+          {
+            "id": "GM-contexto-giveup",
+            "projects": [
+              "games@phone-390",
+              "games@tablet-768",
+              "games@desktop-1366"
+            ]
+          },
+          {
+            "id": "GM-contexto-partial",
+            "projects": [
+              "games@phone-390",
+              "games@tablet-768",
+              "games@desktop-1366"
+            ]
+          },
+          {
+            "id": "MP-GAME-contexto",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "stage-resized lines for /contexto disappear",
+          "snap line disappears from MP-GAME-contexto"
+        ]
+      },
+      "fingerprint": "stage-resized|/contexto|.stage-shell",
+      "mergedFrom": [
+        "games",
+        "multiplayer"
+      ],
+      "mergedFingerprints": [
+        "snap|/contexto|main.page.game-page > div.game-grid > section.stage-col > div.stage-shell"
+      ],
+      "id": "UIC-20261014-1153-014",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "f831597338f9",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "games",
+      "persona": "solo",
+      "category": "layout",
+      "owner": "frontend",
+      "rule": "stage-resized",
+      "title": "Fan Favorites stage grows 10 px when a long answer wraps (phone-360)",
+      "severity": "major",
+      "where": {
+        "selector": ".stage-shell",
+        "route": "/fan-favorites",
+        "state": "perfect turn 3",
+        "viewports": [
+          "phone-360",
+          "pairA"
+        ]
+      },
+      "current": "Same defect as the games suite's snap on /fan-favorites (GM-fan-favorites-perfect), also seen online",
+      "expected": "Slot height reserved for two lines (Rule 6.2, 4.4).",
+      "evidence": {
+        "checkId": "GM-fan-favorites-perfect",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "+10.2px"
+          },
+          {
+            "label": "measured",
+            "value": "630->642px"
+          }
+        ],
+        "shots": [
+          "shots/GM-fan-favorites-perfect/games@phone-360-resized-turn3.jpg",
+          "shots/MP-GAME-fan-favorites/mp@pairA-host-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/FanFavorites.tsx",
+          "line": 281,
+          "why": "ff-answer text revealed in a slot with no reserved lines"
+        },
+        {
+          "path": "src/components/ui/Stage.tsx",
+          "line": 14,
+          "why": "stage-shell box that jumps"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Give .ff-slot a min-height for two lines of .ff-answer",
+          "See the games finding: glide the stage height with AutoHeight"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "RULE 6.2",
+          "RULE 4.4",
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "GM-fan-favorites-perfect",
+            "projects": [
+              "games@phone-360"
+            ]
+          },
+          {
+            "id": "MP-GAME-fan-favorites",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "stage-resized line for /fan-favorites disappears",
+          "snap line disappears from MP-GAME-fan-favorites"
+        ]
+      },
+      "fingerprint": "stage-resized|/fan-favorites|.stage-shell",
+      "mergedFrom": [
+        "games",
+        "multiplayer"
+      ],
+      "mergedFingerprints": [
+        "snap|/fan-favorites|main.page.game-page > div.game-grid > section.stage-col > div.stage-shell"
+      ],
+      "id": "UIC-20261014-1153-029",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "d323eff8f01d",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "games",
+      "persona": "solo",
+      "category": "layout",
+      "owner": "frontend",
+      "rule": "stage-resized",
+      "title": "Series Winner stage grows 18.8 px when a long team name wraps",
+      "severity": "major",
+      "where": {
+        "selector": ".stage-shell",
+        "route": "/series-winner",
+        "state": "perfect turn 2 / partial turn 4",
+        "viewports": [
+          "phone-360",
+          "phone-390"
+        ]
+      },
+      "current": "Stage height 387.5 -> 406.3 px (+18.8) when a long team name wraps to three lines in a pick card; data-dependent.",
+      "expected": "Stage height constant while playing (Rule 6.2); team name lines reserved (Rule 4.4).",
+      "evidence": {
+        "checkId": "GM-series-winner-perfect",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "387.5->406.3px turn 2 phone-360"
+          }
+        ],
+        "shots": [
+          "shots/GM-series-winner-perfect/games@phone-360-resized-turn2.jpg",
+          "shots/GM-series-winner-partial/games@phone-390-resized-turn4.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/PlayOffSeries.tsx",
+          "line": 151,
+          "why": "team name span in the pick card, no reserved line count"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Reserve the name's maximum line count (min-height of 3 lines) or clamp the name so the card height is constant"
+        ],
+        "reuse": [
+          "GameFrame slots"
+        ],
+        "build": [],
+        "rules": [
+          "RULE 6.2",
+          "RULE 4.4"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "GM-series-winner-perfect",
+            "projects": [
+              "games@phone-360"
+            ]
+          },
+          {
+            "id": "GM-series-winner-partial",
+            "projects": [
+              "games@phone-390"
+            ]
+          }
+        ],
+        "assertions": [
+          {
+            "persona": "solo",
+            "viewport": "phone-360",
+            "route": "/series-winner",
+            "steps": [
+              {
+                "click": "@games.playBtn"
+              },
+              {
+                "waitFor": "@games.seriesPicks"
+              },
+              {
+                "wait": 1500
+              }
+            ],
+            "expect": [
+              {
+                "count": [
+                  ".playing-wrap .gf-board button span.font-display",
+                  ">=",
+                  2
+                ]
+              },
+              {
+                "minSize": [
+                  ".playing-wrap .gf-board button span.font-display",
+                  0,
+                  56
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "stage-resized lines for /series-winner disappear from GM-series-winner-perfect and -partial",
+          "Each pick-card team-name span reserves 3 lines (>= 56 px tall) whatever the drawn series; now 18.8 px for a short name"
+        ]
+      },
+      "fingerprint": "stage-resized|/series-winner|.stage-shell",
+      "id": "UIC-20261014-1153-015",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "163a52b96efe",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "games",
+      "persona": "solo",
+      "category": "layout",
+      "owner": "frontend",
+      "rule": "stage-resized",
+      "title": "Starting Five stage shrinks 16 px when a found card swaps input for its name (phones)",
+      "severity": "major",
+      "where": {
+        "selector": ".stage-shell",
+        "route": "/starting-five",
+        "state": "perfect turn 2 / partial turn 4",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414"
+        ]
+      },
+      "current": "Stage 899.4 -> 883.6 px (-15.8) when input + Confirm become the one-line name.",
+      "expected": "Stage height constant while playing (Rule 6.2): the found card keeps the input row's height.",
+      "evidence": {
+        "checkId": "GM-starting-five-perfect",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "-15.8px"
+          }
+        ],
+        "shots": [
+          "shots/GM-starting-five-perfect/games@phone-360-resized-turn3.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/StartingFive.tsx",
+          "line": 343,
+          "why": "Confirm/input row replaced by name on found"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Give the found-state name the same min-height as the input row"
+        ],
+        "reuse": [],
+        "build": [],
+        "rules": [
+          "RULE 6.2"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "GM-starting-five-perfect",
+            "projects": [
+              "games@phone-360",
+              "games@phone-390",
+              "games@phone-414"
+            ]
+          },
+          {
+            "id": "GM-starting-five-partial",
+            "projects": [
+              "games@phone-390"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "stage-resized lines for /starting-five disappear"
+        ]
+      },
+      "fingerprint": "stage-resized|/starting-five|.stage-shell",
+      "id": "UIC-20261014-1153-016",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "d6ff728e259e",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "games",
+      "persona": "solo",
+      "category": "layout",
+      "owner": "frontend",
+      "rule": "stage-resized",
+      "title": "Who Are Ya stage grows 120-200 px with the first guess row",
+      "severity": "major",
+      "where": {
+        "selector": ".stage-shell",
+        "route": "/who-are-ya",
+        "state": "turn 1 (every scenario)",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ]
+      },
+      "current": "Stage 351 -> 475 px (+124) at phone-390, 364.9 -> 560.8 (+196) at phone-360; the feedback feed mounts only when rows exist.",
+      "expected": "Reserved feed height, no snap, frames under 100 ms.",
+      "evidence": {
+        "checkId": "GM-who-are-ya-perfect",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "+195.9px turn 1"
+          },
+          {
+            "label": "measured",
+            "value": "321->445px; loaf 102ms"
+          }
+        ],
+        "shots": [
+          "shots/GM-who-are-ya-perfect/games@phone-360-resized-turn1.jpg",
+          "shots/GM-who-are-ya-partial/games@phone-390-resized-turn1.jpg",
+          "shots/GM-who-are-ya-partial/games@phone-390-snap-1.jpg",
+          "shots/GM-LATENCY-who-are-ya/games@desktop-1366-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/WhoAreYa.tsx",
+          "line": 416,
+          "why": "waya-feed mounted only when rows.length>0, no reserved height"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Always mount .waya-feed with a reserved height (or internal scroller capped to it)",
+          "Fixed by the reserved feed; re-measure the 102 ms frame afterwards (loaf may be a flake)"
+        ],
+        "reuse": [
+          "AutoHeight"
+        ],
+        "build": [],
+        "rules": [
+          "RULE 6.2",
+          "RULE 5.1"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "GM-who-are-ya-perfect",
+            "projects": [
+              "games@phone-360",
+              "games@phone-390",
+              "games@phone-414",
+              "games@tablet-768",
+              "games@tablet-1280",
+              "games@desktop-1366",
+              "games@desktop-1920"
+            ]
+          },
+          {
+            "id": "GM-who-are-ya-partial",
+            "projects": [
+              "games@phone-390",
+              "games@tablet-768",
+              "games@desktop-1366"
+            ]
+          },
+          {
+            "id": "GM-who-are-ya-wrong",
+            "projects": [
+              "games@phone-390",
+              "games@tablet-768",
+              "games@desktop-1366"
+            ]
+          },
+          {
+            "id": "GM-LATENCY-who-are-ya",
+            "projects": [
+              "games@phone-390",
+              "games@tablet-768",
+              "games@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "stage-resized lines for /who-are-ya disappear",
+          "snap lines for playing-wrap on /who-are-ya disappear"
+        ]
+      },
+      "fingerprint": "stage-resized|/who-are-ya|.stage-shell",
+      "mergedFrom": [
+        "games"
+      ],
+      "mergedFingerprints": [
+        "snap|/who-are-ya|section.stage-col > div.stage-shell > div.stage-inner > div > div.playing-wrap"
+      ],
+      "id": "UIC-20261014-1153-017",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "6a2dc909f1b0",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "duel-banner",
+      "title": "Tic-Tac-Toe decided board is replaced by results after under 0.4 s (or never shown)",
+      "severity": "major",
+      "category": "flow",
+      "owner": "frontend",
+      "where": {
+        "route": "/tictactoe",
+        "state": "online duel decided; both players",
+        "viewports": [
+          "pairA",
+          "pairB",
+          "pairC",
+          "pairD"
+        ],
+        "selector": ".ttt-banner"
+      },
+      "current": "\"You win!\" / \"Opponent wins\" / \"Draw!\" is on screen 347-378 ms before results replace the board; on phone-360/414, tablet-768 and 390 a draw banner is never on screen (0 ms).",
+      "expected": "The decided board and banner are held about 1.8 s (at least 1000 ms) before results.",
+      "evidence": {
+        "checkId": "MP-RESULT-02",
+        "metrics": [
+          {
+            "label": "banner on screen",
+            "value": "0-378",
+            "unit": "ms"
+          }
+        ],
+        "shots": [
+          "shots/MP-RESULT-02/mp@pairA-host-playing.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/context/MultiplayerContext.tsx",
+          "line": 256,
+          "why": "MATCH_RESULT switches phase to results the instant the relay settles a turn game, ignoring the renderer's 1800 ms hold"
+        },
+        {
+          "path": "src/Game Renderers/TicTacToe.tsx",
+          "line": 354,
+          "why": "holds the banner 1800 ms before onGameEnd"
+        },
+        {
+          "path": "multiplayer_server/src/index.js",
+          "line": 386,
+          "why": "matchResult is sent as soon as the board ends"
+        }
+      ],
+      "fix": {
+        "change": [
+          "For turn games, defer the MATCH_RESULT phase switch until the renderer's hold has elapsed (about 1.8 s after the terminal turnState), keeping the result in state meanwhile"
+        ],
+        "reuse": [
+          "the 1800 ms hold in TicTacToe.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "MP-3",
+          "MP-5",
+          "UI-22"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-RESULT-02",
+            "projects": [
+              "mp@pairA"
+            ]
+          },
+          {
+            "id": "MP-GAME-tictactoe",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "duel-banner `.ttt-banner` lines disappear from MP-RESULT-02 and MP-GAME-tictactoe"
+        ]
+      },
+      "fingerprint": "duel-banner|/tictactoe|.ttt-banner",
+      "id": "UIC-20261014-1153-018",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "5a208db4e168",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "notice-covers",
+      "title": "Rejected-move notice covers the Tic-Tac-Toe turn label and clock",
+      "severity": "major",
+      "category": "layout",
+      "owner": "frontend",
+      "where": {
+        "route": "/tictactoe",
+        "state": "playing; the relay rejects a name (X doesn't fit)",
+        "viewports": [
+          "pairA"
+        ],
+        "selector": ".om-notice"
+      },
+      "current": "The \"A.C. Green doesn't fit\" notice (absolute, top -6px) covers .ttt-clock and .ttt-turn while the clock runs on the joiner (phone-390).",
+      "expected": "A notice never hides the turn label or the clock.",
+      "evidence": {
+        "checkId": "MP-GAME-tictactoe",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "notice overlaps .ttt-clock and .ttt-turn"
+          }
+        ],
+        "shots": [
+          "shots/MP-GAME-tictactoe/mp@pairA-host-lobby.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/Multiplayer.css",
+          "line": 305,
+          "why": ".om-notice is absolutely positioned over the top of the stage"
+        },
+        {
+          "path": "src/components/MultiPlayer/OnlineMatch.tsx",
+          "line": 235,
+          "why": "NoticeBar rendered above the game"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Anchor the notice clear of the turn row (below it, or in a reserved slot) for turn games, or show rejects through the game's own popup (flashPopup)"
+        ],
+        "reuse": [
+          "flashPopup in TicTacToe.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-12"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-GAME-tictactoe",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "notice-covers `.om-notice` lines disappear from MP-GAME-tictactoe"
+        ]
+      },
+      "fingerprint": "notice-covers|/tictactoe|.om-notice",
+      "id": "UIC-20261014-1153-019",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "25eba28f3595",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "snap",
+      "title": "Tic-Tac-Toe online stage grows 52 px in one frame",
+      "severity": "major",
+      "category": "motion",
+      "owner": "frontend",
+      "where": {
+        "route": "/tictactoe",
+        "state": "online duel, decided board / banner mounts; host",
+        "viewports": [
+          "pairA"
+        ],
+        "selector": "main.page.game-page > div.game-grid > section.stage-col > div.stage-shell"
+      },
+      "current": "Stage height 511 to 563 px in one frame on desktop-1366 (host).",
+      "expected": "At most 8 px per frame, or animated.",
+      "evidence": {
+        "checkId": "MP-GAME-tictactoe",
+        "metrics": [
+          {
+            "label": "height jump",
+            "value": "511->563",
+            "unit": "px",
+            "vp": "desktop-1366"
+          }
+        ],
+        "shots": [
+          "shots/MP-GAME-tictactoe/mp@pairA-host-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/Game Renderers/TicTacToe.tsx",
+          "line": 441,
+          "why": "the banner mounts and grows the stage"
+        },
+        {
+          "path": "src/components/ui/Stage.tsx",
+          "line": 14,
+          "why": "stage-shell box that is watched"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Reserve the banner's row in the layout, or wrap the board + banner in AutoHeight"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-GAME-tictactoe",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "snap line for stage-shell disappears from MP-GAME-tictactoe"
+        ]
+      },
+      "fingerprint": "snap|/tictactoe|main.page.game-page > div.game-grid > section.stage-col > div.stage-shell",
+      "id": "UIC-20261014-1153-022",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "cf99d1b40be8",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "snap",
+      "title": "Who Are Ya online stage snap (same as games suite)",
+      "severity": "major",
+      "category": "motion",
+      "owner": "frontend",
+      "where": {
+        "route": "/who-are-ya",
+        "state": "online match, stage grows",
+        "viewports": [
+          "pairA"
+        ],
+        "selector": "main.page.game-page > div.game-grid > section.stage-col > div.stage-shell"
+      },
+      "current": "Same defect as the games suite's snap on /who-are-ya (GM-who-are-ya-*), also seen online",
+      "expected": "At most 8 px per frame, or animated (UI-23).",
+      "evidence": {
+        "checkId": "MP-GAME-who-are-ya",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "434->586px"
+          }
+        ],
+        "shots": [
+          "shots/MP-GAME-who-are-ya/mp@pairA-host-snap-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/components/ui/Stage.tsx",
+          "line": 14,
+          "why": "stage-shell box that jumps"
+        }
+      ],
+      "fix": {
+        "change": [
+          "See the games finding: glide the stage height with AutoHeight"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-GAME-who-are-ya",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "snap line disappears from MP-GAME-who-are-ya"
+        ]
+      },
+      "fingerprint": "snap|/who-are-ya|main.page.game-page > div.game-grid > section.stage-col > div.stage-shell",
+      "id": "UIC-20261014-1153-023",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "66ce485c2737",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "stale-prompt",
+      "title": "Decliner of a rematch keeps a dead Accept / Decline prompt",
+      "severity": "major",
+      "category": "flow",
+      "owner": "frontend",
+      "where": {
+        "route": "/series-winner",
+        "state": "results; the joiner declines the host's rematch request",
+        "viewports": [
+          "pairA",
+          "pairB",
+          "pairC",
+          "pairD"
+        ],
+        "selector": ".om-prompt"
+      },
+      "current": "5 s after Decline the decliner still sees \"Player wants a rematch\" with Accept / Decline; Accept does nothing because the relay already dropped the request.",
+      "expected": "The decliner's prompt leaves at once and Play again / Change game come back.",
+      "evidence": {
+        "checkId": "MP-PROP-01",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "prompt still visible 5 s after Decline"
+          }
+        ],
+        "shots": [
+          "shots/MP-PROP-01/mp@pairA-host-playing.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/context/MultiplayerContext.tsx",
+          "line": 725,
+          "why": "respondProposal only emits; the relay notifies the others only, so the decliner's proposal state is never cleared (cancelProposal just below clears locally)"
+        },
+        {
+          "path": "multiplayer_server/src/index.js",
+          "line": 1240,
+          "why": "proposalDeclined goes to othersOf(room, decliner) only"
+        }
+      ],
+      "fix": {
+        "change": [
+          "In respondProposal, when accept is false also dispatch PROPOSAL_WITHDRAWN (clears the proposal without a notice), as cancelProposal does"
+        ],
+        "reuse": [
+          "PROPOSAL_WITHDRAWN reducer case"
+        ],
+        "build": [],
+        "rules": [
+          "MP-2",
+          "MP-4",
+          "UI-22"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-PROP-01",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "Digest stale-prompt `.om-prompt` line disappears from MP-PROP-01"
+        ]
+      },
+      "fingerprint": "stale-prompt|/series-winner|.om-prompt",
+      "id": "UIC-20261014-1153-024",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "b6d07161803b",
+      "validatedMode": "prod"
+    },
+    {
+      "persona": "guest",
+      "suite": "guest",
+      "owner": "frontend",
+      "rule": "tap-target",
+      "title": "Password show/hide toggle is a 20x16 px target",
+      "severity": "minor",
+      "category": "a11y",
+      "where": {
+        "route": "/",
+        "state": "login modal open",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "tablet-1280",
+          "desktop-1366",
+          "desktop-1920"
+        ],
+        "selector": "div.auth-stack > form.auth-stack.auth-form > div:nth-of-type(2) > div.auth-pw-wrap > button.auth-pw-toggle"
+      },
+      "current": "The toggle measures 20x16 px on every viewport (also the nth-of-type(4) confirm field), under 24x24.",
+      "expected": "At least 24x24 px hit area",
+      "evidence": {
+        "checkId": "G-MODAL-01",
+        "metrics": [
+          {
+            "label": "toggle size",
+            "value": "20x16",
+            "unit": "px"
+          },
+          {
+            "label": "toggle size",
+            "value": "20x16px"
+          }
+        ],
+        "shots": [
+          "shots/G-MODAL-01/guest@phone-360-tap-target-1.jpg",
+          "shots/AC-SIGNUP-01/account@phone-360-tap-target-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/Modal.css",
+          "line": 137,
+          "why": ".auth-pw-toggle has no min size"
+        },
+        {
+          "path": "src/components/LogInSignUp.tsx",
+          "line": 556,
+          "why": "renders the toggle"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Give .auth-pw-toggle min-width/min-height 24px (padding or fixed size) keeping it vertically centred",
+          "Give .auth-pw-toggle min-width/min-height 24px (padding) keeping the icon size"
+        ],
+        "reuse": [],
+        "build": [],
+        "rules": [
+          "WCAG 2.5.8",
+          "target-size",
+          "UI-10"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "G-MODAL-01",
+            "projects": [
+              "guest@phone-360"
+            ]
+          },
+          {
+            "id": "AC-SIGNUP-01",
+            "projects": [
+              "account@phone-390",
+              "account@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [
+          {
+            "persona": "guest",
+            "viewport": "phone-390",
+            "route": "/",
+            "steps": [
+              {
+                "click": "@guest.guestPanelCta"
+              },
+              {
+                "waitFor": ".modal-panel .auth-pw-toggle"
+              }
+            ],
+            "expect": [
+              {
+                "minSize": [
+                  ".modal-panel .auth-pw-toggle",
+                  24,
+                  24
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "The toggle is at least 24x24 px"
+        ]
+      },
+      "fingerprint": "tap-target|/|div.auth-stack > form.auth-stack.auth-form > div:nth-of-type(2) > div.auth-pw-wrap > button.auth-pw-toggle",
+      "mergedFrom": [
+        "account",
+        "guest"
+      ],
+      "id": "UIC-20261012-1622-002",
+      "status": "fixed",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "023b31f3b497",
+      "validatedMode": "prod",
+      "fixedAt": "2026-10-15T10:56:55.731Z"
+    },
+    {
+      "suite": "account",
+      "persona": "solo",
+      "owner": "frontend",
+      "rule": "cls",
+      "title": "Leaderboard Friends to Global shifts the profile card and the tab thumb jumps",
+      "severity": "minor",
+      "category": "motion",
+      "where": {
+        "route": "/",
+        "state": "leaderboard scope Friends -> Global",
+        "viewports": [
+          "phone-414"
+        ],
+        "selector": "section#leaderboard > div > div.engage-strip > div.profile-card"
+      },
+      "current": "CLS 0.188 and the seg-thumb jumped 203 -> 131 px with no intermediate frame.",
+      "expected": "CLS <= 0.1 and a sliding thumb",
+      "evidence": {
+        "checkId": "AC-SURF-01",
+        "metrics": [
+          {
+            "label": "CLS",
+            "value": "0.188",
+            "vp": "phone-414"
+          }
+        ],
+        "shots": [
+          "shots/AC-SURF-01/account@phone-414-profile-card.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/components/Leaderboard.tsx",
+          "line": 65,
+          "why": "scope SegmentedTabs and body swap that changes list height"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Keep the leaderboard body in an AutoHeight box so the sibling profile card does not jump"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx",
+          "SegmentedTabs in src/components/motion/SegmentedTabs.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23",
+          "UI-16"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "AC-SURF-01",
+            "projects": [
+              "account@phone-414"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "No cls or seg-thumb snap in AC-SURF-01 on phone-414"
+        ]
+      },
+      "fingerprint": "cls|/|section#leaderboard > div > div.engage-strip > div.profile-card",
+      "id": "UIC-20261014-1153-025",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "82a5f06f0d08",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "account",
+      "persona": "solo",
+      "owner": "frontend",
+      "rule": "slow-action",
+      "title": "After log in the page is usable 591 ms after the success message",
+      "severity": "minor",
+      "category": "perf",
+      "where": {
+        "route": "/",
+        "state": "log in success",
+        "viewports": [
+          "phone-390",
+          "tablet-768",
+          "desktop-1366"
+        ],
+        "selector": "log in success -> nav avatar usable"
+      },
+      "current": "591 / 720 / 608 ms (success pane hold + modal exit).",
+      "expected": "<= 400 ms",
+      "evidence": {
+        "checkId": "AC-BLOCK-03",
+        "metrics": [
+          {
+            "label": "success -> usable",
+            "value": "591",
+            "unit": "ms",
+            "vp": "phone-390"
+          }
+        ],
+        "shots": []
+      },
+      "files": [
+        {
+          "path": "src/components/LogInSignUp.tsx",
+          "line": 556,
+          "why": "auth modal; locate the success-pane hold timer with Grep auth-success"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Shorten the success pane hold and let the modal exit overlap it so the page is interactive within 400 ms"
+        ],
+        "reuse": [
+          "src/motion/tokens.ts durations"
+        ],
+        "build": [],
+        "rules": [
+          "UI-22"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "AC-BLOCK-03",
+            "projects": [
+              "account@phone-390",
+              "account@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "AC-BLOCK-03 passes"
+        ]
+      },
+      "fingerprint": "slow-action|/|log in success - > nav avatar usable",
+      "id": "UIC-20261014-1153-026",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "27704f4d3003",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "account",
+      "persona": "solo",
+      "owner": "backend",
+      "rule": "slow-api",
+      "title": "POST /api/send-friend-request/ takes 5 s",
+      "severity": "minor",
+      "category": "perf",
+      "where": {
+        "route": "/",
+        "state": "Find tab, send request",
+        "viewports": [
+          "phone-390",
+          "desktop-1366"
+        ],
+        "selector": "POST /api/send-friend-request/"
+      },
+      "current": "5047 ms (budget 1000 ms); the page also logs a 272 ms long frame during the send.",
+      "expected": "<= 1000 ms",
+      "evidence": {
+        "checkId": "AC-SURF-02",
+        "metrics": [
+          {
+            "label": "latency",
+            "value": "5047",
+            "unit": "ms",
+            "vp": "phone-390"
+          }
+        ],
+        "shots": [
+          "shots/AC-SURF-02/account@phone-390-found.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "backend/users/tests.py",
+          "line": 236,
+          "why": "the endpoint's tests; find the view with Grep send_friend_request in backend/users"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Profile the view (queries, notification side effects) and move slow work off the request"
+        ],
+        "reuse": [],
+        "build": [],
+        "rules": [
+          "AUTH-12"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "AC-SURF-02",
+            "projects": [
+              "account@phone-390",
+              "account@desktop-1366"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "send-friend-request answers within 1000 ms"
+        ]
+      },
+      "fingerprint": "slow-api|/|POST /api/send-friend-request/",
+      "id": "UIC-20261014-1153-027",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "86acabf6e68d",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "account",
+      "persona": "solo",
+      "owner": "frontend",
+      "rule": "tap-target",
+      "title": "Leaderboard View all is a 59x18 px target",
+      "severity": "minor",
+      "category": "a11y",
+      "where": {
+        "route": "/",
+        "state": "signed-in landing, leaderboard card",
+        "viewports": [
+          "phone-360",
+          "phone-390",
+          "phone-414",
+          "tablet-768",
+          "desktop-1920"
+        ],
+        "selector": "div > div.engage-strip > div.lb-card > div.lb-head > button.lb-viewall"
+      },
+      "current": "59.4x18 px (probed on phone-390).",
+      "expected": "At least 24x24 px",
+      "evidence": {
+        "checkId": "AC-SURF-01",
+        "metrics": [
+          {
+            "label": "size",
+            "value": "59x18px",
+            "vp": "phone-390"
+          }
+        ],
+        "shots": [
+          "shots/AC-SURF-01/account@phone-360-tap-target-7.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/Leaderboard.css",
+          "line": 20,
+          "why": ".lb-viewall has no padding or min size"
+        },
+        {
+          "path": "src/components/Leaderboard.tsx",
+          "line": 61,
+          "why": "renders the button"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Add padding / min-height 24px to .lb-viewall"
+        ],
+        "reuse": [],
+        "build": [],
+        "rules": [
+          "WCAG 2.5.8",
+          "UI-10"
+        ]
+      },
+      "acceptance": {
+        "checks": [],
+        "assertions": [
+          {
+            "persona": "solo",
+            "viewport": "phone-390",
+            "route": "/",
+            "steps": [
+              {
+                "waitFor": "button.lb-viewall"
+              }
+            ],
+            "expect": [
+              {
+                "count": [
+                  "button.lb-viewall",
+                  ">=",
+                  1
+                ]
+              },
+              {
+                "minSize": [
+                  "button.lb-viewall",
+                  24,
+                  24
+                ]
+              }
+            ]
+          }
+        ],
+        "criteria": [
+          "View all is at least 24x24 px"
+        ]
+      },
+      "fingerprint": "tap-target|/|div > div.engage-strip > div.lb-card > div.lb-head > button.lb-viewall",
+      "id": "UIC-20261014-1153-028",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "331cf82811a8",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "clipped",
+      "title": "Starting 5 answer review clips position labels (Shooting Guard, Small Forward, Power Forward)",
+      "severity": "minor",
+      "category": "layout",
+      "owner": "frontend",
+      "where": {
+        "route": "/starting-five",
+        "state": "results, answer review modal open",
+        "viewports": [
+          "pairA"
+        ],
+        "selector": "div.ar > div.ar-board > div.s5-cards > div.s5-card.is-correct:nth-of-type(2) > span.s5-card-pos"
+      },
+      "current": "Label text 97x13 px in an 89x15 px box (desktop host) and 79x11 in 66x13 (phone joiner); the text is cut by overflow / ellipsis (also nth-of-type 3 and 4).",
+      "expected": "Position labels fully visible.",
+      "evidence": {
+        "checkId": "MP-GAME-starting-five",
+        "metrics": [
+          {
+            "label": "label vs box",
+            "value": "97x13 in 89x15",
+            "unit": "px",
+            "vp": "desktop-1366"
+          }
+        ],
+        "shots": [
+          "shots/MP-GAME-starting-five/mp@pairA-host-clipped-3.jpg",
+          "shots/MP-GAME-starting-five/mp@pairA-joiner-clipped-6.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/StartingFive.css",
+          "line": 74,
+          "why": "nowrap + overflow hidden + ellipsis on .s5-card-pos"
+        },
+        {
+          "path": "src/styles/AnswerReview.css",
+          "line": 109,
+          "why": "review-size overrides (8.5px) are still too wide"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Let .ar .s5-card-pos wrap or shrink (less letter-spacing, or abbreviate to SG / SF / PF in the review) so the full label shows"
+        ],
+        "reuse": [
+          "existing .ar overrides"
+        ],
+        "build": [],
+        "rules": [
+          "UI-13"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-GAME-starting-five",
+            "projects": [
+              "mp@pairA"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "clipped `.s5-card-pos` lines disappear from MP-GAME-starting-five"
+        ]
+      },
+      "fingerprint": "clipped|/starting-five|div.ar > div.ar-board > div.s5-cards > div.s5-card.is-correct:nth-of-type(2) > span.s5-card-pos",
+      "id": "UIC-20261014-1153-030",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "6526f6f45de5",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "cls",
+      "title": "Site footer shifts (CLS 0.204) during Close room",
+      "severity": "minor",
+      "category": "perf",
+      "owner": "frontend",
+      "where": {
+        "route": "/name-logo",
+        "state": "host Close room",
+        "viewports": [
+          "pairA",
+          "pairB",
+          "pairC"
+        ],
+        "selector": "div#root > footer.site-footer"
+      },
+      "current": "CLS 0.204 (limit 0.1): the footer jumps when the online card collapses back to idle.",
+      "expected": "CLS at most 0.1; the card height glides.",
+      "evidence": {
+        "checkId": "MP-ROOM-03",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "CLS 0.204"
+          }
+        ],
+        "shots": [
+          "shots/MP-ROOM-03/mp@pairA-host-picker.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/components/SiteFooter.tsx",
+          "line": 13,
+          "why": "the footer that moves"
+        },
+        {
+          "path": "src/components/MultiPlayer/OnlineMatch.tsx",
+          "line": 176,
+          "why": "phase swap whose height change is not glided"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Wrap the leaving online stage / idle card swap in AutoHeight so the page height eases instead of jumping"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-ROOM-03",
+            "projects": [
+              "mp@pairA",
+              "mp@pairB"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "cls footer line disappears from MP-ROOM-03"
+        ]
+      },
+      "fingerprint": "cls|/name-logo|div#root > footer.site-footer",
+      "id": "UIC-20261014-1153-031",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "4bfc84fdc14d",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "cls",
+      "title": "Site footer shifts (CLS 0.15) during host Exit game",
+      "severity": "minor",
+      "category": "perf",
+      "owner": "frontend",
+      "where": {
+        "route": "/series-winner",
+        "state": "host Exit game mid-match",
+        "viewports": [
+          "pairA"
+        ],
+        "selector": "div#root > footer.site-footer"
+      },
+      "current": "CLS 0.15 (limit 0.1): the footer jumps when the online card collapses back to idle.",
+      "expected": "CLS at most 0.1; the card height glides.",
+      "evidence": {
+        "checkId": "MP-RES-01",
+        "metrics": [
+          {
+            "label": "measured",
+            "value": "CLS 0.15"
+          }
+        ],
+        "shots": [
+          "shots/MP-RES-01/mp@pairA-host-playing.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/components/SiteFooter.tsx",
+          "line": 13,
+          "why": "the footer that moves"
+        },
+        {
+          "path": "src/components/MultiPlayer/OnlineMatch.tsx",
+          "line": 176,
+          "why": "phase swap whose height change is not glided"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Wrap the leaving online stage / idle card swap in AutoHeight so the page height eases instead of jumping"
+        ],
+        "reuse": [
+          "AutoHeight in src/components/motion/AutoHeight.tsx"
+        ],
+        "build": [],
+        "rules": [
+          "UI-23"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-RES-01",
+            "projects": [
+              "mp@pairA",
+              "mp@pairB"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "cls footer line disappears from MP-RES-01"
+        ]
+      },
+      "fingerprint": "cls|/series-winner|div#root > footer.site-footer",
+      "id": "UIC-20261014-1153-032",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "aefedf4511ec",
+      "validatedMode": "prod",
+      "guards": [
+        "check MP-RES-01 @ mp@pairB"
+      ]
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "tap-target",
+      "title": "Online Exit game link is 75x18 px",
+      "severity": "minor",
+      "category": "a11y",
+      "owner": "frontend",
+      "where": {
+        "route": "/tictactoe",
+        "state": "playing, phone host",
+        "viewports": [
+          "pairD"
+        ],
+        "selector": "div > div.om > div.om-stage.om-stage--play > div.om-exitrow > button.om-exit:nth-of-type(1)"
+      },
+      "current": "75x18 px (under 24x24 and within 24 px of the nav brand link).",
+      "expected": "At least 24x24 px.",
+      "evidence": {
+        "checkId": "MP-RESULT-02",
+        "metrics": [
+          {
+            "label": "size",
+            "value": "75x18",
+            "unit": "px",
+            "vp": "phone-414"
+          }
+        ],
+        "shots": [
+          "shots/MP-RESULT-02/mp@pairD-host-tap-target-1.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/styles/Multiplayer.css",
+          "line": 230,
+          "why": ".om-exit has no padding and 12px text"
+        },
+        {
+          "path": "src/components/MultiPlayer/OnlineMatch.tsx",
+          "line": 88,
+          "why": "renders the exit buttons"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Give .om-exit min-height 24px (ideally 44px on touch) via padding without moving the layout"
+        ],
+        "reuse": [],
+        "build": [],
+        "rules": [
+          "WCAG 2.5.8"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-RESULT-02",
+            "projects": [
+              "mp@pairD"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "tap-target `.om-exit` line disappears from MP-RESULT-02"
+        ]
+      },
+      "fingerprint": "tap-target|/tictactoe|div > div.om > div.om-stage.om-stage--play > div.om-exitrow > button.om-exit:nth-of-type(1)",
+      "id": "UIC-20261014-1153-033",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "3db03cd0d542",
+      "validatedMode": "prod"
+    },
+    {
+      "suite": "multiplayer",
+      "persona": "pair",
+      "rule": "loaf",
+      "title": "Generate code to lobby blocks a frame for 160 ms on phone and tablet",
+      "severity": "polish",
+      "category": "perf",
+      "owner": "frontend",
+      "where": {
+        "route": "/series-winner",
+        "state": "host Generate code to lobby",
+        "viewports": [
+          "pairC"
+        ],
+        "selector": "document"
+      },
+      "current": "Longest frame 160 ms (2 over 100 ms) on phone-414 and tablet-768.",
+      "expected": "At most 100 ms.",
+      "evidence": {
+        "checkId": "MP-ROOM-01",
+        "metrics": [
+          {
+            "label": "longest frame",
+            "value": "160",
+            "unit": "ms",
+            "vp": "phone-414"
+          }
+        ],
+        "shots": [
+          "shots/MP-ROOM-01/mp@pairC-host-idle.jpg"
+        ]
+      },
+      "files": [
+        {
+          "path": "src/components/MultiPlayer/FriendPlay.tsx",
+          "line": 286,
+          "why": "lobby mount after Generate code"
+        }
+      ],
+      "fix": {
+        "change": [
+          "Profile the lobby mount and defer non-visible work past the first paint"
+        ],
+        "reuse": [],
+        "build": [],
+        "rules": [
+          "MP-5"
+        ]
+      },
+      "acceptance": {
+        "checks": [
+          {
+            "id": "MP-ROOM-01",
+            "projects": [
+              "mp@pairC"
+            ]
+          }
+        ],
+        "assertions": [],
+        "criteria": [
+          "loaf line disappears from MP-ROOM-01"
+        ]
+      },
+      "fingerprint": "loaf|/series-winner|document",
+      "id": "UIC-20261014-1153-034",
+      "status": "open",
+      "validatedAt": "2026-10-14T15:01:53.481Z",
+      "validatedHash": "c5b45624695f",
+      "validatedMode": "prod"
+    }
+  ]
+}

@@ -280,6 +280,31 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
     { status: 'passed', duration: 5, annotations: [], attachments: [att({ checkId: 'G-W', vp: 'phone-390', routes: ['/'], shots: [], violations: [], metrics: [], warnings: [warn(1)] })] });
   expect([...wrep.entries.values()][0].warnings).toEqual([{ ...warn(1), vp: 'phone-390' }]);
 
+  // Mixed envs (a local run and a --live run of the same check): lines name the env only when it is not local, the
+  // header lists both, a violation seen in both collapses into one row listing both, the metrics get their own column.
+  const contrast = { rule: 'a11y', route: '/', selector: 'p.muted', measured: 'color-contrast (serious): low contrast', expected: 'no serious/critical axe violations' };
+  const envRow = (env) => ({ ...base, checkId: 'G-A11Y-01', title: '[G-A11Y-01] @live axe', project: env === 'live' ? 'guest-live@phone-390' : 'guest@phone-390',
+    vp: 'phone-390', env, status: 'failed', shots: [], violations: [contrast, ...(env === 'live' ? [{ ...contrast, selector: 'a.live-only' }] : [])],
+    metrics: [{ kind: 'perf', label: 'home cold lcp', value: env === 'live' ? 1800 : 900, unit: 'ms' }] });
+  const mixed = buildDigest([envRow('local'), envRow('live')], { runId: 'e', mode: 'prod', durationMs: 0 }).split('\n');
+  expect(mixed[0]).toBe('# UI check digest — run e · mode prod · env local+live · 2 tests · 0m0s');
+  expect(mixed.filter((l) => l.startsWith('- a11y'))).toEqual([
+    '- a11y `p.muted` on /: color-contrast (serious): low contrast (expected no serious/critical axe violations) — phone-390, phone-390 (live)',
+    '- a11y `a.live-only` on /: color-contrast (serious): low contrast (expected no serious/critical axe violations) — phone-390 (live)']);
+  expect(mixed).toContain('| label | phone-390 | phone-390 (live) |');
+  expect(mixed).toContain('| home cold lcp | 900ms | 1800ms |');
+  // A local-only digest stays as before: no env anywhere.
+  expect(buildDigest([envRow('local')], { runId: 'e', mode: 'prod', durationMs: 0 })).not.toMatch(/\(live\)| env /);
+  // The reporter takes env from the audit attachment (else the project's use.env) and sums the live-request counters.
+  const erep = new DigestReporter();
+  erep.onTestEnd(
+    { id: 'e1', repeatEachIndex: 0, title: '[G-A11Y-01] @live axe', annotations: [], parent: { project: () => ({ name: 'guest-live@phone-390', use: { suite: 'guest', vpId: 'phone-390', env: 'live' } }) } },
+    { status: 'passed', duration: 5, annotations: [], attachments: [
+      att({ checkId: 'G-A11Y-01', vp: 'phone-390', env: 'live', liveRequests: { read: 40, write: 0 }, routes: ['/'], shots: [], violations: [], metrics: [], warnings: [] }),
+      att({ checkId: 'G-A11Y-01', vp: 'phone-390', label: 'cold', env: 'live', liveRequests: { read: 2, write: 0 }, routes: ['/'], shots: [], violations: [], metrics: [], warnings: [] }),
+    ] });
+  expect([...erep.entries.values()][0]).toMatchObject({ env: 'live', liveRequests: { read: 42, write: 0 } });
+
   // Several invocations of one run (UI_CHECK_APPEND): results merge and the header spans first start → last end.
   const merged = mergeRun({
     entries: [{ project: 'mp@pairA', title: '[MP-X] x', status: 'passed' }],

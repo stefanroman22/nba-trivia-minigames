@@ -9,8 +9,8 @@ const fileUrl = (f) => (f.type === "external" ? f.external?.url : f.file?.url);
 export async function assembleSpec({ blocks = [], files = [], comments = [], botId, download }) {
   let index = 0;
   const out = [];
-  const grab = async (url, label) => {
-    const path = await download(url, index++);
+  const grab = async (url, label, name) => {
+    const path = await download(url, index++, name);
     if (!path) return FAILED;
     return label ? `[File attached: ${path} (${label})]` : `[Image attached: ${path}]`;
   };
@@ -26,7 +26,7 @@ export async function assembleSpec({ blocks = [], files = [], comments = [], bot
   for (const f of files) {
     const url = fileUrl(f);
     const isImage = IMAGE_EXT.test(f.name || "") || IMAGE_EXT.test(url || "");
-    out.push(await grab(url, isImage ? null : f.name || "file"));
+    out.push(await grab(url, isImage ? null : f.name || "file", f.name));
   }
 
   for (const c of comments) {

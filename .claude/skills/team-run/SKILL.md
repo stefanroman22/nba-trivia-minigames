@@ -44,16 +44,20 @@ they work inside the worktree `<wt>`.
    new `remaining`; it returns the next fitting card or nothing. Stop when nothing fits.
 
 ## 1. Workspace (per card)
-- `git fetch origin dev`; `baseSha = git rev-parse origin/dev`.
-- Local: `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/dev`, then in the worktree
+- `<base>` = `main` when card.json `target` is `"main"` (a check card, see "Check cards" below), else `dev`.
+  Cutting a `main` card from `dev` would ship every unpromoted dev commit to production on the ship rebase.
+- `git fetch origin <base>`; `baseSha = git rev-parse origin/<base>`.
+- Local: `git worktree add <cfg.worktreeRoot>\<slug> -b team/<slug> origin/<base>`, then in the worktree
   `npm ci --prefer-offline --no-audit --no-fund` (60–120 s from the warm npm cache). **Never junction or
   symlink `<repo>\node_modules` into a worktree on Windows**: removing the worktree later follows the link and
   deletes the main checkout's files (it wiped `node_modules\.bin` on 2026-10-03). No venv setup: verify and QA
   fall back to `<repo>\backend\venv` automatically.
-- Cloud: `git worktree add ../wt-<slug> -b team/<slug> origin/dev && ln -s "$PWD/node_modules" ../wt-<slug>/node_modules && ln -s "$PWD/backend/.venv" ../wt-<slug>/backend/.venv`
-  (`backend/.venv` is git-ignored, so the symlink never shows up as a touched file).
+- Cloud: `git worktree add ../wt-<slug> -b team/<slug> origin/<base> && ln -s "$PWD/node_modules" ../wt-<slug>/node_modules && ln -s "$PWD/backend/.venv" ../wt-<slug>/backend/.venv && ln -s "$PWD/multiplayer_server/node_modules" ../wt-<slug>/multiplayer_server/node_modules`
+  (all three are git-ignored, so the symlinks never show up as touched files; the relay's deps are what a
+  check card's QA verify needs). Locally `qa.mjs` installs `multiplayer_server/node_modules` in the worktree
+  itself when a check card needs it — never junction it.
   **Fallback when the routine's setup script is not installed yet** (`node_modules` missing in the clone):
-  once per run, in the clone, `npm ci --no-audit --no-fund`, `python3 -m venv backend/.venv && backend/.venv/bin/pip install -q -r backend/requirements.txt`,
+  once per run, in the clone, `npm ci --no-audit --no-fund`, `npm ci --prefix multiplayer_server --no-audit --no-fund`, `python3 -m venv backend/.venv && backend/.venv/bin/pip install -q -r backend/requirements.txt`,
   `node node_modules/playwright-core/cli.js install chromium || true` (QA skips without a browser), and log one
   line "setup script missing — installed deps in-run". Then symlink as above.
 - Record `baseSha`, `worktree`, `lane` in `.team/run/<slug>/state.json` (merge, don't overwrite).
@@ -68,7 +72,9 @@ If classify returns `hard` (or `needsDesignRound`) for a card intake started as 
 until that lane ships or fails — a hard card runs alone and gets the 45-minute budget. If the remaining
 time is then under 45 minutes, release it: `set-status <id> "To Do"` + a comment, delete the run dir, no attempt counted.
 
-**brief** → `node scripts/team/brief.mjs <slug> --repo <wt>` → `{hasPlan, needsPlan, planFiles}`.
+**brief** → `node scripts/team/brief.mjs <slug> --repo <wt>` → `{hasPlan, needsPlan, planFiles, checkCard?}`.
+- `checkCard: true` → no plan writer and no design round, whatever the tier: go straight to build (one
+  engine per area, the brief's `## Check findings` are the plan).
 - tier `hard` / `needsDesignRound` (this wins over `needsPlan`): `Agent(model: fable, planner-architect)` with the
   `design-round` skill: "Brief: `<repo>/.team/run/<slug>/brief.md`. Work inside the worktree `<wt>` (branch
   `team/<slug>`): write the design doc to `<wt>/docs/team/designs/<date>-<slug>.md`, append DECISIONS there,
@@ -105,11 +111,14 @@ Spawn `Agent(model: <reviewModel>, code-reviewer)` on `<repo>/.team/run/<slug>/r
 also `Agent(model: opus, motion-reviewer)` on the same file, in parallel. Any blocker/major → fix round;
 minor/nit/missing → noted in the commit body.
 
-**ship** → `ship` skill from the worktree. `SHIPPED <sha>` → `shipped.push({title, category})`, write
+**ship** → `ship` skill from the worktree. `SHIPPED <sha>` (or `SHIPPED-PR <url>`, a check card's relay change left as
+a PR to `main` for the owner: same bookkeeping, `commit` = the PR's head SHA, plus `pr` in the json) → `shipped.push({title, category})`, write
 `.team/qa-<slug>.json` `{pageId, title, category, priority, model, effort, planModel|null, fixCycles, did, check, commit}`
 (`check` = one line: navigate → action → expected result; `fixCycles` = sum of `state.fixRounds`),
 `node scripts/slack.mjs post-qa-card .team/qa-<slug>.json` (non-fatal), then delete `.team/run/<slug>/`.
-`SHIP-FAIL <reason>` → fail procedure.
+`SHIP-FAIL <reason>` → fail procedure, except `SHIP-FAIL back-merge failed: …`: `main` is already shipped
+and the ship skill recorded the commit, commented and set Needs human, so skip `fail-card` (no attempt) and
+the RETRO entry; still post the fail Slack card and push to `failed` with stage `ship`.
 
 ## 3. Fix round (gate g ∈ verify|qa|review)
 `state.fixRounds[g] += 1`. Then:
@@ -146,9 +155,20 @@ card was resumed. Log one line per card (shipped/failed/deferred).
 
 ## Hard rules
 - NEVER run git in the main checkout except `fetch`, worktree add/remove, and the RETRO/DECISIONS doc commits.
-- NEVER push to main. NEVER `--force`. Ship = fast-forward push to dev only. Only `main-sync.yml` sets Done.
+- NEVER push to main — the one exception is a check card with `target: "main"`, which the `ship` skill
+  fast-forwards to `main` and back-merges into `dev` (one touching `multiplayer_server/` only gets a PR to `main`). NEVER `--force`. Every other ship = fast-forward push
+  to dev only. Only `main-sync.yml` sets Done.
 - One card's failure never aborts the run. Budgets are per tier (trivial 10 / standard 25 / hard 45 min);
   intake enforces them — do not start a card intake did not return.
 - NEVER take an action that implies the owner pays money (paid service, plan upgrade, billing, domain,
   add-on, anything beyond a free tier). Fail the card with a note naming the cost. Applies to every agent.
 - Agents get paths, not pasted documents. If you catch yourself pasting a constraint doc into a prompt, stop.
+
+## Check cards
+A card whose `source` starts with `ui-check`/`logic-check` (made by `scripts/check-core/notion-push.mjs`;
+docs/team/PIPELINE.md § "Check cards"): classify pre-classifies it, the brief carries `## Check findings`
+and a `{"verify": …}` QA assertion, there is no plan writer or design round, gate 2 = smoke + `verify.mjs
+--from` on the lane (every FAIL line is a fix-round failure, relay it verbatim), and `target: "main"` cuts
+the worktree from `origin/main` (§1) and ships to `main` (ship skill). A fix touching `multiplayer_server/`
+never reaches `main` automatically: ship opens an unmerged PR to `main` and prints `SHIPPED-PR <url>`; the
+owner merges it and runs `railway up` in the same window (Needs human set; main-sync marks Done on the merge).

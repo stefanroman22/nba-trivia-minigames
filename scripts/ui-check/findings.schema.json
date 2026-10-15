@@ -24,7 +24,8 @@
         "route": { "type": "string", "pattern": "^/" },
         "state": { "type": "string" },
         "viewports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/where-viewport" } },
-        "selector": { "type": "string", "minLength": 1 }
+        "selector": { "type": "string", "minLength": 1 },
+        "env": { "type": "array", "minItems": 1, "items": { "enum": ["local", "live"] }, "description": "Where it was seen: the local stack and/or the live site (run.mjs --live). Absent = local. Merged findings list every env." }
       }
     },
     "current": { "type": "string", "minLength": 1 },

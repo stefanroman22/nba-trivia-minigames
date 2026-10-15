@@ -2,7 +2,7 @@
 // and pagemap/common.json; this file holds only behaviour: opening modals/drawer, frame samplers.
 import { expect } from '@playwright/test';
 import { L } from './pagemap.mjs';
-import { MODES } from './stack.mjs';
+import { activePorts } from '../../check-core/lib/ports.mjs';
 import { visibleGames } from './games-catalog.mjs';
 
 /** Nav switches desktop links -> hamburger at <=900px (Navigation.css hide-md); rail -> chips at <=820px. */
@@ -51,7 +51,7 @@ export async function explainDisabled(audit, cap, g, where) {
 }
 
 export const IS_PROD = () => process.env.UI_CHECK_MODE === 'prod';
-export const apiBase = () => `http://localhost:${MODES[process.env.UI_CHECK_MODE || 'prod'].django}/api`;
+export const apiBase = () => `http://localhost:${activePorts().django}/api`;
 
 export const slugOf = (p) => (p === '/' ? 'home' : p.replace(/^\//, '').replace(/[^\w]+/g, '-'));
 

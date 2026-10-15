@@ -6,7 +6,7 @@ import { contextOptions } from '../../lib/viewports.mjs';
 import { inPage, perfSnapshot } from '../../lib/detect.mjs';
 import { IS_PROD, gameById, tileFor, railTarget, routeLatency } from '../../lib/guest.mjs';
 
-test('[G-PERF-01] @perf cold load performance of / and a game, and route-change latency', async ({ page, audit, vp, browser, baseURL }, testInfo) => {
+test('[G-PERF-01] @perf @live cold load performance of / and a game, and route-change latency', async ({ page, audit, vp, browser, baseURL }, testInfo) => {
   test.setTimeout(180_000);
   const first = gameById('series-winner'), third = gameById('guess-mvps');
   const cold = [];

@@ -8,6 +8,24 @@ description: Classify a team task — difficulty, areas, risk, model/effort tier
 Input: task title + spec text (from `node scripts/notion.mjs get-spec <pageId>`), the card's Category and its Priority.
 The spec text may contain `[Image attached: <path>]` / `[File attached: <path>]` lines and `## Comment (...)` sections — the owner's comments and their images are part of the spec.
 
+## Check cards (pre-classified — skip the procedure below)
+A card whose `source` in card.json starts with `ui-check` or `logic-check` was made by
+`scripts/check-core/notion-push.mjs` from validated checker findings (docs/team/PIPELINE.md § "Check cards").
+Its `findingsFile` (the `findings.json` attachment) already says what to change, where and how it is
+accepted, so do not re-derive it:
+- `areas` from Category: `frontend` → `["frontend"]`, `backend` → `["backend"]`, `CI/CD` → `["ci"]`
+  (built by backend-engine, which owns `ci` findings; `fullstack` → both, as usual).
+- `difficulty` = the card's Difficulty (always set by notion-push). `risk` and the model rubric below as usual.
+- `docs` = the constraint docs the findings' `fix.rules` ids point to, by prefix: `UI-` →
+  `docs/constraints/UI_SHELL_CONSTRAINTS.md`, `RULE <n>` → `docs/GAME_DESIGN_CONSTRAINTS.md`, `MP-` →
+  `docs/constraints/MULTIPLAYER_CONSTRAINTS.md`, `AUTH-` → `docs/constraints/AUTH_CONSTRAINTS.md`, `BE-` →
+  `docs/constraints/BACKEND_CONSTRAINTS.md`. Other entries (a doc path, an axe rule, `WCAG …`) add no doc.
+  Read them with `node -e 'const d=require(process.argv[1]);for(const f of d.findings||d)console.log(f.id,JSON.stringify(f.fix&&f.fix.rules),(f.files||[]).map(x=>x.path).join(" "))' "<findingsFile>"`.
+- `codeMapHits` = the `docs/team/CODE_MAP.md` entries for the findings' `files[].path` (grep each path).
+- `needsDesignRound: false` and `"needsPlan": false` even for a `hard` card: the findings are the plan
+  (no plan writer, no design round). `planModel: "sonnet"` (only a replan would use it).
+- No `DECISIONS.md` close-call entry. `attachments` as usual.
+
 ## Procedure
 1. Read `docs/team/RETRO.md` (parked-task failures) and `docs/team/DECISIONS.md` (prior
    close-call model picks — see "Close calls" below) so similar tasks get consistent treatment.
@@ -94,6 +112,7 @@ same judgment call from scratch each time.
   "codeMapHits": ["- `src/hooks/useLeaderboard.ts` — ..."],
   "attachments": [],
   "needsDesignRound": false }
+(A check card's output also carries `"needsPlan": false`.)
 `attachments` is the list of `[Image attached: <path>]` paths pulled verbatim from the spec
 text (empty array if none) — carry them forward unchanged so build/design stages don't have
 to re-parse the spec to find them.

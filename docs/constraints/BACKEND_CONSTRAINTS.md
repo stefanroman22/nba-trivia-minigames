@@ -465,8 +465,8 @@ per warm lambda exhausts the pooler's session slots) and `DISABLE_SERVER_SIDE_CU
 in a request path may write to the filesystem: profile photos are stored as bytes in
 `CustomUser.profile_photo_data` (`users/photos.py`), static files go through WhiteNoise, and the
 `trivia/data/` pools are read-only at runtime. Keep request bodies under Vercel's ~4.5 MB limit
-(`MAX_PHOTO_UPLOAD_BYTES`). The API deploys only by manual `cd backend && vercel deploy --prod`
-(not git-connected; uploads the working tree), and the build runs `migrate`, `createcachetable`,
+(`MAX_PHOTO_UPLOAD_BYTES`). The backend Vercel project is git-connected: a push to `main` deploys the API (the relay stays a manual
+`railway up`), and the build runs `migrate`, `createcachetable`,
 `collectstatic`. `docs/ARCHITECTURE.md` still says "session pooler"; `settings.py` and
 `docs/DEPLOYMENT.md` are authoritative.
 

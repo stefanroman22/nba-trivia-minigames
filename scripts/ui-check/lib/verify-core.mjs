@@ -6,6 +6,7 @@
 //   With `reuse` (report.mjs --validate on unchanged app code) check × project results come from the audited run's
 //   results.json instead; only the ones absent or skipped there re-run. verify.mjs never passes it.
 // Each invocation writes into its own scratch run <runDir>/<area>/pw-<stamp>-<tag>/ (UI_CHECK_RUN = '<runId>/<area>/…'),
+// where <runDir> is <home>/runs/<runId>, or <home>/adhoc/<ts>/ for a runId 'adhoc/<ts>' (verify.mjs --from),
 // so the audited run's results.json is never touched. After reading it, the evidence crops are copied to
 // <runDir>/<area>/shots/ and the scratch dir is deleted; the `latest` pointer is restored.
 // An invocation that fails before producing any result (stack, mint or setup failure) throws: such an infra error
@@ -13,11 +14,16 @@
 import { appendFileSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { UIC_ROOT } from './run-id.mjs';
-import { ensureStack, readStack, stopStack } from './stack.mjs';
+import { appRepo, ensureStack, readStack, stopStack } from './stack.mjs';
+import { activePorts, formatPorts } from '../../check-core/lib/ports.mjs';
 import { UIC, grepFor, installEmergencyStop, playwright } from './runner.mjs';
 import { checkLabel, expectFailVerdict, readJson } from './findings.mjs';
 
 const LATEST = path.join(UIC_ROOT, 'latest');
+const RUNS = path.join(UIC_ROOT, 'runs');
+
+/** Where a run id's verify/probe output lives: <home>/runs/<id>, or <home>/adhoc/<ts> for 'adhoc/<ts>' (no audited run). */
+export const resultDir = (runId) => (runId.startsWith('adhoc/') ? path.join(UIC_ROOT, ...runId.split('/')) : path.join(RUNS, runId));
 const isFail = (r) => r.status === 'failed' || r.status === 'timedOut';
 const firstLine = (s) => String(s || '').split('\n').map((l) => l.trim()).find(Boolean) || '';
 const pad = (n) => String(n).padStart(2, '0');
@@ -43,22 +49,38 @@ async function quietly(log, fn) {
   }
 }
 
+/**
+ * The app checkout a run tested, from its run-meta.json (run.mjs records repo, mode and ports) → { repo, ports, gone }:
+ * `repo` when that checkout still exists (a `--ref main` worktree), `ports` only when `mode` is the run's own mode;
+ * null fields fall back to the caller's defaults. `gone` names a recorded checkout that no longer exists.
+ */
+export function runApp(runId, mode) {
+  const meta = readJson(path.join(resultDir(runId), 'run-meta.json'), {}) || {};
+  const repo = meta.repo && existsSync(path.join(meta.repo, 'package.json')) ? path.resolve(meta.repo) : null;
+  const ports = meta.ports && meta.mode === mode ? meta.ports : null;
+  return { repo, ports, gone: meta.repo && !repo ? meta.repo : null };
+}
+
 let active = null; // the running withStack call: { latest, stop }
 let emergencyInstalled = false;
 
 /**
- * Ensure the stack for `mode` once (quietly, into `log`), run fn(), then — unless keepStack — stop ONLY the processes
+ * Ensure the stack for `mode` once (quietly, into `log`) from `repo` on `ports` (defaults: UI_CHECK_REPO / the main
+ * checkout, UI_CHECK_PORTS / the mode's; both are exported to the Playwright children), run fn(), then — unless keepStack — stop ONLY the processes
  * this call started (ensureStack().started; while it is still starting, the stack.json entries that appeared since).
  * A stack kept by an earlier --keep-stack call, or started by anyone else, keeps running. Ctrl+C / errors do the same
  * and restore the `latest` pointer.
  */
-export async function withStack({ mode, keepStack, log }, fn) {
+export async function withStack({ mode, keepStack, log, repo = null, ports = null }, fn) {
   if (!['dev', 'prod'].includes(mode)) throw new Error(`--mode must be dev or prod (got ${mode})`);
   process.env.UI_CHECK_MODE = mode;
+  if (repo) process.env.UI_CHECK_REPO = path.resolve(repo);
+  if (ports) process.env.UI_CHECK_PORTS = formatPorts(ports);
+  const stackPorts = activePorts(mode);
   const latest = readLatest();
-  const before = new Set(((readStack() || {}).started || []).map((e) => e.pid));
+  const before = new Set(((readStack({ ports: stackPorts }) || {}).started || []).map((e) => e.pid));
   let mine = null;
-  const ours = () => mine || ((readStack() || {}).started || []).filter((e) => !before.has(e.pid));
+  const ours = () => mine || ((readStack({ ports: stackPorts }) || {}).started || []).filter((e) => !before.has(e.pid));
   const stopOurs = () => { const only = ours(); return only.length ? stopStack({ only }) : []; };
   // One signal handler per process (verify runs a dev group, then a prod group): it stops the ACTIVE group's
   // processes. A handler per group would race — the first to finish calls process.exit before the other stops.
@@ -68,7 +90,7 @@ export async function withStack({ mode, keepStack, log }, fn) {
     installEmergencyStop(keepStack, () => active && restoreLatest(active.latest), () => (active ? active.stop() : []));
   }
   try {
-    try { mine = (await quietly(log, () => ensureStack(mode))).started; } catch (e) { throw new Error(`stack (${mode}) did not come up: ${firstLine(e.message)} — see ${log}`); }
+    try { mine = (await quietly(log, () => ensureStack(mode, { repo: appRepo(), ports: stackPorts, keepStack }))).started; } catch (e) { throw new Error(`stack (${mode}) did not come up: ${firstLine(e.message)} — see ${log}`); }
     return await fn();
   } finally {
     restoreLatest(latest);
@@ -115,7 +137,7 @@ function checkCriterion(id, project, results, sdir) {
 /** Copy a criterion's crop out of a scratch dir (deleted afterwards) to <runDir>/<area>/shots/. */
 function keepShot(file, runId, area, name) {
   if (!file || !existsSync(file)) return null;
-  const out = path.join(UIC_ROOT, 'runs', runId, area, 'shots', `${safe(name)}.jpg`);
+  const out = path.join(resultDir(runId), area, 'shots', `${safe(name)}.jpg`);
   mkdirSync(path.dirname(out), { recursive: true });
   copyFileSync(file, out);
   return out;
@@ -136,8 +158,9 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
   const env = { UI_CHECK_MODE: mode, UI_CHECK_KEEP_STACK: '1', UI_CHECK_STACK_READY: '1' };
   const scratches = [];
   const scratch = (tag) => {
-    const run = `${runId}/${area}/pw-${base}-${safe(tag)}`;
-    const dir = path.join(UIC_ROOT, 'runs', ...run.split('/'));
+    const dir = path.join(resultDir(runId), area, `pw-${base}-${safe(tag)}`);
+    // UI_CHECK_RUN is relative to <home>/runs (run-id.mjs): an adhoc dir reads '../adhoc/<ts>/…'.
+    const run = path.relative(RUNS, dir).split(path.sep).join('/');
     mkdirSync(dir, { recursive: true });
     scratches.push(dir);
     return { run, dir };
@@ -234,9 +257,9 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
   });
 }
 
-/** <runDir>/verify/<id>.json: everything about one verification. */
+/** <runDir>/verify/<id>.json (<home>/adhoc/<ts>/verify/ for an 'adhoc/<ts>' run id): everything about one verification. */
 export function writeDetail(runId, r, extra = {}) {
-  const file = path.join(UIC_ROOT, 'runs', runId, 'verify', `${r.id}.json`);
+  const file = path.join(resultDir(runId), 'verify', `${r.id}.json`);
   mkdirSync(path.dirname(file), { recursive: true });
   writeFileSync(file, JSON.stringify({ ...r, ...extra, at: new Date().toISOString() }, null, 2));
   return file;
