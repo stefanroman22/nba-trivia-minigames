@@ -7,7 +7,7 @@
     "bands": {"easy": [0, 0.35], "medium": [0.35, 0.65], "hard": [0.65, 1]},
     "mix": {"easy": 0.4, "medium": 0.4, "hard": 0.2}
   },
-  "interest": {"features": {"distinct_clues": 1.0}, "min": 0.3},
+  "interest": {"features": {"clues": 1.0}, "min": 0.3},
   "coverage": {"axes": ["decade", "team", "position"], "min_decades": 4},
   "refill": {"runway_days": 90, "minimum": 30, "target": null, "max_new_per_run": 200},
   "consistency": {"max_player_share": 0.02}

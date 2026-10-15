@@ -7,7 +7,7 @@ import os
 from django.conf import settings
 
 from trivia.games.tictactoe import player_matches
-from trivia.questions import fame, specs
+from trivia.questions import fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -157,6 +157,50 @@ def checker_view(materialized, dataset):
             cells.append({"row": r["label"], "col": c["label"], "sample": sample})
     return {"kind": SLUG, "rows": [r["label"] for r in materialized["rows"]],
             "cols": [c["label"] for c in materialized["cols"]], "cells": cells}
+
+
+def _famous_per_cell(materialized, dataset):
+    """Mean count of KNOWN+ players among each cell's first three answers (fame-ordered)."""
+    valid = materialized["valid"]
+    known = sum(1 for cell in valid for pid in cell[:3]
+                if pid in dataset.by_id and fame.at_least(dataset.by_id[pid], fame.KNOWN))
+    return known / len(valid) if valid else 0.0
+
+
+def features(materialized, dataset):
+    """Normalization in trivia.questions.quality's docstring (1 = harder / more interesting)."""
+    sizes = [len(cell) for cell in materialized["valid"]] or [0]
+    famous = _famous_per_cell(materialized, dataset) / 3
+    return {
+        "mean_cell_size": quality.cell_size_hardness(sum(sizes) / len(sizes)),
+        "min_cell_size": quality.cell_size_hardness(min(sizes)),
+        "famous_per_cell": 1 - famous,
+        "famous": famous,
+    }
+
+
+def coverage(materialized, dataset):
+    """decade: of the median first-stint year over the board's distinct valid players;
+    team: the three row teams (one coverage cell each)."""
+    years = sorted(y for y in (quality.first_year(dataset.by_id[pid])
+                               for pid in {p for cell in materialized["valid"] for p in cell}
+                               if pid in dataset.by_id) if y is not None)
+    median = years[len(years) // 2] if years else None
+    return {"decade": quality.decade(median),
+            "team": sorted(r["value"] for r in materialized["rows"] if r.get("type") == "team"),
+            "position": "?"}
+
+
+def dup_key(definition, materialized):
+    """The sorted set of row and column criteria: the same board in another order is a duplicate."""
+    return "|".join(sorted(f"{c['type']}:{c['value']}" for c in materialized["rows"] + materialized["cols"]))
+
+
+def featured(definition, materialized):
+    """None: a board is about its teams and criteria, not a player (dup_key and team coverage
+    keep boards apart). Counting each cell's revealed answer starved the game: on the shipped
+    data the same stars top most cells, and max_player_share (3 of 120) let 17 boards through."""
+    return []
 
 
 def qid_for(definition, seq):

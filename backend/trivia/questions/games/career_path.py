@@ -2,7 +2,7 @@
 weighted toward KNOWN/DEEP players over stars. Rules moved from
 trivia/games/career_path.py; the fame gate was added in question-factory phase 1
 (players nobody can name are no longer eligible)."""
-from trivia.questions import checker, fame, specs
+from trivia.questions import checker, fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
@@ -76,6 +76,27 @@ def checker_view(materialized, dataset=None):
     profile = checker.player_profile(p)
     cards = [f"{label}, GP {s.get('gp')}, PPG {s.get('ppg')}" for label, s in zip(profile["teams"], p.get("teams") or [])]
     return {"kind": SLUG, "player": p["full_name"], "draft": profile["draft"], "teams": cards}
+
+
+def features(materialized, dataset=None):
+    """Normalization in trivia.questions.quality's docstring (1 = harder / more interesting)."""
+    p = materialized["player"]
+    n = len(p.get("teams") or [])
+    memorable = quality.memorable_count(p)
+    return {
+        "fame_band": quality.fame_hardness(p, MIN_FAME_BAND),
+        "stint_count": quality._clamp((MAX_STINTS - n) / (MAX_STINTS - MIN_STINTS)),
+        "memorable_stop": 1 - memorable / n if n else 1.0,
+        "memorable": min(memorable / 2, 1.0),
+    }
+
+
+def coverage(materialized, dataset=None):
+    return quality.player_coverage(materialized["player"])
+
+
+def dup_key(definition, materialized):
+    return str(materialized["player"]["person_id"])
 
 
 def qid_for(definition, seq):

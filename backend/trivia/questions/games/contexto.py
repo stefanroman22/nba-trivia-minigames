@@ -2,7 +2,7 @@
 """LeContexto: one secret per day, ranking precomputed over the whole playable pool."""
 import datetime
 
-from trivia.questions import checker, fame, specs
+from trivia.questions import checker, fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 from trivia.questions.similarity import rank_pool
@@ -79,6 +79,35 @@ def checker_view(materialized, dataset=None):
     The day and the computed ranking are not claims to check."""
     profile = checker.player_profile(materialized["secret"])
     return {"kind": SLUG, **{k: profile[k] for k in ("player", "position", "draft", "teams")}}
+
+
+def features(materialized, dataset):
+    """Normalization in trivia.questions.quality's docstring (1 = harder / more interesting)."""
+    secret = materialized["secret"]
+    return {"fame_band": quality.fame_hardness(secret, MIN_SECRET_BAND), "era_age": quality.era_age(secret, dataset),
+            "recognizable": 1 - quality.fame_hardness(secret)}
+
+
+def coverage(materialized, dataset=None):
+    return quality.player_coverage(materialized["secret"])
+
+
+def dup_key(definition, materialized):
+    return str(materialized["secret"]["person_id"])
+
+
+def place(definitions, dataset, today=None):
+    """Selection keeps only some candidates, so their days have holes: put the kept
+    secrets, in order, on the first free days from `today` (as generate does)."""
+    today = today or datetime.datetime.now(datetime.timezone.utc).date()
+    taken = {e["day"] for e in getattr(dataset, "extra", {}).get("contexto_taken", _existing(dataset))}
+    out, day = [], today
+    for d in definitions:
+        while day.isoformat() in taken:
+            day += datetime.timedelta(days=1)
+        out.append({**d, "day": day.isoformat()})
+        day += datetime.timedelta(days=1)
+    return out
 
 
 def qid_for(definition, seq):

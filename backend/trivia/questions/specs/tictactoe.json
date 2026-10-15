@@ -3,11 +3,11 @@
   "version": 1,
   "eligibility": {"min_valid": 3, "max_valid": 400},
   "difficulty": {
-    "features": {"mean_cell_size": 0.4, "min_cell_size": 0.4, "famous_per_cell": 0.2},
+    "features": {"mean_cell_size": 0.5, "min_cell_size": 0.3, "famous_per_cell": 0.2},
     "bands": {"easy": [0, 0.35], "medium": [0.35, 0.65], "hard": [0.65, 1]},
     "mix": {"easy": 0.4, "medium": 0.4, "hard": 0.2}
   },
-  "interest": {"features": {"famous_per_cell": 1.0}, "min": 0.3},
+  "interest": {"features": {"famous": 1.0}, "min": 0.3},
   "coverage": {"axes": ["decade", "team"], "min_decades": 4},
   "refill": {"runway_days": 90, "minimum": 12, "target": 120, "max_new_per_run": 200},
   "consistency": {"max_player_share": 0.02}

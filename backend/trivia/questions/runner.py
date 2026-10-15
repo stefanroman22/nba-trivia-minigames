@@ -3,6 +3,7 @@
 maintain() is the maintenance alone; publish_game_data_v3 runs it and publishes
 the public question games to the manifest-v3 data host. run() (maintain_questions)
 still publishes the Supabase Storage snapshot, kept for the hidden games."""
+import datetime
 import re
 import tempfile
 
@@ -11,7 +12,8 @@ from django.utils import timezone
 
 from trivia.data_pipeline.publish import upload_plan
 from trivia.models import Question
-from trivia.questions import checker, demand
+from trivia.questions import checker, demand, specs
+from trivia.questions import quality as scoring
 from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES
 from trivia.questions.hashing import content_hash
@@ -66,7 +68,7 @@ def _kept(mod, row, m):
     return (row.qid, item, m)
 
 
-def _materialize_row(mod, row, dataset, now, journal, stage=False):
+def _materialize_row(mod, row, dataset, now, journal, stage=False, spec=None):
     m, problems = _materialize(mod, row.definition, dataset)
     if problems:
         row.status = Question.STATUS_RETIRED
@@ -77,6 +79,8 @@ def _materialize_row(mod, row, dataset, now, journal, stage=False):
         return None
     m["qid"] = row.qid
     quality = {**(row.quality or {}), "materialized": True}
+    if spec is not None:  # difficulty, band, interest, coverage, dup_key (spec §4.3)
+        quality.update(scoring.score(mod, m, dataset, spec, row.definition))
     view = getattr(mod, "checker_view", None)
     if view is not None:
         # What the Checker checks is what is hashed: a different view is different content.
@@ -103,8 +107,96 @@ def _active_count(slug, kept, today):
     return len(kept)
 
 
+def _add(mod, slug, d, h, seq, dataset, now, journal, staged, spec=None):
+    """Save one new question (pending when staged) and materialize it; result None if it does not hold."""
+    qid = mod.qid_for(d, seq)
+    if Question.objects.filter(game=slug, qid=qid).exists():  # e.g. a refilled Contexto day
+        qid = f"{qid}-r{seq}"
+    row = Question(game=slug, qid=qid, definition=d, content_hash=h, created_by="generator",
+                   status=Question.STATUS_PENDING if staged else Question.STATUS_ACTIVE)
+    row.save()
+    result = _materialize_row(mod, row, dataset, now, journal, staged, spec)
+    if result is not None:
+        journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d,
+                    **({"status": row.status} if staged else {}))
+    return result
+
+
+def _select_and_add(mod, slug, spec, dataset, rng, now, journal, staged, scored, existing, seq,
+                    supply, target, added_to, detail):
+    """Over-generate and select (spec §4.1 step 4, §4.3) up to `target` (None = unbounded).
+
+    Each round generates 3 x the shortfall as candidates and scores them in memory. Gates:
+    interest below spec min (low_interest), a dup_key already active, pending or in this
+    batch (duplicate), a featured player over max_player_share (consistency). Rejected
+    candidates are journaled, never saved, and their hashes stay out of `existing`, so they
+    can be proposed again next run. quality.select picks the rest band and coverage first;
+    at most refill.max_new_per_run are added per run. Logs one gap_report. Returns (added, seq).
+    """
+    cap = spec["refill"]["max_new_per_run"]
+    if slug == "contexto":  # no repeat inside the window; an older secret may come back
+        cutoff = (now.date() - datetime.timedelta(days=mod.NO_REPEAT_DAYS)).isoformat()
+        scored = [s for s in scored if s[0].get("day", "") >= cutoff]
+    state = scoring.new_state()
+    for definition, m, q in scored:
+        scoring.add(state, q, scoring.featured(mod, definition, m, dataset))
+    taken = {q["dup_key"] for _, _, q in scored}
+    universe = {c for _, _, q in scored for c in scoring.cells(q)}
+    proposed, pool, added = set(), [], 0
+    while (target is None or supply() < target) and added < cap:
+        want = min(GENERATE_BATCH, cap - added, target - supply() if target is not None else GENERATE_BATCH)
+        if 3 * want > len(pool):
+            for d in mod.generate(dataset, existing | proposed, rng, 3 * want - len(pool)):
+                h = content_hash(d)
+                if h in existing or h in proposed:
+                    continue
+                proposed.add(h)
+                m, problems = _materialize(mod, d, dataset)
+                if problems:
+                    continue
+                s = scoring.score(mod, m, dataset, spec, d)
+                universe.update(scoring.cells(s))
+                if s["interest"] < spec["interest"]["min"]:
+                    journal.log("rejected", "low_interest", game=slug, dup_key=s["dup_key"],
+                                interest=s["interest"], definition=d)
+                elif s["dup_key"] in taken:
+                    journal.log("rejected", "duplicate", game=slug, dup_key=s["dup_key"], definition=d)
+                else:
+                    taken.add(s["dup_key"])
+                    pool.append({"definition": d, "scores": s, "featured": scoring.featured(mod, d, m, dataset)})
+        picked, refused = scoring.select(pool, want, state, spec)
+        for c in refused:
+            journal.log("rejected", "consistency", game=slug, dup_key=c["scores"]["dup_key"],
+                        players=c["over"], definition=c["definition"])
+        if not picked:
+            break
+        defs = [c["definition"] for c in picked]
+        place = getattr(mod, "place", None)  # Contexto: the kept secrets take the first free days
+        if place is not None:
+            defs = place(defs, dataset)
+        saved = []
+        for d in defs:
+            h = content_hash(d)
+            if h in existing:
+                continue
+            existing.add(h)
+            result = _add(mod, slug, d, h, seq, dataset, now, journal, staged, spec)
+            seq += 1
+            if result is not None:
+                added_to.append(result)
+                added += 1
+                saved.append(d)
+        if slug == "contexto":
+            dataset.extra["contexto_existing"] += saved
+            dataset.extra["contexto_taken"] += saved
+    journal.log("gap_report", "coverage", game=slug, **scoring.gap_report(state, universe, spec),
+                **({"capacity_bound": True} if detail.get("capacity_bound") else {}))
+    return added, seq
+
+
 def _process_game(slug, dataset, rng, now, out, journal, stage=False):
     mod = GAME_MODULES[slug]
+    spec = specs.load(slug) if hasattr(mod, "features") else None  # scored games (spec §4.3)
     today = now.date().isoformat()
     # Staged games (phase 4): new and changed questions wait for the Checker as pending.
     staged = stage and slug in checker.STAGED_GAMES
@@ -119,8 +211,11 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
             Question.objects.filter(game=slug, status__in=statuses).values_list("definition", flat=True)
         )
     kept, pending, retired = [], [], 0
+    scored = []  # (definition, materialized, quality) of each live or pending question
     for row in Question.objects.filter(game=slug, status__in=statuses).order_by("id"):
-        result = _materialize_row(mod, row, dataset, now, journal, staged)
+        result = _materialize_row(mod, row, dataset, now, journal, staged, spec)
+        if result is not None and spec is not None:
+            scored.append((row.definition, result[2], row.quality))
         if result is None:
             retired += 1
         elif row.status == Question.STATUS_PENDING:
@@ -144,7 +239,10 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
         journal.log("saturation", "pool_seen", game=slug, share=detail.get("saturation"), target=chosen)
     existing = set(Question.objects.filter(game=slug).values_list("content_hash", flat=True))
     added, seq = 0, _next_seq(slug)
-    while supply() < target:
+    if spec is not None:
+        added, seq = _select_and_add(mod, slug, spec, dataset, rng, now, journal, staged, scored, existing, seq,
+                                     supply, chosen, pending if staged else kept, detail)
+    while spec is None and supply() < target:
         want = min(GENERATE_BATCH, target - supply()) if chosen is not None else GENERATE_BATCH
         defs = mod.generate(dataset, existing, rng, want)
         if not defs:
@@ -154,22 +252,11 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
             if h in existing:
                 continue
             existing.add(h)
-            qid = mod.qid_for(d, seq)
-            if Question.objects.filter(game=slug, qid=qid).exists():  # e.g. a refilled Contexto day
-                qid = f"{qid}-r{seq}"
-            row = Question(game=slug, qid=qid, definition=d, content_hash=h, created_by="generator",
-                           status=Question.STATUS_PENDING if staged else Question.STATUS_ACTIVE)
+            result = _add(mod, slug, d, h, seq, dataset, now, journal, staged)
             seq += 1
-            row.save()
-            result = _materialize_row(mod, row, dataset, now, journal, staged)
             if result is not None:
                 (pending if staged else kept).append(result)
                 added += 1
-                journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d,
-                            **({"status": row.status} if staged else {}))
-        if slug == "contexto":
-            dataset.extra["contexto_existing"] += defs
-            dataset.extra["contexto_taken"] += defs
     active = _active_count(slug, kept, today)
     stats = {"active": len(kept), "retired": retired, "added": added, "materialized": len(kept)}
     if staged:
