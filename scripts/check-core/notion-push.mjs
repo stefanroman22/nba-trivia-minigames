@@ -78,7 +78,7 @@ export function pushRun({ doc, runId, checker = 'ui', target = 'main', severitie
           const text = `${seenText(runId)}${extra.length ? ` · also in this cluster now: ${extra.join(', ')}` : ''}`;
           if (already) log(`  (card ${c.id} already has "${seenText(runId)}")`);
           else if (dryRun) log(`  (dry: would comment on ${c.id}: ${text})`);
-          else client.comment(c.id, text);
+          else { client.comment(c.id, text); log(`  commented on ${c.id}: ${text}`); }
         }
         log(`skip ${meta0.keys.join(' ')} already ${d.open.length ? 'open' : `done, fix ${String(c.commit).slice(0, 7)} not on origin/main yet,`} card ${c.id}`);
       }
