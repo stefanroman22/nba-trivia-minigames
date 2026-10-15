@@ -77,7 +77,6 @@ jobs:
     # No database secret anywhere in this job (spec §3 principle 7).
     permissions:
       contents: read
-      id-token: write
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -93,6 +92,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The job's own read-only token. Without it the action exchanges an OIDC token with
+          # Anthropic's GitHub App, and that exchange refuses scheduled runs ("User does not have
+          # write access": a cron has no triggering user), which silently checked nothing on
+          # 2026-10-13/14. This step needs no GitHub write at all; it only writes a local file.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             You are the Checker. Read .claude/skills/nba-question-writer/references/checker.md and follow it exactly.
             Input batch: checker/batch-${{ matrix.batch }}.json
