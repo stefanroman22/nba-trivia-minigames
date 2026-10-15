@@ -14,3 +14,4 @@ backend/db.sqlite3
 multiplayer_server
 docs
 scripts/ui-check
+scripts/check-core
