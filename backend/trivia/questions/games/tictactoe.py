@@ -83,6 +83,11 @@ def _cell_valid(dataset, row_c, col_c):
     return [p["person_id"] for p in sorted(players, key=lambda p: (-fame.fame_score(p), p["person_id"]))]
 
 
+def capacity(dataset):
+    """Boards are combinations of teams and columns: unbounded for trivia.questions.demand."""
+    return None
+
+
 def generate(dataset, existing_hashes, rng, n):
     teams = _team_criteria(dataset)
     out, guard = [], 0

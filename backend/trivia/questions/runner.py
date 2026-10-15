@@ -11,7 +11,7 @@ from django.utils import timezone
 
 from trivia.data_pipeline.publish import upload_plan
 from trivia.models import Question
-from trivia.questions import checker
+from trivia.questions import checker, demand
 from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES
 from trivia.questions.hashing import content_hash
@@ -127,19 +127,25 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
             pending.append(result)
         else:
             kept.append(result)
-    target = mod.TARGET if mod.TARGET is not None else 10 ** 9
+    chosen, detail = demand.target_for(slug, mod, now, dataset)  # None = unbounded
+    target = chosen if chosen is not None else 10 ** 9
 
     def supply():  # pending questions count toward the target, so none is generated twice
         return _active_count(slug, kept, today) + _active_count(slug, pending, today)
 
     active_before = _active_count(slug, kept, today)
     journal.log("refill_decision", "below_target" if supply() < target else "enough", game=slug,
-                active=active_before, target=mod.TARGET, retired=retired,
-                **({"pending": _active_count(slug, pending, today)} if staged else {}))
+                active=active_before, target=chosen, retired=retired,
+                **({"pending": _active_count(slug, pending, today)} if staged else {}), **detail)
+    if detail.get("capacity_bound"):
+        journal.log("capacity_bound", "capacity_below_demand", game=slug, target=chosen,
+                    capacity=detail.get("capacity"), demand=detail.get("demand"), want=detail.get("want"))
+    if detail.get("saturated"):
+        journal.log("saturation", "pool_seen", game=slug, share=detail.get("saturation"), target=chosen)
     existing = set(Question.objects.filter(game=slug).values_list("content_hash", flat=True))
     added, seq = 0, _next_seq(slug)
     while supply() < target:
-        want = min(GENERATE_BATCH, target - supply()) if mod.TARGET is not None else GENERATE_BATCH
+        want = min(GENERATE_BATCH, target - supply()) if chosen is not None else GENERATE_BATCH
         defs = mod.generate(dataset, existing, rng, want)
         if not defs:
             break

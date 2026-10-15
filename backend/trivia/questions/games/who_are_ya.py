@@ -18,6 +18,11 @@ def _eligible(row):
     return fame.at_least(row, MIN_FAME_BAND) and bool(row.get("teams"))
 
 
+def capacity(dataset):
+    """Eligible players: one question each at most (trivia.questions.demand clamps to it)."""
+    return sum(1 for r in dataset.playable if _eligible(r))
+
+
 def generate(dataset, existing_hashes, rng, n):
     out = []
     for r in sorted((r for r in dataset.playable if _eligible(r)), key=lambda r: r["person_id"]):

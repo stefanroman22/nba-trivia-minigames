@@ -23,6 +23,11 @@ def _weight(row):
     return 3 if fame.fame_band(row) in (fame.KNOWN, fame.DEEP) else 1
 
 
+def capacity(dataset):
+    """Eligible journeymen: one question each at most (trivia.questions.demand clamps to it)."""
+    return sum(1 for r in dataset.playable if _eligible(r))
+
+
 def generate(dataset, existing_hashes, rng, n):
     candidates = [r for r in dataset.playable if _eligible(r)]
     rng.shuffle(candidates)
