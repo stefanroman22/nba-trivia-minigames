@@ -61,7 +61,7 @@ if (cls.multiplayer) ran.push(run("relay syntax", process.execPath, ["--check", 
 if (cls.scripts) {
   // node --test on Node 22 wants files, not directories
   const testFiles = ["scripts/lib", "scripts/team/lib", "scripts/check-core"].flatMap((d) => { try { return readdirSync(resolve(repo, d)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`); } catch { return []; } });
-  if (testFiles.length) ran.push(run("script tests", process.execPath, ["--test", ...testFiles]));
+  if (testFiles.length) ran.push(run("script tests", process.execPath, ["--test", ...testFiles], { env: { TEAM_GATE: "1" } }));
 }
 
 const failed = ran.filter((r) => r.exit !== 0);
