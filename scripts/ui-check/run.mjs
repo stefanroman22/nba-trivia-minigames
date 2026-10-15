@@ -292,7 +292,7 @@ async function runLive(opts) {
       if (!existsSync(path.join(repo, 'package.json'))) throw new Error(`--repo ${repo} is not a checkout of the app`);
       app = { repo, ref: null, head: spawnSync('git', ['rev-parse', 'HEAD'], { cwd: repo, encoding: 'utf8', windowsHide: true }).stdout.trim() || null };
     } else {
-      app = await ensureCheckout(opts.ref || 'main');
+      app = await ensureCheckout(opts.ref || 'main', { fetch: false });
     }
   } catch (e) { console.error(`ui-check: ${e.message}`); return 1; }
   const childEnv = { UI_CHECK_MODE: 'prod', UI_CHECK_ENV: 'live', UI_CHECK_LIVE_URL: url.origin, UI_CHECK_REPO: app.repo };
