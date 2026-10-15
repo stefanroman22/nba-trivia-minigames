@@ -66,10 +66,10 @@ test('helpers: run checker, bullet dates', () => {
 
 test('pruneNotes caps the line count with the oldest dated bullets, never an open one', () => {
   const text = ['# t', '- (2026-10-01) a', '- (2026-10-02) b UIC-20261002-0200-001', '- (2026-10-03) c', '- undated', ''].join('\n');
-  const r = pruneNotes(text, { now: NOW, notesMax: 4, notesDays: 90, openIds: new Set(['UIC-20261002-0200-001']) });
+  const r = pruneNotes(text, { now: NOW, notesMax: 4, notesDays: 90, capMinDays: 0, openIds: new Set(['UIC-20261002-0200-001']) });
   assert.deepEqual(r.archived, ['- (2026-10-01) a', '- (2026-10-03) c']);
   assert.equal(r.overCap, false);
-  const r2 = pruneNotes(text, { now: NOW, notesMax: 2, notesDays: 90, openIds: new Set(['UIC-20261002-0200-001']) });
+  const r2 = pruneNotes(text, { now: NOW, notesMax: 2, notesDays: 90, capMinDays: 0, openIds: new Set(['UIC-20261002-0200-001']) });
   assert.equal(r2.overCap, true);
 });
 
@@ -135,4 +135,14 @@ test('only run ids count: scratch dirs are never deleted and never the "newest" 
   assert.ok(r.runs.kept.some((k) => k.id === '20261009-0300-live' && k.why === 'newest'));
   assert.ok(existsSync(path.join(home, 'runs', '20261009-0300-live')));
   assert.ok(!r.runs.deleted.some((d) => !/^\d{8}-\d{4}/.test(d.id)));
+});
+
+test('the cap pass archives only bullets older than capMinDays; a file still over the cap is reported and left', () => {
+  const text = ['# t', '- (2026-08-01) old enough for the cap', '- (2026-10-10) recent', '- (20261012-1548) recent run-id bullet', '- undated', ''].join('\n');
+  const r = pruneNotes(text, { now: NOW, notesMax: 3, notesDays: 90 }); // capMinDays default 30
+  assert.deepEqual(r.archived, ['- (2026-08-01) old enough for the cap']);
+  assert.ok(r.text.includes('- (2026-10-10) recent') && r.text.includes('- (20261012-1548) recent run-id bullet'));
+  assert.equal(r.overCap, true);
+  const fits = pruneNotes(text, { now: NOW, notesMax: 5, notesDays: 90 });
+  assert.deepEqual([fits.archived, fits.overCap], [['- (2026-08-01) old enough for the cap'], false]);
 });

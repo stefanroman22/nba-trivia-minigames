@@ -6,7 +6,8 @@
 //   any other directory under runs/ (`explore`, `fix1-selftest`, …) is never touched and never counts as the newest run. The newest run of each checker is never deleted.
 // - notes (scripts/{ui,logic}-check/notes/*.md): a bullet dated `(YYYY-MM-DD)` (or a run id `(YYYYMMDD-HHmm…)`) older
 //   than `notesDays` that names no open finding id moves to notes/archive/<file>.md; a file still over `notesMax` lines
-//   then moves its oldest dated bullets (same open-id rule) until it fits, else it is reported as over the cap.
+//   then moves its oldest dated bullets older than `capMinDays` (default 30; same open-id rule) until it fits; if it is still
+//   over, it is left as is and reported `overCap: true` (recent bullets are never archived just to meet the cap).
 // - channel.json: resolved blocks and resolved deferred items older than `channelDays` are dropped.
 // - notion-cards.json: Done entries older than `cardsDays` are dropped. Notion itself is never pruned.
 // dryRun: reports (and prints) what would go, changes nothing.
@@ -56,14 +57,14 @@ function blocksOf(text) {
 }
 
 /** Prune one notes file's text → { text, archived: [bullet text], overCap }. Pure. */
-export function pruneNotes(text, { now = Date.now(), notesMax = 150, notesDays = 90, openIds = new Set() } = {}) {
+export function pruneNotes(text, { now = Date.now(), notesMax = 150, notesDays = 90, capMinDays = 30, openIds = new Set() } = {}) {
   const blocks = blocksOf(text);
   const bulletText = (b) => b.lines.join('\n');
   const movable = (b) => b.bullet && bulletDate(bulletText(b)) !== null && ![...bulletText(b).matchAll(FINDING_ID)].some((m) => openIds.has(m[0]));
   const archived = new Set();
   for (const b of blocks) if (movable(b) && now - bulletDate(bulletText(b)) > notesDays * DAY) archived.add(b);
   const count = () => blocks.filter((b) => !archived.has(b)).reduce((n, b) => n + b.lines.length, 0);
-  const oldest = blocks.filter((b) => movable(b) && !archived.has(b)).sort((a, b) => bulletDate(bulletText(a)) - bulletDate(bulletText(b)));
+  const oldest = blocks.filter((b) => movable(b) && !archived.has(b) && now - bulletDate(bulletText(b)) > capMinDays * DAY).sort((a, b) => bulletDate(bulletText(a)) - bulletDate(bulletText(b)));
   while (count() > notesMax && oldest.length) archived.add(oldest.shift());
   const kept = blocks.filter((b) => !archived.has(b)).flatMap((b) => b.lines).join('\n');
   return { text: kept, archived: blocks.filter((b) => archived.has(b)).map(bulletText), overCap: count() > notesMax };
@@ -73,7 +74,7 @@ export function pruneNotes(text, { now = Date.now(), notesMax = 150, notesDays =
  * → report { dryRun, runs: { deleted: [{ id, checker }], kept: [{ id, checker, why }], ignored: [dir names that are not run ids] }, notes: [{ file, archived, overCap }],
  *   channel: { blocks, deferred }, cards: [fingerprint] }
  */
-export async function retain({ home = uicHome(), keepRuns = 5, openRunIds = new Set(), openFindingIds = new Set(), notesMax = 150, notesDays = 90,
+export async function retain({ home = uicHome(), keepRuns = 5, openRunIds = new Set(), openFindingIds = new Set(), notesMax = 150, notesDays = 90, capMinDays = 30,
   channelDays = 30, cardsDays = 60, dryRun = false, notesDirs = NOTES_DIRS, now = Date.now(), log = console.log } = {}) {
   const t = now instanceof Date ? now.getTime() : typeof now === 'string' ? Date.parse(now) : now;
   const say = (m) => log(`retain${dryRun ? ' (dry run)' : ''}: ${m}`);
@@ -113,11 +114,11 @@ export async function retain({ home = uicHome(), keepRuns = 5, openRunIds = new 
     for (const name of files) {
       const file = path.join(dir, name);
       const src = readFileSync(file, 'utf8');
-      const r = pruneNotes(src, { now: t, notesMax, notesDays, openIds });
+      const r = pruneNotes(src, { now: t, notesMax, notesDays, capMinDays, openIds });
       if (!r.archived.length && !r.overCap) continue;
       report.notes.push({ file, archived: r.archived.length, overCap: r.overCap });
       if (r.archived.length) say(`archive ${r.archived.length} bullet(s) of ${file} → archive/${name}`);
-      if (r.overCap) say(`${file} is still over ${notesMax} lines (undated bullets or open findings) — left as is`);
+      if (r.overCap) say(`${file} is still over ${notesMax} lines (undated, recent (< ${capMinDays} days) or open-finding bullets) — left as is`);
       if (!dryRun && r.archived.length) {
         const arch = path.join(dir, 'archive', name);
         mkdirSync(path.dirname(arch), { recursive: true });
