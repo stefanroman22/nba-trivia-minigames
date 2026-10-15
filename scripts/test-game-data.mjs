@@ -29,6 +29,18 @@ globalThis.localStorage = {
   clear: () => store.clear(),
 };
 
+// gameData.ts / questions.ts import "./seenCore" / "./gameData" / "./answerMatch" without extensions
+// (bundler style): a tiny resolve hook adds ".ts" and carries the importer's ?i=<n> to them, so each
+// load is a fresh page.
+register("data:text/javascript," + encodeURIComponent(`
+  export async function resolve(spec, ctx, next) {
+    if (/^\\.\\.?\\//.test(spec) && !/\\.[cm]?[jt]s$/.test(spec.split("?")[0]) && ctx.parentURL?.includes("/src/")) {
+      const q = ctx.parentURL.includes("?") ? ctx.parentURL.slice(ctx.parentURL.indexOf("?")) : "";
+      return next(spec + ".ts" + q, ctx);
+    }
+    return next(spec, ctx);
+  }`));
+
 const noSwap = () => 0.1;
 let instance = 0;
 /** A fresh module instance (module state = one page load) reading the current VITE_DATA_BASE. */
@@ -88,6 +100,23 @@ check("randomizeSides: swap keeps winner, keep leaves row",
     canonical(gd.randomizeSides(sample, () => 0.1)) === canonical(sample));
 check("non-side games are not swapped", sameRows(await gd.fetchGameRows("starting-five", undefined, () => 0.9), EXPECTED["starting-five"]));
 
+// 3b. Seen tracking (utils/seenCore.ts): a seen-aware deal never repeats until the pool is exhausted,
+// and loads further chunks only when the ones it has hold too few unseen rows.
+store.clear();
+gd = await load();
+const seenPlayoff = { game: "series-winner", idOf: (r) => r.match_id };
+server.log.length = 0;
+const firstDeal = await gd.fetchGameRows("playoff", 5, Math.random, seenPlayoff);
+check("seen: the first deal still loads one chunk", firstDeal.length === 5 && server.log.filter((p) => p.startsWith("playoff/c")).length === 1, server.log.join(", "));
+const dealtIds = firstDeal.map((r) => r.match_id);
+for (let i = 1; i < EXPECTED.playoff.length / 5; i++) dealtIds.push(...(await gd.fetchGameRows("playoff", 5, Math.random, seenPlayoff)).map((r) => r.match_id));
+check(`seen: ${EXPECTED.playoff.length / 5} deals of 5 cover all ${EXPECTED.playoff.length} series with no repeat`, new Set(dealtIds).size === EXPECTED.playoff.length, `${new Set(dealtIds).size} distinct`);
+const afterExhaustion = await gd.fetchGameRows("playoff", 5, Math.random, seenPlayoff);
+check("seen: the pool exhausted, the next deal resets and still deals 5", afterExhaustion.length === 5 && new Set(afterExhaustion.map((r) => r.match_id)).size === 5);
+const logos = [];
+for (let i = 0; i < 6; i++) logos.push(...(await gd.fetchGameRows("name-logo", 5, Math.random, { game: "name-logo", idOf: (r) => String(r.team_id) })).map((r) => r.team_id));
+check("seen: six Name the Logo games show all 30 logos once (single-file game)", new Set(logos).size === 30);
+
 // 4. localStorage: files cached under their content-addressed path; a new page load reuses them.
 const mvpsPath = MANIFEST.games.mvps.file;
 await gd.fetchGameRows("mvps");
@@ -142,16 +171,6 @@ gd = await load();
 check("VITE_DATA_BASE unset: not configured, throws", !gd.isConfigured() && (await gd.fetchGameRows("mvps", 5).catch((e) => e)) instanceof Error);
 
 // 6. Question games through src/utils/questions.ts (v3 first, Supabase store fallback).
-// questions.ts imports "./gameData" / "./answerMatch" without extensions (bundler style): a tiny
-// resolve hook adds ".ts" and carries this file's ?i=<n> to them, so each load is a fresh page.
-register("data:text/javascript," + encodeURIComponent(`
-  export async function resolve(spec, ctx, next) {
-    if (/^\\.\\.?\\//.test(spec) && !/\\.[cm]?[jt]s$/.test(spec.split("?")[0]) && ctx.parentURL?.includes("/src/")) {
-      const q = ctx.parentURL.includes("?") ? ctx.parentURL.slice(ctx.parentURL.indexOf("?")) : "";
-      return next(spec + ".ts" + q, ctx);
-    }
-    return next(spec, ctx);
-  }`));
 const { RealDate, pinDate } = (() => {
   const Real = Date;
   return {
@@ -232,6 +251,17 @@ qserver.log.length = 0;
 await gd.fetchQuestion("tictactoe");
 check("tictactoe: manifest + index + one question file", qserver.log.length === 3 && qserver.log.some((p) => p.startsWith("tictactoe/index.")), qserver.log.join(", "));
 check("question files cached in localStorage by path", [...store.keys()].some((k) => k.startsWith("gamedata:f:tictactoe/ttt-")));
+store.clear();
+qs = await loadQ();
+const wayQids = [];
+for (let i = 0; i < EXPECTED["who-are-ya"].length; i++) wayQids.push((await qs.fetchQuestion("who-are-ya")).data?.[0]?.qid);
+check("seen: who-are-ya deals every question once before repeating", new Set(wayQids).size === EXPECTED["who-are-ya"].length, wayQids.join(", "));
+const cpQids = [];
+for (let i = 0; i < EXPECTED["career-path"].length; i++) cpQids.push((await qs.fetchQuestion("career-path")).data?.[0]?.qid);
+check("seen: career-path (weighted) deals every question once before repeating", new Set(cpQids).size === EXPECTED["career-path"].length, cpQids.join(", "));
+const ctxQids = new Set();
+for (let i = 0; i < 3; i++) ctxQids.add((await qs.fetchQuestion("contexto")).data?.[0]?.qid);
+check("seen: contexto stays the daily question (not tracked)", ctxQids.size === 1 && !store.has("seen:contexto"));
 
 // Fallbacks to the Supabase store.
 const warnings = [];

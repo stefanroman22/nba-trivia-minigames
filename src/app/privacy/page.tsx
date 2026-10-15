@@ -183,6 +183,7 @@ export default function PrivacyPage() {
         <li>your sign-in tokens, and a cached copy of your profile so the page loads signed in;</li>
         <li>a random device code, used for the one-Wordle-a-day limit for guests;</li>
         <li>your theme choice and cached game data so games start quickly;</li>
+        <li>which questions you have already been shown in each game, so you don&apos;t get the same question twice;</li>
         <li>whether you hid the home-page notice about a change to these documents.</li>
       </LegalList>
       <p>You can clear all of it in your browser settings; you will be signed out.</p>

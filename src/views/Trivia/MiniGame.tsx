@@ -19,6 +19,7 @@ import { showErrorAlert } from '../../utils/Alerts';
 import type { Game, GameData } from '../../types/types';
 import { apiFetch, getAccessToken } from '../../utils/Api';
 import { addGuestPoints } from '../../utils/guestPoints';
+import { flushSeenToServer, syncSeenFromServer } from '../../utils/seen';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { AutoSize } from '../../components/motion/AutoHeight';
@@ -148,8 +149,11 @@ function MiniGame() {
     setEndedInPlace(false);
     awardedRef.current = false;
     runIdRef.current += 1;
+    // The account's seen set (signed in): fetched during the warm-up, waited on for at most 1.5 s.
+    const seenSync = syncSeenFromServer(game.id);
     setTimeout(async () => {
       if (!game) return;
+      await seenSync;
       const result = await game.fetchData();
       if (result.success) {
         setGameData(result.data ?? []);
@@ -333,6 +337,8 @@ function MiniGame() {
                   setScore(finalScore);
                   // Fire-and-forget: the reveal doesn't wait for the award.
                   void awardPoints(finalScore);
+                  // The questions dealt this game, one batched request to the account.
+                  if (game) flushSeenToServer(game.id);
                   if (opts?.inPlace) setEndedInPlace(true);
                   else setShowResult(true);
                 },

@@ -15,6 +15,7 @@
 // Callers (utils/pool.ts) fall back to the bundled /data copy when this module throws;
 // utils/questions.ts falls back to the Supabase Storage questions store.
 import type { GameData, NamesEntry, Question, QuestionIndex } from "../types/types";
+import { SEEN_GAMES, dealUnseen, loadSeen, markSeen, unseenOrAll } from "./seenCore";
 
 export const SCHEMA = 3;
 const BASE = (process.env.VITE_DATA_BASE || "").replace(/\/+$/, "");
@@ -34,6 +35,12 @@ export const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "tictactoe",
  * the answer would sit on the same side every time.
  */
 export const SIDE_GAMES = new Set(["playoff"]);
+
+/** A pool game dealt without repeats (utils/seenCore.ts): its seen-set key and its rows' question id. */
+export interface SeenPool {
+  game: string;
+  idOf: (row: GameData) => string;
+}
 
 type Row = Record<string, unknown>;
 export type Lookups = Record<string, Row[]>;
@@ -289,47 +296,87 @@ async function loadLookups(entry: GameEntry): Promise<Lookups> {
   return Object.fromEntries(pairs) as Lookups;
 }
 
-/** Encoded rows of an entry: the single file, all chunks (n undefined), or random chunks covering n rows. */
-async function loadEncoded(entry: GameEntry, n: number | undefined, rand: () => number): Promise<unknown[]> {
+interface Loaded {
+  rows: unknown[];
+  complete: boolean; // every row of the game is in `rows`
+}
+
+/**
+ * Encoded rows of an entry: the single file, all chunks (n undefined), or random chunks covering n
+ * rows; `enough` (a seen set's "n unseen rows loaded") replaces "n rows loaded" when given.
+ */
+async function loadEncoded(
+  entry: GameEntry,
+  n: number | undefined,
+  rand: () => number,
+  enough: (rows: unknown[]) => boolean = (rows) => rows.length >= (n ?? 0),
+): Promise<Loaded> {
   if (entry.kind === "single") {
     if (!entry.file) throw new GameDataUnavailable("single entry without a file");
-    return cachedFile(entry.file);
+    return { rows: await cachedFile(entry.file), complete: true };
   }
   if (entry.kind !== "chunked" || !entry.chunks?.length) throw new GameDataUnavailable(`unsupported entry kind ${entry.kind}`);
   const order = shuffle([...entry.chunks], rand);
-  if (n == null) return (await Promise.all(order.map(cachedFile))).flat();
+  if (n == null) return { rows: (await Promise.all(order.map(cachedFile))).flat(), complete: true };
   const perChunk = Math.max(1, Math.floor(entry.rows / entry.chunks.length));
   const first = Math.min(order.length, Math.max(1, Math.ceil(n / perChunk)));
   const rows = (await Promise.all(order.slice(0, first).map(cachedFile))).flat();
-  // Chunks are near-equal (round-robin at publish), so this rarely runs.
-  for (let i = first; i < order.length && rows.length < n; i++) rows.push(...(await cachedFile(order[i])));
-  return rows;
+  // Chunks are near-equal (round-robin at publish), so without a seen set this rarely runs.
+  let i = first;
+  for (; i < order.length && !enough(rows); i++) rows.push(...(await cachedFile(order[i])));
+  return { rows, complete: i >= order.length };
 }
 
-async function loadRowsFrom(m: ManifestV3, game: string, n: number | undefined, rand: () => number): Promise<unknown[]> {
+async function loadRowsFrom(
+  m: ManifestV3,
+  game: string,
+  n: number | undefined,
+  rand: () => number,
+  enough?: (rows: unknown[]) => boolean,
+): Promise<Loaded> {
   const entry = m.games[game];
   if (!entry) throw new GameDataUnavailable(`no ${game} in manifest ${m.version}`);
-  const [encoded, lookups] = await Promise.all([loadEncoded(entry, n, rand), loadLookups(entry)]);
-  return expand(encoded, lookups);
+  const [encoded, lookups] = await Promise.all([loadEncoded(entry, n, rand, enough), loadLookups(entry)]);
+  return { rows: expand(encoded.rows, lookups), complete: encoded.complete };
 }
 
 /**
  * Rows for a game: `n` random rows (all rows when n is undefined), in the renderers' shape,
- * with team sides re-randomized for SIDE_GAMES. Throws GameDataUnavailable (or a fetch error).
+ * with team sides re-randomized for SIDE_GAMES. With `seen`, the n rows are dealt without repeats
+ * (seenCore.dealUnseen): chunks are loaded until they hold n unseen rows or the whole pool.
+ * Throws GameDataUnavailable (or a fetch error).
  */
-export async function fetchGameRows(game: string, n?: number, rand: () => number = Math.random): Promise<GameData[]> {
+export async function fetchGameRows(
+  game: string,
+  n?: number,
+  rand: () => number = Math.random,
+  seen?: SeenPool,
+): Promise<GameData[]> {
   const m = await getManifest();
-  let rows: unknown[];
+  const tracked = n == null ? undefined : seen;
+  let enough: ((rows: unknown[]) => boolean) | undefined;
+  if (tracked && n != null) {
+    const shown = loadSeen(tracked.game);
+    // Counted on encoded rows: the id fields (match_id, team_id, season, game_id, qid) are never lookups.
+    enough = (rows) => rows.reduce<number>((c, r) => c + (shown.has(tracked.idOf(r as GameData)) ? 0 : 1), 0) >= n;
+  }
+  let loaded: Loaded;
   try {
-    rows = await loadRowsFrom(m, game, n, rand);
+    loaded = await loadRowsFrom(m, game, n, rand, enough);
   } catch (err) {
     // A manifest up to 60 s old can point at files a publish just retired: retry once on a fresh one.
     manifestCache = null;
     const fresh = await getManifest().catch(() => m);
     if (fresh === m || JSON.stringify(fresh.games[game]) === JSON.stringify(m.games[game])) throw err;
-    rows = await loadRowsFrom(fresh, game, n, rand);
+    loaded = await loadRowsFrom(fresh, game, n, rand, enough);
   }
-  const picked = n == null ? [...rows] : shuffle([...rows], rand).slice(0, n);
+  const rows = loaded.rows;
+  const picked =
+    n == null
+      ? [...rows]
+      : tracked
+        ? dealUnseen(tracked.game, rows as GameData[], n, tracked.idOf, loaded.complete, rand)
+        : shuffle([...rows], rand).slice(0, n);
   return (SIDE_GAMES.has(game) ? picked.map((r) => randomizeSides(r, rand)) : picked) as GameData[];
 }
 
@@ -392,6 +439,17 @@ export const PICKERS: Record<string, (i: QuestionIndex, rand?: () => number) => 
   imposter: (i) => String(i.items[0][0]),
 };
 
+/**
+ * The qid a single-player game deals: its picker over the index, limited for the SEEN_GAMES to the
+ * questions not seen yet (every one again once all have been seen: utils/seenCore.ts). The caller
+ * marks the pick seen once its file has loaded.
+ */
+export function pickQuestion(game: string, index: QuestionIndex, rand: () => number = Math.random): string {
+  const picker = PICKERS[game] ?? pickRandom;
+  if (!SEEN_GAMES.has(game)) return picker(index, rand);
+  return picker({ ...index, items: unseenOrAll(game, index.items, (it) => String(it[0])) }, rand);
+}
+
 /** True when the manifest publishes this question game. */
 export function hasQuestions(m: ManifestV3, game: string): boolean {
   const entry = m.games[game];
@@ -417,10 +475,12 @@ async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number,
   const index = await loadIndexFrom(m, game);
   if (!index.items.length) throw new GameDataUnavailable(`no ${game} questions`);
   const view: QuestionIndex = { schema: index.schema, game, version: m.version, dataset: index.dataset, items: index.items };
-  const pick = qid ?? (PICKERS[game] ?? pickRandom)(view, rand);
+  const pick = qid ?? pickQuestion(game, view, rand);
   const sha = index.files[pick];
   if (!sha) throw new GameDataUnavailable(`${game}/${pick} is not in the index`);
-  return cachedJson(questionPath(game, pick, sha), isQuestion, "a question");
+  const question = await cachedJson(questionPath(game, pick, sha), isQuestion, "a question");
+  if (qid == null && SEEN_GAMES.has(game)) markSeen(game, [pick]);
+  return question;
 }
 
 /**
