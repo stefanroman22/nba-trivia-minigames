@@ -1,0 +1,29 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>scale-in fixture</title>
+<style>
+  body { margin: 0; font: 16px sans-serif; }
+  /* A modal panel that pops in from scale .9 over 400 ms (like the app's modal popIn), driven by rAF inline
+     writes the way framer-motion does it; the 24×24 button inside measures smaller until the scale settles. */
+  #panel { position: absolute; left: 40px; top: 40px; width: 200px; height: 120px; background: #222; }
+  #toggle { width: 24px; height: 24px; margin: 20px; padding: 0; border: 0; background: #888; }
+  #small { width: 20px; height: 16px; margin: 20px; padding: 0; border: 0; background: #888; }
+</style></head>
+<body>
+<div id="root"><button id="open">open</button></div>
+<script>
+  document.getElementById('open').addEventListener('click', () => {
+    const panel = document.createElement('div');
+    panel.id = 'panel';
+    panel.innerHTML = '<button id="toggle">t</button><button id="small">s</button>';
+    panel.style.transform = 'scale(.9)';
+    document.getElementById('root').appendChild(panel);
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 400);
+      panel.style.transform = `scale(${0.9 + 0.1 * k})`;
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+</script>
+</body></html>
