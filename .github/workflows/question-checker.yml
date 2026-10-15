@@ -14,9 +14,9 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: "most pending questions to check in this run"
+        description: "most pending questions to check in this run (auto: 150 while 150+ are pending, else 60)"
         required: false
-        default: "60"
+        default: "auto"
         type: string
       batch_size:
         description: "questions per Checker session"
@@ -59,7 +59,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
-          LIMIT: ${{ inputs.limit || '60' }}
+          LIMIT: ${{ inputs.limit || 'auto' }}
           BATCH_SIZE: ${{ inputs.batch_size || '10' }}
         run: python manage.py export_checker_batches --out "$GITHUB_WORKSPACE/checker" --limit "$LIMIT" --batch-size "$BATCH_SIZE"
       - name: Keep the batches for the Checker

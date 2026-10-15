@@ -13,17 +13,22 @@ from trivia.data_pipeline import publish_v3
 from trivia.questions.checker_jobs import export_batches
 
 
+def _limit(value):
+    return value if value == "auto" else max(0, int(value))
+
+
 class Command(BaseCommand):
     help = "Export pending questions as small batches for the Checker agent."
 
     def add_arguments(self, parser):
         parser.add_argument("--out", required=True, help="Folder to write batch-NNN.json files into")
-        parser.add_argument("--limit", type=int, default=60, help="Most questions to export (default 60)")
+        parser.add_argument("--limit", type=_limit, default="auto",
+                            help="Most questions to export, or auto: 150 while 150+ are pending, else 60 (default)")
         parser.add_argument("--batch-size", type=int, default=10, help="Questions per batch (default 10)")
 
     def handle(self, *args, **opts):
         dataset = publish_v3.curated_dataset()
-        batches = export_batches(dataset, max(0, opts["limit"]), max(1, opts["batch_size"]), out=self.stdout.write)
+        batches = export_batches(dataset, opts["limit"],max(1, opts["batch_size"]), out=self.stdout.write)
         os.makedirs(opts["out"], exist_ok=True)
         for b in batches:
             with open(os.path.join(opts["out"], f"batch-{b['batch']}.json"), "w", encoding="utf-8") as f:

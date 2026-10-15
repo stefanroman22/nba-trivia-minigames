@@ -2,6 +2,7 @@
 import json
 import os
 import random
+import shutil
 import tempfile
 from io import StringIO
 from unittest.mock import patch
@@ -93,6 +94,24 @@ class ExportTests(CheckerJobsTestCase):
                                 content_hash=content_hash({"person_id": -1}), status="pending")
         _, questions = self._questions(self.export())
         self.assertNotIn("cp-999999", [q["qid"] for q in questions])
+
+    def _export_pending(self, n, *args):
+        """Export n plain pending rows (their views stubbed) and return the exported questions."""
+        Question.objects.all().delete()
+        shutil.rmtree(os.path.join(self.tmp, "batches"), ignore_errors=True)
+        Question.objects.bulk_create([
+            Question(game="career-path", qid=f"cp-{i:06d}", definition={"person_id": i},
+                     content_hash=f"{i:064d}", status="pending") for i in range(n)])
+        with patch("trivia.questions.checker_jobs._view", return_value=({"q": 1}, "s" * 64)):
+            return self._questions(self.export("--batch-size", "50", *args))[1]
+
+    def test_auto_limit_is_150_while_150_or_more_are_pending_else_60(self):
+        for pending, exported in ((20, 20), (149, 60), (150, 150), (200, 150)):
+            with self.subTest(pending=pending):
+                self.assertEqual(len(self._export_pending(pending, "--limit", "auto")), exported)
+
+    def test_the_default_limit_is_auto(self):
+        self.assertEqual(len(self._export_pending(160)), 150)
 
     def test_nothing_pending(self):
         out = self.export()

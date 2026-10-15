@@ -21,6 +21,7 @@ from trivia.questions.runner import _materialize
 MAX_CLAIMS_KEPT = 50
 MAX_SOURCES_KEPT = 10
 MAX_TEXT = 500
+AUTO_LIMIT_BACKLOG, AUTO_LIMIT = 150, 60  # owner decision 2: 150 a day until the backlog is gone, then 60
 
 
 def _view(row, dataset):
@@ -36,7 +37,8 @@ def _view(row, dataset):
 def export_batches(dataset, limit, batch_size, out=None):
     """[{"batch", "checker_version", "allowed_sites", "questions"}] for up to `limit`
     pending questions: Contexto days first (earliest first, they expire), then the
-    games with the fewest live questions."""
+    games with the fewest live questions. limit="auto" is 150 while 150 or more are
+    pending, else 60."""
     live = Counter(Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_ACTIVE)
                    .values_list("game", flat=True))
 
@@ -47,6 +49,8 @@ def export_batches(dataset, limit, batch_size, out=None):
 
     pending = sorted(Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_PENDING),
                      key=priority)
+    if limit == "auto":
+        limit = AUTO_LIMIT_BACKLOG if len(pending) >= AUTO_LIMIT_BACKLOG else AUTO_LIMIT
     questions = []
     for row in pending:
         if len(questions) >= limit:
