@@ -23,6 +23,9 @@ def at(day=DAY, hour=12):
     return datetime.datetime.combine(day, datetime.time(hour), tzinfo=UTC)
 
 
+NOW = at(DAY + datetime.timedelta(days=2))
+
+
 def guess(answer="x", correct=False, user=None, elapsed=None, game="career-path", qid="cp-1", when=None):
     row = GuessLog.objects.create(user=user, game=game, question_id=qid, answer=answer,
                                   correct=correct, elapsed_ms=elapsed)
@@ -45,9 +48,9 @@ class RollupTestCase(TestCase):
         self.ann = User.objects.create_user(username="Ann", email="ann@example.com", password="Str0ng!Passw0rd")
         self.bob = User.objects.create_user(username="Bob", email="bob@example.com", password="Str0ng!Passw0rd")
 
-    def roll(self, batch=5000):
+    def roll(self, batch=5000, now=None):
         journal = Journal("rollup")
-        return rollup.run(journal, batch=batch), journal
+        return rollup.run(journal, batch=batch, now=now or NOW), journal
 
 
 class NormalizeAnswerTests(TestCase):
@@ -125,6 +128,39 @@ class QuestionStatsTests(RollupTestCase):
         self.assertEqual(s.time_ms_sum, sum(range(250)))
         self.assertLessEqual(abs(s.time_ms_p50 - 124), 10)
 
+    def test_p50_merge_weights_the_stored_sample_by_the_rows_it_stands_for(self):
+        QuestionStats.objects.create(game="career-path", question_id="cp-1", day=DAY, attempts=4800,
+                                     time_ms_sum=4800 * 10_000, time_ms_p50=10_000,
+                                     time_sample=list(range(9_900, 10_100)), players=100)
+        for i in range(250):  # few rows next to 4800, but more than the 200 stored values
+            guess("x", elapsed=900 + i)
+        self.roll()
+        s = QuestionStats.objects.get()
+        self.assertEqual(s.attempts, 5050)
+        self.assertEqual(len(s.time_sample), rollup.SAMPLE_CAP)
+        self.assertGreaterEqual(s.time_ms_p50, 9_900)
+
+    def test_rows_newer_than_the_cutoff_wait_for_a_later_run(self):
+        now = at(hour=12)
+        old = guess("a", when=at(hour=11))
+        fresh = guess("b", when=now - datetime.timedelta(minutes=5))
+        self.roll(now=now)
+        self.assertEqual(QuestionStats.objects.get().attempts, 1)
+        mark = RollupWatermark.objects.get(name="guess_log").last_id
+        self.assertEqual(mark, old.pk)
+        self.assertLess(mark, fresh.pk)
+        self.roll(now=at(hour=13))
+        self.assertEqual(QuestionStats.objects.get().attempts, 2)
+        self.assertEqual(RollupWatermark.objects.get(name="guess_log").last_id, fresh.pk)
+
+    def test_an_older_row_behind_a_fresh_id_waits_too(self):
+        now = at(hour=12)
+        fresh = guess("a", when=now - datetime.timedelta(minutes=1))
+        guess("b", when=at(hour=11))  # higher id, old timestamp: must not move the watermark past `fresh`
+        self.roll(now=now)
+        self.assertFalse(QuestionStats.objects.exists())
+        self.assertLess(RollupWatermark.objects.get(name="guess_log").last_id, fresh.pk)
+
     def test_rows_without_time_count_but_add_no_time(self):
         guess("x", elapsed=None)
         self.roll()
@@ -193,6 +229,16 @@ class GameDailyStatsTests(RollupTestCase):
                          GameSession.objects.order_by("-id").first().pk)
         self.assertEqual(totals["plays"], 7)
         self.assertEqual([e["detail"]["rows"] for e in journal.events if e["reason"] == "game_session"], [2, 2, 2, 1])
+
+    def test_sessions_newer_than_the_cutoff_wait_for_a_later_run(self):
+        now = at(hour=12)
+        session(user=self.ann, when=at(hour=11))
+        fresh = session(user=self.bob, when=now - datetime.timedelta(minutes=5))
+        self.roll(now=now)
+        self.assertEqual(GameDailyStats.objects.get().plays, 1)
+        self.assertLess(RollupWatermark.objects.get(name="game_session").last_id, fresh.pk)
+        self.roll(now=at(hour=13))
+        self.assertEqual((GameDailyStats.objects.get().plays, GameDailyStats.objects.get().players), (2, 2))
 
 
 class CommandTests(RollupTestCase):

@@ -4,6 +4,8 @@ QuestionStats, WrongAnswerStats and GameDailyStats tables (spec §4.7, phase 3).
 Rows are read in id order above a per-source RollupWatermark, in batches. Each batch
 is one transaction that also advances the watermark, so a row is counted exactly once
 and cleanup may delete raw rows below the watermark. Running twice adds nothing.
+Only rows older than CUTOFF are rolled, and a batch stops before the first younger
+row, so the watermark never passes a row whose insert may not have committed yet.
 
 Days are UTC. `players` is distinct signed-in users plus guests counted as one
 anonymous player per day. The roll-ups store no user ids (spec: not personal data),
@@ -21,36 +23,40 @@ import datetime
 from django.db import transaction
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
+from django.utils import timezone
 
 from trivia.models import GameDailyStats, GameSession, GuessLog, QuestionStats, RollupWatermark, WrongAnswerStats
 from trivia.utils.text_utils import normalize_answer
 
 BATCH = 5000
 SAMPLE_CAP = 200
+CUTOFF = datetime.timedelta(minutes=10)  # rows younger than this may still be in flight
 GUESS_LOG, GAME_SESSION = "guess_log", "game_session"
 UTC = datetime.timezone.utc
 ANSWER_NORM_MAX = WrongAnswerStats._meta.get_field("answer_norm").max_length
 
 
-def run(journal, batch=BATCH):
-    """Fold everything above the watermarks; one `counted` journal event per batch."""
+def run(journal, batch=BATCH, now=None):
+    """Fold everything above the watermarks and older than the cutoff; one `counted`
+    journal event per batch."""
+    cutoff = (now or timezone.now()) - CUTOFF
     totals = {"answers": 0, "plays": 0}
-    while n := _roll_batch(journal, GUESS_LOG, batch):
+    while n := _roll_batch(journal, GUESS_LOG, batch, cutoff):
         totals["answers"] += n
-    while n := _roll_batch(journal, GAME_SESSION, batch):
+    while n := _roll_batch(journal, GAME_SESSION, batch, cutoff):
         totals["plays"] += n
     return totals
 
 
-def _roll_batch(journal, name, batch):
+def _roll_batch(journal, name, batch, cutoff):
     with transaction.atomic():
         RollupWatermark.objects.get_or_create(name=name)
         mark = RollupWatermark.objects.select_for_update().get(name=name)
         if name == GUESS_LOG:
-            rows = _rows(GuessLog, "created_at", mark.last_id, batch,
+            rows = _rows(GuessLog, "created_at", mark.last_id, batch, cutoff,
                          "game", "question_id", "answer", "correct", "elapsed_ms", "created_at")
         else:
-            rows = _rows(GameSession, "finished_at", mark.last_id, batch, "game", "mode")
+            rows = _rows(GameSession, "finished_at", mark.last_id, batch, cutoff, "game", "mode")
         if not rows:
             return 0
         hi = rows[-1]["id"]
@@ -64,8 +70,15 @@ def _roll_batch(journal, name, batch):
     return len(rows)
 
 
-def _rows(model, when, last_id, batch, *fields):
-    return list(model.objects.filter(id__gt=last_id).order_by("id")
+def _rows(model, when, last_id, batch, cutoff, *fields):
+    """The next batch above the watermark, stopping before the first row newer than the
+    cutoff: ids are allocated at insert but visible only at commit, so a row still in
+    flight must not be passed by the watermark (cleanup would delete it uncounted)."""
+    above = model.objects.filter(id__gt=last_id)
+    fence = above.filter(**{f"{when}__gte": cutoff}).order_by("id").values_list("id", flat=True).first()
+    if fence is not None:
+        above = above.filter(id__lt=fence)
+    return list(above.filter(**{f"{when}__lt": cutoff}).order_by("id")
                 .annotate(day=TruncDate(when, tzinfo=UTC)).values("id", "user_id", "day", *fields)[:batch])
 
 
@@ -87,13 +100,26 @@ def _players_per_key(qs, fields, keys):
     return out
 
 
-def _merge_sample(sample, new):
-    """Sorted merge capped at SAMPLE_CAP values, evenly spaced over the merged order."""
-    merged = sorted(list(sample) + list(new))
-    n = len(merged)
-    if n <= SAMPLE_CAP:
-        return merged
-    return [merged[round(i * (n - 1) / (SAMPLE_CAP - 1))] for i in range(SAMPLE_CAP)]
+def _spread(values, k):
+    """k evenly spaced order statistics of the sorted `values`."""
+    n = len(values)
+    if k <= 0 or not n:
+        return []
+    if k == 1:
+        return [values[(n - 1) // 2]]
+    return [values[round(i * (n - 1) / (k - 1))] for i in range(k)]
+
+
+def _merge_sample(sample, new, n_old):
+    """Sorted merge capped at SAMPLE_CAP values. Above the cap the slots are split by
+    weight: the stored sample stands for `n_old` rows, the new batch for its own size."""
+    new = sorted(new)
+    if len(sample) + len(new) <= SAMPLE_CAP:
+        return sorted(list(sample) + new)
+    k_old = min(round(SAMPLE_CAP * n_old / (n_old + len(new))), len(sample))
+    k_new = min(SAMPLE_CAP - k_old, len(new))
+    k_old = min(SAMPLE_CAP - k_new, len(sample))  # slots one side cannot fill go to the other
+    return sorted(_spread(list(sample), k_old) + _spread(new, k_new))
 
 
 def _p50(sample):
@@ -129,11 +155,11 @@ def _fold_question_stats(rows, hi):
     out = []
     for key, g in groups.items():
         s = existing.get(key) or QuestionStats(game=key[0], question_id=key[1], day=key[2])
+        s.time_sample = _merge_sample(s.time_sample, g["times"], s.attempts)  # attempts before this batch
         s.attempts += g["attempts"]
         s.correct += g["correct"]
         s.skips += g["skips"]
         s.time_ms_sum += g["time_ms_sum"]
-        s.time_sample = _merge_sample(s.time_sample, g["times"])
         s.time_ms_p50 = _p50(s.time_sample)
         s.players = max(s.players, players.get(key, 0))
         out.append(s)

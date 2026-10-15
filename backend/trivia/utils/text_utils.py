@@ -6,8 +6,8 @@ def normalize_answer(s):
     """Backend twin of the client's normalizeAnswer (src/utils/answerMatch.ts):
     lowercase, strip accents (NFD), drop ' ’ . , - and collapse whitespace."""
     s = unicodedata.normalize("NFD", (s or "").lower())
-    s = re.sub(r"[̀-ͯ]", "", s)
-    s = re.sub(r"['’.,-]", "", s)
+    s = re.sub(r"[\u0300-\u036f]", "", s)
+    s = re.sub(r"['\u2019.,-]", "", s)
     return re.sub(r"\s+", " ", s).strip()
 
 
