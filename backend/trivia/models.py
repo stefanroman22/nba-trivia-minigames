@@ -9,6 +9,7 @@ game views/pool builders read from these tables; no game owns its own storage.
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 
 class Team(models.Model):
@@ -183,6 +184,26 @@ class GuessLog(models.Model):
 
     def __str__(self):
         return f"{self.game}/{self.question_id}: {self.answer}"
+
+
+class SeenQuestion(models.Model):
+    """One question a signed-in player has been shown, so single-player pickers deal no repeats
+    (spec §4.4). No answer text. Deleted with the account and when the question is retired
+    (trivia.questions.cleanup)."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    game = models.CharField(max_length=40)
+    qid = models.CharField(max_length=60)
+    seen_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "game", "qid"], name="uniq_seen_user_game_qid"),
+        ]
+        indexes = [models.Index(fields=["user", "game"])]
+
+    def __str__(self):
+        return f"{self.user_id} saw {self.game}/{self.qid}"
 
 
 class WordleDailyWord(models.Model):

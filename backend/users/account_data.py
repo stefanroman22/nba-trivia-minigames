@@ -15,7 +15,7 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
-from trivia.models import Feedback, GameSession, GuessLog, WordlePlay
+from trivia.models import Feedback, GameSession, GuessLog, SeenQuestion, WordlePlay
 from users import friends_cache, leaderboard
 from users.models import BlockedUser, FriendRequest, Friendship, ModerationEvent
 from users.tokens import revoke_sessions
@@ -51,6 +51,7 @@ def delete_account(user):
         GameSession.objects.filter(user=user).delete()
         GuessLog.objects.filter(user=user).delete()
         WordlePlay.objects.filter(user=user).delete()
+        SeenQuestion.objects.filter(user=user).delete()
         Feedback.objects.filter(user=user).delete()
         Feedback.objects.filter(public_id=public_id).delete()  # snapshot rows whose FK was nulled
         Feedback.objects.filter(email__iexact=user.email).delete()  # feedback sent as a guest with this address
@@ -164,6 +165,10 @@ def export_account(user):
         "guesses": [
             {"game": g.game, "question_id": g.question_id, "answer": g.answer, "correct": g.correct, "elapsed_ms": g.elapsed_ms, "at": _iso(g.created_at)}
             for g in GuessLog.objects.filter(user=user).order_by("id")
+        ],
+        "seen_questions": [
+            {"game": s.game, "qid": s.qid, "at": _iso(s.seen_at)}
+            for s in SeenQuestion.objects.filter(user=user).order_by("id")
         ],
         "wordle_plays": [{"date": p.play_date.isoformat(), "device_id": p.device_id} for p in WordlePlay.objects.filter(user=user)],
         "feedback": [

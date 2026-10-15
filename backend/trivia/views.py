@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models.functions import Length
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 
 from trivia.models import (
@@ -18,10 +18,17 @@ from trivia.models import (
     Mvp,
     Player,
     PlayoffSeries,
+    SeenQuestion,
     StartingFiveGame,
     Team,
 )
-from backend.throttles import FeedbackRateThrottle, GuessLogRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
+from backend.throttles import (
+    FeedbackRateThrottle,
+    GuessLogRateThrottle,
+    ScoreSubmitRateThrottle,
+    SeenRateThrottle,
+    WordlePlayRateThrottle,
+)
 from users import leaderboard
 from trivia.data_pipeline.live_pool import load_dataset as load_curated_dataset
 from trivia.data_pipeline.starting_five import (
@@ -366,6 +373,40 @@ def _award(user, score):
     user.save(update_fields=['points', 'rank'])
     leaderboard.record_score(user)
     return score
+
+
+# One game's seen set is a few KB at this size; a batch is one game's worth of questions.
+_MAX_SEEN_LISTED = 5000
+_MAX_SEEN_BATCH = 200
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def seen_list(request, game):
+    """The questions of `game` this account has already been shown, newest first (spec §4.4).
+    Fetched once when a game starts and merged into the browser's own seen set."""
+    qids = SeenQuestion.objects.filter(user=request.user, game=game).order_by(
+        '-seen_at', '-id').values_list('qid', flat=True)[:_MAX_SEEN_LISTED]
+    return JsonResponse({'qids': list(qids)})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([SeenRateThrottle])
+def seen_add(request):
+    """POST {game, qids}: record the questions shown in a finished game, one batch per game.
+    Ids past the first 200 are ignored; ids already recorded are skipped."""
+    body = request.data if isinstance(request.data, dict) else {}
+    game = str(body.get('game', ''))[:40]
+    qids = body.get('qids')
+    if not game or not isinstance(qids, list):
+        return JsonResponse({'error': 'game and qids are required'}, status=400)
+    wanted = list(dict.fromkeys(q for q in qids[:_MAX_SEEN_BATCH] if isinstance(q, str) and 0 < len(q) <= 60))
+    known = set(SeenQuestion.objects.filter(user=request.user, game=game, qid__in=wanted).values_list('qid', flat=True))
+    rows = [SeenQuestion(user=request.user, game=game, qid=q) for q in wanted if q not in known]
+    if rows:
+        SeenQuestion.objects.bulk_create(rows, ignore_conflicts=True)
+    return JsonResponse({'added': len(rows)})
 
 
 User = get_user_model()

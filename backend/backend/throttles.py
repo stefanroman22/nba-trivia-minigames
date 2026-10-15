@@ -79,3 +79,9 @@ class GuessLogRateThrottle(UserRateThrottle):
     """Anonymous answer logging for question statistics. A game sends one batch, so the limit is far above
     real play and only stops someone flooding the table or poisoning the statistics."""
     scope = "guess-log"
+
+
+class SeenRateThrottle(UserRateThrottle):
+    """Recording which questions a signed-in player has been shown. A game sends one batch at the end,
+    so the limit is far above real play and only bounds someone filling the table."""
+    scope = "seen"

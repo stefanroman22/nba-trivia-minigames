@@ -1,6 +1,6 @@
 # Record of processing (GDPR Art 30), legitimate-interests assessment, DPIA screening
 
-Verified against the code on 2026-10-07; consent rows updated 2026-10-11 (data audit of `backend/`, `src/`, `multiplayer_server/`). Controller and
+Verified against the code on 2026-10-07; consent rows updated 2026-10-11; row 6a added 2026-10-15 (data audit of `backend/`, `src/`, `multiplayer_server/`). Controller and
 contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md for the thresholds to watch).
 
 ## 1. Processing activities
@@ -13,6 +13,7 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 | 4 | Profile photo (256x256 JPEG); upload is OFF in production until the photo-check service is deployed | Account holders aged 16+ (optional) | Show to other players | Consent (Art 6(1)(a)), removable | Public | Until removed or deletion | Postgres (`profile_photo_data`) |
 | 5 | Friends, requests, blocks | Account holders | Friends features | Contract | The parties; operator | Until removed or deletion | Postgres |
 | 6 | Game sessions and per-guess answers | Account holders; guests (answers only, unlinked) | Player record, statistics, fair play | Contract (own record); legitimate interests (statistics) | Operator | Sessions 24 months; answers 30 days | Postgres (`GameSession`, `GuessLog`) |
+| 6a | Questions already shown to you (user, game, question ID, time; no answer text) | Account holders | No repeats | Contract | Operator | Until the question is retired or the account is deleted | Postgres (`SeenQuestion`) |
 | 7 | Wordle play gate (user or random device ID, date) | Account holders, guests | One Wordle per day | Legitimate interests | Operator | Pruned daily after the day | Postgres (`WordlePlay`) |
 | 8 | Feedback (rating, message, page, email and name snapshot) | Any sender | Product improvement, reply | Legitimate interests | Operator | Until handled; resolved: 12 months; deleted with account | Postgres (`Feedback`) |
 | 9 | Moderation events (reason code, salted SHA-256 of IP) and the strike count / ban status on the account | Account holders; sign-up attempts | Enforce rules, stop repeat abuse | Legitimate interests (LIA below) | Operator | Events 12 months (or while a ban stands); strike count and ban status stay with the account (strikes do not expire); ban record at most 5 years | Postgres (`ModerationEvent`, user fields) |
