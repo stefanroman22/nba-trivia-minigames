@@ -58,6 +58,11 @@ appends what a later run can reuse (a false positive and why, a selector that wo
 - Perf budgets (TTFB 800, LCP 2500, CLS 0.1) apply in prod only. Home is loaded twice and the second load is
   measured. Even so, a TTFB or LCP spike can still come from load (4 workers, one Django): re-run that viewport
   alone (`--only G-PERF-01 --vp <id>`) before calling it real. CLS on phones is real (legal notice).
+- `--live` runs (`guest-live@<vp>`, digest `· env live`): any non-GET/HEAD request or websocket to a remote origin is
+  aborted and fails the test as `live-write`. A `live-write` is never a site bug to file: it is the guard doing its job.
+  Known cause: Google Identity Services (`accounts.google.com/gsi/...`) may POST when the login modal mounts the Google
+  button; that conservative failure is correct (the check must not send it). Report it to the owner instead of filing a
+  finding, and leave the check untagged rather than loosening the guard. Live perf numbers include real network latency.
 
 ## Flaky spots
 

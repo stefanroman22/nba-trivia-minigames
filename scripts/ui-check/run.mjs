@@ -8,7 +8,8 @@
 //   node scripts/ui-check/run.mjs --live [url] [--vp …] [--only …] [--ref …|--repo …]   the guest checks tagged @live
 //                                 against the live site (default https://swishquest.com), read-only: projects
 //                                 guest-live@<vp> (core vps by default), no stack, no accounts, GET/HEAD only (any
-//                                 other request or a websocket fails the test as `live-write`); results carry env 'live'.
+//                                 other request is aborted, a websocket refused, and the test fails as `live-write`);
+//                                 results carry env 'live'; the run id is YYYYMMDD-HHmm-live.
 //                                 --ref/--repo only pick the game catalogue the checks expect (default: main's).
 // --ref: the app code under test, built in a worktree by check-core/lib/checkout.mjs (default main in prod mode,
 // '.' = this checkout in dev mode); --repo <dir> runs an existing checkout instead. run-meta.json records ref/head/repo.
@@ -99,6 +100,13 @@ function liveGrep(only, perf) {
   return `^${perf ? `(?=.*${PERF_TAG})` : ''}(?=.*${LIVE_TAG})${ids ? `(?=.*${ids})` : ''}`;
 }
 
+/** A first (non-append) invocation must not write into a run dir that already holds results (same id, same minute). */
+function usedRunDir() {
+  if (!existsSync(path.join(runDir(), 'results.json'))) return false;
+  console.error(`ui-check: run ${runId()} already has results (${runDir()}) — start again in a minute or set UI_CHECK_RUN to a new id`);
+  return true;
+}
+
 function readResults() {
   try { return JSON.parse(readFileSync(path.join(runDir(), 'results.json'), 'utf8')); } catch { return []; }
 }
@@ -161,7 +169,7 @@ async function main() {
     console.log('  --skip-slow   leave out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01) for quick verify loops');
     console.log('  --where       print where runs and the stack file live (uicHome) and the latest run directory');
     console.log('  --live [url]  the guest checks tagged @live against the live site (default https://swishquest.com), core vps,');
-    console.log('                no stack, no accounts, GET/HEAD only: any other request or a websocket fails the test (live-write)');
+    console.log('                no stack, no accounts, GET/HEAD only: any other request is aborted / websocket refused and fails the test (live-write)');
     console.log('  --stop        stop a stack kept with --keep-stack (or left behind by a killed run) and exit: the checker');
     console.log('                ports (prod + dev), or with --ports only that port set (a pipeline lane)');
     return 0;
@@ -200,6 +208,7 @@ async function main() {
   } catch (e) { console.error(`ui-check: ${e.message}`); return 1; }
   process.env.UI_CHECK_REPO = app.repo;
   const id = runId();
+  if (usedRunDir()) return 2;
   const t0 = Date.now();
   console.log(`ui-check: run ${id} · mode ${opts.mode} · suites ${suites.join(',')} · vps ${opts.vp}${opts.only ? ` · only ${opts.only}` : ''}`);
   console.log(`ui-check: app ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)} · ports ${process.env.UI_CHECK_PORTS}`);
@@ -261,7 +270,7 @@ async function main() {
 
 /**
  * --live: the guest checks tagged @live against the live site, read-only. No stack and no accounts: the guest-live@<vp>
- * projects have no stack-setup dependency, and the audits' guard fails a test on any non-GET/HEAD request or websocket
+ * projects have no stack-setup dependency, and the guard (context fixture + audits) aborts and fails a test on any non-GET/HEAD request or websocket
  * to a non-localhost origin (`live-write`). The checkout (--ref, default main, or --repo) only supplies the game catalogue.
  */
 async function runLive(opts) {
@@ -289,7 +298,8 @@ async function runLive(opts) {
   const childEnv = { UI_CHECK_MODE: 'prod', UI_CHECK_ENV: 'live', UI_CHECK_LIVE_URL: url.origin, UI_CHECK_REPO: app.repo };
   Object.assign(process.env, childEnv);
   installEmergencyStop(false, null, () => []); // nothing of ours runs: never touch a local stack
-  const id = runId();
+  const id = runId('-live'); // its own id: a local run in the same minute never shares (and overwrites) its run dir
+  if (usedRunDir()) return 2;
   childEnv.UI_CHECK_RUN = id;
   const t0 = Date.now();
   console.log(`ui-check: run ${id} · LIVE ${url.origin} (read-only, GET/HEAD only) · guest @live · vps ${live.join(',')}${opts.only ? ` · only ${opts.only}` : ''}`);
@@ -314,6 +324,9 @@ async function runLive(opts) {
   const guarded = results.filter((r) => r.liveRequests).length;
   console.log(`ui-check: live requests: ${reads} GET/HEAD · ${writes} live-write (other methods / websockets) · guard on ${guarded} of ${results.length} test(s)`);
   if (writes) exit = Math.max(exit, 1);
+  // Every test that ran must have been guarded (its audits attach the guard's counters); one that was not proves nothing.
+  const ran = results.filter((r) => r.status !== 'skipped').length;
+  if (guarded < ran) { console.error(`ui-check: only ${guarded} of ${ran} test(s) that ran carry the live guard's counters — failing the live run`); exit = Math.max(exit, 1); }
   try {
     const sheets = await contactSheets(results);
     if (sheets.length) console.log(`ui-check: ${sheets.length} contact sheet(s) in ${path.join(runDir(), 'sheets')}`);

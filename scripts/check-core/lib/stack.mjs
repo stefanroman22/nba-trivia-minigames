@@ -11,7 +11,7 @@
 // started them (a Playwright worker) until stopStack().
 import { spawn, spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { closeSync, existsSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, existsSync, linkSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync, writeSync } from 'node:fs';
 import { connect } from 'node:net';
 import path from 'node:path';
 import { ROOT, uicHome } from './home.mjs';
@@ -142,29 +142,49 @@ const LOCK_WAIT_MS = 15_000;
 /**
  * Run fn() holding <uicHome>/stack.json.lock (created with 'wx', so one holder at a time across processes): every
  * read-modify-write of stack.json goes through here, so a checker stack and a pipeline lane writing at once never
- * lose an entry. A lock older than 30 s is a crashed holder's and is removed; waiting longer than 15 s throws.
+ * lose an entry. The lock holds a unique token and is released only while it still holds ours. A lock older than 30 s
+ * is a crashed holder's: it is taken over by renaming it to a unique name (only one taker can rename a given file),
+ * re-checking the renamed file's age (another taker may have replaced the stale lock with its own live one meanwhile:
+ * then it is linked back, never deleted) and deleting it only when it is really stale. Waiting longer than 15 s throws.
  */
-function withStackLock(fn) {
+export function withStackLock(fn) {
   mkdirSync(UIC_ROOT, { recursive: true });
+  const token = `${process.pid}-${randomBytes(6).toString('hex')}`;
   const deadline = Date.now() + LOCK_WAIT_MS;
+  const ageOf = (file) => Date.now() - statSync(file).mtimeMs;
   let fd = null;
   while (fd === null) {
     try { fd = openSync(LOCK_FILE, 'wx'); } catch (e) {
       if (e.code !== 'EEXIST' && e.code !== 'EPERM' && e.code !== 'EBUSY') throw e;
       let age = 0;
-      try { age = Date.now() - statSync(LOCK_FILE).mtimeMs; } catch { continue; } // released meanwhile: retry now
-      if (age > LOCK_STALE_MS) { rmSync(LOCK_FILE, { force: true }); continue; }
+      try { age = ageOf(LOCK_FILE); } catch { continue; } // released meanwhile: retry now
+      if (age > LOCK_STALE_MS) { takeOverStale(token, ageOf); continue; }
       if (Date.now() > deadline) throw new Error(`stack.json is locked by another process (${LOCK_FILE}, ${Math.round(age / 1000)}s old)`);
       sleepSync(10 + Math.floor(Math.random() * 20));
     }
   }
   try {
-    writeSync(fd, String(process.pid));
+    writeSync(fd, token);
+    closeSync(fd);
+    fd = null;
     return fn();
   } finally {
-    closeSync(fd);
-    rmSync(LOCK_FILE, { force: true });
+    if (fd !== null) closeSync(fd);
+    let held = null;
+    try { held = readFileSync(LOCK_FILE, 'utf8'); } catch { /* already gone */ }
+    if (held === token) rmSync(LOCK_FILE, { force: true });
   }
+}
+
+/** Move a stale lock out of the way; a live lock moved by mistake (a race with another taker) is linked back. Exported for the selftest. */
+export function takeOverStale(token, ageOf = (file) => Date.now() - statSync(file).mtimeMs) {
+  const moved = `${LOCK_FILE}.stale-${token}`;
+  try { renameSync(LOCK_FILE, moved); } catch { return; } // another taker moved it first: retry
+  let age = 0;
+  try { age = ageOf(moved); } catch { return; }
+  if (age > LOCK_STALE_MS) { rmSync(moved, { force: true }); return; }
+  try { linkSync(moved, LOCK_FILE); } catch { /* a new lock exists already: its holder owns the path now */ }
+  rmSync(moved, { force: true });
 }
 
 /** Replace the record of one port set (its meta and its processes), re-reading the file so other stacks' entries survive. */

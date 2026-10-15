@@ -37,7 +37,7 @@ node scripts/ui-check/run.mjs --live            # https://swishquest.com; or --l
 Runs only the guest checks tagged `@live` (CHECKS.md `live` column: public routes, idle screens, perf,
 a11y, permissions) against the live site on the core viewports, as its own run (own runId). It starts
 no stack and uses no accounts, and it never writes: every request other than GET/HEAD to a
-non-localhost origin, or a websocket, fails the test as `live-write`. The last lines print
+non-localhost origin is aborted (a websocket refused) and fails the test as `live-write`. The last lines print
 `ui-check: live requests: N GET/HEAD · 0 live-write`; any non-zero live-write count is a harness bug,
 so report it to the owner before anything else. `--only`/`--vp` narrow it as usual; `--ref`/`--repo`
 only choose the game catalogue (default main's). Its digest header reads `· env live` and its lines

@@ -74,7 +74,7 @@ async function main() {
   // 3. Ids: this run's findings.json, then its rejected.json, then the previous run's findings.json.
   const own = readFindingsDoc(runId);
   const ownRejected = readJson(files.rejected, []);
-  const prevId = o.prev || listRuns().find((r) => r < runId && /^\d{8}-\d{4}$/.test(r) && readFindingsDoc(r));
+  const prevId = o.prev || listRuns().find((r) => r < runId && /^\d{8}-\d{4}(-live)?$/.test(r) && readFindingsDoc(r));
   const prev = prevId ? readFindingsDoc(prevId) : null;
   const known = new Map();
   for (const f of (prev && prev.findings) || []) known.set(f.fingerprint, { id: f.id });

@@ -2,9 +2,10 @@
 // (the persona's minted login, seeded into `context`), `cap` (network capture), `fiber` (React
 // internals) and `mp` (two logged-in players). Options carried in a project's `use`:
 // { vpId, persona, suite, mpPair, env }. Extra audits (other pages) come from createAudit().
-// env 'live' (run.mjs --live, projects guest-live@<vp>): every audit guards its browser context — any request to a
-// non-localhost origin other than GET/HEAD, or a websocket, is a `live-write` violation (the test fails), and the
-// `request` fixture refuses anything but GET/HEAD. The audit attachment counts the live requests it saw.
+// env 'live' (run.mjs --live, projects guest-live@<vp>): the `context` fixture and every audit guard the browser
+// context (guardLive) — any request to a non-localhost origin other than GET/HEAD is aborted, a remote websocket is
+// refused, and either is a `live-write` violation (the test fails); the `request` fixture refuses anything but
+// GET/HEAD. The audit attachment counts the live requests the guard saw.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test as base, expect } from '@playwright/test';
@@ -68,7 +69,47 @@ export const isRemote = (url) => {
     return /^(https?|wss?):$/.test(u.protocol) && !['localhost', '127.0.0.1', '[::1]'].includes(u.hostname);
   } catch { return false; }
 };
-const GUARDED = new WeakSet(); // browser contexts whose live-write guard is installed (one per context)
+const LIVE_GUARDS = new WeakMap(); // browser context → its live-write guard (one per context)
+
+/**
+ * --live: guard a browser context (once; later calls return the same guard). Every request to a remote origin is
+ * counted; one with a method other than GET/HEAD is a write: it is ABORTED by a context route (the page sees a network
+ * error) and reported to the guard's listeners (audits turn it into a `live-write` violation; the `context` fixture
+ * fails the test). Remote websockets are refused by routeWebSocket (closed before they reach a server). `block: false`
+ * (tests tagged @perf: a route disables the HTTP cache and would skew warm numbers) keeps detection only.
+ * → { read, write, writes: [{ method, url, what }], listeners: Set<fn(write)>, owner }
+ */
+export async function guardLive(context, { block = true } = {}) {
+  let g = LIVE_GUARDS.get(context);
+  if (g) return g;
+  g = { read: 0, write: 0, writes: [], listeners: new Set(), owner: null };
+  LIVE_GUARDS.set(context, g);
+  const hit = (method, url, what) => {
+    const w = { method, url, what };
+    g.write++;
+    g.writes.push(w);
+    for (const fn of g.listeners) fn(w);
+  };
+  context.on('request', (req) => {
+    if (!isRemote(req.url())) return;
+    if (READ_METHODS.has(req.method())) g.read++;
+    else hit(req.method(), req.url(), block ? `a ${req.method()} request (aborted by the guard)` : `a ${req.method()} request left the browser`);
+  });
+  if (block) {
+    await context.route((u) => isRemote(u.href), (route) => (READ_METHODS.has(route.request().method()) ? route.fallback() : route.abort('blockedbyclient')));
+    await context.routeWebSocket((u) => isRemote(u.href), (ws) => {
+      hit('WEBSOCKET', ws.url(), 'a websocket (refused by the guard)');
+      ws.close({ code: 1008, reason: 'ui-check --live: no websockets to the live site' });
+    });
+  } else {
+    const watch = (page) => page.on('websocket', (ws) => { if (isRemote(ws.url())) hit('WEBSOCKET', ws.url(), 'a websocket was opened'); });
+    context.pages().forEach(watch);
+    context.on('page', watch);
+  }
+  return g;
+}
+/** Tests tagged @perf keep detection only (no route: the HTTP cache stays on). */
+const liveBlocks = (testInfo) => !/@perf\b/.test((testInfo && testInfo.title) || '');
 
 // Shot paths taken so far in each test (shared by every audit of that test) + the auto-crop counter.
 const SHOTS_BY_TEST = new WeakMap();
@@ -104,7 +145,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
   const logs = { console: [], pageErrors: [], responses: [], slowApi: [] };
   let crops = 0, attached = false;
   const env = envOf(testInfo);
-  const liveRequests = env === 'live' ? { read: 0, write: 0 } : null;
+  const guard = env === 'live' ? await guardLive(page.context(), { block: liveBlocks(testInfo) }) : null;
   const late = []; // live-write violations recorded after done() attached the audit
 
   const route = () => routeOf(page.url());
@@ -132,24 +173,18 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
     return v;
   };
 
-  if (liveRequests) {
-    // --live: GET/HEAD only. Recorded as a hard violation, so the test fails; counted for run.mjs's summary line.
-    const write = (method, url, what) => {
-      liveRequests.write++;
-      const v = record({ rule: 'live-write', selector: `${method} ${url.split('?')[0]}`, measured: what, expected: 'GET/HEAD only: run.mjs --live never writes to the live site' });
+  // --live: every write the context's guard sees is a hard violation (the test fails). The first audit on a context
+  // owns its counters (attached as liveRequests), so several audits of one context never count a request twice.
+  const auditKey = {};
+  if (guard) {
+    guard.owner ??= auditKey;
+    for (const w of guard.writes) record({ rule: 'live-write', selector: `${w.method} ${w.url.split('?')[0]}`, measured: w.what, expected: 'GET/HEAD only: run.mjs --live never writes to the live site' });
+    guard.listeners.add((w) => {
+      const v = record({ rule: 'live-write', selector: `${w.method} ${w.url.split('?')[0]}`, measured: w.what, expected: 'GET/HEAD only: run.mjs --live never writes to the live site' });
       if (attached) late.push(v);
-    };
-    const ctx = page.context();
-    if (!GUARDED.has(ctx)) {
-      GUARDED.add(ctx);
-      ctx.on('request', (req) => {
-        if (!isRemote(req.url())) return;
-        if (READ_METHODS.has(req.method())) liveRequests.read++;
-        else write(req.method(), req.url(), `a ${req.method()} request left the browser`);
-      });
-    }
-    page.on('websocket', (ws) => { if (isRemote(ws.url())) write('WEBSOCKET', ws.url(), 'a websocket was opened'); });
+    });
   }
+  const liveCounts = () => (guard && guard.owner === auditKey ? { liveRequests: { read: guard.read, write: guard.write } } : guard ? { liveRequests: { read: 0, write: 0 } } : {});
 
   /** Record in-page detector results, cropping evidence for the first few violations. Returns the violations (not warnings) added. */
   const recordAll = async (items) => {
@@ -172,7 +207,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
 
   const attach = async () => {
     attached = true;
-    const body = { checkId, project, vp: vp ? vp.id : null, label, env, routes, metrics, violations, warnings, shots, ...(liveRequests ? { liveRequests: { ...liveRequests } } : {}) };
+    const body = { checkId, project, vp: vp ? vp.id : null, label, env, routes, metrics, violations, warnings, shots, ...liveCounts() };
     await testInfo.attach('uicheck', { body: JSON.stringify(body), contentType: 'application/json' });
   };
 
@@ -392,9 +427,12 @@ export const test = base.extend({
     const minted = (await mintTokens([username]))[username];
     await use({ persona, username, ...minted });
   },
-  context: async ({ context, session, baseURL }, use) => {
+  context: async ({ context, session, baseURL }, use, testInfo) => {
     if (session.access) await seedContext(context, baseURL, session);
+    // --live: the default context is guarded before the test touches it, audit or not; any write fails the test.
+    const guard = envOf(testInfo) === 'live' ? await guardLive(context, { block: liveBlocks(testInfo) }) : null;
     await use(context);
+    if (guard && guard.write) throw new Error(`ui-check --live: ${guard.write} live-write(s) in this test, first: ${guard.writes[0].method} ${guard.writes[0].url} (${guard.writes[0].what})`);
   },
 
   audit: async ({ page, vp }, use, testInfo) => {
