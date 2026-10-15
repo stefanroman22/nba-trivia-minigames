@@ -8,6 +8,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { resultIn, stackPane, popIn, fadeInUp } from "../motion/variants";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
@@ -53,35 +54,9 @@ export function stintYears(s: PlayerTeamStint): string {
   return `${s.start_year} – ${s.end_year}`;
 }
 
-const headshotUrl = (personId: number) =>
-  `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
-
-/** Player photo with an orange silhouette fallback (never renders broken). */
+/** Player photo with the shared silhouette fallback (never renders broken). */
 export function RevealHeadshot({ personId, name }: { personId: number; name: string }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [personId]);
-  if (failed) {
-    return (
-      <svg viewBox="0 0 64 72" className="cp-reveal-fallback" aria-hidden="true">
-        <defs>
-          <linearGradient id="cprev" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="var(--brand)" />
-            <stop offset="1" stopColor="var(--brand-deep)" />
-          </linearGradient>
-        </defs>
-        <circle cx="32" cy="26" r="13" fill="url(#cprev)" />
-        <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" fill="url(#cprev)" />
-      </svg>
-    );
-  }
-  return (
-    <img
-      className="cp-reveal-photo"
-      src={headshotUrl(personId)}
-      alt={name}
-      onError={() => setFailed(true)}
-    />
-  );
+  return <PlayerPhoto personId={personId} alt={name} className="cp-reveal-photo" fallbackClassName="cp-reveal-fallback" />;
 }
 
 function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathProps) {
