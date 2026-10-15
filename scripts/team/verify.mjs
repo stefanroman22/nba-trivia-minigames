@@ -59,7 +59,7 @@ if (cls.backend) {
 if (cls.multiplayer) ran.push(run("relay syntax", process.execPath, ["--check", "multiplayer_server/src/index.js"]));
 if (cls.scripts) {
   // node --test on Node 22 wants files, not directories
-  const testFiles = ["scripts/lib", "scripts/team/lib"].flatMap((d) => { try { return readdirSync(resolve(repo, d)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`); } catch { return []; } });
+  const testFiles = ["scripts/lib", "scripts/team/lib", "scripts/check-core"].flatMap((d) => { try { return readdirSync(resolve(repo, d)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`); } catch { return []; } });
   if (testFiles.length) ran.push(run("script tests", process.execPath, ["--test", ...testFiles]));
 }
 

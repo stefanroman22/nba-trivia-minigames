@@ -11,6 +11,10 @@ re-export these files, so every existing import keeps working. Design: `docs/sup
 | `lib/stack.mjs` | `ensureStack(mode, {repo, ports, keepStack})`, `stopStack({only, ports})`, `readStack({ports})`, `readStackFile()`, `codeState(mode, {repo, ports})`, `appRepo()`, `venvPython(repo)` … — the local stack; stack.json keeps one entry per port set |
 | `lib/accounts.mjs` + `lib/mint_tokens.py` | test accounts, minted in the app repo's local sqlite only |
 | `lib/findings.mjs` | findings schema/DSL validation, merge, ids, REPORT.md |
+| `lib/clusters.mjs` | `planClusters(findings, {checksMd, perfIds})` → `[{engine, prod, items, keys}]`; CLI `node scripts/check-core/lib/clusters.mjs [run\|-] [sev] [owners] [suites] [ids]` prints the ui-fix plan |
+| `lib/card-body.mjs` | `fpKey(fp)` (12-hex Source key), `cardMeta`, `renderBody` (markdown-lite card body), `attachmentDoc` (the attached findings.json) |
+| `lib/cards-ledger.mjs` | `<home>/notion-cards.json`: fingerprint → card decision mirror (Notion is the truth) |
+| `notion-push.mjs` | `--run <id> --checker ui\|logic [--target main\|dev] [--dry-run] [--severities …\|all]`: one Notion card per cluster, deduped by Source (§3.4); tests in `notion-push.test.mjs` |
 
 Env read by the stack and the Playwright children: `UI_CHECK_MODE` (prod|dev), `UI_CHECK_REPO` (app checkout, default `ROOT`),
 `UI_CHECK_PORTS` (`django=…,socket=…,web=…`, default the mode's set), `UI_CHECK_BASE` (Playwright baseURL override),
