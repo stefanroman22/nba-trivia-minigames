@@ -186,7 +186,9 @@ Only when at least one cluster was committed. Nothing committed → `node script
    commits). A cherry-pick conflict (the commits share a file) → `git cherry-pick --abort`, delete the
    new local branches, and open the relay PR from `fix/ui-check-<runId>` itself: every card is then a
    relay card and steps 5, 6 and 8-10 are skipped. A card is a relay card when one of its fixed
-   findings is in a relay commit (the ids are in the commit subject).
+   findings is in a relay commit (the ids are in the commit subject). The split is per commit, never
+   inside one: a cluster commit that changes `multiplayer_server/` and `src/` (or anything else) goes
+   whole into the relay PR, and its cards are relay cards.
 5. `git push -u origin <head>`, then `gh pr create --base main --head <head>` with a title
    `ui-fix: <runId> (<n> findings)` and a body listing finding · title · status and the cards, plus
    "Checker hotfix (CLAUDE.md Shipping exception); a back-merge PR main → dev follows." (no AI
@@ -195,7 +197,9 @@ Only when at least one cluster was committed. Nothing committed → `node script
    failing → leave the PR open and report it as open with the failing check. `gh pr view <n> --json
    mergeable` shows `CONFLICTING` (main moved) → `git fetch origin main`, `git rebase origin/main`,
    resolve, step 1 again, re-verify the fixed ids (`verify.mjs <ids> --run <runId> --ref . --keep-stack`,
-   no `--mark`), `node scripts/ui-check/run.mjs --stop`, `git push --force-with-lease`, watch again.
+   no `--mark`), `node scripts/ui-check/run.mjs --stop`, `git push --force-with-lease origin <head>`,
+   watch again. That force push is the one deliberate exception, and only on this feature branch:
+   never force-push `main` or `dev`.
 7. Cards, **before the merge** (`main-sync.yml` runs on the push to `main` and marks Done only the
    cards already in QA whose Commit is on `main`). `SHA=$(git rev-parse <head>)`. Per lookup line:
    - `complete`, status `To Do`/`Backlog`, not a relay card: when its target is not `main`,
@@ -221,22 +225,37 @@ Only when at least one cluster was committed. Nothing committed → `node script
    gh pr checks <m> --watch
    gh pr merge <m> --merge --delete-branch
    ```
-   A merge conflict → `git merge --abort`; `main` stays shipped; report "back-merge conflicted in
-   <files>: merge main into dev by hand". A failing check → leave that PR open and report it.
-10. **Verify production** (`promote-to-prod` steps 2–4): a push to `main` deploys the frontend AND
-    the backend Vercel projects; watch both production deployments of the merge commit to READY, then
-    fetch https://swishquest.com, the touched routes and the API (real content, right status). Then the
-    live subset for the fixed findings that can be seen live:
+   **Any failure** (merge conflict, push rejected because `dev` moved, a failing check, a `gh pr
+   create`/`merge` error, wrong gh account) → `git merge --abort` if a merge is in progress, close
+   the PR if one was opened (`gh pr close <m>`), `git push origin --delete backmerge/ui-fix-<runId>`
+   if it was pushed, `git switch --detach` and `git branch -D backmerge/ui-fix-<runId>`, fix the gh
+   account if that was it, and redo this step from the fetch **once**. Still failing → `main` stays
+   shipped; on every card step 7 ship-carded,
+   `node scripts/notion.mjs comment <cardId> "⚠️ shipped to main (<SHA7>) but the back-merge main→dev failed: <reason / conflicting files> — merge main into dev by hand" --mention`
+   and `node scripts/notion.mjs set-props <cardId> --needs-human`; report `back-merge failed: <reason>`.
+10. **Production check**, read-only (the same as the `ship` skill's; never roll back, never fix
+    forward here). A push to `main` deploys the frontend AND the backend Vercel projects.
+    `MSHA=$(gh pr view <n> --json mergeCommit --jq .mergeCommit.oid)` (the merge commit on `main`):
+    - poll `gh api repos/stefanroman22/nba-trivia-minigames/commits/<MSHA>/statuses --jq '.[] | "\(.context)|\(.state)"'`
+      every 30 s, up to 15 min, until the newest state of both contexts `Vercel – nba-minigames` and
+      `Vercel – backend` is `success` (`failure`/`error` → stop polling: a failure);
+    - then `curl -fsS https://swishquest.com/ -o /dev/null` and `curl -fsS https://backend-kappa-one-42.vercel.app/api/health/`.
+    Any failure or timeout → on every card step 7 ship-carded,
+    `node scripts/notion.mjs set-props <cardId> --needs-human` and
+    `node scripts/notion.mjs comment <cardId> "⚠️ <MSHA7> is on main but production did not check out: <what failed> — please look" --mention`;
+    report it as the first line to the owner.
+    Optional, when the checks passed: the live subset for the fixed findings that can be seen live,
     `node scripts/ui-check/run.mjs --live --only "<ids>"`, `<ids>` = the `@live` guest checks (the
     `live` column of `scripts/ui-check/CHECKS.md`) among the clusters' `checks=` and the touched
-    routes' checks. From its digest read only the `## FAIL` sections: a FAIL on a fixed finding's check
-    and selector → production does not have the fix: fix forward or roll back per `promote-to-prod`
-    step 4, never leave it; other FAIL lines that also FAIL in the audited `<runDir>/digest.md` are
-    other open findings. Account, game and multiplayer findings cannot be checked live (no accounts,
-    games or rooms on the live site): say so; their proof is the prod-mode `--mark` gate (2d).
+    routes' checks. From its digest read only the `## FAIL` sections: a FAIL on a fixed finding's
+    check and selector → production does not show the fix: the same `--needs-human` + comment, and
+    report it; other FAIL lines that also FAIL in the audited `<runDir>/digest.md` are other open
+    findings. Account, game and multiplayer findings cannot be checked live (no accounts, games or
+    rooms on the live site): say so; their proof is the prod-mode `--mark` gate (2d).
 11. `git switch <start>` (and `npm ci` again if section 0 ran it); `git branch -D` whichever of
     `fix/ui-check-<runId>`, `fix/ui-check-<runId>-main`, `fix/ui-check-<runId>-relay` and
-    `backmerge/ui-fix-<runId>` still exists locally (the remote relay branch stays for its PR).
+    `backmerge/ui-fix-<runId>` still exists locally, and `git push origin --delete backmerge/ui-fix-<runId>`
+    if that remote branch still exists (the remote relay branch stays for its PR).
 
 ### Target `dev`
 4. `git push -u origin fix/ui-check-<runId>`, then `gh pr create --base dev` with a title

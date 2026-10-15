@@ -262,17 +262,20 @@ judges and push on its own is Phase B.
 Checker findings are the standing exception to "stop at dev" (CLAUDE.md "Shipping"). For a
 `--ref main` run, `ui-fix` works on `fix/ui-check-<runId>` cut from `origin/main`, verifies with
 `--ref .`, opens a PR to `main` and merges it, then opens and merges a back-merge PR `main → dev`
-(merge commit) so `dev` stays a superset. A push to `main` deploys both Vercel projects (frontend and
-backend); the skill then verifies production per the `promote-to-prod` skill and re-runs the fixed
-findings' `@live` checks with `run.mjs --live --only …` (account, game and multiplayer findings
-cannot be checked live; their proof is the prod-mode `verify --mark`). Before the merge it moves the
+(merge commit) so `dev` stays a superset; a failed back-merge is retried once, then left to the
+owner with Needs human on the cards (`main` stays shipped). A push to `main` deploys both Vercel
+projects (frontend and backend); the skill then runs the `ship` skill's read-only production check
+(both Vercel commit statuses `success`, swishquest.com and the API health URL answer; a failure sets
+Needs human, it never rolls back or fixes forward) and may re-run the fixed findings' `@live` checks
+with `run.mjs --live --only …` (account, game and multiplayer findings cannot be checked live; their
+proof is the prod-mode `verify --mark`). Before the merge it moves the
 findings' cards to QA with the commit (`notion.mjs ship-card`), so `main-sync.yml` marks them Done.
 Pipeline cards with `Target = main` take the same route through the `ship` skill. Runs of other
 code ship to dev as before.
 
 **Relay rule.** The relay (`multiplayer_server/`, Railway) is billed and never deployed by a
 checker or the pipeline, and its code must not reach production before that deploy: a fix that
-changes it goes out as an unmerged PR to `main` (`ui-fix` splits those commits into their own PR),
+changes it goes out as an unmerged PR to `main` (`ui-fix` moves those whole commits, `src/` changes included, into their own PR),
 its card waits in QA with Needs human, and the owner merges the PR with a merge commit and runs
 `railway up` in the same window (`main-sync` then marks the card Done).
 
