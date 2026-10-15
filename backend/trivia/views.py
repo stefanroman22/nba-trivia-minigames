@@ -18,6 +18,7 @@ from trivia.models import (
     Mvp,
     Player,
     PlayoffSeries,
+    QuestionReport,
     SeenQuestion,
     StartingFiveGame,
     Team,
@@ -25,6 +26,7 @@ from trivia.models import (
 from backend.throttles import (
     FeedbackRateThrottle,
     GuessLogRateThrottle,
+    ReportRateThrottle,
     ScoreSubmitRateThrottle,
     SeenRateThrottle,
     WordlePlayRateThrottle,
@@ -416,6 +418,32 @@ def seen_add(request):
     if rows:
         SeenQuestion.objects.bulk_create(rows, ignore_conflicts=True)
     return JsonResponse({'added': len(rows)})
+
+
+_MAX_REPORT_NOTE = 500
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([ReportRateThrottle])
+def report_question(request):
+    """POST {game, question_id, note?}: a player's "Report a problem" on one question they were dealt.
+    Guests report anonymously. A malformed field is refused whole (400), like the seen endpoint."""
+    body = request.data if isinstance(request.data, dict) else {}
+    game = body.get('game')
+    question_id = body.get('question_id')
+    note = body.get('note', '')
+    if not _seen_key(game, 40) or not _seen_key(question_id, 60):
+        return JsonResponse({'error': 'game and question_id are required'}, status=400)
+    if not isinstance(note, str) or len(note) > _MAX_REPORT_NOTE or "\x00" in note:
+        return JsonResponse({'error': f'note must be text of at most {_MAX_REPORT_NOTE} characters'}, status=400)
+    QuestionReport.objects.create(
+        user=request.user if request.user.is_authenticated else None,
+        game=game,
+        question_id=question_id,
+        note=note.strip(),
+    )
+    return JsonResponse({'ok': True})
 
 
 User = get_user_model()

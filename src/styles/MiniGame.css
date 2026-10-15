@@ -206,8 +206,14 @@
 .playing-wrap .exit-link { flex: none; margin-top: auto; height: 18px; line-height: 18px; }
 .exit-link { transition: opacity 0.2s ease; font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .exit-link:hover { color: var(--text); }
-/* In-place game over: the ScorePanel owns the only Close game. visibility hides
-   it and it leaves the tab order and accessibility tree. */
+/* The label swaps through SwapText (an inline-block span), which a parent's underline does not reach. */
+.exit-link span { text-decoration: inherit; }
+/* "Report a problem" under GameResult's buttons: the same quiet text link as .exit-link. */
+.report-link { margin-top: 6px; height: 18px; line-height: 18px; font-size: 12px; color: var(--muted); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; transition: color 0.2s ease; }
+.report-link:hover { color: var(--text); }
+/* In-place game over: the ScorePanel owns the only Close game. With a reportable question the
+   link stays in its box as "Report a problem" (.is-report, no style change); otherwise
+   visibility hides it and it leaves the tab order and accessibility tree. */
 /* Fades out on durations.base (0.2s); visibility flips only after the fade. */
 .exit-link.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s 0.2s; }
 /* Ended in place: also collapse the link AND its flex gap, so the space below the last

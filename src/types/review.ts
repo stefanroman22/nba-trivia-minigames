@@ -1,7 +1,7 @@
 // Answer review: the read-only snapshot a renderer hands back with its final score
 // (`onGameEnd(score, { review })`). Online it is kept per round in the multiplayer store and
 // shown by the "See answers" modal once the player has finished (MULTIPLAYER_CONSTRAINTS MP-16);
-// single-player ignores it. Plain data only: names, labels, ids and flags, never functions.
+// single-player keeps it for "Report a problem" (src/utils/reviewRounds.ts). Plain data only: names, labels, ids and flags, never functions.
 import type { Criterion, PlayerTeamStint } from "./types";
 
 /** Who Are Ya chip (mirrors the renderer's ChipVal). */

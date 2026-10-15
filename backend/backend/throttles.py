@@ -85,3 +85,9 @@ class SeenRateThrottle(UserRateThrottle):
     """Recording which questions a signed-in player has been shown. A game sends one batch at the end,
     so the limit is far above real play and only bounds someone filling the table."""
     scope = "seen"
+
+
+class ReportRateThrottle(UserRateThrottle):
+    """"Report a problem" on a question. Open to guests, so without a limit it is an open write path;
+    a player with a real problem reports a few, not dozens."""
+    scope = "report"

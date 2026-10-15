@@ -8,9 +8,10 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.db.models import Q
 from django.utils import timezone
 
-from trivia.models import Feedback, GameSession, GuessLog, RollupWatermark
+from trivia.models import Feedback, GameSession, GuessLog, QuestionReport, RollupWatermark
 from trivia.questions.rollup import GUESS_LOG
 from users.models import ModerationEvent
 
@@ -23,6 +24,8 @@ GAME_SESSION_DAYS = 730
 MODERATION_EVENT_DAYS = 365
 # Feedback that has been dealt with. Unresolved feedback stays until someone handles it.
 RESOLVED_FEEDBACK_DAYS = 365
+# Problem reports about a question: kept until handled, at most 12 months.
+QUESTION_REPORT_DAYS = 365
 # The Privacy Policy promises a ban record is never kept longer than five years after the ban.
 BAN_RECORD_DAYS = 365 * 5
 
@@ -54,6 +57,9 @@ def prune_personal_data(now=None):
         .delete()[0],
         "resolved_feedback": Feedback.objects.filter(
             status=Feedback.RESOLVED, created_at__lt=before(RESOLVED_FEEDBACK_DAYS)
+        ).delete()[0],
+        "question_reports": QuestionReport.objects.filter(
+            Q(status=QuestionReport.HANDLED) | Q(created_at__lt=before(QUESTION_REPORT_DAYS))
         ).delete()[0],
     }
 

@@ -189,6 +189,7 @@ REST_FRAMEWORK = {
         "account-data": "10/hour",
         "guess-log": "120/hour",
         "seen": "240/hour",
+        "report": "10/hour",
     },
 }
 

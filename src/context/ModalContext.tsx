@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import type { Game } from "../types/types";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
+import type { ReviewRound } from "../utils/reviewRounds";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion";
 
 export interface InstructionsPayload {
   game: Game;
@@ -41,8 +42,14 @@ export interface MultiplayerInfoPayload {
   context: MultiplayerInfoContext;
 }
 
+/** "Report a problem" on a finished single-player game: the questions it dealt. */
+export interface ReportQuestionPayload {
+  game: string;
+  rounds: ReviewRound[];
+}
+
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

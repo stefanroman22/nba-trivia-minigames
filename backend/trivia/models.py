@@ -206,6 +206,28 @@ class SeenQuestion(models.Model):
         return f"{self.user_id} saw {self.game}/{self.qid}"
 
 
+class QuestionReport(models.Model):
+    """A player's "Report a problem" on one question they were dealt (POST /trivia/report-question/).
+    `question_id` is the id the game logs (GuessLog, the roll-ups). Guests report with user=None.
+    Deleted with the account, once handled, and after 12 months at most (users.retention)."""
+
+    NEW, HANDLED = "new", "handled"
+    STATUS_CHOICES = [(NEW, "New"), (HANDLED, "Handled")]
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    game = models.CharField(max_length=40)
+    question_id = models.CharField(max_length=60)
+    note = models.CharField(max_length=500, blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=NEW)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["game", "question_id"]), models.Index(fields=["status"])]
+
+    def __str__(self):
+        return f"{self.game}/{self.question_id} reported [{self.status}]"
+
+
 class WordleDailyWord(models.Model):
     """The word of the day for single-player Wordle. One row per calendar day
     (Europe/Paris / CET-CEST), kept forever as the admin-visible history.

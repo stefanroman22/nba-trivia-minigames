@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import Modal from "./ui/Modal";
-import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload } from "../context/ModalContext";
+import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload, type ReportQuestionPayload } from "../context/ModalContext";
 import { useMultiplayer } from "../context/MultiplayerContext";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import LogInSignUp, { type AuthPhase } from "./LogInSignUp";
@@ -10,6 +10,7 @@ import LeaderboardModal from "./modals/LeaderboardModal";
 import InstructionsModal from "./modals/InstructionsModal";
 import MultiplayerInfoModal, { multiplayerInfoTitle } from "./modals/MultiplayerInfoModal";
 import GamePickerModal from "./modals/GamePickerModal";
+import ReportQuestionModal from "./modals/ReportQuestionModal";
 
 // Lazy: it bundles every game's review view, which only a game page in a match ever opens.
 const AnswerReviewModal = lazy(() => import("./modals/AnswerReviewModal"));
@@ -90,6 +91,10 @@ export default function ModalHost() {
     title = p?.title ?? "Change game";
     wide = true;
     content = p?.onPick ? <GamePickerModal currentId={p.currentId} seated={p.seated} onPick={p.onPick} onClose={close} /> : null;
+  } else if (kind === "reportQuestion") {
+    const p = payload as ReportQuestionPayload | undefined;
+    title = "Report a problem";
+    content = p?.rounds.length ? <ReportQuestionModal game={p.game} rounds={p.rounds} onClose={close} /> : null;
   } else if (kind === "answerReview") {
     title = "Answers";
     wide = true;
