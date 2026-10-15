@@ -1,4 +1,14 @@
+import re
 import unicodedata
+
+
+def normalize_answer(s):
+    """Backend twin of the client's normalizeAnswer (src/utils/answerMatch.ts):
+    lowercase, strip accents (NFD), drop ' ’ . , - and collapse whitespace."""
+    s = unicodedata.normalize("NFD", (s or "").lower())
+    s = re.sub(r"[̀-ͯ]", "", s)
+    s = re.sub(r"['’.,-]", "", s)
+    return re.sub(r"\s+", " ", s).strip()
 
 
 def wordle_word(last_name):

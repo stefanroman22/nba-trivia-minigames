@@ -392,3 +392,79 @@ class FactoryEvent(models.Model):
 
     def __str__(self):
         return f"{self.game}/{self.qid} {self.action} ({self.reason})"
+
+
+class QuestionStats(models.Model):
+    """Answers to one question on one UTC day, folded nightly from GuessLog by
+    trivia.questions.rollup (spec §4.7). Anonymous: no user ids, so it is kept
+    for as long as the question exists."""
+
+    game = models.CharField(max_length=40)
+    question_id = models.CharField(max_length=60)
+    day = models.DateField()
+    attempts = models.IntegerField(default=0)
+    correct = models.IntegerField(default=0)
+    skips = models.IntegerField(default=0)  # answers that normalize to nothing
+    time_ms_sum = models.BigIntegerField(default=0)  # exact sum over the rows that carry a time
+    time_ms_p50 = models.IntegerField(null=True, blank=True)  # median of time_sample
+    time_sample = models.JSONField(default=list, blank=True)  # sorted, at most rollup.SAMPLE_CAP values
+    players = models.IntegerField(default=0)  # distinct users, guests counted as one per day
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["game", "question_id", "day"], name="uniq_qstats_game_qid_day"),
+        ]
+
+    def __str__(self):
+        return f"{self.game}/{self.question_id} {self.day}: {self.correct}/{self.attempts}"
+
+
+class WrongAnswerStats(models.Model):
+    """One normalized wrong answer to one question, all days together (spec §4.7)."""
+
+    game = models.CharField(max_length=40)
+    question_id = models.CharField(max_length=60)
+    answer_norm = models.CharField(max_length=120)
+    count = models.IntegerField(default=0)
+    players = models.IntegerField(default=0)  # distinct users, guests counted as one per day
+    first_seen = models.DateTimeField()
+    last_seen = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["game", "question_id", "answer_norm"], name="uniq_wrong_game_qid_answer"),
+        ]
+
+    def __str__(self):
+        return f"{self.game}/{self.question_id}: {self.answer_norm} x{self.count}"
+
+
+class GameDailyStats(models.Model):
+    """Plays of one game in one mode on one UTC day, folded nightly from GameSession (spec §4.7)."""
+
+    game = models.CharField(max_length=40)
+    day = models.DateField()
+    mode = models.CharField(max_length=10)
+    plays = models.IntegerField(default=0)
+    players = models.IntegerField(default=0)  # distinct users, guests counted as one per day
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["game", "day", "mode"], name="uniq_gdaily_game_day_mode"),
+        ]
+
+    def __str__(self):
+        return f"{self.game} {self.mode} {self.day}: {self.plays} plays"
+
+
+class RollupWatermark(models.Model):
+    """Highest raw row id already folded into the roll-ups, per source ("guess_log",
+    "game_session"). Advanced in the same transaction as the batch it counts, so
+    cleanup may delete raw rows at or below it without losing anything."""
+
+    name = models.CharField(max_length=32, unique=True)
+    last_id = models.BigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} <= {self.last_id}"
