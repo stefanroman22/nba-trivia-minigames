@@ -61,12 +61,15 @@ export function planLines({ run, runDir, open, clusters, perfIds }) {
   return out;
 }
 
+/** A run directory name: YYYYMMDD-HHmm, plus an optional `x` (copied run) or `-live` (live subset) suffix. */
+export const isRunId = (r) => /^\d{8}-\d{4}(x|-live)?$/.test(String(r));
+
 /** CLI-style list argument: '-' or missing → default, 'all' → null, else comma list. */
 export const listArg = (v, d) => { const s = v && v !== '-' ? v : d; return s === 'all' ? null : s.split(','); };
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const a = process.argv.slice(2);
-  const run = a[0] && a[0] !== '-' ? a[0] : listRuns().find((r) => /^\d{8}-\d{4}$/.test(r) && readFindingsDoc(r));
+  const run = a[0] && a[0] !== '-' ? a[0] : listRuns().find((r) => isRunId(r) && readFindingsDoc(r));
   if (!run || !readFindingsDoc(run)) { console.log(`no findings.json for run ${run || '(none)'}: run the ui-check skill first`); process.exit(0); }
   const open = selectOpen(readFindingsDoc(run).findings, {
     severities: listArg(a[1], DEFAULT_SEVERITIES), owners: listArg(a[2], 'all'), suites: listArg(a[3], 'all'), ids: listArg(a[4], 'all'),

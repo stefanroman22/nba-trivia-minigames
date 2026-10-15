@@ -6,7 +6,7 @@ import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { planClusters, planLines, selectOpen, perfIdsFrom } from './lib/clusters.mjs';
+import { planClusters, planLines, selectOpen, perfIdsFrom, isRunId } from './lib/clusters.mjs';
 import { cardMeta, renderBody, fpKey, BODY_FULL } from './lib/card-body.mjs';
 import { pushRun, seenText, sourceHasRun } from './notion-push.mjs';
 
@@ -192,4 +192,9 @@ test('--dry-run writes nothing: no card, no comment, no ledger', () => {
   const open = fakeClient({ cards: [{ id: 'c1', title: 't', source: `ui-check fp:${K1} run:r0`, status: 'To Do', commit: '' }] });
   push(open, { dryRun: true });
   assert.equal(open.calls.comment.length, 0);
+});
+
+test('run ids: plain, copied (x) and live (-live) runs are recognised; other names are not', () => {
+  for (const r of ['20261014-1153', '20261014-1153x', '20261015-2210-live']) assert.ok(isRunId(r), r);
+  for (const r of ['adhoc', '20261014-1153-x', '20261014-1153live', '2026101-1153', '20261014-1153-live2']) assert.equal(isRunId(r), false, r);
 });
