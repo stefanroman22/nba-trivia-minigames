@@ -380,6 +380,11 @@ _MAX_SEEN_LISTED = 5000
 _MAX_SEEN_BATCH = 200
 
 
+def _seen_key(value, max_length):
+    """A game name or qid as stored: a non-empty string that fits its column, no NUL (Postgres refuses it)."""
+    return isinstance(value, str) and 0 < len(value) <= max_length and "\x00" not in value
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def seen_list(request, game):
@@ -395,13 +400,17 @@ def seen_list(request, game):
 @throttle_classes([SeenRateThrottle])
 def seen_add(request):
     """POST {game, qids}: record the questions shown in a finished game, one batch per game.
-    Ids past the first 200 are ignored; ids already recorded are skipped."""
+    Ids past the first 200 are ignored; ids already recorded are skipped. A malformed game or
+    id is refused whole (400) rather than stored under a wrong key."""
     body = request.data if isinstance(request.data, dict) else {}
-    game = str(body.get('game', ''))[:40]
+    game = body.get('game')
     qids = body.get('qids')
-    if not game or not isinstance(qids, list):
+    if not _seen_key(game, 40) or not isinstance(qids, list):
         return JsonResponse({'error': 'game and qids are required'}, status=400)
-    wanted = list(dict.fromkeys(q for q in qids[:_MAX_SEEN_BATCH] if isinstance(q, str) and 0 < len(q) <= 60))
+    batch = qids[:_MAX_SEEN_BATCH]
+    if not all(_seen_key(q, 60) for q in batch):
+        return JsonResponse({'error': 'each qid must be a non-empty string of at most 60 characters'}, status=400)
+    wanted = list(dict.fromkeys(batch))
     known = set(SeenQuestion.objects.filter(user=request.user, game=game, qid__in=wanted).values_list('qid', flat=True))
     rows = [SeenQuestion(user=request.user, game=game, qid=q) for q in wanted if q not in known]
     if rows:

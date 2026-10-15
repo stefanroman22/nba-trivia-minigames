@@ -63,6 +63,22 @@ class SeenTests(TestCase):
         self.assertEqual(self.add("", ["cp-1"]).status_code, 400)
         self.assertEqual(self.add("career-path", "cp-1").status_code, 400)
 
+    def test_malformed_game_is_refused_and_nothing_is_written(self):
+        for game in ("g" * 41, None, 123, ["career-path"], "career\x00path"):
+            with self.subTest(game=game):
+                self.assertEqual(self.add(game, ["cp-1"]).status_code, 400)
+        self.assertFalse(seen_model().objects.exists())
+
+    def test_malformed_qid_is_refused_and_nothing_is_written(self):
+        for bad in (7, None, "", "q" * 61, "cp\x001"):
+            with self.subTest(qid=bad):
+                self.assertEqual(self.add("career-path", ["cp-1", bad]).status_code, 400)
+        self.assertFalse(seen_model().objects.exists())
+
+    def test_ids_past_the_first_200_are_not_validated(self):
+        qids = [f"cp-{i}" for i in range(200)] + [7]
+        self.assertEqual(self.add("career-path", qids).json(), {"added": 200})
+
     def test_another_players_rows_are_not_listed(self):
         signup(self.client, username="Bob", email="bob@example.com", password="Testpass123!")
         seen_model().objects.create(user=User.objects.get(email="bob@example.com"), game="career-path", qid="cp-9")
