@@ -31,6 +31,9 @@ const AUTO_CROPS_PER_CALL = 3;
 const AUTO_CROPS_PER_AUDIT = 12;
 /** Soft rules: recorded as audit.warnings (same shape as violations), never make done() throw. */
 export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-explained']);
+/** Console noise only React's DEV build prints (a dependency touching element.ref); the prod build never does, so it is
+ *  ignored only outside UI_CHECK_MODE=prod — prod audits stay strict, dev-mode fix loops are not blocked by it. */
+export const DEV_ONLY_NOISE = [/Accessing element\.ref was removed in React 19/];
 
 /** `[G-HOME] home layout` → 'G-HOME'; `[ACCEPT UIC-x-001#2] …` (verify.mjs) → 'ACCEPT-UIC-x-001-2'. */
 export function checkIdOf(title) {
@@ -315,9 +318,11 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
       return out;
     },
 
-    /** Console errors, page errors, own-host 5xx and unexpected 4xx, slow API (>1000ms). Clears what it reported. */
+    /** Console errors, page errors, own-host 5xx and unexpected 4xx, slow API (>1000ms). Clears what it reported.
+     *  Dev-build-only dependency noise (DEV_ONLY_NOISE) is ignored unless UI_CHECK_MODE=prod, where it never occurs. */
     async console({ allow = [] } = {}) {
-      const ok = (s) => allow.some((re) => re.test(s));
+      const devNoise = process.env.UI_CHECK_MODE === 'prod' ? [] : DEV_ONLY_NOISE;
+      const ok = (s) => allow.some((re) => re.test(s)) || devNoise.some((re) => re.test(s));
       const items = [];
       const grouped = new Map();
       const group = (key, v) => { const g = grouped.get(key); if (g) g.n++; else grouped.set(key, { ...v, n: 1 }); };
