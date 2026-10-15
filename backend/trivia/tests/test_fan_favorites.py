@@ -112,14 +112,14 @@ class LogSessionEndpointTests(TestCase):
 
     def test_creates_session(self):
         res = self._post({
-            "game": "fan-favorites", "mode": "match", "score": 250,
+            "game": "fan-favorites", "mode": "match", "score": 200,
             "duration_ms": 61_000,
         })
         self.assertEqual(res.status_code, 200)
         s = GameSession.objects.get()
         self.assertEqual(s.game, "fan-favorites")
         self.assertEqual(s.mode, "match")
-        self.assertEqual(s.score, 250)
+        self.assertEqual(s.score, 200)
         self.assertEqual(s.duration_ms, 61_000)
         self.assertIsNone(s.user)
 
