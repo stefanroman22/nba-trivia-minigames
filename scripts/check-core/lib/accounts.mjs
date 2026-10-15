@@ -18,18 +18,31 @@ const MARK = 'UICHECK_JSON:';
 
 const acct = (username) => ({ username, email: `${username}@${EMAIL_DOMAIN}` });
 export const ACCOUNTS = {
-  testuser1: acct('testuser1'), // multiplayer host
-  testuser2: acct('testuser2'), // multiplayer joiner
-  testuser3: acct('testuser3'), // solo (account + games suites)
+  testuser1: acct('testuser1'), // ui.host: multiplayer host
+  testuser2: acct('testuser2'), // ui.joiner: multiplayer joiner
+  testuser3: acct('testuser3'), // ui.solo: solo (account + games suites)
+  testuser4: acct('testuser4'), // logic.actor: Logic auth, profile, friends, rooms
+  testuser5: acct('testuser5'), // logic.peer: the actor's counterpart (friends, rooms)
+  testuser6: acct('testuser6'), // logic.admin: admin-API checks (ensureAdmin)
 };
+
+/** One registry, roles exclusive (spec §4): which test user plays which role. */
+export const ROLES = { 'ui.host': 'testuser1', 'ui.joiner': 'testuser2', 'ui.solo': 'testuser3', 'logic.actor': 'testuser4', 'logic.peer': 'testuser5', 'logic.admin': 'testuser6' };
 
 /** Solo account of a parallel worker: testuser3 for worker 0, testuser3w<i> for the others. */
 export function soloUsername(parallelIndex = 0) {
   return parallelIndex ? `testuser3w${parallelIndex}` : 'testuser3';
 }
 
-// testuser1-3 and a worker's testuser3w<i>, plus the account suite's throwaways uic<digits> (specs/account).
-const isTestUsername = (u) => /^(testuser\d(w\d{1,2})?|uic\d{4,17})$/.test(u);
+/** Username of a role; `ui.solo` is a pool: the parallel worker's soloUsername(parallelIndex). Throws on an unknown role. */
+export function userForRole(role, parallelIndex = 0) {
+  if (role === 'ui.solo') return soloUsername(parallelIndex);
+  if (!ROLES[role]) throw new Error(`check-core: unknown test-user role "${role}" (known: ${Object.keys(ROLES).join(', ')})`);
+  return ROLES[role];
+}
+
+// testuser1-6 and a worker's testuser3w<i>, plus signup throwaways: uic<digits> (UI check), lgc<digits> (Logic Check).
+export const isTestUsername = (u) => /^(testuser\d(w\d{1,2})?|uic\d{4,17}|lgc\d{4,17})$/.test(u);
 
 /** Accounts touch the local DB only: refuse when `api` (required) is anything but a localhost URL. */
 export function assertLocalApi(api) {
@@ -130,7 +143,7 @@ async function mintRequest(req) {
   return res;
 }
 
-/** Create <uicHome>/accounts.json once, then make sure testuser1-3 exist with that password. */
+/** Create <uicHome>/accounts.json once, then make sure testuser1-6 exist with that password. */
 export async function ensureAccounts() {
   const data = accountsFile();
   const res = await mintRequest({ op: 'ensure', users: Object.values(ACCOUNTS) });
@@ -152,10 +165,20 @@ export async function forgetAge(usernames) {
   await mintRequest({ op: 'forget_age', users: usernames.map((u) => ACCOUNTS[u] || acct(u)) });
 }
 
-/** Leftover cleanup for the account suite (local sqlite only, ui-check names only): delete uic<digits> throwaways,
- *  clear testuser3-family <-> testuser2 friendships/requests, restore testuser3-family usernames, drop their photos. */
-export async function sweepAccounts() {
-  const { ok, ...rest } = await mintRequest({ op: 'sweep' });
+/** Admin rights (is_staff + is_superuser) for a test account through the app's `promote_admin` management command —
+ *  mint op on the local sqlite only (mint_tokens.py's guard). → { is_staff, is_superuser } */
+export async function ensureAdmin(username = ROLES['logic.admin']) {
+  if (!ACCOUNTS[username] && !isTestUsername(username)) throw new Error(`ui-check: unknown test account "${username}"`);
+  const res = await mintRequest({ op: 'promote_admin', users: [ACCOUNTS[username] || acct(username)] });
+  return res.users[username];
+}
+
+/** Leftover cleanup (local sqlite only, checker names only). scope 'ui' (default): delete uic<digits> throwaways,
+ *  clear testuser3-family <-> testuser2 friendships/requests, restore testuser3-family usernames, drop their photos;
+ *  'logic': delete lgc<digits> throwaways, restore testuser4/5/6 usernames and photos, clear friendships/requests/blocks
+ *  among them; 'all': both. */
+export async function sweepAccounts({ scope = 'ui' } = {}) {
+  const { ok, ...rest } = await mintRequest({ op: 'sweep', scope });
   return rest;
 }
 

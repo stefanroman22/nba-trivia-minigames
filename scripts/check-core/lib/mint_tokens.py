@@ -12,8 +12,12 @@ seconds to start here; a mint takes milliseconds).
         -> {"ok": true, "users": {"testuser1": {"created": false, "id": "K7F3QD"}}}
     {"op": "mint", "users": [{"username": "testuser3", "email": "testuser3@uicheck.test"}]}
         -> {"ok": true, "tokens": {"testuser3": {"access": "...", "refresh": "...", "user": {...}}}}
-    {"op": "sweep"}   -> {"ok": true, "deleted": [...], "restored": [...], "photos": [...], "friend_rows": n}
+    {"op": "sweep", "scope": "ui|logic|all"}   -> {"ok": true, "deleted": [...], "restored": [...], "photos": [...], "friend_rows": n}
+        (scope default "ui": `uic<digits>` throwaways + the testuser3 family <-> testuser2; "logic": `lgc<digits>`
+        throwaways + testuser4/5/6 and testuser4 <-> testuser5; "all": both)
     {"op": "forget_age", "users": [...]}   -> {"ok": true}   (age_group back to "": the photo age prompt shows again)
+    {"op": "promote_admin", "users": [...]}   -> {"ok": true, "users": {"testuser6": {"is_staff": true}}}
+        (the app's own `manage.py promote_admin <email>` command, on test accounts of this database only)
 
 Accounts are created the way users.views.signup_view does it (consent stamped as a checkbox
 sign-up, leaderboard row recorded) and created on demand by "mint" too. Tokens are minted the way
@@ -85,40 +89,77 @@ def mint(spec, password):
     return {"access": str(refresh.access_token), "refresh": str(refresh), "user": user_payload(None, user)}
 
 
-def sweep():
-    """Leftovers of the account suite: delete `uic<digits>` throwaways, clear testuser3-family <-> testuser2
-    friendships / requests / blocks, put testuser3-family usernames back and drop their photos."""
+SWEEP_SCOPES = {
+    # scope: (throwaway prefixes, persistent family regex, the partner the family is cleared against)
+    "ui": (("uic",), r"testuser3(w\d{1,2})?", "testuser2"),
+    "logic": (("lgc",), r"testuser[456]", None),
+}
+
+
+def sweep(scope="ui"):
+    """Leftovers of a checker's account work (scope ui, logic or all):
+    - delete `uic<digits>` (ui) / `lgc<digits>` (logic) throwaways;
+    - ui: clear testuser3-family <-> testuser2 friendships / requests / blocks, put testuser3-family usernames back and
+      drop their photos;
+    - logic: put testuser4/5/6 usernames back, drop their photos, clear every friendship / request / block among them."""
+    from django.db.models import Q
     from users.account_data import delete_account, remove_photo
     from users.models import BlockedUser, FriendRequest, Friendship
+    if scope not in ("ui", "logic", "all"):
+        raise ValueError(f"sweep scope must be ui, logic or all (got {scope!r})")
+    scopes = ["ui", "logic"] if scope == "all" else [scope]
     out = {"deleted": [], "restored": [], "photos": [], "friend_rows": 0}
-    users = list(User.objects.filter(email__iendswith=EMAIL_DOMAIN))
-    for u in users:
-        if re.fullmatch(r"uic\d{4,17}", u.username) and u.email.lower() == u.username.lower() + EMAIL_DOMAIN:
+    prefixes = tuple(p for s in scopes for p in SWEEP_SCOPES[s][0])
+    throwaway = re.compile(r"(%s)\d{4,17}" % "|".join(prefixes))
+    for u in list(User.objects.filter(email__iendswith=EMAIL_DOMAIN)):
+        if throwaway.fullmatch(u.username) and u.email.lower() == u.username.lower() + EMAIL_DOMAIN:
             delete_account(u)
             out["deleted"].append(u.username)
-    fam = [u for u in User.objects.filter(email__iendswith=EMAIL_DOMAIN) if re.fullmatch(r"testuser3(w\d{1,2})?", u.email.split("@")[0])]
-    t2 = User.objects.filter(email__iexact="testuser2" + EMAIL_DOMAIN).first()
-    for u in fam:
-        want = u.email.split("@")[0]
-        if u.username != want:
-            u.username = want
-            u.save(update_fields=["username"])
-            out["restored"].append(want)
-        if u.profile_photo_version:
-            remove_photo(u)
-            out["photos"].append(want)
-        if t2:
-            from django.db.models import Q
-            lo, hi = sorted([u.pk, t2.pk])
-            out["friend_rows"] += FriendRequest.objects.filter(Q(sender=u, receiver=t2) | Q(sender=t2, receiver=u)).delete()[0]
-            out["friend_rows"] += Friendship.objects.filter(user_low_id=lo, user_high_id=hi).delete()[0]
-            out["friend_rows"] += BlockedUser.objects.filter(Q(blocker=u, blocked=t2) | Q(blocker=t2, blocked=u)).delete()[0]
+
+    def clear(a, b):
+        lo, hi = sorted([a.pk, b.pk])
+        n = FriendRequest.objects.filter(Q(sender=a, receiver=b) | Q(sender=b, receiver=a)).delete()[0]
+        n += Friendship.objects.filter(user_low_id=lo, user_high_id=hi).delete()[0]
+        n += BlockedUser.objects.filter(Q(blocker=a, blocked=b) | Q(blocker=b, blocked=a)).delete()[0]
+        return n
+
+    for s in scopes:
+        _, fam_re, partner = SWEEP_SCOPES[s]
+        fam = [u for u in User.objects.filter(email__iendswith=EMAIL_DOMAIN) if re.fullmatch(fam_re, u.email.split("@")[0])]
+        for u in fam:
+            want = u.email.split("@")[0]
+            if u.username != want:
+                u.username = want
+                u.save(update_fields=["username"])
+                out["restored"].append(want)
+            if u.profile_photo_version:
+                remove_photo(u)
+                out["photos"].append(want)
+        if partner:
+            other = User.objects.filter(email__iexact=partner + EMAIL_DOMAIN).first()
+            if other:
+                for u in fam:
+                    out["friend_rows"] += clear(u, other)
+        else:
+            for i, a in enumerate(fam):
+                for b in fam[i + 1:]:
+                    out["friend_rows"] += clear(a, b)
     return {"ok": True, **out}
+
+
+def promote_admin(spec, password):
+    """Admin rights for a test account through the app's own management command (local sqlite: guard() ran)."""
+    from io import StringIO
+    from django.core.management import call_command
+    user, _ = account(spec, password)
+    call_command("promote_admin", user.email, stdout=StringIO())
+    user.refresh_from_db()
+    return {"is_staff": user.is_staff, "is_superuser": user.is_superuser}
 
 
 def handle(req, password):
     if req.get("op") == "sweep":
-        return sweep()
+        return sweep(req.get("scope") or "ui")
     users = req.get("users", [])
     if req.get("op") == "ensure":
         out = {}
@@ -135,6 +176,8 @@ def handle(req, password):
             user.age_group = ""
             user.save(update_fields=["age_group"])
         return {"ok": True}
+    if req.get("op") == "promote_admin":
+        return {"ok": True, "users": {spec["username"]: promote_admin(spec, password) for spec in users}}
     return {"ok": False, "error": f"unknown op {req.get('op')!r}"}
 
 
