@@ -2,7 +2,8 @@
 // Gate 2 (design §7): deterministic browser QA scoped to what the diff touched.
 //   docs-only diff → pass (skipped) · games touched → ui-audit --only <ids> at 3 viewports
 //   routes touched → smoke at 390×844 and 1100×900 (loads, no console/page errors, screenshot)
-//   brief `## QA assertions` → {route, selector, expect} checks
+//   brief `## QA assertions` → {route, selector, expect} checks; {verify: <findings.json>} (check cards) →
+//   scripts/ui-check/verify.mjs --from on the lane after the smoke, every FAIL line a failure (never skipped)
 // Evidence and verdict go to <main checkout>/.team/qa/<slug>/ whatever --repo is. Exits 0/1; a
 // missing browser is "skipped", not a failure. Kills what it started, also on SIGTERM.
 // Usage: node scripts/team/qa.mjs <slug> --base <sha> [--lane 1|2] [--repo <dir>]
