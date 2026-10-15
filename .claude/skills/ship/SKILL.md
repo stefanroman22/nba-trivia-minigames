@@ -106,11 +106,12 @@ before the relay deploy: such a card ships as an **unmerged PR to `main`**.
 1. `git -C <worktree> push -u origin HEAD:team/<slug>` (a stale remote `team/<slug>` from an earlier attempt:
    `git push origin --delete team/<slug>` first; never force).
 2. `gh pr create --base main --head team/<slug> --title "<type>: <task title>" --body "Check card: <card url>
-   relay change: merge this PR and run \`cd multiplayer_server && railway up\` in the same window."` → `<url>`.
+   relay change: merge this PR with a merge commit (not squash/rebase), then run \`cd multiplayer_server && railway up\` in the same window. A squash or rebase rewrites the SHA: then set the card Done by hand."` → `<url>`.
    Do NOT merge it. **[CLOUD]** without a working `gh`: `SHIP-FAIL relay PR needs gh: branch team/<slug> pushed`.
 3. `node scripts/notion.mjs ship-card <pageId> --commit <SHA> --branch team/<slug> --target main --pr <url> --model "<model text>"`
    (status QA with the PR's head SHA: `main-sync` marks the card Done once the owner merges the PR; its
-   comment says "merge the PR + railway up; do not untick Needs human"), then
+   comment says "merge with a merge commit, not squash/rebase, + railway up; do not untick Needs human" — a
+   squash or rebase rewrites the SHA and the card must then be set Done by hand), then
    `node scripts/notion.mjs set-props <pageId> --needs-human`.
 4. Clean up the worktree and the local branch; keep the remote `team/<slug>` (the PR needs it). No back-merge:
    the owner's merge to `main` reaches `dev` with the next back-merge or promotion.

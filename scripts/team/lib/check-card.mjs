@@ -136,7 +136,7 @@ export function verifyPlan(card, assertions) {
 /** The Notion comment `ship-card` posts: dev (default), main (Target = main) or a PR to main (relay change). */
 export function shipCommentText({ sha, target = "dev", pr = null, devUrl = "" }) {
   const s = String(sha).slice(0, 7);
-  if (pr) return `🔀 relay change — PR to main: ${pr} (${s}). Merge the PR and run \`cd multiplayer_server && railway up\` in the same window; do not untick Needs human. main-sync marks this card Done once the PR is merged.`;
+  if (pr) return `🔀 relay change — PR to main: ${pr} (${s}). Merge the PR with a merge commit (not squash/rebase), then run \`cd multiplayer_server && railway up\` in the same window; do not untick Needs human. main-sync marks this card Done once the PR is merged — a squash or rebase rewrites the SHA, and the card must then be set Done by hand.`;
   if (target === "main") return `✅ on main (${s}) — production deploys from main (swishquest.com); main-sync marks this card Done.`;
   return `✅ on dev (${s}) — check ${devUrl}`;
 }

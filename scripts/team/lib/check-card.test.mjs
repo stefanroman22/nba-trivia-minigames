@@ -174,5 +174,6 @@ test("shipCommentText: dev, main and the relay PR", () => {
   assert.match(shipCommentText({ sha: "abcdef1234", target: "main" }), /^✅ on main \(abcdef1\) — production/);
   const pr = shipCommentText({ sha: "abcdef1234", target: "main", pr: "https://github.com/o/r/pull/9" });
   assert.ok(pr.includes("PR to main: https://github.com/o/r/pull/9"));
-  assert.match(pr, /Merge the PR and run `cd multiplayer_server && railway up` in the same window; do not untick Needs human/);
+  assert.match(pr, /Merge the PR with a merge commit \(not squash\/rebase\), then run `cd multiplayer_server && railway up` in the same window; do not untick Needs human/);
+  assert.match(pr, /a squash or rebase rewrites the SHA, and the card must then be set Done by hand/);
 });

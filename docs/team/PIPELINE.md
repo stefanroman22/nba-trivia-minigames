@@ -363,8 +363,10 @@ acceptance re-run — the same judge the checker used.
 pipeline, and relay code must not reach production before the relay deploy. So a `Target = main` fix
 whose commit touches `multiplayer_server/` is never pushed to `main`: ship pushes `team/<slug>`, opens
 an **unmerged PR to `main`**, moves the card to QA with the PR's head SHA, sets **Needs human** and
-comments "merge the PR + `railway up`; do not untick Needs human". You merge the PR and run `cd
-multiplayer_server && railway up` in the same window; `main-sync` then marks the card Done. The run
+comments "merge with a merge commit + `railway up`; do not untick Needs human". You merge the PR **with a
+merge commit (not squash/rebase)**, then run `cd multiplayer_server && railway up` in the same window;
+`main-sync` then marks the card Done. A squash or rebase rewrites the SHA, so main-sync never finds it:
+then set the card Done by hand. The run
 reports it as `SHIPPED-PR <url>`.
 
 **Cloud.** `infra/routine/setup.sh` now installs Chromium with `--with-deps` and runs `npm ci --prefix
