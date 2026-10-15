@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-// Re-run findings' acceptance criteria (checks + DSL assertions) against the local stack — the fix loop's judge.
+// Re-run findings' acceptance criteria against the local stack — the fix loop's judge of both checkers: UI checks
+// ({id}), Logic checks ({lc}, through scripts/logic-check/run.mjs --only), browser DSL assertions and API assertions
+// ({api, expect}: node fetch against the stack's Django, a token minted per persona). Logic findings: --run <id>-logic.
 //   node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--ref .|main|<sha>] [--repo <dir>] [--expect-fail] [--mark] [--keep-stack]
 //   node scripts/ui-check/verify.mjs --from <findings.json> [--mode dev|prod] [--repo <dir>] [--ports django=…,socket=…,web=…]
 // Mode: --mode when given; else dev (HMR, no rebuild), except prod for a finding whose acceptance was validated in
