@@ -88,3 +88,8 @@ backend/media/
 
 # UI check runs, accounts and evidence (scripts/ui-check)
 .ui-check/
+
+# Game card pipeline (scripts/game-cards): renders, finished cards, downloaded photos, API keys
+scripts/game-cards/out/
+scripts/game-cards/sources/candidates/
+scripts/game-cards/.env
