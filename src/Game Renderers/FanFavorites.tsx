@@ -122,6 +122,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
     question
       ? {
           game: "fan-favorites",
+          qid: question.qid,
           prompt: question.prompt,
           asked: `On ${question.survey_date
             ? new Date(question.survey_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })

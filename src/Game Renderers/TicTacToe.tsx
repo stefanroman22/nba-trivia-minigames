@@ -350,7 +350,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     if (!isMultiplayer || !terminal || endedRef.current) return;
     endedRef.current = true;
     // The final board is the duel's answer review (both players finish at once, so nothing leaks).
-    const review = mpState ? tttReview(mpState, selfUid) : undefined;
+    const review = mpState ? tttReview(mpState, selfUid, question?.qid) : undefined;
     later(() => onGameEnd?.(myCells * CELL_POINTS, { review }), 1800); // game-results: online-duel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiplayer, terminal]);

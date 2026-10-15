@@ -31,10 +31,11 @@ export interface PlayoffSeries {
   team_a_wins: number;
   team_b_wins: number;
   winner: string;
+  match_id: string;
 }
 
 export interface NbaTeamLogo {
-  team_id?: number;
+  team_id: number;
   full_name: string;
   logo: string;
 }
@@ -58,6 +59,7 @@ export interface StartingFiveGame {
   final_score: string;
   game_date: string;
   starting_5: StartingFivePlayer[];
+  game_id: string;
 }
 
 export interface FanFavoritesAnswer {

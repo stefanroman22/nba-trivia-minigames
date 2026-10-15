@@ -158,7 +158,18 @@ function WhoWouldWin({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoWouldWinP
       endedRef.current = true;
       const frozen = talliesRef.current;
       setEndTallies(frozen);
-      onGameEnd?.(totalScore(finalPicks, frozen), { inPlace: true });
+      onGameEnd?.(totalScore(finalPicks, frozen), {
+        inPlace: true,
+        review: {
+          game: "who-would-win",
+          rounds: gameInfo.map((m) => ({
+            qid: m.qid,
+            a: m.a.label,
+            b: m.b.label,
+            pick: finalPicks.find((p) => p.qid === m.qid)?.choice ?? null,
+          })),
+        },
+      });
       setPhase("score");
     });
   };

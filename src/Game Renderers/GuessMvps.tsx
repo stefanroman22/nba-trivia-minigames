@@ -6,6 +6,7 @@ import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { matchAnswer } from "../utils/answerMatch";
+import { createGuessLogger } from "../utils/guessLog";
 import type { MvpSeason, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
 
@@ -25,8 +26,14 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   const [playersError, setPlayersError] = useState(false);
   // Each round's guess and verdict, for the answer review handed back with the score.
   const picksRef = useRef<{ pick: string; correct: boolean }[]>([]);
+  // Every answer, sent to the guess log on game end / unmount; the clock restarts each round.
+  const [guessLog] = useState(() => createGuessLogger("guess-mvps"));
+  const roundStartRef = useRef(Date.now());
 
   const currentSeason = seasonsList[currentIndex];
+
+  useEffect(() => { roundStartRef.current = Date.now(); }, [currentIndex]);
+  useEffect(() => () => guessLog.flush(), [guessLog]);
 
   useEffect(() => {
     fetch(`${BACKEND_ORIGIN}/trivia/all-players/`)
@@ -51,6 +58,16 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
 
   const isCorrect =
     matchAnswer(playerName, [{ answer: currentSeason?.mvp || "" }]) === 0;
+  // One entry per round: a second submit during the reveal is not a new answer.
+  if (!picksRef.current[currentIndex]) {
+    guessLog.add({
+      question_id: currentSeason.season,
+      answer: playerName.trim(),
+      correct: isCorrect,
+      elapsed_ms: Date.now() - roundStartRef.current,
+    });
+    if (currentIndex === seasonsList.length - 1) guessLog.flush();
+  }
   picksRef.current[currentIndex] = { pick: playerName.trim(), correct: isCorrect };
 
   if (isCorrect) {

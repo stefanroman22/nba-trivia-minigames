@@ -19,21 +19,22 @@ export type AnswerReview =
   | {
       game: "series-winner";
       rounds: {
+        matchId: string;
         label: string;
         teams: { name: string; logo: string; wins: number }[];
         winner: string;
         pick: string | null;
       }[];
     }
-  | { game: "name-logo"; rounds: { team: string; teamId?: number; logo: string | null; pick: string | null; correct: boolean }[] }
+  | { game: "name-logo"; rounds: { team: string; teamId: number; logo: string | null; pick: string | null; correct: boolean }[] }
   | { game: "guess-mvps"; rounds: { season: string; mvp: string; pick: string | null; correct: boolean }[] }
   | {
       game: "starting-five";
-      matchup: { teamA: string; teamB: string; logoA: string; logoB: string; winner: string; score: string; date: string };
+      matchup: { gameId: string; teamA: string; teamB: string; logoA: string; logoB: string; winner: string; score: string; date: string };
       slots: { key: string; label: string; name: string | null; found: boolean }[];
     }
   | { game: "wordle"; solution: string; guesses: string[]; won: boolean }
-  | { game: "fan-favorites"; prompt: string; asked: string; answers: { answer: string; count: number; hit: boolean }[] }
+  | { game: "fan-favorites"; qid: string; prompt: string; asked: string; answers: { answer: string; count: number; hit: boolean }[] }
   | {
       game: "heatmap";
       rows: { id: number; label: string; type: Criterion["type"]; claimedBy: string | null; example: string | null }[][];
@@ -51,11 +52,14 @@ export type AnswerReview =
   | { game: "who-are-ya"; mystery: { person_id: number; full_name: string; sub: string }; rows: WayaReviewRow[]; won: boolean }
   | {
       game: "tictactoe";
+      /** The dealt grid's qid; absent when the store rebuilds the review from the relay's turn state. */
+      qid?: string;
       rows: Criterion[];
       cols: Criterion[];
       cells: { name: string | null; mine: boolean }[];
       result: "win" | "loss" | "draw";
     }
+  | { game: "who-would-win"; rounds: { qid: string; a: string; b: string; pick: "a" | "b" | null }[] }
   | { game: "bingo"; cells: { label: string; claimedBy: string | null; example: string | null }[] }
   | {
       game: "contexto";
