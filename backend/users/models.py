@@ -4,6 +4,7 @@ from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import IntegrityError, models
 
 from .identity import PUBLIC_ID_LENGTH, generate_public_id
+from .ranks import rank_for
 
 RANK_CHOICES = [
     ("Rookie", "Rookie"),
@@ -56,6 +57,15 @@ class CustomUser(AbstractUser):
     # carry instead of the bytes (users.friends._brief). Backfilled to 1 for pre-0006 photos.
     profile_photo_version = models.PositiveIntegerField(default=0, editable=False)
     rank = models.CharField(max_length=20, choices=RANK_CHOICES, default='Rookie')
+    # Progression (trivia.awarding is the only writer; users.ranks reads). `active_days` = distinct Paris
+    # days with a scoring game and gates the top ranks; the streak needs one scoring game a day and a
+    # held freeze covers one missed day. `founding_member`: the account predates the 2026-10 ladder.
+    active_days = models.PositiveIntegerField(default=0)
+    last_active_day = models.DateField(null=True, blank=True)
+    streak_days = models.PositiveIntegerField(default=0)
+    streak_best = models.PositiveIntegerField(default=0)
+    streak_freezes = models.PositiveSmallIntegerField(default=1)
+    founding_member = models.BooleanField(default=False)
     # Moderation (users.strikes). Strikes never expire; the third one bans. `banned_at` is THE
     # ban switch: users.authentication.BanAwareJWTAuthentication refuses every request with a
     # 403 {"code": "account_banned"} while it is set, and banned accounts are hidden (leaderboard,
@@ -106,24 +116,7 @@ class CustomUser(AbstractUser):
         raise IntegrityError("Could not allocate a unique public id")
 
     def update_rank(self):
-        if self.points >= 5000:
-            self.rank = "GOAT"
-        elif self.points >= 3000:
-            self.rank = "Hall of Famer"
-        elif self.points >= 2000:
-            self.rank = "MVP"
-        elif self.points >= 1200:
-            self.rank = "All-NBA"
-        elif self.points >= 700:
-            self.rank = "All-Star"
-        elif self.points >= 400:
-            self.rank = "Starter"
-        elif self.points >= 200:
-            self.rank = "Sixth Man"
-        elif self.points >= 100:
-            self.rank = "Role Player"
-        else:
-            self.rank = "Rookie"
+        self.rank = rank_for(self.points, self.active_days)
 
 
 class FriendRequest(models.Model):
