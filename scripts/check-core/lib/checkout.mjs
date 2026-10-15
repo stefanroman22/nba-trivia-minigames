@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readFileSync, rmdirSync, rmSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ROOT } from './home.mjs';
 
 const WIN = process.platform === 'win32';
@@ -138,7 +139,10 @@ export async function ensureCheckout(ref, { fetch = true } = {}) {
 /** Remove the checkout of `ref`: junctions first (git would follow them into the main checkout), then the worktree. */
 export async function removeCheckout(ref) {
   if (!ref || ref === '.') throw new Error('removeCheckout: refusing to remove the main checkout');
-  const dir = checkoutDir(ref);
+  return removeWorktreeDir(checkoutDir(ref));
+}
+
+function removeWorktreeDir(dir) {
   const registered = isWorktree(dir);
   if (!registered && !existsSync(dir)) return false;
   for (const { link } of LINKS) {
@@ -151,4 +155,57 @@ export async function removeCheckout(ref) {
   git(['worktree', 'prune']);
   log(`removed ${dir}`);
   return true;
+}
+
+// --- ui-fix: a branch worktree, so the fix never moves the main checkout (which holds the checker tooling) ---
+export const fixBranch = (runId) => `fix/ui-check-${runId}`;
+export const fixDir = (runId, root = worktreeRoot()) => path.join(root, `fix-ui-check-${String(runId).replace(/[^\w.-]+/g, '-')}`);
+
+/**
+ * The worktree `<worktreeRoot>/fix-ui-check-<runId>` on branch `fix/ui-check-<runId>`, cut from origin/<target>
+ * (or a sha) when new → { repo, branch, base, head, created, reinstalled }. An existing one is reused as it is (a fix
+ * in progress is never reset); a leftover branch without a worktree is checked out again. Junctions as ensureCheckout;
+ * `npm ci` only when node_modules is missing or package-lock.json changed. The main checkout is never switched.
+ */
+export async function ensureFixWorktree(runId, target = 'main', { fetch = true, root = worktreeRoot(), install = true } = {}) {
+  if (!runId) throw new Error('ensureFixWorktree: runId required');
+  const dir = fixDir(runId, root);
+  const branch = fixBranch(runId);
+  let created = false;
+  let base = null;
+  if (!isWorktree(dir)) {
+    if (existsSync(dir)) throw new Error(`checkout: ${dir} exists but is not a worktree of ${ROOT} — remove it first`);
+    git(['worktree', 'prune']);
+    mkdirSync(path.dirname(dir), { recursive: true });
+    if (git(['rev-parse', '--verify', '--quiet', `refs/heads/${branch}`], ROOT, { allowFail: true })) {
+      log(`adding ${dir} on the existing branch ${branch}`);
+      git(['worktree', 'add', dir, branch]);
+    } else {
+      base = resolveTarget(target, fetch);
+      log(`adding ${dir} on ${branch} from ${base.slice(0, 7)} (${target})`);
+      git(['worktree', 'add', '-b', branch, dir, base]);
+    }
+    created = true;
+  }
+  linkShared(dir);
+  const reinstalled = install ? installIfLockChanged(dir) : false;
+  return { repo: dir, branch, base, head: git(['rev-parse', 'HEAD'], dir), created, reinstalled };
+}
+
+/** Remove the fix worktree (junctions first) and, with deleteBranch, its local branch. */
+export async function removeFixWorktree(runId, { root = worktreeRoot(), deleteBranch = true } = {}) {
+  const removed = removeWorktreeDir(fixDir(runId, root));
+  if (deleteBranch) git(['branch', '-D', fixBranch(runId)], ROOT, { allowFail: true });
+  return removed;
+}
+
+// CLI (ui-fix skill): node scripts/check-core/lib/checkout.mjs fix <runId> <main|dev>  → JSON { repo, branch, … }
+//                     node scripts/check-core/lib/checkout.mjs remove-fix <runId>
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const [cmd, runId, target] = process.argv.slice(2);
+  try {
+    if (cmd === 'fix' && runId && ['main', 'dev'].includes(target)) console.log(JSON.stringify(await ensureFixWorktree(runId, target), null, 2));
+    else if (cmd === 'remove-fix' && runId) console.log(JSON.stringify({ removed: await removeFixWorktree(runId) }));
+    else { console.error('usage: node scripts/check-core/lib/checkout.mjs fix <runId> <main|dev> | remove-fix <runId>'); process.exit(2); }
+  } catch (e) { console.error(String(e.message || e)); process.exit(1); }
 }

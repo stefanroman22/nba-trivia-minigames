@@ -101,11 +101,17 @@ Rules:
   run `npm run ui:audit` yourself. Outside the pipeline, read the doc first and run the audit.
 
 ## Fixing a UI-check finding
-When the `ui-fix` skill hands you finding ids, a `runDir` and a `runId`, the finding is your brief:
+When the `ui-fix` skill hands you finding ids, a `runDir`, a `runId` and a `worktree`, the finding is your brief:
 this replaces "Required reading" above and the outside-the-pipeline doc read and audit run for
 `Game Renderers/` (steps 2 and 9), and every other rule in this file still applies (reuse-first,
 UI-21/22/23, `<GameFrame>`, no generic design skill on `Game Renderers/*.tsx`). Skip the design
 skills here: `fix.change` is the design decision.
+
+**ui-fix runs: the worktree.** ui-fix also hands you `worktree: <worktree>`, the fix's own git
+worktree (branch `fix/ui-check-<runId>`, cut from `main` for a production run, so it has no
+`scripts/ui-check`). Read and edit app files only inside `<worktree>` (absolute paths under it). Run
+every `node scripts/…` command from the main checkout (the repo root; the checker tooling lives
+there) and point it at the fix with `--repo <worktree>`. `git` for your files: `git -C <worktree> …`.
 
 **From a pipeline check card** (the brief names the card's `findings.json` attachment, an absolute
 path ending in `.team/attachments/<pageId>/findings.json`, instead of a `runDir`): steps 1-3, 7 and 8
@@ -124,9 +130,9 @@ yourself there (the lane stack is the pipeline's), and answer in the brief's for
 3. Implement `fix.change`, reusing `fix.reuse`; build anything in `fix.build` only after the
    reuse-first checks come back empty.
 4. Verify in dev (HMR, no rebuild):
-   `node scripts/ui-check/verify.mjs <id> --run <runId> --ref . --mode dev --keep-stack`.
-   `--ref .` tests this checkout (your fix); without it verify tests the checkout the run audited
-   (for a `--ref main` run the unfixed `check-main` worktree).
+   `node scripts/ui-check/verify.mjs <id> --run <runId> --repo <worktree> --mode dev --keep-stack`.
+   `--repo <worktree>` tests your fix; without it verify tests the checkout the run audited (for a
+   `--ref main` run the unfixed `check-main` worktree).
    FAIL → read its first failing line (and `<runDir>/verify/<id>.json` when the line is not enough),
    adjust, verify again. At most 4 attempts (one attempt = one verify after a change). A failing line
    about another finding of your cluster (shared check): work on that one; a line no finding of your
@@ -141,9 +147,9 @@ yourself there (the lane stack is the pipeline's), and answer in the brief's for
    variants (same assertion, other `viewport`; Bash tool):
    `node -e 'const [f,id,dir]=process.argv.slice(1);const x=require(f).findings.find(y=>y.id===id);const V=["phone-360","phone-390","phone-414","tablet-768","tablet-1280","desktop-1366","desktop-1920"];(x.acceptance.assertions||[]).forEach((a,i)=>V.filter(v=>v!==a.viewport).forEach(v=>{const p=require("path").join(dir,id+"-a"+(i+1)+"-"+v+".json");require("fs").writeFileSync(p,JSON.stringify({...a,viewport:v}));console.log(p)}))' "<runDir>/findings.json" <id> "<runDir>/probe"`
    and run each printed file with
-   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode dev --keep-stack`
-   (`--mode prod` for an assertion that expects `maxCls` or `maxLoafMs`). No `--run` here: probe has
-   no `--ref`, and with `--run` it would test the run's own checkout instead of this one.
+   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode dev --run <runId> --repo <worktree> --keep-stack`
+   (`--mode prod` for an assertion that expects `maxCls` or `maxLoafMs`; `--repo` again: without it
+   probe tests the run's own checkout).
    FAIL → back to step 4 (same attempt budget). ERROR from a step whose control does not exist at
    that viewport (the drawer on desktop, a desktop-only nav link) does not apply: list it in `why`.
    The acceptance's checks run on all 7 viewports in the orchestrator's regression gate, not here.
@@ -151,8 +157,8 @@ yourself there (the lane stack is the pipeline's), and answer in the brief's for
    `accepted.json`, notes, findings files) to make a finding pass. If the check or its acceptance is
    wrong (it demands what a constraint doc forbids, measures the wrong element, or cannot pass on a
    correct UI), stop and report `check-bug` with why.
-8. For a finding you end as `blocked` or `check-bug`, revert your own edits for it (`git restore --
-   <file>`, delete files you created) unless a `fixed` finding of your cluster needs them; say which
+8. For a finding you end as `blocked` or `check-bug`, revert your own edits for it (`git -C
+   <worktree> restore -- <file>`, delete files you created) unless a `fixed` finding of your cluster needs them; say which
    in `why` (`reverted` or `kept for <id>`).
 9. Do not commit, do not run `node scripts/ui-check/run.mjs --stop`, and skip lint/typecheck/build
    and `npm run ui:audit` (the orchestrator runs lint and typecheck once before the PR; `GM-SHELL-01`

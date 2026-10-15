@@ -72,10 +72,16 @@ Rules:
   from a request/view (BE-15).
 
 ## Fixing a UI-check finding
-When the `ui-fix` skill hands you finding ids, a `runDir` and a `runId` (owner `backend`: API status,
+When the `ui-fix` skill hands you finding ids, a `runDir`, a `runId` and a `worktree` (owner `backend`: API status,
 latency or data shape, relay behaviour; owner `ci`: build warnings, env/config, deploy), the finding
 is your brief: this replaces "Required reading" above, and every other rule in this file still
 applies (reuse-first, BE-rules, migrations, secrets from env).
+
+**ui-fix runs: the worktree.** ui-fix also hands you `worktree: <worktree>`, the fix's own git
+worktree (branch `fix/ui-check-<runId>`, cut from `main` for a production run, so it has no
+`scripts/ui-check`). Read and edit app files only inside `<worktree>` (absolute paths under it). Run
+every `node scripts/…` command from the main checkout (the repo root; the checker tooling lives
+there) and point it at the fix with `--repo <worktree>`. `git` for your files: `git -C <worktree> …`.
 
 **From a pipeline check card** (the brief names the card's `findings.json` attachment, an absolute
 path ending in `.team/attachments/<pageId>/findings.json`, instead of a `runDir`): steps 1-3, 8 and 9
@@ -99,9 +105,9 @@ the brief's format. A relay (`multiplayer_server/`) change is deployed only by t
    `multiplayer_server/` run `node scripts/ui-check/run.mjs --stop` before the next verify (its
    `--keep-stack` starts the stack again). If the stop line does not name `django-<port>` (or
    `socket-<port>` for a relay edit), that server is not ui-check's: `blocked: restart <service>`.
-5. Verify in dev: `node scripts/ui-check/verify.mjs <id> --run <runId> --ref . --mode dev --keep-stack`.
-   `--ref .` tests this checkout (your fix); without it verify tests the checkout the run audited
-   (for a `--ref main` run the unfixed `check-main` worktree).
+5. Verify in dev: `node scripts/ui-check/verify.mjs <id> --run <runId> --repo <worktree> --mode dev --keep-stack`.
+   `--repo <worktree>` tests your fix; without it verify tests the checkout the run audited (for a
+   `--ref main` run the unfixed `check-main` worktree).
    FAIL → read its first failing line (and `<runDir>/verify/<id>.json` when the line is not enough),
    adjust, verify again. At most 4 attempts (one attempt = one verify after a change). A failing line
    about another finding of your cluster (shared check): work on that one; a line no finding of your
@@ -117,9 +123,9 @@ the brief's format. A relay (`multiplayer_server/`) change is deployed only by t
    variants (same assertion, other `viewport`; Bash tool):
    `node -e 'const [f,id,dir]=process.argv.slice(1);const x=require(f).findings.find(y=>y.id===id);const V=["phone-360","phone-390","phone-414","tablet-768","tablet-1280","desktop-1366","desktop-1920"];(x.acceptance.assertions||[]).forEach((a,i)=>V.filter(v=>v!==a.viewport).forEach(v=>{const p=require("path").join(dir,id+"-a"+(i+1)+"-"+v+".json");require("fs").writeFileSync(p,JSON.stringify({...a,viewport:v}));console.log(p)}))' "<runDir>/findings.json" <id> "<runDir>/probe"`
    and run each printed file with
-   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode dev --keep-stack`
-   (`--mode prod` for an assertion that expects `maxCls` or `maxLoafMs`). No `--run` here: probe has
-   no `--ref`, and with `--run` it would test the run's own checkout instead of this one.
+   `node scripts/ui-check/probe.mjs --assert-file "<file>" --mode dev --run <runId> --repo <worktree> --keep-stack`
+   (`--mode prod` for an assertion that expects `maxCls` or `maxLoafMs`; `--repo` again: without it
+   probe tests the run's own checkout).
    FAIL → back to step 5 (same attempt budget). ERROR from a step whose control does not exist at
    that viewport does not apply: list it in `why`. The acceptance's checks run on all 7 viewports in
    the orchestrator's regression gate, not here.
@@ -127,8 +133,8 @@ the brief's format. A relay (`multiplayer_server/`) change is deployed only by t
    `accepted.json`, notes, findings files) to make a finding pass. If the check or its acceptance is
    wrong (it demands what a constraint doc forbids, measures the wrong thing, or cannot pass on a
    correct server), stop and report `check-bug` with why.
-9. For a finding you end as `blocked` or `check-bug`, revert your own edits for it (`git restore --
-   <file>`, delete files you created) unless a `fixed` finding of your cluster needs them; say which
+9. For a finding you end as `blocked` or `check-bug`, revert your own edits for it (`git -C
+   <worktree> restore -- <file>`, delete files you created) unless a `fixed` finding of your cluster needs them; say which
    in `why` (`reverted` or `kept for <id>`).
 10. Do not commit and skip `manage.py check` / the test suite (the orchestrator runs the tests once
     before the PR when `backend/` changed).

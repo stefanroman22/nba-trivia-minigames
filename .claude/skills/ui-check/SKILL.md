@@ -120,6 +120,7 @@ Give the owner:
 - the next step: the cards are in To Do for the team pipeline, or the `ui-fix` skill fixes open
   findings now (`ui-fix <runId>`; it ships a `--ref main` run's fixes to production and updates the
   same cards);
-- the judges' notes appends (`git status --short scripts/ui-check/notes`) are left uncommitted: `ui-fix`
-  commits them first as `ui-check: notes from <runId>`.
+- the judges' notes appends (`git status --short scripts/ui-check/notes`) are left uncommitted: they
+  are tooling and go to `dev` with the next tooling PR from this checkout (`ui-fix` does not commit
+  them).
 The owner's manual check (Google OAuth round trip) is listed in `docs/ui-check/README.md`.

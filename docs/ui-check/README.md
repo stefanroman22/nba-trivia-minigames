@@ -82,8 +82,9 @@ import `./scripts/check-core/lib/…` relative to it).
 ## Where artifacts live
 
 Run output never goes into the repo; the only repo files a run changes are
-`scripts/ui-check/notes/<suite>.md`, where the judges append what they learned (the `ui-fix` skill
-commits them as `ui-check: notes from <runId>`). `scripts/check-core/lib/home.mjs` (`uicHome()`) picks:
+`scripts/ui-check/notes/<suite>.md`, where the judges append what they learned. They stay
+uncommitted in the main checkout and go to `dev` with the next tooling PR (`ui-fix` never commits
+them: its branch can be cut from `main`, which has no checker tooling yet). `scripts/check-core/lib/home.mjs` (`uicHome()`) picks:
 `UI_CHECK_HOME` when set; on Windows with the repo under OneDrive `%LOCALAPPDATA%\nba-ui-check`
 (OneDrive would sync thousands of JPEGs); otherwise `<repo>/.ui-check` (git-ignored).
 
@@ -105,8 +106,9 @@ commits them as `ui-check: notes from <runId>`). `scripts/check-core/lib/home.mj
 Every `run.mjs` call (including a fix loop's regression run) creates a new run and moves `latest`;
 the skills and agents always pass `--run <runId>` to `verify.mjs`, `probe.mjs` and `report.mjs`.
 With `--run`, `verify.mjs` and `probe.mjs` test the checkout that run audited (`run-meta.json` `repo`,
-for a `--ref main` run the `check-main` worktree). A fix loop edits this checkout, so its `verify.mjs`
-calls add `--ref .`, and its `probe.mjs` calls (probe has no `--ref`) leave `--run` out.
+for a `--ref main` run the `check-main` worktree). The `ui-fix` loop edits its own worktree
+`<worktreeRoot>/fix-ui-check-<runId>`, so its `verify.mjs`, `probe.mjs` and regression `run.mjs` calls
+add `--repo <worktree>`; they still run from the main checkout, which holds the tooling.
 
 The digest caps each section per suite (FAIL lines 80, coverage gaps 15, warnings 20, metric rows
 25; about 600 lines in all), so one noisy suite never pushes another out. A capped part ends with
@@ -142,9 +144,9 @@ The local relay and the prod build read the public data hosts (`VITE_DATA_BASE`,
 findings validated in prod (`validatedMode`), dev otherwise. In the fix loop the engines verify with
 `--mode dev` (HMR, no rebuild) and switch to `--mode prod` only for perf criteria (`maxCls`,
 `maxLoafMs`, an `@perf` check, or a finding with rule perf / loaf / cls / slow-action / slow-api),
-because budgets are enforced only in prod. Every fix-loop verify passes `--ref .` (this checkout).
-The `ui-fix` skill's final `verify --ref . --mark` passes no `--mode`, so it is the one gate in the
-finding's validated mode.
+because budgets are enforced only in prod. Every fix-loop verify passes `--repo <worktree>`.
+The `ui-fix` skill's final `verify --repo <worktree> --mark` passes no `--mode`, so it is the one gate
+in the finding's validated mode.
 
 ## Accounts
 
@@ -260,8 +262,10 @@ judges and push on its own is Phase B.
 ## Shipping fixes to production
 
 Checker findings are the standing exception to "stop at dev" (CLAUDE.md "Shipping"). For a
-`--ref main` run, `ui-fix` works on `fix/ui-check-<runId>` cut from `origin/main`, verifies with
-`--ref .`, opens a PR to `main` and merges it, then opens and merges a back-merge PR `main → dev`
+`--ref main` run, `ui-fix` works in a worktree `<worktreeRoot>/fix-ui-check-<runId>` on branch
+`fix/ui-check-<runId>` cut from `origin/main` (`node scripts/check-core/lib/checkout.mjs fix <runId>
+main`; the main checkout never switches branches, because a `main`-based branch has no checker
+tooling), verifies with `--repo <worktree>` from the main checkout, opens a PR to `main` and merges it, then opens and merges a back-merge PR `main → dev`
 (merge commit) so `dev` stays a superset; a failed back-merge is retried once, then left to the
 owner with Needs human on the cards (`main` stays shipped). A push to `main` deploys both Vercel
 projects (frontend and backend); the skill then runs the `ship` skill's read-only production check
@@ -270,8 +274,9 @@ Needs human, it never rolls back or fixes forward) and may re-run the fixed find
 with `run.mjs --live --only …` (account, game and multiplayer findings cannot be checked live; their
 proof is the prod-mode `verify --mark`). Before the merge it moves the
 findings' cards to QA with the commit (`notion.mjs ship-card`), so `main-sync.yml` marks them Done.
-Pipeline cards with `Target = main` take the same route through the `ship` skill. Runs of other
-code ship to dev as before.
+At the end it removes the worktree (`checkout.mjs remove-fix <runId>`). Pipeline cards with
+`Target = main` take the same route through the `ship` skill. Runs of other code ship to dev as
+before, from a worktree cut from `origin/dev`.
 
 **Relay rule.** The relay (`multiplayer_server/`, Railway) is billed and never deployed by a
 checker or the pipeline, and its code must not reach production before that deploy: a fix that
