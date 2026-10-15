@@ -103,10 +103,13 @@ def award(user, game, mode, score, duration_ms):
     the client applies: awarded, base, first_game_bonus, streak_bonus, points, rank, rank_up, progress, streak."""
     today = cet_today()
     since = day_start_utc(today)
+    until = day_start_utc(today + datetime.timedelta(days=1))
     with transaction.atomic():
         user = type(user).objects.select_for_update().get(pk=user.pk)
         rank_before = user.rank
-        todays = GameSession.objects.filter(user=user, finished_at__gte=since, mode__in=("single", "match"))
+        todays = GameSession.objects.filter(
+            user=user, finished_at__gte=since, finished_at__lt=until, mode__in=("single", "match")
+        )
         earned_today = todays.aggregate(s=Sum("score"))["s"] or 0
         scoring = score > 0
         base = soft_capped(score, earned_today) if scoring else 0

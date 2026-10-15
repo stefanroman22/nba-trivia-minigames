@@ -10,6 +10,7 @@ from django.test import SimpleTestCase, TestCase
 
 from trivia import awarding
 from trivia.models import GameSession
+from trivia.wordle_daily import CET
 
 User = get_user_model()
 DAY = datetime.date(2026, 10, 16)  # a Friday
@@ -17,6 +18,11 @@ DAY = datetime.date(2026, 10, 16)  # a Friday
 
 def _user(**kw):
     return User.objects.create_user(username="Baller", email="baller@example.com", password="x", **kw)
+
+
+def _at(day):
+    """Noon Paris on `day`, in UTC: the clock a play on that day is stamped with."""
+    return datetime.datetime.combine(day, datetime.time(12), tzinfo=CET).astimezone(datetime.timezone.utc)
 
 
 class CapTests(SimpleTestCase):
@@ -69,6 +75,12 @@ class DayTests(SimpleTestCase):
 class AwardTests(TestCase):
     def setUp(self):
         self.user = _user()
+        # finished_at follows the mocked day (the class patch on cet_today), not the wall clock.
+        self.clock = patch("django.utils.timezone.now", side_effect=lambda: _at(awarding.cet_today()))
+        self.clock.start()
+
+    def tearDown(self):
+        self.clock.stop()
 
     def receipt(self, score, game="series-winner", mode="single"):
         return awarding.award(User.objects.get(pk=self.user.pk), game, mode, score, 5_000)
