@@ -14,11 +14,10 @@ export interface ReviewSeat {
   isSelf: boolean;
 }
 
-/** Tic-Tac-Toe: the final duel board, your cells marked. `qid` is the dealt grid's, when known. */
-export function tttReview(s: TttTurnState, selfUid: string, qid?: string): AnswerReview {
+/** Tic-Tac-Toe: the final duel board, your cells marked. */
+export function tttReview(s: TttTurnState, selfUid: string): AnswerReview {
   return {
     game: "tictactoe",
-    qid,
     rows: s.criteria.rows,
     cols: s.criteria.cols,
     cells: s.board.map((c) => ({ name: c?.playerName ?? null, mine: c?.ownerUid === selfUid })),

@@ -8,6 +8,7 @@ export interface GuessEntry {
   question_id: string;
   answer: string;
   correct: boolean;
+  /** Per round in the round games (series-winner, name-logo, guess-mvps); since the puzzle was shown in Starting Five and Wordle. */
   elapsed_ms: number;
 }
 

@@ -52,7 +52,7 @@ export type AnswerReview =
   | { game: "who-are-ya"; mystery: { person_id: number; full_name: string; sub: string }; rows: WayaReviewRow[]; won: boolean }
   | {
       game: "tictactoe";
-      /** The dealt grid's qid; absent when the store rebuilds the review from the relay's turn state. */
+      /** The dealt grid's qid: set in single player; absent in online matches (the relay sends no qid). */
       qid?: string;
       rows: Criterion[];
       cols: Criterion[];

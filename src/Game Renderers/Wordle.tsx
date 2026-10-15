@@ -31,9 +31,11 @@ interface WordleProps {
   /** Closes the game and returns to idle — the in-place ScorePanel's "Close game".
    *  No "Play again": Wordle is once per day. */
   onClose?: () => void;
+  /** Online round: the word is a random surname, not the daily word, so nothing is logged. */
+  multiplayer?: boolean;
 }
 
-function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
+function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
   const [solution, setSolution] = useState('');
   const [guesses, setGuesses] = useState<Array<string | null>>(Array(MAX_GUESSES).fill(null));
   const [currentGuess, setCurrentGuess] = useState('');
@@ -97,7 +99,7 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
     });
 
     const solved = currentGuess === solution;
-    guessLog.add({
+    if (!multiplayer) guessLog.add({
       question_id: solution,
       answer: currentGuess,
       correct: solved,
@@ -114,7 +116,7 @@ function Wordle({ gameInfo, onGameEnd, onClose }: WordleProps) {
     }
 
     setCurrentGuess('');
-  }, [currentGuess, guesses, solution, endGame, guessLog]);
+  }, [currentGuess, guesses, solution, endGame, guessLog, multiplayer]);
 
   // Central key handler — drives both the on-screen keyboard and physical keys.
   const handleKey = useCallback((key: string) => {
