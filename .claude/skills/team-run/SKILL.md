@@ -111,11 +111,12 @@ Spawn `Agent(model: <reviewModel>, code-reviewer)` on `<repo>/.team/run/<slug>/r
 also `Agent(model: opus, motion-reviewer)` on the same file, in parallel. Any blocker/major → fix round;
 minor/nit/missing → noted in the commit body.
 
-**ship** → `ship` skill from the worktree. `SHIPPED <sha>` → `shipped.push({title, category})`, write
+**ship** → `ship` skill from the worktree. `SHIPPED <sha>` (or `SHIPPED-PR <url>`, a check card's relay change left as
+a PR to `main` for the owner: same bookkeeping, `commit` = the PR's head SHA, plus `pr` in the json) → `shipped.push({title, category})`, write
 `.team/qa-<slug>.json` `{pageId, title, category, priority, model, effort, planModel|null, fixCycles, did, check, commit}`
 (`check` = one line: navigate → action → expected result; `fixCycles` = sum of `state.fixRounds`),
 `node scripts/slack.mjs post-qa-card .team/qa-<slug>.json` (non-fatal), then delete `.team/run/<slug>/`.
-`SHIP-FAIL <reason>` → fail procedure, except `SHIP-FAIL back-merge conflict: …`: `main` is already shipped
+`SHIP-FAIL <reason>` → fail procedure, except `SHIP-FAIL back-merge failed: …`: `main` is already shipped
 and the ship skill recorded the commit, commented and set Needs human, so skip `fail-card` (no attempt) and
 the RETRO entry; still post the fail Slack card and push to `failed` with stage `ship`.
 
@@ -155,8 +156,13 @@ card was resumed. Log one line per card (shipped/failed/deferred).
 ## Hard rules
 - NEVER run git in the main checkout except `fetch`, worktree add/remove, and the RETRO/DECISIONS doc commits.
 - NEVER push to main — the one exception is a check card with `target: "main"`, which the `ship` skill
-  fast-forwards to `main` and back-merges into `dev`. NEVER `--force`. Every other ship = fast-forward push
+  fast-forwards to `main` and back-merges into `dev` (one touching `multiplayer_server/` only gets a PR to `main`). NEVER `--force`. Every other ship = fast-forward push
   to dev only. Only `main-sync.yml` sets Done.
+- One card's failure never aborts the run. Budgets are per tier (trivial 10 / standard 25 / hard 45 min);
+  intake enforces them — do not start a card intake did not return.
+- NEVER take an action that implies the owner pays money (paid service, plan upgrade, billing, domain,
+  add-on, anything beyond a free tier). Fail the card with a note naming the cost. Applies to every agent.
+- Agents get paths, not pasted documents. If you catch yourself pasting a constraint doc into a prompt, stop.
 
 ## Check cards
 A card whose `source` starts with `ui-check`/`logic-check` (made by `scripts/check-core/notion-push.mjs`;
@@ -164,9 +170,5 @@ docs/team/PIPELINE.md § "Check cards"): classify pre-classifies it, the brief c
 and a `{"verify": …}` QA assertion, there is no plan writer or design round, gate 2 = smoke + `verify.mjs
 --from` on the lane (every FAIL line is a fix-round failure, relay it verbatim), and `target: "main"` cuts
 the worktree from `origin/main` (§1) and ships to `main` (ship skill). A fix touching `multiplayer_server/`
-ships the code but is parked for the owner's `railway up` (Needs human, not Done).
-- One card's failure never aborts the run. Budgets are per tier (trivial 10 / standard 25 / hard 45 min);
-  intake enforces them — do not start a card intake did not return.
-- NEVER take an action that implies the owner pays money (paid service, plan upgrade, billing, domain,
-  add-on, anything beyond a free tier). Fail the card with a note naming the cost. Applies to every agent.
-- Agents get paths, not pasted documents. If you catch yourself pasting a constraint doc into a prompt, stop.
+never reaches `main` automatically: ship opens an unmerged PR to `main` and prints `SHIPPED-PR <url>`; the
+owner merges it and runs `railway up` in the same window (Needs human set; main-sync marks Done on the merge).

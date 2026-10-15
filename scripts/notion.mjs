@@ -5,6 +5,7 @@ import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, STATUS, CATEGORIES, loadEnvTeam, loadConfig, text } from "./lib/team-config.mjs";
 import { assembleSpec } from "./lib/notion-spec.mjs";
+import { shipCommentText } from "./team/lib/check-card.mjs";
 import { markdownToBlocks, blockBatches } from "./lib/notion-blocks.mjs";
 
 loadEnvTeam();
@@ -185,7 +186,9 @@ async function cmdClaim(pageId, args) {
 }
 
 async function cmdShipCard(pageId, args) {
+  // --target main: a check card shipped to production; --pr <url>: a relay change left as a PR to main for the owner
   const commitSha = arg(args, "--commit"), branch = arg(args, "--branch"), model = arg(args, "--model") || "", devUrl = arg(args, "--dev-url") || cfg.devSiteUrl || "";
+  const target = arg(args, "--target") || "dev", pr = arg(args, "--pr");
   if (!commitSha) { console.error("--commit required"); process.exit(2); }
   await api(`pages/${pageId}`, "PATCH", { properties: {
     Status: { select: { name: STATUS.QA } },
@@ -193,7 +196,7 @@ async function cmdShipCard(pageId, args) {
     ...(branch ? { Branch: { rich_text: text(branch) } } : {}),
     Model: { rich_text: text(model) },
   } });
-  await comment(pageId, `✅ on dev (${commitSha.slice(0, 7)}) — check ${devUrl}`, true);
+  await comment(pageId, shipCommentText({ sha: commitSha, target, pr, devUrl }), true);
   console.log("shipped");
 }
 

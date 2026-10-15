@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   isCheckCard, findingsFileFrom, checkFields, findingsOf, ruleRef, rulesOfFindings,
   renderFinding, renderCheckFindings, withVerifyAssertion, verifyFilesOf, verifyArgs, parseVerifyOutput,
+  verifyPlan, shipCommentText,
 } from "./check-card.mjs";
 
 const FINDING = {
@@ -143,5 +144,35 @@ test("parseVerifyOutput: non-zero exit without verdict lines is an infra failure
 test("parseVerifyOutput: no verdict line is never a silent pass, even on exit 0", () => {
   assert.equal(parseVerifyOutput("", "", 0).failures.length, 1);
   assert.match(parseVerifyOutput("", "", null).failures[0], /^verify infra: exit \? with no output/);
-  assert.match(parseVerifyOutput("PASS A — ok", "", 1).failures[0], /^verify exit 1 with 1 PASS line/);
+  assert.match(parseVerifyOutput("PASS A — ok\nverify: 1 finding(s) · 1 pass · 0 fail", "", 1).failures[0], /^verify exit 1 with 1 PASS line/);
+});
+
+test("parseVerifyOutput: verdict lines must add up to the summary count", () => {
+  const short = parseVerifyOutput("PASS A — ok\nverify: 2 finding(s) · 1 pass · 1 fail", "", 1);
+  assert.equal(short.failures.length, 1);
+  assert.match(short.failures[0], /^verify infra: 1 PASS \+ 0 FAIL line\(s\) but the summary counts 2/);
+  const none = parseVerifyOutput("PASS A — ok", "", 0);
+  assert.match(none.failures[0], /^verify infra: 1 PASS \+ 0 FAIL line\(s\) but no summary line/);
+  // a FAIL line is still reported verbatim next to the infra line
+  const both = parseVerifyOutput("FAIL A — x", "", 1);
+  assert.equal(both.failures[0], "FAIL A — x");
+  assert.match(both.failures[1], /^verify infra: 0 PASS \+ 1 FAIL/);
+});
+
+test("verifyPlan: a check card is known from card.json, not only from the brief", () => {
+  const card = { source: "ui-check fp:a", findingsFile: "/att/findings.json" };
+  assert.deepEqual(verifyPlan(card, []), { check: true, files: ["/att/findings.json"], error: null });
+  assert.deepEqual(verifyPlan(card, [{ verify: "/brief.json" }]), { check: true, files: ["/brief.json"], error: null });
+  assert.deepEqual(verifyPlan({ source: "logic-check fp:b", findingsFile: null }, [{ route: "/" }]), { check: true, files: [], error: "check card without findings attachment" });
+  assert.deepEqual(verifyPlan({ source: null, findingsFile: "/f.json" }, []), { check: true, files: ["/f.json"], error: null });
+  assert.deepEqual(verifyPlan({ source: null }, [{ route: "/" }]), { check: false, files: [], error: null });
+  assert.deepEqual(verifyPlan(null, []), { check: false, files: [], error: null });
+});
+
+test("shipCommentText: dev, main and the relay PR", () => {
+  assert.equal(shipCommentText({ sha: "abcdef1234", devUrl: "https://dev" }), "✅ on dev (abcdef1) — check https://dev");
+  assert.match(shipCommentText({ sha: "abcdef1234", target: "main" }), /^✅ on main \(abcdef1\) — production/);
+  const pr = shipCommentText({ sha: "abcdef1234", target: "main", pr: "https://github.com/o/r/pull/9" });
+  assert.ok(pr.includes("PR to main: https://github.com/o/r/pull/9"));
+  assert.match(pr, /Merge the PR and run `cd multiplayer_server && railway up` in the same window; do not untick Needs human/);
 });

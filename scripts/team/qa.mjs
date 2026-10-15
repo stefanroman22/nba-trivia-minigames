@@ -8,6 +8,7 @@
 // missing browser is "skipped", not a failure. Kills what it started, also on SIGTERM.
 // Usage: node scripts/team/qa.mjs <slug> --base <sha> [--lane 1|2] [--repo <dir>]
 import { spawn, spawnSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, renameSync, rmSync, mkdirSync } from "node:fs";
 import { createServer } from "node:net";
 import { resolve } from "node:path";
@@ -15,8 +16,8 @@ import { pathToFileURL } from "node:url";
 import { ROOT, loadConfig } from "../lib/team-config.mjs";
 import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
 import { loadQaMap, resolveQa } from "./lib/qa-map.mjs";
-import { runDir, readState, writeState } from "./lib/state.mjs";
-import { verifyFilesOf, verifyArgs, parseVerifyOutput } from "./lib/check-card.mjs";
+import { runDir, readJson, readState, writeState } from "./lib/state.mjs";
+import { verifyPlan, verifyArgs, parseVerifyOutput } from "./lib/check-card.mjs";
 
 process.chdir(ROOT); // qa-browser.mjs resolves .team/qa against cwd — pin it to the main checkout
 if (process.env.TEAM_CLOUD === "1" && !process.env.PLAYWRIGHT_BROWSERS_PATH) process.env.PLAYWRIGHT_BROWSERS_PATH = "/opt/pw-browsers"; // where infra/routine/setup.sh installed Chromium
@@ -53,9 +54,12 @@ async function finish(pass, failures, notesArr, extra = {}) {
 }
 
 const assertions = readAssertions(resolve(dir, "brief.md"));
-// check cards: `{"verify": "<findings.json>"}` → verify.mjs --from on this lane after the smoke; such a card is never skipped
-const verifies = verifyFilesOf(assertions);
-if (!verifies.length && (cls.docsOnly || (!cls.frontend && !cls.backend))) {
+// check cards (card.json Source / findingsFile, or a brief `{"verify": "<findings.json>"}`) → verify.mjs --from on this
+// lane after the smoke; such a card is never skipped, and one without its findings attachment fails
+const vplan = verifyPlan(readJson(resolve(dir, "card.json"), {}), assertions);
+const verifies = vplan.files;
+if (vplan.error) await finish(false, [vplan.error], ["check card: nothing to verify"], { touched });
+if (!vplan.check && (cls.docsOnly || (!cls.frontend && !cls.backend))) {
   await finish(true, [], [`skipped: ${cls.docsOnly ? "docs-only" : "no frontend/backend files"} diff`], { skipped: cls.docsOnly ? "docs-only" : "no-ui", touched });
 }
 const plan = resolveQa(touched, loadQaMap());
@@ -83,8 +87,9 @@ function stopAll() {
     try { if (win) spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-child.pid, "SIGTERM"); } catch { /* already gone */ }
   }
 }
+let laneCleanup = null; // set once the lane's checker processes may exist (check cards)
 process.on("exit", stopAll);
-for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { stopAll(); process.exit(130); });
+for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => { stopAll(); try { laneCleanup?.(); } catch { /* best effort */ } process.exit(130); });
 
 function portFree(port) {
   return new Promise((res) => {
@@ -100,9 +105,10 @@ function venvPython() {
 }
 
 // verify.mjs runs async: a blocking spawnSync would stop draining the lane servers' piped output while it runs.
-function runAsync(cmd, args, { timeoutMs }) {
+function runAsync(cmd, args, { timeoutMs, env = {} }) {
   return new Promise((res) => {
-    const child = spawn(cmd, args, { cwd: ROOT, env: process.env, stdio: ["ignore", "pipe", "pipe"], detached: !win });
+    const child = spawn(cmd, args, { cwd: ROOT, env: { ...process.env, ...env }, stdio: ["ignore", "pipe", "pipe"], detached: !win });
+    children.push({ label: "verify", child }); // a signal stops it with the servers
     let stdout = "", stderr = "", timedOut = false;
     child.stdout.on("data", (d) => { stdout += d; });
     child.stderr.on("data", (d) => { stderr += d; });
@@ -117,7 +123,9 @@ const lanePorts = `django=${ports.django},socket=${ports.socket},web=${ports.vit
 // Processes ui-check recorded on this lane's ports (the relay verify starts): stopped before and after, so a relay edit
 // is never judged by a relay still running the previous round's code. Never touches what qa.mjs itself started.
 const stopLaneChecker = () => spawnSync(process.execPath, [resolve(ROOT, "scripts/ui-check/run.mjs"), "--stop", "--ports", lanePorts], { cwd: ROOT, encoding: "utf8", timeout: 60000 });
-if (verifies.length) stopLaneChecker();
+if (verifies.length) { laneCleanup = stopLaneChecker; stopLaneChecker(); }
+// The relay verify starts and our lane Django share one key, so a finished 1v1 is credited ("+N pts") as in production.
+const relayKey = randomBytes(24).toString("hex");
 
 log(`touched ${touched.length} files → routes ${plan.routes.join(",") || "-"} games ${plan.games === "*" ? "all" : plan.games.join(",") || "-"} backend ${plan.backend}${verifies.length ? ` · verify ${verifies.length} findings file(s)` : ""}`);
 try {
@@ -128,7 +136,7 @@ try {
   // against production). The worktree has no sqlite (ignored file): migrate first, seconds on sqlite.
   const py = venvPython();
   // CORS_ALLOWED_ORIGINS is additive in settings.py (env_list_merge), so this only adds the lane's origin.
-  const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1", CORS_ALLOWED_ORIGINS: `http://localhost:${ports.vite}` } };
+  const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1", CORS_ALLOWED_ORIGINS: `http://localhost:${ports.vite}`, ...(verifies.length ? { MULTIPLAYER_SHARED_SECRET: relayKey } : {}) } };
   const mig = spawnSync(py, ["manage.py", "migrate", "--noinput", "-v", "0"], { ...dj, env: { ...process.env, ...dj.env }, encoding: "utf8" });
   if (mig.status !== 0) notes.push(`migrate failed: ${((mig.stderr || "") + (mig.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
   start("django", py, ["manage.py", "runserver", String(ports.django), "--noreload"], dj);
@@ -237,7 +245,7 @@ try {
     }
     const args = verifyArgs({ root: ROOT, file, repo, ports });
     log(`verify --from ${file}`);
-    const r = await runAsync(process.execPath, args, { timeoutMs: 20 * 60000 });
+    const r = await runAsync(process.execPath, args, { timeoutMs: 20 * 60000, env: { UI_CHECK_RELAY_KEY: relayKey } });
     const v = parseVerifyOutput(r.stdout, r.stderr, r.status);
     log(`verify exit ${r.status}: ${v.passes.length} pass · ${v.failures.length} failure line(s)`);
     failures.push(...v.failures);

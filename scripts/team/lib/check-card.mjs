@@ -120,6 +120,27 @@ export function withVerifyAssertion(prev, file) {
 /** `verify` entries of the brief's QA assertions → file paths. */
 export const verifyFilesOf = (assertions) => (assertions || []).filter((a) => a && typeof a.verify === "string" && a.verify.trim()).map((a) => a.verify.trim());
 
+/**
+ * What gate 2 verifies for a card → { check, files, error }. A check card is known from card.json (Source, or a
+ * findingsFile), not only from the brief: with no parsed `verify` entry its findingsFile is used, and a check card
+ * without one is an error (never a pass).
+ */
+export function verifyPlan(card, assertions) {
+  const files = verifyFilesOf(assertions);
+  const check = isCheckCard(card) || Boolean(card?.findingsFile);
+  if (!check || files.length) return { check: check || files.length > 0, files, error: null };
+  if (card.findingsFile) return { check, files: [card.findingsFile], error: null };
+  return { check, files: [], error: "check card without findings attachment" };
+}
+
+/** The Notion comment `ship-card` posts: dev (default), main (Target = main) or a PR to main (relay change). */
+export function shipCommentText({ sha, target = "dev", pr = null, devUrl = "" }) {
+  const s = String(sha).slice(0, 7);
+  if (pr) return `🔀 relay change — PR to main: ${pr} (${s}). Merge the PR and run \`cd multiplayer_server && railway up\` in the same window; do not untick Needs human. main-sync marks this card Done once the PR is merged.`;
+  if (target === "main") return `✅ on main (${s}) — production deploys from main (swishquest.com); main-sync marks this card Done.`;
+  return `✅ on dev (${s}) — check ${devUrl}`;
+}
+
 /** Argument list (after `node`) for gate 2's verify run on a lane. ports: { django, socket, vite|web }. */
 export function verifyArgs({ root, file, repo, ports }) {
   const web = ports.web || ports.vite;
@@ -128,8 +149,9 @@ export function verifyArgs({ root, file, repo, ports }) {
 }
 
 /**
- * verify.mjs output → QA failures. Every `FAIL <id> — …` line is a failure verbatim; a non-zero exit with no
- * PASS/FAIL line is `verify infra: <last 3 lines>`; no verdict line at all is never a pass.
+ * verify.mjs output → QA failures. Every `FAIL <id> — …` line is a failure verbatim; no PASS/FAIL line is
+ * `verify infra: <last 3 lines>`; PASS + FAIL lines that do not add up to the summary's finding count (or no summary)
+ * are an infra failure too; PASS lines only with a non-zero exit fail. No verdict line at all is never a pass.
  * @returns {{ failures: string[], passes: string[], summary: string|null }}
  */
 export function parseVerifyOutput(stdout, stderr, status) {
@@ -137,8 +159,11 @@ export function parseVerifyOutput(stdout, stderr, status) {
   const fails = lines.filter((l) => /^FAIL \S+ — /.test(l));
   const passes = lines.filter((l) => /^PASS \S+ — /.test(l));
   const summary = lines.find((l) => /^verify: \d+ finding\(s\)/.test(l)) || null;
+  const total = summary ? Number(summary.match(/^verify: (\d+)/)[1]) : null;
+  const tail = () => lines.slice(-3).join(" | ").slice(0, 600);
   const failures = [...fails];
-  if (!fails.length && !passes.length) failures.push(`verify infra: ${lines.slice(-3).join(" | ").slice(0, 600) || `exit ${status ?? "?"} with no output`}`);
-  else if (!fails.length && status !== 0) failures.push(`verify exit ${status ?? "killed"} with ${passes.length} PASS line(s): ${lines.slice(-3).join(" | ").slice(0, 600)}`);
+  if (!fails.length && !passes.length) failures.push(`verify infra: ${tail() || `exit ${status ?? "?"} with no output`}`);
+  else if (total !== passes.length + fails.length) failures.push(`verify infra: ${passes.length} PASS + ${fails.length} FAIL line(s) but ${summary ? `the summary counts ${total}` : "no summary line"}: ${tail()}`);
+  else if (!fails.length && status !== 0) failures.push(`verify exit ${status ?? "killed"} with ${passes.length} PASS line(s): ${tail()}`);
   return { failures, passes, summary };
 }

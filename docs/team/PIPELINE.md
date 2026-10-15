@@ -342,21 +342,30 @@ the truth. Design: `docs/superpowers/specs/2026-10-15-checks-prod-logic-design.m
 - **QA (gate 2)** runs its usual smoke, then `scripts/ui-check/verify.mjs --from <findingsFile>
   --mode dev --repo <worktree> --ports <lane>` on the lane stack it started (verify reuses Django and
   the web server and starts only the relay; the lane's ui-check processes are stopped before and after).
-  Every `FAIL <id> — …` line is a QA failure verbatim; a verify that ends without verdict lines is
-  `verify infra: …`; a missing attachment fails. A check card is never "skipped" by QA.
+  Every `FAIL <id> — …` line is a QA failure verbatim; a verify whose verdict lines are missing or do
+  not add up to its summary is `verify infra: …`; a check card without its attachment fails. A check
+  card (known from card.json, not only the brief) is never "skipped" by QA. QA's Django and the relay
+  verify starts share one `MULTIPLAYER_SHARED_SECRET`, so 1v1 points are credited as in production.
 - **ship** with `Target = main`: the worktree is cut from `origin/main`, ship rebases on `origin/main`,
-  fast-forwards `main` (production: frontend and backend deploy from it), then back-merges `main →
-  dev` through an auto-merged PR. A back-merge conflict leaves `main` shipped, comments on the card and
-  sets Needs human. `Target = dev` ships exactly like any other card.
+  moves the card to QA (`ship-card`) *before* pushing — `main-sync` fires on the push and must find it
+  there — fast-forwards `main` (production: frontend and backend deploy from it), then back-merges
+  `main → dev` through an auto-merged PR (one retry). A back-merge that still fails leaves `main`
+  shipped, comments on the card and sets Needs human. Then a read-only production check: both Vercel
+  commit statuses green within 15 min, swishquest.com and the API health answer; a failure only flags the
+  card (Needs human, comment, Slack) — the pipeline never rolls back or fixes forward on its own.
+  `Target = dev` ships exactly like any other card.
 
 **Efficiency.** A check card costs one classify (no judgment left to make), no plan writer, no design
 round, one engine pass that starts from file:line pointers, and a QA gate that is the finding's own
 acceptance re-run — the same judge the checker used.
 
 **Relay rule.** The relay (`multiplayer_server/`, Railway) is billed and never deployed by the
-pipeline. A fix that touches it still ships its code, but the card is parked instead of going to QA:
-status To Do + **Needs human**, Commit recorded, and the comment "relay change — needs owner `railway
-up`". After deploying the relay, set the card to Done yourself.
+pipeline, and relay code must not reach production before the relay deploy. So a `Target = main` fix
+whose commit touches `multiplayer_server/` is never pushed to `main`: ship pushes `team/<slug>`, opens
+an **unmerged PR to `main`**, moves the card to QA with the PR's head SHA, sets **Needs human** and
+comments "merge the PR + `railway up`; do not untick Needs human". You merge the PR and run `cd
+multiplayer_server && railway up` in the same window; `main-sync` then marks the card Done. The run
+reports it as `SHIPPED-PR <url>`.
 
 **Cloud.** `infra/routine/setup.sh` now installs Chromium with `--with-deps` and runs `npm ci --prefix
 multiplayer_server` so `verify.mjs` can start the relay on the VM. **Re-paste `infra/routine/setup.sh`

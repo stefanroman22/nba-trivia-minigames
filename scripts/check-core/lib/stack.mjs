@@ -385,9 +385,11 @@ runpy.run_path('manage.py', run_name='__main__')`;
  * Shared key between the local relay and the local Django (MULTIPLAYER_SHARED_SECRET, X-Relay-Key), so a finished 1v1
  * match is credited like in production (`/trivia/multiplayer-result/`, "+N pts" in the results). Random per stack
  * (`randomBytes`, made by the ensureStack that starts the first of the two and kept in <uicHome>/stack.json, outside the
- * repo, while either process lives), never logged. A Django or relay not started by ui-check lacks it: nothing is credited.
+ * repo, while either process lives), never logged. A Django or relay not started by ui-check lacks it: nothing is credited,
+ * unless its starter shares the key through UI_CHECK_RELAY_KEY (scripts/team/qa.mjs gives its lane Django the same key).
  */
 function relayKeyFor(prev, known) {
+  if (process.env.UI_CHECK_RELAY_KEY) return process.env.UI_CHECK_RELAY_KEY;
   return (prev && prev.relayKey && known.length) ? prev.relayKey : randomBytes(24).toString('hex');
 }
 

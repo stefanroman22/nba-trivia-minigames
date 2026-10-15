@@ -1,12 +1,14 @@
 ---
 name: ship
-description: Commit the task, rebase on dev, fast-forward push to dev (no PR), update Notion. A check card with Target = main ships to main instead and back-merges main into dev. Final pipeline stage, run from the task worktree.
+description: Commit the task, rebase on dev, fast-forward push to dev (no PR), update Notion. A check card with Target = main ships to main instead and back-merges main into dev (a relay change becomes an unmerged PR to main). Final pipeline stage, run from the task worktree.
 ---
 
 # Ship
 
-Result contract: end with exactly one line — `SHIPPED <full sha>` or `SHIP-FAIL <one-line reason>`.
-The orchestrator turns `SHIP-FAIL` into the fail procedure; never set Notion status here on failure.
+Result contract: end with exactly one line — `SHIPPED <full sha>`, `SHIPPED-PR <pr url>` (a Target = main
+relay change, left as a PR for the owner) or `SHIP-FAIL <one-line reason>`.
+The orchestrator turns `SHIP-FAIL` into the fail procedure (except `SHIP-FAIL back-merge failed: …`, after
+which `main` is already shipped); never set Notion status here on failure.
 
 ## Pre-flight (SHIP-FAIL if any fails)
 1. `git -C <worktree> status --porcelain` shows only intended files. **Never stage `__pycache__`/`*.pyc`.**
@@ -53,14 +55,21 @@ A checker finding is a bug in production, so its fix ships to `main` (production
 merged back into `dev` so `dev` stays a superset. The worktree was cut from `origin/main` (team-run §1),
 so `<old base>` below is a `main` commit. A push to `main` deploys the frontend AND the backend Vercel
 projects to production (both are git-connected, docs/DEPLOYMENT.md); the relay is never deployed here.
+Model text and `<pageId>` as in the Target = dev procedure.
 1. Commit — same as step 1 above.
 2. `git -C <worktree> fetch origin main dev`
 3. `git -C <worktree> rebase origin/main`. Conflict → `git rebase --abort` → `SHIP-FAIL rebase conflict with main: <files>`.
 4. Post-rebase static checks — same rule as step 4 above, with `origin/main` in place of `origin/dev`.
-5. `git -C <worktree> push origin HEAD:main`. Rejected → repeat steps 2–4 **once**; rejected again →
-   `SHIP-FAIL main moved twice during ship`. `--force` / `--force-with-lease` are forbidden.
-6. `SHA=$(git -C <worktree> rev-parse HEAD)`. From here on `main` is shipped: nothing below undoes it.
-7. Back-merge `main → dev` (merge commit, auto-merged PR), in the worktree:
+5. `SHA=$(git -C <worktree> rev-parse HEAD)`. **Relay rule:** if `git -C <worktree> diff --name-only <SHA>^..<SHA>`
+   lists any `multiplayer_server/` file → **Relay PR** below; never push such a card to `main` yourself.
+6. Notion, BEFORE the push: `node scripts/notion.mjs ship-card <pageId> --commit <SHA> --branch team/<slug> --target main --model "<model text>"`.
+   Why first: `main-sync.yml` fires on the push to `main` and marks Done only the cards it finds in QA with a
+   commit on `main`; a card moved to QA after the push would wait for the next push to `main`.
+7. `git -C <worktree> push origin HEAD:main`. Rejected (main moved) → repeat steps 2–5 **once**, re-run step 6
+   with the new `<SHA>`, push again; rejected again → `SHIP-FAIL main moved twice during ship`.
+   `--force` / `--force-with-lease` are forbidden. After a successful push `main` is shipped: nothing below
+   undoes it, and a later failure never runs the fail procedure's `fail-card`.
+8. Back-merge `main → dev` (merge commit, auto-merged PR), in the worktree:
    ```
    git -C <worktree> fetch origin dev main
    git -C <worktree> checkout -B backmerge/<slug> origin/dev
@@ -69,21 +78,40 @@ projects to production (both are git-connected, docs/DEPLOYMENT.md); the relay i
    gh pr create --base dev --head backmerge/<slug> --title "chore: back-merge main into dev (<slug>)" --body "Back-merge after check card <card url> shipped <SHA> to main."
    gh pr merge backmerge/<slug> --merge --delete-branch
    ```
-   (local: the active `gh` account must be `stefanroman22`, PIPELINE.md §8a.) **[CLOUD]** without a working
-   `gh`: `git -C <worktree> push origin backmerge/<slug>:dev` (the same merge commit, fast-forward) and
-   delete the branch with `git push origin --delete backmerge/<slug>`.
-   **Merge conflict** → `git merge --abort`; leave `main` shipped; run step 8 anyway (it records the commit), then
-   `node scripts/notion.mjs comment <pageId> "⚠️ shipped to main (<SHA7>) but the back-merge main→dev conflicted in <files> — merge main into dev by hand" --mention`
-   and `node scripts/notion.mjs set-props <pageId> --needs-human`, clean up (step 9) and end with
-   `SHIP-FAIL back-merge conflict: <files>`.
-8. Notion: relay rule first — if `git -C <worktree> diff --name-only <old base>..<SHA>` lists any
-   `multiplayer_server/` file, the relay (Railway, billed) still runs the old code: do NOT run `ship-card`
-   (its QA status would let `main-sync` mark the card Done); instead
-   `node scripts/notion.mjs set-props <pageId> --commit <SHA> --branch team/<slug> --needs-human`,
-   `node scripts/notion.mjs set-status <pageId> "To Do"` and
-   `node scripts/notion.mjs comment <pageId> "relay change — needs owner \`railway up\` (shipped to main <SHA7>; the relay still runs the old code). Mark Done after the deploy." --mention`.
-   Otherwise `ship-card` exactly as step 7 above (`main-sync.yml` marks the card Done, the commit is on `main`).
-9. Clean up — step 8 above, plus `git branch -D backmerge/<slug>` if it still exists locally.
-10. Verify production as `promote-to-prod` steps 2–3 say (both deployments READY, swishquest.com and the API
-    answer with real content). A broken production is fixed forward or rolled back per its step 4 — never
-    left broken. Then print `SHIPPED <SHA>`.
+   (local: the active `gh` account must be `stefanroman22`, PIPELINE.md §8a — `gh auth switch --user stefanroman22`.)
+   **[CLOUD]** without a working `gh`: `git -C <worktree> push origin backmerge/<slug>:dev` (the same merge
+   commit, fast-forward) and `git push origin --delete backmerge/<slug>`.
+   **Any failure** (merge conflict, push rejected because `dev` moved, `gh pr create`/`merge` error, wrong gh
+   account) → `git merge --abort` if a merge is in progress, `git push origin --delete backmerge/<slug>` if it
+   was pushed, fix the gh account if that was it, and redo this step from the fetch **once**. Still failing →
+   leave `main` shipped and:
+   `node scripts/notion.mjs comment <pageId> "⚠️ shipped to main (<SHA7>) but the back-merge main→dev failed: <reason / conflicting files> — merge main into dev by hand" --mention`,
+   `node scripts/notion.mjs set-props <pageId> --needs-human`, clean up (step 10), and end with
+   `SHIP-FAIL back-merge failed: <reason>` (team-run records it without `fail-card`).
+9. Production check — read-only and cloud-safe; never roll back, never fix forward here:
+   - poll `gh api repos/stefanroman22/nba-trivia-minigames/commits/<SHA>/statuses --jq '.[] | "\(.context)|\(.state)"'`
+     every 30 s, up to 15 min, until the newest state of both contexts `Vercel – nba-minigames` and
+     `Vercel – backend` is `success` (`failure`/`error` → stop polling: a failure);
+   - then `curl -fsS https://swishquest.com/ -o /dev/null` and `curl -fsS https://backend-kappa-one-42.vercel.app/api/health/`.
+   Any failure or timeout → `node scripts/notion.mjs set-props <pageId> --needs-human`,
+   `node scripts/notion.mjs comment <pageId> "⚠️ <SHA7> is on main but production did not check out: <what failed> — please look" --mention`,
+   `node scripts/slack.mjs post-text general "⚠️ production check failed after shipping <SHA7> to main (<card title>): <what failed>"`
+   (non-fatal), and still finish with `SHIPPED <SHA>` after the line `NOTE production check failed: <what failed>`.
+10. Clean up — step 8 of the Target = dev procedure, plus `git branch -D backmerge/<slug>` if it still exists.
+11. Print `SHIPPED <SHA>`.
+
+### Relay PR (a fix that touches `multiplayer_server/`)
+The relay runs on Railway (billed) and is deployed only by the owner, so the code must not reach production
+before the relay deploy: such a card ships as an **unmerged PR to `main`**.
+1. `git -C <worktree> push -u origin HEAD:team/<slug>` (a stale remote `team/<slug>` from an earlier attempt:
+   `git push origin --delete team/<slug>` first; never force).
+2. `gh pr create --base main --head team/<slug> --title "<type>: <task title>" --body "Check card: <card url>
+   relay change: merge this PR and run \`cd multiplayer_server && railway up\` in the same window."` → `<url>`.
+   Do NOT merge it. **[CLOUD]** without a working `gh`: `SHIP-FAIL relay PR needs gh: branch team/<slug> pushed`.
+3. `node scripts/notion.mjs ship-card <pageId> --commit <SHA> --branch team/<slug> --target main --pr <url> --model "<model text>"`
+   (status QA with the PR's head SHA: `main-sync` marks the card Done once the owner merges the PR; its
+   comment says "merge the PR + railway up; do not untick Needs human"), then
+   `node scripts/notion.mjs set-props <pageId> --needs-human`.
+4. Clean up the worktree and the local branch; keep the remote `team/<slug>` (the PR needs it). No back-merge:
+   the owner's merge to `main` reaches `dev` with the next back-merge or promotion.
+5. Print `SHIPPED-PR <url>`.
