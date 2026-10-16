@@ -222,6 +222,20 @@ function killTree(entry) {
   } catch { return false; }
 }
 
+/**
+ * A prod web server of ours on ANOTHER port set that serves `repo`'s .next, or null. `next build` writes one .next per
+ * checkout with the API base baked in, so a second prod stack from the same checkout would rebuild it under that
+ * running `next start` (which then serves a build pointing at the other set's Django, or nothing at all).
+ * `alive` is injectable for the unit test.
+ */
+export function busyBuildOwner(raw, repo, ports, alive = stillOurs) {
+  for (const e of raw?.started || []) {
+    if (onPorts(ports)(e) || !/^web-/.test(e.name || '') || !e.repo || !sameDir(e.repo, repo)) continue;
+    if (alive(e)) return e;
+  }
+  return null;
+}
+
 /** Spawn a detached server whose output goes to <uicHome>/logs/<name>.log. */
 function startDetached(name, port, cmd, args, { repo, ports, cwd = repo, env = process.env, shell = false }) {
   mkdirSync(LOG_DIR, { recursive: true });
@@ -485,6 +499,14 @@ export async function ensureStack(mode = 'prod', { repo = ROOT, ports = PORT_SET
     updateStack(ports, meta, [...known, ...started]);
   };
   const reuse = (what, port) => log(`${what} :${port} already up — reusing${ours(port) ? ' (started by ui-check)' : ` (not ours: never stopped${sameDir(repo, ROOT) ? '' : `; its code may not be ${repo}`})`}`);
+
+  if (mode === 'prod') {
+    const owner = busyBuildOwner(prevRaw, repo, ports);
+    if (owner) {
+      throw new Error(`${repo} already serves the ${owner.ports ? portsKey(owner.ports) : `:${owner.port}`} stack (${owner.name}, pid ${owner.pid}) from its .next — `
+        + 'a second prod stack from the same checkout would rebuild .next under it. Run from another checkout (--repo) or stop that stack first (--stop --ports <its set>)');
+    }
+  }
 
   // Ours but serving another checkout (e.g. the main checkout's Django while main is under test): restart from `repo`.
   for (const port of [ports.django, ports.socket, ports.web]) {
