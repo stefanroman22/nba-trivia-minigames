@@ -67,7 +67,7 @@ export function loadServiceMaps({ ui = UI_CHECKS_MD, logic = LOGIC_CHECKS_MD } =
 }
 
 // Placeholders in family ids: <game> is a lower-case game slug, <scenario> one of the games driver's scenarios.
-const PLACEHOLDER = {
+export const PLACEHOLDER = {
   game: '[a-z0-9][a-z0-9-]*',
   scenario: '(?:perfect|wrong|partial|timeout|giveup|daily-lock)',
 };

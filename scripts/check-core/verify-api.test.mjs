@@ -66,6 +66,34 @@ test('expect-fail verdict: a clean API fail reproduces; an error never does', as
   });
 });
 
+test('live-only lc criteria (no --live, no reuse) neither pass nor fail: guards noted "confirmed by the live cron"; reuse evaluates them', async () => {
+  const { isLiveOnly } = await import('../ui-check/lib/verify-core.mjs');
+  assert.equal(isLiveOnly({ lc: 'LC-LIVE-06' }), true);
+  assert.equal(isLiveOnly({ lc: 'LC-PAGES-01', projects: ['live'] }), true);
+  assert.equal(isLiveOnly({ lc: 'LC-PAGES-01', projects: ['pages'] }), false);
+  assert.equal(isLiveOnly({ id: 'G-PERF-01', projects: ['guest-live@phone-390'] }), false);
+  await withServer(async () => {
+    const live = { lc: 'LC-LIVE-06', projects: ['live'] };
+    const out = await verifyFindings([
+      finding('F-LIVE', { checks: [live] }),
+      finding('F-MIX', { checks: [live], assertions: [health({ status: 503 })] }),
+    ], { runId: 'adhoc/test4', log: path.join(home, 'verify.log'), mode: 'dev', say: () => {} });
+    const by = Object.fromEntries(out.map((r) => [r.id, r]));
+    assert.equal(by['F-LIVE'].outcome, 'pass');
+    assert.deepEqual(by['F-LIVE'].criteria.map((c) => [c.label, c.outcome, c.guard]), [['check LC-LIVE-06 @ live', 'live-only', true]]);
+    assert.match(by['F-LIVE'].firstLine, /confirmed by the live cron after promotion/);
+    assert.equal(by['F-MIX'].outcome, 'fail'); // judged on the local criterion only
+    const [repro] = await verifyFindings([finding('F-MIX', { checks: [live], assertions: [health({ status: 503 })] })],
+      { runId: 'adhoc/test5', expectFail: true, log: path.join(home, 'verify.log'), mode: 'dev', say: () => {} });
+    assert.equal(repro.asExpected, true);
+    // report --validate's reuse path: the run's own live result is the verdict (never re-run, never live-only).
+    const [reused] = await verifyFindings([finding('F-LIVE', { checks: [live] })], { runId: 'adhoc/test6', expectFail: true, log: path.join(home, 'verify.log'), mode: 'dev', say: () => {},
+      reuse: { results: [{ checkId: 'LC-LIVE-06', project: 'live', status: 'failed', violations: [{ rule: 'relay', selector: 'GET x', route: '/socket.io/', measured: 'HTTP 404', expected: '200' }] }], dir: home } });
+    assert.equal(reused.asExpected, true);
+    assert.equal(reused.criteria[0].outcome, 'fail');
+  });
+});
+
 test('a non-local API base is an error, not a request', async () => {
   writeFileSync(path.join(home, 'stack.json'), JSON.stringify({ stacks: { '8200-4200-5374': { mode: 'prod', ports: { django: 8200, socket: 4200, web: 5374 }, api: 'https://swishquest.com/api' } }, started: [] }));
   const [r] = await verifyFindings([finding('F-REMOTE', { assertions: [health({ status: 200 })] })], { runId: 'adhoc/test3', log: path.join(home, 'verify.log'), mode: 'prod', say: () => {} });

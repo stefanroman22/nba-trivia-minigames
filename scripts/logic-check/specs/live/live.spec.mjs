@@ -19,6 +19,8 @@ const SOCKET_URL = env.VITE_SOCKET_URL;
 const abs = (baseURL, route) => new URL(route, baseURL).href;
 const short = (s, n = 120) => { s = String(s ?? '').replace(/\s+/g, ' ').trim(); return s.length > n ? `${s.slice(0, n)}…` : s; };
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+/** LC-LIVE-03's per-game violation note: the service a failing game maps to (Task 6 blocks `games.<id>` from it). */
+const gameNote = (game) => `service games.${game.id}`;
 
 /** The app shell in a server-rendered HTML document: no Next error page, a <title>, the Next client scripts. */
 function shellProblems(text) {
@@ -30,11 +32,11 @@ function shellProblems(text) {
 }
 
 /** GET a JSON document; a non-200 or non-JSON body is a violation (→ null). */
-async function getJson(api, lc, url, { route, what }) {
+async function getJson(api, lc, url, { route, what, note }) {
   let r;
-  try { r = await api.get(url); } catch (e) { lc.violation('unreachable', { route, selector: `GET ${url.split('?')[0]}`, measured: short(e.message), expected: `${what} answers` }); return null; }
+  try { r = await api.get(url); } catch (e) { lc.violation('unreachable', { route, note, selector: `GET ${url.split('?')[0]}`, measured: short(e.message), expected: `${what} answers` }); return null; }
   if (r.status !== 200 || r.json === null) {
-    lc.violation('http', { route, selector: `GET ${url.split('?')[0]}`, measured: `HTTP ${r.status}${r.json === null ? ', not JSON' : ''}`, expected: `200 JSON (${what})` });
+    lc.violation('http', { route, note, selector: `GET ${url.split('?')[0]}`, measured: `HTTP ${r.status}${r.json === null ? ', not JSON' : ''}`, expected: `200 JSON (${what})` });
     return null;
   }
   return r.json;
@@ -74,7 +76,7 @@ test('[LC-LIVE-03] every visible game\'s data source loads with its shape and a 
   const v3Manifest = async () => (v3 ??= await getJson(api, lc, `${DATA_BASE}/manifest.json`, { route: '/', what: 'the v3 data manifest' }) || false);
   const bundledManifest = async () => (bundled ??= await getJson(api, lc, abs(baseURL, '/data/manifest.json'), { route: '/data/', what: 'the bundled data manifest' }) || false);
   const storeManifest = async () => (store ??= await getJson(api, lc, `${QUESTIONS_BASE}/questions/manifest.json`, { route: '/', what: 'the questions store manifest' }) || false);
-  const bad = (game, selector, measured, expected) => lc.violation('game-data', { route: game.path, selector, measured, expected });
+  const bad = (game, selector, measured, expected) => lc.violation('game-data', { route: game.path, note: gameNote(game), selector, measured, expected });
 
   /** v3 pool game: manifest entry → its rows file (single, or the first chunk) and lookups; rows expand. */
   async function v3Pool(game, key) {
@@ -84,13 +86,13 @@ test('[LC-LIVE-03] every visible game\'s data source loads with its shape and a 
     if (!isObj(entry)) return bad(game, `v3 manifest games.${key}`, 'missing', `a published "${key}" entry (POOL_GAMES)`);
     const file = entry.kind === 'single' ? entry.file : entry.kind === 'chunked' ? (entry.chunks || [])[0] : null;
     if (!file) return bad(game, `v3 manifest games.${key}`, `kind ${entry.kind}, no file/chunks`, 'kind single with a file or chunked with chunks');
-    const rows = await getJson(api, lc, `${DATA_BASE}/${file}`, { route: game.path, what: `${key} rows` });
+    const rows = await getJson(api, lc, `${DATA_BASE}/${file}`, { route: game.path, note: gameNote(game), what: `${key} rows` });
     if (!rows) return;
     if (!Array.isArray(rows) || !rows.length) return bad(game, `GET ${file}`, Array.isArray(rows) ? 'empty array' : typeof rows, 'a non-empty JSON array');
     if (!rows.every(isObj)) bad(game, `GET ${file}`, 'a row is not an object', 'rows of objects');
     const lookups = {};
     for (const [name, p] of Object.entries(entry.lookups || {})) {
-      const l = await getJson(api, lc, `${DATA_BASE}/${p}`, { route: game.path, what: `${key} lookup ${name}` });
+      const l = await getJson(api, lc, `${DATA_BASE}/${p}`, { route: game.path, note: gameNote(game), what: `${key} lookup ${name}` });
       if (l && !Array.isArray(l)) bad(game, `GET ${p}`, typeof l, 'a JSON array');
       lookups[name] = Array.isArray(l) ? l : [];
     }
@@ -111,7 +113,7 @@ test('[LC-LIVE-03] every visible game\'s data source loads with its shape and a 
     if (!m) return;
     const entry = m.games && m.games[key];
     if (!isObj(entry)) return bad(game, `/data/manifest.json games.${key}`, 'missing', `a "${key}" entry`);
-    const body = await getJson(api, lc, abs(baseURL, `/data/${entry.file || `${key}.json`}`), { route: game.path, what: `${key} pool` });
+    const body = await getJson(api, lc, abs(baseURL, `/data/${entry.file || `${key}.json`}`), { route: game.path, note: gameNote(game), what: `${key} pool` });
     if (!body) return;
     const pool = Array.isArray(body) ? body : body.pool;
     if (!Array.isArray(pool) || !pool.length) return bad(game, `GET /data/${key}.json`, 'no rows', 'a non-empty pool');
@@ -123,13 +125,13 @@ test('[LC-LIVE-03] every visible game\'s data source loads with its shape and a 
     const m = await v3Manifest();
     const entry = m && m.games && m.games[key];
     if (isObj(entry) && entry.kind === 'questions' && entry.index) {
-      const index = await getJson(api, lc, `${DATA_BASE}/${entry.index}`, { route: game.path, what: `${key} question index` });
+      const index = await getJson(api, lc, `${DATA_BASE}/${entry.index}`, { route: game.path, note: gameNote(game), what: `${key} question index` });
       if (!index) return;
       if (!Array.isArray(index.items) || !index.items.length || !isObj(index.files)) return bad(game, `GET ${entry.index}`, 'no items / files', 'items[] non-empty and a files map');
       const qid = String(index.items[0][0]);
       const sha = index.files[qid];
       if (!sha) return bad(game, `GET ${entry.index}`, `item ${qid} has no file`, 'every item listed in files');
-      const q = await getJson(api, lc, `${DATA_BASE}/${key}/${qid}.${sha}.json`, { route: game.path, what: `${key} question ${qid}` });
+      const q = await getJson(api, lc, `${DATA_BASE}/${key}/${qid}.${sha}.json`, { route: game.path, note: gameNote(game), what: `${key} question ${qid}` });
       if (q && (!isObj(q) || q.qid !== qid)) bad(game, `GET ${key}/${qid}.${sha}.json`, `qid ${isObj(q) ? q.qid : typeof q}`, `a question object with qid ${qid}`);
       return;
     }
@@ -137,18 +139,18 @@ test('[LC-LIVE-03] every visible game\'s data source loads with its shape and a 
     if (!s) return;
     const g = s.games && s.games[key];
     if (!isObj(g) || !g.index) return bad(game, `questions store manifest games.${key}`, 'missing', `"${key}" published on the data host or in the questions store`);
-    const index = await getJson(api, lc, g.index, { route: game.path, what: `${key} question index` });
+    const index = await getJson(api, lc, g.index, { route: game.path, note: gameNote(game), what: `${key} question index` });
     if (!index) return;
     if (!Array.isArray(index.items) || !index.items.length) return bad(game, `GET ${key}/index.json`, 'no items', 'items[] non-empty');
     const qid = String(index.items[0][0]);
-    const q = await getJson(api, lc, g.index.replace(/index\.json$/, `${qid}.json`), { route: game.path, what: `${key} question ${qid}` });
+    const q = await getJson(api, lc, g.index.replace(/index\.json$/, `${qid}.json`), { route: game.path, note: gameNote(game), what: `${key} question ${qid}` });
     if (q && (!isObj(q) || String(q.qid) !== qid)) bad(game, `GET ${key}/${qid}.json`, 'wrong question', `a question object with qid ${qid}`);
   }
 
   /** Wordle: the daily-play POST is not allowed live; its read-only status endpoint answers. */
   async function wordle(game) {
     const url = `${backendOrigin(api.base)}/trivia/wordle/daily-status/?device_id=logic-check-live-probe`;
-    const j = await getJson(api, lc, url, { route: game.path, what: 'the Wordle daily status' });
+    const j = await getJson(api, lc, url, { route: game.path, note: gameNote(game), what: 'the Wordle daily status' });
     if (j && (typeof j.locked !== 'boolean' || Number.isNaN(Date.parse(j.next_reset_at)))) bad(game, 'GET /trivia/wordle/daily-status/', short(JSON.stringify(j), 80), '{ locked: boolean, next_reset_at: ISO date }');
   }
 

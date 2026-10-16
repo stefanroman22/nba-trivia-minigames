@@ -7,7 +7,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import * as channelMod from './channel.mjs';
-import { LOGIC_CHECKS_MD, UI_CHECKS_MD, checksForServices, parseServices } from './services.mjs';
+import { LOGIC_CHECKS_MD, PLACEHOLDER, UI_CHECKS_MD, checksForServices, parseServices } from './services.mjs';
 
 /** `GM-<game>-<scenario>` → `GM-*-*` (the --only / grepFor form). */
 export const starForm = (id) => String(id).replace(/<[a-z]+>/g, '*');
@@ -21,7 +21,8 @@ export function serviceMapOf(checker) {
 }
 
 /**
- * Checks of `checker` tagged with a blocked service → [{ checkId, service, blockedBy, card, finding }], one per check
+ * Checks of `checker` tagged with a blocked service → [{ checkId, pattern?, service, blockedBy, card, finding }], one per check
+ * (`pattern`: the family row with its placeholders, e.g. `GM-<game>-<scenario>`, so the grep stays as narrow as the row)
  * (the first blocked service in channel order names the block). `channel`: { blockedServices(), blockFor(service) }
  * (default check-core/lib/channel.mjs on <home>/channel.json); `map`: a parseServices map (default the checker's CHECKS.md).
  */
@@ -35,7 +36,7 @@ export function blockedChecks({ checker = 'ui', map = null, channel = channelMod
     if (!b) continue;
     for (const id of checksForServices([service], [m])) {
       const checkId = starForm(id);
-      if (!out.has(checkId)) out.set(checkId, { checkId, service, blockedBy: b.by, card: b.card || null, finding: b.finding || null });
+      if (!out.has(checkId)) out.set(checkId, { checkId, ...(id !== checkId ? { pattern: id } : {}), service, blockedBy: b.by, card: b.card || null, finding: b.finding || null });
     }
   }
   return [...out.values()];
@@ -55,11 +56,17 @@ export function inSelection(list, { prefixes = null, only = null } = {}) {
     && (!onlyIds || onlyIds.some((o) => globRe(o).test(sample(x.checkId)) || globRe(x.checkId).test(sample(o)))));
 }
 
-/** --grep-invert for the blocked checks (`[ID]` titles, `*` within an id), or null when none. */
+const escRe = (s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+/** One blocked check → regex source: a family `pattern` keeps its placeholders' own classes (`<scenario>` is one of the
+ *  games driver's scenarios, so `GM-<game>-<scenario>` never matches `GM-wordle-adapter`); else `*` within an id. */
+const idRe = (x) => (x.pattern
+  ? x.pattern.split(/(<[a-z]+>)/).map((part) => { const m = /^<([a-z]+)>$/.exec(part); return m ? (PLACEHOLDER[m[1]] || '[\\w.-]*') : escRe(part); }).join('')
+  : escRe(x.checkId).replace(/\*/g, '[\\w.-]*'));
+
+/** --grep-invert for the blocked checks (`[ID]` titles), or null when none. */
 export function grepInvertFor(list) {
   if (!list.length) return null;
-  const ids = list.map((x) => x.checkId.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[\\w.-]*'));
-  return `\\[(${ids.join('|')})\\]`;
+  return `\\[(${list.map(idRe).join('|')})\\]`;
 }
 
 /** channel.defer() for every blocked check of this run → number newly recorded. */

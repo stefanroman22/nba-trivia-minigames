@@ -4,13 +4,14 @@ name: Logic live probes
 # run.mjs fails on any refused write), no browser, no stack, no accounts. Spec: docs/superpowers/specs/
 # 2026-10-15-checks-prod-logic-design.md §7. Runs on main (the default branch), so the catalogue and origins the probes
 # read are what the live site runs.
-#   pass                         → nothing posted, failure counter reset
-#   first failing run            → one Slack line (general = #pipeline), no card
-#   second (and later) in a row  → Slack line + scripted triage (lib/live-triage.mjs, no agent): each failing check →
-#                                  a finding (owner ci) → notion-push --checker logic --target main (deduped by Source:
-#                                  a later failure comments on the open card instead of a new one)
-#   harness/infra error (exit 2) → Slack line "could not run", counter kept
-# The counter lives in .logic-live-state/state.json, carried between runs by actions/cache (keys logic-live-state-*).
+#   pass                         → nothing posted, state cleared
+#   a failing check              → one Slack line (general = #pipeline); no card the first time it fails
+#   the same check failing in two consecutive runs → Slack line + scripted triage (lib/live-triage.mjs, no agent) of
+#                                  those checks only → findings (owner ci) → notion-push --checker logic --target main
+#                                  (deduped by Source: a later failure comments on the open card instead of a new one)
+#   infra (exit 2, or exit 1 with no failing check: guard mismatch, crash) → "logic-live infra: …" Slack line, no cards
+# The failing ids per run live in .logic-live-state/state.json, carried between runs by actions/cache (keys
+# logic-live-state-<run id>-<attempt>, restored by the prefix).
 on:
   schedule:
     - cron: "0 */6 * * *"
@@ -23,9 +24,11 @@ permissions:
 jobs:
   live:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: 20
@@ -36,7 +39,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .logic-live-state
-          key: logic-live-state-${{ github.run_id }}
+          key: logic-live-state-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: logic-live-state-
 
       - name: Live probes (read-only)
@@ -61,7 +64,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: .logic-live-state
-          key: logic-live-state-${{ github.run_id }}
+          key: logic-live-state-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Slack line
         if: steps.state.outputs.action != 'none'
@@ -71,12 +74,13 @@ jobs:
         run: node scripts/slack.mjs post-text general "$LINE"
 
       - name: Findings and Notion cards (second consecutive failure)
-        if: steps.state.outputs.action == 'cards'
+        if: always() && steps.state.outputs.action == 'cards'
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           RUN: ${{ steps.probe.outputs.run }}
+          CARDS: ${{ steps.state.outputs.cards }}
         run: |
-          node scripts/logic-check/lib/live-triage.mjs triage --run "$RUN"
+          node scripts/logic-check/lib/live-triage.mjs triage --run "$RUN" --ids "$CARDS"
           node scripts/check-core/notion-push.mjs --run "$RUN" --checker logic --target main
 
       - name: Digest

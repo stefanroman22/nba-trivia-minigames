@@ -138,6 +138,10 @@ function checkCriterion(id, project, results, sdir) {
   return { kind: 'check', label, outcome: 'pass', lines: [{ ok: true, error: false, text: 'passed' }], shot: null };
 }
 
+/** A Logic criterion only the live site can answer: an LC-LIVE- id, or `projects` naming only `live`. */
+export const isLiveOnly = (c) => !!c && 'lc' in c && (/^LC-LIVE-/.test(c.lc) || (Array.isArray(c.projects) && c.projects.length > 0 && c.projects.every((p) => p === 'live')));
+export const LIVE_ONLY_TEXT = 'live-only: not evaluated locally — confirmed by the live cron after promotion (verify --live evaluates it)';
+
 /** Copy a criterion's crop out of a scratch dir (deleted afterwards) to <runDir>/<area>/shots/. */
 function keepShot(file, runId, area, name) {
   if (!file || !existsSync(file)) return null;
@@ -156,8 +160,11 @@ function keepShot(file, runId, area, name) {
  * Throws when an invocation produced no result at all (infra), so callers never record a verdict for it.
  * The stack must be up (withStack). area: 'verify' | 'probe' (scratch folder name).
  * reuse: { results, dir } — the audited run's results.json and run dir (report.mjs --validate only). say: progress lines.
+ * live: evaluate live-only Logic criteria (isLiveOnly) against the live site (read-only); without it (and without a
+ * reuse result for them) they are guards with outcome 'live-only' that neither pass nor fail: the outcome and the
+ * expect-fail verdict are judged on the other criteria, and a finding with nothing else passes with LIVE_ONLY_TEXT.
  */
-export async function verifyFindings(findings, { runId, expectFail = false, log, area = 'verify', mode = process.env.UI_CHECK_MODE || 'dev', keepScratch = false, reuse = null, say = console.log }) {
+export async function verifyFindings(findings, { runId, expectFail = false, log, area = 'verify', mode = process.env.UI_CHECK_MODE || 'dev', keepScratch = false, reuse = null, say = console.log, live = false }) {
   const base = stamp();
   const env = { UI_CHECK_MODE: mode, UI_CHECK_KEEP_STACK: '1', UI_CHECK_STACK_READY: '1' };
   const scratches = [];
@@ -242,14 +249,16 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
     const source = new Map(); // `${id}|${project ?? '*'}` → { results, dir } the criterion is read from
     const need = new Map(); // ui check id → Set(project) to run
     const needLc = new Set(); // lc ids to run
+    const liveOnly = new Set(); // srcKeys of live-only lc criteria left unevaluated (no --live, no reuse result)
     const srcKey = (id, p) => `${id}|${p ?? '*'}`;
     let reused = 0;
     for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of checkProjects(c)) {
       const id = checkId(c);
       const lc = 'lc' in c;
-      if (source.has(srcKey(id, p)) || (lc ? needLc.has(id) : (need.get(id) || new Set()).has(p))) continue;
+      if (source.has(srcKey(id, p)) || liveOnly.has(srcKey(id, p)) || (lc ? needLc.has(id) : (need.get(id) || new Set()).has(p))) continue;
       const rs = reuse ? reuse.results.filter((r) => r.checkId === id && (p === null || r.project === p)) : [];
       if (rs.length && !rs.every((r) => r.status === 'skipped')) { source.set(srcKey(id, p), reuse); reused++; continue; }
+      if (lc && !live && isLiveOnly(c)) { liveOnly.add(srcKey(id, p)); continue; }
       if (lc) { needLc.add(id); continue; }
       if (!need.has(id)) need.set(id, new Set());
       need.get(id).add(p);
@@ -296,6 +305,10 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
     for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of checkProjects(c)) {
       const id = checkId(c);
       const s = source.get(srcKey(id, p));
+      if (!s && liveOnly.has(srcKey(id, p))) {
+        crit.get(f.id).push({ kind: 'check', label: checkLabel(id, p), outcome: 'live-only', guard: true, lines: [{ ok: true, error: false, text: LIVE_ONLY_TEXT }], shot: null });
+        continue;
+      }
       if (!s && 'lc' in c && lcMissing) {
         crit.get(f.id).push({ kind: 'check', label: checkLabel(id, p), outcome: 'error', lines: [{ ok: false, error: true, text: 'logic-check runner not installed (scripts/logic-check/run.mjs)' }], shot: null });
         continue;
@@ -312,11 +325,15 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
   return findings.map((f) => {
     const guardSet = new Set(f.guards || []);
     const criteria = crit.get(f.id).map((c) => (guardSet.has(c.label) ? { ...c, guard: true } : c));
-    const outcome = criteria.length && criteria.every((c) => c.outcome === 'pass') ? 'pass' : criteria.some((c) => c.outcome === 'error') ? 'error' : 'fail';
-    const bad = criteria.find((c) => c.outcome !== 'pass');
-    const badLine = bad ? `${bad.label}${bad.guard ? ' (guard)' : ''}: ${(bad.lines.find((l) => !l.ok) || bad.lines[0] || { text: '' }).text}` : `${criteria.length} criteria pass`;
+    // Live-only criteria left unevaluated neither pass nor fail: judge the rest; nothing else → pass, noted.
+    const judged = criteria.filter((c) => c.outcome !== 'live-only');
+    const waiting = criteria.filter((c) => c.outcome === 'live-only');
+    const outcome = (judged.length ? judged.every((c) => c.outcome === 'pass') : waiting.length > 0) ? 'pass' : judged.some((c) => c.outcome === 'error') ? 'error' : 'fail';
+    const bad = judged.find((c) => c.outcome !== 'pass');
+    const liveNote = waiting.length ? ` · ${waiting.map((c) => c.label).join(', ')}: ${LIVE_ONLY_TEXT}` : '';
+    const badLine = bad ? `${bad.label}${bad.guard ? ' (guard)' : ''}: ${(bad.lines.find((l) => !l.ok) || bad.lines[0] || { text: '' }).text}` : `${judged.length} criteria pass${liveNote}`;
     if (expectFail) {
-      const v = expectFailVerdict(criteria);
+      const v = expectFailVerdict(judged);
       const marked = criteria.map((c) => (v.guards.includes(c.label) ? { ...c, guard: true, note: 'guard (passes before fix)' } : c));
       return { id: f.id, outcome, firstLine: badLine, criteria: marked, ...v };
     }

@@ -12,6 +12,8 @@
 // verifies its worktree on its own ports. For a run's findings the defaults are the run's own checkout and, in its mode,
 // its ports (run-meta.json: a `--ref main` run verifies the main worktree); `--ref .` verifies this checkout (a fix loop),
 // `--ref <ref>` a worktree of that ref. --from defaults to this checkout.
+// --live: evaluate live-only Logic criteria (an LC-LIVE- id or `lc` projects ['live']) against the live site, read-only;
+// without it they are guards that neither pass nor fail ("confirmed by the live cron after promotion").
 // Prints one line per finding — `PASS|FAIL <id> — <first failing line>` — and totals; the full detail goes to
 // <runDir>/verify/<id>.json (guards marked), Playwright's output to <runDir>/verify/pw-<stamp>.log.
 // Exit 0 iff every finding passes, guards included (with --expect-fail: iff every finding reproduces: at least one
@@ -28,7 +30,7 @@ import { ensureCheckout } from '../check-core/lib/checkout.mjs';
 import { ROOT } from '../check-core/lib/home.mjs';
 
 const USAGE = [
-  'usage: node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--ref .|main|<sha>] [--repo <dir>] [--ports …] [--expect-fail] [--mark] [--keep-stack]',
+  'usage: node scripts/ui-check/verify.mjs <findingId…> [--run <id>] [--mode dev|prod] [--ref .|main|<sha>] [--repo <dir>] [--ports …] [--expect-fail] [--mark] [--keep-stack] [--live]',
   '       node scripts/ui-check/verify.mjs --from <findings.json> [<findingId…>] [--mode dev|prod] [--repo <dir>] [--ports django=…,socket=…,web=…]',
   '  --mode        default dev; prod for findings validated in prod (validatedMode)',
   '  --from        finding objects from a file (array or {findings}); no run needed; output in <home>/adhoc/<ts>/',
@@ -39,10 +41,11 @@ const USAGE = [
   '                In a fix loop always pass --keep-stack; stop once at the end with `node scripts/ui-check/run.mjs --stop`.',
   '  --mark        set status fixed + fixedAt on passing findings and regenerate REPORT.md (not with --from)',
   '  --expect-fail exit 0 iff every finding reproduces (≥ 1 criterion fails cleanly, none errors)',
+  '  --live        evaluate live-only Logic criteria (LC-LIVE-…) on the live site; without it they wait for the live cron',
 ].join('\n');
 
 function parseArgs(argv) {
-  const o = { ids: [], run: null, mode: null, expectFail: false, mark: false, keepStack: false, from: null, repo: null, ref: null, ports: null };
+  const o = { ids: [], run: null, mode: null, expectFail: false, mark: false, keepStack: false, from: null, repo: null, ref: null, ports: null, live: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -55,6 +58,7 @@ function parseArgs(argv) {
     else if (a === '--expect-fail') o.expectFail = true;
     else if (a === '--mark') o.mark = true;
     else if (a === '--keep-stack') o.keepStack = true;
+    else if (a === '--live') o.live = true;
     else if (a === '--help' || a === '-h') o.help = true;
     else if (a.startsWith('--')) throw new Error(`unknown argument ${a}`);
     else o.ids.push(a);
@@ -126,7 +130,7 @@ async function main() {
     if (repo && path.resolve(repo).toLowerCase() !== ROOT.toLowerCase()) console.log(`verify: app ${path.resolve(repo)}${!o.repo && !refRepo ? ` (run ${runId}'s checkout; --ref . verifies this one)` : ''}`);
     try {
       // Always re-run (no `reuse`): the fix loop judges the code as it is now.
-      const rs = await withStack({ mode, keepStack: o.keepStack, log, repo, ports }, () => verifyFindings(list, { runId, expectFail: o.expectFail, log, mode }));
+      const rs = await withStack({ mode, keepStack: o.keepStack, log, repo, ports }, () => verifyFindings(list, { runId, expectFail: o.expectFail, log, mode, live: o.live }));
       for (const r of rs) { r.mode = mode; results.push(r); }
     } catch (e) {
       console.error(`verify: ${e.message}`);

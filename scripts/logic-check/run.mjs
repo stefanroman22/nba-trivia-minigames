@@ -4,7 +4,7 @@
 // run), run-meta.json `checker: 'logic'`.
 //   node scripts/logic-check/run.mjs [--suite live,pages,auth,signup,profile,friends,game-data,rooms|all] [--only ID,ID]
 //                                    [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…]
-//                                    [--live [url]] [--keep-stack] [--no-skip-blocked] [--headed]
+//                                    [--live [url]] [--keep-stack] [--skip-blocked] [--headed]
 //   node scripts/logic-check/run.mjs --stop [--ports …]     stop a stack kept with --keep-stack
 // Suites (lib/suites.mjs) are check-id prefixes: `live` targets the live site read-only (no stack, guest, GET/HEAD only:
 // the api guard refuses anything else and counts every request — the run prints the counters and fails on a write);
@@ -14,9 +14,10 @@
 // reads the app catalogue/origins from --repo, else on GitHub Actions (which runs on main) this checkout, else the
 // `main` checkout (not fetched).
 // --only: check ids (`*` within an id); runs exactly those (their suites' projects), never skipped by a block.
-// --skip-blocked (default; --no-skip-blocked): without --only, LC checks tagged with a service Logic Check has already
-// blocked (channel.json) are left out, deferred (channel.defer checker 'logic') and listed under Coverage gaps — their
-// card is open; the nightly catch-up re-runs them with --only once it is Done (spec §7).
+// Blocks: Logic Check writes the channel's blocks and re-runs its blocked checks every run (that is how it sees a fix
+// land), so by default it skips nothing. --skip-blocked (opt-in, never with --only): LC checks of the selected suites
+// tagged with a blocked service are left out, deferred (channel.defer checker 'logic') and listed under Coverage gaps.
+// (UI check's --skip-blocked is on by default: it only reads the blocks.)
 // Local suites run on one worker (they share the logic.actor/peer accounts). Prints `logic-check: run <id>` and
 // `logic-check: digest <path>`; exits 0 all passed, 1 a check failed (or the live guard saw a write), 2 infra
 // (bad arguments, the checkout or the stack failed, nothing ran).
@@ -41,7 +42,7 @@ const fail = (m) => console.error(`logic-check: ${m}`);
 const list = (s) => String(s).split(',').map((x) => x.trim()).filter(Boolean);
 
 function parseArgs(argv) {
-  const o = { suite: null, only: null, mode: 'prod', ref: null, repo: null, ports: null, keepStack: false, skipBlocked: true, headed: false };
+  const o = { suite: null, only: null, mode: 'prod', ref: null, repo: null, ports: null, keepStack: false, skipBlocked: false, headed: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -106,7 +107,7 @@ async function appFor(o, { local }) {
   return ensureCheckout(o.ref || (o.mode === 'dev' ? '.' : 'main'));
 }
 
-/** --skip-blocked: the LC checks a block leaves out → their --grep-invert (null when none); blocked.json + deferrals. */
+/** --skip-blocked (opt-in): the LC checks a block leaves out → their --grep-invert (null when none); blocked.json + deferrals. */
 function applyBlocks(o, id, suites) {
   if (!o.skipBlocked || o.only) return null;
   let blocked;
@@ -124,7 +125,7 @@ async function main() {
   let o, suites;
   try { o = parseArgs(process.argv.slice(2)); } catch (e) { fail(e.message); return 2; }
   if (o.help) {
-    console.log('usage: node scripts/logic-check/run.mjs [--suite live,pages,auth,signup,profile,friends,game-data,rooms|all] [--only ID,ID] [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…] [--live [url]] [--keep-stack] [--no-skip-blocked] [--headed] [--stop]');
+    console.log('usage: node scripts/logic-check/run.mjs [--suite live,pages,auth,signup,profile,friends,game-data,rooms|all] [--only ID,ID] [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…] [--live [url]] [--keep-stack] [--skip-blocked] [--headed] [--stop]');
     return 0;
   }
   if (o.stop) {

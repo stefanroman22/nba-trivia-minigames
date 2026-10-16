@@ -6,8 +6,9 @@
 //            lc.violation(rule, { selector, measured, expected, note, route })   a hard failure (recorded, not thrown)
 //            lc.warn(rule, { … })                                                a soft one (digest ## Warnings)
 //            lc.metric(label, value, { unit = 'ms', budget, route, kind = 'timing' })
-//            await lc.page(page, { label })   → a ui-check audit (createAudit) on that page: its goto/console/violation;
-//                                              in env live its context gets guardLive (non-GET aborted = live-write)
+//            await lc.page(page, { label })   → a ui-check audit (createAudit) on that page, narrowed to goto / shot /
+//                                              console / violation (no layout/motion/a11y/perf); in env live its
+//                                              context gets guardLive (non-GET aborted = live-write)
 //            await lc.console({ allow })      → the page audits' console(): console errors, page errors, own-host 4xx/5xx
 //            await lc.done()                  attach; throw when anything (here or in a page audit) was recorded
 //          Teardown (finalize) attaches when the test threw before done().
@@ -70,10 +71,19 @@ export function createLc(testInfo, { project = testInfo.project.name, env = envO
       metrics.push(m);
       return m;
     },
+    /** A page audit narrowed to goto/shot/console/violation (+ its page and violations, read-only): no layout, motion,
+     *  a11y or perf detector is reachable from a Logic spec (spec §5; catalog.mjs lints the direct calls). */
     async page(page, { label = null } = {}) {
       const a = await pageAudit(page, testInfo, { project, label });
       pages.push(a);
-      return a;
+      return Object.freeze({
+        page,
+        get violations() { return [...a.violations]; },
+        goto: (target, opts) => a.goto(target, opts),
+        shot: (name, locator) => a.shot(name, locator),
+        console: (opts) => a.console(opts),
+        violation: (rule, o) => a.violation(rule, o),
+      });
     },
     async console(opts = {}) {
       const out = [];
