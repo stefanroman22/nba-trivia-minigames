@@ -88,8 +88,10 @@ on while `NUM_PROXIES` is unset), so the machine's 30/h login and 60/h refresh b
 
 The matrix is data in `lib/matrix.mjs` (provenance in its header): every row changes ONE field of an otherwise valid
 sign-up, so a row the backend accepts is a `validation-gap` violation (the account it created is deleted at once), never
-an expected pass. Budget: all signup POSTs are simulated clients (no real 10/h bucket spent); accounts actually created per
-run are 2 (`LC-SIGNUP-05`) + at most 2 by validation gaps (then the remaining cases are not sent: `signup-budget`) → ≤ 4.
+an expected pass. Budget: ≤ 4 accounts created per run; POSTs are unthrottled locally via per-request X-Forwarded-For
+(`lib/auth.mjs` `clientIp`). Created accounts are counted in `<runDir>/signup-accounts.json` (shared by the API and
+browser cases); at the cap a row is sent with testuser4's taken email, so a gap answers 409 and still fails as
+`validation-gap` ("not created: cap"), and a row that could still create one is not sent (`signup-budget`).
 Moderated words are mild/reserved only: a severe name at sign-up strikes the caller's IP.
 
 | ID | services | proves |
@@ -97,10 +99,10 @@ Moderated words are mild/reserved only: a severe name at sign-up strikes the cal
 | `LC-SIGNUP-00` | signup | The frontend's stated rules and the backend agree: password min length (`passwordRules.ts` vs `MinimumLengthValidator`), every frontend rule has a configured `AUTH_PASSWORD_VALIDATORS` validator and every validator is a frontend rule or declared server-only ("Too common"), the form's username `pattern` equals `USERNAME_RE`, `CONSENT_NEEDED` equals `CONSENT_REQUIRED_MESSAGE`; every literal message of the matrix still exists in the backend source (`matrix-stale`). A mismatch is a FAIL finding. |
 | `LC-SIGNUP-01` | signup | Username rows → 400: empty ("All fields are required."), too short, too long, bad characters (space/!, hyphen, accent) (`USERNAME_RULES`), mild word "Dick" ("That name isn't allowed…"), reserved "admin1" ("That name is reserved…"). |
 | `LC-SIGNUP-02` | signup | Email rows: missing → 400 required; no `@` / no top-level domain → 400 "That email address doesn't look valid."; testuser4's email, also upper-case → 409 "Email already in use!…". |
-| `LC-SIGNUP-03` | signup | Password rows → 400 with Django's validator message: empty (required), too short (7), common "password123", numeric only, similar to the username (`UserAttributeSimilarityValidator`). |
+| `LC-SIGNUP-03` | signup | Password rows → 400 with Django's validator message: empty (required), too short (7), common "password123", numeric only, similar to the username (`UserAttributeSimilarityValidator`); a JSON number (12345678) or boolean (`true`) password → 400 (any message), never 5xx. |
 | `LC-SIGNUP-04` | signup | Consent rows → 400 code `consent_required` (message = `CONSENT_REQUIRED_MESSAGE`): `accepted_terms` missing / false / the string "true", `age_confirmed` missing / false; a birth date under 13 → 400 code `age_requirement`. |
 | `LC-SIGNUP-05` | signup, auth | Happy path: a new `lgc<digits>` sign-up → 201 `{ access, refresh, user }`; login by email → 200 same user; `/me/` with the signup token matches; the same display name with another email → 201 (names are not unique), a bare-name login is then 401 "Several players use that name…" (AUTH-2), and that account is deleted; delete with password + `DELETE` → 200; login afterwards → 401. Everything created is removed in `finally` (the lgc sweep as the last resort). |
-| `LC-SIGNUP-UI-01` | signup | Browser, one case per category that passes the form's own checks: mild word "Dick", testuser4's email, "password123" → the form shows the backend's exact message (found by its text in the modal); consent unticked → the form shows `CONSENT_REQUIRED_MESSAGE`'s text and sends nothing. No layout, motion or live-rule assertions (UI check's AC-SIGNUP rows). |
+| `LC-SIGNUP-UI-01` | signup | Browser, one case per category that passes the form's own checks: mild word "Dick", testuser4's email, "password123" → the form's error element (`account.authError`) shows the backend's exact message; consent unticked → the form shows `CONSENT_REQUIRED_MESSAGE`'s text and sends nothing. No layout, motion or live-rule assertions (UI check's AC-SIGNUP rows). |
 
 ## Selftest (LC-ST-)
 

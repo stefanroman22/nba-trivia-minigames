@@ -10,6 +10,9 @@
 //   backend/backend/settings.py          AUTH_PASSWORD_VALIDATORS (similarity, min length, common, numeric)
 //   src/utils/passwordRules.ts           the frontend's stated password rules (frontendRules below)
 // Each row isolates ONE branch: every other field is valid, so a row the backend accepts (201) is a validation gap.
+// Branches deliberately NOT in the matrix: the severe moderation tier (a severe name at sign-up strikes the caller's
+// IP and the third locks sign-ups from it for 24 h), a banned account's email (409, needs a banned account; answered
+// exactly like a taken email), and the IP-locked sign-up (403 signup_locked, needs three severe attempts).
 // LC-SIGNUP-00 compares frontendRules() with backendRules() and checks every literal message below still exists in
 // the backend source (a stale matrix fails there, not as a wall of case failures).
 import { readFileSync } from 'node:fs';
@@ -43,6 +46,7 @@ export const MSG = {
   pwCommon: { text: /^This password is too common\.$/, src: 'django' },
   pwNumeric: { text: /^This password is entirely numeric\.$/, src: 'django' },
   pwSimilar: { text: /too similar to the (username|email)/i, src: 'django' },
+  anyError: { text: /\S/, src: 'none' }, // a non-string password: any 400 message, as long as it is a 400
 };
 
 /**
@@ -84,6 +88,9 @@ export function signupMatrix({ name, password, takenEmail, today = new Date() })
     row('password', 'common ("password123")', { password: 'password123' }, 400, S.pwCommon),
     row('password', 'numeric only', { password: '48213957604' }, 400, S.pwNumeric),
     row('password', 'similar to the username', (b, n) => ({ ...b, password: `${n}x` }), 400, S.pwSimilar),
+    // JSON non-strings: request.data keeps the type, so these reach validate_password as an int / a bool
+    row('password', '12345678 (JSON number)', { password: 12345678 }, 400, S.anyError),
+    row('password', 'true (JSON boolean)', { password: true }, 400, S.anyError),
     // consent: both flags must be JSON true; an under-13 birth date is refused even with the box ticked
     row('consent', 'accepted_terms missing', omit('accepted_terms'), 400, S.consentRequired, 'consent_required'),
     row('consent', 'accepted_terms false', { accepted_terms: false }, 400, S.consentRequired, 'consent_required'),

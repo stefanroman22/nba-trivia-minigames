@@ -1,15 +1,23 @@
 // HTTP helpers of the auth and signup suites (on the api fixture's guarded fetch).
 //   clientIp()   a fresh simulated client address per call (10.<a>.<b>.<n>, a/b random per process). Sent as
-//                X-Forwarded-For: DRF's throttles key an anonymous caller by that header when NUM_PROXIES is unset
-//                (backend/backend/settings.py sets none), and users.strikes hashes its first hop. So every signup /
+//                X-Forwarded-For: DRF's throttles key an anonymous caller by that header (the whole header while
+//                NUM_PROXIES is unset, as backend/backend/settings.py has it; its last hop with NUM_PROXIES >= 1 —
+//                ours, as the local stack has no proxy), and users.strikes hashes its first hop. So every signup /
 //                login case gets its own throttle bucket: the checks never spend the machine's real 10/h signup or
 //                30/h login budget (UI check's sign-up flow runs on the same stack), and never see a 429 they did not
-//                ask for. A 429 anyway means the backend stopped trusting the header: the case reports `throttled`.
+//                ask for. Only NUM_PROXIES = 0 (REMOTE_ADDR only) breaks this: cases then report `throttled`.
 //   post / get   → api.fetch's result ({ status, ok, json, text, headers, ms }) with that header and an optional token
 //   throwawayName(i)   `lgc<12 digits of this process's start ms><i, 2 digits>` (17 chars; the sweep's lgc<digits>)
 //   deleteAccount      POST /account/delete/ { password, confirm: 'DELETE' } as the account
 //   login              POST /login/ { id, password }
+//   accountsCreated() / noteAccount(entry) / capReached()   the run's account ledger: <runDir>/signup-accounts.json,
+//                one JSON object per line, appended (O_APPEND) by every check that created an account through
+//                POST /signup/ (signup.spec and signup-ui.spec, any worker, any worker restart). ACCOUNT_CAP = 4 per run:
+//                at the cap no check may send a sign-up that could create one.
+import { appendFileSync, mkdirSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { randomInt } from 'node:crypto';
+import { runDir } from '../../ui-check/lib/run-id.mjs';
 
 const A = randomInt(1, 255);
 let B = randomInt(0, 255);
@@ -19,6 +27,19 @@ export function clientIp() {
   if (++n > 254) { n = 1; B = (B + 1) % 256; }
   return `10.${A}.${B}.${n}`;
 }
+
+export const ACCOUNT_CAP = 4;
+const ledger = () => path.join(runDir(), 'signup-accounts.json');
+/** Accounts created through POST /signup/ in this run (all workers). */
+export function accountsCreated() {
+  try { return readFileSync(ledger(), 'utf8').split('\n').filter((l) => l.trim()).length; } catch { return 0; }
+}
+/** Record one created account ({ check, username, email }) in the run's ledger (one append: one line). */
+export function noteAccount(entry) {
+  mkdirSync(runDir(), { recursive: true });
+  appendFileSync(ledger(), `${JSON.stringify({ ...entry, at: new Date().toISOString() })}\n`, { flag: 'a' });
+}
+export const capReached = () => accountsCreated() >= ACCOUNT_CAP;
 
 const STAMP = String(Date.now()).slice(-12);
 /** Throwaway username for slot i (0..99): lgc + 12 digits + 2 digits. */

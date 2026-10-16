@@ -3,41 +3,53 @@
 // src/utils/passwordRules.ts) is posted case by case, each case a test.step: exact status + the backend's error
 // message (and code). A case the backend ACCEPTS although the matrix expects a rejection is a `validation-gap`
 // violation (the account it created is deleted at once), never an expected pass.
-// Budget: every request goes out as its own simulated client (lib/auth.mjs clientIp → X-Forwarded-For), so the
-// machine's real 10/h signup bucket is untouched. Accounts actually created per run: 2 by LC-SIGNUP-05 (new account
-// + the same display name again) plus at most MAX_GAP_ACCOUNTS by validation gaps → ≤ 4; past that the remaining
-// cases are not sent (`signup-budget`).
+// Budget: ≤ 4 accounts created per run; POSTs are unthrottled locally via per-request X-Forwarded-For (lib/auth.mjs
+// clientIp: the machine's real 10/h signup bucket is untouched). Every account a POST /signup/ creates is appended to
+// the run's ledger (<runDir>/signup-accounts.json, shared with signup-ui.spec and surviving worker restarts); at
+// ACCOUNT_CAP no check sends a sign-up that could create one: a remaining row is sent with logic.actor's (taken)
+// email instead — every non-email branch is checked before "email taken", so a gap answers 409 and is still a
+// `validation-gap` ("not created: cap") — and a row whose own field is the email is not sent (`signup-budget`).
+// LC-SIGNUP-05 creates 2 when under the cap.
 import { test, expect } from '../../lib/fixtures.mjs';
 import { ACCOUNTS, ROLES, credentials, sweepAccounts } from '../../../check-core/lib/accounts.mjs';
 import { MSG, VALIDATOR_OF, backendRules, errorMismatch, frontendRules, happyRows, signupMatrix, staleMessages } from '../../lib/matrix.mjs';
-import { attempt, get, login, post, removeAccount, said, throwawayName } from '../../lib/auth.mjs';
+import { ACCOUNT_CAP, accountsCreated, attempt, capReached, get, login, noteAccount, post, removeAccount, said, throwawayName } from '../../lib/auth.mjs';
 
 const ROUTE = '/api/signup/';
-const MAX_GAP_ACCOUNTS = 2;
-let gapAccounts = 0; // accounts created by cases that should have been rejected (one worker: module state is the run's)
 
 const actorEmail = () => ACCOUNTS[ROLES['logic.actor']].email;
 const pw = () => credentials(ROLES['logic.actor']).password; // the test accounts' generated password: strong, unique
 const describe = ({ text, code }) => `${typeof text === 'string' ? `"${text}"` : String(text)}${code ? ` (code ${code})` : ''}`;
 const matrix = () => signupMatrix({ name: throwawayName, password: pw(), takenEmail: actorEmail() });
+const capNote = () => `${accountsCreated()} of ${ACCOUNT_CAP} accounts already created this run (<runDir>/signup-accounts.json)`;
 
 /** Post one matrix row and judge the answer. */
 async function runCase(api, lc, row) {
   await test.step(`${row.category}: ${row.case} → ${row.expectStatus}`, async () => {
     const selector = `POST ${ROUTE} ${row.category}: ${row.case}`;
     const expected = `HTTP ${row.expectStatus} ${describe(row.expectError)}`;
-    if (gapAccounts >= MAX_GAP_ACCOUNTS) {
-      lc.violation('signup-budget', { route: ROUTE, selector, measured: `not sent: ${gapAccounts} validation gap(s) already created accounts this run`, expected: `≤ ${MAX_GAP_ACCOUNTS} accounts created by rejected cases` });
+    let body = row.body;
+    const capped = capReached();
+    if (capped) {
+      if (row.category === 'email' && row.expectStatus !== 409) {
+        lc.violation('signup-budget', { route: ROUTE, selector, measured: `not sent: ${capNote()}`, expected: 'the row tested (it could create an account)' });
+        return;
+      }
+      body = { ...row.body, email: actorEmail() }; // can never create: a gap falls through to "email taken" (409)
+    }
+    const r = await attempt(post(api, '/signup/', body));
+    if (r.error) { lc.violation('unreachable', { route: ROUTE, selector, measured: said(r), expected }); return; }
+    if (r.status === 429) { lc.violation('throttled', { route: ROUTE, selector, measured: said(r), expected, note: 'the case was not tested: the throttle no longer keys by X-Forwarded-For (NUM_PROXIES = 0?, lib/auth.mjs clientIp)' }); return; }
+    if (capped && r.status === 409 && row.expectStatus !== 409) {
+      lc.violation('validation-gap', { route: ROUTE, selector, measured: `${said(r)}: the row passed its own check and reached "email taken" (not created: cap)`, expected });
       return;
     }
-    const r = await attempt(post(api, '/signup/', row.body));
-    if (r.error) { lc.violation('unreachable', { route: ROUTE, selector, measured: said(r), expected }); return; }
-    if (r.status === 429) { lc.violation('throttled', { route: ROUTE, selector, measured: said(r), expected, note: 'the case was not tested: the throttle no longer keys by X-Forwarded-For (lib/auth.mjs clientIp)' }); return; }
     if (r.status >= 200 && r.status < 300) {
-      gapAccounts++;
-      const created = r.json && r.json.user ? `${r.json.user.username} <${r.json.user.email}>` : '(no user in the answer)';
+      const u = r.json && r.json.user;
+      const created = u ? `${u.username} <${u.email}>` : '(no user in the answer)';
+      noteAccount({ check: lc.checkId, case: row.case, username: u ? u.username : null, email: u ? u.email : body.email });
       lc.violation('validation-gap', { route: ROUTE, selector, measured: `HTTP ${r.status}: the backend accepted it and created ${created}`, expected });
-      const gone = await removeAccount(api, { access: r.json && r.json.access, email: row.body.email, password: row.body.password });
+      const gone = await removeAccount(api, { access: r.json && r.json.access, email: body.email, password: body.password });
       if (!gone) lc.violation('cleanup', { route: ROUTE, selector: `POST /api/account/delete/ ${created}`, measured: 'the account could not be deleted', expected: 'deleted by the check (remove it by hand: it may not match the lgc sweep)' });
       return;
     }
@@ -114,8 +126,10 @@ test('[LC-SIGNUP-05] happy path: a new lgc account gets 201 + tokens, logs in, /
   let created = 0;
   try {
     await test.step('sign up → 201 with tokens and the user', async () => {
+      if (capReached()) { v('signup-budget', `POST ${ROUTE} ${happy.body.username}`, `not sent: ${capNote()}`, 'the happy path runs (it creates 2 accounts)'); return; }
       const r = await attempt(post(api, '/signup/', happy.body));
       const u = r.json && r.json.user;
+      if (r.status >= 200 && r.status < 300) noteAccount({ check: lc.checkId, case: happy.case, username: u ? u.username : null, email: happy.body.email });
       if (r.status !== 201 || !r.json || !r.json.access || !r.json.refresh || !u) { v('signup', `POST ${ROUTE} ${happy.body.username}`, r, '201 { access, refresh, user }'); if (r.json && r.json.access) alive.set('happy', { access: r.json.access, email: happy.body.email }); return; }
       alive.set('happy', { access: r.json.access, email: happy.body.email });
       created++;
@@ -151,8 +165,10 @@ test('[LC-SIGNUP-05] happy path: a new lgc account gets 201 + tokens, logs in, /
       else for (const k of ['id', 'username', 'email']) if (u[k] !== first[k]) v('me', `user.${k}`, JSON.stringify(u[k]), JSON.stringify(first[k]));
     });
     await test.step('the same display name with another email → 201 (names are not unique); a bare-name login is then ambiguous', async () => {
+      if (capReached()) { v('signup-budget', `POST ${ROUTE} ${repeat.body.username} <${repeat.body.email}>`, `not sent: ${capNote()}`, 'the repeated-name sign-up runs'); return; }
       const r = await attempt(post(api, '/signup/', repeat.body));
       const u = r.json && r.json.user;
+      if (r.status >= 200 && r.status < 300) noteAccount({ check: lc.checkId, case: repeat.case, username: u ? u.username : null, email: repeat.body.email });
       if (r.json && r.json.access) alive.set('repeat', { access: r.json.access, email: repeat.body.email });
       if (r.status === 201) created++;
       if (r.status !== 201 || !u) { v('signup', `POST ${ROUTE} ${repeat.body.username} <${repeat.body.email}>`, r, '201: display names may repeat (views.py USERNAME_RE comment)'); return; }

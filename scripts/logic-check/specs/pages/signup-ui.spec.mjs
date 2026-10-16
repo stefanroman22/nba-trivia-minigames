@@ -3,15 +3,20 @@
 // assertion is the backend's message (lib/matrix.mjs MSG) appearing in the open modal, found by its text. Never
 // layout, motion or the live rule list (UI check's AC-SIGNUP rows own those, spec §5 no-overlap matrix).
 // Consent: the form never sends an unticked sign-up (it stops with CONSENT_NEEDED), so that case asserts the text it
-// shows is the backend's consent message (consent.py) and that no request left. Signup POSTs go out as their own
-// simulated client (X-Forwarded-For, lib/auth.mjs), like the API cases: no real signup budget is spent.
+// shows is the backend's consent message (consent.py) and that no request left. The message is read from the form's
+// error element (pagemap account.authError), never a free text search (the live rule list carries similar lines).
+// Signup and check-name requests go out as their own simulated client (X-Forwarded-For, lib/auth.mjs), like the API
+// cases: no real throttle budget is spent. An account a gap creates is recorded in the run's ledger
+// (<runDir>/signup-accounts.json); at the cap (4 per run) a case is sent with logic.actor's taken email, which can
+// never create one (every branch tested here is checked before "email taken").
 import { test, expect } from '../../lib/fixtures.mjs';
 import { L } from '../../../ui-check/lib/pagemap.mjs';
 import { ACCOUNTS, ROLES, credentials } from '../../../check-core/lib/accounts.mjs';
 import { MSG, backendRules } from '../../lib/matrix.mjs';
-import { clientIp, removeAccount, throwawayName } from '../../lib/auth.mjs';
+import { capReached, clientIp, noteAccount, removeAccount, throwawayName } from '../../lib/auth.mjs';
 
 const SIGNUP = /\/api\/signup\/$/;
+const FAKE_CLIENT = /\/api\/(signup|check-name)\/$/;
 
 test('[LC-SIGNUP-UI-01] the sign-up form shows the backend\'s error text: one case per category (username, email, password, consent)', async ({ page, lc, api }) => {
   test.setTimeout(120_000);
@@ -27,7 +32,7 @@ test('[LC-SIGNUP-UI-01] the sign-up form shows the backend\'s error text: one ca
   ];
   const posts = [];
   page.on('request', (r) => { if (r.method() === 'POST' && SIGNUP.test(r.url())) posts.push(r.url()); });
-  await page.route(SIGNUP, (route) => route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': clientIp() } }));
+  await page.route(FAKE_CLIENT, (route) => route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': clientIp() } }));
 
   for (const c of cases) {
     await test.step(`${c.category}: ${c.label} → "${c.text}"`, async () => {
@@ -38,7 +43,9 @@ test('[LC-SIGNUP-UI-01] the sign-up form shows the backend\'s error text: one ca
       await expect(L(page, 'guest.modalPanel')).toBeVisible();
       await L(page, 'guest.authTabSignup').click();
       await expect(L(page, 'guest.authTabSignup')).toHaveAttribute('aria-selected', 'true');
-      await L(page, 'account.signupEmail').fill(c.email);
+      const capped = c.sends && capReached();
+      const emailUsed = capped ? taken : c.email;
+      await L(page, 'account.signupEmail').fill(emailUsed);
       await L(page, 'account.signupUsername').fill(c.username);
       await L(page, 'account.password').fill(c.password);
       if (c.tick) await L(page, 'account.consentBox').check();
@@ -50,16 +57,24 @@ test('[LC-SIGNUP-UI-01] the sign-up form shows the backend\'s error text: one ca
         if (!res) { lc.violation('signup-ui', { route, selector, measured: 'no POST /api/signup/ within 15 s of submit', expected: 'the form sends the case to the backend' }); return; }
         if (res.status() < 300) {
           const j = await res.json().catch(() => null);
+          noteAccount({ check: lc.checkId, case: c.label, username: j && j.user ? j.user.username : c.username, email: emailUsed });
           lc.violation('validation-gap', { route, selector, measured: `HTTP ${res.status()}: the backend accepted it`, expected: `"${c.text}"` });
-          if (!(await removeAccount(api, { access: j && j.access, email: c.email, password: c.password }))) lc.violation('cleanup', { route, selector: c.email, measured: 'not deleted', expected: 'deleted by the check' });
+          if (!(await removeAccount(api, { access: j && j.access, email: emailUsed, password: c.password }))) lc.violation('cleanup', { route, selector: emailUsed, measured: 'not deleted', expected: 'deleted by the check' });
           await page.evaluate(() => { try { localStorage.clear(); } catch { /* none */ } });
           return;
         }
+        if (capped && res.status() === 409 && c.category !== 'email') {
+          lc.violation('validation-gap', { route, selector, measured: `HTTP 409: the case passed its own check and reached "email taken" (not created: cap)`, expected: `"${c.text}"` });
+          return;
+        }
       }
-      const shown = page.locator('.modal-panel').getByText(c.text, { exact: true });
-      if (!(await shown.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true, () => false))) {
-        const actual = await L(page, 'account.authError').textContent({ timeout: 1000 }).catch(() => null);
-        lc.violation('error-text', { route, selector, measured: actual ? `shows "${actual.trim()}"` : 'no error text', expected: `the backend's "${c.text}"` });
+      // The form's error element, its text exactly the backend's message (it may first show a previous error).
+      const err = L(page, 'account.authError');
+      const texts = async () => (await err.allTextContents()).map((t) => t.trim());
+      const shown = await expect.poll(texts, { timeout: 10_000 }).toContain(c.text).then(() => true, () => false);
+      if (!shown) {
+        const actual = await texts().catch(() => []);
+        lc.violation('error-text', { route, selector: `${selector} (account.authError)`, measured: actual.length ? `shows ${actual.map((t) => `"${t}"`).join(', ')}` : 'no error element', expected: `the backend's "${c.text}"` });
       }
       if (!c.sends) {
         await page.waitForTimeout(1000);
