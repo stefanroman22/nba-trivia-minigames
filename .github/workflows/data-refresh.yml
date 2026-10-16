@@ -118,10 +118,9 @@ jobs:
       # Never last month's: cached players are skipped, so an old cache would freeze the data.
       CACHE_KEY: nba-raw-cache-${{ needs.mode.outputs.month }}-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
-      # The dataset lands on dev, so it is built from (and carries over) dev's files.
+      # Built with this workflow's own code (the generator rewrites both data files
+      # from the API, so dev's copies are not needed here); land commits onto dev.
       - uses: actions/checkout@v5
-        with:
-          ref: dev
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
@@ -187,8 +186,6 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: dev
       - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
