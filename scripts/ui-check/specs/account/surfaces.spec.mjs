@@ -96,7 +96,10 @@ test('[AC-SURF-01] @perf signed-in landing: profile card, Profile and Friends ta
   await audit.done();
 });
 
-test('[AC-SURF-02] friend request round trip: testuser3 sends from the Find tab, testuser2 accepts through the API, the friend shows after a refresh', async ({ page, audit, vp, request, session }) => {
+test('[AC-SURF-02] friend request round trip: a request from testuser2, then the friendship, both seeded through the API, render in the friends panel (Requests count and row, Find status, Friends row)', async ({ page, audit, vp, request, session }) => {
+  // Rendering only (spec §5 no-overlap matrix): every friend action is an API call with minted tokens; that requests
+  // arrive and lists are symmetric is Logic Check's LC-FRIENDS-*. The panel is mounted by switching Profile -> Friends
+  // (useFriends fetches on mount), so each seeded state comes in through the card's height glide and the tab label swap.
   test.skip(!vp.core, 'shared testuser2 and friend-request throttles — core viewports only');
   test.setTimeout(240_000);
   const other = (await mintTokens(['testuser2'])).testuser2;
@@ -105,48 +108,80 @@ test('[AC-SURF-02] friend request round trip: testuser3 sends from the Find tab,
   const wasFriend = await isFriend(request, session.access, otherId);
   audit.metrics.push({ kind: 'note', label: 'friendship before (cleared first)', value: String(wasFriend), unit: '', route: '/' });
   await clearFriendship(request, session.access, otherId);
+  const watchCard = ['.profile-wrap', '.profile-card', '.profile-view-body'];
+  const row = () => page.locator('.fr-row', { hasText: `#${otherId}` });
+  const findStatus = async (label, shot) => {
+    await tabSlide(audit, `friends sub-tab Find (${label})`, '.fr-tabs .seg-thumb', () => L(page, 'account.frTabFind').click(), { watch: [...watchCard, '.fr-stack'], settleMs: 800 });
+    await L(page, 'account.frSearch').fill(otherId);
+    await expect(row()).toBeVisible({ timeout: 15_000 });
+    await expect(row()).toContainText('testuser2');
+    await expect(row().locator('.fr-status')).toHaveText(label, { timeout: 15_000 });
+    await audit.layout({ scope: '.profile-card' });
+    await audit.shot(shot);
+  };
   try {
-    await page.addInitScript(() => { try { localStorage.setItem('sq:profile-view', 'friends'); } catch { /* storage blocked */ } });
+    await page.addInitScript(() => { try { localStorage.setItem('sq:profile-view', 'profile'); } catch { /* storage blocked */ } });
     await audit.goto('/', { waitFor: LANDING });
     await expectSignedIn(page, session.username);
     await L(page, 'account.profileCard').scrollIntoViewIfNeeded();
-    await expect(L(page, 'account.viewTabFriends')).toHaveAttribute('aria-selected', 'true');
+    await expect(L(page, 'account.viewTabProfile')).toHaveAttribute('aria-selected', 'true');
+    // Warm-up, not measured: the page's first interaction carries one-off costs (a dev server's first-use work) that
+    // would land on the first measured switch; AC-SURF-01 owns the tabs' motion on an empty panel.
+    await L(page, 'account.viewTabFriends').click();
+    await expect(L(page, 'account.frTabs')).toBeVisible();
+    await page.waitForTimeout(800);
+    await L(page, 'account.viewTabProfile').click();
+    await expect(L(page, 'account.pcName')).toBeVisible();
+    await page.waitForTimeout(800);
 
-    await test.step('search by player ID and send the request', async () => {
-      await L(page, 'account.frTabFind').click();
-      const search = L(page, 'account.frSearch');
-      await expect(search).toBeVisible();
-      await search.fill(otherId);
-      const row = page.locator('.fr-row', { hasText: `#${otherId}` });
-      await expect(row).toBeVisible({ timeout: 15_000 });
-      await expect(row).toContainText('testuser2');
-      await audit.shot('found');
-      await motionStep(audit, 'send request', async () => {
-        await row.locator('button.fr-btn-primary').click();
-        await expect(row.locator('.fr-status')).toHaveText('Request sent', { timeout: 15_000 });
-      }, { watch: ['.profile-card', '.fr-stack', '.fr-list'], settleMs: 700 });
-      await audit.shot('request-sent');
+    await test.step('seed: testuser2 sends the solo account a request (API)', async () => {
+      const sent = await apiCall(request, other.access, 'POST', 'send-friend-request/', { public_id: myId });
+      expect(sent.status, `testuser2 -> ${session.username} send-friend-request`).toBe(201);
     });
 
-    await test.step('testuser2 accepts through the API', async () => {
-      const overview = await apiCall(request, other.access, 'GET', 'friends-overview/');
-      const mine = (overview.body.incoming_requests || []).find((r) => r.id === myId);
-      expect(mine, `testuser2 has a request from ${session.username} (${myId})`).toBeTruthy();
-      const accepted = await apiCall(request, other.access, 'POST', 'accept-friend-request/', { request_id: mine.request_id });
+    await test.step('pending: Profile -> Friends, the Requests tab label swaps to "Requests (1)"', async () => {
+      await tabSlide(audit, 'Profile -> Friends (pending request)', '.profile-view-toggle .seg-thumb', async () => {
+        await L(page, 'account.viewTabFriends').click();
+        await expect(L(page, 'account.frTabRequests')).toHaveText('Requests (1)', { timeout: 15_000 });
+      }, { watch: [...watchCard, '.fr-tabs'], settleMs: 800 });
+      await expect(L(page, 'account.frTabFriends')).toHaveAttribute('aria-selected', 'true');
+    });
+
+    await test.step('pending: Requests shows the incoming row with Accept and Decline, Sent is empty', async () => {
+      await tabSlide(audit, 'friends sub-tab Requests (pending)', '.fr-tabs .seg-thumb', () => L(page, 'account.frTabRequests').click(), { watch: [...watchCard, '.fr-stack'], settleMs: 800 });
+      await expect(row()).toBeVisible({ timeout: 15_000 });
+      await expect(row()).toContainText('testuser2');
+      await expect(row().getByRole('button', { name: 'Accept' })).toBeVisible();
+      await expect(row().getByRole('button', { name: 'Decline' })).toBeVisible();
+      await expect(L(page, 'account.frEmpty')).toHaveText('No sent requests.');
+      await audit.layout({ scope: '.profile-card' });
+      await audit.shot('request-incoming');
+    });
+
+    await test.step('pending: Find shows "Sent you a request"', () => findStatus('Sent you a request', 'find-pending'));
+
+    await test.step('seed: the solo account accepts (API)', async () => {
+      const overview = await apiCall(request, session.access, 'GET', 'friends-overview/');
+      const theirs = (overview.body.incoming_requests || []).find((r) => r.id === otherId);
+      expect(theirs, `${session.username} has a request from testuser2 (${otherId})`).toBeTruthy();
+      const accepted = await apiCall(request, session.access, 'POST', 'accept-friend-request/', { request_id: theirs.request_id });
       expect(accepted.status).toBe(200);
     });
 
-    await test.step('the friend list shows testuser2 after a refresh', async () => {
-      await audit.goto('/', { waitFor: LANDING }); // a fresh load of the page
-      await L(page, 'account.profileCard').scrollIntoViewIfNeeded();
-      await expect(L(page, 'account.viewTabFriends')).toHaveAttribute('aria-selected', 'true');
+    await test.step('friends: Friends -> Profile -> Friends remounts the panel; Friends lists testuser2, the count is gone', async () => {
+      await tabSlide(audit, 'Friends -> Profile', '.profile-view-toggle .seg-thumb', () => L(page, 'account.viewTabProfile').click(), { watch: watchCard, settleMs: 800 });
+      await tabSlide(audit, 'Profile -> Friends (friend)', '.profile-view-toggle .seg-thumb', async () => {
+        await L(page, 'account.viewTabFriends').click();
+        await expect(row()).toBeVisible({ timeout: 15_000 });
+      }, { watch: [...watchCard, '.fr-stack'], settleMs: 800 });
       await expect(L(page, 'account.frTabFriends')).toHaveAttribute('aria-selected', 'true');
-      const row = page.locator('.fr-row', { hasText: `#${otherId}` });
-      await expect(row).toBeVisible({ timeout: 15_000 });
-      await expect(row).toContainText('testuser2');
-      await audit.layout({ scope: '#leaderboard' });
+      await expect(row()).toContainText('testuser2');
+      await expect(L(page, 'account.frTabRequests')).toHaveText('Requests');
+      await audit.layout({ scope: '.profile-card' });
       await audit.shot('friend-listed');
     });
+
+    await test.step('friends: Find shows "Friends"', () => findStatus('Friends', 'find-friend'));
     await audit.console({ allow: LOCAL_LOAD });
   } finally {
     await clearFriendshipChecked(audit, request, session.username, otherId);
