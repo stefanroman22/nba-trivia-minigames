@@ -173,7 +173,7 @@ matches, the relay only; see AUTH-7). Both clamp the score with `awarding.clamp_
 step; it is throttled by `ScoreSubmitRateThrottle` (`score-submit`, 60/hour). The award applies the daily soft
 cap (1,500 points in full, the next 1,500 at half, the rest at 10 %), the +100 first-scoring-game bonus and the
 streak milestones, and the response is the receipt `{awarded, points, rank, rank_up, progress, streak,
-first_game_bonus, streak_bonus}`, which `userSlice.applyAward` applies. `users/views.py` `update_profile`
+first_game_bonus, streak_bonus, base}`, which `userSlice.applyAward` applies. `users/views.py` `update_profile`
 rejects any `points` field with HTTP 400 (username via JSON, photo via multipart only).
 `CustomUser.update_rank()` uses `users.ranks.rank_for(points, active_days)`: both the point and the
 active-day gate of a rank must be met (table in `docs/superpowers/specs/2026-10-16-progression-design.md`).
@@ -214,8 +214,9 @@ modified client can claim a round's maximum; the relay's 3 s restart throttle bo
 user.points += score   # user may be None (guest), mode may be 'match'
 
 ✅ RIGHT — backend/trivia/views.py
-awarded = 0
-if user is not None and mode == 'single' and score > 0:
+if user is None or mode != 'single':
+    ...  # logs the GameSession and returns awarded: 0
+return JsonResponse({'ok': True, **awarding.award(user, game, mode, score, duration)})
 ```
 
 ## Rule AUTH-8: The multiplayer relay identifies a socket by its verified access token, never by the client's claim
@@ -425,7 +426,7 @@ Run from the repo root. Expected outputs are from the current working tree.
 
 6. **Guests are not awarded (AUTH-7).**
    ```bash
-   grep -n "user is not None and mode == 'single'" backend/trivia/views.py
+   grep -n "user is None or mode != 'single'" backend/trivia/views.py
    ```
    Expect one match (the award guard).
 

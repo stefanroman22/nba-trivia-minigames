@@ -102,7 +102,7 @@ checked per round through the feedback copy; the driver flags `not-in-place` onl
 | name-logo | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | guess-mvps | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | who-would-win | vote all | skip all | vote / skip | no clock | no give-up control | not daily |
-| starting-five | 5 right (100 with the bonus) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
+| starting-five | 5 right (150 with the bonus) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
 | fan-favorites | whole board (200) | 3 misses → board revealed, 0 | 2 misses, then the whole board | no clock | no give-up | not daily |
 | career-path | right first guess (200) | a miss per card → 0 | 1 miss, then right (never the last guess) | no clock | no give-up | not daily |
 | who-are-ya | right first guess (200) | 8 misses → 0 | 2 misses, then right (150) | no clock | no give-up | not daily |
@@ -249,7 +249,7 @@ Per game:
 
 - **Starting Five**: the key is `found|hearts` and goes `null` once 5 are found or hearts hit 0, so `nextTurn` waits for the
   end sequence instead of returning a half-ended turn. The miss that spends the last heart shows NO popup (Rule 6.3), so
-  that turn returns `feedback: false`. Final score `right x 10 (+50 when 5)`. End reveal: all five cards named (the real
+  that turn returns `feedback: false`. Final score `right × 20 (+50 when 5)`. End reveal: all five cards named (the real
   lineup), `is-correct` = right answers, `is-revealed` = the rest.
 - **Fan Favorites**: prod loads only one chunk of the pool (often just this survey), so wrong guesses cannot come from other
   surveys alone: candidates are other surveys, the `all-players` list, then a fixed list of famous names; each is checked
@@ -316,7 +316,7 @@ no `uic%` user remains and the teardown sweep reported `deleted []`.
 
 Clock path (tictactoe `timeout`): see adapter rule 8: `page.clock.setSystemTime`, not `fastForward`/`runFor` (framer-motion WAAPI
 vs a jumped `performance.now`). Proven: after the shift `Time!` (bad) shows, clock 0:00, `FINAL BOARD`, unsolved cells revealed one by
-one, solved ones unchanged, score 50 logged, Play again -> Close game.
+one, solved ones unchanged, score 40 logged, Play again -> Close game.
 
 Rotation re-count (title path = file + title, same class for every viewport; computed for the 34 driven checks, Wordle excluded as it
 runs on throwaway accounts): N=4 classes hold 21 / 42 / 33 / 34 finished games (the `perfect` checks weigh 7, others 3). Largest class

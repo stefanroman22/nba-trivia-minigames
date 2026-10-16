@@ -23,12 +23,12 @@ Update this table whenever a game ships or its status changes.
 | E3 | Guess the MVP | ✅ Live | — | /guess-mvps | 50 | S/M/F |
 | E4 | Fill in the Starting 5 | ✅ Live | — | /starting-five | 100 | S/M/F |
 | E5 | NBA Wordle | ✅ Live | — | /wordle | 500 (legacy outlier) | S/M/F |
-| W1-1 | Fan Favorites | ✅ Live (migration 0003 + 24 questions applied to Supabase 2026-07-06) | P0 (committed) | /fan-favorites | 300 | S/M/F |
+| W1-1 | Fan Favorites | ✅ Live (migration 0003 + 24 questions applied to Supabase 2026-07-06) | P0 (committed) | /fan-favorites | 200 | S/M/F |
 | W1-2 | The Heatmap (hex grid) | ✅ Built 2026-07-06 | P0 (committed) | /heatmap | ~50/hex | S/M/F |
 | W1-3 | NBA Connections | ✅ Built 2026-07-06 | P0 (committed) | /connections | 200 | S/M/F |
 | W1-4 | Career Path Challenge | ✅ Built 2026-07-06 | P0 (committed) | /career-path | teams×100 | S/M/F |
 | W2-1 | NBA Grid (3×3 + rarity) | ✅ Built 2026-07-06 | P1 — #1 market demand | /nba-grid | 270 | S/M/F |
-| W2-2 | Who Are Ya: NBA (de-blur guesser) | ✅ Built 2026-07-06 | P1 — #2 market demand | /who-are-ya | 240 | S/M/F |
+| W2-2 | Who Are Ya: NBA (de-blur guesser) | ✅ Built 2026-07-06 | P1 — #2 market demand | /who-are-ya | 200 | S/M/F |
 | W2-3 | Higher / Lower | 📋 Wave 2 | P1 | /higher-lower | 10/streak step | S/M/F |
 | W2-4 | Top-10 Board | 📋 Wave 2 | P1 | /top-ten | 300 | S/M/F |
 | W2-5 | NBA Tic-Tac-Toe (duel) | ✅ Built 2026-07-06 | P1 — PvP gap in market | /tictactoe | +50 win | M/F only |
@@ -329,7 +329,7 @@ counts; guess-frequency aggregation. Generator must guarantee ≥3 valid answers
 Merge the two best guessers: heavily blurred headshot that sharpens each miss (Who Are Ya) +
 attribute feedback columns (Poeltl): conference, division, team, position, age, jersey #, draft year
 — green exact / **yellow close** (age ±2, jersey ±5, draft ±3, right conf wrong div) with ↑↓ arrows.
-**8 guesses. Score: 240 − 30 per wrong guess** (solve on first ⇒ 240). Hard mode hides the photo.
+**8 guesses. Score: 200 − 25 per wrong guess** (solve on first ⇒ 200). Hard mode hides the photo.
 Ship **daily + unlimited + legends** modes from day one — the "poeltl unlimited" clone economy is
 free demand the official game refuses to serve. **Time:** 1–3 min.
 **Data:** headshots (CDN + silhouette fallback), bios, jersey, draft, era tags, fame tier

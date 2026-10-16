@@ -24,6 +24,7 @@ export interface AwardReceipt {
   progress?: RankProgress;
   streak?: { days: number; best: number; freezes: number };
   first_game_bonus?: number;
+  base?: number;
   streak_bonus?: number;
 }
 export interface PendingRankUp { from: string; to: string; division: number | null }
