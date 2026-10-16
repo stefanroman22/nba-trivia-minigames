@@ -297,6 +297,11 @@ def log_guesses(request):
     return JsonResponse({'logged': len(rows)})
 
 
+# A play is credited only for a game players can reach: every id with a ceiling minus HIDDEN_GAMES
+# (mirrors `visibleGames` in src/utils/GameUtils.tsx). Anything else is logged with 0 (LC-GAMEDATA-02).
+_CREDITED_GAMES = frozenset(awarding.GAME_MAX_POINTS) - HIDDEN_GAMES
+
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
 @throttle_classes([ScoreSubmitRateThrottle])
@@ -307,7 +312,7 @@ def log_session(request):
     `users.update_profile` awarded whatever `points` the client asked for, which let
     any signed-in player POST an arbitrary total. Awarding here instead means every
     award has a GameSession row behind it, and the score passes the same per-game
-    clamping as the relay's results (trivia.awarding).
+    clamping as the relay's results (trivia.awarding). Only `_CREDITED_GAMES` ids are credited.
     """
     body = request.data or {}
     game = str(body.get('game', ''))[:40]
@@ -315,9 +320,10 @@ def log_session(request):
         return JsonResponse({'error': 'game is required'}, status=400)
     mode = str(body.get('mode', 'single'))
     mode = mode if mode in ('single', 'match', 'friend') else 'single'
+    credited = game in _CREDITED_GAMES
     # Clamped to the game's own ceiling (awarding.GAME_MAX_POINTS), so a forged submission is worth at
     # most one honest perfect game.
-    score = awarding.clamp_score(game, mode, body.get('score', 0))
+    score = awarding.clamp_score(game, mode, body.get('score', 0)) if credited else 0
     try:
         duration = max(0, min(int(body.get('duration_ms', 0)), _MAX_DURATION_MS))
     except (TypeError, ValueError):
@@ -327,7 +333,9 @@ def log_session(request):
 
     # Online results are credited by the relay (multiplayer_result), never by the browser (AUTH-7),
     # and guests have no account to credit: both are logged and awarded nothing.
-    if user is None or mode != 'single':
+    # An unknown or hidden game id is not a play a browser can have finished, so it is logged with
+    # score 0 and credited nothing.
+    if user is None or mode != 'single' or not credited:
         GameSession.objects.create(user=user, game=game, mode=mode, score=score, duration_ms=duration)
         return JsonResponse({
             'ok': True,

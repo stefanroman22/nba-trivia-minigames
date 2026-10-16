@@ -93,6 +93,32 @@ class ScoreAwardTests(TestCase):
         self.assertEqual(res.json()["awarded"], 100 + FIRST_GAME_BONUS)
         self.assertEqual(self.points(), 200)
 
+    def test_unknown_game_is_logged_but_awarded_nothing(self):
+        """LC-GAMEDATA-02: an unknown or hidden id used to be credited DEFAULT_MAX_POINTS."""
+        res = self._finish(game="lc-no-such-game", score=1_000_000)
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.json()["awarded"], 0)
+        self.assertEqual(self.points(), 0)
+        self.assertEqual(
+            GameSession.objects.filter(user=self.user, game="lc-no-such-game", score=0, awarded=0).count(), 1
+        )
+
+    def test_hidden_game_is_awarded_nothing(self):
+        res = self._finish(game="heatmap", score=300)
+        self.assertEqual(res.json()["awarded"], 0)
+        self.assertEqual(self.points(), 0)
+
+    def test_classic_game_is_credited_its_cap(self):
+        res = self._finish(game="series-winner", score=10**6)
+        self.assertEqual(res.json()["awarded"], 100 + FIRST_GAME_BONUS)
+        self.assertEqual(self.points(), 200)
+
+    def test_unknown_game_does_not_eat_the_first_game_bonus(self):
+        self._finish(game="lc-no-such-game", score=300)
+        res = self._finish(score=250)
+        self.assertEqual(res.json()["awarded"], 250 + FIRST_GAME_BONUS)
+        self.assertEqual(self.points(), 350)
+
     def test_multiplayer_results_award_nothing(self):
         """AUTH-7: a win or loss online never touches account points."""
         res = self._finish(mode="match", score=300)
