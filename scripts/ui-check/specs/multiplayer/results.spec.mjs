@@ -61,7 +61,7 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
 // The draw headline needs equal scores AND equal (or no) play times (relay rankRoom): a Tic-Tac-Toe duel scores the board,
 // not the clock, and submits no times, so a full board without a line is a deterministic draw (lib/mp-play.mjs
 // DUEL_SCRIPTS.draw: X O X / X O O / O X X). Both players claim, so no turn clock is waited out: it runs on every pair.
-test('[MP-RESULT-02] a draw: a Tic-Tac-Toe duel filled without a line ends "Draw!" on the board and "It\'s a draw" on both results screens, equal scores (150), both cards marked tie, no crown, no time line', async ({ mp }) => {
+test('[MP-RESULT-02] a draw: a Tic-Tac-Toe duel filled without a line ends "Draw!" on the board and "It\'s a draw" on both results screens, equal scores (120), both cards marked tie, no crown, no time line', async ({ mp }) => {
   test.setTimeout(300_000);
   const ttt = gameById('tictactoe');
   const pair = await openPair(mp, ttt.path);

@@ -101,7 +101,7 @@ export default {
     perfect: true, // nine valid players, one per cell → Board cleared! 180
     wrong: 'a wrong name costs nothing and nothing else can lose: the game ends only on a full board or the clock, so misses are driven inside `timeout` (a miss of each kind) and `partial`',
     partial: true, // two misses ("doesn't fit", "Not in our player index"), then the whole board → 180
-    timeout: true, // two cells solved, one miss of each kind, then the clock runs out (page.clock) → Time! with 50
+    timeout: true, // two cells solved, one miss of each kind, then the clock runs out (page.clock) → Time! with 40
     giveup: 'Tic-Tac-Toe has no give-up control (only Close game, which abandons without an end state)',
     'daily-lock': 'not a daily game (any number of plays per day)',
   },
