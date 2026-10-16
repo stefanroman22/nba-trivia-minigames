@@ -294,12 +294,12 @@ def fetch_playoff_series(seasons, per_call_timeout=15, pause=0.4):
 
 
 # ---------------------------------------------------------------------------
-#  Starting five  (LeagueGameFinder + BoxScoreTraditionalV2; box scores ~1996+)
+#  Starting five  (LeagueGameFinder + BoxScoreTraditionalV3; box scores ~1996+)
 # ---------------------------------------------------------------------------
 def fetch_starting_five(seasons, max_games_per_season=40, per_call_timeout=15, pause=0.6):
     _ensure_relay()
     import pandas as pd
-    from nba_api.stats.endpoints import leaguegamefinder, boxscoretraditionalv2
+    from nba_api.stats.endpoints import leaguegamefinder, boxscoretraditionalv3
     from nba_api.stats.static import teams as static_teams
     import random
 
@@ -328,22 +328,22 @@ def fetch_starting_five(seasons, max_games_per_season=40, per_call_timeout=15, p
             kept = 0
             for game_id in game_ids:
                 try:
-                    box = boxscoretraditionalv2.BoxScoreTraditionalV2(
+                    box = boxscoretraditionalv3.BoxScoreTraditionalV3(
                         game_id=game_id, timeout=per_call_timeout
                     )
                     pdf = box.player_stats.get_data_frame()
-                    tids = pdf["TEAM_ID"].unique()
+                    tids = pdf["teamId"].unique()
                     if len(tids) != 2:
                         continue
                     a, b = int(tids[0]), int(tids[1])
-                    a_pts = int(pdf[pdf["TEAM_ID"] == a]["PTS"].sum())
-                    b_pts = int(pdf[pdf["TEAM_ID"] == b]["PTS"].sum())
+                    a_pts = int(pdf[pdf["teamId"] == a]["points"].sum())
+                    b_pts = int(pdf[pdf["teamId"] == b]["points"].sum())
                     win_id = a if a_pts > b_pts else b
-                    starters = pdf[(pdf["TEAM_ID"] == win_id) & (pdf["START_POSITION"] != "")]
+                    starters = pdf[(pdf["teamId"] == win_id) & (pdf["position"] != "")]
                     if starters.empty:
                         continue
                     s5 = [
-                        {"name": r["PLAYER_NAME"], "position": r["START_POSITION"]}
+                        {"name": f"{r['firstName']} {r['familyName']}".strip(), "position": r["position"]}
                         for _, r in starters.head(5).iterrows()
                     ]
                     row = all_games_df[all_games_df["GAME_ID"] == game_id].iloc[0]

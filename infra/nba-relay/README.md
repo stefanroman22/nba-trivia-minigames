@@ -31,10 +31,12 @@ From `infra/nba-relay`:
 
 ```
 npx wrangler@4 deploy
-npx wrangler@4 secret put RELAY_KEY
+node -e "const fs=require('fs');fs.writeFileSync('secrets.json', JSON.stringify({RELAY_KEY: fs.readFileSync('key.txt','utf8').trim()}))"
+npx wrangler@4 secret bulk secrets.json
 ```
 
-`secret put` prompts for the value, or reads it from stdin (`cmd /c "npx wrangler@4 secret put RELAY_KEY < key.txt"`).
+`secrets.json` is `{"RELAY_KEY": "<key>"}`; delete `secrets.json` and `key.txt` after. Piping the key through a
+PowerShell pipeline into `secret put` appends a newline, and the Worker then rejects the real key (observed 2026-10-16).
 
 ## GitHub side
 
@@ -48,9 +50,9 @@ gh variable set NBA_RELAY_BASE --repo stefanroman22/nba-trivia-minigames --body 
 ## Rotating the key
 
 1. Generate a key: `node -e "require('fs').writeFileSync('key.txt', require('crypto').randomBytes(32).toString('hex'))"`
-2. Set it on both sides within the same minute: `npx wrangler@4 secret put RELAY_KEY` and
-   `gh secret set NBA_RELAY_KEY`, both from `key.txt`.
-3. Delete `key.txt`.
+2. Set it on both sides within the same minute: `npx wrangler@4 secret bulk secrets.json` (write
+   `secrets.json` from `key.txt` with the `node -e` line in Deploy) and `gh secret set NBA_RELAY_KEY` from `key.txt`.
+3. Delete `secrets.json` and `key.txt`.
 
 The refresh runs monthly, so a short mismatch between the two sides costs nothing; avoid rotating
 while a `data-refresh` run is in progress.
