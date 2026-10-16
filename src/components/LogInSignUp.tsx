@@ -14,6 +14,7 @@ import ConsentFields from "./ConsentFields";
 import PasswordRules from "./PasswordRules";
 import { passwordRules } from "../utils/passwordRules";
 import { CONSENT_NEEDED, consentPayload } from "../utils/consent";
+import { readGuestPoints, clearGuestPoints } from "../utils/guestPoints";
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { GoogleOAuthProvider, useGoogleLogin } from '@react-oauth/google';
@@ -306,7 +307,7 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       const response = await fetch(`${BACKEND_URL}/signup/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword, ...consentPayload(agreed) }),
+        body: JSON.stringify({ username: signupUsername, email: signupEmail, password: userPassword, ...consentPayload(agreed), guest_points: readGuestPoints() }),
       });
       const data = await response.json();
       if (handledBan(response, data)) return;
@@ -318,6 +319,7 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
         localStorage.setItem("accessToken", data.access);
         localStorage.setItem("refreshToken", data.refresh);
         dispatch(login(data.user));
+        clearGuestPoints();
         succeed(data.user.username, true);
       }
     } catch (err) {
@@ -364,6 +366,7 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       localStorage.setItem("accessToken", data.access);
       localStorage.setItem("refreshToken", data.refresh);
       dispatch(login(data.user));
+      clearGuestPoints();
       if (data.new_account === true) {
         // Signed in already; the generated name can be kept or changed (closing keeps it).
         submittingRef.current = false;
@@ -385,7 +388,7 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       if (!begin()) return;
       // From Sign up the tick-box travels with the code, so a new account is created on return. A
       // log-in sends the code alone: an existing account signs in, a new one answers 428 (above).
-      await sendGoogle({ code: codeResponse.code, ...(googleSignupRef.current ? consentPayload(true) : {}) });
+      await sendGoogle({ code: codeResponse.code, ...(googleSignupRef.current ? consentPayload(true) : {}), guest_points: readGuestPoints() });
     },
     onError: () => {
       console.error("Google login failed");
@@ -418,7 +421,7 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
       // Google already verified this player on the log-in tab: create the account without a popup.
       if (googleToken) {
         if (!begin()) return;
-        void sendGoogle({ consent_token: googleToken, ...consentPayload(true) });
+        void sendGoogle({ consent_token: googleToken, ...consentPayload(true), guest_points: readGuestPoints() });
         return;
       }
     }

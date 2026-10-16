@@ -2,9 +2,7 @@
 // scripts/test-award.mjs can load it; userSlice's `applyAward` reducer calls it.
 import type { User } from "./userSlice";
 
-/** What the backend sends back for a credited play (backend/trivia/awarding.py `award`) — over HTTP for a
- *  solo game (MiniGame.awardPoints) or through the relay's `pointsAwarded` for an online one. Everything
- *  but `awarded`/`rank` is optional so a relay deployed before this change still applies. */
+/** The player's place on the ladder (backend users/ranks.py), as `progress` here and `rank_progress` on the user. */
 export interface RankProgress {
   rank: string;
   division: number | null;
@@ -15,6 +13,9 @@ export interface RankProgress {
   days_to_next: number;
   progress_pct: number;
 }
+/** What the backend sends back for a credited play (backend/trivia/awarding.py `award`) — over HTTP for a
+ *  solo game (MiniGame.awardPoints) or through the relay's `pointsAwarded` for an online one. Everything
+ *  but `awarded`/`rank` is optional so a relay deployed before this change still applies. */
 export interface AwardReceipt {
   awarded: number;
   points?: number;

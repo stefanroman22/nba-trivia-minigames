@@ -59,6 +59,7 @@ const userSlice = createSlice({
       state.user = null;
       state.authChecked = true;
       state.banned = null;
+      state.pendingRankUp = null;
     },
     /** The account is banned: drop the signed-in user and show the ban screen. Tokens and the
      *  cached user are cleared by the handler in app/providers.tsx before this runs. */
@@ -67,6 +68,7 @@ const userSlice = createSlice({
       state.user = null;
       state.authChecked = true;
       state.banned = action.payload;
+      state.pendingRankUp = null;
     },
     /** Optimistic restore from the cached /me/ payload (utils/session.ts) while the real
      *  check runs. Leaves `authChecked` false: only the server's answer settles it, and a

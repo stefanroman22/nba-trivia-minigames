@@ -1,0 +1,33 @@
+// Rank display helpers. The ladder's thresholds and day gates live in the backend (users/ranks.py) and
+// arrive as `rank_progress` on the user; this file only knows the order, a colour per rank and copy.
+export const RANK_ORDER = [
+  "Rookie", "Role Player", "Sixth Man", "Starter", "All-Star", "All-NBA", "MVP", "Hall of Famer", "GOAT",
+] as const;
+
+export const RANK_COLORS: Record<string, string> = {
+  "Rookie": "#8a8f98",
+  "Role Player": "#7fb2e5",
+  "Sixth Man": "#4f9de0",
+  "Starter": "#2fc762",
+  "All-Star": "#ff6a1a",
+  "All-NBA": "#ff8a3d",
+  "MVP": "#ffd166",
+  "Hall of Famer": "#c084fc",
+  "GOAT": "#f5f3ef",
+};
+
+const ROMAN = ["", "I", "II", "III"];
+
+/** "All-Star II" for ranks with divisions, the bare name otherwise. */
+export function rankLabel(rank: string, division?: number | null): string {
+  return division ? `${rank} ${ROMAN[division] ?? ""}`.trim() : rank;
+}
+
+export function rankIndex(rank: string): number {
+  return Math.max(0, RANK_ORDER.indexOf(rank as (typeof RANK_ORDER)[number]));
+}
+
+/** The rank-up share line (navigator.share / clipboard). */
+export function shareText(rank: string): string {
+  return `I just made ${rank} on Swish Quest 🏀 Think you know the NBA better? Play free at swishquest.com`;
+}

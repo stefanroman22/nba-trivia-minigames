@@ -226,6 +226,9 @@ html { scroll-behavior: smooth; }
 .pc-stat-lbl { font-size: 11.5px; color: var(--muted); }
 .pc-stat-num { font-size: 18px; color: var(--text); white-space: nowrap; }
 .pc-stat-num.is-brand { color: var(--brand); }
+.pc-progress { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+.pc-progress-note { font-size: 11.5px; color: var(--muted); }
+.pc-badges { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .pc-stat-divider { height: 1px; width: 100%; background: var(--line2); }
 
 .pc-settings {

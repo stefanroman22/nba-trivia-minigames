@@ -4,7 +4,7 @@ import { reducedFade, swap } from "../../motion/variants";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
 import { Avatar, CourtLoader } from "../ui";
 import SegmentedTabs from "../motion/SegmentedTabs";
-import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from "../../constants/leaderboard";
+import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from "../../constants/leaderboard";
 
 /** Full leaderboard list shown inside the leaderboard modal — Global top 100
  * or, once toggled, the signed-in player + their friends. The scope is
@@ -22,11 +22,9 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
 
   return (
     <div>
-      {loggedIn && (
-        <div className="lb-scope-row" style={{ padding: "0 0 14px" }}>
-          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={onScopeChange} />
-        </div>
-      )}
+      <div className="lb-scope-row" style={{ padding: "0 0 14px" }}>
+        <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={loggedIn ? LEADERBOARD_SCOPES : GUEST_LEADERBOARD_SCOPES} value={scope} onChange={onScopeChange} />
+      </div>
 
       {/* Loader <-> list (and Global <-> Friends) cross-fade; opacity/transform only, the
           modal panel's height is never animated (Modal.tsx height+layout jitter rule). */}
@@ -38,7 +36,7 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
       ) : (
         <motion.div key={scope} variants={swapVariants} initial="hidden" animate="visible" exit="exit">
           <div className="lbf-head">
-            <span style={{ color: "var(--muted)" }}>{scope === "friends" ? "You and your friends" : "Top players worldwide"}</span>
+            <span style={{ color: "var(--muted)" }}>{scope === "friends" ? "You and your friends" : scope === "weekly" ? "Points since Monday" : "Top players worldwide"}</span>
             {self && (
               <span style={{ color: "var(--brand)", fontWeight: 700 }}>
                 You: #{self.rank.toLocaleString()} / {self.total.toLocaleString()}
@@ -61,7 +59,7 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
                   <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} />
                   <span className="lbf-name" style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
-                    {u.id && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
+                    {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
                   </span>
                   <span className="tnum lbf-pts">{u.points.toLocaleString()}</span>
                 </div>

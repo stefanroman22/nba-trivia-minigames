@@ -8,7 +8,7 @@ import { staggerContainer, staggerItem } from '../motion/variants';
 import { durations, easing } from '../motion/tokens';
 import { useLeaderboard, type LeaderboardScope } from '../hooks/useLeaderboard';
 import { useModal } from '../context/ModalContext';
-import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from '../constants/leaderboard';
+import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from '../constants/leaderboard';
 
 /** How many rows the home card shows before "View all →" opens the full list. */
 const PREVIEW_COUNT = 10;
@@ -56,16 +56,14 @@ function Leaderboard() {
       <div className="lb-head">
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
-          <h3 className="font-display" style={{ fontSize: 17 }}><SwapText>{scope === "friends" ? "Friends Leaderboard" : "Global Top 100"}</SwapText></h3>
+          <h3 className="font-display" style={{ fontSize: 17 }}><SwapText>{scope === "friends" ? "Friends Leaderboard" : scope === "weekly" ? "This Week" : "Global Top 100"}</SwapText></h3>
         </div>
         <button className="lb-viewall" onClick={() => open("leaderboard", { scope })}>View all →</button>
       </div>
 
-      {loggedIn && (
-        <div className="lb-scope-row">
-          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={setScope} />
-        </div>
-      )}
+      <div className="lb-scope-row">
+        <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={loggedIn ? LEADERBOARD_SCOPES : GUEST_LEADERBOARD_SCOPES} value={scope} onChange={setScope} />
+      </div>
 
       <motion.div
         className="lb-body"
@@ -82,7 +80,7 @@ function Leaderboard() {
                 </motion.div>
               ) : preview.length === 0 ? (
                 <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
-                  No players yet.
+                  {scope === "weekly" ? "No games this week yet." : "No players yet."}
                 </motion.div>
               ) : (
                 <motion.div key={`rows-${preview.length}`} variants={staggerContainer} initial="hidden" animate="visible">
@@ -92,7 +90,7 @@ function Leaderboard() {
                       <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} />
                       <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                         <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
-                        {u.id && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
+                        {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
                       </span>
                       <span className="tnum" style={{ fontWeight: 700, fontSize: 13.5, color: "var(--brand)" }}>{u.points.toLocaleString()}</span>
                     </motion.div>
