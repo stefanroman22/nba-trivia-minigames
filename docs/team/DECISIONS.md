@@ -1257,3 +1257,12 @@ timing/feel judgment, and AutoHeight itself animates height, which would still r
 Decision: opus (b), effort high; difficulty stays standard, no design round.
 Consequences: if a similar CLS card turns out to be a pure reserved-height CSS change with no animation touched, sonnet is enough.
 Build outcome: the notice became a fixed bottom banner (no height animation); on phones (<=640px) it spans the width above the feedback FAB and keeps a 9em (six-line) scroll cap on the text, so the full legal copy is reachable without the banner filling a short screen; the cost is that at 375px it overlaps the lower hero CTA row until dismissed.
+
+## 2026-10-16 — Classify: logic-check sign-up password fixes (risk high) stay on sonnet
+Context: card `logic-check-sign-up-answers` (non-string password 500 -> 400; pass `user=` to `validate_password`). Both edits are in
+`signup_view` (`backend/users/views.py`), auth production code, so `risk: high`; the spec names exact lines and the fix for each.
+Weighed: (a) opus, via the "risk: high goes to opus" override; (b) sonnet, since the override's own wording keeps simple tasks
+on sonnet and this is two explicit, bounded edits with executable acceptance assertions.
+Decision: sonnet (b), effort high; difficulty standard, no design round (a validation bug, not a breach); risk high so the
+review stage still goes to fable.
+Consequences: if the fix grows beyond the two edits (e.g. touching throttles or token issuance), re-classify as security.
