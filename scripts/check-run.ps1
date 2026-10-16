@@ -26,7 +26,7 @@ $started = Get-Date
 $ts = $started.ToString("yyyyMMdd-HHmmss")
 if ($Ports -notmatch '^django=\d+,socket=\d+,web=\d+$') { Write-Host "check-run: -Ports must look like django=8200,socket=4200,web=5374"; exit 2 }
 
-$where = (& node scripts/ui-check/run.mjs --where 2>&1 | ForEach-Object { "$_" }) -match '^ui-check home: '
+$where = @(& node scripts/ui-check/run.mjs --where 2>&1 | ForEach-Object { "$_" }) -match '^ui-check home: '
 if (-not $where) { Write-Host "check-run: could not read the checkers' home (node scripts/ui-check/run.mjs --where)"; exit 2 }
 $uicHome = ($where | Select-Object -First 1).Substring('ui-check home: '.Length).Trim()
 $logDir = Join-Path $uicHome "logs"
