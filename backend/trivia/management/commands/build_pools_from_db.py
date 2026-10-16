@@ -77,6 +77,8 @@ def build_mvps(dataset=None):
         {"season": m.season, "mvp": m.mvp, "team": m.team, "team_logo_url": m.team_logo_url}
         for m in Mvp.objects.all().order_by("season")
     ]
+    if not mvps:  # no MVP rows: an empty pool, so the committed file is kept
+        return []
     rows = dataset.rows if dataset is not None else corrections.apply(load_dataset())
     # A team logo only when exactly one franchise carries the abbreviation.
     by_abbr = {}

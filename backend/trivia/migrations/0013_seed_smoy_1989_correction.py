@@ -3,8 +3,9 @@
 No row of players_curated.json holds the 1989 Sixth Man of the Year (nba_api's
 playerawards resolves by name and credits it to the Hawks' Eddie Johnson, whose
 span drops it: curated_players.build_awards), which leaves Guess the MVP's award
-seasons one Sixth Man short. Inserted only when absent; the reverse deletes it. Once a regenerated players_curated.json holds 1989 itself, the
-correction is marked redundant (corrections.mark_redundant).
+seasons one Sixth Man short. Inserted only when absent; the reverse deletes it.
+Once a regenerated players_curated.json holds 1989 itself, the correction is
+marked redundant (corrections.mark_redundant).
 """
 import json
 import os

@@ -18,6 +18,7 @@ const load = (path) => {
 };
 const { acceptedAnswers, awardPrompt, awardQuestionId, promptReserve, winnersText, LEGACY_PROMPT } = await load("../src/utils/awardSeasons.ts");
 const { matchAnswer } = await load("../src/utils/answerMatch.ts");
+const { reviewRounds } = await load("../src/utils/reviewRounds.ts");
 
 const roy1995 = {
   season: "1994-95", mvp: "Grant Hill", team: "Detroit Pistons", team_logo_url: null,
@@ -68,6 +69,13 @@ test("the question id is season:award, the season on an old row", () => {
   assert.equal(awardQuestionId({ ...roy1995, award: "MVP" }), "1994-95:MVP");
   assert.equal(awardQuestionId(legacy), "1999-00");
   assert.ok(awardQuestionId({ season: "1988-89", award: "Defensive Player of the Year" }).length <= 60, "fits GuessLog.question_id");
+});
+
+test("reviewRounds' inline copy of the question id matches awardQuestionId", () => {
+  for (const row of [legacy, { ...roy1995, award: "MVP" }, roy1995, smoy1989]) {
+    const review = { game: "guess-mvps", rounds: [{ season: row.season, award: row.award, mvp: winnersText(row), pick: null, correct: false }] };
+    assert.equal(reviewRounds(review)[0].question_id, awardQuestionId(row), row.award ?? "old row");
+  }
 });
 
 test("the reveal names every co-winner", () => {

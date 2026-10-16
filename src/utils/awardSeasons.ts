@@ -5,6 +5,9 @@
 // Type imports only: scripts/check-award-seasons.mjs loads this file on its own.
 import type { MvpSeason } from "../types/types";
 
+/** The award names (backend award_seasons.AWARDS). */
+export const AWARDS = ["MVP", "Finals MVP", "Defensive Player of the Year", "Rookie of the Year", "Sixth Man of the Year"];
+
 /** The title the game showed before the award seasons. */
 export const LEGACY_PROMPT = "Who won MVP?";
 
@@ -15,7 +18,8 @@ export function awardPrompt(row: MvpSeason): string {
 
 /** The longest question a round can show, reserved so the title keeps one size across rounds (UI-23). */
 export function promptReserve(row: MvpSeason): string {
-  return row.prompt ? `Who was the Defensive Player of the Year in ${row.season}?` : LEGACY_PROMPT;
+  const longest = AWARDS.reduce((a, b) => (b.length > a.length ? b : a));
+  return row.prompt ? `Who was the ${longest} in ${row.season}?` : LEGACY_PROMPT;
 }
 
 /** Every right answer for matchAnswer: each co-winner's name, else the row's mvp. */

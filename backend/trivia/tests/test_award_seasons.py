@@ -212,6 +212,10 @@ class PoolTests(TestCase):
         fmvp = next(r for r in pool if r["award"] == "Finals MVP")
         self.assertEqual(fmvp["team_logo_url"], "https://cdn.nba.com/logos/nba/1610612744/primary/L/logo.svg")
 
+    def test_an_empty_mvp_table_gives_an_empty_pool(self):
+        Mvp.objects.all().delete()
+        self.assertEqual(build_pools_from_db.build_mvps(dataset=self.dataset), [])
+
     def test_without_a_dataset_it_reads_the_curated_file_with_corrections(self):
         pool = build_pools_from_db.build_mvps()
         self.assertTrue(any(r["season"] == "1988-89" and r["award"] == "Sixth Man of the Year" for r in pool))
