@@ -47,11 +47,39 @@ python manage.py sync_nba_data --max-games 20 --timeout 20
 python manage.py sync_nba_data --datasets playoff --season-list 1994-95,1995-96 --timeout 30
 ```
 
-## ⚠️ Must run from a residential IP
+## ⚠️ Cloud runs go through the relay
 
 `stats.nba.com` **blocks data-center IPs** (verified: GitHub Actions / Vercel /
-Railway all time out). So the *fetch* cannot run in the cloud — only the storing
-target (Supabase) and serving (Vercel) are cloud. The fetch runs on a home machine.
+Railway all time out). A direct fetch only works from a residential IP; anywhere
+else the fetch goes through **`nba-relay`**, a Cloudflare Worker on Stefan's free
+Cloudflare account (`infra/nba-relay/`, see its README). It forwards
+`GET <base>/stats/<endpoint>?<query>` to `https://stats.nba.com/stats/<endpoint>?<query>`
+and needs the header `X-Relay-Key`.
+
+- **Switch:** `backend/trivia/data_pipeline/relay.py`. Every network fetch in
+  `sources.py` calls `relay.configure()` first. With `NBA_RELAY_BASE` (the Worker URL,
+  `https://nba-relay.stefanroman.workers.dev`) and `NBA_RELAY_KEY` both set, `nba_api`'s
+  `NBAStatsHTTP` is pointed at `<base>/stats/{endpoint}` and sends the key; the log says
+  `nba_api routed through relay <base>`. With neither set, nothing changes and the fetch
+  goes straight to `stats.nba.com`. With only one set, the fetch raises `RuntimeError`
+  naming the missing variable instead of trying a direct call that would hang.
+- **`Host` caveat:** `nba_api` sends `Host: stats.nba.com`. Cloudflare routes by `Host` and
+  answers 403 before the Worker runs, so `configure()` drops that header when the relay is on.
+- **Where the secret lives:** the key is the Worker secret `RELAY_KEY` and the GitHub secret
+  `NBA_RELAY_KEY` (same value); the URL is the repo variable `NBA_RELAY_BASE`. Never commit the
+  key. Rotation steps are in `infra/nba-relay/README.md`.
+- **Running a refresh from CI:** give the job both values as environment variables, then run
+  the normal commands on a GitHub-hosted runner:
+
+  ```yaml
+  env:
+    NBA_RELAY_BASE: ${{ vars.NBA_RELAY_BASE }}
+    NBA_RELAY_KEY: ${{ secrets.NBA_RELAY_KEY }}
+  # then: python manage.py sync_nba_data ... / generate_players_curated ...
+  ```
+
+  Locally, leave both unset to call `stats.nba.com` directly from a home connection, or set
+  both to test the relay path.
 
 ## How it's served (two paths, both fed by the store)
 
