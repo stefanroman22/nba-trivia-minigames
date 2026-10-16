@@ -17,12 +17,15 @@ from types import SimpleNamespace
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from trivia.data_pipeline import award_seasons
 from trivia.data_pipeline.build_static import build_all_players_pool
+from trivia.data_pipeline.live_pool import load_dataset
 from trivia.data_pipeline.manifest import build_manifest
 from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_lineups
 from trivia.data_pipeline.validate import validate_pool
 from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
 from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
+from trivia.questions import corrections
 from trivia.questions.runner import pool_rows
 from trivia.utils.fan_favorites import live_standings, refresh_live_standings
 from trivia.utils.logo_utils import logo
@@ -65,11 +68,22 @@ def build_wordle():
     return sorted(words)
 
 
-def build_mvps():
-    return [
+def build_mvps(dataset=None):
+    # Every major award season (trivia/data_pipeline/award_seasons.py): the MVP rows keep
+    # their four Mvp-table fields, every row adds award, winners and prompt. The other
+    # awards come from the curated rows with the active DataCorrections overlaid
+    # (`dataset`: the publish's, already corrected).
+    mvps = [
         {"season": m.season, "mvp": m.mvp, "team": m.team, "team_logo_url": m.team_logo_url}
         for m in Mvp.objects.all().order_by("season")
     ]
+    rows = dataset.rows if dataset is not None else corrections.apply(load_dataset())
+    # A team logo only when exactly one franchise carries the abbreviation.
+    by_abbr = {}
+    for t in Team.objects.all():
+        by_abbr.setdefault(t.abbreviation, []).append(t.logo or logo(t.team_id))
+    logos = {abbr: urls[0] for abbr, urls in by_abbr.items() if len(urls) == 1}
+    return award_seasons.build(rows, mvps, logos)
 
 
 def build_playoff(winner_first=None):

@@ -112,6 +112,7 @@ class ApplyTests(SimpleTestCase):
 
 class CuratedDatasetVersionTests(TestCase):
     def setUp(self):
+        DataCorrection.objects.all().delete()  # without the seeded ones (migration 0013)
         self._dir = tempfile.TemporaryDirectory()
         self.addCleanup(self._dir.cleanup)
         self.path = os.path.join(self._dir.name, "players_curated.json")
@@ -174,6 +175,9 @@ class CuratedDatasetVersionTests(TestCase):
 
 
 class MarkRedundantTests(TestCase):
+    def setUp(self):
+        DataCorrection.objects.all().delete()  # without the seeded ones (migration 0013)
+
     def test_an_active_correction_the_regeneration_already_has_becomes_redundant(self):
         rows = _rows()
         rows[0]["teams"][1]["end_year"] = 1994  # nba_api now has the fix

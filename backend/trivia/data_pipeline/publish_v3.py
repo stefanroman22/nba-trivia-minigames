@@ -95,6 +95,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from trivia.data_pipeline import award_seasons
+
 SCHEMA = 3
 CHUNK_SIZE = 50
 HISTORY_LIMIT = 5
@@ -161,11 +163,11 @@ GAMES = {
         sort_key=lambda r: (r.get("season", ""), r.get("match_id", "")),
         refs=(("team_a", "teams", PLAYOFF_TEAM), ("team_b", "teams", PLAYOFF_TEAM)),
     ),
-    # 30 teams / 71 MVPs: one small file each. The MVP rows repeat a team name +
-    # logo URL, but in a single gzip'd file that repetition costs well under 1 KB,
+    # 30 teams / 291 award seasons: one small file each. The award rows repeat a team
+    # name + logo URL, but in a single gzip'd file that repetition costs a few KB,
     # less than the extra request a lookup file would add.
     "name-logo": GameSpec("single", sort_key=lambda r: r.get("team_id", 0)),
-    "mvps": GameSpec("single", sort_key=lambda r: r.get("season", "")),
+    "mvps": GameSpec("single", sort_key=lambda r: (r.get("season", ""), award_seasons.award_rank(r))),
     "starting-five": GameSpec(
         "chunked",
         sort_key=lambda r: r.get("game_id", ""),
@@ -583,7 +585,7 @@ def default_builders(read_only=False, maintained=None, dataset=None, out=None):
     return {
         "playoff": lambda: pools.build_playoff(winner_first=winner_first),
         "name-logo": pools.build_name_logo,
-        "mvps": pools.build_mvps,
+        "mvps": lambda: pools.build_mvps(dataset=dataset),
         "starting-five": pools.build_starting_five,
         "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only, dataset=dataset, out=out),
         "who-would-win": lambda: who_would_win.build_pool(dataset=dataset, out=out),

@@ -6,6 +6,7 @@ import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { matchAnswer } from "../utils/answerMatch";
+import { acceptedAnswers, awardPrompt, awardQuestionId, promptReserve, winnersText } from "../utils/awardSeasons";
 import { createGuessLogger } from "../utils/guessLog";
 import type { MvpSeason, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
@@ -56,12 +57,12 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
     return; // don't run if no valid team
   }
 
-  const isCorrect =
-    matchAnswer(playerName, [{ answer: currentSeason?.mvp || "" }]) === 0;
+  // Any co-winner is right (Rookie of the Year 1971, 1995, 2000).
+  const isCorrect = matchAnswer(playerName, acceptedAnswers(currentSeason)) >= 0;
   // One entry per round: a second submit during the reveal is not a new answer.
   if (!picksRef.current[currentIndex]) {
     guessLog.add({
-      question_id: currentSeason.season,
+      question_id: awardQuestionId(currentSeason),
       answer: playerName.trim(),
       correct: isCorrect,
       elapsed_ms: Date.now() - roundStartRef.current,
@@ -98,7 +99,8 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
           game: "guess-mvps",
           rounds: seasonsList.map((s, i) => ({
             season: s.season,
-            mvp: s.mvp,
+            award: s.award,
+            mvp: winnersText(s),
             pick: picksRef.current[i]?.pick ?? null,
             correct: !!picksRef.current[i]?.correct,
           })),
@@ -119,10 +121,10 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
       <ProgressBar value={currentIndex + (showAnswer || showPointsAnimation ? 1 : 0)} max={seasonsList.length} />
 
       <GameFrame.Board>
-      {/* Title is constant; only the season swaps between rounds. */}
+      {/* The season and the row's question ("Who was the {award} in {season}?") swap between rounds. */}
       <GameFrame.Prompt
         eyebrow={<SwapText className="tnum">{currentSeason.season}</SwapText>}
-        title="Who won MVP?"
+        title={<SwapText reserveWidth={[promptReserve(currentSeason)]}>{awardPrompt(currentSeason)}</SwapText>}
       />
       </GameFrame.Board>
 
@@ -160,7 +162,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
 
       <SubmitGuessPopup
         show={showPointsAnimation || showAnswer}
-        text={showAnswer ? `It was ${currentSeason?.mvp || "Unknown"}` : `Correct! +${pointsPerCorrect}`}
+        text={showAnswer ? `It was ${winnersText(currentSeason) || "Unknown"}` : `Correct! +${pointsPerCorrect}`}
         color={showAnswer ? "var(--bad)" : "var(--good)"}
       />
     </GameFrame>

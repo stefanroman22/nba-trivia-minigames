@@ -37,8 +37,14 @@ const cases = {
     [{ question_id: "1610612747", label: "Lakers logo" }],
   ],
   "guess-mvps": [
-    { game: "guess-mvps", rounds: [{ season: "1955-56", mvp: "Bob Pettit", pick: null, correct: false }] },
-    [{ question_id: "1955-56", label: "1955-56 MVP" }],
+    { game: "guess-mvps", rounds: [
+      { season: "1955-56", mvp: "Bob Pettit", pick: null, correct: false },
+      { season: "1994-95", award: "Rookie of the Year", mvp: "Grant Hill & Jason Kidd", pick: "Jason Kidd", correct: true },
+    ] },
+    [
+      { question_id: "1955-56", label: "1955-56 MVP" },
+      { question_id: "1994-95:Rookie of the Year", label: "1994-95 Rookie of the Year" },
+    ],
   ],
   "starting-five": [
     {

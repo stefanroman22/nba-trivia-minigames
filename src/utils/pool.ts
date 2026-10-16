@@ -1,4 +1,5 @@
-import type { FetchResult, GameData } from "../types/types";
+import type { FetchResult, GameData, MvpSeason } from "../types/types";
+import { awardQuestionId } from "./awardSeasons";
 import { POOL_GAMES, fetchGameRows, fetchNames, isConfigured, type SeenPool } from "./gameData";
 import { dealUnseen } from "./seenCore";
 
@@ -20,7 +21,7 @@ const idField = (key: string) => (row: GameData) => String((row as unknown as Re
 const SEEN_POOLS: Record<string, SeenPool> = {
   playoff: { game: "series-winner", idOf: idField("match_id") },
   "name-logo": { game: "name-logo", idOf: idField("team_id") },
-  mvps: { game: "guess-mvps", idOf: idField("season") },
+  mvps: { game: "guess-mvps", idOf: (row) => awardQuestionId(row as MvpSeason) },
   "starting-five": { game: "starting-five", idOf: idField("game_id") },
   "fan-favorites": { game: "fan-favorites", idOf: idField("qid") },
   "who-would-win": { game: "who-would-win", idOf: idField("qid") },

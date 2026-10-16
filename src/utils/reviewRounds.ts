@@ -22,7 +22,11 @@ function rounds(review: AnswerReview): ReviewRound[] {
     case "name-logo":
       return review.rounds.map((r) => ({ question_id: String(r.teamId), label: `${r.team} logo` }));
     case "guess-mvps":
-      return review.rounds.map((r) => ({ question_id: r.season, label: `${r.season} MVP` }));
+      // The id GuessMvps logs (utils/awardSeasons.ts awardQuestionId): season:award, the season on an old row.
+      return review.rounds.map((r) => ({
+        question_id: r.award ? `${r.season}:${r.award}` : r.season,
+        label: `${r.season} ${r.award ?? "MVP"}`,
+      }));
     case "starting-five": {
       const m = review.matchup;
       return [{ question_id: m.gameId, label: `${m.teamA} vs ${m.teamB} ${m.date}` }];

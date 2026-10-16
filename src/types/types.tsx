@@ -40,9 +40,21 @@ export interface NbaTeamLogo {
   logo: string;
 }
 
+export interface AwardWinner {
+  name: string;
+  person_id?: number | null;
+  team?: string | null;
+  team_logo_url?: string | null;
+}
+
+/** A Guess the MVP row: one award season (backend trivia/data_pipeline/award_seasons.py).
+ *  `award` / `winners` / `prompt` are absent on rows published before the award seasons. */
 export interface MvpSeason {
   season: string;
   mvp: string;
+  award?: string;
+  winners?: AwardWinner[];
+  prompt?: string;
 }
 
 export interface StartingFivePlayer {
