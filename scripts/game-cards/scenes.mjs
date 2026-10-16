@@ -134,18 +134,70 @@ function nameLogo() {
   return wrap(b, { floorY: 660 });
 }
 
+/** MVP trophy: a leaping figure reaching up to a crystal ball, on a rock and a faceted base,
+ *  in front of draped curtains (after the real MVP trophy photo, re-cast in the brand palette). */
 function guessMvps() {
-  const r = rng(7);
-  let conf = "";
-  for (let i = 0; i < 140; i++) {
-    const x = r() * W, y = 40 + r() * 560, s = 6 + r() * 14, a = r() * 360, op = 0.25 + r() * 0.7;
-    conf += `<rect x="${x}" y="${y}" width="${s}" height="${s * 0.5}" rx="1" fill="${r() > 0.5 ? O : O2}" opacity="${op}" transform="rotate(${a} ${x} ${y})"${r() > 0.7 ? ' filter="url(#soft)"' : ""}/>`;
-  }
-  let b = conf;
-  b += pedestal(800, 500, 260, 130);
-  b += `<g filter="url(#glowBig)"><rect x="770" y="330" width="60" height="170" fill="url(#orange)"/><rect x="720" y="470" width="160" height="30" rx="6" fill="url(#orange)"/></g>`;
-  b += ball(800, 250, 95);
-  return wrap(b, { floorY: 630 });
+  let b = `<defs>
+  <linearGradient id="fold" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#120805"/><stop offset="0.45" stop-color="#4a1d0a"/><stop offset="0.6" stop-color="#62280d"/><stop offset="1" stop-color="#120805"/>
+  </linearGradient>
+  <pattern id="drape" width="96" height="900" patternUnits="userSpaceOnUse"><rect width="96" height="900" fill="url(#fold)"/></pattern>
+  <pattern id="drape2" width="150" height="900" patternUnits="userSpaceOnUse" patternTransform="translate(37 0)"><rect width="150" height="900" fill="url(#fold)"/></pattern>
+  <linearGradient id="drapeShade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b0b0b" stop-opacity="0.8"/><stop offset="0.45" stop-color="#0b0b0b" stop-opacity="0.15"/><stop offset="1" stop-color="#0b0b0b" stop-opacity="0.7"/></linearGradient>
+  <radialGradient id="spot" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="${O}" stop-opacity="0.32"/><stop offset="1" stop-color="${O}" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gold" gradientUnits="userSpaceOnUse" x1="726" y1="0" x2="862" y2="0">
+    <stop offset="0" stop-color="#ffc49a"/><stop offset="0.3" stop-color="#f2873f"/><stop offset="0.62" stop-color="#c9550f"/><stop offset="1" stop-color="#5a2208"/>
+  </linearGradient>
+  <radialGradient id="halo" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="${O}" stop-opacity="0.5"/><stop offset="1" stop-color="${O}" stop-opacity="0"/></radialGradient>
+  <radialGradient id="crystal" cx="38%" cy="34%" r="70%"><stop offset="0" stop-color="#fff6ee"/><stop offset="0.5" stop-color="#ffc49a"/><stop offset="1" stop-color="${O}"/></radialGradient>
+</defs>`;
+  // Curtain backdrop, darker at the top and bottom, warmer behind the trophy.
+  b += `<rect width="${W}" height="740" fill="url(#drape)"/><rect width="${W}" height="740" fill="url(#drape2)" opacity="0.5"/>
+<rect width="${W}" height="740" fill="url(#drapeShade)"/>
+<ellipse cx="800" cy="360" rx="560" ry="420" fill="url(#spot)"/>`;
+  // Faceted black base with a blank plaque, then the rock the figure stands on.
+  b += pedestal(800, 650, 300, 100);
+  b += `<rect x="740" y="680" width="120" height="38" rx="4" fill="none" stroke="${O2}" stroke-width="2" opacity="0.6"/>`;
+  b += `<polygon points="690,646 704,604 738,586 770,596 800,572 842,586 876,602 906,646" fill="#2a1a10" stroke="${O}" stroke-width="2.5" filter="url(#glow)"/>
+<path d="M738 586 L752 646 M800 572 L790 646 M842 586 L860 646 M704 604 L770 596 L842 586" stroke="#120a06" stroke-width="3" fill="none" opacity="0.8"/>`;
+  // The leaping figure, built from tapered two-tone facets so it reads as cast, faceted metal:
+  // every part is lit on its left side and shaded on its right, with joints rounded off.
+  const pts = (arr) => arr.map((p) => p.join(",")).join(" ");
+  const limb = ([x1, y1], [x2, y2], w1, w2) => {
+    const L = Math.hypot(x2 - x1, y2 - y1), nx = -(y2 - y1) / L, ny = (x2 - x1) / L;
+    const A = [x1 + (nx * w1) / 2, y1 + (ny * w1) / 2], B = [x2 + (nx * w2) / 2, y2 + (ny * w2) / 2];
+    const C = [x2 - (nx * w2) / 2, y2 - (ny * w2) / 2], D = [x1 - (nx * w1) / 2, y1 - (ny * w1) / 2];
+    // The shaded half is the one whose edge lies further right.
+    const shade = A[0] + B[0] > C[0] + D[0] ? [A, B, [x2, y2], [x1, y1]] : [[x1, y1], [x2, y2], C, D];
+    const lit = shade[0] === A ? [D, C] : [A, B];
+    return `<polygon points="${pts([A, B, C, D])}" fill="url(#gold)"/>
+<polygon points="${pts(shade)}" fill="#4a1c06" opacity="0.55"/>
+<line x1="${lit[0][0]}" y1="${lit[0][1]}" x2="${lit[1][0]}" y2="${lit[1][1]}" stroke="#fff1e4" stroke-width="2.5" opacity="0.55"/>
+<circle cx="${x2}" cy="${y2}" r="${w2 / 2}" fill="url(#gold)"/>`;
+  };
+  const torso = [[762, 300], [806, 292], [822, 330], [806, 382], [798, 438], [752, 444], [748, 398], [740, 342]];
+  let fig = "";
+  fig += limb([764, 312], [742, 378], 26, 20) + limb([742, 378], [764, 432], 20, 15); // back arm, down
+  fig += limb([756, 440], [728, 504], 42, 28) + limb([728, 504], [748, 562], 28, 16) + limb([748, 562], [754, 592], 16, 6); // bent leg
+  fig += `<polygon points="${pts(torso)}" fill="url(#gold)"/>
+<polygon points="790,294 822,330 806,382 798,438 776,442 786,380" fill="#4a1c06" opacity="0.55"/>
+<polygon points="764,326 790,352 776,398 754,370" fill="#ffe2c8" opacity="0.14"/>
+<path d="M762 300 L740 342 L748 398 L752 444" fill="none" stroke="#fff1e4" stroke-width="2.5" opacity="0.55"/>`;
+  fig += limb([786, 438], [798, 516], 46, 30) + limb([798, 516], [808, 584], 30, 18) + limb([808, 584], [826, 594], 18, 10); // standing leg
+  fig += limb([782, 300], [786, 286], 18, 18); // neck
+  fig += `<ellipse cx="776" cy="262" rx="24" ry="30" transform="rotate(-30 776 262)" fill="url(#gold)"/>
+<path d="M790 238 A24 30 -30 0 1 792 284 L780 262 Z" fill="#4a1c06" opacity="0.55"/>`;
+  fig += limb([798, 304], [822, 218], 30, 24) + limb([822, 218], [846, 138], 24, 17); // raised arm
+  fig += `<path d="M832 140 Q852 116 878 130" fill="none" stroke="url(#gold)" stroke-width="10" stroke-linecap="round"/>`;
+  // Soft orange halo behind the figure (the figure itself stays sharp).
+  b += `<ellipse cx="796" cy="340" rx="190" ry="320" fill="url(#halo)"/>`;
+  b += `<g transform="translate(800 600) scale(1.08) translate(-800 -600)">${fig}`;
+  // Crystal ball with a few facet lines.
+  b += `<circle cx="858" cy="88" r="40" fill="url(#crystal)" filter="url(#glowBig)"/>
+<g stroke="#fff6ee" stroke-width="1.6" fill="none" opacity="0.65">
+  <path d="M822 76 L858 60 L894 80 M828 108 L858 124 L890 104 M858 60 L846 92 L858 124 M846 92 L822 76 M846 92 L894 80 M846 92 L890 104"/>
+</g></g>`;
+  return wrap(b, { floorY: 740, hexes: false, zoom: 1.02 });
 }
 
 function startingFive() {
@@ -167,14 +219,57 @@ function wordle() {
   return wrap(b, { floorY: 680 });
 }
 
+/** Game-show survey board ("We asked 100 NBA fans"): oval board with bulb rim, score wings,
+ *  a 2x4 answer grid with some answers revealed, podiums on a glossy floor. */
 function fanFavorites() {
-  let b = `<g opacity="0.45">`;
-  for (let i = 0; i < 9; i++) b += silhouette(260 + i * 160, 470, 0.7);
-  b += `</g><rect x="0" y="200" width="${W}" height="300" fill="url(#fog)" opacity="0.8"/>`;
-  b += panel(470, 420, 220, 160);
-  b += panel(690, 320, 220, 260, { lit: true });
-  b += panel(910, 460, 220, 120);
-  return wrap(b, { floorY: 580 });
+  const answers = [
+    [1, "JORDAN", 38, true], [2, "LEBRON", 31, true], [3, "KOBE", 12, true], [4, "KAREEM", 7, false],
+    [5, "CURRY", 5, false], [6, "MAGIC", 3, true], [7, "BIRD", 2, false], [8, "DUNCAN", 2, false],
+  ];
+  const T = (x, y, s, size, fill, anchor = "middle") =>
+    `<text x="${x}" y="${y}" font-family="Russo One" font-size="${size}" fill="${fill}" text-anchor="${anchor}" dominant-baseline="central">${s}</text>`;
+  let b = `<defs>
+  <pattern id="leds" width="22" height="22" patternUnits="userSpaceOnUse"><circle cx="11" cy="11" r="3.2" fill="${O}" opacity="0.32"/></pattern>
+  <pattern id="stars" width="70" height="70" patternUnits="userSpaceOnUse">
+    <circle cx="12" cy="18" r="1.6" fill="${O2}" opacity="0.35"/><circle cx="48" cy="40" r="1.2" fill="${O2}" opacity="0.25"/><circle cx="30" cy="62" r="1" fill="${O2}" opacity="0.3"/>
+  </pattern>
+</defs>
+<rect width="${W}" height="700" fill="url(#stars)"/>`;
+  // Score wings behind the oval.
+  b += `<rect x="230" y="252" width="1140" height="96" rx="48" fill="url(#panel)" stroke="${O}" stroke-width="4" filter="url(#glow)"/>`;
+  for (const [x, s] of [[262, "84"], [1198, "57"]])
+    b += `<rect x="${x}" y="266" width="140" height="68" rx="10" fill="#1a0f08" stroke="${O2}" stroke-width="2.5"/>${T(x + 70, 301, s, 46, O2)}`;
+  // The oval board: glowing rim, a ring of bulbs, LED dot field inside.
+  b += `<ellipse cx="800" cy="300" rx="362" ry="272" fill="#100b08" stroke="${O}" stroke-width="10" filter="url(#glow)"/>
+<ellipse cx="800" cy="300" rx="336" ry="248" fill="url(#leds)"/>`;
+  for (let i = 0; i < 56; i++) {
+    const a = (i / 56) * Math.PI * 2;
+    b += `<circle cx="${800 + 349 * Math.cos(a)}" cy="${300 + 260 * Math.sin(a)}" r="4.5" fill="${O2}" opacity="0.9"/>`;
+  }
+  // Top counter.
+  b += panel(735, 62, 130, 66, { lit: true, r: 10 }) + T(800, 96, "100", 42, "#fff1e4");
+  // Answer grid.
+  b += `<rect x="505" y="146" width="590" height="302" rx="12" fill="#0e0a08" stroke="${O}" stroke-width="4"/>`;
+  for (const [n, name, pts, shown] of answers) {
+    const col = n <= 4 ? 0 : 1, row = (n - 1) % 4;
+    const x = 520 + col * 290, y = 158 + row * 72;
+    b += panel(x, y, 270, 62, { lit: shown, r: 8 });
+    if (shown) {
+      b += T(x + 18, y + 33, name, 30, "#fff1e4", "start");
+      b += `<rect x="${x + 206}" y="${y + 8}" width="54" height="46" rx="6" fill="#1a0f08" stroke="${O2}" stroke-width="2"/>${T(x + 233, y + 33, pts, 28, O2)}`;
+    } else {
+      b += `<ellipse cx="${x + 135}" cy="${y + 31}" rx="34" ry="22" fill="#241309" stroke="${O}" stroke-width="3"/>${T(x + 135, y + 33, n, 26, O2)}`;
+    }
+  }
+  // Podiums: two contestants and the host, LED faces with lit tops.
+  for (const [x, w] of [[470, 150], [725, 150], [980, 150]]) {
+    const host = x === 725;
+    const top = host ? 610 : 596;
+    b += `<rect x="${x + (host ? 25 : 0)}" y="${top}" width="${host ? 100 : w}" height="${700 - top}" rx="8" fill="url(#panel)" stroke="${LINE}" stroke-width="2"/>
+<rect x="${x + (host ? 35 : 12)}" y="${top + 14}" width="${host ? 80 : w - 24}" height="${700 - top - 26}" rx="6" fill="url(#leds)" opacity="${host ? 0.6 : 1}"/>
+<rect x="${x + (host ? 19 : -6)}" y="${top - 8}" width="${host ? 112 : w + 12}" height="12" rx="4" fill="#2a2320" stroke="${O}" stroke-width="2" filter="url(#glow)"/>`;
+  }
+  return wrap(b, { floorY: 700, hexes: false, zoom: 1 });
 }
 
 function heatmap() {
