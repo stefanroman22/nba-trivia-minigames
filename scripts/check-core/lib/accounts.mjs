@@ -175,7 +175,7 @@ export async function ensureAdmin(username = ROLES['logic.admin']) {
 
 /** Leftover cleanup (local sqlite only, checker names only). scope 'ui' (default): delete uic<digits> throwaways,
  *  clear testuser3-family <-> testuser2 friendships/requests, restore testuser3-family usernames, drop their photos;
- *  'logic': delete lgc<digits> throwaways, restore testuser4/5/6 usernames and photos, clear friendships/requests/blocks
+ *  'logic': delete lgc<digits> throwaways, restore testuser4/5/6 usernames, photos and unknown age, clear friendships/requests/blocks
  *  among them; 'all': both. */
 export async function sweepAccounts({ scope = 'ui' } = {}) {
   const { ok, ...rest } = await mintRequest({ op: 'sweep', scope });

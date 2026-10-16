@@ -101,7 +101,7 @@ def sweep(scope="ui"):
     - delete `uic<digits>` (ui) / `lgc<digits>` (logic) throwaways;
     - ui: clear testuser3-family <-> testuser2 friendships / requests / blocks, put testuser3-family usernames back and
       drop their photos;
-    - logic: put testuser4/5/6 usernames back, drop their photos, clear every friendship / request / block among them."""
+    - logic: put testuser4/5/6 usernames back, drop their photos, reset their age to unknown, clear every friendship / request / block among them."""
     from django.db.models import Q
     from users.account_data import delete_account, remove_photo
     from users.models import BlockedUser, FriendRequest, Friendship
@@ -135,6 +135,11 @@ def sweep(scope="ui"):
             if u.profile_photo_version:
                 remove_photo(u)
                 out["photos"].append(want)
+            if s == "logic" and u.age_group:
+                # Logic's profile/friends checks give testuser4/5 an age; minted accounts start with it unknown.
+                u.age_group = ""
+                u.save(update_fields=["age_group"])
+                out.setdefault("ages", []).append(want)
         if partner:
             other = User.objects.filter(email__iexact=partner + EMAIL_DOMAIN).first()
             if other:
