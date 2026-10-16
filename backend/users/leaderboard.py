@@ -129,9 +129,10 @@ def friends_board(user):
 
 
 def weekly_board(user=None):
-    """This week's board (Monday 00:00 Paris to now) as (rows, my_rank, count): each public account's
-    summed GameSession.awarded. Postgres only — the window is small and resets weekly, so the ZSET's
-    advantage doesn't apply. `my_rank` is None for a guest or a player with nothing this week."""
+    """This week's board (Monday 00:00 Paris to now) as (rows, my_rank, count, my_points): each public
+    account's summed GameSession.awarded. Postgres only — the window is small and resets weekly, so the
+    ZSET's advantage doesn't apply. `my_rank` is None and `my_points` 0 for a guest or a player with
+    nothing this week."""
     from django.db.models import Sum
 
     from trivia.awarding import week_start_utc
@@ -146,8 +147,9 @@ def weekly_board(user=None):
     )
     board = [{"id": r["user__public_id"], "username": r["user__username"], "rank": r["user__rank"], "points": r["points"]} for r in rows]
     my_rank = None
+    mine = None
     if user is not None:
         mine = next((r["points"] for r in rows if r["user__public_id"] == user.public_id), None)
         if mine is not None:
             my_rank = sum(1 for r in rows if r["points"] > mine) + 1
-    return board[:100], my_rank, len(board)
+    return board[:100], my_rank, len(board), mine or 0

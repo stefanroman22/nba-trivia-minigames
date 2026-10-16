@@ -1,5 +1,7 @@
 import "../../styles/Leaderboard.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store";
 import { reducedFade, swap } from "../../motion/variants";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
 import { Avatar, CourtLoader } from "../ui";
@@ -14,10 +16,14 @@ interface LeaderboardModalProps {
   onScopeChange: (scope: LeaderboardScope) => void;
 }
 
-export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardModalProps) {
+export default function LeaderboardModal({ scope: pickedScope, onScopeChange }: LeaderboardModalProps) {
+  const loggedIn = useSelector((s: RootState) => s.user.user) !== null;
+  // A player who logs out on Friends lands on Global (guests have no Friends tab).
+  const scope: LeaderboardScope = !loggedIn && pickedScope === "friends" ? "global" : pickedScope;
   const { loading, leaders, self } = useLeaderboard(scope);
   const swapVariants = useReducedMotion() ? reducedFade : swap;
-  const loggedIn = self !== null;
+  // Nothing played this week: no weekly position (rank 0 = the API's null user_rank).
+  const noWeeklyPosition = scope === "weekly" && self?.rank === 0;
   const selfInList = self ? leaders.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
   return (
@@ -39,14 +45,14 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
             <span style={{ color: "var(--muted)" }}>{scope === "friends" ? "You and your friends" : scope === "weekly" ? "Points since Monday" : "Top players worldwide"}</span>
             {self && (
               <span style={{ color: "var(--brand)", fontWeight: 700 }}>
-                You: #{self.rank.toLocaleString()} / {self.total.toLocaleString()}
+                You: {noWeeklyPosition ? "—" : `#${self.rank.toLocaleString()}`} / {self.total.toLocaleString()}
               </span>
             )}
           </div>
 
           {leaders.length === 0 && (
             <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
-              No players yet.
+              {scope === "weekly" ? "No games this week yet." : "No players yet."}
             </div>
           )}
 
@@ -67,7 +73,7 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
             })}
           </div>
 
-          {self && !selfInList && (
+          {self && !selfInList && !noWeeklyPosition && (
             <div className="lbf-selfbar">
               <div className="lbf-selfbar-inner">
                 <span className="tnum lbf-rank" style={{ width: "auto", minWidth: 34, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>

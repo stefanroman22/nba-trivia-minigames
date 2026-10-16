@@ -23,10 +23,6 @@ export function rankLabel(rank: string, division?: number | null): string {
   return division ? `${rank} ${ROMAN[division] ?? ""}`.trim() : rank;
 }
 
-export function rankIndex(rank: string): number {
-  return Math.max(0, RANK_ORDER.indexOf(rank as (typeof RANK_ORDER)[number]));
-}
-
 /** The rank-up share line (navigator.share / clipboard). */
 export function shareText(rank: string): string {
   return `I just made ${rank} on Swish Quest 🏀 Think you know the NBA better? Play free at swishquest.com`;

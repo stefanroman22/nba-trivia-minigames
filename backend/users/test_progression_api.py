@@ -103,12 +103,14 @@ class WeeklyBoardTests(TestCase):
         self.assertEqual([(r["username"], r["points"]) for r in res["top_100_users"]], [("bob", 300), ("alice", 120)])
         self.assertEqual(res["number_users"], 2)
         self.assertIsNone(res["user_rank"])
+        self.assertEqual(res["user_points"], 0)
 
     def test_weekly_position_of_the_signed_in_player(self):
         c = Client()
         tokens = c.post("/api/login/", {"id": "a@example.com", "password": "x"}, content_type="application/json").json()
         res = c.get("/api/get-users/?scope=weekly", HTTP_AUTHORIZATION=f"Bearer {tokens['access']}").json()
         self.assertEqual(res["user_rank"], 2)
+        self.assertEqual(res["user_points"], 120)
 
     def test_global_rows_carry_rank_names(self):
         res = Client().get("/api/get-users/").json()

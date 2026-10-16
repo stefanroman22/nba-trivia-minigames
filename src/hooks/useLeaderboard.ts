@@ -32,6 +32,8 @@ interface CacheEntry {
   error: boolean;
   userRank: number | null;
   numberUsers: number | null;
+  /** The player's own points this week (weekly scope only; null for the other scopes). */
+  userPoints: number | null;
   /** Which signed-in user this data's rank belongs to (null = signed out). */
   userKey: string | null;
   fetchedAt: number;
@@ -58,7 +60,7 @@ async function fetchBoard(userKey: string | null, scope: LeaderboardScope): Prom
     const live = Array.isArray(data?.top_100_users) ? data.top_100_users : [];
 
     if (data?.error) {
-      caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
+      caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userPoints: null, userKey, fetchedAt: Date.now() };
     } else {
       caches[scope] = {
         leaders: live.map((u: { username: string; id?: string; points: number; rank?: string }, i: number) => ({
@@ -71,13 +73,14 @@ async function fetchBoard(userKey: string | null, scope: LeaderboardScope): Prom
         error: false,
         userRank: typeof data?.user_rank === "number" ? data.user_rank : null,
         numberUsers: typeof data?.number_users === "number" ? data.number_users : null,
+        userPoints: typeof data?.user_points === "number" ? data.user_points : null,
         userKey,
         fetchedAt: Date.now(),
       };
     }
   } catch (err) {
     console.error("Failed to load leaderboard:", err);
-    caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
+    caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userPoints: null, userKey, fetchedAt: Date.now() };
   } finally {
     fetching[scope] = false;
     notify();
@@ -128,7 +131,8 @@ export function useLeaderboard(scope: LeaderboardScope = "global"): LeaderboardD
         rank: cache?.userRank ?? 0,
         name: user.username,
         id: user.id ?? null,
-        points: user.points,
+        // The weekly board ranks this week's points, so the self row shows those, not the all-time total.
+        points: scope === "weekly" ? (cache?.userPoints ?? 0) : user.points,
         total: cache?.numberUsers ?? 0,
       }
     : null;

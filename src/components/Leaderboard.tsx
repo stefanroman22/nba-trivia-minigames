@@ -7,6 +7,8 @@ import SegmentedTabs from './motion/SegmentedTabs';
 import { staggerContainer, staggerItem } from '../motion/variants';
 import { durations, easing } from '../motion/tokens';
 import { useLeaderboard, type LeaderboardScope } from '../hooks/useLeaderboard';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../store';
 import { useModal } from '../context/ModalContext';
 import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from '../constants/leaderboard';
 
@@ -25,12 +27,16 @@ function timeAgo(ts: number, now: number): string {
 
 /** Home "Global Top 100" card. "View all →" opens the full leaderboard modal. */
 function Leaderboard() {
-  const [scope, setScope] = useState<LeaderboardScope>("global");
+  const [pickedScope, setScope] = useState<LeaderboardScope>("global");
+  const loggedIn = useSelector((s: RootState) => s.user.user) !== null;
+  // A player who logs out on Friends lands on Global (guests have no Friends tab).
+  const scope: LeaderboardScope = !loggedIn && pickedScope === "friends" ? "global" : pickedScope;
   const { loading, leaders, self, refresh, refreshing, lastUpdated, now } = useLeaderboard(scope);
   const { open } = useModal();
-  const loggedIn = self !== null;
   const preview = leaders.slice(0, PREVIEW_COUNT);
   const selfInList = self ? preview.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
+  // Nothing played this week: no weekly position (rank 0 = the API's null user_rank), so no self bar.
+  const noWeeklyPosition = scope === "weekly" && self?.rank === 0;
 
   // The body's height follows its measured content with a tween, so switching
   // Global <-> Friends (10 rows <-> 1 row) resizes the card smoothly instead of
@@ -101,7 +107,7 @@ function Leaderboard() {
           </div>
 
           {/* Inside the measured block so its appear/disappear is part of the same height tween. */}
-          {!loading && self && !selfInList && (
+          {!loading && self && !selfInList && !noWeeklyPosition && (
             <div className="lb-self">
               <span className="tnum" style={{ minWidth: 34, textAlign: "center", fontWeight: 700, fontSize: 13, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
               <Avatar initials={initials(self.name)} size={26} bg={SELF_AVATAR_BG} />

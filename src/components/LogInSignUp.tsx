@@ -274,6 +274,7 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
         fail(data.error, "password");
       } else {
         dispatch(login(data.user));
+        clearGuestPoints();
         setTokens(data.access, data.refresh);
         succeed(data.user.username, false);
       }

@@ -640,8 +640,11 @@ def get_users(request):
                 status=200,
             )
         if scope == "weekly":
-            board, user_rank, number_users = leaderboard.weekly_board(request.user if request.user.is_authenticated else None)
-            return Response({"top_100_users": board, "user_rank": user_rank, "number_users": number_users}, status=200)
+            board, user_rank, number_users, my_points = leaderboard.weekly_board(request.user if request.user.is_authenticated else None)
+            return Response(
+                {"top_100_users": board, "user_rank": user_rank, "number_users": number_users, "user_points": my_points},
+                status=200,
+            )
 
         user_rank = (
             leaderboard.rank_of(request.user)
