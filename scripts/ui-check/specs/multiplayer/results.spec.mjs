@@ -16,7 +16,7 @@ test.afterEach(async () => { await releasePair(); });
 const SW = gameById('series-winner');
 const adapter = adapterFor('series-winner');
 
-test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the joiner (all wrong) "You lost"; scores, names and times mirror on both screens; no "faster time" line; the "+50 pts" toast on the host; the answer review opens and closes on both', async ({ mp }) => {
+test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the joiner (all wrong) "You lost"; scores, names and times mirror on both screens; no "faster time" line; the "+N pts" toast on the host; the answer review opens and closes on both', async ({ mp }) => {
   test.setTimeout(300_000);
   const pair = await openPair(mp, SW.path);
   const { host, joiner } = pair;

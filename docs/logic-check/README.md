@@ -134,7 +134,9 @@ The loop: Logic finds → card → the pipeline fixes → main → Logic confirm
 ## The nightly run
 
 Task Scheduler task `nba-checks` (daily 02:00, StartWhenAvailable, stopped after 6 h) runs `scripts/check-run.ps1`.
-Register it with `scripts/register-check-cron.ps1`, remove it with `scripts/unregister-check-cron.ps1`.
+Register it with `scripts/register-check-cron.ps1`, remove it with `scripts/unregister-check-cron.ps1`. It is
+registered with the owner's interactive token, so it runs only while the owner is logged on; a 02:00 missed while
+logged off (or with the PC off) runs at the next logon (StartWhenAvailable).
 
 **Where it runs.** The tooling (these scripts, the skills, the agents, the notes) runs from a dedicated worktree,
 `<worktreeRoot>\checks-nightly` on branch `checks-nightly`, which the register script creates from `origin/dev` (with
@@ -186,7 +188,17 @@ they reach `dev` with the next tooling PR (merge `checks-nightly` → `dev`), or
 
 The live suite also runs every 6 h on GitHub Actions (`.github/workflows/logic-live.yml`): a Slack line on a failure,
 a card (owner `ci`, scripted triage `lib/live-triage.mjs`, no agent) only when the same check failed in two consecutive
-runs, deduped by Source; CI writes no channel blocks (it has no `<uicHome>`).
+runs, deduped by Source; CI writes no channel blocks (it has no `<uicHome>`). GitHub runs scheduled workflows only
+from the default branch, so this cron becomes active once the workflow file reaches `main`; until then the nightly's
+`--live` run is the only live probe.
+
+## Known residual overlap
+
+These still assert in both checkers (spec §5) and move in a later pass:
+
+- `AC-GOOGLE-01` and `LC-AUTH-GOOGLE-01` both click "Continue with Google" and expect Google's window.
+- `AC-PROFILE-01` reads `/me/` after a username change to prove it persisted, which is `LC-PROFILE-01`'s.
+- `G-PERM-01` asserts the admin API's 401/403 statuses; there is no `LC-ADMIN-` suite yet to own them.
 
 ## Retention
 

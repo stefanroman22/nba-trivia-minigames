@@ -76,7 +76,9 @@ The nightly UI check then defers every check tagged with a blocked service (`nod
 ```
 node scripts/logic-check/run.mjs --stop
 ```
-(`--stop --ports …` when step 1 used `--ports`). Always, also after a failure in steps 1-5.
+A bare `--stop` touches only the checker port sets, prod (8200/4200/5374) and dev (8000/4000/5173); a stack on a lane
+or agent port set (step 1's `--ports`) needs `node scripts/logic-check/run.mjs --stop --ports <the same set>`. Always,
+also after a failure in steps 1-5.
 
 ## 7. Hand over
 Give the owner:
