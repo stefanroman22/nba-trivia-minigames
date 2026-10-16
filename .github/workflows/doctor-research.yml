@@ -65,6 +65,8 @@ jobs:
         with:
           name: doctor-cases
           path: doctor/
+          # The cases carry players' report notes (docs/legal/RECORD_OF_PROCESSING.md, Anthropic).
+          retention-days: 1
 
   research:
     needs: export
@@ -110,6 +112,7 @@ jobs:
           name: doctor-verdict-${{ matrix.case }}
           path: doctor/verdict-${{ matrix.case }}.json
           if-no-files-found: warn
+          retention-days: 1
 
   apply:
     needs: [export, research]
