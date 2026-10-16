@@ -3,9 +3,11 @@
 Reads the anonymous roll-ups (QuestionStats, WrongAnswerStats) and the players' open
 problem reports (QuestionReport, status new) for the staged games, and per question:
 
-    solve_rate     >= MIN_ATTEMPTS attempts (all days) and a solve rate below MIN_SOLVE_RATE,
-                   or below BAND_FACTOR x the median of its game's band (quality.band) over the
-                   game's active questions with >= MIN_ATTEMPTS attempts
+    solve_rate     >= MIN_ATTEMPTS attempts (all days) and a solve rate (correct / players, both
+                   summed over the days; never per guess, since the multi-guess games log every
+                   guess as an attempt) below MIN_SOLVE_RATE, or below BAND_FACTOR x the median
+                   of its game's band (quality.band) over the game's active questions with
+                   >= MIN_ATTEMPTS attempts; no players, no signal
     wrong_cluster  one wrong answer (answer_norm) from >= CLUSTER_PLAYERS players and
                    >= CLUSTER_SHARE of the question's wrong answers
     reports        >= 1 report (the notes are kept in quality.doctor.reports)
@@ -94,24 +96,28 @@ def question_for(game, question_id, indexes=None):
 def _solve_rate_signals(games, resolve):
     """{row.pk: [signal, ...]} for the solve-rate anomaly."""
     totals = (QuestionStats.objects.filter(game__in=games).values("game", "question_id")
-              .annotate(attempts=Sum("attempts"), correct=Sum("correct")).order_by("game", "question_id"))
-    measured = []  # (row, question_id, attempts, rate)
+              .annotate(attempts=Sum("attempts"), correct=Sum("correct"), players=Sum("players"))
+              .order_by("game", "question_id"))
+    measured = []  # (row, question_id, attempts, players, rate)
     for t in totals:
+        if t["attempts"] < MIN_ATTEMPTS or not t["players"]:
+            continue
         row = resolve(t["game"], t["question_id"])
-        if row is not None and t["attempts"] >= MIN_ATTEMPTS:
-            measured.append((row, t["question_id"], t["attempts"], t["correct"] / t["attempts"]))
+        if row is not None:
+            # Per player, not per guess: the multi-guess games log every guess as an attempt.
+            measured.append((row, t["question_id"], t["attempts"], t["players"], t["correct"] / t["players"]))
     by_band = defaultdict(list)
-    for row, _, _, rate in measured:
+    for row, _, _, _, rate in measured:
         band = (row.quality or {}).get("band")
         if row.status == Question.STATUS_ACTIVE and band:
             by_band[(row.game, band)].append(rate)
     medians = {k: median(v) for k, v in by_band.items()}
     out = defaultdict(list)
-    for row, question_id, attempts, rate in measured:
+    for row, question_id, attempts, players, rate in measured:
         norm = medians.get((row.game, (row.quality or {}).get("band")))
         if rate < MIN_SOLVE_RATE or (norm is not None and rate < BAND_FACTOR * norm):
             out[row.pk].append({"signal": "solve_rate", "question_id": question_id, "attempts": attempts,
-                                "solve_rate": round(rate, 4),
+                                "players": players, "solve_rate": round(rate, 4),
                                 "band_median": round(norm, 4) if norm is not None else None})
     return out
 

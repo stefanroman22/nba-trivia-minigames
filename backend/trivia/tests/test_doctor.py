@@ -31,9 +31,9 @@ class DoctorTestCase(TestCase):
         return Question.objects.create(game=game, qid=qid or f"{game[:3]}-{n:06d}", definition=definition,
                                        content_hash=f"{n:064d}", status=status, quality=quality)
 
-    def stats(self, game, question_id, attempts, correct, day=DAY):
-        QuestionStats.objects.create(game=game, question_id=str(question_id), day=day,
-                                     attempts=attempts, correct=correct, players=attempts)
+    def stats(self, game, question_id, attempts, correct, day=DAY, players=None):
+        QuestionStats.objects.create(game=game, question_id=str(question_id), day=day, attempts=attempts,
+                                     correct=correct, players=attempts if players is None else players)
 
     def wrong(self, game, question_id, answer, count, players):
         WrongAnswerStats.objects.create(game=game, question_id=str(question_id), answer_norm=answer, count=count,
@@ -105,6 +105,29 @@ class SolveRateTests(DoctorTestCase):
     def test_fewer_than_30_attempts_is_no_signal(self):
         row = self.q(pid=1)
         self.stats("career-path", 1, 29, 0)
+        self.scan()
+        row.refresh_from_db()
+        self.assertNotIn("doctor_queue", row.quality)
+
+    def test_many_guesses_from_few_players_who_mostly_solve_is_no_signal(self):
+        row = self.q("contexto", pid=1)
+        self.stats("contexto", 1, 400, 8, players=10)  # 2 % per guess, 80 % of players solve
+        self.scan()
+        row.refresh_from_db()
+        self.assertNotIn("doctor_queue", row.quality)
+
+    def test_few_players_solving_is_a_signal_whatever_the_guess_count(self):
+        row = self.q("contexto", pid=1)
+        self.stats("contexto", 1, 40, 1, players=40)  # 2.5 % of players solve
+        self.scan()
+        row.refresh_from_db()
+        self.assertTrue(row.quality["doctor_queue"])
+        signal = row.quality["doctor"]["signals"][0]
+        self.assertEqual((signal["solve_rate"], signal["players"]), (0.025, 40))
+
+    def test_no_players_is_no_signal(self):
+        row = self.q(pid=1)
+        self.stats("career-path", 1, 40, 0, players=0)
         self.scan()
         row.refresh_from_db()
         self.assertNotIn("doctor_queue", row.quality)
