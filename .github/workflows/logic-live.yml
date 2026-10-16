@@ -1,0 +1,90 @@
+name: Logic live probes
+# Logic Check's live suite (scripts/logic-check, LC-LIVE-01..07) against https://swishquest.com every 6 hours:
+# read-only, guest, GET/HEAD only (the suite's request guard refuses anything else before it leaves the runner and
+# run.mjs fails on any refused write), no browser, no stack, no accounts. Spec: docs/superpowers/specs/
+# 2026-10-15-checks-prod-logic-design.md §7. Runs on main (the default branch), so the catalogue and origins the probes
+# read are what the live site runs.
+#   pass                         → nothing posted, failure counter reset
+#   first failing run            → one Slack line (general = #pipeline), no card
+#   second (and later) in a row  → Slack line + scripted triage (lib/live-triage.mjs, no agent): each failing check →
+#                                  a finding (owner ci) → notion-push --checker logic --target main (deduped by Source:
+#                                  a later failure comments on the open card instead of a new one)
+#   harness/infra error (exit 2) → Slack line "could not run", counter kept
+# The counter lives in .logic-live-state/state.json, carried between runs by actions/cache (keys logic-live-state-*).
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+concurrency:
+  group: logic-live
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Restore the consecutive-failure state
+        uses: actions/cache/restore@v4
+        with:
+          path: .logic-live-state
+          key: logic-live-state-${{ github.run_id }}
+          restore-keys: logic-live-state-
+
+      - name: Live probes (read-only)
+        id: probe
+        run: |
+          RUN="$(date -u +%Y%m%d-%H%M)-logic"
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+          set +e
+          UI_CHECK_RUN="$RUN" node scripts/logic-check/run.mjs --suite live --live
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Record the outcome
+        id: state
+        env:
+          EXIT: ${{ steps.probe.outputs.exit }}
+          RUN: ${{ steps.probe.outputs.run }}
+          URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/logic-check/lib/live-triage.mjs state --exit "$EXIT" --file .logic-live-state/state.json --run "$RUN" --url "$URL"
+
+      - name: Save the state
+        if: always() && steps.state.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: .logic-live-state
+          key: logic-live-state-${{ github.run_id }}
+
+      - name: Slack line
+        if: steps.state.outputs.action != 'none'
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          LINE: ${{ steps.state.outputs.line }}
+        run: node scripts/slack.mjs post-text general "$LINE"
+
+      - name: Findings and Notion cards (second consecutive failure)
+        if: steps.state.outputs.action == 'cards'
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          RUN: ${{ steps.probe.outputs.run }}
+        run: |
+          node scripts/logic-check/lib/live-triage.mjs triage --run "$RUN"
+          node scripts/check-core/notion-push.mjs --run "$RUN" --checker logic --target main
+
+      - name: Digest
+        if: always()
+        env:
+          RUN: ${{ steps.probe.outputs.run }}
+        run: cat ".ui-check/runs/$RUN/digest.md" >> "$GITHUB_STEP_SUMMARY" || true
+
+      - name: Fail the job when the probes did not pass
+        if: steps.probe.outputs.exit != '0'
+        run: exit 1
