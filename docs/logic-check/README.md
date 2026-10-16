@@ -226,7 +226,8 @@ Two checker runs at the same time (two agents, a skill run while the nightly run
 each need **their own port set** (`--ports`) **and their own throwaway slots**: a stack's sqlite is shared by
 everything that runs on it, Logic's teardown sweep deletes every `lgc<digits>` account in it, and two processes using
 the same slot in one sqlite are the same account. Logic runs share `logic.actor` / `logic.peer`, so two Logic runs never
-share a stack. Port sets in use here: prod 8200/4200/5374 (the nightly), 8300/4300/5474 and 8400/4400/5574 for agent
+share a stack. Port sets in use here: prod 8200/4200/5374 (interactive skill runs), 8210/4210/5384 (the nightly's own, so a stack a
+session left on the default set never stops it at `stack-setup`), 8300/4300/5474 and 8400/4400/5574 for agent
 work, the pipeline's QA lanes 8100/4100/5273 and 8101/4101/5274. A run that finds another checkout's Django on its
 ports stops at `stack-setup` ("serves a different sqlite") instead of testing the wrong code. Two **prod** stacks also
 need **their own checkout**: `next build` writes one `.next` per checkout with the API base baked in, so a second port

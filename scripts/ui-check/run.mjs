@@ -288,7 +288,10 @@ async function main() {
     }
 
     const results = readResults();
-    if (results.some(isFail)) exit = Math.max(exit, 1);
+    // A failed stack-setup is infrastructure (nothing under test ran): exit 2, so the nightly skips the judges.
+    const setup = results.find((r) => /^stack-/.test(r.project) && isFail(r));
+    if (setup) { console.error(`ui-check: ${setup.project} failed: ${String(setup.error || '').split('\n')[0]}`); exit = 2; }
+    else if (results.some(isFail)) exit = Math.max(exit, 1);
     try {
       const sheets = await contactSheets(results);
       if (sheets.length) console.log(`ui-check: ${sheets.length} contact sheet(s) in ${path.join(runDir(), 'sheets')}`);
