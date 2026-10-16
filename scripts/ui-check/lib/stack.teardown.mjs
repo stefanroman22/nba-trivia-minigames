@@ -3,6 +3,7 @@
 // and stops the stack itself at the end).
 import { test as teardown } from '@playwright/test';
 import { stopStack, readStack } from './stack.mjs';
+import { activePorts } from '../../check-core/lib/ports.mjs';
 import { sweepAccounts, closeMinter } from './accounts.mjs';
 
 teardown('stack down', async () => {
@@ -22,5 +23,5 @@ teardown('stack down', async () => {
     console.log('stack: kept (UI_CHECK_KEEP_STACK=1)');
     return;
   }
-  await stopStack();
+  await stopStack({ ports: activePorts() });
 });

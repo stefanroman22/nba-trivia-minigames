@@ -189,6 +189,10 @@
   pointer-events: none;
   z-index: 5;
 }
+/* In-place game over: the ScorePanel buttons take this spot, so a popup still mid-life
+   (e.g. "Board cleared!" lives 1500 ms) must be gone first. 0.15s < EndSequence's 0.16s
+   input exit, so it is fully hidden before the score phase can paint (Rule 6.4). */
+.feedback-slot.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0s 0.15s; }
 /* Compact games (VS cards, single prompt + input, survey board…) hug their
    content so the stage sits snug with the stage-inner clamp padding above and
    below + a small gap to the exit, instead of stretching into the tall board

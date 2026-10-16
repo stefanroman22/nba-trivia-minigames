@@ -2,9 +2,10 @@ import { createContext, useCallback, useContext, useMemo, useState, type ReactNo
 import type { Game } from "../types/types";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import type { ReviewRound } from "../utils/reviewRounds";
+import type { PendingRankUp } from "../store/userSlice";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion" | "rankUp";
 
 export interface InstructionsPayload {
   game: Game;
@@ -48,8 +49,11 @@ export interface ReportQuestionPayload {
   rounds: ReviewRound[];
 }
 
+/** The promotion the rank-up modal celebrates (from user.pendingRankUp). */
+export type RankUpPayload = PendingRankUp;
+
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | RankUpPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

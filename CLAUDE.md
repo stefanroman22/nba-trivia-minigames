@@ -22,6 +22,8 @@ tools over the sandboxed `mcp__plugin_playwright_playwright__*` ones, which get
 a blank throwaway profile and cannot see logged-in state.
 
 For a full automated UI audit use the `ui-check` skill; to fix its findings, the `ui-fix` skill.
+For API / socket / page-status checks use the `logic-check` skill. The nightly Task Scheduler task `nba-checks`
+(02:00, `scripts/check-run.ps1`) runs Logic Check, then UI check, on `main` and pushes both checkers' cards.
 Any UI fix asked for in chat goes through the `frontend-engine` agent and is then proven with the matching
 ui-check checks on all 7 viewports (`node scripts/ui-check/run.mjs --only "<ids from scripts/ui-check/CHECKS.md>" --vp all --mode dev`);
 if it is an existing finding, use `ui-fix <id>` instead (it does both plus review).
@@ -81,6 +83,12 @@ publish game data (questions, answer lists, data corrections) to production on i
 game-data publishing stays manual. Code changes are never covered by this: they still need the
 owner's promote.
 
+**Exception — checker findings (owner, 2026-10-15).** Checker findings (ui-check, later
+logic-check) are the standing exception: `ui-fix` and pipeline cards with `Target = main` ship to
+`main` via the hotfix flow (branch from main, into main — `ui-fix` by a merged PR, the pipeline by
+fast-forward — then a back-merge PR main → dev; relay changes parked for the owner). Everything
+else still stops at dev.
+
 ## Building or touching any game's UI — read this first
 **`docs/GAME_DESIGN_CONSTRAINTS.md` is mandatory reading before writing or reviewing any game
 renderer** (`src/Game Renderers/*.tsx`). It defines the shared shell every game must fit into
@@ -100,6 +108,7 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `.claude/README.md` | changing the coding-agent model/effort profile |
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
 | `docs/ui-check/README.md` | running UI audits or fixing UI-check findings |
+| `docs/logic-check/README.md` | running Logic Check (API, socket, page status), fixing its findings, or the nightly `nba-checks` run and its block/catch-up channel |
 | `docs/CACHING_SCALING_PLAN.md` | deciding whether friends/leaderboard data needs Redis caching, or touching `users/leaderboard.py`/`users/friends.py`'s query shape |
 
 ## Coding engines & profiles
@@ -107,7 +116,8 @@ Subagent models/effort follow a named profile: `npm run engine <fast|balanced|de
 model policy (which work goes to fable/opus/sonnet/haiku) is `docs/team/PIPELINE.md` §14. See `.claude/README.md`.
 
 ## Autonomous team pipeline
-An unattended pipeline turns Notion task cards into commits on `dev`: intake → classify → brief →
+An unattended pipeline turns Notion task cards into commits on `dev` (check cards with
+`Target = main`: on `main`, see Shipping): intake → classify → brief →
 [plan] → build → verify → QA → review → ship, run headlessly via the `team-run` skill (a scheduled
 cloud routine, plus `npm run team` on demand). The mechanical steps are scripts in `scripts/team/`;
 agents work from one generated brief per card (`.team/run/<slug>/brief.md`) and are resumed, not

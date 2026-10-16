@@ -282,29 +282,32 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
       <EndSequence
         phase={bottomPhase}
         input={
-          <GameFrame.InputRow>
-            <AutocompleteInput
-              placeholder={activeId == null ? "Tap a hex first…" : "Name a player…"}
-              value={guess}
-              setValue={setGuess}
-              suggestions={playerNames}
-              onSubmit={handleGuessSubmit}
-              customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
-              customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
-            />
-            <Button size="md" onClick={() => handleGuessSubmit()} disabled={finished || activeId == null || guess.trim() === ""}>
-              Guess
-            </Button>
-            <Button size="md" variant="secondary" onClick={endGame} disabled={finished}>
+          <div className="hm-controls">
+            <GameFrame.InputRow>
+              <AutocompleteInput
+                placeholder={activeId == null ? "Tap a hex first…" : "Name a player…"}
+                value={guess}
+                setValue={setGuess}
+                suggestions={playerNames}
+                onSubmit={handleGuessSubmit}
+                customStyleInput={{ width: "100%", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
+                customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
+              />
+              <Button size="md" onClick={() => handleGuessSubmit()} disabled={finished || activeId == null || guess.trim() === ""}>
+                Guess
+              </Button>
+            </GameFrame.InputRow>
+
+            <button type="button" className="hm-giveup" onClick={endGame} disabled={finished}>
               Give up
-            </Button>
-          </GameFrame.InputRow>
+            </button>
+          </div>
         }
         score={
           <>
             <ScorePanel
               score={capped}
-              label={cleared ? "Board cleared!" : "Board done"}
+              label={cleared ? "Board cleared!" : undefined}
               won={cleared}
               onPlayAgain={onPlayAgain}
               onClose={onClose}

@@ -58,7 +58,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | Deploy and pin the photo-check service (`moderation_service`, set `IMAGE_MODERATION_URL`), then switch photo upload on and update the policy | Photo upload returns 503 in production today |
 | Block Russia and sanctioned regions at the edge (Vercel firewall) | Terms/Privacy say the service is not available there but nothing enforces it |
 | Remove `.sqlite3` data and `backend/media/profiles/*` personal-looking files, and `local deployment/ADMIN_CREDENTIALS.md`, from the OneDrive-synced tree | Personal data and a credential in a cloud-synced folder |
-| `StartingFive.tsx` has an unused `RevealedFace` component and a placeholder avatar URL (`i.pravatar.cc`) that would leak a player name if ever rendered | Dead today; delete it rather than ever wiring it in |
+| ~~`StartingFive.tsx` sent revealed player names to `i.pravatar.cc` for placeholder faces~~ | Resolved 2026-10-16: it was rendered on every card flip; replaced by real photos via `PlayerPhoto` (cdn.nba.com, else Wikimedia Commons with credits at `/credits`, else a silhouette) |
 | Accept and file the Vercel and Supabase DPAs (dated copies) | Art 28 evidence |
 | Throttle or require login for the public photo endpoint | Scraping; weighed and left public for now (the photos are already public on leaderboards) |
 

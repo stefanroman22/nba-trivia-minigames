@@ -5,9 +5,12 @@ import { closeSync, mkdirSync, openSync } from 'node:fs';
 import path from 'node:path';
 import { REPO_ROOT } from './run-id.mjs';
 import { stopStack } from './stack.mjs';
+import { activePorts } from '../../check-core/lib/ports.mjs';
 
 export const UIC = path.join(REPO_ROOT, 'scripts', 'ui-check');
 const PW_CLI = path.join(REPO_ROOT, 'node_modules', '@playwright', 'test', 'cli.js');
+/** The Logic Check runner (scripts/logic-check/run.mjs); verify's `lc` criteria run through it. */
+export const LOGIC_RUN = path.join(REPO_ROOT, 'scripts', 'logic-check', 'run.mjs');
 
 const list = (s) => String(s).split(',').map((x) => x.trim()).filter(Boolean);
 
@@ -24,16 +27,30 @@ let child = null;
 /**
  * Run one Playwright invocation → its exit code. `log`: a file that takes the child's stdout/stderr instead of this
  * terminal (verify/probe keep their own output compact); without it the child inherits stdio and a header is printed.
+ * `config`: the Playwright config directory (default scripts/ui-check; Logic Check passes scripts/logic-check).
  */
-export function playwright(projects, { workers, grep, grepInvert, headed, env, log = null }) {
-  const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, UIC), '--workers', String(workers), '--pass-with-no-tests'];
+export function playwright(projects, { workers, grep, grepInvert, headed, env, log = null, config = UIC }) {
+  const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, config), '--workers', String(workers), '--pass-with-no-tests'];
   for (const p of projects) args.push('--project', p);
   if (grep) args.push('--grep', grep);
   if (grepInvert) args.push('--grep-invert', grepInvert);
   if (headed) args.push('--headed');
+  if (!log) console.log(`\nui-check: playwright ${projects.length} project(s), ${workers} worker(s)${grep ? `, --grep ${grep}` : ''}${grepInvert ? `, --grep-invert ${grepInvert}` : ''}`);
+  return runChild(args, { env, log });
+}
+
+/**
+ * `node scripts/logic-check/run.mjs --only <ids> --mode <mode> --keep-stack` → its exit code (output to `log`). The
+ * caller points UI_CHECK_RUN at a scratch run in `env` and reads that run's results.json (the shared reporter shape).
+ */
+export function logicCheck(ids, { mode, env, log = null }) {
+  return runChild([LOGIC_RUN, '--only', ids.join(','), '--mode', mode, '--keep-stack'], { env, log });
+}
+
+/** One child node process (the interruptible `child`), stdout/stderr to `log` or inherited → its exit code. */
+function runChild(args, { env, log }) {
   let fd = null;
   if (log) { mkdirSync(path.dirname(log), { recursive: true }); fd = openSync(log, 'a'); }
-  else console.log(`\nui-check: playwright ${projects.length} project(s), ${workers} worker(s)${grep ? `, --grep ${grep}` : ''}${grepInvert ? `, --grep-invert ${grepInvert}` : ''}`);
   return new Promise((resolve) => {
     const done = (code) => { child = null; if (fd !== null) closeSync(fd); resolve(code); };
     child = spawn(process.execPath, args, { cwd: REPO_ROOT, stdio: fd === null ? 'inherit' : ['ignore', fd, fd], env: { ...process.env, ...env } });
@@ -45,10 +62,10 @@ export function playwright(projects, { workers, grep, grepInvert, headed, env, l
 /**
  * Ctrl+C / SIGTERM / an uncaught error: kill the Playwright child and stop the stack (unless keepStack),
  * since the caller's `finally` never runs then. A hard kill (taskkill /F, SIGKILL) can't be caught: use run.mjs --stop.
- * `onExit` runs first (e.g. restore a pointer file). `stop` replaces the whole-stack stop (verify/probe/report stop
- * only what they started).
+ * `onExit` runs first (e.g. restore a pointer file). `stop` replaces the default stop of this process's stack (the
+ * ports of UI_CHECK_PORTS or the mode; verify/probe/report stop only what they started).
  */
-export function installEmergencyStop(keepStack, onExit = null, stop = () => stopStack()) {
+export function installEmergencyStop(keepStack, onExit = null, stop = () => stopStack({ ports: activePorts() })) {
   let stopping = false;
   const bail = async (why, code) => {
     if (stopping) return;

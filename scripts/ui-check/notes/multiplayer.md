@@ -72,7 +72,7 @@ MultiplayerContext phase is not reachable from outside. `startStateLog` records 
   in `matchFound {code, role, roomType:'match', roomSize:2, you, opponent, opponents, game}` → in `roundData {gameData,
   game}` (dealt during the 2.6 s VS intro) → out `submitScore {code, score, elapsedMs}` → the first finisher in
   `waitingForOpponent`, the other in `opponentFinished {id, username}` → both in `matchResult {yourScore, opponentScore,
-  outcome, standings}` → the scorer in `pointsAwarded {awarded, points, rank}` (1v1 only, score > 0).
+  outcome, standings}` → the scorer in `pointsAwarded {awarded, points, rank, rank_up, progress, streak, ...} (the whole receipt row)` (1v1 only, score > 0).
 - Friend room: out `createFriendRoom {game, size}` → in `friendRoomCreated` (lobby snapshot: code, game, capacity,
   min, max, hostUid, members[{id, username, isHost, online}]) → joiner out `joinFriendRoom {code}` → joiner in
   `friendRoomJoined`, host in `friendLobbyUpdate`; `setRoomSize` / `changeFriendGame` → `friendLobbyUpdate` to both;
@@ -131,10 +131,10 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   with "<name> doesn't fit that square.", the turn stays). `playDuel` waits for whoever shows YOUR TURN; each joiner
   turn passes to the host only when its 25 s clock runs out (waited for real twice per run, pair A only: `turn-pass`).
   Host three in a row → banners "You win!" / "Opponent wins" (held 1.8 s, read inside the motion window) → results
-  225 / 90 (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
+  200 / 30 (a draw 120) (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
   player from a one-player-per-cell matching of the whole board (`assign`, the same on both pages), so the two players
   never name the same person. `playDuel(pair, adapter, { script })` plays `DUEL_SCRIPTS.win` (MP-GAME-tictactoe) or
-  `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 150 / 150; the duel submits no play
+  `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 120 / 120; the duel submits no play
   times, so the relay's rankRoom calls it a tie: the only deterministic way to the draw headline, no clock waited out).
 - The decided duel board: the relay settles a duel in the same tick as its last move and MultiplayerContext switches to
   the results at once, so TicTacToe.tsx's 1.8 s "hold the banner" never happens: the mover sees no banner at all, the
@@ -165,9 +165,9 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   relay shows each to the other as "Player" with no photo (`publicUser` / `maskedForStrangers`); friend rooms show real
   names. `shownName(p, type)` gives the expected name; results / waiting / prompts / notices use it.
 - Per full run (4 pairs + pair-A-only files), credited by the relay to the local sqlite only (1v1 matches; friend rooms
-  never credit, checked in every MP-GAME test): testuser1 +200 per pair (MP-RESULT-01 50, MP-PROP-01 50 + rematch 50,
-  MP-PROP-02 50) = 800, + 50 in MP-TIMEOUT-01 = **+850 points**; testuser2 +50 per pair (the all-right rematch in
-  MP-PROP-01) = **+200 points**. Each credited match also writes one `GameSession(mode='match')` row per player (a 0
+  never credit, checked in every MP-GAME test): testuser1 +400 per pair (Series Winner, 100 per credited round: MP-RESULT-01, MP-PROP-01 + rematch,
+  MP-PROP-02) = 1600, + 100 in MP-TIMEOUT-01 = **+1700 points**; testuser2 +100 per pair (the all-right rematch in
+  MP-PROP-01) = **+400 points**. Each account's first scoring game of a Paris day adds +100, so the exact totals vary by up to 100 per account per run. Each credited match also writes one `GameSession(mode='match')` row per player (a 0
   score too, awarded 0). Matches left mid-game (MP-MATCH-01, MP-RES-01, MP-TIMEOUT-01's grace match) credit nothing. Ranks
   rise with the points; that only reorders matchmaking candidates (see above). No per-account throttle is hit (the
   relay's credit call is server to server, unthrottled; MP submits no `log-session`). Each test mints 2 token pairs

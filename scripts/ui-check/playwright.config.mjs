@@ -1,34 +1,28 @@
 // UI check — Playwright Test config. Run through node, never the npx string form:
 //   node node_modules/@playwright/test/cli.js test -c scripts/ui-check --project selftest
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@playwright/test';
-import { VIEWPORTS, MP_PAIRS, contextOptions } from './lib/viewports.mjs';
-import { UIC_ROOT, runId } from './lib/run-id.mjs';
+import { pickChannel } from './lib/browser-channel.mjs';
+import { VIEWPORTS, MP_PAIRS, CORE, contextOptions } from './lib/viewports.mjs';
+import { UIC_ROOT, isolateSelftest, runId } from './lib/run-id.mjs';
 import { MODES } from './lib/stack.mjs';
+import { activePorts } from '../check-core/lib/ports.mjs';
 
-// Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN.
+// Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN (a selftest-only invocation
+// writes under <home>/selftest/, never a run dir).
+isolateSelftest();
 runId();
 
 // Stack mode (spec §4): run.mjs sets UI_CHECK_MODE; a direct invocation defaults to prod, like stack-setup.
+// baseURL: UI_CHECK_BASE when set, else the web port of UI_CHECK_PORTS or of the mode.
 const MODE = process.env.UI_CHECK_MODE || 'prod';
 if (!MODES[MODE]) throw new Error(`UI_CHECK_MODE must be prod or dev, got "${MODE}"`);
-const BASE_URL = `http://localhost:${MODES[MODE].web}`;
+const BASE_URL = process.env.UI_CHECK_BASE || `http://localhost:${activePorts(MODE).web}`;
+// The live site for `run.mjs --live` (guest-live@<vp> projects): read-only, no stack, no accounts.
+const LIVE_URL = process.env.UI_CHECK_LIVE_URL || 'https://swishquest.com';
 
-/**
- * Browser channel, mirroring scripts/qa-browser.mjs#launchBrowser: installed Chrome on win32,
- * then Edge, else Playwright's bundled Chromium. Chosen by checking the install paths so a missing
- * channel never hard-fails the run. UI_CHECK_CHANNEL overrides ('' = bundled).
- */
-export function pickChannel() {
-  if (process.env.UI_CHECK_CHANNEL !== undefined) return process.env.UI_CHECK_CHANNEL || undefined;
-  if (process.platform !== 'win32') return undefined;
-  const roots = [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA].filter(Boolean);
-  const has = (rel) => roots.some((r) => existsSync(path.join(r, rel)));
-  if (has('Google/Chrome/Application/chrome.exe')) return 'chrome';
-  if (has('Microsoft/Edge/Application/msedge.exe')) return 'msedge';
-  return undefined;
-}
+/** Browser channel (installed Chrome / Edge on win32, else bundled Chromium; UI_CHECK_CHANNEL overrides). */
+export { pickChannel };
 
 /** One project per viewport for a suite: `<suite>@<vpId>`, carrying {vpId, persona, suite} in `use`. */
 export function suiteProjects(suite, { vps = Object.keys(VIEWPORTS), persona = 'guest', testDir = `./specs/${suite}` } = {}) {
@@ -41,6 +35,13 @@ export function suiteProjects(suite, { vps = Object.keys(VIEWPORTS), persona = '
 
 /** A project that runs against the app: needs the stack (stack-setup) and the mode's baseURL. */
 const onApp = (p) => ({ ...p, dependencies: ['stack-setup'], use: { ...p.use, baseURL: BASE_URL } });
+
+/**
+ * The live site, read-only (run.mjs --live): only tests tagged @live (project grep, so a direct --project run cannot
+ * pick up anything else), no stack-setup dependency, service workers blocked so every request passes the audit's
+ * live-write guard (lib/fixtures.mjs), env 'live' on every result.
+ */
+const onLive = (p) => ({ ...p, name: p.name.replace(/^guest@/, 'guest-live@'), grep: /@live\b/, use: { ...p.use, baseURL: LIVE_URL, env: 'live', serviceWorkers: 'block' } });
 
 export default defineConfig({
   testDir: './specs',
@@ -68,6 +69,7 @@ export default defineConfig({
     { name: 'stack-setup', testDir: './lib', testMatch: /stack\.setup\.mjs$/, teardown: 'stack-teardown' },
     { name: 'stack-teardown', testDir: './lib', testMatch: /stack\.teardown\.mjs$/ },
     ...suiteProjects('guest', { persona: 'guest' }).map(onApp),
+    ...suiteProjects('guest', { persona: 'guest', vps: CORE }).map(onLive),
     ...suiteProjects('account', { persona: 'solo' }).map(onApp),
     ...suiteProjects('games', { persona: 'solo' }).map(onApp),
     // Multiplayer: the two accounts are shared, so tests of a file run one after another in file order (fullyParallel

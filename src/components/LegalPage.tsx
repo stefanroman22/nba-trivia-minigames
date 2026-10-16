@@ -31,8 +31,15 @@ export const LegalList = ({ children }: { children: ReactNode }) => (
   <ul style={{ paddingLeft: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem", listStyle: "disc" }}>{children}</ul>
 );
 
+/** In-text links are underlined, not told apart by colour alone (axe link-in-text-block). */
+const legalLinkStyle = { color: "var(--brand)", textDecoration: "underline", textUnderlineOffset: 2 } as const;
+
+export const LegalLink = ({ href, children }: { href: string; children: ReactNode }) => (
+  <a href={href} style={legalLinkStyle}>{children}</a>
+);
+
 export const MailLink = () => (
-  <a href={`mailto:${LEGAL.contactEmail}`} style={{ color: "var(--brand)" }}>{LEGAL.contactEmail}</a>
+  <a href={`mailto:${LEGAL.contactEmail}`} style={legalLinkStyle}>{LEGAL.contactEmail}</a>
 );
 
 /** The "short version" box at the top of a page. */

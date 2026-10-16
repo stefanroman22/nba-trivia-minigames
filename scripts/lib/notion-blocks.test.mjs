@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { markdownToBlocks } from "./notion-blocks.mjs";
+import { markdownToBlocks, blockBatches } from "./notion-blocks.mjs";
 import { assembleSpec } from "./notion-spec.mjs";
 
 const fakeImage = async (path, caption) => ({ object: "block", type: "image", image: { type: "file_upload", file_upload: { id: `id:${path}` }, caption: caption ? [{ type: "text", text: { content: caption } }] : [] } });
@@ -28,4 +28,22 @@ test("the pipeline's spec assembler reads the blocks back as plain spec text", a
   const asRead = blocks.map((b) => ({ type: b.type, [b.type]: { rich_text: b[b.type].rich_text.map((t) => ({ plain_text: t.text.content })) } }));
   const out = await assembleSpec({ blocks: asRead, files: [], comments: [], botId: "bot", download: async () => null });
   assert.equal(out, "## Goal\n- one\nplain");
+});
+
+test("an attached findings.json is downloaded under its own name and listed as a file", async () => {
+  const seen = [];
+  const download = async (url, index, name) => { seen.push({ url, index, name }); return `/att/p1/${name}`; };
+  const files = [{ name: "findings.json", type: "file", file: { url: "https://s3/x/findings.json?sig=1" } }];
+  const out = await assembleSpec({ blocks: [], files, comments: [], botId: "bot", download });
+  assert.deepEqual(seen, [{ url: "https://s3/x/findings.json?sig=1", index: 0, name: "findings.json" }]);
+  assert.equal(out, "[File attached: /att/p1/findings.json (findings.json)]");
+});
+
+test("a >100-block body is split into request batches of at most 100, order kept", async () => {
+  const md = Array.from({ length: 250 }, (_, i) => `- item ${i}`).join("\n");
+  const blocks = await markdownToBlocks(md, fakeImage);
+  const batches = blockBatches(blocks);
+  assert.deepEqual(batches.map((b) => b.length), [100, 100, 50]);
+  assert.deepEqual(batches.flat(), blocks);
+  assert.deepEqual(blockBatches([]), []);
 });

@@ -1,6 +1,6 @@
 // Adapter: Career Path (src/Game Renderers/CareerPath.tsx). One mystery player; a rail of career cards (one per team
 // stint), the first face-up; ONE name guess per card: every miss flips the next card, the guess after the last card
-// ends the game with 0. A right guess scores (cards − misses) × 100. Right → "Correct! +N" (N varies with the misses,
+// ends the game with 0. A right guess scores 200 − 40 × misses (floor 40). Right → "Correct! +N" (N varies with the misses,
 // so the answer result carries `points`), wrong → "Not him." (the last miss too: the ordinary copy, Rule 6.3). Ends in place with NO loader and NO ScorePanel: the result line sits in the status row, Play again /
 // Close game alone in the action slot (a documented deviation, constraints doc; the driver reads both).
 //
@@ -47,7 +47,7 @@ export default {
   timerMs: null,
   pointsPerCorrect: null, // varies: the answer result carries `points`
   scenarios: {
-    perfect: true, // right first guess → cards × 100
+    perfect: true, // right first guess → 200
     wrong: true, // a miss per card until the last guess → 0
     partial: true, // one miss, then the right name (never the last guess)
     timeout: 'no clock in Career Path',
@@ -57,7 +57,7 @@ export default {
 
   expectedScore(turns, ctx) {
     const won = turns.some((t) => t.correct);
-    return won ? (ctx.state.stints - turns.filter((t) => !t.correct).length) * 100 : 0;
+    return won ? Math.max(40, 200 - 40 * turns.filter((t) => !t.correct).length) : 0;
   },
 
   async answer(page, ctx, { correct }) {
@@ -99,7 +99,7 @@ export default {
       if (guess == null) throw new Error('career-path: no guaranteed-wrong name available (no captured autocomplete list)');
       st.tried.add(normAnswer(guess));
     }
-    const points = right ? left * 100 : null;
+    const points = right ? Math.max(40, 200 - 40 * st.wrong) : null;
     if (!right) st.wrong++;
     await typeAndConfirm(page, guess, { confirm: L(page, 'games.confirmGuess') });
     const next = await nextTurn(page, keyOf, st.key, shellIsOver);

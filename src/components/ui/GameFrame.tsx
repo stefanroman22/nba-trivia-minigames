@@ -1,4 +1,4 @@
-import { Children, type ReactNode } from "react";
+import { Children, useLayoutEffect, useRef, type ReactNode } from "react";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import { durations } from "../../motion/tokens";
 
@@ -110,12 +110,37 @@ function Action({ children }: { children: ReactNode }) {
 }
 
 /**
- * The standard submission row: a growing input followed by its confirm button(s).
- * Every game that takes a typed answer uses this, so the with-input family all
- * share one width, one gap and one control height. Put it inside <Action>.
+ * The standard submission row: the answer field centred on the frame, its submit
+ * button hanging to the right. Every game that takes a typed answer uses this, so
+ * the with-input family all share one width, one gap and one control height. Put it
+ * inside <Action>. The first child is the field; every other child is an action.
+ *
+ * The button is never counted when centring (Rule 4.8): the row is a 3-column grid
+ * whose side columns are both as wide as the actions, so the field sits on the centre
+ * line. `--gf-side` (the actions' measured width) is written straight onto the row
+ * by a ResizeObserver, with no re-render, and read once before first paint.
  */
 function InputRow({ children }: { children: ReactNode }) {
-  return <div className="gf-inputrow">{children}</div>;
+  const [field, ...actions] = Children.toArray(children);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    const box = actionsRef.current;
+    if (!row) return;
+    const setSide = () => row.style.setProperty("--gf-side", `${box ? box.offsetWidth : 0}px`);
+    setSide();
+    if (!box) return;
+    const ro = new ResizeObserver(setSide);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [actions.length]);
+  return (
+    <div className="gf-inputrow" ref={rowRef}>
+      {field}
+      {actions.length > 0 && <div className="gf-inputrow-actions" ref={actionsRef}>{actions}</div>}
+    </div>
+  );
 }
 
 GameFrame.Status = Status;

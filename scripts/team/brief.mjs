@@ -10,6 +10,7 @@ import { detectSteps } from "./lib/steps.mjs";
 import { extractRules, selectRules, ruleIndex } from "./lib/rules.mjs";
 import { classifyTouched } from "./lib/touched.mjs";
 import { runDir, readJson, writeState } from "./lib/state.mjs";
+import { isCheckCard, findingsOf, rulesOfFindings, renderCheckFindings, withVerifyAssertion } from "./lib/check-card.mjs";
 import { writeFileSync } from "node:fs";
 
 const argv = process.argv.slice(2);
@@ -23,12 +24,19 @@ const card = readJson(resolve(dir, "card.json"));
 const classify = readJson(resolve(dir, "classify.json"), {});
 if (!card) { console.error(`no card.json for ${slug} — run intake first`); process.exit(2); }
 
-const MAX_LINES = 400;
+// check cards (scripts/check-core/notion-push.mjs): the findings.json attachment is the acceptance — never the card body,
+// which may list only the top findings. A missing attachment still gets a verify assertion, so QA fails loudly.
+const check = isCheckCard(card);
+const findingsFile = check ? card.findingsFile || resolve(ROOT, ".team/attachments", String(card.id), "findings.json") : null;
+const findings = check && card.findingsFile ? findingsOf(readJson(card.findingsFile)) : null;
+const checkRules = rulesOfFindings(findings || []);
+// A check card's findings section alone may take 400 lines, so its brief gets 500.
+const MAX_LINES = check ? 500 : 400;
 const tier = classify.difficulty || card.tier || "standard";
 const engine = classify.engineModel || "sonnet";
 const steps = detectSteps(card.spec);
 const hasPlan = steps.hasPlan && tier !== "hard";
-const needsPlan = !hasPlan && !designPath && tier !== "trivial";
+const needsPlan = !check && !hasPlan && !designPath && tier !== "trivial";
 
 // --- keywords for rule selection: files the plan names, CODE_MAP hit basenames, game ids, title words
 const planFiles = steps.steps.flatMap((s) => s.files);
@@ -42,7 +50,7 @@ for (const a of classify.areas || []) kw.add(a);
 
 // --- rules: a global budget so two docs cannot blow the 400-line cap (6 rules for the first doc,
 // 3 for each further one, 25 body lines each — the index still lists every id)
-const docs = [...new Set(classify.docs || [])];
+const docs = [...new Set([...(classify.docs || []), ...checkRules.docs])];
 const ruleSections = [];
 let rulesQuoted = 0;
 docs.forEach((d, di) => {
@@ -50,7 +58,9 @@ docs.forEach((d, di) => {
   if (!existsSync(p)) return;
   const rules = extractRules(readFileSync(p, "utf8"));
   if (!rules.length) return;
-  const picked = selectRules(rules, [...kw], { max: di === 0 ? 6 : 3 });
+  // a check card's doc: exactly the rule ids its findings' fix.rules name
+  const forced = rules.filter((r) => checkRules.byDoc.get(d)?.has(r.id));
+  const picked = forced.length ? forced : selectRules(rules, [...kw], { max: di === 0 ? 6 : 3 });
   rulesQuoted += picked.length;
   ruleSections.push(`### ${d}\nAll rule ids (open the doc only for one of these when a quoted rule points there):\n${ruleIndex(rules)}\n`);
   for (const r of picked) {
@@ -58,11 +68,17 @@ docs.forEach((d, di) => {
     ruleSections.push(`#### RULE ${r.id} — ${r.heading}\n${body.slice(0, 25).join("\n")}${body.length > 25 ? `\n_(… ${body.length - 25} more lines in the doc)_` : ""}\n`);
   }
 });
+if (checkRules.refs.length) ruleSections.push(`Also named by the findings' \`fix.rules\` (open only what your change touches): ${checkRules.refs.map((x) => `\`${x}\``).join(", ")}\n`);
 
 // --- keep what a planner already wrote into an earlier brief (design round QA triples, a hand plan)
 const prevBrief = existsSync(resolve(dir, "brief.md")) ? readFileSync(resolve(dir, "brief.md"), "utf8") : "";
 const prevQa = (prevBrief.match(/## QA assertions[\s\S]*?```json\s*([\s\S]*?)```/) || [])[1]?.trim();
-const qaJson = prevQa && prevQa !== "[]" ? prevQa : "[]";
+let qaJson = prevQa && prevQa !== "[]" ? prevQa : "[]";
+if (check) {
+  let prev = [];
+  try { prev = JSON.parse(qaJson); } catch { /* a planner's broken JSON: replaced */ }
+  qaJson = JSON.stringify(withVerifyAssertion(prev, findingsFile), null, 2);
+}
 
 // --- files named (first 40 lines each, max 6)
 const named = [];
@@ -82,7 +98,12 @@ if (!checks.length) checks.push("docs/config only — verify and QA are skipped"
 
 // --- plan section
 let planSection;
-if (designPath) {
+if (check) {
+  planSection = [
+    `Check card: follow '${/^logic-check\b/.test(String(card.source || "")) ? "Fixing a Logic-check finding" : "Fixing a UI-check finding"}' in your agent file; the acceptance is the attached findings; no plan writer needed.`,
+    `Read your finding from \`${findingsFile}\` (not from a run dir). Do not run verify.mjs yourself: gate 2 runs \`verify.mjs --from\` on this card's lane and relays every FAIL line to you.`,
+  ].join("\n");
+} else if (designPath) {
   planSection = `Design round plan: \`${designPath}\` → implement its \`## Implementation plan\` step by step; do not re-plan.`;
 } else if (hasPlan) {
   const tag = engine === "opus" ? "[opus]" : "[sonnet]";
@@ -102,6 +123,11 @@ const lines = [
   `## Spec`,
   card.spec.trim(),
   ``,
+  ...(check ? [
+    `## Check findings`,
+    findings ? renderCheckFindings(findings, { file: findingsFile }) : `_The findings.json attachment is missing or unreadable (\`${findingsFile}\`) — QA will fail; the owner must re-attach it._`,
+    ``,
+  ] : []),
   `## Attachments`,
   (card.attachments || []).length ? (card.attachments || []).map((a) => `- \`${a}\` — Read it before implementing; it is the visual source of truth.`).join("\n") : "_none_",
   ``,
@@ -133,16 +159,16 @@ let count = text.split("\n").length;
 if (count > MAX_LINES) {
   // trim "Files named" first, then hard-truncate the rules section (the index of ids always survives)
   const i = lines.indexOf("## Files named by the plan");
-  lines[i + 1] = "_trimmed to keep the brief under 400 lines — read the files directly_";
+  lines[i + 1] = `_trimmed to keep the brief under ${MAX_LINES} lines — read the files directly_`;
   text = lines.join("\n"); count = text.split("\n").length;
   if (count > MAX_LINES) {
     const r = lines.indexOf("## Rules that apply");
     const over = count - MAX_LINES;
     const ruleLines = lines[r + 1].split("\n");
-    lines[r + 1] = ruleLines.slice(0, Math.max(20, ruleLines.length - over - 1)).join("\n") + "\n_(rules truncated to fit 400 lines — the id index above is complete; open a rule in the doc when needed)_";
+    lines[r + 1] = ruleLines.slice(0, Math.max(20, ruleLines.length - over - 1)).join("\n") + `\n_(rules truncated to fit ${MAX_LINES} lines — the id index above is complete; open a rule in the doc when needed)_`;
     text = lines.join("\n"); count = text.split("\n").length;
   }
 }
 writeFileSync(resolve(dir, "brief.md"), text + "\n");
 writeState(slug, { stage: needsPlan ? "plan" : "build", tier, hasPlan, needsPlan });
-console.log(JSON.stringify({ brief: `.team/run/${slug}/brief.md`, hasPlan, needsPlan, lines: count, rulesQuoted, planFiles }, null, 2));
+console.log(JSON.stringify({ brief: `.team/run/${slug}/brief.md`, hasPlan, needsPlan, lines: count, rulesQuoted, planFiles, ...(check ? { checkCard: true, findingsFile, findings: findings ? findings.length : 0 } : {}) }, null, 2));

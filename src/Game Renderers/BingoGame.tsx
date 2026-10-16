@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -34,34 +35,11 @@ const MAX_FAME_DEALT = 3;   // fame_tier 4 players are never dealt
 interface GuessEntry { question_id: string; answer: string; correct: boolean; elapsed_ms: number }
 interface ClaimedBy { name: string; person_id: number }
 
-const headshotUrl = (personId: number) =>
-  `https://cdn.nba.com/headshots/nba/latest/260x190/${personId}.png`;
-
-/** Orange silhouette shown when the NBA CDN headshot fails to load. */
-function DealFallback() {
-  return (
-    <svg viewBox="0 0 64 72" className="bng-deal-fallback" aria-hidden="true">
-      <circle cx="32" cy="26" r="13" fill="var(--brand)" />
-      <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" fill="var(--brand)" />
-    </svg>
-  );
-}
-
 // Opacity-only swap (no travel) for blocks that must not move.
 const FADE_ONLY = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 
 function DealPhoto({ player }: { player: PlayerIndexEntry }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [player.person_id]);
-  if (failed) return <DealFallback />;
-  return (
-    <img
-      className="bng-deal-photo"
-      src={headshotUrl(player.person_id)}
-      alt=""
-      onError={() => setFailed(true)}
-    />
-  );
+  return <PlayerPhoto personId={player.person_id} alt="" size="sm" className="bng-deal-photo" fallbackClassName="bng-deal-fallback" />;
 }
 
 function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {

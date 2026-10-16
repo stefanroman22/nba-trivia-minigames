@@ -122,7 +122,7 @@ test('[G-NAV-01] top nav links and the mobile drawer each do what they say', asy
   await audit.done();
 });
 
-test('[G-NAV-02] footer links (Games, Terms, Privacy, Contact) work', async ({ page, audit }) => {
+test('[G-NAV-02] @live footer links (Games, Terms, Privacy, Contact) work', async ({ page, audit }) => {
   test.setTimeout(90_000);
   await audit.goto('/', { waitFor: '#games-grid .gtile' });
   const games = playableGames();

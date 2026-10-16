@@ -1,7 +1,7 @@
 // Adapter: Fan Favorites (src/Game Renderers/FanFavorites.tsx). One survey ("Name a player who…"), 6-17 hidden answers
 // on a board, free-text autocomplete + Confirm, 3 hearts. A hit reveals its slot ("+N fans said it!"), a miss shows
 // "Not on the board" and costs a heart (the third also reveals the board, popup included: it reuses the ordinary
-// wrong copy, Rule 6.3). Clearing the board scores 300 ("Board cleared! +300"), otherwise round(300 × found / total).
+// wrong copy, Rule 6.3). Clearing the board scores 200 ("Board cleared! +200"), otherwise round(200 × found / total).
 // Ends in place (EndSequence loader → ScorePanel); not allowlisted.
 //
 // Rule 6.0 deviation, documented in docs/GAME_DESIGN_CONSTRAINTS.md: the correct popup is not `Correct! +N` (no
@@ -49,7 +49,7 @@ export default {
   pointsPerCorrect: null,
   feedback: { selector: '.feedback-slot > *', copy: 'wrong' },
   scenarios: {
-    perfect: true, // reveal the whole board → 300
+    perfect: true, // reveal the whole board → 200
     wrong: true, // three misses → the board is revealed, 0 points
     partial: true, // two misses (one heart left), then clear the board
     timeout: 'no clock in Fan Favorites',
@@ -60,7 +60,7 @@ export default {
   expectedScore(turns, ctx) {
     const total = ctx.state.survey.answers.length;
     const found = turns.filter((t) => t.correct).length;
-    return found === total ? 300 : Math.round((300 * found) / total);
+    return found === total ? 200 : Math.round((200 * found) / total);
   },
 
   async answer(page, ctx, { correct }) {

@@ -7,6 +7,8 @@ import { test, expect, createAudit } from '../../lib/fixtures.mjs';
 import DigestReporter, { buildDigest, mergeRun } from '../../lib/digest-reporter.mjs';
 import { VIEWPORTS } from '../../lib/viewports.mjs';
 import { runDir } from '../../lib/run-id.mjs';
+import { measureInPage, offCentre, shellFailures } from '../../../lib/game-shell.mjs';
+import { checkEndCentre, checkEndOverlay, checkLossLabel, watchEndOverlay } from '../../lib/game-driver.mjs';
 
 const FX = fileURLToPath(new URL('../../fixtures/detectors/', import.meta.url));
 const fx = (name) => pathToFileURL(path.join(FX, name)).href;
@@ -135,6 +137,90 @@ test('[ST-CLIPPED] clipped fires on text cut by overflow:hidden, not on sr-only 
 
   await open(audit, 'good.html');
   expect(await audit.layout({ rules: ['clipped'] })).toEqual([]);
+});
+
+test('[ST-CENTRE] off-centre fires on a field pushed aside by its buttons, score-line ink pushed right by its number box and a visible off-centre card; quiet when centred', async ({ page, audit }) => {
+  const fake = { id: 'fixture' };
+  await audit.goto(fx('centre.html') + '?mode=bad', { waitFor: 'main' });
+  const bad = await page.evaluate(measureInPage);
+  expect(bad.mounted).toBe(true);
+  const off = Object.fromEntries(offCentre(bad.centre).map((c) => [c.what, c]));
+  expect(Object.keys(off).sort()).toEqual(['.gf-board > div.ghost', '.gf-inputrow input', '.scorepanel-line']);
+  expect(off['.gf-inputrow input'].off).toBeLessThan(-20);
+  expect(off['.scorepanel-line'].by).toBe('ink');
+  expect(off['.scorepanel-line'].off).toBeGreaterThan(2);
+  // The score line's BOX is centred: only its ink shows the reserved width.
+  const lineBox = await page.evaluate(() => {
+    const l = document.querySelector('.scorepanel-line').getBoundingClientRect();
+    const g = document.querySelector('.gf').getBoundingClientRect();
+    return (l.left + l.right) / 2 - (g.left + g.right) / 2;
+  });
+  expect(Math.abs(lineBox)).toBeLessThan(1);
+  // The status row (left/right by design) is never measured; the input row's buttons are not counted.
+  expect(bad.centre.some((c) => /gf-status|inputrow-actions|Confirm/.test(c.what))).toBe(false);
+  // shellFailures (ui-audit, GM-SHELL-01) words it like the other shell rules …
+  const fails = shellFailures({ id: 'fixture', ...bad }).filter((f) => f.endsWith(' off centre — Rule 4.7'));
+  expect(fails).toHaveLength(3);
+  expect(fails).toContain(`fixture: .scorepanel-line is ${off['.scorepanel-line'].off}px off centre — Rule 4.7`);
+  // … and the games end-state check records each as `off-centre`.
+  await checkEndCentre(audit, fake);
+  expect(rulesOf(audit.violations)).toEqual(['off-centre']);
+  expect(audit.violations).toHaveLength(3);
+  audit.violations.length = 0; // the failures were the point
+
+  await audit.goto(fx('centre.html'), { waitFor: 'main' });
+  const good = await page.evaluate(measureInPage);
+  expect(offCentre(good.centre)).toEqual([]);
+  expect(good.centre.map((c) => c.what)).toEqual(expect.arrayContaining(['.gf-prompt > span.gf-eyebrow', '.gf-prompt > h2.gf-title',
+    '.scorepanel-line', '.scorepanel-actions', '.gf-inputrow input', '.gf-board > div.card', '.gf-action div.scorepanel']));
+  expect(good.centre.some((c) => c.what.includes('ghost'))).toBe(false); // effective opacity 0.03: skipped
+  expect(shellFailures({ id: 'fixture', ...good }).filter((f) => f.endsWith(' off centre — Rule 4.7'))).toEqual([]);
+  await checkEndCentre(audit, fake);
+  await audit.done();
+});
+
+test('[ST-END-OVERLAY] feedback-over-end fires on a popup animated over the end buttons, quiet when the shell hides it first', async ({ page, audit }) => {
+  await audit.goto(fx('end-overlay.html') + '?mode=bad', { waitFor: 'main' });
+  await watchEndOverlay(page);
+  await page.evaluate(() => window.finish());
+  const bad = await checkEndOverlay(audit);
+  expect(bad.done).toBe(true);
+  expect(bad.endAt).not.toBeNull();
+  expect(bad.bad).toBeGreaterThan(5);
+  expect(bad.first.text).toBe('Board cleared! +300');
+  expect(bad.first.t).toBeLessThan(100);
+  expect(rulesOf(audit.violations)).toEqual(['feedback-over-end']);
+  expect(audit.violations[0].measured).toMatch(/^"Board cleared! \+300" \(opacity [\d.]+\) over button "(Play again|Close game)" \d+ms after .* \d+ of \d+ frames$/);
+  audit.violations.length = 0; // the overlap was the point
+
+  await audit.goto(fx('end-overlay.html'), { waitFor: 'main' });
+  await watchEndOverlay(page);
+  await page.evaluate(() => window.finish());
+  const good = await checkEndOverlay(audit);
+  expect(good.done).toBe(true);
+  expect(good.frames).toBeGreaterThan(30); // sampled every frame of the window
+  expect(good.bad).toBe(0);
+  await audit.done();
+});
+
+test('[ST-LOSS-LABEL] loss-label fires on a score-line label after a loss, quiet on a win and on a loss without one', async ({ audit }) => {
+  const fake = { id: 'fixture' };
+  await audit.goto(fx('centre.html'), { waitFor: 'main' }); // "Board cleared!" on the score line
+  expect(await checkLossLabel(audit, fake, 'perfect', [{ correct: true }])).toBe('Board cleared!');
+  await checkLossLabel(audit, fake, 'partial', [{ correct: false }, { correct: true }]); // misses first, then finished
+  await checkLossLabel(audit, { id: 'fixture', won: () => true }, 'timeout', []); // the adapter's own won()
+  expect(audit.violations).toEqual([]);
+  await checkLossLabel(audit, fake, 'wrong', [{ correct: false }]);
+  await checkLossLabel(audit, fake, 'giveup', []);
+  await checkLossLabel(audit, fake, 'partial', [{ correct: true }, { correct: false }]); // ended on a miss
+  expect(rulesOf(audit.violations)).toEqual(['loss-label']);
+  expect(audit.violations).toHaveLength(3);
+  expect(audit.violations[0].measured).toBe('"Board cleared!" on the end score line after a loss (scenario wrong)');
+  audit.violations.length = 0;
+
+  await audit.goto(fx('centre.html') + '?mode=bad', { waitFor: 'main' }); // no label
+  expect(await checkLossLabel(audit, fake, 'wrong', [])).toBeNull();
+  await audit.done();
 });
 
 test('[ST-PROBES] console, timing, perf and a11y record what they should', async ({ page, audit }) => {
@@ -279,6 +365,31 @@ test('[ST-DIGEST] buildDigest collapses identical violations across viewports an
     { id: 'w1', repeatEachIndex: 0, title: '[G-W] w', annotations: [], parent: { project: () => ({ name: 'guest@phone-390', use: { suite: 'guest', vpId: 'phone-390' } }) } },
     { status: 'passed', duration: 5, annotations: [], attachments: [att({ checkId: 'G-W', vp: 'phone-390', routes: ['/'], shots: [], violations: [], metrics: [], warnings: [warn(1)] })] });
   expect([...wrep.entries.values()][0].warnings).toEqual([{ ...warn(1), vp: 'phone-390' }]);
+
+  // Mixed envs (a local run and a --live run of the same check): lines name the env only when it is not local, the
+  // header lists both, a violation seen in both collapses into one row listing both, the metrics get their own column.
+  const contrast = { rule: 'a11y', route: '/', selector: 'p.muted', measured: 'color-contrast (serious): low contrast', expected: 'no serious/critical axe violations' };
+  const envRow = (env) => ({ ...base, checkId: 'G-A11Y-01', title: '[G-A11Y-01] @live axe', project: env === 'live' ? 'guest-live@phone-390' : 'guest@phone-390',
+    vp: 'phone-390', env, status: 'failed', shots: [], violations: [contrast, ...(env === 'live' ? [{ ...contrast, selector: 'a.live-only' }] : [])],
+    metrics: [{ kind: 'perf', label: 'home cold lcp', value: env === 'live' ? 1800 : 900, unit: 'ms' }] });
+  const mixed = buildDigest([envRow('local'), envRow('live')], { runId: 'e', mode: 'prod', durationMs: 0 }).split('\n');
+  expect(mixed[0]).toBe('# UI check digest — run e · mode prod · env local+live · 2 tests · 0m0s');
+  expect(mixed.filter((l) => l.startsWith('- a11y'))).toEqual([
+    '- a11y `p.muted` on /: color-contrast (serious): low contrast (expected no serious/critical axe violations) — phone-390, phone-390 (live)',
+    '- a11y `a.live-only` on /: color-contrast (serious): low contrast (expected no serious/critical axe violations) — phone-390 (live)']);
+  expect(mixed).toContain('| label | phone-390 | phone-390 (live) |');
+  expect(mixed).toContain('| home cold lcp | 900ms | 1800ms |');
+  // A local-only digest stays as before: no env anywhere.
+  expect(buildDigest([envRow('local')], { runId: 'e', mode: 'prod', durationMs: 0 })).not.toMatch(/\(live\)| env /);
+  // The reporter takes env from the audit attachment (else the project's use.env) and sums the live-request counters.
+  const erep = new DigestReporter();
+  erep.onTestEnd(
+    { id: 'e1', repeatEachIndex: 0, title: '[G-A11Y-01] @live axe', annotations: [], parent: { project: () => ({ name: 'guest-live@phone-390', use: { suite: 'guest', vpId: 'phone-390', env: 'live' } }) } },
+    { status: 'passed', duration: 5, annotations: [], attachments: [
+      att({ checkId: 'G-A11Y-01', vp: 'phone-390', env: 'live', liveRequests: { read: 40, write: 0 }, routes: ['/'], shots: [], violations: [], metrics: [], warnings: [] }),
+      att({ checkId: 'G-A11Y-01', vp: 'phone-390', label: 'cold', env: 'live', liveRequests: { read: 2, write: 0 }, routes: ['/'], shots: [], violations: [], metrics: [], warnings: [] }),
+    ] });
+  expect([...erep.entries.values()][0]).toMatchObject({ env: 'live', liveRequests: { read: 42, write: 0 } });
 
   // Several invocations of one run (UI_CHECK_APPEND): results merge and the header spans first start → last end.
   const merged = mergeRun({

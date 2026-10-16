@@ -6,11 +6,14 @@ import { AnimatePresence, motion } from "framer-motion";
 import SegmentedTabs from "./motion/SegmentedTabs";
 import AutoHeight from "./motion/AutoHeight";
 import CopyIcon from "./motion/CopyIcon";
+import SwapText from "./motion/SwapText";
 import defaultAvatar from "../assets/default.png";
 import FriendsPanel from "./FriendsPanel";
 import { useProfilePhoto } from "../hooks/useProfilePhoto";
 import PhotoAgePrompt from "./PhotoAgePrompt";
 import { useNavigate } from "../hooks/useNavigate";
+import { Chip, ProgressBar } from "./ui";
+import { rankLabel } from "../utils/ranks";
 
 type ProfileView = "friends" | "profile";
 
@@ -136,9 +139,38 @@ function UserProfile() {
               <span className="pc-stat-divider" aria-hidden="true" />
               <div className="pc-stat">
                 <span className="pc-stat-lbl">Rank</span>
-                <span className="font-display pc-stat-num">{user?.rank}</span>
+                <span className="font-display pc-stat-num">{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}</span>
               </div>
             </div>
+
+            {/* Next rank + streak. A cached /me/ from before progression existed has no rank_progress:
+                the bar simply waits for the next fetch (every field is optional). */}
+            {user?.rank_progress && (
+              <div className="pc-progress">
+                <ProgressBar value={user.rank_progress.progress_pct} max={100} label="Progress to the next rank" />
+                <span className="pc-progress-note tnum">
+                  <SwapText>
+                    {user.rank_progress.next_rank
+                      ? `${user.rank_progress.points_to_next.toLocaleString()} pts to ${user.rank_progress.next_rank}` +
+                        (user.rank_progress.days_to_next > 0
+                          ? ` · ${user.rank_progress.days_to_next} more active ${user.rank_progress.days_to_next === 1 ? "day" : "days"}`
+                          : "")
+                      : "Top of the ladder"}
+                  </SwapText>
+                </span>
+              </div>
+            )}
+            {(typeof user?.streak_days === "number" || user?.founding_member) && (
+              <div className="pc-badges">
+                {typeof user?.streak_days === "number" && (
+                  <Chip>
+                    {user.streak_days === 0 ? "🔥 Start your streak" : `🔥 ${user.streak_days}-day streak`}
+                    {user.streak_freezes ? ` · ${user.streak_freezes} freeze` : ""}
+                  </Chip>
+                )}
+                {user?.founding_member && <Chip variant="brand">Founding Member</Chip>}
+              </div>
+            )}
 
             <button type="button" className="pc-settings" onClick={() => navigate("/profile")}>
               Profile settings

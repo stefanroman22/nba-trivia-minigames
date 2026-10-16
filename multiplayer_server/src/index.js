@@ -87,7 +87,7 @@ const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) a
 const SWITCH_STALE_MS = 2000;      // after a mid-round switch, a score this soon is the dropped round's (the client's intro alone is 2.6 s)
 const AWAY_NOTICE_MS = 15 * 60000; // how long a player removed while away (grace ran out) is told so on return
 const AWAY_MESSAGE = "You were away too long and left the room.";
-const MAX_SCORE = 1000;            // above every game's maxPoints (career-path's 700 is the largest)
+const MAX_SCORE = 1000;            // above every game's maxPoints (the daily Wordle's 500 is the largest)
 const INTRO_ALLOWANCE_MS = 5000;   // the VS intro (2.6 s) + latency between the deal and the first answer
 
 // Matchmaking: nobody waits for a "fair" opponent who may never come (few players online). A new
@@ -201,16 +201,28 @@ function maskedForStrangers(user) {
   return !room || room.type === "match";
 }
 
-const publicUser = (user) =>
-  user
-    ? {
-        id: user.id ?? null,                    // permanent public id (#K7F3QD)
-        username: maskedForStrangers(user) ? "Player" : user.username,
-        profile_photo: maskedForStrangers(user) ? null : user.profile_photo ?? null,
-        rank: user.rank,
-        points: user.points,
-      }
-    : { id: null, username: "Player" };
+/** Wire view of a player as seen by `viewerUid` (null = a stranger). A masked stranger carries no
+ *  name, photo or permanent id (`id: null, masked: true`); a player is never masked from themselves. */
+const publicUser = (user, viewerUid = null) => {
+  if (!user) return { id: null, masked: false, username: "Player" };
+  const masked = maskedForStrangers(user) && user.id !== viewerUid;
+  return {
+    id: masked ? null : user.id ?? null,       // permanent public id (#K7F3QD)
+    masked,
+    username: masked ? "Player" : user.username,
+    profile_photo: masked ? null : user.profile_photo ?? null,
+    rank: user.rank,
+    points: user.points,
+  };
+};
+
+/** The uid as `viewerUid` may see it: the uid, or null when that player is masked for the viewer.
+ *  Masked players exist only in random 1v1 rooms, so the client's username fallback key cannot collide. */
+const publicIdOf = (uid, viewerUid = null) => {
+  const user = players.get(uid)?.user;
+  if (!user) return uid === viewerUid ? uid : null;   // unknown player: fail closed
+  return uid !== viewerUid && maskedForStrangers(user) ? null : uid;
+};
 
 /** Display name for "X left" style messages (masked like publicUser). */
 const nameOf = (uid) => {
@@ -326,6 +338,8 @@ async function dealRound(room) {
  * both match (or both times are null); slower equal-scorers get "loss". Rows
  * carry elapsedMs so clients can show how a tie was broken. Shared by
  * settleMatch AND snapshotFor so live results and resumes can never disagree.
+ * Rows are internal ({ uid, score, elapsedMs, outcome }); standingsFor() builds
+ * the wire rows for one recipient (masked strangers carry no id).
  */
 function rankRoom(room) {
   const timeKey = (uid) => (room.times[uid] == null ? Infinity : room.times[uid]);
@@ -336,11 +350,21 @@ function rankRoom(room) {
   const sameAsBest = (e) => e.score === best.score && timeKey(e.uid) === timeKey(best.uid);
   const winners = ranked.filter(sameAsBest);
   return ranked.map((e) => ({
-    ...publicUser(players.get(e.uid)?.user),
-    id: e.uid,
+    uid: e.uid,
     score: e.score,
     elapsedMs: e.elapsedMs,
     outcome: !sameAsBest(e) ? "loss" : winners.length > 1 ? "tie" : "win",
+  }));
+}
+
+/** rankRoom's standings as `viewerUid` may see them (the wire shape of matchResult/resumeMatch). */
+function standingsFor(room, viewerUid) {
+  return rankRoom(room).map((r) => ({
+    ...publicUser(players.get(r.uid)?.user, viewerUid),
+    id: publicIdOf(r.uid, viewerUid),
+    score: r.score,
+    elapsedMs: r.elapsedMs,
+    outcome: r.outcome,
   }));
 }
 
@@ -348,7 +372,8 @@ function rankRoom(room) {
 // rooms never do (friends could farm points against each other): they play for the scoreboard only.
 // Only the relay can credit: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET,
 // and the scores are this room's own (already clamped in submitScore / set by turnGames). Each player
-// is credited once per round. Unset secret (local dev): online play awards nothing.
+// is credited once per round. Unset secret (local dev): online play awards nothing. Each player's
+// receipt row (awarded, points, rank, rank_up, progress, streak, …) is forwarded as-is in pointsAwarded.
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 const RELAY_KEY = process.env.MULTIPLAYER_SHARED_SECRET || "";
 
@@ -369,7 +394,7 @@ function creditRoom(room) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       for (const r of body.results || []) {
-        if (r.awarded > 0) toUid(r.public_id, "pointsAwarded", { awarded: r.awarded, points: r.points, rank: r.rank });
+        if (r.awarded > 0) toUid(r.public_id, "pointsAwarded", r);
       }
     })
     .catch((err) => console.error(`Crediting room ${room.code} failed:`, err.message));
@@ -380,14 +405,14 @@ function settleMatch(room) {
   room.phase = "results";
   creditRoom(room);
   // Shared scoreboard, best score first — the client renders this for 3-player rooms.
-  const standings = rankRoom(room);
-  standings.forEach((row) => {
-    const bestOther = Math.max(...standings.filter((o) => o.id !== row.id).map((o) => o.score));
-    toUid(row.id, "matchResult", {
+  const ranked = rankRoom(room);
+  ranked.forEach((row) => {
+    const bestOther = Math.max(...ranked.filter((o) => o.uid !== row.uid).map((o) => o.score));
+    toUid(row.uid, "matchResult", {
       yourScore: row.score,
       opponentScore: bestOther, // legacy 1v1 shape (the single opponent's score)
       outcome: row.outcome,
-      standings,
+      standings: standingsFor(room, row.uid),
     });
   });
 }
@@ -461,6 +486,8 @@ function restartRound(room, gameObj, why, notice = null) {
  *  if two or more remain (and it isn't a turn game), otherwise everyone returns to the lobby. */
 function removeMember(room, uid, why) {
   const name = nameOf(uid);
+  // Resolved before the seat is cleared: once roomCode is null, maskedForStrangers sees no room.
+  const shownId = new Map(othersOf(room, uid).map((m) => [m, publicIdOf(uid, m)]));
   if (room.type !== "friend" || room.members[0] === uid) {
     if (room.phase === "lobby") {
       othersOf(room, uid).forEach((m) => toUid(m, "friendRoomCancelled", { message: "The host closed the room." }));
@@ -495,7 +522,7 @@ function removeMember(room, uid, why) {
     return;
   }
   clearProposal(room);
-  room.members.forEach((m) => toUid(m, "memberLeft", { id: uid, username: name, message: `${name} left the match.` }));
+  room.members.forEach((m) => toUid(m, "memberLeft", { id: shownId.get(m) ?? null, username: name, message: `${name} left the match.` }));
   // Their missing score no longer holds up the settle (only a round being played: not one still loading).
   const live = room.phase === "playing" || room.phase === "waiting";
   if (live && room.members.every((m) => room.scores[m] != null)) settleMatch(room);
@@ -516,6 +543,7 @@ function lobbySnapshot(room) {
     min,                                     // the game's player bounds, for the host's size stepper
     max,
     hostUid: room.members[0],
+    // Friend lobbies are never masked (maskedForStrangers), so ids stay.
     members: room.members.map((uid) => ({
       ...publicUser(players.get(uid)?.user),
       id: uid,
@@ -547,7 +575,7 @@ function snapshotFor(room, uid) {
   if (phase === "playing" || phase === "waiting") {
     phase = room.scores[uid] != null ? "waiting" : "playing";
   }
-  const standings = phase === "results" ? rankRoom(room) : null;
+  const standings = phase === "results" ? standingsFor(room, uid) : null;
   return {
     code: room.code,
     game: room.game,
@@ -556,12 +584,12 @@ function snapshotFor(room, uid) {
     roomSize: room.members.length,
     role: room.members[0] === uid ? "host" : "guest",
     opponents: opps.map((m) => ({
-      ...publicUser(players.get(m)?.user),
-      id: m,
+      ...publicUser(players.get(m)?.user, uid),
+      id: publicIdOf(m, uid),
       online: !!socketIdOf(m),
       finished: room.scores[m] != null,
     })),
-    opponent: publicUser(players.get(opps[0])?.user),  // legacy 1v1 shape
+    opponent: publicUser(players.get(opps[0])?.user, uid),  // legacy 1v1 shape
     opponentOnline: !!socketIdOf(opps[0]),             // legacy 1v1 shape
     gameData: room.gameData,
     yourScore: room.scores[uid],
@@ -626,15 +654,15 @@ function createMatchRoom(game, entryA, entryB) {
   const [host, guest] = [entryA.uid, entryB.uid];
   toUid(host, "matchFound", {
     code, role: "host", roomType: "match", roomSize: 2,
-    you: publicUser(players.get(host)?.user),
-    opponent: publicUser(players.get(guest)?.user),
-    opponents: [publicUser(players.get(guest)?.user)], game,
+    you: publicUser(players.get(host)?.user, host),
+    opponent: publicUser(players.get(guest)?.user, host),
+    opponents: [publicUser(players.get(guest)?.user, host)], game,
   });
   toUid(guest, "matchFound", {
     code, role: "guest", roomType: "match", roomSize: 2,
-    you: publicUser(players.get(guest)?.user),
-    opponent: publicUser(players.get(host)?.user),
-    opponents: [publicUser(players.get(host)?.user)], game,
+    you: publicUser(players.get(guest)?.user, guest),
+    opponent: publicUser(players.get(host)?.user, guest),
+    opponents: [publicUser(players.get(host)?.user, guest)], game,
   });
   console.log(`Match ${code} (${game.id})`);
 
@@ -726,9 +754,9 @@ function startFriendMatch(room) {
       role: uid === room.members[0] ? "host" : "guest",
       roomType: "friend",
       roomSize: room.members.length,
-      you: publicUser(players.get(uid)?.user),
-      opponent: publicUser(players.get(opps[0])?.user),           // legacy 1v1 shape
-      opponents: opps.map((m) => publicUser(players.get(m)?.user)),
+      you: publicUser(players.get(uid)?.user, uid),
+      opponent: publicUser(players.get(opps[0])?.user, uid),           // legacy 1v1 shape
+      opponents: opps.map((m) => publicUser(players.get(m)?.user, uid)),
       game: room.game,
     });
   });
@@ -850,7 +878,7 @@ io.on("connection", (socket) => {
         const snap = lobbySnapshot(room);
         othersOf(room, uid).forEach((m) => toUid(m, "friendLobbyUpdate", snap));
       } else {
-        othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { id: uid, username: nameOf(uid) }));
+        othersOf(room, uid).forEach((m) => toUid(m, "opponentReconnected", { id: publicIdOf(uid, m), username: nameOf(uid) }));
       }
       console.log(`Room ${room.code}: player resumed (${room.phase})`);
     } else if (away || prev?.roomCode) {
@@ -1151,7 +1179,7 @@ io.on("connection", (socket) => {
       room.phase = "waiting";
       socket.emit("waitingForOpponent", {});
       // let the still-playing sides show "finished"
-      othersOf(room, uid).forEach((m) => toUid(m, "opponentFinished", { id: uid, username: nameOf(uid) }));
+      othersOf(room, uid).forEach((m) => toUid(m, "opponentFinished", { id: publicIdOf(uid, m), username: nameOf(uid) }));
     }
   });
 
@@ -1161,7 +1189,7 @@ io.on("connection", (socket) => {
     const uid = uidOf(socket);
     if (!room || !uid || !room.members.includes(uid)) return;
     const int = (v) => Math.min(Math.max(Math.floor(Number(v)) || 0, 0), 1000);
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentProgress", { id: uid, username: nameOf(uid), round: int(round), total: int(total) }));
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentProgress", { id: publicIdOf(uid, m), username: nameOf(uid), round: int(round), total: int(total) }));
   });
 
   // --- Play-again / switch-game proposals ---
@@ -1217,7 +1245,7 @@ io.on("connection", (socket) => {
     if (prop.accepted.size < room.members.length - 1) {
       // Still waiting on someone — tell the rest who's in.
       room.members.forEach((u) => {
-        if (u !== byUid) toUid(u, "proposalProgress", { id: byUid, username: nameOf(byUid), accepted: prop.accepted.size, needed: room.members.length - 1 });
+        if (u !== byUid) toUid(u, "proposalProgress", { id: publicIdOf(byUid, u), username: nameOf(byUid), accepted: prop.accepted.size, needed: room.members.length - 1 });
       });
       return;
     }
@@ -1237,7 +1265,7 @@ io.on("connection", (socket) => {
     } else {
       const decliner = uid;
       clearProposal(room);
-      othersOf(room, decliner).forEach((m) => toUid(m, "proposalDeclined", { id: decliner, username: nameOf(decliner) }));
+      othersOf(room, decliner).forEach((m) => toUid(m, "proposalDeclined", { id: publicIdOf(decliner, m), username: nameOf(decliner) }));
     }
   });
 
@@ -1300,7 +1328,7 @@ io.on("connection", (socket) => {
       }, LOBBY_GRACE_MS);
       return;
     }
-    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: uid, username: name, graceMs: GRACE_MS }));
+    othersOf(room, uid).forEach((m) => toUid(m, "opponentDisconnected", { id: publicIdOf(uid, m), username: name, graceMs: GRACE_MS }));
     // Turn games: don't stall the round waiting out the grace window — a dropped
     // player's turn auto-passes (they can still reconnect and resume mid-game).
     if (room.turn) turnGames.onDisconnect(room, uid, turnHelpers);

@@ -20,6 +20,15 @@
         ],
         "createdAt": "2026-10-12T10:23:14.076Z",
         "reason": "Agent: unstyled detector selftest fixture pages, not product UI"
+      },
+      {
+        "rule": "broken-image",
+        "value": "*",
+        "files": [
+          "src/components/ui/PlayerPhoto.tsx"
+        ],
+        "createdAt": "2026-10-15T22:19:21.781Z",
+        "reason": "Claude: L27 is a doc comment mentioning <img>; the real img always has src={photo.src} and a silhouette fallback"
       }
     ]
   }

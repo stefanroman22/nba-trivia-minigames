@@ -11,6 +11,7 @@ import { showErrorAlert } from "../utils/Alerts";
 import { USERNAME_FORMAT, useNameVerdict } from "../utils/nameCheck";
 import { usernameRules } from "../utils/usernameRules";
 import { BACKEND_URL } from "../configurations/backend";
+import { rankLabel } from "../utils/ranks";
 import { useModal } from "../context/ModalContext";
 import { useProfilePhoto } from "../hooks/useProfilePhoto";
 import { useLogout } from "../hooks/useLogout";
@@ -186,7 +187,7 @@ export default function ProfileSettings() {
           </div>
           <div className="ps-hero-stats">
             <span className="ps-stat"><span className="ps-stat-lbl">Points</span><span className="font-display tnum ps-stat-num is-brand">{user.points}</span></span>
-            <span className="ps-stat"><span className="ps-stat-lbl">Rank</span><span className="font-display ps-stat-num">{user.rank}</span></span>
+            <span className="ps-stat"><span className="ps-stat-lbl">Rank</span><span className="font-display ps-stat-num">{rankLabel(user.rank, user.rank_progress?.division)}</span></span>
           </div>
         </section>
 

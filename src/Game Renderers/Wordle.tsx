@@ -7,11 +7,9 @@ import SwapText from '../components/motion/SwapText';
 import { GameFrame } from '../components/ui';
 import { createGuessLogger } from '../utils/guessLog';
 import type { OnGameEnd } from '../types/types';
+import { WORDLE_MAX_GUESSES as MAX_GUESSES, wordlePoints } from '../utils/gameScoring';
 
 const WORD_LENGTH = 5;
-const MAX_GUESSES = 5;       // matches the in-game instructions ("5 attempts")
-const POINTS_PER_GUESS = 100; // first try = 500, then -100 per used attempt
-const MAX_SCORE = MAX_GUESSES * POINTS_PER_GUESS;
 // Row reveal timing — keep in sync with Wordle.css `--reveal-step` / `--flip-dur`.
 const REVEAL_STEP_MS = 300;
 const FLIP_MS = 550;
@@ -31,7 +29,8 @@ interface WordleProps {
   /** Closes the game and returns to idle — the in-place ScorePanel's "Close game".
    *  No "Play again": Wordle is once per day. */
   onClose?: () => void;
-  /** Online round: the word is a random surname, not the daily word, so nothing is logged. */
+  /** Online round: 200-point scale (no daily lock online). The word is a random surname, not the
+   *  daily word, so nothing is logged. */
   multiplayer?: boolean;
 }
 
@@ -107,7 +106,7 @@ function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
     });
     const played = nextGuesses.filter((g): g is string => g !== null);
     if (solved) {
-      const points = (MAX_GUESSES - firstNullIndex) * POINTS_PER_GUESS;
+      const points = wordlePoints(firstNullIndex, !!multiplayer);
       setFeedback({ text: `Correct! +${points}`, color: "var(--good)" });
       endGame(points, true, played);
     } else if (firstNullIndex === MAX_GUESSES - 1) {
@@ -207,7 +206,7 @@ function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
           score={
             <ScorePanel
               score={endState?.score ?? 0}
-              outOf={MAX_SCORE}
+              outOf={wordlePoints(0, !!multiplayer)}
               label={endState?.won ? "Solved!" : undefined}
               won={endState?.won}
               onClose={onClose}

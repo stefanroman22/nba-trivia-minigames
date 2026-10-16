@@ -6,9 +6,12 @@ import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
 import { matchAnswer } from "../utils/answerMatch";
 import { createGuessLogger } from "../utils/guessLog";
+import { STARTING_FIVE_BONUS as COMPLETION_BONUS } from "../utils/gameScoring";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
 import "../styles/StartingFive.css";
@@ -21,8 +24,6 @@ interface StartingFiveProps {
   /** Closes the game and returns to the idle screen (Rule 7.3). */
   onClose?: () => void;
 }
-
-const COMPLETION_BONUS = 50; // perfect lineup → 5 * pointsPerCorrect + bonus = maxPoints
 
 // Cards run left → right in this order (also the game-over reveal order).
 const SLOTS = [
@@ -48,11 +49,6 @@ const normalizePosition = (pos: string) => {
   return pos; // "C"
 };
 
-// Placeholder portrait until real player photos are wired up. Deterministic per
-// name so each revealed player gets a distinct face; the CSS overlay tones it to
-// the app's dark + orange look. Swap this one line for the real photo source later.
-const playerPhotoUrl = (name: string) => `https://i.pravatar.cc/240?u=${encodeURIComponent(name)}`;
-
 /** Front of the card: a shaded, unknown player silhouette with a question mark. */
 function UnknownFigure() {
   return (
@@ -66,26 +62,13 @@ function UnknownFigure() {
   );
 }
 
-/** Back of the card: the player's photo, app-toned. Falls back to an orange
- *  silhouette if the placeholder photo can't load (so it never breaks). */
+/** Back of the card: the player's real photo (the data has names only, so it is looked
+ *  up by name), app-toned; the shared silhouette when there is none. */
 export function RevealedFace({ name }: { name: string }) {
-  const [failed, setFailed] = useState(false);
+  const personId = usePersonIdByName(name);
   return (
     <>
-      {failed ? (
-        <svg viewBox="0 0 64 72" className="s5-revealed-fallback" aria-hidden="true">
-          <defs>
-            <linearGradient id="s5rev" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor="var(--brand)" />
-              <stop offset="1" stopColor="var(--brand-deep)" />
-            </linearGradient>
-          </defs>
-          <circle cx="32" cy="26" r="13" fill="url(#s5rev)" />
-          <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" fill="url(#s5rev)" />
-        </svg>
-      ) : (
-        <img className="s5-photo" src={playerPhotoUrl(name)} alt={name} onError={() => setFailed(true)} />
-      )}
+      <PlayerPhoto personId={personId} alt={name} className="s5-photo" fallbackClassName="s5-revealed-fallback" />
       <div className="s5-photo-overlay" />
     </>
   );
@@ -112,6 +95,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   useEffect(() => () => guessLog.flush(), [guessLog]);
 
   useEffect(() => {
+    preloadPhotosByName();
     fetch(`${BACKEND_ORIGIN}/trivia/all-players/`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

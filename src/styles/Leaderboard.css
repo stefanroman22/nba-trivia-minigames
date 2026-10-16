@@ -36,6 +36,7 @@
   flex: none;
 }
 .lb-scope {
+  --seg-thumb-bg: var(--brand-deep);
   display: flex;
   padding: 3px;
   background: var(--surface2);

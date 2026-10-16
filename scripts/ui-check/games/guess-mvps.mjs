@@ -1,5 +1,5 @@
 // Adapter: Guess the MVPs (src/Game Renderers/GuessMvps.tsx). 5 award seasons, one guess each through the autocomplete
-// + Confirm; right → "Correct! +10" (advance 1.5 s), wrong → "It was <winners>" (advance 1.8 s); the last round hands
+// + Confirm; right → "Correct! +20" (advance 1.5 s), wrong → "It was <winners>" (advance 1.8 s); the last round hands
 // over to the full-screen GameResult (allowlisted).
 //
 // Right answer: ctx.pool('mvps') (single player: captured HTTP JSON, capPool). The pool is `mvps`
@@ -47,7 +47,7 @@ export default {
   online: true,
   lives: null,
   timerMs: null,
-  pointsPerCorrect: 10,
+  pointsPerCorrect: 20,
   scenarios: {
     perfect: true,
     wrong: true,

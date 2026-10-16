@@ -24,7 +24,7 @@ import { usePathname } from "next/navigation";
 import { useNavigate } from "../hooks/useNavigate";
 import socket, { socketConfigured } from "../socket";
 import type { AppDispatch, RootState } from "../store";
-import { updatePoints } from "../store/userSlice";
+import { applyAward, type AwardReceipt } from "../store/userSlice";
 import { getAccessToken, refreshSession } from "../utils/Api";
 import { BAN_CODE, reportBan } from "../utils/ban";
 import { isAccessTokenExpired } from "../utils/session";
@@ -158,14 +158,14 @@ type Action =
   | { t: "FRIEND_ERROR"; message: string }
   | { t: "FRIEND_JOIN_ERROR"; message: string }
   | { t: "FRIEND_JOIN_RESET" }
-  | { t: "OPP_PROGRESS"; id?: string; username?: string; round: number; total: number }
-  | { t: "OPP_FINISHED"; id?: string; username?: string }
-  | { t: "OPP_DISCONNECTED"; id?: string; username?: string }
-  | { t: "OPP_RECONNECTED"; id?: string; username?: string }
+  | { t: "OPP_PROGRESS"; id?: string | null; username?: string; round: number; total: number }
+  | { t: "OPP_FINISHED"; id?: string | null; username?: string }
+  | { t: "OPP_DISCONNECTED"; id?: string | null; username?: string }
+  | { t: "OPP_RECONNECTED"; id?: string | null; username?: string }
   | { t: "OPP_LEFT"; message: string }
   | { t: "ROOM_LEFT"; message: string }
   | { t: "MATCH_STOPPED"; message: string }
-  | { t: "MEMBER_LEFT"; id?: string; username?: string; message: string }
+  | { t: "MEMBER_LEFT"; id?: string | null; username?: string; message: string }
   | { t: "PROPOSAL_PENDING"; ptype: "again" | "switch"; gameId?: string; gameName?: string }
   | { t: "PROPOSAL_RECEIVED"; ptype: "again" | "switch"; gameId?: string; gameName?: string; fromName?: string }
   | { t: "PROPOSAL_PROGRESS"; username?: string }
@@ -207,7 +207,7 @@ function freshStatus(opponents: PlayerInfo[]): Record<string, OppStatus> {
 }
 
 function patchStatus(
-  state: MpState, who: { id?: string; username?: string }, patch: Partial<OppStatus>
+  state: MpState, who: { id?: string | null; username?: string }, patch: Partial<OppStatus>
 ): Record<string, OppStatus> {
   // Older servers may omit the id — fall back to name, then the single opponent.
   const key = who.id || who.username || playerKey(state.opponents[0]);
@@ -379,7 +379,7 @@ function reducer(state: MpState, a: Action): MpState {
         ...initial, phase, code: s.code, game: s.game, roomType: s.roomType ?? "match",
         roomSize: s.roomSize ?? 2, role: s.role,
         opponents: s.opponents.map((o) => ({
-          id: o.id, username: o.username, profile_photo: o.profile_photo, rank: o.rank, points: o.points,
+          id: o.id, masked: o.masked, username: o.username, profile_photo: o.profile_photo, rank: o.rank, points: o.points,
         })),
         oppStatus: Object.fromEntries(s.opponents.map((o) => [
           playerKey(o),
@@ -569,17 +569,17 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         dispatch({ t: "FRIEND_CANCELLED", message: d?.message || "The room was closed." }),
       matchStopped: (d: { message?: string } = {}) =>
         dispatch({ t: "MATCH_STOPPED", message: d?.message || "The match ended." }),
-      memberLeft: (d: { id?: string; username?: string; message?: string } = {}) =>
+      memberLeft: (d: { id?: string | null; username?: string; message?: string } = {}) =>
         dispatch({ t: "MEMBER_LEFT", id: d?.id, username: d?.username, message: d?.message || "A player left the match." }),
       friendError: (d: { message: string }) =>
         dispatch({ t: "FRIEND_ERROR", message: d?.message || "Something went wrong. Please try again." }),
       friendJoinError: (d: { message: string }) =>
         dispatch({ t: "FRIEND_JOIN_ERROR", message: d?.message || "Couldn't join that room." }),
-      opponentProgress: (d: { id?: string; username?: string; round: number; total: number }) =>
+      opponentProgress: (d: { id?: string | null; username?: string; round: number; total: number }) =>
         dispatch({ t: "OPP_PROGRESS", id: d.id, username: d.username, round: d.round, total: d.total }),
-      opponentFinished: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_FINISHED", id: d?.id, username: d?.username }),
-      opponentDisconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", id: d?.id, username: d?.username }),
-      opponentReconnected: (d: { id?: string; username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", id: d?.id, username: d?.username }),
+      opponentFinished: (d: { id?: string | null; username?: string } = {}) => dispatch({ t: "OPP_FINISHED", id: d?.id, username: d?.username }),
+      opponentDisconnected: (d: { id?: string | null; username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", id: d?.id, username: d?.username }),
+      opponentReconnected: (d: { id?: string | null; username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", id: d?.id, username: d?.username }),
       opponentLeft: (d: { message: string }) => dispatch({ t: "OPP_LEFT", message: d?.message || "Your opponent left." }),
       roomLeft: (d: { message?: string } = {}) =>
         dispatch({ t: "ROOM_LEFT", message: d?.message || "You were away too long and left the room." }),
@@ -596,10 +596,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         snapshot: { ...snapshot, game: localGame(snapshot.game) as Game, lobby: snapshot.lobby ? withLocalGame(snapshot.lobby) : snapshot.lobby },
       }),
       matchError: (d: { message: string }) => dispatch({ t: "MATCH_ERROR", message: d?.message || "Couldn't start online play. Please try again." }),
-      // The relay credited this match to the account (Django already saved it); updatePoints is a delta.
-      pointsAwarded: (d: { awarded?: number } = {}) => {
-        if (!d?.awarded || d.awarded <= 0) return;
-        reduxDispatch(updatePoints(d.awarded));
+      // The relay credited this match to the account (Django already saved it); the receipt carries the totals.
+      pointsAwarded: (d: AwardReceipt) => {
+        if (!d || typeof d.awarded !== "number" || d.awarded <= 0) return;
+        reduxDispatch(applyAward(d));
         dispatch({ t: "NOTICE", notice: { kind: "points", text: `+${d.awarded} pts added to your profile` } });
       },
       // The relay refused our token. A ban ends the session app-wide (BanNotice); the relay
@@ -722,7 +722,11 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   }, []);
   const proposeAgain = useCallback(() => socket.emit("proposeAgain", { code: codeRef.current }), []);
   const proposeSwitch = useCallback((game: Game) => socket.emit("proposeSwitch", { code: codeRef.current, game: serializeGame(game) }), []);
-  const respondProposal = useCallback((accept: boolean) => socket.emit("respondProposal", { code: codeRef.current, accept }), []);
+  const respondProposal = useCallback((accept: boolean) => {
+    socket.emit("respondProposal", { code: codeRef.current, accept });
+    // The relay tells only the OTHER side about a decline, so clear our own pending request here.
+    if (!accept) dispatch({ t: "PROPOSAL_WITHDRAWN" });
+  }, []);
   const cancelProposal = useCallback(() => {
     socket.emit("cancelProposal", { code: codeRef.current });
     dispatch({ t: "PROPOSAL_WITHDRAWN" });

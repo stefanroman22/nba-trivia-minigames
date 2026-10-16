@@ -1228,3 +1228,88 @@ multiplayer tiebreak only and never adds points" stays as RULE 9.1. Reintroducin
 product decision for its own card.
 Decision (rule count): the design's "29 rules" was a miscount of its own 28-row table; the rulebook has 28
 ids and no rule was invented to reach 29.
+
+## 2026-10-16 — Centre line, input-row centring, feedback slot on in-place end, label only on win
+Context: the owner found four layout defects. The end score line sat ~1 digit right of centre
+(`ScoreLine` reserved the width of the `/N` cap, not of the number it counts to); the input field sat 46-70 px
+left of centre because the row centred field plus button as one block; Fan Favorites' `Board cleared! +300`
+popup (1500 ms) painted over Play again / Close game for 27 frames after the in-place end (700 ms); and
+Contexto/Heatmap passed `Gave up` / `Board done` as score labels.
+Decision: (1) RULE 4.7, one centre line judged by visible content: `ScoreLine` reserves `score`'s digit width, so
+the line is stable during the count and centred when it lands. (2) RULE 4.8: `GameFrame.InputRow` renders the
+first child as the field and the rest as actions in a 3-column grid; the side columns both equal the actions'
+measured width (`--gf-side`, ResizeObserver, no re-render), so the field is on the centre line and the button
+hangs beside it. Below a 460 px row (container query) the button collapses to a 44 px icon whose text stays as
+the accessible name, because a mirrored text button would leave a ~106 px field on a phone. One submit button
+per row: Heatmap's Give up moved to its own line like Contexto's. (3) RULE 6.4: the shell hides
+`.feedback-slot` (0.15 s fade) when `endedInPlace`; fixing it per game would leave every in-place game exposed.
+(4) `ScoreLine` renders `label` only when `won`; the two loss labels were removed from the callers.
+Consequences: a row with more than one action (TicTacToe's online duel: Steal + Claim) keeps the old
+field-then-actions flow, since mirroring both would crush the field; it is the one known exception to RULE 4.8.
+Alternatives rejected: centring by a negative margin on the button (breaks when the button label swaps) and
+shortening Fan Favorites' popup timer (leaves the race in place for every other game).
+
+## 2026-10-16 — Name the NBA Club logo "glitch": framer-motion end-of-fade flash
+Context: the owner saw the logo flicker when the answer revealed and when a round's logo loaded. A CDP
+screencast of the compositor (the only proof of a *painted* frame; a rAF + `getComputedStyle` probe can read
+the same revert without it ever being painted) showed one frame at the end of every WAAPI opacity fade
+reverted to its start value: the scrambled logo popped back at the end of the 0.6 s reveal, the loaded logo
+blinked off after fading in, the Stage cross-fade did the same. framer-motion 12.23.24 cancelled the WAAPI
+animation in `onfinish` before the final style was written; its 12.34.5 changelog: "Ensure final WAAPI styles
+are always committed synchronously to prevent flash of incorrect styles".
+Decision: framer-motion ≥ 12.34.5 (upgraded to 12.43.0; no breaking changes in the 12.x minors). Not a
+per-component workaround (CSS transitions or JS easing to dodge WAAPI): the flash was app-wide. Also in
+`NameLogo.tsx`: the logo loader tracks the puzzle `<img>` itself (keyed by src, a stable ref reads `complete`
+on mount) instead of resetting on `currentIndex`, which switched the spinner on over the previous logo while it
+was still fading out under `AnimatePresence mode="wait"`.
+Consequences: a flicker report is first screencast-captured (frame differs from both neighbours while they
+match each other), then traced to the animation layer before any renderer is touched; the dependency floor
+is the `^12.43.0` range in package.json.
+
+## 2026-10-16 — Teen masking: the relay drops the permanent id for masked strangers, viewer-relative
+Context: P0 ui-check card `ui-check-masked-stranger` (design `designs/2026-10-16-ui-check-masked-stranger.md`).
+`publicUser()` masked name and photo for 13-15 / unknown-age accounts in random 1v1 rooms but still sent `id`,
+and `rankRoom`/`snapshotFor` plus seven presence/proposal emits re-sent the raw uid; the VS intro and results
+cards printed `#ID` under "Player", which is exactly how a stranger finds and friend-requests a masked teen
+(`search_users` is exact-id for teens).
+Weighed (where to fix): (a) client only — hide the chip when the name is "Player" — rejected: the id still
+travels in the socket payload (DevTools), and "Player" is a legal username; (b) relay sends `masked: true` and
+keeps `id` for keys, client hides — rejected for the same payload reason; (c) relay sends `id: null` plus
+`masked: true` for a masked stranger, keeps the uid internally (`rankRoom` rows carry `uid`, `standingsFor`
+builds wire rows), client guards on `masked` — chosen. Safe because masked players exist only in random rooms,
+which are strictly 1v1, so the client's `username` fallback key cannot collide.
+Weighed (masking yourself): viewer-agnostic `publicUser(user)` would null a teen's own standings row and break
+`rowOf(user)` (own time, "YOU"); chosen `publicUser(user, viewerUid)` — never masked from yourself.
+Consequences: the frontend's `masked` guard is inert against the un-deployed production relay (Railway deploys
+are the owner's), so the production finding closes only when the relay ships; friend lobbies are untouched;
+turn-game `turnState` (`ownerUid`, `clues[].uid`) still carries raw uids in 1v1 — a follow-up card.
+
+## 2026-10-16 — Classify: ui-check home CLS card (legal notice) goes to opus, not sonnet
+Context: card `ui-check-home-layout-shifts` (CLS 0.135 on `/`, LegalChangeNotice mounts post-hydration above the hero).
+It is a small, one-area, spec-detailed fix (`standard`, risk low), which on size alone is sonnet.
+Weighed: (a) sonnet, as a bounded "wrap in AutoHeight / reserve height" step list; (b) opus under the
+motion override, because the notice enters through a framer-motion height variant (`nameNoteSlot`) and the
+acceptance is a measured CLS budget, so how and when it enters (reserve space vs. overlay vs. SSR) is a
+timing/feel judgment, and AutoHeight itself animates height, which would still register as shift.
+Decision: opus (b), effort high; difficulty stays standard, no design round.
+Consequences: if a similar CLS card turns out to be a pure reserved-height CSS change with no animation touched, sonnet is enough.
+Build outcome: the notice became a fixed bottom banner (no height animation); on phones (<=640px) it spans the width above the feedback FAB and keeps a 9em (six-line) scroll cap on the text, so the full legal copy is reachable without the banner filling a short screen; the cost is that at 375px it overlaps the lower hero CTA row until dismissed.
+
+## 2026-10-16 — Design: `log_session` credits only visible games; unknown ids get 0 at 200; no play id yet
+Context: card `logic-check-log-session` (design `designs/2026-10-16-logic-check-log-session.md`). An unknown `game` id
+was clamped to `awarding.DEFAULT_MAX_POINTS` (300 on this base; the finding still cites the retired `MAX_SESSION_POINTS = 1000`)
+and credited, and a finished play can be re-POSTed up to the 60/h `score-submit` throttle.
+Weighed (unknown id): (a) 400 refusal — rejected: the card's acceptance assertion fixes `status 200, awarded == 0`, and
+400 would add a second client code path for a state only a forged client reaches; (b) 200 with the existing zero receipt
+and a logged `GameSession` row with `score=0` — chosen. The row keeps the audit trail; `score=0` keeps it out of
+`award()`'s `earned_today` sum and first-game-bonus check for the player's later honest plays.
+Weighed (which ids count): (a) `awarding.GAME_MAX_POINTS` keys only — would credit the seven `HIDDEN_GAMES` nothing routes;
+(b) `trivia.games._GAME_MODULES` — omits the six classic games served from `views.py`; (c) `frozenset(GAME_MAX_POINTS) -
+HIDDEN_GAMES`, defined in `views.py` next to `log_session` (both names already imported there) — chosen; it matches the
+finding's "visible game" wording, the client's `visibleGames`, and the `get_manifest`/`get_pool` filter.
+Weighed (replay / one-time play id): deferred to a follow-up card. It is a client+server protocol change (round GETs mint a
+token, `MiniGame.tsx` sends it, the relay for `match`), and today's bounds (60/h, per-game ceilings <= 500, daily soft cap
+1,500/1,500/10%, Wordle once a day) cap a replaying account to roughly 2,250 points + a 10% tail per day; the unbounded
+path was the forged id, which this card closes. `multiplayer_result` keeps the default clamp (relay-authenticated; second follow-up).
+Consequences: `awarding.py` is untouched, so `cap_for("not-a-game")` still returns the default for the relay path; un-hiding a
+game only needs the `HIDDEN_GAMES`/`hidden: true` edits it already needs. Engine sonnet: every step has a done-check.

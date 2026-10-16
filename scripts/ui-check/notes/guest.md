@@ -58,6 +58,11 @@ appends what a later run can reuse (a false positive and why, a selector that wo
 - Perf budgets (TTFB 800, LCP 2500, CLS 0.1) apply in prod only. Home is loaded twice and the second load is
   measured. Even so, a TTFB or LCP spike can still come from load (4 workers, one Django): re-run that viewport
   alone (`--only G-PERF-01 --vp <id>`) before calling it real. CLS on phones is real (legal notice).
+- `--live` runs (`guest-live@<vp>`, digest `· env live`): any non-GET/HEAD request or websocket to a remote origin is
+  aborted and fails the test as `live-write`. A `live-write` is never a site bug to file: it is the guard doing its job.
+  Known cause: Google Identity Services (`accounts.google.com/gsi/...`) may POST when the login modal mounts the Google
+  button; that conservative failure is correct (the check must not send it). Report it to the owner instead of filing a
+  finding, and leave the check untagged rather than loosening the guard. Live perf numbers include real network latency.
 
 ## Flaky spots
 
@@ -70,3 +75,4 @@ appends what a later run can reuse (a false positive and why, a selector that wo
 - G-MODAL-01 saw one `net::ERR_CONNECTION_REFUSED` console error on `/` (prod, run 20261012-1350, right after Django
   was started by hand). It never repeated in 3 later full runs.
 - (20261014-1153) Probes took 60-100s each with the full stack under load; `axe: ["color-contrast"]` with the guest-panel login modal open reproduces the white-on-#ff6a1a failures; `style` with `main article p a[href^='mailto:'] >> nth=0` works on /privacy.
+- (20261016-0003) Probes run in parallel clobber each other result output (all four printed probe 1); run them one at a time. loaf on /name-logo (205ms) was not probed or filed. prod main lacks the min-size on .auth-pw-toggle; home CLS on tablet-768 (~0.135) comes from LegalChangeNotice mounting post-hydration.

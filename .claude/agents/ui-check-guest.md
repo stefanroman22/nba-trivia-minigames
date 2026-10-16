@@ -149,6 +149,9 @@ and none may error.
 - `where.selector`: the digest's selector **verbatim** for a digest line (fingerprint =
   `rule|route|selector`, so the same defect seen by two suites merges); otherwise the short selector
   you probed. `where.route`, `where.state`, `where.viewports` (every viewport the digest names).
+  `where.env`: `["live"]` when the digest line names only `(live)` viewports (a `run.mjs --live` run,
+  header `· env live`), `["local", "live"]` when it names both; leave it out for local-only lines.
+  A live finding's acceptance still runs on the local stack (probe/verify), so author it as usual.
 - `persona`: `guest`. `suite`: `guest`. `category`: layout, motion, a11y, perf, copy, visual, flow, data or security.
 - `evidence`: `checkId`, `metrics` (string or `{label, value, unit?, vp?}`), `shots` (paths relative to runDir, as in the digest).
 - `current` / `expected`: what a user sees now / should see, with numbers.

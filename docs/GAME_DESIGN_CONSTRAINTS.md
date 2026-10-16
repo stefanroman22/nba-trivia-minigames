@@ -28,14 +28,17 @@ without a rendered screenshot. History and rationale for these rules live in `do
 | 4.4 | Labels above repeated cells MUST reserve their maximum line count | manual DevTools check |
 | 4.5 | Space above the first and below the last component MUST equal `--stage-pad` in every state | `ui:audit` (playing) + manual (idle, loading, ended) |
 | 4.6 | One leave control per screen, labelled `Close game`; a game MUST NOT render its own | review |
+| 4.7 | Every component MUST sit on the frame's centre line, judged by its visible content; the status row is the only left/right element | `ui:audit` + ui-check (`off-centre`, `GM-SHELL-01`, `GM-<game>-<scenario>`) |
+| 4.8 | The input field MUST be centred on the frame, its one submit button hanging to its right and never counted; always `GameFrame.InputRow` | `off-centre` (the field) |
 | 5.0 | A progress bar MUST be the shared `<ProgressBar>` in the frame's second slot, or omitted | review |
 | 5.1 | Between rounds only the content that changed MUST animate | motion-reviewer |
 | 6.0 | Feedback copy MUST be `Correct! +N`, a statement of the truth, or neutral, in the fixed colours | review |
 | 6.1 | Per-guess feedback MUST be `<SubmitGuessPopup>` in the shell's `.feedback-slot` | manual DevTools check |
 | 6.2 | Transient content MUST NOT resize the container | manual ResizeObserver check / QA |
 | 6.3 | Running out of lives MUST NOT be announced anywhere | review (`grep` the banned strings) |
+| 6.4 | Feedback MUST NOT outlive play: the shell hides `.feedback-slot` when a game ends in place | ui-check `feedback-over-end` (`GM-<game>-<scenario>`) |
 | 7.0 | The score line MUST sit above Play again / Close game | review |
-| 7.1 | The result MUST NOT restate a count the board already shows | review |
+| 7.1 | The result MUST NOT restate a count the board already shows; `label` renders only on a win | `ScoreLine` (renders `label` only when `won`) + games suite `loss-label` |
 | 7.2 | A reveal MUST NOT re-animate what the player already earned | review |
 | 7.3 | A game that reveals something at the end MUST end in place (`{ inPlace: true }`, `EndSequence`, `ScorePanel`) | `scripts/check-game-results.mjs` (`npm run lint`) |
 | 7.4 | A full-screen result MUST appear at once — no "Calculating" beat, no loader, no timeout | review |
@@ -277,6 +280,40 @@ Exception: the multiplayer `OnlineMatch` leave-match control.
 **Why:** two leave controls, or three names for one, make the player hesitate.
 **Check:** `grep -nE 'Exit|Leave|Quit' "src/Game Renderers/<Game>.tsx"` finds no button copy.
 
+### RULE 4.7 — One centre line. **HARD RULE.**
+Every component in the frame sits on the frame's centre line, judged by its **visible content** (ink),
+not its box. A reserved width (a count-up, a text swap) is either symmetric or sized to the value it
+ends on, so the line is stable while it changes and dead centre when it lands. The status row (left
+label, right score, Rule 4.2a) is the only left/right element.
+
+```tsx
+❌ <span style={{ minWidth: "3ch", textAlign: "right" }}>0</span>/500 pts   {/* reserves 3 digits, shows 1: ink sits right of centre */}
+✅ reserve the width of the value the number counts to (`ScoreLine`: `--digits` = `score`'s length)
+```
+
+**Why:** a box can be centred while what the player sees is a digit or a button off to one side.
+**Check:** `off-centre` in `npm run ui:audit`, ui-check `GM-SHELL-01` (playing) and `GM-<game>-<scenario>`
+(end state). Tolerance 1.5 px for boxes, 2 px for text ink.
+
+### RULE 4.8 — The input row: the field is centred, the button hangs beside it
+The answer field is centred on the frame. Its submit button hangs to the field's right and is never
+counted when centring. One submit button per row: a secondary action (Give up) goes on its own centred
+line below the row (Contexto, Heatmap). Below a 460 px row width the button collapses to a 44×44 icon
+with the same accessible name (the label stays in the DOM). Always `GameFrame.InputRow`, never a
+hand-built row: it renders the first child as the field and the rest as actions, in a 3-column grid
+whose side columns are both as wide as the actions.
+Known exception: a row with more than one action (TicTacToe's online duel, Steal + Claim) keeps the
+field-then-actions flow, because mirroring both would crush the field.
+
+```tsx
+❌ <div className="xx-row"><AutoCompleteInput … /><Button>Guess</Button></div>   {/* field lands half a button left of centre */}
+✅ <GameFrame.InputRow><AutoCompleteInput … /><Button aria-label="Submit guess">Guess</Button></GameFrame.InputRow>
+```
+
+**Why:** a flex row centres field plus button as one block, so the field the player types into sits off
+the centre line.
+**Check:** `off-centre` on the field in `ui:audit` and ui-check; or `field.centre − .gf.centre` within 1 px at 1100 and 390 px.
+
 ---
 
 ## 5. Rounds
@@ -299,6 +336,13 @@ The round body mounts once and is never re-keyed per round — no `<AnimatePrese
 | Constant (question, `VS`, labels, the cards and buttons themselves, the input row) | Nothing. Stays mounted. |
 | Changing text (eyebrow, names, `ROUND 4/5`) | `<SwapText>` (UI-21); it animates only when the text differs. |
 | Changing media (crest, logo, headshot) | Swap only the media inside its fixed box: `<SwapText swapKey={id}>` with opacity-only variants. |
+
+Player photos always go through `<PlayerPhoto personId=… />` (`src/components/ui/PlayerPhoto.tsx`), never a
+hand-built `cdn.nba.com` URL: the CDN answers a missing photo with its own grey silhouette (a 200,
+so `onError` never fires). `PlayerPhoto` picks cdn.nba.com, else Wikimedia Commons, else the shared orange
+`PlayerSilhouette`, from the map `scripts/player-photos/build.mjs` generates. Give it the game's img and
+fallback classes; Commons photos are cropped by `PlayerPhoto.css` (cover, anchored near the top) unless a
+wide frame overrides it with `contain` (Who Are Ya).
 
 Key the swap by content identity (team, player id), never by round index; key repeated cells by
 position (`key={i}`). Reference: `PlayOffSeries.tsx`.
@@ -376,6 +420,18 @@ life is spent (Pack 5's `Missed.`) is ordinary feedback and is allowed.
 **Why:** the lives indicator and the reveal already say it; a third message is noise.
 **Check:** `grep -rniE 'out of (guesses|lives|hearts)|game over|run over' "src/Game Renderers"` finds no user-facing string (hits inside code comments are fine).
 
+### RULE 6.4 — Feedback never outlives play
+When a game ends in place the shell hides `.feedback-slot` (`is-ended`, a 0.15 s fade then
+`visibility: hidden`), because `ScorePanel`'s buttons take the spot above `Close game` where the popup
+floats. A popup can therefore never paint over the end panel, and a game must not rely on a popup still
+showing after `onGameEnd` (Contexto flashes `It was <name>` and ends 1500 ms later, so it is gone
+anyway). Do not shorten or extend a game's own popup timers for this.
+
+**Why:** `Board cleared! +300` lives 1500 ms but the in-place end lands at 700 ms; the green popup sat
+over Play again / Close game for 27 frames.
+**Check:** ui-check `feedback-over-end` (`GM-<game>-<scenario>`, frame sampling): no frame has a visible
+`.feedback-slot` child overlapping the end buttons.
+
 ---
 
 ## 7. End of game
@@ -425,10 +481,11 @@ beside them and never reordered by wrapping.
 The result line shows final points only. Colour each revealed answer (`var(--good)` got,
 `var(--bad)` missed) and omit any "Found 3/5" tally. Use `ScorePanel`'s `label` only for a win state
 colour cannot convey (`Board cleared!`, `That's him!`) — never for a loss (Rule 6.3) and never for a
-count. With nothing to say, pass no `label` at all (Rule 4.2a).
+count. `ScoreLine`/`ScorePanel` enforces it: `label` renders only when `won` is true, and the games
+suite flags `loss-label`. With nothing to say, pass no `label` at all (Rule 4.2a).
 
 **Why:** the board already shows the count; repeating it competes with the reveal.
-**Check:** read the `ScorePanel`/`ScoreLine` props and the result copy for digits or loss words.
+**Check:** `loss-label` in ui-check; read the `ScorePanel`/`ScoreLine` props and the result copy for digits or loss words.
 
 ### RULE 7.2 — Never animate a reveal the player has already earned
 The end-of-game stagger applies only to answers the player never got; solved items are already face
@@ -458,8 +515,8 @@ large pools), `EndSequence`, `ScorePanel` / `ScoreLine` / `ScoreActions`, `Spinn
 ## 9. Scoring
 
 ### RULE 9.1 — Points add up, and time never adds points
-`pointsPerCorrect × rounds` equals the `maxPoints` on the idle chip. Aim for about 50 points per
-correct answer and 100–300 per session. Time is the multiplayer tiebreak only — it never adds points.
+`pointsPerCorrect × rounds` equals the `maxPoints` on the idle chip. Aim for about 20 points per
+correct answer and 100–200 per session (a perfect game 100–200; the daily Wordle's 500 is the one jackpot). The backend caps each game at its `maxPoints` (`trivia/awarding.py GAME_MAX_POINTS`): change both together. Time is the multiplayer tiebreak only — it never adds points.
 Build single-player first, but shape score and state so online and friend modes slot in without a
 redesign (in multiplayer, show both players' running scores).
 
@@ -481,10 +538,11 @@ Deliberate and reviewed — do not "fix" these. A game may break a rule only wit
 | Connections, Heatmap, Contexto, Wordle, Who Are Ya, Career Path, TicTacToe, Bingo, SuperDraft, Imposter | no `ROUND n/total` label | 0 | these games have no rounds | ≤ 2026-10 |
 | Fan Favorites, SuperDraft, Contexto | correct copy is not `Correct! +N` | 6.0 | no per-answer points exist, so `+N` would be false | ≤ 2026-10 |
 | Bingo | keeps `Dabbed!` | 6.0 | scoring is terminal-only; there is no per-dab constant | ≤ 2026-10 |
-| Who Would Win | no per-matchup popup; points (20 with the crowd, 5 against, 0 for Skip) show in the Score slot and the split bar | 6.1 | there is no right answer to flash; the crowd split is the feedback | 2026-10 |
+| Who Would Win | no per-matchup popup; points (10 with the crowd, 5 against, 0 for Skip) show in the Score slot and the split bar | 6.1 | there is no right answer to flash; the crowd split is the feedback | 2026-10 |
 | Who Would Win | fill game; `.www-arena` is the scroller; tightens under 700 px of viewport height; scrolls (with a bottom fade) only at 320×568 | 4.1, 1.1 | its stacked arena genuinely fills; converting it would be a redesign | 2026-10 |
 | Who Would Win | ends in place with the per-matchup list as the final board; `ScorePanel` has no label or count | 7.1 | the rows already carry the outcome | 2026-10 |
 | Career Path | no `loader` beat (`input → score`); result line in `Status`, career/answer toggle in `Prompt`, actions alone in `Action` | 7.3 | the reveal is player-driven, so nothing is calculated; the owner's bound is that no button waits more than 400 ms; every slot keeps its play-time height (Rule 6.2) | 2026-10 |
+| Heatmap | `.endseq` min-height 100 px (`.gf:has(.hm-controls)`); Give up on its own line under the input row | 6.2, 4.8 | its Give up + input row is taller than the default end slot; same pattern as Contexto | 2026-10 |
 | SuperDraft | bespoke `.sd-result` panel | 8.1 | it has a Share action with no shared equivalent; it ends in place, so there is one end screen | ≤ 2026-10 |
 | Imposter | custom explainer screen | 2.1 | multiplayer-only rules screen inside the room, not the shell idle | ≤ 2026-10 |
 | Wordle | `ScorePanel` without Play again | 7.3 | once per day: a replay POSTs `daily-play` and hits the 423 lock | 2026-10 |

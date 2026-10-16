@@ -137,6 +137,7 @@ html { scroll-behavior: smooth; }
 /* Profile/Friends toggle — fixed at the top of the card, whichever view is
    active fills the rest (Profile is the default view). */
 .profile-view-toggle {
+  --seg-thumb-bg: var(--brand-deep);
   display: flex;
   flex: none;
   padding: 3px;
@@ -167,7 +168,8 @@ html { scroll-behavior: smooth; }
   gap: 18px;
 }
 /* Compact profile view (UserProfile): identity on the left (photo level with the name and player
-   ID, copy icon), points over rank on the right, the Profile settings button under the photo.
+   ID, copy icon), points over rank on the right; under them, full width and in DOM order, the
+   next-rank bar, the streak/badge chips and the Profile settings button.
    Account settings live on /profile, not on the landing card. */
 /* Sized by the card, not the viewport: the same card is wide on desktop and narrow beside the
    leaderboard or on phones (container queries below). */
@@ -175,9 +177,7 @@ html { scroll-behavior: smooth; }
 .pc-grid {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  grid-template-areas:
-    "photo meta stats"
-    "btn   btn  btn";
+  grid-template-areas: "photo meta stats";
   align-items: center;
   column-gap: 14px;
   row-gap: 16px;
@@ -226,10 +226,13 @@ html { scroll-behavior: smooth; }
 .pc-stat-lbl { font-size: 11.5px; color: var(--muted); }
 .pc-stat-num { font-size: 18px; color: var(--text); white-space: nowrap; }
 .pc-stat-num.is-brand { color: var(--brand); }
+.pc-progress { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+.pc-progress-note { font-size: 11.5px; color: var(--muted); }
+.pc-badges { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .pc-stat-divider { height: 1px; width: 100%; background: var(--line2); }
 
 .pc-settings {
-  grid-area: btn;
+  grid-column: 1 / -1;
   justify-self: start;
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 14px; border: 1px solid var(--line2); border-radius: 999px;

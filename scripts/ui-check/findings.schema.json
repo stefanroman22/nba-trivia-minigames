@@ -8,14 +8,15 @@
   "additionalProperties": false,
   "properties": {
     "id": { "type": "string", "pattern": "^UIC-[\\w-]+-\\d{3,}$" },
+    "checker": { "enum": ["ui", "logic"], "description": "Which checker found it (absent = ui). Logic Check findings use the logic suites and personas, where.viewports [\"api\"] or [\"socket\"] when no browser was involved, and API assertions / lc checks as acceptance." },
     "fingerprint": { "type": "string" },
     "rule": { "type": "string", "minLength": 1, "description": "Detector rule id (overflow-x, snap, cls, tap-target, ...) or a check-specific / judge rule (spacing, copy, hierarchy, ...). Part of the fingerprint rule|route|selector." },
     "title": { "type": "string", "minLength": 3 },
     "severity": { "enum": ["blocker", "major", "minor", "polish"] },
     "category": { "type": "string", "minLength": 1, "description": "layout, motion, a11y, perf, copy, visual, flow, data, ..." },
     "owner": { "enum": ["frontend", "backend", "ci"] },
-    "suite": { "enum": ["guest", "account", "games", "multiplayer"] },
-    "persona": { "enum": ["guest", "solo", "pair", "throwaway"] },
+    "suite": { "enum": ["guest", "account", "games", "multiplayer", "live", "pages", "auth", "signup", "profile", "friends", "game-data", "rooms"] },
+    "persona": { "enum": ["guest", "solo", "pair", "throwaway", "logic.actor", "logic.peer", "logic.admin"] },
     "where": {
       "type": "object",
       "required": ["route", "viewports", "selector"],
@@ -24,7 +25,8 @@
         "route": { "type": "string", "pattern": "^/" },
         "state": { "type": "string" },
         "viewports": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/where-viewport" } },
-        "selector": { "type": "string", "minLength": 1 }
+        "selector": { "type": "string", "minLength": 1 },
+        "env": { "type": "array", "minItems": 1, "items": { "enum": ["local", "live"] }, "description": "Where it was seen: the local stack and/or the live site (run.mjs --live). Absent = local. Merged findings list every env." }
       }
     },
     "current": { "type": "string", "minLength": 1 },
@@ -71,17 +73,9 @@
       "properties": {
         "checks": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["id", "projects"],
-            "additionalProperties": false,
-            "properties": {
-              "id": { "type": "string", "pattern": "^(G|AC|GM|MP)-[\\w.-]+$" },
-              "projects": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^((guest|account|games)@(phone-360|phone-390|phone-414|tablet-768|tablet-1280|desktop-1366|desktop-1920)|mp@pair[A-D])$" } }
-            }
-          }
+          "items": { "type": "object", "description": "A UI check criterion { id, projects } ($defs/ui-check) or a Logic Check criterion { lc, projects? } ($defs/lc-check); lib/findings.mjs validates each against the form its keys name." }
         },
-        "assertions": { "type": "array", "items": { "type": "object", "description": "Acceptance DSL; checked in detail by parseAssertion (lib/findings.mjs)." } },
+        "assertions": { "type": "array", "items": { "type": "object", "description": "Acceptance DSL: a browser assertion { persona, viewport, route, steps?, watch?, expect: [...] } (parseAssertion, lib/findings.mjs) or an API assertion { api: { persona, method, path, body?, headers? }, expect: { status, json?, headers? } } (check-core/lib/api-assert.mjs)." } },
         "criteria": { "$ref": "#/$defs/strings1" }
       },
       "anyOf": [
@@ -101,7 +95,25 @@
   "$defs": {
     "strings": { "type": "array", "items": { "type": "string", "minLength": 1 } },
     "strings1": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
-    "where-viewport": { "type": "string", "pattern": "^(phone-360|phone-390|phone-414|tablet-768|tablet-1280|desktop-1366|desktop-1920|pair[A-D])$" },
+    "where-viewport": { "type": "string", "pattern": "^(phone-360|phone-390|phone-414|tablet-768|tablet-1280|desktop-1366|desktop-1920|pair[A-D]|api|socket)$" },
+    "ui-check": {
+      "type": "object",
+      "required": ["id", "projects"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^(G|AC|GM|MP)-[\\w.-]+$" },
+        "projects": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^((guest|account|games)@(phone-360|phone-390|phone-414|tablet-768|tablet-1280|desktop-1366|desktop-1920)|mp@pair[A-D])$" } }
+      }
+    },
+    "lc-check": {
+      "type": "object",
+      "required": ["lc"],
+      "additionalProperties": false,
+      "properties": {
+        "lc": { "type": "string", "pattern": "^LC-[\\w.-]+$" },
+        "projects": { "type": "array", "minItems": 1, "items": { "enum": ["live", "pages", "api", "rooms"] }, "description": "Logic Check Playwright projects; absent = whichever project runs the check." }
+      }
+    },
     "metric": {
       "type": "object",
       "required": ["label", "value"],

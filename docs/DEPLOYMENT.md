@@ -69,15 +69,18 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 | Service | Trigger | Notes |
 |---|---|---|
 | Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration; `vercel.json` selects the Next.js preset |
-| Django API | **manual CLI only** — `cd backend && vercel deploy --prod` | project is *not* git-connected |
+| Django API | push to `main` → production; other pushes → preview builds | Vercel git integration with Root Directory `backend` (verified 2026-10-15: deploys in lockstep with the frontend on every push, alias `backend-git-main-…`, runs as a PR check) |
 | Multiplayer | **manual CLI only** — `cd multiplayer_server && railway up` | Railway, not git-connected; env vars set with `railway variable set` |
 
-The manual deploy uploads the **local working tree**, not a commit — such deployments show
+So a push to `main` — the manual dev→main promotion, or a checker hotfix shipped with `Target = main` —
+deploys the frontend AND the backend to production. The relay is never deployed by a push.
+
+A manual CLI deploy uploads the **local working tree**, not a commit — such deployments show
 `gitDirty: 1` and can silently pin production to code matching no branch. Production once ran a
 weeks-old commit this way while `dev` moved on.
 
-**Why the backend isn't git-connected — read before reconnecting it.** Connecting it is only
-safe once the Vercel project's **Root Directory** is set to `backend`. Without that, Vercel
+**Keep the backend's Root Directory at `backend` — read before changing it or reconnecting.** The
+git connection is only safe while the Vercel project's **Root Directory** is set to `backend`. Without that, Vercel
 builds from the repo root, applies the root `.vercelignore` (which exists to strip `backend/`
 from the *frontend* build), deletes every Django source file, and builds the Next.js frontend
 instead — then promotes that onto `backend-kappa-one-42.vercel.app`. **The build succeeds**, so
@@ -87,12 +90,12 @@ Verify the Root Directory takes effect before trusting production to it:
 
 1. Set Root Directory to `backend` (Settings → Build and Deployment) and save.
 2. `cd backend && vercel git connect https://github.com/stefanroman22/nba-trivia-minigames`
-3. Push a throwaway branch (**not** `dev` — `dev` auto-promotes to `main` and would deploy to
-   production). A non-`dev` branch produces a preview build only.
+3. Push a throwaway branch (not `main`, which deploys to production). Any other branch produces a
+   preview build only; dev→main promotion is manual (`gh workflow run dev-ci.yml`), never automatic.
 4. Read that build's log. It must clone and run `pip`/`manage.py migrate`. If it says
    `Removed N ignored files` listing `/backend/...`, or installs npm packages, the Root
    Directory is not applied — `vercel git disconnect` immediately.
-5. Only then push `dev` and let CI promote to `main`.
+5. Only then push `dev` and promote to `main` as usual.
 
 Preview URLs are SSO-protected, so verify from the **build log**, not by curling the preview.
 
@@ -108,6 +111,13 @@ vercel inspect backend-kappa-one-42.vercel.app   # prints the serving deployment
 
 and clear the pin with `vercel promote <deployment-url>`. On 2026-08-29 this silently held
 production on a two-hour-old build across several "successful" deploys.
+
+**After promoting the progression backend to prod, recount once.** Dev and prod share one database,
+so the old `main` backend keeps logging plays during the window after the dev backend migrates
+(`users` 0013), and those plays never count as active days. Once the new backend serves prod, run
+`python manage.py recount_progression` once (from `backend/`, against the production `DATABASE_URL`)
+so they count. It is safe to re-run: it recounts active days, rank and Founding Member from the
+`GameSession` history and never shortens a running streak (`users/progression_recount.py`).
 
 ## One-time accounts (create as you need each phase)
 

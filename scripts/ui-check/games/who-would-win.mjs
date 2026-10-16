@@ -3,22 +3,22 @@
 // press Next, or press Skip (no vote, 0 points). The game ends in place: "See results" → spinner (≥ 1.5 s) →
 // the per-matchup list + ScorePanel (Play again / Close game).
 //
-// There is no right answer (an opinion vote; 20 points with the crowd, 5 against, 0 for a skip), so:
+// There is no right answer (an opinion vote; 10 points with the crowd, 5 against, 0 for a skip), so:
 //   correct: true  → vote (sides alternate A, B, A… so both cards are exercised); the turn's feedback is the
 //                    picked card (`.www-card.is-mine`) — accepted deviation 6.1: no per-matchup popup, so no
 //                    Rule 6.0 copy check;
 //   correct: false → Skip (no vote, no feedback by design).
 // So `perfect` = vote on every matchup, `wrong` = skip all, `partial` = alternate vote / skip.
 // Expected score: each vote's tally response (GET /trivia/who-would-win/tally/, captured by ctx.cap, counted
-// AFTER the player's own vote) scored with the game's own rule (src/utils/whoWouldWinPoints.ts pointsFor): 20
-// when the picked side has at least as many votes as the other, 5 when fewer, 20 when the tally failed (a network
+// AFTER the player's own vote) scored with the game's own rule (src/utils/whoWouldWinPoints.ts pointsFor): 10
+// when the picked side has at least as many votes as the other, 5 when fewer, 10 when the tally failed (a network
 // fault never costs points), 0 for a skip. The driver asserts that sum on the ScorePanel, in the log-session body
 // and as `awarded`.
 import { L } from '../lib/pagemap.mjs';
 import { nextTurn, shellIsOver } from './helpers.mjs';
 
 const TALLY = /\/trivia\/who-would-win\/tally\//;
-const MAJORITY = 20, MINORITY = 5; // WWW_POINTS_MAJORITY / WWW_POINTS_MINORITY
+const MAJORITY = 10, MINORITY = 5; // WWW_POINTS_MAJORITY / WWW_POINTS_MINORITY
 
 /** utils/whoWouldWinPoints.ts pointsFor, mirrored: choice 'a'|'b'|null, tally {a,b} | 'error'. */
 export function pointsFor(choice, tally) {
