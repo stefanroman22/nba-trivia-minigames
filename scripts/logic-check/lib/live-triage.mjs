@@ -42,7 +42,7 @@ const SEVERITY = { 'LC-LIVE-01': 'blocker', 'LC-LIVE-02': 'blocker' };
 /** The local check a fix can be verified with in --mode dev, where one exists (the live criterion waits for the cron). */
 export const LOCAL_EQUIVALENT = {
   'LC-LIVE-01': [{ lc: 'LC-PAGES-01', projects: ['pages'] }],
-  'LC-LIVE-04': [], // TODO(Task 5): the local leaderboard consistency check of the game-data suite (LC-GAMEDATA-…)
+  'LC-LIVE-04': [{ lc: 'LC-GAMEDATA-03', projects: ['api'] }], // the logged-in leaderboard's consistency on the local stack
 };
 /** Where a live finding sits: `perf|/|document` for TTFB (merges with UI check's live G-PERF-01 finding), else per check. */
 const placeOf = (id) => (id === 'LC-LIVE-07' ? { rule: 'perf', selector: 'document' } : { rule: 'lc-live', selector: id });
