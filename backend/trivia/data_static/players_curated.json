@@ -215729,7 +215729,7 @@
    "team_abbr": "MEM"
   },
   "jersey": 7,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MEM",
@@ -215767,7 +215767,7 @@
     "abbr": "PHI",
     "name": "Philadelphia 76ers",
     "start_year": 2023,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 72,
     "ppg": 4.7
    }
@@ -219154,7 +219154,7 @@
   "fame_tier": 1,
   "position": "F",
   "height_in": 83,
-  "weight_lb": 240,
+  "weight_lb": 234,
   "birth_year": 1988,
   "country": "USA",
   "college": "Texas",
@@ -219251,9 +219251,9 @@
    "Alfred Joel Horford Reynoso"
   ],
   "fame_tier": 3,
-  "position": "F-C",
+  "position": "C",
   "height_in": 80,
-  "weight_lb": 240,
+  "weight_lb": 260,
   "birth_year": 1986,
   "country": "Dominican Republic",
   "college": "Florida",
@@ -219343,8 +219343,8 @@
   "aliases": [],
   "fame_tier": 3,
   "position": "G",
-  "height_in": 73,
-  "weight_lb": 175,
+  "height_in": 72,
+  "weight_lb": 182,
   "birth_year": 1987,
   "country": "USA",
   "college": "Ohio State",
@@ -219354,7 +219354,7 @@
    "pick": 4,
    "team_abbr": "MEM"
   },
-  "jersey": 44,
+  "jersey": 45,
   "is_active": true,
   "teams": [
    {
@@ -219420,7 +219420,7 @@
    "team_abbr": "BOS"
   },
   "jersey": 32,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "OKC",
@@ -219530,7 +219530,7 @@
     "abbr": "HOU",
     "name": "Houston Rockets",
     "start_year": 2023,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 140,
     "ppg": 5.3
    }
@@ -224280,7 +224280,7 @@
    "team_abbr": "MEM"
   },
   "jersey": 42,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIN",
@@ -224310,7 +224310,7 @@
     "abbr": "UTA",
     "name": "Utah Jazz",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 37,
     "ppg": 6.7
    }
@@ -226116,7 +226116,7 @@
    "team_abbr": "HOU"
   },
   "jersey": 33,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "POR",
@@ -226154,7 +226154,7 @@
     "abbr": "LAC",
     "name": "LA Clippers",
     "start_year": 2024,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 152,
     "ppg": 4.0
    }
@@ -226790,7 +226790,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 83,
-  "weight_lb": 265,
+  "weight_lb": 280,
   "birth_year": 1988,
   "country": "USA",
   "college": "Texas A&M",
@@ -228841,7 +228841,7 @@
   "aliases": [],
   "fame_tier": 1,
   "position": "G",
-  "height_in": 77,
+  "height_in": 76,
   "weight_lb": 220,
   "birth_year": 1989,
   "country": "USA",
@@ -229164,7 +229164,7 @@
   "fame_tier": 1,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 185,
+  "weight_lb": 205,
   "birth_year": 1988,
   "country": "USA",
   "college": "Davidson",
@@ -229309,7 +229309,7 @@
   "weight_lb": 220,
   "birth_year": 1989,
   "country": "USA",
-  "college": "USC",
+  "college": "Southern California",
   "draft": {
    "year": 2009,
    "round": 1,
@@ -229317,7 +229317,7 @@
    "team_abbr": "TOR"
   },
   "jersey": 10,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "TOR",
@@ -229347,7 +229347,7 @@
     "abbr": "SAC",
     "name": "Sacramento Kings",
     "start_year": 2024,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 154,
     "ppg": 20.3
    }
@@ -229850,7 +229850,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 80,
   "weight_lb": 240,
   "birth_year": 1987,
   "country": "USA",
@@ -229862,7 +229862,7 @@
    "team_abbr": "CHI"
   },
   "jersey": 16,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "CHI",
@@ -229948,7 +229948,7 @@
     "abbr": "IND",
     "name": "Indiana Pacers",
     "start_year": 2022,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 39,
     "ppg": 1.7
    }
@@ -230642,7 +230642,7 @@
   "weight_lb": 232,
   "birth_year": 1985,
   "country": "USA",
-  "college": "Southern California",
+  "college": "USC",
   "draft": {
    "year": 2009,
    "round": 1,
@@ -230650,7 +230650,7 @@
    "team_abbr": "CHI"
   },
   "jersey": 67,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "CHI",
@@ -230720,7 +230720,7 @@
     "abbr": "MEM",
     "name": "Memphis Grizzlies",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 10,
     "ppg": 3.4
    }
@@ -234743,7 +234743,7 @@
    "pick": 10,
    "team_abbr": "IND"
   },
-  "jersey": 8,
+  "jersey": 13,
   "is_active": true,
   "teams": [
    {
@@ -239885,9 +239885,9 @@
   "full_name": "Klay Thompson",
   "aliases": [],
   "fame_tier": 2,
-  "position": "G",
+  "position": "G-F",
   "height_in": 77,
-  "weight_lb": 220,
+  "weight_lb": 200,
   "birth_year": 1990,
   "country": "USA",
   "college": "Washington State",
@@ -240289,7 +240289,7 @@
   "aliases": [],
   "fame_tier": 1,
   "position": "F",
-  "height_in": 78,
+  "height_in": 79,
   "weight_lb": 225,
   "birth_year": 1991,
   "country": "USA",
@@ -240373,7 +240373,7 @@
   ],
   "fame_tier": 3,
   "position": "C",
-  "height_in": 81,
+  "height_in": 83,
   "weight_lb": 265,
   "birth_year": 1990,
   "country": "Montenegro",
@@ -244093,7 +244093,7 @@
    "pick": 3,
    "team_abbr": "WAS"
   },
-  "jersey": 0,
+  "jersey": 3,
   "is_active": true,
   "teams": [
    {
@@ -244433,7 +244433,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 83,
+  "height_in": 82,
   "weight_lb": 279,
   "birth_year": 1993,
   "country": "USA",
@@ -246383,9 +246383,9 @@
   "full_name": "Draymond Green",
   "aliases": [],
   "fame_tier": 2,
-  "position": "F",
+  "position": "F-C",
   "height_in": 78,
-  "weight_lb": 230,
+  "weight_lb": 240,
   "birth_year": 1990,
   "country": "USA",
   "college": "Michigan State",
@@ -246686,7 +246686,7 @@
    "pick": 39,
    "team_abbr": "DET"
   },
-  "jersey": 20,
+  "jersey": 22,
   "is_active": true,
   "teams": [
    {
@@ -250072,7 +250072,7 @@
   "aliases": [],
   "fame_tier": 3,
   "position": "G",
-  "height_in": 75,
+  "height_in": 74,
   "weight_lb": 190,
   "birth_year": 1991,
   "country": "USA",
@@ -250239,7 +250239,7 @@
    "pick": 17,
    "team_abbr": "ATL"
   },
-  "jersey": 8,
+  "jersey": 17,
   "is_active": true,
   "teams": [
    {
@@ -250287,8 +250287,8 @@
     "name": "Los Angeles Lakers",
     "start_year": 2022,
     "end_year": 2023,
-    "gp": 67,
-    "ppg": 12.4
+    "gp": 66,
+    "ppg": 12.6
    },
    {
     "abbr": "TOR",
@@ -251033,7 +251033,7 @@
    "pick": 8,
    "team_abbr": "DET"
   },
-  "jersey": 3,
+  "jersey": 1,
   "is_active": true,
   "teams": [
    {
@@ -252203,7 +252203,7 @@
   "fame_tier": 3,
   "position": "C",
   "height_in": 83,
-  "weight_lb": 265,
+  "weight_lb": 279,
   "birth_year": 1993,
   "country": "New Zealand",
   "college": "Pittsburgh",
@@ -252274,7 +252274,7 @@
   "full_name": "Tim Hardaway Jr.",
   "aliases": [],
   "fame_tier": 4,
-  "position": "G-F",
+  "position": "G",
   "height_in": 77,
   "weight_lb": 205,
   "birth_year": 1992,
@@ -252735,7 +252735,7 @@
   "fame_tier": 1,
   "position": "F",
   "height_in": 83,
-  "weight_lb": 243,
+  "weight_lb": 250,
   "birth_year": 1994,
   "country": "Greece",
   "college": null,
@@ -254093,7 +254093,7 @@
   "college": "Duke",
   "draft": null,
   "jersey": 31,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MEM",
@@ -254187,7 +254187,7 @@
     "abbr": "GSW",
     "name": "Golden State Warriors",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 10,
     "ppg": 7.1
    }
@@ -254720,7 +254720,7 @@
    "team_abbr": "NYK"
   },
   "jersey": 43,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "NYK",
@@ -254742,7 +254742,7 @@
     "abbr": "MIL",
     "name": "Milwaukee Bucks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 34,
     "ppg": 1.4
    }
@@ -255619,7 +255619,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 195,
   "birth_year": 1994,
   "country": "USA",
@@ -255630,8 +255630,8 @@
    "pick": 10,
    "team_abbr": "PHI"
   },
-  "jersey": 4,
-  "is_active": false,
+  "jersey": 3,
+  "is_active": true,
   "teams": [
    {
     "abbr": "ORL",
@@ -255685,7 +255685,7 @@
     "abbr": "NOP",
     "name": "New Orleans Pelicans",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 18,
     "ppg": 4.4
    }
@@ -256126,7 +256126,7 @@
    "team_abbr": "CHI"
   },
   "jersey": 11,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "DEN",
@@ -256148,7 +256148,7 @@
     "abbr": "MIL",
     "name": "Milwaukee Bucks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 48,
     "ppg": 2.7
    }
@@ -256777,7 +256777,7 @@
    "pick": 39,
    "team_abbr": "PHI"
   },
-  "jersey": 9,
+  "jersey": 3,
   "is_active": true,
   "teams": [
    {
@@ -257433,7 +257433,7 @@
    "pick": 30,
    "team_abbr": "SAS"
   },
-  "jersey": 12,
+  "jersey": 13,
   "is_active": true,
   "teams": [
    {
@@ -257527,7 +257527,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F-C",
-  "height_in": 82,
+  "height_in": 83,
   "weight_lb": 240,
   "birth_year": 1991,
   "country": "Canada",
@@ -257755,7 +257755,7 @@
   "fame_tier": 2,
   "position": "F-C",
   "height_in": 81,
-  "weight_lb": 250,
+  "weight_lb": 256,
   "birth_year": 1994,
   "country": "USA",
   "college": "Kentucky",
@@ -258132,7 +258132,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 78,
-  "weight_lb": 197,
+  "weight_lb": 210,
   "birth_year": 1995,
   "country": "Canada",
   "college": "Kansas",
@@ -259037,7 +259037,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 77,
-  "weight_lb": 225,
+  "weight_lb": 231,
   "birth_year": 1992,
   "country": "Serbia",
   "college": null,
@@ -259103,7 +259103,7 @@
   ],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 83,
+  "height_in": 84,
   "weight_lb": 290,
   "birth_year": 1994,
   "country": "Bosnia and Herzegovina",
@@ -261669,7 +261669,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 72,
+  "height_in": 73,
   "weight_lb": 196,
   "birth_year": 1996,
   "country": "USA",
@@ -262467,7 +262467,7 @@
    "team_abbr": "LAL"
   },
   "jersey": 5,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "LAL",
@@ -262521,7 +262521,7 @@
     "abbr": "DAL",
     "name": "Dallas Mavericks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 26,
     "ppg": 10.2
    }
@@ -262838,7 +262838,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 80,
+  "height_in": 79,
   "weight_lb": 210,
   "birth_year": 1995,
   "country": "USA",
@@ -263438,7 +263438,7 @@
   "aliases": [],
   "fame_tier": 3,
   "position": "F",
-  "height_in": 81,
+  "height_in": 82,
   "weight_lb": 250,
   "birth_year": 1995,
   "country": "USA",
@@ -264023,7 +264023,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 215,
   "birth_year": 1993,
   "country": "USA",
@@ -264863,7 +264863,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F-C",
-  "height_in": 78,
+  "height_in": 80,
   "weight_lb": 245,
   "birth_year": 1993,
   "country": "USA",
@@ -265023,7 +265023,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 80,
-  "weight_lb": 220,
+  "weight_lb": 255,
   "birth_year": 1995,
   "country": "Croatia",
   "college": null,
@@ -266216,8 +266216,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 82,
-  "weight_lb": 240,
+  "height_in": 81,
+  "weight_lb": 245,
   "birth_year": 1996,
   "country": "Australia",
   "college": "Louisiana State",
@@ -266228,7 +266228,7 @@
    "team_abbr": "PHI"
   },
   "jersey": 25,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "PHI",
@@ -266250,7 +266250,7 @@
     "abbr": "LAC",
     "name": "LA Clippers",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 18,
     "ppg": 2.9
    }
@@ -266857,7 +266857,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 220,
   "birth_year": 1992,
   "country": "Bahamas",
@@ -266957,7 +266957,7 @@
    "pick": 2,
    "team_abbr": "LAL"
   },
-  "jersey": 3,
+  "jersey": 7,
   "is_active": true,
   "teams": [
    {
@@ -267325,7 +267325,7 @@
    "pick": 20,
    "team_abbr": "IND"
   },
-  "jersey": 8,
+  "jersey": 12,
   "is_active": true,
   "teams": [
    {
@@ -267461,7 +267461,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 76,
-  "weight_lb": 180,
+  "weight_lb": 188,
   "birth_year": 1996,
   "country": "USA",
   "college": "Washington",
@@ -268787,8 +268787,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
-  "weight_lb": 230,
+  "height_in": 79,
+  "weight_lb": 245,
   "birth_year": 1993,
   "country": "USA",
   "college": "Iowa State",
@@ -268967,7 +268967,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 195,
+  "weight_lb": 192,
   "birth_year": 1992,
   "country": "USA",
   "college": "Oregon State",
@@ -269177,7 +269177,7 @@
   "aliases": [],
   "fame_tier": 2,
   "position": "F",
-  "height_in": 80,
+  "height_in": 81,
   "weight_lb": 245,
   "birth_year": 1994,
   "country": "Cameroon",
@@ -270412,7 +270412,7 @@
   "country": "USA",
   "college": "Florida",
   "draft": null,
-  "jersey": 2,
+  "jersey": 8,
   "is_active": true,
   "teams": [
    {
@@ -270475,7 +270475,7 @@
   "fame_tier": 3,
   "position": "G",
   "height_in": 72,
-  "weight_lb": 197,
+  "weight_lb": 213,
   "birth_year": 1994,
   "country": "USA",
   "college": "Wichita State",
@@ -272513,7 +272513,7 @@
   "fame_tier": 1,
   "position": "G-F",
   "height_in": 80,
-  "weight_lb": 210,
+  "weight_lb": 229,
   "birth_year": 1998,
   "country": "USA",
   "college": "Duke",
@@ -272629,7 +272629,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 82,
-  "weight_lb": 230,
+  "weight_lb": 240,
   "birth_year": 1997,
   "country": "USA",
   "college": "Florida State",
@@ -272905,7 +272905,7 @@
   "fame_tier": 2,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 215,
+  "weight_lb": 228,
   "birth_year": 1996,
   "country": "USA",
   "college": "Louisville",
@@ -272972,7 +272972,7 @@
    "pick": 12,
    "team_abbr": "DET"
   },
-  "jersey": 10,
+  "jersey": 8,
   "is_active": true,
   "teams": [
    {
@@ -273486,7 +273486,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 81,
-  "weight_lb": 243,
+  "weight_lb": 250,
   "birth_year": 1998,
   "country": "USA",
   "college": "Texas",
@@ -273649,7 +273649,7 @@
   "fame_tier": 2,
   "position": "F-C",
   "height_in": 81,
-  "weight_lb": 255,
+  "weight_lb": 260,
   "birth_year": 1997,
   "country": "USA",
   "college": "Kentucky",
@@ -274137,7 +274137,7 @@
    "team_abbr": "LAL"
   },
   "jersey": 13,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "UTA",
@@ -274183,7 +274183,7 @@
     "abbr": "ATL",
     "name": "Atlanta Hawks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 3,
     "ppg": 3.7
    }
@@ -274445,7 +274445,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 76,
-  "weight_lb": 190,
+  "weight_lb": 200,
   "birth_year": 1994,
   "country": "USA",
   "college": "Colorado",
@@ -275439,7 +275439,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 81,
-  "weight_lb": 248,
+  "weight_lb": 260,
   "birth_year": 1997,
   "country": "USA",
   "college": "Indiana",
@@ -278297,7 +278297,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 198,
   "birth_year": 1995,
   "country": "USA",
@@ -278495,7 +278495,7 @@
    "pick": 2,
    "team_abbr": "SAC"
   },
-  "jersey": 35,
+  "jersey": 3,
   "is_active": true,
   "teams": [
    {
@@ -278584,7 +278584,7 @@
    "pick": 6,
    "team_abbr": "ORL"
   },
-  "jersey": 11,
+  "jersey": 44,
   "is_active": true,
   "teams": [
    {
@@ -278873,7 +278873,7 @@
    "pick": 12,
    "team_abbr": "LAC"
   },
-  "jersey": 0,
+  "jersey": 22,
   "is_active": true,
   "teams": [
    {
@@ -279160,7 +279160,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 72,
+  "height_in": 73,
   "weight_lb": 190,
   "birth_year": 1995,
   "country": "USA",
@@ -279250,7 +279250,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 82,
-  "weight_lb": 270,
+  "weight_lb": 262,
   "birth_year": 1999,
   "country": "USA",
   "college": "Duke",
@@ -279932,7 +279932,7 @@
    "team_abbr": "IND"
   },
   "jersey": 0,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "IND",
@@ -279970,7 +279970,7 @@
     "abbr": "HOU",
     "name": "Houston Rockets",
     "start_year": 2023,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 197,
     "ppg": 5.9
    }
@@ -280355,8 +280355,8 @@
    "pick": 9,
    "team_abbr": "NYK"
   },
-  "jersey": 31,
-  "is_active": false,
+  "jersey": 24,
+  "is_active": true,
   "teams": [
    {
     "abbr": "NYK",
@@ -280402,7 +280402,7 @@
     "abbr": "GSW",
     "name": "Golden State Warriors",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 14,
     "ppg": 3.3
    }
@@ -280611,7 +280611,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 200,
+  "weight_lb": 199,
   "birth_year": 1998,
   "country": "USA",
   "college": "Southern California",
@@ -280845,7 +280845,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 79,
+  "height_in": 78,
   "weight_lb": 205,
   "birth_year": 1997,
   "country": "Ukraine",
@@ -280998,7 +280998,7 @@
    "pick": 20,
    "team_abbr": "MIN"
   },
-  "jersey": 20,
+  "jersey": 21,
   "is_active": true,
   "teams": [
    {
@@ -281113,7 +281113,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 82,
-  "weight_lb": 218,
+  "weight_lb": 232,
   "birth_year": 1998,
   "country": "USA",
   "college": "Missouri",
@@ -281237,7 +281237,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 84,
-  "weight_lb": 240,
+  "weight_lb": 245,
   "birth_year": 1998,
   "country": "USA",
   "college": "Western Kentucky",
@@ -281287,7 +281287,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 73,
   "weight_lb": 190,
   "birth_year": 1999,
   "country": "USA",
@@ -281451,7 +281451,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 200,
   "birth_year": 1999,
   "country": "USA",
@@ -281462,7 +281462,7 @@
    "pick": 24,
    "team_abbr": "POR"
   },
-  "jersey": 22,
+  "jersey": 5,
   "is_active": true,
   "teams": [
    {
@@ -281516,7 +281516,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 205,
   "birth_year": 1999,
   "country": "USA",
@@ -281527,14 +281527,14 @@
    "pick": 16,
    "team_abbr": "PHX"
   },
-  "jersey": 5,
-  "is_active": false,
+  "jersey": 19,
+  "is_active": true,
   "teams": [
    {
     "abbr": "PHI",
     "name": "Philadelphia 76ers",
     "start_year": 2018,
-    "end_year": 2020,
+    "end_year": null,
     "gp": 13,
     "ppg": 3.7
    }
@@ -281679,7 +281679,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
+  "height_in": 76,
   "weight_lb": 204,
   "birth_year": 1999,
   "country": "USA",
@@ -281862,7 +281862,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 83,
-  "weight_lb": 245,
+  "weight_lb": 255,
   "birth_year": 1997,
   "country": "Germany",
   "college": "Michigan",
@@ -281872,7 +281872,7 @@
    "pick": 25,
    "team_abbr": "LAL"
   },
-  "jersey": 21,
+  "jersey": 13,
   "is_active": true,
   "teams": [
    {
@@ -282007,7 +282007,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 78,
   "weight_lb": 230,
   "birth_year": 1998,
   "country": "USA",
@@ -282118,7 +282118,7 @@
   "aliases": [],
   "fame_tier": 2,
   "position": "G",
-  "height_in": 74,
+  "height_in": 73,
   "weight_lb": 164,
   "birth_year": 1998,
   "country": "USA",
@@ -282186,7 +282186,7 @@
    "pick": 1,
    "team_abbr": "PHX"
   },
-  "jersey": 5,
+  "jersey": 8,
   "is_active": true,
   "teams": [
    {
@@ -282561,7 +282561,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 83,
-  "weight_lb": 250,
+  "weight_lb": 235,
   "birth_year": 1999,
   "country": "Georgia",
   "college": null,
@@ -285040,7 +285040,7 @@
   "college": "California-Santa Barbara",
   "draft": null,
   "jersey": 4,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIA",
@@ -285062,7 +285062,7 @@
     "abbr": "ATL",
     "name": "Atlanta Hawks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 24,
     "ppg": 3.9
    }
@@ -285441,7 +285441,7 @@
   "weight_lb": 195,
   "birth_year": 1993,
   "country": "USA",
-  "college": "West Virginia",
+  "college": "West Viginia",
   "draft": null,
   "jersey": 22,
   "is_active": false,
@@ -285712,7 +285712,7 @@
   "college": "Minnesota",
   "draft": null,
   "jersey": 2,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "LAC",
@@ -285734,7 +285734,7 @@
     "abbr": "PHX",
     "name": "Phoenix Suns",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 16,
     "ppg": 4.8
    }
@@ -286242,8 +286242,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 78,
-  "weight_lb": 215,
+  "height_in": 77,
+  "weight_lb": 220,
   "birth_year": 1996,
   "country": "USA",
   "college": "Florida State",
@@ -286604,7 +286604,7 @@
   "country": "USA",
   "college": "DePaul",
   "draft": null,
-  "jersey": 2,
+  "jersey": 31,
   "is_active": true,
   "teams": [
    {
@@ -286852,7 +286852,7 @@
   "fame_tier": 2,
   "position": "F",
   "height_in": 78,
-  "weight_lb": 284,
+  "weight_lb": 277,
   "birth_year": 2000,
   "country": "USA",
   "college": "Duke",
@@ -287049,7 +287049,7 @@
    "pick": 2,
    "team_abbr": "MEM"
   },
-  "jersey": 12,
+  "jersey": 1,
   "is_active": true,
   "teams": [
    {
@@ -287152,7 +287152,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 210,
   "birth_year": 2000,
   "country": "USA",
@@ -287618,7 +287618,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 78,
+  "height_in": 77,
   "weight_lb": 220,
   "birth_year": 1999,
   "country": "USA",
@@ -287978,8 +287978,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F-C",
-  "height_in": 82,
-  "weight_lb": 230,
+  "height_in": 81,
+  "weight_lb": 244,
   "birth_year": 2000,
   "country": "Nigeria",
   "college": "Western Kentucky",
@@ -288425,7 +288425,7 @@
   "country": "Canada",
   "college": "Arizona State",
   "draft": null,
-  "jersey": 5,
+  "jersey": 0,
   "is_active": true,
   "teams": [
    {
@@ -288582,7 +288582,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
+  "height_in": 76,
   "weight_lb": 207,
   "birth_year": 2000,
   "country": "USA",
@@ -289413,14 +289413,14 @@
    "pick": 58,
    "team_abbr": "GSW"
   },
-  "jersey": null,
-  "is_active": false,
+  "jersey": 81,
+  "is_active": true,
   "teams": [
    {
     "abbr": "UTA",
     "name": "Utah Jazz",
     "start_year": 2019,
-    "end_year": 2022,
+    "end_year": null,
     "gp": 80,
     "ppg": 1.8
    }
@@ -289509,7 +289509,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 76,
-  "weight_lb": 194,
+  "weight_lb": 200,
   "birth_year": 1999,
   "country": "USA",
   "college": "Michigan",
@@ -289576,7 +289576,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 84,
-  "weight_lb": 248,
+  "weight_lb": 270,
   "birth_year": 1999,
   "country": "Portugal",
   "college": "Utah State",
@@ -291024,7 +291024,7 @@
   "country": "USA",
   "college": "Kansas State",
   "draft": null,
-  "jersey": 32,
+  "jersey": 45,
   "is_active": true,
   "teams": [
    {
@@ -292201,7 +292201,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 83,
+  "height_in": 84,
   "weight_lb": 240,
   "birth_year": 2001,
   "country": "USA",
@@ -292212,8 +292212,8 @@
    "pick": 2,
    "team_abbr": "GSW"
   },
-  "jersey": null,
-  "is_active": false,
+  "jersey": 11,
+  "is_active": true,
   "teams": [
    {
     "abbr": "GSW",
@@ -292243,7 +292243,7 @@
     "abbr": "IND",
     "name": "Indiana Pacers",
     "start_year": 2024,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 5,
     "ppg": 3.8
    }
@@ -292608,7 +292608,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 76,
+  "height_in": 78,
   "weight_lb": 225,
   "birth_year": 2001,
   "country": "USA",
@@ -292665,7 +292665,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
+  "height_in": 79,
   "weight_lb": 235,
   "birth_year": 2001,
   "country": "USA",
@@ -293128,9 +293128,9 @@
   "full_name": "Saddiq Bey",
   "aliases": [],
   "fame_tier": 4,
-  "position": "G-F",
+  "position": "F",
   "height_in": 80,
-  "weight_lb": 215,
+  "weight_lb": 240,
   "birth_year": 1999,
   "country": "USA",
   "college": "Villanova",
@@ -293278,7 +293278,7 @@
    "pick": 18,
    "team_abbr": "DAL"
   },
-  "jersey": 10,
+  "jersey": 5,
   "is_active": true,
   "teams": [
    {
@@ -293601,7 +293601,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F-C",
-  "height_in": 80,
+  "height_in": 81,
   "weight_lb": 244,
   "birth_year": 2000,
   "country": "USA",
@@ -293872,7 +293872,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 74,
+  "height_in": 75,
   "weight_lb": 190,
   "birth_year": 1999,
   "country": "USA",
@@ -294151,7 +294151,7 @@
    "pick": 49,
    "team_abbr": "PHI"
   },
-  "jersey": 11,
+  "jersey": 17,
   "is_active": true,
   "teams": [
    {
@@ -294387,7 +294387,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 73,
-  "weight_lb": 195,
+  "weight_lb": 212,
   "birth_year": 1998,
   "country": "USA",
   "college": "Oregon",
@@ -294718,7 +294718,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 83,
-  "weight_lb": 245,
+  "weight_lb": 255,
   "birth_year": 1997,
   "country": "Jamaica",
   "college": "Kentucky",
@@ -294933,7 +294933,7 @@
    "team_abbr": "SAC"
   },
   "jersey": 26,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MEM",
@@ -294955,7 +294955,7 @@
     "abbr": "CHA",
     "name": "Charlotte Hornets",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 16,
     "ppg": 0.8
    }
@@ -295602,7 +295602,7 @@
    "pick": 7,
    "team_abbr": "GSW"
   },
-  "jersey": 0,
+  "jersey": 24,
   "is_active": true,
   "teams": [
    {
@@ -295714,7 +295714,7 @@
    "team_abbr": "SAC"
   },
   "jersey": 99,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "HOU",
@@ -295744,7 +295744,7 @@
     "abbr": "UTA",
     "name": "Utah Jazz",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 19,
     "ppg": 6.3
    }
@@ -296109,7 +296109,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 76,
-  "weight_lb": 205,
+  "weight_lb": 195,
   "birth_year": 1996,
   "country": "USA",
   "college": "Utah State",
@@ -296453,7 +296453,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 76,
-  "weight_lb": 230,
+  "weight_lb": 239,
   "birth_year": 1995,
   "country": "USA",
   "college": "Ohio State",
@@ -296610,7 +296610,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 80,
   "weight_lb": 230,
   "birth_year": 1992,
   "country": "USA",
@@ -296993,13 +296993,13 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 84,
-  "weight_lb": 215,
+  "weight_lb": 230,
   "birth_year": 1997,
   "country": "USA",
   "college": "Oregon State",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 35,
+  "is_active": true,
   "teams": [
    {
     "abbr": "DAL",
@@ -297013,7 +297013,7 @@
     "abbr": "NOP",
     "name": "New Orleans Pelicans",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 3,
     "ppg": 3.3
    }
@@ -297399,7 +297399,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 73,
-  "weight_lb": 190,
+  "weight_lb": 185,
   "birth_year": 1999,
   "country": "USA",
   "college": "Arizona",
@@ -297807,7 +297807,7 @@
    "team_abbr": "MEM"
   },
   "jersey": 11,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "LAC",
@@ -297821,7 +297821,7 @@
     "abbr": "NOP",
     "name": "New Orleans Pelicans",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 42,
     "ppg": 10.7
    }
@@ -297910,7 +297910,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 79,
-  "weight_lb": 206,
+  "weight_lb": 210,
   "birth_year": 1998,
   "country": "USA",
   "college": "Alabama",
@@ -297958,8 +297958,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
-  "weight_lb": 206,
+  "height_in": 81,
+  "weight_lb": 220,
   "birth_year": 2000,
   "country": "USA",
   "college": "Virginia",
@@ -298075,7 +298075,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 82,
-  "weight_lb": 220,
+  "weight_lb": 230,
   "birth_year": 2001,
   "country": "Germany",
   "college": "Michigan",
@@ -298314,7 +298314,7 @@
    "team_abbr": "ATL"
   },
   "jersey": 13,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "ATL",
@@ -298328,7 +298328,7 @@
     "abbr": "WAS",
     "name": "Washington Wizards",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 41,
     "ppg": 8.1
    }
@@ -298606,7 +298606,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 77,
-  "weight_lb": 211,
+  "weight_lb": 217,
   "birth_year": 2002,
   "country": "USA",
   "college": "Arkansas",
@@ -298768,7 +298768,7 @@
    "pick": 18,
    "team_abbr": "OKC"
   },
-  "jersey": 23,
+  "jersey": 1,
   "is_active": true,
   "teams": [
    {
@@ -299467,7 +299467,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 72,
-  "weight_lb": 202,
+  "weight_lb": 200,
   "birth_year": 1998,
   "country": "USA",
   "college": "Baylor",
@@ -299927,7 +299927,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 82,
-  "weight_lb": 243,
+  "weight_lb": 252,
   "birth_year": 1998,
   "country": "USA",
   "college": "Iowa",
@@ -299991,8 +299991,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 80,
-  "weight_lb": 245,
+  "height_in": 81,
+  "weight_lb": 244,
   "birth_year": 2000,
   "country": "USA",
   "college": "Louisiana State",
@@ -300051,7 +300051,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F-C",
-  "height_in": 81,
+  "height_in": 82,
   "weight_lb": 240,
   "birth_year": 1999,
   "country": "Georgia",
@@ -300315,7 +300315,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 83,
-  "weight_lb": 243,
+  "weight_lb": 271,
   "birth_year": 2002,
   "country": "Turkey",
   "college": null,
@@ -300477,7 +300477,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 79,
+  "height_in": 80,
   "weight_lb": 214,
   "birth_year": 2002,
   "country": "Australia",
@@ -300748,7 +300748,7 @@
    "team_abbr": "DET"
   },
   "jersey": 18,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "DET",
@@ -300762,7 +300762,7 @@
     "abbr": "PHX",
     "name": "Phoenix Suns",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 36,
     "ppg": 1.8
    }
@@ -300845,7 +300845,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 74,
+  "height_in": 73,
   "weight_lb": 170,
   "birth_year": 2000,
   "country": "USA",
@@ -300898,7 +300898,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 77,
-  "weight_lb": 205,
+  "weight_lb": 207,
   "birth_year": 2001,
   "country": "USA",
   "college": "Gonzaga",
@@ -301097,7 +301097,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 83,
-  "weight_lb": 215,
+  "weight_lb": 230,
   "birth_year": 2001,
   "country": "USA",
   "college": "Southern California",
@@ -301193,7 +301193,7 @@
    "pick": 55,
    "team_abbr": "OKC"
   },
-  "jersey": 21,
+  "jersey": 2,
   "is_active": true,
   "teams": [
    {
@@ -301598,7 +301598,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 79,
-  "weight_lb": 185,
+  "weight_lb": 225,
   "birth_year": 2002,
   "country": "Brazil",
   "college": null,
@@ -301881,13 +301881,13 @@
   "college": "Kansas",
   "draft": null,
   "jersey": 4,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "NOP",
     "name": "New Orleans Pelicans",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 5,
     "ppg": 2.4
    }
@@ -302252,7 +302252,7 @@
   "college": "South Carolina",
   "draft": null,
   "jersey": 0,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIN",
@@ -302274,7 +302274,7 @@
     "abbr": "TOR",
     "name": "Toronto Raptors",
     "start_year": 2024,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 50,
     "ppg": 6.7
    }
@@ -302716,7 +302716,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 82,
+  "height_in": 83,
   "weight_lb": 250,
   "birth_year": 2000,
   "country": "USA",
@@ -303157,7 +303157,7 @@
   "country": "USA",
   "college": "Wisconsin",
   "draft": null,
-  "jersey": 11,
+  "jersey": 9,
   "is_active": true,
   "teams": [
    {
@@ -303212,7 +303212,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 203,
+  "weight_lb": 200,
   "birth_year": 1997,
   "country": "USA",
   "college": "Missouri",
@@ -303318,7 +303318,7 @@
    "team_abbr": "MIL"
   },
   "jersey": 16,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIL",
@@ -303348,7 +303348,7 @@
     "abbr": "PHI",
     "name": "Philadelphia 76ers",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 14,
     "ppg": 6.8
    }
@@ -303471,7 +303471,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 198,
   "birth_year": 2002,
   "country": "USA",
@@ -303616,16 +303616,16 @@
   "weight_lb": 185,
   "birth_year": 2002,
   "country": "USA",
-  "college": "Ranney School (NJ)",
+  "college": "Ranney School (HS)",
   "draft": null,
   "jersey": null,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "PHI",
     "name": "Philadelphia 76ers",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 5,
     "ppg": 1.6
    }
@@ -303750,13 +303750,13 @@
   "college": "Texas-San Antonio",
   "draft": null,
   "jersey": 2,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "ATL",
     "name": "Atlanta Hawks",
     "start_year": 2024,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 84,
     "ppg": 4.2
    }
@@ -304078,7 +304078,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 83,
-  "weight_lb": 220,
+  "weight_lb": 231,
   "birth_year": 2003,
   "country": "USA",
   "college": "Auburn",
@@ -304178,7 +304178,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 77,
-  "weight_lb": 210,
+  "weight_lb": 222,
   "birth_year": 2002,
   "country": "Canada",
   "college": "Arizona",
@@ -304188,7 +304188,7 @@
    "pick": 6,
    "team_abbr": "IND"
   },
-  "jersey": 9,
+  "jersey": 24,
   "is_active": true,
   "teams": [
    {
@@ -304442,7 +304442,7 @@
    "team_abbr": "MEM"
   },
   "jersey": 14,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "HOU",
@@ -304472,7 +304472,7 @@
     "abbr": "LAC",
     "name": "LA Clippers",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 16,
     "ppg": 1.3
    }
@@ -304503,7 +304503,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 180,
   "birth_year": 2003,
   "country": "USA",
@@ -304514,7 +304514,7 @@
    "pick": 20,
    "team_abbr": "SAS"
   },
-  "jersey": 8,
+  "jersey": 12,
   "is_active": true,
   "teams": [
    {
@@ -304667,7 +304667,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 80,
-  "weight_lb": 215,
+  "weight_lb": 229,
   "birth_year": 2001,
   "country": "USA",
   "college": "Louisiana State",
@@ -304718,7 +304718,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 82,
-  "weight_lb": 205,
+  "weight_lb": 245,
   "birth_year": 2003,
   "country": "Serbia",
   "college": null,
@@ -304951,7 +304951,7 @@
    "team_abbr": "DAL"
   },
   "jersey": 14,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIN",
@@ -304981,7 +304981,7 @@
     "abbr": "DET",
     "name": "Detroit Pistons",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 6,
     "ppg": 1.7
    }
@@ -305012,7 +305012,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 79,
+  "height_in": 78,
   "weight_lb": 205,
   "birth_year": 2003,
   "country": "USA",
@@ -305024,13 +305024,13 @@
    "team_abbr": "MIN"
   },
   "jersey": 10,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "IND",
     "name": "Indiana Pacers",
     "start_year": 2022,
-    "end_year": 2024,
+    "end_year": null,
     "gp": 21,
     "ppg": 1.4
    }
@@ -305072,8 +305072,8 @@
    "pick": 38,
    "team_abbr": "SAS"
   },
-  "jersey": null,
-  "is_active": false,
+  "jersey": 0,
+  "is_active": true,
   "teams": [
    {
     "abbr": "MEM",
@@ -305087,7 +305087,7 @@
     "abbr": "UTA",
     "name": "Utah Jazz",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 11,
     "ppg": 15.0
    }
@@ -305175,8 +305175,8 @@
   "country": "USA",
   "college": "Fresno State",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 7,
+  "is_active": true,
   "teams": [
    {
     "abbr": "MIA",
@@ -305206,7 +305206,7 @@
     "abbr": "ORL",
     "name": "Orlando Magic",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 4,
     "ppg": 1.8
    }
@@ -305318,7 +305318,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 86,
+  "height_in": 85,
   "weight_lb": 245,
   "birth_year": 2001,
   "country": "USA",
@@ -305429,7 +305429,7 @@
    "pick": 53,
    "team_abbr": "BOS"
   },
-  "jersey": 4,
+  "jersey": 20,
   "is_active": true,
   "teams": [
    {
@@ -305476,7 +305476,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 78,
-  "weight_lb": 190,
+  "weight_lb": 202,
   "birth_year": 2002,
   "country": "USA",
   "college": "Nebraska",
@@ -305635,7 +305635,7 @@
    "pick": 29,
    "team_abbr": "IND"
   },
-  "jersey": 3,
+  "jersey": 1,
   "is_active": true,
   "teams": [
    {
@@ -305728,7 +305728,7 @@
    "pick": 48,
    "team_abbr": "SAS"
   },
-  "jersey": 55,
+  "jersey": 0,
   "is_active": true,
   "teams": [
    {
@@ -305818,7 +305818,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 80,
-  "weight_lb": 255,
+  "weight_lb": 270,
   "birth_year": 1999,
   "country": "DRC",
   "college": "Kentucky",
@@ -305880,8 +305880,8 @@
    "pick": 33,
    "team_abbr": "TOR"
   },
-  "jersey": 35,
-  "is_active": true,
+  "jersey": 10,
+  "is_active": false,
   "teams": [
    {
     "abbr": "TOR",
@@ -305911,7 +305911,7 @@
     "abbr": "ATL",
     "name": "Atlanta Hawks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 14,
     "ppg": 3.1
    }
@@ -306157,12 +306157,12 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 76,
-  "weight_lb": 175,
+  "weight_lb": 180,
   "birth_year": 2000,
   "country": "USA",
   "college": "Alabama",
   "draft": null,
-  "jersey": 14,
+  "jersey": 1,
   "is_active": true,
   "teams": [
    {
@@ -306215,7 +306215,7 @@
   "college": "Gonzaga",
   "draft": null,
   "jersey": 17,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "BKN",
@@ -306229,7 +306229,7 @@
     "abbr": "LAL",
     "name": "Los Angeles Lakers",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 27,
     "ppg": 3.4
    }
@@ -306295,8 +306295,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
-  "weight_lb": 205,
+  "height_in": 81,
+  "weight_lb": 215,
   "birth_year": 2002,
   "country": "USA",
   "college": "Memphis",
@@ -306360,7 +306360,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 78,
+  "height_in": 79,
   "weight_lb": 225,
   "birth_year": 2001,
   "country": "USA",
@@ -306554,13 +306554,13 @@
   "college": "Richmond",
   "draft": null,
   "jersey": null,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "MEM",
     "name": "Memphis Grizzlies",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 12,
     "ppg": 10.8
    }
@@ -306652,7 +306652,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 77,
-  "weight_lb": 233,
+  "weight_lb": 231,
   "birth_year": 2000,
   "country": "USA",
   "college": "Rutgers",
@@ -306722,7 +306722,7 @@
    "pick": 23,
    "team_abbr": "POR"
   },
-  "jersey": 24,
+  "jersey": 17,
   "is_active": true,
   "teams": [
    {
@@ -306760,7 +306760,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 73,
+  "height_in": 74,
   "weight_lb": 195,
   "birth_year": 2000,
   "country": "USA",
@@ -306861,8 +306861,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
-  "weight_lb": 210,
+  "height_in": 79,
+  "weight_lb": 208,
   "birth_year": 2002,
   "country": "USA",
   "college": "Arizona",
@@ -307084,8 +307084,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 80,
-  "weight_lb": 200,
+  "height_in": 79,
+  "weight_lb": 215,
   "birth_year": 2002,
   "country": "USA",
   "college": "UCLA",
@@ -307147,7 +307147,7 @@
    "team_abbr": "GSW"
   },
   "jersey": 23,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "ATL",
@@ -307169,7 +307169,7 @@
     "abbr": "PHI",
     "name": "Philadelphia 76ers",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 9,
     "ppg": 2.2
    }
@@ -307206,8 +307206,8 @@
   "country": "USA",
   "college": "Wake Forest",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 31,
+  "is_active": true,
   "teams": [
    {
     "abbr": "BKN",
@@ -307237,7 +307237,7 @@
     "abbr": "WAS",
     "name": "Washington Wizards",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 4,
     "ppg": 11.0
    }
@@ -307263,13 +307263,53 @@
   }
  },
  {
+  "person_id": 1631215,
+  "full_name": "Khalifa Diop",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "C",
+  "height_in": 82,
+  "weight_lb": 231,
+  "birth_year": 2002,
+  "country": "Senegal",
+  "college": null,
+  "draft": {
+   "year": 2022,
+   "round": 2,
+   "pick": 39,
+   "team_abbr": "CLE"
+  },
+  "jersey": 18,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1631216,
   "full_name": "Caleb Houstan",
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
   "height_in": 80,
-  "weight_lb": 205,
+  "weight_lb": 223,
   "birth_year": 2003,
   "country": "Canada",
   "college": "Michigan",
@@ -307442,19 +307482,19 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 84,
-  "weight_lb": 220,
+  "weight_lb": 190,
   "birth_year": 2002,
   "country": "USA",
   "college": "Florida State",
   "draft": null,
-  "jersey": 19,
-  "is_active": true,
+  "jersey": 21,
+  "is_active": false,
   "teams": [
    {
     "abbr": "POR",
     "name": "Portland Trail Blazers",
     "start_year": 2022,
-    "end_year": null,
+    "end_year": 2023,
     "gp": 19,
     "ppg": 2.4
    }
@@ -307581,7 +307621,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 80,
   "weight_lb": 235,
   "birth_year": 2001,
   "country": "USA",
@@ -307658,7 +307698,7 @@
    "team_abbr": "PHI"
   },
   "jersey": 45,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MEM",
@@ -307704,7 +307744,7 @@
     "abbr": "DEN",
     "name": "Denver Nuggets",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 5,
     "ppg": 8.0
    }
@@ -308091,7 +308131,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 78,
-  "weight_lb": 205,
+  "weight_lb": 213,
   "birth_year": 2000,
   "country": "USA",
   "college": "Creighton",
@@ -308261,8 +308301,8 @@
   ],
   "fame_tier": 4,
   "position": "F-C",
-  "height_in": 82,
-  "weight_lb": 231,
+  "height_in": 83,
+  "weight_lb": 255,
   "birth_year": 2001,
   "country": "Bosnia and Herzegovina",
   "college": null,
@@ -308443,7 +308483,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 79,
-  "weight_lb": 191,
+  "weight_lb": 207,
   "birth_year": 1999,
   "country": "USA",
   "college": "Oakland",
@@ -308916,7 +308956,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 79,
-  "weight_lb": 209,
+  "weight_lb": 220,
   "birth_year": 1995,
   "country": "Italy",
   "college": "Baskonia",
@@ -309301,7 +309341,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 78,
-  "weight_lb": 210,
+  "weight_lb": 195,
   "birth_year": 1997,
   "country": "USA",
   "college": "Wagner",
@@ -309351,7 +309391,7 @@
   "college": "Buffalo",
   "draft": null,
   "jersey": 19,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "POR",
@@ -309373,7 +309413,7 @@
     "abbr": "GSW",
     "name": "Golden State Warriors",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 14,
     "ppg": 8.0
    }
@@ -309650,7 +309690,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 79,
-  "weight_lb": 200,
+  "weight_lb": 227,
   "birth_year": 2003,
   "country": "USA",
   "college": null,
@@ -309748,7 +309788,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 79,
-  "weight_lb": 200,
+  "weight_lb": 212,
   "birth_year": 2004,
   "country": "USA",
   "college": "Arkansas",
@@ -309807,7 +309847,7 @@
    "pick": 13,
    "team_abbr": "TOR"
   },
-  "jersey": 1,
+  "jersey": 9,
   "is_active": true,
   "teams": [
    {
@@ -309963,7 +310003,7 @@
    "team_abbr": "HOU"
   },
   "jersey": 1,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "HOU",
@@ -309977,7 +310017,7 @@
     "abbr": "WAS",
     "name": "Washington Wizards",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 21,
     "ppg": 9.2
    }
@@ -310108,7 +310148,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 185,
   "birth_year": 2003,
   "country": "USA",
@@ -310271,7 +310311,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
+  "height_in": 76,
   "weight_lb": 190,
   "birth_year": 2002,
   "country": "USA",
@@ -310282,7 +310322,7 @@
    "pick": 14,
    "team_abbr": "NOP"
   },
-  "jersey": 24,
+  "jersey": 15,
   "is_active": true,
   "teams": [
    {
@@ -310320,7 +310360,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 195,
   "birth_year": 2003,
   "country": "USA",
@@ -310388,7 +310428,7 @@
    "pick": 11,
    "team_abbr": "ORL"
   },
-  "jersey": 13,
+  "jersey": 9,
   "is_active": true,
   "teams": [
    {
@@ -310432,7 +310472,7 @@
   "country": "USA",
   "college": "Creighton",
   "draft": null,
-  "jersey": 23,
+  "jersey": 15,
   "is_active": true,
   "teams": [
    {
@@ -310585,7 +310625,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 78,
-  "weight_lb": 235,
+  "weight_lb": 225,
   "birth_year": 2003,
   "country": "USA",
   "college": "Ohio State",
@@ -310634,7 +310674,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 82,
-  "weight_lb": 210,
+  "weight_lb": 240,
   "birth_year": 2004,
   "country": "USA",
   "college": "Alabama",
@@ -310951,14 +310991,14 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 73,
   "weight_lb": 190,
   "birth_year": 2001,
   "country": "USA",
   "college": "Virginia",
   "draft": null,
-  "jersey": 4,
-  "is_active": false,
+  "jersey": 26,
+  "is_active": true,
   "teams": [
    {
     "abbr": "GSW",
@@ -310972,7 +311012,7 @@
     "abbr": "BKN",
     "name": "Brooklyn Nets",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 34,
     "ppg": 2.7
    }
@@ -311251,7 +311291,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 87,
+  "height_in": 88,
   "weight_lb": 305,
   "birth_year": 2002,
   "country": "Canada",
@@ -311341,6 +311381,41 @@
   }
  },
  {
+  "person_id": 1641746,
+  "full_name": "Coleman Hawkins",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 82,
+  "weight_lb": 225,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "Kansas State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1641747,
   "full_name": "DaRon Holmes II",
   "aliases": [],
@@ -311407,13 +311482,13 @@
    "team_abbr": "ORL"
   },
   "jersey": 44,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIL",
     "name": "Milwaukee Bucks",
     "start_year": 2023,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 172,
     "ppg": 2.7
    }
@@ -311637,8 +311712,8 @@
    "pick": 58,
    "team_abbr": "MIL"
   },
-  "jersey": null,
-  "is_active": false,
+  "jersey": 8,
+  "is_active": true,
   "teams": [
    {
     "abbr": "MIL",
@@ -311652,7 +311727,7 @@
     "abbr": "CLE",
     "name": "Cleveland Cavaliers",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 3,
     "ppg": 3.0
    }
@@ -311694,14 +311769,14 @@
    "pick": 46,
    "team_abbr": "ATL"
   },
-  "jersey": 5,
-  "is_active": false,
+  "jersey": 31,
+  "is_active": true,
   "teams": [
    {
     "abbr": "ATL",
     "name": "Atlanta Hawks",
     "start_year": 2023,
-    "end_year": 2024,
+    "end_year": null,
     "gp": 9,
     "ppg": 1.6
    }
@@ -311832,8 +311907,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
-  "weight_lb": 205,
+  "height_in": 78,
+  "weight_lb": 200,
   "birth_year": 2003,
   "country": "USA",
   "college": "St. John's",
@@ -311843,7 +311918,7 @@
    "pick": 40,
    "team_abbr": "BOS"
   },
-  "jersey": null,
+  "jersey": 20,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -311872,20 +311947,20 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 84,
-  "weight_lb": 215,
+  "height_in": 82,
+  "weight_lb": 240,
   "birth_year": 2002,
   "country": "USA",
   "college": "Alabama",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 16,
+  "is_active": true,
   "teams": [
    {
     "abbr": "BKN",
     "name": "Brooklyn Nets",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 4,
     "ppg": 4.2
    }
@@ -311916,8 +311991,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
-  "weight_lb": 201,
+  "height_in": 79,
+  "weight_lb": 205,
   "birth_year": 2003,
   "country": "USA",
   "college": "Tennessee",
@@ -311974,7 +312049,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 76,
-  "weight_lb": 205,
+  "weight_lb": 208,
   "birth_year": 2003,
   "country": "USA",
   "college": "Santa Clara",
@@ -312323,7 +312398,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 78,
-  "weight_lb": 205,
+  "weight_lb": 210,
   "birth_year": 2004,
   "country": "USA",
   "college": "Arkansas",
@@ -312373,14 +312448,14 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
+  "height_in": 79,
   "weight_lb": 209,
   "birth_year": 1999,
   "country": "USA",
   "college": "North Carolina",
   "draft": null,
-  "jersey": 12,
-  "is_active": false,
+  "jersey": 19,
+  "is_active": true,
   "teams": [
    {
     "abbr": "CHA",
@@ -312394,7 +312469,7 @@
     "abbr": "WAS",
     "name": "Washington Wizards",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 15,
     "ppg": 7.1
    }
@@ -312425,20 +312500,20 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
+  "height_in": 79,
   "weight_lb": 225,
   "birth_year": 2001,
   "country": "USA",
   "college": "Baylor",
   "draft": null,
   "jersey": 15,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "PHX",
     "name": "Phoenix Suns",
     "start_year": 2024,
-    "end_year": 2025,
+    "end_year": null,
     "gp": 8,
     "ppg": 1.1
    }
@@ -312731,7 +312806,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 80,
+  "height_in": 81,
   "weight_lb": 245,
   "birth_year": 2002,
   "country": "USA",
@@ -312991,16 +313066,16 @@
   "weight_lb": 215,
   "birth_year": 2000,
   "country": "Canada",
-  "college": "Texas Christian",
+  "college": "TCU",
   "draft": null,
   "jersey": 14,
-  "is_active": false,
+  "is_active": true,
   "teams": [
    {
     "abbr": "CHI",
     "name": "Chicago Bulls",
     "start_year": 2024,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 11,
     "ppg": 2.3
    }
@@ -313031,8 +313106,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
-  "weight_lb": 190,
+  "height_in": 76,
+  "weight_lb": 202,
   "birth_year": 2001,
   "country": "USA",
   "college": "Connecticut",
@@ -313042,8 +313117,8 @@
    "pick": 49,
    "team_abbr": "IND"
   },
-  "jersey": 13,
-  "is_active": false,
+  "jersey": 0,
+  "is_active": true,
   "teams": [
    {
     "abbr": "IND",
@@ -313065,7 +313140,7 @@
     "abbr": "HOU",
     "name": "Houston Rockets",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 1,
     "ppg": 12.0
    }
@@ -313131,7 +313206,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 77,
   "weight_lb": 248,
   "birth_year": 2001,
   "country": "Nicaragua",
@@ -313179,10 +313254,10 @@
   "weight_lb": 205,
   "birth_year": 1999,
   "country": "USA",
-  "college": "USC",
+  "college": "Southern California",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 9,
+  "is_active": true,
   "teams": [
    {
     "abbr": "BOS",
@@ -313196,7 +313271,7 @@
     "abbr": "CHA",
     "name": "Charlotte Hornets",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 6,
     "ppg": 0.8
    }
@@ -313478,7 +313553,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
+  "height_in": 81,
   "weight_lb": 196,
   "birth_year": 2004,
   "country": "USA",
@@ -313519,46 +313594,6 @@
    "rpg": 4.6,
    "apg": 1.5,
    "seasons": 2
-  }
- },
- {
-  "person_id": 1641831,
-  "full_name": "Malique Lewis",
-  "aliases": [],
-  "fame_tier": 4,
-  "position": "F",
-  "height_in": 80,
-  "weight_lb": 195,
-  "birth_year": 2004,
-  "country": "Trinidad and Tobago",
-  "college": null,
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 60,
-   "team_abbr": "WAS"
-  },
-  "jersey": null,
-  "is_active": true,
-  "teams": [],
-  "awards": {
-   "mvp": [],
-   "fmvp": [],
-   "dpoy": [],
-   "roty": null,
-   "smoy": [],
-   "allstar_count": 0,
-   "allnba_count": 0,
-   "rings": []
-  },
-  "career": {
-   "pts": 0,
-   "reb": 0,
-   "ast": 0,
-   "ppg": 0.0,
-   "rpg": 0.0,
-   "apg": 0.0,
-   "seasons": 0
   }
  },
  {
@@ -313616,7 +313651,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 78,
   "weight_lb": 218,
   "birth_year": 2001,
   "country": "Bosnia and Herzegovina",
@@ -313736,7 +313771,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 73,
-  "weight_lb": 180,
+  "weight_lb": 194,
   "birth_year": 2000,
   "country": "USA",
   "college": "Wichita State",
@@ -313818,6 +313853,76 @@
   }
  },
  {
+  "person_id": 1641863,
+  "full_name": "Dane Goodwin",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 78,
+  "weight_lb": 214,
+  "birth_year": 1999,
+  "country": "USA",
+  "college": "Notre Dame",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1641868,
+  "full_name": "Jake Stephens",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "C",
+  "height_in": 83,
+  "weight_lb": 270,
+  "birth_year": 1999,
+  "country": "USA",
+  "college": "Tennessee-Chattanooga",
+  "draft": null,
+  "jersey": 88,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1641869,
   "full_name": "Malachi Smith",
   "aliases": [],
@@ -313867,20 +313972,20 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 81,
+  "height_in": 82,
   "weight_lb": 245,
   "birth_year": 1996,
   "country": "South Sudan",
   "college": "Louisiana State",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 26,
+  "is_active": true,
   "teams": [
    {
     "abbr": "POR",
     "name": "Portland Trail Blazers",
     "start_year": 2023,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 146,
     "ppg": 6.2
    }
@@ -313917,8 +314022,8 @@
   "country": "Ghana",
   "college": "San Diego State",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 31,
+  "is_active": true,
   "teams": [],
   "awards": {
    "mvp": [],
@@ -314165,6 +314270,41 @@
   }
  },
  {
+  "person_id": 1641935,
+  "full_name": "Jarkel Joiner",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 73,
+  "weight_lb": 181,
+  "birth_year": 1999,
+  "country": "USA",
+  "college": "North Carolina State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1641936,
   "full_name": "Miles Norris",
   "aliases": [],
@@ -314290,7 +314430,7 @@
   "country": "USA",
   "college": "UNLV",
   "draft": null,
-  "jersey": 16,
+  "jersey": 94,
   "is_active": true,
   "teams": [
    {
@@ -314335,7 +314475,7 @@
   "college": "Alabama-Birmingham",
   "draft": null,
   "jersey": 50,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "WAS",
@@ -314373,7 +314513,7 @@
     "abbr": "NYK",
     "name": "New York Knicks",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 13,
     "ppg": 1.0
    }
@@ -314547,7 +314687,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 77,
-  "weight_lb": 220,
+  "weight_lb": 225,
   "birth_year": 2001,
   "country": "USA",
   "college": "Arkansas-Little Rock",
@@ -314741,7 +314881,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
+  "height_in": 77,
   "weight_lb": 215,
   "birth_year": 2001,
   "country": "USA",
@@ -314790,7 +314930,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
+  "height_in": 79,
   "weight_lb": 190,
   "birth_year": 2004,
   "country": "USA",
@@ -314801,7 +314941,7 @@
    "pick": 10,
    "team_abbr": "UTA"
   },
-  "jersey": 5,
+  "jersey": 9,
   "is_active": true,
   "teams": [
    {
@@ -314840,7 +314980,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 185,
+  "weight_lb": 189,
   "birth_year": 2004,
   "country": "USA",
   "college": "Kentucky",
@@ -314949,7 +315089,7 @@
    "team_abbr": "SAS"
   },
   "jersey": 7,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MIN",
@@ -314963,7 +315103,7 @@
     "abbr": "CHI",
     "name": "Chicago Bulls",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 30,
     "ppg": 9.6
    }
@@ -314994,7 +315134,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 180,
   "birth_year": 2004,
   "country": "USA",
@@ -315142,7 +315282,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 74,
-  "weight_lb": 195,
+  "weight_lb": 199,
   "birth_year": 2002,
   "country": "USA",
   "college": "Providence",
@@ -315288,7 +315428,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 74,
   "weight_lb": 195,
   "birth_year": 2004,
   "country": "USA",
@@ -315395,7 +315535,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 83,
-  "weight_lb": 235,
+  "weight_lb": 236,
   "birth_year": 2004,
   "country": "Cameroon",
   "college": "Baylor",
@@ -315745,7 +315885,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 78,
-  "weight_lb": 215,
+  "weight_lb": 224,
   "birth_year": 2002,
   "country": "USA",
   "college": "California",
@@ -315837,7 +315977,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
+  "height_in": 79,
   "weight_lb": 220,
   "birth_year": 2002,
   "country": "USA",
@@ -316035,7 +316175,7 @@
    "pick": 45,
    "team_abbr": "SAC"
   },
-  "jersey": 23,
+  "jersey": 1,
   "is_active": true,
   "teams": [
    {
@@ -316179,7 +316319,7 @@
    "pick": 35,
    "team_abbr": "SAS"
   },
-  "jersey": null,
+  "jersey": 7,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -316209,7 +316349,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 78,
-  "weight_lb": 225,
+  "weight_lb": 230,
   "birth_year": 2001,
   "country": "USA",
   "college": "Arizona",
@@ -316263,14 +316403,14 @@
    "pick": 46,
    "team_abbr": "LAC"
   },
-  "jersey": 24,
-  "is_active": true,
+  "jersey": 12,
+  "is_active": false,
   "teams": [
    {
     "abbr": "LAC",
     "name": "LA Clippers",
     "start_year": 2024,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 68,
     "ppg": 2.6
    }
@@ -316313,7 +316453,7 @@
    "team_abbr": "CHA"
   },
   "jersey": 25,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "CHA",
@@ -316327,7 +316467,7 @@
     "abbr": "DEN",
     "name": "Denver Nuggets",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 6,
     "ppg": 1.2
    }
@@ -316451,8 +316591,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
-  "weight_lb": 160,
+  "height_in": 78,
+  "weight_lb": 175,
   "birth_year": 2004,
   "country": "USA",
   "college": null,
@@ -316462,7 +316602,7 @@
    "pick": 23,
    "team_abbr": "MIL"
   },
-  "jersey": 8,
+  "jersey": 14,
   "is_active": true,
   "teams": [
    {
@@ -316614,7 +316754,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 77,
-  "weight_lb": 175,
+  "weight_lb": 210,
   "birth_year": 2002,
   "country": "USA",
   "college": "Colorado State",
@@ -316662,7 +316802,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 78,
+  "height_in": 77,
   "weight_lb": 210,
   "birth_year": 2001,
   "country": "USA",
@@ -316722,7 +316862,7 @@
    "pick": 52,
    "team_abbr": "GSW"
   },
-  "jersey": 21,
+  "jersey": 41,
   "is_active": true,
   "teams": [
    {
@@ -316760,7 +316900,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 79,
   "weight_lb": 225,
   "birth_year": 2001,
   "country": "USA",
@@ -316771,7 +316911,7 @@
    "pick": 31,
    "team_abbr": "TOR"
   },
-  "jersey": 2,
+  "jersey": 22,
   "is_active": true,
   "teams": [
    {
@@ -317030,7 +317170,7 @@
   "country": "USA",
   "college": "Utah",
   "draft": null,
-  "jersey": 15,
+  "jersey": 10,
   "is_active": true,
   "teams": [
    {
@@ -317070,7 +317210,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 75,
   "weight_lb": 195,
   "birth_year": 2003,
   "country": "USA",
@@ -317128,7 +317268,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 78,
-  "weight_lb": 220,
+  "weight_lb": 225,
   "birth_year": 2001,
   "country": "USA",
   "college": "Louisiana Tech",
@@ -317301,6 +317441,41 @@
   }
  },
  {
+  "person_id": 1642392,
+  "full_name": "Jameer Nelson Jr.",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 73,
+  "weight_lb": 190,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "TCU",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1642394,
   "full_name": "Baba Miller",
   "aliases": [],
@@ -317317,7 +317492,7 @@
    "pick": 36,
    "team_abbr": "LAC"
   },
-  "jersey": null,
+  "jersey": 18,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -317352,7 +317527,7 @@
   "country": "USA",
   "college": "Pittsburgh",
   "draft": null,
-  "jersey": 2,
+  "jersey": 25,
   "is_active": true,
   "teams": [
    {
@@ -317478,7 +317653,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 79,
   "weight_lb": 220,
   "birth_year": 2000,
   "country": "USA",
@@ -317541,7 +317716,7 @@
   "country": "USA",
   "college": "Washington State",
   "draft": null,
-  "jersey": 3,
+  "jersey": 13,
   "is_active": true,
   "teams": [
    {
@@ -317587,7 +317762,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
+  "height_in": 76,
   "weight_lb": 206,
   "birth_year": 2001,
   "country": "USA",
@@ -317598,7 +317773,7 @@
    "pick": 37,
    "team_abbr": "DET"
   },
-  "jersey": 20,
+  "jersey": 8,
   "is_active": true,
   "teams": [
    {
@@ -317817,6 +317992,41 @@
   }
  },
  {
+  "person_id": 1642440,
+  "full_name": "Gabe McGlothan",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 78,
+  "weight_lb": 235,
+  "birth_year": 1999,
+  "country": "USA",
+  "college": "Grand Canyon",
+  "draft": null,
+  "jersey": 41,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1642443,
   "full_name": "Jahmir Young",
   "aliases": [],
@@ -317829,7 +318039,7 @@
   "college": "Maryland",
   "draft": null,
   "jersey": 17,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "CHI",
@@ -317843,7 +318053,7 @@
     "abbr": "MIA",
     "name": "Miami Heat",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 14,
     "ppg": 1.8
    }
@@ -318190,7 +318400,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 81,
-  "weight_lb": 210,
+  "weight_lb": 206,
   "birth_year": 1999,
   "country": "Netherlands",
   "college": "Bradley",
@@ -318338,7 +318548,7 @@
   "college": "Japan",
   "draft": null,
   "jersey": 8,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "MEM",
@@ -318352,7 +318562,7 @@
     "abbr": "CHI",
     "name": "Chicago Bulls",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 18,
     "ppg": 3.4
    }
@@ -318378,12 +318588,82 @@
   }
  },
  {
+  "person_id": 1642578,
+  "full_name": "John Ukomadu",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 79,
+  "weight_lb": 195,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "Eastern Kentucky",
+  "draft": null,
+  "jersey": 18,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1642615,
+  "full_name": "Tyreke Key",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 73,
+  "weight_lb": 207,
+  "birth_year": 1998,
+  "country": "USA",
+  "college": "Tennessee",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1642843,
   "full_name": "Cooper Flagg",
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 82,
   "weight_lb": 205,
   "birth_year": 2006,
   "country": "USA",
@@ -318481,7 +318761,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 77,
   "weight_lb": 190,
   "birth_year": 2005,
   "country": "USA",
@@ -318580,7 +318860,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 75,
-  "weight_lb": 190,
+  "weight_lb": 188,
   "birth_year": 2006,
   "country": "USA",
   "college": "Oklahoma",
@@ -318677,8 +318957,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
-  "weight_lb": 185,
+  "height_in": 76,
+  "weight_lb": 190,
   "birth_year": 2006,
   "country": "France",
   "college": null,
@@ -318688,7 +318968,7 @@
    "pick": 19,
    "team_abbr": "BKN"
   },
-  "jersey": 13,
+  "jersey": 10,
   "is_active": true,
   "teams": [
    {
@@ -318815,8 +319095,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 81,
-  "weight_lb": 250,
+  "height_in": 83,
+  "weight_lb": 225,
   "birth_year": 2004,
   "country": "USA",
   "college": "Maryland",
@@ -318913,7 +319193,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 82,
+  "height_in": 81,
   "weight_lb": 220,
   "birth_year": 2005,
   "country": "USA",
@@ -318962,7 +319242,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
+  "height_in": 81,
   "weight_lb": 194,
   "birth_year": 2006,
   "country": "France",
@@ -318973,7 +319253,7 @@
    "pick": 12,
    "team_abbr": "CHI"
   },
-  "jersey": 24,
+  "jersey": 2,
   "is_active": true,
   "teams": [
    {
@@ -319013,8 +319293,8 @@
   ],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 80,
-  "weight_lb": 200,
+  "height_in": 81,
+  "weight_lb": 212,
   "birth_year": 2006,
   "country": "Russia",
   "college": "Brigham Young",
@@ -319113,8 +319393,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 73,
-  "weight_lb": 180,
+  "height_in": 74,
+  "weight_lb": 185,
   "birth_year": 2005,
   "country": "USA",
   "college": "Michigan State",
@@ -319211,7 +319491,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 80,
   "weight_lb": 210,
   "birth_year": 2005,
   "country": "USA",
@@ -319361,10 +319641,10 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 81,
-  "weight_lb": 250,
+  "weight_lb": 247,
   "birth_year": 2002,
   "country": "USA",
-  "college": "Alabama-Birmingham",
+  "college": "Michigan",
   "draft": {
    "year": 2026,
    "round": 1,
@@ -319400,7 +319680,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 83,
+  "height_in": 84,
   "weight_lb": 230,
   "birth_year": 2006,
   "country": "France",
@@ -319548,7 +319828,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 79,
-  "weight_lb": 215,
+  "weight_lb": 242,
   "birth_year": 2005,
   "country": "France",
   "college": null,
@@ -319632,7 +319912,7 @@
   "fame_tier": 4,
   "position": "F-C",
   "height_in": 83,
-  "weight_lb": 250,
+  "weight_lb": 269,
   "birth_year": 2002,
   "country": "United Kingdom",
   "college": "Kentucky",
@@ -319681,7 +319961,7 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 83,
-  "weight_lb": 250,
+  "weight_lb": 256,
   "birth_year": 2004,
   "country": "USA",
   "college": "Michigan",
@@ -319730,7 +320010,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 85,
-  "weight_lb": 250,
+  "weight_lb": 268,
   "birth_year": 2003,
   "country": "France",
   "college": "Stanford",
@@ -319827,7 +320107,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 79,
+  "height_in": 78,
   "weight_lb": 215,
   "birth_year": 2001,
   "country": "USA",
@@ -319838,7 +320118,7 @@
    "pick": 40,
    "team_abbr": "WAS"
   },
-  "jersey": 14,
+  "jersey": 7,
   "is_active": true,
   "teams": [
    {
@@ -319925,8 +320205,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 78,
-  "weight_lb": 200,
+  "height_in": 77,
+  "weight_lb": 212,
   "birth_year": 2006,
   "country": "Israel",
   "college": null,
@@ -319985,7 +320265,7 @@
    "pick": 38,
    "team_abbr": "SAS"
   },
-  "jersey": 7,
+  "jersey": 19,
   "is_active": true,
   "teams": [
    {
@@ -320025,7 +320305,7 @@
   ],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 83,
+  "height_in": 82,
   "weight_lb": 210,
   "birth_year": 2005,
   "country": "Serbia",
@@ -320065,20 +320345,20 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 83,
   "weight_lb": 230,
   "birth_year": 2003,
   "country": "USA",
   "college": "Maryland",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 13,
+  "is_active": true,
   "teams": [
    {
     "abbr": "WAS",
     "name": "Washington Wizards",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 13,
     "ppg": 11.8
    }
@@ -320159,7 +320439,7 @@
   "fame_tier": 4,
   "position": "C",
   "height_in": 84,
-  "weight_lb": 250,
+  "weight_lb": 255,
   "birth_year": 2001,
   "country": "Russia",
   "college": "Michigan",
@@ -320302,7 +320582,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 75,
   "weight_lb": 177,
   "birth_year": 2005,
   "country": "USA",
@@ -320342,7 +320622,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 75,
   "weight_lb": 180,
   "birth_year": 2003,
   "country": "USA",
@@ -320354,6 +320634,46 @@
    "team_abbr": "MEM"
   },
   "jersey": 14,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1642893,
+  "full_name": "Alex Toohey",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 80,
+  "weight_lb": 217,
+  "birth_year": 2004,
+  "country": "Australia",
+  "college": null,
+  "draft": {
+   "year": 2025,
+   "round": 2,
+   "pick": 52,
+   "team_abbr": "PHX"
+  },
+  "jersey": 22,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -320431,7 +320751,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
+  "height_in": 78,
   "weight_lb": 206,
   "birth_year": 2003,
   "country": "USA",
@@ -320679,13 +320999,13 @@
    "team_abbr": "ORL"
   },
   "jersey": 44,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "BOS",
     "name": "Boston Celtics",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 11,
     "ppg": 0.6
    }
@@ -320809,6 +321129,41 @@
   }
  },
  {
+  "person_id": 1642922,
+  "full_name": "Jalon Moore",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 80,
+  "weight_lb": 211,
+  "birth_year": 2003,
+  "country": "USA",
+  "college": "Oklahoma",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1642923,
   "full_name": "Otega Oweh",
   "aliases": [],
@@ -320849,6 +321204,41 @@
   }
  },
  {
+  "person_id": 1642924,
+  "full_name": "Brice Williams",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G-F",
+  "height_in": 77,
+  "weight_lb": 214,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "Nebraska",
+  "draft": null,
+  "jersey": 25,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1642926,
   "full_name": "Tamar Bates",
   "aliases": [],
@@ -320860,7 +321250,7 @@
   "country": "USA",
   "college": "Missouri",
   "draft": null,
-  "jersey": 7,
+  "jersey": 0,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -320968,7 +321358,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 75,
   "weight_lb": 200,
   "birth_year": 2003,
   "country": "USA",
@@ -321027,13 +321417,13 @@
   "college": "Louisville",
   "draft": null,
   "jersey": 24,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "TOR",
     "name": "Toronto Raptors",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 2,
     "ppg": 0.0
    }
@@ -321059,6 +321449,41 @@
   }
  },
  {
+  "person_id": 1642937,
+  "full_name": "Kobe Johnson",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 78,
+  "weight_lb": 200,
+  "birth_year": 2003,
+  "country": "USA",
+  "college": "UCLA",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1642938,
   "full_name": "Curtis Jones",
   "aliases": [],
@@ -321071,13 +321496,13 @@
   "college": "Iowa State",
   "draft": null,
   "jersey": 1,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "DEN",
     "name": "Denver Nuggets",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 10,
     "ppg": 2.9
    }
@@ -321144,6 +321569,41 @@
    "rpg": 1.7,
    "apg": 0.9,
    "seasons": 1
+  }
+ },
+ {
+  "person_id": 1642940,
+  "full_name": "Viktor Lakhin",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 83,
+  "weight_lb": 247,
+  "birth_year": 2001,
+  "country": "Russia",
+  "college": "Clemson",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
   }
  },
  {
@@ -321346,7 +321806,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 73,
-  "weight_lb": 195,
+  "weight_lb": 197,
   "birth_year": 2002,
   "country": "USA",
   "college": "Mississippi",
@@ -321390,7 +321850,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 75,
-  "weight_lb": 206,
+  "weight_lb": 207,
   "birth_year": 2002,
   "country": "USA",
   "college": "Florida",
@@ -321534,8 +321994,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
-  "height_in": 77,
-  "weight_lb": 195,
+  "height_in": 78,
+  "weight_lb": 212,
   "birth_year": 2005,
   "country": "USA",
   "college": "North Carolina",
@@ -321688,13 +322148,13 @@
    "team_abbr": "IND"
   },
   "jersey": 4,
-  "is_active": true,
+  "is_active": false,
   "teams": [
    {
     "abbr": "IND",
     "name": "Indiana Pacers",
     "start_year": 2025,
-    "end_year": null,
+    "end_year": 2026,
     "gp": 38,
     "ppg": 4.5
    }
@@ -321725,13 +322185,13 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
-  "weight_lb": 185,
+  "height_in": 74,
+  "weight_lb": 200,
   "birth_year": 2003,
   "country": "USA",
   "college": "Yale",
   "draft": null,
-  "jersey": 21,
+  "jersey": 19,
   "is_active": true,
   "teams": [
    {
@@ -321770,7 +322230,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 72,
-  "weight_lb": null,
+  "weight_lb": 197,
   "birth_year": 2001,
   "country": "USA",
   "college": "Houston",
@@ -321805,6 +322265,76 @@
    "rpg": 1.6,
    "apg": 1.0,
    "seasons": 1
+  }
+ },
+ {
+  "person_id": 1643019,
+  "full_name": "Gabe Madsen",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 78,
+  "weight_lb": 200,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "Utah",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643022,
+  "full_name": "Jaden Akins",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 74,
+  "weight_lb": 195,
+  "birth_year": 2003,
+  "country": "USA",
+  "college": "Michigan State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
   }
  },
  {
@@ -321851,6 +322381,41 @@
    "rpg": 1.1,
    "apg": 0.3,
    "seasons": 1
+  }
+ },
+ {
+  "person_id": 1643037,
+  "full_name": "Noam Yaacov",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 73,
+  "weight_lb": null,
+  "birth_year": 2004,
+  "country": "Israel",
+  "college": null,
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
   }
  },
  {
@@ -321904,7 +322469,7 @@
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 79,
-  "weight_lb": 220,
+  "weight_lb": 235,
   "birth_year": 2002,
   "country": "USA",
   "college": "Auburn",
@@ -321986,6 +322551,146 @@
   }
  },
  {
+  "person_id": 1643069,
+  "full_name": "Cameron Matthews",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 79,
+  "weight_lb": 235,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "Mississippi State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643091,
+  "full_name": "Tyson Degenhart",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 80,
+  "weight_lb": 235,
+  "birth_year": 2002,
+  "country": "USA",
+  "college": "Boise State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643092,
+  "full_name": "Niwa Tait-Jones",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 78,
+  "weight_lb": 200,
+  "birth_year": 2001,
+  "country": "New Zealand",
+  "college": "California-San Diego",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643113,
+  "full_name": "Zack Austin",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 77,
+  "weight_lb": 216,
+  "birth_year": 2001,
+  "country": "USA",
+  "college": "Pittsburgh",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1643133,
   "full_name": "Lawson Lovering",
   "aliases": [],
@@ -322039,16 +322744,16 @@
   "weight_lb": null,
   "birth_year": 2001,
   "country": "Canada",
-  "college": null,
+  "college": "Butler",
   "draft": null,
-  "jersey": null,
-  "is_active": false,
+  "jersey": 19,
+  "is_active": true,
   "teams": [
    {
     "abbr": "LAC",
     "name": "LA Clippers",
     "start_year": 2025,
-    "end_year": 2026,
+    "end_year": null,
     "gp": 8,
     "ppg": 0.1
    }
@@ -322115,6 +322820,41 @@
    "rpg": 8.4,
    "apg": 2.8,
    "seasons": 1
+  }
+ },
+ {
+  "person_id": 1643208,
+  "full_name": "Anthony Pritchard",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 74,
+  "weight_lb": 185,
+  "birth_year": 2003,
+  "country": "USA",
+  "college": "Central Michigan",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
   }
  },
  {
@@ -322206,6 +322946,41 @@
   }
  },
  {
+  "person_id": 1643265,
+  "full_name": "Jonas Aidoo",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "C",
+  "height_in": 83,
+  "weight_lb": 240,
+  "birth_year": 2002,
+  "country": "USA",
+  "college": "Arkansas",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
   "person_id": 1643407,
   "full_name": "AJ Dybantsa",
   "aliases": [],
@@ -322291,7 +323066,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 82,
+  "height_in": 80,
   "weight_lb": 250,
   "birth_year": 2007,
   "country": "USA",
@@ -322411,7 +323186,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 75,
   "weight_lb": 190,
   "birth_year": 2007,
   "country": "USA",
@@ -322491,7 +323266,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
+  "height_in": 76,
   "weight_lb": 190,
   "birth_year": 2006,
   "country": "USA",
@@ -322622,7 +323397,7 @@
    "pick": 13,
    "team_abbr": "MIA"
   },
-  "jersey": null,
+  "jersey": 15,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -322691,8 +323466,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 83,
-  "weight_lb": null,
+  "height_in": 82,
+  "weight_lb": 248,
   "birth_year": 2006,
   "country": "Germany",
   "college": "Washington",
@@ -322731,8 +323506,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
-  "weight_lb": 185,
+  "height_in": 75,
+  "weight_lb": 190,
   "birth_year": 2006,
   "country": "USA",
   "college": "Arkansas",
@@ -322811,7 +323586,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 80,
   "weight_lb": 225,
   "birth_year": 2006,
   "country": "USA",
@@ -322851,7 +323626,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 72,
+  "height_in": 73,
   "weight_lb": 165,
   "birth_year": 2006,
   "country": "USA",
@@ -322887,11 +323662,11 @@
  },
  {
   "person_id": 1643516,
-  "full_name": "Morez Johnson",
+  "full_name": "Morez Johnson Jr.",
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 82,
   "weight_lb": 250,
   "birth_year": 2006,
   "country": "USA",
@@ -322931,7 +323706,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 79,
+  "height_in": 78,
   "weight_lb": 220,
   "birth_year": 2005,
   "country": "USA",
@@ -322971,7 +323746,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 82,
+  "height_in": 81,
   "weight_lb": 255,
   "birth_year": 2007,
   "country": "USA",
@@ -323051,7 +323826,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 86,
+  "height_in": 87,
   "weight_lb": 255,
   "birth_year": 2005,
   "country": "Spain",
@@ -323102,7 +323877,7 @@
    "pick": 17,
    "team_abbr": "OKC"
   },
-  "jersey": null,
+  "jersey": 23,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -323131,8 +323906,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
-  "weight_lb": 240,
+  "height_in": 80,
+  "weight_lb": 250,
   "birth_year": 2003,
   "country": "USA",
   "college": "Iowa State",
@@ -323171,7 +323946,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 84,
+  "height_in": 83,
   "weight_lb": 225,
   "birth_year": 2004,
   "country": "Estonia",
@@ -323211,7 +323986,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 83,
+  "height_in": 82,
   "weight_lb": 265,
   "birth_year": 2003,
   "country": "USA",
@@ -323251,7 +324026,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 80,
   "weight_lb": 240,
   "birth_year": 2004,
   "country": "USA",
@@ -323291,7 +324066,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
+  "height_in": 78,
   "weight_lb": 175,
   "birth_year": 2005,
   "country": "Spain",
@@ -323331,7 +324106,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 80,
   "weight_lb": 230,
   "birth_year": 2004,
   "country": "USA",
@@ -323371,7 +324146,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 73,
+  "height_in": 72,
   "weight_lb": 186,
   "birth_year": 2004,
   "country": "USA",
@@ -323382,7 +324157,7 @@
    "pick": 42,
    "team_abbr": "SAS"
   },
-  "jersey": null,
+  "jersey": 17,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -323411,7 +324186,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 72,
+  "height_in": 71,
   "weight_lb": 170,
   "birth_year": 2003,
   "country": "USA",
@@ -323451,7 +324226,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 76,
+  "height_in": 74,
   "weight_lb": 215,
   "birth_year": 2004,
   "country": "USA",
@@ -323491,8 +324266,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 77,
-  "weight_lb": 210,
+  "height_in": 78,
+  "weight_lb": 206,
   "birth_year": 2002,
   "country": "USA",
   "college": "Southern Methodist",
@@ -323542,47 +324317,7 @@
    "pick": 50,
    "team_abbr": "TOR"
   },
-  "jersey": null,
-  "is_active": true,
-  "teams": [],
-  "awards": {
-   "mvp": [],
-   "fmvp": [],
-   "dpoy": [],
-   "roty": null,
-   "smoy": [],
-   "allstar_count": 0,
-   "allnba_count": 0,
-   "rings": []
-  },
-  "career": {
-   "pts": 0,
-   "reb": 0,
-   "ast": 0,
-   "ppg": 0.0,
-   "rpg": 0.0,
-   "apg": 0.0,
-   "seasons": 0
-  }
- },
- {
-  "person_id": 1643563,
-  "full_name": "Richie Saunders",
-  "aliases": [],
-  "fame_tier": 4,
-  "position": "G",
-  "height_in": 77,
-  "weight_lb": 200,
-  "birth_year": 2001,
-  "country": "USA",
-  "college": "Brigham Young",
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 32,
-   "team_abbr": "MEM"
-  },
-  "jersey": null,
+  "jersey": 8,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -323612,7 +324347,7 @@
   "fame_tier": 4,
   "position": "G",
   "height_in": 75,
-  "weight_lb": 210,
+  "weight_lb": 212,
   "birth_year": 2004,
   "country": "Israel",
   "college": "Houston",
@@ -323662,7 +324397,7 @@
    "pick": 55,
    "team_abbr": "NYK"
   },
-  "jersey": null,
+  "jersey": 12,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -323691,8 +324426,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 74,
-  "weight_lb": 215,
+  "height_in": 72,
+  "weight_lb": 229,
   "birth_year": 2003,
   "country": "USA",
   "college": "Ohio State",
@@ -323702,7 +324437,7 @@
    "pick": 31,
    "team_abbr": "NYK"
   },
-  "jersey": null,
+  "jersey": 2,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -323766,46 +324501,11 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 74,
+  "height_in": 73,
   "weight_lb": 200,
   "birth_year": 2005,
   "country": "USA",
   "college": "Illinois",
-  "draft": null,
-  "jersey": null,
-  "is_active": true,
-  "teams": [],
-  "awards": {
-   "mvp": [],
-   "fmvp": [],
-   "dpoy": [],
-   "roty": null,
-   "smoy": [],
-   "allstar_count": 0,
-   "allnba_count": 0,
-   "rings": []
-  },
-  "career": {
-   "pts": 0,
-   "reb": 0,
-   "ast": 0,
-   "ppg": 0.0,
-   "rpg": 0.0,
-   "apg": 0.0,
-   "seasons": 0
-  }
- },
- {
-  "person_id": 1643575,
-  "full_name": "Duke Miles",
-  "aliases": [],
-  "fame_tier": 4,
-  "position": "G",
-  "height_in": 74,
-  "weight_lb": 175,
-  "birth_year": 2002,
-  "country": "USA",
-  "college": "Vanderbilt",
   "draft": null,
   "jersey": null,
   "is_active": true,
@@ -323836,7 +324536,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 81,
+  "height_in": 80,
   "weight_lb": 225,
   "birth_year": 2003,
   "country": "USA",
@@ -323847,87 +324547,7 @@
    "pick": 44,
    "team_abbr": "SAS"
   },
-  "jersey": null,
-  "is_active": true,
-  "teams": [],
-  "awards": {
-   "mvp": [],
-   "fmvp": [],
-   "dpoy": [],
-   "roty": null,
-   "smoy": [],
-   "allstar_count": 0,
-   "allnba_count": 0,
-   "rings": []
-  },
-  "career": {
-   "pts": 0,
-   "reb": 0,
-   "ast": 0,
-   "ppg": 0.0,
-   "rpg": 0.0,
-   "apg": 0.0,
-   "seasons": 0
-  }
- },
- {
-  "person_id": 1643583,
-  "full_name": "Jack Kayil",
-  "aliases": [],
-  "fame_tier": 4,
-  "position": "G",
-  "height_in": 75,
-  "weight_lb": 174,
-  "birth_year": 2006,
-  "country": "Germany",
-  "college": null,
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 39,
-   "team_abbr": "HOU"
-  },
-  "jersey": null,
-  "is_active": true,
-  "teams": [],
-  "awards": {
-   "mvp": [],
-   "fmvp": [],
-   "dpoy": [],
-   "roty": null,
-   "smoy": [],
-   "allstar_count": 0,
-   "allnba_count": 0,
-   "rings": []
-  },
-  "career": {
-   "pts": 0,
-   "reb": 0,
-   "ast": 0,
-   "ppg": 0.0,
-   "rpg": 0.0,
-   "apg": 0.0,
-   "seasons": 0
-  }
- },
- {
-  "person_id": 1643585,
-  "full_name": "Vsevolod Ishchenko",
-  "aliases": [],
-  "fame_tier": 4,
-  "position": "G",
-  "height_in": 75,
-  "weight_lb": null,
-  "birth_year": 2005,
-  "country": "Russia",
-  "college": null,
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 56,
-   "team_abbr": "CHI"
-  },
-  "jersey": null,
+  "jersey": 15,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -323956,7 +324576,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "F",
-  "height_in": 80,
+  "height_in": 79,
   "weight_lb": 215,
   "birth_year": 2003,
   "country": "United Kingdom",
@@ -324007,7 +324627,7 @@
    "pick": 47,
    "team_abbr": "PHX"
   },
-  "jersey": null,
+  "jersey": 55,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -324047,7 +324667,7 @@
    "pick": 46,
    "team_abbr": "ORL"
   },
-  "jersey": null,
+  "jersey": 34,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -324151,11 +324771,46 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 78,
-  "weight_lb": 203,
+  "height_in": 77,
+  "weight_lb": 214,
   "birth_year": 2003,
   "country": "USA",
   "college": "North Carolina State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643617,
+  "full_name": "Zach Cleveland",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 79,
+  "weight_lb": 220,
+  "birth_year": 2004,
+  "country": "USA",
+  "college": "Liberty",
   "draft": null,
   "jersey": null,
   "is_active": true,
@@ -324221,8 +324876,8 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "G",
-  "height_in": 75,
-  "weight_lb": 195,
+  "height_in": 73,
+  "weight_lb": 200,
   "birth_year": 2003,
   "country": "USA",
   "college": "Miami",
@@ -324255,11 +324910,11 @@
   "full_name": "Bryce Hopkins",
   "aliases": [],
   "fame_tier": 4,
-  "position": null,
-  "height_in": null,
-  "weight_lb": null,
-  "birth_year": 2001,
-  "country": null,
+  "position": "F",
+  "height_in": 79,
+  "weight_lb": 225,
+  "birth_year": 2002,
+  "country": "USA",
   "college": "St. John's",
   "draft": {
    "year": 2026,
@@ -324267,6 +324922,41 @@
    "pick": 49,
    "team_abbr": "DEN"
   },
+  "jersey": 13,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643627,
+  "full_name": "Keba Keita",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "C",
+  "height_in": 80,
+  "weight_lb": 235,
+  "birth_year": 2003,
+  "country": "Mali",
+  "college": "Brigham Young",
+  "draft": null,
   "jersey": null,
   "is_active": true,
   "teams": [],
@@ -324291,23 +324981,18 @@
   }
  },
  {
-  "person_id": 1643626,
-  "full_name": "Trey Kaufman-Renn",
+  "person_id": 1643633,
+  "full_name": "Graham Ike",
   "aliases": [],
   "fame_tier": 4,
-  "position": "F",
-  "height_in": 81,
-  "weight_lb": 230,
+  "position": "F-C",
+  "height_in": 82,
+  "weight_lb": 257,
   "birth_year": 2002,
   "country": "USA",
-  "college": "Purdue",
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 59,
-   "team_abbr": "MIN"
-  },
-  "jersey": 14,
+  "college": "Gonzaga",
+  "draft": null,
+  "jersey": 45,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -324336,7 +325021,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": null,
-  "height_in": null,
+  "height_in": 76,
   "weight_lb": null,
   "birth_year": 2003,
   "country": null,
@@ -324371,13 +325056,13 @@
   "aliases": [],
   "fame_tier": 4,
   "position": "C",
-  "height_in": 83,
+  "height_in": 81,
   "weight_lb": 266,
   "birth_year": 2004,
   "country": "USA",
   "college": "Miami",
   "draft": null,
-  "jersey": 39,
+  "jersey": 88,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -324401,62 +325086,17 @@
   }
  },
  {
-  "person_id": 1643650,
-  "full_name": "Lajae Jones",
+  "person_id": 1643679,
+  "full_name": "Jorge Diaz-Graham",
   "aliases": [],
   "fame_tier": 4,
-  "position": "G-F",
-  "height_in": 79,
-  "weight_lb": 220,
-  "birth_year": 2004,
-  "country": null,
-  "college": "Florida State",
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 54,
-   "team_abbr": "GSW"
-  },
-  "jersey": 25,
-  "is_active": true,
-  "teams": [],
-  "awards": {
-   "mvp": [],
-   "fmvp": [],
-   "dpoy": [],
-   "roty": null,
-   "smoy": [],
-   "allstar_count": 0,
-   "allnba_count": 0,
-   "rings": []
-  },
-  "career": {
-   "pts": 0,
-   "reb": 0,
-   "ast": 0,
-   "ppg": 0.0,
-   "rpg": 0.0,
-   "apg": 0.0,
-   "seasons": 0
-  }
- },
- {
-  "person_id": 1643712,
-  "full_name": "Narcisse Ngoy",
-  "aliases": [],
-  "fame_tier": 4,
-  "position": "C",
-  "height_in": 84,
-  "weight_lb": null,
-  "birth_year": 2004,
-  "country": "France",
-  "college": null,
-  "draft": {
-   "year": 2026,
-   "round": 2,
-   "pick": 57,
-   "team_abbr": "ATL"
-  },
+  "position": "F",
+  "height_in": 83,
+  "weight_lb": 215,
+  "birth_year": 2003,
+  "country": "Spain",
+  "college": "Oregon State",
+  "draft": null,
   "jersey": null,
   "is_active": true,
   "teams": [],
@@ -324486,7 +325126,7 @@
   "aliases": [],
   "fame_tier": 4,
   "position": null,
-  "height_in": null,
+  "height_in": 77,
   "weight_lb": null,
   "birth_year": 2004,
   "country": null,
@@ -324516,16 +325156,86 @@
   }
  },
  {
-  "person_id": 1643727,
-  "full_name": "J'Vonne Hadley",
+  "person_id": 1643718,
+  "full_name": "Nimari Burnett",
   "aliases": [],
   "fame_tier": 4,
   "position": null,
   "height_in": null,
   "weight_lb": null,
-  "birth_year": 2002,
+  "birth_year": 2001,
   "country": null,
-  "college": "Louisville",
+  "college": "Michigan",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643721,
+  "full_name": "Carson Cooper",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 82,
+  "weight_lb": null,
+  "birth_year": 2004,
+  "country": null,
+  "college": "Michigan State",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643723,
+  "full_name": "Cameron Corhen",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "F",
+  "height_in": 81,
+  "weight_lb": 235,
+  "birth_year": 2004,
+  "country": "USA",
+  "college": "Pittsburgh",
   "draft": null,
   "jersey": null,
   "is_active": true,
@@ -324557,12 +325267,47 @@
   "fame_tier": 4,
   "position": "F",
   "height_in": 81,
-  "weight_lb": 250,
+  "weight_lb": 256,
   "birth_year": 2004,
   "country": "USA",
   "college": "Mississippi",
   "draft": null,
   "jersey": 8,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643754,
+  "full_name": "Christoph Tilly",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": null,
+  "height_in": null,
+  "weight_lb": null,
+  "birth_year": 2003,
+  "country": null,
+  "college": "Ohio State",
+  "draft": null,
+  "jersey": null,
   "is_active": true,
   "teams": [],
   "awards": {
@@ -324621,18 +325366,158 @@
   }
  },
  {
-  "person_id": 1643813,
-  "full_name": "Alpha Diallo",
+  "person_id": 1643767,
+  "full_name": "Latrell Wrightsell",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 75,
+  "weight_lb": 189,
+  "birth_year": 2002,
+  "country": "USA",
+  "college": "Alabama",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643772,
+  "full_name": "Rashaun Agee",
   "aliases": [],
   "fame_tier": 4,
   "position": null,
   "height_in": null,
   "weight_lb": null,
-  "birth_year": 1997,
+  "birth_year": 2000,
   "country": null,
   "college": null,
   "draft": null,
   "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643792,
+  "full_name": "Rienk Mast",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "C",
+  "height_in": 81,
+  "weight_lb": 248,
+  "birth_year": 2001,
+  "country": "Netherlands",
+  "college": "Nebraska",
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643808,
+  "full_name": "Andrew Holifield",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": null,
+  "height_in": null,
+  "weight_lb": null,
+  "birth_year": 2004,
+  "country": null,
+  "college": null,
+  "draft": null,
+  "jersey": null,
+  "is_active": true,
+  "teams": [],
+  "awards": {
+   "mvp": [],
+   "fmvp": [],
+   "dpoy": [],
+   "roty": null,
+   "smoy": [],
+   "allstar_count": 0,
+   "allnba_count": 0,
+   "rings": []
+  },
+  "career": {
+   "pts": 0,
+   "reb": 0,
+   "ast": 0,
+   "ppg": 0.0,
+   "rpg": 0.0,
+   "apg": 0.0,
+   "seasons": 0
+  }
+ },
+ {
+  "person_id": 1643813,
+  "full_name": "Alpha Diallo",
+  "aliases": [],
+  "fame_tier": 4,
+  "position": "G",
+  "height_in": 79,
+  "weight_lb": 210,
+  "birth_year": 1997,
+  "country": "USA",
+  "college": "Providence",
+  "draft": null,
+  "jersey": 11,
   "is_active": true,
   "teams": [],
   "awards": {
