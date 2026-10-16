@@ -53,3 +53,22 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
 
 - Rate limits and the strike IP lock key on client-supplied X-Forwarded-For (NUM_PROXIES unset); safe only behind a
   proxy that overwrites it (Vercel does); set NUM_PROXIES if the host changes.
+
+## game-data + rooms suites (2026-10-16)
+
+- Budgets: `score-submit` 60/h is per account. `logic.actor` spends 5 `log-session` POSTs per run (the 400 one counts:
+  DRF throttles every request that reaches the view). `wordle-play` 20/h: 3 POSTs on a fresh lgc throwaway's own bucket
+  and 1 guest POST on a fresh simulated client. Neither is ever close to its limit.
+- `log-session` has no per-play dedupe. Each POST is a finished game and is credited, and the client's `awardedRef`
+  sends it once. LC-GAMEDATA-02 asserts that `/me/` moves by exactly the reported `awarded`, accepting either 37 or 0
+  on the repeat, so a dedupe can land without breaking it.
+- A local stack's sqlite has no synced `Player` / `Team` tables. The daily Wordle word is seeded from the bundled
+  `wordle.json` when it is missing (LC-GAMEDATA-04). The Django round endpoints the relay falls back to for name-logo
+  (Team) and wordle (Player) 500 locally for that reason. LC-GAMEDATA-01 therefore checks the sources the site reads
+  plus Django's `/trivia/pool/`; the relay's dealing is checked through `roundData` (LC-ROOMS-07/10).
+- Rooms: the relay acks nothing, so the client helper waits for events from a log position (`mark()` before the emit,
+  `waitFor(event, { since })`). Identify has no success event; LC-ROOMS-01 proves it by a reply only a player gets.
+  Strangers in a random match see "Player" for a teen or age-unknown account (testuser4/5 are age-unknown unless the
+  profile suite set an age).
+- Two checkers sharing one lane stack must run from the same checkout. If the minter is on one checkout's sqlite and
+  the running Django on another's, every id differs. The rooms suite now refuses to run in that state.
