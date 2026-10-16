@@ -59,7 +59,7 @@ def unseed(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("trivia", "0012_data_corrections"),
+        ("trivia", "0013_data_corrections"),
     ]
 
     operations = [

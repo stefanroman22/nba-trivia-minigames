@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('trivia', '0010_seen_questions'),
+        ('trivia', '0011_seen_questions'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

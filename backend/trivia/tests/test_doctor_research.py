@@ -20,7 +20,7 @@ NBA = "https://www.nba.com/player/1/someone"
 class DoctorResearchTestCase(CheckerJobsTestCase):
     def setUp(self):
         super().setUp()
-        DataCorrection.objects.all().delete()  # without the seeded ones (migration 0013)
+        DataCorrection.objects.all().delete()  # without the seeded ones (migration 0014)
         self.stage(("career-path",))
         self.rows = list(Question.objects.filter(game="career-path").order_by("id"))
         self.dir = os.path.join(self.tmp, "doctor-verdicts")

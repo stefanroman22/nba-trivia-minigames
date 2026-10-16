@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('trivia', '0009_answer_rollups'),
+        ('trivia', '0010_answer_rollups'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
