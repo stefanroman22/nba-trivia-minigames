@@ -25,8 +25,8 @@ def generate(dataset, existing_hashes, rng, n, today=None):
     """Schedule up to n secrets on the free days from `today` on. Every secret ever
     scheduled (any status) is excluded for 365 days; only live or pending days
     ("contexto_taken", set by the runner) are occupied, so a retired or quarantined
-    day is filled again. A secret whose v2 ranking fails validate() (the top-10 gate)
-    is skipped, not scheduled."""
+    day is filled again. A secret whose v2 ranking fails validate() (the gate: no
+    one-team-season top 10, enough famous players in the top 20) is skipped, not scheduled."""
     today = today or datetime.datetime.now(datetime.timezone.utc).date()
     existing = _existing(dataset)
     taken_days = {e["day"] for e in getattr(dataset, "extra", {}).get("contexto_taken", existing)}
@@ -67,11 +67,14 @@ def materialize(definition, dataset):
 
 
 def _gate_facts(ranking, dataset, year):
-    """What validate() needs about the top of the ranking (ranks 2..top+1, the secret left out)."""
-    top = [dataset.by_id[pid] for pid, _ in ranking[1:_GATE["top"] + 1]]
+    """What validate() needs about the top of the ranking, the secret (rank 1) left out: does
+    the top team_season_top share one team-season, how many of the top famous_top are famous."""
+    top = [dataset.by_id[pid] for pid, _ in ranking[1:_GATE["team_season_top"] + 1]]
     shared = set.intersection(*(_franchise_seasons(r, year) for r in top)) if top else set()
-    return {"top": len(top), "famous": sum(1 for r in top if fame.at_least(r, getattr(fame, _GATE["min_band"]))),
-            "shared_team_season": min(shared) if shared else None}
+    famous = [dataset.by_id[pid] for pid, _ in ranking[1:_GATE["famous_top"] + 1]]
+    return {"team_season_top": len(top), "shared_team_season": min(shared) if shared else None,
+            "famous_top": len(famous),
+            "famous": sum(1 for r in famous if fame.at_least(r, getattr(fame, _GATE["min_band"])))}
 
 
 def validate(materialized):
@@ -84,10 +87,11 @@ def validate(materialized):
     if materialized.get("sim_version", 1) == 2:
         gate = materialized.get("gate") or {}
         if gate.get("shared_team_season"):
-            problems.append(f"the top {gate.get('top')} all share one team-season ({gate['shared_team_season']})")
+            problems.append(f"the top {gate.get('team_season_top')} all share one team-season "
+                            f"({gate['shared_team_season']})")
         if (gate.get("famous") or 0) < _GATE["min_count"]:
-            problems.append(f"the top {gate.get('top')} has {gate.get('famous') or 0} {_GATE['min_band']}-or-better "
-                            f"players; need {_GATE['min_count']}")
+            problems.append(f"the top {gate.get('famous_top')} has {gate.get('famous') or 0} "
+                            f"{_GATE['min_band']}-or-better players; need {_GATE['min_count']}")
     return problems
 
 

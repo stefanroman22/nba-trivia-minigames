@@ -198,15 +198,43 @@ class ContextoVersionTests(SimpleTestCase):
         legacy = ctx.materialize({"secret_person_id": 990000, "day": "2026-09-12"}, ds)
         self.assertEqual(ctx.validate(legacy), [])  # v1 days never get the gate
 
-    def test_gate_rejects_a_top_10_of_unknowns(self):
-        rows = fixture_rows()
-        star = next(r for r in rows if r.get("teams") and fame.fame_band(r) == fame.STAR)
-        nobody = {"awards": {}, "career": {**star["career"], "pts": 0, "seasons": 1}, "fame_tier": None}
-        secret = {**star, "person_id": 990000, "full_name": "Secret Star"}
-        clones = [{**secret, **nobody, "person_id": 990001 + i, "full_name": f"Nobody {i}"} for i in range(12)]
-        ds = load_dataset_from_rows(rows + [secret] + clones, "unknowns")
+    def _famous_dataset(self, famous):
+        """A secret whose top 25 are look-alikes that tie on score, so person_id orders them: ten
+        unknowns (ranks 2-11), then `famous` KNOWN ones (fame_tier 2, same fame score), then more
+        unknowns. Every look-alike keeps one of the secret's two seasons, so the top 10 share none."""
+        def stint(abbr, year):
+            return {"abbr": abbr, "name": abbr, "start_year": year, "end_year": year, "gp": 82, "ppg": 10}
+
+        def row(pid, tier, i=None):
+            if i is None:  # the secret
+                teams = [stint("AAA", 1990), stint("BBB", 1991)]
+            else:  # one season shared with the secret, one of his own
+                teams = [stint("AAA", 1990), stint(f"C{i:02d}", 1991)] if i % 2 else [stint(f"D{i:02d}", 1990),
+                                                                                         stint("BBB", 1991)]
+            return {"person_id": pid, "full_name": f"P{pid}", "fame_tier": tier, "position": "G", "country": "USA",
+                    "height_in": 75, "draft": {"year": 1990, "round": 1, "pick": 5}, "teams": teams, "awards": {},
+                    "career": {"pts": 0, "seasons": 1, "ppg": 10.0, "rpg": 3.0, "apg": 4.0}}
+        ids = iter(range(990001, 990100))
+        alikes = ([row(next(ids), None, i) for i in range(10)] + [row(next(ids), 2, 10 + i) for i in range(famous)]
+                  + [row(next(ids), None, 20 + i) for i in range(15)])
+        return load_dataset_from_rows(fixture_rows() + [row(990000, 2)] + alikes, "famous")
+
+    def _gate(self, ds):
         m = ctx.materialize({"secret_person_id": 990000, "day": "2026-09-12", "sim_version": 2}, ds)
-        self.assertTrue(any("KNOWN" in p for p in ctx.validate(m)), ctx.validate(m))
+        top = [pid for pid, _ in m["ranking"][1:26]]
+        self.assertEqual(top, sorted(top))  # the look-alikes tie and sit in person_id order
+        self.assertTrue(all(990001 <= pid < 990100 for pid in top))
+        return m["gate"], ctx.validate(m)
+
+    def test_gate_counts_known_players_over_the_top_20(self):
+        gate, problems = self._gate(self._famous_dataset(6))  # none in the top 10, six at ranks 12-17
+        self.assertEqual((gate["famous_top"], gate["famous"], gate["shared_team_season"]), (20, 6, None))
+        self.assertEqual(problems, [])
+
+    def test_gate_rejects_a_top_20_with_too_few_known_players(self):
+        gate, problems = self._gate(self._famous_dataset(5))
+        self.assertEqual(gate["famous"], 5)
+        self.assertEqual(problems, ["the top 20 has 5 KNOWN-or-better players; need 6"])
 
     def test_generate_skips_a_secret_that_fails_the_gate(self):
         ds = self._one_team_dataset()
