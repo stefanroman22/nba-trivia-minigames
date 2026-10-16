@@ -59,10 +59,10 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 | Django API | **Vercel** (serverless, Django auto-detected) | `backend/` |
 | Photo moderation | **Vercel** (separate Python project `nba-minigames-moderation`, called server-to-server by Django) | `moderation_service/` |
 | Multiplayer (Socket.IO) | small always-on Node host (Railway/Render/Fly — **not** Vercel) | `multiplayer_server/` |
-| Data refresh | **Your home machine** (residential IP) | `backend/` management commands |
+| Data refresh | **GitHub Actions** (`data-refresh.yml`, monthly, through the `nba-relay` Cloudflare Worker) | `backend/` management commands |
 
-> The NBA blocks data-center IPs, so the data **refresh** must run from home. The cloud only
-> ever serves pre-built data.
+> The NBA blocks data-center IPs, so the refresh reaches it through the free `nba-relay`
+> Worker (`infra/nba-relay`). No PC is needed; the cloud serves pre-built data.
 
 ### How each service ships
 
@@ -233,11 +233,12 @@ is retired 30 days after the switch (steps in the design doc, phase 6).
 
 | What | Where | When |
 |---|---|---|
-| **Publish button** | Actions → **Publish game data** (`publish-game-data.yml`): `games` empty = all (or e.g. `career-path,contexto`), `target` vercel, untick `dry_run` | manually, or triggered by the PC refresh |
+| **Publish button** | Actions → **Publish game data** (`publish-game-data.yml`): `games` empty = all (or e.g. `career-path,contexto`), `target` vercel, untick `dry_run` | manually, or triggered by the monthly data refresh |
 | **Question maintenance (hidden games only)** | `maintain-questions.yml`, manual only: refreshes the Supabase snapshot superdraft/imposter and the fallback read | only when the hidden games need new questions |
 | **Freshness alert** | `game-data-freshness.yml` runs `manage.py publish_game_data_v3 --check-only` (no DB writes; question games are materialized from their current rows, no maintenance) and posts one message to Slack `#agent-backend` naming games whose DB data isn't published yet, with a link to the button | daily 06:30 UTC + manual; silent when everything is fresh |
 | **Usage report** | `game-data-usage.yml` runs `backend/scripts/vercel_usage_report.py` and posts to `#agent-backend`: live data version, size of the published set (raw and gzip'd), data deployments this week, link to the Vercel usage dashboard | Mondays 07:00 UTC + manual |
-| **PC refresh** | `backend/scripts/refresh_nba_data.cmd` (Task Scheduler): `sync_nba_data` → `upload_dataset` → `gh workflow run publish-game-data.yml --ref main -f games= -f target=vercel -f dry_run=false` | monthly; needs `gh` logged in as `stefanroman22` |
+| **Data refresh** | `data-refresh.yml` (sync → curated → validate → land → supply; see `docs/DATA_PIPELINE.md` "Cloud refresh"), dispatches `publish-game-data.yml` itself | 1st of the month 01:00 UTC + manual |
+| **PC refresh (fallback)** | `backend/scripts/refresh_nba_data.cmd` (Task Scheduler "NBA Data Refresh"): **disabled on 2026-10-16**, kept as a manual fallback (re-enable with `schtasks /Change /TN "NBA Data Refresh" /ENABLE`); needs `gh` logged in as `stefanroman22` | off |
 
 The usage report **cannot show bandwidth served or a % of the free allowance**: Vercel's only
 usage endpoint (`GET /v1/billing/charges`) needs the `billing` scope, "only available to Pro and

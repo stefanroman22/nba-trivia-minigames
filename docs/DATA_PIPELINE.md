@@ -87,9 +87,10 @@ The monthly refresh as a GitHub Actions workflow, through the relay, so no PC is
 (spec §4.13). Jobs: **sync** (`sync_nba_data --seasons 2 --max-games 20 --timeout 25 --journal`,
 journaled as `FactoryRun` kind `refresh`; any dataset failure fails the run and the job, and the
 nightly `factory_health` reports `refresh_failed`) → **curated** (`generate_players_curated
---rewrite-all-players` on dev's files, raw cache restored from this month's workflow cache and
-also kept 7 days as the `nba-raw-cache` artifact) → **validate** (`curated_validate.py`, parity
-included) → **land** (PR `Data refresh <date>` from `refresh-pr/<date>` to `dev` with
+--rewrite-all-players`, built with the workflow's own code; raw cache restored from this month's
+workflow cache and also kept 7 days as the `nba-raw-cache` artifact) → **validate**
+(`curated_validate.py`, parity included, also the workflow's own code) → **land** (the only job
+that checks out `dev`; PR `Data refresh <date>` from `refresh-pr/<date>` to `dev` with
 `players_curated.json` + `all-players.json`, merged at once; then `upload_dataset`, only once the
 PR is merged — an unmerged PR skips the upload and posts to Slack) → **supply**
 (`publish-game-data.yml` with `trigger=data-refresh`, from `main` only). A failure in curated or
@@ -132,6 +133,12 @@ is re-cleaned automatically; the store keeps the raw rows either way.
 
 ## The schedule (autonomous)
 
+**The monthly refresh runs in the cloud** (`data-refresh.yml`, above); the PC is not required for
+any data refresh. The Windows task **"NBA Data Refresh"** was **disabled on 2026-10-16**
+(`schtasks /Change /TN "NBA Data Refresh" /DISABLE`). It is kept, not deleted, as a manual
+fallback: `schtasks /Change /TN "NBA Data Refresh" /ENABLE` turns it back on. What follows
+describes that fallback.
+
 Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.cmd`
 monthly (1st, 04:00). It: sync → `upload_dataset` → `gh workflow run
 publish-game-data.yml` (the "Publish game data" workflow builds the files from the DB,
@@ -156,10 +163,11 @@ schtasks /Delete /TN "NBA Data Refresh" /F
 
 ## Monitoring
 
-- `backend/scripts/last_refresh.log` — transcript of the latest run.
-- `SyncRun` table — one row per dataset per run (status/rows/error). The task
-  only requires the PC to be on at run time (Task Scheduler runs a missed job at
-  next logon). For pure-cloud scheduling you'd need a residential proxy (paid).
+- Actions → **Data refresh** — the run summary and the Slack line in `#agent-backend` on a
+  curated/validate/land failure; the `FactoryRun` (kind `refresh`) journal, and the nightly
+  `factory_health` reports `refresh_failed`.
+- `SyncRun` table — one row per dataset per run (status/rows/error).
+- `backend/scripts/last_refresh.log` — transcript of the latest run of the PC fallback only.
 
 ## Cloudflare R2 (second data-host target)
 
