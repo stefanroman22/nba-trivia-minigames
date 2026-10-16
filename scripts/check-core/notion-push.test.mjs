@@ -205,3 +205,19 @@ test('run ids: plain, copied (x) and live (-live) runs are recognised; other nam
   for (const r of ['20261014-1153', '20261014-1153x', '20261015-2210-live']) assert.ok(isRunId(r), r);
   for (const r of ['adhoc', '20261014-1153-x', '20261014-1153live', '2026101-1153', '20261014-1153-live2']) assert.equal(isRunId(r), false, r);
 });
+
+test('--checker logic: [logic-check] title, logic Source, Logic engine protocol and the attachment verify command', () => {
+  const client = fakeClient();
+  const runId = '20261016-0200-logic';
+  const { out } = push(client, { checker: 'logic', runId });
+  const { m, body, attach } = client.calls.create[0];
+  assert.match(m.title, /^\[logic-check\] /);
+  assert.ok(m.source.startsWith('logic-check fp:') && m.source.endsWith(`run:${runId}`));
+  assert.match(body, /^Logic check run 20261016-0200-logic /);
+  assert.ok(body.includes('- Engine protocol: "Fixing a Logic-check finding" in .claude/agents/'));
+  assert.ok(body.includes('- verify: node scripts/ui-check/verify.mjs UIC-20261014-1153-001 --from <attached findings.json> --mode dev'));
+  assert.ok(!body.includes('--run '));
+  assert.ok(!body.includes('Fixing a UI-check finding'));
+  assert.equal(attach.checker, 'logic');
+  assert.ok(out[0].startsWith('notion-push logic-check run 20261016-0200-logic'));
+});

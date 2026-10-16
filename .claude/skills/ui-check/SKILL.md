@@ -35,6 +35,17 @@ default ref becomes `.`).
   only means some check failed: that is the normal input for the judges.
 - Infra failure (`digest (none written)`, exit 2, or a stack error): read the last 30 output lines,
   run step 4, report the error. Do not dispatch judges.
+- **Logic Check blocks** (`<uicHome>/channel.json`, written by the `logic-check` skill and the nightly run): every
+  check tagged (CHECKS.md `services`) with a service Logic Check has blocked is left out of the run, recorded as
+  deferred and listed in the digest's Coverage gaps as `blocked by LC-… (card …)`; the run prints
+  `ui-check: N check(s) deferred (blocked service(s) …)`. Keep that line for the hand-over. Do not pass
+  `--no-skip-blocked` unless the owner asks: a blocked service's symptoms belong to the Logic card. Current blocks and
+  pending deferrals: `node scripts/check-core/lib/channel.mjs show`.
+- **Catch-up** (when the owner says a Logic card is fixed, or asks to run what was deferred):
+  `node scripts/check-core/lib/channel.mjs resolve` releases the blocks whose card is Done with its commit on
+  `origin/main` and prints `catchup-logic <ids>` and `catchup-ui <ids>`. Run the Logic ids first
+  (`node scripts/logic-check/run.mjs --only <catchup-logic ids> --ref main --keep-stack`); when it exits 0, run the UI
+  ids: `node scripts/ui-check/run.mjs --only "<catchup-ui ids>" --vp all --ref main --keep-stack`, then steps 2-5.
 
 ## 1b. The live subset (when asked, or with a full audit of production code)
 ```
@@ -100,8 +111,9 @@ on the cards' `Source` keys, so a re-run adds no duplicate. Read only its result
 <title> findings=<ids>`, `skip <keys> <why> card <id>`, `regression <old> → <new>`, `error <keys>
 <message>`, and the last line `notion-push done: N new · N regression · N skipped · N error(s)`.
 An `error` line or exit 1 → run it once more (it skips what it already made), then list what is
-left for the owner. The nightly scheduler that runs steps 1-3b on its own is Phase B; today this
-skill runs them.
+left for the owner. The nightly run (`scripts/check-run.ps1`, Task Scheduler `nba-checks`, 02:00) runs
+steps 1, 1b, 3b and 4 itself after Logic Check and calls only steps 2-3 through `claude -p`
+(`docs/logic-check/README.md`).
 
 ## 4. Stop the stack
 ```
@@ -115,6 +127,8 @@ Give the owner:
 - the summary table from REPORT.md's header and `## Summary` (findings by severity × owner and
   severity × suite), the rejected count, and the coverage gaps (scenarios no adapter could drive);
 - one line per judge from its return (findings count, anything that blocked it);
+- the deferred checks: the run's `ui-check: N check(s) deferred …` line (each id ← the LC check that blocks it, with
+  its card), or "none";
 - the Notion cards from step 3b: each created card (id, title, findings), each regression card and
   the card it reopens, each skipped cluster with its reason and card, and any error;
 - the next step: the cards are in To Do for the team pipeline, or the `ui-fix` skill fixes open

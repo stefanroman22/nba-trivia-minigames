@@ -1,7 +1,8 @@
 // Multiplayer: the end of a 1v1 match (OnlineMatch waiting + results, AnswerReviewModal). The match is played with
 // the Series Winner adapter (games/series-winner.mjs, answers from the round the relay dealt: lib/mp-pool.mjs): the
-// host right every round, the joiner wrong every round, so the host wins on score. 1v1 matches are credited to both
-// profiles by the relay (/trivia/multiplayer-result/, local sqlite only; see notes/multiplayer.md).
+// host right every round, the joiner wrong every round, so the host wins on score. The relay credits 1v1 matches
+// (/trivia/multiplayer-result/, local sqlite only; see notes/multiplayer.md): that credit is Logic Check's (LC-ROOMS-08/10);
+// this file asserts only the "+N pts" toast rendering.
 import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
@@ -15,7 +16,7 @@ test.afterEach(async () => { await releasePair(); });
 const SW = gameById('series-winner');
 const adapter = adapterFor('series-winner');
 
-test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the joiner (all wrong) "You lost"; scores, names and times mirror on both screens; no "faster time" line; points credited; the answer review opens and closes on both', async ({ mp }) => {
+test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the joiner (all wrong) "You lost"; scores, names and times mirror on both screens; no "faster time" line; the "+N pts" toast on the host; the answer review opens and closes on both', async ({ mp }) => {
   test.setTimeout(300_000);
   const pair = await openPair(mp, SW.path);
   const { host, joiner } = pair;
@@ -42,12 +43,10 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
     await expect(L(p.page, 'multiplayer.exitGameLink')).toBeVisible();
   });
 
-  // Points: the relay credits a 1v1 match (the host's 100, plus the first-game-of-the-day bonus on the first scoring game, so the awarded value and the toast may show more than the round score; a 0 awards nothing, so no toast for the joiner).
+  // The "+N pts" toast renders on the host's results (the relay credits a 1v1 match; a 0 awards nothing). The credit
+  // itself (pointsAwarded values, /me/ points) is Logic Check's: LC-ROOMS-10 (spec §5 no-overlap).
   if (creditsEnabled()) {
-    const awarded = host.cap.frames('pointsAwarded', { dir: 'in' }).map((f) => f.awarded);
-    if (awarded.length !== 1 || !(awarded[0] >= h.expected)) host.audit.violation('points', { selector: 'pointsAwarded', measured: `awarded ${JSON.stringify(awarded)}`, expected: `one credit of at least ${h.expected} for the match` });
-    if (!toast.texts.some((t) => /^\+\d+ pts/.test(t))) host.audit.violation('points', { selector: '.om-points', measured: `toast ${JSON.stringify(toast.texts)}`, expected: `"+N pts added to your profile" on the results` });
-    if (joiner.cap.frames('pointsAwarded', { dir: 'in' }).length) joiner.audit.violation('points', { selector: 'pointsAwarded', measured: JSON.stringify(joiner.cap.frames('pointsAwarded', { dir: 'in' })), expected: 'nothing awarded for a 0' });
+    if (!toast.texts.some((t) => /^\+\d+ pts/.test(t))) host.audit.violation('points', { selector: '.om-points', measured: `toast ${JSON.stringify(toast.texts)}`, expected: `"+${h.expected} pts added to your profile" on the results` });
   } else {
     host.audit.metrics.push({ kind: 'note', label: 'points credit not checked: the relay or Django was not started by ui-check (no shared relay key)', value: 0, unit: '', route: host.audit.route });
   }
@@ -70,9 +69,7 @@ test('[MP-RESULT-02] a draw: a Tic-Tac-Toe duel filled without a line ends "Draw
   const duel = await playDuel(pair, adapterFor('tictactoe'), { script: 'draw' });
   pair.host.audit.metrics.push({ kind: 'note', label: 'duel moves', value: duel.moves.map((m) => `${m.who}:${m.kind}@${m.cell + 1}`).join(' '), unit: '', route: pair.host.audit.route });
   await checkResults(pair, { host: { outcome: 'tie', score: TTT_SCORES.draw }, joiner: { outcome: 'tie', score: TTT_SCORES.draw }, times: false });
-  for (const p of [pair.host, pair.joiner]) {
-    if (p.cap.frames('pointsAwarded', { dir: 'in' }).length) p.audit.violation('points', { selector: 'pointsAwarded', measured: 'credited', expected: 'a friend room never adds points to profiles (MP-6)' });
-  }
+  // A friend room never credits points: Logic Check's LC-ROOMS-08 (spec §5 no-overlap).
   await layoutBoth(pair);
   await shotBoth(pair, 'draw');
   await reviewRoundTrip(pair.host, TTT_SCORES.draw);

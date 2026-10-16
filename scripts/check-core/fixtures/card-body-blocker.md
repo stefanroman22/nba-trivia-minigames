@@ -19,7 +19,7 @@ How to fix:
 Acceptance:
 - Digest lines teen-masking `.om-matchup .om-pc-tag` disappear from MP-MATCH-01
 - check MP-MATCH-01 @ mp@pairA passes
-- verify: node scripts/ui-check/verify.mjs --from <attached findings.json> UIC-20261014-1153-001
+- verify: node scripts/ui-check/verify.mjs UIC-20261014-1153-001 --from <attached findings.json> --mode dev
 ### UIC-20261014-1153-002 · Masked stranger "Player" still shows a permanent player ID (results)
 blocker · backend · security · route /series-winner · viewports pairA, pairB, pairC, pairD · state: 1v1 random match, results; both players
 Current: The 1v1 opponent is shown as "Player" (teen masking) but the card still prints the #ID (#G8RW2B / #RG8H3M), which lets anyone find and friend-request a masked teen.
@@ -41,7 +41,7 @@ Acceptance:
 - check MP-RESULT-01 @ mp@pairA passes
 - check MP-PROP-01 @ mp@pairA passes
 - check MP-PROP-02 @ mp@pairA passes
-- verify: node scripts/ui-check/verify.mjs --from <attached findings.json> UIC-20261014-1153-002
+- verify: node scripts/ui-check/verify.mjs UIC-20261014-1153-002 --from <attached findings.json> --mode dev
 ## Pipeline
 - Engine protocol: "Fixing a UI-check finding" in .claude/agents/backend-engine.md; the full finding objects are in the attached findings.json (this body is a summary).
 - QA: verify assertion runs the attached findings (node scripts/ui-check/verify.mjs --from <attached findings.json>); every finding must PASS.

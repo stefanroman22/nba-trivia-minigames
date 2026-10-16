@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT } from './home.mjs';
-import { listRuns, readFindingsDoc, runPath } from './findings.mjs';
+import { checkId, listRuns, readFindingsDoc, runPath } from './findings.mjs';
 
 export const CHECKS_MD = path.join(ROOT, 'scripts', 'ui-check', 'CHECKS.md');
 export const PERF_RULES = ['perf', 'loaf', 'cls', 'slow-action', 'slow-api'];
@@ -23,12 +23,12 @@ export function perfIdsFrom(checksMd) {
 
 export function isPerfFinding(f, perfIds) {
   return PERF_RULES.includes(f.rule)
-    || (f.acceptance.assertions || []).some((x) => (x.expect || []).some((e) => 'maxCls' in e || 'maxLoafMs' in e))
-    || (f.acceptance.checks || []).some((c) => perfIds.some((re) => re.test(c.id)));
+    || (f.acceptance.assertions || []).some((x) => Array.isArray(x.expect) && x.expect.some((e) => 'maxCls' in e || 'maxLoafMs' in e))
+    || (f.acceptance.checks || []).some((c) => perfIds.some((re) => re.test(checkId(c))));
 }
 
 export const engineOf = (f) => (f.owner === 'frontend' ? 'frontend-engine' : 'backend-engine');
-const keysOf = (f) => [...f.files.map((x) => 'f:' + x.path), ...(f.acceptance.checks || []).map((c) => 'c:' + c.id)];
+const keysOf = (f) => [...f.files.map((x) => 'f:' + x.path), ...(f.acceptance.checks || []).map((c) => 'c:' + checkId(c))];
 
 /** Open findings matching the filters (each a list, or null for all). */
 export function selectOpen(findings, { severities = null, owners = null, suites = null, ids = null } = {}) {
@@ -56,7 +56,7 @@ export function planLines({ run, runDir, open, clusters, perfIds }) {
   const out = [`runDir ${runDir} · runId ${run} · ${open.length} open finding(s) · ${clusters.length} cluster(s)`];
   clusters.forEach((c, i) => {
     out.push(`#${i + 1} ${c.engine}${c.prod ? ' [prod]' : ''}: ${c.items.map((f) => f.id).join(' ')}`);
-    for (const f of c.items) out.push(`   ${f.id} ${f.severity} ${f.owner} ${f.suite}${isPerfFinding(f, perfIds) ? ' perf' : ''} ${f.where.route} checks=${[...new Set([f.evidence.checkId, ...(f.acceptance.checks || []).map((x) => x.id)].filter(Boolean))].join(',') || '-'} files=${[...new Set(f.files.map((x) => x.path))].join(',')}`);
+    for (const f of c.items) out.push(`   ${f.id} ${f.severity} ${f.owner} ${f.suite}${isPerfFinding(f, perfIds) ? ' perf' : ''} ${f.where.route} checks=${[...new Set([f.evidence.checkId, ...(f.acceptance.checks || []).map(checkId)].filter(Boolean))].join(',') || '-'} files=${[...new Set(f.files.map((x) => x.path))].join(',')}`);
   });
   return out;
 }

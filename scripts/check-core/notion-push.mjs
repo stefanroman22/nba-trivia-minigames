@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Validated checker findings → one Notion card per cluster (scripts/check-core/lib/clusters.mjs), deduped by the
 // card's Source property (fingerprint keys). Spec: docs/superpowers/specs/2026-10-15-checks-prod-logic-design.md §3.4.
-//   node scripts/check-core/notion-push.mjs --run <id> --checker ui [--target main|dev] [--dry-run] [--severities blocker,major,minor|all]
-// (--checker logic exits: not supported until Logic Check, Phase B.)
+//   node scripts/check-core/notion-push.mjs --run <id> --checker ui|logic [--target main|dev] [--dry-run] [--severities blocker,major,minor|all]
+// Cards are titled `[ui-check] …` / `[logic-check] …`; a logic card points the engine at "Fixing a Logic-check finding" and
+// both checkers' cards verify with `node scripts/ui-check/verify.mjs <id> --from <attached findings.json> --mode dev`.
 // Prints one line per cluster:
 //   card <id|DRY> <title> findings=<ids>
 //   skip <key…> already open card <id>            (or: done without commit (closed by hand) / done, fix not on origin/main yet)
@@ -163,8 +164,7 @@ function parseArgs(argv) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const o = parseArgs(process.argv.slice(2));
   if (!o.run) { console.error('notion-push: --run <id> required'); process.exit(2); }
-  if (o.checker === 'logic') { console.error('notion-push: --checker logic is not supported until Logic Check (Phase B)'); process.exit(2); }
-  if (o.checker !== 'ui') { console.error('notion-push: --checker ui'); process.exit(2); }
+  if (!['ui', 'logic'].includes(o.checker)) { console.error('notion-push: --checker ui|logic'); process.exit(2); }
   if (!['main', 'dev'].includes(o.target)) { console.error('notion-push: --target main|dev'); process.exit(2); }
   const doc = readFindingsDoc(o.run);
   if (!doc) { console.error(`notion-push: no findings.json for run ${o.run}`); process.exit(1); }

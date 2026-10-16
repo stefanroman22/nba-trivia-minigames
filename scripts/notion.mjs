@@ -371,6 +371,13 @@ async function cmdFindCards(args) {
   console.log(JSON.stringify(pages.map((p) => ({ ...row(p), status: p.properties.Status?.select?.name || null, created: p.created_time })), null, 2));
 }
 
+// One card's properties (+ status) as JSON: what channel.mjs resolve needs (Status Done and its Commit).
+async function cmdGetCard(pageId) {
+  if (!pageId) { console.error("get-card <pageId> required"); process.exit(2); }
+  const p = await api(`pages/${pageId}`);
+  console.log(JSON.stringify({ ...row(p), status: p.properties.Status?.select?.name || null }, null, 2));
+}
+
 async function cmdListComments(pageId) {
   let cursor, comments = [];
   do {
@@ -404,6 +411,7 @@ const run = {
   "migrate-v2": () => cmdMigrateV2(args),
   "migrate-v3": cmdMigrateV3,
   "find-cards": () => cmdFindCards(args),
+  "get-card": () => cmdGetCard(args[0]),
   "list-comments": () => cmdListComments(args[0]),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }

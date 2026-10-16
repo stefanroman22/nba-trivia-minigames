@@ -2,6 +2,11 @@
 // buildDigest() is pure so the selftest can exercise it without running a suite.
 // UI_CHECK_APPEND=1 merges into an existing results.json of the same run (several invocations, one run);
 // <runDir>/run-meta.json keeps the run's first start so the digest header spans every invocation.
+// Checker-agnostic: UI_CHECK_CHECKER (ui | logic, default ui) titles the digest and is written as `checker` into every
+// result and run-meta.json. A result's suite is its project's `use.suite`, or — for a project whose `use.suiteByPrefix`
+// maps check-id prefixes to suites (Logic Check: { 'LC-AUTH-': 'auth', … }) — the suite of its check id's prefix.
+// <runDir>/blocked.json (written by run.mjs: checks left out because Logic Check blocked one of their services,
+// check-core/lib/blocked.mjs) is listed under Coverage gaps as `blocked by LC-… (card …)`.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { VIEWPORTS } from './viewports.mjs';
@@ -49,13 +54,16 @@ const expectedText = (byValue) => {
   return shown.join(' | ');
 };
 
-/** Markdown digest for an array of result entries (see results.json shape). */
-export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs = 0 } = {}) {
+/** One Coverage gaps line per check left out by a Logic Check block (<runDir>/blocked.json entries). */
+export const blockedLine = (b) => `- ${b.checkId} (not run): blocked by ${b.blockedBy} (card ${b.card || '-'}) — service ${b.service}`;
+
+/** Markdown digest for an array of result entries (see results.json shape). `blocked`: blocked.json entries. */
+export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs = 0, checker = 'ui', blocked = [] } = {}) {
   const secs = Math.round(durationMs / 1000);
   // Env in the header only when some result is not from the local stack (`run.mjs --live`).
   const envs = [...new Set(results.map((r) => envOf(null, r)))].sort((a, b) => (a === 'local' ? -1 : b === 'local' ? 1 : a.localeCompare(b)));
   const envTag = envs.some((e) => e !== 'local') ? ` · env ${envs.join('+')}` : '';
-  const lines = [`# UI check digest — run ${id} · mode ${mode}${envTag} · ${results.length} tests · ${Math.floor(secs / 60)}m${secs % 60}s`, ''];
+  const lines = [`# ${checker === 'logic' ? 'Logic' : 'UI'} check digest — run ${id} · mode ${mode}${envTag} · ${results.length} tests · ${Math.floor(secs / 60)}m${secs % 60}s`, ''];
 
   // Suite table
   const suites = new Map();
@@ -86,7 +94,7 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
       const vs = r.violations || [];
       const items = vs.map((v) => ({ v, key: [v.rule, v.selector, v.route, measuredClass(v.measured), measuredClass(v.expected)].join('\u0000') }));
       // The test's own error, unless it is just audit.done() restating the violations above.
-      if (!vs.length || (r.error && !/UI violation\(s\) in /.test(r.error))) {
+      if (!vs.length || (r.error && !/(UI|logic) violation\(s\) in /.test(r.error))) {
         items.push({ v: null, key: `error\u0000${measuredClass(firstLine(r.error) || r.status)}` });
       }
       for (const { v, key } of items) {
@@ -128,7 +136,9 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     if (where && !g.vps.includes(where)) g.vps.push(where);
     gaps.set(key, g);
   }
-  if (!gaps.size) lines.push('- none');
+  const blockedLines = (blocked || []).map(blockedLine);
+  lines.push(...capLines(blockedLines, MAX_GAP_LINES_PER_SUITE, 'blocked check(s)', 'blocked'));
+  if (!gaps.size && !blockedLines.length) lines.push('- none');
   const gapsBySuite = new Map();
   for (const { r, reason, vps, suite } of gaps.values()) {
     if (!gapsBySuite.has(suite)) gapsBySuite.set(suite, []);
@@ -216,6 +226,7 @@ export function mergeRun({ entries, prior = null, priorMeta = null, start, end }
 }
 
 const STATUS = { passed: 'passed', failed: 'failed', timedOut: 'timedOut', skipped: 'skipped', interrupted: 'failed' };
+const CHECKER = () => (process.env.UI_CHECK_CHECKER === 'logic' ? 'logic' : 'ui');
 const stripAnsi = (s) => String(s || '').replace(/\u001b\[[0-9;]*m/g, '');
 
 export default class DigestReporter {
@@ -243,13 +254,16 @@ export default class DigestReporter {
     // Tag each audit's records with where it was seen, so several audits per test (multiplayer) keep their vp.
     // Metrics already use `label` for their own name, so their audit label goes in `auditLabel`.
     const tag = (d, labelKey) => (x) => ({ ...x, ...(d.vp ? { vp: d.vp } : {}), ...(d.label ? { [labelKey]: d.label } : {}) });
+    const checkId = idOf(test.title);
+    const byPrefix = use.suiteByPrefix && checkId ? Object.entries(use.suiteByPrefix).find(([p]) => checkId.startsWith(p)) : null;
     const entry = {
-      checkId: idOf(test.title),
+      checker: CHECKER(),
+      checkId,
       // Where the test ran: the audit's env, else the project's (`use.env`), else UI_CHECK_ENV, else the local stack.
       env: (datas.find((d) => d.env) || {}).env || use.env || process.env.UI_CHECK_ENV || 'local',
       title: test.title,
       project: project ? project.name : '',
-      suite: use.suite || (project ? project.name.split('@')[0] : ''),
+      suite: (byPrefix && byPrefix[1]) || use.suite || (project ? project.name.split('@')[0] : ''),
       vp: use.vpId || (attVps.length ? attVps.join('+') : null),
       status: STATUS[result.status] || 'failed',
       durationMs: result.duration,
@@ -285,13 +299,15 @@ export default class DigestReporter {
       end: Date.now(),
     });
     writeFileSync(file, JSON.stringify(results, null, 2));
-    writeFileSync(metaFile, JSON.stringify(meta, null, 2));
+    writeFileSync(metaFile, JSON.stringify({ ...meta, checker: CHECKER() }, null, 2));
     const digest = buildDigest(results, {
       runId: runId(),
       mode: process.env.UI_CHECK_MODE || 'dev',
       durationMs,
+      checker: CHECKER(),
+      blocked: readJson(path.join(dir, 'blocked.json')) || [],
     });
     writeFileSync(path.join(dir, 'digest.md'), digest + '\n');
-    console.log(`ui-check: digest ${path.join(dir, 'digest.md')}`);
+    console.log(`${CHECKER() === 'logic' ? 'logic-check' : 'ui-check'}: digest ${path.join(dir, 'digest.md')}`);
   }
 }

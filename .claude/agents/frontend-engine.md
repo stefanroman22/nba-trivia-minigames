@@ -165,3 +165,19 @@ yourself there (the lane stack is the pipeline's), and answer in the brief's for
    in its regression gate is the same shell measurement).
 10. Return one JSON line per finding:
     `{"finding": "<id>", "status": "fixed|blocked|check-bug", "attempts": <n>, "touched": ["<path>"], "why": "<one line: the reason for blocked / check-bug, and reverted or kept for <id>>"}`
+
+## Fixing a Logic-check finding
+A finding with `checker: "logic"` and owner `frontend` (a `[logic-check]` card from the pipeline, or ui-fix handing you
+ids of a run whose id ends in `-logic`) means the site calls the wrong endpoint, sends the wrong body, shows another
+text than the backend's, or states rules the backend does not enforce. Fix it with the same loop as "Fixing a UI-check
+finding" above (steps 1-4 and 7-10, the same worktree, pipeline-card, attempt-budget and return rules), with these
+differences:
+- **Acceptance** is Logic checks (`{"lc": "LC-…"}`, run by `scripts/logic-check/run.mjs --only`) and API assertions
+  (`{"api": {…}, "expect": {…}}`). There are no viewports: skip steps 5-6 (perf in prod, the 7-viewport sweep).
+- **Verify**: `node scripts/ui-check/verify.mjs <id> --run <runId> --repo <worktree> --keep-stack` (`<runId>` ends in
+  `-logic`). Without `--mode` it runs in the mode the finding was validated in (prod for nightly findings: the frontend
+  is rebuilt after a change).
+- **From a pipeline check card**: gate 2 runs `node scripts/ui-check/verify.mjs --from <findingsFile> --mode dev --repo <worktree> --ports django=<lane>,socket=<lane>,web=<lane> --keep-stack`
+  on the card's lane exactly as for a UI-check card; do not run verify, probe or `run.mjs --stop` yourself there.
+- **Never edit `scripts/logic-check/**`** (specs, `lib/matrix.mjs`, `CHECKS.md`, notes) to make a finding pass; a check
+  that contradicts the documented behaviour is `check-bug` with why.

@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { VIEWPORTS, MP_PAIRS } from '../../ui-check/lib/viewports.mjs';
 import { L } from '../../ui-check/lib/pagemap.mjs';
 import { uicHome } from './home.mjs';
+import { apiAssertionErrors, describeApiAssertion, isApiAssertion } from './api-assert.mjs';
 
 const UIC_ROOT = uicHome();
 const UIC = fileURLToPath(new URL('../../ui-check/', import.meta.url));
@@ -18,6 +19,8 @@ export const ACCEPTED_PATH = path.join(UIC, 'accepted.json');
 export const SEVERITIES = ['blocker', 'major', 'minor', 'polish'];
 export const OWNERS = ['frontend', 'backend', 'ci'];
 export const SUITES = ['guest', 'account', 'games', 'multiplayer'];
+/** Logic Check suites (findings with checker 'logic'). */
+export const LOGIC_SUITES = ['live', 'pages', 'auth', 'signup', 'profile', 'friends', 'game-data', 'rooms'];
 /** Where a finding was seen (`where.env`): the local stack, or the live site (`run.mjs --live`). */
 export const ENVS = ['local', 'live'];
 const VP_ORDER = [...Object.keys(VIEWPORTS), ...Object.keys(MP_PAIRS)];
@@ -82,13 +85,48 @@ function check(schema, v, p, root, errs) {
   }
 }
 
-/** Schema errors plus DSL errors of every acceptance assertion → string[] (empty = valid). */
+/** The id a check criterion names: `id` (UI check, G-/AC-/GM-/MP-) or `lc` (Logic Check, LC-). */
+export const checkId = (c) => (c && (c.id ?? c.lc)) || null;
+/** The projects of a check criterion; a Logic one without projects runs wherever the check lives → [null]. */
+export const checkProjects = (c) => (c && Array.isArray(c.projects) && c.projects.length ? c.projects : [null]);
+
+/** Schema errors plus DSL errors of every acceptance check and assertion → string[] (empty = valid). */
 export function validateFinding(f) {
   const root = loadSchema();
   const errs = [];
   check(root, f, '', root, errs);
+  const cs = f && f.acceptance && Array.isArray(f.acceptance.checks) ? f.acceptance.checks : [];
+  cs.forEach((c, i) => { if (isType('object', c)) check(root.$defs['lc' in c ? 'lc-check' : 'ui-check'], c, `acceptance.checks[${i}]`, root, errs); });
   const as = f && f.acceptance && Array.isArray(f.acceptance.assertions) ? f.acceptance.assertions : [];
   as.forEach((a, i) => errs.push(...assertionErrors(a, `acceptance.assertions[${i}]`)));
+  if (isType('object', f)) errs.push(...checkerErrors(f, cs, as));
+  return errs;
+}
+
+export const UI_PERSONAS = ['guest', 'solo', 'pair', 'throwaway'];
+export const LOGIC_PERSONAS = ['logic.actor', 'logic.peer', 'logic.admin', 'guest', 'throwaway'];
+const NO_BROWSER_VPS = ['api', 'socket'];
+
+/**
+ * The shared schema allows both checkers' values; a finding must use its own checker's (absent checker = ui):
+ * ui → UI suites and personas, browser viewports only, no API assertions, no `lc` criteria;
+ * logic → Logic suites, logic roles / guest / throwaway personas. Values the schema already rejects are not repeated.
+ */
+function checkerErrors(f, checks, assertions) {
+  const errs = [];
+  const logic = f.checker === 'logic';
+  if (logic) {
+    if (SUITES.includes(f.suite)) errs.push(`suite: "${f.suite}" is a UI check suite — a Logic Check finding uses ${LOGIC_SUITES.join(', ')}`);
+    if (UI_PERSONAS.includes(f.persona) && !LOGIC_PERSONAS.includes(f.persona)) errs.push(`persona: "${f.persona}" is a UI check persona — a Logic Check finding uses ${LOGIC_PERSONAS.join(', ')}`);
+    return errs;
+  }
+  const who = f.checker === undefined ? 'a UI check finding (no "checker")' : 'a UI check finding';
+  if (LOGIC_SUITES.includes(f.suite)) errs.push(`suite: "${f.suite}" is a Logic Check suite — ${who} uses ${SUITES.join(', ')} (or set "checker": "logic")`);
+  if (LOGIC_PERSONAS.includes(f.persona) && !UI_PERSONAS.includes(f.persona)) errs.push(`persona: "${f.persona}" is a Logic Check persona — ${who} uses ${UI_PERSONAS.join(', ')}`);
+  const vps = (f.where && Array.isArray(f.where.viewports) ? f.where.viewports : []).filter((v) => NO_BROWSER_VPS.includes(v));
+  if (vps.length) errs.push(`where.viewports: ${vps.join(', ')} only for Logic Check findings (set "checker": "logic")`);
+  assertions.forEach((a, i) => { if (isApiAssertion(a)) errs.push(`acceptance.assertions[${i}]: API assertions are for Logic Check findings (set "checker": "logic")`); });
+  checks.forEach((c, i) => { if (isType('object', c) && 'lc' in c) errs.push(`acceptance.checks[${i}]: lc criteria are for Logic Check findings (set "checker": "logic")`); });
   return errs;
 }
 
@@ -165,6 +203,7 @@ function oneKey(item, where, known, kind, errs) {
 export function assertionErrors(a, base = 'assertion') {
   const errs = [];
   if (!isType('object', a)) return [`${base}: must be an object`];
+  if (isApiAssertion(a)) return apiAssertionErrors(a, base);
   for (const k of Object.keys(a)) if (!TOP_KEYS.includes(k)) errs.push(`${base}: unknown key "${k}" (known: ${TOP_KEYS.join(', ')})`);
   if (a.persona !== 'guest' && a.persona !== 'solo') errs.push(`${base}.persona: must be guest or solo (got ${JSON.stringify(a.persona)})`);
   if (!VIEWPORTS[a.viewport]) errs.push(`${base}.viewport: unknown viewport ${JSON.stringify(a.viewport)} (known: ${Object.keys(VIEWPORTS).join(', ')})`);
@@ -190,16 +229,21 @@ export function assertionErrors(a, base = 'assertion') {
   return errs;
 }
 
-/** Validated, normalised assertion { persona, viewport, route, steps: [{kind, arg}], watch, expect: [{kind, arg}] }; throws with every problem. */
+/**
+ * Validated, normalised assertion { persona, viewport, route, steps: [{kind, arg}], watch, expect: [{kind, arg}] }, or
+ * for an API assertion { kind: 'api', api, expect } as written; throws with every problem.
+ */
 export function parseAssertion(a) {
   const errs = assertionErrors(a);
   if (errs.length) throw new Error(`invalid acceptance assertion:\n${errs.join('\n')}`);
+  if (isApiAssertion(a)) return { kind: 'api', api: a.api, expect: a.expect };
   const pairs = (list) => (list || []).map((x) => { const kind = Object.keys(x)[0]; return { kind, arg: x[kind] }; });
   return { persona: a.persona, viewport: a.viewport, route: a.route, steps: pairs(a.steps), watch: a.watch || [], expect: pairs(a.expect) };
 }
 
 /** One-line description of an assertion for REPORT.md and verify output. */
 export function describeAssertion(a) {
+  if (isApiAssertion(a)) return describeApiAssertion(a);
   const show = (v) => (Array.isArray(v) ? v.map((x) => (typeof x === 'string' ? x : JSON.stringify(x))).join(' ') : v === true ? '' : String(v));
   const part = (x) => { const k = Object.keys(x)[0]; const s = show(x[k]); return s ? `${k} ${s}` : k; };
   const steps = (a.steps || []).map(part).join(' → ');
@@ -406,7 +450,7 @@ export function acceptanceHash(f) {
 
 export const GUARD_LABEL = 'guard (passes before fix)';
 /** Criterion labels shared by verify detail, guards and REPORT.md. */
-export const checkLabel = (id, project) => `check ${id} @ ${project}`;
+export const checkLabel = (id, project) => `check ${id} @ ${project ?? 'any'}`;
 const badText = (c) => ((c.lines || []).find((l) => !l.ok) || (c.lines || [])[0] || {}).text || c.outcome;
 
 /**
@@ -523,7 +567,7 @@ const metricText = (m) => (typeof m === 'string' ? m : `${m.label} ${m.value}${m
 /** The whole report as markdown. findings: merged + id'd (sorted here by severity, suite, fingerprint). */
 export function buildReport({ runId, mode = '?', date = '?', findings = [], results = [], rejected = [] }) {
   const out = [];
-  const suites = SUITES.filter((s) => results.some((r) => r.suite === s));
+  const suites = [...SUITES, ...LOGIC_SUITES].filter((s) => results.some((r) => r.suite === s));
   const cols = sortCols([...new Set(results.filter((r) => r.checkId).map(colOf))]);
   const open = findings.filter((f) => f.status !== 'fixed').length;
   const bySev = SEVERITIES.map((s) => `${s} ${findings.filter((f) => f.severity === s).length}`).join(' · ');
@@ -547,7 +591,7 @@ export function buildReport({ runId, mode = '?', date = '?', findings = [], resu
     out.push('');
   };
   table('owner', OWNERS);
-  table('suite', SUITES);
+  table('suite', [...SUITES, ...LOGIC_SUITES.filter((s) => findings.some((f) => f.suite === s))]);
 
   // Coverage matrix: check × column (viewport, or the mp pair project), compact symbols.
   out.push('## Coverage matrix', '', '✓ pass · ✗ fail · – skipped · blank: not run', '');
@@ -614,7 +658,7 @@ export function buildReport({ runId, mode = '?', date = '?', findings = [], resu
     out.push('**Acceptance criteria**');
     const ac = f.acceptance || {};
     for (const c of ac.criteria || []) out.push(`- ${c}`);
-    for (const c of ac.checks || []) out.push(`- check \`${c.id}\` passes on ${c.projects.map((p) => `${p}${guardTag(checkLabel(c.id, p))}`).join(', ')}`);
+    for (const c of ac.checks || []) out.push(`- check \`${checkId(c)}\` passes on ${checkProjects(c).map((p) => `${p ?? 'its project'}${guardTag(checkLabel(checkId(c), p))}`).join(', ')}`);
     (ac.assertions || []).forEach((a, i) => out.push(`- assertion #${i + 1}: ${describeAssertion(a)}${guardTag(`assertion #${i + 1}`)}`));
     out.push(`- verify: \`node scripts/ui-check/verify.mjs ${f.id}\``, '');
   }

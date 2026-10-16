@@ -8,7 +8,8 @@
 // (verify --expect-fail, batched; default mode = the run's own mode, recorded as validatedMode). A finding is kept when at
 // least one criterion FAILS cleanly and none errors; criteria that already pass are kept as guards. Rejected to
 // <runDir>/rejected.json: no criterion fails (kind 'validation', cached while the acceptance is unchanged) or one
-// errors (kind 'validation-error', retried by the next --validate). An infra failure (stack, mint, setup: no result at
+// errors (kind 'validation-error', retried by the next --validate). Live-only Logic criteria (LC-LIVE-…) are evaluated
+// on the live site (read-only) when the run's results.json cannot be reused: only the live site can reproduce them. An infra failure (stack, mint, setup: no result at
 // all) exits 1 and writes nothing. Writes <runDir>/findings.json, rejected.json and REPORT.md.
 // Check criteria: when the app code equals what the run tested (run-meta.json `code`: src/ backend/ multiplayer_server/
 // trees + diff, frontend build stamp, mode; scripts/ui-check is ignored) they are read from the run's results.json
@@ -129,7 +130,7 @@ async function main() {
       : `validate: re-run path — ${!ran ? 'run-meta.json records no code state' : !cur ? 'current code state unknown' : `changed since the run: ${differs.join(', ')}`}; checks re-run, batched per project set`);
     let results;
     try {
-      results = await withStack({ mode, keepStack: o.keepStack, log, repo, ports }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode, reuse }));
+      results = await withStack({ mode, keepStack: o.keepStack, log, repo, ports }, () => verifyFindings(toRun, { runId, expectFail: true, log, mode, reuse, live: true }));
     } catch (e) {
       // Infra (stack, mint, setup): no verdict exists, so nothing is written — fix the cause and run again.
       console.error(`report: validation failed to run, nothing written: ${e.message}`);

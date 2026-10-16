@@ -433,6 +433,23 @@ function devBackendUrl(repo) {
 }
 
 /**
+ * The stack.json meta of a port set. `djangoOurs`: its Django was started by this helper (now or recorded earlier).
+ * A Django that was reused but not started by us runs code and a relay key nobody recorded: its entry gets
+ * `repo: null, relayKey: null` — never the requested repo / key stamped onto a stack that may serve another checkout.
+ */
+export function stackMeta({ mode, repo, ports, base, api, socket, relayKey, keepStack, djangoOurs }) {
+  return { mode, repo: djangoOurs ? repo : null, ports, base, api, socket, relayKey: djangoOurs ? relayKey : null, keepStack };
+}
+
+/** True when the recorded meta `prev` already says what `meta` says (then stack.json is not rewritten). */
+export function sameMeta(prev, meta) {
+  if (!prev || prev.mode !== meta.mode || prev.base !== meta.base || prev.api !== meta.api) return false;
+  if ((prev.relayKey ?? null) !== meta.relayKey) return false;
+  if (!prev.repo || !meta.repo) return !prev.repo && !meta.repo;
+  return sameDir(prev.repo, meta.repo);
+}
+
+/**
  * Bring the stack for `mode` up on `ports` from `repo`, starting only what is not listening.
  * A process of ours on those ports that runs another repo's code is restarted from `repo`.
  * → { mode, repo, ports, base, api, socket, started } (`started`: what this call started; <uicHome>/stack.json keeps
@@ -462,9 +479,10 @@ export async function ensureStack(mode = 'prod', { repo = ROOT, ports = PORT_SET
   // Before waiting: the "starting" entry. Nothing started or dropped and the same meta: no rewrite, so the
   // Playwright workers that all ensure the same running stack do not race each other on stack.json.
   const record = () => {
-    if (prev && !started.length && known.length === prevStarted.length && prev.mode === mode && prev.base === base
-      && prev.api === api && prev.relayKey === relayKey && prev.repo && sameDir(prev.repo, repo)) return;
-    updateStack(ports, { mode, repo, ports, base, api, socket, relayKey, keepStack }, [...known, ...started]);
+    const djangoOurs = !!(ours(ports.django) || started.find((e) => e.port === ports.django));
+    const meta = stackMeta({ mode, repo, ports, base, api, socket, relayKey, keepStack, djangoOurs });
+    if (prev && !started.length && known.length === prevStarted.length && sameMeta(prev, meta)) return;
+    updateStack(ports, meta, [...known, ...started]);
   };
   const reuse = (what, port) => log(`${what} :${port} already up — reusing${ours(port) ? ' (started by ui-check)' : ` (not ours: never stopped${sameDir(repo, ROOT) ? '' : `; its code may not be ${repo}`})`}`);
 

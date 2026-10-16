@@ -18,23 +18,28 @@
 // `*` matches within an id (GM-wordle-*). Non-multiplayer suites run with 4 workers, multiplayer
 // with 1 (its two accounts are shared). --skip-slow leaves out tests tagged @slow (real-time waits, e.g. MP-TIMEOUT-01's
 // three 30 s relay limits) for quick verify loops. Exits 1 when any test failed.
+// --skip-blocked (default; --no-skip-blocked turns it off): checks tagged (CHECKS.md `services`) with a service Logic Check
+// has blocked in <uicHome>/channel.json are left out (--grep-invert), recorded with channel.defer(), written to
+// <runDir>/blocked.json and listed in the digest's Coverage gaps as `blocked by LC-… (card …)` (check-core/lib/blocked.mjs).
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { CORE, MP_PAIRS, VIEWPORTS } from './lib/viewports.mjs';
-import { UIC_ROOT, runDir, runId } from './lib/run-id.mjs';
+import { UIC_ROOT, freshRunId, runDir, runId } from './lib/run-id.mjs';
 import { codeState, ensureStack, stopStack } from './lib/stack.mjs';
 import { ensureCheckout } from '../check-core/lib/checkout.mjs';
 import { PORT_SETS, formatPorts, parsePorts } from '../check-core/lib/ports.mjs';
 import { JPEG } from './lib/evidence.mjs';
 import { UIC, grepFor, installEmergencyStop, playwright } from './lib/runner.mjs';
+import { blockedChecks, grepInvertFor, inSelection, recordDeferrals } from '../check-core/lib/blocked.mjs';
 
 const SUITES = ['guest', 'account', 'games', 'multiplayer'];
+const SUITE_PREFIX = { guest: 'G-', account: 'AC-', games: 'GM-', multiplayer: 'MP-' };
 const SHEET_MAX = 24;
 
 function parseArgs(argv) {
-  const opts = { suite: 'all', vp: 'all', only: null, mode: 'prod', keepStack: false, headed: false, skipSlow: false, ref: null, repo: null, ports: null };
+  const opts = { suite: 'all', vp: 'all', only: null, mode: 'prod', keepStack: false, headed: false, skipSlow: false, ref: null, repo: null, ports: null, skipBlocked: true };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -48,6 +53,8 @@ function parseArgs(argv) {
     else if (a === '--keep-stack') opts.keepStack = true;
     else if (a === '--headed') opts.headed = true;
     else if (a === '--skip-slow') opts.skipSlow = true;
+    else if (a === '--skip-blocked') opts.skipBlocked = true;
+    else if (a === '--no-skip-blocked') opts.skipBlocked = false;
     else if (a === '--stop') opts.stop = true;
     else if (a === '--where') opts.where = true;
     else if (a === '--live') {
@@ -100,7 +107,8 @@ function liveGrep(only, perf) {
   return `^${perf ? `(?=.*${PERF_TAG})` : ''}(?=.*${LIVE_TAG})${ids ? `(?=.*${ids})` : ''}`;
 }
 
-/** A first (non-append) invocation must not write into a run dir that already holds results (same id, same minute). */
+/** A first (non-append) invocation must not write into a run dir that already holds results: only a caller-set
+ *  UI_CHECK_RUN can hit one (freshRunId moves an automatic id to the next free minute). */
 function usedRunDir() {
   if (!existsSync(path.join(runDir(), 'results.json'))) return false;
   console.error(`ui-check: run ${runId()} already has results (${runDir()}) — start again in a minute or set UI_CHECK_RUN to a new id`);
@@ -109,6 +117,35 @@ function usedRunDir() {
 
 function readResults() {
   try { return JSON.parse(readFileSync(path.join(runDir(), 'results.json'), 'utf8')); } catch { return []; }
+}
+
+/** Check ids whose test title carries @live (the guest specs). */
+function liveIds() {
+  const ids = new Set();
+  const dir = path.join(UIC, 'specs', 'guest');
+  for (const n of readdirSync(dir).filter((f) => /\.spec\.m?js$/.test(f))) {
+    for (const m of readFileSync(path.join(dir, n), 'utf8').matchAll(/\[([A-Za-z][\w.-]*)\][^'"`\n]*@live\b/g)) ids.add(m[1]);
+  }
+  return ids;
+}
+
+/**
+ * --skip-blocked: the checks Logic Check's blocks leave out of this run → their --grep-invert (null when none). Writes
+ * <runDir>/blocked.json for the digest and records each in channel.json's deferred[]. A broken channel never stops a run.
+ */
+function applyBlocks(opts, id, suites) {
+  if (!opts.skipBlocked) return null;
+  let list;
+  try { list = blockedChecks({ checker: 'ui' }); } catch (e) { console.error(`ui-check: channel not read (${e.message.split('\n')[0]}) — running every check`); return null; }
+  list = inSelection(list, { prefixes: suites.map((s) => SUITE_PREFIX[s]), only: opts.only });
+  if (opts.live) { const live = liveIds(); list = list.filter((x) => live.has(x.checkId)); } // a live run selects the @live checks only
+  if (!list.length) return null;
+  mkdirSync(runDir(), { recursive: true });
+  writeFileSync(path.join(runDir(), 'blocked.json'), JSON.stringify(list, null, 2));
+  const added = recordDeferrals(list, { checker: 'ui', runId: id });
+  const services = [...new Set(list.map((x) => x.service))];
+  console.log(`ui-check: ${list.length} check(s) deferred (blocked service(s) ${services.join(', ')}; ${added} new in channel.json): ${list.map((x) => `${x.checkId} ← ${x.blockedBy}`).join(', ')}`);
+  return grepInvertFor(list);
 }
 
 const isFail = (r) => r.status === 'failed' || r.status === 'timedOut';
@@ -161,7 +198,9 @@ async function main() {
   let opts;
   try { opts = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`ui-check: ${e.message}`); process.exit(2); }
   if (opts.help) {
-    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…] [--keep-stack] [--headed] [--skip-slow] [--stop] [--where] [--live [url]]');
+    console.log('usage: node scripts/ui-check/run.mjs [--suite guest,account,games,multiplayer|all] [--vp ids|core|all] [--only ID,ID] [--mode prod|dev] [--ref main|dev|.|<sha>] [--repo <dir>] [--ports django=…,socket=…,web=…] [--keep-stack] [--headed] [--skip-slow] [--no-skip-blocked] [--stop] [--where] [--live [url]]');
+    console.log('  --skip-blocked     (default) leave out checks whose services Logic Check blocked (channel.json), defer them, list them');
+    console.log('                     under Coverage gaps; --no-skip-blocked runs them anyway');
     console.log('  --ref         app code under test, checked out in a worktree (default main; dev mode: . = this checkout)');
     console.log('  --repo        run the app from this checkout directory instead (overrides --ref)');
     console.log('  --ports       stack ports (default prod 8200/4200/5374, dev 8000/4000/5173)');
@@ -207,8 +246,8 @@ async function main() {
     }
   } catch (e) { console.error(`ui-check: ${e.message}`); return 1; }
   process.env.UI_CHECK_REPO = app.repo;
-  const id = runId();
-  if (usedRunDir()) return 2;
+  const { id, preset } = freshRunId();
+  if (preset && usedRunDir()) return 2;
   const t0 = Date.now();
   console.log(`ui-check: run ${id} · mode ${opts.mode} · suites ${suites.join(',')} · vps ${opts.vp}${opts.only ? ` · only ${opts.only}` : ''}`);
   console.log(`ui-check: app ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)} · ports ${process.env.UI_CHECK_PORTS}`);
@@ -216,8 +255,9 @@ async function main() {
   const childEnv = { UI_CHECK_MODE: opts.mode, UI_CHECK_RUN: id, UI_CHECK_KEEP_STACK: '1', UI_CHECK_REPO: app.repo, UI_CHECK_PORTS: process.env.UI_CHECK_PORTS };
   const hasSpecs = (suite) => existsSync(path.join(UIC, 'specs', suite));
   const grep = grepFor(opts.only);
-  // Tests left out of every pass: @slow with --skip-slow (combined with the @perf split of each pass).
-  const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null].filter(Boolean).join('|') || undefined;
+  const blockedGrep = applyBlocks(opts, id, suites);
+  // Tests left out of every pass: @slow with --skip-slow, checks blocked by Logic Check (combined with the @perf split of each pass).
+  const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null, blockedGrep].filter(Boolean).join('|') || undefined;
   let exit = 0;
   try {
     await ensureStack(opts.mode, { repo: app.repo, ports, keepStack: opts.keepStack });
@@ -298,15 +338,16 @@ async function runLive(opts) {
   const childEnv = { UI_CHECK_MODE: 'prod', UI_CHECK_ENV: 'live', UI_CHECK_LIVE_URL: url.origin, UI_CHECK_REPO: app.repo };
   Object.assign(process.env, childEnv);
   installEmergencyStop(false, null, () => []); // nothing of ours runs: never touch a local stack
-  const id = runId('-live'); // its own id: a local run in the same minute never shares (and overwrites) its run dir
-  if (usedRunDir()) return 2;
+  const { id, preset } = freshRunId('-live'); // its own id: a local run in the same minute never shares (and overwrites) its run dir
+  if (preset && usedRunDir()) return 2;
   childEnv.UI_CHECK_RUN = id;
   const t0 = Date.now();
   console.log(`ui-check: run ${id} · LIVE ${url.origin} (read-only, GET/HEAD only) · guest @live · vps ${live.join(',')}${opts.only ? ` · only ${opts.only}` : ''}`);
   console.log(`ui-check: game catalogue from ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)}`);
 
   const projects = live.map((v) => `guest-live@${v}`);
-  const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null].filter(Boolean).join('|') || undefined;
+  const blockedGrep = applyBlocks(opts, id, ['guest']);
+  const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null, blockedGrep].filter(Boolean).join('|') || undefined;
   let exit = 0;
   exit = Math.max(exit, await playwright(projects, { workers: 4, grep: liveGrep(opts.only, false), grepInvert: invert(PERF_TAG), headed: opts.headed, env: childEnv }));
   exit = Math.max(exit, await playwright(projects, { workers: 1, grep: liveGrep(opts.only, true), grepInvert: invert(null), headed: opts.headed, env: { ...childEnv, UI_CHECK_APPEND: '1' } }));

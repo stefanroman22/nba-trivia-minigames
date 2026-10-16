@@ -1,14 +1,16 @@
 // UI check — Playwright Test config. Run through node, never the npx string form:
 //   node node_modules/@playwright/test/cli.js test -c scripts/ui-check --project selftest
-import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { defineConfig } from '@playwright/test';
+import { pickChannel } from './lib/browser-channel.mjs';
 import { VIEWPORTS, MP_PAIRS, CORE, contextOptions } from './lib/viewports.mjs';
-import { UIC_ROOT, runId } from './lib/run-id.mjs';
+import { UIC_ROOT, isolateSelftest, runId } from './lib/run-id.mjs';
 import { MODES } from './lib/stack.mjs';
 import { activePorts } from '../check-core/lib/ports.mjs';
 
-// Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN.
+// Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN (a selftest-only invocation
+// writes under <home>/selftest/, never a run dir).
+isolateSelftest();
 runId();
 
 // Stack mode (spec §4): run.mjs sets UI_CHECK_MODE; a direct invocation defaults to prod, like stack-setup.
@@ -19,20 +21,8 @@ const BASE_URL = process.env.UI_CHECK_BASE || `http://localhost:${activePorts(MO
 // The live site for `run.mjs --live` (guest-live@<vp> projects): read-only, no stack, no accounts.
 const LIVE_URL = process.env.UI_CHECK_LIVE_URL || 'https://swishquest.com';
 
-/**
- * Browser channel, mirroring scripts/qa-browser.mjs#launchBrowser: installed Chrome on win32,
- * then Edge, else Playwright's bundled Chromium. Chosen by checking the install paths so a missing
- * channel never hard-fails the run. UI_CHECK_CHANNEL overrides ('' = bundled).
- */
-export function pickChannel() {
-  if (process.env.UI_CHECK_CHANNEL !== undefined) return process.env.UI_CHECK_CHANNEL || undefined;
-  if (process.platform !== 'win32') return undefined;
-  const roots = [process.env.PROGRAMFILES, process.env['PROGRAMFILES(X86)'], process.env.LOCALAPPDATA].filter(Boolean);
-  const has = (rel) => roots.some((r) => existsSync(path.join(r, rel)));
-  if (has('Google/Chrome/Application/chrome.exe')) return 'chrome';
-  if (has('Microsoft/Edge/Application/msedge.exe')) return 'msedge';
-  return undefined;
-}
+/** Browser channel (installed Chrome / Edge on win32, else bundled Chromium; UI_CHECK_CHANNEL overrides). */
+export { pickChannel };
 
 /** One project per viewport for a suite: `<suite>@<vpId>`, carrying {vpId, persona, suite} in `use`. */
 export function suiteProjects(suite, { vps = Object.keys(VIEWPORTS), persona = 'guest', testDir = `./specs/${suite}` } = {}) {

@@ -22,6 +22,8 @@ tools over the sandboxed `mcp__plugin_playwright_playwright__*` ones, which get
 a blank throwaway profile and cannot see logged-in state.
 
 For a full automated UI audit use the `ui-check` skill; to fix its findings, the `ui-fix` skill.
+For API / socket / page-status checks use the `logic-check` skill. The nightly Task Scheduler task `nba-checks`
+(02:00, `scripts/check-run.ps1`) runs Logic Check, then UI check, on `main` and pushes both checkers' cards.
 Any UI fix asked for in chat goes through the `frontend-engine` agent and is then proven with the matching
 ui-check checks on all 7 viewports (`node scripts/ui-check/run.mjs --only "<ids from scripts/ui-check/CHECKS.md>" --vp all --mode dev`);
 if it is an existing finding, use `ui-fix <id>` instead (it does both plus review).
@@ -106,6 +108,7 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `.claude/README.md` | changing the coding-agent model/effort profile |
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
 | `docs/ui-check/README.md` | running UI audits or fixing UI-check findings |
+| `docs/logic-check/README.md` | running Logic Check (API, socket, page status), fixing its findings, or the nightly `nba-checks` run and its block/catch-up channel |
 | `docs/CACHING_SCALING_PLAN.md` | deciding whether friends/leaderboard data needs Redis caching, or touching `users/leaderboard.py`/`users/friends.py`'s query shape |
 
 ## Coding engines & profiles

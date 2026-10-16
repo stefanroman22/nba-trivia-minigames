@@ -1,5 +1,7 @@
 // Re-runs findings' acceptance criteria (verify.mjs, report.mjs --validate, probe.mjs).
-// - assertions of ALL given findings: one `accept` Playwright invocation (the spec groups them per persona + viewport);
+// - API assertions ({ api, expect }): in this process with node fetch against the stack's Django (check-core/lib/api-assert.mjs),
+//   a token minted per persona (accounts.mjs roles); Logic `lc` checks: one scripts/logic-check/run.mjs --only invocation;
+// - browser assertions of ALL given findings: one `accept` Playwright invocation (the spec groups them per persona + viewport);
 // - checks, batched across ALL findings: per check id the union of the projects any finding names, then one invocation
 //   per distinct project set (--project list, --grep of every id with exactly that set; @perf ids in their own
 //   invocation; one worker for mp or @perf), so ids never run on projects nobody asked for and no id × project twice.
@@ -16,8 +18,10 @@ import path from 'node:path';
 import { UIC_ROOT } from './run-id.mjs';
 import { appRepo, ensureStack, readStack, stopStack } from './stack.mjs';
 import { activePorts, formatPorts } from '../../check-core/lib/ports.mjs';
-import { UIC, grepFor, installEmergencyStop, playwright } from './runner.mjs';
-import { checkLabel, expectFailVerdict, readJson } from './findings.mjs';
+import { LOGIC_RUN, UIC, grepFor, installEmergencyStop, logicCheck, playwright } from './runner.mjs';
+import { checkId, checkLabel, checkProjects, expectFailVerdict, readJson } from './findings.mjs';
+import { isApiAssertion, runApiAssertion } from '../../check-core/lib/api-assert.mjs';
+import { assertLocalApi, closeMinter, ensureAdmin, mintTokens, userForRole } from '../../check-core/lib/accounts.mjs';
 
 const LATEST = path.join(UIC_ROOT, 'latest');
 const RUNS = path.join(UIC_ROOT, 'runs');
@@ -117,10 +121,10 @@ function perfIds() {
 
 const violationLine = (v) => `${v.rule} \`${v.selector}\` on ${v.route}: ${v.measured} (expected ${v.expected})`;
 
-/** One check × project → a criterion { kind, label, outcome, lines, shot }. */
+/** One check × project (null: any project, a Logic `lc` check without projects) → a criterion { kind, label, outcome, lines, shot }. */
 function checkCriterion(id, project, results, sdir) {
   const label = checkLabel(id, project);
-  const rs = results.filter((r) => r.checkId === id && r.project === project);
+  const rs = results.filter((r) => r.checkId === id && (project === null || r.project === project));
   if (!rs.length) return { kind: 'check', label, outcome: 'error', lines: [{ ok: false, error: true, text: 'did not run (no test matched this id on this project)' }], shot: null };
   const bad = rs.find(isFail);
   if (bad) {
@@ -133,6 +137,10 @@ function checkCriterion(id, project, results, sdir) {
   if (rs.every((r) => r.status === 'skipped')) return { kind: 'check', label, outcome: 'error', lines: [{ ok: false, error: true, text: `skipped: ${rs[0].skipReason || 'no reason given'}` }], shot: null };
   return { kind: 'check', label, outcome: 'pass', lines: [{ ok: true, error: false, text: 'passed' }], shot: null };
 }
+
+/** A Logic criterion only the live site can answer: an LC-LIVE- id, or `projects` naming only `live`. */
+export const isLiveOnly = (c) => !!c && 'lc' in c && (/^LC-LIVE-/.test(c.lc) || (Array.isArray(c.projects) && c.projects.length > 0 && c.projects.every((p) => p === 'live')));
+export const LIVE_ONLY_TEXT = 'live-only: not evaluated locally — confirmed by the live cron after promotion (verify --live evaluates it)';
 
 /** Copy a criterion's crop out of a scratch dir (deleted afterwards) to <runDir>/<area>/shots/. */
 function keepShot(file, runId, area, name) {
@@ -152,8 +160,11 @@ function keepShot(file, runId, area, name) {
  * Throws when an invocation produced no result at all (infra), so callers never record a verdict for it.
  * The stack must be up (withStack). area: 'verify' | 'probe' (scratch folder name).
  * reuse: { results, dir } — the audited run's results.json and run dir (report.mjs --validate only). say: progress lines.
+ * live: evaluate live-only Logic criteria (isLiveOnly) against the live site (read-only); without it (and without a
+ * reuse result for them) they are guards with outcome 'live-only' that neither pass nor fail: the outcome and the
+ * expect-fail verdict are judged on the other criteria, and a finding with nothing else passes with LIVE_ONLY_TEXT.
  */
-export async function verifyFindings(findings, { runId, expectFail = false, log, area = 'verify', mode = process.env.UI_CHECK_MODE || 'dev', keepScratch = false, reuse = null, say = console.log }) {
+export async function verifyFindings(findings, { runId, expectFail = false, log, area = 'verify', mode = process.env.UI_CHECK_MODE || 'dev', keepScratch = false, reuse = null, say = console.log, live = false }) {
   const base = stamp();
   const env = { UI_CHECK_MODE: mode, UI_CHECK_KEEP_STACK: '1', UI_CHECK_STACK_READY: '1' };
   const scratches = [];
@@ -168,10 +179,10 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
   const crit = new Map(findings.map((f) => [f.id, []]));
   const latest = readLatest();
   try {
-    // 1. Every assertion of every finding: one invocation.
+    // 1. Every browser assertion of every finding: one invocation (API assertions run in 1b, in this process).
     const items = findings.flatMap((f) => (f.acceptance.assertions || []).map((assertion, i) => ({
       findingId: f.id, n: i + 1, assertion, label: `${assertion.persona} ${assertion.viewport} ${assertion.route}`,
-    })));
+    })).filter((it) => !isApiAssertion(it.assertion)));
     if (items.length) {
       const { run, dir } = scratch('accept');
       const file = path.join(dir, 'assertions.json');
@@ -194,20 +205,63 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
         }
       }
     }
+    // 1b. API assertions ({ api, expect }): node fetch against the active stack's Django, a token minted per persona
+    //     (guest: none; logic.admin promoted first). A status/path mismatch is a clean fail; a request that cannot be
+    //     made, a non-local API base or a failed mint is an error.
+    const apiItems = findings.flatMap((f) => (f.acceptance.assertions || []).map((assertion, i) => ({ findingId: f.id, n: i + 1, assertion }))
+      .filter((it) => isApiAssertion(it.assertion)));
+    if (apiItems.length) {
+      const tokens = new Map(); // persona → access token | Error
+      const tokenFor = async (persona) => {
+        if (persona === 'guest') return null;
+        if (!tokens.has(persona)) {
+          try {
+            const user = userForRole(persona);
+            if (persona === 'logic.admin') await ensureAdmin(user);
+            tokens.set(persona, (await mintTokens([user]))[user].access);
+          } catch (e) { tokens.set(persona, e); }
+        }
+        const t = tokens.get(persona);
+        if (t instanceof Error) throw t;
+        return t;
+      };
+      try {
+        let origin = null, originError = null;
+        try { origin = assertLocalApi(readStack()?.api); } catch (e) { originError = e; }
+        for (const it of apiItems) {
+          const label = `assertion #${it.n}`;
+          const errorOf = (text) => ({ kind: 'assertion', label, outcome: 'error', lines: [{ ok: false, error: true, text }], shot: null });
+          if (originError) { crit.get(it.findingId).push(errorOf(firstLine(originError.message))); continue; }
+          let token;
+          try { token = await tokenFor(it.assertion.api.persona); } catch (e) { crit.get(it.findingId).push(errorOf(`token for ${it.assertion.api.persona}: ${firstLine(e.message)}`)); continue; }
+          const r = await runApiAssertion(it.assertion, { origin, token });
+          crit.get(it.findingId).push({ kind: 'assertion', label, outcome: r.outcome, lines: r.lines, shot: null, url: r.url });
+        }
+      } finally {
+        closeMinter();
+      }
+    }
     // 2. Checks, across ALL findings: every check × project once. With `reuse` (the audited run's results.json, code
     //    unchanged since) a result that FAILED or passed there is the verdict; absent or skipped ones re-run. Re-runs are
     //    batched: per check id the union of the projects still needed, then ONE invocation per distinct project set
-    //    (--grep of all its ids; @perf ids apart, on one worker, as in run.mjs; mp sets on one worker).
-    const source = new Map(); // `${id}|${project}` → { results, dir } the criterion is read from
-    const need = new Map(); // check id → Set(project) to run
+    //    (--grep of all its ids; @perf ids apart, on one worker, as in run.mjs; mp sets on one worker). Logic Check
+    //    criteria ({ lc, projects? }) re-run in ONE `scripts/logic-check/run.mjs --only <ids>` invocation (2b).
+    const source = new Map(); // `${id}|${project ?? '*'}` → { results, dir } the criterion is read from
+    const need = new Map(); // ui check id → Set(project) to run
+    const needLc = new Set(); // lc ids to run
+    const liveOnly = new Set(); // srcKeys of live-only lc criteria left unevaluated (no --live, no reuse result)
+    const srcKey = (id, p) => `${id}|${p ?? '*'}`;
     let reused = 0;
-    for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of c.projects) {
-      const key = `${c.id}|${p}`;
-      if (source.has(key) || (need.get(c.id) || new Set()).has(p)) continue;
-      const rs = reuse ? reuse.results.filter((r) => r.checkId === c.id && r.project === p) : [];
-      if (rs.length && !rs.every((r) => r.status === 'skipped')) { source.set(key, reuse); reused++; continue; }
-      if (!need.has(c.id)) need.set(c.id, new Set());
-      need.get(c.id).add(p);
+    for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of checkProjects(c)) {
+      const id = checkId(c);
+      const lc = 'lc' in c;
+      if (source.has(srcKey(id, p)) || liveOnly.has(srcKey(id, p)) || (lc ? needLc.has(id) : (need.get(id) || new Set()).has(p))) continue;
+      const rs = reuse ? reuse.results.filter((r) => r.checkId === id && (p === null || r.project === p)) : [];
+      if (rs.length && !rs.every((r) => r.status === 'skipped')) { source.set(srcKey(id, p), reuse); reused++; continue; }
+      if (lc && !live && isLiveOnly(c)) { liveOnly.add(srcKey(id, p)); continue; }
+      if (lc) { needLc.add(id); continue; }
+      if (!need.has(id)) need.set(id, new Set());
+      need.get(id).add(p);
     }
     const groups = new Map();
     for (const [id, ps] of need) {
@@ -217,8 +271,9 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
       if (!groups.has(key)) groups.set(key, { projects, perf, ids: [] });
       groups.get(key).ids.push(id);
     }
-    if (reused || groups.size) say(`checks: ${reuse ? `${reused} check × project result(s) reused from the run's results.json · ` : ''}${groups.size} Playwright invocation(s)`
-      + [...groups.values()].map((g) => `\n  [${g.projects.join(' ')}]${g.perf ? ' @perf' : ''} ${g.ids.join(', ')}`).join(''));
+    if (reused || groups.size || needLc.size) say(`checks: ${reuse ? `${reused} check × project result(s) reused from the run's results.json · ` : ''}${groups.size} Playwright invocation(s)`
+      + [...groups.values()].map((g) => `\n  [${g.projects.join(' ')}]${g.perf ? ' @perf' : ''} ${g.ids.join(', ')}`).join('')
+      + (needLc.size ? `\n  logic-check ${[...needLc].join(', ')}` : ''));
     let k = 0;
     for (const { projects, perf, ids } of groups.values()) {
       const serial = perf || projects.some((p) => p.startsWith('mp@'));
@@ -229,11 +284,36 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
         const setup = results.find((r) => /^stack-/.test(r.project) && isFail(r));
         throw new Error(`the check invocation for ${ids.join(', ')} failed before any check ran (exit ${code}${setup ? `; ${setup.project}: ${firstLine(setup.error)}` : ''}) — infra, no verdict recorded; see ${log}`);
       }
-      for (const id of ids) for (const p of projects) source.set(`${id}|${p}`, { results, dir });
+      for (const id of ids) for (const p of projects) source.set(srcKey(id, p), { results, dir });
     }
-    for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of c.projects) {
-      const s = source.get(`${c.id}|${p}`);
-      crit.get(f.id).push(checkCriterion(c.id, p, s.results, s.dir));
+    // 2b. Logic Check criteria: one runner invocation into a scratch run (UI_CHECK_RUN), read with the same results.json
+    //     shape. Until scripts/logic-check/run.mjs exists every lc criterion is an `error` (never a verdict).
+    let lcMissing = false;
+    if (needLc.size) {
+      if (!existsSync(LOGIC_RUN)) lcMissing = true;
+      else {
+        const ids = [...needLc];
+        const { run, dir } = scratch('logic');
+        const code = await logicCheck(ids, { mode, env: { ...env, UI_CHECK_RUN: run }, log });
+        const results = readJson(path.join(dir, 'results.json'), []);
+        if (code !== 0 && !results.some((r) => needLc.has(r.checkId))) {
+          throw new Error(`the logic-check invocation for ${ids.join(', ')} failed before any check ran (exit ${code}) — infra, no verdict recorded; see ${log}`);
+        }
+        for (const f of findings) for (const c of f.acceptance.checks || []) if ('lc' in c) for (const p of checkProjects(c)) if (!source.has(srcKey(c.lc, p))) source.set(srcKey(c.lc, p), { results, dir });
+      }
+    }
+    for (const f of findings) for (const c of f.acceptance.checks || []) for (const p of checkProjects(c)) {
+      const id = checkId(c);
+      const s = source.get(srcKey(id, p));
+      if (!s && liveOnly.has(srcKey(id, p))) {
+        crit.get(f.id).push({ kind: 'check', label: checkLabel(id, p), outcome: 'live-only', guard: true, lines: [{ ok: true, error: false, text: LIVE_ONLY_TEXT }], shot: null });
+        continue;
+      }
+      if (!s && 'lc' in c && lcMissing) {
+        crit.get(f.id).push({ kind: 'check', label: checkLabel(id, p), outcome: 'error', lines: [{ ok: false, error: true, text: 'logic-check runner not installed (scripts/logic-check/run.mjs)' }], shot: null });
+        continue;
+      }
+      crit.get(f.id).push(checkCriterion(id, p, s.results, s.dir));
     }
     // 3. Keep the evidence, drop the scratch runs.
     for (const [id, list] of crit) for (const c of list) c.shot = keepShot(c.shot, runId, area, `${id}-${c.label}`);
@@ -245,11 +325,15 @@ export async function verifyFindings(findings, { runId, expectFail = false, log,
   return findings.map((f) => {
     const guardSet = new Set(f.guards || []);
     const criteria = crit.get(f.id).map((c) => (guardSet.has(c.label) ? { ...c, guard: true } : c));
-    const outcome = criteria.length && criteria.every((c) => c.outcome === 'pass') ? 'pass' : criteria.some((c) => c.outcome === 'error') ? 'error' : 'fail';
-    const bad = criteria.find((c) => c.outcome !== 'pass');
-    const badLine = bad ? `${bad.label}${bad.guard ? ' (guard)' : ''}: ${(bad.lines.find((l) => !l.ok) || bad.lines[0] || { text: '' }).text}` : `${criteria.length} criteria pass`;
+    // Live-only criteria left unevaluated neither pass nor fail: judge the rest; nothing else → pass, noted.
+    const judged = criteria.filter((c) => c.outcome !== 'live-only');
+    const waiting = criteria.filter((c) => c.outcome === 'live-only');
+    const outcome = (judged.length ? judged.every((c) => c.outcome === 'pass') : waiting.length > 0) ? 'pass' : judged.some((c) => c.outcome === 'error') ? 'error' : 'fail';
+    const bad = judged.find((c) => c.outcome !== 'pass');
+    const liveNote = waiting.length ? ` · ${waiting.map((c) => c.label).join(', ')}: ${LIVE_ONLY_TEXT}` : '';
+    const badLine = bad ? `${bad.label}${bad.guard ? ' (guard)' : ''}: ${(bad.lines.find((l) => !l.ok) || bad.lines[0] || { text: '' }).text}` : `${judged.length} criteria pass${liveNote}`;
     if (expectFail) {
-      const v = expectFailVerdict(criteria);
+      const v = expectFailVerdict(judged);
       const marked = criteria.map((c) => (v.guards.includes(c.label) ? { ...c, guard: true, note: 'guard (passes before fix)' } : c));
       return { id: f.id, outcome, firstLine: badLine, criteria: marked, ...v };
     }
