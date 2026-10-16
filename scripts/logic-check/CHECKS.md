@@ -26,8 +26,8 @@ layout, motion or styling (that is UI check, `scripts/ui-check/CHECKS.md`); the 
 |---|---|---|---|---|
 | live | `LC-LIVE-` | `live` | the live site, guest, GET/HEAD only, no stack; also every 6 h on GitHub Actions (`.github/workflows/logic-live.yml`) | public routes' status and shell, API health, each visible game's data source, the public leaderboard's consistency, Google sign-in configuration, the relay handshake, TTFB |
 | pages | `LC-PAGES-` | `pages` | the local stack (checkout of `--ref`, default main), one Chromium context at desktop-1366 | the same routes on the checkout: status, shell, hydration (a click works) |
-| auth | `LC-AUTH-` | `api`, `pages` | local stack | Task 3 |
-| signup | `LC-SIGNUP-` | `api`, `pages` | local stack | Task 3 |
+| auth | `LC-AUTH-` | `api`, `pages` | local stack (API; one browser case) | login by username / email / Name#ID, `/me/`, refresh rotation + blacklist, logout, the auth throttles' configuration, Google login's bad input, a deleted account's tokens, the Google button |
+| signup | `LC-SIGNUP-` | `api`, `pages` | local stack (API; one browser case) | the sign-up validation matrix (`lib/matrix.mjs`), frontend/backend rule agreement, the happy path and the throwaway's lifecycle, the form showing the backend's error |
 | profile | `LC-PROFILE-` | `api` | local stack | Task 4 |
 | friends | `LC-FRIENDS-` | `api` | local stack | Task 4 |
 | game-data | `LC-GAMEDATA-` | `api` | local stack | Task 5 |
@@ -65,6 +65,42 @@ The TTFB finding (`LC-LIVE-07`) uses rule `perf`, route `/`, selector `document`
 | ID | services | proves |
 |---|---|---|
 | `LC-PAGES-01` | pages | On the checkout (prod build, local stack), every public route of `LC-LIVE-01` loads in Chromium with HTTP 200 (the unknown route 404), the app shell renders and React hydrates (event props on an interactive element within 10 s); the 404 page's "Back to games" button navigates to `/` (a click works). TTFB per route is a metric only: local load budgets are UI check's (`G-PERF-01`, spec §5). |
+
+## Auth (LC-AUTH-)
+
+Reads as `logic.actor` (testuser4, minted tokens); the destructive case uses its own `lgc<digits>` throwaway. Every
+request goes out as its own simulated client (`lib/auth.mjs` `clientIp` → `X-Forwarded-For`, which DRF's throttles key
+on while `NUM_PROXIES` is unset), so the machine's 30/h login and 60/h refresh buckets are untouched; no check hunts a 429.
+
+| ID | services | proves |
+|---|---|---|
+| `LC-AUTH-01` | auth | `POST /api/login/` by username: empty id + password and empty password → 400 "Email/username and password are required."; wrong password and unknown name → 401 with the same "Incorrect email, username or password." (no enumeration); correct (also in other case) → 200 `{ access, refresh, user }` of testuser4; `Name#ID` → 200, `Name#wrong` → 401. |
+| `LC-AUTH-02` | auth | The same by email: empty password 400, wrong / unknown 401 with the same message, correct and upper-case email → 200 with the user. |
+| `LC-AUTH-03` | auth | `GET /api/me/` with a minted token returns that user (`id, username, email, points, rank, is_admin, is_teen` equal to the mint's payload); no token and a tampered signature → 401. |
+| `LC-AUTH-04` | auth | `POST /api/token/refresh/` rotates: 200 with a new access and a new refresh token (+ the user); the old refresh token again → 401 (blacklisted); the rotated one → 200 and the new access token works on `/me/`; garbage → 401. |
+| `LC-AUTH-05` | auth | `POST /api/logout/` with the refresh token → 200 `success`; that token then cannot refresh (401) or log out again (400 "Invalid or expired refresh token"); no token → 400 "Refresh token required". |
+| `LC-AUTH-06` | auth, signup | AUTH-9 by configuration (DRF sends no rate headers below the limit, Retry-After only with a 429): `login_view` and `google_login` carry `LoginRateThrottle` (`auth-login` 30/hour), `signup_view` `SignupRateThrottle` (`auth-signup` 10/hour), `SessionRefreshView` `RefreshRateThrottle` (`auth-refresh` 60/hour), each a `UserRateThrottle`; a correct login answers 200 without Retry-After. |
+| `LC-AUTH-07` | auth | `POST /api/login/google/` with a bad code (with and without the consent tick), no code, a non-string code, a forged consent token (with and without consent) → 400 with an `error` the form can show ("Missing code", "Your sign-in took too long…", code `consent_required`), never 5xx. |
+| `LC-AUTH-08` | auth | A fresh `lgc` throwaway deletes itself (`POST /api/account/delete/` password + `DELETE` → 200); afterwards its access token on `/me/` → 401, its refresh token → 401 and its login → 401 (never 5xx). |
+| `LC-AUTH-GOOGLE-01` | auth | Browser: opening the login modal loads `accounts.google.com/gsi/client` (200) and initialises GIS; "Continue with Google" is present and enabled; a click opens Google's window (closed at once) or its iframe. No OAuth round trip (manual owner check). |
+
+## Signup (LC-SIGNUP-)
+
+The matrix is data in `lib/matrix.mjs` (provenance in its header): every row changes ONE field of an otherwise valid
+sign-up, so a row the backend accepts is a `validation-gap` violation (the account it created is deleted at once), never
+an expected pass. Budget: all signup POSTs are simulated clients (no real 10/h bucket spent); accounts actually created per
+run are 2 (`LC-SIGNUP-05`) + at most 2 by validation gaps (then the remaining cases are not sent: `signup-budget`) → ≤ 4.
+Moderated words are mild/reserved only: a severe name at sign-up strikes the caller's IP.
+
+| ID | services | proves |
+|---|---|---|
+| `LC-SIGNUP-00` | signup | The frontend's stated rules and the backend agree: password min length (`passwordRules.ts` vs `MinimumLengthValidator`), every frontend rule has a configured `AUTH_PASSWORD_VALIDATORS` validator and every validator is a frontend rule or declared server-only ("Too common"), the form's username `pattern` equals `USERNAME_RE`, `CONSENT_NEEDED` equals `CONSENT_REQUIRED_MESSAGE`; every literal message of the matrix still exists in the backend source (`matrix-stale`). A mismatch is a FAIL finding. |
+| `LC-SIGNUP-01` | signup | Username rows → 400: empty ("All fields are required."), too short, too long, bad characters (space/!, hyphen, accent) (`USERNAME_RULES`), mild word "Dick" ("That name isn't allowed…"), reserved "admin1" ("That name is reserved…"). |
+| `LC-SIGNUP-02` | signup | Email rows: missing → 400 required; no `@` / no top-level domain → 400 "That email address doesn't look valid."; testuser4's email, also upper-case → 409 "Email already in use!…". |
+| `LC-SIGNUP-03` | signup | Password rows → 400 with Django's validator message: empty (required), too short (7), common "password123", numeric only, similar to the username (`UserAttributeSimilarityValidator`). |
+| `LC-SIGNUP-04` | signup | Consent rows → 400 code `consent_required` (message = `CONSENT_REQUIRED_MESSAGE`): `accepted_terms` missing / false / the string "true", `age_confirmed` missing / false; a birth date under 13 → 400 code `age_requirement`. |
+| `LC-SIGNUP-05` | signup, auth | Happy path: a new `lgc<digits>` sign-up → 201 `{ access, refresh, user }`; login by email → 200 same user; `/me/` with the signup token matches; the same display name with another email → 201 (names are not unique), a bare-name login is then 401 "Several players use that name…" (AUTH-2), and that account is deleted; delete with password + `DELETE` → 200; login afterwards → 401. Everything created is removed in `finally` (the lgc sweep as the last resort). |
+| `LC-SIGNUP-UI-01` | signup | Browser, one case per category that passes the form's own checks: mild word "Dick", testuser4's email, "password123" → the form shows the backend's exact message (found by its text in the modal); consent unticked → the form shows `CONSENT_REQUIRED_MESSAGE`'s text and sends nothing. No layout, motion or live-rule assertions (UI check's AC-SIGNUP rows). |
 
 ## Selftest (LC-ST-)
 
