@@ -6,9 +6,13 @@
 import path from "node:path";
 import fs from "node:fs/promises";
 import { chromium } from "@playwright/test";
-import { CARDS, RAW, finishCard, parseArgs } from "./lib.mjs";
+import { CARDS, RAW, ROOT, finishCard, parseArgs } from "./lib.mjs";
 import { pick } from "./manifest.mjs";
 import { H, W, scenes } from "./scenes.mjs";
+
+// The brand display font, embedded so scenes with text (Fan Favorites' board) render in it.
+const russo = (await fs.readFile(path.join(ROOT, "public", "fonts", "russo-one-400-latin.woff2"))).toString("base64");
+const FONT_CSS = `@font-face{font-family:"Russo One";src:url(data:font/woff2;base64,${russo}) format("woff2")}`;
 
 const args = parseArgs();
 const games = pick(args.ids);
@@ -24,8 +28,12 @@ for (const g of games) {
     console.log(`skip   ${g.id.padEnd(16)} no scene in scenes.mjs`);
     continue;
   }
-  const html = `<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;background:#0b0b0b;overflow:hidden}svg{display:block}</style></head><body>${scene()}</body></html>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><style>${FONT_CSS}html,body{margin:0;background:#0b0b0b;overflow:hidden}svg{display:block}</style></head><body>${scene()}</body></html>`;
   await page.setContent(html, { waitUntil: "load" });
+  await page.evaluate(async () => {
+    await document.fonts.load('40px "Russo One"');
+    await document.fonts.ready;
+  });
   const raw = path.join(RAW, `${g.id}.png`);
   await page.screenshot({ path: raw, clip: { x: 0, y: 0, width: W, height: H } });
   if (!args["raw-only"]) {
