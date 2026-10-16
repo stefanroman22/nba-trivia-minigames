@@ -100,7 +100,7 @@ if (!checks.length) checks.push("docs/config only — verify and QA are skipped"
 let planSection;
 if (check) {
   planSection = [
-    "Check card: follow 'Fixing a UI-check finding' in your agent file; the acceptance is the attached findings; no plan writer needed.",
+    `Check card: follow '${/^logic-check\b/.test(String(card.source || "")) ? "Fixing a Logic-check finding" : "Fixing a UI-check finding"}' in your agent file; the acceptance is the attached findings; no plan writer needed.`,
     `Read your finding from \`${findingsFile}\` (not from a run dir). Do not run verify.mjs yourself: gate 2 runs \`verify.mjs --from\` on this card's lane and relays every FAIL line to you.`,
   ].join("\n");
 } else if (designPath) {

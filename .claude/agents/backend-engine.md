@@ -140,3 +140,24 @@ the brief's format. A relay (`multiplayer_server/`) change is deployed only by t
     before the PR when `backend/` changed).
 11. Return one JSON line per finding:
     `{"finding": "<id>", "status": "fixed|blocked|check-bug", "attempts": <n>, "touched": ["<path>"], "why": "<one line: the reason for blocked / check-bug, and reverted or kept for <id>>"}`
+
+## Fixing a Logic-check finding
+A finding with `checker: "logic"` (a `[logic-check]` card from the pipeline, or ui-fix handing you ids of a run whose
+id ends in `-logic`) is fixed with the same loop as "Fixing a UI-check finding" above (steps 1-6 and 8-11, the same
+worktree, pipeline-card, attempt-budget and return rules), with these differences:
+- **Acceptance** is Logic checks (`{"lc": "LC-…"}`, run by `scripts/logic-check/run.mjs --only`) and API assertions
+  (`{"api": {…}, "expect": {…}}`, node fetch against the stack's Django with a token minted per persona). There are
+  no viewports: skip step 7 (the 7-viewport sweep).
+- **Verify**: `node scripts/ui-check/verify.mjs <id> --run <runId> --repo <worktree> --keep-stack` (`<runId>` ends in
+  `-logic`). Without `--mode` it runs in the mode the finding was validated in (prod for nightly findings). One API
+  case on its own, while you iterate:
+  `node scripts/logic-check/probe.mjs --api '<the assertion's json>' --run <runId> --repo <worktree> --keep-stack`.
+- **Restart after each edit**: Django (`runserver --noreload`) and the relay do not reload, so step 4 applies to every
+  `backend/` or `multiplayer_server/` edit (`node scripts/ui-check/run.mjs --stop`, `--stop --ports …` on a lane).
+- **Live-only criteria** (`LC-LIVE-…`, `projects: ["live"]`) neither pass nor fail locally ("confirmed by the live cron
+  after promotion"); the finding's local criteria decide. A cause in deploy or hosting config (owner `ci`) that no local
+  criterion can show: `blocked` with what the owner must change.
+- **From a pipeline check card**: gate 2 runs `node scripts/ui-check/verify.mjs --from <findingsFile> --mode dev --repo <worktree> --ports django=<lane>,socket=<lane>,web=<lane> --keep-stack`
+  on the card's lane exactly as for a UI-check card; do not run verify, probe or `run.mjs --stop` yourself there.
+- **Never edit `scripts/logic-check/**`** (specs, `lib/matrix.mjs`, `CHECKS.md`, notes, advisories) to make a finding
+  pass; a check or matrix row that contradicts the backend's documented behaviour is `check-bug` with why.
