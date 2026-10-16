@@ -13,6 +13,8 @@ export interface User {
 export interface PlayerInfo {
   /** Permanent public player id (#K7F3QD) — usernames may repeat. */
   id?: string | null;
+  /** True when the relay hid this stranger's name, photo and id (teen masking); never render an id for a masked player. */
+  masked?: boolean;
   username?: string;
   profile_photo?: string | null;
   rank?: string | number;
