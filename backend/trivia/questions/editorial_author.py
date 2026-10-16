@@ -314,7 +314,7 @@ class _Game:
         self.accepted = 0
 
 
-def _gate(game, slug, d, dataset):
+def _gate(game, d, dataset):
     """(reason, detail) of the first gate a materialized proposal fails, or (None, scores)."""
     try:
         m, problems = runner._materialize(game.mod, d, dataset)
@@ -369,7 +369,11 @@ def apply_proposals(directory, dataset, journal, now):
         if game.accepted >= QUOTA:
             reject("over_quota", i, slug, quota=QUOTA)
             continue
-        d = copy.deepcopy(p["definition"])
+        try:
+            d = copy.deepcopy(p["definition"])
+        except RecursionError:  # nested deeper than Python copies: json.load still reads it
+            reject("malformed", i, slug, problem="definition is nested too deeply")
+            continue
         if _needs_rule(slug, d):
             reject("needs_rule", i, slug, **_definition_detail(d))
             continue
@@ -379,7 +383,7 @@ def apply_proposals(directory, dataset, journal, now):
             continue
         if slug == "fan-favorites":
             d["survey_date"] = now.date().isoformat()
-        reason, detail = _gate(game, slug, d, dataset)
+        reason, detail = _gate(game, d, dataset)
         if reason:
             reject(reason, i, slug, **detail, **_definition_detail(d))
             continue

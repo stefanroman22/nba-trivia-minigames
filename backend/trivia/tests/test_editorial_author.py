@@ -167,6 +167,16 @@ class ApplyProposalsTests(EditorialAuthorTestCase):
         self.apply()
         self.assertEqual(self.reasons(), ["malformed", "malformed", "malformed", "not_editorial", "not_editorial"])
 
+    def test_too_deeply_nested_definition_is_malformed(self):
+        depth = 1200  # json.load reads it, copy.deepcopy hits the recursion limit
+        deep = '{"game": "fan-favorites", "definition": {"rule": ' + "[" * depth + "]" * depth + '}, "why": "x"}'
+        good = json.dumps(proposal("fan-favorites", board()))
+        self.write(None, raw='{"proposals": [' + deep + ", " + good + "]}")
+        self.apply()
+        self.assertEqual(self.reasons(), ["malformed"])
+        self.assertEqual(len(self.authored("fan-favorites")), 1)
+        self.assertIn("accepted=1", self.gh_output())
+
     def test_answers_or_members_only_need_a_rule(self):
         answers = {"prompt": "Name a coach", "category": "coach", "survey_date": "2026-10-16",
                    "answers": [{"answer": "Phil Jackson", "count": 50, "aliases": []}]}
