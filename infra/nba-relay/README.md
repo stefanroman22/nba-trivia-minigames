@@ -14,8 +14,9 @@ URL: `https://nba-relay.stefanroman.workers.dev` (Stefan's personal Cloudflare a
 - Every `/stats` request needs the header `X-Relay-Key` equal to the Worker secret `RELAY_KEY`,
   otherwise 401. If the secret is not set, every request gets 401.
 - The client's headers are forwarded as sent (nba_api's `STATS_HEADERS`: User-Agent, Referer,
-  Accept*, `x-nba-stats-*`, ...), minus `Host`, `X-Relay-Key`, `cf-*` and `x-forwarded-*`.
+  Accept*, `x-nba-stats-*`, ...), minus `Host`, `X-Relay-Key`, `cf-*`, `x-forwarded-*` and `x-real-ip`.
 - Upstream status, body and `Content-Type` pass through, with `Cache-Control: no-store`.
+- Upstream redirects are not followed: a 3xx passes through as its status (without `Location`).
 - 25 s upstream timeout: 504 on timeout, 502 if the fetch fails.
 - `GET /health` → 200 `{"ok":true}`, no key needed (monitoring).
 - Nothing else is served (404).
@@ -46,8 +47,7 @@ gh variable set NBA_RELAY_BASE --repo stefanroman22/nba-trivia-minigames --body 
 
 ## Rotating the key
 
-1. Generate a key: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))" > key.txt`
-   (strip the trailing newline, or write it without one).
+1. Generate a key: `node -e "require('fs').writeFileSync('key.txt', require('crypto').randomBytes(32).toString('hex'))"`
 2. Set it on both sides within the same minute: `npx wrangler@4 secret put RELAY_KEY` and
    `gh secret set NBA_RELAY_KEY`, both from `key.txt`.
 3. Delete `key.txt`.

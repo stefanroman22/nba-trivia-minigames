@@ -66,6 +66,7 @@ export default {
         method: "GET",
         headers: upstreamHeaders(request.headers),
         signal: controller.signal,
+        redirect: "manual", // never follow a redirect off stats.nba.com
       });
       // Buffer inside the timeout so a stalled body also ends in a 504.
       const body = await upstream.arrayBuffer();
