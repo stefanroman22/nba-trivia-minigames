@@ -97,9 +97,11 @@ jobs:
       contents: read
     steps:
       # The review and any spec change land on dev, so the agent reads dev's spec files.
+      # No token left in .git/config for anything the agent runs or writes.
       - uses: actions/checkout@v5
         with:
           ref: dev
+          persist-credentials: false
       - uses: actions/download-artifact@v6
         with:
           name: factory-digest
@@ -123,7 +125,8 @@ jobs:
             --max-turns 250
             --allowedTools "Read,Write,WebFetch(domain:www.basketball-reference.com),WebFetch(domain:www.nba.com),WebFetch(domain:en.wikipedia.org),WebFetch(domain:www.espn.com)"
             --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Agent,Task,NotebookEdit"
-      # Only the three outputs travel on, whatever else the agent wrote.
+      # Only the three outputs travel on, whatever else the agent wrote. git runs with fsmonitor
+      # off, so a hook the agent could have set in the repo config never runs here.
       - name: Collect the outputs
         if: always()
         env:
@@ -132,7 +135,7 @@ jobs:
           mkdir -p out
           if [ -f "docs/factory/reviews/$DATE.md" ]; then install -D "docs/factory/reviews/$DATE.md" "out/docs/factory/reviews/$DATE.md"; fi
           if [ -f review/cards.json ]; then install -D review/cards.json out/review/cards.json; fi
-          for f in $(git diff --name-only -- backend/trivia/questions/specs/); do install -D "$f" "out/$f"; done
+          for f in $(git -c core.fsmonitor=false diff --name-only -- backend/trivia/questions/specs/); do install -D "$f" "out/$f"; done
           find out -type f
       - name: Keep the review
         if: always()
