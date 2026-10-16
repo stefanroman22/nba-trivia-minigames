@@ -100,20 +100,21 @@
   height: 48px;
   border: none;
   border-radius: 10px;
-  background: var(--brand);
+  background: var(--brand-deep);
   color: #fff;
   font-weight: 700;
   font-size: 15px;
   cursor: pointer;
   transition: transform 0.2s, filter 0.2s;
-  box-shadow: 0 10px 26px -10px var(--brand);
+  box-shadow: 0 10px 26px -10px var(--brand-deep);
 }
-.modal-primary-btn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+.modal-primary-btn:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -10px var(--brand-deep); }
 .modal-primary-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; filter: none; }
 
 /* ---- Auth (login / signup) ---- */
 .auth-stack { display: flex; flex-direction: column; gap: 14px; }
 .auth-tabs {
+  --seg-thumb-bg: var(--brand-deep);
   display: flex;
   padding: 4px;
   background: var(--surface2);

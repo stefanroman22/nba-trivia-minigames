@@ -137,6 +137,7 @@ html { scroll-behavior: smooth; }
 /* Profile/Friends toggle — fixed at the top of the card, whichever view is
    active fills the rest (Profile is the default view). */
 .profile-view-toggle {
+  --seg-thumb-bg: var(--brand-deep);
   display: flex;
   flex: none;
   padding: 3px;

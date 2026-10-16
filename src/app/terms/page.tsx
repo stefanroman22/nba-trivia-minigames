@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { LEGAL } from "../../configurations/legal";
 import { SITE_NAME } from "../../configurations/site";
-import LegalPage, { LegalHeading, LegalList, LegalSummary, MailLink, OperatorBlock } from "../../components/LegalPage";
+import LegalPage, { LegalHeading, LegalList, LegalSummary, MailLink, OperatorBlock, LegalLink } from "../../components/LegalPage";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -21,7 +21,7 @@ export default function TermsPage() {
         <strong>The short version.</strong> {LEGAL.service} is a free game. Play fair, be kind, keep your name and photo
         appropriate, and don&apos;t cheat or attack the site. If we have to act against your account we tell you why and you
         can ask us to look again. You can delete your account whenever you like. Our{" "}
-        <a href="/privacy" style={{ color: "var(--brand)" }}>Privacy Policy</a> explains what we do with your data.
+        <LegalLink href="/privacy">Privacy Policy</LegalLink> explains what we do with your data.
       </LegalSummary>
 
       <LegalHeading id="who">1. Who we are and what these terms are</LegalHeading>
