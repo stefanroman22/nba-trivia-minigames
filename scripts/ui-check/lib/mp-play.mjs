@@ -131,7 +131,7 @@ export async function playBoth(pair, adapter, { host = 'perfect', joiner = lossS
 }
 
 /** The relay's Tic-Tac-Toe duel scores (multiplayer_server/src/turnGames.js TTT_WIN_SCORE / TTT_LOSS_SCORE / TTT_DRAW_SCORE). */
-export const TTT_SCORES = { win: 225, loss: 90, draw: 150 };
+export const TTT_SCORES = { win: 200, loss: 30, draw: 120 };
 export const TTT_TURN_MS = 25_000;
 
 /**

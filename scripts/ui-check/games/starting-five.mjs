@@ -1,7 +1,7 @@
 // Adapter: Fill in the Starting 5 (src/Game Renderers/StartingFive.tsx). One real game; five position cards
-// (PG, SG, SF, PF, C), each with its own autocomplete + Confirm; 3 lives. Right → "Correct! +10" in the card;
+// (PG, SG, SF, PF, C), each with its own autocomplete + Confirm; 3 lives. Right → "Correct! +20" in the card;
 // wrong → "Not in this lineup" and one heart; the third wrong guess shows no popup (Rule 6.3) and reveals the
-// lineup. Five found → +50 bonus (100). Both ends are in place (EndSequence loader → ScorePanel), not allowlisted.
+// lineup. Five found → +50 bonus (150). Both ends are in place (EndSequence loader → ScorePanel), not allowlisted.
 //
 // Right answer: ctx.pool('starting-five') (single player: captured HTTP JSON, capPool; fetchGamePool("starting-five", 1):
 // /data/starting-five.json in dev, manifest-v3 chunks in prod). Rows { team_a, team_b, final_score, game_date,
@@ -54,9 +54,9 @@ export default {
   online: true,
   lives: 3,
   timerMs: null,
-  pointsPerCorrect: 10,
+  pointsPerCorrect: 20,
   scenarios: {
-    perfect: true, // five right → 100 with the lineup bonus
+    perfect: true, // five right → 150 with the lineup bonus
     wrong: true, // three misses → the lineup is revealed, 0 points
     partial: true, // two misses (one heart left), then all five right
     timeout: 'no clock in Fill in the Starting 5',
@@ -66,7 +66,7 @@ export default {
 
   expectedScore(turns) {
     const right = turns.filter((t) => t.correct).length;
-    return right * 10 + (right === 5 ? 50 : 0);
+    return right * 20 + (right === 5 ? 50 : 0);
   },
 
   async answer(page, ctx, { correct }) {

@@ -10,23 +10,23 @@ import {
 } from "../src/utils/whoWouldWinPoints.ts";
 
 test("constants match the spec", () => {
-  assert.equal(WWW_POINTS_MAJORITY, 20);
+  assert.equal(WWW_POINTS_MAJORITY, 10);
   assert.equal(WWW_POINTS_MINORITY, 5);
-  assert.equal(WWW_MAX_POINTS, 200);
+  assert.equal(WWW_MAX_POINTS, 100);
 });
 
-test("majority earns 20", () => {
-  assert.equal(pointsFor("a", { a: 5, b: 3 }), 20);
-  assert.equal(pointsFor("b", { a: 1, b: 7 }), 20);
+test("majority earns 10", () => {
+  assert.equal(pointsFor("a", { a: 5, b: 3 }), 10);
+  assert.equal(pointsFor("b", { a: 1, b: 7 }), 10);
 });
 
-test("tie earns 20", () => {
-  assert.equal(pointsFor("a", { a: 4, b: 4 }), 20);
+test("tie earns 10", () => {
+  assert.equal(pointsFor("a", { a: 4, b: 4 }), 10);
 });
 
-test("first voter earns 20", () => {
-  assert.equal(pointsFor("a", { a: 1, b: 0 }), 20);
-  assert.equal(pointsFor("b", { a: 0, b: 1 }), 20);
+test("first voter earns 10", () => {
+  assert.equal(pointsFor("a", { a: 1, b: 0 }), 10);
+  assert.equal(pointsFor("b", { a: 0, b: 1 }), 10);
 });
 
 test("minority earns 5", () => {
@@ -41,6 +41,6 @@ test("skip earns 0", () => {
 });
 
 test("failed or pending tally counts as majority", () => {
-  assert.equal(pointsFor("a", "error"), 20);
-  assert.equal(pointsFor("a", undefined), 20);
+  assert.equal(pointsFor("a", "error"), 10);
+  assert.equal(pointsFor("a", undefined), 10);
 });

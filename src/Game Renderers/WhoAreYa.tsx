@@ -12,6 +12,7 @@ import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
+import { WHO_ARE_YA_MAX, whoAreYaScore } from "../utils/gameScoring";
 import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, WhoAreYaQuestion, NamesEntry } from "../types/types";
 import type { AnswerReview } from "../types/review";
 import "../styles/WhoAreYa.css";
@@ -53,8 +54,6 @@ function guessedPlayerAsEntry(entry: NamesEntry): PlayerIndexEntry {
   };
 }
 
-const MAX_SCORE = 240;
-const COST_PER_WRONG = 30;
 const MAX_GUESSES = 8;
 /** blur(px) after 0..7 wrong guesses; index clamps at the end. */
 const BLUR_STEPS = [26, 20, 15, 11, 8, 5, 2, 0];
@@ -299,7 +298,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     });
 
     if (row.correct) {
-      const finalScore = MAX_SCORE - COST_PER_WRONG * wrongCount;
+      const finalScore = whoAreYaScore(wrongCount);
       setFinished(true);
       setWon(true);
       sendGuessLog();
@@ -450,7 +449,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
           score={
             <ScorePanel
               score={endState?.score ?? 0}
-              outOf={MAX_SCORE}
+              outOf={WHO_ARE_YA_MAX}
               label={endState?.won ? "Nailed it!" : undefined}
               won={endState?.won}
               onPlayAgain={onPlayAgain}

@@ -17,9 +17,9 @@ import type { RootState } from "../store";
 import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../types/types";
 import { tttReview } from "../utils/turnReview";
 import { popIn } from "../motion/variants";
+import { TTT_CELL_POINTS as CELL_POINTS, TTT_SOLO_MAX } from "../utils/gameScoring";
 import "../styles/TicTacToe.css";
 
-const CELL_POINTS = 25; // 9 cells -> 225 max (registry maxPoints)
 const SOLO_SECONDS = 180; // 3-minute clock
 
 /** One claimed cell in the server-authoritative duel (contract #6). */
@@ -323,7 +323,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     setSolved(nextSolved);
     setSelectedCell(null);
     const n = Object.keys(nextSolved).length;
-    if (n === 9) finishSolo(9 * CELL_POINTS, "Board cleared! +225", "var(--good)");
+    if (n === 9) finishSolo(TTT_SOLO_MAX, `Board cleared! +${TTT_SOLO_MAX}`, "var(--good)");
     else flashPopup(`Correct! +${CELL_POINTS}`, "var(--good)");
   };
 
@@ -538,7 +538,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
         right={
           <SwapText swapKey={endState ? "result" : "score"}>
             {endState ? (
-              <ScoreLine score={endState.score} outOf={9 * CELL_POINTS} />
+              <ScoreLine score={endState.score} outOf={TTT_SOLO_MAX} />
             ) : (
               <GameFrame.Score value={soloScore} />
             )}
