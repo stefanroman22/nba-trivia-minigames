@@ -495,15 +495,20 @@ def winner_first(series):
     return digest[0] % 2 == 0
 
 
-def curated_dataset():
+def curated_dataset(journal=None):
     """The question games' player dataset: the committed players_curated.json.
 
     It is the same file the all-players "names" pool is built from, and the same
     bytes upload_dataset put in Supabase Storage for maintain_questions (checked
     2026-10-02: both sha256 9be60750...). The version is "curated-<sha12>", so it
     changes exactly when the file does.
+
+    Active DataCorrections are overlaid on the rows (spec §4.9) and the version
+    becomes "curated-<sha12>+c<n>" (n = active corrections), so the Checker's
+    payload shas change when a correction lands. With none, it is unchanged.
     """
     from trivia.data_pipeline.live_pool import CURATED_PATH
+    from trivia.questions import corrections
     from trivia.questions.base import load_dataset_from_rows
 
     with open(CURATED_PATH, "rb") as f:
@@ -511,7 +516,12 @@ def curated_dataset():
     rows = json.loads(raw.decode("utf-8"))
     if not isinstance(rows, list) or not rows:
         raise PublishError(f"{CURATED_PATH} is empty or not a list")
-    return load_dataset_from_rows(rows, f"curated-{sha256_hex(raw)[:12]}")
+    active = corrections.active_corrections()
+    rows = corrections.apply(rows, active, journal=journal)
+    version = f"curated-{sha256_hex(raw)[:12]}"
+    if active:
+        version += f"+c{len(active)}"
+    return load_dataset_from_rows(rows, version)
 
 
 def question_builders(maintained=None, dataset=None):

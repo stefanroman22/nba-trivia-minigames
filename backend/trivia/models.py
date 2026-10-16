@@ -437,6 +437,42 @@ class FactoryEvent(models.Model):
         return f"{self.game}/{self.qid} {self.action} ({self.reason})"
 
 
+class DataCorrection(models.Model):
+    """One sourced fix to a curated player row (spec §4.9). players_curated.json
+    is never hand-edited; active corrections are overlaid on it whenever the
+    factory loads it (trivia.questions.corrections, publish_v3.curated_dataset).
+
+    `field_path` points inside the row's existing structure: "awards.smoy",
+    "teams[2].end_year", "draft.team_abbr", "jersey".
+    """
+
+    STATUS_PROPOSED, STATUS_CHECKING, STATUS_ACTIVE = "proposed", "checking", "active"
+    STATUS_REJECTED, STATUS_REDUNDANT = "rejected", "redundant"
+    STATUS_CHOICES = [
+        (STATUS_PROPOSED, "Proposed"), (STATUS_CHECKING, "Checking"), (STATUS_ACTIVE, "Active"),
+        (STATUS_REJECTED, "Rejected"), (STATUS_REDUNDANT, "Redundant"),
+    ]
+
+    person_id = models.IntegerField()
+    field_path = models.CharField(max_length=120)
+    old_value = models.JSONField(null=True, blank=True)
+    new_value = models.JSONField(null=True, blank=True)
+    sources = models.JSONField(default=list, blank=True)  # source URLs
+    reason = models.TextField(blank=True)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PROPOSED)
+    created_by = models.CharField(max_length=32, blank=True)  # doctor | owner | ...
+    run = models.ForeignKey(FactoryRun, null=True, blank=True, on_delete=models.SET_NULL,
+                            related_name="corrections")
+    created_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["status"]), models.Index(fields=["person_id"])]
+
+    def __str__(self):
+        return f"{self.person_id} {self.field_path} -> {self.new_value!r} [{self.status}]"
+
+
 class QuestionStats(models.Model):
     """Answers to one question on one UTC day, folded nightly from GuessLog by
     trivia.questions.rollup (spec §4.7). Anonymous: no user ids, so it is kept
