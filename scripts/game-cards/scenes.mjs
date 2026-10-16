@@ -1,4 +1,4 @@
-// Hand-built SVG scenes, one per game, in the Series Winner look: charcoal panels,
+﻿// Hand-built SVG scenes, one per game, in the Series Winner look: charcoal panels,
 // one orange accent, glow, a dark bottom third for the tile's text. Rendered by render.mjs.
 // Canvas is 1600x900; keep subjects roughly inside y 90..640.
 import { BRAND } from "./lib.mjs";
@@ -323,9 +323,13 @@ function whoWouldWin() {
 function comingSoon() {
   let b = `<g opacity="0.45"><path d="M300 620 Q800 120 1300 620" fill="none" stroke="${LINE}" stroke-width="3"/><path d="M620 620 Q800 420 980 620" fill="none" stroke="${LINE}" stroke-width="3"/><line x1="100" y1="620" x2="1500" y2="620" stroke="${LINE}" stroke-width="3"/></g>`;
   b += `<polygon points="640,60 960,60 1060,560 540,560" fill="url(#cone)" opacity="0.8"/>`;
-  b += pedestal(800, 500, 240, 110);
-  b += `<path d="M640 500 C640 330 700 250 800 250 C900 250 960 330 960 500 Z" fill="url(#panel)" stroke="${O}" stroke-width="3" filter="url(#glow)"/>`;
-  b += `<rect x="0" y="420" width="${W}" height="200" fill="#2a1d14" opacity="0.35" filter="url(#blur40)"/>`;
+  b += pedestal(800, 520, 240, 100);
+  // A question mark drawn as paths (no font dependency): hook, stem, dot.
+  b += `<g filter="url(#glowBig)" stroke="url(#orange)" stroke-width="46" stroke-linecap="round" fill="none">
+  <path d="M690 250 C690 140 910 140 910 250 C910 320 820 330 800 390 L800 420"/>
+  <circle cx="800" cy="492" r="12" fill="url(#orange)"/>
+</g>`;
+  b += `<rect x="0" y="440" width="${W}" height="200" fill="#2a1d14" opacity="0.35" filter="url(#blur40)"/>`;
   return wrap(b, { floorY: 620 });
 }
 
