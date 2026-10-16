@@ -13,9 +13,10 @@ import {
   createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { durations } from "../motion/tokens";
 
-/** Matches the exit transition duration in src/app/template.tsx. */
-const EXIT_MS = 300;
+/** The exit transition duration in src/app/template.tsx (durations.slow = 300 ms). */
+const EXIT_MS = durations.slow * 1000;
 
 export type NavigateFn = (to: string, opts?: { state?: unknown }) => void;
 
@@ -33,13 +34,16 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const pathRef = useRef(pathname);
-  const [leaving, setLeaving] = useState(false);
+  // The path that is fading out. `leaving` is derived per path, so it turns false in the
+  // same render the new route commits: the new template never mounts on a stale exit target.
+  const [leavingFrom, setLeavingFrom] = useState<string | null>(null);
+  const leaving = leavingFrom !== null && leavingFrom === pathname;
   const [hasNavigated, setHasNavigated] = useState(false);
 
   // A route change (ours or browser back/forward) ends any pending exit.
   useEffect(() => {
     pathRef.current = pathname;
-    setLeaving(false);
+    setLeavingFrom(null);
   }, [pathname]);
 
   // Same call shape as react-router's navigate(). The `state` option is
@@ -51,7 +55,7 @@ export function PageTransitionProvider({ children }: { children: ReactNode }) {
       return;
     }
     setHasNavigated(true);
-    setLeaving(true);
+    setLeavingFrom(pathRef.current);
     router.prefetch(to); // load the next route while the fade runs
     setTimeout(() => router.push(to), EXIT_MS);
   }, [router]);
