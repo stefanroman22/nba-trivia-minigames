@@ -1228,3 +1228,32 @@ multiplayer tiebreak only and never adds points" stays as RULE 9.1. Reintroducin
 product decision for its own card.
 Decision (rule count): the design's "29 rules" was a miscount of its own 28-row table; the rulebook has 28
 ids and no rule was invented to reach 29.
+
+## 2026-10-16 — Teen masking: the relay drops the permanent id for masked strangers, viewer-relative
+Context: P0 ui-check card `ui-check-masked-stranger` (design `designs/2026-10-16-ui-check-masked-stranger.md`).
+`publicUser()` masked name and photo for 13-15 / unknown-age accounts in random 1v1 rooms but still sent `id`,
+and `rankRoom`/`snapshotFor` plus seven presence/proposal emits re-sent the raw uid; the VS intro and results
+cards printed `#ID` under "Player", which is exactly how a stranger finds and friend-requests a masked teen
+(`search_users` is exact-id for teens).
+Weighed (where to fix): (a) client only — hide the chip when the name is "Player" — rejected: the id still
+travels in the socket payload (DevTools), and "Player" is a legal username; (b) relay sends `masked: true` and
+keeps `id` for keys, client hides — rejected for the same payload reason; (c) relay sends `id: null` plus
+`masked: true` for a masked stranger, keeps the uid internally (`rankRoom` rows carry `uid`, `standingsFor`
+builds wire rows), client guards on `masked` — chosen. Safe because masked players exist only in random rooms,
+which are strictly 1v1, so the client's `username` fallback key cannot collide.
+Weighed (masking yourself): viewer-agnostic `publicUser(user)` would null a teen's own standings row and break
+`rowOf(user)` (own time, "YOU"); chosen `publicUser(user, viewerUid)` — never masked from yourself.
+Consequences: the frontend's `masked` guard is inert against the un-deployed production relay (Railway deploys
+are the owner's), so the production finding closes only when the relay ships; friend lobbies are untouched;
+turn-game `turnState` (`ownerUid`, `clues[].uid`) still carries raw uids in 1v1 — a follow-up card.
+
+## 2026-10-16 — Classify: ui-check home CLS card (legal notice) goes to opus, not sonnet
+Context: card `ui-check-home-layout-shifts` (CLS 0.135 on `/`, LegalChangeNotice mounts post-hydration above the hero).
+It is a small, one-area, spec-detailed fix (`standard`, risk low), which on size alone is sonnet.
+Weighed: (a) sonnet, as a bounded "wrap in AutoHeight / reserve height" step list; (b) opus under the
+motion override, because the notice enters through a framer-motion height variant (`nameNoteSlot`) and the
+acceptance is a measured CLS budget, so how and when it enters (reserve space vs. overlay vs. SSR) is a
+timing/feel judgment, and AutoHeight itself animates height, which would still register as shift.
+Decision: opus (b), effort high; difficulty stays standard, no design round.
+Consequences: if a similar CLS card turns out to be a pure reserved-height CSS change with no animation touched, sonnet is enough.
+Build outcome: the notice became a fixed bottom banner (no height animation); on phones (<=640px) it spans the width above the feedback FAB and keeps a 9em (six-line) scroll cap on the text, so the full legal copy is reachable without the banner filling a short screen; the cost is that at 375px it overlaps the lower hero CTA row until dismissed.
