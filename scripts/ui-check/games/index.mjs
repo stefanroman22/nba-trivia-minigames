@@ -25,6 +25,8 @@
 //     labels: { <scenario>: 'title' },  // test-title wording per scenario [the generic wording]
 //     latencyPlan,                      // optional (turn) → right?  for GM-LATENCY-<game> [right, wrong, right]
 //     expectedScore(turns, ctx) → number|null,         // [right answers × pointsPerCorrect]
+//     won(scenario, turns) → boolean,   // the play was a win, so the end score line may carry a label (`loss-label`)
+//                                       //   [perfect, or partial ending on a right answer]
 //     async endReveal(page, ctx, turns) → string[],   // problems with the answers shown at the end;
 //                                       //   REQUIRED for a game that ends in place (else `answer-hidden`)
 //   }

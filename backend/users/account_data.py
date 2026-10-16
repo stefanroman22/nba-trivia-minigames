@@ -74,6 +74,9 @@ def delete_account(user):
             user.profile_photo_version = 0
             user.points = 0
             user.rank = "Rookie"
+            user.active_days, user.last_active_day = 0, None
+            user.streak_days = user.streak_best = 0
+            user.streak_freezes, user.founding_member = 1, False
             user.first_name = user.last_name = ""
             user.last_login = None
             user.terms_version, user.terms_accepted_at = "", None
@@ -132,6 +135,12 @@ def export_account(user):
             "canonical_email": user.canonical_email,
             "points": user.points,
             "rank": user.rank,
+            "active_days": user.active_days,
+            "last_active_day": _iso(user.last_active_day),
+            "streak_days": user.streak_days,
+            "streak_best": user.streak_best,
+            "streak_freezes": user.streak_freezes,
+            "founding_member": user.founding_member,
             "date_joined": _iso(user.date_joined),
             "last_login": _iso(user.last_login),
             "terms_accepted_at": _iso(user.terms_accepted_at),

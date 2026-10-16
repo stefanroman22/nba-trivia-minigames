@@ -90,6 +90,35 @@
 /* input row — anchored at the bottom of the play area */
 /* input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
+/* End sequence (Rule 7.3): reserve the input phase's height (46px input row + 10px gap + 44px
+   Give up) so the swap to loader / ScorePanel never shrinks the action slot (Rule 6.2). */
+.gf:has(.hm-controls) .endseq { min-height: 100px; }
+.hm-controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+/* Secondary action on its own centred line below the row (Rule 4.8), same as Contexto's Give up. */
+.hm-giveup {
+  flex: none;
+  align-self: center;
+  min-height: 44px;
+  padding: 4px 18px;
+  font: inherit;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line2);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.hm-giveup:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); }
+.hm-giveup:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.hm-giveup:disabled { opacity: 0.45; cursor: default; }
+
 /* states */
 .hm-msg { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 24px 12px; }
 .hm-note { color: var(--muted); font-size: 0.9rem; text-align: center; }

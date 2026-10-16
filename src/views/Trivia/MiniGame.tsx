@@ -14,7 +14,7 @@ import OnlineMatch from '../../components/MultiPlayer/OnlineMatch';
 import MultiplayerPanel from '../../components/MultiPlayer/MultiplayerPanel';
 import { renderGame } from '../../Game Renderers/RenderGame';
 import type { AppDispatch } from '../../store';
-import { updatePoints } from '../../store/userSlice';
+import { applyAward, type AwardReceipt } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import type { Game, GameData } from '../../types/types';
 import { apiFetch, getAccessToken } from '../../utils/Api';
@@ -218,11 +218,10 @@ function MiniGame() {
       if (data.error) {
         // Only complain about the run the player is still looking at.
         if (mountedRef.current && runIdRef.current === runId) showErrorAlert(data.error, "Saving your score failed!");
-      } else if (data.awarded > 0) {
-        // The server has already credited the account, and updatePoints is a
-        // delta, so applying it late (even after Play again) keeps the store
-        // in step with the backend rather than drifting until the next fetch.
-        dispatch(updatePoints(data.awarded));
+      } else if (typeof data.awarded === "number") {
+        // The server has already credited the account; the receipt carries its totals, the new rank
+        // and progress, so applying it late (even after Play again) can't drift from the backend.
+        dispatch(applyAward(data as AwardReceipt));
       }
     } catch (err) {
       console.error("Network error:", err);
@@ -341,8 +340,9 @@ function MiniGame() {
               })}
             </FeedbackSlotContext.Provider>
             {/* Shell-owned feedback slot: game popups portal here so "Correct! +10"
-                shows in one consistent spot in the gap above the leave link for every game. */}
-            <div className="feedback-slot" ref={setFeedbackSlot} aria-hidden="true" />
+                shows in one consistent spot in the gap above the leave link for every game.
+                Hidden once an in-place game ends: the ScorePanel buttons take this spot (Rule 6.4). */}
+            <div className={`feedback-slot${endedInPlace ? " is-ended" : ""}`} ref={setFeedbackSlot} aria-hidden="true" />
             {/* The one leave control while playing. Once an in-place game ends, its
                 ScorePanel shows Play again + Close game, so this link goes invisible
                 (visibility, not unmount: it keeps its box so the board doesn't shift). */}

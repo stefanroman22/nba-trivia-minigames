@@ -474,10 +474,13 @@ export async function checkResults(pair, want) {
     if (oppName === 'Player' && opp.tag) p.audit.violation('teen-masking', { selector: '.om-stage--results .om-pc-tag', measured: `the opponent is shown as "Player" but with its player ID ${opp.tag}`, expected: 'a masked stranger shows no permanent player ID (it lets anyone find and friend-request them by ID)' });
     if (w.score != null && Number(you.score) !== w.score) bad(`own score ${you.score}`, `${w.score} (from the answers given)`);
     if (want[other].score != null && Number(opp.score) !== want[other].score) bad(`opponent score ${opp.score}`, `${want[other].score}`);
-    // Mirror: my card on my screen = my card on the other screen.
+    // Mirror: my card on my screen = my card on the other screen. When I am masked on the other screen
+    // (a stranger sees "Player"), that card carries no #id by design; score and time must still match.
     if (o && o.cards.length === 2) {
       const mine = o.cards[1];
-      if (mine.tag !== you.tag || mine.score !== you.score || mine.time !== you.time) bad(`own card ${JSON.stringify(you)} vs the ${other}'s view ${JSON.stringify(mine)}`, 'the same player (#id), score and time on both screens');
+      const maskedThere = shownName(p, pair.type) === 'Player';
+      const tagOk = maskedThere ? mine.tag === null : mine.tag === you.tag;
+      if (!tagOk || mine.score !== you.score || mine.time !== you.time) bad(`own card ${JSON.stringify(you)} vs the ${other}'s view ${JSON.stringify(mine)}`, maskedThere ? 'no #id (masked as "Player" there), the same score and time on both screens' : 'the same player (#id), score and time on both screens');
     }
     // Play times break equal scores; a turn duel's scores come from the board (no times are submitted): want.times false.
     if (want.times !== false && (!you.time || !opp.time || !/^\d+:\d\d$/.test(you.time))) bad(`play times "${you.time}" / "${opp.time}"`, 'm:ss under both cards');

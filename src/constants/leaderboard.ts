@@ -1,16 +1,22 @@
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 
-// Global/Friends scope switcher options (Leaderboard card + modal).
+// Global/This week/Friends scope switcher options (Leaderboard card + modal).
 export const LEADERBOARD_SCOPES: { key: LeaderboardScope; label: string }[] = [
   { key: "global", label: "Global" },
+  { key: "weekly", label: "This week" },
   { key: "friends", label: "Friends" },
 ];
+
+// Guests have no friends board: Global and This week only.
+export const GUEST_LEADERBOARD_SCOPES = LEADERBOARD_SCOPES.filter((s) => s.key !== "friends");
 
 export interface LeaderRow {
   rank: number;
   name: string;
   id: string | null;
   points: number;
+  /** The player's rank name (Rookie … GOAT), from the board row's `rank`. */
+  rankName?: string;
 }
 
 export interface SelfRow {

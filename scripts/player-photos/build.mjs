@@ -1,0 +1,221 @@
+// Build the player photo map (public/photos/player-photos.json) and its credits
+// (src/data/photo-credits.json). Run by hand after a data sync adds players:
+//   node scripts/player-photos/build.mjs
+//
+// For every players-index row: does cdn.nba.com have a real headshot? The CDN never
+// 404s — a missing id gets a generic grey silhouette (fixed ETag), so it is told apart
+// by ETag. Rows without one fall back to the Wikidata image (P18) of the item whose
+// NBA.com player id (P3647) matches, if that file is a free JPEG/PNG on Commons.
+// The map lists only the exceptions: an id it doesn't mention uses cdn.nba.com, which
+// is right for new players (every active player has an NBA headshot).
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+const PLAYERS = join(root, "backend", "trivia", "data", "players-index.json");
+const MAP_OUT = join(root, "public", "photos", "player-photos.json");
+const IDS_OUT = join(root, "public", "photos", "player-ids.json");
+const CREDITS_OUT = join(root, "src", "data", "photo-credits.json");
+const EXTRA_IN = join(root, "scripts", "player-photos", "commons-extra.json");
+
+const NBA_PLACEHOLDER_ETAG = '"7475ba9619305909d7998dd9dba02481"';
+const UA = "SwishQuest-photo-map/1.0 (https://swishquest.com)";
+const CONCURRENCY = 8;
+
+async function pool(items, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: CONCURRENCY }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await fn(items[i]);
+        if (i % 500 === 499) console.log(`[player-photos]   ${i + 1}/${items.length}`);
+      }
+    }),
+  );
+  return out;
+}
+
+async function retry(fn, tries = 3) {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i >= tries) throw err;
+      await new Promise((r) => setTimeout(r, 1000 * i));
+    }
+  }
+}
+
+/** true = real NBA headshot, false = the CDN's generic silhouette. */
+const hasNbaHeadshot = (id) =>
+  retry(async () => {
+    const r = await fetch(`https://cdn.nba.com/headshots/nba/latest/260x190/${id}.png`, {
+      method: "HEAD",
+      // cdn.nba.com stalls (never answers) a bot-style User-Agent; Wikimedia wants one.
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status} for ${id}`);
+    return r.headers.get("etag") !== NBA_PLACEHOLDER_ETAG;
+  });
+
+/** NBA.com player id -> Commons file name (spaces, not underscores). */
+async function wikidataImages() {
+  const query = "SELECT ?nba ?img WHERE { ?p wdt:P3647 ?nba . ?p wdt:P18 ?img }";
+  const r = await retry(() =>
+    fetch(`https://query.wikidata.org/sparql?query=${encodeURIComponent(query)}`, {
+      headers: { Accept: "application/sparql-results+json", "User-Agent": UA },
+    }).then((res) => {
+      if (!res.ok) throw new Error(`Wikidata HTTP ${res.status}`);
+      return res.json();
+    }),
+  );
+  const byId = new Map();
+  for (const b of r.results.bindings) {
+    const file = decodeURIComponent(b.img.value.split("/Special:FilePath/")[1] ?? "");
+    if (file && !byId.has(b.nba.value)) byId.set(b.nba.value, file);
+  }
+  return byId;
+}
+
+const stripHtml = (s) =>
+  (s ?? "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** Commons file name -> { width, mime, artist, license, license_url }, 50 titles a call. */
+async function commonsInfo(files) {
+  const info = new Map();
+  for (let i = 0; i < files.length; i += 50) {
+    const batch = files.slice(i, i + 50);
+    const params = new URLSearchParams({
+      action: "query",
+      format: "json",
+      formatversion: "2",
+      prop: "imageinfo",
+      iiprop: "size|mime|extmetadata",
+      iiextmetadatafilter: "Artist|LicenseShortName|LicenseUrl",
+      titles: batch.map((f) => `File:${f}`).join("|"),
+    });
+    const r = await retry(() =>
+      fetch(`https://commons.wikimedia.org/w/api.php?${params}`, { headers: { "User-Agent": UA } }).then((res) => {
+        if (!res.ok) throw new Error(`Commons HTTP ${res.status}`);
+        return res.json();
+      }),
+    );
+    // The API normalizes titles (e.g. first letter, underscores); map answers back.
+    const alias = new Map(batch.map((f) => [`File:${f}`, f]));
+    for (const n of r.query.normalized ?? []) alias.set(n.to, alias.get(n.from));
+    for (const page of r.query.pages ?? []) {
+      const ii = page.imageinfo?.[0];
+      const file = alias.get(page.title);
+      if (!ii || !file) continue;
+      const meta = ii.extmetadata ?? {};
+      info.set(file, {
+        width: ii.width,
+        mime: ii.mime,
+        artist: stripHtml(meta.Artist?.value) || "Unknown author",
+        license: stripHtml(meta.LicenseShortName?.value) || "See file page",
+        license_url: meta.LicenseUrl?.value ?? "",
+      });
+    }
+  }
+  return info;
+}
+
+/** "a/ab" — Commons' storage directory for a file name (md5 of the underscored name). */
+function hashDir(underscored) {
+  const h = createHash("md5").update(underscored, "utf8").digest("hex");
+  return `${h[0]}/${h.slice(0, 2)}`;
+}
+
+const players = JSON.parse(readFileSync(PLAYERS, "utf8"));
+console.log(`[player-photos] ${players.length} players — probing cdn.nba.com…`);
+const nba = await pool(players, (p) => hasNbaHeadshot(p.person_id));
+const missing = players.filter((_, i) => !nba[i]);
+console.log(`[player-photos] NBA headshot: ${players.length - missing.length}; without: ${missing.length}`);
+
+const wd = await wikidataImages();
+// Hand-verified finds (identity, license, a clear face), which win over Wikidata:
+// { "<person_id>": { file, face_x, face_y } } — see commons-extra.json's producers in the README.
+const extra = existsSync(EXTRA_IN) ? JSON.parse(readFileSync(EXTRA_IN, "utf8")) : {};
+const fileFor = (p) => extra[p.person_id]?.file ?? wd.get(String(p.person_id));
+const wanted = [...new Set(missing.map(fileFor).filter(Boolean))];
+console.log(`[player-photos] Wikidata images for missing players: ${wanted.length} — reading Commons metadata…`);
+const info = await commonsInfo(wanted);
+
+// A Wikidata image is sometimes a team photo or a game shot starring someone else (e.g.
+// "Michael_Jordan_vs_Bullets.jpg" for a Bullets player); a wrong face is worse than the
+// silhouette. Keep a file only if its name mentions the player (surname, or first name +
+// the surname's first 4 letters for misspellings) and no other player uses it.
+const ascii = (s) =>
+  s.normalize("NFKD").replace(/[^\x00-\x7f]/g, "").toLowerCase().replace(/[^a-z]/g, "");
+function namesPlayer(fullName, file) {
+  const parts = fullName.replace(/\b(Jr|Sr)\.?$|\b(II|III|IV)$/g, "").trim().split(/\s+/);
+  const first = ascii(parts[0]);
+  const last = ascii(parts[parts.length - 1]);
+  const f = ascii(file);
+  return f.includes(last) || (first.length > 2 && f.includes(first) && f.includes(last.slice(0, 4)));
+}
+const fileUses = new Map();
+for (const p of missing) {
+  const file = fileFor(p);
+  if (file) fileUses.set(file, (fileUses.get(file) ?? 0) + 1);
+}
+
+const commons = {};
+const none = [];
+const credits = [];
+let rejected = 0;
+for (const p of missing) {
+  const file = fileFor(p);
+  const meta = file && info.get(file);
+  const picked = extra[p.person_id];
+  const trusted = file && (picked || (fileUses.get(file) === 1 && namesPlayer(p.full_name, file)));
+  if (meta && !trusted) rejected++;
+  if (!meta || !trusted || !/^image\/(jpeg|png)$/.test(meta.mime)) {
+    none.push(p.person_id);
+    continue;
+  }
+  const underscored = file.replace(/ /g, "_");
+  // [path, width] — plus the face's position in percent when known, so the game crops to it.
+  commons[p.person_id] = [`${hashDir(underscored)}/${underscored}`, meta.width];
+  if (picked?.face_y != null) commons[p.person_id].push(Math.round(picked.face_x ?? 50), Math.round(picked.face_y));
+  credits.push({
+    player: p.full_name,
+    file: underscored,
+    artist: meta.artist,
+    license: meta.license,
+    license_url: meta.license_url,
+  });
+}
+none.sort((a, b) => a - b);
+credits.sort((a, b) => a.player.localeCompare(b.player));
+
+mkdirSync(dirname(MAP_OUT), { recursive: true });
+mkdirSync(dirname(CREDITS_OUT), { recursive: true });
+writeFileSync(MAP_OUT, JSON.stringify({ generated: new Date().toISOString().slice(0, 10), commons, none }));
+writeFileSync(CREDITS_OUT, JSON.stringify(credits, null, 1) + "\n");
+
+// Name (and alias) -> person_id, for data that only carries names (Starting Five). A name
+// shared by two players resolves to the one who played most recently.
+const lastSeason = (p) => Math.max(0, ...(p.teams ?? []).map((t) => t.end_year ?? 9999));
+const ids = {};
+for (const p of [...players].sort((a, b) => lastSeason(a) - lastSeason(b))) {
+  for (const name of [p.full_name, ...(p.aliases ?? [])]) ids[name] = p.person_id;
+}
+writeFileSync(IDS_OUT, JSON.stringify(ids));
+const covered = players.length - none.length;
+console.log(
+  `[player-photos] done: ${covered}/${players.length} with a photo ` +
+    `(${players.length - missing.length} NBA + ${Object.keys(commons).length} Commons), ${none.length} silhouette; ` +
+    `${rejected} Commons files skipped as possibly someone else`,
+);

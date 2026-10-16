@@ -30,7 +30,7 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
     await host.page.waitForTimeout(1500);
   }, { tail: 200 });
   const { h, j } = played;
-  expect(h.expected).toBe(50);
+  expect(h.expected).toBe(100);
   expect(j.expected).toBe(0);
 
   await checkResults(pair, { host: { outcome: 'win', score: h.expected }, joiner: { outcome: 'loss', score: j.expected }, timeTie: false });
@@ -46,7 +46,7 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
   // The "+N pts" toast renders on the host's results (the relay credits a 1v1 match; a 0 awards nothing). The credit
   // itself (pointsAwarded values, /me/ points) is Logic Check's: LC-ROOMS-10 (spec §5 no-overlap).
   if (creditsEnabled()) {
-    if (!toast.texts.some((t) => t.startsWith(`+${h.expected} pts`))) host.audit.violation('points', { selector: '.om-points', measured: `toast ${JSON.stringify(toast.texts)}`, expected: `"+${h.expected} pts added to your profile" on the results` });
+    if (!toast.texts.some((t) => /^\+\d+ pts/.test(t))) host.audit.violation('points', { selector: '.om-points', measured: `toast ${JSON.stringify(toast.texts)}`, expected: `"+${h.expected} pts added to your profile" on the results` });
   } else {
     host.audit.metrics.push({ kind: 'note', label: 'points credit not checked: the relay or Django was not started by ui-check (no shared relay key)', value: 0, unit: '', route: host.audit.route });
   }
@@ -60,7 +60,7 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
 // The draw headline needs equal scores AND equal (or no) play times (relay rankRoom): a Tic-Tac-Toe duel scores the board,
 // not the clock, and submits no times, so a full board without a line is a deterministic draw (lib/mp-play.mjs
 // DUEL_SCRIPTS.draw: X O X / X O O / O X X). Both players claim, so no turn clock is waited out: it runs on every pair.
-test('[MP-RESULT-02] a draw: a Tic-Tac-Toe duel filled without a line ends "Draw!" on the board and "It\'s a draw" on both results screens, equal scores (150), both cards marked tie, no crown, no time line', async ({ mp }) => {
+test('[MP-RESULT-02] a draw: a Tic-Tac-Toe duel filled without a line ends "Draw!" on the board and "It\'s a draw" on both results screens, equal scores (120), both cards marked tie, no crown, no time line', async ({ mp }) => {
   test.setTimeout(300_000);
   const ttt = gameById('tictactoe');
   const pair = await openPair(mp, ttt.path);

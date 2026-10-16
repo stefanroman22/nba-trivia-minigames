@@ -100,8 +100,8 @@ export default function PrivacyPage() {
       </p>
       <p>
         These providers act on our instructions under data processing terms. Separately, some pictures are loaded straight
-        from other websites: team logos and player photos from <strong>cdn.nba.com</strong> and some logos from{" "}
-        <strong>upload.wikimedia.org</strong>. Your browser asks those servers directly, so they can see your IP address and
+        from other websites: team logos and player photos from <strong>cdn.nba.com</strong>, and some logos and player
+        photos from <strong>upload.wikimedia.org</strong> (credited on the <a href="/credits" style={{ color: "var(--brand)" }}>photo credits</a> page). Your browser asks those servers directly, so they can see your IP address and
         browser details, as with any image on the web. We do not use Google Fonts or any analytics or advertising service.
       </p>
       <p>

@@ -120,6 +120,7 @@ export const renderGame = ({
           gameInfo={gameData as string[]}
           onGameEnd={onGameEnd}
           onClose={onClose}
+          multiplayer={multiplayer}
         />
       );
 

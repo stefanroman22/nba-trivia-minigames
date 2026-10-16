@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>End overlay fixture: feedback popup vs the end controls</title>
+<!-- Selftest page for the games driver's `feedback-over-end` recorder (ST-END-OVERLAY). The shell's class names
+     (.stage-inner, .playing-wrap > .gf, .feedback-slot, .exit-link) and an in-place end (EndSequence slot with
+     ScorePanel). window.finish() is the final answer: it pops "Board cleared! +300" into the feedback slot (an
+     animated pill that lives 1500 ms, like Fan Favorites) and ends the game in place.
+       default     the shell hides the slot at the end (.is-ended: opacity 0 over 0.15 s) and the score panel
+                   mounts 250 ms later, so the popup never paints over Play again / Close game.
+       ?mode=bad   the slot stays visible and the score panel mounts at 700 ms, under the still-living popup
+                   (the Fan Favorites repro: popup 1500 ms vs in-place end at 700 ms). -->
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.4 system-ui, sans-serif; background: #111; color: #eee; }
+  main.page { padding: 16px; }
+  section.stage-col { max-width: 560px; margin: 0 auto; }
+  .stage-shell { border: 1px solid #444; border-radius: 12px; }
+  .stage-inner { padding: 20px; }
+  .playing-wrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .gf { width: 100%; display: flex; flex-direction: column; gap: 20px; }
+  .gf-board { height: 120px; background: #222; }
+  .gf-action { width: 100%; height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+  .endseq { width: 100%; display: flex; justify-content: center; }
+  .endseq-slot { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .scorepanel { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .scorepanel-actions { display: flex; gap: 10px; }
+  .btn { min-height: 40px; min-width: 96px; font: inherit; }
+  .feedback-slot { position: absolute; left: 0; right: 0; bottom: 22px; display: flex; justify-content: center; pointer-events: none; z-index: 5; }
+  .feedback-slot.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.15s ease, visibility 0s 0.15s; }
+  .pill { padding: 8px 16px; border-radius: 999px; background: rgb(47, 199, 98); color: #111; font-weight: 700; animation: pop 0.25s ease-out both; }
+  @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.9); } to { opacity: 1; transform: none; } }
+  .exit-link { background: none; border: 0; color: #aaa; text-decoration: underline; height: 18px; }
+  .exit-link.is-ended { visibility: hidden; }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="stage-col">
+    <div class="stage-shell"><div class="stage-inner"><div>
+      <div class="playing-wrap">
+        <div class="gf">
+          <div class="gf-board"></div>
+          <div class="gf-action" id="action"><div class="endseq"><div class="endseq-slot"><input aria-label="Answer"></div></div></div>
+        </div>
+        <div class="feedback-slot" id="slot"></div>
+        <button class="exit-link" id="exit">Close game</button>
+      </div>
+    </div></div></div>
+  </section>
+</main>
+<script>
+  const bad = new URLSearchParams(location.search).get('mode') === 'bad';
+  const END = '<div class="endseq"><div class="endseq-slot"><div class="scorepanel">'
+    + '<div class="scorepanel-line"><span class="scorepanel-pts">300 pts</span></div>'
+    + '<div class="scorepanel-actions"><button class="btn">Play again</button><button class="btn">Close game</button></div>'
+    + '</div></div></div>';
+  window.finish = () => {
+    const slot = document.getElementById('slot');
+    slot.innerHTML = '<span class="pill">Board cleared! +300</span>';
+    setTimeout(() => { slot.innerHTML = ''; }, 1500);
+    if (!bad) slot.classList.add('is-ended');
+    setTimeout(() => {
+      document.getElementById('action').innerHTML = END;
+      document.getElementById('exit').classList.add('is-ended');
+    }, bad ? 700 : 250);
+  };
+</script>
+</body>
+</html>

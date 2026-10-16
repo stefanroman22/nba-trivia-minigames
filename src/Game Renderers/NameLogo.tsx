@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -56,9 +56,14 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   const puzzleSrc = scrambledSrc ?? originalSrc;
   const revealed = showAnswer || showPointsAnimation;
 
-  // reset the logo sources + loader each round (and whenever the puzzle image changes)
+  // reset the logo sources each round
   useEffect(() => { setSrcIdx(0); setScrambleFailed(false); }, [currentIndex]);
-  useEffect(() => setImgLoaded(false), [currentIndex, puzzleSrc]);
+  // The loader tracks the puzzle <img> itself (keyed by src, so a new round or a fallback src mounts
+  // a fresh one): it reads "loaded" the moment the element mounts. Resetting on currentIndex instead
+  // would flip the spinner on while the previous logo is still fading out (AnimatePresence "wait").
+  const onPuzzleImgRef = useCallback((el: HTMLImageElement | null) => {
+    if (el) setImgLoaded(el.complete && el.naturalWidth > 0);
+  }, []);
 
   // The round's one pending advance. The input stays live during the reveal, so a second Enter or
   // Confirm would queue another advance that later fires mid-round and swaps in the next logo.
@@ -164,9 +169,10 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                     style={{ position: "relative", width: LOGO_SIZE, height: LOGO_SIZE, maxHeight: "20dvh" }}
                   >
                     <motion.img
+                      key={puzzleSrc}
                       src={puzzleSrc}
                       alt={scrambledSrc ? "Scrambled team logo" : "NBA Team"}
-                      ref={(el) => { if (el?.complete && el.naturalWidth > 0) setImgLoaded(true); }}
+                      ref={onPuzzleImgRef}
                       onLoad={() => setImgLoaded(true)}
                       onError={() => (scrambledSrc ? setScrambleFailed(true) : setSrcIdx((i) => i + 1))}
                       initial={false}

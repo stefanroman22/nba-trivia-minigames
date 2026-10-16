@@ -84,8 +84,8 @@ is the one on screen (name-logo checks the logo, guess-mvps the season, series-w
 
 Who Would Win has no right answer: `correct: true` = vote (sides alternate), `false` = Skip. So `perfect` = vote on all
 10 (titled "vote on every matchup"), `wrong` = skip all, `partial` = alternate. Expected score: each vote's captured
-tally response (counted after the player's own vote) scored with `utils/whoWouldWinPoints.ts pointsFor` (20 with or
-tied with the crowd, 5 against, 20 when the tally failed, 0 for a skip); the driver asserts the sum on the
+tally response (counted after the player's own vote) scored with `utils/whoWouldWinPoints.ts pointsFor` (10 with or
+tied with the crowd, 5 against, 10 when the tally failed, 0 for a skip); the driver asserts the sum on the
 ScorePanel, in the log-session body and as `awarded`. Its feedback is the picked card
 (`.www-card.is-mine`): accepted deviation 6.1 (no popup), so no Rule 6.0 copy check for it. Its end is in place: the
 summary list must hold one visible row per matchup with the skipped ones marked (`endReveal`).
@@ -102,10 +102,10 @@ checked per round through the feedback copy; the driver flags `not-in-place` onl
 | name-logo | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | guess-mvps | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | who-would-win | vote all | skip all | vote / skip | no clock | no give-up control | not daily |
-| starting-five | 5 right (100 with the bonus) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
-| fan-favorites | whole board (300) | 3 misses → board revealed, 0 | 2 misses, then the whole board | no clock | no give-up | not daily |
-| career-path | right first guess (cards × 100) | a miss per card → 0 | 1 miss, then right (never the last guess) | no clock | no give-up | not daily |
-| who-are-ya | right first guess (240) | 8 misses → 0 | 2 misses, then right (180) | no clock | no give-up | not daily |
+| starting-five | 5 right (150 with the bonus) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
+| fan-favorites | whole board (200) | 3 misses → board revealed, 0 | 2 misses, then the whole board | no clock | no give-up | not daily |
+| career-path | right first guess (200) | a miss per card → 0 | 1 miss, then right (never the last guess) | no clock | no give-up | not daily |
+| who-are-ya | right first guess (200) | 8 misses → 0 | 2 misses, then right (150) | no clock | no give-up | not daily |
 
 `partial` for games without lives is "a mix of right and wrong" (right on even turns); with lives or limited guesses it
 spends all but one on misses (`lives - 1`, or the adapter's `partialMisses`), then answers right (finish with one to
@@ -183,6 +183,27 @@ scripts/ui-check/run.mjs --stop` resets them. The log-session assertion stays on
   `var(--bad)` resolved in the page.
 - Before arming each turn the driver waits (≤ 3 s) until the previous turn's feedback has left, so an exiting popup is
   never timed as the next turn's feedback.
+- **Centring (`off-centre`, Rule 4.7 / 4.8) is judged on ink, not boxes, for text.** The centre line is the `.gf` box's
+  centre. Text (`.gf-prompt` children, `.scorepanel-line`) is measured as the union of its text nodes' client rects
+  (a Range per text node, surrounding whitespace trimmed), because a centred box can hold off-centre text: ScorePanel's
+  `.scorepanel-num` reserves the final number's width (`--digits`) with `text-align: right`, so a reserve computed
+  from the wrong number (e.g. the `/N` cap) pushes the visible "0 pts" right while the line's box stays centred.
+  Boxes for the rest; an input row is judged by its `input` only (the owner's rule: the field is centred, its buttons
+  are not counted). The status row is excluded (left/right by design, its lone-slot rule is separate). Tolerance:
+  box 1.5 px, ink 2 px (eyebrow letter-spacing alone puts ink ~0.75 px right). At the end the scenarios measure only
+  after the overlay window below (≥ 2.5 s after the end buttons appear), so the AnimatedNumber count-up has landed.
+- **Popup over the end controls (`feedback-over-end`, Rule 6.4): sampled on every frame, never polled.** Repro that
+  motivated it (Fan Favorites, 2026-10-16): the board-clearing answer pops "Board cleared! +300" (lives 1500 ms)
+  while the game ends in place at ~700 ms, so the green pill sat over Play again / Close game for ~27 frames
+  (~0.6 s). Playwright polling (a CDP round trip per sample, 100 ms+ under 4 workers) can miss a window that short,
+  so the driver arms an in-page `requestAnimationFrame` recorder at Play (`watchEndOverlay`), which does nothing
+  until `.scorepanel-actions` (or a full-screen result's Close game) exists, then checks every frame for 2.5 s and
+  is read back once in `checkEnd` (`checkEndOverlay`). Effective opacity multiplies up the ancestor chain, so the
+  shell's `.feedback-slot.is-ended` fade-out counts as gone once it drops to 0.05.
+- **`loss-label` (Rule 7.1 / 6.3)**: a win is `perfect`, or `partial` that ended on a right answer (the lives games
+  spend their misses first, then finish the board, so their `partial` is a win with its label), unless the adapter
+  defines `won(scenario, turns)`. `wrong`, `giveup`, `timeout` and `daily-lock` are losses: a `.scorepanel-label`
+  there (Contexto's old "Gave up", Heatmap's "Board done") is the violation.
 - The negative control (an adapter wrapper with wrong points, `endsInPlace: true` and a 40 px padding injected on
   turn 3) produced `feedback-copy`, `end-score`, `not-in-place`, `points-not-logged`, `stage-resized` (Δ40 on turn 3)
   and `snap` on all three core viewports — the rules fire. It was a temporary spec, not committed.
@@ -212,8 +233,8 @@ Contract and driver additions (all optional; the Task 5 adapters are unaffected)
   their first right answer, so they play miss first (Career Path: miss, right; Who Are Ya: miss, miss, right) and are
   played to the end like Who Would Win.
 - Answer result `correct` (the adapter overrode the plan: Career Path never spends its last guess in `partial`) and
-  `points` (the `+N` of this turn's `Correct!` popup: Career Path `(cards - misses) x 100`, Who Are Ya
-  `240 - 30 x misses`).
+  `points` (the `+N` of this turn's `Correct!` popup: Career Path `200 - 40 x misses` (floor 40), Who Are Ya
+  `200 - 25 x misses`).
 - `feedback.copy: 'wrong'`: check the copy and colour of misses only (Fan Favorites: its hit popup `+N fans said it!` is the
   documented 6.0 deviation, constraints doc).
 - `endGeometry` / `shellIsOver` / the ResizeObserver `ending()` also accept `.scorepanel-actions` alone: Career Path ends
@@ -228,12 +249,12 @@ Per game:
 
 - **Starting Five**: the key is `found|hearts` and goes `null` once 5 are found or hearts hit 0, so `nextTurn` waits for the
   end sequence instead of returning a half-ended turn. The miss that spends the last heart shows NO popup (Rule 6.3), so
-  that turn returns `feedback: false`. Final score `right x 10 (+50 when 5)`. End reveal: all five cards named (the real
+  that turn returns `feedback: false`. Final score `right × 20 (+50 when 5)`. End reveal: all five cards named (the real
   lineup), `is-correct` = right answers, `is-revealed` = the rest.
 - **Fan Favorites**: prod loads only one chunk of the pool (often just this survey), so wrong guesses cannot come from other
   surveys alone: candidates are other surveys, the `all-players` list, then a fixed list of famous names; each is checked
   against this board with the game's own `matchAnswer` before use (the check is the guarantee). The third miss still
-  shows `Not on the board` (allowed: ordinary wrong copy). Score `300` on a clear, else `round(300 x found / total)`.
+  shows `Not on the board` (allowed: ordinary wrong copy). Score `200` on a clear, else `round(200 x found / total)`.
 - **Career Path**: the question comes from the questions store (dev) / data host (prod); several can be captured, so the
   payload is chosen by the rail (stint count + team + years of every face-up card), newest first. Each miss flips a card;
   after a loss the name is behind `See the answer` (the end check clicks it and asserts the name is visible).
@@ -276,7 +297,7 @@ All 11 visible games now have adapters (`coming-soon` excluded).
 | career-path / who-are-ya | driven | driven | driven | no clock | no give-up | not daily |
 | wordle | driven (500) | driven (5 misses, 0) | driven (2 misses, 300) | no clock | no give-up | **driven** |
 | contexto | secret first guess (200) | reason: never ends on its own, Give up covers it | 3 misses then the secret (200) | no clock | **driven** (4 misses, Give up, 0) | not daily for the player |
-| tictactoe | 9 valid players (225) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (225) | **driven** (page.clock) | no give-up | not daily |
+| tictactoe | 9 valid players (180) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (180) | **driven** (page.clock) | no give-up | not daily |
 
 Answer methods: Wordle = the `daily-play` POST response `{series:[WORD]}` (by design the word is in the response), fiber `gameInfo`
 fallback; misses are fixed non-solution strings (no dictionary), even guesses typed on the physical keyboard, odd ones on the
@@ -295,7 +316,7 @@ no `uic%` user remains and the teardown sweep reported `deleted []`.
 
 Clock path (tictactoe `timeout`): see adapter rule 8: `page.clock.setSystemTime`, not `fastForward`/`runFor` (framer-motion WAAPI
 vs a jumped `performance.now`). Proven: after the shift `Time!` (bad) shows, clock 0:00, `FINAL BOARD`, unsolved cells revealed one by
-one, solved ones unchanged, score 50 logged, Play again -> Close game.
+one, solved ones unchanged, score 40 logged, Play again -> Close game.
 
 Rotation re-count (title path = file + title, same class for every viewport; computed for the 34 driven checks, Wordle excluded as it
 runs on throwaway accounts): N=4 classes hold 21 / 42 / 33 / 34 finished games (the `perfect` checks weigh 7, others 3). Largest class

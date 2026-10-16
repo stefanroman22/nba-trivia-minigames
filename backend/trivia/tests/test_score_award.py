@@ -10,7 +10,7 @@ from django.test import Client, TestCase, override_settings
 from django.utils import timezone
 
 from trivia.models import GameSession
-from trivia.views import MAX_SESSION_POINTS
+from trivia.awarding import FIRST_GAME_BONUS, cap_for
 
 User = get_user_model()
 
@@ -66,24 +66,31 @@ class ScoreAwardTests(TestCase):
 
     def test_finishing_a_game_awards_its_score(self):
         res = self._finish(score=250)
-        self.assertEqual(res.json()["awarded"], 250)
-        self.assertEqual(self.points(), 250)
+        self.assertEqual(res.json()["awarded"], 250 + FIRST_GAME_BONUS)
+        self.assertEqual(self.points(), 350)
         # The award is backed by an audit row.
-        self.assertEqual(GameSession.objects.filter(user=self.user, score=250).count(), 1)
+        self.assertEqual(GameSession.objects.filter(user=self.user, score=250, awarded=350).count(), 1)
+
+    def test_response_carries_the_receipt(self):
+        res = self._finish(score=250).json()
+        self.assertEqual(res["rank_up"], {"from": "Rookie", "to": "Role Player"})
+        self.assertEqual(res["progress"]["rank"], "Role Player")
+        self.assertEqual(res["streak"]["days"], 1)
+        self.assertEqual(res["first_game_bonus"], FIRST_GAME_BONUS)
 
     def test_inflated_score_is_clamped(self):
         res = self._finish(score=999_999_999)
-        self.assertEqual(res.json()["awarded"], MAX_SESSION_POINTS)
-        self.assertEqual(self.points(), MAX_SESSION_POINTS)
+        self.assertEqual(res.json()["awarded"], cap_for("wordle", "single") + FIRST_GAME_BONUS)
+        self.assertEqual(self.points(), 600)
 
     def test_who_would_win_is_capped_at_its_own_ceiling(self):
         res = self._finish(game="who-would-win", score=999)
-        self.assertEqual(res.json()["awarded"], 200)
+        self.assertEqual(res.json()["awarded"], 100 + FIRST_GAME_BONUS)
         self.assertEqual(self.points(), 200)
 
     def test_who_would_win_honest_max_is_awarded_in_full(self):
-        res = self._finish(game="who-would-win", score=200)
-        self.assertEqual(res.json()["awarded"], 200)
+        res = self._finish(game="who-would-win", score=100)
+        self.assertEqual(res.json()["awarded"], 100 + FIRST_GAME_BONUS)
         self.assertEqual(self.points(), 200)
 
     def test_multiplayer_results_award_nothing(self):
@@ -174,11 +181,16 @@ class MultiplayerResultTests(TestCase):
     def test_credits_every_player_and_logs_sessions(self):
         res = self._post(self._body())
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(self.points(self.a), 200)
-        self.assertEqual(self.points(self.b), 50)
+        self.assertEqual(self.points(self.a), 300)
+        self.assertEqual(self.points(self.b), 150)
         self.assertEqual(GameSession.objects.filter(mode="match").count(), 2)
         awarded = {r["public_id"]: r["awarded"] for r in res.json()["results"]}
-        self.assertEqual(awarded, {self.a.public_id: 200, self.b.public_id: 50})
+        self.assertEqual(awarded, {self.a.public_id: 300, self.b.public_id: 150})
+
+    def test_rows_carry_the_receipt_for_the_relay(self):
+        row = self._post(self._body()).json()["results"][0]
+        for key in ("awarded", "points", "rank", "rank_up", "progress", "streak"):
+            self.assertIn(key, row)
 
     def test_wrong_or_missing_key_is_refused(self):
         self.assertEqual(self._post(self._body(), key="nope").status_code, 403)
@@ -209,9 +221,18 @@ class MultiplayerResultTests(TestCase):
         ])
         res = self._post(body)
         self.assertEqual(res.status_code, 200)
-        self.assertEqual(self.points(self.a), MAX_SESSION_POINTS)
+        self.assertEqual(self.points(self.a), cap_for("wordle", "match") + FIRST_GAME_BONUS)
         self.assertEqual(self.points(self.b), 0)
         self.assertEqual(len(res.json()["results"]), 1)
+
+    def test_friend_rooms_log_but_never_credit(self):
+        res = self._post(self._body(mode="friend"))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual((self.points(self.a), self.points(self.b)), (0, 0))
+        self.assertEqual(list(GameSession.objects.filter(mode="friend").values_list("awarded", flat=True)), [0, 0])
+        row = res.json()["results"][0]
+        self.assertEqual(row, {"public_id": self.a.public_id, "awarded": 0, "points": 0, "rank": "Rookie", "rank_up": None})
+        self.assertEqual(User.objects.get(pk=self.a.pk).active_days, 0)
 
     def test_bad_mode_and_oversized_results_are_400(self):
         self.assertEqual(self._post(self._body(mode="single")).status_code, 400)

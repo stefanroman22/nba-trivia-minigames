@@ -265,7 +265,7 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
             key={playerKey(o) || i}
             side="Friend"
             name={o.username}
-            tag={o.id}
+            tag={o.masked ? null : o.id}
             photo={o.profile_photo}
             state={chipStateOf(mp, o) === "offline" ? "offline" : undefined}
             delay={0.08 * (i + 1)}
@@ -292,7 +292,7 @@ function Matchup({ mp, showScores = false }: { mp: Mp; showScores?: boolean }) {
       <PlayerCard
         side="Opponent"
         name={opp0?.username}
-        tag={opp0?.id}
+        tag={opp0?.masked ? null : opp0?.id}
         sub={showScores ? null : skillLine(opp0)}
         photo={opp0?.profile_photo}
         score={showScores ? mp.opponentScore : null}

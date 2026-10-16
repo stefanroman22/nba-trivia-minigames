@@ -57,13 +57,16 @@
 .ps-link-btn {
   flex: none; background: none; border: 0; padding: 6px 2px; cursor: pointer;
   font: inherit; font-size: 13px; font-weight: 700; color: var(--brand);
-  transition: filter 0.15s ease, color 0.15s ease;
+  text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 4px;
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
-.ps-link-btn:hover { filter: brightness(1.2); }
+/* Text-only clickable: hover shifts to a clearly lighter colour and underlines. */
+.ps-link-btn:hover:not(:disabled) { color: var(--brand2); text-decoration-color: currentColor; }
 .ps-link-btn:disabled { opacity: 0.6; cursor: default; }
 .ps-link-btn--muted { color: var(--muted); }
-.ps-link-btn--muted:hover { color: var(--text); filter: none; }
+.ps-link-btn--muted:hover:not(:disabled) { color: var(--text); }
 .ps-link-btn--danger { color: var(--bad); }
+.ps-link-btn--danger:hover:not(:disabled) { color: color-mix(in srgb, var(--bad) 70%, white); }
 
 .ps-note-slot { margin-top: -8px; }
 /* Username checklist (components/PasswordRules) under the field while a new name is typed. */
