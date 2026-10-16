@@ -83,6 +83,8 @@ jobs:
         case: ${{ fromJSON(needs.export.outputs.cases) }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v6
         with:
           name: doctor-cases
