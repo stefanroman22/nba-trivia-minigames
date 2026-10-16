@@ -60,7 +60,7 @@ export default function PlayerPhoto({
       src={photo.src}
       alt={alt}
       data-source={photo.source}
-      style={style}
+      style={photo.focus ? { ...style, objectPosition: photo.focus } : style}
       decoding="async"
       draggable={false}
       onError={() => setFailedSrc(photo.src)}
