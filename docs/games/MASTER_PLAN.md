@@ -116,9 +116,9 @@ and the rest of Wave 3.
   games 3–5 min, party games 5–10 min. A game should never *require* more than ~6 minutes.
 
 ### Scoring tone
-Keep new games inside the established economy (existing games award 50–100 per session; user rank
-thresholds start at 100). Guideline: **~50 points per meaningful correct answer, 100–300 per perfect
-session.** NBA Wordle's 500 jackpot is a legacy outlier — don't emulate it. Time never adds points;
+Keep new games inside the established economy (existing games award ~100 per good session, 100–200 perfect; rank
+thresholds start at 100 (users/ranks.py)). Guideline: **~20 points per meaningful correct answer, 100–200 per perfect
+session; the backend caps each game at its maxPoints (trivia/awarding.py GAME_MAX_POINTS).** NBA Wordle's 500 jackpot is a legacy outlier — don't emulate it. Time never adds points;
 it only breaks ties. Exceptions where a spec'd formula exceeds the ceiling (Heatmap's 50/hex,
 ArenaGuessr's 5000/round) keep their in-game numbers but cap/normalize the profile-points
 contribution at ≈300 per session.

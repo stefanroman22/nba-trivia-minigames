@@ -29,7 +29,7 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
     await host.page.waitForTimeout(1500);
   }, { tail: 200 });
   const { h, j } = played;
-  expect(h.expected).toBe(50);
+  expect(h.expected).toBe(100);
   expect(j.expected).toBe(0);
 
   await checkResults(pair, { host: { outcome: 'win', score: h.expected }, joiner: { outcome: 'loss', score: j.expected }, timeTie: false });
@@ -42,11 +42,11 @@ test('[MP-RESULT-01] a full 1v1 match: the host (all right) sees "You win!", the
     await expect(L(p.page, 'multiplayer.exitGameLink')).toBeVisible();
   });
 
-  // Points: the relay credits a 1v1 match (the host's 50; a 0 awards nothing, so no toast for the joiner).
+  // Points: the relay credits a 1v1 match (the host's 100, plus the first-game-of-the-day bonus on the first scoring game, so the awarded value and the toast may show more than the round score; a 0 awards nothing, so no toast for the joiner).
   if (creditsEnabled()) {
     const awarded = host.cap.frames('pointsAwarded', { dir: 'in' }).map((f) => f.awarded);
-    if (JSON.stringify(awarded) !== JSON.stringify([h.expected])) host.audit.violation('points', { selector: 'pointsAwarded', measured: `awarded ${JSON.stringify(awarded)}`, expected: `[${h.expected}] (one credit for the match)` });
-    if (!toast.texts.some((t) => t.startsWith(`+${h.expected} pts`))) host.audit.violation('points', { selector: '.om-points', measured: `toast ${JSON.stringify(toast.texts)}`, expected: `"+${h.expected} pts added to your profile" on the results` });
+    if (awarded.length !== 1 || !(awarded[0] >= h.expected)) host.audit.violation('points', { selector: 'pointsAwarded', measured: `awarded ${JSON.stringify(awarded)}`, expected: `one credit of at least ${h.expected} for the match` });
+    if (!toast.texts.some((t) => /^\+\d+ pts/.test(t))) host.audit.violation('points', { selector: '.om-points', measured: `toast ${JSON.stringify(toast.texts)}`, expected: `"+N pts added to your profile" on the results` });
     if (joiner.cap.frames('pointsAwarded', { dir: 'in' }).length) joiner.audit.violation('points', { selector: 'pointsAwarded', measured: JSON.stringify(joiner.cap.frames('pointsAwarded', { dir: 'in' })), expected: 'nothing awarded for a 0' });
   } else {
     host.audit.metrics.push({ kind: 'note', label: 'points credit not checked: the relay or Django was not started by ui-check (no shared relay key)', value: 0, unit: '', route: host.audit.route });
