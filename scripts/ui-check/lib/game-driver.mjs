@@ -554,6 +554,8 @@ export async function afterEnd(audit, adapter, { closeFromEnd = false } = {}) {
   }
   if (!closeFromEnd && adapter.playAgain !== false) {
     await again.click();
+    // The ended board stays mounted for the Stage cross-fade (its exit-link visible as "Report a problem"): let it leave first.
+    await page.waitForSelector('.playing-wrap .scorepanel, .playing-wrap .scorepanel-actions', { state: 'detached', timeout: 10_000 }).catch(() => {});
     await page.waitForSelector('.playing-wrap', { timeout: 30_000 });
     await expect(L(page, 'games.exitLink')).toBeVisible();
     const r = await page.evaluate(() => {
