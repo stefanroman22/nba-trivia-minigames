@@ -1,0 +1,15 @@
+/* Shared player-photo rules (components/ui/PlayerPhoto.tsx). Each game keeps its own
+   frame size; these only cover what differs by source. */
+
+/* NBA headshots are a uniform studio crop with a transparent background, so each game's
+   own fit applies. Commons photos are arbitrary (portrait, action, wide), so they always
+   fill the frame and anchor near the top, where the face is. `html img[…]` (0,1,2)
+   outranks the games' fit rules (`.x-photo`, `.x-frame img`). */
+html img[data-source="commons"] {
+  object-fit: cover;
+  object-position: 50% 18%;
+  background: var(--surface3);
+}
+
+/* Holds the slot while the photo map loads (no visible silhouette -> photo swap). */
+.player-photo-pending { visibility: hidden; }

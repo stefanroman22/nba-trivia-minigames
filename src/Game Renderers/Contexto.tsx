@@ -370,7 +370,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
             <ScorePanel
               score={endState?.score ?? 0}
               outOf={MAX_SCORE}
-              label={endState?.won ? "Found it!" : "Gave up"}
+              label={endState?.won ? "Found it!" : undefined}
               won={endState?.won}
               onPlayAgain={onPlayAgain}
               onClose={onClose}

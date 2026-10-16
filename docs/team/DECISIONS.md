@@ -1228,3 +1228,40 @@ multiplayer tiebreak only and never adds points" stays as RULE 9.1. Reintroducin
 product decision for its own card.
 Decision (rule count): the design's "29 rules" was a miscount of its own 28-row table; the rulebook has 28
 ids and no rule was invented to reach 29.
+
+## 2026-10-16 — Centre line, input-row centring, feedback slot on in-place end, label only on win
+Context: the owner found four layout defects. The end score line sat ~1 digit right of centre
+(`ScoreLine` reserved the width of the `/N` cap, not of the number it counts to); the input field sat 46-70 px
+left of centre because the row centred field plus button as one block; Fan Favorites' `Board cleared! +300`
+popup (1500 ms) painted over Play again / Close game for 27 frames after the in-place end (700 ms); and
+Contexto/Heatmap passed `Gave up` / `Board done` as score labels.
+Decision: (1) RULE 4.7, one centre line judged by visible content: `ScoreLine` reserves `score`'s digit width, so
+the line is stable during the count and centred when it lands. (2) RULE 4.8: `GameFrame.InputRow` renders the
+first child as the field and the rest as actions in a 3-column grid; the side columns both equal the actions'
+measured width (`--gf-side`, ResizeObserver, no re-render), so the field is on the centre line and the button
+hangs beside it. Below a 460 px row (container query) the button collapses to a 44 px icon whose text stays as
+the accessible name, because a mirrored text button would leave a ~106 px field on a phone. One submit button
+per row: Heatmap's Give up moved to its own line like Contexto's. (3) RULE 6.4: the shell hides
+`.feedback-slot` (0.15 s fade) when `endedInPlace`; fixing it per game would leave every in-place game exposed.
+(4) `ScoreLine` renders `label` only when `won`; the two loss labels were removed from the callers.
+Consequences: a row with more than one action (TicTacToe's online duel: Steal + Claim) keeps the old
+field-then-actions flow, since mirroring both would crush the field; it is the one known exception to RULE 4.8.
+Alternatives rejected: centring by a negative margin on the button (breaks when the button label swaps) and
+shortening Fan Favorites' popup timer (leaves the race in place for every other game).
+
+## 2026-10-16 — Name the NBA Club logo "glitch": framer-motion end-of-fade flash
+Context: the owner saw the logo flicker when the answer revealed and when a round's logo loaded. A CDP
+screencast of the compositor (the only proof of a *painted* frame; a rAF + `getComputedStyle` probe can read
+the same revert without it ever being painted) showed one frame at the end of every WAAPI opacity fade
+reverted to its start value: the scrambled logo popped back at the end of the 0.6 s reveal, the loaded logo
+blinked off after fading in, the Stage cross-fade did the same. framer-motion 12.23.24 cancelled the WAAPI
+animation in `onfinish` before the final style was written; its 12.34.5 changelog: "Ensure final WAAPI styles
+are always committed synchronously to prevent flash of incorrect styles".
+Decision: framer-motion ≥ 12.34.5 (upgraded to 12.43.0; no breaking changes in the 12.x minors). Not a
+per-component workaround (CSS transitions or JS easing to dodge WAAPI): the flash was app-wide. Also in
+`NameLogo.tsx`: the logo loader tracks the puzzle `<img>` itself (keyed by src, a stable ref reads `complete`
+on mount) instead of resetting on `currentIndex`, which switched the spinner on over the previous logo while it
+was still fading out under `AnimatePresence mode="wait"`.
+Consequences: a flicker report is first screencast-captured (frame differs from both neighbours while they
+match each other), then traced to the animation layer before any renderer is touched; the dependency floor
+is the `^12.43.0` range in package.json.
