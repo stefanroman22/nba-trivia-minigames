@@ -1294,3 +1294,22 @@ timing/feel judgment, and AutoHeight itself animates height, which would still r
 Decision: opus (b), effort high; difficulty stays standard, no design round.
 Consequences: if a similar CLS card turns out to be a pure reserved-height CSS change with no animation touched, sonnet is enough.
 Build outcome: the notice became a fixed bottom banner (no height animation); on phones (<=640px) it spans the width above the feedback FAB and keeps a 9em (six-line) scroll cap on the text, so the full legal copy is reachable without the banner filling a short screen; the cost is that at 375px it overlaps the lower hero CTA row until dismissed.
+
+## 2026-10-16 — Design: `log_session` credits only visible games; unknown ids get 0 at 200; no play id yet
+Context: card `logic-check-log-session` (design `designs/2026-10-16-logic-check-log-session.md`). An unknown `game` id
+was clamped to `awarding.DEFAULT_MAX_POINTS` (300 on this base; the finding still cites the retired `MAX_SESSION_POINTS = 1000`)
+and credited, and a finished play can be re-POSTed up to the 60/h `score-submit` throttle.
+Weighed (unknown id): (a) 400 refusal — rejected: the card's acceptance assertion fixes `status 200, awarded == 0`, and
+400 would add a second client code path for a state only a forged client reaches; (b) 200 with the existing zero receipt
+and a logged `GameSession` row with `score=0` — chosen. The row keeps the audit trail; `score=0` keeps it out of
+`award()`'s `earned_today` sum and first-game-bonus check for the player's later honest plays.
+Weighed (which ids count): (a) `awarding.GAME_MAX_POINTS` keys only — would credit the seven `HIDDEN_GAMES` nothing routes;
+(b) `trivia.games._GAME_MODULES` — omits the six classic games served from `views.py`; (c) `frozenset(GAME_MAX_POINTS) -
+HIDDEN_GAMES`, defined in `views.py` next to `log_session` (both names already imported there) — chosen; it matches the
+finding's "visible game" wording, the client's `visibleGames`, and the `get_manifest`/`get_pool` filter.
+Weighed (replay / one-time play id): deferred to a follow-up card. It is a client+server protocol change (round GETs mint a
+token, `MiniGame.tsx` sends it, the relay for `match`), and today's bounds (60/h, per-game ceilings <= 500, daily soft cap
+1,500/1,500/10%, Wordle once a day) cap a replaying account to roughly 2,250 points + a 10% tail per day; the unbounded
+path was the forged id, which this card closes. `multiplayer_result` keeps the default clamp (relay-authenticated; second follow-up).
+Consequences: `awarding.py` is untouched, so `cap_for("not-a-game")` still returns the default for the relay path; un-hiding a
+game only needs the `HIDDEN_GAMES`/`hidden: true` edits it already needs. Engine sonnet: every step has a done-check.
