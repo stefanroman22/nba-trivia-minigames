@@ -27,3 +27,17 @@ FAIL UIC-20261025-0128-001 — check MP-MATCH-01 @ mp@pairA: console `console.er
 **Suggested next step:** allow those two hosts in the routine environment's network policy (or run attempt 2 locally); then re-run the card as is from the pushed branch. The same blocker applies to every questions-store game (career-path, who-are-ya, tictactoe, contexto): the contexto cluster card was released to To Do untouched for the same reason.
 
 **Last error:** FAIL UIC-20261025-0128-007 — check GM-who-are-ya-perfect @ games@phone-360: TimeoutError: page.waitForSelector: Timeout 30000ms exceeded (waiting for locator('.playing-wrap') to be visible)
+## 2026-10-16 — Cloud run: environment gaps found (3 shipped, 0 failed)
+- The routine's setup script (`infra/routine/setup.sh`) was not installed: `node_modules`, the venv and Chromium
+  were missing, so deps were installed in-run (~2 min) and the global Stop hook fired on every orchestrator turn.
+- `cdn.playwright.dev` is not in the network allowlist (setup.sh names the old azureedge hosts), so the Chromium
+  revision the installed `playwright-core` wants (1234) could not download. Work-around used: alias the pre-installed
+  `/opt/pw-browsers/chromium-1194` and `chromium_headless_shell-1194` under the expected `-1234` directory names.
+- The full Django suite (`users trivia`) imports `nba_api`, which lives in `backend/requirements-pipeline.txt`, not
+  `requirements.txt`; verify failed with 14 import errors until the pipeline requirements were installed.
+  Suggested: setup.sh installs `requirements-pipeline.txt`.
+- Next 16 Turbopack refuses a `node_modules` symlink that points outside the worktree ("points out of the filesystem
+  root"), so the team-run skill's cloud recipe (`ln -s "$PWD/node_modules" ../wt-<slug>/node_modules`) breaks
+  `next build`. Work-around used: `cp -al node_modules ../wt-<slug>/node_modules` (hardlink copy, <1 s).
+  Suggested: change the recipe in `.claude/skills/team-run/SKILL.md`.
+- The brief template's "~369 tests expected" is stale; the suite is ~750 tests.
