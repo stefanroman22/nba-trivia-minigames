@@ -4,11 +4,13 @@ import path from 'node:path';
 import { defineConfig } from '@playwright/test';
 import { pickChannel } from './lib/browser-channel.mjs';
 import { VIEWPORTS, MP_PAIRS, CORE, contextOptions } from './lib/viewports.mjs';
-import { UIC_ROOT, runId } from './lib/run-id.mjs';
+import { UIC_ROOT, isolateSelftest, runId } from './lib/run-id.mjs';
 import { MODES } from './lib/stack.mjs';
 import { activePorts } from '../check-core/lib/ports.mjs';
 
-// Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN.
+// Fix the run id in the main process so every worker inherits the same UI_CHECK_RUN (a selftest-only invocation
+// writes under <home>/selftest/, never a run dir).
+isolateSelftest();
 runId();
 
 // Stack mode (spec §4): run.mjs sets UI_CHECK_MODE; a direct invocation defaults to prod, like stack-setup.

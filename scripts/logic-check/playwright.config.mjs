@@ -13,7 +13,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@playwright/test';
 import { contextOptions } from '../ui-check/lib/viewports.mjs';
-import { UIC_ROOT, runId } from '../ui-check/lib/run-id.mjs';
+import { UIC_ROOT, isolateSelftest, runId } from '../ui-check/lib/run-id.mjs';
 import { MODES } from '../ui-check/lib/stack.mjs';
 import { pickChannel } from '../ui-check/lib/browser-channel.mjs';
 import { activePorts } from '../check-core/lib/ports.mjs';
@@ -24,6 +24,7 @@ const UIC_LIB = path.join(HERE, '..', 'ui-check', 'lib');
 
 // Every worker and the reporter see one checker and one run id (set before the workers start).
 process.env.UI_CHECK_CHECKER = 'logic';
+isolateSelftest(); // `--project selftest` alone writes under <home>/selftest/, never a run dir
 runId('-logic');
 
 const MODE = process.env.UI_CHECK_MODE || 'prod';

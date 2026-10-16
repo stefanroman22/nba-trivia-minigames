@@ -26,7 +26,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { CORE, MP_PAIRS, VIEWPORTS } from './lib/viewports.mjs';
-import { UIC_ROOT, runDir, runId } from './lib/run-id.mjs';
+import { UIC_ROOT, freshRunId, runDir, runId } from './lib/run-id.mjs';
 import { codeState, ensureStack, stopStack } from './lib/stack.mjs';
 import { ensureCheckout } from '../check-core/lib/checkout.mjs';
 import { PORT_SETS, formatPorts, parsePorts } from '../check-core/lib/ports.mjs';
@@ -107,7 +107,8 @@ function liveGrep(only, perf) {
   return `^${perf ? `(?=.*${PERF_TAG})` : ''}(?=.*${LIVE_TAG})${ids ? `(?=.*${ids})` : ''}`;
 }
 
-/** A first (non-append) invocation must not write into a run dir that already holds results (same id, same minute). */
+/** A first (non-append) invocation must not write into a run dir that already holds results: only a caller-set
+ *  UI_CHECK_RUN can hit one (freshRunId moves an automatic id to the next free minute). */
 function usedRunDir() {
   if (!existsSync(path.join(runDir(), 'results.json'))) return false;
   console.error(`ui-check: run ${runId()} already has results (${runDir()}) — start again in a minute or set UI_CHECK_RUN to a new id`);
@@ -245,8 +246,8 @@ async function main() {
     }
   } catch (e) { console.error(`ui-check: ${e.message}`); return 1; }
   process.env.UI_CHECK_REPO = app.repo;
-  const id = runId();
-  if (usedRunDir()) return 2;
+  const { id, preset } = freshRunId();
+  if (preset && usedRunDir()) return 2;
   const t0 = Date.now();
   console.log(`ui-check: run ${id} · mode ${opts.mode} · suites ${suites.join(',')} · vps ${opts.vp}${opts.only ? ` · only ${opts.only}` : ''}`);
   console.log(`ui-check: app ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)} · ports ${process.env.UI_CHECK_PORTS}`);
@@ -337,8 +338,8 @@ async function runLive(opts) {
   const childEnv = { UI_CHECK_MODE: 'prod', UI_CHECK_ENV: 'live', UI_CHECK_LIVE_URL: url.origin, UI_CHECK_REPO: app.repo };
   Object.assign(process.env, childEnv);
   installEmergencyStop(false, null, () => []); // nothing of ours runs: never touch a local stack
-  const id = runId('-live'); // its own id: a local run in the same minute never shares (and overwrites) its run dir
-  if (usedRunDir()) return 2;
+  const { id, preset } = freshRunId('-live'); // its own id: a local run in the same minute never shares (and overwrites) its run dir
+  if (preset && usedRunDir()) return 2;
   childEnv.UI_CHECK_RUN = id;
   const t0 = Date.now();
   console.log(`ui-check: run ${id} · LIVE ${url.origin} (read-only, GET/HEAD only) · guest @live · vps ${live.join(',')}${opts.only ? ` · only ${opts.only}` : ''}`);

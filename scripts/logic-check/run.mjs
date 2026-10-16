@@ -25,7 +25,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { runDir, runId } from '../ui-check/lib/run-id.mjs';
+import { freshRunId, runDir } from '../ui-check/lib/run-id.mjs';
 import { appRepo, codeState, ensureStack, stopStack } from '../ui-check/lib/stack.mjs';
 import { grepFor, installEmergencyStop, playwright } from '../ui-check/lib/runner.mjs';
 import { ensureCheckout } from '../check-core/lib/checkout.mjs';
@@ -154,8 +154,10 @@ async function main() {
   let app;
   try { app = await appFor(o, { local }); } catch (e) { fail(e.message); return 2; }
   process.env.UI_CHECK_REPO = app.repo;
-  const id = runId('-logic');
-  if (existsSync(path.join(runDir(), 'results.json'))) { fail(`run ${id} already has results (${runDir()}) — start again in a minute or set UI_CHECK_RUN to a new id`); return 2; }
+  // A new id per run: an automatic one moves to the next free minute (a catch-up run, a selftest or another run in the
+  // same minute never makes this one refuse); only a caller-set UI_CHECK_RUN that already holds results is refused.
+  const { id, preset } = freshRunId('-logic');
+  if (preset && existsSync(path.join(runDir(), 'results.json'))) { fail(`run ${id} already has results (${runDir()}) — set UI_CHECK_RUN to a new id`); return 2; }
   const t0 = Date.now();
   say(`run ${id} · mode ${o.mode} · suites ${suites.join(',')}${o.only ? ` · only ${o.only}` : ''}${liveProjects.length ? ` · LIVE ${liveUrl.origin} (read-only, GET/HEAD only)` : ''}`);
   say(`app ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)}${local ? ` · ports ${formatPorts(ports)}` : ''}`);

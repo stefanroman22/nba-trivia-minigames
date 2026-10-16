@@ -275,6 +275,7 @@ try {
     $c = Invoke-Checker "logic" (@("scripts/logic-check/run.mjs", "--only", $catchLogic, "--ref", "main", "--keep-stack") + $P)
     $state.runs.logicCatchUp = $c.Id; $state.exits.logicCatchUp = $c.Code
     $logicGreen = ($c.Code -eq 0)
+    if ($c.Code -ne 0 -and $c.Code -ne 1) { $state.notes.Add("logic run infra exit $($c.Code) (catch-up $($c.Id)), see $script:LogFile") }
     if (-not $logicGreen) { $state.notes.Add("catch-up Logic still red: UI catch-up skipped") }
   }
   if ($catchUi -and $logicGreen) {
@@ -285,7 +286,7 @@ try {
   # 3. Logic Check on main (local + live) -> triage -> validate -> push -> blocks.
   $lg = Invoke-Checker "logic" (@("scripts/logic-check/run.mjs", "--suite", "all", "--ref", "main", "--live", "--keep-stack") + $P)
   $state.runs.logic = $lg.Id; $state.exits.logic = $lg.Code
-  if ($lg.Code -eq 2 -or -not $lg.Digest) { $state.notes.Add("logic infra (exit $($lg.Code)), see $script:LogFile") }
+  if (($lg.Code -ne 0 -and $lg.Code -ne 1) -or -not $lg.Digest) { $state.notes.Add("logic run infra exit $($lg.Code) (run $($lg.Id)), see $script:LogFile") }
   elseif ($lg.Fails -gt 0) {
     $prompt = "Run only step 2 (Triage) of the logic-check skill (.claude/skills/logic-check/SKILL.md) for runDir $($lg.RunDir), runId $($lg.Id), mode prod. The stack is up on $Ports (kept). Do not run the suites, report.mjs, notion-push, channel.mjs or run.mjs --stop: scripts/check-run.ps1 runs those. Return at most 10 lines."
     if ((Invoke-Claude "logic triage $($lg.Id)" $prompt) -eq 'missing') {
