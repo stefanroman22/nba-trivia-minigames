@@ -40,7 +40,7 @@ test('[G-PERM-01] /admin shows "Admins only" to a guest and the admin API refuse
   await audit.done();
 });
 
-test('[G-PERM-02] hidden game slugs and unknown routes answer 404 with the 404 page; hidden games are not listed', async ({ page, audit }) => {
+test('[G-PERM-02] @live hidden game slugs and unknown routes answer 404 with the 404 page; hidden games are not listed', async ({ page, audit }) => {
   test.setTimeout(120_000);
   const hidden = hiddenGames();
   expect(hidden.length, 'hidden games parsed from GameUtils.tsx').toBeGreaterThan(0);
@@ -77,7 +77,7 @@ test('[G-PERM-02] hidden game slugs and unknown routes answer 404 with the 404 p
   await audit.done();
 });
 
-test('[G-PERM-03] a guest gets the log-in prompt on /profile and "Log in to play online" on games, and opens no socket', async ({ page, audit }) => {
+test('[G-PERM-03] @live a guest gets the log-in prompt on /profile and "Log in to play online" on games, and opens no socket', async ({ page, audit }) => {
   test.setTimeout(240_000); // visits every online game
   const sockets = [];
   page.on('websocket', (ws) => { if (!/\/_next\//.test(ws.url())) sockets.push(ws.url()); }); // dev-server HMR is not the relay

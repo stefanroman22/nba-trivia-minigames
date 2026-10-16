@@ -5,6 +5,7 @@ import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -57,9 +58,6 @@ const COST_PER_WRONG = 30;
 const MAX_GUESSES = 8;
 /** blur(px) after 0..7 wrong guesses; index clamps at the end. */
 const BLUR_STEPS = [26, 20, 15, 11, 8, 5, 2, 0];
-
-const headshotUrl = (personId: number) =>
-  `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 /** Franchise abbr -> conference/division (current NBA alignment). */
 const TEAM_META: Record<string, { conference: "East" | "West"; division: string }> = {
@@ -202,7 +200,6 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
   const [wrongCount, setWrongCount] = useState(0);
   const [guess, setGuess] = useState("");
   const [hidePhoto, setHidePhoto] = useState(false);
-  const [photoFailed, setPhotoFailed] = useState(false);
   const [finished, setFinished] = useState(false);
   const [won, setWon] = useState(false);
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
@@ -251,7 +248,6 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     setWrongCount(0);
     setGuess("");
     setHidePhoto(false);
-    setPhotoFailed(false);
     setFinished(false);
     setWon(false);
     setShowPointsAnimation(false);
@@ -370,20 +366,18 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
         <div className="waya-board">
           {/* Photo card — fixed frame so sharpening never shifts layout */}
           <div className="waya-photo-card">
-            {(hidePhoto && !finished) || photoFailed ? (
-              <svg viewBox="0 0 64 72" className="waya-silhouette"
-                aria-label={hidePhoto ? "Photo hidden (hard mode)" : "Player photo unavailable"}>
+            {hidePhoto && !finished ? (
+              <svg viewBox="0 0 64 72" className="waya-silhouette" aria-label="Photo hidden (hard mode)">
                 <circle cx="32" cy="26" r="13" />
                 <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
               </svg>
             ) : (
-              <img
-                className="waya-photo"
-                src={headshotUrl(mystery.person_id)}
+              <PlayerPhoto
+                personId={mystery.person_id}
                 alt="Mystery player headshot"
+                className="waya-photo"
+                fallbackClassName="waya-silhouette waya-silhouette--none"
                 style={{ filter: `blur(${blurPx}px)`, transition: reduce ? "none" : "filter 0.6s ease" }}
-                onError={() => setPhotoFailed(true)}
-                draggable={false}
               />
             )}
             <div className="waya-photo-meta">

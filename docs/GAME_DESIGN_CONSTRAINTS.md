@@ -335,6 +335,13 @@ The round body mounts once and is never re-keyed per round — no `<AnimatePrese
 | Changing text (eyebrow, names, `ROUND 4/5`) | `<SwapText>` (UI-21); it animates only when the text differs. |
 | Changing media (crest, logo, headshot) | Swap only the media inside its fixed box: `<SwapText swapKey={id}>` with opacity-only variants. |
 
+Player photos always go through `<PlayerPhoto personId=… />` (`src/components/ui/PlayerPhoto.tsx`), never a
+hand-built `cdn.nba.com` URL: the CDN answers a missing photo with its own grey silhouette (a 200,
+so `onError` never fires). `PlayerPhoto` picks cdn.nba.com, else Wikimedia Commons, else the shared orange
+`PlayerSilhouette`, from the map `scripts/player-photos/build.mjs` generates. Give it the game's img and
+fallback classes; Commons photos are cropped by `PlayerPhoto.css` (cover, anchored near the top) unless a
+wide frame overrides it with `contain` (Who Are Ya).
+
 Key the swap by content identity (team, player id), never by round index; key repeated cells by
 position (`key={i}`). Reference: `PlayOffSeries.tsx`.
 

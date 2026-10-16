@@ -6,7 +6,8 @@
 #
 # Network allowlist the routine needs for this script: registry.npmjs.org, pypi.org,
 # files.pythonhosted.org, and the Playwright CDN (playwright.azureedge.net,
-# playwright-akamai.azureedge.net, playwright-verizon.azureedge.net).
+# playwright-akamai.azureedge.net, playwright-verizon.azureedge.net), plus the distro's apt mirrors for
+# `--with-deps` (e.g. archive.ubuntu.com, security.ubuntu.com).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 
@@ -15,8 +16,12 @@ export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/opt/pw-browsers}"
 echo "[setup] npm ci"
 npm ci --no-audit --no-fund
 
-echo "[setup] playwright chromium -> $PLAYWRIGHT_BROWSERS_PATH"
-node node_modules/playwright-core/cli.js install chromium \
+# The relay's deps: a check card's QA runs scripts/ui-check/verify.mjs, which starts the relay on the lane.
+echo "[setup] npm ci --prefix multiplayer_server"
+npm ci --prefix multiplayer_server --no-audit --no-fund
+
+echo "[setup] playwright chromium (with OS deps) -> $PLAYWRIGHT_BROWSERS_PATH"
+node node_modules/playwright-core/cli.js install --with-deps chromium \
   || echo "[setup] chromium install failed — browser QA will be skipped this run"
 
 echo "[setup] python venv"

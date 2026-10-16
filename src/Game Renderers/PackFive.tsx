@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { GameFrame, ProgressBar, Spinner } from "../components/ui";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { sampleN } from "../utils/pool";
@@ -33,8 +34,6 @@ const COMPLETION_BONUS = 20; // survive the whole deck → +20 (max 220)
 const REVEAL_MS = 1200; // hold the reveal before sliding on
 const END_DELAY = 900; // let the final reveal land before handing back the score
 
-const headshotUrl = (personId: number) =>
-  `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 // The five trump stats, in display order. Numeric getters read the frozen
 // PlayerIndexEntry shape (career.* + awards.*); fmt keeps decimals tabular.
@@ -78,27 +77,13 @@ const currentTeam = (p: PlayerIndexEntry): string => {
   return t ? t.abbr : "NBA";
 };
 
-/** Orange silhouette used when a headshot can't load — never breaks the card. */
-function Silhouette() {
-  return (
-    <svg viewBox="0 0 64 72" className="pf-silhouette" aria-hidden="true">
-      <circle cx="32" cy="26" r="13" />
-      <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
-    </svg>
-  );
-}
-
 function Headshot({ player }: { player: PlayerIndexEntry }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [player.person_id]);
-  if (failed) return <Silhouette />;
   return (
-    <img
-      className="pf-photo"
-      src={headshotUrl(player.person_id)}
+    <PlayerPhoto
+      personId={player.person_id}
       alt={`${player.full_name} headshot`}
-      onError={() => setFailed(true)}
-      draggable={false}
+      className="pf-photo"
+      fallbackClassName="pf-silhouette"
     />
   );
 }

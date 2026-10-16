@@ -1,0 +1,9 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>console-noise fixture</title></head>
+<body><div id="root"><p>console noise</p></div>
+<script>
+  // One dev-build-only dependency warning (ignored outside prod mode) and one real error (always reported).
+  console.error('Accessing element.ref was removed in React 19. ref is now a regular prop. It will be removed from the JSX Element type in a future release.');
+  console.error('Real application error: something broke');
+</script>
+</body></html>

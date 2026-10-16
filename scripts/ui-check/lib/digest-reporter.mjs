@@ -27,10 +27,14 @@ const measuredClass = (s) => String(s ?? '').replace(/-?\d+(\.\d+)?/g, '#');
 const vpRank = (v) => { const i = VP_ORDER.indexOf(v); return i < 0 ? VP_ORDER.length : i; };
 // Entries are a vp id, optionally followed by ' (<audit label>)' — rank by the vp id.
 const sortVps = (vps) => [...vps].sort((a, b) => vpRank(String(a).split(' ')[0]) - vpRank(String(b).split(' ')[0]) || String(a).localeCompare(String(b)));
-// Where a violation/metric was seen: its own audit's vp (several audits per test, e.g. multiplayer), else the test's.
+// Where a violation/metric was seen: its own audit's vp (several audits per test, e.g. multiplayer), else the test's;
+// then its audit label and, when not the local stack, its env ('phone-390 (live)').
+const envOf = (item, r) => (item && item.env) || r.env || 'local';
 const whereOf = (item, r, auditLabel) => {
   const vp = (item && item.vp) || r.vp;
-  return vp && auditLabel ? `${vp} (${auditLabel})` : vp;
+  const env = envOf(item, r);
+  const tags = [auditLabel, env !== 'local' ? env : null].filter(Boolean);
+  return vp && tags.length ? `${vp} (${tags.join(', ')})` : vp;
 };
 const firstLine = (s) => String(s || '').split('\n').find((l) => l.trim()) || '';
 const isFail = (r) => r.status === 'failed' || r.status === 'timedOut';
@@ -48,7 +52,10 @@ const expectedText = (byValue) => {
 /** Markdown digest for an array of result entries (see results.json shape). */
 export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs = 0 } = {}) {
   const secs = Math.round(durationMs / 1000);
-  const lines = [`# UI check digest — run ${id} · mode ${mode} · ${results.length} tests · ${Math.floor(secs / 60)}m${secs % 60}s`, ''];
+  // Env in the header only when some result is not from the local stack (`run.mjs --live`).
+  const envs = [...new Set(results.map((r) => envOf(null, r)))].sort((a, b) => (a === 'local' ? -1 : b === 'local' ? 1 : a.localeCompare(b)));
+  const envTag = envs.some((e) => e !== 'local') ? ` · env ${envs.join('+')}` : '';
+  const lines = [`# UI check digest — run ${id} · mode ${mode}${envTag} · ${results.length} tests · ${Math.floor(secs / 60)}m${secs % 60}s`, ''];
 
   // Suite table
   const suites = new Map();
@@ -117,7 +124,8 @@ export function buildDigest(results, { runId: id = '?', mode = 'dev', durationMs
     const reason = r.skipReason || 'skipped (no reason given)';
     const key = `${r.checkId}|${r.title}|${reason}`;
     const g = gaps.get(key) || { r, reason, vps: [], suite: r.suite };
-    if (r.vp && !g.vps.includes(r.vp)) g.vps.push(r.vp);
+    const where = whereOf(null, r);
+    if (where && !g.vps.includes(where)) g.vps.push(where);
     gaps.set(key, g);
   }
   if (!gaps.size) lines.push('- none');
@@ -237,6 +245,8 @@ export default class DigestReporter {
     const tag = (d, labelKey) => (x) => ({ ...x, ...(d.vp ? { vp: d.vp } : {}), ...(d.label ? { [labelKey]: d.label } : {}) });
     const entry = {
       checkId: idOf(test.title),
+      // Where the test ran: the audit's env, else the project's (`use.env`), else UI_CHECK_ENV, else the local stack.
+      env: (datas.find((d) => d.env) || {}).env || use.env || process.env.UI_CHECK_ENV || 'local',
       title: test.title,
       project: project ? project.name : '',
       suite: use.suite || (project ? project.name.split('@')[0] : ''),
@@ -248,6 +258,9 @@ export default class DigestReporter {
       metrics: datas.flatMap((d) => (d.metrics || []).map(tag(d, 'auditLabel'))),
       shots: datas.flatMap((d) => d.shots || []),
     };
+    // --live: the requests the guard saw on the live site (GET/HEAD vs anything else, which also fails the test).
+    const live = datas.filter((d) => d.liveRequests);
+    if (live.length) entry.liveRequests = { read: live.reduce((n, d) => n + d.liveRequests.read, 0), write: live.reduce((n, d) => n + d.liveRequests.write, 0) };
     if (entry.status === 'skipped') entry.skipReason = skip ? skip.description : null;
     if (result.error || (result.errors && result.errors.length)) {
       const err = result.error || result.errors[0];

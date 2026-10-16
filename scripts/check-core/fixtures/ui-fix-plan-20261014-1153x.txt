@@ -1,0 +1,38 @@
+#1 backend-engine: UIC-20261014-1153-001 UIC-20261014-1153-002
+   UIC-20261014-1153-001 blocker backend multiplayer /series-winner checks=MP-MATCH-01 files=multiplayer_server/src/index.js,src/components/MultiPlayer/OnlineMatch.tsx,src/components/MultiPlayer/PlayerCard.tsx
+   UIC-20261014-1153-002 blocker backend multiplayer /series-winner checks=MP-RESULT-01,MP-PROP-01,MP-PROP-02 files=multiplayer_server/src/index.js,src/components/MultiPlayer/OnlineMatch.tsx,src/components/MultiPlayer/PlayerCard.tsx
+#2 frontend-engine: UIC-20261014-1153-015
+   UIC-20261014-1153-015 major frontend games /series-winner checks=GM-series-winner-perfect,GM-series-winner-partial files=src/Game Renderers/PlayOffSeries.tsx
+#3 frontend-engine [prod]: UIC-20261014-1153-003
+   UIC-20261014-1153-003 major frontend guest perf / checks=G-PERF-01 files=src/components/LegalChangeNotice.tsx,src/views/Landpage.tsx
+#4 frontend-engine [prod]: UIC-20261014-1153-004 UIC-20261014-1153-005 UIC-20261014-1153-006 UIC-20261014-1153-008 UIC-20261014-1153-025 UIC-20261014-1153-028
+   UIC-20261014-1153-004 major frontend guest / checks=G-A11Y-01 files=src/styles/Modal.css
+   UIC-20261014-1153-005 major frontend guest / checks=G-A11Y-01 files=src/components/Leaderboard.tsx
+   UIC-20261014-1153-006 major frontend guest / checks=G-A11Y-01 files=src/styles/Modal.css
+   UIC-20261014-1153-008 major frontend guest /privacy checks=G-A11Y-01 files=src/components/LegalPage.tsx
+   UIC-20261014-1153-025 minor frontend account perf / checks=AC-SURF-01 files=src/components/Leaderboard.tsx
+   UIC-20261014-1153-028 minor frontend account / checks=AC-SURF-01 files=src/styles/Leaderboard.css,src/components/Leaderboard.tsx
+#5 frontend-engine [prod]: UIC-20261014-1153-007
+   UIC-20261014-1153-007 major frontend guest perf /name-logo checks=G-NAV-03,G-MOTION-01 files=src/app/template.tsx
+#6 frontend-engine [prod]: UIC-20261014-1153-009
+   UIC-20261014-1153-009 major frontend account perf /profile checks=AC-PROFILE-03,AC-PROFILE-02 files=src/views/ProfileSettings.tsx
+#7 frontend-engine [prod]: UIC-20261014-1153-011 UIC-20261014-1153-014 UIC-20261014-1153-029 UIC-20261014-1153-016 UIC-20261014-1153-018 UIC-20261014-1153-019 UIC-20261014-1153-022 UIC-20261014-1153-023 UIC-20261014-1153-024 UIC-20261014-1153-030 UIC-20261014-1153-031 UIC-20261014-1153-032 UIC-20261014-1153-033
+   UIC-20261014-1153-011 major frontend games perf /starting-five checks=GM-starting-five-perfect,GM-starting-five-partial,MP-GAME-starting-five,GM-LATENCY-starting-five files=src/Game Renderers/StartingFive.tsx,src/components/ui/Stage.tsx
+   UIC-20261014-1153-014 major frontend games /contexto checks=GM-contexto-perfect,GM-contexto-giveup,GM-contexto-partial,MP-GAME-contexto files=src/Game Renderers/Contexto.tsx,src/components/ui/Stage.tsx
+   UIC-20261014-1153-029 major frontend games /fan-favorites checks=GM-fan-favorites-perfect,MP-GAME-fan-favorites files=src/Game Renderers/FanFavorites.tsx,src/components/ui/Stage.tsx
+   UIC-20261014-1153-016 major frontend games /starting-five checks=GM-starting-five-perfect,GM-starting-five-partial files=src/Game Renderers/StartingFive.tsx
+   UIC-20261014-1153-018 major frontend multiplayer /tictactoe checks=MP-RESULT-02,MP-GAME-tictactoe files=src/context/MultiplayerContext.tsx,src/Game Renderers/TicTacToe.tsx,multiplayer_server/src/index.js
+   UIC-20261014-1153-019 major frontend multiplayer /tictactoe checks=MP-GAME-tictactoe files=src/styles/Multiplayer.css,src/components/MultiPlayer/OnlineMatch.tsx
+   UIC-20261014-1153-022 major frontend multiplayer /tictactoe checks=MP-GAME-tictactoe files=src/Game Renderers/TicTacToe.tsx,src/components/ui/Stage.tsx
+   UIC-20261014-1153-023 major frontend multiplayer /who-are-ya checks=MP-GAME-who-are-ya files=src/components/ui/Stage.tsx
+   UIC-20261014-1153-024 major frontend multiplayer /series-winner checks=MP-PROP-01 files=src/context/MultiplayerContext.tsx,multiplayer_server/src/index.js
+   UIC-20261014-1153-030 minor frontend multiplayer /starting-five checks=MP-GAME-starting-five files=src/styles/StartingFive.css,src/styles/AnswerReview.css
+   UIC-20261014-1153-031 minor frontend multiplayer perf /name-logo checks=MP-ROOM-03 files=src/components/SiteFooter.tsx,src/components/MultiPlayer/OnlineMatch.tsx
+   UIC-20261014-1153-032 minor frontend multiplayer perf /series-winner checks=MP-RES-01 files=src/components/SiteFooter.tsx,src/components/MultiPlayer/OnlineMatch.tsx
+   UIC-20261014-1153-033 minor frontend multiplayer /tictactoe checks=MP-RESULT-02 files=src/styles/Multiplayer.css,src/components/MultiPlayer/OnlineMatch.tsx
+#8 frontend-engine [prod]: UIC-20261014-1153-017
+   UIC-20261014-1153-017 major frontend games perf /who-are-ya checks=GM-who-are-ya-perfect,GM-who-are-ya-partial,GM-who-are-ya-wrong,GM-LATENCY-who-are-ya files=src/Game Renderers/WhoAreYa.tsx
+#9 frontend-engine [prod]: UIC-20261014-1153-026
+   UIC-20261014-1153-026 minor frontend account perf / checks=AC-BLOCK-03 files=src/components/LogInSignUp.tsx
+#10 backend-engine [prod]: UIC-20261014-1153-027
+   UIC-20261014-1153-027 minor backend account perf / checks=AC-SURF-02 files=backend/users/tests.py

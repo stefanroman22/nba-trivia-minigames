@@ -21,6 +21,13 @@ function chunks(s) {
   return out;
 }
 
+/** Blocks in request-sized batches (Notion accepts at most 100 children per create/append call). */
+export function blockBatches(blocks, size = 100) {
+  const out = [];
+  for (let i = 0; i < blocks.length; i += size) out.push(blocks.slice(i, i + size));
+  return out;
+}
+
 export async function markdownToBlocks(markdown, imageBlock) {
   const blocks = [];
   for (const raw of String(markdown).split(/\r?\n/)) {

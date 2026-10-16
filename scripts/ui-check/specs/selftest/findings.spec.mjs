@@ -115,6 +115,14 @@ test('[ST-FINDINGS] schema, acceptance DSL parser, fingerprint dedupe, accepted.
     expect(m.fix.reuse).toEqual(['the .icon-btn padding']);
     expect(m.fingerprint).toBe(fingerprint(a));
     expect(m.mergedFrom).toEqual(['account', 'guest']);
+    expect(m.where.env).toBeUndefined(); // no member names an env: none added
+
+    // where.env: the same fingerprint seen locally (no env = local) and on the live site merges with both envs.
+    const live = { ...structuredClone(b), where: { ...structuredClone(b.where), env: ['live'] } };
+    expect(validateFinding(live)).toEqual([]);
+    expect(validateFinding({ ...live, where: { ...live.where, env: ['staging'] } }).join('\n')).toMatch(/where\.env\[0\]: must be one of local, live/);
+    expect(mergeFindings([a, live]).find((f) => f.rule === 'tap-target').where.env).toEqual(['local', 'live']);
+    expect(mergeFindings([live, { ...live }])[0].where.env).toEqual(['live']);
   });
 
   await test.step('one finding per cause: ancestor/descendant jumps and snap + stage-resized of one turn merge (run 20261014-1153 shapes)', () => {

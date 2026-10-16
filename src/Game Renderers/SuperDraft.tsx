@@ -35,6 +35,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
+import PlayerPhoto from "../components/ui/PlayerPhoto";
 import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useNames } from "../hooks/useNames";
@@ -64,8 +65,6 @@ const REVEAL_STEP_MS = 260; // stagger between per-slot metric reveals (spec Rul
 const REVEAL_LEAD_MS = 300; // lead-in before the first reveal (spec Rule 7.2)
 const CURRENT_YEAR = new Date().getFullYear();
 
-const headshotUrl = (personId: number) =>
-  `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 /** A drafted player, flattened from a precomputed eligible tuple — everything
  *  past the slot board (objectives, grading, JSX) reads this shape only. */
@@ -207,7 +206,7 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-/** Orange silhouette used when a headshot can't load — never breaks the card. */
+/** Muted silhouette of an empty slot (a missing photo uses PlayerPhoto's own). */
 function Silhouette() {
   return (
     <svg viewBox="0 0 64 72" className="sd-silhouette" aria-hidden="true">
@@ -219,18 +218,7 @@ function Silhouette() {
 
 /** Slot face (also the answer review's slots). */
 export function Headshot({ player }: { player: { person_id: number } }) {
-  const [failed, setFailed] = useState(false);
-  useEffect(() => setFailed(false), [player.person_id]);
-  if (failed) return <Silhouette />;
-  return (
-    <img
-      className="sd-photo"
-      src={headshotUrl(player.person_id)}
-      alt=""
-      onError={() => setFailed(true)}
-      draggable={false}
-    />
-  );
+  return <PlayerPhoto personId={player.person_id} alt="" size="sm" className="sd-photo" fallbackClassName="sd-silhouette" />;
 }
 
 type Phase = "loading" | "error" | "draft" | "reveal";

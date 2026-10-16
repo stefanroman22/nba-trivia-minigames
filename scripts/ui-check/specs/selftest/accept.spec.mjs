@@ -74,3 +74,25 @@ test('[ST-ACCEPT-SETTLE] minSize and withinViewport measure after an animating a
 
   await a2.finalize();
 });
+
+const NOISE = pathToFileURL(path.join(fileURLToPath(new URL('../../fixtures/detectors/', import.meta.url)), 'console-noise.html')).pathname;
+
+test('[ST-CONSOLE-NOISE] dev-only React element.ref warning is ignored outside prod mode and reported in prod mode', async ({ page, audit, context, vp }, testInfo) => {
+  const prev = process.env.UI_CHECK_MODE;
+  try {
+    process.env.UI_CHECK_MODE = 'dev';
+    await audit.goto(NOISE);
+    const dev = await audit.console();
+    expect(dev.map((v) => v.measured), JSON.stringify(dev)).toEqual([expect.stringContaining('Real application error')]);
+
+    process.env.UI_CHECK_MODE = 'prod';
+    const p2 = await context.newPage();
+    const a2 = await createAudit(p2, testInfo, { vp, label: 'prod' });
+    await a2.goto(NOISE);
+    const prod = await a2.console();
+    expect(prod.length, JSON.stringify(prod)).toBe(2);
+    await a2.finalize();
+  } finally {
+    if (prev === undefined) delete process.env.UI_CHECK_MODE; else process.env.UI_CHECK_MODE = prev;
+  }
+});

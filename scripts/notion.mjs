@@ -5,7 +5,8 @@ import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, STATUS, CATEGORIES, loadEnvTeam, loadConfig, text } from "./lib/team-config.mjs";
 import { assembleSpec } from "./lib/notion-spec.mjs";
-import { markdownToBlocks } from "./lib/notion-blocks.mjs";
+import { shipCommentText } from "./team/lib/check-card.mjs";
+import { markdownToBlocks, blockBatches } from "./lib/notion-blocks.mjs";
 
 loadEnvTeam();
 const TOKEN = process.env.NOTION_TOKEN;
@@ -46,7 +47,11 @@ const SCHEMA = {
   Branch: { rich_text: {} },
   SlackTs: { rich_text: {} },
   Paused: { checkbox: {} },
+  // checker cards (ui-check / logic-check): "<checker>-check fp:<key,…> ids:<id,…> run:<runId>"; Target = branch the fix ships to
+  Source: { rich_text: {} },
+  Target: sel(["dev", "main"], { dev: "blue", main: "red" }),
 };
+const TARGETS = ["dev", "main"];
 
 const arg = (args, flag) => { const i = args.indexOf(flag); return i > -1 ? args[i + 1] : undefined; };
 const plain = (rich) => (rich || []).map((t) => t.plain_text).join("");
@@ -60,6 +65,8 @@ const row = (p) => ({
   attempts: p.properties.Attempts?.number || 0,
   commit: plain(p.properties.Commit?.rich_text),
   slackTs: plain(p.properties.SlackTs?.rich_text),
+  source: plain(p.properties.Source?.rich_text),
+  target: p.properties.Target?.select?.name || null,
   url: p.url,
 });
 
@@ -134,8 +141,10 @@ async function cmdListInProgress() {
 
 // Some external image hosts (e.g. Wikimedia) reject requests that carry no User-Agent.
 const IMAGE_UA = "nba-minigames-team-pipeline/1.0 (+https://github.com/stefanroman22/nba-trivia-minigames)";
+// Non-image files with a plain name keep it (an attached findings.json lands at .team/attachments/<pageId>/findings.json).
+const SAFE_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
 function downloader(pageId) {
-  return async (url, index) => {
+  return async (url, index, name) => {
     if (!url) return null;
     let res;
     try { res = await fetch(url, { headers: { "User-Agent": IMAGE_UA } }); } catch { return null; }
@@ -144,7 +153,7 @@ function downloader(pageId) {
     const ext = ct.includes("png") ? "png" : ct.includes("gif") ? "gif" : ct.includes("webp") ? "webp" : ct.includes("pdf") ? "pdf" : ct.includes("jpeg") ? "jpg" : "bin";
     const dir = resolve(ROOT, ".team/attachments", pageId);
     mkdirSync(dir, { recursive: true });
-    const path = resolve(dir, `${index}.${ext}`);
+    const path = resolve(dir, name && SAFE_NAME.test(name) && !ct.startsWith("image/") ? name : `${index}.${ext}`);
     writeFileSync(path, Buffer.from(await res.arrayBuffer()));
     return path;
   };
@@ -177,7 +186,9 @@ async function cmdClaim(pageId, args) {
 }
 
 async function cmdShipCard(pageId, args) {
+  // --target main: a check card shipped to production; --pr <url>: a relay change left as a PR to main for the owner
   const commitSha = arg(args, "--commit"), branch = arg(args, "--branch"), model = arg(args, "--model") || "", devUrl = arg(args, "--dev-url") || cfg.devSiteUrl || "";
+  const target = arg(args, "--target") || "dev", pr = arg(args, "--pr");
   if (!commitSha) { console.error("--commit required"); process.exit(2); }
   await api(`pages/${pageId}`, "PATCH", { properties: {
     Status: { select: { name: STATUS.QA } },
@@ -185,7 +196,7 @@ async function cmdShipCard(pageId, args) {
     ...(branch ? { Branch: { rich_text: text(branch) } } : {}),
     Model: { rich_text: text(model) },
   } });
-  await comment(pageId, `✅ on dev (${commitSha.slice(0, 7)}) — check ${devUrl}`, true);
+  await comment(pageId, shipCommentText({ sha: commitSha, target, pr, devUrl }), true);
   console.log("shipped");
 }
 
@@ -229,6 +240,9 @@ async function cmdSetProps(pageId, args) {
     props.Difficulty = { select: { name: diff } };
   }
   const title = arg(args, "--title"); if (title) props.Name = { title: text(title) };
+  const source = arg(args, "--source"); if (source) props.Source = { rich_text: text(source) };
+  const target = targetProp(args); if (target) props.Target = target;
+  if (args.includes("--needs-human")) props["Needs human"] = { checkbox: true }; // parks the card (list-todo skips it)
   await api(`pages/${pageId}`, "PATCH", { properties: props });
   console.log("props set");
 }
@@ -236,23 +250,43 @@ async function cmdSetProps(pageId, args) {
 // Uploads a local image through Notion's file-upload API and returns an image block that
 // references it (Notion serves it back as a normal file block, which assembleSpec downloads).
 const IMAGE_TYPES = { png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
-async function uploadedImageBlock(path, caption) {
-  const ext = path.split(".").pop().toLowerCase();
-  const type = IMAGE_TYPES[ext];
-  if (!type) { console.error(`Unsupported image type: ${path}`); process.exit(1); }
-  const created = await api("file_uploads", "POST", { filename: path.split(/[\\/]/).pop(), content_type: type });
+const FILE_TYPES = { ...IMAGE_TYPES, json: "application/json", txt: "text/plain", md: "text/plain", pdf: "application/pdf" };
+// Two-step file_uploads (create, then send the bytes); returns the upload id to reference from a block or a files property.
+async function uploadFile(path, type) {
+  const name = path.split(/[\\/]/).pop();
+  const created = await api("file_uploads", "POST", { filename: name, content_type: type });
   const form = new FormData();
-  form.append("file", new Blob([readFileSync(path)], { type }), path.split(/[\\/]/).pop());
+  form.append("file", new Blob([readFileSync(path)], { type }), name);
   const sent = await fetch(`https://api.notion.com/v1/file_uploads/${created.id}/send`, {
     method: "POST", headers: { Authorization: `Bearer ${TOKEN}`, "Notion-Version": VERSION }, body: form,
   });
   const json = await sent.json();
-  if (!sent.ok) { console.error(`Notion image upload ${sent.status}: ${json.message}`); process.exit(1); }
-  return { object: "block", type: "image", image: { type: "file_upload", file_upload: { id: created.id }, caption: caption ? text(caption) : [] } };
+  if (!sent.ok) { console.error(`Notion upload ${sent.status} (${name}): ${json.message}`); process.exit(1); }
+  return created.id;
+}
+async function uploadedImageBlock(path, caption) {
+  const ext = path.split(".").pop().toLowerCase();
+  const type = IMAGE_TYPES[ext];
+  if (!type) { console.error(`Unsupported image type: ${path}`); process.exit(1); }
+  const id = await uploadFile(path, type);
+  return { object: "block", type: "image", image: { type: "file_upload", file_upload: { id }, caption: caption ? text(caption) : [] } };
+}
+// A file for the Attachments property (get-spec downloads it as "[File attached: …]").
+async function uploadedAttachment(path) {
+  const type = FILE_TYPES[path.split(".").pop().toLowerCase()];
+  if (!type) { console.error(`Unsupported attachment type: ${path}`); process.exit(1); }
+  return { type: "file_upload", file_upload: { id: await uploadFile(path, type) }, name: path.split(/[\\/]/).pop() };
+}
+const allArgs = (args, flag) => args.flatMap((a, i) => (a === flag && args[i + 1] !== undefined ? [args[i + 1]] : []));
+function targetProp(args) {
+  const t = arg(args, "--target");
+  if (t && !TARGETS.includes(t)) { console.error("--target must be dev or main"); process.exit(1); }
+  return t ? { select: { name: t } } : null;
 }
 
 // --body: a single paragraph (as before). --body-file: markdown-lite file (headings, bullets,
 // paragraphs, and ![caption](local-image-path) lines that are uploaded and embedded in place).
+// --source <text> / --target dev|main (checker cards); --attach <file> (repeatable) → Attachments property.
 async function cmdCreateCard(title, args) {
   const priority = arg(args, "--priority") || "P1";
   if (!["P0", "P1", "P2"].includes(priority)) { console.error("--priority must be P0, P1 or P2"); process.exit(1); }
@@ -264,12 +298,21 @@ async function cmdCreateCard(title, args) {
     if (!["trivial", "standard", "hard"].includes(difficulty)) { console.error("--difficulty must be trivial, standard or hard"); process.exit(1); }
     props.Difficulty = { select: { name: difficulty } };
   }
+  const source = arg(args, "--source"); if (source) props.Source = { rich_text: text(source) };
+  const target = targetProp(args); if (target) props.Target = target;
+  const attach = allArgs(args, "--attach");
+  if (attach.length) props.Attachments = { files: await Promise.all(attach.map(uploadedAttachment)) };
   const page = { parent: { database_id: DB }, properties: props };
   const body = arg(args, "--body");
   const bodyFile = arg(args, "--body-file");
-  if (bodyFile) page.children = await markdownToBlocks(readFileSync(bodyFile, "utf8"), uploadedImageBlock);
-  else if (body) page.children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
+  let children = [];
+  if (bodyFile) children = await markdownToBlocks(readFileSync(bodyFile, "utf8"), uploadedImageBlock);
+  else if (body) children = [{ object: "block", type: "paragraph", paragraph: { rich_text: text(body) } }];
+  // Notion takes at most 100 children per request: create with the first batch, append the rest.
+  const [first = [], ...more] = blockBatches(children);
+  if (first.length) page.children = first;
   const r = await api("pages", "POST", page);
+  for (const batch of more) await api(`blocks/${r.id}/children`, "PATCH", { children: batch });
   console.log(r.id);
 }
 
@@ -312,6 +355,32 @@ async function cmdMigrateV2(args) {
   console.log("schema finalized");
 }
 
+// v3: Source + Target for checker cards (additive; existing rows keep empty values).
+async function cmdMigrateV3() {
+  await api(`databases/${DB}`, "PATCH", { properties: { Source: SCHEMA.Source, Target: SCHEMA.Target } });
+  console.log("schema v3: Source (rich_text), Target (select dev|main)");
+}
+
+// Non-archived cards whose Source contains any of the given fingerprint keys (optionally only one Status).
+async function cmdFindCards(args) {
+  const fps = allArgs(args, "--source-fp");
+  if (!fps.length) { console.error("--source-fp required"); process.exit(2); }
+  const status = arg(args, "--status");
+  const or = { or: fps.map((fp) => ({ property: "Source", rich_text: { contains: fp } })) };
+  const pages = await queryAll(status ? { and: [or, { property: "Status", select: { equals: status } }] } : or);
+  console.log(JSON.stringify(pages.map((p) => ({ ...row(p), status: p.properties.Status?.select?.name || null, created: p.created_time })), null, 2));
+}
+
+async function cmdListComments(pageId) {
+  let cursor, comments = [];
+  do {
+    const r = await api(`comments?block_id=${pageId}&page_size=100${cursor ? `&start_cursor=${cursor}` : ""}`);
+    comments = comments.concat(r.results);
+    cursor = r.has_more ? r.next_cursor : null;
+  } while (cursor);
+  console.log(JSON.stringify(comments.map((c) => ({ id: c.id, created: c.created_time, by: c.created_by?.id, text: plain(c.rich_text) })), null, 2));
+}
+
 const [cmd, ...args] = process.argv.slice(2);
 const run = {
   "setup": () => cmdSetup(args[0]),
@@ -333,6 +402,9 @@ const run = {
   "list-awaiting-feedback": cmdListAwaitingFeedback,
   "clear-slack-ts": () => cmdClearSlackTs(args[0]),
   "migrate-v2": () => cmdMigrateV2(args),
+  "migrate-v3": cmdMigrateV3,
+  "find-cards": () => cmdFindCards(args),
+  "list-comments": () => cmdListComments(args[0]),
 }[cmd];
 if (!run) { console.error(`Unknown command: ${cmd}`); process.exit(2); }
 await run();

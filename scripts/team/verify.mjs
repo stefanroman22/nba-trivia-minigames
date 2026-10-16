@@ -47,8 +47,9 @@ if (cls.frontend) {
   if (ran.at(-1).exit === 0) ran.push(run("typegen", process.execPath, [bin("next/dist/bin/next"), "typegen"]));
   if (ran.at(-1).exit === 0) ran.push(run("tsc", process.execPath, [bin("typescript/bin/tsc"), "--noEmit"]));
   // Gate 2 serves this build with `next start`; VITE_* values are inlined at build time, so point the
-  // build at the lane's Django port (QA starts a lane backend whenever the frontend changed).
-  if (ran.every((r) => r.exit === 0)) ran.push(run("build", "npm", ["run", "build", "--silent"], { env: { NBA_DEV_ENV_SKIP: "1", VITE_BACKEND_URL: `http://localhost:${ports.django}/api` } }));
+  // build at the lane's Django port (QA starts a lane backend whenever the frontend changed) and the lane's relay
+  // port (a check card's verify starts a relay there).
+  if (ran.every((r) => r.exit === 0)) ran.push(run("build", "npm", ["run", "build", "--silent"], { env: { NBA_DEV_ENV_SKIP: "1", VITE_BACKEND_URL: `http://localhost:${ports.django}/api`, VITE_SOCKET_URL: `http://localhost:${ports.socket || 4100}` } }));
 }
 if (cls.backend) {
   const py = venvPython(repo);
@@ -59,8 +60,8 @@ if (cls.backend) {
 if (cls.multiplayer) ran.push(run("relay syntax", process.execPath, ["--check", "multiplayer_server/src/index.js"]));
 if (cls.scripts) {
   // node --test on Node 22 wants files, not directories
-  const testFiles = ["scripts/lib", "scripts/team/lib"].flatMap((d) => { try { return readdirSync(resolve(repo, d)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`); } catch { return []; } });
-  if (testFiles.length) ran.push(run("script tests", process.execPath, ["--test", ...testFiles]));
+  const testFiles = ["scripts/lib", "scripts/team/lib", "scripts/check-core"].flatMap((d) => { try { return readdirSync(resolve(repo, d)).filter((f) => f.endsWith(".test.mjs")).map((f) => `${d}/${f}`); } catch { return []; } });
+  if (testFiles.length) ran.push(run("script tests", process.execPath, ["--test", ...testFiles], { env: { TEAM_GATE: "1" } }));
 }
 
 const failed = ran.filter((r) => r.exit !== 0);
