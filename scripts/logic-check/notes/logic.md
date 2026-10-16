@@ -53,10 +53,13 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
 
 - Rate limits and the strike IP lock key on client-supplied X-Forwarded-For (NUM_PROXIES unset); safe only behind a
   proxy that overwrites it (Vercel does); set NUM_PROXIES if the host changes.
+- log-session credits every POST (no play id), so a play can be replayed up to 60/h × the per-game cap. An unknown
+  `game` falls back to MAX_SESSION_POINTS=1000, which allows up to 60k points/h (LC-GAMEDATA-02 asserts the cap itself;
+  Task 6's triage files this once: minor, backend).
 
 ## game-data + rooms suites (2026-10-16)
 
-- Budgets: `score-submit` 60/h is per account. `logic.actor` spends 5 `log-session` POSTs per run (the 400 one counts:
+- Budgets: `score-submit` 60/h is per account. `logic.actor` spends 6 `log-session` POSTs per run (the 400 one counts:
   DRF throttles every request that reaches the view). `wordle-play` 20/h: 3 POSTs on a fresh lgc throwaway's own bucket
   and 1 guest POST on a fresh simulated client. Neither is ever close to its limit.
 - `log-session` has no per-play dedupe. Each POST is a finished game and is credited, and the client's `awardedRef`
@@ -70,5 +73,9 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
   `waitFor(event, { since })`). Identify has no success event; LC-ROOMS-01 proves it by a reply only a player gets.
   Strangers in a random match see "Player" for a teen or age-unknown account (testuser4/5 are age-unknown unless the
   profile suite set an age).
+- Relay throttles (multiplayer_server/src/index.js): `joinFriendRoom` 8 per 10 s per account (JOIN_MAX_TRIES), then
+  "Too many attempts…"; `identify` 6 per 10 s per socket (IDENTIFY_MAX_TRIES, the rest are dropped silently); 30
+  events/s per socket (EVENT_MAX, the rest are dropped). LC-ROOMS-09, the busiest test, joins about 6 times in about 20 s.
 - Two checkers sharing one lane stack must run from the same checkout. If the minter is on one checkout's sqlite and
-  the running Django on another's, every id differs. The rooms suite now refuses to run in that state.
+  the running Django on another's, every id differs. ui-check's `stack-setup` now refuses that state for every suite
+  (see CHECKS.md "How runs work"), and stack.json records `repo: null, relayKey: null` for a reused Django.
