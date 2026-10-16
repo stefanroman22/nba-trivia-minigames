@@ -1,0 +1,32 @@
+// node --test scripts/check-core/stack.test.mjs — what ensureStack records in stack.json for a port set (stackMeta /
+// sameMeta): a reused Django that the helper did not start never gets the requested repo or relay key stamped on it.
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { sameMeta, stackMeta } from './lib/stack.mjs';
+
+const ports = { django: 8400, socket: 4400, web: 5574 };
+const base = { mode: 'prod', repo: 'C:\\w\\check-main', ports, base: 'http://localhost:5574', api: 'http://localhost:8400/api', socket: 'http://localhost:4400', relayKey: 'k1', keepStack: false };
+
+test('stackMeta: a Django started by the helper records the repo and relay key; a reused one records null for both', () => {
+  const ours = stackMeta({ ...base, djangoOurs: true });
+  assert.equal(ours.repo, base.repo);
+  assert.equal(ours.relayKey, 'k1');
+  const reused = stackMeta({ ...base, djangoOurs: false });
+  assert.equal(reused.repo, null);
+  assert.equal(reused.relayKey, null);
+  assert.deepEqual({ ...reused, repo: base.repo, relayKey: 'k1' }, ours); // nothing else differs
+});
+
+test('sameMeta: unchanged meta is not rewritten; a repo / key / null change is', () => {
+  const ours = stackMeta({ ...base, djangoOurs: true });
+  const reused = stackMeta({ ...base, djangoOurs: false });
+  assert.equal(sameMeta(ours, stackMeta({ ...base, repo: 'c:/w/check-main', djangoOurs: true })), true); // same dir, other spelling
+  assert.equal(sameMeta(reused, stackMeta({ ...base, repo: 'C:\\w\\elsewhere', djangoOurs: false })), true); // null = null
+  assert.equal(sameMeta(ours, reused), false); // a once-ours stack now reused: the stale repo/key must go
+  assert.equal(sameMeta(reused, ours), false); // a reused stack now started by us: record repo + key
+  assert.equal(sameMeta(ours, stackMeta({ ...base, repo: 'C:\\w\\checks-phase-b', djangoOurs: true })), false);
+  assert.equal(sameMeta(ours, stackMeta({ ...base, relayKey: 'k2', djangoOurs: true })), false);
+  assert.equal(sameMeta({ ...ours, relayKey: undefined }, reused), false); // an old entry without the key fields: rewrite once
+  assert.equal(sameMeta(null, ours), false);
+  assert.equal(sameMeta(ours, { ...ours, api: 'http://localhost:8401/api' }), false);
+});

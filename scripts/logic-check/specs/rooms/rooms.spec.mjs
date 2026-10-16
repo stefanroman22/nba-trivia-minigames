@@ -53,6 +53,9 @@ function poolKeys(key) {
   } catch { return []; }
 }
 
+/** The relay and Django share MULTIPLAYER_SHARED_SECRET: only a stack the helper started records its key (a reused
+ *  Django gets `relayKey: null` in stack.json, stackMeta), so null = unkeyed / unknown. */
+const relayKeyed = () => !!readStack()?.relayKey;
 const socketUrl = () => (readStack()?.socket || `http://localhost:${activePorts().socket}`).replace(/\/+$/, '');
 
 /**
@@ -92,13 +95,7 @@ async function session(lc, names = [HOST, PEER]) {
     },
     async close() { await Promise.all(Object.values(c).map((x) => x.close().catch(() => {}))); },
   };
-  // The relay keys players by Django's /api/me/ answer for the token: the minted payload must be that same account
-  // (a minter on another checkout's sqlite than the running Django would make every id assertion below wrong).
-  const api = (readStack()?.api || `http://localhost:${activePorts().django}/api`).replace(/\/+$/, '');
-  for (const n of names) {
-    const r = await fetch(`${api}/me/`, { headers: { authorization: `Bearer ${tokens[n].access}` } }).then((x) => x.json()).catch(() => null);
-    if (!r || !r.user || r.user.id !== tokens[n].user.id) throw new Error(`rooms: the stack's Django knows ${n} as ${r && r.user ? r.user.id : 'nobody'}, the minter as ${tokens[n].user.id} — the running stack is not the checkout under test (UI_CHECK_REPO)`);
-  }
+  // The minted ids are the relay's ids: stack-setup proved the running Django serves the minter's sqlite.
   try { for (const n of names) await s.connect(n); } catch (e) { await s.close(); throw e; }
   return s;
 }
@@ -379,9 +376,14 @@ test('[LC-ROOMS-08] both submitScore (host 50, joiner 10) → matchResult names 
           const st = Array.isArray(r.standings) ? r.standings : [];
           s.check(st.length === 2 && st[0].id === s.user[HOST].id && st[0].outcome === 'win' && st[0].score === 50 && st[1].id === s.user[PEER].id && st[1].outcome === 'loss', `${who} ← matchResult.standings`, st.map((x) => ({ id: x.id, score: x.score, outcome: x.outcome })), `[${HOST} 50 win, ${PEER} 10 loss]`);
         }
-        await s.absent(HOST, 'pointsAwarded', { since: marks[HOST], within: 1500, what: 'friend room' });
-        const after = { [HOST]: await points(api, 'logic.actor'), [PEER]: await points(api, 'logic.peer') };
-        for (const who of [HOST, PEER]) s.check(after[who] === before[who], `${who} /me/ points`, `${before[who]} → ${after[who]}`, 'unchanged: friend rooms never add points (index.js creditRoom)');
+        if (relayKeyed()) {
+          await s.absent(HOST, 'pointsAwarded', { since: marks[HOST], within: 1500, what: 'friend room' });
+          const after = { [HOST]: await points(api, 'logic.actor'), [PEER]: await points(api, 'logic.peer') };
+          for (const who of [HOST, PEER]) s.check(after[who] === before[who], `${who} /me/ points`, `${before[who]} → ${after[who]}`, 'unchanged: friend rooms never add points (index.js creditRoom)');
+        } else {
+          // An unkeyed relay credits nothing at all, so "no points" would prove nothing about friend rooms.
+          lc.warn('credit', { route: '/trivia/multiplayer-result/', selector: 'friend room credit', measured: 'not evaluated: stack.json has no relay key for this stack (reused, not started by the helper)', expected: 'a keyed stack (relay and Django share MULTIPLAYER_SHARED_SECRET)' });
+        }
       }
     }
   } finally { await s.close(); }
@@ -508,7 +510,7 @@ test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → m
         const r = await s.expect(who, 'matchResult', { since: m[who] });
         if (r) s.check(r.yourScore === score[who] && r.outcome === (who === PEER ? 'win' : 'loss'), `${who} ← matchResult`, { yourScore: r.yourScore, outcome: r.outcome }, `{ yourScore: ${score[who]}, outcome: ${who === PEER ? 'win' : 'loss'} }`);
       }
-      const keyed = !!readStack()?.relayKey; // the relay and Django share MULTIPLAYER_SHARED_SECRET (ensureStack)
+      const keyed = relayKeyed();
       for (const who of [HOST, PEER]) {
         const pa = await s.c[who].quiet('pointsAwarded', { since: m[who], within: 8000 });
         if (!pa) { (keyed ? lc.violation : lc.warn)('credit', { route: '/trivia/multiplayer-result/', selector: `${who} ← pointsAwarded`, measured: 'none within 8 s', expected: `{ awarded: ${score[who]} } (creditRoom → Django)${keyed ? '' : ' — this stack has no shared relay key'}` }); continue; }

@@ -30,4 +30,11 @@ setup('stack up', async () => {
   if (res.status !== 200) {
     throw new Error(`a token minted in ${appRepo()}/backend/db.sqlite3 got HTTP ${res.status} from ${stack.api}/me/ — the running Django is not using that sqlite DB (or another secret key)`);
   }
+  // Same signing key is not enough: another checkout's sqlite answers 200 for the same pk with ANOTHER account (its
+  // own testuser3, its own public id), and every id-based check downstream would then be wrong.
+  const me = await res.json().catch(() => null);
+  if (!me || !me.user || me.user.id !== testuser3.user.id) {
+    const p = `django=${ports.django},socket=${ports.socket},web=${ports.web}`;
+    throw new Error(`stack on ${p} serves a different sqlite than ${appRepo()} (testuser3 is ${me && me.user ? me.user.id : 'unknown'} there, ${testuser3.user.id} in the minter) — stop it or pass --repo of the serving checkout`);
+  }
 });

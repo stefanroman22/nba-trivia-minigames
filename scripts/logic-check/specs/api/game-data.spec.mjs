@@ -3,7 +3,7 @@
 // reports, the logged-in leaderboard rank agrees with the points (LC-LIVE-04's local equivalent), and the Wordle daily gate.
 // Plays as logic.actor (testuser4, minted tokens); Wordle as its own lgc throwaway with a fresh device id. Guest requests
 // go out as fresh simulated clients (lib/auth.mjs clientIp → X-Forwarded-For). Budgets: score-submit 60/h is keyed per
-// account for logic.actor (5 log-session POSTs a run); wordle-play 20/h per throwaway account (3) and per simulated guest (1).
+// account for logic.actor (6 log-session POSTs a run); wordle-play 20/h per throwaway account (3) and per simulated guest (1).
 import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -46,6 +46,14 @@ function rankTiers() {
   if (!body) return null;
   const tiers = [...body[1].matchAll(/self\.points >= (\d+):\s*\n\s*self\.rank = "([^"]+)"/g)].map((m) => ({ min: Number(m[1]), name: m[2] }));
   return { tiers, base: body[2] };
+}
+/** log-session's score caps from backend/trivia/views.py → { max, perGame: { id: cap } } or null. */
+function sessionCaps() {
+  const src = readApp('backend/trivia/views.py');
+  const max = /^MAX_SESSION_POINTS\s*=\s*(\d+)/m.exec(src);
+  const per = /^PER_GAME_MAX_POINTS\s*=\s*\{([^}]*)\}/m.exec(src);
+  if (!max || !per) return null;
+  return { max: Number(max[1]), perGame: Object.fromEntries([...per[1].matchAll(/"([^"]+)"\s*:\s*(\d+)/g)].map((m) => [m[1], Number(m[2])])) };
 }
 const tierOf = (t, points) => (t ? (t.tiers.find((x) => points >= x.min)?.name ?? t.base) : null);
 
@@ -209,6 +217,15 @@ test('[LC-GAMEDATA-02] log-session credits exactly the reported score: /me/ poin
   await play('the identical POST again', body, { awarded: [SCORE, 0] });
   await play('mode match (online results are the relay\'s to credit, AUTH-7)', { ...body, mode: 'match' }, { awarded: 0 });
   await play('score 0', { ...body, score: 0 }, { awarded: 0 });
+  // The clamp: a forged score is awarded exactly the game's cap (views.py PER_GAME_MAX_POINTS, else MAX_SESSION_POINTS).
+  // The visible game with the smallest cap keeps what the actor gains per run small.
+  const caps = sessionCaps();
+  if (!caps) lc.violation('setup', { route, selector: 'backend/trivia/views.py MAX_SESSION_POINTS / PER_GAME_MAX_POINTS', measured: 'not parsed', expected: 'the score caps' });
+  else {
+    const capOf = (id) => caps.perGame[id] ?? caps.max;
+    const capped = visibleGames().filter((g) => g.data && g.data.fn !== 'fetchGameData').sort((a, b) => capOf(a.id) - capOf(b.id))[0];
+    await play(`score 1e6 on ${capped.id} (cap ${capOf(capped.id)})`, { ...body, game: capped.id, score: 1e6 }, { awarded: capOf(capped.id) });
+  }
   await test.step('a guest → 200, awarded 0, no account', async () => {
     const r = await log(body, null);
     if (r.status !== 200 || !r.json || r.json.awarded !== 0 || r.json.points !== 0 || r.json.rank !== null) lc.violation('log-session', { route, selector: `POST ${route} as a guest`, measured: `${said(r)} ${short(JSON.stringify(r.json), 80)}`, expected: '200 { ok: true, awarded: 0, points: 0, rank: null }' });

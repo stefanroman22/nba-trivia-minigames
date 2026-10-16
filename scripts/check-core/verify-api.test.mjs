@@ -11,6 +11,9 @@ const home = mkdtempSync(path.join(os.tmpdir(), 'verify-api-'));
 process.env.UI_CHECK_HOME = home;
 process.env.UI_CHECK_MODE = 'prod';
 delete process.env.UI_CHECK_PORTS;
+// The app under test is an empty directory: no backend, no venv, so minting a persona's token always fails (F-MINT),
+// whatever sqlite the harness checkout happens to have.
+process.env.UI_CHECK_REPO = mkdtempSync(path.join(os.tmpdir(), 'verify-api-app-'));
 
 const { verifyFindings } = await import('../ui-check/lib/verify-core.mjs');
 const { LOGIC_RUN } = await import('../ui-check/lib/runner.mjs');
