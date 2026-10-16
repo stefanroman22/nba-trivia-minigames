@@ -228,9 +228,14 @@
 .scorepanel-line { display: flex; align-items: baseline; gap: 9px; }
 .scorepanel-label { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
 .scorepanel-pts { font-size: 1.15rem; font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
-/* The counting number reserves its final width (--digits = chars of the widest value;
-   .tnum fixes glyph width, + the 0.3px letter-spacing) so the centred line never shifts. */
-.scorepanel-num { display: inline-block; text-align: right; min-width: calc(var(--digits) * (1ch + 0.3px)); }
+/* The counting number reserves exactly its final width: an invisible ::before twin of the score it
+   counts to (data-final) sizes the box in the same font, so it is exact — a `ch` estimate over-reserved
+   ~1px per tabular digit and pushed the ink off centre (Rule 4.7) — and the live number counts up
+   right-aligned over it. A pseudo-element, not a text node, so the element's text is the number alone.
+   The line is stable during the count and dead centre when it lands. */
+.scorepanel-num { position: relative; display: inline-block; }
+.scorepanel-num::before { content: attr(data-final); visibility: hidden; }
+.scorepanel-num-live { position: absolute; inset: 0; text-align: right; }
 .scorepanel-actions { display: flex; gap: 10px; }
 
 /* ---------- GameFrame: the shared game layout (GameFrame.tsx) ----------
@@ -290,17 +295,42 @@
 .gf-action { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .gf-action:empty { display: none; }
 
-/* The one submission row. Every game that takes a typed answer uses this, so the
-   with-input family shares one width, one gap and one control height. */
+/* The one submission row (Rule 4.8). 3-column grid: the field is centred on the frame and the
+   submit button hangs in the right column; the empty left column mirrors it (--gf-side = the
+   actions' measured width, set by GameFrame.InputRow) so the button is never counted when centring. */
 .gf-inputrow {
-  display: flex;
+  --gf-side: 0px;
+  display: grid;
+  grid-template-columns: var(--gf-side) minmax(0, var(--gf-input-max, 300px)) var(--gf-side);
+  column-gap: 10px;
+  justify-content: center;
   align-items: stretch;
-  gap: 10px;
   width: 100%;
-  max-width: 440px;
+  container-type: inline-size;
+  position: relative; z-index: 1;  /* the container makes a stacking context: keep the field's dropdown above what follows the row */
 }
-.gf-inputrow > :first-child { flex: 1 1 auto; min-width: 0; }
+.gf-inputrow > :first-child { grid-column: 2; width: 100%; min-width: 0; }
+.gf-inputrow-actions { grid-column: 3; justify-self: start; display: flex; align-items: center; gap: 10px; }
 .gf-inputrow .btn { flex: none; }
+/* A row with more than one action cannot be mirrored without crushing the field: it keeps the
+   old field-then-actions flow (centred as a group). Only TicTacToe's online duel (Steal + Claim). */
+.gf-inputrow:has(> .gf-inputrow-actions > :nth-child(2)) { grid-template-columns: minmax(0, var(--gf-input-max, 300px)) auto; }
+.gf-inputrow:has(> .gf-inputrow-actions > :nth-child(2)) > :first-child { grid-column: 1; }
+.gf-inputrow:has(> .gf-inputrow-actions > :nth-child(2)) > .gf-inputrow-actions { grid-column: 2; }
+/* Narrow row: a mirrored text button would leave a ~106px field on a phone, so the button
+   collapses to a 44px icon. The text stays in the DOM (font-size 0) as its accessible name. */
+@container (max-width: 459px) {
+  .gf-inputrow-actions .btn {
+    position: relative; width: 44px; height: 44px; padding: 0; gap: 0;
+    font-size: 0; overflow: hidden;
+  }
+  .gf-inputrow-actions .btn::before {
+    content: ""; width: 20px; height: 20px; flex: none; background: currentColor;
+    -webkit-mask: var(--gf-icon-go) center / contain no-repeat;
+    mask: var(--gf-icon-go) center / contain no-repeat;
+  }
+}
+:root { --gf-icon-go: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 12h14M13 6l6 6-6 6' fill='none' stroke='black' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 
 /* ---------- Progress bar ---------- */
 .progress { height: 5px; border-radius: 5px; background: var(--surface3); overflow: hidden; }

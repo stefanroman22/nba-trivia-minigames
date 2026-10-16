@@ -1,12 +1,11 @@
-import type { CSSProperties } from "react";
 import { Button } from "./ui";
 import AnimatedNumber from "./motion/AnimatedNumber";
 
 export interface ScoreLineProps {
   /** Final score (the big number). */
   score: number;
-  /** Optional win/lose state lead-in only, e.g. "Board cleared!", "That's him!" — wins only, never a loss message (Rule 6.3), and never a count of
-   *  correct items (the board already shows them; GAME_DESIGN_CONSTRAINTS Rule 7.1). */
+  /** Optional win state lead-in, e.g. "Board cleared!", "That's him!" — shown only on a win (`won`), so a loss can never carry one (Rule 6.3),
+   *  and never a count of correct items (the board already shows them; GAME_DESIGN_CONSTRAINTS Rule 7.1). */
   label?: string;
   /** Optional "/N" cap shown after the score. */
   outOf?: number;
@@ -24,14 +23,14 @@ export interface ScoreActionsProps {
 export function ScoreLine({ score, label, outOf, won }: ScoreLineProps) {
   return (
     <div className="scorepanel-line">
-      {label && (
-        <span className="scorepanel-label" style={won ? { color: "var(--good)" } : undefined}>
+      {label && won && (
+        <span className="scorepanel-label" style={{ color: "var(--good)" }}>
           {label}
         </span>
       )}
       <span className="scorepanel-pts tnum">
-        <span className="scorepanel-num" style={{ "--digits": (outOf ?? score).toLocaleString().length } as CSSProperties}>
-          <AnimatedNumber value={score} />
+        <span className="scorepanel-num" data-final={score.toLocaleString()}>
+          <span className="scorepanel-num-live"><AnimatedNumber value={score} /></span>
         </span>
         {outOf != null ? `/${outOf.toLocaleString()}` : ""} pts
       </span>

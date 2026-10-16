@@ -341,8 +341,9 @@ function MiniGame() {
               })}
             </FeedbackSlotContext.Provider>
             {/* Shell-owned feedback slot: game popups portal here so "Correct! +10"
-                shows in one consistent spot in the gap above the leave link for every game. */}
-            <div className="feedback-slot" ref={setFeedbackSlot} aria-hidden="true" />
+                shows in one consistent spot in the gap above the leave link for every game.
+                Hidden once an in-place game ends: the ScorePanel buttons take this spot (Rule 6.4). */}
+            <div className={`feedback-slot${endedInPlace ? " is-ended" : ""}`} ref={setFeedbackSlot} aria-hidden="true" />
             {/* The one leave control while playing. Once an in-place game ends, its
                 ScorePanel shows Play again + Close game, so this link goes invisible
                 (visibility, not unmount: it keeps its box so the board doesn't shift). */}

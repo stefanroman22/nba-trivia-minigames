@@ -8,7 +8,9 @@
 //   .playing-wrap), with an in-page recorder per turn: feedback latency (submitting click/Enter → feedback
 //   element in a frame), its copy and colour (Rule 6.0) and banned loss copy (6.3); feedback shot on turn 1 →
 //   end: over, end shot, layout, in place vs full-screen GameResult (7.3), score above Play again / Close game
-//   (7.0), final score, no banned copy (6.3), adapter.endReveal, stage height constant while playing (6.2),
+//   (7.0), final score, no popup over the end controls in any frame of the end's first 2.5 s (6.4, recorder armed
+//   at Play), every component centred once settled (4.7 / 4.8), no score-line label on a loss (7.1 / 6.3), no
+//   banned copy (6.3), adapter.endReveal, stage height constant while playing (6.2),
 //   POST …/log-session/ 2xx with the score (solo) → Play again → playing shell → Close game → idle with a
 //   cross-fade (scenario `wrong` closes from the end screen instead, so both end buttons are exercised).
 import { readFileSync } from 'node:fs';
@@ -20,6 +22,8 @@ import { recordFrames, fadeSummary } from './guest.mjs';
 import { mintTokens } from './accounts.mjs';
 import { deleteAccountApi, runDigits } from './account.mjs';
 import { capPool } from '../games/helpers.mjs';
+import { MODES } from './stack.mjs';
+import { CENTRE_TOL, measureInPage, offCentre } from '../../lib/game-shell.mjs';
 import { activePorts } from '../../check-core/lib/ports.mjs';
 
 /**
@@ -137,6 +141,119 @@ function armFeedback({ selector, turn }) {
 function readFeedback() {
   if (window.__gmFbStop) window.__gmFbStop();
   return window.__gmFb || null;
+}
+
+/**
+ * Feedback popup over the end controls (Rule 6.4): sample EVERY animation frame from the moment the end controls
+ * first exist (`.scorepanel-actions`, or a full-screen result's buttons) until `windowMs` later. A frame is bad when
+ * a `.feedback-slot` child with effective opacity > 0.05 intersects a visible end control (Play again / Close game,
+ * the score line). Installed once per game before the first answer, so the final answer is always covered; frames
+ * before the end controls exist cost one querySelector. Polling from node is too slow (the bad window is ~0.6 s).
+ */
+function armEndOverlay(windowMs) {
+  if (window.__gmEndOv && window.__gmEndOv.stop) window.__gmEndOv.stop();
+  const st = (window.__gmEndOv = { endAt: null, frames: 0, bad: 0, first: null, done: false, stop: null });
+  const opacity = (el) => {
+    if (getComputedStyle(el).visibility === 'hidden') return 0;
+    let o = 1;
+    for (let e = el; e && e.nodeType === 1; e = e.parentElement) o *= +getComputedStyle(e).opacity;
+    return o;
+  };
+  const box = (el) => { const b = el.getBoundingClientRect(); return { left: +b.left.toFixed(1), top: +b.top.toFixed(1), right: +b.right.toFixed(1), bottom: +b.bottom.toFixed(1) }; };
+  const seen = (el) => { const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0 && opacity(el) > 0.05; };
+  const meets = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+  const resultButtons = () => {
+    const inner = document.querySelector('.stage-inner');
+    return inner && !inner.querySelector('.playing-wrap') ? [...inner.querySelectorAll('.btn')] : [];
+  };
+  const ended = () => !!document.querySelector('.scorepanel-actions') || resultButtons().some((b) => /Close game/.test(b.textContent || ''));
+  const label = (el) => `${el.matches('.btn') ? 'button' : '.scorepanel-line'} "${(el.textContent || '').replace(/\s+/g, ' ').trim()}"`;
+  let raf = 0;
+  const tick = () => {
+    if (st.endAt === null && ended()) st.endAt = performance.now();
+    if (st.endAt !== null) {
+      const t = performance.now() - st.endAt;
+      if (t > windowMs) { st.done = true; return; }
+      st.frames++;
+      const pops = [...document.querySelectorAll('.feedback-slot > *')].filter(seen);
+      if (pops.length) {
+        const controls = [...document.querySelectorAll('.scorepanel-actions .btn, .scorepanel-line, .endseq-slot .btn'), ...resultButtons()].filter(seen);
+        let hit = null;
+        for (const p of pops) for (const c of controls) if (!hit && meets(box(p), box(c))) hit = { p, c };
+        if (hit) {
+          st.bad++;
+          if (!st.first) st.first = { t: Math.round(t), text: (hit.p.textContent || '').replace(/\s+/g, ' ').trim(), opacity: +opacity(hit.p).toFixed(2), popup: box(hit.p), control: label(hit.c), controlRect: box(hit.c) };
+        }
+      }
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  raf = requestAnimationFrame(tick);
+  st.stop = () => cancelAnimationFrame(raf);
+}
+
+function readEndOverlay() {
+  const st = window.__gmEndOv;
+  if (!st) return null;
+  if (st.stop) st.stop();
+  return { endAt: st.endAt, frames: st.frames, bad: st.bad, first: st.first, done: st.done };
+}
+
+/** How long after the end controls first appear the overlay recorder keeps sampling. */
+export const END_OVERLAY_WINDOW_MS = 2500;
+
+/** Start the `feedback-over-end` recorder (once per game, before the first answer). */
+export const watchEndOverlay = (page) => page.evaluate(armEndOverlay, END_OVERLAY_WINDOW_MS);
+
+/**
+ * Wait until the recorder's window has run out (≤ window + 2.5 s), read it and record `feedback-over-end` when any
+ * sampled frame had a popup over an end control. → the record, or null when no recorder was installed.
+ */
+export async function checkEndOverlay(audit) {
+  const page = audit.page;
+  await page.waitForFunction(() => !window.__gmEndOv || window.__gmEndOv.done, null, { timeout: END_OVERLAY_WINDOW_MS + 2500 }).catch(() => {});
+  const rec = await page.evaluate(readEndOverlay);
+  if (rec && rec.bad > 0) {
+    const f = rec.first;
+    const rect = (b) => `${b.left},${b.top}→${b.right},${b.bottom}`;
+    audit.violation('feedback-over-end', {
+      selector: '.feedback-slot > *',
+      measured: `"${f.text}" (opacity ${f.opacity}) over ${f.control} ${f.t}ms after the end controls appeared (popup ${rect(f.popup)}, control ${rect(f.controlRect)}); ${rec.bad} of ${rec.frames} frames`,
+      expected: 'no feedback popup paints over Play again / Close game or the score line (Rule 6.4)',
+    });
+  }
+  return rec;
+}
+
+/**
+ * Who won: the adapter's own `won(scenario, turns)`, else `perfect`, or `partial` that ended on a right answer (the
+ * lives games spend their misses first, then finish the board). Every other scenario is a loss.
+ */
+export const isWin = (adapter, scenario, turns) => (adapter.won
+  ? !!adapter.won(scenario, turns)
+  : scenario === 'perfect' || (scenario === 'partial' && turns.length > 0 && !!turns[turns.length - 1].correct));
+
+/** Rule 7.1 / 6.3: a loss carries no label on the end score line (`loss-label`). → the label text or null. */
+export async function checkLossLabel(audit, adapter, scenario, turns) {
+  const label = await audit.page.evaluate(() => {
+    const el = document.querySelector('.stage-inner .scorepanel-label');
+    return el ? el.textContent.replace(/\s+/g, ' ').trim() : null;
+  });
+  if (label !== null && !isWin(adapter, scenario, turns)) {
+    audit.violation('loss-label', { selector: '.scorepanel-label', measured: `"${label}" on the end score line after a loss (scenario ${scenario})`, expected: 'a loss shows the points alone, no label (Rule 7.1 / 6.3); a label only on a win' });
+  }
+  return label;
+}
+
+/** Rule 4.7 / 4.8 at an in-place end: every visible component centred on the frame (score line by its ink). */
+export async function checkEndCentre(audit, adapter) {
+  const row = await audit.page.evaluate(measureInPage);
+  if (!row.mounted) return [];
+  const bad = offCentre(row.centre);
+  for (const c of bad) {
+    audit.violation('off-centre', { selector: c.what, measured: `${adapter.id}: ${c.what} is ${c.off}px off centre (by ${c.by}) at the end`, expected: `centred on the game frame within ${CENTRE_TOL[c.by]}px (Rule 4.7 / 4.8)` });
+  }
+  return row.centre;
 }
 
 /** var(--good) / var(--bad) / var(--muted) as computed colours. */
@@ -316,7 +433,7 @@ export function watchLogSession(page) {
 export const endButtons = (adapter) => (adapter.playAgain === false ? ['Close game'] : ['Play again', 'Close game']);
 const missingEndButtons = (adapter, geo) => endButtons(adapter).filter((n) => !geo.buttons.some((b) => b.text === n));
 
-/** End-state assertions (7.0, 7.3, 6.3, 6.2, score, points logged). */
+/** End-state assertions (7.0, 7.3, 6.4, 4.7 / 4.8, 7.1, 6.3, 6.2, score, points logged). */
 export async function checkEnd(audit, adapter, ctx, { turns, over, sessionLog, logged = true, resize = true, scoreKnown = true }) {
   const page = audit.page;
   if (!over) {
@@ -357,6 +474,14 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, sessionLog, l
       audit.violation('end-score', { selector: inPlace ? '.scorepanel-num' : 'GameResult score', measured: `shows ${got}`, expected: adapter.expectedScore ? `${want} (adapter's expected score)` : `${want} (${turns.filter((t) => t.correct).length} right × ${adapter.pointsPerCorrect})` });
     }
   }
+  // Rule 6.4: no feedback popup painted over the end controls (recorder armed by playScenario). Its window runs
+  // 2.5 s past the end controls' first frame, so the score count-up has landed before the centring is measured.
+  const overlay = await checkEndOverlay(audit);
+  if (!overlay || overlay.endAt === null) await page.waitForTimeout(1000);
+  // Rule 4.7 / 4.8: in place, every component of the settled end state is centred (the score line by its ink).
+  if (geo.inPlace) await checkEndCentre(audit, adapter);
+  // Rule 7.1 / 6.3: a label on the score line only on a win.
+  await checkLossLabel(audit, adapter, ctx.scenario, turns);
   // Rule 6.3: the end state never announces the loss.
   const text = await stageText(page);
   const banned = BANNED_LOSS.exec(text);
@@ -495,6 +620,7 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
   await audit.shot('idle');
   await startGame(page);
   await watchStage(page);
+  await watchEndOverlay(page);
   await audit.shot('playing');
   await audit.layout({ scope: 'section.stage-col' });
 

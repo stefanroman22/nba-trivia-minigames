@@ -183,6 +183,27 @@ scripts/ui-check/run.mjs --stop` resets them. The log-session assertion stays on
   `var(--bad)` resolved in the page.
 - Before arming each turn the driver waits (≤ 3 s) until the previous turn's feedback has left, so an exiting popup is
   never timed as the next turn's feedback.
+- **Centring (`off-centre`, Rule 4.7 / 4.8) is judged on ink, not boxes, for text.** The centre line is the `.gf` box's
+  centre. Text (`.gf-prompt` children, `.scorepanel-line`) is measured as the union of its text nodes' client rects
+  (a Range per text node, surrounding whitespace trimmed), because a centred box can hold off-centre text: ScorePanel's
+  `.scorepanel-num` reserves the final number's width (`--digits`) with `text-align: right`, so a reserve computed
+  from the wrong number (e.g. the `/N` cap) pushes the visible "0 pts" right while the line's box stays centred.
+  Boxes for the rest; an input row is judged by its `input` only (the owner's rule: the field is centred, its buttons
+  are not counted). The status row is excluded (left/right by design, its lone-slot rule is separate). Tolerance:
+  box 1.5 px, ink 2 px (eyebrow letter-spacing alone puts ink ~0.75 px right). At the end the scenarios measure only
+  after the overlay window below (≥ 2.5 s after the end buttons appear), so the AnimatedNumber count-up has landed.
+- **Popup over the end controls (`feedback-over-end`, Rule 6.4): sampled on every frame, never polled.** Repro that
+  motivated it (Fan Favorites, 2026-10-16): the board-clearing answer pops "Board cleared! +300" (lives 1500 ms)
+  while the game ends in place at ~700 ms, so the green pill sat over Play again / Close game for ~27 frames
+  (~0.6 s). Playwright polling (a CDP round trip per sample, 100 ms+ under 4 workers) can miss a window that short,
+  so the driver arms an in-page `requestAnimationFrame` recorder at Play (`watchEndOverlay`), which does nothing
+  until `.scorepanel-actions` (or a full-screen result's Close game) exists, then checks every frame for 2.5 s and
+  is read back once in `checkEnd` (`checkEndOverlay`). Effective opacity multiplies up the ancestor chain, so the
+  shell's `.feedback-slot.is-ended` fade-out counts as gone once it drops to 0.05.
+- **`loss-label` (Rule 7.1 / 6.3)**: a win is `perfect`, or `partial` that ended on a right answer (the lives games
+  spend their misses first, then finish the board, so their `partial` is a win with its label), unless the adapter
+  defines `won(scenario, turns)`. `wrong`, `giveup`, `timeout` and `daily-lock` are losses: a `.scorepanel-label`
+  there (Contexto's old "Gave up", Heatmap's "Board done") is the violation.
 - The negative control (an adapter wrapper with wrong points, `endsInPlace: true` and a 40 px padding injected on
   turn 3) produced `feedback-copy`, `end-score`, `not-in-place`, `points-not-logged`, `stage-resized` (Δ40 on turn 3)
   and `snap` on all three core viewports — the rules fire. It was a temporary spec, not committed.
