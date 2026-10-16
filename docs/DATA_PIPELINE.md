@@ -81,6 +81,30 @@ and needs the header `X-Relay-Key`.
   Locally, leave both unset to call `stats.nba.com` directly from a home connection, or set
   both to test the relay path.
 
+## Cloud refresh (`data-refresh.yml`)
+
+The monthly refresh as a GitHub Actions workflow, through the relay, so no PC is needed
+(spec §4.13). Jobs: **sync** (`sync_nba_data --seasons 2 --max-games 20 --timeout 25 --journal`,
+journaled as `FactoryRun` kind `refresh`; any dataset failure fails the run and the job, and the
+nightly `factory_health` reports `refresh_failed`) → **curated** (`generate_players_curated
+--rewrite-all-players` on dev's files, raw cache restored from this month's workflow cache and
+also kept 7 days as the `nba-raw-cache` artifact) → **validate** (`curated_validate.py`, parity
+included) → **land** (PR `Data refresh <date>` from `refresh-pr/<date>` to `dev` with
+`players_curated.json` + `all-players.json`, merged at once; then `upload_dataset`) → **supply**
+(`publish-game-data.yml` with `trigger=data-refresh`, from `main` only). A failure in curated or
+validate posts one line to Slack `#agent-backend`; nothing is committed or uploaded before
+validation passes, so the previous dataset stays.
+
+- **Triggers:** the 1st of each month 01:00 UTC; Run workflow (inputs `limit`, `full` for a
+  `--full` backfill); a push to any `refresh/**` branch, so a change can be tried before promotion.
+- **Smoke mode:** a push to `refresh/test-*` (25 players) or a dispatch with `limit` > 0. Sync takes
+  one season and 5 games per season, curated writes the first N players to `build/` (artifact
+  `refresh-dataset`), validation is reported but not enforced, and a **draft** PR
+  `[test] data refresh <date>` from `refresh-pr/<date>-test` is opened and never merged (close it).
+  No `upload_dataset`, no supply.
+- **Re-run:** "Re-run failed jobs" (or a new dispatch the same month) resumes the curated step from
+  the cached profiles; a new month starts from an empty cache so every player is fetched fresh.
+
 ## How it's served (two paths, both fed by the store)
 
 - **Single-player** reads static `/data/*.json` pools from the Vercel CDN (cheap,

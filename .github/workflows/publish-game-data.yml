@@ -47,6 +47,11 @@ on:
         required: false
         default: false
         type: boolean
+      trigger:
+        description: "what started this run, for the factory journal (manual | data-refresh)"
+        required: false
+        default: manual
+        type: string
 concurrency:
   group: publish-game-data
   cancel-in-progress: false
@@ -108,7 +113,7 @@ jobs:
           GAMES: ${{ github.event_name == 'schedule' && 'career-path,who-are-ya,tictactoe,contexto' || inputs.games }}
           DRY_RUN: ${{ inputs.dry_run }}
           SKIP_MAINTAIN: ${{ inputs.skip_maintain }}
-          TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
+          TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || inputs.trigger || 'manual' }}
         run: |
           extra=()
           if [ "$DRY_RUN" = "true" ]; then extra+=(--no-commit); fi

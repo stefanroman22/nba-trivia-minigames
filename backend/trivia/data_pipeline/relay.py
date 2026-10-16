@@ -21,6 +21,7 @@ def configure():
 
     Both variables or neither: one alone raises, so a half-configured run never
     falls back to a direct call that a runner cannot make. Idempotent.
+    Once installed, later changes to the variables are ignored until reset().
     """
     global _ORIGINAL
     base = os.environ.get("NBA_RELAY_BASE", "").strip()
