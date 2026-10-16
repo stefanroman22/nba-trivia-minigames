@@ -42,6 +42,8 @@ decides anything — the per-task policy in `docs/team/PIPELINE.md` §14 is what
 - `code-reviewer` — read-only audit
 - `ui-check-guest`, `ui-check-account`, `ui-check-games`, `ui-check-multiplayer` — UI-check judges
   (sonnet / medium): turn one suite's digest into findings (`docs/ui-check/README.md`)
+- `logic-check-triage` — Logic Check triage (sonnet / medium): turns a Logic run's failures into findings, only
+  when a check failed (`docs/logic-check/README.md`)
 - verify gate — `scripts/team/verify.mjs` (lint / typecheck / build / Django tests; no agent)
 
 The main orchestrator model is `model` in `.claude/settings.json` (default `fable`) — edit it directly if needed.
