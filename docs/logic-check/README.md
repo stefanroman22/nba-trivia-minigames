@@ -118,20 +118,40 @@ after promotion; `verify.mjs --live` evaluates them on the live site.
   here and lists it under the digest's Coverage gaps as `blocked by LC-… (card …)`.
 - **resolve** (start of every nightly run, or `node scripts/check-core/lib/channel.mjs resolve` by hand): a block is
   resolved when its card is Done and the card's Commit is an ancestor of `origin/main` (`notion.mjs get-card`, then
-  `git merge-base --is-ancestor`), or Done without a Commit (closed by hand). It prints `catchup-logic <LC ids>` (the
-  resolved services' Logic checks) and `catchup-ui <ids>` (the deferred UI checks it released).
+  `git merge-base --is-ancestor`), or Done without a Commit (closed by hand). It prints `catchup-logic <LC ids>` and
+  `catchup-ui <ids>` (the deferred UI checks it released). `catchup-logic` is every local Logic check tagged with a
+  resolved service, never an `LC-LIVE-` check (catch-up runs on local main; the live site may not carry the fix yet,
+  the live cron confirms it); a `games.<id>` block also re-runs `LC-GAMEDATA-01`, and for an online game the rooms
+  checks that deal a round (`LC-ROOMS-07`, `LC-ROOMS-10`), so a game's UI catch-up is always gated by a Logic re-run.
 - **catch-up**: Logic re-runs the `catchup-logic` ids first; only when they pass does UI check run the `catchup-ui`
-  ids (`--only … --vp all`). Then the normal nightly run follows.
+  ids (`--only … --vp all`). Then the normal nightly run follows. Catch-up runs are not judged and not pushed (the full
+  runs that follow cover the same checks); they are ordinary runs for retention, so they count toward each checker's
+  last 5.
 
 The loop: Logic finds → card → the pipeline fixes → main → Logic confirms → UI check catches up.
 `node scripts/check-core/lib/channel.mjs show` prints the blocks and pending deferrals.
 
 ## The nightly run
 
-Task Scheduler task `nba-checks` (daily 02:00, StartWhenAvailable, stopped after 4 h) runs `scripts/check-run.ps1`
-from the main checkout. Register it with `scripts/register-check-cron.ps1`, remove it with
-`scripts/unregister-check-cron.ps1`. Order:
+Task Scheduler task `nba-checks` (daily 02:00, StartWhenAvailable, stopped after 6 h) runs `scripts/check-run.ps1`.
+Register it with `scripts/register-check-cron.ps1`, remove it with `scripts/unregister-check-cron.ps1`.
 
+**Where it runs.** The tooling (these scripts, the skills, the agents, the notes) runs from a dedicated worktree,
+`<worktreeRoot>\checks-nightly` on branch `checks-nightly`, which the register script creates from `origin/dev` (with
+junctions `backend\.venv` and `multiplayer_server\node_modules` to the main checkout's, and its own `npm ci`); the
+task's working directory is that worktree. The app under test is always `--ref main` (`<worktreeRoot>\check-main`).
+`check-run.ps1` refuses to run from the main checkout (the owner's working tree) unless `-AllowMainCheckout` is
+passed. `UI_CHECK_HOME` is pinned to `%LOCALAPPDATA%\nba-ui-check`, the same home the skills use from the main
+checkout, so the channel, the cards ledger and the runs are shared. `.env.team` (`NOTION_TOKEN`, `SLACK_BOT_TOKEN`)
+is read from the worktree, else from the main checkout.
+
+Order:
+
+0. take the lock; stop whatever still runs on the checker ports (a killed night, a daytime `--keep-stack`: a stale
+   stack is never reused); commit leftover notes; update the tooling: `git fetch origin dev`, `git merge --ff-only
+   origin/dev`, else `git rebase origin/dev` (its notes commits on top); a rebase conflict aborts the rebase, stops the
+   night and says so on Slack; `npm ci` when `package-lock.json` changed (this script itself takes the update the
+   next night: PowerShell has already read it);
 1. `channel.mjs resolve` → resolved blocks and catch-up lists;
 2. catch-up: Logic `--only <catchup-logic>`, then (if green) UI check `--only <catchup-ui> --vp all`;
 3. Logic Check `--suite all --ref main --live` → triage (only on FAIL sections) → `report.mjs --validate` →
@@ -139,16 +159,30 @@ from the main checkout. Register it with `scripts/register-check-cron.ps1`, remo
 4. UI check `--suite all --ref main`, then `--live` → the four judges (only on FAIL sections) → validate →
    `notion-push --checker ui`;
 5. `retain.mjs --home <uicHome>`;
-6. one Slack line in #pipeline (`check-summary.mjs`): cards created per checker, blocks written, resolved, deferred
-   checks pending, run ids, duration.
+6. stop the stack; commit the notes the agents and retention changed on `checks-nightly` (`checks: notes <date>`) and
+   push `origin/checks-nightly` (never `dev`); one Slack line; release the lock.
 
-Agents run through `claude -p` (Sonnet), as `scripts/team-run.ps1` does: the triage with the logic-check skill's step 2,
-the judges with the ui-check skill's steps 2-3. When `claude` is not on PATH the digest path goes to the log and the
-Slack line says "triage needed" / "judges needed". Every run writes `<uicHome>/logs/check-<ts>.log` (and the
-`.json` state the Slack line is built from); `<uicHome>/check-run.lock` keeps two runs from overlapping; every exit
-path stops the stack and releases the lock. `.env.team` provides `NOTION_TOKEN` and `SLACK_BOT_TOKEN`.
+**Slack.** One line per run in #pipeline (`check-summary.mjs`): the duration, the catch-up runs, each checker's run id
+and exit code, cards created per checker (regressions, push errors), blocks written, blocks resolved (spec §7's "one
+line per resolution" is folded into this count), deferred checks pending, and notes (`triage needed`, `agent timed
+out: <step>`, infra exits, a stopped rebase, a failed notes push).
+
+**Agents** run through `claude -p` (Sonnet), as `scripts/team-run.ps1` does: the triage with the logic-check skill's
+step 2, the judges with the ui-check skill's steps 2-3. Each runs in a child process under a watchdog: after
+`-AgentTimeoutSec` (default 2700 s = 45 min) its whole process tree is killed and the step is noted as
+`agent timed out: <step>`; validation and the push still run on what it wrote. When `claude` is not on PATH the digest
+path goes to the log and the Slack line says "triage needed" / "judges needed".
+
+**Exits.** Every run writes `<uicHome>/logs/check-<ts>.log` (and the `.json` state the Slack line is built from);
+`<uicHome>/check-run.lock` keeps two runs from overlapping (a lock whose PID is gone is taken over). A normal or failed
+exit stops the stack and releases the lock. A hard kill (the task's 6 h limit, a reboot) cannot: the stack stays up
+until the next night's step 0 stops it, and the stale lock is taken over then.
 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-run.ps1 -DryRun` prints the plan and runs nothing;
 `-Ports django=…,socket=…,web=…` moves the whole run to another port set.
+
+**Getting the notes to dev.** `checks-nightly` only ever receives the tooling from `dev` and its own notes commits;
+they reach `dev` with the next tooling PR (merge `checks-nightly` → `dev`), or a weekly owner PR of `checks-nightly`
+→ `dev` when no tooling PR is due.
 
 The live suite also runs every 6 h on GitHub Actions (`.github/workflows/logic-live.yml`): a Slack line on a failure,
 a card (owner `ci`, scripted triage `lib/live-triage.mjs`, no agent) only when the same check failed in two consecutive
