@@ -372,7 +372,8 @@ function standingsFor(room, viewerUid) {
 // rooms never do (friends could farm points against each other): they play for the scoreboard only.
 // Only the relay can credit: Django's /trivia/multiplayer-result/ requires MULTIPLAYER_SHARED_SECRET,
 // and the scores are this room's own (already clamped in submitScore / set by turnGames). Each player
-// is credited once per round. Unset secret (local dev): online play awards nothing.
+// is credited once per round. Unset secret (local dev): online play awards nothing. Each player's
+// receipt row (awarded, points, rank, rank_up, progress, streak, …) is forwarded as-is in pointsAwarded.
 const API_BASE_URL = process.env.API_BASE_URL || "http://localhost:8000";
 const RELAY_KEY = process.env.MULTIPLAYER_SHARED_SECRET || "";
 
@@ -393,7 +394,7 @@ function creditRoom(room) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.json();
       for (const r of body.results || []) {
-        if (r.awarded > 0) toUid(r.public_id, "pointsAwarded", { awarded: r.awarded, points: r.points, rank: r.rank });
+        if (r.awarded > 0) toUid(r.public_id, "pointsAwarded", r);
       }
     })
     .catch((err) => console.error(`Crediting room ${room.code} failed:`, err.message));
