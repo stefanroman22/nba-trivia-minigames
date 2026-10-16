@@ -10,13 +10,15 @@ export const UIC_ROOT = uicHome();
 
 const pad = (n) => String(n).padStart(2, '0');
 
-/** The run id (UI_CHECK_RUN, else YYYYMMDD-HHmm + `suffix`, e.g. '-live' for run.mjs --live, fixed for the process). */
+/** The run id (UI_CHECK_RUN, else YYYYMMDD-HHmm + `suffix`, e.g. '-live' for run.mjs --live, fixed for the process).
+ *  A Logic Check run (UI_CHECK_CHECKER=logic) never moves the `latest` pointer: that stays the newest UI check run. */
 export function runId(suffix = '') {
   if (!process.env.UI_CHECK_RUN) {
     const d = new Date();
     process.env.UI_CHECK_RUN = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${suffix}`;
   }
   const id = process.env.UI_CHECK_RUN;
+  if (process.env.UI_CHECK_CHECKER === 'logic') return id;
   const latest = path.join(UIC_ROOT, 'latest');
   try {
     let current = null;

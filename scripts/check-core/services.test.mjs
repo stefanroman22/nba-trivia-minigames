@@ -44,6 +44,7 @@ test('parseServices throws on a row without services, a table without the column
   assert.throws(() => parseServices('| ID | proves |\n|---|---|\n| `AC-X-01` | x |\n'), /AC-X-01: its table has no services column/);
   assert.throws(() => parseServices('| ID | services |\n|---|---|\n| `MP-X-01` | rooms, sockets |\n'), /unknown service\(s\) sockets/);
   assert.throws(() => parseServices('| ID | services |\n|---|---|\n| `LC-X-01` | - |\n'), /only for ST-\/ACCEPT rows/);
+  assert.deepEqual(parseServices('| ID | services |\n|---|---|\n| `LC-ST-GUARD` | - |\n').get('LC-ST-GUARD'), []); // Logic selftests
   assert.throws(() => parseServices('| ID | services |\n|---|---|\n| `G-X-01` | games.<game> |\n'), /needs a <game> placeholder/);
 });
 

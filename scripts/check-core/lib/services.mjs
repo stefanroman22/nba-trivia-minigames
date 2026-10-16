@@ -3,7 +3,7 @@
 // skips (defers) every check tagged with that service (check-core/lib/channel.mjs).
 //   pages, auth, signup, profile, friends, leaderboard, game-data, rooms, matchmaking, relay, plus games.<id>
 // A generated family row (`GM-<game>-<scenario>`) may name `games.<game>`: servicesOf fills the placeholder from the id.
-// Cell `-` = explicitly none, allowed only for rows that test the harness itself (ST- selftests, ACCEPT).
+// Cell `-` = explicitly none, allowed only for rows that test the harness itself (ST- / LC-ST- selftests, ACCEPT).
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { ROOT } from './home.mjs';
@@ -13,7 +13,7 @@ export const UI_CHECKS_MD = path.join(ROOT, 'scripts', 'ui-check', 'CHECKS.md');
 export const LOGIC_CHECKS_MD = path.join(ROOT, 'scripts', 'logic-check', 'CHECKS.md');
 
 const GAME = /^games\.([a-z0-9][a-z0-9-]*|<game>)$/;
-const NO_SERVICES = /^(ST-|ACCEPT)/;
+const NO_SERVICES = /^((LC-)?ST-|ACCEPT)/;
 /** A known service name (`games.<id>` with a lower-case slug, or the `games.<game>` placeholder of a family row). */
 export const isService = (s) => SERVICES.includes(s) || GAME.test(s);
 
@@ -44,7 +44,7 @@ export function parseServices(checksMd, { file = 'CHECKS.md' } = {}) {
     if (!cell) { errs.push(`${at}: services cell is empty`); return; }
     if (cell === '-') {
       if (NO_SERVICES.test(id)) out.set(id, []);
-      else errs.push(`${at}: "-" (no services) is only for ST-/ACCEPT rows`);
+      else errs.push(`${at}: "-" (no services) is only for ST-/ACCEPT rows (and LC-ST- selftests)`);
       return;
     }
     const list = cell.split(',').map((s) => s.trim()).filter(Boolean);

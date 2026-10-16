@@ -27,9 +27,10 @@ let child = null;
 /**
  * Run one Playwright invocation → its exit code. `log`: a file that takes the child's stdout/stderr instead of this
  * terminal (verify/probe keep their own output compact); without it the child inherits stdio and a header is printed.
+ * `config`: the Playwright config directory (default scripts/ui-check; Logic Check passes scripts/logic-check).
  */
-export function playwright(projects, { workers, grep, grepInvert, headed, env, log = null }) {
-  const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, UIC), '--workers', String(workers), '--pass-with-no-tests'];
+export function playwright(projects, { workers, grep, grepInvert, headed, env, log = null, config = UIC }) {
+  const args = [PW_CLI, 'test', '-c', path.relative(REPO_ROOT, config), '--workers', String(workers), '--pass-with-no-tests'];
   for (const p of projects) args.push('--project', p);
   if (grep) args.push('--grep', grep);
   if (grepInvert) args.push('--grep-invert', grepInvert);
