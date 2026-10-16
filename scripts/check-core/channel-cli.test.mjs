@@ -7,7 +7,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { block, defer, planBlocks, readChannel, servicesToBlock } from './lib/channel.mjs';
+import { block, catchUpLogicIds, defer, planBlocks, readChannel, servicesToBlock } from './lib/channel.mjs';
 
 const CLI = fileURLToPath(new URL('./lib/channel.mjs', import.meta.url));
 const tmpHome = () => mkdtempSync(path.join(os.tmpdir(), 'channel-cli-'));
@@ -24,13 +24,13 @@ test('block CLI: one block, idempotent, needs service/by/card', () => {
   const a = run(home, 'block', '--service', 'auth', '--by', 'LC-AUTH-01', '--finding', 'UIC-20261017-0200-logic-001', '--card', 'card-1', '--run', '20261017-0200-logic');
   assert.equal(a.code, 0, a.err);
   assert.deepEqual(a.out, ['block auth by LC-AUTH-01 card card-1 (new)']);
-  assert.deepEqual(run(home, 'block', '--service', 'auth', '--by', 'LC-AUTH-01', '--card', 'card-1').out, ['block auth by LC-AUTH-01 card card-1 (kept)']);
+  assert.deepEqual(run(home, 'block', '--service', 'auth', '--by', 'LC-AUTH-01', '--finding', 'UIC-20261017-0200-logic-001', '--card', 'card-1').out, ['block auth by LC-AUTH-01 card card-1 (kept)']);
   const c = readChannel({ file: path.join(home, 'channel.json') });
   assert.equal(c.blocks.length, 1);
   assert.deepEqual([c.blocks[0].finding, c.blocks[0].runId], ['UIC-20261017-0200-logic-001', '20261017-0200-logic']);
-  const bad = run(home, 'block', '--service', 'auth', '--by', 'LC-AUTH-02');
+  const bad = run(home, 'block', '--service', 'auth', '--by', 'LC-AUTH-02', '--card', 'card-2');
   assert.equal(bad.code, 2);
-  assert.match(bad.err, /needs --service, --by and --card/);
+  assert.match(bad.err, /needs --service, --by, --finding and --card/);
   assert.equal(run(home, 'nonsense').code, 2);
 });
 
@@ -128,4 +128,18 @@ test('resolve CLI with --fake: Done + commit on main resolves, catch-up lists Lo
   const again = run(home, 'resolve', '--fake', fake);
   assert.deepEqual(again.out.filter((l) => l.startsWith('catchup-')), ['catchup-logic -', 'catchup-ui -']);
   assert.equal(run(home, 'resolve', '--fake', path.join(home, 'missing.json')).code, 2);
+});
+
+test('catchUpLogicIds: local checks only, a game block re-runs LC-GAMEDATA-01 (+ the round-dealing rooms checks when online)', () => {
+  const logic = new Map([
+    ['LC-LIVE-03', ['game-data']], ['LC-LIVE-06', ['relay']], ['LC-GAMEDATA-01', ['game-data']], ['LC-GAMEDATA-04', ['games.wordle', 'game-data']],
+    ['LC-ROOMS-01', ['relay']], ['LC-ROOMS-07', ['rooms', 'relay']], ['LC-ROOMS-10', ['matchmaking', 'relay']], ['LC-SIGNUP-03', ['signup']],
+  ]);
+  const online = (id) => id === 'contexto';
+  assert.deepEqual(catchUpLogicIds(['relay'], logic), ['LC-ROOMS-01', 'LC-ROOMS-07', 'LC-ROOMS-10']);
+  assert.deepEqual(catchUpLogicIds(['games.wordle'], logic, { isOnline: online }), ['LC-GAMEDATA-04', 'LC-GAMEDATA-01']);
+  assert.deepEqual(catchUpLogicIds(['games.contexto'], logic, { isOnline: online }), ['LC-GAMEDATA-01', 'LC-ROOMS-07', 'LC-ROOMS-10']);
+  assert.deepEqual(catchUpLogicIds(['game-data'], logic), ['LC-GAMEDATA-01', 'LC-GAMEDATA-04']);
+  assert.deepEqual(catchUpLogicIds([], logic), []);
+  assert.deepEqual(catchUpLogicIds(['signup'], null), []);
 });

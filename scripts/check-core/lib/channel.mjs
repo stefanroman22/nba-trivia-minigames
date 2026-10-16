@@ -23,7 +23,8 @@
 //   node scripts/check-core/lib/channel.mjs resolve [--fake <lookups.json>]
 //       resolve() with Notion (`notion.mjs get-card <id>`: Status Done + its Commit) and git (`git fetch origin main`, then
 //       `git merge-base --is-ancestor <Commit> origin/main`) → `resolved …` / `error card …` lines, then
-//       `catchup-logic <LC ids|->` (the resolved services' Logic checks), `catchup-ui <ids|->` (the released deferred UI
+//       `catchup-logic <LC ids|->` (catchUpLogicIds: the resolved services' local Logic checks, never LC-LIVE; a
+//       games.<id> also LC-GAMEDATA-01 + the round-dealing rooms checks for an online game), `catchup-ui <ids|->` (the released deferred UI
 //       checks, `--only` form) and `resolve: N resolved · M still blocking · E error(s)`. --fake replaces both lookups:
 //       { "cards": { "<card>": { "done": true, "commit": "<sha>" } | { "error": "…" } }, "onMain": ["<sha>"] }.
 // Every subcommand takes --home <dir> (default uicHome(), UI_CHECK_HOME).
@@ -178,6 +179,28 @@ export function planBlocks({ doc, results = [], ledger = {}, runId, maps }) {
   return { blocks: [...blocks.values()], skipped };
 }
 
+/** Rooms checks that deal a game's round (roundData): a resolved games.<id> of an online game re-runs them. */
+export const ROOM_ROUND_CHECKS = ['LC-ROOMS-07', 'LC-ROOMS-10'];
+
+/**
+ * The Logic checks a catch-up re-runs for resolved `services` (logicMap: the logic CHECKS.md services map) → ids.
+ * Every local LC check tagged with a resolved service; a `games.<id>` service also re-runs LC-GAMEDATA-01 (each game's
+ * data sources) and, when isOnline(id), the rooms checks that deal a round. Never an LC-LIVE check: catch-up runs on
+ * local main and the live site may not carry the fix yet (the live cron confirms it). A game block therefore always
+ * yields a Logic re-run that gates UI check's catch-up of that game.
+ */
+export function catchUpLogicIds(services, logicMap, { isOnline = () => false } = {}) {
+  if (!services.length || !logicMap) return [];
+  const ids = new Set(checksForServices(services, [logicMap]));
+  for (const s of services) {
+    const m = /^games\.([a-z0-9][a-z0-9-]*)$/.exec(s);
+    if (!m) continue;
+    ids.add('LC-GAMEDATA-01');
+    if (isOnline(m[1])) for (const id of ROOM_ROUND_CHECKS) ids.add(id);
+  }
+  return [...ids].filter((id) => id.startsWith('LC-') && !id.startsWith('LC-LIVE-'));
+}
+
 /** resolve() lookups from a --fake JSON: { cards: { card: { done, commit } | { error } }, onMain: [sha] }. */
 export function fakeLookups(fake) {
   const cards = (fake && fake.cards) || {};
@@ -252,7 +275,7 @@ export async function cli(argv, { log = console.log, err = console.error } = {})
     return 0;
   }
   if (cmd === 'block') {
-    if (!o.service || !o.by || !o.card) { err(`channel: block needs --service, --by and --card\n${USAGE}`); return 2; }
+    if (!o.service || !o.by || !o.finding || !o.card) { err(`channel: block needs --service, --by, --finding and --card\n${USAGE}`); return 2; }
     try {
       const r = block({ service: o.service, by: o.by, finding: o.finding || null, card: o.card, runId: o.run || null }, { file });
       log(`block ${o.service} by ${o.by} card ${o.card} (${r.added ? 'new' : 'kept'})`);
@@ -286,7 +309,15 @@ export async function cli(argv, { log = console.log, err = console.error } = {})
     for (const b of r.resolved) log(`resolved ${b.service} by ${b.by} card ${b.card} (${b.how}${b.commit ? ` ${String(b.commit).slice(0, 7)}` : ''})`);
     for (const e of r.errors) log(`error card ${e.card}: ${e.error}`);
     const [, logicMap] = loadServiceMaps(); // [ui, logic]
-    const logicIds = r.catchUp.logic.length && logicMap ? checksForServices(r.catchUp.logic, [logicMap]).filter((id) => id.startsWith('LC-')) : [];
+    let online = () => false;
+    if (r.catchUp.logic.some((sv) => sv.startsWith('games.'))) {
+      try {
+        const { visibleGames } = await import('../../ui-check/lib/games-catalog.mjs');
+        const on = new Set(visibleGames().filter((g) => g.online).map((g) => g.id));
+        online = (id) => on.has(id);
+      } catch (e) { err(`channel: game catalogue not read (${String(e.message).split('\n')[0]}) — no rooms checks in the catch-up`); }
+    }
+    const logicIds = catchUpLogicIds(r.catchUp.logic, logicMap, { isOnline: online });
     log(`catchup-logic ${logicIds.join(',') || '-'}`);
     log(`catchup-ui ${r.catchUp.ui.join(',') || '-'}`);
     log(`resolve: ${r.resolved.length} resolved · ${readChannel({ file }).blocks.length} still blocking · ${r.errors.length} error(s)`);

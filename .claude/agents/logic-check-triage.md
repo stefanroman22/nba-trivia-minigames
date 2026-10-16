@@ -61,6 +61,9 @@ Only `<runDir>/findings/logic.json`, scratch files in `<runDir>/probe/`, and app
 | the site calls the wrong endpoint, sends the wrong body, or shows another text than the backend's (`LC-SIGNUP-UI-01`), or its stated rules disagree with the backend because the frontend is wrong (`LC-SIGNUP-00`) | `frontend` |
 
 ## Procedure
+0. **No `## FAIL LC-` section in your slice** (only warnings, metrics or coverage gaps): write
+   `<runDir>/findings/logic.json` as `{"findings":[]}`, do not run `advisories.mjs`, and return `logic: no failures`.
+   Never turn a warning or a metric into a finding.
 1. Slice the digest; list candidates: **one finding per cause**. Several violation lines of one check with the same
    cause (the same branch of the same view) are one finding; one check with two causes (`LC-SIGNUP-03`'s similarity
    validator vs the non-string password 500) is two findings.
