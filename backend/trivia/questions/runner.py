@@ -109,18 +109,19 @@ def _active_count(slug, kept, today):
     return len(kept)
 
 
-def _add(mod, slug, d, h, seq, dataset, now, journal, staged, spec=None):
+def _add(mod, slug, d, h, seq, dataset, now, journal, staged, spec=None, created_by="generator", reason="top_up",
+         **detail):
     """Save one new question (pending when staged) and materialize it; result None if it does not hold."""
     qid = mod.qid_for(d, seq)
     if Question.objects.filter(game=slug, qid=qid).exists():  # e.g. a refilled Contexto day
         qid = f"{qid}-r{seq}"
-    row = Question(game=slug, qid=qid, definition=d, content_hash=h, created_by="generator",
+    row = Question(game=slug, qid=qid, definition=d, content_hash=h, created_by=created_by,
                    status=Question.STATUS_PENDING if staged else Question.STATUS_ACTIVE)
     row.save()
     result = _materialize_row(mod, row, dataset, now, journal, staged, spec)
     if result is not None:
-        journal.log("generated", "top_up", game=slug, qid=row.qid, definition=d,
-                    **({"status": row.status} if staged else {}))
+        journal.log("generated", reason, game=slug, qid=row.qid, definition=d,
+                    **({"status": row.status} if staged else {}), **detail)
     return result
 
 

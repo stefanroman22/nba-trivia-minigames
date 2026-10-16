@@ -1,0 +1,133 @@
+name: Editorial author
+# The weekly editorial author (docs/superpowers/specs/2026-10-12-question-factory-design.md §4.6):
+# new Fan Favorites boards, Who Would Win matchups and Connections boards, at most 5 per game.
+#   export (has the DB secret)  the brief -> editorial/brief.json (rule language, dataset catalogue,
+#                               existing prompts/pairs/labels, coverage gaps, quota, sample players,
+#                               notable team-seasons)
+#   author (NO DB secret)       Claude (Max-plan OAuth token) writes editorial/proposals.json; it may
+#                               look facts up on the four approved sites only (Claude Code
+#                               permissions) but must express every question as a rule
+#   apply  (has the DB secret)  re-runs every proposal through the module gates in code (FactoryRun
+#                               kind "editorial"): accepted ones become pending questions, never
+#                               active. The daily Checker run (question-checker.yml) picks them up;
+#                               nothing is dispatched from here.
+# Instructions for the agent: .claude/skills/nba-question-writer/references/author.md.
+on:
+  schedule:
+    - cron: "0 3 * * 3"   # Wednesday 03:00 UTC
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Author model"
+        required: false
+        default: opus
+        type: choice
+        options:
+          - opus
+          - sonnet
+          - fable
+concurrency:
+  group: editorial-author
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Export the brief
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        run: python manage.py export_editorial_brief --out "$GITHUB_WORKSPACE/editorial"
+      - name: Keep the brief for the author
+        uses: actions/upload-artifact@v6
+        with:
+          name: editorial-brief
+          path: editorial/
+
+  author:
+    needs: export
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # No database secret anywhere in this job (spec §3 principle 7).
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v6
+        with:
+          name: editorial-brief
+          path: editorial
+      - name: Author agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The job's own read-only token. Without it the action exchanges an OIDC token with
+          # Anthropic's GitHub App, and that exchange refuses scheduled runs ("User does not have
+          # write access": a cron has no triggering user). This step needs no GitHub write at all;
+          # it only writes a local file.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            You are the editorial author. Read .claude/skills/nba-question-writer/references/author.md and follow it exactly.
+            Input brief: editorial/brief.json
+            Write your proposals to editorial/proposals.json and write no other file.
+          claude_args: >-
+            --model ${{ inputs.model || 'opus' }}
+            --max-turns 250
+            --allowedTools "Read,Write,WebFetch(domain:www.basketball-reference.com),WebFetch(domain:www.nba.com),WebFetch(domain:en.wikipedia.org),WebFetch(domain:www.espn.com)"
+            --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Agent,Task,NotebookEdit"
+      - name: Keep the proposals
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: editorial-proposals
+          path: editorial/proposals.json
+          if-no-files-found: warn
+
+  apply:
+    needs: [export, author]
+    if: always() && needs.export.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      # A missing artifact (the author wrote nothing) is journaled by the apply step as
+      # malformed_file, so this download may fail without stopping the job.
+      - name: Collect the proposals
+        continue-on-error: true
+        uses: actions/download-artifact@v6
+        with:
+          name: editorial-proposals
+          path: proposals
+      - name: Apply the proposals
+        id: apply
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
+        run: python manage.py apply_editorial_proposals "$GITHUB_WORKSPACE/proposals" --trigger "$TRIGGER"
+      # Accepted proposals are pending questions; the daily Checker run checks them. Nothing to dispatch.
+      - name: Summary
+        if: steps.apply.outputs.accepted != '0' && steps.apply.outputs.accepted != ''
+        run: echo "Author added ${{ steps.apply.outputs.accepted }} pending question(s) for the next daily Checker run." >> "$GITHUB_STEP_SUMMARY"
