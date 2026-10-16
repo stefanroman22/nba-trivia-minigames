@@ -52,6 +52,12 @@ def _locate(row, steps):
         node = node[step]
 
 
+def read(row, field_path):
+    """The value at field_path inside row; InvalidPath when it does not resolve."""
+    container, last = _locate(row, parse_path(field_path))
+    return container[last]
+
+
 def active_corrections():
     from trivia.models import DataCorrection
 

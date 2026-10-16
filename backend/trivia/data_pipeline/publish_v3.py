@@ -504,8 +504,9 @@ def curated_dataset(journal=None):
     changes exactly when the file does.
 
     Active DataCorrections are overlaid on the rows (spec §4.9) and the version
-    becomes "curated-<sha12>+c<n>" (n = active corrections), so the Checker's
-    payload shas change when a correction lands. With none, it is unchanged.
+    becomes "curated-<sha12>+c<hash8>" (the first 8 hex of the sha256 of the active
+    corrections' (id, field_path, new_value), in id order), so the version changes
+    whenever the set of applied values does. With none, it is unchanged.
     """
     from trivia.data_pipeline.live_pool import CURATED_PATH
     from trivia.questions import corrections
@@ -520,7 +521,9 @@ def curated_dataset(journal=None):
     rows = corrections.apply(rows, active, journal=journal)
     version = f"curated-{sha256_hex(raw)[:12]}"
     if active:
-        version += f"+c{len(active)}"
+        applied = json.dumps([[c.pk, c.field_path, c.new_value] for c in sorted(active, key=lambda c: c.pk)],
+                             sort_keys=True, ensure_ascii=False)
+        version += f"+c{sha256_hex(applied.encode('utf-8'))[:8]}"
     return load_dataset_from_rows(rows, version)
 
 

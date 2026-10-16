@@ -25,6 +25,7 @@ Game files, one per live game: `references/games/<slug>.md`.
 
 **If you are the Checker** (the validity-only agent in `.github/workflows/question-checker.yml`),
 read only `references/checker.md` and follow it; the rest of this skill is for writing content.
+**If you are the doctor** (`.github/workflows/doctor-research.yml`), read `references/doctor.md` and follow it.
 Hidden games (`HIDDEN_GAMES` in `backend/trivia/games/__init__.py`) are out of scope unless asked.
 
 ## Workflow

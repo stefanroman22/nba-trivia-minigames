@@ -69,11 +69,21 @@ def _refresh():
 
 def _needs_owner(now):
     events = FactoryEvent.objects.filter(action="needs_owner", created_at__gte=now - NEEDS_OWNER_WINDOW) \
-        .order_by("created_at", "id")
-    keys = list(dict.fromkeys((e.game, e.qid) for e in events))
-    # needs_owner is only logged for a pending question; any move off pending is the owner's answer.
-    waiting = [f"{game}/{qid}" for game, qid in keys
-               if Question.objects.filter(game=game, qid=qid, status=Question.STATUS_PENDING).exists()]
+        .select_related("run").order_by("created_at", "id")
+    keys = list(dict.fromkeys((e.game, e.qid, e.run.kind == "doctor") for e in events))
+
+    def open_(game, qid, by_doctor):
+        # The Checker logs needs_owner for a pending question, the doctor's research for a
+        # quarantined or queued one; any move off that state is the owner's answer.
+        row = Question.objects.filter(game=game, qid=qid).first()
+        if row is None:
+            return False
+        if by_doctor:
+            return row.status == Question.STATUS_QUARANTINED or (
+                row.status == Question.STATUS_ACTIVE and bool((row.quality or {}).get("doctor_queue")))
+        return row.status == Question.STATUS_PENDING
+
+    waiting = list(dict.fromkeys(f"{game}/{qid}" for game, qid, by_doctor in keys if open_(game, qid, by_doctor)))
     if not waiting:
         return []
     listed = ", ".join(waiting[:MAX_LISTED]) + (f" and {len(waiting) - MAX_LISTED} more"

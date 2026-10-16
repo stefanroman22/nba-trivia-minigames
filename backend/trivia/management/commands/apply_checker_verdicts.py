@@ -3,10 +3,10 @@
 Job 3 of .github/workflows/question-checker.yml. Reads every verdicts-*.json under the
 given folder, re-validates each verdict in code (trivia.questions.checker_jobs), moves
 questions pending -> active / quarantined (and, for the random audit, live questions
-due for it stay active or go quarantined), and journals every decision with its
-claim-by-claim evidence (FactoryRun kind "checker"). Writes approved=N, changed=N
-(approved + quarantined) and games=<comma list> to $GITHUB_OUTPUT; the workflow
-publishes whenever changed > 0.
+due for it stay active or go quarantined; the doctor's proposed data corrections go active
+or rejected), and journals every decision with its claim-by-claim evidence (FactoryRun kind
+"checker"). Writes approved=N, changed=N (approved + quarantined + corrections confirmed)
+and games=<comma list> to $GITHUB_OUTPUT; the workflow publishes whenever changed > 0.
 """
 import os
 
@@ -44,13 +44,19 @@ class Command(BaseCommand):
                           f"unsure {summary['unsure']}")
         if summary["audited"]:
             self.stdout.write(f"audit passed {summary['audited']}")
+        if summary["corrections_confirmed"] or summary["corrections_rejected"]:
+            self.stdout.write(f"corrections confirmed {summary['corrections_confirmed']}, "
+                              f"rejected {summary['corrections_rejected']}")
         for item in summary["needs_owner"]:
             self.stdout.write(f"::warning::{item} was unsure twice and needs the owner (see factory run {run.pk})")
         path = os.environ.get("GITHUB_OUTPUT")
         if path:
             with open(path, "a", encoding="utf-8") as f:
                 f.write(f"approved={summary['approved']}\n")
-                # Anything that changes what is (or may be) live: approvals go live, and a
-                # quarantine must leave production. Publishing is a no-op when nothing differs.
-                f.write(f"changed={summary['approved'] + summary['quarantined']}\n")
+                # Anything that changes what is (or may be) live: approvals go live, a
+                # quarantine must leave production, and a confirmed correction changes the
+                # dataset (the publish's maintenance re-stages the live questions it touches).
+                # Publishing is a no-op when nothing differs.
+                changed = summary["approved"] + summary["quarantined"] + summary["corrections_confirmed"]
+                f.write(f"changed={changed}\n")
                 f.write(f"games={','.join(summary['games'])}\n")

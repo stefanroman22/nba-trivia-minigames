@@ -10,6 +10,9 @@ name: Question checker
 # Thursdays 03:00 UTC: the random audit (spec §4.9). The same three jobs re-check the live questions
 # the doctor's nightly scan (factory-nightly.yml, 02:00 UTC) marked audit_due; an invalid verdict
 # quarantines the question and the publish takes it out of play.
+# mode corrections (dispatched by doctor-research.yml when the doctor proposed data corrections):
+# the same three jobs confirm each proposed correction on two approved sites; a confirmed one goes
+# active and the questions on that player go back to pending for a fresh check.
 # Instructions for the agent: .claude/skills/nba-question-writer/references/checker.md.
 on:
   schedule:
@@ -18,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "pending: new and changed questions; audit: live questions due for the random audit; corrections: not wired yet (runs pending)"
+        description: "pending: new and changed questions; audit: live questions due for the random audit; corrections: the doctor's proposed data corrections"
         required: false
         default: pending
         type: choice
@@ -74,9 +77,6 @@ jobs:
           else
             mode="${INPUT_MODE:-pending}"
           fi
-          # corrections (the doctor's data corrections) is wired by a later task; until then it
-          # checks the pending questions.
-          if [ "$mode" = "corrections" ]; then mode=pending; fi
           echo "Event $EVENT, slot '$SLOT': mode=$mode"
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v5
@@ -134,7 +134,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             You are the Checker. Read .claude/skills/nba-question-writer/references/checker.md and follow it exactly.
-            Input batch: checker/${{ needs.export.outputs.mode == 'audit' && 'audit' || 'batch' }}-${{ matrix.batch }}.json
+            Input batch: checker/${{ needs.export.outputs.mode == 'audit' && 'audit' || (needs.export.outputs.mode == 'corrections' && 'correction' || 'batch') }}-${{ matrix.batch }}.json
             Write your verdicts to checker/verdicts-${{ matrix.batch }}.json and write no other file.
           claude_args: >-
             --model ${{ inputs.model || 'opus' }}

@@ -1,5 +1,6 @@
 """Data corrections: sourced fixes overlaid on the curated rows (spec §4.9)."""
 import copy
+import hashlib
 import json
 import os
 import tempfile
@@ -96,6 +97,14 @@ class ApplyTests(SimpleTestCase):
         out = corrections.apply(_rows(), [_fix(2, "jersey", 4, status=s) for s in statuses])
         self.assertEqual(out, _rows())
 
+    def test_read_returns_the_value_at_a_path_or_raises(self):
+        row = _rows()[0]
+        self.assertEqual(corrections.read(row, "teams[1].end_year"), 1995)
+        self.assertEqual(corrections.read(row, "awards.rings"), [1985, 1987, 1988])
+        for bad in ("teams[9].end_year", "nickname", "person_id", "teams[x]"):
+            with self.subTest(path=bad), self.assertRaises(corrections.InvalidPath):
+                corrections.read(row, bad)
+
     def test_no_corrections_returns_the_same_rows(self):
         rows = _rows()
         self.assertIs(corrections.apply(rows, []), rows)
@@ -126,24 +135,40 @@ class CuratedDatasetVersionTests(TestCase):
         self.assertEqual(ds.version, self.base)
         self.assertEqual(self._end_year(ds), 1995)
 
+    def _suffix(self, *fixes):
+        blob = json.dumps([[c.pk, c.field_path, c.new_value] for c in sorted(fixes, key=lambda c: c.pk)],
+                          sort_keys=True, ensure_ascii=False)
+        return "+c" + hashlib.sha256(blob.encode("utf-8")).hexdigest()[:8]
+
     def test_active_corrections_are_overlaid_and_suffix_the_version(self):
-        DataCorrection.objects.create(person_id=2, field_path="teams[1].end_year", new_value=1994,
-                                      status=DataCorrection.STATUS_ACTIVE)
-        DataCorrection.objects.create(person_id=3, field_path="awards.smoy", new_value=[1990],
-                                      status=DataCorrection.STATUS_ACTIVE)
+        a = DataCorrection.objects.create(person_id=2, field_path="teams[1].end_year", new_value=1994,
+                                          status=DataCorrection.STATUS_ACTIVE)
+        b = DataCorrection.objects.create(person_id=3, field_path="awards.smoy", new_value=[1990],
+                                          status=DataCorrection.STATUS_ACTIVE)
         DataCorrection.objects.create(person_id=3, field_path="jersey", new_value=1,
                                       status=DataCorrection.STATUS_PROPOSED)
         ds = publish_v3.curated_dataset()
-        self.assertEqual(ds.version, f"{self.base}+c2")
+        self.assertEqual(ds.version, f"{self.base}{self._suffix(a, b)}")
+        self.assertRegex(ds.version, r"\+c[0-9a-f]{8}$")
         self.assertEqual(self._end_year(ds), 1994)
         self.assertEqual(next(r for r in ds.rows if r["person_id"] == 3)["awards"]["smoy"], [1990])
 
+    def test_the_suffix_changes_with_the_corrected_value_not_only_the_count(self):
+        fix = DataCorrection.objects.create(person_id=2, field_path="teams[1].end_year", new_value=1994,
+                                            status=DataCorrection.STATUS_ACTIVE)
+        first = publish_v3.curated_dataset().version
+        fix.new_value = 1993
+        fix.save()
+        second = publish_v3.curated_dataset().version
+        self.assertNotEqual(first, second)
+        self.assertEqual(second, f"{self.base}{self._suffix(fix)}")
+
     def test_an_invalid_active_correction_never_breaks_the_load(self):
-        DataCorrection.objects.create(person_id=2, field_path="teams[9].end_year", new_value=1,
-                                      status=DataCorrection.STATUS_ACTIVE)
+        fix = DataCorrection.objects.create(person_id=2, field_path="teams[9].end_year", new_value=1,
+                                            status=DataCorrection.STATUS_ACTIVE)
         journal = Journal("test")
         ds = publish_v3.curated_dataset(journal=journal)
-        self.assertEqual(ds.version, f"{self.base}+c1")
+        self.assertEqual(ds.version, f"{self.base}{self._suffix(fix)}")
         self.assertEqual([r for r in ds.rows], _rows())
         self.assertEqual([e["action"] for e in journal.events], ["correction_skipped"])
 

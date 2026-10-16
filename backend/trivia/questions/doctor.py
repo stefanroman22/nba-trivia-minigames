@@ -25,7 +25,13 @@ the date, so a re-run the same day draws the same questions and finds them alrea
 
 Signals are computed per logged question_id (a Tic-Tac-Toe cell is `<qid>:<cell>`) and land on
 the question question_for() resolves it to.
+
+A question the doctor's research (or a confirmed data correction) released carries
+quality.doctor_released_at (release()); its signals then count only QuestionStats days after the
+release day and WrongAnswerStats rows last seen at or after the release, so old numbers cannot
+flag it again.
 """
+import datetime
 import random
 from collections import defaultdict
 from statistics import median
@@ -44,6 +50,8 @@ CLUSTER_SHARE = 0.15
 STRONG_REPORTS = 3
 AUDIT_SIZE = 20
 AUDIT_WEEKDAY = 3  # Thursday (datetime.weekday, UTC)
+
+RELEASED_AT = "doctor_released_at"
 
 PERSON_KEY = {"career-path": "person_id", "who-are-ya": "person_id", "contexto": "secret_person_id"}
 _PREFER = {Question.STATUS_ACTIVE: 0, Question.STATUS_QUARANTINED: 1, Question.STATUS_PENDING: 2,
@@ -93,6 +101,28 @@ def question_for(game, question_id, indexes=None):
     return indexes[game].get(key)
 
 
+def release(row, now):
+    """Release a question from the doctor (not saved): its doctor flags are cleared, the release
+    is stamped, and a quarantined question goes back to pending for a fresh Checker pass (never
+    straight to active). A live question stays live."""
+    quality = dict(row.quality or {})
+    quality.pop("doctor", None)
+    quality.pop("doctor_queue", None)
+    quality[RELEASED_AT] = now.isoformat()
+    row.quality = quality
+    if row.status == Question.STATUS_QUARANTINED:
+        row.status = Question.STATUS_PENDING
+
+
+def _released_at(row):
+    stamp = (row.quality or {}).get(RELEASED_AT)
+    try:
+        at = datetime.datetime.fromisoformat(stamp) if isinstance(stamp, str) else None
+    except ValueError:
+        return None
+    return at.replace(tzinfo=datetime.timezone.utc) if at is not None and at.tzinfo is None else at
+
+
 def _solve_rate_signals(games, resolve):
     """{row.pk: [signal, ...]} for the solve-rate anomaly."""
     totals = (QuestionStats.objects.filter(game__in=games).values("game", "question_id")
@@ -103,9 +133,19 @@ def _solve_rate_signals(games, resolve):
         if t["attempts"] < MIN_ATTEMPTS or not t["players"]:
             continue
         row = resolve(t["game"], t["question_id"])
-        if row is not None:
-            # Per player, not per guess: the multi-guess games log every guess as an attempt.
-            measured.append((row, t["question_id"], t["attempts"], t["players"], t["correct"] / t["players"]))
+        if row is None:
+            continue
+        attempts, correct, players = t["attempts"], t["correct"], t["players"]
+        released = _released_at(row)
+        if released is not None:  # only the days after the release day count
+            since = (QuestionStats.objects.filter(game=t["game"], question_id=t["question_id"],
+                                                  day__gt=released.date())
+                     .aggregate(attempts=Sum("attempts"), correct=Sum("correct"), players=Sum("players")))
+            attempts, correct, players = since["attempts"] or 0, since["correct"] or 0, since["players"] or 0
+            if attempts < MIN_ATTEMPTS or not players:
+                continue
+        # Per player, not per guess: the multi-guess games log every guess as an attempt.
+        measured.append((row, t["question_id"], attempts, players, correct / players))
     by_band = defaultdict(list)
     for row, _, _, _, rate in measured:
         band = (row.quality or {}).get("band")
@@ -134,6 +174,13 @@ def _cluster_signals(games, resolve):
         row = resolve(game, question_id) if hits else None
         if row is None:
             continue
+        released = _released_at(row)
+        if released is not None:  # only answers seen since the release count
+            rows = [w for w in rows if w.last_seen >= released]
+            total = sum(w.count for w in rows)
+            hits = [w for w in rows if w.players >= CLUSTER_PLAYERS and w.count >= CLUSTER_SHARE * total]
+            if not hits:
+                continue
         out[row.pk] += [{"signal": "wrong_cluster", "question_id": question_id, "answer": w.answer_norm,
                          "players": w.players, "count": w.count, "share": round(w.count / total, 4)}
                         for w in hits]

@@ -51,6 +51,34 @@ right now, so a single contradicted fact is `invalid` (the question is taken out
 never pass a claim as `confirmed` because the question was approved before. You are not told whether
 or why it was flagged; judge each one as if you had never seen it.
 
+## Correction batches
+
+Some runs give you `correction-NNN.json`: one proposed fix to our player data, not a question.
+
+```json
+{"batch": "001", "kind": "correction", "id": 17, "person_id": 2544, "player": "...",
+ "field_path": "teams[1].end_year", "old_value": 2005, "new_value": 2004,
+ "sources": ["https://..."], "row": {"person_id": 2544, "full_name": "...", "teams": [...]}}
+```
+
+Decide whether `new_value` is the true value of `field_path` for this player (`row` shows the part
+of our current row it sits in; the field meanings below apply). The `sources` are where the
+proposal came from: you may start there, but confirm the new value yourself on **two different**
+allowed sites. Write `verdicts-NNN.json` with one entry:
+
+```json
+{"verdicts": [
+  {"kind": "correction", "id": 17, "verdict": "valid",
+   "claims": [{"claim": "<player> <field> is <new value>", "status": "confirmed",
+               "sources": ["https://www.basketball-reference.com/...", "https://en.wikipedia.org/..."]}],
+   "summary": "..."}
+]}
+```
+
+Copy `kind` and `id` exactly. `valid` counts only if every claim is confirmed and the confirming
+pages are on at least two different allowed sites; `invalid` if a page contradicts the new value
+(say what it shows in `found`); otherwise `unsure`.
+
 ## Sites and how to use them
 
 Only `WebFetch` on these four sites. You have no search engine and no other tools for the web.

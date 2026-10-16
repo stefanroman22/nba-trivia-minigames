@@ -81,6 +81,8 @@ def _materialize_row(mod, row, dataset, now, journal, stage=False, spec=None):
     quality = {**(row.quality or {}), "materialized": True}
     if spec is not None:  # difficulty, band, interest, coverage, dup_key (spec §4.3)
         quality.update(scoring.score(mod, m, dataset, spec, row.definition))
+        if quality.get("band_override") in scoring.LEVELS:  # the doctor's reband (spec §4.9) outlives re-scoring
+            quality["band"] = quality["band_override"]
     view = getattr(mod, "checker_view", None)
     if view is not None:
         # What the Checker checks is what is hashed: a different view is different content.
