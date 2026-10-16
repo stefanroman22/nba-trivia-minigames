@@ -46,7 +46,7 @@ test('planBlocks: pushed findings of this run only, failing lc checks only, neve
   const runId = '20261017-0200-logic';
   const f = (id, fp, lcs, extra = {}) => ({ id, fingerprint: fp, validatedAt: 'x', acceptance: { criteria: ['c'], checks: lcs.map((lc) => ({ lc })) }, ...extra });
   const doc = { findings: [
-    f('F1', 'a|/|1', ['LC-AUTH-01', 'LC-AUTH-03']), // AUTH-03 passed in the run → no block for it
+    f('F1', 'a|/|1', ['LC-AUTH-01', 'LC-AUTH-03']), // LC-AUTH-03 passed in the run → no block for it
     f('F2', 'b|/|2', ['LC-PROFILE-06']), // closed by hand
     f('F3', 'c|/|3', ['LC-LIVE-03']), // per-game
     f('F4', 'd|/|4', ['LC-SIGNUP-03'], { validatedAt: undefined }), // not validated

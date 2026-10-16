@@ -80,8 +80,8 @@ const files = [...SCAN_ROOT_FILES];
 for (const { dir, exts } of SCAN_DIRS) files.push(...walk(dir, exts));
 
 const GAME_REF = /\b(?:RULE|Rule)s?\s+(\d+(?:\.\d+)?[a-z]?)\b/g;
-// Not inside a Logic Check id: LC-AUTH-01 names a check, not the rule AUTH-1.
-const PREFIXED_REF = /(?<!LC-)\b(UI|BE|MP|AUTH)-(\d+)\b/g;
+// Not inside a Logic Check id: LC-AUTH-01 / LC-SIGNUP-UI-01 name a check, not the rule AUTH-1 / UI-1.
+const PREFIXED_REF = /(?<!LC-(?:[A-Z]+-)*)\b(UI|BE|MP|AUTH)-(\d+)\b/g;
 const RETIRED = /(?:Rule|RULE|§)\s*7[ab]\b|\bRULE\s+4\.2\.1\b/;
 
 let resolved = 0;
