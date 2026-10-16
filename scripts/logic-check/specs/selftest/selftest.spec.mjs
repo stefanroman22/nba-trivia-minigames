@@ -101,7 +101,7 @@ test('[LC-ST-BLOCKED] --skip-blocked maps blocked services to the checks tagged 
 
   // Logic's own catalogue: a relay block leaves out the relay handshake check; nothing blocked → nothing skipped.
   const relay = blockedChecks({ checker: 'logic', map: serviceMapOf('logic'), channel: fakeChannel([{ service: 'relay', by: 'LC-ROOMS-01', card: 'c' }]) }).map((x) => x.checkId);
-  expect(relay).toEqual(['LC-LIVE-06']);
+  expect(relay).toEqual(['LC-LIVE-06', ...Array.from({ length: 10 }, (_, i) => `LC-ROOMS-${String(i + 1).padStart(2, '0')}`)]);
   expect(blockedChecks({ checker: 'ui', map: ui, channel: fakeChannel([]) })).toEqual([]);
   expect(grepInvertFor([])).toBeNull();
 
