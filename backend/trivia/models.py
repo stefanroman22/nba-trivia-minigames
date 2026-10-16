@@ -151,7 +151,7 @@ class GameSession(models.Model):
     # What actually landed on the account for this play (score after the daily soft cap, plus any
     # first-game / streak bonus) — trivia.awarding writes it; the weekly board sums it. 0 for guests,
     # friend rooms and before 2026-10.
-    awarded = models.IntegerField(default=0)
+    awarded = models.IntegerField(default=0, db_default=0)
     duration_ms = models.BigIntegerField(default=0)
     finished_at = models.DateTimeField(auto_now_add=True)
 

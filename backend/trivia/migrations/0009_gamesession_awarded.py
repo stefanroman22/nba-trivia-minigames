@@ -14,6 +14,6 @@ class Migration(migrations.Migration):
     dependencies = [("trivia", "0008_factory_journal")]
 
     operations = [
-        migrations.AddField(model_name="gamesession", name="awarded", field=models.IntegerField(default=0)),
+        migrations.AddField(model_name="gamesession", name="awarded", field=models.IntegerField(default=0, db_default=0)),
         migrations.RunPython(backfill, migrations.RunPython.noop),
     ]

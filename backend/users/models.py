@@ -60,12 +60,12 @@ class CustomUser(AbstractUser):
     # Progression (trivia.awarding is the only writer; users.ranks reads). `active_days` = distinct Paris
     # days with a scoring game and gates the top ranks; the streak needs one scoring game a day and a
     # held freeze covers one missed day. `founding_member`: the account predates the 2026-10 ladder.
-    active_days = models.PositiveIntegerField(default=0)
+    active_days = models.PositiveIntegerField(default=0, db_default=0)
     last_active_day = models.DateField(null=True, blank=True)
-    streak_days = models.PositiveIntegerField(default=0)
-    streak_best = models.PositiveIntegerField(default=0)
-    streak_freezes = models.PositiveSmallIntegerField(default=1)
-    founding_member = models.BooleanField(default=False)
+    streak_days = models.PositiveIntegerField(default=0, db_default=0)
+    streak_best = models.PositiveIntegerField(default=0, db_default=0)
+    streak_freezes = models.PositiveSmallIntegerField(default=1, db_default=1)
+    founding_member = models.BooleanField(default=False, db_default=False)
     # Moderation (users.strikes). Strikes never expire; the third one bans. `banned_at` is THE
     # ban switch: users.authentication.BanAwareJWTAuthentication refuses every request with a
     # 403 {"code": "account_banned"} while it is set, and banned accounts are hidden (leaderboard,
