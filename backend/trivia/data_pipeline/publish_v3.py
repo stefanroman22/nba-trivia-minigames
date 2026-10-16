@@ -115,6 +115,10 @@ NAMES_NAME = "players-names"
 # Supabase snapshot until they return), and their shared NamesEntry list, which
 # the manifest carries as the top-level "question_names" pointer.
 QUESTION_GAMES = ("career-path", "who-are-ya", "tictactoe", "contexto")
+# The editorial games (spec §4.6): question modules published as pool games (fan-favorites,
+# who-would-win here; connections on the legacy static file), maintained by the publish once
+# imported (publish_game_data_v3).
+EDITORIAL_GAMES = ("fan-favorites", "who-would-win", "connections")
 QNAMES_GAME = "question-names"
 QNAMES_NAME = "question-names"
 # trivia.questions.base.SCHEMA (not imported: this module must load without Django).
@@ -564,13 +568,14 @@ def question_builders(maintained=None, dataset=None):
     return {**{slug: build(slug) for slug in QUESTION_GAMES}, QNAMES_GAME: names}
 
 
-def default_builders(read_only=False, maintained=None, dataset=None):
+def default_builders(read_only=False, maintained=None, dataset=None, out=None):
     """The existing pool builders (build_pools_from_db) plus the question builders, by game.
 
     read_only=True never writes to the database: Fan Favorites applies the live
     re-rank in memory instead of saving it (used by the freshness check), and the
     question games are materialized from their current rows (``maintained`` is
-    for a publish that just ran the question maintenance).
+    for a publish that just ran the question maintenance). ``dataset`` (the publish's)
+    also feeds the editorial pool builders, and ``out`` gets the boards they leave out.
     """
     from trivia.games import who_would_win
     from trivia.management.commands import build_pools_from_db as pools
@@ -580,8 +585,8 @@ def default_builders(read_only=False, maintained=None, dataset=None):
         "name-logo": pools.build_name_logo,
         "mvps": pools.build_mvps,
         "starting-five": pools.build_starting_five,
-        "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only),
-        "who-would-win": who_would_win.build_pool,
+        "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only, dataset=dataset, out=out),
+        "who-would-win": lambda: who_would_win.build_pool(dataset=dataset, out=out),
         NAMES_GAME: pools.build_all_players,
         **question_builders(None if read_only else maintained, dataset),
     }

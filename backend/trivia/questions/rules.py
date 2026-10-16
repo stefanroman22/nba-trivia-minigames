@@ -11,7 +11,8 @@ Player rules (category "player", over dataset.playable):
     {"allnba": 5}                      at least 5 All-NBA selections
     {"career": "pts", "min": 30000}    career stat pts|reb|ast|ppg|rpg|apg|seasons >= min
     {"draft": {"pick_max": 1, "round": 1, "year_from": 2010, "year_to": 2019}}
-                                       any non-empty subset; or {"undrafted": true} alone
+                                       any non-empty subset; or {"undrafted": true} alone; pick_max
+                                       counts real picks only (>= 1; a territorial pick is 0)
     {"country": "France"}              NBA.com's country field, case-insensitive
     {"international": true}            country is set and not "USA"
     {"stint": "GSW"}                   played for the franchise (modern abbreviation)
@@ -361,7 +362,8 @@ def _match_player(name, value, rule, row, dataset):
         if not d:
             return False
         pick, rnd, year = d.get("pick"), d.get("round"), d.get("year")
-        return (("pick_max" not in value or (pick is not None and pick <= value["pick_max"]))
+        # A real pick is >= 1: territorial / unknown picks are stored as 0 (tictactoe's rule).
+        return (("pick_max" not in value or (pick is not None and 1 <= pick <= value["pick_max"]))
                 and ("round" not in value or rnd == value["round"])
                 and ("year_from" not in value or (year is not None and year >= value["year_from"]))
                 and ("year_to" not in value or (year is not None and year <= value["year_to"])))

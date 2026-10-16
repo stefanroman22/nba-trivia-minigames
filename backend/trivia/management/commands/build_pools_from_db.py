@@ -111,7 +111,7 @@ def build_starting_five():
     return canonical_lineup_names(playable_lineups(rows), build_all_players())
 
 
-def build_fan_favorites(persist=True):
+def build_fan_favorites(persist=True, dataset=None, out=None):
     # Auto seed->live transition: boards with enough real guesses re-rank first.
     # persist=False (the read-only freshness check) applies the same re-rank in
     # memory only, so it sees exactly the rows a publish would build, with no writes.
@@ -119,7 +119,8 @@ def build_fan_favorites(persist=True):
         refresh_live_standings()
     # The boards are the active fan-favorites questions (spec §4.6) once the seeds are
     # imported; their live standings are merged by qid in memory (same rule, no writes).
-    boards = pool_rows("fan-favorites")
+    # `dataset` / `out`: the publish's dataset and its log (runner.pool_rows).
+    boards = pool_rows("fan-favorites", dataset, out)
     if boards is not None:
         for row in boards:
             row["answers"] = live_standings(SimpleNamespace(qid=row["qid"], answers=row["answers"])) or row["answers"]

@@ -2,25 +2,29 @@
 import copy
 import datetime
 import json
+import os
 import random
+import tempfile
 from io import StringIO
 from unittest.mock import patch
 
 from django.core.management import call_command
 from django.test import SimpleTestCase, TestCase
+from django.utils import timezone
 
 from trivia.data_pipeline import publish_v3
 from trivia.games import connections as connections_pool
 from trivia.games import who_would_win as www_pool
 from trivia.management.commands import build_pools_from_db
-from trivia.models import FactoryRun, GuessLog, Question, QuestionStats, WrongAnswerStats
+from trivia.models import FactoryEvent, FactoryRun, GuessLog, Question, QuestionStats, WrongAnswerStats
 from trivia.questions import checker, doctor, fame, rules, runner, specs
 from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES, connections, fan_favorites, who_would_win
 from trivia.questions.hashing import content_hash
 from trivia.questions.journal import Journal
 from trivia.tests.published_pool import published_pool
-from trivia.tests.questions_fixture import fixture_dataset
+from trivia.questions.base import load_dataset_from_rows
+from trivia.tests.questions_fixture import fixture_dataset, fixture_rows
 from trivia.utils.fan_favorites import LIVE_STANDINGS_MIN_GUESSES
 
 EDITORIAL = ("fan-favorites", "who-would-win", "connections")
@@ -392,6 +396,91 @@ class SeedImportTests(TestCase):
     def test_without_questions_the_builders_fall_back_to_the_seeds(self):
         self.assertEqual(www_pool.build_pool(), www_pool._load_seed())
         self.assertEqual(connections_pool.build_pool(), connections_pool._load_seed())
+
+
+class PublishMaintainsEditorialTests(TestCase):
+    """publish_game_data_v3 maintains the editorial games it publishes (once imported)."""
+
+    def setUp(self):
+        self.before = fixture_dataset("curated-fixture0001")
+        rows = fixture_rows()
+        rose = next(r for r in rows if r["full_name"] == "Derrick Rose")
+        rose["awards"]["mvp"] = rose["awards"]["mvp"] + [2012]  # the data refresh: a second MVP
+        self.after = load_dataset_from_rows(rows, "curated-fixture0002")
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.tmp = self._tmp.name
+        for p in (patch.dict(os.environ, {"GITHUB_OUTPUT": os.path.join(self.tmp, "gh-output")}),
+                  patch.object(publish_v3, "curated_dataset", return_value=self.after),
+                  patch("trivia.questions.games.fan_favorites.MINIMUM", 1)):
+            p.start()
+            self.addCleanup(p.stop)
+        os.environ.pop("DATA_PUBLIC_BASE", None)
+        self.mvp = self.board("ff-001", mvp_board())
+        self.dpoy = self.board("ff-002", mvp_board(prompt="Name a Defensive Player of the Year",
+                                                   rule={"award": "dpoy"}))
+
+    def board(self, qid, d):
+        row = Question.objects.create(game="fan-favorites", qid=qid, definition=d, content_hash=content_hash(d),
+                                      status=Question.STATUS_ACTIVE, created_by="seed")
+        self.assertIsNotNone(runner._materialize_row(fan_favorites, row, self.before, timezone.now(),
+                                                     Journal("supply"), spec=specs.load("fan-favorites")))
+        return row
+
+    def publish(self, games):
+        out = os.path.join(self.tmp, "out")
+        buf = StringIO()
+        call_command("publish_game_data_v3", "--out", out, "--games", games, stdout=buf)
+        manifest = json.loads(open(os.path.join(out, "manifest.json"), encoding="utf-8").read())
+
+        def read(rel):
+            with open(os.path.join(out, *rel.split("/")), "rb") as f:
+                return f.read()
+        return buf.getvalue(), manifest, read
+
+    def test_a_changed_rule_board_is_staged_and_left_out(self):
+        output, manifest, read = self.publish("fan-favorites")
+        self.mvp.refresh_from_db()
+        self.dpoy.refresh_from_db()
+        self.assertEqual(self.mvp.status, Question.STATUS_PENDING)
+        self.assertEqual(self.dpoy.status, Question.STATUS_ACTIVE)
+        self.assertTrue(FactoryEvent.objects.filter(action="staged_for_recheck", game="fan-favorites",
+                                                    qid="ff-001").exists())
+        rows = publish_v3.decode_game(manifest["games"]["fan-favorites"], read)
+        self.assertEqual([r["qid"] for r in rows], ["ff-002"])
+        self.assertIn("fan-favorites", output)
+
+    def test_below_minimum_is_held_back_not_aborted(self):
+        with patch("trivia.questions.games.fan_favorites.MINIMUM", 2):
+            output, manifest, _ = self.publish("fan-favorites,who-would-win")
+        self.assertNotIn("fan-favorites", manifest["games"])
+        self.assertIn("who-would-win", manifest["games"])
+        self.mvp.refresh_from_db()
+        self.assertEqual(self.mvp.status, Question.STATUS_PENDING)  # staged work kept for the Checker
+        self.assertIn("held back", output)
+        with open(os.environ["GITHUB_OUTPUT"], encoding="utf-8") as f:
+            self.assertIn("held_back=fan-favorites", f.read())
+
+    def test_before_the_import_a_game_is_not_maintained(self):
+        output, manifest, read = self.publish("who-would-win")
+        self.assertEqual(len(publish_v3.decode_game(manifest["games"]["who-would-win"], read)), 60)  # the seed
+        self.assertFalse(FactoryEvent.objects.filter(game="who-would-win").exists())
+        self.assertFalse(Question.objects.filter(game="who-would-win").exists())
+
+    def test_pool_rows_reports_the_boards_it_drops(self):
+        printed = []
+        rows = runner.pool_rows("fan-favorites", self.after, out=printed.append)
+        self.assertEqual([r["qid"] for r in rows], ["ff-002"])
+        self.assertTrue(any("ff-001" in line for line in printed), printed)
+
+    def test_legacy_maintain_questions_default_skips_the_editorial_games(self):
+        cmd = "trivia.management.commands.maintain_questions"
+        with patch.object(runner, "run", return_value={"version": None}) as run, \
+                patch(f"{cmd}.StorageConfig"), patch(f"{cmd}.download_players_dataset", return_value=self.after):
+            call_command("maintain_questions", "--no-publish", stdout=StringIO())
+        games = run.call_args.args[0]
+        self.assertTrue(games)
+        self.assertFalse(set(games) & set(EDITORIAL))
 
 
 class DoctorVoteGameTests(TestCase):

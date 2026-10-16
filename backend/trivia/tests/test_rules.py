@@ -3,7 +3,8 @@ from django.test import SimpleTestCase
 
 from trivia.questions import rules
 from trivia.questions.rules import RuleError
-from trivia.tests.questions_fixture import fixture_dataset
+from trivia.questions.base import load_dataset_from_rows
+from trivia.tests.questions_fixture import fixture_dataset, fixture_rows
 
 
 def names(rows):
@@ -56,6 +57,17 @@ class PlayerPredicateTests(SimpleTestCase):
                          self.where(lambda r: (r.get("draft") or {}).get("round") == 2))
         self.assertEqual(self.ev({"draft": {"year_from": 1984, "year_to": 1984}}),
                          self.where(lambda r: (r.get("draft") or {}).get("year") == 1984))
+
+    def test_pick_max_counts_real_picks_only(self):
+        # A territorial / unknown pick is stored as pick 0 (205 rows in the real data): not a top pick.
+        rows = fixture_rows()
+        row = next(r for r in rows if r["full_name"] == "Bill Russell")
+        row["draft"] = {"year": 1956, "round": 1, "pick": 0, "team_abbr": "BOS"}
+        ds = load_dataset_from_rows(rows, "fixture-pick0")
+        got = names(rules.evaluate({"draft": {"pick_max": 14}}, ds))
+        self.assertNotIn("Bill Russell", got)
+        self.assertIn("Tim Duncan", got)
+        self.assertIn("Bill Russell", names(rules.evaluate({"draft": {"round": 1}}, ds)))
 
     def test_country_and_international(self):
         self.assertEqual(self.ev({"country": "france"}), self.where(lambda r: r.get("country") == "France"))

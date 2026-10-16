@@ -358,20 +358,30 @@ def materialize_active(games, dataset, now=None, out=None):
     return per_game
 
 
-def pool_rows(slug, dataset=None):
+def pool_rows(slug, dataset=None, out=None):
     """The published rows of an editorial pool game (fan-favorites, who-would-win,
     connections: mod.pool_row of each active question, in id order), read-only through
     materialize_active (BelowMinimum still raises). None while the game has no active
     question yet (the seed import has not run): the caller falls back to its seed.
-    The dataset is the committed curated one unless given."""
-    if not Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).exists():
+    The dataset is the committed curated one unless given. `out` gets one line per active
+    question left out (it no longer materializes, or its checker view changed since it
+    was checked: the next maintenance stages it for the Checker)."""
+    active = list(Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE)
+                  .order_by("id").values_list("qid", flat=True))
+    if not active:
         return None
     if dataset is None:
         from trivia.data_pipeline.publish_v3 import curated_dataset
 
         dataset = curated_dataset()
     mod = GAME_MODULES[slug]
-    return [mod.pool_row(m) for _, _, m in materialize_active([slug], dataset)[slug]]
+    kept = materialize_active([slug], dataset)[slug]
+    if out:
+        published = {qid for qid, _, _ in kept}
+        for qid in active:
+            if qid not in published:
+                out(f"  {slug}/{qid}: left out of the pool (no longer materializes or its view changed)")
+    return [mod.pool_row(m) for _, _, m in kept]
 
 
 def run(games, publish, dry_run, rng, dataset, s3=None, cfg=None, out=print):

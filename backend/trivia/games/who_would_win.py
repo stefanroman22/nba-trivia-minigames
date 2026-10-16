@@ -70,13 +70,13 @@ def get_tally(request):
     )
 
 
-def build_pool():
+def build_pool(dataset=None, out=None):
     """The pool for build_pools_from_db and the v3 publisher: the active who-would-win
     questions (trivia.questions.games.who_would_win), or the seed list until they are
-    imported ([] when missing)."""
+    imported ([] when missing). `dataset` / `out`: the publish's (runner.pool_rows)."""
     from trivia.questions.runner import pool_rows
 
-    rows = pool_rows("who-would-win")
+    rows = pool_rows("who-would-win", dataset, out)
     return rows if rows is not None else _load_seed()
 
 
