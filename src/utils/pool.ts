@@ -3,7 +3,7 @@ import { POOL_GAMES, fetchGameRows, fetchNames, isConfigured, type SeenPool } fr
 import { dealUnseen } from "./seenCore";
 
 // Game pools are served as static JSON from the same origin: the build copies
-// backend/trivia/data into the deployment, served by the CDN at /data/. The five
+// backend/trivia/data into the deployment, served by the CDN at /data/. The six
 // POOL_GAMES (and the "all-players" autocomplete names) are read from the manifest-v3
 // data host in VITE_DATA_BASE instead (utils/gameData.ts) whenever it answers; this
 // bundled copy is their fallback and stays the only source for every other pool.

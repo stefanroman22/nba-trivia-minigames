@@ -129,6 +129,28 @@ MVP, Defensive Player of the Year, Rookie of the Year, Sixth Man), NBA champion 
 draft, in any era, including before the lottery existed). Also check that each row and column label is a real, unambiguous team
 or criterion. Every sampled player is one claim.
 
+**Fan Favorites** (`kind: fan-favorites`): a survey board: the `prompt`, its `category` (player, team
+or coach) and `answers`, every answer the game accepts. Each answer is a claim: it fits the prompt
+exactly as worded (dates, "or more", "current franchise", award years are the season's end year).
+The list must also be **complete**: a player, team or coach who fits the prompt but is missing is a
+contradiction (name him in `found`), because a fan who types him loses a heart. Add one claim "the
+list is complete" and confirm it on a page that lists the whole set (an award's winners, a draft's
+first picks, a franchise's titles). A franchise counts under its current name with its history
+(Seattle SuperSonics titles are the Oklahoma City Thunder's). Counts and order are not facts: skip them.
+
+**Who Would Win** (`kind: who-would-win`): a vote, so there is no right answer to check. Each side
+is `team_season` (`"1995-96 Chicago Bulls"`, or a decade such as `"1960s Boston Celtics"`) and the
+`sub` line shown under it. Claims: the team-season is real (that franchise, under that name, played
+that season; for a decade, in that decade) and every fact in `sub` is true for it: the record, the
+players named (each played for that team in that season, or in that decade), titles. Two claims per
+side at least. A player who joined after that season, or a wrong record, is a contradiction.
+
+**Connections** (`kind: connections`): four groups, each a `label` and four `members`. Every member
+must fit **his own group's label** exactly as worded (a draft class, a college, a country of birth,
+a championship roster, an award): one claim per member, sixteen in all. A member who does not fit
+his label is a contradiction. You do not have to prove that a member does not also fit another
+group; code checks that where it can.
+
 ## Verdicts
 
 - **valid**: you confirmed every claim on an allowed site.

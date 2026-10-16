@@ -56,8 +56,8 @@ for (const game of ["playoff", "name-logo", "mvps", "starting-five", "fan-favori
   check(`${game}: expand(files) == builder rows (${EXPECTED[game].length})`, sameRows(rows, EXPECTED[game]), `${rows.length} rows`);
 }
 check("names: the manifest names file is the all-players list", canonical(await gd.fetchNames()) === canonical(EXPECTED["all-players"]));
-check("POOL_GAMES is exactly the five pool games",
-  canonical([...gd.POOL_GAMES].sort()) === canonical(["fan-favorites", "mvps", "name-logo", "playoff", "starting-five"]));
+check("POOL_GAMES is exactly the six pool games",
+  canonical([...gd.POOL_GAMES].sort()) === canonical(["fan-favorites", "mvps", "name-logo", "playoff", "starting-five", "who-would-win"]));
 
 // 2. Round counts + one chunk per small round.
 store.clear();

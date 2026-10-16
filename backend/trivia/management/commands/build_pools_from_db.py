@@ -13,6 +13,7 @@ import json
 import os
 import random
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
@@ -22,6 +23,7 @@ from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_
 from trivia.data_pipeline.validate import validate_pool
 from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
 from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
+from trivia.questions.runner import pool_rows
 from trivia.utils.fan_favorites import live_standings, refresh_live_standings
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
@@ -115,6 +117,13 @@ def build_fan_favorites(persist=True):
     # memory only, so it sees exactly the rows a publish would build, with no writes.
     if persist:
         refresh_live_standings()
+    # The boards are the active fan-favorites questions (spec §4.6) once the seeds are
+    # imported; their live standings are merged by qid in memory (same rule, no writes).
+    boards = pool_rows("fan-favorites")
+    if boards is not None:
+        for row in boards:
+            row["answers"] = live_standings(SimpleNamespace(qid=row["qid"], answers=row["answers"])) or row["answers"]
+        return boards
     rows = []
     for q in FanFavoritesQuestion.objects.filter(live=True).order_by("qid"):
         answers = q.answers if persist else (live_standings(q) or q.answers)

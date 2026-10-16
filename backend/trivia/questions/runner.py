@@ -358,6 +358,22 @@ def materialize_active(games, dataset, now=None, out=None):
     return per_game
 
 
+def pool_rows(slug, dataset=None):
+    """The published rows of an editorial pool game (fan-favorites, who-would-win,
+    connections: mod.pool_row of each active question, in id order), read-only through
+    materialize_active (BelowMinimum still raises). None while the game has no active
+    question yet (the seed import has not run): the caller falls back to its seed.
+    The dataset is the committed curated one unless given."""
+    if not Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).exists():
+        return None
+    if dataset is None:
+        from trivia.data_pipeline.publish_v3 import curated_dataset
+
+        dataset = curated_dataset()
+    mod = GAME_MODULES[slug]
+    return [mod.pool_row(m) for _, _, m in materialize_active([slug], dataset)[slug]]
+
+
 def run(games, publish, dry_run, rng, dataset, s3=None, cfg=None, out=print):
     games = games or list(GAME_MODULES)
     now = timezone.now()

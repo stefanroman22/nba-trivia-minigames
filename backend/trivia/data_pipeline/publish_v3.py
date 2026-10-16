@@ -173,6 +173,8 @@ GAMES = {
         "chunked", sort_key=lambda r: r.get("qid", ""), chunk_size=1,
         chunk_name=lambda r: r["qid"],
     ),
+    # Matchups from the active who-would-win questions (spec §4.6): small, one file.
+    "who-would-win": GameSpec("single", sort_key=lambda r: r.get("qid", "")),
     NAMES_GAME: GameSpec("single"),
 }
 
@@ -570,6 +572,7 @@ def default_builders(read_only=False, maintained=None, dataset=None):
     question games are materialized from their current rows (``maintained`` is
     for a publish that just ran the question maintenance).
     """
+    from trivia.games import who_would_win
     from trivia.management.commands import build_pools_from_db as pools
 
     return {
@@ -578,6 +581,7 @@ def default_builders(read_only=False, maintained=None, dataset=None):
         "mvps": pools.build_mvps,
         "starting-five": pools.build_starting_five,
         "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only),
+        "who-would-win": who_would_win.build_pool,
         NAMES_GAME: pools.build_all_players,
         **question_builders(None if read_only else maintained, dataset),
     }

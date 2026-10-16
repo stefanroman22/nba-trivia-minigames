@@ -1,0 +1,14 @@
+{
+  "slug": "connections",
+  "version": 1,
+  "eligibility": {"groups": 4, "group_size": 4},
+  "difficulty": {
+    "features": {"member_fame": 0.7, "unruled": 0.3},
+    "bands": {"easy": [0, 0.35], "medium": [0.35, 0.65], "hard": [0.65, 1]},
+    "mix": {"easy": 0.4, "medium": 0.4, "hard": 0.2}
+  },
+  "interest": {"features": {"recognizable": 1.0}, "min": 0.3},
+  "coverage": {"axes": ["decade"], "min_decades": 3},
+  "refill": {"runway_days": 90, "minimum": 20, "target": 60, "max_new_per_run": 20},
+  "consistency": {"max_player_share": 0.02}
+}

@@ -42,6 +42,7 @@ from trivia.models import Question, QuestionReport, QuestionStats, WrongAnswerSt
 from trivia.questions import checker
 
 GAMES = checker.STAGED_GAMES
+VOTE_GAMES = ("who-would-win",)  # a vote has no right answer: no solve rate, no wrong answers
 MIN_ATTEMPTS = 30
 MIN_SOLVE_RATE = 0.03
 BAND_FACTOR = 0.4
@@ -199,7 +200,8 @@ def scan(now, journal, games=GAMES):
         return row
 
     stat_signals = defaultdict(list)
-    for found in (_solve_rate_signals(games, resolve), _cluster_signals(games, resolve)):
+    stat_games = [g for g in games if g not in VOTE_GAMES]
+    for found in (_solve_rate_signals(stat_games, resolve), _cluster_signals(stat_games, resolve)):
         for pk, signals in found.items():
             stat_signals[pk] += signals
     new_reports = defaultdict(list)

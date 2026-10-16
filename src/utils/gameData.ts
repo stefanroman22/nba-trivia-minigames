@@ -24,7 +24,7 @@ const LS_MANIFEST = "gamedata:manifest";
 const LS_FILE = "gamedata:f:"; // + content-addressed path, e.g. "gamedata:f:mvps/all.3f9a1c2b7e04.json"
 
 /** The pool games published under manifest v3 (pool.ts keys). */
-export const POOL_GAMES = new Set(["playoff", "name-logo", "mvps", "starting-five", "fan-favorites"]);
+export const POOL_GAMES = new Set(["playoff", "name-logo", "mvps", "starting-five", "fan-favorites", "who-would-win"]);
 
 /** The question games the publisher can put under manifest v3 (publish_v3.QUESTION_GAMES). */
 export const QUESTION_GAMES = new Set(["career-path", "who-are-ya", "tictactoe", "contexto"]);
