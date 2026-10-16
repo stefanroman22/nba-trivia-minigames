@@ -44,17 +44,17 @@ def _redis():
 
 
 def top(n=100):
-    """Top `n` rows as [{"id", "username", "points"}], highest first."""
+    """Top `n` rows as [{"id", "username", "rank", "points"}], highest first."""
     r = _redis()
     if r is None:
-        rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points")
-        return [{"id": u["public_id"], "username": u["username"], "points": u["points"]} for u in rows]
+        rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank")
+        return [{"id": u["public_id"], "username": u["username"], "rank": u["rank"], "points": u["points"]} for u in rows]
     entries = r.zrevrange(ZKEY, 0, n - 1, withscores=True)
     ids = [m for m, _ in entries]
     # One query resolves the display names for the whole page.
-    names = dict(_ranked().filter(public_id__in=ids).values_list("public_id", "username"))
+    info = {pid: (name, rank) for pid, name, rank in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank")}
     return [
-        {"id": m, "username": names.get(m, "Player"), "points": int(s)}
+        {"id": m, "username": info.get(m, ("Player", "Rookie"))[0], "rank": info.get(m, ("Player", "Rookie"))[1], "points": int(s)}
         for m, s in entries
     ]
 
@@ -121,8 +121,33 @@ def friends_board(user):
     rows = list(
         User.objects.filter(banned_at__isnull=True, pk__in=ids)
         .order_by("-points")
-        .values("pk", "public_id", "username", "points")
+        .values("pk", "public_id", "username", "points", "rank")
     )
-    board = [{"id": r["public_id"], "username": r["username"], "points": r["points"]} for r in rows]
+    board = [{"id": r["public_id"], "username": r["username"], "rank": r["rank"], "points": r["points"]} for r in rows]
     my_rank = next((i + 1 for i, r in enumerate(rows) if r["pk"] == user.pk), len(board))
     return board, my_rank, len(board)
+
+
+def weekly_board(user=None):
+    """This week's board (Monday 00:00 Paris to now) as (rows, my_rank, count): each public account's
+    summed GameSession.awarded. Postgres only — the window is small and resets weekly, so the ZSET's
+    advantage doesn't apply. `my_rank` is None for a guest or a player with nothing this week."""
+    from django.db.models import Sum
+
+    from trivia.awarding import week_start_utc
+    from trivia.models import GameSession
+    from trivia.wordle_daily import cet_today
+
+    rows = list(
+        GameSession.objects.filter(user__in=_ranked(), finished_at__gte=week_start_utc(cet_today()), awarded__gt=0)
+        .values("user__public_id", "user__username", "user__rank")
+        .annotate(points=Sum("awarded"))
+        .order_by("-points", "user__public_id")
+    )
+    board = [{"id": r["user__public_id"], "username": r["user__username"], "rank": r["user__rank"], "points": r["points"]} for r in rows]
+    my_rank = None
+    if user is not None:
+        mine = next((r["points"] for r in rows if r["user__public_id"] == user.public_id), None)
+        if mine is not None:
+            my_rank = sum(1 for r in rows if r["points"] > mine) + 1
+    return board[:100], my_rank, len(board)
