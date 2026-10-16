@@ -72,7 +72,7 @@ MultiplayerContext phase is not reachable from outside. `startStateLog` records 
   in `matchFound {code, role, roomType:'match', roomSize:2, you, opponent, opponents, game}` → in `roundData {gameData,
   game}` (dealt during the 2.6 s VS intro) → out `submitScore {code, score, elapsedMs}` → the first finisher in
   `waitingForOpponent`, the other in `opponentFinished {id, username}` → both in `matchResult {yourScore, opponentScore,
-  outcome, standings}` → the scorer in `pointsAwarded {awarded, points, rank}` (1v1 only, score > 0).
+  outcome, standings}` → the scorer in `pointsAwarded {awarded, points, rank, rank_up, progress, streak, ...} (the whole receipt row)` (1v1 only, score > 0).
 - Friend room: out `createFriendRoom {game, size}` → in `friendRoomCreated` (lobby snapshot: code, game, capacity,
   min, max, hostUid, members[{id, username, isHost, online}]) → joiner out `joinFriendRoom {code}` → joiner in
   `friendRoomJoined`, host in `friendLobbyUpdate`; `setRoomSize` / `changeFriendGame` → `friendLobbyUpdate` to both;
@@ -131,7 +131,7 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   with "<name> doesn't fit that square.", the turn stays). `playDuel` waits for whoever shows YOUR TURN; each joiner
   turn passes to the host only when its 25 s clock runs out (waited for real twice per run, pair A only: `turn-pass`).
   Host three in a row → banners "You win!" / "Opponent wins" (held 1.8 s, read inside the motion window) → results
-  225 / 90 (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
+  200 / 30 (a draw 120) (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
   player from a one-player-per-cell matching of the whole board (`assign`, the same on both pages), so the two players
   never name the same person. `playDuel(pair, adapter, { script })` plays `DUEL_SCRIPTS.win` (MP-GAME-tictactoe) or
   `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 150 / 150; the duel submits no play

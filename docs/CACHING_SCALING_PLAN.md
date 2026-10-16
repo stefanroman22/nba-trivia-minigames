@@ -11,6 +11,7 @@ before it's forgotten.
 |---|---|---|
 | Global leaderboard (top 100, rank, total) | `users/leaderboard.py` | **Yes** — Redis ZSET (`leaderboard`, member = public_id, score = points) when `REDIS_URL` is set; falls back to plain Postgres queries otherwise. Already scales to any N via `ZREVRANGE`/`ZREVRANK` (O(log N)). |
 | Friends leaderboard (`?scope=friends`) | `leaderboard.friends_board()` | No — always Postgres, deliberately (see below). |
+| Weekly board (`?scope=weekly`) | `leaderboard.weekly_board()` | No — Postgres only: the sum of `GameSession.awarded` since Monday 00:00 Paris; the window is small and resets weekly, so the ZSET's advantage does not apply. |
 | Friend list / friend search (`search-friends`) | `users/friends.py` | No — always Postgres. |
 | Friend requests, blocked list (`friends-overview`) | `users/friends.py` | **Yes** — Django `CACHES` (`users/friends_cache.py`), 60 s TTL, invalidated by every friend/request/block view for both users; Redis when `REDIS_URL`, else DatabaseCache/LocMem. |
 

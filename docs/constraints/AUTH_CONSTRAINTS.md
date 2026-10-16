@@ -164,32 +164,32 @@ setTokens(data.access, data.refresh);
 if (err instanceof SessionNetworkError || getRefreshToken()) { console.error("Session check failed:", err); }
 ```
 
-## Rule AUTH-6: `points`/`rank` have exactly one write site, `trivia.views._award`, and the client never names its own score
+## Rule AUTH-6: `points`/`rank` have exactly one write site, `trivia.awarding.award`, and the client never names its own score
 
-`_award` is the only code that adds points. It has two callers: `log_session` (solo games, the signed-in
-browser) and `multiplayer_result` (online matches, the relay only; see AUTH-7).
-`log_session` records the `GameSession` and awards its points in one step: the score is clamped to
-`MAX_SESSION_POINTS` (1000; the highest renderer score is 300), it is throttled by `ScoreSubmitRateThrottle`
-(`score-submit`, 60/hour), and it returns `{awarded, points, rank}`, which `MiniGame.tsx`'s `awardPoints`
-displays via `updatePoints(data.awarded)`. `users/views.py` `update_profile` rejects any `points` field with
-HTTP 400 (username via JSON, photo via multipart only). `CustomUser.update_rank()` maps thresholds
-100/200/400/700/1200/2000/3000/5000 to the 9 `RANK_CHOICES` (Rookie below 100, GOAT at 5000+). The
-frontend never holds rank labels or thresholds and only displays `user.rank` as the backend returned it.
+`trivia.awarding.award` is the only writer of `points`, `rank`, `active_days`, `last_active_day` and `streak_*`.
+It has two callers: `log_session` (solo games, the signed-in browser) and `multiplayer_result` (online
+matches, the relay only; see AUTH-7). Both clamp the score with `awarding.clamp_score` (per-game
+`GAME_MAX_POINTS`, online Wordle `MATCH_MAX_POINTS`) and `log_session` records the `GameSession` in the same
+step; it is throttled by `ScoreSubmitRateThrottle` (`score-submit`, 60/hour). The award applies the daily soft
+cap (1,500 points in full, the next 1,500 at half, the rest at 10 %), the +100 first-scoring-game bonus and the
+streak milestones, and the response is the receipt `{awarded, points, rank, rank_up, progress, streak,
+first_game_bonus, streak_bonus}`, which `userSlice.applyAward` applies. `users/views.py` `update_profile`
+rejects any `points` field with HTTP 400 (username via JSON, photo via multipart only).
+`CustomUser.update_rank()` uses `users.ranks.rank_for(points, active_days)`: both the point and the
+active-day gate of a rank must be met (table in `docs/superpowers/specs/2026-10-16-progression-design.md`).
+The frontend never holds rank labels or thresholds and only displays what the backend returned.
+`users.views.apply_guest_points` is the one other write, capped at 1,000, at signup only.
 `userSlice.tsx`'s `updateRank` action is defined but never dispatched (pre-existing dead code; leave it).
-Known ceiling: clamp x throttle caps gain at 60 x 1000 per hour per account; per-game caps or server-side
-re-scoring are not implemented.
+Known ceiling: clamp x throttle caps gain at 60 x the per-game maximum per hour per account; server-side
+re-scoring is not implemented.
 
 ```python
 ❌ WRONG — trusting a client total, or a second writer that leaves rank stale
 user.points += request.data.get("points")
 
 ✅ RIGHT — backend/trivia/views.py
-if user is not None and mode == 'single' and score > 0:
-    awarded = score
-    user.points += awarded
-    user.update_rank()
-    user.save(update_fields=['points', 'rank'])
-    leaderboard.record_score(user)
+score = awarding.clamp_score(game, mode, request.data.get("score"))
+return JsonResponse({'ok': True, **awarding.award(...)})
 ```
 
 ## Rule AUTH-7: Guests are awarded nothing, and online results are credited only by the relay, never by the browser
@@ -204,8 +204,8 @@ after the other finished) `multiplayer_server/src/index.js` `creditRoom` POSTs t
 `/trivia/multiplayer-result/` with `X-Relay-Key: MULTIPLAYER_SHARED_SECRET` (set on Railway and the backend
 Vercel project; unset = online play awards nothing). That view has no JWT auth at all, refuses a wrong/missing
 key with 403, clamps with the same per-game caps, skips banned/unknown public ids, and is credited once per
-round (`room.credited`). The relay then emits `pointsAwarded` and `MultiplayerContext.tsx` applies it with
-`updatePoints`. `OnlineMatch.tsx`, `FriendPlay.tsx` and `MultiplayerContext.tsx` still contain no
+round (`room.credited`). The relay then forwards the receipt as `pointsAwarded` and `MultiplayerContext.tsx`
+applies it with `applyAward`. `OnlineMatch.tsx`, `FriendPlay.tsx` and `MultiplayerContext.tsx` still contain no
 `log-session`/`update-profile` call. Known ceiling: scores originate in the browser (as for solo games), so a
 modified client can claim a round's maximum; the relay's 3 s restart throttle bounds how often.
 
