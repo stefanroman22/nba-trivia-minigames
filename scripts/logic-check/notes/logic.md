@@ -105,3 +105,8 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
 - **Throwaway slots**: 60–63 (profile); 41 is game-data's (a shared slot in one worker process is the same account).
 - **Runs**: `20261016-0710-logic` and `20261016-0745-logic` 14/14, sweep clean. No REAL findings. A mutated
   expectation (`LC-PROFILE-03` teen message) failed with one digest line, as it should.
+
+## triage (2026-10-16)
+
+- (20261016-0918-logic) Prod code (`--ref main`) still has both LC-SIGNUP-03 defects: similarity validator skipped (`validate_password(password)` without a user, views.py:296) and non-string password 500. Probes of the number/boolean rows FAIL with 500 (guest, own X-Forwarded-For). The similarity row is not probed by assertion: a failing probe creates an account; its acceptance is the lc check only.
+- (20261016-0918-logic) `advisories.mjs` creates `findings/` if missing and writes a bare array; if `findings/logic.json` is written before it exists use Bash `mkdir`, and merge into the array (do not overwrite) after advisories run. `probe.mjs` has no `--ports` flag.
