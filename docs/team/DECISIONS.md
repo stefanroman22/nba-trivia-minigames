@@ -1266,3 +1266,14 @@ on sonnet and this is two explicit, bounded edits with executable acceptance ass
 Decision: sonnet (b), effort high; difficulty standard, no design round (a validation bug, not a breach); risk high so the
 review stage still goes to fable.
 Consequences: if the fix grows beyond the two edits (e.g. touching throttles or token issuance), re-classify as security.
+
+## 2026-10-16 — Classify: logic-check log-session point inflation goes to a design round (security, risk high)
+Context: card `logic-check-log-session` (`log_session` credits an unknown game id up to 1000 points; a finished play can be replayed
+60/h). The acceptance is narrow (unknown game id -> awarded 0 or 400), which on size alone is a standard sonnet fix.
+Weighed: (a) standard, no design round, sonnet; (b) security -> `needsDesignRound: true`, `risk: high`, planModel fable, engine opus.
+The card is explicitly "owner decision first" (refuse vs credit 0, and whether a play gets a one-time id the server checks, which is
+a new client/server protocol), and it touches the AUTH-6 single points writer and the `score-submit` throttle surface; point
+inflation by a forged client is abuse, which the rubric makes security work regardless of file count.
+Decision: (b). Difficulty standard, areas backend only (the one-time play id, if chosen, may add frontend: the design round re-counts).
+Consequences: the design round should resolve the owner question with the smallest option (unknown game -> 400/0 against the real game
+id set, keep known games credited exactly their capped score) and park or split the play-id replay guard if it needs an owner call.
