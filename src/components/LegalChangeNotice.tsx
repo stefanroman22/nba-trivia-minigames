@@ -1,11 +1,22 @@
 "use client";
+// No-shift strategy: a fixed bottom banner (out of flow) entering by transform/opacity only, so it never moves painted content (CLS).
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { createPortal } from "react-dom";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { LEGAL } from "../configurations/legal";
-import { nameNoteSlot } from "../utils/nameCheck";
+import { fadeInUp, reducedFade } from "../motion/variants";
+import { durations, easing } from "../motion/tokens";
+import { useReducedMotionSafe } from "../hooks/useReducedMotionSafe";
+import { usePageTransition } from "../context/PageTransitionContext";
 import "../styles/LegalChangeNotice.css";
 
 const DISMISS_KEY = `sq:legal-notice-${LEGAL.version}`;
+
+// fadeInUp, but a bottom banner leaves the way it came (back down), on the shared exit timing.
+const bannerIn: Variants = {
+  ...fadeInUp,
+  exit: { opacity: 0, y: 16, transition: { duration: durations.fast, ease: easing.in } },
+};
 
 /** The home-page notice of a significant Terms/Privacy change, promised by Terms section 12 and
  *  Privacy section 15 ("at least 14 days before it applies"; docs/legal/RUNBOOKS.md F). Shown until
@@ -13,8 +24,16 @@ const DISMISS_KEY = `sq:legal-notice-${LEGAL.version}`;
  *  Decided after mount, so the server HTML never carries it and nothing mismatches on hydration. */
 export default function LegalChangeNotice() {
   const [visible, setVisible] = useState(false);
+  // Portalled to <body> once mounted: the route template (app/template.tsx) scales its wrapper on
+  // client-side enter/leave, and a transformed ancestor would pin this fixed banner to the wrapper.
+  const [mounted, setMounted] = useState(false);
+  // Opacity only under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
+  const reduced = useReducedMotionSafe();
+  // Portalled out of the page, so it would not fade with it: exit while the page leaves (navigate()).
+  const { leaving } = usePageTransition();
 
   useEffect(() => {
+    setMounted(true);
     const decide = () => {
       if (new Date() >= new Date(`${LEGAL.changeNotice.showUntilIso}T00:00:00Z`)) return;
       try {
@@ -36,18 +55,19 @@ export default function LegalChangeNotice() {
     }
   };
 
-  return (
-    <AnimatePresence initial={false}>
-      {visible && (
+  if (!mounted) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {visible && !leaving && (
         <motion.aside
           key="legal-notice"
           className="lcn-wrap"
           aria-label="Changes to our Terms and Privacy Policy"
-          style={{ overflow: "hidden" }}
-          variants={nameNoteSlot}
+          variants={reduced ? reducedFade : bannerIn}
           initial="hidden"
           animate="visible"
-          exit="hidden"
+          exit="exit"
         >
           <div className="lcn">
             <p className="lcn-text">
@@ -63,6 +83,7 @@ export default function LegalChangeNotice() {
           </div>
         </motion.aside>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
