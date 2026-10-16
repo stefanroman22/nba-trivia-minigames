@@ -5,7 +5,7 @@
 // lib/mp-play.mjs: ctx.online, answers from the round the relay sent over the socket (lib/mp-pool.mjs). Tic-Tac-Toe is
 // a turn duel (the adapter's `online` section). Asserted on both sides: layout of the playing screen, snap / CLS
 // while playing, feedback after every answer, the waiting screen, results (headline, scores from the answers given,
-// mirrored), no points (friend rooms never credit), the answer review.
+// mirrored), the answer review. That friend rooms never credit points is Logic Check's (LC-ROOMS-08).
 import { test, expect } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { playableGames } from '../../lib/guest.mjs';
@@ -68,10 +68,7 @@ for (const g of ONLINE) {
       }
       await checkResults(pair, want);
       for (const p of [host, joiner]) markSameAsGames(g.id, p);
-      for (const p of [host, joiner]) {
-        const credited = p.cap.frames('pointsAwarded', { dir: 'in' });
-        if (credited.length) p.audit.violation('points', { selector: 'pointsAwarded', measured: JSON.stringify(credited), expected: 'a friend room never adds points to profiles (MP-6)' });
-      }
+      // A friend room never credits points: Logic Check's LC-ROOMS-08 (spec §5 no-overlap).
       await layoutBoth(pair);
       await shotBoth(pair, 'results');
       await reviewRoundTrip(host, want.host.score);
