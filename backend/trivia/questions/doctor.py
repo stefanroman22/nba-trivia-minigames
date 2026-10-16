@@ -12,7 +12,8 @@ problem reports (QuestionReport, status new) for the staged games, and per quest
                    >= CLUSTER_SHARE of the question's wrong answers
     reports        >= 1 report (the notes are kept in quality.doctor.reports)
 
-Strong (>= STRONG_REPORTS reports, or solve_rate and wrong_cluster together) sets an active
+Strong (>= STRONG_REPORTS distinct reporters, see _reporter_tally, or solve_rate and
+wrong_cluster together) sets an active
 question `quarantined` (event quarantined/signal); anything weaker queues it for research
 (quality.doctor_queue, event flagged). Either way quality.doctor = {"signals", "at", "reports"},
 and a report is marked handled only once its note is copied there. The invalid-audit route to
@@ -53,6 +54,8 @@ AUDIT_SIZE = 20
 AUDIT_WEEKDAY = 3  # Thursday (datetime.weekday, UTC)
 
 RELEASED_AT = "doctor_released_at"
+REPORTER_ACCOUNTS = "reporter_accounts"  # in quality.doctor: distinct reporting accounts so far
+GUEST_REPORTED = "guest_reported"  # in quality.doctor: any guest reported (all guests count as one)
 
 PERSON_KEY = {"career-path": "person_id", "who-are-ya": "person_id", "contexto": "secret_person_id"}
 _PREFER = {Question.STATUS_ACTIVE: 0, Question.STATUS_QUARANTINED: 1, Question.STATUS_PENDING: 2,
@@ -188,6 +191,16 @@ def _cluster_signals(games, resolve):
     return out
 
 
+def _reporter_tally(doctor_state, reports):
+    """The question's distinct reporters after this scan's new reports, as counts only (no ids
+    are kept on the question): accounts are counted once per scan, and every guest together is
+    one reporter, ever, since a guest report carries no key of its own."""
+    accounts = {r.user_id for r in reports if r.user_id is not None}
+    guest = bool(doctor_state.get(GUEST_REPORTED)) or any(r.user_id is None for r in reports)
+    return {REPORTER_ACCOUNTS: int(doctor_state.get(REPORTER_ACCOUNTS) or 0) + len(accounts),
+            GUEST_REPORTED: guest}
+
+
 def scan(now, journal, games=GAMES):
     """Flag, quarantine and (on Thursdays) select for audit; returns
     {"quarantined", "flagged", "audit_selected", "games"} (games: those with a quarantine)."""
@@ -220,6 +233,7 @@ def scan(now, journal, games=GAMES):
         quality = dict(row.quality or {})
         doctor = dict(quality.get("doctor") or {})
         notes = list(doctor.get("reports") or []) + [r.note for r in reports]
+        tally = _reporter_tally(doctor, reports)
         if row.status == Question.STATUS_QUARANTINED:
             if not reports:
                 continue
@@ -231,7 +245,8 @@ def scan(now, journal, games=GAMES):
             if not signals:
                 continue
             kinds = {s["signal"] for s in signals}
-            strong = len(notes) >= STRONG_REPORTS or {"solve_rate", "wrong_cluster"} <= kinds
+            reporters = tally[REPORTER_ACCOUNTS] + tally[GUEST_REPORTED]
+            strong = reporters >= STRONG_REPORTS or {"solve_rate", "wrong_cluster"} <= kinds
             if strong:
                 row.status = Question.STATUS_QUARANTINED
                 doctor = {"signals": signals, "at": stamp, "reports": notes}
@@ -248,6 +263,8 @@ def scan(now, journal, games=GAMES):
                 doctor = {"signals": signals, "at": stamp, "reports": notes}
                 journal.log("flagged", "weak", game=row.game, qid=row.qid, signals=signals)
                 summary["flagged"] += 1
+        if notes:
+            doctor.update(tally)
         quality["doctor"] = doctor
         row.quality = quality
         row.save(update_fields=["status", "quality", "updated_at"])

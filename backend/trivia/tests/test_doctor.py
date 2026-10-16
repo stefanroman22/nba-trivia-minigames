@@ -5,6 +5,7 @@ import tempfile
 from io import StringIO
 from unittest.mock import patch
 
+from django.contrib.auth import get_user_model
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -39,8 +40,11 @@ class DoctorTestCase(TestCase):
         WrongAnswerStats.objects.create(game=game, question_id=str(question_id), answer_norm=answer, count=count,
                                         players=players, first_seen=WEDNESDAY, last_seen=WEDNESDAY)
 
-    def report(self, game, question_id, note="wrong"):
-        return QuestionReport.objects.create(game=game, question_id=str(question_id), note=note)
+    def report(self, game, question_id, note="wrong", user=None):
+        return QuestionReport.objects.create(game=game, question_id=str(question_id), note=note, user=user)
+
+    def user(self, name):
+        return get_user_model().objects.create_user(username=name, email=f"{name}@example.com", password="x")
 
     def scan(self, now=WEDNESDAY):
         journal = Journal("doctor")
@@ -189,10 +193,11 @@ class ReportAndStrengthTests(DoctorTestCase):
         self.assertEqual(row.quality["doctor"]["reports"], ["wrong team in 2004"])
         self.assertEqual(rep.status, "handled")
 
-    def test_three_reports_quarantine(self):
+    def test_three_reporters_quarantine(self):
         row = self.q(pid=1)
-        for i in range(3):
-            self.report("career-path", 1, f"note {i}")
+        self.report("career-path", 1, "note 0", user=self.user("ann"))
+        self.report("career-path", 1, "note 1", user=self.user("bob"))
+        self.report("career-path", 1, "note 2")  # a guest
         summary, journal = self.scan()
         row.refresh_from_db()
         self.assertEqual(row.status, "quarantined")
@@ -202,6 +207,28 @@ class ReportAndStrengthTests(DoctorTestCase):
         event = self.actions(journal, "quarantined")[0]
         self.assertEqual((event["reason"], event["game"], event["qid"]), ("signal", "career-path", row.qid))
         self.assertEqual(set(QuestionReport.objects.values_list("status", flat=True)), {"handled"})
+
+    def test_three_reports_from_one_account_only_queue(self):
+        row = self.q(pid=1)
+        ann = self.user("ann")
+        for i in range(3):
+            self.report("career-path", 1, f"note {i}", user=ann)
+        summary, journal = self.scan()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "active")
+        self.assertTrue(row.quality["doctor_queue"])
+        self.assertEqual(row.quality["doctor"]["reports"], ["note 0", "note 1", "note 2"])
+        self.assertEqual(summary["quarantined"], 0)
+
+    def test_guest_reports_count_as_one_reporter(self):
+        # A guest report carries no key of its own, so every guest together is one reporter.
+        row = self.q(pid=1)
+        for i in range(5):
+            self.report("career-path", 1, f"note {i}")
+        self.scan()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "active")
+        self.assertTrue(row.quality["doctor_queue"])
 
     def test_anomaly_and_cluster_together_quarantine(self):
         row = self.q(pid=1)
@@ -248,10 +275,12 @@ class IdempotenceTests(DoctorTestCase):
         self.assertTrue(row.quality["doctor_queue"])
 
     def test_a_quarantined_question_is_not_quarantined_again(self):
-        self.q(pid=1)
-        for _ in range(3):
-            self.report("career-path", 1)
+        row = self.q(pid=1)
+        for name in ("ann", "bob", "cy"):
+            self.report("career-path", 1, user=self.user(name))
         self.scan()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "quarantined")
         summary, journal = self.scan()
         self.assertEqual((summary["quarantined"], journal.events), (0, []))
 
@@ -266,17 +295,29 @@ class IdempotenceTests(DoctorTestCase):
         self.assertEqual(row.quality["doctor"]["reports"], ["first", "second"])
         self.assertEqual(set(QuestionReport.objects.values_list("status", flat=True)), {"handled"})
 
-    def test_a_queued_question_reaching_three_reports_is_quarantined(self):
+    def test_a_queued_question_reaching_three_reporters_is_quarantined(self):
         row = self.q(pid=1)
-        self.report("career-path", 1, "a")
-        self.report("career-path", 1, "b")
+        self.report("career-path", 1, "a", user=self.user("ann"))
+        self.report("career-path", 1, "b")  # a guest
         self.scan()
-        self.report("career-path", 1, "c")
+        self.report("career-path", 1, "c", user=self.user("bob"))
         summary, journal = self.scan()
         row.refresh_from_db()
         self.assertEqual(row.status, "quarantined")
         self.assertEqual(row.quality["doctor"]["reports"], ["a", "b", "c"])
         self.assertEqual(len(self.actions(journal, "quarantined")), 1)
+
+    def test_guests_on_later_nights_still_count_once(self):
+        row = self.q(pid=1)
+        self.report("career-path", 1, "a", user=self.user("ann"))
+        self.report("career-path", 1, "b")
+        self.scan()
+        self.report("career-path", 1, "c")
+        self.report("career-path", 1, "d")
+        self.scan()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "active")
+        self.assertEqual(row.quality["doctor"]["reports"], ["a", "b", "c", "d"])
 
     def test_a_report_on_a_quarantined_question_is_attached_quietly(self):
         row = self.q(pid=1, status="quarantined")
@@ -342,8 +383,8 @@ class AuditSelectionTests(DoctorTestCase):
 class CommandTests(DoctorTestCase):
     def test_journal_and_github_output(self):
         self.q(pid=1)
-        for _ in range(3):
-            self.report("career-path", 1)
+        for name in ("ann", "bob", "cy"):
+            self.report("career-path", 1, user=self.user(name))
         with tempfile.TemporaryDirectory() as tmp:
             gh = os.path.join(tmp, "out")
             with patch.dict(os.environ, {"GITHUB_OUTPUT": gh}), \

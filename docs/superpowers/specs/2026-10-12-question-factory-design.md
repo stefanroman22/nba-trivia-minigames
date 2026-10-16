@@ -350,7 +350,8 @@ steps it also holds the rationale and the source URLs. Events are collected in m
 | Player report | a "Report a problem" button on the answer reveal (new; stored as `Feedback` with `qid`) |
 | Random audit | 20 random live questions per week, re-checked by the Checker (§4.12) even with no signal |
 
-**Quarantine.** A strong signal (≥ 3 reports, or a solve-rate anomaly together with a
+**Quarantine.** A strong signal (reports from ≥ 3 distinct reporters, all guests counting as
+one, or a solve-rate anomaly together with a
 wrong-answer cluster) sets the question to the new status `quarantined` immediately. Quarantined
 questions are not published, so players stop seeing them before anyone researches. A weak signal
 only queues the question for research.
