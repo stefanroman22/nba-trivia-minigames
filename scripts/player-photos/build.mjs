@@ -9,7 +9,7 @@
 // The map lists only the exceptions: an id it doesn't mention uses cdn.nba.com, which
 // is right for new players (every active player has an NBA headshot).
 import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -18,6 +18,7 @@ const PLAYERS = join(root, "backend", "trivia", "data", "players-index.json");
 const MAP_OUT = join(root, "public", "photos", "player-photos.json");
 const IDS_OUT = join(root, "public", "photos", "player-ids.json");
 const CREDITS_OUT = join(root, "src", "data", "photo-credits.json");
+const EXTRA_IN = join(root, "scripts", "player-photos", "commons-extra.json");
 
 const NBA_PLACEHOLDER_ETAG = '"7475ba9619305909d7998dd9dba02481"';
 const UA = "SwishQuest-photo-map/1.0 (https://swishquest.com)";
@@ -143,7 +144,11 @@ const missing = players.filter((_, i) => !nba[i]);
 console.log(`[player-photos] NBA headshot: ${players.length - missing.length}; without: ${missing.length}`);
 
 const wd = await wikidataImages();
-const wanted = [...new Set(missing.map((p) => wd.get(String(p.person_id))).filter(Boolean))];
+// Hand-verified finds (identity, license, a clear face), which win over Wikidata:
+// { "<person_id>": { file, face_x, face_y } } — see commons-extra.json's producers in the README.
+const extra = existsSync(EXTRA_IN) ? JSON.parse(readFileSync(EXTRA_IN, "utf8")) : {};
+const fileFor = (p) => extra[p.person_id]?.file ?? wd.get(String(p.person_id));
+const wanted = [...new Set(missing.map(fileFor).filter(Boolean))];
 console.log(`[player-photos] Wikidata images for missing players: ${wanted.length} — reading Commons metadata…`);
 const info = await commonsInfo(wanted);
 
@@ -162,7 +167,7 @@ function namesPlayer(fullName, file) {
 }
 const fileUses = new Map();
 for (const p of missing) {
-  const file = wd.get(String(p.person_id));
+  const file = fileFor(p);
   if (file) fileUses.set(file, (fileUses.get(file) ?? 0) + 1);
 }
 
@@ -171,16 +176,19 @@ const none = [];
 const credits = [];
 let rejected = 0;
 for (const p of missing) {
-  const file = wd.get(String(p.person_id));
+  const file = fileFor(p);
   const meta = file && info.get(file);
-  const trusted = file && fileUses.get(file) === 1 && namesPlayer(p.full_name, file);
+  const picked = extra[p.person_id];
+  const trusted = file && (picked || (fileUses.get(file) === 1 && namesPlayer(p.full_name, file)));
   if (meta && !trusted) rejected++;
   if (!meta || !trusted || !/^image\/(jpeg|png)$/.test(meta.mime)) {
     none.push(p.person_id);
     continue;
   }
   const underscored = file.replace(/ /g, "_");
+  // [path, width] — plus the face's position in percent when known, so the game crops to it.
   commons[p.person_id] = [`${hashDir(underscored)}/${underscored}`, meta.width];
+  if (picked?.face_y != null) commons[p.person_id].push(Math.round(picked.face_x ?? 50), Math.round(picked.face_y));
   credits.push({
     player: p.full_name,
     file: underscored,

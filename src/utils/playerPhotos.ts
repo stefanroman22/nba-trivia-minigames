@@ -7,8 +7,8 @@
 import { useEffect, useState } from "react";
 
 interface PhotoMap {
-  /** person_id -> ["a/ab/File_name.jpg", original width in px] */
-  commons: Record<string, [string, number]>;
+  /** person_id -> ["a/ab/File_name.jpg", original width in px, face x %, face y %] (face optional) */
+  commons: Record<string, [string, number] | [string, number, number, number]>;
   /** person_ids with no photo on either source */
   none: number[];
 }
@@ -20,6 +20,8 @@ export interface PhotoSource {
   src: string;
   /** Commons photos are arbitrary crops, so they get a shared fit rule (PlayerPhoto.css). */
   source: "nba" | "commons";
+  /** CSS object-position that keeps the face in frame, when the photo's face position is known. */
+  focus?: string;
 }
 
 const NBA_SIZE: Record<PhotoSize, string> = { sm: "260x190", lg: "1040x760" };
@@ -47,7 +49,7 @@ export function loadPhotoMap(): Promise<void> {
   return mapPromise;
 }
 
-function commonsUrl([path, width]: [string, number], size: PhotoSize): string {
+function commonsUrl([path, width]: PhotoMap["commons"][string], size: PhotoSize): string {
   const file = path.slice(path.lastIndexOf("/") + 1);
   const dir = path.slice(0, path.lastIndexOf("/"));
   const base = "https://upload.wikimedia.org/wikipedia/commons";
@@ -61,7 +63,7 @@ function commonsUrl([path, width]: [string, number], size: PhotoSize): string {
 export function photoSource(personId: number, size: PhotoSize): PhotoSource | null {
   if (none?.has(personId)) return null;
   const c = map?.commons[String(personId)];
-  if (c) return { src: commonsUrl(c, size), source: "commons" };
+  if (c) return { src: commonsUrl(c, size), source: "commons", focus: c.length === 4 ? `${c[2]}% ${c[3]}%` : undefined };
   return { src: `https://cdn.nba.com/headshots/nba/latest/${NBA_SIZE[size]}/${personId}.png`, source: "nba" };
 }
 
