@@ -22,7 +22,7 @@
 // has blocked in <uicHome>/channel.json are left out (--grep-invert), recorded with channel.defer(), written to
 // <runDir>/blocked.json and listed in the digest's Coverage gaps as `blocked by LC-… (card …)` (check-core/lib/blocked.mjs).
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { chromium } from '@playwright/test';
 import { CORE, MP_PAIRS, VIEWPORTS } from './lib/viewports.mjs';
@@ -32,9 +32,10 @@ import { ensureCheckout } from '../check-core/lib/checkout.mjs';
 import { PORT_SETS, formatPorts, parsePorts } from '../check-core/lib/ports.mjs';
 import { JPEG } from './lib/evidence.mjs';
 import { UIC, grepFor, installEmergencyStop, playwright } from './lib/runner.mjs';
-import { blockedChecks, grepInvertFor, recordDeferrals } from '../check-core/lib/blocked.mjs';
+import { blockedChecks, grepInvertFor, inSelection, recordDeferrals } from '../check-core/lib/blocked.mjs';
 
 const SUITES = ['guest', 'account', 'games', 'multiplayer'];
+const SUITE_PREFIX = { guest: 'G-', account: 'AC-', games: 'GM-', multiplayer: 'MP-' };
 const SHEET_MAX = 24;
 
 function parseArgs(argv) {
@@ -117,14 +118,26 @@ function readResults() {
   try { return JSON.parse(readFileSync(path.join(runDir(), 'results.json'), 'utf8')); } catch { return []; }
 }
 
+/** Check ids whose test title carries @live (the guest specs). */
+function liveIds() {
+  const ids = new Set();
+  const dir = path.join(UIC, 'specs', 'guest');
+  for (const n of readdirSync(dir).filter((f) => /\.spec\.m?js$/.test(f))) {
+    for (const m of readFileSync(path.join(dir, n), 'utf8').matchAll(/\[([A-Za-z][\w.-]*)\][^'"`\n]*@live\b/g)) ids.add(m[1]);
+  }
+  return ids;
+}
+
 /**
  * --skip-blocked: the checks Logic Check's blocks leave out of this run → their --grep-invert (null when none). Writes
  * <runDir>/blocked.json for the digest and records each in channel.json's deferred[]. A broken channel never stops a run.
  */
-function applyBlocks(opts, id) {
+function applyBlocks(opts, id, suites) {
   if (!opts.skipBlocked) return null;
   let list;
   try { list = blockedChecks({ checker: 'ui' }); } catch (e) { console.error(`ui-check: channel not read (${e.message.split('\n')[0]}) — running every check`); return null; }
+  list = inSelection(list, { prefixes: suites.map((s) => SUITE_PREFIX[s]), only: opts.only });
+  if (opts.live) { const live = liveIds(); list = list.filter((x) => live.has(x.checkId)); } // a live run selects the @live checks only
   if (!list.length) return null;
   mkdirSync(runDir(), { recursive: true });
   writeFileSync(path.join(runDir(), 'blocked.json'), JSON.stringify(list, null, 2));
@@ -241,7 +254,7 @@ async function main() {
   const childEnv = { UI_CHECK_MODE: opts.mode, UI_CHECK_RUN: id, UI_CHECK_KEEP_STACK: '1', UI_CHECK_REPO: app.repo, UI_CHECK_PORTS: process.env.UI_CHECK_PORTS };
   const hasSpecs = (suite) => existsSync(path.join(UIC, 'specs', suite));
   const grep = grepFor(opts.only);
-  const blockedGrep = applyBlocks(opts, id);
+  const blockedGrep = applyBlocks(opts, id, suites);
   // Tests left out of every pass: @slow with --skip-slow, checks blocked by Logic Check (combined with the @perf split of each pass).
   const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null, blockedGrep].filter(Boolean).join('|') || undefined;
   let exit = 0;
@@ -332,7 +345,7 @@ async function runLive(opts) {
   console.log(`ui-check: game catalogue from ${app.repo} · ref ${app.ref ?? '(--repo)'} @ ${String(app.head).slice(0, 12)}`);
 
   const projects = live.map((v) => `guest-live@${v}`);
-  const blockedGrep = applyBlocks(opts, id);
+  const blockedGrep = applyBlocks(opts, id, ['guest']);
   const invert = (base) => [base, opts.skipSlow ? SLOW_TAG : null, blockedGrep].filter(Boolean).join('|') || undefined;
   let exit = 0;
   exit = Math.max(exit, await playwright(projects, { workers: 4, grep: liveGrep(opts.only, false), grepInvert: invert(PERF_TAG), headed: opts.headed, env: childEnv }));

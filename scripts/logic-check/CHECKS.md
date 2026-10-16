@@ -56,7 +56,7 @@ opened by a check (`lc.page(page)`) is guarded like `ui-check --live` (non-GET a
 
 | ID | services | proves |
 |---|---|---|
-| `LC-PAGES-01` | pages | On the checkout (prod build, local stack), every public route of `LC-LIVE-01` loads in Chromium with HTTP 200 (the unknown route 404), the app shell renders and React hydrates (event props on an interactive element within 10 s); the 404 page's "Back to games" button navigates to `/` (a click works). TTFB per route is a metric, held to 800 ms in prod mode. |
+| `LC-PAGES-01` | pages | On the checkout (prod build, local stack), every public route of `LC-LIVE-01` loads in Chromium with HTTP 200 (the unknown route 404), the app shell renders and React hydrates (event props on an interactive element within 10 s); the 404 page's "Back to games" button navigates to `/` (a click works). TTFB per route is a metric only: local load budgets are UI check's (`G-PERF-01`, spec §5). |
 
 ## Selftest (LC-ST-)
 

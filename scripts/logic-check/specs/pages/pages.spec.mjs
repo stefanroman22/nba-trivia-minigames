@@ -1,10 +1,10 @@
 // Logic Check — pages suite: the public routes on the checkout (local stack, prod build), in one Chromium context.
-// Status, shell, hydration and one real click; never layout or motion (UI check's G- rows own those).
+// Status, shell, hydration and one real click; never layout, motion or perf budgets (UI check's G- rows own those —
+// spec §5: G-PERF-01 holds the local load times). TTFB is recorded as a metric only.
 import { test } from '../../lib/fixtures.mjs';
 import { NOT_FOUND_ROUTE, publicRoutes } from '../../lib/app.mjs';
 import { L } from '../../../ui-check/lib/pagemap.mjs';
 
-const TTFB_BUDGET = 800;
 const SHELL = 'main.page, #root *';
 
 /** React attached its event props to an interactive element (the app is hydrated, clicks are handled). */
@@ -16,7 +16,6 @@ const hydrated = (page) => page.waitForFunction(() => {
 
 test('[LC-PAGES-01] every public route loads with its status, the app shell and hydration; a click on the 404 page navigates home', async ({ page, lc }) => {
   await lc.page(page);
-  const enforce = process.env.UI_CHECK_MODE === 'prod';
   const load = async (route, status) => {
     const res = await page.goto(route, { waitUntil: 'domcontentloaded' }).catch((e) => ({ error: e }));
     if (!res || res.error) { lc.violation('unreachable', { route, selector: `GET ${route}`, measured: String(res && res.error ? res.error.message : 'no response').split('\n')[0], expected: `HTTP ${status}` }); return false; }
@@ -27,10 +26,7 @@ test('[LC-PAGES-01] every public route loads with its status, the app shell and 
     }
     if (!(await hydrated(page))) lc.violation('not-hydrated', { route, selector: 'button, input, a[href]', measured: 'no React event props after 10s', expected: 'a hydrated page (clicks work)' });
     const ttfb = await page.evaluate(() => { const n = performance.getEntriesByType('navigation')[0]; return n ? Math.round(n.responseStart - n.requestStart) : null; });
-    if (ttfb !== null) {
-      lc.metric(`ttfb ${route}`, ttfb, { route, budget: TTFB_BUDGET, kind: 'perf' });
-      if (enforce && ttfb > TTFB_BUDGET) lc.violation('ttfb', { route, selector: `GET ${route}`, measured: `TTFB ${ttfb}ms`, expected: `≤ ${TTFB_BUDGET}ms (prod mode)` });
-    }
+    if (ttfb !== null) lc.metric(`ttfb ${route}`, ttfb, { route, kind: 'perf' });
     return true;
   };
 

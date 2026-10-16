@@ -30,7 +30,7 @@ import { grepFor, installEmergencyStop, playwright } from '../ui-check/lib/runne
 import { ensureCheckout } from '../check-core/lib/checkout.mjs';
 import { ROOT } from '../check-core/lib/home.mjs';
 import { PORT_SETS, activePorts, formatPorts, parsePorts } from '../check-core/lib/ports.mjs';
-import { blockedChecks, grepInvertFor, recordDeferrals } from '../check-core/lib/blocked.mjs';
+import { blockedChecks, grepInvertFor, inSelection, recordDeferrals } from '../check-core/lib/blocked.mjs';
 import { SUITES, suiteOfId } from './lib/suites.mjs';
 
 process.env.UI_CHECK_CHECKER = 'logic'; // run-id.mjs: never move the ui `latest` pointer; reporter: checker 'logic'
@@ -107,10 +107,11 @@ async function appFor(o, { local }) {
 }
 
 /** --skip-blocked: the LC checks a block leaves out → their --grep-invert (null when none); blocked.json + deferrals. */
-function applyBlocks(o, id) {
+function applyBlocks(o, id, suites) {
   if (!o.skipBlocked || o.only) return null;
   let blocked;
   try { blocked = blockedChecks({ checker: 'logic' }); } catch (e) { fail(`channel not read (${e.message.split('\n')[0]}) — running every check`); return null; }
+  blocked = inSelection(blocked, { prefixes: suites.map((s) => SUITES[s].prefix) });
   if (!blocked.length) return null;
   mkdirSync(runDir(), { recursive: true });
   writeFileSync(path.join(runDir(), 'blocked.json'), JSON.stringify(blocked, null, 2));
@@ -160,7 +161,7 @@ async function main() {
 
   const childEnv = { UI_CHECK_CHECKER: 'logic', UI_CHECK_MODE: o.mode, UI_CHECK_RUN: id, UI_CHECK_KEEP_STACK: '1', UI_CHECK_REPO: app.repo, UI_CHECK_PORTS: formatPorts(ports), UI_CHECK_LIVE_URL: liveUrl.origin };
   const grep = o.only ? grepFor(o.only) : `\\[(${suites.map((s) => SUITES[s].prefix).join('|')})[\\w.-]*\\]`;
-  const invert = applyBlocks(o, id) || undefined;
+  const invert = applyBlocks(o, id, suites) || undefined;
   let exit = 0, code = null;
   try {
     if (local) {

@@ -7,7 +7,7 @@ import path from 'node:path';
 import { test, expect, createLc } from '../../lib/fixtures.mjs';
 import { createGuard, makeApi } from '../../lib/api.mjs';
 import { findingOf, nextState, slackLine, stampValidation, triageFindings, FILES } from '../../lib/live-triage.mjs';
-import { blockedChecks, grepInvertFor, recordDeferrals, serviceMapOf } from '../../../check-core/lib/blocked.mjs';
+import { blockedChecks, grepInvertFor, inSelection, recordDeferrals, serviceMapOf } from '../../../check-core/lib/blocked.mjs';
 import { ROOT } from '../../../check-core/lib/home.mjs';
 import { acceptanceHash, fingerprint, validateFinding } from '../../../check-core/lib/findings.mjs';
 import { blockedLine, buildDigest } from '../../../ui-check/lib/digest-reporter.mjs';
@@ -94,6 +94,12 @@ test('[LC-ST-BLOCKED] --skip-blocked maps blocked services to the checks tagged 
   expect(relay).toEqual(['LC-LIVE-06']);
   expect(blockedChecks({ checker: 'ui', map: ui, channel: fakeChannel([]) })).toEqual([]);
   expect(grepInvertFor([])).toBeNull();
+
+  // Only what the run selects is deferred: its suites' prefixes and, with --only, overlapping ids/patterns.
+  const sel = (ids, o) => inSelection(ids.map((checkId) => ({ checkId })), o).map((x) => x.checkId);
+  expect(sel(['G-MODAL-01', 'AC-SURF-01', 'GM-*-*'], { prefixes: ['G-'] })).toEqual(['G-MODAL-01']);
+  expect(sel(['G-MODAL-01', 'G-PERF-01', 'GM-*-*', 'GM-wordle-*'], { only: 'G-PERF-01,GM-wordle-perfect' })).toEqual(['G-PERF-01', 'GM-*-*', 'GM-wordle-*']);
+  expect(sel(['GM-wordle-*', 'GM-contexto-*'], { only: 'GM-*' })).toEqual(['GM-wordle-*', 'GM-contexto-*']);
 });
 
 test('[LC-ST-TRIAGE] live triage: failing LC-LIVE results become valid ci findings, validation is stamped from the run, the state counts failures', async () => {

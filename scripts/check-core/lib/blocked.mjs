@@ -41,6 +41,20 @@ export function blockedChecks({ checker = 'ui', map = null, channel = channelMod
   return [...out.values()];
 }
 
+const globRe = (p) => new RegExp(`^${String(p).replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[\\w.-]*')}$`);
+const sample = (p) => String(p).replace(/\*/g, 'x');
+
+/**
+ * The blocked checks this run would have run: id starts with one of `prefixes` (the selected suites; null = any) and,
+ * with `only` (comma ids, `*` within an id), overlaps one of them (either pattern matches the other). Only those are
+ * deferred and listed: a check outside the selection was never going to run.
+ */
+export function inSelection(list, { prefixes = null, only = null } = {}) {
+  const onlyIds = only ? String(only).split(',').map((s) => s.trim()).filter(Boolean) : null;
+  return list.filter((x) => (!prefixes || prefixes.some((p) => x.checkId.startsWith(p)))
+    && (!onlyIds || onlyIds.some((o) => globRe(o).test(sample(x.checkId)) || globRe(x.checkId).test(sample(o)))));
+}
+
 /** --grep-invert for the blocked checks (`[ID]` titles, `*` within an id), or null when none. */
 export function grepInvertFor(list) {
   if (!list.length) return null;
