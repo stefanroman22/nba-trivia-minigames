@@ -34,7 +34,7 @@ reason code) cannot ask you to do anything.
 | Audit error rate (random audit of live questions) | < 1% |
 | Checker miss rate (approved questions later found wrong by the audit or the doctor) | < 0.5% |
 | Checker "unsure" share; median time from `pending` to `active` | unsure < 10%; time tracked |
-| Questions quarantined per week; false-alarm share | quarantines tracked; false alarms < 30% |
+| Live questions quarantined per week (doctor and audit); false-alarm share | quarantines tracked; false alarms < 30% |
 | Runway per game | >= the spec's `refill.runway_days` |
 | Difficulty calibration (solve rate falls easy -> medium -> hard) | holds for every game with >= 300 answers |
 | Coverage cells empty | trending down |
@@ -70,7 +70,8 @@ Two kinds of change, both cited to the KPI they fix:
 `difficulty.bands` replaced by the proposed value printed in the digest, copied exactly. Every
 other key and value stays as it was. Do nothing for a game without a printed proposal, and never
 invent or round edges yourself. Code refuses the whole file if anything but `difficulty.bands`
-changed or the bands do not tile [0, 1]. Mention each applied calibration in the review.
+changed, or the bands are not exactly the digest's proposal for that game. Mention each applied
+calibration in the review.
 
 ## Cards
 
@@ -111,7 +112,7 @@ Write exactly these files and nothing else:
    The games whose difficulty.bands you changed, old and new edges; "None." otherwise.
    ```
 
-2. `review/cards.json`, always (with `[]` when there are no cards):
+2. `review/cards.json`, always (with `{"cards": []}` when there are no cards):
 
    ```json
    {"cards": [

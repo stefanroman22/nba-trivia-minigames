@@ -15,7 +15,8 @@ KPIs (the §4.8 table) and how they are counted, over the runs started in the wi
     pending -> active      median hours from a question's last generated / staged_for_recheck /
                            released / rebanded event (else its created_at) to its approval
     audit error rate       audit verdicts that quarantined a live question / all audit verdicts
-    quarantined per week   `quarantined` events / (days / 7)
+    live questions         `quarantined` events of doctor runs and of the audit (detail.audit) /
+    quarantined per week   (days / 7); the Checker rejecting a pending question does not count
     false-alarm share      the doctor's false_alarm releases / the questions it resolved
                            (released, rebanded, retired, correction_proposed)
     runway per game        live questions / daily use (trivia.questions.demand's 14-day window
@@ -32,7 +33,7 @@ from statistics import median
 
 from django.core.management.base import BaseCommand
 from django.db import connection
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.utils import timezone
 
 from trivia.models import FactoryEvent, FactoryRun, GameDailyStats, Question
@@ -50,6 +51,15 @@ def _events(since, **filters):
     return FactoryEvent.objects.filter(run__started_at__gte=since, **filters)
 
 
+def _questions(keys, *fields):
+    """{(game, qid): {field: value}} for the (game, qid) pairs in `keys`, in one query."""
+    keys = set(keys)
+    if not keys:
+        return {}
+    rows = Question.objects.filter(qid__in={qid for _, qid in keys}).values("game", "qid", *fields)
+    return {(r["game"], r["qid"]): r for r in rows if (r["game"], r["qid"]) in keys}
+
+
 def _checker(since):
     events = list(_events(since, run__kind="checker").exclude(game="")
                   .values("action", "game", "qid", "detail", "created_at"))
@@ -57,10 +67,10 @@ def _checker(since):
     audit_bad = sum(1 for e in events if e["action"] == "quarantined" and (e["detail"] or {}).get("audit"))
     approved = [e for e in events if e["action"] == "approved"]
     misses = {(e["game"], e["qid"]) for e in events if e["action"] == "checker_miss"}
-    for e in _events(since, run__kind="doctor", action="retired").values("game", "qid"):
-        row = Question.objects.filter(game=e["game"], qid=e["qid"]).first()
-        if row is not None and (row.quality or {}).get("checked"):
-            misses.add((e["game"], e["qid"]))
+    retired = {(e["game"], e["qid"]) for e in _events(since, run__kind="doctor", action="retired").values("game", "qid")}
+    for key, row in _questions(retired, "quality").items():
+        if (row["quality"] or {}).get("checked"):
+            misses.add(key)
     verdicts = count["approved"] + count["quarantined"] + count["unsure"] + count["audit_passed"]
     audits = audit_bad + count["audit_passed"]
     return {
@@ -79,22 +89,24 @@ def _pending_to_active(approved):
     for e in FactoryEvent.objects.filter(action__in=START_ACTIONS, qid__in={a["qid"] for a in approved}) \
             .values("game", "qid", "created_at"):
         starts[(e["game"], e["qid"])].append(e["created_at"])
+    created = _questions({(a["game"], a["qid"]) for a in approved}, "created_at")
     hours = []
     for a in approved:
-        before = [t for t in starts.get((a["game"], a["qid"]), []) if t <= a["created_at"]]
+        key = (a["game"], a["qid"])
+        before = [t for t in starts.get(key, []) if t <= a["created_at"]]
         if before:
             start = max(before)
+        elif key in created:
+            start = created[key]["created_at"]
         else:
-            row = Question.objects.filter(game=a["game"], qid=a["qid"]).only("created_at").first()
-            if row is None:
-                continue
-            start = row.created_at
+            continue
         hours.append((a["created_at"] - start).total_seconds() / 3600)
     return round(median(hours), 1) if hours else None
 
 
 def _doctor(since, days):
-    quarantined = _events(since, action="quarantined").count()
+    # Live questions only: the doctor's quarantines and the audit's, not the Checker rejecting pending ones.
+    quarantined = _events(since, action="quarantined").filter(Q(run__kind="doctor") | Q(detail__audit=True)).count()
     resolved = list(_events(since, run__kind="doctor", action__in=RESOLVED).values("action", "reason", "game", "qid"))
     false_alarms = {(e["game"], e["qid"]) for e in resolved if e["action"] == "released" and e["reason"] == "false_alarm"}
     questions = {(e["game"], e["qid"]) for e in resolved}
@@ -138,7 +150,7 @@ def _calibration(days, now):
         enough = measured["answers"] >= calibration.MIN_ANSWERS
         out[slug] = {"answers": measured["answers"], "rates": measured["rates"], "players": measured["players"],
                      "monotonic": mono, "ok": (mono is not False) if enough else None,
-                     "current": calibration._current_bands(slug),
+                     "current": calibration.current_bands(slug),
                      "proposal": calibration.propose_band_edges(slug, days, now, measured=measured)}
     return out
 
@@ -240,7 +252,7 @@ def render(d):
         f"| Median pending -> active | "
         f"{NO_DATA if k['median_pending_to_active_h'] is None else str(k['median_pending_to_active_h']) + ' h'} "
         f"| tracked | tracked |",
-        f"| Quarantined per week | "
+        f"| Live questions quarantined per week | "
         f"{NO_DATA if k['quarantined_per_week'] is None else k['quarantined_per_week']} "
         f"({k['quarantined']} in the window) | tracked | tracked |",
         f"| False-alarm share | {_pct(k['false_alarm_share'])} ({k['false_alarms']} of {k['doctor_resolved']} "

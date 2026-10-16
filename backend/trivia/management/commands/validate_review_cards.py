@@ -9,11 +9,12 @@ Job 4 of .github/workflows/factory-review.yml. Needs no database and no network.
         Any problem (or a missing or malformed file) refuses the whole file: <valid.json> is then
         [] and the problems are printed. Never fails, so the review still lands.
 
-    validate_review_cards --spec-edit <slug> <before.json>
-        The agent may change only difficulty.bands of backend/trivia/questions/specs/<slug>.json
-        (trivia.questions.calibration.spec_edit_problems). Fails (CommandError) when the file on
-        disk is not a valid spec or differs from <before.json> anywhere else; the workflow then
-        restores the file.
+    validate_review_cards --spec-edit <slug> <before.json> --digest <digest.json>
+        The agent may change only difficulty.bands of backend/trivia/questions/specs/<slug>.json,
+        and only to the bands the digest proposed for <slug> (calibration.<slug>.proposal;
+        trivia.questions.calibration.spec_edit_problems). Fails (CommandError) when the file on
+        disk is not a valid spec, differs from <before.json> anywhere else, or its bands are not
+        the proposal (or there is none); the workflow then restores the file.
 
 Writes no journal: it reads no database, and nothing it decides changes the factory itself.
 """
@@ -70,10 +71,13 @@ class Command(BaseCommand):
         parser.add_argument("--out", help="Where to write the accepted cards (a JSON list; [] when refused)")
         parser.add_argument("--spec-edit", nargs=2, metavar=("SLUG", "BEFORE"),
                             help="Check backend/trivia/questions/specs/SLUG.json against its BEFORE version")
+        parser.add_argument("--digest", help="With --spec-edit: the factory_digest digest.json holding the proposal")
 
     def handle(self, *args, **opts):
         if opts["spec_edit"]:
-            self._spec_edit(*opts["spec_edit"])
+            if not opts["digest"]:
+                raise CommandError("--spec-edit needs --digest <digest.json>")
+            self._spec_edit(*opts["spec_edit"], opts["digest"])
             return
         if not opts["cards"] or not opts["out"]:
             raise CommandError("give <cards.json> --out <valid.json>, or --spec-edit SLUG BEFORE")
@@ -93,16 +97,20 @@ class Command(BaseCommand):
             self.stdout.write(f"refused: {p}")
         self.stdout.write(f"{len(cards)} card(s) accepted" + (" (the whole file was refused)" if problems else ""))
 
-    def _spec_edit(self, slug, before_path):
+    def _spec_edit(self, slug, before_path, digest_path):
         path = os.path.join(specs.SPEC_DIR, f"{os.path.basename(slug)}.json")
         try:
             with open(before_path, encoding="utf-8") as f:
                 before = json.load(f)
             with open(path, encoding="utf-8") as f:
                 after = json.load(f)
+            with open(digest_path, encoding="utf-8") as f:
+                digest = json.load(f)
         except (OSError, ValueError) as e:
-            raise CommandError(f"{slug}: unreadable spec: {str(e)[:200]}") from None
-        problems = calibration.spec_edit_problems(slug, before, after)
+            raise CommandError(f"{slug}: unreadable spec or digest: {str(e)[:200]}") from None
+        entry = (digest.get("calibration") or {}).get(slug) if isinstance(digest, dict) else None
+        proposal = entry.get("proposal") if isinstance(entry, dict) else None
+        problems = calibration.spec_edit_problems(slug, before, after, proposal)
         if problems:
             raise CommandError("; ".join(problems))
         self.stdout.write(f"{slug}: spec edit accepted")

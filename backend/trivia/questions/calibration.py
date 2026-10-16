@@ -10,7 +10,8 @@ answers in the window and its solve rates do not fall strictly from easy to medi
 active questions' difficulty values (quality.difficulty) are split again into three quantile
 bands (the 33rd and 66th percentiles), edges clamped to [0, 1] and strictly increasing. The
 review agent copies the proposal into the spec file; spec_edit_problems() is the code-side gate
-on that edit (only difficulty.bands may change, and the file must stay a valid spec).
+on that edit (only difficulty.bands may change, only to the digest's proposal, and the file must
+stay a valid spec).
 """
 import copy
 import datetime
@@ -22,19 +23,19 @@ from django.db.models import Sum
 from django.utils import timezone
 
 from trivia.models import Question, QuestionStats
-from trivia.questions import doctor, specs
+from trivia.questions import demand, doctor, specs
 
 MIN_ANSWERS = 300
-WINDOW_DAYS = 14
+WINDOW_DAYS = demand.WINDOW_DAYS
 LEVELS = specs.LEVELS
 
 
 def band_solve_rates(game, days=WINDOW_DAYS, now=None):
     """{"answers", "rates": {band: rate | None}, "players": {band: n}} for `game`'s active
-    questions over the last `days` days."""
-    now = now or timezone.now()
-    since = (now - datetime.timedelta(days=days)).date()
-    totals = (QuestionStats.objects.filter(game=game, day__gte=since).values("question_id")
+    questions over the last `days` full days (today's partial roll-up left out, as in demand)."""
+    today = (now or timezone.now()).date()
+    totals = (QuestionStats.objects.filter(game=game, day__gte=today - datetime.timedelta(days=days), day__lt=today)
+              .values("question_id")
               .annotate(attempts=Sum("attempts"), correct=Sum("correct"), players=Sum("players"))
               .order_by("question_id"))
     indexes = {}
@@ -60,7 +61,7 @@ def monotonic(rates):
     return all(a > b for a, b in zip(measured, measured[1:]))
 
 
-def _current_bands(game):
+def current_bands(game):
     try:
         return specs.load(game)["difficulty"]["bands"]
     except specs.SpecError:
@@ -72,7 +73,7 @@ def propose_band_edges(game, days=WINDOW_DAYS, now=None, measured=None):
     game has fewer than MIN_ANSWERS answers in the window, its solve rates are monotonic (or
     cannot be compared), or no valid re-split differs from the current bands. `measured` is a
     band_solve_rates() result the caller already has."""
-    current = _current_bands(game)
+    current = current_bands(game)
     if current is None:
         return None
     measured = measured or band_solve_rates(game, days, now)
@@ -91,13 +92,18 @@ def propose_band_edges(game, days=WINDOW_DAYS, now=None, measured=None):
     return None if bands == current else bands
 
 
-def spec_edit_problems(slug, before, after):
+def spec_edit_problems(slug, before, after, proposal):
     """[problem, ...] for a review agent's edit of a spec file (empty = acceptable): `after` must
-    be a valid spec and equal `before` everywhere outside difficulty.bands."""
+    be a valid spec, equal `before` everywhere outside difficulty.bands, and carry exactly the
+    bands the digest proposed for `slug` (`proposal`; None = no proposal, so no edit allowed)."""
+    if proposal is None:
+        return [f"{slug}: the digest proposed no calibration for this game"]
     try:
         specs.validate(slug, after)
     except specs.SpecError as e:
         return [str(e)]
+    if after["difficulty"]["bands"] != proposal:
+        return [f"{slug}: difficulty.bands differ from the digest's proposal"]
 
     def rest(data):
         data = copy.deepcopy(data)

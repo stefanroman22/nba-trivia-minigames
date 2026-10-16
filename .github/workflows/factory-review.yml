@@ -10,10 +10,10 @@ name: Factory review
 #                                and copies a calibration proposal printed in the digest into the
 #                                spec file's difficulty.bands
 #   apply  (no DB secret)        code checks the agent's output (validate_review_cards: the cards, and
-#                                that a spec edit changed only difficulty.bands), creates the Notion
-#                                cards (NOTION_TOKEN; skipped when unset) and opens a PR to dev with the
-#                                review file and any spec change (auto-merge). Production promotion
-#                                stays the owner's call.
+#                                that a spec edit changed only difficulty.bands, to the digest's
+#                                proposal), creates the Notion cards (NOTION_TOKEN; skipped when unset),
+#                                opens a PR to dev with the review file and any spec change and merges
+#                                it. Production promotion stays the owner's call.
 # Instructions for the agent: .claude/skills/nba-question-writer/references/reviewer.md.
 on:
   schedule:
@@ -164,7 +164,7 @@ jobs:
           cache: pip
           cache-dependency-path: backend/requirements*.txt
       - name: Install
-        run: pip install -r backend/requirements.txt
+        run: pip install -r backend/requirements-pipeline.txt
       - uses: actions/setup-node@v5
         with:
           node-version: 20
@@ -191,13 +191,15 @@ jobs:
             name=$(basename "$f")
             if [ -f "backend/trivia/questions/specs/$name" ]; then cp "$f" "backend/trivia/questions/specs/$name"; fi
           done
-      # An edit beyond difficulty.bands, or one that is not a valid spec, is refused and restored.
+      # An edit beyond difficulty.bands, bands other than the digest's proposal for that game (or a
+      # game without one), or an invalid spec is refused and restored; the review file still lands.
       - name: Check the spec edits
         run: |
           for f in $(git diff --name-only -- backend/trivia/questions/specs/); do
             slug=$(basename "$f" .json)
             git show "HEAD:$f" > "$RUNNER_TEMP/before.json"
-            if (cd backend && python manage.py validate_review_cards --spec-edit "$slug" "$RUNNER_TEMP/before.json"); then
+            if (cd backend && python manage.py validate_review_cards --spec-edit "$slug" "$RUNNER_TEMP/before.json" \
+                --digest "$GITHUB_WORKSPACE/build/digest.json"); then
               echo "Calibration accepted: $slug"
             else
               echo "::warning::Refused the spec edit of $slug; the file is restored."
@@ -250,5 +252,6 @@ jobs:
           } > "$RUNNER_TEMP/pr-body.md"
           gh pr create --base dev --head "$branch" --title "Factory review $DATE" --body-file "$RUNNER_TEMP/pr-body.md" \
             || gh pr edit "$branch" --body-file "$RUNNER_TEMP/pr-body.md"
-          gh pr merge "$branch" --auto --merge \
-            || echo "::warning::Auto-merge is not available; the PR waits for a manual merge."
+          # dev has no required checks, and a GITHUB_TOKEN PR never triggers dev-ci, so merge right away.
+          gh pr merge "$branch" --merge --delete-branch \
+            || echo "::warning::Could not merge the review PR; it waits for a manual merge."

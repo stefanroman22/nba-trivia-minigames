@@ -43,13 +43,15 @@ class DigestTestCase(TestCase):
         QuestionStats.objects.create(game=game, question_id=str(question_id), attempts=attempts, correct=correct,
                                      players=attempts, day=self.today - datetime.timedelta(days=days_ago))
 
-    def calibration_fixture(self, attempts, correct_by_band):
-        """Nine active career-path questions, three per band, each answered `attempts` times."""
-        for band, difficulties in (("easy", (0.1, 0.2, 0.3)), ("medium", (0.4, 0.5, 0.6)),
-                                   ("hard", (0.7, 0.8, 0.9))):
-            for d in difficulties:
-                row = self.q(band=band, difficulty=d)
-                self.stats("career-path", row.definition["person_id"], attempts, correct_by_band[band])
+    def calibration_fixture(self, attempts, correct_by_band, difficulties=None, days_ago=2):
+        """Active career-path questions (by default nine, three per band), each answered `attempts`
+        times. A difficulty of None leaves quality.difficulty out."""
+        difficulties = difficulties or {"easy": (0.1, 0.2, 0.3), "medium": (0.4, 0.5, 0.6), "hard": (0.7, 0.8, 0.9)}
+        for band, values in difficulties.items():
+            for d in values:
+                row = self.q(band=band, **({} if d is None else {"difficulty": d}))
+                self.stats("career-path", row.definition["person_id"], attempts, correct_by_band[band],
+                           days_ago=days_ago)
 
     def digest(self, days=14):
         out = tempfile.mkdtemp()
@@ -106,6 +108,9 @@ class DigestTests(DigestTestCase):
         self.assertAlmostEqual(kpis["checker_miss_rate"], 0.01)
         self.assertAlmostEqual(kpis["unsure_share"], 20 / 245)
         self.assertAlmostEqual(kpis["audit_error_rate"], 0.1)
+        # Live questions only: the 2 audit quarantines, not the Checker's 5 pending rejections.
+        self.assertEqual(kpis["quarantined"], 2)
+        self.assertEqual(kpis["quarantined_per_week"], 1.0)
 
     def test_runway_held_back_and_rejections(self):
         data, _ = self.digest()
@@ -184,6 +189,29 @@ class CalibrationTests(DigestTestCase):
         self.calibration_fixture(30, {"easy": 25, "medium": 5, "hard": 15})  # 270 answers
         self.assertIsNone(calibration.propose_band_edges("career-path"))
 
+    INVERTED = {"easy": 90, "medium": 30, "hard": 60}
+
+    def test_fewer_than_three_difficulty_values_propose_nothing(self):
+        self.calibration_fixture(120, self.INVERTED, {"easy": (0.1,), "medium": (None,), "hard": (0.9,)})
+        self.assertIsNone(calibration.propose_band_edges("career-path"))
+
+    def test_degenerate_terciles_propose_nothing(self):
+        self.calibration_fixture(120, self.INVERTED, {"easy": (0.5,), "medium": (0.5,), "hard": (0.5,)})
+        self.assertIsNone(calibration.propose_band_edges("career-path"))
+
+    def test_terciles_equal_to_the_current_bands_propose_nothing(self):
+        # Inclusive terciles of these seven values are exactly 0.35 and 0.65, the spec's current edges.
+        self.calibration_fixture(50, {"easy": 40, "medium": 10, "hard": 30},
+                                 {"easy": (0.1, 0.2), "medium": (0.35, 0.5, 0.65), "hard": (0.8, 0.9)})
+        self.assertEqual(calibration.current_bands("career-path"),
+                         {"easy": [0, 0.35], "medium": [0.35, 0.65], "hard": [0.65, 1]})
+        self.assertIsNone(calibration.propose_band_edges("career-path"))
+
+    def test_todays_partial_roll_up_does_not_count(self):
+        self.calibration_fixture(40, {"easy": 30, "medium": 10, "hard": 20}, days_ago=0)
+        self.assertEqual(calibration.band_solve_rates("career-path")["answers"], 0)
+        self.assertIsNone(calibration.propose_band_edges("career-path"))
+
     def test_answers_outside_the_window_do_not_count(self):
         for band, d in (("easy", 0.1), ("medium", 0.5), ("hard", 0.9)):
             row = self.q(band=band, difficulty=d)
@@ -192,25 +220,38 @@ class CalibrationTests(DigestTestCase):
         self.assertIsNone(calibration.propose_band_edges("career-path", days=14))
 
 
+PROPOSAL = {"easy": [0, 0.3], "medium": [0.3, 0.6], "hard": [0.6, 1]}
+
+
 class SpecEditTests(TestCase):
     def setUp(self):
         self.before = specs.load("career-path")
 
-    def test_a_bands_only_change_is_accepted(self):
+    def edited(self, bands=PROPOSAL):
         after = json.loads(json.dumps(self.before))
-        after["difficulty"]["bands"] = {"easy": [0, 0.3], "medium": [0.3, 0.6], "hard": [0.6, 1]}
-        self.assertEqual(calibration.spec_edit_problems("career-path", self.before, after), [])
+        after["difficulty"]["bands"] = bands
+        return after
+
+    def test_the_proposed_bands_are_accepted(self):
+        self.assertEqual(calibration.spec_edit_problems("career-path", self.before, self.edited(), PROPOSAL), [])
+
+    def test_bands_other_than_the_proposal_are_refused(self):
+        other = {"easy": [0, 0.2], "medium": [0.2, 0.7], "hard": [0.7, 1]}
+        problems = calibration.spec_edit_problems("career-path", self.before, self.edited(other), PROPOSAL)
+        self.assertIn("proposal", problems[0])
+
+    def test_an_edit_without_a_proposal_is_refused(self):
+        problems = calibration.spec_edit_problems("career-path", self.before, self.edited(), None)
+        self.assertIn("no calibration", problems[0])
 
     def test_any_other_change_is_refused(self):
-        after = json.loads(json.dumps(self.before))
-        after["difficulty"]["bands"] = {"easy": [0, 0.3], "medium": [0.3, 0.6], "hard": [0.6, 1]}
+        after = self.edited()
         after["refill"]["minimum"] = 1
-        self.assertTrue(calibration.spec_edit_problems("career-path", self.before, after))
+        self.assertTrue(calibration.spec_edit_problems("career-path", self.before, after, PROPOSAL))
 
     def test_invalid_bands_are_refused(self):
-        after = json.loads(json.dumps(self.before))
-        after["difficulty"]["bands"] = {"easy": [0, 0.6], "medium": [0.3, 0.6], "hard": [0.6, 1]}
-        self.assertTrue(calibration.spec_edit_problems("career-path", self.before, after))
+        bad = {"easy": [0, 0.6], "medium": [0.3, 0.6], "hard": [0.6, 1]}
+        self.assertTrue(calibration.spec_edit_problems("career-path", self.before, self.edited(bad), bad))
 
 
 GOOD = {"title": "Lower the career-path solve-rate floor", "category": "backend", "priority": "P1",
@@ -261,19 +302,37 @@ class ReviewCardsTests(TestCase):
         with open(dst, encoding="utf-8") as f:
             self.assertEqual(json.load(f), [])
 
-    def test_a_spec_edit_beyond_the_bands_fails_the_command(self):
+    def spec_edit(self, before, proposal, digest=True):
+        """Run --spec-edit against the career-path spec on disk; `proposal` is what the digest says."""
         d = tempfile.mkdtemp()
-        before = specs.load("career-path")
-        before["refill"]["minimum"] = 1  # the file on disk differs from this "before" outside the bands
-        path = os.path.join(d, "before.json")
-        with open(path, "w", encoding="utf-8") as f:
+        before_path, digest_path = os.path.join(d, "before.json"), os.path.join(d, "digest.json")
+        with open(before_path, "w", encoding="utf-8") as f:
             json.dump(before, f)
-        with self.assertRaises(CommandError):
-            call_command("validate_review_cards", "--spec-edit", "career-path", path, stdout=StringIO())
+        with open(digest_path, "w", encoding="utf-8") as f:
+            json.dump({"calibration": {"career-path": {"proposal": proposal}}}, f)
+        args = ["--spec-edit", "career-path", before_path] + (["--digest", digest_path] if digest else [])
+        call_command("validate_review_cards", *args, stdout=StringIO())
 
-    def test_an_unchanged_spec_passes(self):
-        d = tempfile.mkdtemp()
-        path = os.path.join(d, "before.json")
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(specs.load("career-path"), f)
-        call_command("validate_review_cards", "--spec-edit", "career-path", path, stdout=StringIO())
+    def test_a_spec_matching_the_digest_proposal_passes(self):
+        on_disk = specs.load("career-path")
+        self.spec_edit(on_disk, on_disk["difficulty"]["bands"])
+
+    def test_a_spec_edit_beyond_the_bands_fails_the_command(self):
+        before = specs.load("career-path")
+        bands = before["difficulty"]["bands"]
+        before["refill"]["minimum"] = 1  # the file on disk differs from this "before" outside the bands
+        with self.assertRaises(CommandError):
+            self.spec_edit(before, bands)
+
+    def test_bands_other_than_the_digest_proposal_fail_the_command(self):
+        with self.assertRaises(CommandError):
+            self.spec_edit(specs.load("career-path"), PROPOSAL)
+
+    def test_a_game_without_a_proposal_fails_the_command(self):
+        with self.assertRaises(CommandError):
+            self.spec_edit(specs.load("career-path"), None)
+
+    def test_a_spec_edit_needs_the_digest(self):
+        on_disk = specs.load("career-path")
+        with self.assertRaises(CommandError):
+            self.spec_edit(on_disk, on_disk["difficulty"]["bands"], digest=False)
