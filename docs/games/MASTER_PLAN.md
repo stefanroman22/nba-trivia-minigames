@@ -18,20 +18,20 @@ Update this table whenever a game ships or its status changes.
 
 | # | Game | Status | Priority | Route | Max pts | Modes |
 |---|------|--------|----------|-------|---------|-------|
-| E1 | Guess the Series Winner | ✅ Live | — | /series-winner | 50 | S/M/F |
-| E2 | Name the NBA Club (logos) | ✅ Live | — | /name-logo | 50 | S/M/F |
-| E3 | Guess the MVP | ✅ Live | — | /guess-mvps | 50 | S/M/F |
-| E4 | Fill in the Starting 5 | ✅ Live | — | /starting-five | 100 | S/M/F |
+| E1 | Guess the Series Winner | ✅ Live | — | /series-winner | 100 | S/M/F |
+| E2 | Name the NBA Club (logos) | ✅ Live | — | /name-logo | 100 | S/M/F |
+| E3 | Guess the MVP | ✅ Live | — | /guess-mvps | 100 | S/M/F |
+| E4 | Fill in the Starting 5 | ✅ Live | — | /starting-five | 150 | S/M/F |
 | E5 | NBA Wordle | ✅ Live | — | /wordle | 500 (legacy outlier) | S/M/F |
 | W1-1 | Fan Favorites | ✅ Live (migration 0003 + 24 questions applied to Supabase 2026-07-06) | P0 (committed) | /fan-favorites | 200 | S/M/F |
 | W1-2 | The Heatmap (hex grid) | ✅ Built 2026-07-06 | P0 (committed) | /heatmap | ~50/hex | S/M/F |
 | W1-3 | NBA Connections | ✅ Built 2026-07-06 | P0 (committed) | /connections | 200 | S/M/F |
-| W1-4 | Career Path Challenge | ✅ Built 2026-07-06 | P0 (committed) | /career-path | teams×100 | S/M/F |
+| W1-4 | Career Path Challenge | ✅ Built 2026-07-06 | P0 (committed) | /career-path | 200 − 40 per miss | S/M/F |
 | W2-1 | NBA Grid (3×3 + rarity) | ✅ Built 2026-07-06 | P1 — #1 market demand | /nba-grid | 270 | S/M/F |
 | W2-2 | Who Are Ya: NBA (de-blur guesser) | ✅ Built 2026-07-06 | P1 — #2 market demand | /who-are-ya | 200 | S/M/F |
 | W2-3 | Higher / Lower | 📋 Wave 2 | P1 | /higher-lower | 10/streak step | S/M/F |
 | W2-4 | Top-10 Board | 📋 Wave 2 | P1 | /top-ten | 300 | S/M/F |
-| W2-5 | NBA Tic-Tac-Toe (duel) | ✅ Built 2026-07-06 | P1 — PvP gap in market | /tictactoe | +50 win | M/F only |
+| W2-5 | NBA Tic-Tac-Toe (duel) | ✅ Built 2026-07-06 | P1 — PvP gap in market | /tictactoe | win 200 / draw 120 / loss 30 | M/F only |
 | W2-6 | Teammate Chain | 📋 Wave 2 | P2 | /teammate-chain | 250 | S/M/F |
 | W3-1 | NBA Bingo | ✅ Built 2026-07-06 | P2 | /bingo | 200 | S/M/F |
 | W3-2 | Brickless (inverse Fan Favorites) | 📋 Wave 3 | P2 | /brickless | 300 | S/M/F |
