@@ -7,12 +7,25 @@ name: Question checker
 #   apply   (has the DB secret)  re-validates every verdict in code, pending -> active/quarantined,
 #                                journals the evidence (FactoryRun kind "checker"), then dispatches
 #                                a staging publish of the question games when anything was approved
+# Thursdays 03:00 UTC: the random audit (spec §4.9). The same three jobs re-check the live questions
+# the doctor's nightly scan (factory-nightly.yml, 02:00 UTC) marked audit_due; an invalid verdict
+# quarantines the question and the publish takes it out of play.
 # Instructions for the agent: .claude/skills/nba-question-writer/references/checker.md.
 on:
   schedule:
     - cron: "0 7 * * *"
+    - cron: "0 3 * * 4"   # Thursday: audit
   workflow_dispatch:
     inputs:
+      mode:
+        description: "pending: new and changed questions; audit: live questions due for the random audit; corrections: not wired yet (runs pending)"
+        required: false
+        default: pending
+        type: choice
+        options:
+          - pending
+          - audit
+          - corrections
       limit:
         description: "most pending questions to check in this run (auto: 150 while 150+ are pending, else 60)"
         required: false
@@ -44,7 +57,28 @@ jobs:
     outputs:
       batches: ${{ steps.export.outputs.batches }}
       count: ${{ steps.export.outputs.count }}
+      mode: ${{ steps.mode.outputs.mode }}
     steps:
+      - name: Pick the mode
+        id: mode
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          SLOT: ${{ github.event.schedule }}
+          INPUT_MODE: ${{ inputs.mode }}
+        run: |
+          # Decided by the slot that fired, not the clock (as publish-game-data.yml's gate), so a
+          # delayed scheduled run still counts.
+          if [ "$EVENT" = "schedule" ]; then
+            if [ "$SLOT" = "0 3 * * 4" ]; then mode=audit; else mode=pending; fi
+          else
+            mode="${INPUT_MODE:-pending}"
+          fi
+          # corrections (the doctor's data corrections) is wired by a later task; until then it
+          # checks the pending questions.
+          if [ "$mode" = "corrections" ]; then mode=pending; fi
+          echo "Event $EVENT, slot '$SLOT': mode=$mode"
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
         with:
@@ -53,7 +87,7 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
       - name: Install
         run: pip install -r backend/requirements-pipeline.txt
-      - name: Export pending questions
+      - name: Export questions
         id: export
         working-directory: backend
         env:
@@ -61,7 +95,8 @@ jobs:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           LIMIT: ${{ inputs.limit || 'auto' }}
           BATCH_SIZE: ${{ inputs.batch_size || '10' }}
-        run: python manage.py export_checker_batches --out "$GITHUB_WORKSPACE/checker" --limit "$LIMIT" --batch-size "$BATCH_SIZE"
+          MODE: ${{ steps.mode.outputs.mode }}
+        run: python manage.py export_checker_batches --out "$GITHUB_WORKSPACE/checker" --limit "$LIMIT" --batch-size "$BATCH_SIZE" --mode "$MODE"
       - name: Keep the batches for the Checker
         if: steps.export.outputs.count != '0'
         uses: actions/upload-artifact@v6
@@ -99,7 +134,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
             You are the Checker. Read .claude/skills/nba-question-writer/references/checker.md and follow it exactly.
-            Input batch: checker/batch-${{ matrix.batch }}.json
+            Input batch: checker/${{ needs.export.outputs.mode == 'audit' && 'audit' || 'batch' }}-${{ matrix.batch }}.json
             Write your verdicts to checker/verdicts-${{ matrix.batch }}.json and write no other file.
           claude_args: >-
             --model ${{ inputs.model || 'opus' }}

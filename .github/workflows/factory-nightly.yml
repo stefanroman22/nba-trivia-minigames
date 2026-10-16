@@ -1,7 +1,9 @@
 name: Factory nightly
 # The question factory's nightly upkeep: roll raw answers and plays up into per-question
 # stats (rollup_answers), enforce the 30-day answer retention below the roll-up watermark
-# (prune_personal_data), compact and prune the journal (factory_cleanup), then the watchdog
+# (prune_personal_data), compact and prune the journal (factory_cleanup), the doctor's signal
+# scan (doctor_scan: quarantines or queues suspect questions, picks the Thursday audit; a
+# quarantine dispatches a publish of the question games so it leaves play), then the watchdog
 # (factory_health) posts ONE Slack message to #agent-backend only when something is off.
 # All steps are idempotent; every command journals its run.
 # Design: docs/superpowers/specs/2026-10-12-question-factory-design.md.
@@ -18,6 +20,9 @@ jobs:
   nightly:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: write
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
@@ -39,6 +44,21 @@ jobs:
       - name: Cleanup
         working-directory: backend
         run: python manage.py factory_cleanup
+      - name: Doctor signal scan
+        id: doctor
+        working-directory: backend
+        run: python manage.py doctor_scan
+      # A quarantined question must leave production: the same publish the Checker dispatches
+      # (with maintenance). Only from the default branch, so a manual run on another branch
+      # never publishes its data.
+      - name: Publish the doctor's quarantines
+        if: steps.doctor.outputs.quarantined != '0' && steps.doctor.outputs.quarantined != '' && github.ref_name == github.event.repository.default_branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-game-data.yml --ref "${{ github.ref_name }}" \
+            -f games=career-path,who-are-ya,tictactoe,contexto -f target=vercel -f dry_run=false
+          echo "Doctor quarantined ${{ steps.doctor.outputs.quarantined }} question(s); publish dispatched." >> "$GITHUB_STEP_SUMMARY"
       - name: Health
         if: always()
         working-directory: backend

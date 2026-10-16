@@ -252,3 +252,103 @@ class ApplyConflictAndSizeTests(ApplyTests):
         self.assertLessEqual(len(claims[0]["claim"]), 500)
         self.assertLessEqual(len(claims[0]["found"]), 500)
         self.assertLessEqual(len(claims[0]["sources"]), 10)
+
+
+class AuditTests(ApplyTests):
+    """Random audit (spec §4.9): live questions marked audit_due by the doctor are re-checked."""
+    CHECKED = {"verdict": "valid", "at": "2026-10-01T07:00:00+00:00", "payload_sha": "old", "checker_version": 1}
+
+    def make_due(self, row, checked=True):
+        row.status = "active"
+        row.quality = {**row.quality, "audit_due": True, "audit_selected": "2026-10-15"}
+        if checked:
+            row.quality["checked"] = dict(self.CHECKED)
+        row.save()
+
+    def export_files(self, *args):
+        out = self.export(*args)
+        found = {}
+        for n in sorted(os.listdir(out)):
+            with open(os.path.join(out, n), encoding="utf-8") as f:
+                found[n] = json.load(f)
+        return found
+
+    def test_audit_mode_exports_only_live_questions_due_for_audit(self):
+        due, live, pending = self.rows[0], self.rows[1], self.rows[2]
+        self.make_due(due)
+        live.status = "active"
+        live.save()
+        files = self.export_files("--mode", "audit")
+        self.assertEqual(list(files), ["audit-001.json"])
+        batch = files["audit-001.json"]
+        self.assertEqual(batch["kind"], "audit")
+        self.assertEqual(batch["batch"], "001")
+        self.assertEqual([q["qid"] for q in batch["questions"]], [due.qid])
+        self.assertEqual(batch["questions"][0]["payload_sha"], due.quality["payload_sha"])
+        self.assertIn('batches=["001"]', self.gh_output())
+        self.assertNotIn(pending.qid, json.dumps(files))
+
+    def test_pending_mode_is_unchanged_and_skips_audits(self):
+        self.make_due(self.rows[0])
+        files = self.export_files()
+        self.assertTrue(all(n.startswith("batch-") for n in files))
+        self.assertNotIn("kind", files["batch-001.json"])
+        self.assertNotIn(self.rows[0].qid, [q["qid"] for b in files.values() for q in b["questions"]])
+
+    def test_valid_clears_the_audit_and_refreshes_the_check(self):
+        row = self.rows[0]
+        self.make_due(row)
+        self.write("verdicts-001.json", [self.verdict(row)])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "active")
+        self.assertNotIn("audit_due", row.quality)
+        self.assertEqual(row.quality["checked"]["payload_sha"], row.quality["payload_sha"])
+        self.assertNotEqual(row.quality["checked"]["at"], self.CHECKED["at"])
+        self.assertIn("approved=0\n", self.gh_output())
+        self.assertIn("changed=0\n", self.gh_output())  # nothing players see changed
+        self.assertTrue(FactoryRun.objects.get().events.filter(action="audit_passed", qid=row.qid).exists())
+
+    def test_invalid_quarantines_and_records_the_checker_miss(self):
+        row = self.rows[0]
+        self.make_due(row)
+        self.write("verdicts-001.json", [self.verdict(row, "invalid", "contradicted")])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "quarantined")
+        self.assertNotIn("audit_due", row.quality)
+        self.assertEqual(row.quality["check_failed"]["claims"][0]["status"], "contradicted")
+        self.assertIn("changed=1\n", self.gh_output())  # leaves production
+        events = FactoryRun.objects.get().events
+        self.assertTrue(events.filter(action="quarantined", qid=row.qid).exists())
+        miss = events.get(action="checker_miss", qid=row.qid)
+        self.assertEqual(miss.detail["checked_at"], self.CHECKED["at"])
+
+    def test_invalid_without_a_prior_check_is_no_checker_miss(self):
+        row = self.rows[0]
+        self.make_due(row, checked=False)
+        self.write("verdicts-001.json", [self.verdict(row, "invalid", "contradicted")])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "quarantined")
+        self.assertFalse(FactoryRun.objects.get().events.filter(action="checker_miss").exists())
+
+    def test_unsure_keeps_the_audit_due(self):
+        row = self.rows[0]
+        self.make_due(row)
+        self.write("verdicts-001.json", [self.verdict(row, "unsure", "unverified", sources=())])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "active")
+        self.assertTrue(row.quality["audit_due"])
+        self.assertEqual(row.quality["checked"], self.CHECKED)
+        self.assertNotIn("unsure_count", row.quality)
+
+    def test_a_stale_audit_verdict_does_not_apply(self):
+        row = self.rows[0]
+        self.make_due(row)
+        self.write("verdicts-001.json", [self.verdict(row, "invalid", "contradicted", sha="f" * 64)])
+        self.apply()
+        row.refresh_from_db()
+        self.assertEqual(row.status, "active")
+        self.assertTrue(FactoryRun.objects.get().events.filter(action="rejected", reason="stale").exists())

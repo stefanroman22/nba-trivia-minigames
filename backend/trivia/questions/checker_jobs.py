@@ -7,6 +7,10 @@ database access and writes one verdict per question. apply_verdicts() then treat
 every verdict as untrusted input: the question must still be pending, its view must
 still hash to the payload_sha the verdict names, and checker.judge() (not the model's
 own word) decides valid / invalid / unsure.
+
+The random audit (spec §4.9) reuses both jobs: export_batches(mode="audit") exports the live
+questions the doctor marked quality.audit_due, and a verdict on such a question is applied
+by _apply_audit() instead of the pending path.
 """
 import glob
 import json
@@ -34,11 +38,14 @@ def _view(row, dataset):
     return view, checker.payload_sha(view)
 
 
-def export_batches(dataset, limit, batch_size, out=None):
+def export_batches(dataset, limit, batch_size, out=None, mode="pending"):
     """[{"batch", "checker_version", "allowed_sites", "questions"}] for up to `limit`
     pending questions: Contexto days first (earliest first, they expire), then the
     games with the fewest live questions. limit="auto" is 150 while 150 or more are
-    pending, else 60."""
+    pending, else 60. mode="audit" exports the live questions the doctor marked
+    quality.audit_due instead (limit="auto": all of them), each batch with "kind": "audit"."""
+    if mode == "audit":
+        return _export_audit(dataset, limit, batch_size, out)
     live = Counter(Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_ACTIVE)
                    .values_list("game", flat=True))
 
@@ -63,6 +70,26 @@ def export_batches(dataset, limit, batch_size, out=None):
         questions.append({"game": row.game, "qid": row.qid, "payload_sha": sha, "view": view})
     return [
         {"batch": f"{i // batch_size + 1:03d}", "checker_version": checker.CHECKER_VERSION,
+         "allowed_sites": list(checker.ALLOWED_SITES), "questions": questions[i:i + batch_size]}
+        for i in range(0, len(questions), batch_size)
+    ]
+
+
+def _export_audit(dataset, limit, batch_size, out):
+    due = [row for row in Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_ACTIVE)
+           .order_by("game", "id") if (row.quality or {}).get("audit_due")]
+    questions = []
+    for row in due:
+        if limit != "auto" and len(questions) >= limit:
+            break
+        view, sha = _view(row, dataset)
+        if view is None:
+            if out:
+                out(f"  skipped {row.game}/{row.qid}: no longer materializes (the next supply run retires it)")
+            continue
+        questions.append({"game": row.game, "qid": row.qid, "payload_sha": sha, "view": view})
+    return [
+        {"batch": f"{i // batch_size + 1:03d}", "kind": "audit", "checker_version": checker.CHECKER_VERSION,
          "allowed_sites": list(checker.ALLOWED_SITES), "questions": questions[i:i + batch_size]}
         for i in range(0, len(questions), batch_size)
     ]
@@ -104,7 +131,8 @@ def _apply_one(game, qid, verdicts, dataset, journal, now, outcomes, approved_ga
         journal.log("rejected", "not_staged", game=game[:32], qid=qid[:48])
         return
     row = Question.objects.filter(game=game, qid=qid).first()
-    if row is None or row.status != Question.STATUS_PENDING:
+    audit = row is not None and row.status == Question.STATUS_ACTIVE and (row.quality or {}).get("audit_due")
+    if row is None or (row.status != Question.STATUS_PENDING and not audit):
         journal.log("rejected", "not_pending", game=game, qid=qid[:48])
         return
     _, sha = _view(row, dataset)
@@ -115,6 +143,9 @@ def _apply_one(game, qid, verdicts, dataset, journal, now, outcomes, approved_ga
         return
     outcome, reason, verdict = _combine([(*checker.judge(v), v) for v in current])
     evidence = _evidence(verdict)
+    if audit:
+        _apply_audit(row, outcome, reason, sha, evidence, journal, now, outcomes)
+        return
     quality = dict(row.quality or {})
     if outcome == "valid":
         quality.pop("unsure_count", None)
@@ -136,6 +167,35 @@ def _apply_one(game, qid, verdicts, dataset, journal, now, outcomes, approved_ga
     row.quality = quality
     row.save(update_fields=["status", "quality", "updated_at"])
     outcomes[outcome] += 1
+
+
+def _apply_audit(row, outcome, reason, sha, evidence, journal, now, outcomes):
+    """A random-audit verdict on a live question (spec §4.9): valid renews its check, invalid
+    takes it out of play (a checker_miss when an earlier check had passed it), unsure leaves
+    it due for the next audit run."""
+    game, qid = row.game, row.qid
+    if outcome == "unsure":
+        journal.log("unsure", reason, game=game, qid=qid, audit=True, **evidence)
+        outcomes["unsure"] += 1
+        return
+    quality = dict(row.quality or {})
+    quality.pop("audit_due", None)
+    if outcome == "valid":
+        quality["checked"] = {"verdict": "valid", "at": now.isoformat(), "payload_sha": sha,
+                              "checker_version": checker.CHECKER_VERSION}
+        journal.log("audit_passed", reason, game=game, qid=qid, **evidence)
+        outcomes["audit_valid"] += 1
+    else:
+        prior = quality.get("checked")
+        quality["check_failed"] = {"at": now.isoformat(), "payload_sha": sha, **evidence}
+        row.status = Question.STATUS_QUARANTINED
+        journal.log("quarantined", reason, game=game, qid=qid, audit=True, **evidence)
+        if prior:
+            journal.log("checker_miss", "audit_invalid", game=game, qid=qid,
+                        checked_at=prior.get("at"), checked_sha=prior.get("payload_sha"))
+        outcomes["invalid"] += 1
+    row.quality = quality
+    row.save(update_fields=["status", "quality", "updated_at"])
 
 
 def apply_verdicts(directory, dataset, journal, now):
@@ -161,4 +221,4 @@ def apply_verdicts(directory, dataset, journal, now):
     for (game, qid), verdicts in grouped.items():
         _apply_one(game, qid, verdicts, dataset, journal, now, outcomes, approved_games, needs_owner)
     return {"approved": outcomes["valid"], "quarantined": outcomes["invalid"], "unsure": outcomes["unsure"],
-            "games": sorted(approved_games), "needs_owner": needs_owner}
+            "audited": outcomes["audit_valid"], "games": sorted(approved_games), "needs_owner": needs_owner}

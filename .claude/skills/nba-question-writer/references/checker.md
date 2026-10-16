@@ -41,6 +41,16 @@ Code re-judges every answer: `valid` counts only if **every** claim is `confirme
 allowed source; `invalid` counts only if a claim is `contradicted` with an allowed source. Anything
 else becomes `unsure`. So list every claim, and cite the page for each one.
 
+## Audit batches
+
+Some runs give you `audit-NNN.json` instead of `batch-NNN.json`; the file carries `"kind": "audit"`.
+These are questions that are **already live**, picked at random (or after players' signals) for a
+second look. Everything above and below applies unchanged: the same views, the same claims, the same
+`verdicts-NNN.json` (same NNN), the same three verdicts. Be strict: players are seeing these questions
+right now, so a single contradicted fact is `invalid` (the question is taken out of play at once), and
+never pass a claim as `confirmed` because the question was approved before. You are not told whether
+or why it was flagged; judge each one as if you had never seen it.
+
 ## Sites and how to use them
 
 Only `WebFetch` on these four sites. You have no search engine and no other tools for the web.

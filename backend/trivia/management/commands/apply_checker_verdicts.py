@@ -2,7 +2,8 @@
 
 Job 3 of .github/workflows/question-checker.yml. Reads every verdicts-*.json under the
 given folder, re-validates each verdict in code (trivia.questions.checker_jobs), moves
-questions pending -> active / quarantined, and journals every decision with its
+questions pending -> active / quarantined (and, for the random audit, live questions
+due for it stay active or go quarantined), and journals every decision with its
 claim-by-claim evidence (FactoryRun kind "checker"). Writes approved=N, changed=N
 (approved + quarantined) and games=<comma list> to $GITHUB_OUTPUT; the workflow
 publishes whenever changed > 0.
@@ -41,6 +42,8 @@ class Command(BaseCommand):
             self.stdout.write(f"Journal: factory run {run.pk} ({status}, {len(journal.events)} events)")
         self.stdout.write(f"approved {summary['approved']}, quarantined {summary['quarantined']}, "
                           f"unsure {summary['unsure']}")
+        if summary["audited"]:
+            self.stdout.write(f"audit passed {summary['audited']}")
         for item in summary["needs_owner"]:
             self.stdout.write(f"::warning::{item} was unsure twice and needs the owner (see factory run {run.pk})")
         path = os.environ.get("GITHUB_OUTPUT")
