@@ -9,8 +9,16 @@ direction" in src/Game Renderers/Contexto.tsx. A one-time all-star and a
 two-MVP secret point the same direction but aren't a 94% match; two empty
 trophy cases are defined as a match (1.0), and one side with hardware and the
 other with none is a total mismatch (0.0).
+
+v2 (similarity_v2) is a separate formula whose features and weights live in
+specs/contexto-similarity.json; v1 stays the default so scheduled days never move.
 """
+import copy
+import json
 import math
+import os
+
+from trivia.questions import fame
 
 POS_FAMILY = {"G": ["G"], "F": ["F"], "C": ["C"], "G-F": ["G", "F"], "F-C": ["F", "C"]}
 
@@ -102,10 +110,113 @@ def similarity(secret, p, current_year):
     )
 
 
-def rank_pool(secret, playable, current_year):
-    """[(person_id, rank)] over the playable pool — desc score, ties by person_id."""
+SPEC_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "specs")
+V2_SPEC_PATH = os.path.join(SPEC_DIR, "contexto-similarity.json")
+ANCHORS_PATH = os.path.join(SPEC_DIR, "contexto-anchors.json")
+V2_FEATURES = ("franchise_seasons", "era", "position", "draft_class", "style", "fame", "country")
+STYLE_KEYS = ("ppg", "rpg", "apg", "height_in")
+
+_v2_cache = {}
+
+
+def load_v2_spec():
+    """specs/contexto-similarity.json, read and checked once (a deep copy, like specs.load)."""
+    if "spec" not in _v2_cache:
+        with open(V2_SPEC_PATH, encoding="utf-8") as f:
+            data = json.load(f)
+        w = data.get("weights") or {}
+        if set(w) != set(V2_FEATURES) or any(type(v) not in (int, float) or v < 0 for v in w.values()):
+            raise ValueError(f"contexto-similarity: weights must be non-negative numbers for {', '.join(V2_FEATURES)}")
+        if abs(sum(w.values()) - 100) > 1e-6:
+            raise ValueError(f"contexto-similarity: weights must sum to 100 (got {sum(w.values())})")
+        _v2_cache["spec"] = data
+    return copy.deepcopy(_v2_cache["spec"])
+
+
+def _draft_class(p, current_year):
+    d = p.get("draft")
+    if d and d.get("year") is not None:
+        return d["year"]
+    return _career_range(p, current_year)[0]  # undrafted: his first season
+
+
+def _style_vec(p, spec):
+    c = p.get("career") or {}
+    hi = spec["style"]["max"]
+    raw = {**{k: c.get(k) for k in STYLE_KEYS[:3]}, "height_in": p.get("height_in")}
+    return [(raw[k] or 0) / hi[k] for k in STYLE_KEYS]
+
+
+def _style_similarity(a, b):
+    na, nb = _magnitude(a), _magnitude(b)
+    if na == 0 and nb == 0:
+        return 1.0
+    return _cosine(a, b)
+
+
+def _country(p, spec):
+    c = p.get("country")
+    return spec.get("country_aliases", {}).get(c, c)
+
+
+def _region_of(spec):
+    return {c: region for region, countries in spec["regions"].items() for c in countries}
+
+
+def _v2_features(p, current_year, spec, regions):
+    country = _country(p, spec)
+    return {
+        "seasons": _franchise_seasons(p, current_year),
+        "range": _career_range(p, current_year),
+        "draft_class": _draft_class(p, current_year),
+        "style": _style_vec(p, spec),
+        "fame": fame.fame_score(p),
+        "country": country,
+        "region": regions.get(country),
+        "row": p,
+    }
+
+
+def _v2_score(a, b, spec):
+    w = spec["weights"]
+    if not a["country"] or not b["country"]:  # unknown
+        country = 0.0
+    elif a["country"] == b["country"]:
+        country = 1.0
+    else:
+        country = 0.5 if a["region"] is not None and a["region"] == b["region"] else 0.0
+    return (
+        w["franchise_seasons"] * _jaccard(a["seasons"], b["seasons"])
+        + w["era"] * _era_overlap(a["range"], b["range"])
+        + w["position"] * _position_family(a["row"], b["row"])
+        + w["draft_class"] * max(0.0, 1 - abs(a["draft_class"] - b["draft_class"]) / spec["draft_class"]["span_years"])
+        + w["style"] * _style_similarity(a["style"], b["style"])
+        + w["fame"] * min(1.0, max(0.0, 1 - abs(a["fame"] - b["fame"]) / spec["fame"]["span"]))
+        + w["country"] * country
+    )
+
+
+def similarity_v2(secret, p, current_year, spec):
+    """v2 (question factory spec §4.10): the features and weights of specs/contexto-similarity.json."""
+    regions = _region_of(spec)
+    return _v2_score(_v2_features(secret, current_year, spec, regions), _v2_features(p, current_year, spec, regions),
+                     spec)
+
+
+def rank_pool(secret, playable, current_year, version=1):
+    """[(person_id, rank)] over the playable pool — desc score, ties by person_id.
+    version 1 is the frozen formula above; 2 is similarity_v2 with the shipped spec."""
+    if version == 1:
+        scores = (similarity(secret, p, current_year) for p in playable)
+    elif version == 2:
+        spec = load_v2_spec()
+        regions = _region_of(spec)
+        s = _v2_features(secret, current_year, spec, regions)
+        scores = (_v2_score(s, _v2_features(p, current_year, spec, regions), spec) for p in playable)
+    else:
+        raise ValueError(f"unknown similarity version {version!r}")
     scored = sorted(
-        ((similarity(secret, p, current_year), p["person_id"]) for p in playable),
+        zip(scores, (p["person_id"] for p in playable)),
         key=lambda t: (-t[0], t[1]),
     )
     return [(pid, i + 1) for i, (_, pid) in enumerate(scored)]

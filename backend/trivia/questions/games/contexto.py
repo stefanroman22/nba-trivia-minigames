@@ -5,7 +5,7 @@ import datetime
 from trivia.questions import checker, fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
-from trivia.questions.similarity import rank_pool
+from trivia.questions.similarity import _franchise_seasons, load_v2_spec, rank_pool
 
 SLUG = "contexto"
 _SPEC = specs.load(SLUG)  # specs/contexto.json
@@ -13,6 +13,8 @@ TARGET = _SPEC["refill"]["target"]            # days scheduled ahead
 MINIMUM = _SPEC["refill"]["minimum"]
 MIN_SECRET_BAND = getattr(fame, _SPEC["eligibility"]["min_secret_band"])  # ~500 candidates: a full year without a repeat
 NO_REPEAT_DAYS = _SPEC["eligibility"]["no_repeat_days"]
+SIM_VERSION = 2  # new days; a definition without sim_version is a v1 day and stays v1
+_GATE = load_v2_spec()["gate"]  # v2 only: the top of the ranking must feel right to a fan
 
 
 def _existing(dataset):
@@ -23,7 +25,8 @@ def generate(dataset, existing_hashes, rng, n, today=None):
     """Schedule up to n secrets on the free days from `today` on. Every secret ever
     scheduled (any status) is excluded for 365 days; only live or pending days
     ("contexto_taken", set by the runner) are occupied, so a retired or quarantined
-    day is filled again."""
+    day is filled again. A secret whose v2 ranking fails validate() (the top-10 gate)
+    is skipped, not scheduled."""
     today = today or datetime.datetime.now(datetime.timezone.utc).date()
     existing = _existing(dataset)
     taken_days = {e["day"] for e in getattr(dataset, "extra", {}).get("contexto_taken", existing)}
@@ -38,8 +41,11 @@ def generate(dataset, existing_hashes, rng, n, today=None):
         if stamp in taken_days:
             continue
         secret = candidates.pop()
-        d = {"secret_person_id": secret["person_id"], "day": stamp}
+        d = {"secret_person_id": secret["person_id"], "day": stamp, "sim_version": SIM_VERSION}
         if content_hash(d) in existing_hashes:
+            continue
+        if validate(materialize(d, dataset)):
+            day -= datetime.timedelta(days=1)  # the day stays free for the next candidate
             continue
         out.append(d)
     return out
@@ -52,8 +58,20 @@ def materialize(definition, dataset):
     if not fame.at_least(secret, MIN_SECRET_BAND):
         raise Invalid(f"{secret['full_name']} is fame band {fame.fame_band(secret)}; need {MIN_SECRET_BAND} or better")
     year = int(definition["day"][:4])
-    ranking = [[pid, rank] for pid, rank in rank_pool(secret, dataset.playable, year)]
-    return envelope(SLUG, None, {"day": definition["day"], "secret": secret, "ranking": ranking})
+    version = definition.get("sim_version", 1)
+    ranking = [[pid, rank] for pid, rank in rank_pool(secret, dataset.playable, year, version)]
+    if version == 1:  # byte-identical to the days scheduled before v2
+        return envelope(SLUG, None, {"day": definition["day"], "secret": secret, "ranking": ranking})
+    return envelope(SLUG, None, {"day": definition["day"], "secret": secret, "ranking": ranking,
+                                 "sim_version": version, "gate": _gate_facts(ranking, dataset, year)})
+
+
+def _gate_facts(ranking, dataset, year):
+    """What validate() needs about the top of the ranking (ranks 2..top+1, the secret left out)."""
+    top = [dataset.by_id[pid] for pid, _ in ranking[1:_GATE["top"] + 1]]
+    shared = set.intersection(*(_franchise_seasons(r, year) for r in top)) if top else set()
+    return {"top": len(top), "famous": sum(1 for r in top if fame.at_least(r, getattr(fame, _GATE["min_band"]))),
+            "shared_team_season": min(shared) if shared else None}
 
 
 def validate(materialized):
@@ -63,11 +81,19 @@ def validate(materialized):
         problems.append("ranking must start with the secret at rank 1")
     if len({r[0] for r in ranking}) != len(ranking):
         problems.append("duplicate person_id in ranking")
+    if materialized.get("sim_version", 1) == 2:
+        gate = materialized.get("gate") or {}
+        if gate.get("shared_team_season"):
+            problems.append(f"the top {gate.get('top')} all share one team-season ({gate['shared_team_season']})")
+        if (gate.get("famous") or 0) < _GATE["min_count"]:
+            problems.append(f"the top {gate.get('top')} has {gate.get('famous') or 0} {_GATE['min_band']}-or-better "
+                            f"players; need {_GATE['min_count']}")
     return problems
 
 
 def index_item(definition, materialized):
-    return [None, definition["day"]]
+    version = definition.get("sim_version", 1)
+    return [None, definition["day"]] if version == 1 else [None, definition["day"], version]
 
 
 def players_referenced(definition, materialized, dataset=None):
@@ -76,9 +102,13 @@ def players_referenced(definition, materialized, dataset=None):
 
 def checker_view(materialized, dataset=None):
     """The secret and the facts the similarity ranking leans on (position, draft, teams).
-    The day and the computed ranking are not claims to check."""
+    The day and the computed ranking are not claims to check. A v2 day names its
+    similarity version (a v1 day's view, and so its checked hash, is unchanged)."""
     profile = checker.player_profile(materialized["secret"])
-    return {"kind": SLUG, **{k: profile[k] for k in ("player", "position", "draft", "teams")}}
+    view = {"kind": SLUG, **{k: profile[k] for k in ("player", "position", "draft", "teams")}}
+    if materialized.get("sim_version", 1) != 1:
+        view["sim_version"] = materialized["sim_version"]
+    return view
 
 
 def features(materialized, dataset):
