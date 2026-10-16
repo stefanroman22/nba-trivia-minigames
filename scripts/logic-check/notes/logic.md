@@ -79,3 +79,29 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
 - Two checkers sharing one lane stack must run from the same checkout. If the minter is on one checkout's sqlite and
   the running Django on another's, every id differs. ui-check's `stack-setup` now refuses that state for every suite
   (see CHECKS.md "How runs work"), and stack.json records `repo: null, relayKey: null` for a reused Django.
+
+## profile + friends suites (2026-10-16)
+
+- **Budget.** Authenticated throttles key by account (user pk), so X-Forwarded-For does not help here. `account-data`
+  10/h per account: testuser4 1 per run (LC-PROFILE-02's age), testuser5 1 (LC-FRIENDS-08's age); the export, the
+  deletes and the teen's age spend `lgc` throwaways' own buckets (a new pk every run). `friend-action` 60/h: testuser4
+  ≈ 9, testuser5 ≈ 2 per run (≥ 6 runs an hour before a 429). `user-search` 120/h: ≤ 8 per user per run. LocMemCache:
+  restarting the stack resets every bucket.
+- **The mint restores a test account's username** on every mint (`mint_tokens.py account()`), so LC-PROFILE-01 mints
+  once and renames back through the API; never mint testuser4 between a rename and its check.
+- **Age.** Minted accounts start with the age unknown (`age_group ""`, treated as teen). `POST /account/age/` only works
+  while it is unknown (409 afterwards), so checks call `forgetAge` first and in `finally`; the logic sweep now resets
+  testuser4/5/6 to unknown as well (`ages` in its output).
+- **Photo moderation** is skipped on the local stack (`IMAGE_MODERATION_URL` unset, `MODERATION_REQUIRED` false without
+  `DATABASE_URL`), so an upload is saved at once. A stack with moderation configured would call the service (503 when it
+  is unreachable): LC-PROFILE-02/04 would then fail on the upload, not on the age gate.
+- **Upload** is multipart, which `api.fetch` (JSON only) cannot send: profile.spec has its own fetch that asks the guard
+  first. The image is a 1x1 PNG (the backend normalises it to a 256x256 JPEG data URL).
+- **Search rule** (`users/friends.py search_users`): unknown-age and teen players are findable by exact player id only,
+  never by name. testuser5 is unknown-age by default, so a name search finds it only once LC-FRIENDS-08 makes it adult.
+  Blocked players are hidden in both directions; a send is refused (403) from either side; the block row is one-way.
+- **friends-overview** is cached 60 s (`friends_cache`) and invalidated by every write view; one Django process with
+  LocMemCache, so reads after a write are consistent.
+- **Throwaway slots**: 60–63 (profile); 41 is game-data's (a shared slot in one worker process is the same account).
+- **Runs**: `20261016-0710-logic` and `20261016-0745-logic` 14/14, sweep clean. No REAL findings. A mutated
+  expectation (`LC-PROFILE-03` teen message) failed with one digest line, as it should.

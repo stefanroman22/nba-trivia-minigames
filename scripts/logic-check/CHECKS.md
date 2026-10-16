@@ -40,8 +40,8 @@ layout, motion or styling (that is UI check, `scripts/ui-check/CHECKS.md`); the 
 | pages | `LC-PAGES-` | `pages` | the local stack (checkout of `--ref`, default main), one Chromium context at desktop-1366 | the same routes on the checkout: status, shell, hydration (a click works) |
 | auth | `LC-AUTH-` | `api`, `pages` | local stack (API; one browser case) | login by username / email / Name#ID, `/me/`, refresh rotation + blacklist, logout, the auth throttles' configuration, Google login's bad input, a deleted account's tokens, the Google button |
 | signup | `LC-SIGNUP-` | `api`, `pages` | local stack (API; one browser case) | the sign-up validation matrix (`lib/matrix.mjs`), frontend/backend rule agreement, the happy path and the throwaway's lifecycle, the form showing the backend's error |
-| profile | `LC-PROFILE-` | `api` | local stack | Task 4 |
-| friends | `LC-FRIENDS-` | `api` | local stack | Task 4 |
+| profile | `LC-PROFILE-` | `api` | local stack | each profile change persists and is enforced: username change, the photo age gate (428 → age → upload), a teen's upload refused, photo removal, the data export, account deletion's two gates |
+| friends | `LC-FRIENDS-` | `api` | local stack, logic.actor ↔ logic.peer | requests arrive on both sides; accept / decline / cancel / remove / block / unblock; the lists are symmetric; search by player id and by name. All via the API (UI check's `AC-SURF-02` only renders states seeded this way) |
 | game-data | `LC-GAMEDATA-` | `api` | local stack | each visible game's data sources, `log-session` credit, the logged-in leaderboard rank, the Wordle daily gate |
 | rooms | `LC-ROOMS-` | `rooms` | local stack, socket.io clients | the relay's protocol end to end: identify, friend rooms (create, join, size, game, start, scores, leaving), matchmaking, play-again proposals |
 | selftest | `LC-ST-` | `selftest` | nothing (no app server) | the harness: live guard, blocked-check mapping, live triage |
@@ -155,3 +155,39 @@ These checks cover the relay's socket protocol end to end. They use two `socket.
 | `LC-ROOMS-08` | rooms, relay | Host submits 50 → host gets `waitingForOpponent` and the joiner gets `opponentFinished` (host id). Joiner submits 10 → `matchResult` on both: host `{ yourScore 50, opponentScore 10, outcome win }`, joiner `loss`, and `standings` [host 50 win, joiner 10 loss]. Friend rooms never credit (`creditRoom`): no `pointsAwarded`, and `/me/` points are unchanged for both. This is asserted only on a keyed stack; an unkeyed relay credits nothing anyway, so it is a warning there. |
 | `LC-ROOMS-09` | rooms, relay | Leaving, each case giving the event the protocol defines. A guest `leaveMatch` in the lobby → host `friendLobbyUpdate` (alone), and the guest can rejoin. A guest leaving mid-round with 2 seated → host `matchStopped` "<guest> left, so the match ended." plus the lobby. A third player leaving a live 3-player round → `memberLeft { id, username, "<name> left the match." }` to the other two, and the round continues (no `matchStopped`). A guest disconnect in the lobby → host sees it `online: false`, then removed after `LOBBY_GRACE_MS`, and on return the guest gets `roomLeft` "You were away too long and left the room.". The host leaving mid-round → guest `opponentLeft` "The host closed the room.", and the code no longer joins. The host leaving the lobby → guest `friendRoomCancelled` "The host closed the room.". |
 | `LC-ROOMS-10` | matchmaking, relay | `findMatch` alone → `searching { inQueue 1, position 1 }`. After `cancelFind`, the next searcher is alone in the queue and not paired. `findMatch` ×2 (same game) → `matchFound` on both (`roomType: match`; the player who waited is the room's host) and `roundData` on both. Scores 50/10 → `matchResult` win/loss, and a random match credits each score once: `pointsAwarded.awarded` = the score and `/me/` +score. This needs the relay key the stack shares with Django; without it this is only a warning. `proposeAgain` → `proposalPending` / `proposalReceived { type again, gameId, fromName }`. `fromName` is "Player" for a teen or age-unknown account (strangers are masked). Accept → `matchRestart` + a new `roundData` on both. A second proposal (after `RESTART_MIN_MS`) declined → `proposalDeclined` to the proposer and no restart. Leaving → `opponentLeft` "Your opponent left the match.". |
+
+## Profile (LC-PROFILE-)
+
+`LC-PROFILE-01/02` change logic.actor (testuser4) and put it back in `finally`: the name through the API, the photo
+removed, the age back to unknown (mint `forget_age`). The logic sweep restores testuser4/5/6 names, photos and (since
+Task 4) ages. `-03..-06` each mint their own `lgc` throwaway (slots 60–63) and delete it. Budget: authenticated
+throttles key by account, so testuser4 spends one `account-data` (10/h) per run; the export, the deletes and the teen's
+age spend the throwaways' own buckets. The valid rename is cleared by `check-name` first (never a strike).
+
+| ID | services | proves |
+|---|---|---|
+| `LC-PROFILE-01` | profile | `POST /api/update-profile/` (JSON) username: bad characters ("lc bad!", a hyphen), 21 chars, 2 chars → 400 `USERNAME_RULES` and `/me/` still `testuser4`; a valid `lcProfile<4 digits>` → 200 `success` and `/me/` shows it. |
+| `LC-PROFILE-02` | profile | testuser4 with the age unknown: a multipart upload (1x1 PNG) → 428 code `age_required` with the age message, `/me/` photo still null; `POST /api/account/age/` adult → 200, `is_teen` false; upload again → 200 `success`; `/me/` `profile_photo` is a `data:image/jpeg` URL equal to the upload answer's. |
+| `LC-PROFILE-03` | profile | Throwaway: `POST /api/account/age/` teen (14) → 200, `is_teen` true; upload → 403 "Profile photos are available from age 16.", `/me/` photo null; an adult year afterwards → 409 "Your age is already confirmed." (the age is set once). |
+| `LC-PROFILE-04` | profile | Throwaway made adult with a photo (public `/api/users/<id>/photo/` 200): `POST /api/account/remove-photo/` → 200 `profile_photo` null; `/me/` null; the public photo URL → 404. |
+| `LC-PROFILE-05` | profile, friends | Throwaway that sent testuser5 a request: `GET /api/account/export/` → 200 attachment; `account.id/username/email` are the throwaway's; `friend_requests_sent` lists testuser5 as `{ id, username }`; no email but its own anywhere in the export. |
+| `LC-PROFILE-06` | profile, auth | Throwaway: delete with a wrong password + `DELETE` → 403 "That password is incorrect."; the right password without `confirm` → 400 "Type DELETE to confirm." (the account is still there); both → 200 `deleted`; then login → 401 "Incorrect email, username or password." and the access token on `/me/` → 401. |
+
+## Friends (LC-FRIENDS-)
+
+logic.actor (testuser4) ↔ logic.peer (testuser5), minted tokens, every action through the API. Each check first clears
+both sides (cancel / decline / unblock / remove, verified by the overview and a `remove-friend` 404) and does it again
+in `finally` (`cleanup` violation if anything is left); the logic sweep clears testuser4 ↔ testuser5 rows too. Budget
+per run (per account): `friend-action` (send + block, 60/h) testuser4 ≈ 9, testuser5 ≈ 2; `user-search` (120/h) ≤ 8
+each; `account-data` testuser5 1 (`-08`).
+
+| ID | services | proves |
+|---|---|---|
+| `LC-FRIENDS-01` | friends | Send → 201 `sent`; testuser5's `incoming_requests` has testuser4 and testuser4's `outgoing_requests` has testuser5 with the same `request_id`, nothing in the reverse direction, not friends yet; a second send → 409 "Request already sent.". |
+| `LC-FRIENDS-02` | friends | The receiver accepts → 200 `accepted`; `search-friends` of each lists the other; no request is left on either side. |
+| `LC-FRIENDS-03` | friends | The sender's decline → 404 "Request not found."; the receiver declines → 200 `declined`; no request on either side, not friends. |
+| `LC-FRIENDS-04` | friends | The receiver's cancel → 404 "Request not found."; the sender cancels → 200 `cancelled`; gone from both. |
+| `LC-FRIENDS-05` | friends | Friends, then remove → 200 `removed`; neither list has the other; removing again (from the other side) → 404 "You're not friends with this player.". |
+| `LC-FRIENDS-06` | friends | Friends, then testuser4 blocks → 200 `blocked`: the friendship is gone; testuser4's `blocked_users` lists testuser5, testuser5's lists nobody (one-way); a send from the blocked side and from the blocker → 403 "You can't send a request to this player."; `search-users` by player id hides each from the other (backend: blocked either way is omitted). |
+| `LC-FRIENDS-07` | friends | After a block, unblock → 200 `unblocked` and no longer listed; testuser5 sends → 201 and it arrives in testuser4's incoming; unblocking again → 404 "You haven't blocked this player.". |
+| `LC-FRIENDS-08` | friends | `search-users` by player id, `#id` and the lower-case id → testuser5 with relationship `none`; by name while testuser5's age is unknown → not listed (unknown-age and teen players are findable by exact id only, `users/friends.py`); after testuser5 gives an adult age → listed by name, relationship `none`; one character → `[]`. The age is forgotten in `finally`. |
