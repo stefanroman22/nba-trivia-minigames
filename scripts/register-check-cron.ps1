@@ -3,7 +3,8 @@
 # checks-nightly, which it creates when missing: from origin/dev (the branch must already carry scripts/check-run.ps1),
 # with junctions backend\.venv and multiplayer_server\node_modules to the main checkout's and its own `npm ci`.
 # StartWhenAvailable catches up a missed 02:00 (PC off or asleep) at the next start; the task is stopped after 6 h (a
-# hard stop leaves the stack up: the next night's check-run stops it first). check-run.ps1 loads .env.team
+# hard stop leaves the stack up: the next night's check-run stops it first). A laptop on battery still starts and
+# keeps the run (the scheduler's defaults would refuse to start, and kill a run the moment the charger is unplugged). check-run.ps1 loads .env.team
 # (NOTION_TOKEN, SLACK_BOT_TOKEN) itself, like team-run.ps1. Remove the task with scripts/unregister-check-cron.ps1.
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
@@ -44,7 +45,7 @@ $action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowe
   -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`"" `
   -WorkingDirectory $wt
 $trigger = New-ScheduledTaskTrigger -Daily -At "02:00"
-$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable `
+$settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
   -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Hours 6)
 try { Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction Stop } catch {}
 Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $settings | Out-Null

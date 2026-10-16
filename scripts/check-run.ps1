@@ -19,12 +19,14 @@
 # Lockfile <uicHome>/check-run.lock (a live PID = another run: exit 0); log <uicHome>/logs/check-<ts>.log (+ .json state).
 # Every normal or failed exit stops the stack on -Ports and releases the lock; a hard kill (the task's time limit) cannot,
 # and the next night's step 0 stops what it left.
-#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-run.ps1 [-DryRun] [-Ports django=8200,socket=4200,web=5374]
+#   powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-run.ps1 [-DryRun] [-Ports django=8210,socket=4210,web=5384]
 #                                                    [-AllowMainCheckout] [-AgentTimeoutSec 2700]
 # -DryRun prints the plan (every command, in order, with its condition) and runs nothing.
+# The nightly has its own port set (8210/4210/5384): the checker default 8200/4200/5374 is what interactive skill runs
+# take, and a stack another session left there (another checkout's sqlite) would make every suite stop at stack-setup.
 param(
   [switch]$DryRun,
-  [string]$Ports = "django=8200,socket=4200,web=5374",
+  [string]$Ports = "django=8210,socket=4210,web=5384",
   [switch]$AllowMainCheckout,
   [int]$AgentTimeoutSec = 2700
 )
@@ -34,7 +36,7 @@ $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 $started = Get-Date
 $ts = $started.ToString("yyyyMMdd-HHmmss")
-if ($Ports -notmatch '^django=\d+,socket=\d+,web=\d+$') { Write-Host "check-run: -Ports must look like django=8200,socket=4200,web=5374"; exit 2 }
+if ($Ports -notmatch '^django=\d+,socket=\d+,web=\d+$') { Write-Host "check-run: -Ports must look like django=8210,socket=4210,web=5384"; exit 2 }
 
 # The main checkout (first `git worktree list` entry): the owner's working tree, never the nightly's tooling.
 $mainCheckout = $null
