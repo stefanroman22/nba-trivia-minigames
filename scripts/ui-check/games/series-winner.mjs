@@ -1,5 +1,5 @@
 // Adapter: Guess the Series Winner (src/Game Renderers/PlayOffSeries.tsx). 5 rounds, pick one of two
-// team buttons; the round reveals the winner (green/red card + "Correct! +10" / "It was the <winner>")
+// team buttons; the round reveals the winner (green/red card + "Correct! +20" / "It was the <winner>")
 // and advances after 1.8 s; the last round hands over to the full-screen GameResult (allowlisted).
 //
 // Right answer: ctx.pool('playoff') (single player: captured HTTP JSON, capPool). The pool is `playoff`
@@ -39,7 +39,7 @@ export default {
   online: true,
   lives: null,
   timerMs: null,
-  pointsPerCorrect: 10,
+  pointsPerCorrect: 20,
   scenarios: {
     perfect: true,
     wrong: true,

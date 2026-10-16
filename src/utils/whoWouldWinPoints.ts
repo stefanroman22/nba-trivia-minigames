@@ -2,12 +2,12 @@
 // `node --experimental-strip-types`. The renderer imports these; change the numbers here.
 
 /** Your side has at least as many votes as the other (majority, tie, or you are the first voter). */
-export const WWW_POINTS_MAJORITY = 20;
+export const WWW_POINTS_MAJORITY = 10; // 10 matchups x 10 = 100
 /** Your side has fewer votes than the other. */
 export const WWW_POINTS_MINORITY = 5;
 export const WWW_MATCHUPS = 10;
 /** Highest honest score; the backend caps who-would-win at the same number. */
-export const WWW_MAX_POINTS = WWW_MATCHUPS * WWW_POINTS_MAJORITY; // 200
+export const WWW_MAX_POINTS = WWW_MATCHUPS * WWW_POINTS_MAJORITY; // 100
 
 export type WwwSide = "a" | "b";
 export interface WwwTally {

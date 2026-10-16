@@ -5,7 +5,7 @@ import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
 import type { LeaderRow, SelfRow } from "../constants/leaderboard";
 
-export type LeaderboardScope = "global" | "friends";
+export type LeaderboardScope = "global" | "weekly" | "friends";
 
 /** How long cached leaderboard data stays fresh before it auto-refreshes. */
 export const LEADERBOARD_TTL_MS = 5 * 60 * 1000;
@@ -32,6 +32,8 @@ interface CacheEntry {
   error: boolean;
   userRank: number | null;
   numberUsers: number | null;
+  /** The player's own points this week (weekly scope only; null for the other scopes). */
+  userPoints: number | null;
   /** Which signed-in user this data's rank belongs to (null = signed out). */
   userKey: string | null;
   fetchedAt: number;
@@ -42,8 +44,8 @@ interface CacheEntry {
 // stale — no loader flash on remount and no duplicate network calls. Kept
 // per-scope so switching the Global/Friends toggle never shows stale rows
 // from the other scope while its own fetch is in flight.
-const caches: Record<LeaderboardScope, CacheEntry | null> = { global: null, friends: null };
-const fetching: Record<LeaderboardScope, boolean> = { global: false, friends: false };
+const caches: Record<LeaderboardScope, CacheEntry | null> = { global: null, weekly: null, friends: null };
+const fetching: Record<LeaderboardScope, boolean> = { global: false, weekly: false, friends: false };
 const subscribers = new Set<() => void>();
 const notify = () => subscribers.forEach((fn) => fn());
 
@@ -52,31 +54,33 @@ async function fetchBoard(userKey: string | null, scope: LeaderboardScope): Prom
   fetching[scope] = true;
   notify();
   try {
-    const qs = scope === "friends" ? "?scope=friends" : "";
+    const qs = scope === "global" ? "" : `?scope=${scope}`;
     const response = await apiFetch(`${BACKEND_URL}/get-users/${qs}`);
     const data = await response.json();
     const live = Array.isArray(data?.top_100_users) ? data.top_100_users : [];
 
     if (data?.error) {
-      caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
+      caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userPoints: null, userKey, fetchedAt: Date.now() };
     } else {
       caches[scope] = {
-        leaders: live.map((u: { username: string; id?: string; points: number }, i: number) => ({
+        leaders: live.map((u: { username: string; id?: string; points: number; rank?: string }, i: number) => ({
           rank: i + 1,
           name: u.username,
           id: u.id ?? null,
           points: u.points,
+          rankName: u.rank,
         })),
         error: false,
         userRank: typeof data?.user_rank === "number" ? data.user_rank : null,
         numberUsers: typeof data?.number_users === "number" ? data.number_users : null,
+        userPoints: typeof data?.user_points === "number" ? data.user_points : null,
         userKey,
         fetchedAt: Date.now(),
       };
     }
   } catch (err) {
     console.error("Failed to load leaderboard:", err);
-    caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userKey, fetchedAt: Date.now() };
+    caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userPoints: null, userKey, fetchedAt: Date.now() };
   } finally {
     fetching[scope] = false;
     notify();
@@ -124,10 +128,11 @@ export function useLeaderboard(scope: LeaderboardScope = "global"): LeaderboardD
   const cache = caches[scope];
   const self: SelfRow | null = user
     ? {
-        rank: cache?.userRank ?? (Number(user.rank) || 0),
+        rank: cache?.userRank ?? 0,
         name: user.username,
         id: user.id ?? null,
-        points: user.points,
+        // The weekly board ranks this week's points, so the self row shows those, not the all-time total.
+        points: scope === "weekly" ? (cache?.userPoints ?? 0) : user.points,
         total: cache?.numberUsers ?? 0,
       }
     : null;

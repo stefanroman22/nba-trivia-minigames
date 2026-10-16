@@ -22,7 +22,6 @@ from trivia.models import (
     Team,
 )
 from backend.throttles import FeedbackRateThrottle, GuessLogRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
-from users import leaderboard
 from trivia.data_pipeline.live_pool import load_dataset as load_curated_dataset
 from trivia.data_pipeline.starting_five import (
     canonical_lineup_names,
@@ -34,6 +33,7 @@ from trivia.utils.logo_utils import logo
 from trivia.games import HIDDEN_GAMES
 from trivia.utils.text_utils import wordle_word
 from trivia import wordle_daily
+from trivia import awarding
 
 # Games read from the central Supabase store (populated by sync_nba_data). Where a bundled
 # file exists (playoff JSON, starting-five JSON, MVP CSV) an empty table falls back to it;
@@ -262,15 +262,6 @@ def get_fan_favorites(request):
 # A day in ms — sanity ceiling for client-reported durations.
 _MAX_DURATION_MS = 86_400_000
 
-# Ceiling on the points one finished game may grant. The highest score any renderer
-# can produce is MAX_SCORE = 300, so real play never reaches this; it exists so a
-# forged submission can't inflate an account. Per-game caps derived from real
-# GameSession data should eventually replace this single global number.
-MAX_SESSION_POINTS = 1000
-# Per-game ceilings: the highest honest score for that game (who-would-win: 10 matchups x 20).
-# Games not listed here stay on the global MAX_SESSION_POINTS.
-PER_GAME_MAX_POINTS = {"who-would-win": 200}
-
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -315,8 +306,8 @@ def log_session(request):
     This is the ONLY path that grants account points. It used to log stats while
     `users.update_profile` awarded whatever `points` the client asked for, which let
     any signed-in player POST an arbitrary total. Awarding here instead means every
-    award has a GameSession row behind it, and the score passes the same clamping
-    the log already applied.
+    award has a GameSession row behind it, and the score passes the same per-game
+    clamping as the relay's results (trivia.awarding).
     """
     body = request.data or {}
     game = str(body.get('game', ''))[:40]
@@ -324,48 +315,29 @@ def log_session(request):
         return JsonResponse({'error': 'game is required'}, status=400)
     mode = str(body.get('mode', 'single'))
     mode = mode if mode in ('single', 'match', 'friend') else 'single'
-    try:
-        score = max(0, int(body.get('score', 0)))
-    except (TypeError, ValueError):
-        score = 0
-    # The largest score any renderer can produce is MAX_SCORE = 300, so this is >3x
-    # headroom for real play while making an inflated submission worthless.
-    score = min(score, PER_GAME_MAX_POINTS.get(game, MAX_SESSION_POINTS))
+    # Clamped to the game's own ceiling (awarding.GAME_MAX_POINTS), so a forged submission is worth at
+    # most one honest perfect game.
+    score = awarding.clamp_score(game, mode, body.get('score', 0))
     try:
         duration = max(0, min(int(body.get('duration_ms', 0)), _MAX_DURATION_MS))
     except (TypeError, ValueError):
         duration = 0
 
     user = request.user if request.user.is_authenticated else None
-    GameSession.objects.create(
-        user=user,
-        game=game,
-        mode=mode,
-        score=score,
-        duration_ms=duration,
-    )
 
-    # Online results are credited by the relay (multiplayer_result), never by the
-    # browser (AUTH-7), and guests have no account to credit.
-    awarded = 0
-    if user is not None and mode == 'single' and score > 0:
-        awarded = _award(user, score)
+    # Online results are credited by the relay (multiplayer_result), never by the browser (AUTH-7),
+    # and guests have no account to credit: both are logged and awarded nothing.
+    if user is None or mode != 'single':
+        GameSession.objects.create(user=user, game=game, mode=mode, score=score, duration_ms=duration)
+        return JsonResponse({
+            'ok': True,
+            'awarded': 0,
+            'points': user.points if user is not None else 0,
+            'rank': user.rank if user is not None else None,
+            'rank_up': None,
+        })
 
-    return JsonResponse({
-        'ok': True,
-        'awarded': awarded,
-        'points': user.points if user is not None else 0,
-        'rank': user.rank if user is not None else None,
-    })
-
-
-def _award(user, score):
-    """Credit `score` (already clamped) to the account; the one place points are added (AUTH-6)."""
-    user.points += score
-    user.update_rank()
-    user.save(update_fields=['points', 'rank'])
-    leaderboard.record_score(user)
-    return score
+    return JsonResponse({'ok': True, **awarding.award(user, game, mode, score, duration)})
 
 
 User = get_user_model()
@@ -378,7 +350,7 @@ _MAX_MATCH_PLAYERS = 8
 @authentication_classes([])  # server to server: the shared secret is the only credential
 @permission_classes([AllowAny])
 def multiplayer_result(request):
-    """Record a finished online match (random 1v1 or friend room) and credit each player's score.
+    """Record a finished online match (random 1v1 or friend room) and credit each 1v1 player's score.
 
     Called ONLY by the multiplayer relay (multiplayer_server/src/index.js creditRoom), authenticated
     by MULTIPLAYER_SHARED_SECRET in X-Relay-Key. Browsers can't reach it: they never have the key,
@@ -395,7 +367,6 @@ def multiplayer_result(request):
     results = body.get('results')
     if not game or mode not in ('match', 'friend') or not isinstance(results, list) or len(results) > _MAX_MATCH_PLAYERS:
         return JsonResponse({'error': 'game, mode and results are required'}, status=400)
-    cap = PER_GAME_MAX_POINTS.get(game, MAX_SESSION_POINTS)
     out = []
     for r in results:
         if not isinstance(r, dict):
@@ -403,17 +374,17 @@ def multiplayer_result(request):
         user = User.objects.filter(public_id=str(r.get('public_id', ''))[:20], banned_at__isnull=True).first()
         if user is None:
             continue
-        try:
-            score = min(max(0, int(r.get('score', 0))), cap)
-        except (TypeError, ValueError):
-            score = 0
+        score = awarding.clamp_score(game, mode, r.get('score', 0))
         try:
             duration = max(0, min(int(r.get('duration_ms') or 0), _MAX_DURATION_MS))
         except (TypeError, ValueError):
             duration = 0
-        GameSession.objects.create(user=user, game=game, mode=mode, score=score, duration_ms=duration)
-        awarded = _award(user, score) if score > 0 else 0
-        out.append({'public_id': user.public_id, 'awarded': awarded, 'points': user.points, 'rank': user.rank})
+        if mode == 'friend':
+            # Friend rooms are logged, never credited (AUTH-7): no points, no active day, no streak.
+            GameSession.objects.create(user=user, game=game, mode=mode, score=score, duration_ms=duration, awarded=0)
+            out.append({'public_id': user.public_id, 'awarded': 0, 'points': user.points, 'rank': user.rank, 'rank_up': None})
+            continue
+        out.append({'public_id': user.public_id, **awarding.award(user, game, mode, score, duration)})
     return JsonResponse({'ok': True, 'results': out})
 
 

@@ -10,6 +10,7 @@ import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
 import { matchAnswer } from "../utils/answerMatch";
+import { STARTING_FIVE_BONUS as COMPLETION_BONUS } from "../utils/gameScoring";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
 import "../styles/StartingFive.css";
@@ -22,8 +23,6 @@ interface StartingFiveProps {
   /** Closes the game and returns to the idle screen (Rule 7.3). */
   onClose?: () => void;
 }
-
-const COMPLETION_BONUS = 50; // perfect lineup → 5 * pointsPerCorrect + bonus = maxPoints
 
 // Cards run left → right in this order (also the game-over reveal order).
 const SLOTS = [

@@ -309,7 +309,7 @@ There are **two kinds of data**, handled very differently:
 - **Secrets** (database URL, Django secret key, Google OAuth keys) come from environment
   variables and are kept out of git (`.env` files are gitignored).
 - **Points can only be earned, not claimed.** Finishing a game posts to `/trivia/log-session/`,
-  which records what was played *and* awards the points in one step, capped at 1000 per game.
+  which records what was played *and* awards the points in one step, capped at each game's maximum (`trivia/awarding.py`).
   The browser can no longer tell the backend how many points it deserves, and every award has a
   `GameSession` row behind it. (Until 2026-08-29 it could: the client sent its own total and the
   server added it, so anyone could have topped the leaderboard with a single request.)

@@ -6,7 +6,7 @@ import ScorePanel from "../components/ScorePanel";
 import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
-// Scoring constants (WWW_POINTS_MAJORITY = 20, WWW_POINTS_MINORITY = 5) live in
+// Scoring constants (WWW_POINTS_MAJORITY = 10, WWW_POINTS_MINORITY = 5) live in
 // whoWouldWinPoints.ts so the node test can import them — change them there.
 import { pointsFor, WWW_MAX_POINTS, WWW_POINTS_MAJORITY, WWW_POINTS_MINORITY } from "../utils/whoWouldWinPoints";
 import type { WwwMatchup, OnGameEnd } from "../types/types";
@@ -205,7 +205,7 @@ function WhoWouldWin({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoWouldWinP
       </GameFrame>
     );
 
-  // Live score counts a vote once its tally lands (so it never shows 20 and then
+  // Live score counts a vote once its tally lands (so it never shows 10 and then
   // drops to 5); at the end the frozen tallies decide, a still-pending one as majority.
   const shownTallies = endTallies ?? tallies;
   const score = endTallies

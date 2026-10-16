@@ -16,7 +16,8 @@ from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
-from users import leaderboard, photo_moderation, strikes
+from trivia import awarding
+from users import leaderboard, photo_moderation, ranks, strikes
 from users.account_data import delete_account, export_account, remove_photo
 from users.consent import (
     CONSENT_FIELDS,
@@ -82,6 +83,14 @@ def user_payload(request, user):
         "email": user.email,
         "rank": user.rank,
         "points": user.points,
+        # Progression (users.ranks / trivia.awarding). The frontend displays these; it never computes them.
+        "founding_member": user.founding_member,
+        "active_days": user.active_days,
+        # A streak nobody can extend any more reads 0; the stored number waits for the next scoring game.
+        "streak_days": user.streak_days if awarding.streak_alive(user, awarding.cet_today()) else 0,
+        "streak_best": user.streak_best,
+        "streak_freezes": user.streak_freezes,
+        "rank_progress": ranks.progress(user.points, user.active_days),
         "profile_photo": profile_photo_url(request, user),
         # UI hint only — every admin endpoint re-checks is_staff server-side.
         "is_admin": bool(user.is_staff),
@@ -111,6 +120,25 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
 
 
 USERNAME_TRIES = 10
+
+# Points a guest scored in this browser before signing up (src/utils/guestPoints.ts). Display-only and
+# client-reported, so it is capped: a new account can start as a Sixth Man at most, never on the ladder's
+# day-gated ranks. No session row, no streak, no active day.
+GUEST_CARRYOVER_MAX = 1000
+
+
+def apply_guest_points(user, data):
+    try:
+        pts = int(data.get("guest_points") or 0)
+    except (TypeError, ValueError, OverflowError):  # OverflowError: JSON 1e999 is float("inf")
+        pts = 0
+    pts = min(max(pts, 0), GUEST_CARRYOVER_MAX)
+    if pts <= 0:
+        return 0
+    user.points += pts
+    user.update_rank()
+    user.save(update_fields=["points", "rank"])
+    return pts
 
 
 def _username_taken(name):
@@ -150,7 +178,7 @@ def generated_username():
             return candidate
     return f"Player{_digits(6)}"
 
-def _user_for_google_identity(identity, age_group=None, consent_source=""):
+def _user_for_google_identity(identity, age_group=None, consent_source="", data=None):
     """Find or create the account for a VERIFIED Google identity -> (user, new_account).
 
     Linked by Google's stable `sub` first, then by the verified email. Signup does not
@@ -195,6 +223,7 @@ def _user_for_google_identity(identity, age_group=None, consent_source=""):
         return user, False
     stamp_consent(user, age_group, consent_source)
     user.save(update_fields=CONSENT_FIELDS)
+    apply_guest_points(user, data or {})
     leaderboard.record_score(user)
     return user, True
 
@@ -306,6 +335,7 @@ def signup_view(request):
             user = User.objects.create_user(username=username, email=email, password=password)
             stamp_consent(user, age_group_for(request.data), consent_source_for(request.data))
             user.save(update_fields=CONSENT_FIELDS)
+            apply_guest_points(user, request.data)
         except IntegrityError:
             # Race with a concurrent signup on the same email.
             return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
@@ -545,7 +575,7 @@ def google_login(request):
         return Response({"error": "Missing code"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        user, new_account = _user_for_google_identity(identity, age_group, consent_source_for(data, google=True))
+        user, new_account = _user_for_google_identity(identity, age_group, consent_source_for(data, google=True), data)
     except GoogleConsentRequired:
         return Response(
             {
@@ -609,6 +639,12 @@ def get_users(request):
             board, user_rank, number_users = leaderboard.friends_board(request.user)
             return Response(
                 {"top_100_users": board, "user_rank": user_rank, "number_users": number_users},
+                status=200,
+            )
+        if scope == "weekly":
+            board, user_rank, number_users, my_points = leaderboard.weekly_board(request.user if request.user.is_authenticated else None)
+            return Response(
+                {"top_100_users": board, "user_rank": user_rank, "number_users": number_users, "user_points": my_points},
                 status=200,
             )
 

@@ -14,6 +14,7 @@ import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
 import { matchAnswer } from "../utils/answerMatch";
+import { CAREER_PATH_MAX, careerPathScore } from "../utils/gameScoring";
 import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, CareerPathQuestion } from "../types/types";
 import "../styles/CareerPath.css";
 
@@ -26,8 +27,6 @@ export interface CareerPathProps {
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
 }
-
-const POINTS_PER_CARD = 100;
 
 /** Which pane the end-of-game stage shows: the card rail or the name + headshot. */
 type View = "career" | "answer";
@@ -174,7 +173,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
     guessesRef.current.push(raw);
 
     if (correct) {
-      const finalScore = (stints - wrong) * POINTS_PER_CARD;
+      const finalScore = careerPathScore(wrong);
       setPhase("won");
       sendGuessLog();
       flashPopup(`Correct! +${finalScore}`, "var(--good)");
@@ -266,7 +265,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
             >
               <ScoreLine
                 score={endState?.score ?? 0}
-                outOf={stints * POINTS_PER_CARD}
+                outOf={CAREER_PATH_MAX}
                 label={endState?.won ? "That's him!" : undefined}
                 won={endState?.won}
               />

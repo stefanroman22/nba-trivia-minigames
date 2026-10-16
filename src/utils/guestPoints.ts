@@ -1,6 +1,7 @@
-// Points a guest has scored in this browser tab. Display only: guests have no account to credit,
-// so the total lives in sessionStorage (gone with the tab, empty in a fresh or private window) and
-// is never sent anywhere. GuestPanel shows it; MiniGame adds to it when a guest finishes a game.
+// Points a guest has scored in this browser tab. Guests have no account to credit, so the total
+// lives in sessionStorage (gone with the tab, empty in a fresh or private window) and is sent once,
+// at signup, so the new account starts with it (capped server-side). GuestPanel shows it; MiniGame
+// adds to it when a guest finishes a game.
 const KEY = "sq:guest-points";
 
 export function readGuestPoints(): number {
@@ -17,5 +18,14 @@ export function addGuestPoints(points: number): void {
     sessionStorage.setItem(KEY, String(readGuestPoints() + Math.floor(points)));
   } catch {
     // storage blocked: the panel simply shows no total
+  }
+}
+
+/** After signup: the total was credited to the new account (users.views.apply_guest_points), so drop it here. */
+export function clearGuestPoints(): void {
+  try {
+    sessionStorage.removeItem(KEY);
+  } catch {
+    // storage blocked: nothing was stored
   }
 }

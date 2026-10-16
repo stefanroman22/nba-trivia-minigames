@@ -513,8 +513,8 @@ large pools), `EndSequence`, `ScorePanel` / `ScoreLine` / `ScoreActions`, `Spinn
 ## 9. Scoring
 
 ### RULE 9.1 — Points add up, and time never adds points
-`pointsPerCorrect × rounds` equals the `maxPoints` on the idle chip. Aim for about 50 points per
-correct answer and 100–300 per session. Time is the multiplayer tiebreak only — it never adds points.
+`pointsPerCorrect × rounds` equals the `maxPoints` on the idle chip. Aim for about 20 points per
+correct answer and 100–200 per session (a perfect game 100–200; the daily Wordle's 500 is the one jackpot). The backend caps each game at its `maxPoints` (`trivia/awarding.py GAME_MAX_POINTS`): change both together. Time is the multiplayer tiebreak only — it never adds points.
 Build single-player first, but shape score and state so online and friend modes slot in without a
 redesign (in multiplayer, show both players' running scores).
 
@@ -536,7 +536,7 @@ Deliberate and reviewed — do not "fix" these. A game may break a rule only wit
 | Connections, Heatmap, Contexto, Wordle, Who Are Ya, Career Path, TicTacToe, Bingo, SuperDraft, Imposter | no `ROUND n/total` label | 0 | these games have no rounds | ≤ 2026-10 |
 | Fan Favorites, SuperDraft, Contexto | correct copy is not `Correct! +N` | 6.0 | no per-answer points exist, so `+N` would be false | ≤ 2026-10 |
 | Bingo | keeps `Dabbed!` | 6.0 | scoring is terminal-only; there is no per-dab constant | ≤ 2026-10 |
-| Who Would Win | no per-matchup popup; points (20 with the crowd, 5 against, 0 for Skip) show in the Score slot and the split bar | 6.1 | there is no right answer to flash; the crowd split is the feedback | 2026-10 |
+| Who Would Win | no per-matchup popup; points (10 with the crowd, 5 against, 0 for Skip) show in the Score slot and the split bar | 6.1 | there is no right answer to flash; the crowd split is the feedback | 2026-10 |
 | Who Would Win | fill game; `.www-arena` is the scroller; tightens under 700 px of viewport height; scrolls (with a bottom fade) only at 320×568 | 4.1, 1.1 | its stacked arena genuinely fills; converting it would be a redesign | 2026-10 |
 | Who Would Win | ends in place with the per-matchup list as the final board; `ScorePanel` has no label or count | 7.1 | the rows already carry the outcome | 2026-10 |
 | Career Path | no `loader` beat (`input → score`); result line in `Status`, career/answer toggle in `Prompt`, actions alone in `Action` | 7.3 | the reveal is player-driven, so nothing is calculated; the owner's bound is that no button waits more than 400 ms; every slot keeps its play-time height (Rule 6.2) | 2026-10 |

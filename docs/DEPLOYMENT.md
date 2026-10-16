@@ -112,6 +112,13 @@ vercel inspect backend-kappa-one-42.vercel.app   # prints the serving deployment
 and clear the pin with `vercel promote <deployment-url>`. On 2026-08-29 this silently held
 production on a two-hour-old build across several "successful" deploys.
 
+**After promoting the progression backend to prod, recount once.** Dev and prod share one database,
+so the old `main` backend keeps logging plays during the window after the dev backend migrates
+(`users` 0013), and those plays never count as active days. Once the new backend serves prod, run
+`python manage.py recount_progression` once (from `backend/`, against the production `DATABASE_URL`)
+so they count. It is safe to re-run: it recounts active days, rank and Founding Member from the
+`GameSession` history and never shortens a running streak (`users/progression_recount.py`).
+
 ## One-time accounts (create as you need each phase)
 
 1. **GitHub** — already done (repo pushed).

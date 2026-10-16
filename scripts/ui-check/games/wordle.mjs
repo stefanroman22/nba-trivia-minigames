@@ -1,5 +1,5 @@
 // Adapter: NBA Wordle (src/Game Renderers/Wordle.tsx). The daily player last name (5 letters), 5 attempts, a physical
-// keyboard and an on-screen one; 500 − 100 per attempt used. Any five letters are accepted (no dictionary). A solve
+// keyboard and an on-screen one; 500 − 100 per attempt used (online rounds: 200 − 40). Any five letters are accepted (no dictionary). A solve
 // pops "Correct! +N"; a miss shows NOTHING but the tile flip (no popup, Rule 6.3 for the last one too), so those turns
 // return `feedback: false`. Ends in place: the keyboard stays until the last row lands (1.75 s), then a 0.5 s loader and
 // the ScorePanel (Close game ONLY — accepted deviation: once per day, a replay would hit the 423 lock); the status
@@ -18,6 +18,8 @@ import { answerFrom, fiberRound, nextTurn, shellIsOver } from './helpers.mjs';
 
 const MAX_GUESSES = 5;
 const POINTS_PER_GUESS = 100;
+const ONLINE_POINTS_PER_GUESS = 40; // utils/gameScoring.ts wordlePoints: online rounds pay 200 − 40 per attempt
+const perGuess = (ctx) => (ctx && ctx.online ? ONLINE_POINTS_PER_GUESS : POINTS_PER_GUESS);
 /** Five-letter strings (the game has no dictionary); the first one that is not the solution is used. */
 const MISSES = ['ABOUT', 'HOUSE', 'MIGHT', 'PLANK', 'FJORD', 'QUIRK', 'ZZZZZ'];
 
@@ -59,16 +61,16 @@ export default {
   freshAccount: true, // every scenario is its own account + fresh device id (once-per-day gate)
   feedback: { selector: '.feedback-slot > *', copy: true },
   scenarios: {
-    perfect: true, // solved on the first attempt → 500
+    perfect: true, // solved on the first attempt → 500 (online 200)
     wrong: true, // five misses → the answer is revealed, 0 points
-    partial: true, // two misses, then the solve → 300
+    partial: true, // two misses, then the solve → 300 (online 120)
     timeout: 'no clock in Wordle',
     giveup: 'Wordle has no give-up control (only Close game, which abandons without an end state)',
     'daily-lock': true, // after a finished play: reload → countdown note, no Play, rail item disabled, no Play again
   },
 
-  expectedScore(turns) {
-    return turns.some((t) => t.correct) ? (MAX_GUESSES - (turns.length - 1)) * POINTS_PER_GUESS : 0;
+  expectedScore(turns, ctx) {
+    return turns.some((t) => t.correct) ? (MAX_GUESSES - (turns.length - 1)) * perGuess(ctx) : 0;
   },
 
   async answer(page, ctx, { correct }) {
@@ -90,7 +92,7 @@ export default {
       st.guesses = 0;
     }
     const word = correct ? st.solution : MISSES.find((w) => w !== st.solution);
-    const points = correct ? (MAX_GUESSES - st.guesses) * POINTS_PER_GUESS : null;
+    const points = correct ? (MAX_GUESSES - st.guesses) * perGuess(ctx) : null;
     await enter(page, word, st.guesses);
     st.guesses++;
     const next = await nextTurn(page, keyOf, st.key, shellIsOver, { timeout: 20_000 });

@@ -12,6 +12,7 @@ import { matchAnswer, normalizeAnswer } from "../utils/answerMatch";
 import { nbaTeams } from "../constants/nbaTeams";
 import { nbaCoaches } from "../constants/nbaCoaches";
 import { nbaSeasons } from "../utils/seasons";
+import { FAN_FAVORITES_MAX, fanFavoritesScore } from "../utils/gameScoring";
 import type { FanFavoritesQuestion, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
 import "../styles/FanFavorites.css";
@@ -22,8 +23,6 @@ interface FanFavoritesProps {
   onPlayAgain?: () => void;
   onClose?: () => void;
 }
-
-const MAX_SCORE = 300;
 
 interface GuessEntry {
   question_id: string;
@@ -172,13 +171,13 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
       if (Object.keys(nextRevealed).length === question.answers.length) {
         setFinished(true);
         sendGuessLog();
-        flashPopup("Board cleared! +300", "var(--good)");
+        flashPopup(`Board cleared! +${FAN_FAVORITES_MAX}`, "var(--good)");
         // Win → in-place: submission fades out, a loader shows, then the score
         // + Play again fade in (same sequence as the loss).
         setBottomPhase("loader");
         later(() => {
-          onGameEnd?.(MAX_SCORE, { inPlace: true, review: reviewOf(nextRevealed) });
-          setEndState({ score: MAX_SCORE, win: true });
+          onGameEnd?.(FAN_FAVORITES_MAX, { inPlace: true, review: reviewOf(nextRevealed) });
+          setEndState({ score: FAN_FAVORITES_MAX, win: true });
           setBottomPhase("score");
         }, 700);
       } else {
@@ -203,7 +202,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
       sendGuessLog();
       const found = Object.keys(revealed).length;
       const total = question.answers.length;
-      const finalScore = Math.round((MAX_SCORE * found) / total);
+      const finalScore = fanFavoritesScore(found, total);
       flashPopup("Not on the board", "var(--bad)");
 
       // Submission fades to a loader the moment the answers begin revealing…
@@ -318,7 +317,7 @@ function FanFavorites({ gameInfo, onGameEnd, onPlayAgain, onClose }: FanFavorite
         score={
           <ScorePanel
             score={endState?.score ?? 0}
-            outOf={MAX_SCORE}
+            outOf={FAN_FAVORITES_MAX}
             label={endState?.win ? "Board cleared!" : undefined}
             won={endState?.win}
             onPlayAgain={onPlayAgain}

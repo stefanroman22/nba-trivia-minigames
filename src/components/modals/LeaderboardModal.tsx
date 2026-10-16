@@ -1,10 +1,12 @@
 import "../../styles/Leaderboard.css";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../store";
 import { reducedFade, swap } from "../../motion/variants";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
 import { Avatar, CourtLoader } from "../ui";
 import SegmentedTabs from "../motion/SegmentedTabs";
-import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES } from "../../constants/leaderboard";
+import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from "../../constants/leaderboard";
 
 /** Full leaderboard list shown inside the leaderboard modal — Global top 100
  * or, once toggled, the signed-in player + their friends. The scope is
@@ -14,19 +16,21 @@ interface LeaderboardModalProps {
   onScopeChange: (scope: LeaderboardScope) => void;
 }
 
-export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardModalProps) {
+export default function LeaderboardModal({ scope: pickedScope, onScopeChange }: LeaderboardModalProps) {
+  const loggedIn = useSelector((s: RootState) => s.user.user) !== null;
+  // A player who logs out on Friends lands on Global (guests have no Friends tab).
+  const scope: LeaderboardScope = !loggedIn && pickedScope === "friends" ? "global" : pickedScope;
   const { loading, leaders, self } = useLeaderboard(scope);
   const swapVariants = useReducedMotion() ? reducedFade : swap;
-  const loggedIn = self !== null;
+  // Nothing played this week: no weekly position (rank 0 = the API's null user_rank).
+  const noWeeklyPosition = scope === "weekly" && self?.rank === 0;
   const selfInList = self ? leaders.some((u) => (self.id ? u.id === self.id : u.rank === self.rank && u.name === self.name)) : true;
 
   return (
     <div>
-      {loggedIn && (
-        <div className="lb-scope-row" style={{ padding: "0 0 14px" }}>
-          <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={LEADERBOARD_SCOPES} value={scope} onChange={onScopeChange} />
-        </div>
-      )}
+      <div className="lb-scope-row" style={{ padding: "0 0 14px" }}>
+        <SegmentedTabs className="lb-scope" itemClassName="lb-scope-btn" options={loggedIn ? LEADERBOARD_SCOPES : GUEST_LEADERBOARD_SCOPES} value={scope} onChange={onScopeChange} />
+      </div>
 
       {/* Loader <-> list (and Global <-> Friends) cross-fade; opacity/transform only, the
           modal panel's height is never animated (Modal.tsx height+layout jitter rule). */}
@@ -38,17 +42,17 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
       ) : (
         <motion.div key={scope} variants={swapVariants} initial="hidden" animate="visible" exit="exit">
           <div className="lbf-head">
-            <span style={{ color: "var(--muted)" }}>{scope === "friends" ? "You and your friends" : "Top players worldwide"}</span>
+            <span style={{ color: "var(--muted)" }}>{scope === "friends" ? "You and your friends" : scope === "weekly" ? "Points since Monday" : "Top players worldwide"}</span>
             {self && (
               <span style={{ color: "var(--brand)", fontWeight: 700 }}>
-                You: #{self.rank.toLocaleString()} / {self.total.toLocaleString()}
+                You: {noWeeklyPosition ? "—" : `#${self.rank.toLocaleString()}`} / {self.total.toLocaleString()}
               </span>
             )}
           </div>
 
           {leaders.length === 0 && (
             <div style={{ textAlign: "center", padding: "2rem 0", color: "var(--muted)", fontSize: 13.5 }}>
-              No players yet.
+              {scope === "weekly" ? "No games this week yet." : "No players yet."}
             </div>
           )}
 
@@ -61,7 +65,7 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
                   <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} />
                   <span className="lbf-name" style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
-                    {u.id && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{u.id}</span>}
+                    {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
                   </span>
                   <span className="tnum lbf-pts">{u.points.toLocaleString()}</span>
                 </div>
@@ -69,7 +73,7 @@ export default function LeaderboardModal({ scope, onScopeChange }: LeaderboardMo
             })}
           </div>
 
-          {self && !selfInList && (
+          {self && !selfInList && !noWeeklyPosition && (
             <div className="lbf-selfbar">
               <div className="lbf-selfbar-inner">
                 <span className="tnum lbf-rank" style={{ width: "auto", minWidth: 34, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>

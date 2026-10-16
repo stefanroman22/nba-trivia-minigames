@@ -24,7 +24,7 @@ import { usePathname } from "next/navigation";
 import { useNavigate } from "../hooks/useNavigate";
 import socket, { socketConfigured } from "../socket";
 import type { AppDispatch, RootState } from "../store";
-import { updatePoints } from "../store/userSlice";
+import { applyAward, type AwardReceipt } from "../store/userSlice";
 import { getAccessToken, refreshSession } from "../utils/Api";
 import { BAN_CODE, reportBan } from "../utils/ban";
 import { isAccessTokenExpired } from "../utils/session";
@@ -596,10 +596,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         snapshot: { ...snapshot, game: localGame(snapshot.game) as Game, lobby: snapshot.lobby ? withLocalGame(snapshot.lobby) : snapshot.lobby },
       }),
       matchError: (d: { message: string }) => dispatch({ t: "MATCH_ERROR", message: d?.message || "Couldn't start online play. Please try again." }),
-      // The relay credited this match to the account (Django already saved it); updatePoints is a delta.
-      pointsAwarded: (d: { awarded?: number } = {}) => {
-        if (!d?.awarded || d.awarded <= 0) return;
-        reduxDispatch(updatePoints(d.awarded));
+      // The relay credited this match to the account (Django already saved it); the receipt carries the totals.
+      pointsAwarded: (d: AwardReceipt) => {
+        if (!d || typeof d.awarded !== "number" || d.awarded <= 0) return;
+        reduxDispatch(applyAward(d));
         dispatch({ t: "NOTICE", notice: { kind: "points", text: `+${d.awarded} pts added to your profile` } });
       },
       // The relay refused our token. A ban ends the session app-wide (BanNotice); the relay

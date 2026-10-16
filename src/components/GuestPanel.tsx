@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useModal } from "../context/ModalContext";
 import { readGuestPoints } from "../utils/guestPoints";
 
-const PERKS = ["Lock in your global rank", "1v1 online multiplayer", "Cross-device streak sync"];
+const PERKS = ["Keep the points you score", "Daily streaks & rank progress", "1v1 online multiplayer"];
 
 /** Logged-out teaser shown beside the leaderboard, prompting sign-in. */
 export default function GuestPanel() {
@@ -21,11 +21,11 @@ export default function GuestPanel() {
         <p style={{ fontSize: 13.5, color: "var(--muted)", lineHeight: 1.5 }}>
           {guestPoints > 0 ? (
             <>
-              You've scored <strong style={{ color: "var(--text)" }} className="tnum">{guestPoints} pts</strong> as a guest,
-              which aren't saved. Log in so your next games count, claim a rank, and play head-to-head online.
+              You've scored <strong style={{ color: "var(--text)" }} className="tnum">{guestPoints} pts</strong> as a guest.
+              Sign up now to keep them, claim a rank, and play head-to-head online.
             </>
           ) : (
-            "Log in to save the points you score, claim a rank, and play head-to-head online."
+            "Sign up to keep the points you score, build a streak, and play head-to-head online."
           )}
         </p>
       </div>
