@@ -1,0 +1,254 @@
+name: Factory review
+# The question factory's fortnightly self-review (docs/superpowers/specs/2026-10-12-question-factory-design.md
+# §4.8, improvement loop):
+#   gate   (no secrets)          every other Sunday: runs on even ISO weeks only (a manual run with
+#                                force, the default, runs whatever the week)
+#   digest (has the DB secret)   manage.py factory_digest --days 14 -> build/digest.md + digest.json
+#                                (KPIs, runway, band solve rates and calibration proposals, ...)
+#   review (NO DB secret)        Claude (Max-plan OAuth token) reads the digest and writes
+#                                docs/factory/reviews/<date>.md and review/cards.json (at most 3 cards),
+#                                and copies a calibration proposal printed in the digest into the
+#                                spec file's difficulty.bands
+#   apply  (no DB secret)        code checks the agent's output (validate_review_cards: the cards, and
+#                                that a spec edit changed only difficulty.bands), creates the Notion
+#                                cards (NOTION_TOKEN; skipped when unset) and opens a PR to dev with the
+#                                review file and any spec change (auto-merge). Production promotion
+#                                stays the owner's call.
+# Instructions for the agent: .claude/skills/nba-question-writer/references/reviewer.md.
+on:
+  schedule:
+    - cron: "0 6 * * 0"   # Sunday 06:00 UTC; the gate keeps the even ISO weeks
+  workflow_dispatch:
+    inputs:
+      model:
+        description: "Reviewer model"
+        required: false
+        default: opus
+        type: choice
+        options:
+          - opus
+          - sonnet
+          - fable
+      force:
+        description: "Run whatever the ISO week (skip the every-other-week gate)"
+        required: false
+        default: true
+        type: boolean
+concurrency:
+  group: factory-review
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      date: ${{ steps.gate.outputs.date }}
+    steps:
+      - name: Every other week
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          week=$(date -u +%V)
+          echo "date=$(date -u +%Y-%m-%d)" >> "$GITHUB_OUTPUT"
+          if [ $((10#$week % 2)) -eq 0 ] || { [ "$EVENT" = "workflow_dispatch" ] && [ "$FORCE" = "true" ]; }; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "ISO week $week is odd: no review this week."
+          fi
+
+  digest:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Build the digest
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        run: python manage.py factory_digest --days 14 --out "$GITHUB_WORKSPACE/build"
+      - name: Keep the digest for the reviewer
+        uses: actions/upload-artifact@v6
+        with:
+          name: factory-digest
+          path: build/
+
+  review:
+    needs: [gate, digest]
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # No database secret anywhere in this job (spec §3 principle 7).
+    permissions:
+      contents: read
+    steps:
+      # The review and any spec change land on dev, so the agent reads dev's spec files.
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+      - uses: actions/download-artifact@v6
+        with:
+          name: factory-digest
+          path: build
+      - name: Reviewer agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The job's own read-only token. Without it the action exchanges an OIDC token with
+          # Anthropic's GitHub App, and that exchange refuses scheduled runs ("User does not have
+          # write access": a cron has no triggering user). This step needs no GitHub write at all;
+          # it only writes local files.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            You are the reviewer. Read .claude/skills/nba-question-writer/references/reviewer.md and follow it exactly.
+            DATE: ${{ needs.gate.outputs.date }}
+            Input digest: build/digest.md (the same numbers are in build/digest.json)
+            Write docs/factory/reviews/${{ needs.gate.outputs.date }}.md and review/cards.json. Change a file under backend/trivia/questions/specs/ only to copy a calibration proposal printed in the digest into its difficulty.bands. Write no other file.
+          claude_args: >-
+            --model ${{ inputs.model || 'opus' }}
+            --max-turns 250
+            --allowedTools "Read,Write,WebFetch(domain:www.basketball-reference.com),WebFetch(domain:www.nba.com),WebFetch(domain:en.wikipedia.org),WebFetch(domain:www.espn.com)"
+            --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Agent,Task,NotebookEdit"
+      # Only the three outputs travel on, whatever else the agent wrote.
+      - name: Collect the outputs
+        if: always()
+        env:
+          DATE: ${{ needs.gate.outputs.date }}
+        run: |
+          mkdir -p out
+          if [ -f "docs/factory/reviews/$DATE.md" ]; then install -D "docs/factory/reviews/$DATE.md" "out/docs/factory/reviews/$DATE.md"; fi
+          if [ -f review/cards.json ]; then install -D review/cards.json out/review/cards.json; fi
+          for f in $(git diff --name-only -- backend/trivia/questions/specs/); do install -D "$f" "out/$f"; done
+          find out -type f
+      - name: Keep the review
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: factory-review
+          path: out/
+          if-no-files-found: warn
+
+  apply:
+    needs: [gate, review]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      DATE: ${{ needs.gate.outputs.date }}
+      GH_TOKEN: ${{ github.token }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements.txt
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Collect the review
+        continue-on-error: true
+        uses: actions/download-artifact@v6
+        with:
+          name: factory-review
+          path: incoming
+      - uses: actions/download-artifact@v6
+        with:
+          name: factory-digest
+          path: build
+      - name: Take the review's files
+        run: |
+          mkdir -p review
+          if [ -f "incoming/docs/factory/reviews/$DATE.md" ]; then
+            install -D "incoming/docs/factory/reviews/$DATE.md" "docs/factory/reviews/$DATE.md"
+          fi
+          if [ -f incoming/review/cards.json ]; then cp incoming/review/cards.json review/cards.json; fi
+          # Only spec files that already exist; a new file is ignored.
+          for f in incoming/backend/trivia/questions/specs/*.json; do
+            [ -e "$f" ] || continue
+            name=$(basename "$f")
+            if [ -f "backend/trivia/questions/specs/$name" ]; then cp "$f" "backend/trivia/questions/specs/$name"; fi
+          done
+      # An edit beyond difficulty.bands, or one that is not a valid spec, is refused and restored.
+      - name: Check the spec edits
+        run: |
+          for f in $(git diff --name-only -- backend/trivia/questions/specs/); do
+            slug=$(basename "$f" .json)
+            git show "HEAD:$f" > "$RUNNER_TEMP/before.json"
+            if (cd backend && python manage.py validate_review_cards --spec-edit "$slug" "$RUNNER_TEMP/before.json"); then
+              echo "Calibration accepted: $slug"
+            else
+              echo "::warning::Refused the spec edit of $slug; the file is restored."
+              git checkout -- "$f"
+            fi
+          done
+      # A refused cards file gives no cards; the review still lands.
+      - name: Check the cards
+        working-directory: backend
+        run: python manage.py validate_review_cards "$GITHUB_WORKSPACE/review/cards.json" --out "$GITHUB_WORKSPACE/review/cards.valid.json"
+      # Never fails the run: no token, or a Notion error, is logged and skipped.
+      - name: Create the Notion cards
+        run: |
+          n=$(jq length review/cards.valid.json 2>/dev/null || echo 0)
+          if [ "$n" = "0" ]; then echo "No cards."; exit 0; fi
+          if [ -z "$NOTION_TOKEN" ]; then echo "NOTION_TOKEN is not set: skipped $n card(s)."; exit 0; fi
+          for i in $(seq 0 $((n - 1))); do
+            jq -r ".[$i].body" review/cards.valid.json > "$RUNNER_TEMP/card-$i.md"
+            title=$(jq -r ".[$i].title" review/cards.valid.json)
+            category=$(jq -r ".[$i].category" review/cards.valid.json)
+            priority=$(jq -r ".[$i].priority" review/cards.valid.json)
+            if node scripts/notion.mjs create-card "$title" --category "$category" --priority "$priority" \
+                --body-file "$RUNNER_TEMP/card-$i.md"; then
+              echo "Card $((i + 1)) created."
+            else
+              echo "::warning::Card $((i + 1)) could not be created."
+            fi
+          done
+          exit 0
+      - name: Open the pull request
+        run: |
+          set -euo pipefail
+          if [ -f "docs/factory/reviews/$DATE.md" ]; then git add -- "docs/factory/reviews/$DATE.md"; fi
+          git add -- backend/trivia/questions/specs/
+          if git diff --cached --quiet; then echo "The reviewer wrote nothing to propose."; exit 0; fi
+          specs_changed=$(git diff --cached --name-only -- backend/trivia/questions/specs/ | xargs -r -n1 basename | tr '\n' ' ')
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="factory/review-$DATE"
+          git switch -c "$branch"
+          git commit -m "docs(factory): review $DATE"
+          git push --force origin "$branch"
+          {
+            echo "Fortnightly factory review ($DATE, factory-review.yml)."
+            echo
+            echo "- Review: \`docs/factory/reviews/$DATE.md\`"
+            echo "- Calibration applied: ${specs_changed:-none}"
+            echo
+            awk '/^## /{p = ($0 == "## KPIs")} p' build/digest.md
+          } > "$RUNNER_TEMP/pr-body.md"
+          gh pr create --base dev --head "$branch" --title "Factory review $DATE" --body-file "$RUNNER_TEMP/pr-body.md" \
+            || gh pr edit "$branch" --body-file "$RUNNER_TEMP/pr-body.md"
+          gh pr merge "$branch" --auto --merge \
+            || echo "::warning::Auto-merge is not available; the PR waits for a manual merge."
