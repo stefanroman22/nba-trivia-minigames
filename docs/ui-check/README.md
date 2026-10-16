@@ -7,7 +7,8 @@ acceptance criteria, and the frontend / backend engines can take a finding, fix 
 loop until it passes.
 
 Design: `docs/superpowers/specs/2026-10-11-ui-check-design.md`. Check catalogue and ownership:
-`scripts/ui-check/CHECKS.md`. Everything runs locally except the read-only `--live` subset (GET/HEAD
+`scripts/ui-check/CHECKS.md`. Its sibling, Logic Check (API, socket protocol, page status; it runs first every night
+and blocks the services it finds broken, so UI check defers their checks): `docs/logic-check/README.md`. Everything runs locally except the read-only `--live` subset (GET/HEAD
 against the live site); nothing here is paid.
 
 ## How it fits together
@@ -256,8 +257,9 @@ with `validatedAt` are pushed; `--dry-run` reads Notion and prints the cards but
   Done and shipped → one `[ui-check] Regression: …` card linking the old ones.
   `<uicHome>/notion-cards.json` mirrors fingerprint → card; Notion is the truth.
 
-The `ui-check` skill pushes after validation (step 3b). A nightly scheduler that runs the audit,
-judges and push on its own is Phase B.
+The `ui-check` skill pushes after validation (step 3b). The nightly run (`scripts/check-run.ps1`, Task Scheduler
+`nba-checks`, 02:00) runs Logic Check first, then the audit, the judges and the push on its own, and skips the checks
+whose services Logic Check blocked (`docs/logic-check/README.md`, "The channel and the catch-up loop").
 
 ## Shipping fixes to production
 
