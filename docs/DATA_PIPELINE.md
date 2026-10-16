@@ -90,16 +90,24 @@ nightly `factory_health` reports `refresh_failed`) → **curated** (`generate_pl
 --rewrite-all-players` on dev's files, raw cache restored from this month's workflow cache and
 also kept 7 days as the `nba-raw-cache` artifact) → **validate** (`curated_validate.py`, parity
 included) → **land** (PR `Data refresh <date>` from `refresh-pr/<date>` to `dev` with
-`players_curated.json` + `all-players.json`, merged at once; then `upload_dataset`) → **supply**
+`players_curated.json` + `all-players.json`, merged at once; then `upload_dataset`, only once the
+PR is merged — an unmerged PR skips the upload and posts to Slack) → **supply**
 (`publish-game-data.yml` with `trigger=data-refresh`, from `main` only). A failure in curated or
 validate posts one line to Slack `#agent-backend`; nothing is committed or uploaded before
 validation passes, so the previous dataset stays.
 
+- **Supply publishes every game** (no `games=`, the same as the PC task did): the sync refreshed the
+  DB tables behind the pool games (playoff series, MVPs, starting five, teams, players) as well as
+  the data the question games are built from, so all of them are rebuilt. Publishing uploads only
+  what changed, and question games still go through maintenance and the Checker.
 - **Triggers:** the 1st of each month 01:00 UTC; Run workflow (inputs `limit`, `full` for a
   `--full` backfill); a push to any `refresh/**` branch, so a change can be tried before promotion.
+  **Warning:** a push to a `refresh/**` branch that is not `refresh/test-*` is a **FULL** run: it
+  syncs the DB, merges the dataset PR into `dev` and uploads to Storage (only supply is skipped off
+  `main`). Use `refresh/test-<something>` for a trial.
 - **Smoke mode:** a push to `refresh/test-*` (25 players) or a dispatch with `limit` > 0. Sync takes
   one season and 5 games per season, curated writes the first N players to `build/` (artifact
-  `refresh-dataset`), validation is reported but not enforced, and a **draft** PR
+  `refresh-dataset`), validation is reported only (not enforced), and a **draft** PR
   `[test] data refresh <date>` from `refresh-pr/<date>-test` is opened and never merged (close it).
   No `upload_dataset`, no supply.
 - **Re-run:** "Re-run failed jobs" (or a new dispatch the same month) resumes the curated step from
