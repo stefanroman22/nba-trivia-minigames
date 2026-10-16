@@ -292,6 +292,9 @@ def signup_view(request):
         if not username or not email or not password:
             return Response({"error": "All fields are required."}, status=status.HTTP_400_BAD_REQUEST)
 
+        if not isinstance(password, str):
+            return Response({"error": "Password must be text."}, status=status.HTTP_400_BAD_REQUEST)
+
         consented, consent_code, consent_message = check_consent(request.data)
         if not consented:
             return Response({"code": consent_code, "error": consent_message}, status=status.HTTP_400_BAD_REQUEST)
@@ -322,7 +325,8 @@ def signup_view(request):
             return Response({"error": EMAIL_IN_USE}, status=status.HTTP_409_CONFLICT)
 
         try:
-            validate_password(password)
+            # An unsaved User gives UserAttributeSimilarityValidator the candidate username/email.
+            validate_password(password, user=User(username=username, email=email))
         except ValidationError as e:
             return Response({"error": " ".join(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
 
