@@ -5,7 +5,7 @@ import datetime
 from trivia.questions import checker, fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
-from trivia.questions.similarity import _franchise_seasons, load_v2_spec, rank_pool
+from trivia.questions.similarity import franchise_seasons, load_v2_spec, rank_pool
 
 SLUG = "contexto"
 _SPEC = specs.load(SLUG)  # specs/contexto.json
@@ -70,7 +70,7 @@ def _gate_facts(ranking, dataset, year):
     """What validate() needs about the top of the ranking, the secret (rank 1) left out: does
     the top team_season_top share one team-season, how many of the top famous_top are famous."""
     top = [dataset.by_id[pid] for pid, _ in ranking[1:_GATE["team_season_top"] + 1]]
-    shared = set.intersection(*(_franchise_seasons(r, year) for r in top)) if top else set()
+    shared = set.intersection(*(franchise_seasons(r, year) for r in top)) if top else set()
     famous = [dataset.by_id[pid] for pid, _ in ranking[1:_GATE["famous_top"] + 1]]
     return {"team_season_top": len(top), "shared_team_season": min(shared) if shared else None,
             "famous_top": len(famous),
@@ -132,14 +132,20 @@ def dup_key(definition, materialized):
 
 def place(definitions, dataset, today=None):
     """Selection keeps only some candidates, so their days have holes: put the kept
-    secrets, in order, on the first free days from `today` (as generate does)."""
+    secrets, in order, on the first free days from `today` (as generate does). The ranking
+    year is the day's year, so a gated (v2) secret moved into another year is checked
+    again, and dropped (its day left free) if it no longer passes."""
     today = today or datetime.datetime.now(datetime.timezone.utc).date()
     taken = {e["day"] for e in getattr(dataset, "extra", {}).get("contexto_taken", _existing(dataset))}
     out, day = [], today
     for d in definitions:
         while day.isoformat() in taken:
             day += datetime.timedelta(days=1)
-        out.append({**d, "day": day.isoformat()})
+        moved = {**d, "day": day.isoformat()}
+        if (d.get("sim_version", 1) != 1 and str(d.get("day", ""))[:4] != moved["day"][:4]
+                and validate(materialize(moved, dataset))):
+            continue
+        out.append(moved)
         day += datetime.timedelta(days=1)
     return out
 

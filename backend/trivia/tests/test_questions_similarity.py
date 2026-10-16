@@ -13,7 +13,7 @@ from trivia.questions import fame
 from trivia.questions.base import load_dataset_from_rows
 from trivia.questions.games import contexto as ctx
 from trivia.questions.similarity import (
-    ANCHORS_PATH, load_v2_spec, rank_pool, similarity, similarity_v2,
+    ANCHORS_PATH, check_v2_spec, load_v2_spec, rank_pool, similarity, similarity_v2,
 )
 from trivia.tests.questions_fixture import fixture_dataset, fixture_rows
 
@@ -57,6 +57,20 @@ class SimilarityV2Tests(SimpleTestCase):
         self.assertAlmostEqual(sum(self.spec["weights"].values()), 100.0, places=6)
         self.assertEqual(set(self.spec["weights"]),
                          {"franchise_seasons", "era", "position", "draft_class", "style", "fame", "country"})
+
+    def test_spec_check_names_a_missing_key(self):
+        check_v2_spec(self.spec)  # the shipped spec is valid
+        for key in ("gate", "regions", "style", "draft_class", "fame"):
+            bad = {k: v for k, v in self.spec.items() if k != key}
+            with self.assertRaisesRegex(ValueError, f"^contexto-similarity: {key}"):
+                check_v2_spec(bad)
+
+    def test_spec_check_refuses_a_zero_max_or_span(self):
+        bad = {**self.spec, "style": {"max": {**self.spec["style"]["max"], "rpg": 0}}}
+        with self.assertRaisesRegex(ValueError, r"^contexto-similarity: style\.max\.rpg must be a positive number"):
+            check_v2_spec(bad)
+        with self.assertRaisesRegex(ValueError, r"^contexto-similarity: fame\.span"):
+            check_v2_spec({**self.spec, "fame": {"span": 0}})
 
     def test_self_similarity_is_100(self):
         for p in fixture_dataset().playable[:25]:
@@ -235,6 +249,36 @@ class ContextoVersionTests(SimpleTestCase):
         gate, problems = self._gate(self._famous_dataset(5))
         self.assertEqual(gate["famous"], 5)
         self.assertEqual(problems, ["the top 20 has 5 KNOWN-or-better players; need 6"])
+
+    def _year_turn_dataset(self):
+        """A secret (still active at BBB since 2026) whose gate passes in 2026 and fails in 2027.
+        In 2026 everyone's career is the 2026 season, so the look-alikes tie and person_id orders
+        them: six KNOWN ones (ranks 2-7, no shared team-season) lead. In 2027 the 25 unknowns who
+        are still at BBB with him overtake the KNOWN ones, who stopped in 2026."""
+        def stint(abbr, end=2026):
+            return {"abbr": abbr, "name": abbr, "start_year": 2026, "end_year": end, "gp": 82, "ppg": 10}
+
+        def row(pid, tier, teams):
+            return {"person_id": pid, "full_name": f"P{pid}", "fame_tier": tier, "position": "G", "country": "USA",
+                    "height_in": 75, "draft": {"year": 2026, "round": 1, "pick": 5}, "teams": teams, "awards": {},
+                    "career": {"pts": 0, "seasons": 1, "ppg": 10.0, "rpg": 3.0, "apg": 4.0}}
+        known = [row(990001 + i, 2, [stint("AAA" if i % 2 else "BBB"), stint(f"K{i:02d}")]) for i in range(6)]
+        unknown = [row(990010 + i, None, [stint(f"U{i:02d}"), stint("BBB", None)]) for i in range(25)]
+        secret = row(990000, 2, [stint("AAA"), stint("BBB", None)])
+        return load_dataset_from_rows(fixture_rows() + [secret] + known + unknown, "year-turn")
+
+    def test_place_drops_a_gated_secret_that_a_new_year_breaks(self):
+        ds = self._year_turn_dataset()
+        d = {"secret_person_id": 990000, "day": "2026-12-31", "sim_version": 2}
+        self.assertEqual(ctx.validate(ctx.materialize(d, ds)), [])  # holds where generate checked it
+        moved = ctx.materialize({**d, "day": "2027-01-01"}, ds)
+        self.assertTrue(ctx.validate(moved))  # ...and not one day later
+        ds.extra = {"contexto_existing": [], "contexto_taken": [{"secret_person_id": 1, "day": "2026-12-31"}]}
+        legacy = {"secret_person_id": 990000, "day": "2026-12-30"}  # v1: no gate, kept
+        placed = ctx.place([d, legacy], ds, today=datetime.date(2026, 12, 31))
+        self.assertEqual(placed, [{**legacy, "day": "2027-01-01"}])  # the dropped secret leaves its day free
+        same_year = ctx.place([d], ds, today=datetime.date(2026, 12, 30))
+        self.assertEqual(same_year, [{**d, "day": "2026-12-30"}])  # same year: the gate result still holds
 
     def test_generate_skips_a_secret_that_fails_the_gate(self):
         ds = self._one_team_dataset()

@@ -119,16 +119,62 @@ STYLE_KEYS = ("ppg", "rpg", "apg", "height_in")
 _v2_cache = {}
 
 
+franchise_seasons = _franchise_seasons  # public: the Contexto gate reads team-seasons too
+
+
+def _fail(field, msg):
+    raise ValueError(f"contexto-similarity: {field} {msg}")
+
+
+def _positive(v):
+    return type(v) in (int, float) and v > 0
+
+
+def check_v2_spec(data):
+    """Raise ValueError naming the first missing or bad field of a v2 similarity spec."""
+    if not isinstance(data, dict):
+        _fail("spec", "must be a JSON object")
+    w = data.get("weights")
+    if not isinstance(w, dict) or set(w) != set(V2_FEATURES) or any(
+            type(v) not in (int, float) or v < 0 for v in w.values()):
+        _fail("weights", f"must be non-negative numbers for {', '.join(V2_FEATURES)}")
+    if abs(sum(w.values()) - 100) > 1e-6:
+        _fail("weights", f"must sum to 100 (got {sum(w.values())})")
+    for section, field in (("draft_class", "span_years"), ("fame", "span")):
+        sec = data.get(section)
+        if not _positive(sec.get(field) if isinstance(sec, dict) else None):
+            _fail(f"{section}.{field}", "must be a positive number")
+    style = data.get("style")
+    hi = style.get("max") if isinstance(style, dict) else None
+    if not isinstance(hi, dict):
+        _fail("style.max", "must be an object")
+    for k in STYLE_KEYS:
+        if not _positive(hi.get(k)):
+            _fail(f"style.max.{k}", "must be a positive number")
+    regions = data.get("regions")
+    if not isinstance(regions, dict) or not regions or any(
+            not isinstance(c, list) or not all(isinstance(x, str) for x in c) for c in regions.values()):
+        _fail("regions", "must be a non-empty object of country lists")
+    if not isinstance(data.get("country_aliases", {}), dict):
+        _fail("country_aliases", "must be an object")
+    gate = data.get("gate")
+    if not isinstance(gate, dict):
+        _fail("gate", "must be an object")
+    for k in ("team_season_top", "famous_top"):
+        if type(gate.get(k)) is not int or gate[k] < 1:
+            _fail(f"gate.{k}", "must be a positive integer")
+    if type(gate.get("min_count")) is not int or gate["min_count"] < 0:
+        _fail("gate.min_count", "must be a non-negative integer")
+    if gate.get("min_band") not in ("STAR", "KNOWN", "DEEP", "OBSCURE"):
+        _fail("gate.min_band", "must be one of STAR|KNOWN|DEEP|OBSCURE")
+
+
 def load_v2_spec():
     """specs/contexto-similarity.json, read and checked once (a deep copy, like specs.load)."""
     if "spec" not in _v2_cache:
         with open(V2_SPEC_PATH, encoding="utf-8") as f:
             data = json.load(f)
-        w = data.get("weights") or {}
-        if set(w) != set(V2_FEATURES) or any(type(v) not in (int, float) or v < 0 for v in w.values()):
-            raise ValueError(f"contexto-similarity: weights must be non-negative numbers for {', '.join(V2_FEATURES)}")
-        if abs(sum(w.values()) - 100) > 1e-6:
-            raise ValueError(f"contexto-similarity: weights must sum to 100 (got {sum(w.values())})")
+        check_v2_spec(data)
         _v2_cache["spec"] = data
     return copy.deepcopy(_v2_cache["spec"])
 
