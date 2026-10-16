@@ -228,7 +228,12 @@ everything that runs on it, Logic's teardown sweep deletes every `lgc<digits>` a
 the same slot in one sqlite are the same account. Logic runs share `logic.actor` / `logic.peer`, so two Logic runs never
 share a stack. Port sets in use here: prod 8200/4200/5374 (the nightly), 8300/4300/5474 and 8400/4400/5574 for agent
 work, the pipeline's QA lanes 8100/4100/5273 and 8101/4101/5274. A run that finds another checkout's Django on its
-ports stops at `stack-setup` ("serves a different sqlite") instead of testing the wrong code.
+ports stops at `stack-setup` ("serves a different sqlite") instead of testing the wrong code. Two **prod** stacks also
+need **their own checkout**: `next build` writes one `.next` per checkout with the API base baked in, so a second port
+set from the same checkout (e.g. two `--ref main` runs, both in `check-main`) would rebuild `.next` under the first
+stack's running `next start` — which then serves a build pointing at the other Django and every signed-in and game
+test fails. `ensureStack` refuses that ("already serves the … stack from its .next"); run the second checker from a
+worktree of its own (`--repo`) or after the first stack is stopped.
 
 ## Adding a check
 

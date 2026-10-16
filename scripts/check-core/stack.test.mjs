@@ -2,7 +2,7 @@
 // sameMeta): a reused Django that the helper did not start never gets the requested repo or relay key stamped on it.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sameMeta, stackMeta } from './lib/stack.mjs';
+import { busyBuildOwner, sameMeta, stackMeta } from './lib/stack.mjs';
 
 const ports = { django: 8400, socket: 4400, web: 5574 };
 const base = { mode: 'prod', repo: 'C:\\w\\check-main', ports, base: 'http://localhost:5574', api: 'http://localhost:8400/api', socket: 'http://localhost:4400', relayKey: 'k1', keepStack: false };
@@ -29,4 +29,20 @@ test('sameMeta: unchanged meta is not rewritten; a repo / key / null change is',
   assert.equal(sameMeta({ ...ours, relayKey: undefined }, reused), false); // an old entry without the key fields: rewrite once
   assert.equal(sameMeta(null, ours), false);
   assert.equal(sameMeta(ours, { ...ours, api: 'http://localhost:8401/api' }), false);
+});
+
+test('busyBuildOwner: a live prod web server of ours on another port set from the same checkout blocks a second stack there', () => {
+  const other = { django: 8300, socket: 4300, web: 5474 };
+  const web = { name: 'web-5474', pid: 11, port: 5474, image: 'node.exe', repo: 'c:/w/check-main', ports: other };
+  const raw = { stacks: {}, started: [
+    { name: 'django-8300', pid: 10, port: 8300, image: 'python.exe', repo: 'c:/w/check-main', ports: other },
+    web,
+    { name: 'web-5674', pid: 12, port: 5674, image: 'node.exe', repo: 'C:/w/elsewhere', ports: { django: 8500, socket: 4500, web: 5674 } },
+  ] };
+  const alive = () => true;
+  assert.equal(busyBuildOwner(raw, base.repo, ports, alive), web); // same dir, other spelling; only the web server counts
+  assert.equal(busyBuildOwner(raw, base.repo, other, alive), null); // the same port set is a reuse, not a second stack
+  assert.equal(busyBuildOwner(raw, 'C:/w/checks-phase-b', ports, alive), null); // another checkout has its own .next
+  assert.equal(busyBuildOwner(raw, base.repo, ports, () => false), null); // a dead entry owns nothing
+  assert.equal(busyBuildOwner(null, base.repo, ports, alive), null);
 });
