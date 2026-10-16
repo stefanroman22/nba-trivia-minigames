@@ -16,6 +16,7 @@ from rest_framework import status
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
+from trivia import awarding
 from users import leaderboard, photo_moderation, ranks, strikes
 from users.account_data import delete_account, export_account, remove_photo
 from users.consent import (
@@ -85,7 +86,8 @@ def user_payload(request, user):
         # Progression (users.ranks / trivia.awarding). The frontend displays these; it never computes them.
         "founding_member": user.founding_member,
         "active_days": user.active_days,
-        "streak_days": user.streak_days,
+        # A streak nobody can extend any more reads 0; the stored number waits for the next scoring game.
+        "streak_days": user.streak_days if awarding.streak_alive(user, awarding.cet_today()) else 0,
         "streak_best": user.streak_best,
         "streak_freezes": user.streak_freezes,
         "rank_progress": ranks.progress(user.points, user.active_days),

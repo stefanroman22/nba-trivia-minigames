@@ -350,7 +350,7 @@ _MAX_MATCH_PLAYERS = 8
 @authentication_classes([])  # server to server: the shared secret is the only credential
 @permission_classes([AllowAny])
 def multiplayer_result(request):
-    """Record a finished online match (random 1v1 or friend room) and credit each player's score.
+    """Record a finished online match (random 1v1 or friend room) and credit each 1v1 player's score.
 
     Called ONLY by the multiplayer relay (multiplayer_server/src/index.js creditRoom), authenticated
     by MULTIPLAYER_SHARED_SECRET in X-Relay-Key. Browsers can't reach it: they never have the key,
@@ -379,6 +379,11 @@ def multiplayer_result(request):
             duration = max(0, min(int(r.get('duration_ms') or 0), _MAX_DURATION_MS))
         except (TypeError, ValueError):
             duration = 0
+        if mode == 'friend':
+            # Friend rooms are logged, never credited (AUTH-7): no points, no active day, no streak.
+            GameSession.objects.create(user=user, game=game, mode=mode, score=score, duration_ms=duration, awarded=0)
+            out.append({'public_id': user.public_id, 'awarded': 0, 'points': user.points, 'rank': user.rank, 'rank_up': None})
+            continue
         out.append({'public_id': user.public_id, **awarding.award(user, game, mode, score, duration)})
     return JsonResponse({'ok': True, 'results': out})
 

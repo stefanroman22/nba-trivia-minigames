@@ -32,6 +32,28 @@ class PayloadTests(TestCase):
         self.assertEqual(me["rank_progress"]["points_to_next"], 200)
 
 
+    def test_a_broken_streak_reads_as_zero(self):
+        day = datetime.date(2026, 10, 16)
+        User.objects.create_user(username="Baller", email="b@example.com", password="Str0ng!Passw0rd",
+                                 streak_days=12, streak_best=12, last_active_day=day - datetime.timedelta(days=10))
+        c = Client()
+        tokens = c.post("/api/login/", {"id": "b@example.com", "password": "Str0ng!Passw0rd"}, content_type="application/json").json()
+        with patch("trivia.awarding.cet_today", return_value=day), patch("trivia.wordle_daily.cet_today", return_value=day):
+            me = c.get("/api/me/", HTTP_AUTHORIZATION=f"Bearer {tokens['access']}").json()["user"]
+        self.assertEqual(me["streak_days"], 0)
+        self.assertEqual(me["streak_best"], 12)
+
+    def test_a_streak_held_by_its_freeze_still_shows(self):
+        day = datetime.date(2026, 10, 16)
+        User.objects.create_user(username="Baller", email="b@example.com", password="Str0ng!Passw0rd",
+                                 streak_days=5, streak_best=5, streak_freezes=1, last_active_day=day - datetime.timedelta(days=2))
+        c = Client()
+        tokens = c.post("/api/login/", {"id": "b@example.com", "password": "Str0ng!Passw0rd"}, content_type="application/json").json()
+        with patch("trivia.awarding.cet_today", return_value=day), patch("trivia.wordle_daily.cet_today", return_value=day):
+            me = c.get("/api/me/", HTTP_AUTHORIZATION=f"Bearer {tokens['access']}").json()["user"]
+        self.assertEqual(me["streak_days"], 5)
+
+
 class GuestCarryOverTests(TestCase):
     def setUp(self):
         cache.clear()  # the signup throttle lives in the cache

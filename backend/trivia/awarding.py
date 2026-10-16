@@ -79,14 +79,23 @@ def soft_capped(score, earned_today):
     return int(round(total))
 
 
+def streak_alive(user, today):
+    """True while a scoring game today would extend the streak: last active today or yesterday, or two
+    days ago with a freeze held to cover the missed day."""
+    last = user.last_active_day
+    if last is None:
+        return False
+    gap = (today - last).days
+    return 0 <= gap <= 1 or (gap == 2 and user.streak_freezes > 0)
+
+
 def _touch_activity(user, today):
     """Count `today` once, move the streak. Returns the streak milestone bonus (0 when none)."""
     if user.last_active_day == today:
         return 0
-    if user.last_active_day == today - datetime.timedelta(days=1):
-        user.streak_days += 1
-    elif user.last_active_day == today - datetime.timedelta(days=2) and user.streak_freezes > 0:
-        user.streak_freezes -= 1  # the freeze covers yesterday
+    if streak_alive(user, today):
+        if user.last_active_day == today - datetime.timedelta(days=2):
+            user.streak_freezes -= 1  # the freeze covers yesterday
         user.streak_days += 1
     else:
         user.streak_days = 1
@@ -96,6 +105,19 @@ def _touch_activity(user, today):
     if user.streak_days % 7 == 0:
         user.streak_freezes = min(MAX_FREEZES, user.streak_freezes + 1)
     return STREAK_MILESTONES.get(user.streak_days, 0)
+
+
+def _promoted(before, after):
+    """A move up the ladder. An old-ladder rank the previous backend wrote (same database) can recalculate
+    lower; that is no rank-up. A name off the ladder counts as the bottom."""
+    names = ranks.RANK_NAMES
+    return (names.index(after) if after in names else 0) > (names.index(before) if before in names else 0)
+
+
+def _repeat_blocked(user, game, mode, todays):
+    """Solo Wordle is once a day (trivia.wordle_daily): only the day's first scoring play counts. Repeated
+    claims were the easiest route onto the weekly board."""
+    return game == "wordle" and mode == "single" and todays.filter(game="wordle", mode="single", score__gt=0).exists()
 
 
 def award(user, game, mode, score, duration_ms):
@@ -111,7 +133,7 @@ def award(user, game, mode, score, duration_ms):
             user=user, finished_at__gte=since, finished_at__lt=until, mode__in=("single", "match")
         )
         earned_today = todays.aggregate(s=Sum("score"))["s"] or 0
-        scoring = score > 0
+        scoring = score > 0 and not _repeat_blocked(user, game, mode, todays)
         base = soft_capped(score, earned_today) if scoring else 0
         first_bonus = FIRST_GAME_BONUS if scoring and not todays.filter(score__gt=0).exists() else 0
         streak_bonus = _touch_activity(user, today) if scoring else 0
@@ -128,7 +150,7 @@ def award(user, game, mode, score, duration_ms):
         "streak_bonus": streak_bonus,
         "points": user.points,
         "rank": user.rank,
-        "rank_up": {"from": rank_before, "to": user.rank} if user.rank != rank_before else None,
+        "rank_up": {"from": rank_before, "to": user.rank} if _promoted(rank_before, user.rank) else None,
         "progress": ranks.progress(user.points, user.active_days),
         "streak": {"days": user.streak_days, "best": user.streak_best, "freezes": user.streak_freezes},
     }

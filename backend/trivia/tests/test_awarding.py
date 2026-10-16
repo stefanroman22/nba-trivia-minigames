@@ -107,9 +107,9 @@ class AwardTests(TestCase):
 
     def test_daily_soft_cap_applies_to_game_points_only(self, _):
         self.receipt(500, game="wordle")          # 500 + 100 bonus
-        self.receipt(500, game="wordle")          # 1,000 earned so far
-        self.receipt(500, game="wordle")          # 1,500
-        r = self.receipt(500, game="wordle")      # earned_today 1,500 -> half
+        self.receipt(500, game="heatmap")         # 1,000 earned so far (solo Wordle scores once a day)
+        self.receipt(500, game="pack-five")       # 1,500
+        r = self.receipt(500, game="connections")  # earned_today 1,500 -> half
         self.assertEqual(r["base"], 250)
         self.assertEqual(r["awarded"], 250)
         self.assertEqual(User.objects.get(pk=self.user.pk).points, 100 + 1_500 + 250)
@@ -156,6 +156,30 @@ class AwardTests(TestCase):
         self.assertEqual(r["progress"]["next_rank"], "Sixth Man")
         self.assertIsNone(self.receipt(50)["rank_up"])
 
+    def test_a_demotion_from_an_old_ladder_rank_is_not_a_rank_up(self, _):
+        # The old backend (same database) still writes old-ladder ranks during the deploy window.
+        User.objects.filter(pk=self.user.pk).update(rank="All-Star", points=700)
+        r = self.receipt(50)   # 700 + 50 + 100 bonus = 850: Sixth Man on the new ladder, below All-Star
+        self.assertEqual(r["rank"], "Sixth Man")
+        self.assertIsNone(r["rank_up"])
+
+    def test_a_second_solo_wordle_of_the_day_scores_nothing(self, _):
+        self.receipt(400, game="wordle")
+        before = User.objects.get(pk=self.user.pk)
+        r = self.receipt(500, game="wordle")
+        self.assertEqual((r["awarded"], r["base"], r["first_game_bonus"], r["streak_bonus"]), (0, 0, 0, 0))
+        user = User.objects.get(pk=self.user.pk)
+        self.assertEqual(user.points, before.points)
+        self.assertEqual((user.active_days, user.streak_days), (before.active_days, before.streak_days))
+        self.assertEqual(GameSession.objects.filter(game="wordle").count(), 2)  # still logged
+        # Other games and online Wordle still score.
+        self.assertEqual(self.receipt(80)["awarded"], 80)
+        self.assertEqual(self.receipt(150, game="wordle", mode="match")["awarded"], 150)
+
+    def test_a_zero_wordle_does_not_use_up_the_day(self, _):
+        self.receipt(0, game="wordle")
+        self.assertEqual(self.receipt(300, game="wordle")["base"], 300)
+
     def test_day_is_paris_not_utc(self, today):
         """Two plays on the same Paris day either side of UTC midnight share one day."""
         early = datetime.datetime(2026, 10, 15, 23, 30, tzinfo=datetime.timezone.utc)   # 01:30 Paris, the 16th
@@ -166,3 +190,21 @@ class AwardTests(TestCase):
             r = self.receipt(80)
         self.assertEqual(r["first_game_bonus"], 0)
         self.assertEqual(User.objects.get(pk=self.user.pk).active_days, 1)
+
+
+class StreakAliveTests(SimpleTestCase):
+    def _user(self, last, freezes=1):
+        return User(last_active_day=last, streak_freezes=freezes)
+
+    def test_today_and_yesterday_are_alive(self):
+        self.assertTrue(awarding.streak_alive(self._user(DAY), DAY))
+        self.assertTrue(awarding.streak_alive(self._user(DAY - datetime.timedelta(days=1)), DAY))
+
+    def test_two_days_ago_needs_a_freeze(self):
+        two = DAY - datetime.timedelta(days=2)
+        self.assertTrue(awarding.streak_alive(self._user(two, freezes=1), DAY))
+        self.assertFalse(awarding.streak_alive(self._user(two, freezes=0), DAY))
+
+    def test_older_or_never_is_dead(self):
+        self.assertFalse(awarding.streak_alive(self._user(DAY - datetime.timedelta(days=3)), DAY))
+        self.assertFalse(awarding.streak_alive(self._user(None), DAY))

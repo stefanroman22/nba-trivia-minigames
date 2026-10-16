@@ -225,6 +225,15 @@ class MultiplayerResultTests(TestCase):
         self.assertEqual(self.points(self.b), 0)
         self.assertEqual(len(res.json()["results"]), 1)
 
+    def test_friend_rooms_log_but_never_credit(self):
+        res = self._post(self._body(mode="friend"))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual((self.points(self.a), self.points(self.b)), (0, 0))
+        self.assertEqual(list(GameSession.objects.filter(mode="friend").values_list("awarded", flat=True)), [0, 0])
+        row = res.json()["results"][0]
+        self.assertEqual(row, {"public_id": self.a.public_id, "awarded": 0, "points": 0, "rank": "Rookie", "rank_up": None})
+        self.assertEqual(User.objects.get(pk=self.a.pk).active_days, 0)
+
     def test_bad_mode_and_oversized_results_are_400(self):
         self.assertEqual(self._post(self._body(mode="single")).status_code, 400)
         self.assertEqual(self._post(self._body(results=[{}] * 9)).status_code, 400)

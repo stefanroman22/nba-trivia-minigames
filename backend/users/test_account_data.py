@@ -229,6 +229,8 @@ class AccountDeletionTests(TestCase):
 
         self.fill()
         strikes.ban_user(self.ann, "name_severe")
+        User.objects.filter(pk=self.ann.pk).update(active_days=9, last_active_day="2026-10-15", streak_days=4, streak_best=6,
+                                                   streak_freezes=0, founding_member=True)
         outcome = __import__("users.account_data", fromlist=["delete_account"]).delete_account(User.objects.get(pk=self.ann.pk))
         self.assertEqual(outcome, "anonymised")
         kept = User.objects.get(pk=self.ann.pk)
@@ -243,6 +245,10 @@ class AccountDeletionTests(TestCase):
         self.assertFalse(GameSession.objects.exists() or Feedback.objects.exists() or Friendship.objects.exists())
         self.assertIsNone(kept.last_login)
         self.assertEqual((kept.terms_version, kept.age_group), ("", ""))
+        self.assertEqual(
+            (kept.active_days, kept.last_active_day, kept.streak_days, kept.streak_best, kept.streak_freezes, kept.founding_member),
+            (0, None, 0, 0, 1, False),
+        )
 
 
 class AccountExportTests(TestCase):
@@ -278,4 +284,6 @@ class AccountExportTests(TestCase):
         self.assertEqual(data["guesses"][0]["answer"], "lebron")
         self.assertIn("at", data["guesses"][0])
         self.assertIn("canonical_email", data["account"])
+        self.assertIsNone(data["account"]["last_active_day"])
+        self.assertEqual(data["account"]["streak_freezes"], 1)
         self.assertNotIn("password", str(data["account"]).lower())
