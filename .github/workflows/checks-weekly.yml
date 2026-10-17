@@ -1,0 +1,183 @@
+name: Weekly checks
+# Logic Check + UI check on main, Sundays 02:00 Europe/Paris (CET/CEST), on GitHub's runner: the owner's PC can be off.
+# The run is scripts/check-run.mjs (the same file the PC's Task Scheduler task runs); design and activation:
+# docs/superpowers/specs/2026-10-17-checks-cloud-design.md, docs/logic-check/README.md "The weekly run".
+#
+# Start time. GitHub's cron is UTC and fires late under load (typically a few minutes, at the top of an hour sometimes
+# an hour or more) and can drop a trigger, so three crons fire ahead of / after the slot and the gate decides
+# (scripts/check-core/lib/weekly-slot.mjs): a trigger 0-45 min before Sunday 02:00 Paris time sets up, then sleeps until
+# 02:00 sharp; a trigger after the slot (late, or the backup cron 30 min later) runs at once unless the state store says
+# this week already ran or is running. DST: the slot is 00:00 UTC in summer and 01:00 UTC in winter.
+#   Sat 23:30 UTC  summer primary (01:30 CEST, waits 30 min)        · winter: 90 min early → skipped
+#   Sun 00:30 UTC  winter primary (01:30 CET, waits 30 min)          · summer: backup (02:30 CEST)
+#   Sun 01:30 UTC  winter backup (02:30 CET)                         · summer: backup (03:30 CEST)
+# GitHub runs scheduled workflows only from the default branch (main): this file is inert until dev is promoted.
+#
+# What it touches. Tooling: a checkout of dev (scripts, skills, agents). App under test: origin/main, built by
+# check-core/lib/checkout.mjs in a worktree, on the runner's own sqlite (DATABASE_URL is blanked; no prod secret is
+# given to this job). Live: GET/HEAD only against https://swishquest.com (the suites' request guard). Writes: Notion
+# cards (deduped by Source), one Slack line, and the branch checks-state (fast-forward pushes of
+# scripts/check-core/lib/state-store.mjs, never force, never dev or main). The repo is public: logs and the artifact
+# below are world-readable, so the run keeps digests and agent transcripts in its log file, not in the console.
+#
+# Tests: a push to a branch `ci-test/checks-weekly**` runs a smoke run (Logic pages+live, UI guest on one viewport +
+# live) against the test store `checks-state-test`, Notion dry run, no Slack; workflow_dispatch takes the same knobs.
+on:
+  schedule:
+    - cron: "30 23 * * 6"
+    - cron: "30 0 * * 0"
+    - cron: "30 1 * * 0"
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "full = every suite; smoke = Logic pages+live, UI guest on desktop-1366 + live"
+        type: choice
+        options: [full, smoke]
+        default: full
+      tooling_ref:
+        description: "branch whose scripts run (the app under test is always origin/main)"
+        default: dev
+      state_branch:
+        description: "state store branch (checks-state = the real one)"
+        default: checks-state
+      notion:
+        type: choice
+        options: [live, dry]
+        default: live
+      slack:
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      agents:
+        description: "triage / judges through claude -p (CLAUDE_CODE_OAUTH_TOKEN)"
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      force:
+        description: "run even if this week's run already finished ok"
+        type: boolean
+        default: false
+  push:
+    branches: ["ci-test/checks-weekly**"]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ steps.plan.outputs.run == 'true' && steps.week.outputs.weekly != 'busy' && steps.week.outputs.weekly != 'done' }}
+      until: ${{ steps.plan.outputs.until }}
+      wait: ${{ steps.plan.outputs.wait }}
+      tooling: ${{ steps.knobs.outputs.tooling }}
+      state: ${{ steps.knobs.outputs.state }}
+      args: ${{ steps.knobs.outputs.args }}
+      agents: ${{ steps.knobs.outputs.agents }}
+    steps:
+      - name: Settings for this event
+        id: knobs
+        env:
+          EVENT: ${{ github.event_name }}
+          SCOPE: ${{ github.event_name == 'push' && 'smoke' || inputs.scope || 'full' }}
+          TOOLING: ${{ github.event_name == 'push' && github.ref_name || inputs.tooling_ref || 'dev' }}
+          STATE: ${{ github.event_name == 'push' && 'checks-state-test' || inputs.state_branch || 'checks-state' }}
+          NOTION: ${{ github.event_name == 'push' && 'dry' || inputs.notion || 'live' }}
+          SLACK: ${{ github.event_name == 'push' && 'off' || inputs.slack || 'on' }}
+          AGENTS: ${{ inputs.agents || 'on' }}
+          FORCE: ${{ (github.event_name == 'push' || inputs.force) && '--force' || '' }}
+        run: |
+          set -euo pipefail
+          case "$STATE" in main|dev) echo "state_branch must not be main or dev"; exit 1;; esac
+          ARGS="--state-branch $STATE --notion $NOTION --slack $SLACK $FORCE"
+          if [ "$SCOPE" = smoke ]; then ARGS="$ARGS --logic-suite pages,live --ui-suite guest --ui-vp desktop-1366"; fi
+          if [ "$EVENT" = schedule ]; then ARGS="$ARGS --scheduled"; fi
+          { echo "tooling=$TOOLING"; echo "state=$STATE"; echo "args=$ARGS"; echo "agents=$AGENTS"; } >> "$GITHUB_OUTPUT"
+          echo "event $EVENT · scope $SCOPE · tooling $TOOLING · store $STATE · notion $NOTION · slack $SLACK · agents $AGENTS $FORCE"
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.knobs.outputs.tooling }}
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+      - name: Plan the start (Sunday 02:00 Europe/Paris)
+        id: plan
+        run: node scripts/check-core/lib/weekly-slot.mjs plan --event "${{ github.event_name }}"
+      - name: This week's run in the state store
+        id: week
+        if: github.event_name == 'schedule' && steps.plan.outputs.run == 'true'
+        run: node scripts/check-core/state.mjs weekly-status --branch "${{ steps.knobs.outputs.state }}" --github-output
+
+  checks:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    # Pinned: ubuntu-latest moves to Ubuntu 26 from 2026-10-19, and Playwright's --with-deps must know the distro.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    permissions:
+      contents: write # the state store branch only
+    concurrency:
+      group: checks-weekly-${{ needs.gate.outputs.state }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.gate.outputs.tooling }}
+          fetch-depth: 0 # origin/main for the checkout under test, origin/dev for the notes, ancestry for resolve
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22 # the relay (multiplayer_server) and Claude Code need 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (tooling, relay, Django venv from main's requirements, Chromium)
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm ci --prefix multiplayer_server --no-audit --no-fund
+          python -m venv backend/.venv
+          git show origin/main:backend/requirements.txt > "$RUNNER_TEMP/requirements-main.txt"
+          backend/.venv/bin/pip install -q --upgrade pip
+          backend/.venv/bin/pip install -q -r "$RUNNER_TEMP/requirements-main.txt"
+          node node_modules/playwright-core/cli.js install --with-deps chromium
+      - name: Claude Code for the triage / judges (Max subscription token, no API key)
+        id: claude
+        if: needs.gate.outputs.agents == 'on'
+        continue-on-error: true
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.285
+          OUT="$(echo 'Reply with the single word OK and nothing else.' | claude -p --model sonnet 2>&1 || true)"
+          echo "preflight: $(echo "$OUT" | head -c 200)"
+          echo "$OUT" | grep -q OK
+          echo "agents=on" >> "$GITHUB_OUTPUT"
+      - name: Wait for the slot
+        if: needs.gate.outputs.wait != '0'
+        run: node scripts/check-core/lib/weekly-slot.mjs wait --until "${{ needs.gate.outputs.until }}"
+      - name: Weekly checks (scripts/check-run.mjs)
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CHECKS_STATE_TOKEN: ${{ github.token }}
+          AGENTS: ${{ steps.claude.outputs.agents || 'off' }}
+        run: node scripts/check-run.mjs --ports django=8210,socket=4210,web=5384 --holder "cloud-${{ github.run_id }}-${{ github.run_attempt }}" --agents "$AGENTS" ${{ needs.gate.outputs.args }}
+      - name: Run files (14 days; no screenshots)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checks-weekly-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: ignore
+          path: |
+            .ui-check/logs/check-*
+            .ui-check/runs/*/digest.md
+            .ui-check/runs/*/REPORT.md
+            .ui-check/runs/*/findings.json
+            .ui-check/runs/*/run-meta.json
+            .ui-check/runs/*/blocked.json

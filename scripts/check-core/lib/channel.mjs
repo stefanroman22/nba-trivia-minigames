@@ -9,8 +9,10 @@
 // (isOnMain(sha)); a Done card without a commit (closed by hand) resolves too (`how: 'closed without commit'`) so it never
 // blocks forever — Logic re-blocks it on its next failure. The callers inject the lookups (Notion card status, git
 // merge-base --is-ancestor), so this module needs neither. Every function takes { file } (default <home>/channel.json).
-// No lock: every write is an atomic replace, but two concurrent read-modify-writes can lose one update. That is fine
-// because the nightly run (check-run.ps1) is sequential; add a lock (like stack.json's) before running checkers in parallel.
+// No lock: every write is an atomic replace, but two concurrent read-modify-writes of one home can lose one update. That
+// is fine because a weekly run (check-run.mjs) is sequential; add a lock (like stack.json's) before running checkers in
+// parallel on one home. Across machines (the cloud run, the PC, the live probes) the homes merge through the state store
+// (state-store.mjs, branch checks-state), which never loses a writer's change.
 //   node scripts/check-core/lib/channel.mjs show    print the channel (blocks, pending deferred, resolved count)
 //   node scripts/check-core/lib/channel.mjs block --service <s> --by <LC-id> --finding <id> --card <cardId> --run <runId>
 //       one block (idempotent per service + LC id) → `block <s> by <LC> card <card> (new|kept)`

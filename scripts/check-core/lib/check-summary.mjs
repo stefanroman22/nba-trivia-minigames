@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// The one Slack line of a nightly run (scripts/check-run.ps1, spec §7 token rules): cards created per checker, blocks
-// written, blocks resolved, deferred checks pending, the run ids, the duration. check-run.ps1 writes what it saw to a
+// The one Slack line of a weekly run (scripts/check-run.mjs, spec §7 token rules): cards created per checker, blocks
+// written, blocks resolved, deferred checks pending, the run ids, the duration. check-run.mjs writes what it saw to a
 // state JSON as it goes; this builds the line from it (plus the pending deferrals of <home>/channel.json) and posts it.
 //   node scripts/check-core/lib/check-summary.mjs --state <state.json> [--home <dir>] [--post] [--dry-run]
 // Prints the line. --post sends it to #pipeline (slack.mjs post-text general, never fails the caller); --dry-run with
