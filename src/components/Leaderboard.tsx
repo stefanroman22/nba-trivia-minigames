@@ -60,14 +60,11 @@ function Leaderboard() {
   return (
     <div className="lb-card">
       <div className="lb-head">
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <svg style={{ flex: "none" }} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
-          <h3 className="font-display lb-head-title" style={{ fontSize: 17 }}><SwapText className="lb-head-title-text">{scope === "friends" ? "Friends Leaderboard" : scope === "weekly" ? "This Week" : "Global Top 100"}</SwapText></h3>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
+          <h3 className="font-display" style={{ fontSize: 17 }}><SwapText>{scope === "friends" ? "Friends Leaderboard" : scope === "weekly" ? "This Week" : "Global Top 100"}</SwapText></h3>
         </div>
-        <div style={{ display: "flex", gap: 10, flex: "none" }}>
-          <button className="lb-viewall" onClick={() => open("ladder")}>Ranks</button>
-          <button className="lb-viewall" onClick={() => open("leaderboard", { scope })}>View all →</button>
-        </div>
+        <button className="lb-viewall" onClick={() => open("leaderboard", { scope })}>View all →</button>
       </div>
 
       <div className="lb-scope-row">
@@ -128,10 +125,13 @@ function Leaderboard() {
       </motion.div>
 
       <div className="lb-foot">
-        <button className="lb-refresh" onClick={refresh} disabled={refreshing || loading}>
-          <svg className={refreshing ? "lb-refresh-spin" : ""} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
-          <SwapText>{refreshing ? "Refreshing…" : "Refresh"}</SwapText>
-        </button>
+        <div className="lb-foot-row">
+          <button className="lb-refresh" onClick={refresh} disabled={refreshing || loading}>
+            <svg className={refreshing ? "lb-refresh-spin" : ""} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36" /><path d="M21 3v6h-6" /></svg>
+            <SwapText reserveWidth={["Refresh", "Refreshing…"]}>{refreshing ? "Refreshing…" : "Refresh"}</SwapText>
+          </button>
+          <button type="button" className="lb-viewall lb-ranks" onClick={() => open("ladder")}>Ranks →</button>
+        </div>
         {/* Always rendered (blank while a scope's first fetch is in flight) so the
             footer never gains/loses a line mid-switch — that step would break the
             body's smooth height tween. */}
