@@ -8,6 +8,7 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { currentLogoUrl, scrambledLogoUrl } from "../constants/teamLogos";
 import { matchAnswer } from "../utils/answerMatch";
+import { createGuessLogger } from "../utils/guessLog";
 import type { NbaTeamLogo, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
 
@@ -70,9 +71,14 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   const advanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Each round's guess and verdict, for the answer review handed back with the score.
   const picksRef = useRef<{ pick: string; correct: boolean }[]>([]);
+  // Every answer, sent to the guess log on game end / unmount; the clock restarts each round.
+  const [guessLog] = useState(() => createGuessLogger("name-logo"));
+  const roundStartRef = useRef(Date.now());
+  useEffect(() => { roundStartRef.current = Date.now(); }, [currentIndex]);
   useEffect(() => () => {
     if (advanceTimer.current) clearTimeout(advanceTimer.current);
-  }, []);
+    guessLog.flush();
+  }, [guessLog]);
 
   const handleGuessSubmit = (teamName: string) => {
     if (!teamName || typeof teamName !== "string" || teamName.trim() === "") {
@@ -83,6 +89,13 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     const isCorrect =
       matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
     picksRef.current[currentIndex] = { pick: teamName.trim(), correct: isCorrect };
+    guessLog.add({
+      question_id: String(currentTeam.team_id),
+      answer: teamName.trim(),
+      correct: isCorrect,
+      elapsed_ms: Date.now() - roundStartRef.current,
+    });
+    if (currentIndex === seriesList.length - 1) guessLog.flush();
 
     if (isCorrect) {
       setScore((prev) => prev + pointsPerCorrect);

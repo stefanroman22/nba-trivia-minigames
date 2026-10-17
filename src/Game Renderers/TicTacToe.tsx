@@ -15,6 +15,7 @@ import { buildNameLookup } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
 import type { RootState } from "../store";
 import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../types/types";
+import type { AnswerReview } from "../types/review";
 import { tttReview } from "../utils/turnReview";
 import { popIn } from "../motion/variants";
 import { TTT_CELL_POINTS as CELL_POINTS, TTT_SOLO_MAX } from "../utils/gameScoring";
@@ -275,7 +276,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   // Ends in place (Rule 7.3, Career Path split): the final board stays on screen,
   // the score line takes the status row's right slot and Play again / Close game
   // take the input row's slot. Both fit their slot, so nothing resizes (Rule 6.2).
-  const finishSolo = (score: number, text: string, color: string) => {
+  const finishSolo = (score: number, text: string, color: string, finalSolved: Record<number, string> = solved) => {
     if (endedRef.current) return;
     endedRef.current = true;
     setFinished(true);
@@ -283,7 +284,18 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     revealRemaining();
     sendGuessLog();
     flashPopup(text, color);
-    onGameEnd?.(score, { inPlace: true });
+    // The solo answer review: the dealt grid (its qid), the cells you filled; a cleared board is the win.
+    const review: AnswerReview | undefined = question
+      ? {
+          game: "tictactoe",
+          qid: question.qid,
+          rows: question.rows,
+          cols: question.cols,
+          cells: Array.from({ length: 9 }, (_, i) => ({ name: finalSolved[i] ?? null, mine: !!finalSolved[i] })),
+          result: Object.keys(finalSolved).length === 9 ? "win" : "loss",
+        }
+      : undefined;
+    onGameEnd?.(score, { inPlace: true, review });
     setEndState({ score, secondsLeft: soloSecondsLeft });
     setBottomPhase("score");
   };
@@ -323,7 +335,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     setSolved(nextSolved);
     setSelectedCell(null);
     const n = Object.keys(nextSolved).length;
-    if (n === 9) finishSolo(TTT_SOLO_MAX, `Board cleared! +${TTT_SOLO_MAX}`, "var(--good)");
+    if (n === 9) finishSolo(TTT_SOLO_MAX, `Board cleared! +${TTT_SOLO_MAX}`, "var(--good)", nextSolved);
     else flashPopup(`Correct! +${CELL_POINTS}`, "var(--good)");
   };
 

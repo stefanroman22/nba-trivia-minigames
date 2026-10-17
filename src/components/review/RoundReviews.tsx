@@ -70,7 +70,7 @@ export function LogoReview({ review }: { review: Of<"name-logo"> }) {
   );
 }
 
-/** Guess the MVP: each season with its MVP. */
+/** Guess the MVP: each award season with its winner(s). */
 export function MvpReview({ review }: { review: Of<"guess-mvps"> }) {
   return (
     <>
@@ -80,7 +80,7 @@ export function MvpReview({ review }: { review: Of<"guess-mvps"> }) {
           <ReviewRound
             key={i}
             no={i + 1}
-            label={<span className="tnum">{r.season}</span>}
+            label={<span className="tnum">{r.season}{r.award && r.award !== "MVP" ? ` · ${r.award}` : ""}</span>}
             ok={r.correct}
             answer={<span>{r.mvp}</span>}
             pick={<ReviewPick pick={r.pick} ok={r.correct} />}

@@ -41,6 +41,44 @@ Code re-judges every answer: `valid` counts only if **every** claim is `confirme
 allowed source; `invalid` counts only if a claim is `contradicted` with an allowed source. Anything
 else becomes `unsure`. So list every claim, and cite the page for each one.
 
+## Audit batches
+
+Some runs give you `audit-NNN.json` instead of `batch-NNN.json`; the file carries `"kind": "audit"`.
+These are questions that are **already live**, picked at random (or after players' signals) for a
+second look. Everything above and below applies unchanged: the same views, the same claims, the same
+`verdicts-NNN.json` (same NNN), the same three verdicts. Be strict: players are seeing these questions
+right now, so a single contradicted fact is `invalid` (the question is taken out of play at once), and
+never pass a claim as `confirmed` because the question was approved before. You are not told whether
+or why it was flagged; judge each one as if you had never seen it.
+
+## Correction batches
+
+Some runs give you `correction-NNN.json`: one proposed fix to our player data, not a question.
+
+```json
+{"batch": "001", "kind": "correction", "id": 17, "person_id": 2544, "player": "...",
+ "field_path": "teams[1].end_year", "old_value": 2005, "new_value": 2004,
+ "sources": ["https://..."], "row": {"person_id": 2544, "full_name": "...", "teams": [...]}}
+```
+
+Decide whether `new_value` is the true value of `field_path` for this player (`row` shows the part
+of our current row it sits in; the field meanings below apply). The `sources` are where the
+proposal came from: you may start there, but confirm the new value yourself on **two different**
+allowed sites. Write `verdicts-NNN.json` with one entry:
+
+```json
+{"verdicts": [
+  {"kind": "correction", "id": 17, "verdict": "valid",
+   "claims": [{"claim": "<player> <field> is <new value>", "status": "confirmed",
+               "sources": ["https://www.basketball-reference.com/...", "https://en.wikipedia.org/..."]}],
+   "summary": "..."}
+]}
+```
+
+Copy `kind` and `id` exactly. `valid` counts only if every claim is confirmed and the confirming
+pages are on at least two different allowed sites; `invalid` if a page contradicts the new value
+(say what it shows in `found`); otherwise `unsure`.
+
 ## Sites and how to use them
 
 Only `WebFetch` on these four sites. You have no search engine and no other tools for the web.
@@ -90,6 +128,28 @@ MVP, Defensive Player of the Year, Rookie of the Year, Sixth Man), NBA champion 
 (any team, any year), Undrafted (never picked in an NBA draft), Lottery pick (picked 1-14 in his
 draft, in any era, including before the lottery existed). Also check that each row and column label is a real, unambiguous team
 or criterion. Every sampled player is one claim.
+
+**Fan Favorites** (`kind: fan-favorites`): a survey board: the `prompt`, its `category` (player, team
+or coach) and `answers`, every answer the game accepts. Each answer is a claim: it fits the prompt
+exactly as worded (dates, "or more", "current franchise", award years are the season's end year).
+The list must also be **complete**: a player, team or coach who fits the prompt but is missing is a
+contradiction (name him in `found`), because a fan who types him loses a heart. Add one claim "the
+list is complete" and confirm it on a page that lists the whole set (an award's winners, a draft's
+first picks, a franchise's titles). A franchise counts under its current name with its history
+(Seattle SuperSonics titles are the Oklahoma City Thunder's). Counts and order are not facts: skip them.
+
+**Who Would Win** (`kind: who-would-win`): a vote, so there is no right answer to check. Each side
+is `team_season` (`"1995-96 Chicago Bulls"`, or a decade such as `"1960s Boston Celtics"`) and the
+`sub` line shown under it. Claims: the team-season is real (that franchise, under that name, played
+that season; for a decade, in that decade) and every fact in `sub` is true for it: the record, the
+players named (each played for that team in that season, or in that decade), titles. Two claims per
+side at least. A player who joined after that season, or a wrong record, is a contradiction.
+
+**Connections** (`kind: connections`): four groups, each a `label` and four `members`. Every member
+must fit **his own group's label** exactly as worded (a draft class, a college, a country of birth,
+a championship roster, an award): one claim per member, sixteen in all. A member who does not fit
+his label is a contradiction. You do not have to prove that a member does not also fit another
+group; code checks that where it can.
 
 ## Verdicts
 

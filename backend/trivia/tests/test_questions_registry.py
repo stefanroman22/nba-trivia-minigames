@@ -10,7 +10,8 @@ REQUIRED = ("SLUG", "TARGET", "MINIMUM", "generate", "materialize", "validate", 
 
 class RegistryTests(SimpleTestCase):
     def test_every_module_has_the_interface(self):
-        self.assertEqual(sorted(GAME_MODULES), ["career-path", "contexto", "imposter", "superdraft", "tictactoe", "who-are-ya"])
+        self.assertEqual(sorted(GAME_MODULES), ["career-path", "connections", "contexto", "fan-favorites", "imposter",
+                                                "superdraft", "tictactoe", "who-are-ya", "who-would-win"])
         for slug, mod in GAME_MODULES.items():
             self.assertEqual(mod.SLUG, slug)
             for name in REQUIRED:

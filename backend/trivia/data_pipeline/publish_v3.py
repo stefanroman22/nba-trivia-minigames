@@ -95,6 +95,8 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from trivia.data_pipeline import award_seasons
+
 SCHEMA = 3
 CHUNK_SIZE = 50
 HISTORY_LIMIT = 5
@@ -115,6 +117,10 @@ NAMES_NAME = "players-names"
 # Supabase snapshot until they return), and their shared NamesEntry list, which
 # the manifest carries as the top-level "question_names" pointer.
 QUESTION_GAMES = ("career-path", "who-are-ya", "tictactoe", "contexto")
+# The editorial games (spec §4.6): question modules published as pool games (fan-favorites,
+# who-would-win here; connections on the legacy static file), maintained by the publish once
+# imported (publish_game_data_v3).
+EDITORIAL_GAMES = ("fan-favorites", "who-would-win", "connections")
 QNAMES_GAME = "question-names"
 QNAMES_NAME = "question-names"
 # trivia.questions.base.SCHEMA (not imported: this module must load without Django).
@@ -157,11 +163,11 @@ GAMES = {
         sort_key=lambda r: (r.get("season", ""), r.get("match_id", "")),
         refs=(("team_a", "teams", PLAYOFF_TEAM), ("team_b", "teams", PLAYOFF_TEAM)),
     ),
-    # 30 teams / 71 MVPs: one small file each. The MVP rows repeat a team name +
-    # logo URL, but in a single gzip'd file that repetition costs well under 1 KB,
+    # 30 teams / 291 award seasons: one small file each. The award rows repeat a team
+    # name + logo URL, but in a single gzip'd file that repetition costs a few KB,
     # less than the extra request a lookup file would add.
     "name-logo": GameSpec("single", sort_key=lambda r: r.get("team_id", 0)),
-    "mvps": GameSpec("single", sort_key=lambda r: r.get("season", "")),
+    "mvps": GameSpec("single", sort_key=lambda r: (r.get("season", ""), award_seasons.award_rank(r))),
     "starting-five": GameSpec(
         "chunked",
         sort_key=lambda r: r.get("game_id", ""),
@@ -173,6 +179,8 @@ GAMES = {
         "chunked", sort_key=lambda r: r.get("qid", ""), chunk_size=1,
         chunk_name=lambda r: r["qid"],
     ),
+    # Matchups from the active who-would-win questions (spec §4.6): small, one file.
+    "who-would-win": GameSpec("single", sort_key=lambda r: r.get("qid", "")),
     NAMES_GAME: GameSpec("single"),
 }
 
@@ -495,15 +503,21 @@ def winner_first(series):
     return digest[0] % 2 == 0
 
 
-def curated_dataset():
+def curated_dataset(journal=None):
     """The question games' player dataset: the committed players_curated.json.
 
     It is the same file the all-players "names" pool is built from, and the same
     bytes upload_dataset put in Supabase Storage for maintain_questions (checked
     2026-10-02: both sha256 9be60750...). The version is "curated-<sha12>", so it
     changes exactly when the file does.
+
+    Active DataCorrections are overlaid on the rows (spec §4.9) and the version
+    becomes "curated-<sha12>+c<hash8>" (the first 8 hex of the sha256 of the active
+    corrections' (id, field_path, new_value), in id order), so the version changes
+    whenever the set of applied values does. With none, it is unchanged.
     """
     from trivia.data_pipeline.live_pool import CURATED_PATH
+    from trivia.questions import corrections
     from trivia.questions.base import load_dataset_from_rows
 
     with open(CURATED_PATH, "rb") as f:
@@ -511,7 +525,14 @@ def curated_dataset():
     rows = json.loads(raw.decode("utf-8"))
     if not isinstance(rows, list) or not rows:
         raise PublishError(f"{CURATED_PATH} is empty or not a list")
-    return load_dataset_from_rows(rows, f"curated-{sha256_hex(raw)[:12]}")
+    active = corrections.active_corrections()
+    rows = corrections.apply(rows, active, journal=journal)
+    version = f"curated-{sha256_hex(raw)[:12]}"
+    if active:
+        applied = json.dumps([[c.pk, c.field_path, c.new_value] for c in sorted(active, key=lambda c: c.pk)],
+                             sort_keys=True, ensure_ascii=False)
+        version += f"+c{sha256_hex(applied.encode('utf-8'))[:8]}"
+    return load_dataset_from_rows(rows, version)
 
 
 def question_builders(maintained=None, dataset=None):
@@ -549,22 +570,25 @@ def question_builders(maintained=None, dataset=None):
     return {**{slug: build(slug) for slug in QUESTION_GAMES}, QNAMES_GAME: names}
 
 
-def default_builders(read_only=False, maintained=None, dataset=None):
+def default_builders(read_only=False, maintained=None, dataset=None, out=None):
     """The existing pool builders (build_pools_from_db) plus the question builders, by game.
 
     read_only=True never writes to the database: Fan Favorites applies the live
     re-rank in memory instead of saving it (used by the freshness check), and the
     question games are materialized from their current rows (``maintained`` is
-    for a publish that just ran the question maintenance).
+    for a publish that just ran the question maintenance). ``dataset`` (the publish's)
+    also feeds the editorial pool builders, and ``out`` gets the boards they leave out.
     """
+    from trivia.games import who_would_win
     from trivia.management.commands import build_pools_from_db as pools
 
     return {
         "playoff": lambda: pools.build_playoff(winner_first=winner_first),
         "name-logo": pools.build_name_logo,
-        "mvps": pools.build_mvps,
+        "mvps": lambda: pools.build_mvps(dataset=dataset),
         "starting-five": pools.build_starting_five,
-        "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only),
+        "fan-favorites": lambda: pools.build_fan_favorites(persist=not read_only, dataset=dataset, out=out),
+        "who-would-win": lambda: who_would_win.build_pool(dataset=dataset, out=out),
         NAMES_GAME: pools.build_all_players,
         **question_builders(None if read_only else maintained, dataset),
     }

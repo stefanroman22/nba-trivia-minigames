@@ -22,7 +22,7 @@ from datetime import date
 from django.utils import timezone
 
 # Bump when the Terms or Privacy Policy change materially; it is stored with each acceptance.
-TERMS_VERSION = "2026-10-11.2"
+TERMS_VERSION = "2026-10-15.1"
 MIN_AGE = 13
 PHOTO_MIN_AGE = 16
 

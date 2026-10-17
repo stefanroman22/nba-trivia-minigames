@@ -16,7 +16,7 @@ import json
 from urllib.parse import urlparse
 
 CHECKER_VERSION = 1
-STAGED_GAMES = ("career-path", "who-are-ya", "tictactoe", "contexto")
+STAGED_GAMES = ("career-path", "who-are-ya", "tictactoe", "contexto", "fan-favorites", "who-would-win", "connections")
 ALLOWED_SITES = ("www.basketball-reference.com", "www.nba.com", "en.wikipedia.org", "www.espn.com")
 MAX_UNSURE = 2  # the second unsure verdict hands the question to the owner
 

@@ -2,14 +2,26 @@
 
 Every fetcher returns a plain list of dicts shaped for the corresponding model
 in trivia.models. They are network-bound (the NBA blocks datacenter IPs, so
-these must run from a residential IP) and therefore wrapped in retry/backoff.
+these run from a residential IP or through the relay, see relay.py) and
+therefore wrapped in retry/backoff.
 Nothing here touches the database — the sync command validates and upserts.
 """
 
 import csv
 import time
 
+from trivia.data_pipeline import relay
 from trivia.utils.logo_utils import logo
+
+_RELAY_CONFIGURED = False
+
+
+def _ensure_relay():
+    """Point nba_api at the relay (when configured) before the first fetch."""
+    global _RELAY_CONFIGURED
+    if not _RELAY_CONFIGURED:
+        relay.configure()
+        _RELAY_CONFIGURED = True
 
 
 def current_season():
@@ -76,6 +88,7 @@ def fetch_players(season=None, per_call_timeout=20):
     Uses the current season so new draftees/signings are picked up (roster status
     is computed for that season); the all-time list itself includes everyone.
     """
+    _ensure_relay()
     season = season or current_season()
     try:
         def _call():
@@ -267,6 +280,7 @@ def _fetch_playoff_season(season, per_call_timeout=15):
 
 def fetch_playoff_series(seasons, per_call_timeout=15, pause=0.4):
     """Fetch completed playoff series for the given season labels (sequential, polite)."""
+    _ensure_relay()
     out = []
     for s in seasons:
         try:
@@ -280,11 +294,12 @@ def fetch_playoff_series(seasons, per_call_timeout=15, pause=0.4):
 
 
 # ---------------------------------------------------------------------------
-#  Starting five  (LeagueGameFinder + BoxScoreTraditionalV2; box scores ~1996+)
+#  Starting five  (LeagueGameFinder + BoxScoreTraditionalV3; box scores ~1996+)
 # ---------------------------------------------------------------------------
 def fetch_starting_five(seasons, max_games_per_season=40, per_call_timeout=15, pause=0.6):
+    _ensure_relay()
     import pandas as pd
-    from nba_api.stats.endpoints import leaguegamefinder, boxscoretraditionalv2
+    from nba_api.stats.endpoints import leaguegamefinder, boxscoretraditionalv3
     from nba_api.stats.static import teams as static_teams
     import random
 
@@ -313,22 +328,22 @@ def fetch_starting_five(seasons, max_games_per_season=40, per_call_timeout=15, p
             kept = 0
             for game_id in game_ids:
                 try:
-                    box = boxscoretraditionalv2.BoxScoreTraditionalV2(
+                    box = boxscoretraditionalv3.BoxScoreTraditionalV3(
                         game_id=game_id, timeout=per_call_timeout
                     )
                     pdf = box.player_stats.get_data_frame()
-                    tids = pdf["TEAM_ID"].unique()
+                    tids = pdf["teamId"].unique()
                     if len(tids) != 2:
                         continue
                     a, b = int(tids[0]), int(tids[1])
-                    a_pts = int(pdf[pdf["TEAM_ID"] == a]["PTS"].sum())
-                    b_pts = int(pdf[pdf["TEAM_ID"] == b]["PTS"].sum())
+                    a_pts = int(pdf[pdf["teamId"] == a]["points"].sum())
+                    b_pts = int(pdf[pdf["teamId"] == b]["points"].sum())
                     win_id = a if a_pts > b_pts else b
-                    starters = pdf[(pdf["TEAM_ID"] == win_id) & (pdf["START_POSITION"] != "")]
+                    starters = pdf[(pdf["teamId"] == win_id) & (pdf["position"] != "")]
                     if starters.empty:
                         continue
                     s5 = [
-                        {"name": r["PLAYER_NAME"], "position": r["START_POSITION"]}
+                        {"name": f"{r['firstName']} {r['familyName']}".strip(), "position": r["position"]}
                         for _, r in starters.head(5).iterrows()
                     ]
                     row = all_games_df[all_games_df["GAME_ID"] == game_id].iloc[0]
@@ -375,6 +390,7 @@ def fetch_draft_history(per_call_timeout=30):
     was ON DRAFT NIGHT (Seattle for Kevin Durant, Atlanta for Luka Dončić,
     Charlotte for Shai Gilgeous-Alexander) — never the player's later franchise.
     """
+    _ensure_relay()
     from nba_api.stats.endpoints import drafthistory
 
     data = retry(
@@ -411,6 +427,7 @@ def fetch_franchise_history(per_call_timeout=30):
     span, current name); callers resolve a season to the NARROWEST matching era,
     which ignores those summaries and picks Bobcats over Hornets for 2004-2013.
     """
+    _ensure_relay()
     from nba_api.stats.endpoints import franchisehistory
 
     data = retry(
@@ -499,6 +516,7 @@ def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
     still burns retry()'s ladder and is still raised: _is_empty_body only
     returns True on a 200 whose body parses as a keyless JSON object.
     """
+    _ensure_relay()
     import random
 
     from nba_api.stats.endpoints import commonplayerinfo, playercareerstats, playerawards

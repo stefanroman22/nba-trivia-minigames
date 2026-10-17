@@ -1,9 +1,11 @@
+import datetime
 import random
 from unittest import mock
 
 from django.test import TestCase
+from django.utils import timezone
 
-from trivia.models import Question
+from trivia.models import GameDailyStats, Question
 from trivia.questions import runner
 from trivia.questions.hashing import content_hash
 from trivia.questions.journal import Journal
@@ -80,7 +82,7 @@ class RunnerTests(TestCase):
         first = journal.events[0]
         self.assertEqual((first["action"], first["reason"], first["game"]),
                          ("refill_decision", "below_target", "career-path"))
-        self.assertEqual(first["detail"], {"active": 0, "target": 5, "retired": 0})
+        self.assertEqual(first["detail"], {"active": 0, "target": 5, "retired": 0, "mode": "static", "saturation": 0.0})
         self.assertEqual(sum(1 for e in journal.events if e["action"] == "generated"), 5)
 
     def test_retirements_are_journaled_with_the_problem(self):
@@ -223,3 +225,55 @@ class StagingTests(TestCase):
     def test_games_outside_the_checker_are_not_staged(self):
         self._maintain(games=("imposter",))
         self.assertEqual(Question.objects.get(game="imposter").status, "active")
+
+
+class DemandTargetTests(TestCase):
+    """The runner tops up to trivia.questions.demand's target (phase 3, spec §4.4)."""
+
+    def setUp(self):
+        self.ds = fixture_dataset("ds-1")
+        self.rng = random.Random(7)
+        for p in (mock.patch("trivia.questions.games.career_path.TARGET", 5),
+                  mock.patch("trivia.questions.games.career_path.MINIMUM", 0)):
+            p.start()
+            self.addCleanup(p.stop)
+
+    def _maintain(self):
+        journal = Journal("supply")
+        runner.maintain(["career-path"], self.ds, self.rng, out=lambda *_: None, journal=journal, stage=True)
+        return journal
+
+    def _yesterday(self, plays):
+        GameDailyStats.objects.create(game="career-path", day=timezone.now().date() - datetime.timedelta(days=1),
+                                      mode="single", plays=plays, players=1)
+
+    def test_without_stats_the_static_target_is_used(self):
+        journal = self._maintain()
+        self.assertEqual(Question.objects.filter(game="career-path").count(), 5)
+        self.assertEqual(journal.events[0]["detail"]["mode"], "static")
+
+    def test_with_stats_the_demand_target_is_used(self):
+        self._yesterday(1)  # ceil(1/14 x 90) = 7 > the static 5
+        journal = self._maintain()
+        self.assertEqual(Question.objects.filter(game="career-path").count(), 7)
+        detail = journal.events[0]["detail"]
+        self.assertEqual((detail["mode"], detail["target"], detail["demand"], detail["plays_14d"]),
+                         ("demand", 7, 7, 1))
+
+    def test_a_capacity_bound_game_is_journaled(self):
+        self._yesterday(1)
+        with mock.patch("trivia.questions.games.career_path.capacity", create=True, return_value=3):
+            journal = self._maintain()
+        self.assertEqual(Question.objects.filter(game="career-path").count(), 3)
+        bound = [e for e in journal.events if e["action"] == "capacity_bound"]
+        self.assertEqual(len(bound), 1)
+        self.assertEqual({k: bound[0]["detail"][k] for k in ("target", "capacity", "demand")},
+                         {"target": 3, "capacity": 3, "demand": 7})
+
+    def test_saturation_is_journaled(self):
+        decided = (6, {"mode": "demand", "saturation": 0.25, "saturated": True})
+        with mock.patch.object(runner.demand, "target_for", return_value=decided):
+            journal = self._maintain()
+        self.assertEqual(Question.objects.filter(game="career-path").count(), 6)
+        sat = [e for e in journal.events if e["action"] == "saturation"]
+        self.assertEqual(sat[0]["detail"]["share"], 0.25)

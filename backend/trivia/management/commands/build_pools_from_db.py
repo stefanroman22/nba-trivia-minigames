@@ -13,15 +13,20 @@ import json
 import os
 import random
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
+from trivia.data_pipeline import award_seasons
 from trivia.data_pipeline.build_static import build_all_players_pool
+from trivia.data_pipeline.live_pool import load_dataset
 from trivia.data_pipeline.manifest import build_manifest
 from trivia.data_pipeline.starting_five import canonical_lineup_names, playable_lineups
 from trivia.data_pipeline.validate import validate_pool
 from trivia.games import POOL_BUILDERS as GAME_POOL_BUILDERS
 from trivia.models import FanFavoritesQuestion, Mvp, Player, PlayoffSeries, StartingFiveGame, Team
+from trivia.questions import corrections
+from trivia.questions.runner import pool_rows
 from trivia.utils.fan_favorites import live_standings, refresh_live_standings
 from trivia.utils.logo_utils import logo
 from trivia.utils.text_utils import wordle_word
@@ -63,11 +68,24 @@ def build_wordle():
     return sorted(words)
 
 
-def build_mvps():
-    return [
+def build_mvps(dataset=None):
+    # Every major award season (trivia/data_pipeline/award_seasons.py): the MVP rows keep
+    # their four Mvp-table fields, every row adds award, winners and prompt. The other
+    # awards come from the curated rows with the active DataCorrections overlaid
+    # (`dataset`: the publish's, already corrected).
+    mvps = [
         {"season": m.season, "mvp": m.mvp, "team": m.team, "team_logo_url": m.team_logo_url}
         for m in Mvp.objects.all().order_by("season")
     ]
+    if not mvps:  # no MVP rows: an empty pool, so the committed file is kept
+        return []
+    rows = dataset.rows if dataset is not None else corrections.apply(load_dataset())
+    # A team logo only when exactly one franchise carries the abbreviation.
+    by_abbr = {}
+    for t in Team.objects.all():
+        by_abbr.setdefault(t.abbreviation, []).append(t.logo or logo(t.team_id))
+    logos = {abbr: urls[0] for abbr, urls in by_abbr.items() if len(urls) == 1}
+    return award_seasons.build(rows, mvps, logos)
 
 
 def build_playoff(winner_first=None):
@@ -109,12 +127,20 @@ def build_starting_five():
     return canonical_lineup_names(playable_lineups(rows), build_all_players())
 
 
-def build_fan_favorites(persist=True):
+def build_fan_favorites(persist=True, dataset=None, out=None):
     # Auto seed->live transition: boards with enough real guesses re-rank first.
     # persist=False (the read-only freshness check) applies the same re-rank in
     # memory only, so it sees exactly the rows a publish would build, with no writes.
     if persist:
         refresh_live_standings()
+    # The boards are the active fan-favorites questions (spec §4.6) once the seeds are
+    # imported; their live standings are merged by qid in memory (same rule, no writes).
+    # `dataset` / `out`: the publish's dataset and its log (runner.pool_rows).
+    boards = pool_rows("fan-favorites", dataset, out)
+    if boards is not None:
+        for row in boards:
+            row["answers"] = live_standings(SimpleNamespace(qid=row["qid"], answers=row["answers"])) or row["answers"]
+        return boards
     rows = []
     for q in FanFavoritesQuestion.objects.filter(live=True).order_by("qid"):
         answers = q.answers if persist else (live_standings(q) or q.answers)

@@ -1,0 +1,340 @@
+name: Data refresh
+# The monthly NBA data refresh, in the cloud (docs/superpowers/specs/2026-10-12-question-factory-design.md
+# §4.13; docs/DATA_PIPELINE.md "Cloud refresh"). stats.nba.com refuses datacenter addresses, so every
+# NBA call goes through the relay (NBA_RELAY_BASE + NBA_RELAY_KEY, trivia/data_pipeline/relay.py).
+#   mode     (no secrets)   smoke or full run, the date and the journal trigger
+#   sync     (DB + relay)   manage.py sync_nba_data --journal: NBA API -> the store; FactoryRun kind
+#                           "refresh" (failed on any dataset failure, which also fails the job)
+#   curated  (relay)        manage.py generate_players_curated, resumable: the raw cache is a workflow
+#                           cache of this month, so a re-run picks up where the last one stopped
+#   validate (no secrets)   trivia/games/curated_validate.py (parity included); on failure Slack and
+#                           stop: nothing was committed or uploaded, the previous dataset stays
+#   land     (Storage)      PR of players_curated.json + all-players.json to dev, merged right away,
+#                           then manage.py upload_dataset (only once merged; otherwise Slack)
+#   supply                  dispatches publish-game-data.yml (trigger data-refresh, every game), main only
+# Smoke mode (a push to refresh/test-*, or a dispatch with limit > 0): one season, 5 games per season,
+# the first N players into build/, validation reported but not enforced, a draft [test] PR that is
+# never merged, and no upload or supply.
+on:
+  schedule:
+    - cron: "0 1 1 * *"   # 1st of the month, 01:00 UTC
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Smoke run: only the first N players (0 = full refresh)"
+        required: false
+        default: 0
+        type: number
+      full:
+        description: "Full historical backfill in sync_nba_data (--full; full runs only)"
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: ["refresh/**"]
+concurrency:
+  group: data-refresh
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  mode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      smoke: ${{ steps.mode.outputs.smoke }}
+      limit: ${{ steps.mode.outputs.limit }}
+      date: ${{ steps.mode.outputs.date }}
+      month: ${{ steps.mode.outputs.month }}
+      trigger: ${{ steps.mode.outputs.trigger }}
+    steps:
+      - id: mode
+        env:
+          EVENT: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          limit="${LIMIT:-0}"
+          if ! [[ "$limit" =~ ^[0-9]+$ ]]; then echo "::error::limit must be a whole number, got '$limit'"; exit 1; fi
+          if [ "$EVENT" = "push" ] && [[ "$REF_NAME" == refresh/test-* ]] && [ "$limit" -eq 0 ]; then limit=25; fi
+          if [ "$limit" -gt 0 ]; then smoke=true; else smoke=false; fi
+          case "$EVENT" in
+            schedule) trigger=schedule ;;
+            push) trigger=push ;;
+            *) trigger=manual ;;
+          esac
+          {
+            echo "smoke=$smoke"
+            echo "limit=$limit"
+            echo "date=$(date -u +%Y-%m-%d)"
+            echo "month=$(date -u +%Y-%m)"
+            echo "trigger=$trigger"
+          } >> "$GITHUB_OUTPUT"
+          echo "Data refresh: smoke=$smoke limit=$limit trigger=$trigger ref=$REF_NAME"
+
+  sync:
+    needs: mode
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      NBA_RELAY_BASE: ${{ vars.NBA_RELAY_BASE }}
+      NBA_RELAY_KEY: ${{ secrets.NBA_RELAY_KEY }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Sync the NBA data into the store
+        working-directory: backend
+        env:
+          SMOKE: ${{ needs.mode.outputs.smoke }}
+          FULL: ${{ inputs.full }}
+          TRIGGER: ${{ needs.mode.outputs.trigger }}
+        run: |
+          if [ "$SMOKE" = "true" ]; then
+            args=(--seasons 1 --max-games 5)
+          else
+            args=(--seasons 2 --max-games 20)
+            if [ "$FULL" = "true" ]; then args+=(--full); fi
+          fi
+          python manage.py sync_nba_data "${args[@]}" --timeout 25 --journal --trigger "$TRIGGER"
+
+  curated:
+    needs: [mode, sync]
+    runs-on: ubuntu-latest
+    # Backstop only: the build step has its own limit, so a slow fetch fails as a step (not a
+    # cancelled job) and the cache save, uploads and Slack line below still run.
+    timeout-minutes: 340
+    env:
+      NBA_RELAY_BASE: ${{ vars.NBA_RELAY_BASE }}
+      NBA_RELAY_KEY: ${{ secrets.NBA_RELAY_KEY }}
+      # One cache entry per attempt; a re-run this month restores the newest one and resumes.
+      # Never last month's: cached players are skipped, so an old cache would freeze the data.
+      CACHE_KEY: nba-raw-cache-${{ needs.mode.outputs.month }}-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      # Built with this workflow's own code (the generator rewrites both data files
+      # from the API, so dev's copies are not needed here); land commits onto dev.
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Restore the raw cache
+        uses: actions/cache/restore@v4
+        with:
+          path: backend/.nba_api_cache
+          key: ${{ env.CACHE_KEY }}
+          restore-keys: nba-raw-cache-${{ needs.mode.outputs.month }}-
+      - name: Build players_curated.json
+        working-directory: backend
+        timeout-minutes: 320
+        env:
+          SMOKE: ${{ needs.mode.outputs.smoke }}
+          LIMIT: ${{ needs.mode.outputs.limit }}
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/build"
+          if [ "$SMOKE" = "true" ]; then
+            python manage.py generate_players_curated --limit "$LIMIT" \
+              --out "$GITHUB_WORKSPACE/build/players_curated.json" --cache-dir .nba_api_cache
+          else
+            python manage.py generate_players_curated --rewrite-all-players --cache-dir .nba_api_cache
+            cp trivia/data_static/players_curated.json "$GITHUB_WORKSPACE/build/players_curated.json"
+            cp trivia/data/all-players.json "$GITHUB_WORKSPACE/build/all-players.json"
+          fi
+      - name: Save the raw cache
+        if: ${{ !cancelled() }}
+        uses: actions/cache/save@v4
+        with:
+          path: backend/.nba_api_cache
+          key: ${{ env.CACHE_KEY }}
+      - name: Keep the raw cache
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: nba-raw-cache
+          path: backend/.nba_api_cache/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
+          overwrite: true
+      - name: Keep the dataset
+        uses: actions/upload-artifact@v6
+        with:
+          name: refresh-dataset
+          path: build/
+          overwrite: true
+      - name: Tell Slack
+        if: failure() && needs.mode.outputs.smoke == 'false'
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node scripts/slack.mjs post-text backend - <<< "Data refresh ${{ needs.mode.outputs.date }}: building players_curated.json failed; nothing was committed or uploaded, the previous dataset stays. Re-run the workflow to resume from the cache: $RUN_URL"
+
+  validate:
+    needs: [mode, curated]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - uses: actions/download-artifact@v6
+        with:
+          name: refresh-dataset
+          path: build
+      # A smoke dataset (the first N players) cannot meet the 4+ stints and tier-1 floors, so its
+      # result is reported, not enforced.
+      - name: Validate the dataset
+        continue-on-error: ${{ needs.mode.outputs.smoke == 'true' }}
+        run: |
+          cp build/players_curated.json backend/trivia/data_static/players_curated.json
+          if [ -f build/all-players.json ]; then cp build/all-players.json backend/trivia/data/all-players.json; fi
+          cd backend && DATABASE_URL="" python trivia/games/curated_validate.py
+      - name: Tell Slack
+        if: failure() && needs.mode.outputs.smoke == 'false'
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node scripts/slack.mjs post-text backend - <<< "Data refresh ${{ needs.mode.outputs.date }}: the regenerated dataset failed validation; nothing was committed or uploaded, the previous dataset stays. $RUN_URL"
+
+  land:
+    needs: [mode, validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      DATE: ${{ needs.mode.outputs.date }}
+      SMOKE: ${{ needs.mode.outputs.smoke }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+          fetch-depth: 0
+      - uses: actions/download-artifact@v6
+        with:
+          name: refresh-dataset
+          path: build
+      # merged=true only when dev now holds this dataset (merged, or unchanged); the upload waits for it.
+      - name: Open the pull request
+        id: pr
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          echo "merged=false" >> "$GITHUB_OUTPUT"
+          cp build/players_curated.json backend/trivia/data_static/players_curated.json
+          if [ -f build/all-players.json ]; then cp build/all-players.json backend/trivia/data/all-players.json; fi
+          git add -- backend/trivia/data_static/players_curated.json backend/trivia/data/all-players.json
+          if git diff --cached --quiet; then
+            echo "The dataset did not change: no pull request."
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "$SMOKE" = "false" ]; then
+            branch="refresh-pr/$DATE"
+            title="Data refresh $DATE"
+            draft=()
+          else
+            branch="refresh-pr/$DATE-test"
+            title="[test] data refresh $DATE"
+            draft=(--draft)
+          fi
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          git switch -c "$branch"
+          git commit -m "data: $title"
+          git push --force origin "$branch"
+          {
+            echo "Monthly NBA data refresh ($DATE, data-refresh.yml): $RUN_URL"
+            echo
+            if [ "$SMOKE" = "false" ]; then
+              echo "- \`backend/trivia/data_static/players_curated.json\`: $(jq length build/players_curated.json) rows, validated (curated_validate.py)"
+            else
+              echo "- \`backend/trivia/data_static/players_curated.json\`: $(jq length build/players_curated.json) rows, validation reported only (not enforced)"
+            fi
+            if [ -f build/all-players.json ]; then echo "- \`backend/trivia/data/all-players.json\`: canonical names"; fi
+            if [ "$SMOKE" != "false" ]; then
+              echo
+              echo "**Smoke run: a partial dataset (the first players only), validation reported only. Do not merge; close this PR.**"
+            fi
+          } > "$RUNNER_TEMP/pr-body.md"
+          gh pr create --base dev --head "$branch" --title "$title" --body-file "$RUNNER_TEMP/pr-body.md" "${draft[@]}" \
+            || gh pr edit "$branch" --body-file "$RUNNER_TEMP/pr-body.md"
+          # Merge only on an explicit full run; any other mode value is left unmerged.
+          if [ "$SMOKE" = "true" ]; then echo "Smoke run: the draft PR stays open and is never merged."; exit 0; fi
+          if [ "$SMOKE" != "false" ]; then echo "::warning::Unexpected mode smoke='$SMOKE': the PR is left unmerged."; exit 0; fi
+          # dev has no required checks, and a GITHUB_TOKEN PR never triggers dev-ci, so merge right away.
+          if gh pr merge "$branch" --merge --delete-branch; then
+            echo "merged=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Could not merge the data refresh PR; it waits for a manual merge."
+          fi
+      # Storage must never hold a dataset dev does not: an unmerged PR skips the upload.
+      - name: Dataset not merged
+        if: needs.mode.outputs.smoke == 'false' && steps.pr.outputs.merged != 'true'
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          pr_url=$(gh pr view "$BRANCH" --json url -q .url 2>/dev/null || echo "$BRANCH")
+          echo "Data refresh $DATE: the PR $pr_url was not merged; dataset NOT uploaded to Storage." >> "$GITHUB_STEP_SUMMARY"
+          node scripts/slack.mjs post-text backend - <<< "Data refresh $DATE: the PR $pr_url was not merged, so the dataset was NOT uploaded to Storage. Merge it, then run upload_dataset. $RUN_URL"
+      - uses: actions/setup-python@v6
+        if: needs.mode.outputs.smoke == 'false' && steps.pr.outputs.merged == 'true'
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        if: needs.mode.outputs.smoke == 'false' && steps.pr.outputs.merged == 'true'
+        run: pip install -r backend/requirements-pipeline.txt -r backend/requirements-publish.txt
+      # Feeds maintain_questions (the Supabase snapshot the hidden games and the fallback read).
+      - name: Upload the dataset to Storage
+        if: needs.mode.outputs.smoke == 'false' && steps.pr.outputs.merged == 'true'
+        working-directory: backend
+        env:
+          SUPABASE_S3_ENDPOINT: ${{ secrets.SUPABASE_S3_ENDPOINT }}
+          SUPABASE_S3_REGION: ${{ secrets.SUPABASE_S3_REGION }}
+          SUPABASE_S3_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
+          SUPABASE_S3_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET_ACCESS_KEY }}
+          SUPABASE_STORAGE_BUCKET: ${{ secrets.SUPABASE_STORAGE_BUCKET }}
+          QUESTIONS_PUBLIC_BASE: ${{ secrets.QUESTIONS_PUBLIC_BASE }}
+        run: python manage.py upload_dataset --path trivia/data_static/players_curated.json
+
+  supply:
+    needs: [mode, land]
+    # Only from the default branch, so a refresh/** run never publishes.
+    if: github.ref == 'refs/heads/main' && needs.mode.outputs.smoke == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch the supply run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run publish-game-data.yml --repo "$GITHUB_REPOSITORY" --ref main \
+            -f dry_run=false -f target=vercel -f trigger=data-refresh
+          echo "Publish game data dispatched (trigger data-refresh)." >> "$GITHUB_STEP_SUMMARY"

@@ -263,16 +263,18 @@ lines), so one short label does not shift its column.
 Idle, loading, playing and ended (in place or full-screen result): the space above the first
 component and below the last is the stage padding. Never compensate with margin or padding on a
 root, and never leave an invisible element holding space under the last component. When a game ends
-in place the shell adds `.is-ended` to `.exit-link`, which hides **and collapses** it (height and its
-flex gap, `MiniGame.css`), because the `ScorePanel` buttons are then the last component.
+in place and its review names a question (`src/utils/reviewRounds.ts`), the shell turns `.exit-link`
+into `Report a problem` (`.is-report`: same element, same box, so nothing moves). Otherwise the shell
+adds `.is-ended`, which hides **and collapses** it (height and its flex gap, `MiniGame.css`), because
+the `ScorePanel` buttons are then the last component.
 
 **Why:** the padding must not change when the phase changes.
 **Check:** measure first-child top and last-child bottom against `.stage-inner` in each state.
 
 ### RULE 4.6 — One leave control per screen, labelled `Close game`
 While playing, the only leave control is the shell's `.exit-link` (`Close game`). On a result it is
-the end panel's `Close game` button (`GameResult` or `ScorePanel`); the shell link is then hidden
-(Rule 4.5). A game never renders its own leave control and never labels one anything else.
+the end panel's `Close game` button (`GameResult` or `ScorePanel`); the shell link is then hidden or
+becomes `Report a problem`, which leaves nothing (Rule 4.5). A game never renders its own leave control and never labels one anything else.
 Exception: the multiplayer `OnlineMatch` leave-match control.
 
 **Why:** two leave controls, or three names for one, make the player hesitate.

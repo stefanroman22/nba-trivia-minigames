@@ -9,7 +9,7 @@ import json
 from django.db import transaction
 from django.utils import timezone
 
-DECISIONS = ("refill_decision", "held_back")  # events that record a choice, not a DB write
+DECISIONS = ("refill_decision", "held_back", "capacity_bound", "saturation")  # a choice, not a DB write
 
 
 class Journal:
@@ -29,7 +29,7 @@ class Journal:
     def mark_rolled_back(self, since=0):
         """Flag events from `since` on whose DB writes were rolled back, so every
         reader can tell what actually happened from the events alone. Decisions
-        (refill_decision, held_back) wrote nothing, so they are left unflagged."""
+        (DECISIONS) wrote nothing, so they are left unflagged."""
         for event in self.events[since:]:
             if event["action"] not in DECISIONS:
                 event["detail"]["rolled_back"] = True

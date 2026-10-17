@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "weights": {
+    "franchise_seasons": 35,
+    "era": 15,
+    "position": 6,
+    "draft_class": 9,
+    "style": 15,
+    "fame": 10,
+    "country": 10
+  },
+  "draft_class": {"span_years": 10},
+  "style": {"max": {"ppg": 30, "rpg": 20, "apg": 12, "height_in": 90}},
+  "fame": {"span": 100},
+  "gate": {"team_season_top": 10, "famous_top": 20, "min_band": "KNOWN", "min_count": 6},
+  "country_aliases": {"DRC": "Democratic Republic of the Congo", "México": "Mexico"},
+  "regions": {
+    "North America": ["USA", "Canada"],
+    "Latin America and Caribbean": ["Antigua and Barbuda", "Argentina", "Bahamas", "Belize", "Brazil", "Cuba",
+      "Dominican Republic", "Haiti", "Jamaica", "Mexico", "Nicaragua", "Panama", "Puerto Rico", "Saint Lucia",
+      "St. Vincent & Grenadines", "US Virgin Islands", "Uruguay", "Venezuela"],
+    "Europe": ["Austria", "Belgium", "Bosnia and Herzegovina", "Bulgaria", "Croatia", "Czech Republic", "Denmark",
+      "Estonia", "Finland", "France", "Georgia", "Germany", "Greece", "Ireland", "Italy", "Latvia", "Lithuania",
+      "Macedonia", "Montenegro", "Netherlands", "Norway", "Poland", "Portugal", "Romania", "Russia", "Scotland",
+      "Serbia", "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey", "Ukraine", "United Kingdom"],
+    "Africa": ["Angola", "Cabo Verde", "Cameroon", "Congo", "Democratic Republic of the Congo", "Egypt", "Gabon",
+      "Guinea", "Mali", "Nigeria", "Senegal", "South Sudan", "Sudan", "Tanzania", "Tunisia"],
+    "Asia": ["China", "Iran", "Israel", "Japan", "Lebanon", "South Korea"],
+    "Oceania": ["Australia", "New Zealand"]
+  },
+  "notes": "Contexto similarity v2 (question factory spec 4.10). Weights sum to 100, so a player scores 100 against himself. franchise_seasons: Jaccard of team-abbr:season sets (as v1). era: overlap of career year ranges (as v1). position: same 1, same family 0.5 (as v1). draft_class: 1 - |draft year difference| / span_years, an undrafted player's class is his first season. style: cosine of [ppg, rpg, apg, height_in] each divided by style.max, a missing value counts 0. fame: 1 - |fame_score difference| / span, clamped to [0, 1]. country: same country 1, same region 0.5, else or unknown 0; country_aliases folds spelling variants first. Anchor pairs in contexto-anchors.json must hold for every change (test_questions_similarity). Tuning (2026-10-16, against the shipped dataset): the brief's weights were franchise_seasons 30, era 15, position 10, draft_class 10, style 15, fame 10, country 10; at those Magic Johnson / Kareem Abdul-Jabbar ranked 91 and 51 (era-peer guards drafted around 1979 outscored a 10-season teammate) and 38 of 71 candidate near pairs held. franchise_seasons +5, position -4, draft_class -1 put Magic / Kareem at 15 and 12 and hold 46 near and 26 far pairs. gate: validate() refuses a v2 day whose top team_season_top (ranks 2..11) all share one team-season, or whose top famous_top (ranks 2..21) holds fewer than min_count players of min_band or better. Counting the famous over the top 10 instead let only 233 of the 501 KNOWN-or-better secrets pass on the shipped dataset; over the top 20 (ruling 2026-10-16), 426 of 501 secrets pass the gate on the 2026-10 dataset."
+}

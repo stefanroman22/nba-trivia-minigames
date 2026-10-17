@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
@@ -10,6 +10,7 @@ import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
 import { matchAnswer } from "../utils/answerMatch";
+import { createGuessLogger } from "../utils/guessLog";
 import { STARTING_FIVE_BONUS as COMPLETION_BONUS } from "../utils/gameScoring";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
@@ -87,6 +88,11 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   const [numberLifes, setNumberLifes] = useState(3);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const reduce = useReducedMotion();
+  // Every guess, sent to the guess log on game end / unmount; timed from when the lineup is shown.
+  const [guessLog] = useState(() => createGuessLogger("starting-five"));
+  const startRef = useRef(Date.now());
+
+  useEffect(() => () => guessLog.flush(), [guessLog]);
 
   useEffect(() => {
     preloadPhotosByName();
@@ -110,6 +116,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
     setBottomPhase("input");
     setNumberLifes(3);
     setScore(0);
+    startRef.current = Date.now();
   }, [gameInfo]);
 
   const currentGame = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
@@ -121,6 +128,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
       ? {
           game: "starting-five",
           matchup: {
+            gameId: currentGame.game_id,
             teamA: currentGame.team_a, teamB: currentGame.team_b,
             logoA: currentGame.team_a_logo, logoB: currentGame.team_b_logo,
             winner: currentGame.winning_team, score: currentGame.final_score, date: currentGame.game_date,
@@ -156,6 +164,13 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
       );
     }
 
+    guessLog.add({
+      question_id: currentGame.game_id,
+      answer: playerName.trim(),
+      correct: !!match,
+      elapsed_ms: Date.now() - startRef.current,
+    });
+
     if (match) {
       setCorrectGuesses((prev) => ({ ...prev, [posKey]: match.name }));
       setScore((prev) => prev + pointsPerCorrect);
@@ -163,6 +178,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
       setShowPointsAnimation(true);
 
       if (Object.keys(correctGuesses).length + 1 === 5) {
+        guessLog.flush();
         setTimeout(() => setShowPointsAnimation(false), 1500);
         // Win → in-place (Rule 7.3): the completed lineup stays in view while the
         // bottom slot runs loader → score.
@@ -181,6 +197,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
       setNumberLifes(newLifes);
 
       if (newLifes <= 0) {
+        guessLog.flush();
         // Build the full correct lineup, then reveal the still-unknown players
         // one after another, left → right.
         const revealAll: Record<string, string> = {};

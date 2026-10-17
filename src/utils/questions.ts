@@ -10,9 +10,10 @@ import type {
 } from "../types/types";
 import { normalizeAnswer } from "./answerMatch";
 import {
-  PICKERS, QUESTION_GAMES, fetchQuestion as fetchV3Question, fetchQuestionNames, getManifest as getV3Manifest,
-  hasQuestions, isConfigured as v3Configured, pickRandom,
+  QUESTION_GAMES, fetchQuestion as fetchV3Question, fetchQuestionNames, getManifest as getV3Manifest,
+  hasQuestions, isConfigured as v3Configured, pickQuestion,
 } from "./gameData";
+import { SEEN_GAMES, markSeen } from "./seenCore";
 
 export { hashStr, pickDaily, pickRandom, pickWeighted, utcToday } from "./gameData";
 
@@ -185,8 +186,9 @@ export async function fetchQuestion(game: string): Promise<FetchResult> {
     if (published) return { success: true, data: [published] };
     const index = await loadIndex(game);
     if (!index.items.length) return { success: false, error: { title: "No data available", message: "Please try again later." } };
-    const qid = (PICKERS[game] ?? pickRandom)(index);
+    const qid = pickQuestion(game, index);
     const q = await loadQuestion<Question>(game, qid);
+    if (SEEN_GAMES.has(game)) markSeen(game, [qid]);
     return { success: true, data: [q] };
   } catch {
     return UNAVAILABLE;

@@ -249,6 +249,28 @@
 .fb-sent-line { font-size: 14px; color: var(--muted); max-width: 300px; line-height: 1.5; margin: 0; }
 .fb-sent-btn { padding: 0 32px; }
 
+/* ---- Report a problem (modals/ReportQuestionModal): one row per question the game dealt ---- */
+.rq-list { display: flex; flex-direction: column; gap: 6px; }
+.rq-item {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid var(--line2);
+  border-radius: 10px;
+  background: var(--surface2);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background-color 0.3s ease, box-shadow 0.3s ease;
+}
+.rq-item:hover:not(:disabled) { border-color: var(--brand); }
+.rq-item:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.rq-item.is-picked { border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 1px var(--brand) inset; }
+.rq-item:disabled { cursor: not-allowed; }
+
 /* ---- Instructions ---- */
 .instr-stack { display: flex; flex-direction: column; gap: 16px; }
 .instr-intro { font-size: 14px; color: var(--text); line-height: 1.55; }

@@ -3,18 +3,24 @@ trivia.questions.fame). Rules moved from trivia/games/who_are_ya.py; the gate
 moved from fame_tier 1-2 to fame bands in question-factory phase 1 (the tier
 is a floor, so every tier 1-2 player stays eligible). TARGET None = every
 eligible player gets a question."""
-from trivia.questions import checker, fame
+from trivia.questions import checker, fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "who-are-ya"
-TARGET = None
-MINIMUM = 30
-MIN_FAME_BAND = fame.KNOWN
+_SPEC = specs.load(SLUG)  # specs/who-are-ya.json
+TARGET = _SPEC["refill"]["target"]
+MINIMUM = _SPEC["refill"]["minimum"]
+MIN_FAME_BAND = getattr(fame, _SPEC["eligibility"]["min_fame_band"])
 
 
 def _eligible(row):
     return fame.at_least(row, MIN_FAME_BAND) and bool(row.get("teams"))
+
+
+def capacity(dataset):
+    """Eligible players: one question each at most (trivia.questions.demand clamps to it)."""
+    return sum(1 for r in dataset.playable if _eligible(r))
 
 
 def generate(dataset, existing_hashes, rng, n):
@@ -57,6 +63,26 @@ SHOWN = ("player", "position", "birth_year", "jersey", "draft", "teams")  # WhoA
 def checker_view(materialized, dataset=None):
     profile = checker.player_profile(materialized["player"])
     return {"kind": SLUG, **{k: profile[k] for k in SHOWN}}
+
+
+def features(materialized, dataset):
+    """Normalization in trivia.questions.quality's docstring (1 = harder / more interesting)."""
+    p = materialized["player"]
+    clues = quality.distinct_clues(p, dataset) / len(quality.CLUES)
+    return {
+        "fame_band": quality.fame_hardness(p, MIN_FAME_BAND),
+        "era_age": quality.era_age(p, dataset),
+        "distinct_clues": 1 - clues,
+        "clues": clues,
+    }
+
+
+def coverage(materialized, dataset=None):
+    return quality.player_coverage(materialized["player"])
+
+
+def dup_key(definition, materialized):
+    return str(materialized["player"]["person_id"])
 
 
 def qid_for(definition, seq):

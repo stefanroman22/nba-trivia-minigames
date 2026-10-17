@@ -47,11 +47,72 @@ python manage.py sync_nba_data --max-games 20 --timeout 20
 python manage.py sync_nba_data --datasets playoff --season-list 1994-95,1995-96 --timeout 30
 ```
 
-## ⚠️ Must run from a residential IP
+## ⚠️ Cloud runs go through the relay
 
 `stats.nba.com` **blocks data-center IPs** (verified: GitHub Actions / Vercel /
-Railway all time out). So the *fetch* cannot run in the cloud — only the storing
-target (Supabase) and serving (Vercel) are cloud. The fetch runs on a home machine.
+Railway all time out). A direct fetch only works from a residential IP; anywhere
+else the fetch goes through **`nba-relay`**, a Cloudflare Worker on Stefan's free
+Cloudflare account (`infra/nba-relay/`, see its README). It forwards
+`GET <base>/stats/<endpoint>?<query>` to `https://stats.nba.com/stats/<endpoint>?<query>`
+and needs the header `X-Relay-Key`.
+
+- **Switch:** `backend/trivia/data_pipeline/relay.py`. Every network fetch in
+  `sources.py` calls `relay.configure()` first. With `NBA_RELAY_BASE` (the Worker URL,
+  `https://nba-relay.stefanroman.workers.dev`) and `NBA_RELAY_KEY` both set, `nba_api`'s
+  `NBAStatsHTTP` is pointed at `<base>/stats/{endpoint}` and sends the key; the log says
+  `nba_api routed through relay <base>`. With neither set, nothing changes and the fetch
+  goes straight to `stats.nba.com`. With only one set, the fetch raises `RuntimeError`
+  naming the missing variable instead of trying a direct call that would hang.
+- **`Host` caveat:** `nba_api` sends `Host: stats.nba.com`. Cloudflare routes by `Host` and
+  answers 403 before the Worker runs, so `configure()` drops that header when the relay is on.
+- **Where the secret lives:** the key is the Worker secret `RELAY_KEY` and the GitHub secret
+  `NBA_RELAY_KEY` (same value); the URL is the repo variable `NBA_RELAY_BASE`. Never commit the
+  key. Rotation steps are in `infra/nba-relay/README.md`.
+- **Running a refresh from CI:** give the job both values as environment variables, then run
+  the normal commands on a GitHub-hosted runner:
+
+  ```yaml
+  env:
+    NBA_RELAY_BASE: ${{ vars.NBA_RELAY_BASE }}
+    NBA_RELAY_KEY: ${{ secrets.NBA_RELAY_KEY }}
+  # then: python manage.py sync_nba_data ... / generate_players_curated ...
+  ```
+
+  Locally, leave both unset to call `stats.nba.com` directly from a home connection, or set
+  both to test the relay path.
+
+## Cloud refresh (`data-refresh.yml`)
+
+The monthly refresh as a GitHub Actions workflow, through the relay, so no PC is needed
+(spec §4.13). Jobs: **sync** (`sync_nba_data --seasons 2 --max-games 20 --timeout 25 --journal`,
+journaled as `FactoryRun` kind `refresh`; any dataset failure fails the run and the job, and the
+nightly `factory_health` reports `refresh_failed`) → **curated** (`generate_players_curated
+--rewrite-all-players`, built with the workflow's own code; raw cache restored from this month's
+workflow cache and also kept 7 days as the `nba-raw-cache` artifact) → **validate**
+(`curated_validate.py`, parity included, also the workflow's own code) → **land** (the only job
+that checks out `dev`; PR `Data refresh <date>` from `refresh-pr/<date>` to `dev` with
+`players_curated.json` + `all-players.json`, merged at once; then `upload_dataset`, only once the
+PR is merged — an unmerged PR skips the upload and posts to Slack) → **supply**
+(`publish-game-data.yml` with `trigger=data-refresh`, from `main` only). A failure in curated or
+validate posts one line to Slack `#agent-backend`; nothing is committed or uploaded before
+validation passes, so the previous dataset stays.
+
+- **Supply publishes every game** (no `games=`, the same as the PC task did): the sync refreshed the
+  DB tables behind the pool games (playoff series, MVPs, starting five, teams, players) as well as
+  the data the question games are built from, so all of them are rebuilt. Publishing uploads only
+  what changed, and question games still go through maintenance and the Checker.
+- **Triggers:** the 1st of each month 01:00 UTC; Run workflow (inputs `limit`, `full` for a
+  `--full` backfill); a push to any `refresh/**` branch, so a change can be tried before promotion.
+  **Warning:** a push to a `refresh/**` branch that is not `refresh/test-*` is a **FULL** run: it
+  syncs the DB, merges the dataset PR into `dev` and uploads to Storage (only supply is skipped off
+  `main`). Use `refresh/test-<something>` for a trial.
+- **Smoke mode:** a push to `refresh/test-*` (25 players) or a dispatch with `limit` > 0. Sync takes
+  one season and 5 games per season, curated writes the first N players to `build/` (artifact
+  `refresh-dataset`), validation is reported only (not enforced), and a **draft** PR
+  `[test] data refresh <date>` from `refresh-pr/<date>-test` is opened and never merged (close it).
+  No `upload_dataset`, no supply.
+- **Re-run:** "Re-run failed jobs" (or a new dispatch the same month) resumes the curated step from
+  the cached profiles; a new month starts from an empty cache so every player is fetched fresh.
 
 ## How it's served (two paths, both fed by the store)
 
@@ -71,6 +132,12 @@ those to the `all-players` spelling. Both run in `build_pools_from_db`,
 is re-cleaned automatically; the store keeps the raw rows either way.
 
 ## The schedule (autonomous)
+
+**The monthly refresh runs in the cloud** (`data-refresh.yml`, above); the PC is not required for
+any data refresh. The Windows task **"NBA Data Refresh"** was **disabled on 2026-10-16**
+(`schtasks /Change /TN "NBA Data Refresh" /DISABLE`). It is kept, not deleted, as a manual
+fallback: `schtasks /Change /TN "NBA Data Refresh" /ENABLE` turns it back on. What follows
+describes that fallback.
 
 Windows Task **"NBA Data Refresh"** runs `backend/scripts/refresh_nba_data.cmd`
 monthly (1st, 04:00). It: sync → `upload_dataset` → `gh workflow run
@@ -96,10 +163,11 @@ schtasks /Delete /TN "NBA Data Refresh" /F
 
 ## Monitoring
 
-- `backend/scripts/last_refresh.log` — transcript of the latest run.
-- `SyncRun` table — one row per dataset per run (status/rows/error). The task
-  only requires the PC to be on at run time (Task Scheduler runs a missed job at
-  next logon). For pure-cloud scheduling you'd need a residential proxy (paid).
+- Actions → **Data refresh** — the run summary and the Slack line in `#agent-backend` on a
+  curated/validate/land failure; the `FactoryRun` (kind `refresh`) journal, and the nightly
+  `factory_health` reports `refresh_failed`.
+- `SyncRun` table — one row per dataset per run (status/rows/error).
+- `backend/scripts/last_refresh.log` — transcript of the latest run of the PC fallback only.
 
 ## Cloudflare R2 (second data-host target)
 

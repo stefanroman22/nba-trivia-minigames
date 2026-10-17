@@ -67,7 +67,7 @@ so the captured network data holds the whole pool, not the five rounds. Each ada
 `/data/<key>.json` in dev (`VITE_DATA_BASE` unset), the manifest-v3 host in prod (`.env.production`
 `VITE_DATA_BASE`: schema-3 `manifest.json`, chunk/single files, lookups expanded like `gameData.ts expand()`).
 `ctx.fiber` (`fiberRound(ctx, prop)`: the renderer's own props + hook 0) is the fallback, accepted only when the fiber row
-is the one on screen (name-logo checks the logo, guess-mvps the season, series-winner the team pair); neither → a
+is the one on screen (name-logo checks the logo, guess-mvps the season and prompt, series-winner the team pair); neither → a
 `no-truth` violation and a failed test (never a guess). Adapters reach the pool through `ctx.pool(key)` only. No `Math.random` seeding is used. Each test records the
 `answer source` note metric (`{"cap":5,"fiber":0}` in every run so far).
 
@@ -75,7 +75,7 @@ is the one on screen (name-logo checks the logo, guess-mvps the season, series-w
 |---|---|---|---|---|
 | series-winner | `playoff` (v3: chunks + `teams` lookup) | eyebrow `<round> · <season>` + both team names (sides swap per round: unordered pair) | `winner` | the other team |
 | name-logo | `name-logo` | puzzle `img` src `/logos/scrambled/<team_id>.webp` (else the row's `logo`) | `full_name` | another franchise from the pool |
-| guess-mvps | `mvps` | eyebrow (season; one row per season) | `mvp` | another season's MVP |
+| guess-mvps | `mvps` | eyebrow + title (season + the row's prompt; one row per season and award, old files one per season) | `mvp` (the first winner) | another row's winner, never a co-winner |
 | who-would-win | (none; tallies from `/trivia/who-would-win/tally/`) | `MATCHUP n/10` + card labels | no right answer | — (Skip) |
 | starting-five | `starting-five` (one game per play) | scoreboard: both team names + final score (+ date) | the lineup player of the first empty card's position family (G / F / C) | a player from another game's lineup, in nobody's normalised lineup, never repeated |
 | fan-favorites | `fan-favorites` | the prompt (`.gf-title`) + slot count | the first unrevealed answer's canonical text (an alias if another answer claims it under `answerMatch.ts`) | an answer or alias of another survey that `matchAnswer` finds on no slot of this board, never repeated |

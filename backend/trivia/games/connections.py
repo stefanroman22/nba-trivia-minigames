@@ -37,8 +37,13 @@ def get_round(request):
 
 
 def build_pool():
-    """Static pool for build_pools_from_db (seed list; [] when missing)."""
-    return _load_seed()
+    """Static pool for build_pools_from_db: the active connections questions
+    (trivia.questions.games.connections), or the seed list until they are imported
+    ([] when missing)."""
+    from trivia.questions.runner import pool_rows
+
+    rows = pool_rows("connections")
+    return rows if rows is not None else _load_seed()
 
 
 def validate_rows(rows):

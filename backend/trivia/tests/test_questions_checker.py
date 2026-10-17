@@ -64,7 +64,8 @@ class CheckerViewTests(SimpleTestCase):
         m = self._materialized(contexto, today=datetime.date(2026, 9, 12))
         view = contexto.checker_view(m, self.ds)
         profile = checker.player_profile(m["secret"])
-        self.assertEqual(view, {"kind": "contexto", **{k: profile[k] for k in ("player", "position", "draft", "teams")}})
+        self.assertEqual(view, {"kind": "contexto", **{k: profile[k] for k in ("player", "position", "draft", "teams")},
+                                "sim_version": 2})
 
     def test_tictactoe_cells_are_ordered_by_fame_and_the_view_samples_the_first_three(self):
         m = self._materialized(tictactoe)

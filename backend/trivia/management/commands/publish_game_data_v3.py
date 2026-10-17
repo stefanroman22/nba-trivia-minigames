@@ -17,6 +17,14 @@ build: a build failure rolls the maintenance back and writes nothing. A game
 below its minimum is held back instead (its own writes rolled back, left out of
 the publish so its live entry carries over) and reported as held_back=<games> in
 $GITHUB_OUTPUT.
+
+The editorial pool games (publish_v3.EDITORIAL_GAMES: fan-favorites and who-would-win here)
+get the same maintenance in the same transaction, so a board whose checker view changed
+with the data goes back to pending for the Checker and drops out of the pool their builders
+then read, and one below its minimum is held back instead of failing the publish. Rule:
+an editorial game is maintained only once it has at least one Question row; before the
+seed import (import_editorial_seeds) it is not maintained and its builder keeps serving
+the seed (Fan Favorites: the FanFavoritesQuestion boards), as before.
 ``--skip-maintain`` publishes the current active questions instead (read-only).
 ``--no-commit`` writes the folder but rolls the DB writes back (workflow dry runs).
 
@@ -40,7 +48,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from trivia.data_pipeline import publish_v3
-from trivia.models import FactoryRun
+from trivia.models import FactoryRun, Question
 from trivia.questions import fame, runner
 from trivia.questions.journal import Journal
 
@@ -96,7 +104,9 @@ class Command(BaseCommand):
         if unknown:
             raise CommandError(f"Publish aborted, nothing written: unknown game(s): {', '.join(unknown)} "
                                f"(known: {', '.join(publish_v3.SPECS)})")
-        to_maintain = [] if opts["skip_maintain"] else [g for g in games if g in publish_v3.QUESTION_GAMES]
+        to_maintain = [] if opts["skip_maintain"] else [
+            g for g in games if g in publish_v3.QUESTION_GAMES
+            or (g in publish_v3.EDITORIAL_GAMES and Question.objects.filter(game=g).exists())]
         rollback = opts["dry_run"] or opts["no_commit"]
         journal = Journal("supply", trigger="dry-run" if rollback else opts["trigger"])
         status = FactoryRun.STATUS_FAILED
@@ -122,7 +132,8 @@ class Command(BaseCommand):
                         self.stdout.write(self.style.WARNING(
                             f"  warning: {slug} held back at its live version: {stats[slug]['held_back']}"))
                 builds = publish_v3.build_games(
-                    games, publish_v3.default_builders(maintained=maintained, dataset=dataset))
+                    games, publish_v3.default_builders(maintained=maintained, dataset=dataset,
+                                                       out=self.stdout.write))
                 if rollback:
                     transaction.set_rollback(True)
                     self.stdout.write("  DB writes of this run rolled back (--dry-run / --no-commit)")

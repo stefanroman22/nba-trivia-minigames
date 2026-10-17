@@ -8,19 +8,24 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from django.db.models import Q
 from django.utils import timezone
 
-from trivia.models import Feedback, GameSession, GuessLog
+from trivia.models import Feedback, GameSession, GuessLog, QuestionReport, RollupWatermark
+from trivia.questions.rollup import GUESS_LOG
 from users.models import ModerationEvent
 
 # Per-guess answers feed question statistics; the per-game score history backs a player's own record.
-GUESS_LOG_DAYS = 365
+# An answer is deleted only once the nightly roll-up has counted it (id at or below its watermark).
+GUESS_LOG_DAYS = 30
 GAME_SESSION_DAYS = 730
 # Moderation events (including the hashed-IP signup locks) outlive their purpose quickly. Events
 # belonging to an account that is STILL banned are kept for as long as the ban stands.
 MODERATION_EVENT_DAYS = 365
 # Feedback that has been dealt with. Unresolved feedback stays until someone handles it.
 RESOLVED_FEEDBACK_DAYS = 365
+# Problem reports about a question: kept until handled, at most 12 months.
+QUESTION_REPORT_DAYS = 365
 # The Privacy Policy promises a ban record is never kept longer than five years after the ban.
 BAN_RECORD_DAYS = 365 * 5
 
@@ -40,15 +45,21 @@ def prune_personal_data(now=None):
     expired_ban_count = expired_bans.count()
     expired_bans.delete()
 
+    counted_up_to = RollupWatermark.objects.filter(name=GUESS_LOG).values_list("last_id", flat=True).first() or 0
+
     return {
         "expired_ban_records": expired_ban_count,
-        "guess_logs": GuessLog.objects.filter(created_at__lt=before(GUESS_LOG_DAYS)).delete()[0],
+        "guess_logs": GuessLog.objects.filter(created_at__lt=before(GUESS_LOG_DAYS), id__lte=counted_up_to)
+        .delete()[0],
         "game_sessions": GameSession.objects.filter(finished_at__lt=before(GAME_SESSION_DAYS)).delete()[0],
         "moderation_events": ModerationEvent.objects.filter(created_at__lt=before(MODERATION_EVENT_DAYS))
         .exclude(public_id__in=list(banned_public_ids))
         .delete()[0],
         "resolved_feedback": Feedback.objects.filter(
             status=Feedback.RESOLVED, created_at__lt=before(RESOLVED_FEEDBACK_DAYS)
+        ).delete()[0],
+        "question_reports": QuestionReport.objects.filter(
+            Q(status=QuestionReport.HANDLED) | Q(created_at__lt=before(QUESTION_REPORT_DAYS))
         ).delete()[0],
     }
 

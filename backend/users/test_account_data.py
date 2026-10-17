@@ -8,7 +8,7 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
 
-from trivia.models import Feedback, GameSession, GuessLog, WordlePlay
+from trivia.models import Feedback, GameSession, GuessLog, SeenQuestion, WordlePlay
 from users import consent
 from users.models import BlockedUser, FriendRequest, Friendship, ModerationEvent
 from users.tests import GOOGLE_ID, google, login, signup
@@ -170,6 +170,7 @@ class AccountDeletionTests(TestCase):
         GameSession.objects.create(user=self.ann, game="wordle", score=50)
         GuessLog.objects.create(user=self.ann, game="wordle", answer="lebron")
         WordlePlay.objects.create(user=self.ann, play_date=date.today())
+        SeenQuestion.objects.create(user=self.ann, game="career-path", qid="cp-1")
         Feedback.objects.create(user=self.ann, email=self.ann.email, display_name="Ann", public_id=self.ann.public_id, rating=5, message="hi")
         ModerationEvent.objects.create(user=self.ann, public_id=self.ann.public_id, kind="name_change", tier="mild", reason="blocked")
 
@@ -192,6 +193,7 @@ class AccountDeletionTests(TestCase):
         self.assertEqual((resp.status_code, resp.json()["status"]), (200, "deleted"))
         self.assertFalse(User.objects.filter(email="ann@example.com").exists())
         self.assertFalse(GameSession.objects.exists() or GuessLog.objects.exists() or WordlePlay.objects.exists())
+        self.assertFalse(SeenQuestion.objects.exists())
         self.assertFalse(Feedback.objects.exists())
         self.assertFalse(ModerationEvent.objects.filter(public_id=pid).exists())
         self.assertFalse(Friendship.objects.exists() or BlockedUser.objects.exists() or FriendRequest.objects.exists())
@@ -243,6 +245,7 @@ class AccountDeletionTests(TestCase):
         self.assertEqual(kept.canonical_email, "ann@example.com")  # still blocks re-registration
         self.assertTrue(strikes.email_is_banned("ann@example.com"))
         self.assertFalse(GameSession.objects.exists() or Feedback.objects.exists() or Friendship.objects.exists())
+        self.assertFalse(SeenQuestion.objects.exists())
         self.assertIsNone(kept.last_login)
         self.assertEqual((kept.terms_version, kept.age_group), ("", ""))
         self.assertEqual(
@@ -271,6 +274,8 @@ class AccountExportTests(TestCase):
         Friendship.objects.create(user_low=low, user_high=high)
         GameSession.objects.create(user=self.ann, game="wordle", score=50)
         GuessLog.objects.create(user=self.ann, game="wordle", answer="lebron", correct=True)
+        SeenQuestion.objects.create(user=self.ann, game="career-path", qid="cp-1")
+        SeenQuestion.objects.create(user=self.bob, game="career-path", qid="cp-2")  # someone else's
         GameSession.objects.create(user=self.bob, game="wordle", score=99)  # someone else's
 
         resp = self.export()
@@ -283,6 +288,7 @@ class AccountExportTests(TestCase):
         self.assertEqual([s["score"] for s in data["game_sessions"]], [50])
         self.assertEqual(data["guesses"][0]["answer"], "lebron")
         self.assertIn("at", data["guesses"][0])
+        self.assertEqual([(s["game"], s["qid"]) for s in data["seen_questions"]], [("career-path", "cp-1")])
         self.assertIn("canonical_email", data["account"])
         self.assertIsNone(data["account"]["last_active_day"])
         self.assertEqual(data["account"]["streak_freezes"], 1)

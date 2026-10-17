@@ -1,14 +1,31 @@
-import type { FetchResult, GameData } from "../types/types";
-import { POOL_GAMES, fetchGameRows, fetchNames, isConfigured } from "./gameData";
+import type { FetchResult, GameData, MvpSeason } from "../types/types";
+import { awardQuestionId } from "./awardSeasons";
+import { POOL_GAMES, fetchGameRows, fetchNames, isConfigured, type SeenPool } from "./gameData";
+import { dealUnseen } from "./seenCore";
 
 // Game pools are served as static JSON from the same origin: the build copies
-// backend/trivia/data into the deployment, served by the CDN at /data/. The five
+// backend/trivia/data into the deployment, served by the CDN at /data/. The six
 // POOL_GAMES (and the "all-players" autocomplete names) are read from the manifest-v3
 // data host in VITE_DATA_BASE instead (utils/gameData.ts) whenever it answers; this
 // bundled copy is their fallback and stays the only source for every other pool.
 const DATA_BASE = "/data";
 
 const warnedFallback = new Set<string>();
+
+const idField = (key: string) => (row: GameData) => String((row as unknown as Record<string, unknown>)[key]);
+
+/**
+ * Pool games dealt without repeats (utils/seenCore.ts), by pool key: the MiniGame game id the seen
+ * set is kept under and the question id the game logs. The hidden pool games are not listed.
+ */
+const SEEN_POOLS: Record<string, SeenPool> = {
+  playoff: { game: "series-winner", idOf: idField("match_id") },
+  "name-logo": { game: "name-logo", idOf: idField("team_id") },
+  mvps: { game: "guess-mvps", idOf: (row) => awardQuestionId(row as MvpSeason) },
+  "starting-five": { game: "starting-five", idOf: idField("game_id") },
+  "fan-favorites": { game: "fan-favorites", idOf: idField("qid") },
+  "who-would-win": { game: "who-would-win", idOf: idField("qid") },
+};
 
 /**
  * Rows from the v3 data host, or null to use the bundled copy. `rounds` undefined = whole pool.
@@ -21,7 +38,7 @@ async function v3Rows(gameKey: string, rounds?: number): Promise<GameData[] | nu
     const rows =
       gameKey === "all-players"
         ? ((await fetchNames()) as unknown as GameData[])
-        : await fetchGameRows(gameKey, rounds);
+        : await fetchGameRows(gameKey, rounds, Math.random, rounds == null ? undefined : SEEN_POOLS[gameKey]);
     return rows.length ? rows : null;
   } catch (err) {
     if (!warnedFallback.has(gameKey)) {
@@ -146,7 +163,8 @@ export function sampleN<T>(pool: T[], n: number): T[] {
 
 /**
  * Fetch a game's whole pool once (cached in memory + localStorage, keyed by the
- * data version from the static /data/manifest.json) and sample `rounds` items locally.
+ * data version from the static /data/manifest.json) and sample `rounds` items locally
+ * (SEEN_POOLS games: unseen ones first, no repeats until the pool is exhausted).
  * The pool is served from the CDN, so each play needs no network round-trip.
  */
 export async function fetchGamePool(
@@ -163,7 +181,8 @@ export async function fetchGamePool(
         error: { title: "No data available", message: "Please try again later." },
       };
     }
-    return { success: true, data: sampleN(pool, rounds) };
+    const seen = SEEN_POOLS[gameKey];
+    return { success: true, data: seen ? dealUnseen(seen.game, pool, rounds, seen.idOf) : sampleN(pool, rounds) };
   } catch {
     return {
       success: false,

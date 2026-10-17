@@ -7,7 +7,7 @@ from django.conf import settings
 from django.db.models.functions import Length
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 
 from trivia.models import (
@@ -18,10 +18,19 @@ from trivia.models import (
     Mvp,
     Player,
     PlayoffSeries,
+    QuestionReport,
+    SeenQuestion,
     StartingFiveGame,
     Team,
 )
-from backend.throttles import FeedbackRateThrottle, GuessLogRateThrottle, ScoreSubmitRateThrottle, WordlePlayRateThrottle
+from backend.throttles import (
+    FeedbackRateThrottle,
+    GuessLogRateThrottle,
+    ReportRateThrottle,
+    ScoreSubmitRateThrottle,
+    SeenRateThrottle,
+    WordlePlayRateThrottle,
+)
 from trivia.data_pipeline.live_pool import load_dataset as load_curated_dataset
 from trivia.data_pipeline.starting_five import (
     canonical_lineup_names,
@@ -346,6 +355,75 @@ def log_session(request):
         })
 
     return JsonResponse({'ok': True, **awarding.award(user, game, mode, score, duration)})
+
+
+# One game's seen set is a few KB at this size; a batch is one game's worth of questions.
+_MAX_SEEN_LISTED = 5000
+_MAX_SEEN_BATCH = 200
+
+
+def _seen_key(value, max_length):
+    """A game name or qid as stored: a non-empty string that fits its column, no NUL (Postgres refuses it)."""
+    return isinstance(value, str) and 0 < len(value) <= max_length and "\x00" not in value
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def seen_list(request, game):
+    """The questions of `game` this account has already been shown, newest first (spec §4.4).
+    Fetched once when a game starts and merged into the browser's own seen set."""
+    qids = SeenQuestion.objects.filter(user=request.user, game=game).order_by(
+        '-seen_at', '-id').values_list('qid', flat=True)[:_MAX_SEEN_LISTED]
+    return JsonResponse({'qids': list(qids)})
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+@throttle_classes([SeenRateThrottle])
+def seen_add(request):
+    """POST {game, qids}: record the questions shown in a finished game, one batch per game.
+    Ids past the first 200 are ignored; ids already recorded are skipped. A malformed game or
+    id is refused whole (400) rather than stored under a wrong key."""
+    body = request.data if isinstance(request.data, dict) else {}
+    game = body.get('game')
+    qids = body.get('qids')
+    if not _seen_key(game, 40) or not isinstance(qids, list):
+        return JsonResponse({'error': 'game and qids are required'}, status=400)
+    batch = qids[:_MAX_SEEN_BATCH]
+    if not all(_seen_key(q, 60) for q in batch):
+        return JsonResponse({'error': 'each qid must be a non-empty string of at most 60 characters'}, status=400)
+    wanted = list(dict.fromkeys(batch))
+    known = set(SeenQuestion.objects.filter(user=request.user, game=game, qid__in=wanted).values_list('qid', flat=True))
+    rows = [SeenQuestion(user=request.user, game=game, qid=q) for q in wanted if q not in known]
+    if rows:
+        SeenQuestion.objects.bulk_create(rows, ignore_conflicts=True)
+    return JsonResponse({'added': len(rows)})
+
+
+_MAX_REPORT_NOTE = 500
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([ReportRateThrottle])
+def report_question(request):
+    """POST {game, question_id, note?}: a player's "Report a problem" on one question they were dealt.
+    Guests report anonymously. A malformed field is refused whole (400), like the seen endpoint."""
+    body = request.data if isinstance(request.data, dict) else {}
+    game = body.get('game')
+    question_id = body.get('question_id')
+    note = body.get('note', '')
+    if not _seen_key(game, 40) or not _seen_key(question_id, 60):
+        return JsonResponse({'error': 'game and question_id are required'}, status=400)
+    if not isinstance(note, str) or len(note) > _MAX_REPORT_NOTE or "\x00" in note:
+        return JsonResponse({'error': f'note must be text of at most {_MAX_REPORT_NOTE} characters'}, status=400)
+    QuestionReport.objects.create(
+        user=request.user if request.user.is_authenticated else None,
+        game=game,
+        question_id=question_id,
+        note=note.strip(),
+    )
+    return JsonResponse({'ok': True})
 
 
 User = get_user_model()

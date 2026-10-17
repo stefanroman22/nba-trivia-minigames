@@ -2,16 +2,17 @@
 weighted toward KNOWN/DEEP players over stars. Rules moved from
 trivia/games/career_path.py; the fame gate was added in question-factory phase 1
 (players nobody can name are no longer eligible)."""
-from trivia.questions import checker, fame
+from trivia.questions import checker, fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
 
 SLUG = "career-path"
+_SPEC = specs.load(SLUG)  # specs/career-path.json
 # 2026-09-30: raised from 300 (expand-question-pools); eligible pool comfortably larger, see docs/team/designs/2026-09-30-expand-question-pools.md
-TARGET = 500
-MINIMUM = 50
-MIN_STINTS, MAX_STINTS = 3, 7
-MIN_FAME_BAND = fame.DEEP
+TARGET = _SPEC["refill"]["target"]
+MINIMUM = _SPEC["refill"]["minimum"]
+MIN_STINTS, MAX_STINTS = _SPEC["eligibility"]["min_stints"], _SPEC["eligibility"]["max_stints"]
+MIN_FAME_BAND = getattr(fame, _SPEC["eligibility"]["min_fame_band"])
 
 
 def _eligible(row):
@@ -20,6 +21,11 @@ def _eligible(row):
 
 def _weight(row):
     return 3 if fame.fame_band(row) in (fame.KNOWN, fame.DEEP) else 1
+
+
+def capacity(dataset):
+    """Eligible journeymen: one question each at most (trivia.questions.demand clamps to it)."""
+    return sum(1 for r in dataset.playable if _eligible(r))
 
 
 def generate(dataset, existing_hashes, rng, n):
@@ -70,6 +76,27 @@ def checker_view(materialized, dataset=None):
     profile = checker.player_profile(p)
     cards = [f"{label}, GP {s.get('gp')}, PPG {s.get('ppg')}" for label, s in zip(profile["teams"], p.get("teams") or [])]
     return {"kind": SLUG, "player": p["full_name"], "draft": profile["draft"], "teams": cards}
+
+
+def features(materialized, dataset=None):
+    """Normalization in trivia.questions.quality's docstring (1 = harder / more interesting)."""
+    p = materialized["player"]
+    n = len(p.get("teams") or [])
+    memorable = quality.memorable_count(p)
+    return {
+        "fame_band": quality.fame_hardness(p, MIN_FAME_BAND),
+        "stint_count": quality._clamp((MAX_STINTS - n) / (MAX_STINTS - MIN_STINTS)),
+        "memorable_stop": 1 - memorable / n if n else 1.0,
+        "memorable": min(memorable / 2, 1.0),
+    }
+
+
+def coverage(materialized, dataset=None):
+    return quality.player_coverage(materialized["player"])
+
+
+def dup_key(definition, materialized):
+    return str(materialized["player"]["person_id"])
 
 
 def qid_for(definition, seq):

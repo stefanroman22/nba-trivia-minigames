@@ -6,6 +6,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import TeamCrest from "../components/ui/TeamCrest";
 import SwapText from "../components/motion/SwapText";
 import { GameFrame } from "../components/ui";
+import { createGuessLogger } from "../utils/guessLog";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
 import type { TeamColor } from "../constants/nbaTeamColors";
 
@@ -36,10 +37,16 @@ function PlayOffSeries({
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Each round's pick, for the answer review handed back with the score.
   const picksRef = useRef<(string | null)[]>([]);
+  // Every answer, sent to the guess log on game end / unmount; the clock restarts each round.
+  const [guessLog] = useState(() => createGuessLogger("series-winner"));
+  const roundStartRef = useRef(Date.now());
+
+  useEffect(() => { roundStartRef.current = Date.now(); }, [currentIndex]);
 
   useEffect(() => () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-  }, []);
+    guessLog.flush();
+  }, [guessLog]);
 
   const handlePickWinner = (picked: string) => {
     if (showWinner) return;
@@ -48,6 +55,13 @@ function PlayOffSeries({
     picksRef.current[currentIndex] = picked;
 
     const isCorrect = picked === currentSeries.winner;
+    guessLog.add({
+      question_id: currentSeries.match_id,
+      answer: picked,
+      correct: isCorrect,
+      elapsed_ms: Date.now() - roundStartRef.current,
+    });
+    if (currentIndex === seriesList.length - 1) guessLog.flush();
     if (isCorrect) {
       setScore((prev) => prev + pointsPerCorrect);
     }
@@ -62,6 +76,7 @@ function PlayOffSeries({
           review: {
             game: "series-winner",
             rounds: seriesList.map((s, i) => ({
+              matchId: s.match_id,
               label: `${s.round} · ${s.season}`,
               teams: [
                 { name: s.team_a, logo: s.team_a_logo, wins: s.team_a_wins },

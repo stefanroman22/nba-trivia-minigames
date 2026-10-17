@@ -46,7 +46,7 @@ class ContextoQuestionTests(SimpleTestCase):
         self.assertEqual(m["ranking"][0], [d["secret_person_id"], 1])
         self.assertEqual(len(m["ranking"]), len(ds.playable))
         self.assertEqual(ctx.validate(m), [])
-        self.assertEqual(ctx.index_item(d, m), [None, d["day"]])
+        self.assertEqual(ctx.index_item(d, m), [None, d["day"], 2])  # new days are similarity v2
         self.assertEqual(ctx.qid_for(d, 0), "ctx-2026-09-12")
 
     def test_materialize_rejects_an_obscure_secret(self):

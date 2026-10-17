@@ -5,6 +5,7 @@ import ScorePanel from '../components/ScorePanel';
 import SubmitGuessPopup from '../components/SubmitGuessPopUp';
 import SwapText from '../components/motion/SwapText';
 import { GameFrame } from '../components/ui';
+import { createGuessLogger } from '../utils/guessLog';
 import type { OnGameEnd } from '../types/types';
 import { WORDLE_MAX_GUESSES as MAX_GUESSES, wordlePoints } from '../utils/gameScoring';
 
@@ -28,7 +29,8 @@ interface WordleProps {
   /** Closes the game and returns to idle — the in-place ScorePanel's "Close game".
    *  No "Play again": Wordle is once per day. */
   onClose?: () => void;
-  /** Online round: 200-point scale (no daily lock online). */
+  /** Online round: 200-point scale (no daily lock online). The word is a random surname, not the
+   *  daily word, so nothing is logged. */
   multiplayer?: boolean;
 }
 
@@ -42,18 +44,23 @@ function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
   const endTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Every guess, sent to the guess log on game end / unmount; timed from when the puzzle is shown.
+  const [guessLog] = useState(() => createGuessLogger("wordle"));
+  const startRef = useRef(Date.now());
 
   // Unmount (Close game before the end lands): never fire a stale onGameEnd for an
   // abandoned game. endTimerRef always holds whichever end step is still pending.
   useEffect(() => () => {
     if (endTimerRef.current) clearTimeout(endTimerRef.current);
-  }, []);
+    guessLog.flush();
+  }, [guessLog]);
 
   // Ends in place (Rule 7.3): the tile board stays. The keyboard stays up until the
   // last row has finished flipping, then gives way to a short loader and the
   // ScorePanel, and the status label reveals the answer.
   const endGame = useCallback((points: number, won: boolean, played: string[]) => {
     lockedRef.current = true;
+    guessLog.flush();
     endTimerRef.current = setTimeout(() => {
       setBottomPhase("loader");
       endTimerRef.current = setTimeout(() => {
@@ -63,13 +70,14 @@ function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
         setBottomPhase("score");
       }, LOADER_MS);
     }, ROW_LANDED_MS);
-  }, [onGameEnd, solution]);
+  }, [onGameEnd, solution, guessLog]);
 
   // Initialize solution (guarded against empty payloads)
   useEffect(() => {
     const word = gameInfo?.[0];
     if (!word) return;
     setSolution(String(word).toUpperCase());
+    startRef.current = Date.now();
   }, [gameInfo]);
 
   const submitGuess = useCallback(() => {
@@ -90,6 +98,12 @@ function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
     });
 
     const solved = currentGuess === solution;
+    if (!multiplayer) guessLog.add({
+      question_id: solution,
+      answer: currentGuess,
+      correct: solved,
+      elapsed_ms: Date.now() - startRef.current,
+    });
     const played = nextGuesses.filter((g): g is string => g !== null);
     if (solved) {
       const points = wordlePoints(firstNullIndex, !!multiplayer);
@@ -101,7 +115,7 @@ function Wordle({ gameInfo, onGameEnd, onClose, multiplayer }: WordleProps) {
     }
 
     setCurrentGuess('');
-  }, [currentGuess, guesses, solution, endGame, multiplayer]);
+  }, [currentGuess, guesses, solution, endGame, guessLog, multiplayer]);
 
   // Central key handler — drives both the on-screen keyboard and physical keys.
   const handleKey = useCallback((key: string) => {

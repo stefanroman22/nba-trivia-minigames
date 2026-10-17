@@ -17,8 +17,11 @@ import type { AppDispatch } from '../../store';
 import { applyAward, type AwardReceipt } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
 import type { Game, GameData } from '../../types/types';
+import type { AnswerReview } from '../../types/review';
+import { reviewRounds } from '../../utils/reviewRounds';
 import { apiFetch, getAccessToken } from '../../utils/Api';
 import { addGuestPoints } from '../../utils/guestPoints';
+import { flushSeenToServer, syncSeenFromServer } from '../../utils/seen';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { AutoSize } from '../../components/motion/AutoHeight';
@@ -59,8 +62,10 @@ function MiniGame() {
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   // An in-place game (answers stay on screen) has ended: its ScorePanel now owns
-  // the only "Close game", so the shell's leave link is hidden (one per screen).
+  // the only "Close game", so the shell's leave link becomes "Report a problem" or is hidden (one per screen).
   const [endedInPlace, setEndedInPlace] = useState(false);
+  // The finished game's answer review: which questions it dealt, for "Report a problem".
+  const [review, setReview] = useState<AnswerReview | undefined>(undefined);
   // The shell feedback slot node (in .playing-wrap, above Exit) that every game's
   // "Correct! +10" popup portals into — one consistent spot across all games.
   const [feedbackSlot, setFeedbackSlot] = useState<HTMLDivElement | null>(null);
@@ -146,10 +151,14 @@ function MiniGame() {
     setScore(0);
     setShowResult(false);
     setEndedInPlace(false);
+    setReview(undefined);
     awardedRef.current = false;
     runIdRef.current += 1;
+    // The account's seen set (signed in): fetched during the warm-up, waited on for at most 1.5 s.
+    const seenSync = syncSeenFromServer(game.id);
     setTimeout(async () => {
       if (!game) return;
+      await seenSync;
       const result = await game.fetchData();
       if (result.success) {
         setGameData(result.data ?? []);
@@ -167,6 +176,7 @@ function MiniGame() {
     setScore(0);
     setShowResult(false);
     setEndedInPlace(false);
+    setReview(undefined);
   };
 
   const handleExit = () => {
@@ -174,6 +184,7 @@ function MiniGame() {
     setGameStarted(false);
     setLoading(false);
     setEndedInPlace(false);
+    setReview(undefined);
   };
 
   useEffect(() => {
@@ -183,6 +194,7 @@ function MiniGame() {
     setScore(0);
     setShowResult(false);
     setEndedInPlace(false);
+    setReview(undefined);
     awardedRef.current = false;
     runIdRef.current += 1;
   }, [gameId]);
@@ -273,6 +285,11 @@ function MiniGame() {
     return () => clearInterval(id);
   }, [wordleLocked]);
 
+  // "Report a problem" (shell-owned, both end paths): the questions this game dealt, if any carry an id.
+  const reportRounds = reviewRounds(review);
+  const reportable = !!game && reportRounds.length > 0;
+  const openReport = () => { if (game) open("reportQuestion", { game: game.id, rounds: reportRounds }); };
+
   const renderStage = () => {
     switch (stage) {
       case "idle":
@@ -328,10 +345,13 @@ function MiniGame() {
                 gameId: game?.id,
                 gameData,
                 pointsPerCorrect: game?.pointsPerCorrect,
-                onGameEnd: (finalScore: number, opts?: { inPlace?: boolean }) => {
+                onGameEnd: (finalScore: number, opts?: { inPlace?: boolean; review?: AnswerReview }) => {
                   setScore(finalScore);
+                  setReview(opts?.review);
                   // Fire-and-forget: the reveal doesn't wait for the award.
                   void awardPoints(finalScore);
+                  // The questions dealt this game, one batched request to the account.
+                  if (game) flushSeenToServer(game.id);
                   if (opts?.inPlace) setEndedInPlace(true);
                   else setShowResult(true);
                 },
@@ -343,15 +363,20 @@ function MiniGame() {
                 shows in one consistent spot in the gap above the leave link for every game.
                 Hidden once an in-place game ends: the ScorePanel buttons take this spot (Rule 6.4). */}
             <div className={`feedback-slot${endedInPlace ? " is-ended" : ""}`} ref={setFeedbackSlot} aria-hidden="true" />
-            {/* The one leave control while playing. Once an in-place game ends, its
-                ScorePanel shows Play again + Close game, so this link goes invisible
-                (visibility, not unmount: it keeps its box so the board doesn't shift). */}
-            <button className={`exit-link${endedInPlace ? " is-ended" : ""}`} onClick={handleExit}>Close game</button>
+            {/* The one leave control while playing. Once an in-place game ends, its ScorePanel
+                shows Play again + Close game, so this same link (same box, no shift) becomes
+                "Report a problem"; a game with no reportable question hides and collapses it. */}
+            <button
+              className={`exit-link${endedInPlace ? (reportable ? " is-report" : " is-ended") : ""}`}
+              onClick={endedInPlace && reportable ? openReport : handleExit}
+            >
+              <SwapText>{endedInPlace && reportable ? "Report a problem" : "Close game"}</SwapText>
+            </button>
           </div>
         );
       case "result":
         // Wordle is once per day: Play again would only hit the daily lock, so its result offers Close game alone.
-        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={gameId === "wordle" ? undefined : handleStart} onClose={handleRestart} />;
+        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={gameId === "wordle" ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} />;
     }
   };
 

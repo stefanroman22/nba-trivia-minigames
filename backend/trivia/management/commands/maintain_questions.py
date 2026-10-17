@@ -4,6 +4,7 @@ import random
 
 from django.core.management.base import BaseCommand, CommandError
 
+from trivia.data_pipeline.publish_v3 import EDITORIAL_GAMES
 from trivia.questions import runner
 from trivia.questions.games import GAME_MODULES
 from trivia.questions.storage import StorageConfig, StorageUnavailable, download_players_dataset, s3_client
@@ -13,13 +14,15 @@ class Command(BaseCommand):
     help = "Re-materialize, prune, top up and publish the pre-generated game questions."
 
     def add_arguments(self, parser):
-        parser.add_argument("--games", default="", help="comma-separated slugs (default: all)")
+        parser.add_argument("--games", default="", help="comma-separated slugs (default: all but the editorial games)")
         parser.add_argument("--no-publish", action="store_true")
         parser.add_argument("--dry-run", action="store_true", help="run everything, roll back, upload nothing")
         parser.add_argument("--rng-seed", type=int, default=None)
 
     def handle(self, *args, **opts):
-        games = [g.strip() for g in opts["games"].split(",") if g.strip()] or list(GAME_MODULES)
+        # Default: every game but the editorial ones, which publish_game_data_v3 maintains.
+        games = [g.strip() for g in opts["games"].split(",") if g.strip()] or \
+            [g for g in GAME_MODULES if g not in EDITORIAL_GAMES]
         unknown = [g for g in games if g not in GAME_MODULES]
         if unknown:
             raise CommandError(f"unknown games: {unknown}")

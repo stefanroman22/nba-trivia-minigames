@@ -1,0 +1,14 @@
+{
+  "slug": "fan-favorites",
+  "version": 1,
+  "eligibility": {"min_answers": 6, "max_answers": 17},
+  "difficulty": {
+    "features": {"answer_count": 0.4, "answer_fame": 0.6},
+    "bands": {"easy": [0, 0.35], "medium": [0.35, 0.65], "hard": [0.65, 1]},
+    "mix": {"easy": 0.4, "medium": 0.4, "hard": 0.2}
+  },
+  "interest": {"features": {"recognizable": 1.0}, "min": 0.3},
+  "coverage": {"axes": ["decade"], "min_decades": 3},
+  "refill": {"runway_days": 90, "minimum": 30, "target": 120, "max_new_per_run": 20},
+  "consistency": {"max_player_share": 0.02}
+}

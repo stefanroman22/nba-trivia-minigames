@@ -1,0 +1,9 @@
+# Relay for the NBA stats API. stats.nba.com hangs for GitHub-hosted runners
+# (datacenter addresses are refused) but answers a Cloudflare Worker, so the
+# monthly data refresh routes nba_api through here instead of the owner's PC.
+# Free Workers plan, deployed to Stefan's personal account. See README.md.
+name = "nba-relay"
+main = "src/index.js"
+account_id = "8d0328eded45f6ea471f9dd240cacf2d"
+compatibility_date = "2026-08-01"
+workers_dev = true

@@ -44,13 +44,15 @@ export default function PrivacyPage() {
       <LegalTable
         head={["What", "Why", "Basis", "How long"]}
         rows={[
-          ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle limit", "Legitimate interests", "Answers: 12 months. Wordle plays: removed after the day ends. The device code stays in your browser until you clear it."],
+          ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle limit", "Legitimate interests", "Answers: 30 days. Wordle plays: removed after the day ends. The device code stays in your browser until you clear it."],
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
           ["Consent record: the Terms version you accepted, when, that you confirmed you are 13 or older and how (the sign-up tick-box, by email or with Google), and, if you gave your birth month and year when adding a photo, only whether you are 16 or over (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
           [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
-          ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 12 months."],
+          ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 30 days."],
+          ["Which questions you have already been shown (the game and the question, not your answers)", "So you don't get the same question twice", "Contract", "Until the question is retired or you delete the account"],
+          ["Problem reports about questions (the game, the question and your optional note; linked to your account if you are signed in)", "Fix wrong questions", "Legitimate interests", "Until handled, at most 12 months, and deleted with your account. When we handle a report, your note alone (not who sent it) is kept with the question until 180 days after the question is retired. To check a reported question, that note (still not who sent it), together with anonymous counts of the wrong answers players typed, is passed to Anthropic's AI model Claude, which researches the question for us; the copies our job makes for that are deleted after one day."],
           ["Feedback you send (rating, message, page, and your email and name if you are signed in)", "Improve the service and reply to you", "Legitimate interests", "Until handled; resolved feedback is deleted after 12 months, and with your account"],
           ["Moderation records: strikes, a reason code (never the offending text), and a one-way hash of your network address", "Enforce the rules and stop repeat abuse", "Legitimate interests", "The events and the address hash: 12 months (or while a ban stands). The strike count and ban status are part of your account and stay while it exists. See section 7 for banned accounts."],
           ["Rate-limit counters (your IP address, in our database)", "Stop sign-in guessing and request flooding", "Legitimate interests", "About an hour"],
@@ -90,6 +92,7 @@ export default function PrivacyPage() {
           ["Vercel", "Hosts the website and the account server (and will host our automatic photo check)", "Global network; the account server runs in Frankfurt, Germany"],
           ["Supabase", "Hosts the database that holds your account and game data", "Frankfurt, Germany (EU)"],
           ["GitHub", "Stores our code and runs scheduled maintenance jobs (such as the weekly clean-up) that connect to the database", "United States and global"],
+          ["Anthropic", "Its AI model Claude, run from a GitHub job with no access to the database, checks questions players reported; it receives the question and the report notes, never who sent them", "United States"],
           ["Railway", "Runs the real-time game server for online matches (it holds match data in memory only)", "Amsterdam, Netherlands (EU)"],
           ["Google", "Runs the sign-in window and holds your Google account, as its own controller", "Worldwide"],
         ]}
@@ -182,6 +185,7 @@ export default function PrivacyPage() {
         <li>your sign-in tokens, and a cached copy of your profile so the page loads signed in;</li>
         <li>a random device code, used for the one-Wordle-a-day limit for guests;</li>
         <li>your theme choice and cached game data so games start quickly;</li>
+        <li>which questions you have already been shown in each game, so you don&apos;t get the same question twice;</li>
         <li>whether you hid the home-page notice about a change to these documents.</li>
       </LegalList>
       <p>You can clear all of it in your browser settings; you will be signed out.</p>

@@ -14,17 +14,20 @@ Examples:
   python manage.py sync_nba_data
   # Just one dataset:
   python manage.py sync_nba_data --datasets players
+  # The cloud refresh (data-refresh.yml): journal the run, exit non-zero on any failure:
+  python manage.py sync_nba_data --journal --trigger schedule
 """
 
 import os
 import re
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from trivia.data_pipeline import sources
-from trivia.models import Mvp, Player, PlayoffSeries, StartingFiveGame, SyncRun, Team
+from trivia.models import FactoryRun, Mvp, Player, PlayoffSeries, StartingFiveGame, SyncRun, Team
+from trivia.questions.journal import Journal
 
 ALL_DATASETS = ["teams", "players", "mvps", "playoff", "starting-five"]
 SEASON_RE = re.compile(r"^\d{4}-\d{2}$")
@@ -116,6 +119,11 @@ class Command(BaseCommand):
         parser.add_argument("--max-games", type=int, default=40, help="Starting-five games per season")
         parser.add_argument("--timeout", type=int, default=15, help="Per NBA-API-call timeout (s)")
         parser.add_argument("--mvps-csv", default=None)
+        parser.add_argument("--journal", action="store_true",
+                            help="Record the run as FactoryRun kind 'refresh' and exit non-zero when "
+                                 "any dataset fails (the cloud refresh, spec §4.13)")
+        parser.add_argument("--trigger", default="manual", choices=("manual", "schedule", "push"),
+                            help="What started this run, recorded in the journal (with --journal)")
 
     def _run(self, dataset, fetch, validate, upsert):
         """Fetch -> validate -> upsert one dataset, logging a SyncRun either way."""
@@ -125,15 +133,24 @@ class Command(BaseCommand):
         except Exception as e:  # noqa: BLE001
             self._log(dataset, "failed", 0, f"fetch error: {str(e)[:300]}")
             self.stdout.write(self.style.ERROR(f"[{dataset}] fetch FAILED: {str(e)[:120]}"))
+            self._journal_failed(dataset, 0, f"fetch error: {str(e)[:300]}")
             return
         clean, problems = validate(rows)
         if problems:
             self._log(dataset, "failed", len(clean), "; ".join(problems))
             self.stdout.write(self.style.ERROR(f"[{dataset}] validation FAILED, skipping upsert: {problems}"))
+            self._journal_failed(dataset, len(clean), "; ".join(problems))
             return
         n = upsert(clean)
         self._log(dataset, "success", n, f"upserted {n} rows")
         self.stdout.write(self.style.SUCCESS(f"[{dataset}] upserted {n} rows"))
+        if self.journal:
+            self.journal.log("synced", reason=dataset, rows=n)
+
+    def _journal_failed(self, dataset, rows, error):
+        self.failed.append(dataset)
+        if self.journal:
+            self.journal.log("failed", reason=dataset, rows=rows, error=error[:2000])
 
     def _log(self, dataset, status, rows, detail):
         try:
@@ -142,6 +159,23 @@ class Command(BaseCommand):
             pass
 
     def handle(self, *args, **opts):
+        self.failed = []
+        self.journal = Journal("refresh", trigger=opts["trigger"]) if opts["journal"] else None
+        if not self.journal:
+            self._sync(opts)
+            return
+        status = FactoryRun.STATUS_FAILED
+        try:
+            self._sync(opts)
+            if not self.failed:
+                status = FactoryRun.STATUS_OK
+        finally:
+            run = self.journal.save(status)
+            self.stdout.write(f"Journal: factory run {run.pk} ({status}, {len(self.journal.events)} events)")
+        if self.failed:
+            raise CommandError(f"sync failed for: {', '.join(self.failed)}")
+
+    def _sync(self, opts):
         datasets = [d.strip() for d in opts["datasets"].split(",") if d.strip()]
         full = opts["full"]
 
