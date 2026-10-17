@@ -153,7 +153,7 @@ const Landpage = () => {
                     description={game.description}
                     backgroundImage={game.backgroundImage}
                     tag={game.tag}
-                    pointLabel={game.id === "coming-soon" ? "SOON" : game.maxPoints > 0 ? `${game.maxPoints} pts` : "VOTE"}
+                    maxPoints={game.maxPoints}
                     cta={game.id === "coming-soon" ? "Coming soon" : playedLabel ?? "Play now"}
                     dimmed={wordlePlayed}
                     ctaTone={wordlePlayed ? "muted" : "default"}
