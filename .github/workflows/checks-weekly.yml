@@ -85,7 +85,7 @@ jobs:
           NOTION: ${{ github.event_name == 'push' && 'dry' || inputs.notion || 'live' }}
           SLACK: ${{ github.event_name == 'push' && 'off' || inputs.slack || 'on' }}
           AGENTS: ${{ inputs.agents || 'on' }}
-          FORCE: ${{ inputs.force && '--force' || '' }}
+          FORCE: ${{ (github.event_name == 'push' || inputs.force) && '--force' || '' }}
         run: |
           set -euo pipefail
           case "$STATE" in main|dev) echo "state_branch must not be main or dev"; exit 1;; esac
@@ -112,7 +112,8 @@ jobs:
   checks:
     needs: gate
     if: needs.gate.outputs.run == 'true'
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest moves to Ubuntu 26 from 2026-10-19, and Playwright's --with-deps must know the distro.
+    runs-on: ubuntu-24.04
     timeout-minutes: 350
     permissions:
       contents: write # the state store branch only
@@ -127,7 +128,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22 # the relay (multiplayer_server) and Claude Code need 22
           cache: npm
       - uses: actions/setup-python@v5
         with:
