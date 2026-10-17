@@ -7,6 +7,8 @@ import type { LadderData } from "../utils/ladder";
 
 /** The ladder changes slowly (the backend caches it for 10 min); match that here. */
 export const LADDER_TTL_MS = 10 * 60 * 1000;
+/** A failed load is retried sooner than a good one goes stale. */
+export const LADDER_ERROR_TTL_MS = 30 * 1000;
 
 interface CacheEntry { data: LadderData | null; error: boolean; userKey: string | null; fetchedAt: number }
 
@@ -48,7 +50,8 @@ export function useLadder(): { loading: boolean; error: boolean; data: LadderDat
   }, []);
 
   useEffect(() => {
-    const stale = !cache || cache.userKey !== userKey || Date.now() - cache.fetchedAt >= LADDER_TTL_MS;
+    const ttl = cache?.error ? LADDER_ERROR_TTL_MS : LADDER_TTL_MS;
+    const stale = !cache || cache.userKey !== userKey || Date.now() - cache.fetchedAt >= ttl;
     if (stale) fetchLadder(userKey);
   }, [userKey]);
 

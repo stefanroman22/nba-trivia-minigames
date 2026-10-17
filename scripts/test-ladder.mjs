@@ -32,14 +32,17 @@ test("next-rank copy", () => {
   assert.equal(nextRankCopy({ ...you, days_to_next: 1 }), "1,240 pts to All-Star · 1 more active day");
   assert.equal(nextRankCopy({ ...you, points_to_next: 0 }), "2 more active days to All-Star");
   assert.equal(nextRankCopy({ ...you, next_rank: null }), "Top of the ladder");
+  assert.equal(nextRankCopy({ ...you, points_to_next: 0, days_to_next: 0 }), "You're about to rank up to All-Star");
 });
 
 test("gate and rules copy", () => {
   assert.equal(gateCopy({ name: "Starter", points: 1500, days: 3 }), "1,500 pts · 3 days");
   assert.equal(gateCopy({ name: "Rookie", points: 0, days: 0 }), "Start here");
   assert.equal(gateCopy({ name: "Role Player", points: 100, days: 0 }), "100 pts");
+  assert.equal(gateCopy({ name: "X", points: 100, days: 1 }), "100 pts · 1 day");
   assert.equal(softCapCopy(rules), "First 1,500 pts a day count in full, the next 1,500 at half, the rest at 10%");
   assert.equal(streakCopy(rules), "One game a day keeps your streak · 1 freeze · +200 / +1,000 / +5,000 at day 7 / 30 / 100");
+  assert.equal(streakCopy({ ...rules, max_freezes: 2 }), "One game a day keeps your streak · 2 freezes · +200 / +1,000 / +5,000 at day 7 / 30 / 100");
 });
 
 test("every rank has a tagline and the share line names the percentile", () => {

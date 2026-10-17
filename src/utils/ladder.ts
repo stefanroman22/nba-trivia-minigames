@@ -40,12 +40,13 @@ export function toTopCopy(pct: number, threshold: number, toTop: number | null):
 export function nextRankCopy(you: LadderYou): string {
   if (!you.next_rank) return "Top of the ladder";
   const days = you.days_to_next > 0 ? `${you.days_to_next} more active ${you.days_to_next === 1 ? "day" : "days"}` : "";
+  if (you.points_to_next === 0 && !days) return `You're about to rank up to ${you.next_rank}`;
   if (you.points_to_next === 0) return `${days} to ${you.next_rank}`;
   return `${n(you.points_to_next)} pts to ${you.next_rank}${days ? ` · ${days}` : ""}`;
 }
 export function gateCopy(row: Pick<LadderRow, "name" | "points" | "days">): string {
   if (row.points === 0) return "Start here";
-  return row.days > 0 ? `${n(row.points)} pts · ${row.days} days` : `${n(row.points)} pts`;
+  return row.days > 0 ? `${n(row.points)} pts · ${row.days} ${row.days === 1 ? "day" : "days"}` : `${n(row.points)} pts`;
 }
 export function softCapCopy(r: LadderRules): string {
   return `First ${n(r.daily_full)} pts a day count in full, the next ${n(r.daily_half)} at half, the rest at ${Math.round(r.daily_tail_rate * 100)}%`;
@@ -53,5 +54,5 @@ export function softCapCopy(r: LadderRules): string {
 export function streakCopy(r: LadderRules): string {
   const days = Object.keys(r.streak_milestones).map(Number).sort((a, b) => a - b);
   const bonuses = days.map((d) => `+${n(r.streak_milestones[String(d)])}`).join(" / ");
-  return `One game a day keeps your streak · ${r.max_freezes} freeze · ${bonuses} at day ${days.join(" / ")}`;
+  return `One game a day keeps your streak · ${r.max_freezes} ${r.max_freezes === 1 ? "freeze" : "freezes"} · ${bonuses} at day ${days.join(" / ")}`;
 }
