@@ -17,7 +17,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from backend.throttles import AccountDataRateThrottle, LoginRateThrottle, NameCheckRateThrottle, SignupRateThrottle
 
 from trivia import awarding
-from users import leaderboard, photo_moderation, ranks, strikes
+from users import ladder, leaderboard, photo_moderation, ranks, strikes
 from users.account_data import delete_account, export_account, remove_photo
 from users.consent import (
     CONSENT_FIELDS,
@@ -668,3 +668,16 @@ def get_users(request):
     except Exception:
         logger.exception("could not build the leaderboard response")
         return JsonResponse({"error": "Could not load the leaderboard."}, status=400)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def get_ladder(request):
+    """The ladder: rank distribution, percentile thresholds, the daily rules, and (signed in) where you stand."""
+    try:
+        dist = ladder.distribution()
+        you = ladder.you_block(request.user, dist) if request.user.is_authenticated else None
+        return Response({**dist, "rules": ladder.rules(), "you": you}, status=200)
+    except Exception:
+        logger.exception("could not build the ladder")
+        return JsonResponse({"error": "Could not load the ladder."}, status=400)
