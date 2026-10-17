@@ -377,7 +377,12 @@ html { scroll-behavior: smooth; }
     scrollbar-width: thin;
   }
   .games-grid3 .gtile { height: 158px; padding: 12px; }
-  .games-grid3 .gtile h3 { font-size: 15px; }
+  /* Fixed two-line title slot: every title starts at the same height across a row, and a
+     one-line title just leaves a larger gap above the CTA. */
+  .games-grid3 .gtile h3 { font-size: 15px; line-height: 1.2; min-height: 2.4em; }
+  /* "Guess the Series Winner" would wrap to three lines in the ~129px body on narrow phones.
+     !important because GameTile sets the title size inline. */
+  @media (max-width: 380px) { .games-grid3 .gtile h3 { font-size: 15px !important; } }
   .games-grid3 .gtile p { display: none; }
   /* "Next Wordle in 23h 59m" + arrow fits one line on the 129px-wide tile body at 360px. */
   .games-grid3 .gtile-cta--muted { font-size: 9.5px; letter-spacing: 0; }
