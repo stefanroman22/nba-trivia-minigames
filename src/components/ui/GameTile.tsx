@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 import { backgroundUrl } from "../../utils/GameUtils";
 import SwapText from "../motion/SwapText";
+import Chip from "./Chip";
 
 interface GameTileProps {
   name: string;
@@ -10,6 +11,8 @@ interface GameTileProps {
   backgroundImage: string; // already a CSS url(...) value
   tag?: string;
   pointLabel?: string;
+  /** Most points a play can earn; shown as an "up to N pts" chip top right. Omit (or 0) for no chip. */
+  maxPoints?: number;
   cta?: string;
   onClick?: () => void;
   /** Renders the tile as a real link to this path (crawlable, opens in a new tab with a modified
@@ -33,6 +36,7 @@ export default function GameTile({
   name,
   description,
   backgroundImage,
+  maxPoints = 0,
   cta = "Play now",
   onClick,
   href,
@@ -88,6 +92,9 @@ export default function GameTile({
         />
       )}
       <div className="gtile-scrim" />
+      {maxPoints > 0 && (
+        <Chip className="gtile-pts">up to <span className="tnum gtile-pts-num">{maxPoints}</span> pts</Chip>
+      )}
       <div className="gtile-body">
        
         <div style={{ display: "flex", flexDirection: "column", gap: 5, width: "100%" }}>
