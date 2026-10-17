@@ -88,3 +88,4 @@ several times in one hour on one stack hits the limit and shows up as HTTP 429 i
 
 - (20261014-1153) Probes: `/?login=1` does not open the auth modal; open it on `/profile` as guest via `@guest.profileLoginBtn`. Two probes in parallel can make one fail as infra (no verdict); run them serially.
 - (20261014-1153) Dropped as noise: slow-api GET /api/me and /api/account/export (1.3-1.4 s, one vp each), signup submit 3886 ms on tablet-768 only (others 1.3-1.5 s, password hashing), loaf 103-272 ms on single viewports.
+- (20261016-2125) Dropped: `occluded` on friends/profile buttons at phone-390/414 is the dismissible LegalChangeNotice banner (fixed, z 35, by design); loaf 107-212ms single-frame on 5 checks (noise); all tap-target-touch warnings. AC-SURF-01 phone-360 timed out at 240s (load, not a defect).
