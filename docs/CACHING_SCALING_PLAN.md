@@ -14,7 +14,7 @@ before it's forgotten.
 | Weekly board (`?scope=weekly`) | `leaderboard.weekly_board()` | No — Postgres only: the sum of `GameSession.awarded` since Monday 00:00 Paris; the window is small and resets weekly, so the ZSET's advantage does not apply. |
 | Friend list / friend search (`search-friends`) | `users/friends.py` | No — always Postgres. |
 | Friend requests, blocked list (`friends-overview`) | `users/friends.py` | **Yes** — Django `CACHES` (`users/friends_cache.py`), 60 s TTL, invalidated by every friend/request/block view for both users; Redis when `REDIS_URL`, else DatabaseCache/LocMem. |
-| Rank ladder (`ranks/ladder/`) | `users/ladder.py` | **Yes** — Django `CACHES`, key `ladder:v1`, 10 min TTL (the per-user `you` block is not cached). A miss costs one GROUP BY plus five OFFSET queries for the percentile thresholds; no new index. |
+| Rank ladder (`ranks/ladder/`) | `users/ladder.py` | **Yes** — Django `CACHES`, key `ladder:v1:<hash of LADDER>`, 10 min TTL (the per-user `you` block is not cached; a cache outage is a miss). A miss costs 7 queries: one COUNT, one GROUP BY and five OFFSET queries for the percentile thresholds; no new index. |
 
 The global leaderboard cache exists because **N (total players) is
 unbounded** and a top-100/rank query over the whole table gets slower as the

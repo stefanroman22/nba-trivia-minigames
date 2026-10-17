@@ -86,6 +86,7 @@ Sections, top to bottom (one column by default, including on desktop where the w
 Copy rules: numbers via `toLocaleString`, percentages with one decimal only in the headline ("Top 23.1 %"), whole
 numbers elsewhere; never show "Top 0 %" (floor at 0.1) or "ahead of 100 %"; with `total_players < 20` the
 percentile headline reads "Early adopter" instead of a meaningless "Top 50 %".
+Row shares show one decimal below 10 % ("6.9%") and "<0.1%" for a sliver.
 
 Rank taglines (`src/utils/ranks.ts RANK_TAGLINES`): Rookie "Everyone starts here" · Role Player "First points on the
 board" · Sixth Man "Off the bench, into the rotation" · Starter "Three days in — you're in the lineup" · All-Star "Top
