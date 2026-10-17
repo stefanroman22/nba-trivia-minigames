@@ -257,8 +257,8 @@ with `validatedAt` are pushed; `--dry-run` reads Notion and prints the cards but
   Done and shipped → one `[ui-check] Regression: …` card linking the old ones.
   `<uicHome>/notion-cards.json` mirrors fingerprint → card; Notion is the truth.
 
-The `ui-check` skill pushes after validation (step 3b). The nightly run (`scripts/check-run.ps1`, Task Scheduler
-`nba-checks`, Sundays 02:00 CET) runs Logic Check first, then the audit, the judges and the push on its own, and skips the checks
+The `ui-check` skill pushes after validation (step 3b). The weekly run (`scripts/check-run.mjs` on GitHub Actions or
+the PC's Task Scheduler task `nba-checks`, Sundays 02:00 Europe/Paris) runs Logic Check first, then the audit, the judges and the push on its own, and skips the checks
 whose services Logic Check blocked (`docs/logic-check/README.md`, "The channel and the catch-up loop").
 
 ## Shipping fixes to production

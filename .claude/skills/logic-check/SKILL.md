@@ -90,6 +90,8 @@ Give the owner:
   `ui-fix <runId>` fixes them now (it ships a `--ref main` run's fixes to production);
 - `git status --short scripts/logic-check/notes`: the triage's notes appends stay uncommitted (tooling, next tooling PR).
 
-## Nightly
-`scripts/check-run.ps1` (Task Scheduler `nba-checks`, Sundays 02:00 CET) runs steps 1, 3-6 itself and calls only step 2 through
-`claude -p`; see `docs/logic-check/README.md`.
+## Weekly
+`scripts/check-run.mjs` (GitHub Actions `checks-weekly.yml`, or the PC's Task Scheduler task `nba-checks`; Sundays 02:00
+Europe/Paris) runs steps 1, 3-6 itself and calls only step 2 through `claude -p`; see `docs/logic-check/README.md`.
+After a run by hand, `node scripts/check-core/state.mjs sync` shares this home's new blocks and cards with the weekly
+run's state store (branch `checks-state`); before one, it pulls the blocks the weekly run and the live probes wrote.

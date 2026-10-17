@@ -111,9 +111,10 @@ on the cards' `Source` keys, so a re-run adds no duplicate. Read only its result
 <title> findings=<ids>`, `skip <keys> <why> card <id>`, `regression <old> → <new>`, `error <keys>
 <message>`, and the last line `notion-push done: N new · N regression · N skipped · N error(s)`.
 An `error` line or exit 1 → run it once more (it skips what it already made), then list what is
-left for the owner. The nightly run (`scripts/check-run.ps1`, Task Scheduler `nba-checks`, Sundays 02:00 CET) runs
-steps 1, 1b, 3b and 4 itself after Logic Check and calls only steps 2-3 through `claude -p`
-(`docs/logic-check/README.md`).
+left for the owner. The weekly run (`scripts/check-run.mjs`: GitHub Actions or the PC's task `nba-checks`, Sundays
+02:00 Europe/Paris) runs steps 1, 1b, 3b and 4 itself after Logic Check and calls only steps 2-3 through `claude -p`
+(`docs/logic-check/README.md`). By hand: `node scripts/check-core/state.mjs sync` before step 1 (pulls the current
+blocks) and after step 3b (shares the deferrals and cards).
 
 ## 4. Stop the stack
 ```
