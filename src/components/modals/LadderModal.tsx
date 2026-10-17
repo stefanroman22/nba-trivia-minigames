@@ -76,7 +76,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
         <span className="ld-badge" aria-hidden="true">★</span>
         {you ? (
           <div className="ld-hero-text">
-            <span className="ld-eyebrow">{rankLabel(you.rank, you.division)} · #{you.position.toLocaleString()} of {total.toLocaleString()}</span>
+            <span className="ld-eyebrow">{rankLabel(you.rank, you.division)} · #{you.position.toLocaleString()}{you.position <= total && ` of ${total.toLocaleString()}`}</span>
             <h3 className="font-display ld-headline">{percentileHeadline(you, total)}</h3>
             <p className="ld-sub">{aheadCopy(you)} · {sameRankCopy(you)}</p>
             <p className="ld-next tnum"><SwapText>{nextRankCopy(you)}</SwapText></p>
@@ -85,14 +85,16 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
           <div className="ld-hero-text">
             <span className="ld-eyebrow">Playing as guest</span>
             <h3 className="font-display ld-headline">Claim your rank</h3>
-            <p className="ld-sub">Sign up to see where you stand against {total.toLocaleString()} players.</p>
+            <p className="ld-sub">
+              {total === 0 ? "Sign up to claim a rank." : `Sign up to see where you stand against ${total.toLocaleString()} ${total === 1 ? "player" : "players"}.`}
+            </p>
           </div>
         )}
         <div className="ld-hero-actions">
           {you ? (
             <Button size="sm" onClick={share}><SwapText reserveWidth={["Share", "Copied!"]}>{shared ? "Copied!" : "Share"}</SwapText></Button>
           ) : (
-            <Button size="sm" onClick={onSignUp}>Sign up</Button>
+            <Button size="sm" onClick={onSignUp}>Log in / Sign up</Button>
           )}
         </div>
       </section>
@@ -125,12 +127,16 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
               );
             })}
           </motion.ol>
-          <h4 className="ld-h ld-h-gap">Top percentiles</h4>
-          <div className="ld-chips">
-            {Object.entries(percentiles ?? {}).map(([p, pts]) => (
-              <Chip key={p} className="tnum">{toTopCopy(Number(p), pts, you ? you.to_top?.[p] ?? null : null)}</Chip>
-            ))}
-          </div>
+          {total > 0 && (
+            <>
+              <h4 className="ld-h ld-h-gap">Top percentiles</h4>
+              <div className="ld-chips">
+                {Object.entries(percentiles ?? {}).map(([p, pts]) => (
+                  <Chip key={p} className="tnum">{toTopCopy(Number(p), pts, you ? you.to_top?.[p] ?? null : null)}</Chip>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         {/* How points work */}
@@ -152,7 +158,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
       </div>
 
       <div className="ld-foot">
-        <Button block variant="secondary" onClick={onClose}>Back to the game</Button>
+        <Button block variant="secondary" onClick={onClose}>Done</Button>
       </div>
     </div>
   );

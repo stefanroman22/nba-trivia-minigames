@@ -226,8 +226,9 @@ html { scroll-behavior: smooth; }
 .pc-stat-lbl { font-size: 11.5px; color: var(--muted); }
 .pc-stat-num { font-size: 18px; color: var(--text); white-space: nowrap; }
 .pc-stat-num.is-brand { color: var(--brand); }
-/* The rank value opens the ladder: a bare button that keeps the stat's display type. */
-.pc-stat-btn { background: none; border: 0; padding: 0; font-weight: inherit; line-height: inherit; cursor: pointer; transition: color 0.2s ease; }
+/* The rank value opens the ladder: a bare button that keeps the stat's display type. The padding grows the
+   tap target to 32px+ and the equal negative margin keeps the stat row exactly where it was. */
+.pc-stat-btn { background: none; border: 0; padding: 6px 0; margin: -6px 0; min-height: 32px; font-weight: inherit; line-height: inherit; cursor: pointer; transition: color 0.2s ease; }
 .pc-stat-btn:hover { color: var(--brand); }
 .pc-progress { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
 .pc-progress-note { font-size: 11.5px; color: var(--muted); }
@@ -301,8 +302,9 @@ html { scroll-behavior: smooth; }
 .guest-panel-cta:hover { transform: translateY(-1px); filter: brightness(1.06); }
 .guest-panel-note { position: relative; font-size: 11px; color: var(--muted); text-align: center; }
 /* Text links into the ladder modal: GuestPanel "See the rank ladder →", RankUpModal "See where you stand →".
-   Here (global via layout.tsx) so they never depend on LadderModal's stylesheet being loaded. */
-.ld-link { background: none; border: 0; padding: 0; margin-top: 8px; color: var(--brand); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
+   Here (global via layout.tsx) so they never depend on LadderModal's stylesheet being loaded. A 32px tap target
+   around the 19.5px line; the margins take back the extra 12.5px so the text and what follows don't move. */
+.ld-link { display: inline-flex; align-items: center; min-height: 32px; background: none; border: 0; padding: 6px 0; margin: 1.75px 0 -6.25px; color: var(--brand); font: inherit; font-size: 13px; font-weight: 600; text-align: left; cursor: pointer; }
 .ld-link:hover { text-decoration: underline; }
 
 /* ===== Feedback band + floating button ===== */
