@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Scripted triage of the live suite on GitHub Actions (.github/workflows/logic-live.yml) — no agent.
 //   node scripts/logic-check/lib/live-triage.mjs state --exit <code> --file <state.json> --run <id> [--url <run url>]
-//       Records this run's outcome in the consecutive-failure state (restored/saved by actions/cache): the failing check
+//       Records this run's outcome in the consecutive-failure state (carried in the checks-state store by the workflow): the failing check
 //       ids per run. Prints `outcome=… consecutive=<n> action=none|slack|cards ids=<failing> cards=<ids> line=<Slack line>`
 //       (also to $GITHUB_OUTPUT). exit 0 → pass (state cleared); exit 1 with failing LC-LIVE ids → fail: `cards` for the
 //       ids that failed in the previous run too (consecutive per check), else `slack`; exit 1 with no failing id (a guard

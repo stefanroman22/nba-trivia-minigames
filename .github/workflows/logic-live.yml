@@ -9,9 +9,11 @@ name: Logic live probes
 #   the same check failing in two consecutive runs → Slack line + scripted triage (lib/live-triage.mjs, no agent) of
 #                                  those checks only → findings (owner ci) → notion-push --checker logic --target main
 #                                  (deduped by Source: a later failure comments on the open card instead of a new one)
+#                                  → channel block-run: the card's services are blocked for UI check (spec §7)
 #   infra (exit 2, or exit 1 with no failing check: guard mismatch, crash) → "logic-live infra: …" Slack line, no cards
-# The failing ids per run live in .logic-live-state/state.json, carried between runs by actions/cache (keys
-# logic-live-state-<run id>-<attempt>, restored by the prefix).
+# The failing ids per run (logic-live-state.json), the channel and the cards ledger live in the checks state store
+# (branch checks-state, scripts/check-core/lib/state-store.mjs): pulled first, pushed last (3-way merge, fast-forward
+# only), shared with the weekly run (checks-weekly.yml, or the PC's task), so a live block reaches the next UI check.
 on:
   schedule:
     - cron: "0 */6 * * *"
@@ -20,7 +22,7 @@ concurrency:
   group: logic-live
   cancel-in-progress: false
 permissions:
-  contents: read
+  contents: write # the checks-state branch only
 jobs:
   live:
     runs-on: ubuntu-latest
@@ -29,18 +31,17 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
       - run: npm ci
 
-      - name: Restore the consecutive-failure state
-        uses: actions/cache/restore@v4
-        with:
-          path: .logic-live-state
-          key: logic-live-state-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: logic-live-state-
+      - name: Pull the state store
+        env:
+          CHECKS_STATE_TOKEN: ${{ github.token }}
+        run: node scripts/check-core/state.mjs sync -m "checks-state: live probes (pull)"
 
       - name: Live probes (read-only)
         id: probe
@@ -57,14 +58,7 @@ jobs:
           EXIT: ${{ steps.probe.outputs.exit }}
           RUN: ${{ steps.probe.outputs.run }}
           URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-        run: node scripts/logic-check/lib/live-triage.mjs state --exit "$EXIT" --file .logic-live-state/state.json --run "$RUN" --url "$URL"
-
-      - name: Save the state
-        if: always() && steps.state.outcome == 'success'
-        uses: actions/cache/save@v4
-        with:
-          path: .logic-live-state
-          key: logic-live-state-${{ github.run_id }}-${{ github.run_attempt }}
+        run: node scripts/logic-check/lib/live-triage.mjs state --exit "$EXIT" --file .ui-check/logic-live-state.json --run "$RUN" --url "$URL"
 
       - name: Slack line
         if: steps.state.outputs.action != 'none'
@@ -82,6 +76,13 @@ jobs:
         run: |
           node scripts/logic-check/lib/live-triage.mjs triage --run "$RUN" --ids "$CARDS"
           node scripts/check-core/notion-push.mjs --run "$RUN" --checker logic --target main
+          node scripts/check-core/lib/channel.mjs block-run --run "$RUN"
+
+      - name: Push the state store
+        if: always() && steps.state.outcome == 'success'
+        env:
+          CHECKS_STATE_TOKEN: ${{ github.token }}
+        run: node scripts/check-core/state.mjs sync -m "checks-state: live probes ${{ steps.probe.outputs.run }}"
 
       - name: Digest
         if: always()
