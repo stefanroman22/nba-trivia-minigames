@@ -3,7 +3,7 @@
 Logic Check proves that the app's actions work: every sign-up, login, profile, friends, game-data and room action is
 called through the API or a socket.io client and its answer is checked (status, error text, data, points, events),
 the public pages answer with the app shell and hydrate, and a read-only live suite watches swishquest.com. It never
-looks at layout, motion or styling: that is UI check (`docs/ui-check/README.md`). It runs before UI check every night
+looks at layout, motion or styling: that is UI check (`docs/ui-check/README.md`). It runs before UI check every week
 and tells UI check which services are broken, so the same defect reaches Notion once.
 
 Design: `docs/superpowers/specs/2026-10-15-checks-prod-logic-design.md` §4-§8. Catalogue: `scripts/logic-check/CHECKS.md`.
@@ -133,9 +133,9 @@ The loop: Logic finds → card → the pipeline fixes → main → Logic confirm
 
 ## The nightly run
 
-Task Scheduler task `nba-checks` (daily 02:00, StartWhenAvailable, stopped after 6 h) runs `scripts/check-run.ps1`.
+Task Scheduler task `nba-checks` (weekly, Sundays 02:00 CET, StartWhenAvailable, stopped after 6 h) runs `scripts/check-run.ps1`.
 Register it with `scripts/register-check-cron.ps1`, remove it with `scripts/unregister-check-cron.ps1`. It is
-registered with the owner's interactive token, so it runs only while the owner is logged on; a 02:00 missed while
+registered with the owner's interactive token, so it runs only while the owner is logged on; a Sunday 02:00 missed while
 logged off (or with the PC off) runs at the next logon (StartWhenAvailable).
 
 **Where it runs.** The tooling (these scripts, the skills, the agents, the notes) runs from a dedicated worktree,
@@ -191,6 +191,37 @@ a card (owner `ci`, scripted triage `lib/live-triage.mjs`, no agent) only when t
 runs, deduped by Source; CI writes no channel blocks (it has no `<uicHome>`). GitHub runs scheduled workflows only
 from the default branch, so this cron becomes active once the workflow file reaches `main`; until then the nightly's
 `--live` run is the only live probe.
+
+## Planned: checks after a push to main (not active)
+
+The owner wants the checks to confirm a release once it is live. Nothing below is wired yet; this is the plan, so
+switching it on is a small change, not a design.
+
+**Trigger.** Vercel's production deployment of `main` succeeding (the GitHub `deployment_status` event, state
+`success`, environment `Production`), not the push itself: the push lands minutes before the new build serves.
+
+**Two tiers, cheapest first.**
+1. *Live smoke, in the cloud (no PC).* Add `deployment_status` to the `on:` list of
+   `.github/workflows/logic-live.yml` (guarded by `if: github.event.deployment_status.state == 'success' &&
+   github.event.deployment.environment == 'Production'`) and run the same LC-LIVE suite, plus `node
+   scripts/ui-check/run.mjs --live` (guest, GET-only) for the visual smoke. A failure right after a deploy is a
+   regression of that deploy: post the Slack line and card on the FIRST failure (the 6-hourly schedule keeps its
+   two-in-a-row rule), naming the deployed commit. Cost: GitHub Actions minutes, ~5 min per production deploy; on a
+   private repo that counts against the free monthly minutes, so the owner decides before it is switched on.
+2. *Full local re-check, on the PC.* A second scheduled task (`nba-checks-postdeploy`, every 30 min, StartWhenAvailable)
+   runs a light `check-run.ps1 -IfMainMoved` that exits at once unless `origin/main` moved since the last full run
+   (state `<uicHome>/last-main.json`, the SHA each run audited). When it moved, it maps the changed files to
+   `services` (`scripts/check-core/lib/services.mjs`: backend → the Logic suites of the touched apps, `src/` → the UI
+   suites of the touched routes and games, `multiplayer_server/` → rooms, matchmaking and the MP specs) and runs only
+   those checks with `--only`, so a one-file release costs minutes and a few agent calls, not the weekly 3-4 h audit.
+   The lock file keeps it from overlapping the Sunday run; it uses the weekly run's own port set.
+
+**Already in place.** `--ref main` builds exactly what is live; `check-run.ps1` takes `-Ports`; the channel's
+`resolve` already re-runs a blocked service's checks once its fix commit is on `origin/main` (that is the post-push
+check for checker fixes); Notion dedupe means a re-check never files the same issue twice.
+
+**To switch it on:** owner OK on the Actions minutes → tier 1 (one workflow edit); then tier 2 (`-IfMainMoved` and the
+file → service map in `check-run.ps1`, a register script for the second task, a selftest of the map).
 
 ## Known residual overlap
 

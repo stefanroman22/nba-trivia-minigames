@@ -1,4 +1,4 @@
-# Nightly checks (Task Scheduler task `nba-checks`, registered by scripts/register-check-cron.ps1; spec section 7 of
+# Weekly checks, Sundays 02:00 CET (Task Scheduler task `nba-checks`, registered by scripts/register-check-cron.ps1; spec section 7 of
 # docs/superpowers/specs/2026-10-15-checks-prod-logic-design.md; docs/logic-check/README.md "The nightly run"):
 #   0. lock; stop whatever still runs on -Ports (a killed night, a daytime --keep-stack); commit leftover notes; update
 #      the tooling worktree (branch checks-nightly: fetch origin dev, ff-only merge, else rebase, conflict = stop)
@@ -74,7 +74,7 @@ if ($DryRun) {
   $claudeNote = "not on PATH: agents are skipped, the Slack line says triage/judges needed"
   if ($claude) { $claudeNote = $claude.Source }
   $tooling = "$branch (used as is: only branch checks-nightly updates itself)"
-  if ($branch -eq 'checks-nightly') { $tooling = "checks-nightly (updated from origin/dev each night)" }
+  if ($branch -eq 'checks-nightly') { $tooling = "checks-nightly (updated from origin/dev each run)" }
   if ($isMain -and -not $AllowMainCheckout) { $tooling = "$branch - REFUSED: this is the main checkout (pass -AllowMainCheckout)" }
   @(
     "check-run (dry run) - nothing is executed",
