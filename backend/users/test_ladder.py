@@ -1,10 +1,13 @@
 """The ladder endpoint: rank distribution, percentile thresholds, the signed-in `you` block (ladder spec §1)."""
+import hashlib
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import Client, TestCase, override_settings
 
 from trivia import awarding
-from users import ladder
+from users import ladder, ranks
 from users.views import GUEST_CARRYOVER_MAX
 
 User = get_user_model()
@@ -64,6 +67,17 @@ class DistributionTests(TestCase):
         ladder.distribution()
         with self.assertNumQueries(0):
             ladder.distribution()
+
+    def test_cache_outage_falls_back_to_the_database(self):
+        with patch("django.core.cache.cache.get", side_effect=ConnectionError("down")), \
+                patch("django.core.cache.cache.set", side_effect=ConnectionError("down")), \
+                self.assertLogs("users.ladder", level="WARNING"):
+            d = ladder.distribution()
+        self.assertEqual(d["total_players"], 10)
+
+    def test_cache_key_follows_the_ladder(self):
+        digest = hashlib.md5(repr(ranks.LADDER).encode()).hexdigest()[:8]
+        self.assertEqual(ladder.LADDER_CACHE_KEY, f"ladder:v1:{digest}")
 
     def test_empty_population(self):
         User.objects.all().delete()

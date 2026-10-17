@@ -4,6 +4,11 @@ Points alone used to decide the rank (GOAT at 5,000 pts was 1-2 hours of play). 
 top ranks a record of sticking around, not of one long weekend: GOAT is 150,000 points and 180 active
 days (a Paris day with at least one scoring game, trivia.awarding). Ranks never drop. The frontend holds
 no thresholds; it displays `progress()` as the backend sends it (users.views.user_payload).
+
+Changing LADDER, the rank gates or the daily rules also means: update `RANK_TAGLINES` in src/utils/ranks.ts (it
+names the 3-day and 180-day gates). The ladder cache key (`LADDER_CACHE_KEY` in users/ladder.py, one cache shared by
+dev and prod) hashes LADDER, so a gate change gets a fresh key by itself; the daily rules are read per request and
+never cached. Bump the key's version by hand only if the cached payload's shape changes.
 """
 from dataclasses import dataclass
 

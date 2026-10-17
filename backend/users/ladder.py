@@ -1,10 +1,13 @@
 """The ladder: how ranks are distributed and what it takes to climb (ladder spec §1).
 
-`distribution()` is the expensive part — one GROUP BY over the public players plus five OFFSET queries for the
-percentile thresholds — and is cached for LADDER_TTL under LADDER_CACHE_KEY. Bump the key's version whenever the
-ladder (users.ranks.LADDER) or the shape of the payload changes, so a deploy never serves a stale shape. The `you`
-block is per request (one rank_of query) and never cached.
+`distribution()` is the expensive part — a cache miss costs 7 queries (one COUNT, one GROUP BY over the public
+players, five OFFSET queries for the percentile thresholds) — and is cached for LADDER_TTL under LADDER_CACHE_KEY.
+The key carries a hash of users.ranks.LADDER, so a gate change can never serve stale gates (dev and prod share one
+cache); bump its version by hand only when the shape of the payload changes. A cache outage behaves as a miss. The
+`you` block is per request (one rank_of query) and never cached.
 """
+import hashlib
+import logging
 import math
 
 from django.core.cache import cache
@@ -12,8 +15,10 @@ from django.db.models import Count
 
 from users import leaderboard, ranks
 
+logger = logging.getLogger(__name__)
+
 PERCENTILES = (1, 5, 10, 25, 50)
-LADDER_CACHE_KEY = "ladder:v1"
+LADDER_CACHE_KEY = f"ladder:v1:{hashlib.md5(repr(ranks.LADDER).encode()).hexdigest()[:8]}"
 LADDER_TTL = 600  # seconds
 RANK_NAMES = ranks.RANK_NAMES
 
@@ -50,10 +55,17 @@ def _compute():
 
 def distribution():
     """Cached rank counts + percentile thresholds for the public population (adult, not banned)."""
-    data = cache.get(LADDER_CACHE_KEY)
+    try:
+        data = cache.get(LADDER_CACHE_KEY)
+    except Exception as exc:
+        logger.warning("ladder cache unavailable (%s): %s", "get", exc)
+        data = None
     if data is None:
         data = _compute()
-        cache.set(LADDER_CACHE_KEY, data, LADDER_TTL)
+        try:
+            cache.set(LADDER_CACHE_KEY, data, LADDER_TTL)
+        except Exception as exc:
+            logger.warning("ladder cache unavailable (%s): %s", "set", exc)
     return data
 
 
