@@ -141,7 +141,7 @@ function UserProfile() {
               <span className="pc-stat-divider" aria-hidden="true" />
               <div className="pc-stat">
                 <span className="pc-stat-lbl">Rank</span>
-                <button type="button" className="font-display pc-stat-num pc-stat-btn" onClick={() => open("ladder")} aria-label="See the rank ladder">{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)} <span aria-hidden="true">›</span></button>
+                <button type="button" className="font-display pc-stat-num pc-stat-btn" onClick={() => open("ladder")} aria-label={`${rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}, see the rank ladder`}>{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)} <span aria-hidden="true">›</span></button>
               </div>
             </div>
 

@@ -11,13 +11,15 @@ import { visibleGames } from "../../utils/GameUtils";
 import { RANK_COLORS, RANK_TAGLINES, rankLabel, percentileShareText } from "../../utils/ranks";
 import {
   aheadCopy, gateCopy, nextRankCopy, percentileHeadline, sameRankCopy, softCapCopy, streakCopy, toTopCopy,
-  type LadderData, type LadderRow,
+  type LadderData, type LadderRow, type LadderRules,
 } from "../../utils/ladder";
 
 interface LadderModalProps { onClose: () => void }
 
-/** "40%" / "2.5%": one decimal only below 10 %, so small shares don't all read "0%". */
-const sharePct = (row: LadderRow) => `${row.share_pct.toFixed(row.share_pct < 10 && row.share_pct > 0 ? 1 : 0)}%`;
+/** "40%" / "2.5%" / "<0.1%": one decimal only below 10 %, so small shares don't all read "0%". */
+const sharePct = (row: LadderRow) =>
+  row.share_pct > 0 && row.share_pct < 0.1 ? "<0.1%" : `${row.share_pct.toFixed(row.share_pct < 10 && row.share_pct > 0 ? 1 : 0)}%`;
+const isNum = (v: unknown): v is number => typeof v === "number";
 
 /** Rank distribution, percentile thresholds and the daily rules — the one screen that explains the climb. */
 export default function LadderModal({ onClose }: LadderModalProps) {
@@ -47,7 +49,10 @@ export default function LadderModal({ onClose }: LadderModalProps) {
 }
 
 function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => void; onSignUp: () => void }) {
-  const { you, ladder, percentiles, rules, total_players } = data;
+  const { you, ladder, percentiles } = data;
+  // An older backend may send fewer fields: a missing rule just drops its line.
+  const total = data.total_players ?? 0;
+  const rules: Partial<LadderRules> = data.rules ?? {};
   const [shared, setShared] = useState(false);
   const timer = useRef<number | null>(null);
   const share = async () => {
@@ -63,8 +68,6 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
   };
   const myIndex = you ? ladder.findIndex((r) => r.name === you.rank) : -1;
   const games = visibleGames.filter((g) => g.maxPoints > 0);
-  // The bars are drawn for sighted readers only; the same numbers are read out in one label.
-  const ladderLabel = `Share of players at each rank: ${ladder.map((r) => `${r.name} ${sharePct(r)}`).join(", ")}`;
 
   return (
     <div className="ld">
@@ -73,8 +76,8 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
         <span className="ld-badge" aria-hidden="true">★</span>
         {you ? (
           <div className="ld-hero-text">
-            <span className="ld-eyebrow">{rankLabel(you.rank, you.division)} · #{you.position.toLocaleString()} of {total_players.toLocaleString()}</span>
-            <h3 className="font-display ld-headline">{percentileHeadline(you, total_players)}</h3>
+            <span className="ld-eyebrow">{rankLabel(you.rank, you.division)} · #{you.position.toLocaleString()} of {total.toLocaleString()}</span>
+            <h3 className="font-display ld-headline">{percentileHeadline(you, total)}</h3>
             <p className="ld-sub">{aheadCopy(you)} · {sameRankCopy(you)}</p>
             <p className="ld-next tnum"><SwapText>{nextRankCopy(you)}</SwapText></p>
           </div>
@@ -82,7 +85,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
           <div className="ld-hero-text">
             <span className="ld-eyebrow">Playing as guest</span>
             <h3 className="font-display ld-headline">Claim your rank</h3>
-            <p className="ld-sub">Sign up to see where you stand against {total_players.toLocaleString()} players.</p>
+            <p className="ld-sub">Sign up to see where you stand against {total.toLocaleString()} players.</p>
           </div>
         )}
         <div className="ld-hero-actions">
@@ -95,10 +98,11 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
       </section>
 
       <div className="ld-cols">
-        {/* The ladder: one series (share of players), one bar colour; the rank's own colour rides the dot. */}
+        {/* The ladder: one series (share of players), one bar colour; the rank's own colour rides the dot.
+            The bars are decorative (aria-hidden): each row's share is also its text. */}
         <section aria-label="Rank ladder">
           <h4 className="ld-h">The ladder</h4>
-          <motion.ol className="ld-rows" variants={staggerContainer} initial="hidden" animate="visible" role="img" aria-label={ladderLabel}>
+          <motion.ol className="ld-rows" variants={staggerContainer} initial="hidden" animate="visible">
             {ladder.map((row, i) => {
               const state = myIndex < 0 ? "" : i < myIndex ? " is-passed" : i === myIndex ? " is-you" : i === myIndex + 1 ? " is-next" : "";
               return (
@@ -111,7 +115,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
                       {myIndex >= 0 && i === myIndex + 1 && <Chip>next</Chip>}
                     </span>
                     <span className="ld-row-tag">{RANK_TAGLINES[row.name]}</span>
-                    <span className="ld-bar" aria-hidden="true"><span className="ld-bar-fill" style={{ width: `${Math.max(row.share_pct, row.players > 0 ? 1.5 : 0)}%` }} /></span>
+                    <span className="ld-bar" aria-hidden="true"><span className="ld-bar-fill" style={{ "--w": Math.min(100, Math.max(row.share_pct, row.players > 0 ? 1.5 : 0)) / 100 } as CSSProperties} /></span>
                   </span>
                   <span className="ld-row-side tnum">
                     <span className="ld-row-gate">{gateCopy(row)}</span>
@@ -123,7 +127,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
           </motion.ol>
           <h4 className="ld-h ld-h-gap">Top percentiles</h4>
           <div className="ld-chips">
-            {Object.entries(percentiles).map(([p, pts]) => (
+            {Object.entries(percentiles ?? {}).map(([p, pts]) => (
               <Chip key={p} className="tnum">{toTopCopy(Number(p), pts, you ? you.to_top?.[p] ?? null : null)}</Chip>
             ))}
           </div>
@@ -138,11 +142,11 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
             ))}
           </ul>
           <ul className="ld-rules">
-            <li><strong className="tnum">+{rules.first_game_bonus}</strong> for your first scoring game of the day</li>
-            <li>{softCapCopy(rules)}</li>
-            <li>{streakCopy(rules)}</li>
+            {isNum(rules.first_game_bonus) && <li><strong className="tnum">+{rules.first_game_bonus}</strong> for your first scoring game of the day</li>}
+            {isNum(rules.daily_full) && isNum(rules.daily_half) && isNum(rules.daily_tail_rate) && <li>{softCapCopy(rules as LadderRules)}</li>}
+            {rules.streak_milestones && isNum(rules.max_freezes) && <li>{streakCopy(rules as LadderRules)}</li>}
             <li>Ranks need points <em>and</em> active days — they never drop</li>
-            {!you && <li>Sign up and keep up to <span className="tnum">{rules.guest_carryover_max.toLocaleString()}</span> guest points</li>}
+            {!you && isNum(rules.guest_carryover_max) && <li>Sign up and keep up to <span className="tnum">{rules.guest_carryover_max.toLocaleString()}</span> guest points</li>}
           </ul>
         </section>
       </div>
