@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../store";
 import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
-import type { LadderData } from "../utils/ladder";
+import { ladderCacheFresh, type LadderData } from "../utils/ladder";
 
 /** The ladder changes slowly (the backend caches it for 10 min); match that here. */
 export const LADDER_TTL_MS = 10 * 60 * 1000;
@@ -15,10 +15,14 @@ interface CacheEntry { data: LadderData | null; error: boolean; userKey: string 
 // One module-level cache shared by every consumer (the modal can open from three places).
 let cache: CacheEntry | null = null;
 let fetching = false;
+// The identity most recently asked for: a request that lands while another fetch is in flight is
+// fetched right after it instead of being dropped.
+let latestKey: string | null = null;
 const subscribers = new Set<() => void>();
 const notify = () => subscribers.forEach((fn) => fn());
 
 async function fetchLadder(userKey: string | null): Promise<void> {
+  latestKey = userKey;
   if (fetching) return;
   fetching = true;
   notify();
@@ -33,14 +37,17 @@ async function fetchLadder(userKey: string | null): Promise<void> {
     cache = { data: null, error: true, userKey, fetchedAt: Date.now() };
   } finally {
     fetching = false;
-    notify();
+    if (latestKey !== userKey) fetchLadder(latestKey);
+    else notify();
   }
 }
 
-/** Loads GET /ranks/ladder/ once per 10 minutes (or when the signed-in user changes) and shares it. */
+/** Loads GET /ranks/ladder/ once per 10 minutes, or as soon as the signed-in user, their points or their
+ *  rank change, and shares it. A ladder fetched for another identity is never returned. */
 export function useLadder(): { loading: boolean; error: boolean; data: LadderData | null; refresh: () => void } {
   const { user } = useSelector((state: RootState) => state.user);
-  const userKey = user?.id ?? null;
+  // A game or a rank-up changes the `you` block; the backend's distribution is cached, so a refetch is cheap.
+  const userKey = user ? `${user.id}:${user.points}:${user.rank}` : null;
   const [, force] = useState(0);
 
   useEffect(() => {
@@ -50,11 +57,10 @@ export function useLadder(): { loading: boolean; error: boolean; data: LadderDat
   }, []);
 
   useEffect(() => {
-    const ttl = cache?.error ? LADDER_ERROR_TTL_MS : LADDER_TTL_MS;
-    const stale = !cache || cache.userKey !== userKey || Date.now() - cache.fetchedAt >= ttl;
-    if (stale) fetchLadder(userKey);
+    if (!ladderCacheFresh(cache, userKey, Date.now(), LADDER_TTL_MS, LADDER_ERROR_TTL_MS)) fetchLadder(userKey);
   }, [userKey]);
 
   const refresh = useCallback(() => { fetchLadder(userKey); }, [userKey]);
-  return { loading: !cache || (fetching && !cache.data), error: cache?.error ?? false, data: cache?.data ?? null, refresh };
+  const mine = cache && cache.userKey === userKey ? cache : null;
+  return { loading: !mine || (fetching && !mine.data), error: mine?.error ?? false, data: mine?.data ?? null, refresh };
 }

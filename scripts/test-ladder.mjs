@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   percentileHeadline, aheadCopy, sameRankCopy, toTopCopy, nextRankCopy, gateCopy, softCapCopy, streakCopy,
+  ladderCacheFresh,
 } from "../src/utils/ladder.ts";
 import { RANK_TAGLINES, RANK_ORDER, percentileShareText } from "../src/utils/ranks.ts";
 
@@ -19,6 +20,27 @@ test("headline: top x % with one decimal, early adopter under 20 players", () =>
 test("ahead / same-rank copy use whole numbers", () => {
   assert.equal(aheadCopy(you), "You're ahead of 77% of players");
   assert.equal(sameRankCopy(you), "18% share your rank");
+});
+
+test("never ahead of 100 %, a sliver of a share reads <1%", () => {
+  assert.equal(aheadCopy({ ...you, ahead_of_pct: 99.9 }), "You're ahead of 99% of players");
+  assert.equal(aheadCopy({ ...you, ahead_of_pct: 100 }), "You're ahead of 99% of players");
+  assert.equal(sameRankCopy({ ...you, same_rank_pct: 0.3 }), "<1% share your rank");
+  assert.equal(sameRankCopy({ ...you, same_rank_pct: 0 }), "0% share your rank");
+  assert.equal(sameRankCopy({ ...you, same_rank_pct: 0.5 }), "1% share your rank");
+});
+
+test("ladder cache: fresh only for the same identity within its TTL", () => {
+  const ttl = 600_000, errorTtl = 30_000, now = 1_000_000;
+  const ok = { userKey: "7:120:Role Player", fetchedAt: now - 1000, error: false };
+  assert.equal(ladderCacheFresh(ok, "7:120:Role Player", now, ttl, errorTtl), true);
+  assert.equal(ladderCacheFresh(ok, "7:620:Sixth Man", now, ttl, errorTtl), false);
+  assert.equal(ladderCacheFresh(ok, null, now, ttl, errorTtl), false);
+  assert.equal(ladderCacheFresh({ ...ok, fetchedAt: now - ttl }, "7:120:Role Player", now, ttl, errorTtl), false);
+  assert.equal(ladderCacheFresh({ ...ok, error: true, fetchedAt: now - 31_000 }, "7:120:Role Player", now, ttl, errorTtl), false);
+  assert.equal(ladderCacheFresh({ ...ok, error: true, fetchedAt: now - 1000 }, "7:120:Role Player", now, ttl, errorTtl), true);
+  assert.equal(ladderCacheFresh({ ...ok, userKey: null }, null, now, ttl, errorTtl), true);
+  assert.equal(ladderCacheFresh(null, null, now, ttl, errorTtl), false);
 });
 
 test("to-top copy", () => {

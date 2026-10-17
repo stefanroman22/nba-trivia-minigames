@@ -26,10 +26,21 @@ export function percentileHeadline(you: LadderYou, totalPlayers: number): string
   return totalPlayers < EARLY_ADOPTER_BELOW ? "Early adopter" : `Top ${pct1(you.percentile)}`;
 }
 export function aheadCopy(you: LadderYou): string {
-  return `You're ahead of ${pct0(you.ahead_of_pct)} of players`;
+  // Never "ahead of 100%": you can't be ahead of yourself.
+  return `You're ahead of ${pct0(Math.min(99, Math.round(you.ahead_of_pct)))} of players`;
 }
 export function sameRankCopy(you: LadderYou): string {
-  return `${pct0(you.same_rank_pct)} share your rank`;
+  const v = you.same_rank_pct;
+  return `${v > 0 && Math.round(v) === 0 ? "<1%" : pct0(v)} share your rank`;
+}
+
+/** The ladder hook's cache decision: fresh only for the same identity (id:points:rank) within its TTL. */
+export function ladderCacheFresh(
+  entry: { userKey: string | null; fetchedAt: number; error: boolean } | null,
+  userKey: string | null, now: number, ttl: number, errorTtl: number,
+): boolean {
+  if (!entry || entry.userKey !== userKey) return false;
+  return now - entry.fetchedAt < (entry.error ? errorTtl : ttl);
 }
 /** `toTop` null = guest (no "for you" part). */
 export function toTopCopy(pct: number, threshold: number, toTop: number | null): string {
