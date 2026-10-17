@@ -15,6 +15,7 @@ import MultiplayerInfoModal, { multiplayerInfoTitle } from "./modals/Multiplayer
 import GamePickerModal from "./modals/GamePickerModal";
 import ReportQuestionModal from "./modals/ReportQuestionModal";
 import RankUpModal from "./modals/RankUpModal";
+import LadderModal from "./modals/LadderModal";
 
 // Lazy: it bundles every game's review view, which only a game page in a match ever opens.
 const AnswerReviewModal = lazy(() => import("./modals/AnswerReviewModal"));
@@ -119,7 +120,11 @@ export default function ModalHost() {
   } else if (kind === "rankUp") {
     const p = payload as RankUpPayload | undefined;
     title = "Rank up!";
-    content = p ? <RankUpModal from={p.from} to={p.to} division={p.division} onClose={close} /> : null;
+    content = p ? <RankUpModal from={p.from} to={p.to} division={p.division} onClose={close} onLadder={() => open("ladder")} /> : null;
+  } else if (kind === "ladder") {
+    title = "The ladder";
+    wide = true;
+    content = <LadderModal onClose={close} />;
   }
 
   return (

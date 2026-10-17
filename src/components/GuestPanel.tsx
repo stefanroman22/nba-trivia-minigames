@@ -36,6 +36,7 @@ export default function GuestPanel() {
             <span style={{ color: "var(--good)" }}>✓</span> {perk}
           </div>
         ))}
+        <button type="button" className="ld-link" onClick={() => open("ladder")}>See the rank ladder →</button>
       </div>
 
       <button className="guest-panel-cta" onClick={() => open("login")}>Log in / Sign up</button>

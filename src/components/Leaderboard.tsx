@@ -64,7 +64,10 @@ function Leaderboard() {
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 2H6v7a6 6 0 0 0 12 0V2z" /></svg>
           <h3 className="font-display" style={{ fontSize: 17 }}><SwapText>{scope === "friends" ? "Friends Leaderboard" : scope === "weekly" ? "This Week" : "Global Top 100"}</SwapText></h3>
         </div>
-        <button className="lb-viewall" onClick={() => open("leaderboard", { scope })}>View all →</button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="lb-viewall" onClick={() => open("ladder")}>Ranks</button>
+          <button className="lb-viewall" onClick={() => open("leaderboard", { scope })}>View all →</button>
+        </div>
       </div>
 
       <div className="lb-scope-row">

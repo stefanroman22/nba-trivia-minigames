@@ -5,7 +5,7 @@ import type { ReviewRound } from "../utils/reviewRounds";
 import type { PendingRankUp } from "../store/userSlice";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion" | "rankUp";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion" | "rankUp" | "ladder";
 
 export interface InstructionsPayload {
   game: Game;
