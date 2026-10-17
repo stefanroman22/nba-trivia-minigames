@@ -1,11 +1,20 @@
-# Registers (or replaces) the scheduled task `nba-checks`: daily at 02:00, runs check-run.ps1 (Logic Check, then UI check,
+# Registers (or replaces) the scheduled task `nba-checks`: weekly, Sundays 02:00 CET, runs check-run.ps1 (Logic Check, then UI check,
 # on main; docs/logic-check/README.md "The nightly run") from the tooling worktree <worktreeRoot>\checks-nightly on branch
 # checks-nightly, which it creates when missing: from origin/dev (the branch must already carry scripts/check-run.ps1),
 # with junctions backend\.venv and multiplayer_server\node_modules to the main checkout's and its own `npm ci`.
-# StartWhenAvailable catches up a missed 02:00 (PC off or asleep) at the next start; the task is stopped after 6 h (a
-# hard stop leaves the stack up: the next night's check-run stops it first). A laptop on battery still starts and
+# The time is CET/CEST wall-clock time (-TimeZone, a Windows zone id); Task Scheduler fires on the PC's own clock, so it
+# is converted here (this PC runs on GTB time: 02:00 CET = 03:00 local). CET and the PC's EU zone switch summer time at
+# the same instant, so the converted time holds all year; re-run this script if the PC moves to another time zone.
+# StartWhenAvailable catches up a missed run (PC off or asleep) at the next start; the task is stopped after 6 h (a
+# hard stop leaves the stack up: the next run's check-run stops it first). A laptop on battery still starts and
 # keeps the run (the scheduler's defaults would refuse to start, and kill a run the moment the charger is unplugged). check-run.ps1 loads .env.team
 # (NOTION_TOKEN, SLACK_BOT_TOKEN) itself, like team-run.ps1. Remove the task with scripts/unregister-check-cron.ps1.
+param(
+  [ValidateSet("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")]
+  [string]$Day = "Sunday",
+  [string]$At = "02:00",
+  [string]$TimeZone = "W. Europe Standard Time"
+)
 $ErrorActionPreference = "Stop"
 $repo = Split-Path -Parent $PSScriptRoot
 $name = "nba-checks"
@@ -44,10 +53,16 @@ if (-not (Test-Path $script)) { throw "$script is missing: $branch has no check-
 $action = New-ScheduledTaskAction -Execute "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
   -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$script`"" `
   -WorkingDirectory $wt
-$trigger = New-ScheduledTaskTrigger -Daily -At "02:00"
+# The next $Day $At in $TimeZone, as the PC's local time (its weekday may differ from $Day near midnight).
+$tz = [TimeZoneInfo]::FindSystemTimeZoneById($TimeZone)
+$nowTz = [TimeZoneInfo]::ConvertTime([DateTime]::Now, $tz)
+$next = $nowTz.Date.AddDays(([int][DayOfWeek]$Day - [int]$nowTz.DayOfWeek + 7) % 7).Add([TimeSpan]::Parse($At))
+if ($next -le $nowTz) { $next = $next.AddDays(7) }
+$local = [TimeZoneInfo]::ConvertTime([DateTime]::SpecifyKind($next, [DateTimeKind]::Unspecified), $tz, [TimeZoneInfo]::Local)
+$trigger = New-ScheduledTaskTrigger -Weekly -DaysOfWeek $local.DayOfWeek -At $local
 $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
   -DontStopOnIdleEnd -ExecutionTimeLimit (New-TimeSpan -Hours 6)
 try { Unregister-ScheduledTask -TaskName $name -Confirm:$false -ErrorAction Stop } catch {}
 Register-ScheduledTask -TaskName $name -Action $action -Trigger $trigger -Settings $settings | Out-Null
-Write-Output "Registered '$name': daily at 02:00 (StartWhenAvailable, 6 h limit) -> $script (working directory $wt)"
+Write-Output "Registered '$name': weekly, $Day $At $($tz.Id) = $($local.DayOfWeek) $($local.ToString('HH:mm')) local, first run $($local.ToString('yyyy-MM-dd HH:mm')) (StartWhenAvailable, 6 h limit) -> $script (working directory $wt)"
 Get-ScheduledTask -TaskName $name | Select-Object TaskName, State

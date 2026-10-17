@@ -91,5 +91,5 @@ Give the owner:
 - `git status --short scripts/logic-check/notes`: the triage's notes appends stay uncommitted (tooling, next tooling PR).
 
 ## Nightly
-`scripts/check-run.ps1` (Task Scheduler `nba-checks`, 02:00) runs steps 1, 3-6 itself and calls only step 2 through
+`scripts/check-run.ps1` (Task Scheduler `nba-checks`, Sundays 02:00 CET) runs steps 1, 3-6 itself and calls only step 2 through
 `claude -p`; see `docs/logic-check/README.md`.

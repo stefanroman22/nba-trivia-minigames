@@ -22,8 +22,8 @@ tools over the sandboxed `mcp__plugin_playwright_playwright__*` ones, which get
 a blank throwaway profile and cannot see logged-in state.
 
 For a full automated UI audit use the `ui-check` skill; to fix its findings, the `ui-fix` skill.
-For API / socket / page-status checks use the `logic-check` skill. The nightly Task Scheduler task `nba-checks`
-(02:00, `scripts/check-run.ps1`) runs Logic Check, then UI check, on `main` and pushes both checkers' cards.
+For API / socket / page-status checks use the `logic-check` skill. The weekly Task Scheduler task `nba-checks`
+(Sundays 02:00 CET, `scripts/check-run.ps1`) runs Logic Check, then UI check, on `main` and pushes both checkers' cards.
 Any UI fix asked for in chat goes through the `frontend-engine` agent and is then proven with the matching
 ui-check checks on all 7 viewports (`node scripts/ui-check/run.mjs --only "<ids from scripts/ui-check/CHECKS.md>" --vp all --mode dev`);
 if it is an existing finding, use `ui-fix <id>` instead (it does both plus review).
