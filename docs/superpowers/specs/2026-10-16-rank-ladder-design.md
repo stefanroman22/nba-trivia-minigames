@@ -63,16 +63,16 @@ responsive.
 
 `ModalKind "ladder"`, wide, title "The ladder". Opened from:
 - the profile card's Rank stat (the rank label becomes a button with a chevron),
-- the leaderboard card head ("Ranks" link next to "View all →"),
+- the leaderboard card footer ("Ranks →" link),
 - the rank-up modal ("See where you stand →" text link under the buttons),
-- GuestPanel ("See the ladder" text link).
+- GuestPanel ("See the rank ladder →" text link).
 
-Sections, top to bottom (mobile = one column; ≥ 640 px = the ladder and the rules side by side):
+Sections, top to bottom (one column by default, including on desktop where the wide modal panel is 520 px; the ladder and the rules sit side by side via a container query only in a panel ≥ 640 px wide):
 
 1. **You** (signed-in): rank badge in the rank's colour, "Top 23 %" as the headline, then "You're ahead of 77 % of
    players · 18 % share your rank", the existing progress copy ("1,240 pts to All-Star · 2 more active days"), and a
    **Share** button (`navigator.share` → clipboard fallback → "Copied!" via SwapText) with the line
-   `I'm in the top 23 % of Swish Quest players 🏀 Starter and climbing. Think you know the NBA better? swishquest.com`.
+   `I'm in the top 23 % of Swish Quest players 🏀 Starter and climbing. Think you know the NBA better? Play free at swishquest.com` (percentile with one decimal, e.g. 23.1 %).
    Guests see "Sign up to claim a rank" (opens the login modal) over the same layout.
 2. **The ladder**: 9 rows. Each row: colour dot, rank name + tagline, the gate ("1,500 pts · 3 days"), a horizontal
    bar whose width = `share_pct` (pure CSS, animated in with `staggerItem`), and "40 %". The player's rank row is
