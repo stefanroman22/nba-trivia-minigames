@@ -10,11 +10,13 @@ interface RankUpModalProps {
   to: string;
   division: number | null;
   onClose: () => void;
+  /** Opens the ladder in place of this modal. */
+  onLadder?: () => void;
 }
 
 /** The rank-up moment: shown once per promotion (ModalHost opens it from user.pendingRankUp) after the
  *  game's own result, with a one-tap share. */
-export default function RankUpModal({ from, to, division, onClose }: RankUpModalProps) {
+export default function RankUpModal({ from, to, division, onClose, onLadder }: RankUpModalProps) {
   const [shared, setShared] = useState(false);
   const timer = useRef<number | null>(null);
   const share = async () => {
@@ -53,6 +55,7 @@ export default function RankUpModal({ from, to, division, onClose }: RankUpModal
         <Button block onClick={share}><SwapText>{shared ? "Copied!" : "Share"}</SwapText></Button>
         <Button block variant="secondary" onClick={onClose}>Keep playing</Button>
       </div>
+      {onLadder && <button type="button" className="ld-link" onClick={onLadder}>See where you stand →</button>}
     </div>
   );
 }

@@ -130,6 +130,8 @@ It has two parts ("apps"):
 - `update-profile` — save points / username / photo (recomputes your rank)
 - `logout` — invalidates your refresh token
 - `get-users` — the top-100 leaderboard plus your own rank
+- `ranks/ladder` — the rank ladder: players per rank, top-1/5/10/25/50 % point thresholds, the daily point
+  rules and (signed in) your percentile and what it takes to climb; public, distribution cached 10 min
 - `users/<public_id>/photo` — a player's profile photo as a cacheable JPEG (public; `?v=` is the
   version list rows carry as `photo_version`; `/me/` still inlines your own photo as a data URL)
 - `token/refresh` — get a fresh token when the old one expires (also returns your `me` payload,

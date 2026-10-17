@@ -1,0 +1,54 @@
+/* ===========================================================================
+   The ladder modal (LadderModal.tsx). Its entry links (.ld-link) live in LandPage.css (always loaded).
+   The rows are a one-series horizontal bar chart: every bar is one colour, the rank's own colour
+   rides the dot beside the name, and each value is printed in text tokens next to its bar.
+   =========================================================================== */
+/* Layout follows the modal's own width (container queries), not the viewport: the wide panel is
+   520 px, so the two-column split only kicks in if the ladder ever gets a wider box. */
+.ld { display: flex; flex-direction: column; gap: 18px; container: ladder / inline-size; }
+.ld-center { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 2rem 0; color: var(--muted); }
+.ld-hero { display: grid; grid-template-columns: 56px 1fr; grid-template-areas: "badge text" "actions actions"; gap: 12px 14px; align-items: center; padding: 14px; border-radius: 14px; background: var(--surface2); }
+.ld-badge { grid-area: badge; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #101010; background: var(--rank-color); }
+.ld-hero-text { grid-area: text; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ld-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.ld-headline { font-size: 26px; line-height: 1.1; }
+.ld-sub, .ld-next { font-size: 13px; color: var(--muted); line-height: 1.45; }
+.ld-hero-actions { grid-area: actions; }
+.ld-cols { display: grid; grid-template-columns: 1fr; gap: 18px; }
+.ld-cols > section { min-width: 0; }
+.ld-h { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.ld-h-gap { margin-top: 18px; }
+/* One grid for every row (rows are subgrids), so the side column is as wide as its widest gate and
+   every bar track has the same length: bars compare on one baseline. */
+.ld-rows { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px 10px; }
+.ld-row { grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; min-width: 0; }
+/* On the children: the row's own opacity belongs to its stagger entrance (framer sets it inline). */
+.ld-row.is-passed > * { opacity: 0.6; }
+.ld-row.is-you .ld-row-name { color: var(--brand); }
+.ld-dot { width: 10px; height: 10px; border-radius: 50%; }
+.ld-row-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.ld-row-name { font-weight: 700; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+.ld-row-tag { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Track = one step off the surface, rounded and clipping. The fill is a full-width square bar scaled
+   to the share (--w, 0..1) from the left: a transform, never a width animation. */
+.ld-bar { display: block; height: 6px; border-radius: 3px; background: var(--surface3); overflow: hidden; }
+.ld-bar-fill { display: block; width: 100%; height: 100%; background: var(--brand); transform: scaleX(var(--w, 0)); transform-origin: left center; transition: transform 600ms var(--ease-out); }
+.ld-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ld-row-pct { font-weight: 700; color: var(--text); }
+.ld-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ld-games { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: 1fr; gap: 4px 16px; font-size: 13px; }
+.ld-games li { display: flex; justify-content: space-between; gap: 10px; color: var(--text); }
+.ld-games li span:last-child { color: var(--brand); font-weight: 700; white-space: nowrap; }
+.ld-rules { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); line-height: 1.45; list-style: disc; }
+.ld-rules strong { color: var(--good); }
+.ld-foot { margin-top: 4px; }
+
+@container ladder (min-width: 440px) {
+  .ld-hero { grid-template-columns: 64px 1fr auto; grid-template-areas: "badge text actions"; }
+  .ld-badge { width: 64px; height: 64px; font-size: 30px; }
+  .ld-games { grid-template-columns: 1fr 1fr; }
+}
+@container ladder (min-width: 640px) {
+  .ld-cols { grid-template-columns: 1.2fr 1fr; gap: 24px; }
+}
+@media (prefers-reduced-motion: reduce) { .ld-bar-fill { transition: none; } }

@@ -27,3 +27,22 @@ export function rankLabel(rank: string, division?: number | null): string {
 export function shareText(rank: string): string {
   return `I just made ${rank} on Swish Quest 🏀 Think you know the NBA better? Play free at swishquest.com`;
 }
+
+/** One line per rank for the ladder rows (marketing copy; keep each under 40 characters). */
+export const RANK_TAGLINES: Record<string, string> = {
+  "Rookie": "Everyone starts here",
+  "Role Player": "First points on the board",
+  "Sixth Man": "Off the bench, into the rotation",
+  "Starter": "Three days in — you're in the lineup",
+  "All-Star": "Top of the regulars",
+  "All-NBA": "Elite company",
+  "MVP": "Best in the building",
+  "Hall of Famer": "Legend status",
+  "GOAT": "The 180-day club",
+};
+
+/** The ladder's share line. */
+export function percentileShareText(percentile: number, rank: string): string {
+  const top = `${Math.min(99.9, Math.max(0.1, percentile)).toFixed(1)}%`;
+  return `I'm in the top ${top} of Swish Quest players 🏀 ${rank} and climbing. Think you know the NBA better? Play free at swishquest.com`;
+}

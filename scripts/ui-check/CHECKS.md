@@ -111,6 +111,8 @@ profile checks assert that an existing name such as `testuser2` passes every rul
 | `AC-BLOCK-02` | pages | `@perf`, all 7 vps, logged out. "No action waits more than 400 ms on an animation": from the click until the next control is interactable (enabled, visible, `elementFromPoint` hits it): Log in -> Sign up (Email field), Sign up -> Log in (Email or username field), the modal X (the nav brand behind the backdrop). `slow-action` above 400 ms. |
 | `AC-BLOCK-03` | auth | `@perf`, core vps. After a successful log in, from the moment the "Welcome back" message shows (the server has answered) until the nav avatar is pressable. The success pane holds 600-800 ms by design (a tap skips it after 300 ms), so this check is expected to fail until that hold is shortened. |
 
+Coverage gap: the ladder modal (`ladder`, opened from the profile card rank button, the leaderboard card "Ranks" link, the rank-up modal and the guest panel) has no check yet; a full check is a follow-up.
+
 ## Games (GM-)
 
 Solo persona (`testuser3` / `testuser3w<n>`: the worker's account rotated by a hash of the test's title path, `lib/fixtures.mjs` `rotatedIndex`; `@perf` tests stay on `testuser3`; a minted session per test) except GM-SHELL-01 (guest).

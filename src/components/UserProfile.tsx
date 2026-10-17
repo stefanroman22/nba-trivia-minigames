@@ -12,6 +12,7 @@ import FriendsPanel from "./FriendsPanel";
 import { useProfilePhoto } from "../hooks/useProfilePhoto";
 import PhotoAgePrompt from "./PhotoAgePrompt";
 import { useNavigate } from "../hooks/useNavigate";
+import { useModal } from "../context/ModalContext";
 import { Chip, ProgressBar } from "./ui";
 import { rankLabel } from "../utils/ranks";
 
@@ -40,6 +41,7 @@ const readView = (): ProfileView => {
 function UserProfile() {
   const { user } = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
+  const { open } = useModal();
   const { uploadingPhoto, handlePhotoUpload, agePrompt, ageSaving, ageError, submitAge, cancelAge } = useProfilePhoto();
 
   // Profile is the default view; a player who switches to Friends keeps it on later visits.
@@ -139,7 +141,7 @@ function UserProfile() {
               <span className="pc-stat-divider" aria-hidden="true" />
               <div className="pc-stat">
                 <span className="pc-stat-lbl">Rank</span>
-                <span className="font-display pc-stat-num">{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}</span>
+                <button type="button" className="font-display pc-stat-num pc-stat-btn" onClick={() => open("ladder")} aria-label={`${rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}, see the rank ladder`}>{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)} <span aria-hidden="true">›</span></button>
               </div>
             </div>
 
