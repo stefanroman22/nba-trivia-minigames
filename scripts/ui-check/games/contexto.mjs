@@ -5,7 +5,8 @@
 //
 // Server gate (backend/trivia/wordle_daily.py + views.contexto_daily_play): ONE solo play per Europe/Paris day per account OR
 // per device id (the same localStorage `nba-mg:wordle-device-id` Wordle uses; a fresh browser context = a fresh device);
-// the play response `{ day, next_reset_at }` names the day whose question the page then loads. Throttle `contexto-play`
+// Play reads `GET daily-status` `{ locked, next_reset_at, day }`, loads that day's question, and only then records the
+// play (`POST daily-play` → `{ day, next_reset_at }`, 423 when another tab won the race). Throttle `contexto-play`
 // 20/h (account, or IP for guests). So every scenario runs as its own brand-new account (`freshAccount: true`), like
 // Wordle. Online Contexto (the relay deals the round) has no lock.
 //

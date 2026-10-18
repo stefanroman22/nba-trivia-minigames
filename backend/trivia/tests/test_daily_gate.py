@@ -1,6 +1,6 @@
 """The once-per-day gate for the daily solo games (trivia.wordle_daily): Contexto mirrors Wordle.
 
-GET  /trivia/<game>/daily-status/  -> { locked, next_reset_at }
+GET  /trivia/<game>/daily-status/  -> { locked, next_reset_at, day }
 POST /trivia/<game>/daily-play/    -> records the play; 423 once played today (per account OR device)
 The day is the Europe/Paris civil day; tests pin the clock instead of reading the wall clock.
 """
@@ -75,8 +75,15 @@ class DailyGateTests(TestCase):
     def test_contexto_status_is_unlocked_before_the_first_play(self):
         r = self.status("contexto")
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json(), {"locked": False, "next_reset_at": "2026-10-16T22:00:00Z"})  # Paris midnight
+        self.assertEqual(r.json(), {"locked": False, "next_reset_at": "2026-10-16T22:00:00Z", "day": "2026-10-16"})  # Paris midnight
         self.assertFalse(WordlePlay.objects.exists())  # read-only
+
+    def test_status_names_the_day_without_using_it_up(self):
+        """The client loads that day's question first and records the play only once it loaded."""
+        for game in ("contexto", "wordle"):
+            self.assertEqual(self.status(game).json()["day"], "2026-10-16")
+        self.assertFalse(WordlePlay.objects.exists())
+        self.assertEqual(self.play("contexto").json()["day"], self.status("contexto").json()["day"])
 
     def test_contexto_play_returns_the_paris_day_and_locks_the_device(self):
         r = self.play("contexto")
@@ -149,7 +156,7 @@ class ParisMidnightTests(TestCase):
             self.assertEqual(self.play().json()["day"], "2026-10-16")
             self.assertTrue(self.status()["locked"])
         with _frozen_at(_utc(2026, 10, 16, 22, 0)):  # 00:00 Paris on the 17th, still the 16th in UTC
-            self.assertEqual(self.status(), {"locked": False, "next_reset_at": "2026-10-17T22:00:00Z"})
+            self.assertEqual(self.status(), {"locked": False, "next_reset_at": "2026-10-17T22:00:00Z", "day": "2026-10-17"})
             self.assertEqual(self.play().json()["day"], "2026-10-17")
 
     def test_winter_time_flips_an_hour_later_in_utc(self):

@@ -210,11 +210,13 @@ def _daily_identity(request):
 
 def _daily_status(request, game):
     """Has this identity already played today's `game`? Read-only — never
-    records a play, so the idle screen can check this before Play is pressed."""
+    records a play, so the idle screen can check this before Play is pressed.
+    `day` is the Paris day the answer is about (solo Contexto loads that day's question)."""
     day, device_id, user = _daily_identity(request)
     return JsonResponse({
         'locked': wordle_daily.has_played_today(user, device_id, day, game),
         'next_reset_at': _iso(wordle_daily.next_reset_utc(day)),
+        'day': day.isoformat(),
     })
 
 
@@ -259,10 +261,12 @@ def contexto_daily_status(request):
 @permission_classes([AllowAny])
 @throttle_classes([ContextoPlayRateThrottle])
 def contexto_daily_play(request):
-    """Start today's single-player Contexto: locked (423) if already played today, otherwise
-    records the play and returns the Paris `day` whose question the client loads. The questions
-    are static files on the data host (their index carries each question's day), so the server
-    only decides which day it is; online Contexto is dealt by the relay and has no lock."""
+    """Record today's single-player Contexto: locked (423) if already played today, otherwise
+    records the play and returns the Paris `day` it counts for. The questions are static files on
+    the data host (their index carries each question's day), so the server only decides which day
+    it is: the client reads it from daily-status, loads that day's question, and records the play
+    here only once the question has loaded (a failed load never uses up the day). Online Contexto
+    is dealt by the relay and has no lock."""
     day, device_id, user = _daily_identity(request)
     next_reset = _iso(wordle_daily.next_reset_utc(day))
 

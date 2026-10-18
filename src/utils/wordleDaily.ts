@@ -1,7 +1,8 @@
-import type { FetchResult } from "../types/types";
+import type { FetchResult, GameData } from "../types/types";
 import { apiFetch } from "./Api";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { fetchQuestion } from "./questions";
+import { startDailyQuestion } from "./dailyFlow";
 
 /** The solo games played once per Europe/Paris day, gated server-side (backend/trivia/wordle_daily.py).
  *  Online rounds of these games have no lock. */
@@ -48,6 +49,8 @@ export function getDailyDeviceId(): string {
 export interface DailyStatus {
   locked: boolean;
   nextResetAt: string;
+  /** The Paris day ("YYYY-MM-DD") the answer is about. */
+  day?: string;
 }
 
 export async function fetchDailyStatus(game: DailyLockGame): Promise<DailyStatus | null> {
@@ -58,7 +61,7 @@ export async function fetchDailyStatus(game: DailyLockGame): Promise<DailyStatus
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return { locked: !!data.locked, nextResetAt: data.next_reset_at };
+    return { locked: !!data.locked, nextResetAt: data.next_reset_at, day: typeof data.day === "string" ? data.day : undefined };
   } catch {
     return null;
   }
@@ -72,8 +75,24 @@ const CONNECTION_ERROR: FetchResult = {
   },
 };
 
+const lockedError = (game: DailyLockGame): FetchResult => {
+  const copy = DAILY_COPY[game];
+  return {
+    success: false,
+    error: {
+      title: "Already played today",
+      message: `Come back after today's ${copy.puzzle} resets for another round of ${copy.full}.`,
+    },
+  };
+};
+
+const startError = (game: DailyLockGame): FetchResult => ({
+  success: false,
+  error: { title: `Unable to start ${DAILY_COPY[game].short}`, message: "Please try again later." },
+});
+
 /** Claims today's play of `game` (the server records it): its JSON on success, else the error to show. */
-async function startDailyPlay(game: DailyLockGame): Promise<{ data: Record<string, unknown> } | { failed: FetchResult }> {
+async function startDailyPlay(game: DailyLockGame): Promise<{ data: Record<string, unknown> } | { failed: FetchResult; locked?: true }> {
   try {
     const deviceId = getDailyDeviceId();
     const res = await apiFetch(`${BACKEND_ORIGIN}/trivia/${game}/daily-play/`, {
@@ -81,21 +100,8 @@ async function startDailyPlay(game: DailyLockGame): Promise<{ data: Record<strin
       body: JSON.stringify({ device_id: deviceId }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.status === 423 || data.locked) {
-      const copy = DAILY_COPY[game];
-      return {
-        failed: {
-          success: false,
-          error: {
-            title: "Already played today",
-            message: `Come back after today's ${copy.puzzle} resets for another round of ${copy.full}.`,
-          },
-        },
-      };
-    }
-    if (!res.ok) {
-      return { failed: { success: false, error: { title: `Unable to start ${DAILY_COPY[game].short}`, message: "Please try again later." } } };
-    }
+    if (res.status === 423 || data.locked) return { failed: lockedError(game), locked: true };
+    if (!res.ok) return { failed: startError(game) };
     return { data };
   } catch {
     return { failed: CONNECTION_ERROR };
@@ -111,16 +117,42 @@ export async function playWordleDaily(): Promise<FetchResult> {
   return { success: true, data: play.data.series };
 }
 
-/** Today's LeContexto: the server records the play and names the Paris day; the question is the one
- *  the published index schedules for that day (not the browser's own date), so it flips with the lock. */
+/** Today's LeContexto: the gate's status names the Paris day, that day's question is loaded from the
+ *  published index (not the browser's own date, so it flips with the lock), and only once it has loaded
+ *  is the play recorded — a failed load never uses up the day (utils/dailyFlow.ts). */
 export async function playContextoDaily(): Promise<FetchResult> {
-  const play = await startDailyPlay("contexto");
-  if ("failed" in play) return play.failed;
-  const day = play.data.day;
-  if (typeof day !== "string") {
-    return { success: false, error: { title: "Unable to start Contexto", message: "Please try again later." } };
+  // What to show for an "error" (no status: the server is unreachable; else the record's own failure)
+  // and for "unavailable" (the question load's failure; nothing was recorded, so Play can be retried).
+  let failure: FetchResult = CONNECTION_ERROR;
+  let loadFailure: FetchResult = startError("contexto");
+  const start = await startDailyQuestion<GameData>({
+    status: async () => {
+      const s = await fetchDailyStatus("contexto");
+      return s && { locked: s.locked, day: s.day };
+    },
+    load: async (day) => {
+      const res = await fetchQuestion("contexto", day);
+      if (res.success && res.data?.length) return res.data[0];
+      loadFailure = res.success ? startError("contexto") : res;
+      return null;
+    },
+    record: async () => {
+      const play = await startDailyPlay("contexto");
+      if ("failed" in play) {
+        failure = play.failed;
+        return play.locked ? { kind: "locked" } : { kind: "error" };
+      }
+      if (typeof play.data.day === "string") return { kind: "ok", day: play.data.day };
+      failure = startError("contexto");
+      return { kind: "error" };
+    },
+  });
+  switch (start.kind) {
+    case "ok": return { success: true, data: [start.question] };
+    case "locked": return lockedError("contexto");
+    case "unavailable": return loadFailure;
+    default: return failure;
   }
-  return fetchQuestion("contexto", day);
 }
 
 /** "3 hours" / "45 minutes" until `nextResetAt` — a plain duration, so it's the
