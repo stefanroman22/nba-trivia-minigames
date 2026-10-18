@@ -164,6 +164,7 @@ test('[LC-GAMEDATA-01] every visible game\'s data sources load: JSON, expected s
       if (d.fn === 'fetchGamePool' || d.fn === 'fetchWholePool') await pool(game, d.key);
       else if (d.fn === 'fetchQuestion') await question(game, d.key);
       else if (d.fn === 'playWordleDaily') await wordle(game);
+      else if (d.fn === 'playContextoDaily') await question(game, 'contexto'); // the daily gate names the day; the data is the contexto questions
       else bad(game, `fetchData ${d.fn}`, 'unknown data source', 'a source LC-GAMEDATA-01 knows (pool, question, wordle) — teach it the new one');
     });
   }

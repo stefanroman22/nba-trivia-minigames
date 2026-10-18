@@ -1,6 +1,13 @@
 // Adapter: LeContexto (src/Game Renderers/Contexto.tsx). A hidden secret player; any number of guesses, each shows its
 // similarity rank (#1 = the secret); Give up reveals the secret. Score 200, −5 per guess past the tenth, floor 50; a
-// give-up scores 0. Ends in place: the secret card flips to the name, the guess list stays, input → 1.5 s loader → ScorePanel.
+// give-up scores 0. Ends in place: the secret card flips to the name, the guess list stays, input → 1.5 s loader → ScorePanel
+// (Close game ONLY, like Wordle: solo Contexto is once per day, a replay would hit the 423 lock).
+//
+// Server gate (backend/trivia/wordle_daily.py + views.contexto_daily_play): ONE solo play per Europe/Paris day per account OR
+// per device id (the same localStorage `nba-mg:wordle-device-id` Wordle uses; a fresh browser context = a fresh device);
+// the play response `{ day, next_reset_at }` names the day whose question the page then loads. Throttle `contexto-play`
+// 20/h (account, or IP for guests). So every scenario runs as its own brand-new account (`freshAccount: true`), like
+// Wordle. Online Contexto (the relay deals the round) has no lock.
 //
 // Feedback copy (accepted deviation: no `Correct! +N`): a miss pops `#<rank>` in good (≤ 25) / brand (≤ 100) / bad
 // colour, the solve `Got it in N! +score` in good, a give-up `It was <name>` in bad. The driver's Rule 6.0 text check is
@@ -53,6 +60,9 @@ export default {
   latencyPlan: (t) => t === 2, // two misses, then the secret (played to the end)
   timerMs: null,
   pointsPerCorrect: null,
+  playAgain: false, // the locked result: Close game only
+  idleAfterPlay: 'games.idleNote', // Close game lands on "Next secret player available in …", not on Play
+  freshAccount: true, // every scenario is its own account + fresh device id (once-per-day gate)
   feedback: {
     selector: '.feedback-slot > *',
     // (turn, record, colours) → problems. `truth` of a miss is `#<rank>`, of the solve `Got it in N! +score`; `meta.bucket` its colour.
@@ -70,7 +80,7 @@ export default {
     partial: true, // three misses (rank colours good / brand / bad), then the secret → 200
     timeout: 'no clock in Contexto',
     giveup: true, // four misses, then Give up: the secret is revealed (Rule 7.3), 0 points
-    'daily-lock': 'not a daily game for the player (the secret changes daily, plays are unlimited)',
+    'daily-lock': true, // after a finished play (four misses, Give up): reload → countdown note, no Play, rail item disabled
   },
   labels: { giveup: 'four misses, then give up (the secret is revealed)', partial: 'three misses, then the secret' },
 
@@ -141,7 +151,7 @@ export default {
     }
   },
 
-  /** In place: the secret card names the player (visible), the guess list stays (one row per guess). */
+  /** In place: the secret card names the player (visible), the guess list stays (one row per guess), no Play again. */
   async endReveal(page, ctx, turns) {
     const problems = [];
     const { secret } = ctx.state.q;
@@ -155,6 +165,7 @@ export default {
         card: !!card, good: card ? card.classList.contains('is-good') : false, brand: card ? card.classList.contains('is-brand') : false,
         name: name ? name.textContent.trim() : null, nameVisible: vis(name), label: label ? label.textContent.trim() : null,
         rows: document.querySelectorAll('.playing-wrap .cx-row').length,
+        again: [...document.querySelectorAll('.stage-inner button')].some((b) => /^Play again$/.test((b.textContent || '').trim()) && b.getBoundingClientRect().height > 0),
       };
     });
     if (!end.card) problems.push('no secret-player card at the end');
@@ -165,6 +176,24 @@ export default {
       if (won ? !end.good : !end.brand) problems.push(`the secret card is not in its ${won ? 'won (is-good)' : 'given-up (is-brand)'} state`);
     }
     if (end.rows !== turns.length) problems.push(`${end.rows} guess rows stay on the board for ${turns.length} guesses`);
+    if (end.again && !ctx.online) problems.push('the end screen offers Play again, but a replay only hits the daily lock (423)');
+    return problems;
+  },
+
+  /** After the finished play and a reload (the driver's daily-lock scenario): countdown note, disabled rail item. */
+  async checkLocked(page) {
+    const problems = [];
+    const note = await L(page, 'games.idleNote').first().textContent({ timeout: 2000 }).catch(() => null);
+    if (!/^\s*Next secret player available in (\d+ (minutes?|hours?)|any moment now)\.\s*$/.test(note || '')) problems.push(`idle note reads "${(note || '').trim()}", expected "Next secret player available in <n> hours."`);
+    const railState = () => page.evaluate(() => {
+      const vis = (el) => el.getBoundingClientRect().height > 0 && getComputedStyle(el).visibility !== 'hidden';
+      const items = [...document.querySelectorAll('button.rail-item, button.rail-chip')].filter((b) => /Contexto/i.test(b.textContent || '') && vis(b));
+      return items.map((b) => ({ cls: b.className, disabled: b.disabled }));
+    });
+    let items = await railState();
+    for (let i = 0; i < 20 && !(items.length && items.every((b) => b.disabled)); i++) { await page.waitForTimeout(250); items = await railState(); }
+    if (!items.length) problems.push('no visible LeContexto item in the game rail');
+    else if (!items.every((b) => b.disabled)) problems.push('the LeContexto rail item is still enabled after the daily play');
     return problems;
   },
 };

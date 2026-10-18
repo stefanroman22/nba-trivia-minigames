@@ -548,7 +548,7 @@ Deliberate and reviewed — do not "fix" these. A game may break a rule only wit
 | Heatmap | `.endseq` min-height 100 px (`.gf:has(.hm-controls)`); Give up on its own line under the input row | 6.2, 4.8 | its Give up + input row is taller than the default end slot; same pattern as Contexto | 2026-10 |
 | SuperDraft | bespoke `.sd-result` panel | 8.1 | it has a Share action with no shared equivalent; it ends in place, so there is one end screen | ≤ 2026-10 |
 | Imposter | custom explainer screen | 2.1 | multiplayer-only rules screen inside the room, not the shell idle | ≤ 2026-10 |
-| Wordle | `ScorePanel` without Play again | 7.3 | once per day: a replay POSTs `daily-play` and hits the 423 lock | 2026-10 |
+| Wordle, Contexto | `ScorePanel` without Play again | 7.3 | once per day solo: a replay POSTs `daily-play` and hits the 423 lock | 2026-10 |
 | Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | 0.1 | no white token exists; `ui.css` sets the same precedent | ≤ 2026-10 |
 
 ---

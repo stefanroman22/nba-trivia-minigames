@@ -642,7 +642,8 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
       if (adapter.timeoutAfter) result = await playTurns(page, adapter, ctx, { plan: adapter.timeoutPlan || plan, stopAfter: adapter.timeoutAfter, onFirstFeedback: () => audit.shot('feedback') });
       await adapter.timeout(page, ctx);
       result.over = await waitOver(page, adapter);
-    } else if (scenario === 'giveup') {
+    } else if (scenario === 'giveup' || (scenario === 'daily-lock' && adapter.lives == null && adapter.giveUp)) {
+      // A daily game whose misses never end it (Contexto) finishes its daily-lock play the only way it can lose: Give up.
       result = await playTurns(page, adapter, ctx, { plan, stopAfter: adapter.giveUpAfter ?? 1, onFirstFeedback: () => audit.shot('feedback') });
       if (!result.over) { await adapter.giveUp(page, ctx); result.over = await waitOver(page, adapter); }
     } else {
