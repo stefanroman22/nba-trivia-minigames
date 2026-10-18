@@ -63,7 +63,7 @@ class RegistryAndSpecTests(SimpleTestCase):
                     self.assertTrue(callable(getattr(mod, name)), f"{slug} lacks {name}")
 
     def test_specs(self):
-        expected = {"fan-favorites": (30, 120), "who-would-win": (30, 200), "connections": (20, 60)}
+        expected = {"fan-favorites": (30, 400), "who-would-win": (30, 600), "connections": (20, 60)}
         for slug, (minimum, target) in expected.items():
             with self.subTest(slug=slug):
                 spec = specs.load(slug)
