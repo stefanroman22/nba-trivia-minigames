@@ -1,5 +1,5 @@
-name: Question checker
-# The Checker (docs/superpowers/specs/2026-10-12-question-factory-design.md §4.12): nothing new
+﻿name: Question checker
+# The Checker (docs/superpowers/specs/2026-10-12-question-factory-design.md Â§4.12): nothing new
 # reaches players unless this validity-only agent approved it. Daily:
 #   export  (has the DB secret)  pending questions -> small JSON batches of what players see
 #   check   (NO DB secret)       Claude (Max-plan OAuth token) judges each question; its web access
@@ -7,7 +7,7 @@ name: Question checker
 #   apply   (has the DB secret)  re-validates every verdict in code, pending -> active/quarantined,
 #                                journals the evidence (FactoryRun kind "checker"), then dispatches
 #                                a staging publish of the question games when anything was approved
-# Thursdays 03:00 UTC: the random audit (spec §4.9). The same three jobs re-check the live questions
+# Thursdays 03:00 UTC: the random audit (spec Â§4.9). The same three jobs re-check the live questions
 # the doctor's nightly scan (factory-nightly.yml, 02:00 UTC) marked audit_due; an invalid verdict
 # quarantines the question and the publish takes it out of play.
 # mode corrections (dispatched by doctor-research.yml when the doctor proposed data corrections):
@@ -109,12 +109,12 @@ jobs:
     if: needs.export.outputs.count != '0'
     runs-on: ubuntu-latest
     timeout-minutes: 90
-    # No database secret anywhere in this job (spec §3 principle 7).
+    # No database secret anywhere in this job (spec Â§3 principle 7).
     permissions:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 16
       matrix:
         batch: ${{ fromJSON(needs.export.outputs.batches) }}
     steps:
