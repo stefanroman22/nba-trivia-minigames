@@ -13,6 +13,7 @@ import Leaderboard from "../components/Leaderboard";
 import GuestPanel from "../components/GuestPanel";
 import LegalChangeNotice from "../components/LegalChangeNotice";
 import Reveal from "../components/motion/Reveal";
+import SwapText from "../components/motion/SwapText";
 import { reducedFade, swap } from "../motion/variants";
 import { useReducedMotionSafe } from "../hooks/useReducedMotionSafe";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
@@ -101,8 +102,10 @@ const Landpage = () => {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 Play today's game
               </Button>
-              <Button size="lg" variant="secondary" onClick={() => document.getElementById("games-grid")?.scrollIntoView({ behavior: "smooth" })}>
-                Browse all games
+              {/* Guests get the way in; signed-in players browse. One button, the label swaps in a box
+                  sized for both, so the row never resizes when the session resolves. */}
+              <Button size="lg" variant="secondary" onClick={() => (user ? document.getElementById("games-grid")?.scrollIntoView({ behavior: "smooth" }) : open("login"))}>
+                <SwapText reserveWidth={["Browse all games", "Log In / Sign Up"]}>{user ? "Browse all games" : "Log In / Sign Up"}</SwapText>
               </Button>
             </motion.div>
             <motion.div className="hero-stats" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}>
