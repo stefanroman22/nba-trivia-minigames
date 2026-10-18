@@ -1,0 +1,92 @@
+{
+  "teen-masking|/series-winner|.om-matchup .om-pc-tag": {
+    "key": "5d9d7ae6d0be",
+    "card": "3fa2cfb1-c595-8138-be07-fc895477bb2b",
+    "status": "To Do",
+    "decision": "skip",
+    "run": "20261014-1153x",
+    "at": "2026-10-15T19:07:21.784Z",
+    "id": "UIC-20261014-1153-001"
+  },
+  "teen-masking|/series-winner|.om-stage--results .om-pc-tag": {
+    "key": "193af9d6b382",
+    "card": "3fa2cfb1-c595-8138-be07-fc895477bb2b",
+    "status": "To Do",
+    "decision": "skip",
+    "run": "20261014-1153x",
+    "at": "2026-10-15T19:07:21.784Z",
+    "id": "UIC-20261014-1153-002"
+  },
+  "color-contrast|/|.is-active > .seg-label": {
+    "key": "b2fd8634a5f3",
+    "card": "3fa2cfb1-c595-810d-b055-d15b09fccd24",
+    "status": "To Do",
+    "decision": "skip:open",
+    "run": "20261016-0003",
+    "at": "2026-10-15T22:02:37.077Z",
+    "id": "UIC-20261014-1153-004"
+  },
+  "link-in-text-block|/privacy|p:nth-child(5) > a": {
+    "key": "a99ac3cd6103",
+    "card": "3fa2cfb1-c595-810d-b055-d15b09fccd24",
+    "status": "To Do",
+    "decision": "skip:open",
+    "run": "20261016-0003",
+    "at": "2026-10-15T22:02:37.077Z",
+    "id": "UIC-20261014-1153-008"
+  },
+  "double-transition|/name-logo|#root > div": {
+    "key": "ec0d3b49cc1a",
+    "card": "3fa2cfb1-c595-817e-baac-d0c0778dcfee",
+    "status": "To Do",
+    "decision": "skip:open",
+    "run": "20261016-0003",
+    "at": "2026-10-15T22:02:37.077Z",
+    "id": "UIC-20261014-1153-007"
+  },
+  "cls|/|document": {
+    "key": "13d58347bdcd",
+    "card": "3fa2cfb1-c595-81bc-8390-ed160a9a99e9",
+    "status": "To Do",
+    "decision": "skip:open",
+    "run": "20261016-0003",
+    "at": "2026-10-15T22:02:37.077Z",
+    "id": "UIC-20261014-1153-003"
+  },
+  "advisory|/api/signup|x-forwarded-for": {
+    "key": "5850dbc01b06",
+    "card": "3fb2cfb1-c595-819e-b41c-fa2287d364ff",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261016-0918-logic",
+    "at": "2026-10-16T06:28:00.683Z",
+    "id": "UIC-20261016-0918-logic-001"
+  },
+  "advisory|/trivia/log-session|log-session-replay": {
+    "key": "f73b9b7aa5db",
+    "card": "3fb2cfb1-c595-8186-ab8b-ddf2362656ce",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261016-0918-logic",
+    "at": "2026-10-16T06:28:00.683Z",
+    "id": "UIC-20261016-0918-logic-002"
+  },
+  "server-error|/api/signup|POST /api/signup/ password: 12345678 (JSON number)": {
+    "key": "6e09e83a7aef",
+    "card": "3fb2cfb1-c595-81af-95b2-fb3e3d1d1ced",
+    "status": "QA",
+    "decision": "skip:open",
+    "run": "20261017-0350-logic",
+    "at": "2026-10-17T01:02:20.647Z",
+    "id": "UIC-20261017-0350-logic-001"
+  },
+  "validation-gap|/api/signup|POST /api/signup/ password: similar to the username": {
+    "key": "930c46515412",
+    "card": "3fb2cfb1-c595-81af-95b2-fb3e3d1d1ced",
+    "status": "QA",
+    "decision": "skip:open",
+    "run": "20261017-0350-logic",
+    "at": "2026-10-17T01:02:20.647Z",
+    "id": "UIC-20261017-0350-logic-002"
+  }
+}

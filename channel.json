@@ -1,0 +1,54 @@
+{
+  "blocks": [
+    {
+      "service": "signup",
+      "by": "LC-SIGNUP-03",
+      "finding": "UIC-20261017-0350-logic-001",
+      "card": "3fb2cfb1-c595-81af-95b2-fb3e3d1d1ced",
+      "runId": "20261017-0350-logic",
+      "since": "2026-10-16T06:28:11.186Z"
+    }
+  ],
+  "deferred": [
+    {
+      "checker": "ui",
+      "checkId": "AC-SIGNUP-01",
+      "project": null,
+      "blockedBy": "LC-SIGNUP-03",
+      "service": "signup",
+      "runId": "20261017-0402",
+      "since": "2026-10-16T07:34:33.170Z"
+    },
+    {
+      "checker": "ui",
+      "checkId": "AC-SIGNUP-02",
+      "project": null,
+      "blockedBy": "LC-SIGNUP-03",
+      "service": "signup",
+      "runId": "20261017-0402",
+      "since": "2026-10-16T07:34:33.295Z"
+    },
+    {
+      "checker": "ui",
+      "checkId": "AC-BLOCK-01",
+      "project": null,
+      "blockedBy": "LC-SIGNUP-03",
+      "service": "signup",
+      "runId": "20261017-0402",
+      "since": "2026-10-16T07:34:33.317Z"
+    }
+  ],
+  "resolved": [
+    {
+      "service": "pages",
+      "by": "LC-PAGES-01",
+      "finding": "UIC-SYNTH-001",
+      "card": "3fa2cfb1c59581bc8390ed160a9a99e9",
+      "runId": "20261016-0003",
+      "since": "2026-10-16T06:06:57.267Z",
+      "resolvedAt": "2026-10-16T06:06:59.610Z",
+      "commit": "a9e44bad8f40f4d93883dbc8af463951f9472e3a",
+      "how": "fix on main"
+    }
+  ]
+}
