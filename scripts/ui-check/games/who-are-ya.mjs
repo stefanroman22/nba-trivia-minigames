@@ -1,6 +1,6 @@
 // Adapter: Who Are Ya (src/Game Renderers/WhoAreYa.tsx). A blurred headshot of a mystery player, 8 guesses; every
 // guess must be a player from the shared names list (anything else, or a repeat, costs nothing and is not used here).
-// A miss adds a feedback row of chips and sharpens the photo; a right guess scores 200 − 25 × misses ("Correct! +N",
+// A miss adds a feedback row of chips and sharpens the photo; a right guess scores 250 − 30 × misses ("Correct! +N",
 // N varies, so the answer result carries `points`); the 8th miss scores 0. Wrong copy is "Not <guessed name>." (the
 // 8th too: the ordinary wrong copy, Rule 6.3). Ends in place: reveal card + EndSequence loader (1.5 s) → ScorePanel.
 //
@@ -47,16 +47,16 @@ export default {
   timerMs: null,
   pointsPerCorrect: null, // varies: the answer result carries `points`
   scenarios: {
-    perfect: true, // right first guess → 200
+    perfect: true, // right first guess → 250
     wrong: true, // eight misses → the mystery is revealed, 0 points
-    partial: true, // two misses, then the right player → 150
+    partial: true, // two misses, then the right player → 190
     timeout: 'no clock in Who Are Ya',
     giveup: 'Who Are Ya has no give-up control (only Close game, which abandons without an end state)',
     'daily-lock': 'not a daily game (any number of plays per day)',
   },
 
   expectedScore(turns) {
-    return turns.some((t) => t.correct) ? 200 - 25 * turns.filter((t) => !t.correct).length : 0;
+    return turns.some((t) => t.correct) ? 250 - 30 * turns.filter((t) => !t.correct).length : 0;
   },
 
   async answer(page, ctx, { correct }) {
@@ -98,7 +98,7 @@ export default {
       st.tried.add(pick.id);
       guess = shown = pick.full_name;
     }
-    const points = correct ? 200 - 25 * st.wrong : null;
+    const points = correct ? 250 - 30 * st.wrong : null;
     if (!correct) st.wrong++;
     await typeAndConfirm(page, guess, { confirm: L(page, 'games.confirmGuess') });
     const next = await nextTurn(page, keyOf, st.key, shellIsOver, { timeout: 20_000 });

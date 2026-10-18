@@ -2,13 +2,14 @@
 //   npm run test:game-scoring      (node --experimental-strip-types; Node >= 22.6)
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import * as scoring from "../src/utils/gameScoring.ts";
 import {
   CAREER_PATH_MAX, careerPathScore,
-  WHO_ARE_YA_MAX, whoAreYaScore,
+  WHO_ARE_YA_MAX, WHO_ARE_YA_COST, whoAreYaScore,
   FAN_FAVORITES_MAX, fanFavoritesScore,
   WORDLE_MAX_GUESSES, wordlePoints,
-  TTT_CELL_POINTS, TTT_SOLO_MAX,
-  STARTING_FIVE_BONUS,
+  TTT_CELL_POINTS, TTT_CLEAR_BONUS, TTT_SOLO_MAX,
+  CONTEXTO_MAX, contextoScore,
 } from "../src/utils/gameScoring.ts";
 
 test("career path: 200 minus 40 per miss, never below 40", () => {
@@ -19,10 +20,13 @@ test("career path: 200 minus 40 per miss, never below 40", () => {
   assert.equal(careerPathScore(9), 40);
 });
 
-test("who are ya: 200 minus 25 per miss", () => {
-  assert.equal(WHO_ARE_YA_MAX, 200);
-  assert.equal(whoAreYaScore(0), 200);
-  assert.equal(whoAreYaScore(7), 25);
+test("who are ya: 250 minus 30 per miss, lowest win 40", () => {
+  assert.equal(WHO_ARE_YA_MAX, 250);
+  assert.equal(WHO_ARE_YA_COST, 30);
+  assert.equal(whoAreYaScore(0), 250);
+  assert.equal(whoAreYaScore(1), 220);
+  assert.equal(whoAreYaScore(4), 130);
+  assert.equal(whoAreYaScore(7), 40);
 });
 
 test("fan favorites: proportional to answers found, 200 for a clear", () => {
@@ -41,11 +45,22 @@ test("wordle: 500 jackpot solo, 200 online, minus one step per used attempt", ()
   assert.equal(wordlePoints(4, true), 40);
 });
 
-test("tic-tac-toe solo: 20 per cell, 180 for the board", () => {
-  assert.equal(TTT_CELL_POINTS, 20);
-  assert.equal(TTT_SOLO_MAX, 180);
+test("tic-tac-toe solo: 30 per cell, a 30 clear bonus, 300 for the board", () => {
+  assert.equal(TTT_CELL_POINTS, 30);
+  assert.equal(TTT_CLEAR_BONUS, 30);
+  assert.equal(TTT_SOLO_MAX, 300);
+  assert.equal(9 * TTT_CELL_POINTS + TTT_CLEAR_BONUS, TTT_SOLO_MAX);
 });
 
-test("starting five bonus", () => {
-  assert.equal(STARTING_FIVE_BONUS, 50);
+test("starting five: no full-lineup bonus any more", () => {
+  assert.equal("STARTING_FIVE_BONUS" in scoring, false);
+});
+
+test("contexto: 3000 through ten guesses, minus 75 per guess after, floor 750", () => {
+  assert.equal(CONTEXTO_MAX, 3000);
+  assert.equal(contextoScore(1), 3000);
+  assert.equal(contextoScore(10), 3000);
+  assert.equal(contextoScore(11), 2925);
+  assert.equal(contextoScore(40), 750);
+  assert.equal(contextoScore(100), 750);
 });

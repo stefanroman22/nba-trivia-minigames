@@ -52,9 +52,9 @@ const TTT_STEALS = 3;            // steals each player starts with
 const IMPOSTER_CLUE_ROUNDS = 2;  // 2 clue rounds, then the vote
 
 // TTT match scoring (fed into room.scores -> the shared rankRoom/settleMatch).
-const TTT_WIN_SCORE = 200;       // a finished duel: win / loss / draw (the game's maxPoints is the win)
-const TTT_LOSS_SCORE = 30;
-const TTT_DRAW_SCORE = 120;
+const TTT_WIN_SCORE = 300;       // a finished duel: win / loss / draw (the game's maxPoints is the win)
+const TTT_LOSS_SCORE = 45;
+const TTT_DRAW_SCORE = 180;
 
 // Friend-room sizing per game: how many players a room may hold. The host picks a size within these
 // bounds (index.js createFriendRoom / setRoomSize); the default lets 2-4 friends in. Turn games have
