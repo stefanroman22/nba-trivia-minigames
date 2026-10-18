@@ -14,6 +14,7 @@ import PhotoAgePrompt from "./PhotoAgePrompt";
 import { useNavigate } from "../hooks/useNavigate";
 import { useModal } from "../context/ModalContext";
 import { Chip, ProgressBar } from "./ui";
+import Chevron from "./ui/Chevron";
 import { rankLabel } from "../utils/ranks";
 
 type ProfileView = "friends" | "profile";
@@ -141,7 +142,7 @@ function UserProfile() {
               <span className="pc-stat-divider" aria-hidden="true" />
               <div className="pc-stat">
                 <span className="pc-stat-lbl">Rank</span>
-                <button type="button" className="font-display pc-stat-num pc-stat-btn" onClick={() => open("ladder")} aria-label={`${rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}, see the rank ladder`}>{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)} <span aria-hidden="true">›</span></button>
+                <button type="button" className="font-display pc-stat-num pc-stat-btn" onClick={() => open("ladder")} aria-label={`${rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}, see the rank ladder`}>{rankLabel(user?.rank ?? "Rookie", user?.rank_progress?.division)}<Chevron size={16} /></button>
               </div>
             </div>
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useModal } from "../context/ModalContext";
 import { readGuestPoints } from "../utils/guestPoints";
+import Chevron from "./ui/Chevron";
 
 const PERKS = ["Keep the points you score", "Daily streaks & rank progress", "1v1 online multiplayer"];
 
@@ -36,7 +37,7 @@ export default function GuestPanel() {
             <span style={{ color: "var(--good)" }}>✓</span> {perk}
           </div>
         ))}
-        <button type="button" className="ld-link" onClick={() => open("ladder")}>See the rank ladder →</button>
+        <button type="button" className="ld-link" onClick={() => open("ladder")}>See the rank ladder <Chevron size={14} /></button>
       </div>
 
       <button className="guest-panel-cta" onClick={() => open("login")}>Log in / Sign up</button>

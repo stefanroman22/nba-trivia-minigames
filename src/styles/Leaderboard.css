@@ -118,4 +118,3 @@
 .lb-foot-note { font-size: 11px; color: var(--muted); }
 /* Refresh + the "Ranks →" link into the ladder modal, one row in every scope. */
 .lb-foot-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
-.lb-ranks { white-space: nowrap; }

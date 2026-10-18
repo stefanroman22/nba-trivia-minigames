@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import copy from "copy-to-clipboard";
 import { motion } from "framer-motion";
 import { Button } from "../ui";
+import Chevron from "../ui/Chevron";
 import SwapText from "../motion/SwapText";
 import { RANK_COLORS, rankLabel, shareText } from "../../utils/ranks";
 
@@ -55,7 +56,7 @@ export default function RankUpModal({ from, to, division, onClose, onLadder }: R
         <Button block onClick={share}><SwapText>{shared ? "Copied!" : "Share"}</SwapText></Button>
         <Button block variant="secondary" onClick={onClose}>Keep playing</Button>
       </div>
-      {onLadder && <button type="button" className="ld-link" onClick={onLadder}>See where you stand →</button>}
+      {onLadder && <button type="button" className="ld-link" onClick={onLadder}>See where you stand <Chevron size={14} /></button>}
     </div>
   );
 }
