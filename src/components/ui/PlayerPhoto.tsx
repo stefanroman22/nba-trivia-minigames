@@ -1,5 +1,12 @@
-import { useEffect, useId, useState, type CSSProperties } from "react";
-import { usePhotoSource, type PhotoSize } from "../../utils/playerPhotos";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import {
+  commonsUrl,
+  placePhoto,
+  usePhotoSource,
+  type PhotoFrame,
+  type PhotoSize,
+  type PhotoSource,
+} from "../../utils/playerPhotos";
 import "../../styles/PlayerPhoto.css";
 
 /** The one "no photo" figure every game shows: an orange player silhouette. */
@@ -25,7 +32,11 @@ interface PlayerPhotoProps {
   personId: number | null | undefined;
   alt: string;
   size?: PhotoSize;
-  /** Class of the <img>; the game's own frame/fit rules key off it. */
+  /** How the frame crops a Commons photo (utils/playerPhotos placePhoto). NBA headshots are one
+   *  uniform studio crop and keep the game's own CSS fit. */
+  frame?: PhotoFrame;
+  /** Class of the photo box: the <img> for NBA headshots, the frame <span> around a Commons
+   *  photo. The game's frame size / radius / filter rules key off it. */
   className?: string;
   /** Class of the silhouette shown when there is no photo. */
   fallbackClassName?: string;
@@ -34,36 +45,103 @@ interface PlayerPhotoProps {
 
 /**
  * A player's photo: cdn.nba.com, else Wikimedia Commons, else the silhouette — the same
- * order and the same fallback in every game (see utils/playerPhotos). Commons photos are
- * marked data-source="commons" so PlayerPhoto.css can crop them to the face.
+ * order and the same fallback in every game (see utils/playerPhotos).
  */
 export default function PlayerPhoto({
   personId,
   alt,
   size = "lg",
+  frame = "card",
   className,
   fallbackClassName,
   style,
 }: PlayerPhotoProps) {
   const photo = usePhotoSource(personId, size);
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  useEffect(() => setFailedSrc(null), [personId]);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [personId]);
 
   // Map still loading: hold the slot with an invisible silhouette, so the frame keeps its size.
   if (photo === undefined) {
     return <PlayerSilhouette className={`${fallbackClassName ?? ""} player-photo-pending`} />;
   }
-  if (!photo || photo.src === failedSrc) return <PlayerSilhouette className={fallbackClassName} />;
+  if (!photo || failed) return <PlayerSilhouette className={fallbackClassName} />;
+  if (photo.source === "commons") {
+    return <CommonsPhoto photo={photo} alt={alt} frame={frame} className={className} style={style} onFail={() => setFailed(true)} />;
+  }
   return (
     <img
       className={className}
       src={photo.src}
       alt={alt}
-      data-source={photo.source}
-      style={photo.focus ? { ...style, objectPosition: photo.focus } : style}
+      data-source="nba"
+      style={style}
       decoding="async"
       draggable={false}
-      onError={() => setFailedSrc(photo.src)}
+      onError={() => setFailed(true)}
     />
+  );
+}
+
+/**
+ * A Commons photo inside a frame <span> that takes the game's class: the span is measured, and the
+ * photo is drawn at the size and offset placePhoto picks for that exact frame (zoomed onto the
+ * face in avatars, head kept in view in cards). The file width follows the drawn size, so it stays
+ * sharp without downloading more than needed. Measured in a layout effect, before paint: no jump.
+ */
+function CommonsPhoto({
+  photo,
+  alt,
+  frame,
+  className,
+  style,
+  onFail,
+}: {
+  photo: Extract<PhotoSource, { source: "commons" }>;
+  alt: string;
+  frame: PhotoFrame;
+  className?: string;
+  style?: CSSProperties;
+  onFail: () => void;
+}) {
+  const boxRef = useRef<HTMLSpanElement>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+  // The widest file asked for so far: a resize never swaps to a smaller (already-loaded) file.
+  const needRef = useRef(0);
+
+  useLayoutEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    // clientWidth/Height: the layout size inside the border, unaffected by transform animations.
+    const measure = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w > 0 && h > 0) setBox((b) => (b && b.w === w && b.h === h ? b : { w, h }));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  let img = null;
+  if (box) {
+    const p = placePhoto(box.w, box.h, photo.aspect, photo.face, frame);
+    const dpr = typeof window === "undefined" ? 2 : window.devicePixelRatio || 1;
+    needRef.current = Math.max(needRef.current, Math.ceil(p.w * dpr));
+    img = (
+      <img
+        src={commonsUrl(photo.path, photo.width, needRef.current)}
+        alt={alt}
+        decoding="async"
+        draggable={false}
+        onError={onFail}
+        style={{ position: "absolute", left: p.x, top: p.y, width: p.w, height: p.h, maxWidth: "none", objectFit: "fill" }}
+      />
+    );
+  }
+  return (
+    <span ref={boxRef} className={`player-photo-frame ${className ?? ""}`} data-source="commons" style={style}>
+      {img}
+    </span>
   );
 }

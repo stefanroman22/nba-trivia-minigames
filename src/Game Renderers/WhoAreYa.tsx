@@ -374,6 +374,7 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
               <PlayerPhoto
                 personId={mystery.person_id}
                 alt="Mystery player headshot"
+                frame="strip"
                 className="waya-photo"
                 fallbackClassName="waya-silhouette waya-silhouette--none"
                 style={{ filter: `blur(${blurPx}px)`, transition: reduce ? "none" : "filter 0.6s ease" }}

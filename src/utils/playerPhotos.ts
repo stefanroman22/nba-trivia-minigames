@@ -6,9 +6,16 @@
 // mention uses cdn.nba.com.
 import { useEffect, useState } from "react";
 
+/** A Commons entry: ["a/ab/File_name.jpg", original width, original height, then optionally the
+ *  face centre x, y and (when the detector measured it) the face box width, height — all in % of
+ *  the image]. Written by scripts/player-photos/build.mjs from faces.json. */
+type CommonsEntry =
+  | [string, number, number]
+  | [string, number, number, number, number]
+  | [string, number, number, number, number, number, number];
+
 interface PhotoMap {
-  /** person_id -> ["a/ab/File_name.jpg", original width in px, face x %, face y %] (face optional) */
-  commons: Record<string, [string, number] | [string, number, number, number]>;
+  commons: Record<string, CommonsEntry>;
   /** person_ids with no photo on either source */
   none: number[];
 }
@@ -16,17 +23,25 @@ interface PhotoMap {
 /** "sm" for avatar-sized slots (<= ~60px), "lg" for cards and reveals. */
 export type PhotoSize = "sm" | "lg";
 
-export interface PhotoSource {
-  src: string;
-  /** Commons photos are arbitrary crops, so they get a shared fit rule (PlayerPhoto.css). */
-  source: "nba" | "commons";
-  /** CSS object-position that keeps the face in frame, when the photo's face position is known. */
-  focus?: string;
+/** How a frame crops a Commons photo (see placePhoto): a small `avatar` (circle or tiny square)
+ *  zooms onto the face, a `card` keeps the head in view, a wide `strip` shows the whole photo. */
+export type PhotoFrame = "avatar" | "card" | "strip";
+
+/** Face in a Commons photo, as fractions of the image (cx, cy = centre; fw, fh = box size). */
+export interface PhotoFace {
+  cx: number;
+  cy: number;
+  fw?: number;
+  fh?: number;
 }
 
+export type PhotoSource =
+  | { source: "nba"; src: string }
+  | { source: "commons"; path: string; width: number; aspect: number; face?: PhotoFace };
+
 const NBA_SIZE: Record<PhotoSize, string> = { sm: "260x190", lg: "1040x760" };
-// Commons' standard thumbnail widths (other widths are throttled).
-const COMMONS_WIDTH: Record<PhotoSize, number> = { sm: 120, lg: 500 };
+// Commons' standard thumbnail widths (other widths are throttled), smallest first.
+const COMMONS_BUCKETS = [120, 250, 330, 500, 960, 1280];
 
 let map: PhotoMap | null = null;
 let none: Set<number> | null = null;
@@ -49,22 +64,77 @@ export function loadPhotoMap(): Promise<void> {
   return mapPromise;
 }
 
-function commonsUrl([path, width]: PhotoMap["commons"][string], size: PhotoSize): string {
+/** The Commons file at the smallest standard width that covers `needPx` device pixels. Commons
+ *  can't upscale, so a file narrower than that bucket is served as the original. */
+export function commonsUrl(path: string, width: number, needPx: number): string {
   const file = path.slice(path.lastIndexOf("/") + 1);
   const dir = path.slice(0, path.lastIndexOf("/"));
   const base = "https://upload.wikimedia.org/wikipedia/commons";
-  const w = COMMONS_WIDTH[size];
   const name = encodeURIComponent(file);
-  // Commons can't upscale: a file narrower than the bucket is served as the original.
+  const w = COMMONS_BUCKETS.find((b) => b >= needPx) ?? COMMONS_BUCKETS[COMMONS_BUCKETS.length - 1];
   return width <= w ? `${base}/${dir}/${name}` : `${base}/thumb/${dir}/${name}/${w}px-${name}`;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+
+/** Target face height as a share of the frame height, per frame kind. */
+const FACE_SHARE: Record<PhotoFrame, number> = { avatar: 0.42, card: 0.3, strip: 0.42 };
+/** A strip shows the whole photo unless that leaves it covering less than this share of the frame. */
+const STRIP_MIN_COVERAGE = 0.55;
+/** Never zoom past this multiple of a plain cover fit (the photo gets soft and loses context);
+ *  avatars go further because a 32–44px circle needs the face to fill it. */
+const MAX_ZOOM: Record<PhotoFrame, number> = { avatar: 4.5, card: 3, strip: 3 };
+
+/**
+ * Where to draw a Commons photo inside a W x H frame (css px): its drawn size and offset.
+ * Cover the frame, zoom so the face reaches the frame's FACE_SHARE (but the whole head — crown
+ * ~0.45 face-heights above the detector's box, chin just below it — still fits), centre the head,
+ * then clamp so the photo covers the frame. A close-up whose head is taller than the frame even at
+ * a plain cover is drawn smaller instead (down to the whole photo), with bars at the sides rather
+ * than a cut face. Without a face: cover, top-biased (5%).
+ * scripts/player-photos/check_fit.py reproduces this exactly; change both together.
+ */
+export function placePhoto(W: number, H: number, aspect: number, face: PhotoFace | undefined, frame: PhotoFrame) {
+  if (frame === "strip") {
+    const cw = Math.min(W, H / aspect);
+    const ch = cw * aspect;
+    if ((cw * ch) / (W * H) >= STRIP_MIN_COVERAGE || !face) return { w: cw, h: ch, x: (W - cw) / 2, y: (H - ch) / 2 };
+  }
+  const cover = Math.max(W, H / aspect);
+  let w = cover;
+  if (face?.fh && face.fw) {
+    const want = (FACE_SHARE[frame] * H) / (face.fh * aspect);
+    const headFits = Math.min((0.92 * H) / (face.fh * 1.5 * aspect), (0.95 * W) / (face.fw * 1.24));
+    const least = headFits >= cover ? cover : Math.max(headFits, Math.min(W, H / aspect));
+    w = clamp(Math.min(want, headFits), least, cover * MAX_ZOOM[frame]);
+  }
+  const h = w * aspect;
+  let x = (W - w) / 2;
+  let y = frame === "avatar" ? 0 : -(h - H) * 0.05;
+  if (face) {
+    x = W / 2 - face.cx * w;
+    if (face.fh) {
+      const headTop = (face.cy - 0.95 * face.fh) * h;
+      const headBottom = (face.cy + 0.55 * face.fh) * h;
+      y = H * (frame === "avatar" ? 0.5 : 0.47) - (headTop + headBottom) / 2;
+    } else {
+      y = H * 0.42 - face.cy * h;
+    }
+  }
+  // Keep the photo over the whole frame (or, when it is smaller, inside it).
+  return { w, h, x: clamp(x, Math.min(0, W - w), Math.max(0, W - w)), y: clamp(y, Math.min(0, H - h), Math.max(0, H - h)) };
 }
 
 /** The photo to show, or null for "no photo, use the silhouette". Call after loadPhotoMap. */
 export function photoSource(personId: number, size: PhotoSize): PhotoSource | null {
   if (none?.has(personId)) return null;
   const c = map?.commons[String(personId)];
-  if (c) return { src: commonsUrl(c, size), source: "commons", focus: c.length === 4 ? `${c[2]}% ${c[3]}%` : undefined };
-  return { src: `https://cdn.nba.com/headshots/nba/latest/${NBA_SIZE[size]}/${personId}.png`, source: "nba" };
+  if (c) {
+    const [path, width, height, cx, cy, fw, fh] = c;
+    const face = cx == null || cy == null ? undefined : { cx: cx / 100, cy: cy / 100, fw: fw == null ? undefined : fw / 100, fh: fh == null ? undefined : fh / 100 };
+    return { source: "commons", path, width, aspect: height / width, face };
+  }
+  return { source: "nba", src: `https://cdn.nba.com/headshots/nba/latest/${NBA_SIZE[size]}/${personId}.png` };
 }
 
 let ids: Record<string, number> | null = null;

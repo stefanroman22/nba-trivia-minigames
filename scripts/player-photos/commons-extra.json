@@ -320,13 +320,396 @@
   "face_y": 22
  },
  "76176": {
-  "file": "Rolando Blackman celebrates, The Cincinnati Enquirer 1981-03-17 page C-1.jpg",
-  "face_x": 30,
-  "face_y": 55
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
  },
  "77977": {
   "file": "1963 - Joe Roberts - Allentown Jets - Allentown PA.jpg",
   "face_x": 40,
   "face_y": 18
+ },
+ "1506": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "198": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "201274": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "203116": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "2080": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "2469": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "273": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "375": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "728": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76098": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76217": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76302": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76313": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76351": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76379": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76499": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76556": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76776": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76880": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76919": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "76991": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77007": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77058": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77097": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77239": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77240": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77332": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77338": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77357": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77410": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77452": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77484": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77554": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77574": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77642": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77723": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77757": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77786": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "77954": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "78012": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "78081": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "78114": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "78391": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "78467": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "78579": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "80": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+ },
+ "1000": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1068": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1509": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1541": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "182": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1908": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1913": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1916": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1942": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "200766": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "200818": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "201238": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "201446": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "201616": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "202716": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "203108": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "203955": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "2043": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "2046": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "2198": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "2457": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "2553": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "2696": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "65": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "76256": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "76259": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "76286": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "76736": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "76901": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "76908": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "77163": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "77325": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "77330": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "77586": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "78000": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "78047": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "78326": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "78602": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "78631": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+ },
+ "1754": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "76019": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "76598": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "76744": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "76896": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "77290": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "77364": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "77575": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "78143": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "78188": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "78253": {
+  "exclude": true,
+  "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
  }
 }
