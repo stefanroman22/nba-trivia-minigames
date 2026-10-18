@@ -201,9 +201,10 @@ html { scroll-behavior: smooth; }
 .pc-photo-btn:hover { background: var(--brand); color: #fff; transform: scale(1.06); }
 
 .pc-meta { grid-area: meta; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-/* Never truncated: the size follows the card's width and a long name may wrap. */
-.pc-name { font-size: clamp(16px, 5.2cqi, 22px); margin: 0; line-height: 1.15; overflow-wrap: anywhere; }
-.pc-id { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+/* One line: the size follows the card's width, and a name too long for it ends in an ellipsis (the
+   full name is in the title) rather than breaking mid-word. */
+.pc-name { font-size: clamp(16px, 5.2cqi, 22px); margin: 0; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc-id { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
 /* Copy icon: swaps to a green check for a moment once the ID is on the clipboard. */
 .pc-copy {
   width: 26px; height: 26px; flex: none;
@@ -258,6 +259,14 @@ html { scroll-behavior: smooth; }
   .pc-stats { min-width: 104px; padding: 8px 10px; gap: 5px; }
   .pc-stat { gap: 10px; }
   .pc-stat-num { font-size: 15px; }
+}
+/* A phone-width card: identity and stats no longer share one row (the name and the #ID + copy button
+   would be squeezed under the stats box). Photo + name + ID on top, the same points/rank box full width
+   under it; its values shrink a little on the narrowest cards so "Hall of Famer III" still fits. */
+@container profile-card (max-width: 400px) {
+  .pc-grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "photo meta" "stats stats"; }
+  .pc-stats { min-width: 0; }
+  .pc-stat-num { font-size: clamp(13px, 4.6cqi, 15px); }
 }
 
 

@@ -119,7 +119,7 @@ function UserProfile() {
             </div>
 
             <div className="pc-meta">
-              <h2 className="font-display pc-name">{user?.username}</h2>
+              <h2 className="font-display pc-name" title={user?.username}>{user?.username}</h2>
               <span className="pc-id tnum">
                 #{user?.id}
                 <button
