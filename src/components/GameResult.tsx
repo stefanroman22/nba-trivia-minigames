@@ -9,7 +9,7 @@ interface GameResultProps {
   score: number,
   maxPoints: number,
   /** Restarts and auto-launches the same game (no extra Play press). Omit to
-   *  show Close game alone (Wordle: once per day, a replay would hit the daily lock). */
+   *  show Close game alone (Wordle, Contexto: once per day, a replay would hit the daily lock). */
   onPlayAgain?: () => void,
   /** Closes the game and returns to the generic no-game screen. */
   onClose: () => void,

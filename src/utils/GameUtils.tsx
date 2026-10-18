@@ -1,7 +1,7 @@
 
 import type { Game } from "../types/types";
 import { fetchGamePool, fetchWholePool } from "./pool";
-import { playWordleDaily } from "./wordleDaily";
+import { playContextoDaily, playWordleDaily } from "./wordleDaily";
 import { fetchQuestion } from "./questions";
 import playoffSeriesBg from "../assets/Games Backrounds/playoff_series.jpg";
 import guessLogoBg from "../assets/Games Backrounds/guess_the_logo.jpg";
@@ -489,7 +489,7 @@ export const games: Game[] = [
   {
     id: "contexto",
     name: "LeContexto",
-    tag: "RADAR",
+    tag: "DAILY",
     description: "Every guess brings you closer to the truth.",
     seoDescription: "LeContexto: guess the secret NBA player and get a similarity rank for every guess, from franchise, era, position, draft and stats. Free to play.",
     intro: "No fail state, just a similarity radar. Home in on the secret player.",
@@ -514,7 +514,8 @@ export const games: Game[] = [
     urlPath: "/contexto",
     pointsPerCorrect: 5,
     maxPoints: 200,
-    fetchData: () => fetchQuestion("contexto"),
+    // One play per Paris day, server-gated like Wordle — see src/utils/wordleDaily.ts.
+    fetchData: () => playContextoDaily(),
     handleError: handleErrorDefault,
   },
   {

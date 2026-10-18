@@ -429,13 +429,14 @@ export function pickDaily(index: QuestionIndex, today = utcToday()): string {
   return String(sorted[hashStr(today) % sorted.length][0]);
 }
 
-/** Per-game picker; anything not listed picks uniformly. Mirrored in multiplayer_server/src/gameData.js. */
-export const PICKERS: Record<string, (i: QuestionIndex, rand?: () => number) => string> = {
+/** Per-game picker; anything not listed picks uniformly. Mirrored in multiplayer_server/src/gameData.js.
+ *  `day` ("YYYY-MM-DD") is the daily game's day when the server named one (solo Contexto: the Paris day). */
+export const PICKERS: Record<string, (i: QuestionIndex, rand?: () => number, day?: string) => string> = {
   "career-path": pickWeighted,
   "who-are-ya": pickRandom,
   tictactoe: pickRandom,
   superdraft: pickRandom,
-  contexto: (i) => pickDaily(i),
+  contexto: (i, _rand, day) => pickDaily(i, day),
   imposter: (i) => String(i.items[0][0]),
 };
 
@@ -444,10 +445,10 @@ export const PICKERS: Record<string, (i: QuestionIndex, rand?: () => number) => 
  * questions not seen yet (every one again once all have been seen: utils/seenCore.ts). The caller
  * marks the pick seen once its file has loaded.
  */
-export function pickQuestion(game: string, index: QuestionIndex, rand: () => number = Math.random): string {
+export function pickQuestion(game: string, index: QuestionIndex, rand: () => number = Math.random, day?: string): string {
   const picker = PICKERS[game] ?? pickRandom;
-  if (!SEEN_GAMES.has(game)) return picker(index, rand);
-  return picker({ ...index, items: unseenOrAll(game, index.items, (it) => String(it[0])) }, rand);
+  if (!SEEN_GAMES.has(game)) return picker(index, rand, day);
+  return picker({ ...index, items: unseenOrAll(game, index.items, (it) => String(it[0])) }, rand, day);
 }
 
 /** True when the manifest publishes this question game. */
@@ -471,11 +472,11 @@ export async function fetchQuestionIndex(game: string): Promise<QuestionIndex> {
 const isQuestion = (v: unknown): v is Question =>
   !!v && typeof v === "object" && !Array.isArray(v) && typeof (v as Question).qid === "string";
 
-async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number, qid?: string): Promise<Question> {
+async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number, qid?: string, day?: string): Promise<Question> {
   const index = await loadIndexFrom(m, game);
   if (!index.items.length) throw new GameDataUnavailable(`no ${game} questions`);
   const view: QuestionIndex = { schema: index.schema, game, version: m.version, dataset: index.dataset, items: index.items };
-  const pick = qid ?? pickQuestion(game, view, rand);
+  const pick = qid ?? pickQuestion(game, view, rand, day);
   const sha = index.files[pick];
   if (!sha) throw new GameDataUnavailable(`${game}/${pick} is not in the index`);
   const question = await cachedJson(questionPath(game, pick, sha), isQuestion, "a question");
@@ -485,19 +486,20 @@ async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number,
 
 /**
  * One question for a game: manifest -> index -> the game's picker -> the question file, exactly
- * the payload the old questions store served. `qid` skips the picker. Throws GameDataUnavailable
- * (or a fetch error) when the host or the game isn't available; callers fall back.
+ * the payload the old questions store served. `qid` skips the picker; `day` is a daily game's day
+ * (PICKERS). Throws GameDataUnavailable (or a fetch error) when the host or the game isn't available;
+ * callers fall back.
  */
-export async function fetchQuestion(game: string, rand: () => number = Math.random, qid?: string): Promise<Question> {
+export async function fetchQuestion(game: string, rand: () => number = Math.random, qid?: string, day?: string): Promise<Question> {
   const m = await getManifest();
   try {
-    return await loadQuestionFrom(m, game, rand, qid);
+    return await loadQuestionFrom(m, game, rand, qid, day);
   } catch (err) {
     // A manifest up to 60 s old can point at an index a publish just retired: retry once on a fresh one.
     manifestCache = null;
     const fresh = await getManifest().catch(() => m);
     if (fresh === m || JSON.stringify(fresh.games[game]) === JSON.stringify(m.games[game])) throw err;
-    return loadQuestionFrom(fresh, game, rand, qid);
+    return loadQuestionFrom(fresh, game, rand, qid, day);
   }
 }
 

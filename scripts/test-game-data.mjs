@@ -243,6 +243,12 @@ const relayToday = await relay.fetchQuestion("contexto");
 globalThis.Date = RealDate;
 check("contexto: on 2026-10-04 the site and the relay both serve ctx-2026-10-04",
   siteToday.data?.[0]?.qid === "ctx-2026-10-04" && relayToday.qid === "ctx-2026-10-04", `${siteToday.data?.[0]?.qid} / ${relayToday.qid}`);
+// Solo Contexto loads the day the server's daily gate names (the Paris day), not the browser's UTC date.
+pinDate("2026-10-04T22:30:00Z"); // 00:30 in Paris on the 5th
+const parisDay = await qs.fetchQuestion("contexto", "2026-10-05");
+globalThis.Date = RealDate;
+check("contexto: a server-named day picks that day's question, whatever the browser's date",
+  parisDay.data?.[0]?.qid === "ctx-2026-10-05", parisDay.data?.[0]?.qid);
 
 // One question = the index (cached after) + one file; a second play costs one file at most.
 store.clear();
