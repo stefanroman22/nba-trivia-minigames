@@ -28,11 +28,18 @@ def _at(day):
 class CapTests(SimpleTestCase):
     def test_every_public_game_has_its_own_ceiling(self):
         self.assertEqual(awarding.cap_for("series-winner", "single"), 100)
-        self.assertEqual(awarding.cap_for("starting-five", "single"), 150)
+        self.assertEqual(awarding.cap_for("starting-five", "single"), 300)
         self.assertEqual(awarding.cap_for("career-path", "single"), 200)
         self.assertEqual(awarding.cap_for("wordle", "single"), 500)
         self.assertEqual(awarding.cap_for("who-would-win", "single"), 100)
-        self.assertEqual(awarding.cap_for("tictactoe", "match"), 200)
+        self.assertEqual(awarding.cap_for("tictactoe", "match"), 300)
+
+    def test_owner_adjusted_ceilings_2026_10_18(self):
+        adjusted = {"name-logo": 50, "starting-five": 300, "tictactoe": 300, "contexto": 3000, "who-are-ya": 250}
+        for game, cap in adjusted.items():
+            for mode in ("single", "match"):
+                self.assertEqual(awarding.cap_for(game, mode), cap, (game, mode))
+        self.assertEqual(awarding.clamp_score("contexto", "match", 10**9), 3000)
 
     def test_online_wordle_pays_less(self):
         self.assertEqual(awarding.cap_for("wordle", "match"), 200)
