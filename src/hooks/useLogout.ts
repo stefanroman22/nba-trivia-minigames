@@ -4,11 +4,14 @@ import type { AppDispatch } from "../store";
 import { logout } from "../store/userSlice";
 import { showErrorAlert } from "../utils/Alerts";
 import { BACKEND_URL } from "../configurations/backend";
+import { useModal } from "../context/ModalContext";
 
 /** Log out: revoke the refresh token server-side, then clear the session. Used by the header
- *  profile menu and the Profile settings page. */
+ *  profile menu, the mobile drawer and the Profile settings page, always through `requestLogOut`
+ *  (the "Log out?" confirm); `logOut` itself skips the question. */
 export function useLogout() {
   const dispatch = useDispatch<AppDispatch>();
+  const { open } = useModal();
   const [loggingOut, setLoggingOut] = useState(false);
 
   const logOut = async () => {
@@ -33,5 +36,8 @@ export function useLogout() {
     }
   };
 
-  return { loggingOut, logOut };
+  /** Ask "Log out?" first (the in-app confirm modal); "Log out" there runs logOut. */
+  const requestLogOut = () => open("confirmLogout", { onConfirm: () => { void logOut(); } });
+
+  return { loggingOut, logOut, requestLogOut };
 }

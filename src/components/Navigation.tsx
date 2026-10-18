@@ -128,7 +128,7 @@ function Navigation({ type = "full" }: NavigationProps) {
   const reveal = useLoginReveal();
   const { open } = useModal();
   const { confirmLeave } = useRoomGuard();
-  const { logOut } = useLogout();
+  const { requestLogOut } = useLogout();
   const [drawer, setDrawer] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const closeDrawer = useCallback(() => setDrawer(false), []);
@@ -201,7 +201,7 @@ function Navigation({ type = "full" }: NavigationProps) {
       {/* Desktop right */}
       <div className="nav3-right hide-md">
         {user ? (
-          <ProfileMenu user={user} reveal={reveal} onSettings={() => goPage("/profile")} onLogout={logOut} />
+          <ProfileMenu user={user} reveal={reveal} onSettings={() => goPage("/profile")} onLogout={requestLogOut} />
         ) : (
           <Button size="sm" onClick={() => openModal("login")}>Log in</Button>
         )}
@@ -209,7 +209,7 @@ function Navigation({ type = "full" }: NavigationProps) {
 
       {/* Mobile: avatar-only chip (meta hidden ≤900px via hide-md), then the hamburger */}
       <div className="nav3-mobile-right show-md">
-        {user && <ProfileMenu user={user} reveal={reveal} onSettings={() => goPage("/profile")} onLogout={logOut} />}
+        {user && <ProfileMenu user={user} reveal={reveal} onSettings={() => goPage("/profile")} onLogout={requestLogOut} />}
         <button onClick={() => setDrawer(true)} aria-label="Open menu" aria-expanded={drawer} aria-controls="nav-drawer" className="nav-icon-btn">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
         </button>
@@ -289,7 +289,7 @@ function Navigation({ type = "full" }: NavigationProps) {
               </div>
             ) : (
               <div className="drawer-foot">
-                <Button block size="lg" variant="secondary" onClick={() => { setDrawer(false); void logOut(); }}>Log out</Button>
+                <Button block size="lg" variant="secondary" onClick={() => { setDrawer(false); requestLogOut(); }}>Log out</Button>
               </div>
             )}
           </motion.div>

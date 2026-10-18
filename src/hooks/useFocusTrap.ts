@@ -25,8 +25,9 @@ export function useFocusTrap(
         ? Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => el.offsetParent !== null)
         : [];
 
-    // Move focus into the dialog (first focusable, else the panel itself).
-    (focusables()[0] ?? panel)?.focus();
+    // Move focus into the dialog: the element marked `data-autofocus` (a confirm's safe choice), else the
+    // first focusable, else the panel itself.
+    (panel?.querySelector<HTMLElement>("[data-autofocus]") ?? focusables()[0] ?? panel)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {

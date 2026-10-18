@@ -35,7 +35,7 @@ export default function ProfileSettings() {
   const { user, authChecked } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto, agePrompt, ageSaving, ageError, submitAge, cancelAge } = useProfilePhoto();
-  const { loggingOut, logOut } = useLogout();
+  const { loggingOut, requestLogOut } = useLogout();
 
   // ---- Username ----
   const [isEditing, setIsEditing] = useState(false);
@@ -329,7 +329,7 @@ export default function ProfileSettings() {
         </section>
 
         <div className="ps-logout">
-          <Button variant="secondary" disabled={loggingOut} onClick={logOut}>{loggingOut ? "Logging out…" : "Log out"}</Button>
+          <Button variant="secondary" disabled={loggingOut} onClick={requestLogOut}>{loggingOut ? "Logging out…" : "Log out"}</Button>
         </div>
       </motion.div>
     );

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import Modal from "./ui/Modal";
-import { useModal, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload, type RankUpPayload, type ReportQuestionPayload } from "../context/ModalContext";
+import { useModal, type ConfirmLogoutPayload, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload, type RankUpPayload, type ReportQuestionPayload } from "../context/ModalContext";
 import type { RootState } from "../store";
 import { clearRankUp } from "../store/userSlice";
 import { useMultiplayer } from "../context/MultiplayerContext";
@@ -16,6 +16,7 @@ import GamePickerModal from "./modals/GamePickerModal";
 import ReportQuestionModal from "./modals/ReportQuestionModal";
 import RankUpModal from "./modals/RankUpModal";
 import LadderModal from "./modals/LadderModal";
+import ConfirmLogoutModal from "./modals/ConfirmLogoutModal";
 
 // Lazy: it bundles every game's review view, which only a game page in a match ever opens.
 const AnswerReviewModal = lazy(() => import("./modals/AnswerReviewModal"));
@@ -125,6 +126,10 @@ export default function ModalHost() {
     title = "The ladder";
     wide = true;
     content = <LadderModal onClose={close} />;
+  } else if (kind === "confirmLogout") {
+    const p = payload as ConfirmLogoutPayload | undefined;
+    title = "Log out?";
+    content = p?.onConfirm ? <ConfirmLogoutModal onConfirm={p.onConfirm} onClose={close} /> : null;
   }
 
   return (
