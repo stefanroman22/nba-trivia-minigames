@@ -627,7 +627,8 @@ new size. Reuse the shared primitives, never hand-roll one:
   measures the content (ResizeObserver) and animates the box's height, clips only while moving
   (focus rings and popovers are never cut off at rest), and is instant under reduced motion. Put it
   around the `AnimatePresence` of UI-22, not on the swapped child. Used by the landing profile card
-  (Profile / Friends and the Friends sub-tabs) and the game page's Multiplayer card.
+  (Profile / Friends and the Friends sub-tabs), the game page's Multiplayer card and the game `Stage`
+  (every phase and game, GAME_DESIGN_CONSTRAINTS Rule 3.2).
 - **Width:** inline boxes (chips, pills, badges) whose label changes use `AutoSize axis="width"`
   (same file) around the element, with `SwapText` inside for the text (UI-21).
 - **State styling:** a box that changes border, background or glow with state (for example
