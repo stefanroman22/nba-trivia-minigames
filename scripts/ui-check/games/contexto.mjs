@@ -53,6 +53,9 @@ export default {
   latencyPlan: (t) => t === 2, // two misses, then the secret (played to the end)
   timerMs: null,
   pointsPerCorrect: null,
+  // Solo Contexto credits one scoring play per account per Paris day (backend trivia/awarding.py ONE_SCORING_PLAY_A_DAY),
+  // so each scoring scenario runs as its own brand-new account; `giveup` scores 0 and keeps the shared one.
+  freshAccount: ['perfect', 'partial'],
   feedback: {
     selector: '.feedback-slot > *',
     // (turn, record, colours) → problems. `truth` of a miss is `#<rank>`, of the solve `Got it in N! +score`; `meta.bucket` its colour.
@@ -70,7 +73,7 @@ export default {
     partial: true, // three misses (rank colours good / brand / bad), then the secret → 3000
     timeout: 'no clock in Contexto',
     giveup: true, // four misses, then Give up: the secret is revealed (Rule 7.3), 0 points
-    'daily-lock': 'not a daily game for the player (the secret changes daily, plays are unlimited)',
+    'daily-lock': 'no daily lock screen: plays are unlimited, but only the first scoring solo play of the Paris day earns points (the secret changes daily)',
   },
   labels: { giveup: 'four misses, then give up (the secret is revealed)', partial: 'three misses, then the secret' },
 
