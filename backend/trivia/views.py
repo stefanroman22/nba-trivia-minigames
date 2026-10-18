@@ -30,6 +30,7 @@ from backend.throttles import (
     ScoreSubmitRateThrottle,
     SeenRateThrottle,
     WordlePlayRateThrottle,
+    ContextoPlayRateThrottle,
 )
 from trivia.data_pipeline.live_pool import load_dataset as load_curated_dataset
 from trivia.data_pipeline.starting_five import (
@@ -201,19 +202,30 @@ def _iso(dt):
     return dt.isoformat().replace('+00:00', 'Z')
 
 
+def _daily_identity(request):
+    """(Paris day, device id, account or None): who is asking about which day's daily game."""
+    user = request.user if request.user.is_authenticated else None
+    return wordle_daily.cet_today(), wordle_daily.resolve_device_id(request), user
+
+
+def _daily_status(request, game):
+    """Has this identity already played today's `game`? Read-only — never
+    records a play, so the idle screen can check this before Play is pressed."""
+    day, device_id, user = _daily_identity(request)
+    return JsonResponse({
+        'locked': wordle_daily.has_played_today(user, device_id, day, game),
+        'next_reset_at': _iso(wordle_daily.next_reset_utc(day)),
+    })
+
+
+def _daily_locked(error, next_reset):
+    return JsonResponse({'error': error, 'locked': True, 'next_reset_at': next_reset}, status=423)
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def wordle_daily_status(request):
-    """Has this identity already played today's Wordle? Read-only — never
-    records a play, so the idle screen can check this before Play is pressed."""
-    day = wordle_daily.cet_today()
-    device_id = wordle_daily.resolve_device_id(request)
-    user = request.user if request.user.is_authenticated else None
-    locked = wordle_daily.has_played_today(user, device_id, day)
-    return JsonResponse({
-        'locked': locked,
-        'next_reset_at': _iso(wordle_daily.next_reset_utc(day)),
-    })
+    return _daily_status(request, 'wordle')
 
 
 @api_view(["POST"])
@@ -222,24 +234,43 @@ def wordle_daily_status(request):
 def wordle_daily_play(request):
     """Start today's single-player Wordle: locked (423) if already played
     today, otherwise records the play and returns the word of the day."""
-    day = wordle_daily.cet_today()
-    device_id = wordle_daily.resolve_device_id(request)
-    user = request.user if request.user.is_authenticated else None
+    day, device_id, user = _daily_identity(request)
     next_reset = _iso(wordle_daily.next_reset_utc(day))
 
-    if wordle_daily.has_played_today(user, device_id, day):
-        return JsonResponse(
-            {'error': "You already played today's word.", 'locked': True, 'next_reset_at': next_reset},
-            status=423,
-        )
+    if wordle_daily.has_played_today(user, device_id, day, 'wordle'):
+        return _daily_locked("You already played today's word.", next_reset)
 
     try:
         daily_word = wordle_daily.get_or_create_daily_word(day)
     except ValueError as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-    wordle_daily.record_play(user, device_id, day)
+    wordle_daily.record_play(user, device_id, day, 'wordle')
     return JsonResponse({'series': [daily_word.word], 'next_reset_at': next_reset})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def contexto_daily_status(request):
+    return _daily_status(request, 'contexto')
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+@throttle_classes([ContextoPlayRateThrottle])
+def contexto_daily_play(request):
+    """Start today's single-player Contexto: locked (423) if already played today, otherwise
+    records the play and returns the Paris `day` whose question the client loads. The questions
+    are static files on the data host (their index carries each question's day), so the server
+    only decides which day it is; online Contexto is dealt by the relay and has no lock."""
+    day, device_id, user = _daily_identity(request)
+    next_reset = _iso(wordle_daily.next_reset_utc(day))
+
+    if wordle_daily.has_played_today(user, device_id, day, 'contexto'):
+        return _daily_locked("You already played today's Contexto.", next_reset)
+
+    wordle_daily.record_play(user, device_id, day, 'contexto')
+    return JsonResponse({'day': day.isoformat(), 'next_reset_at': next_reset})
 
 
 def _fan_favorites_row(q):

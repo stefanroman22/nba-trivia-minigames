@@ -180,6 +180,26 @@ class AwardTests(TestCase):
         self.receipt(0, game="wordle")
         self.assertEqual(self.receipt(300, game="wordle")["base"], 300)
 
+    def test_a_second_solo_contexto_of_the_day_scores_nothing(self, _):
+        self.receipt(200, game="contexto")
+        before = User.objects.get(pk=self.user.pk)
+        r = self.receipt(150, game="contexto")
+        self.assertEqual((r["awarded"], r["base"], r["first_game_bonus"], r["streak_bonus"]), (0, 0, 0, 0))
+        self.assertEqual(User.objects.get(pk=self.user.pk).points, before.points)
+        self.assertEqual(GameSession.objects.filter(game="contexto").count(), 2)  # still logged
+        # Solo Wordle has its own daily play; online Contexto has no lock.
+        self.assertEqual(self.receipt(300, game="wordle")["base"], 300)
+        self.assertEqual(self.receipt(120, game="contexto", mode="match")["awarded"], 120)
+
+    def test_a_zero_contexto_does_not_use_up_the_day(self, _):
+        self.receipt(0, game="contexto")
+        self.assertEqual(self.receipt(200, game="contexto")["base"], 200)
+
+    def test_contexto_scores_again_the_next_day(self, today):
+        self.receipt(200, game="contexto")
+        today.return_value = DAY + datetime.timedelta(days=1)
+        self.assertEqual(self.receipt(180, game="contexto")["base"], 180)
+
     def test_day_is_paris_not_utc(self, today):
         """Two plays on the same Paris day either side of UTC midnight share one day."""
         early = datetime.datetime(2026, 10, 15, 23, 30, tzinfo=datetime.timezone.utc)   # 01:30 Paris, the 16th

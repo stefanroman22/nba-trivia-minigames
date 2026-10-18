@@ -52,6 +52,12 @@ class WordlePlayRateThrottle(UserRateThrottle):
     scope = "wordle-play"
 
 
+class ContextoPlayRateThrottle(WordlePlayRateThrottle):
+    """Daily-Contexto play attempts: the same policy and rate as Wordle's, in a bucket of its own
+    so playing one daily game never eats into the other's allowance."""
+    scope = "contexto-play"
+
+
 class UserSearchRateThrottle(UserRateThrottle):
     """Friend search. A real person typing a name needs a handful of requests
     a minute at most; unbounded, this is a way to scrape the user directory."""

@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Sum
 
 from trivia.models import GameSession
-from trivia.wordle_daily import CET, cet_today
+from trivia.wordle_daily import CET, DAILY_GAMES, cet_today
 from users import leaderboard, ranks
 
 # The highest honest score of each game (src/utils/GameUtils.tsx maxPoints): a forged submission is
@@ -115,9 +115,9 @@ def _promoted(before, after):
 
 
 def _repeat_blocked(user, game, mode, todays):
-    """Solo Wordle is once a day (trivia.wordle_daily): only the day's first scoring play counts. Repeated
-    claims were the easiest route onto the weekly board."""
-    return game == "wordle" and mode == "single" and todays.filter(game="wordle", mode="single", score__gt=0).exists()
+    """Solo Wordle and Contexto are once a day (trivia.wordle_daily): only the day's first scoring play
+    counts. Repeated claims were the easiest route onto the weekly board."""
+    return game in DAILY_GAMES and mode == "single" and todays.filter(game=game, mode="single", score__gt=0).exists()
 
 
 def award(user, game, mode, score, duration_ms):

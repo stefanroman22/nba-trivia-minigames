@@ -4,7 +4,8 @@ Not load-bearing for correctness — trivia.wordle_daily.get_or_create_daily_wor
 is called lazily by the play/status endpoints too, so a missed or late run of
 this command (GitHub Actions cron can run hours late) never breaks the game.
 Running it on a schedule just gets the word queued up in advance and keeps the
-WordlePlay table from accumulating past days' rows.
+WordlePlay table (every daily game's play gate: Wordle and Contexto) from
+accumulating past days' rows.
 """
 from django.core.management.base import BaseCommand
 
