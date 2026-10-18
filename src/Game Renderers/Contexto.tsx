@@ -26,6 +26,7 @@ import { useNames } from "../hooks/useNames";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
 import { buildNameLookup } from "../utils/questions";
+import { CONTEXTO_MAX, contextoScore } from "../utils/gameScoring";
 import type { OnGameEnd, ContextoQuestion } from "../types/types";
 import { fadeIn } from "../motion/variants";
 import "../styles/Contexto.css";
@@ -40,13 +41,6 @@ export interface ContextoProps {
   onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
-}
-
-const MAX_SCORE = 200;
-
-/** 200 - 5 per guess past the tenth, floor 50. */
-function scoreFor(guesses: number): number {
-  return Math.max(50, MAX_SCORE - 5 * Math.max(0, guesses - 10));
 }
 
 /** Row/bar color bucket (also the answer review's rows). */
@@ -217,7 +211,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
 
     if (rank === 1) {
       setWon(true);
-      const finalScore = scoreFor(nextCount);
+      const finalScore = contextoScore(nextCount);
       flash(`Got it in ${nextCount}! +${finalScore}`, "var(--good)");
       sendGuessLog();
       endOnce(finalScore, true, [...rows, { pid, name, rank }].sort((a, b) => a.rank - b.rank));
@@ -360,7 +354,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
           score={
             <ScorePanel
               score={endState?.score ?? 0}
-              outOf={MAX_SCORE}
+              outOf={CONTEXTO_MAX}
               label={endState?.won ? "Found it!" : undefined}
               won={endState?.won}
               onPlayAgain={onPlayAgain}
