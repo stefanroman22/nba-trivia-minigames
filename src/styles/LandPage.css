@@ -159,10 +159,12 @@ html { scroll-behavior: smooth; }
   transition: all 0.2s;
 }
 .profile-view-btn.is-active { color: #fff; }
+/* No overflow scroller here: the body sits in AutoHeight, which is always its content's height, so the
+   only overflow it ever had was the tab swap's transform (the entering pane starts 14px low), which made
+   the box scrollable and flashed a scrollbar on every Profile/Friends and Friends sub-tab switch. */
 .profile-view-body {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 18px;
