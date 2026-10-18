@@ -46,10 +46,14 @@ interface CacheEntry {
 // from the other scope while its own fetch is in flight.
 const caches: Record<LeaderboardScope, CacheEntry | null> = { global: null, weekly: null, friends: null };
 const fetching: Record<LeaderboardScope, boolean> = { global: false, weekly: false, friends: false };
+// The identity most recently asked for, per scope: a request that lands while another fetch of that
+// scope is in flight (a login during the guest fetch) is fetched right after it instead of being dropped.
+const latestKey: Record<LeaderboardScope, string | null> = { global: null, weekly: null, friends: null };
 const subscribers = new Set<() => void>();
 const notify = () => subscribers.forEach((fn) => fn());
 
 async function fetchBoard(userKey: string | null, scope: LeaderboardScope): Promise<void> {
+  latestKey[scope] = userKey;
   if (fetching[scope]) return;
   fetching[scope] = true;
   notify();
@@ -83,7 +87,8 @@ async function fetchBoard(userKey: string | null, scope: LeaderboardScope): Prom
     caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userPoints: null, userKey, fetchedAt: Date.now() };
   } finally {
     fetching[scope] = false;
-    notify();
+    if (latestKey[scope] !== userKey) fetchBoard(latestKey[scope], scope);
+    else notify();
   }
 }
 
@@ -125,7 +130,8 @@ export function useLeaderboard(scope: LeaderboardScope = "global"): LeaderboardD
 
   const refresh = useCallback(() => { fetchBoard(userKey, scope); }, [userKey, scope]);
 
-  const cache = caches[scope];
+  // Data fetched for another identity (the guest board right after a login) is never shown.
+  const cache = caches[scope]?.userKey === userKey ? caches[scope] : null;
   const self: SelfRow | null = user
     ? {
         rank: cache?.userRank ?? 0,

@@ -43,26 +43,48 @@ def _redis():
     return _client
 
 
+def _in_sync(r):
+    """True when the ZSET holds as many members as there are ranked accounts. A ZSET that is
+    missing players (never synced, or written while they were hidden) or still holds hidden or
+    deleted ones has drifted: the callers then answer from Postgres, which is always right, until
+    `sync_leaderboard` rebuilds it."""
+    return r.zcard(ZKEY) == _ranked().count()
+
+
+def _is_ranked(user):
+    return not getattr(user, "banned_at", None) and getattr(user, "age_group", "") == "adult"
+
+
+def _postgres_top(n):
+    rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank")
+    return [{"id": u["public_id"], "username": u["username"], "rank": u["rank"], "points": u["points"]} for u in rows]
+
+
 def top(n=100):
     """Top `n` rows as [{"id", "username", "rank", "points"}], highest first."""
     r = _redis()
-    if r is None:
-        rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank")
-        return [{"id": u["public_id"], "username": u["username"], "rank": u["rank"], "points": u["points"]} for u in rows]
-    entries = r.zrevrange(ZKEY, 0, n - 1, withscores=True)
+    if r is None or not _in_sync(r):
+        return _postgres_top(n)
+    # Over-fetch: a member that is not on the board (hidden or deleted since it was added) is
+    # skipped rather than shown as a placeholder row, and the page still fills to `n`.
+    entries = r.zrevrange(ZKEY, 0, 2 * n - 1, withscores=True)
     ids = [m for m, _ in entries]
     # One query resolves the display names for the whole page.
     info = {pid: (name, rank) for pid, name, rank in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank")}
     return [
-        {"id": m, "username": info.get(m, ("Player", "Rookie"))[0], "rank": info.get(m, ("Player", "Rookie"))[1], "points": int(s)}
+        {"id": m, "username": info[m][0], "rank": info[m][1], "points": int(s)}
         for m, s in entries
-    ]
+        if m in info
+    ][:n]
 
 
 def rank_of(user):
-    """1-based rank of `user` (number of players with strictly more points, + 1)."""
+    """1-based rank of `user` (number of players with strictly more points, + 1), or None for an
+    account that is not on the board."""
+    if not _is_ranked(user):
+        return None
     r = _redis()
-    if r is None:
+    if r is None or not _in_sync(r):
         return _ranked().filter(points__gt=user.points).count() + 1
     rank = r.zrevrank(ZKEY, user.public_id)
     if rank is None:
@@ -72,13 +94,9 @@ def rank_of(user):
 
 
 def total():
-    """Total number of ranked players. With Redis, the ZSET is authoritative (every
-    account is added on creation + via `sync_leaderboard`), so we don't mix in a
-    Postgres count, which would hide drift."""
-    r = _redis()
-    if r is None:
-        return _ranked().count()
-    return r.zcard(ZKEY)
+    """Total number of ranked players, from Postgres: the ZSET can hold members that are no
+    longer on the board, or miss some that are (see `_in_sync`)."""
+    return _ranked().count()
 
 
 def record_score(user):

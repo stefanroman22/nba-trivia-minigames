@@ -126,6 +126,51 @@ class LeaderboardRedisTests(TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(len({r["id"] for r in rows}), 3)
 
+    def _swap_bob_for_a_ghost(self, points):
+        """Same member count, different set: bob is missing and a deleted account's id sits in his place."""
+        self.fake.zrem(leaderboard.ZKEY, User.objects.get(username="bob").public_id)
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST1": points})
+
+    def test_top_skips_members_that_are_not_on_the_board(self):
+        self._swap_bob_for_a_ghost(999)
+        rows = leaderboard.top(10)
+        self.assertEqual([r["username"] for r in rows], ["alice", "carol"])
+        self.assertNotIn("Player", [r["username"] for r in rows])
+
+    def test_top_still_fills_n_rows_past_skipped_members(self):
+        self._swap_bob_for_a_ghost(999)
+        self.assertEqual([r["username"] for r in leaderboard.top(2)], ["alice", "carol"])
+
+    def test_drifted_zset_falls_back_to_postgres(self):
+        """A ZSET missing a player (never synced) must not hide them, nor rank others above them."""
+        dave = User.objects.create_user(username="dave", email="dave@example.com", password="x", points=250, age_group="adult")
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "dave", "carol", "bob"])
+        self.assertEqual(leaderboard.rank_of(dave), 2)
+        self.assertEqual(leaderboard.rank_of(User.objects.get(username="bob")), 4)
+        self.assertEqual(leaderboard.total(), 4)
+
+    def test_total_counts_board_players_only(self):
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST1": 5, "GHOST2": 7})
+        self.assertEqual(leaderboard.total(), 3)
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
+
+    def test_rank_of_is_none_for_an_account_off_the_board(self):
+        banned = User.objects.create_user(username="eve", email="eve@example.com", password="x", points=999, age_group="adult")
+        User.objects.filter(pk=banned.pk).update(banned_at="2026-10-01T00:00:00Z")
+        banned.refresh_from_db()
+        self.assertIsNone(leaderboard.rank_of(banned))
+
+    def test_sync_adds_only_board_accounts(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        banned = User.objects.create_user(username="eve", email="eve@example.com", password="x", points=999, age_group="adult")
+        User.objects.filter(pk=banned.pk).update(banned_at="2026-10-01T00:00:00Z")
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST1": 5})
+        call_command("sync_leaderboard", stdout=StringIO())
+        self.assertEqual(set(self.fake.z[leaderboard.ZKEY]), {u.public_id for u in User.objects.filter(banned_at__isnull=True)})
+
 
 class SignupSyncsLeaderboardTests(TestCase):
     """New accounts must enter the ZSET on creation, so total()/ranks stay consistent."""
