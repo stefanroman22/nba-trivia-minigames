@@ -37,6 +37,8 @@ DAILY_TAIL_RATE = 0.10
 STREAK_MILESTONES = {7: 200, 30: 1_000, 100: 5_000}
 # A held freeze covers one missed day; refilled whenever the streak reaches a multiple of 7.
 MAX_FREEZES = 1
+# Solo games that deal the same puzzle all day: only the day's first scoring solo play is credited.
+ONE_SCORING_PLAY_A_DAY = ("wordle", "contexto")
 
 ACTIVITY_FIELDS = ["points", "rank", "active_days", "last_active_day", "streak_days", "streak_best", "streak_freezes"]
 
@@ -115,9 +117,13 @@ def _promoted(before, after):
 
 
 def _repeat_blocked(user, game, mode, todays):
-    """Solo Wordle is once a day (trivia.wordle_daily): only the day's first scoring play counts. Repeated
-    claims were the easiest route onto the weekly board."""
-    return game == "wordle" and mode == "single" and todays.filter(game="wordle", mode="single", score__gt=0).exists()
+    """Solo Wordle and solo LeContexto deal one puzzle a day (trivia.wordle_daily, the daily Contexto secret): only
+    the day's first scoring solo play counts. Repeated claims were the easiest route onto the weekly board."""
+    return (
+        game in ONE_SCORING_PLAY_A_DAY
+        and mode == "single"
+        and todays.filter(game=game, mode="single", score__gt=0).exists()
+    )
 
 
 def award(user, game, mode, score, duration_ms):

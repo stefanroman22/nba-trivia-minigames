@@ -38,7 +38,9 @@ Rule: a well-played game ≈ 100 pts, a perfect one 100–200, about 100 pts/min
 60 per player, max 300, full-lineup bonus removed (was 20 + 50 bonus, 150); NBA Tic-Tac-Toe max 300: solo 30 per
 cell + 30 board-clear bonus, online win 300 / draw 180 / loss 45 (was 180 solo, 200/120/30 online); LeContexto max
 3,000, the old formula ×15 (was 200 − 5 per guess past the tenth, floor 50); Who Are Ya? `250 − 30 × wrong`, max 250
-(was 200 − 25). The daily soft cap, the first-game bonus and the rank ladder are unchanged.
+(was 200 − 25). Solo LeContexto now scores once a Paris day like solo Wordle (`ONE_SCORING_PLAY_A_DAY = ("wordle",
+"contexto")`: a repeat of the daily secret is logged but awards 0; online rounds are not limited). The daily soft
+cap, the first-game bonus and the rank ladder are unchanged.
 
 The backend caps every submission at the game's own maximum (`trivia/awarding.py GAME_MAX_POINTS`,
 `MATCH_MAX_POINTS` for the online Wordle), replacing the single 1,000 ceiling.
@@ -50,6 +52,8 @@ The backend caps every submission at the game's own maximum (`trivia/awarding.py
 - **Daily soft cap on game points** (bonuses excluded): the first 1,500 game points of a day count in full, the next
   1,500 at 50 %, anything beyond at 10 %. "Game points of the day" = the sum of the clamped `score` of the account's
   single/match sessions today.
+- **One scoring solo play a day** for solo Wordle and solo LeContexto (`ONE_SCORING_PLAY_A_DAY`): a later scoring
+  solo play of the same game that day is logged with its score but awards 0 (no bonus, no streak or active-day touch).
 - **Streak:** one scoring game per day keeps it. `streak_days`, `streak_best`, `streak_freezes` live on the account.
   A missed day is covered by a freeze if one is held (max 1); a freeze is refilled every time the streak reaches a
   multiple of 7. Milestones pay once, on the day they are reached: day 7 +200, day 30 +1,000, day 100 +5,000.

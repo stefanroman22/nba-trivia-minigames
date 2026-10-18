@@ -187,6 +187,38 @@ class AwardTests(TestCase):
         self.receipt(0, game="wordle")
         self.assertEqual(self.receipt(300, game="wordle")["base"], 300)
 
+    def test_the_first_solo_contexto_of_the_day_scores_up_to_the_soft_cap(self, _):
+        r = self.receipt(3_000, game="contexto")
+        self.assertEqual((r["base"], r["first_game_bonus"], r["awarded"]), (2_250, 100, 2_350))
+        self.assertEqual(User.objects.get(pk=self.user.pk).active_days, 1)
+
+    def test_a_second_solo_contexto_of_the_day_scores_nothing(self, _):
+        self.receipt(3_000, game="contexto")
+        before = User.objects.get(pk=self.user.pk)
+        r = self.receipt(3_000, game="contexto")
+        self.assertEqual((r["awarded"], r["base"], r["first_game_bonus"], r["streak_bonus"]), (0, 0, 0, 0))
+        user = User.objects.get(pk=self.user.pk)
+        self.assertEqual(user.points, before.points)
+        self.assertEqual((user.active_days, user.streak_days, user.last_active_day),
+                         (before.active_days, before.streak_days, before.last_active_day))
+        self.assertEqual(GameSession.objects.filter(game="contexto").count(), 2)  # still logged
+        self.assertEqual(GameSession.objects.filter(game="contexto").last().score, 3_000)
+
+    def test_another_game_after_a_solo_contexto_still_scores(self, _):
+        self.receipt(3_000, game="contexto")
+        r = self.receipt(80)
+        self.assertEqual(r["base"], awarding.soft_capped(80, 3_000))
+        self.assertGreater(r["awarded"], 0)
+
+    def test_online_contexto_is_not_once_a_day(self, _):
+        self.receipt(3_000, game="contexto")
+        self.assertGreater(self.receipt(3_000, game="contexto", mode="match")["awarded"], 0)
+        self.assertGreater(self.receipt(3_000, game="contexto", mode="match")["awarded"], 0)
+
+    def test_a_zero_contexto_does_not_use_up_the_day(self, _):
+        self.receipt(0, game="contexto")
+        self.assertEqual(self.receipt(3_000, game="contexto")["base"], 2_250)
+
     def test_day_is_paris_not_utc(self, today):
         """Two plays on the same Paris day either side of UTC midnight share one day."""
         early = datetime.datetime(2026, 10, 15, 23, 30, tzinfo=datetime.timezone.utc)   # 01:30 Paris, the 16th

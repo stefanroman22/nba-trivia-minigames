@@ -172,7 +172,9 @@ matches, the relay only; see AUTH-7). Both clamp the score with `awarding.clamp_
 `GAME_MAX_POINTS`, online Wordle `MATCH_MAX_POINTS`) and `log_session` records the `GameSession` in the same
 step; it is throttled by `ScoreSubmitRateThrottle` (`score-submit`, 60/hour). The award applies the daily soft
 cap (1,500 points in full, the next 1,500 at half, the rest at 10 %), the +100 first-scoring-game bonus and the
-streak milestones, and the response is the receipt `{awarded, points, rank, rank_up, progress, streak,
+streak milestones; solo Wordle and solo LeContexto (`ONE_SCORING_PLAY_A_DAY`, one puzzle a day) credit only the
+day's first scoring solo play (a repeat is logged with its score but awards 0 and touches no streak or active day;
+online rounds are not limited), and the response is the receipt `{awarded, points, rank, rank_up, progress, streak,
 first_game_bonus, streak_bonus, base}`, which `userSlice.applyAward` applies. `users/views.py` `update_profile`
 rejects any `points` field with HTTP 400 (username via JSON, photo via multipart only).
 `CustomUser.update_rank()` uses `users.ranks.rank_for(points, active_days)`: both the point and the
