@@ -1,5 +1,5 @@
 // Adapter: LeContexto (src/Game Renderers/Contexto.tsx). A hidden secret player; any number of guesses, each shows its
-// similarity rank (#1 = the secret); Give up reveals the secret. Score 200, −5 per guess past the tenth, floor 50; a
+// similarity rank (#1 = the secret); Give up reveals the secret. Score 3000, −75 per guess past the tenth, floor 750; a
 // give-up scores 0. Ends in place: the secret card flips to the name, the guess list stays, input → 1.5 s loader → ScorePanel.
 //
 // Feedback copy (accepted deviation: no `Correct! +N`): a miss pops `#<rank>` in good (≤ 25) / brand (≤ 100) / bad
@@ -14,8 +14,8 @@
 import { L } from '../lib/pagemap.mjs';
 import { answerFrom, capNames, fiberRound, nextTurn, normAnswer, payloads, shellIsOver, typeAndConfirm } from './helpers.mjs';
 
-const MAX_SCORE = 200;
-const scoreFor = (guesses) => Math.max(50, MAX_SCORE - 5 * Math.max(0, guesses - 10));
+const MAX_SCORE = 3000; // src/utils/gameScoring.ts contextoScore
+const scoreFor = (guesses) => Math.max(750, MAX_SCORE - 75 * Math.max(0, guesses - 10));
 const bucket = (rank) => (rank <= 25 ? 'good' : rank <= 100 ? 'brand' : 'bad');
 /** Ranks the misses aim for (clamped to the pool): one per colour bucket first. */
 const TARGETS = [20, 80, 400, 5, 150, 40, 700, 10, 250, 60];
@@ -65,9 +65,9 @@ export default {
     },
   },
   scenarios: {
-    perfect: true, // the secret on the first guess → 200
+    perfect: true, // the secret on the first guess → 3000
     wrong: 'every miss is only a rank and the game never ends on its own: the only loss path is Give up, driven by `giveup` (four misses, then Give up)',
-    partial: true, // three misses (rank colours good / brand / bad), then the secret → 200
+    partial: true, // three misses (rank colours good / brand / bad), then the secret → 3000
     timeout: 'no clock in Contexto',
     giveup: true, // four misses, then Give up: the secret is revealed (Rule 7.3), 0 points
     'daily-lock': 'not a daily game for the player (the secret changes daily, plays are unlimited)',

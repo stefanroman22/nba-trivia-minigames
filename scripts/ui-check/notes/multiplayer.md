@@ -131,10 +131,10 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   with "<name> doesn't fit that square.", the turn stays). `playDuel` waits for whoever shows YOUR TURN; each joiner
   turn passes to the host only when its 25 s clock runs out (waited for real twice per run, pair A only: `turn-pass`).
   Host three in a row → banners "You win!" / "Opponent wins" (held 1.8 s, read inside the motion window) → results
-  200 / 30 (a draw 120) (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
+  300 / 45 (a draw 180) (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
   player from a one-player-per-cell matching of the whole board (`assign`, the same on both pages), so the two players
   never name the same person. `playDuel(pair, adapter, { script })` plays `DUEL_SCRIPTS.win` (MP-GAME-tictactoe) or
-  `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 120 / 120; the duel submits no play
+  `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 180 / 180; the duel submits no play
   times, so the relay's rankRoom calls it a tie: the only deterministic way to the draw headline, no clock waited out).
 - The decided duel board: the relay settles a duel in the same tick as its last move and MultiplayerContext switches to
   the results at once, so TicTacToe.tsx's 1.8 s "hold the banner" never happens: the mover sees no banner at all, the

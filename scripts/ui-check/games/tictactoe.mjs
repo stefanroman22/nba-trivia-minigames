@@ -1,7 +1,7 @@
 // Adapter: NBA Tic-Tac-Toe, solo (src/Game Renderers/TicTacToe.tsx). A 3×3 board with team rows × criteria columns:
-// pick a cell, name a player who fits both its row and its column. 20 points per cell (180 for the board), each player
-// usable once, a 180 s clock. Right → `Correct! +20` (the ninth cell `Board cleared! +180`), a player who does not fit →
-// `<Name> doesn't fit` (bad), an unknown name → `Not in our player index` (muted), a reused player →
+// pick a cell, name a player who fits both its row and its column. 30 points per cell plus a 30 board-clear bonus
+// (300 for the board), each player usable once, a 180 s clock. Right → `Correct! +30` (the ninth cell
+// `Board cleared! +300`), a player who does not fit → `<Name> doesn't fit` (bad), an unknown name → `Not in our player index` (muted), a reused player →
 // `<Name> already used` (muted). Nothing costs a life: the game ends on a full board or when the clock hits 0
 // (`Time!`, bad). Ends in place with NO loader (Career Path split): the final board stays (unsolved cells are revealed
 // one by one), the ScoreLine sits in the status row, Play again / Close game in the action slot.
@@ -16,7 +16,8 @@
 import { L } from '../lib/pagemap.mjs';
 import { answerFrom, capNames, fiberRound, noTruth, normAnswer, shellIsOver, syntheticNames } from './helpers.mjs';
 
-const CELL_POINTS = 20;
+const CELL_POINTS = 30;
+const CLEAR_BONUS = 30;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /** The kinds of miss, in the order a `timeout` run gives them. */
 const MISS_KINDS = ['fit', 'index', 'used'];
@@ -89,7 +90,7 @@ export default {
     // (turn, record, colours) → problems. meta: { kind: 'right' | 'last' | 'fit' | 'index' | 'used', name }.
     copy: (t, r, colors) => {
       const k = t.meta && t.meta.kind;
-      const want = { right: ['Correct! +20', colors.good], last: ['Board cleared! +180', colors.good], fit: [`${t.meta && t.meta.name} doesn't fit`, colors.bad], index: ['Not in our player index', colors.muted], used: [`${t.meta && t.meta.name} already used`, colors.muted] }[k];
+      const want = { right: ['Correct! +30', colors.good], last: ['Board cleared! +300', colors.good], fit: [`${t.meta && t.meta.name} doesn't fit`, colors.bad], index: ['Not in our player index', colors.muted], used: [`${t.meta && t.meta.name} already used`, colors.muted] }[k];
       if (!want) return [`unknown turn kind ${k}`];
       const problems = [];
       if (r.text !== want[0]) problems.push(`"${r.text}" instead of "${want[0]}"`);
@@ -98,10 +99,10 @@ export default {
     },
   },
   scenarios: {
-    perfect: true, // nine valid players, one per cell → Board cleared! 180
+    perfect: true, // nine valid players, one per cell → Board cleared! 300
     wrong: 'a wrong name costs nothing and nothing else can lose: the game ends only on a full board or the clock, so misses are driven inside `timeout` (a miss of each kind) and `partial`',
-    partial: true, // two misses ("doesn't fit", "Not in our player index"), then the whole board → 180
-    timeout: true, // two cells solved, one miss of each kind, then the clock runs out (page.clock) → Time! with 40
+    partial: true, // two misses ("doesn't fit", "Not in our player index"), then the whole board → 300
+    timeout: true, // two cells solved, one miss of each kind, then the clock runs out (page.clock) → Time! with 60
     giveup: 'Tic-Tac-Toe has no give-up control (only Close game, which abandons without an end state)',
     'daily-lock': 'not a daily game (any number of plays per day)',
   },
@@ -112,7 +113,8 @@ export default {
   },
 
   expectedScore(turns) {
-    return turns.filter((t) => t.correct).length * CELL_POINTS;
+    const right = turns.filter((t) => t.correct).length;
+    return right * CELL_POINTS + (right === 9 ? CLEAR_BONUS : 0);
   },
 
   async answer(page, ctx, { correct }) {
@@ -230,8 +232,8 @@ export default {
   /**
    * Online duel (the multiplayer suite, lib/mp-play.mjs playDuel). Not the solo board: OnlineMatch renders TicTacToe with
    * `multiplayer` and the relay owns the game (multiplayer_server/src/turnGames.js): turns alternate, host first, 25 s per
-   * turn (a turn that runs out passes to the other player), 3 steals each, three cells in a line win (200 vs 30; a full
-   * board without a line is a draw, 120 each). The board shows only the criteria labels; the cells' valid players come
+   * turn (a turn that runs out passes to the other player), 3 steals each, three cells in a line win (300 vs 45; a full
+   * board without a line is a draw, 180 each). The board shows only the criteria labels; the cells' valid players come
    * from the published question with the same labels (ctx.pool('tictactoe'), lib/mp-pool.mjs), names resolve through
    * the page's own names list (capNames + lookupOf, as solo).
    *   move(page, ctx, { correct, cell? }) — ONE move, on this player's turn:

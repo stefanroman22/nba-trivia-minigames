@@ -131,14 +131,14 @@ export async function playBoth(pair, adapter, { host = 'perfect', joiner = lossS
 }
 
 /** The relay's Tic-Tac-Toe duel scores (multiplayer_server/src/turnGames.js TTT_WIN_SCORE / TTT_LOSS_SCORE / TTT_DRAW_SCORE). */
-export const TTT_SCORES = { win: 200, loss: 30, draw: 120 };
+export const TTT_SCORES = { win: 300, loss: 45, draw: 180 };
 export const TTT_TURN_MS = 25_000;
 
 /**
  * Duel scripts: the cells each side claims, in order ('miss' = a refused move whose turn passes on the 25 s clock).
  *   win  — the host claims the top row (0, 1, 2); the joiner only misses → host three in a row.
  *   draw — both claim, filling the board without a line:   X O X / X O O / O X X   (host X = 0 2 3 7 8, joiner O = 1 4 5 6;
- *          no row, column or diagonal is one player's, so no subset of it is either) → a full board, equal scores (120),
+ *          no row, column or diagonal is one player's, so no subset of it is either) → a full board, equal scores (180),
  *          no play times on either side → the relay's rankRoom calls it a tie.
  */
 export const DUEL_SCRIPTS = {

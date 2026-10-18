@@ -102,10 +102,10 @@ checked per round through the feedback copy; the driver flags `not-in-place` onl
 | name-logo | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | guess-mvps | driven | driven | driven (alternate) | no clock | no give-up control | not daily |
 | who-would-win | vote all | skip all | vote / skip | no clock | no give-up control | not daily |
-| starting-five | 5 right (150 with the bonus) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
+| starting-five | 5 right (300) | 3 misses → lineup revealed | 2 misses, then 5 right | no clock | no give-up | not daily |
 | fan-favorites | whole board (200) | 3 misses → board revealed, 0 | 2 misses, then the whole board | no clock | no give-up | not daily |
 | career-path | right first guess (200) | a miss per card → 0 | 1 miss, then right (never the last guess) | no clock | no give-up | not daily |
-| who-are-ya | right first guess (200) | 8 misses → 0 | 2 misses, then right (150) | no clock | no give-up | not daily |
+| who-are-ya | right first guess (250) | 8 misses → 0 | 2 misses, then right (190) | no clock | no give-up | not daily |
 
 `partial` for games without lives is "a mix of right and wrong" (right on even turns); with lives or limited guesses it
 spends all but one on misses (`lives - 1`, or the adapter's `partialMisses`), then answers right (finish with one to
@@ -234,7 +234,7 @@ Contract and driver additions (all optional; the Task 5 adapters are unaffected)
   played to the end like Who Would Win.
 - Answer result `correct` (the adapter overrode the plan: Career Path never spends its last guess in `partial`) and
   `points` (the `+N` of this turn's `Correct!` popup: Career Path `200 - 40 x misses` (floor 40), Who Are Ya
-  `200 - 25 x misses`).
+  `250 - 30 x misses`).
 - `feedback.copy: 'wrong'`: check the copy and colour of misses only (Fan Favorites: its hit popup `+N fans said it!` is the
   documented 6.0 deviation, constraints doc).
 - `endGeometry` / `shellIsOver` / the ResizeObserver `ending()` also accept `.scorepanel-actions` alone: Career Path ends
@@ -249,7 +249,7 @@ Per game:
 
 - **Starting Five**: the key is `found|hearts` and goes `null` once 5 are found or hearts hit 0, so `nextTurn` waits for the
   end sequence instead of returning a half-ended turn. The miss that spends the last heart shows NO popup (Rule 6.3), so
-  that turn returns `feedback: false`. Final score `right × 20 (+50 when 5)`. End reveal: all five cards named (the real
+  that turn returns `feedback: false`. Final score `right × 60`. End reveal: all five cards named (the real
   lineup), `is-correct` = right answers, `is-revealed` = the rest.
 - **Fan Favorites**: prod loads only one chunk of the pool (often just this survey), so wrong guesses cannot come from other
   surveys alone: candidates are other surveys, the `all-players` list, then a fixed list of famous names; each is checked
@@ -296,8 +296,8 @@ All 11 visible games now have adapters (`coming-soon` excluded).
 | starting-five / fan-favorites | driven | driven | driven | no clock | no give-up | not daily |
 | career-path / who-are-ya | driven | driven | driven | no clock | no give-up | not daily |
 | wordle | driven (500) | driven (5 misses, 0) | driven (2 misses, 300) | no clock | no give-up | **driven** |
-| contexto | secret first guess (200) | reason: never ends on its own, Give up covers it | 3 misses then the secret (200) | no clock | **driven** (4 misses, Give up, 0) | not daily for the player |
-| tictactoe | 9 valid players (180) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (180) | **driven** (page.clock) | no give-up | not daily |
+| contexto | secret first guess (3000) | reason: never ends on its own, Give up covers it | 3 misses then the secret (3000) | no clock | **driven** (4 misses, Give up, 0) | not daily for the player |
+| tictactoe | 9 valid players (300) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (300) | **driven** (page.clock) | no give-up | not daily |
 
 Answer methods: Wordle = the `daily-play` POST response `{series:[WORD]}` (by design the word is in the response), fiber `gameInfo`
 fallback; misses are fixed non-solution strings (no dictionary), even guesses typed on the physical keyboard, odd ones on the
