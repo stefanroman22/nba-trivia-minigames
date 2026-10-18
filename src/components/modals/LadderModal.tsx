@@ -23,7 +23,7 @@ const isNum = (v: unknown): v is number => typeof v === "number";
 
 /** Rank distribution, percentile thresholds and the daily rules — the one screen that explains the climb. */
 export default function LadderModal({ onClose }: LadderModalProps) {
-  const { loading, error, data, refresh } = useLadder();
+  const { loading, error, unavailable, data, refresh } = useLadder();
   const { open } = useModal();
   const swapVariants = useReducedMotion() ? reducedFade : swap;
   const state = loading ? "loading" : error || !data ? "error" : "ready";
@@ -37,8 +37,14 @@ export default function LadderModal({ onClose }: LadderModalProps) {
           <div className="ld-center"><CourtLoader label="Reading the standings…" scale={0.7} /></div>
         ) : state === "error" || !data ? (
           <div className="ld-center ld-error">
-            <p>Couldn't load the ladder.</p>
-            <Button size="sm" variant="secondary" onClick={refresh}>Try again</Button>
+            {unavailable ? (
+              <p>The rank ladder isn't available on this server yet.</p>
+            ) : (
+              <>
+                <p>Couldn't load the ladder.</p>
+                <Button size="sm" variant="secondary" onClick={refresh}>Try again</Button>
+              </>
+            )}
           </div>
         ) : (
           <Ladder data={data} onClose={onClose} onSignUp={() => open("login")} />

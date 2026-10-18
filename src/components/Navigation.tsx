@@ -171,6 +171,7 @@ function Navigation({ type = "full" }: NavigationProps) {
     <>
       <button type="button" onClick={() => go("games-grid")} className="nav-link">Games</button>
       <button type="button" onClick={() => openModal("leaderboard")} className="nav-link">Leaderboard</button>
+      <button type="button" onClick={() => openModal("ladder")} className="nav-link">Ranks</button>
       <button type="button" onClick={() => openModal("feedback")} className="nav-link">Feedback</button>
       {user?.is_admin && (
         <button type="button" onClick={() => goPage("/admin")} className="nav-link nav-link--admin">Admin</button>
@@ -256,6 +257,10 @@ function Navigation({ type = "full" }: NavigationProps) {
               </button>
               <button onClick={() => openModal("leaderboard")} className="drawer-link">
                 <span>Leaderboard</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+              </button>
+              <button onClick={() => openModal("ladder")} className="drawer-link">
+                <span>Ranks</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
               </button>
               <button onClick={() => openModal("feedback")} className="drawer-link">
