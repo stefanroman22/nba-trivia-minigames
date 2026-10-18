@@ -41,7 +41,7 @@ jobs:
       - name: Pull the state store
         env:
           CHECKS_STATE_TOKEN: ${{ github.token }}
-        run: node scripts/check-core/state.mjs sync -m "checks-state: live probes (pull)"
+        run: node scripts/check-core/state.mjs sync -m "checks-state - live probes (pull)"
 
       - name: Live probes (read-only)
         id: probe
@@ -82,7 +82,7 @@ jobs:
         if: always() && steps.state.outcome == 'success'
         env:
           CHECKS_STATE_TOKEN: ${{ github.token }}
-        run: node scripts/check-core/state.mjs sync -m "checks-state: live probes ${{ steps.probe.outputs.run }}"
+        run: node scripts/check-core/state.mjs sync -m "checks-state - live probes ${{ steps.probe.outputs.run }}"
 
       - name: Digest
         if: always()
