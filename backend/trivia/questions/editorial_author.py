@@ -338,16 +338,17 @@ def _definition_detail(d):
     return {"definition": d} if len(json.dumps(d, default=str)) <= MAX_DEFINITION else {}
 
 
-def apply_proposals(directory, dataset, journal, now):
-    """Apply the author's proposals.json; returns {"accepted", "rejected", "malformed_file"}."""
+def apply_proposals(directory, dataset, journal, now, quota=QUOTA, max_proposals=MAX_PROPOSALS):
+    """Apply the author's proposals.json; returns {"accepted", "rejected", "malformed_file"}.
+    `quota` / `max_proposals` raise the weekly author's limits for an owner-run bulk import."""
     summary = {"accepted": 0, "rejected": 0, "malformed_file": False}
     proposals = _load(directory, journal)
     if proposals is None:
         summary["malformed_file"] = True
         return summary
-    if len(proposals) > MAX_PROPOSALS:
-        journal.log("rejected", "too_many", count=len(proposals), read=MAX_PROPOSALS)
-        proposals = proposals[:MAX_PROPOSALS]
+    if len(proposals) > max_proposals:
+        journal.log("rejected", "too_many", count=len(proposals), read=max_proposals)
+        proposals = proposals[:max_proposals]
     games = {}
 
     def reject(reason, index, slug="", **detail):
@@ -366,8 +367,8 @@ def apply_proposals(directory, dataset, journal, now):
         if slug not in games:
             games[slug] = _Game(slug, dataset)
         game = games[slug]
-        if game.accepted >= QUOTA:
-            reject("over_quota", i, slug, quota=QUOTA)
+        if game.accepted >= quota:
+            reject("over_quota", i, slug, quota=quota)
             continue
         try:
             d = copy.deepcopy(p["definition"])

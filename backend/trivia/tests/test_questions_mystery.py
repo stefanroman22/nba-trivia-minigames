@@ -63,11 +63,13 @@ class WhoAreYaTests(SimpleTestCase):
     def _ids(self, ds):
         return {d["person_id"] for d in who_are_ya.generate(ds, set(), random.Random(1), 10_000)}
 
-    def test_generate_is_known_band_or_better(self):
+    def test_generate_is_deep_band_or_better(self):
+        # Widened from KNOWN to DEEP on 2026-10-18 (owner: much more Who Are Ya): DEEP players
+        # score as the hard end of the mix.
         ds = fixture_dataset()
         ids = self._ids(ds)
         self.assertTrue(ids)
-        self.assertTrue(all(fame.at_least(ds.by_id[i], fame.KNOWN) for i in ids))
+        self.assertTrue(all(fame.at_least(ds.by_id[i], fame.DEEP) for i in ids))
         self.assertIsNone(who_are_ya.TARGET)
 
     def test_every_tier_1_2_player_is_still_eligible(self):
@@ -81,7 +83,7 @@ class WhoAreYaTests(SimpleTestCase):
 
     def test_materialize_rejects_band_drop(self):
         ds = fixture_dataset()
-        deep = next(r for r in ds.playable if not fame.at_least(r, fame.KNOWN))
+        obscure = next(r for r in ds.playable if not fame.at_least(r, fame.DEEP))
         with self.assertRaises(Invalid) as ctx:
-            who_are_ya.materialize({"person_id": deep["person_id"]}, ds)
+            who_are_ya.materialize({"person_id": obscure["person_id"]}, ds)
         self.assertIn("fame band", str(ctx.exception))

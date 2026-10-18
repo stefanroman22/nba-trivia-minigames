@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from trivia.data_pipeline import publish_v3
 from trivia.models import FactoryRun
-from trivia.questions.editorial_author import apply_proposals
+from trivia.questions.editorial_author import MAX_PROPOSALS, QUOTA, apply_proposals
 from trivia.questions.journal import Journal
 
 
@@ -23,6 +23,10 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("directory", help="Folder holding proposals.json")
         parser.add_argument("--trigger", default="manual", choices=("manual", "schedule"))
+        parser.add_argument("--quota", type=int, default=QUOTA,
+                            help=f"most accepted per game (default {QUOTA}; raise only for an owner-run bulk import)")
+        parser.add_argument("--max-proposals", type=int, default=MAX_PROPOSALS,
+                            help=f"most proposals read from the file (default {MAX_PROPOSALS})")
 
     def handle(self, *args, **opts):
         journal = Journal("editorial", trigger=opts["trigger"])
@@ -32,7 +36,8 @@ class Command(BaseCommand):
             dataset = publish_v3.curated_dataset()
             journal.versions = {"dataset": dataset.version}
             with transaction.atomic():
-                summary = apply_proposals(opts["directory"], dataset, journal, timezone.now())
+                summary = apply_proposals(opts["directory"], dataset, journal, timezone.now(),
+                                          quota=opts["quota"], max_proposals=opts["max_proposals"])
             status = FactoryRun.STATUS_DEGRADED if summary["malformed_file"] else FactoryRun.STATUS_OK
         except Exception:
             journal.mark_rolled_back()

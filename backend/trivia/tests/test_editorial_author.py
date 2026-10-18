@@ -208,6 +208,21 @@ class ApplyProposalsTests(EditorialAuthorTestCase):
         self.assertEqual(self.reasons(), ["over_quota", "over_quota"])
         self.assertIn("accepted=6", self.gh_output())
 
+    def test_owner_bulk_import_raises_the_quota(self):
+        self.write([proposal("fan-favorites", board(prompt=f"Name a multiple MVP winner, take {i}"))
+                    for i in range(7)])
+        call_command("apply_editorial_proposals", self.dir, "--quota", "6", stdout=StringIO())
+        self.assertEqual(len(self.authored("fan-favorites")), 6)
+        self.assertEqual(self.reasons(), ["over_quota"])
+        self.assertTrue(all(r.status == Question.STATUS_PENDING for r in self.authored()))
+
+    def test_owner_bulk_import_raises_the_file_limit(self):
+        self.write([proposal("fan-favorites", board(prompt=f"Name a multiple MVP winner, take {i}"))
+                    for i in range(4)])
+        call_command("apply_editorial_proposals", self.dir, "--max-proposals", "2", stdout=StringIO())
+        self.assertEqual(len(self.authored("fan-favorites")), 2)
+        self.assertEqual(self.reasons(), ["too_many"])
+
     def test_low_interest_is_rejected(self):
         early = [r for r in rules.playoff_rows() if r["round"] == "First Round"]
         a, b = early[0], early[1]
