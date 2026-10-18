@@ -47,7 +47,7 @@ class SpecLoadTests(SimpleTestCase):
     def test_load_is_cached_and_returns_a_copy(self):
         first = specs.load("career-path")
         first["refill"]["target"] = -1
-        self.assertEqual(specs.load("career-path")["refill"]["target"], 500)
+        self.assertIsNone(specs.load("career-path")["refill"]["target"])
 
     def test_unknown_slug_raises_spec_error(self):
         with self.assertRaises(specs.SpecError):
@@ -80,7 +80,7 @@ class SpecValidationTests(SimpleTestCase):
 
     def test_good_copy_loads(self):
         self._write(self.good)
-        self.assertEqual(specs.load("career-path")["refill"]["target"], 500)
+        self.assertIsNone(specs.load("career-path")["refill"]["target"])
 
     def test_missing_section(self):
         self._assert_bad("refill", lambda d: d.pop("refill"))
@@ -141,7 +141,7 @@ class SpecValidationTests(SimpleTestCase):
 class ModuleConstantsMatchSpecTests(SimpleTestCase):
     def test_career_path(self):
         spec = specs.load("career-path")
-        self.assertEqual((career_path.TARGET, career_path.MINIMUM), (500, 50))
+        self.assertEqual((career_path.TARGET, career_path.MINIMUM), (None, 50))  # null: the capacity
         self.assertEqual((career_path.TARGET, career_path.MINIMUM), (spec["refill"]["target"], spec["refill"]["minimum"]))
         self.assertEqual((career_path.MIN_STINTS, career_path.MAX_STINTS), (3, 7))
         self.assertEqual((career_path.MIN_STINTS, career_path.MAX_STINTS),
@@ -155,12 +155,12 @@ class ModuleConstantsMatchSpecTests(SimpleTestCase):
         self.assertIsNone(spec["refill"]["target"])
         self.assertEqual(who_are_ya.MINIMUM, 30)
         self.assertEqual(who_are_ya.MINIMUM, spec["refill"]["minimum"])
-        self.assertEqual(who_are_ya.MIN_FAME_BAND, fame.KNOWN)
-        self.assertEqual(spec["eligibility"]["min_fame_band"], "KNOWN")
+        self.assertEqual(who_are_ya.MIN_FAME_BAND, fame.DEEP)
+        self.assertEqual(spec["eligibility"]["min_fame_band"], "DEEP")
 
     def test_tictactoe(self):
         spec = specs.load("tictactoe")
-        self.assertEqual((tictactoe.TARGET, tictactoe.MINIMUM), (120, 12))
+        self.assertEqual((tictactoe.TARGET, tictactoe.MINIMUM), (600, 12))
         self.assertEqual((tictactoe.TARGET, tictactoe.MINIMUM), (spec["refill"]["target"], spec["refill"]["minimum"]))
         self.assertEqual((tictactoe.MIN_VALID, tictactoe.MAX_VALID), (3, 400))
         self.assertEqual((tictactoe.MIN_VALID, tictactoe.MAX_VALID),
@@ -168,7 +168,7 @@ class ModuleConstantsMatchSpecTests(SimpleTestCase):
 
     def test_contexto(self):
         spec = specs.load("contexto")
-        self.assertEqual((contexto.TARGET, contexto.MINIMUM), (60, 30))
+        self.assertEqual((contexto.TARGET, contexto.MINIMUM), (330, 30))
         self.assertEqual((contexto.TARGET, contexto.MINIMUM), (spec["refill"]["target"], spec["refill"]["minimum"]))
         self.assertEqual(contexto.MIN_SECRET_BAND, fame.KNOWN)
         self.assertEqual(spec["eligibility"]["min_secret_band"], "KNOWN")

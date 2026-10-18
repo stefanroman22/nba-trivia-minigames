@@ -3,8 +3,9 @@
 get_round serves a session of matchups straight from the bundled seed
 (always-available fallback; no DB needed). Votes arrive through the shared
 /trivia/log-guesses/ flywheel as GuessLog rows (game="who-would-win",
-answer="a"|"b", correct=False); the tally endpoint aggregates those rows
-live, grouped by answer, so the community split is always current.
+answer="a"|"b", correct=False); the tally endpoint adds the rolled-up votes, the
+raw votes not rolled up yet and the matchup's seeded starting votes, so the community
+split stays current and survives the 30-day raw-log cleanup.
 """
 import json
 import os
@@ -43,28 +44,44 @@ def get_round(request):
     return JsonResponse({"series": random.sample(rows, min(ROUNDS_PER_SESSION, len(rows)))})
 
 
-def get_tally(request):
-    """Live community split for one matchup: GuessLog grouped by answer.
-
-    The flywheel endpoint stores every vote as a GuessLog row; this view is
-    the read side. Only "a"/"b" answers count (junk rows are ignored).
-    """
+def tally(qid):
+    """{"a": n, "b": n} for one matchup: the votes already folded into the roll-ups
+    (WrongAnswerStats, kept forever), the raw GuessLog votes above the roll-up watermark
+    (not folded yet; the nightly cleanup deletes raw rows only at or below it, so nothing
+    is counted twice or lost), and the matchup's seeded starting votes
+    (Question.quality["seed_votes"], set by seed_who_would_win_votes)."""
     # Lazy import keeps trivia.games importable outside a fully-wired app
     # (data_pipeline.validate relies on that).
-    from trivia.models import GuessLog
+    from trivia.models import GuessLog, Question, RollupWatermark, WrongAnswerStats
 
-    qid = (request.GET.get("qid") or "").strip()
-    if not qid:
-        return JsonResponse({"error": "qid is required"}, status=400)
     counts = {"a": 0, "b": 0}
+    mark = RollupWatermark.objects.filter(name="guess_log").values_list("last_id", flat=True).first() or 0
+    for row in WrongAnswerStats.objects.filter(game="who-would-win", question_id=qid, answer_norm__in=counts):
+        counts[row.answer_norm] += row.count
     qs = (
-        GuessLog.objects.filter(game="who-would-win", question_id=qid)
+        GuessLog.objects.filter(game="who-would-win", question_id=qid, id__gt=mark)
         .values("answer")
         .annotate(n=Count("id"))
     )
     for row in qs:
         if row["answer"] in counts:
-            counts[row["answer"]] = row["n"]
+            counts[row["answer"]] += row["n"]
+    q = Question.objects.filter(game="who-would-win", qid=qid).only("quality").first()
+    seed = ((q.quality or {}).get("seed_votes") or {}) if q else {}
+    for side in counts:
+        n = seed.get(side)
+        if type(n) is int and n > 0:
+            counts[side] += n
+    return counts
+
+
+def get_tally(request):
+    """Live community split for one matchup (see tally). Only "a"/"b" answers count
+    (junk rows are ignored)."""
+    qid = (request.GET.get("qid") or "").strip()
+    if not qid:
+        return JsonResponse({"error": "qid is required"}, status=400)
+    counts = tally(qid)
     return JsonResponse(
         {"qid": qid, "a": counts["a"], "b": counts["b"], "total": counts["a"] + counts["b"]}
     )

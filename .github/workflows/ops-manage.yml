@@ -2,7 +2,9 @@ name: Ops command
 # Runs ONE allow-listed Django management command against the production database from a
 # GitHub runner, so a one-off operation never needs the owner's PC. Manual dispatch (from the
 # default branch) or a push to `ops/run-<command>-**` (so it can run before promotion with
-# that branch's code). Anything outside the allow-list is refused.
+# that branch's code). Anything outside the allow-list is refused. A push run reads the
+# command's arguments from `backend/ops/args/<command>.txt` on that branch when the file
+# exists (one line, whitespace-separated, no shell expansion).
 on:
   workflow_dispatch:
     inputs:
@@ -14,6 +16,9 @@ on:
           - import_editorial_seeds
           - factory_health
           - showmigrations
+          - factory_supply
+          - apply_editorial_proposals
+          - seed_who_would_win_votes
   push:
     branches: ["ops/run-**"]
 concurrency:
@@ -24,7 +29,7 @@ permissions:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 150
     defaults:
       run:
         working-directory: backend
@@ -51,10 +56,17 @@ jobs:
             cmd=$(printf '%s' "$REF_NAME" | sed -E 's#^ops/run-([a-z_]+)(-.*)?$#\1#')
           fi
           case "$cmd" in
-            import_editorial_seeds|factory_health|showmigrations) ;;
+            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes) ;;
             *) echo "::error::command '$cmd' is not allow-listed"; exit 1 ;;
           esac
           echo "cmd=$cmd" >> "$GITHUB_OUTPUT"
           echo "running: $cmd"
       - name: Run it
-        run: python manage.py "${{ steps.pick.outputs.cmd }}"
+        env:
+          CMD: ${{ steps.pick.outputs.cmd }}
+        run: |
+          set -euo pipefail
+          args=()
+          if [ -f "ops/args/$CMD.txt" ]; then read -r -a args < "ops/args/$CMD.txt"; fi
+          echo "running: $CMD ${args[*]:-}"
+          python manage.py "$CMD" "${args[@]}"

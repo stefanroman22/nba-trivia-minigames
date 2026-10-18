@@ -9,6 +9,6 @@
   },
   "interest": {"features": {"pedigree": 1.0}, "min": 0.3},
   "coverage": {"axes": ["decade", "team"], "min_decades": 4},
-  "refill": {"runway_days": 90, "minimum": 30, "target": 200, "max_new_per_run": 20},
+  "refill": {"runway_days": 90, "minimum": 30, "target": 600, "max_new_per_run": 20},
   "consistency": {"max_player_share": 0.05}
 }

@@ -55,6 +55,34 @@ class TallyTests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json(), {"qid": "www-001", "a": 3, "b": 1, "total": 4})
 
+    def test_rolled_up_votes_survive_the_raw_log_cleanup(self):
+        # 5 votes already folded into the roll-ups (raw rows at or below the watermark were
+        # deleted by the 30-day cleanup), 1 raw vote above the watermark, 1 still-raw vote
+        # below it (counted in the roll-up already: must not be counted twice).
+        from django.utils import timezone
+
+        from trivia.models import RollupWatermark, WrongAnswerStats
+
+        now = timezone.now()
+        WrongAnswerStats.objects.create(game="who-would-win", question_id="www-001", answer_norm="a",
+                                        count=4, players=4, first_seen=now, last_seen=now)
+        WrongAnswerStats.objects.create(game="who-would-win", question_id="www-001", answer_norm="b",
+                                        count=1, players=1, first_seen=now, last_seen=now)
+        old = GuessLog.objects.create(game="who-would-win", question_id="www-001", answer="a")
+        RollupWatermark.objects.create(name="guess_log", last_id=old.id)
+        GuessLog.objects.create(game="who-would-win", question_id="www-001", answer="b")
+        res = self.client.get(reverse("who-would-win-tally"), {"qid": "www-001"})
+        self.assertEqual(res.json(), {"qid": "www-001", "a": 4, "b": 2, "total": 6})
+
+    def test_seeded_votes_are_added(self):
+        from trivia.models import Question
+
+        Question.objects.create(game="who-would-win", qid="www-007", definition={}, content_hash="h7",
+                                status=Question.STATUS_ACTIVE, quality={"seed_votes": {"a": 61, "b": 39}})
+        GuessLog.objects.create(game="who-would-win", question_id="www-007", answer="b")
+        res = self.client.get(reverse("who-would-win-tally"), {"qid": "www-007"})
+        self.assertEqual(res.json(), {"qid": "www-007", "a": 61, "b": 40, "total": 101})
+
     def test_zero_votes_returns_zeros(self):
         res = self.client.get(reverse("who-would-win-tally"), {"qid": "www-999"})
         self.assertEqual(res.status_code, 200)
