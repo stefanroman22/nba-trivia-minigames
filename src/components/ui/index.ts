@@ -1,4 +1,4 @@
-// NBA 3VIA design system — import these tiles when building a new game UI.
+// Swish Quest design system — import these tiles when building a new game UI.
 export { default as Button } from "./Button";
 export { default as Chip } from "./Chip";
 export { default as Surface } from "./Surface";
