@@ -470,14 +470,15 @@ def update_profile(request):
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.content_type.startswith("multipart/form-data"):
-        if not user.age_group:
+        # Admins can always upload: the age checks below are for players only.
+        if not user.is_staff and not user.age_group:
             # Age unknown (signed up with the 13+ tick-box): ask for the birth month + year now
             # (POST account/age/), then the client retries the upload.
             return Response(
                 {"code": "age_required", "error": PHOTO_AGE_REQUIRED_MESSAGE},
                 status=status.HTTP_428_PRECONDITION_REQUIRED,
             )
-        if user.age_group == "teen":
+        if not user.is_staff and user.age_group == "teen":
             return Response(
                 {"error": f"Profile photos are available from age {PHOTO_MIN_AGE}."},
                 status=status.HTTP_403_FORBIDDEN,
