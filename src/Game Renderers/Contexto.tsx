@@ -271,7 +271,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
       >
         <span className="cx-reveal-photo">
           {revealed ? (
-            <PlayerPhoto personId={secret.person_id} alt={secret.full_name} />
+            <PlayerPhoto personId={secret.person_id} alt={secret.full_name} frame="avatar" />
           ) : (
             <svg viewBox="0 0 64 72" aria-hidden="true">
               <circle cx="32" cy="26" r="13" />

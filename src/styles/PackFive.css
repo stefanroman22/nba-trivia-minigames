@@ -97,6 +97,10 @@
   user-select: none;
   -webkit-user-drag: none;
 }
+/* The frame is short and wide on 1280–1366px screens (~538x206): anchored at the top it cut
+   through the mouth/chin of nearly every NBA headshot. 22% keeps the whole face in view at every
+   viewport (photo-fit audit, 2026-10-17). */
+.pf-photo { object-position: 50% 22%; }
 .pf-silhouette { fill: var(--brand-deep); stroke: none; padding: 12px 0 0; background: var(--surface3); }
 .pf-photo-scrim {
   position: absolute;

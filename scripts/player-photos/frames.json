@@ -1,0 +1,1119 @@
+{
+ "_about": "Rendered photo frame per game x ui-check viewport (css px), measured in the real app on 2026-10-17 (the -review frames derived from the same CSS). nba = the game's CSS fit for cdn.nba.com headshots; commons = the PlayerPhoto frame kind (utils/playerPhotos placePhoto). Re-measure when a game's photo CSS changes.",
+ "viewports": {
+  "phone-360": {
+   "w": 360,
+   "h": 720,
+   "dpr": 2
+  },
+  "phone-390": {
+   "w": 390,
+   "h": 664,
+   "dpr": 2
+  },
+  "phone-414": {
+   "w": 414,
+   "h": 715,
+   "dpr": 2
+  },
+  "tablet-768": {
+   "w": 768,
+   "h": 954,
+   "dpr": 2
+  },
+  "tablet-1280": {
+   "w": 1280,
+   "h": 720,
+   "dpr": 2
+  },
+  "desktop-1366": {
+   "w": 1366,
+   "h": 657,
+   "dpr": 1
+  },
+  "desktop-1920": {
+   "w": 1920,
+   "h": 969,
+   "dpr": 1
+  }
+ },
+ "frames": {
+  "who-are-ya": {
+   "phone-360": {
+    "w": 278.75,
+    "h": 158.39,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   },
+   "phone-390": {
+    "w": 310,
+    "h": 146.08,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   },
+   "phone-414": {
+    "w": 332.84,
+    "h": 157.3,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   },
+   "tablet-768": {
+    "w": 535.13,
+    "h": 190.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   },
+   "tablet-1280": {
+    "w": 540.75,
+    "h": 158.39,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   },
+   "desktop-1366": {
+    "w": 542.0,
+    "h": 144.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   },
+   "desktop-1920": {
+    "w": 534.75,
+    "h": 190.0,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "strip"
+   }
+  },
+  "career-path": {
+   "phone-360": {
+    "w": 94.0,
+    "h": 68.14,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-390": {
+    "w": 94.0,
+    "h": 68.14,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-414": {
+    "w": 97.36,
+    "h": 70.59,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-768": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-1280": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1366": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1920": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   }
+  },
+  "contexto": {
+   "phone-360": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-390": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-414": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-768": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-1280": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1366": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1920": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   }
+  },
+  "starting-five": {
+   "phone-360": {
+    "w": 144.0,
+    "h": 144.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-390": {
+    "w": 158.88,
+    "h": 158.88,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-414": {
+    "w": 170.69,
+    "h": 170.69,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-768": {
+    "w": 124.22,
+    "h": 124.22,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-1280": {
+    "w": 104.19,
+    "h": 104.19,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1366": {
+    "w": 121.39,
+    "h": 121.39,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1920": {
+    "w": 130.8,
+    "h": 130.8,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   }
+  },
+  "pack-five": {
+   "phone-360": {
+    "w": 273.84,
+    "h": 230.56,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   },
+   "phone-390": {
+    "w": 305.44,
+    "h": 208.31,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   },
+   "phone-414": {
+    "w": 328.0,
+    "h": 228.59,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   },
+   "tablet-768": {
+    "w": 532.0,
+    "h": 308.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   },
+   "tablet-1280": {
+    "w": 535.84,
+    "h": 230.56,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   },
+   "desktop-1366": {
+    "w": 537.63,
+    "h": 205.52,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   },
+   "desktop-1920": {
+    "w": 532.0,
+    "h": 308.0,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      22.0
+     ]
+    },
+    "commons": "card",
+    "nameplate_px": 50
+   }
+  },
+  "bingo": {
+   "phone-360": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-390": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-414": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-768": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-1280": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1366": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 1,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1920": {
+    "w": 42.0,
+    "h": 42.0,
+    "shape": "circle",
+    "dpr": 1,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   }
+  },
+  "super-draft": {
+   "phone-360": {
+    "w": 32.0,
+    "h": 32.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-390": {
+    "w": 33.09,
+    "h": 33.09,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-414": {
+    "w": 35.25,
+    "h": 35.25,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-768": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-1280": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1366": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 1,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1920": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 1,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   }
+  },
+  "career-path-review": {
+   "phone-360": {
+    "w": 94.0,
+    "h": 68.14,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-390": {
+    "w": 94.0,
+    "h": 68.14,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-414": {
+    "w": 97.36,
+    "h": 70.59,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-768": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-1280": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1366": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1920": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   }
+  },
+  "super-draft-review": {
+   "phone-360": {
+    "w": 32.0,
+    "h": 32.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-390": {
+    "w": 33.09,
+    "h": 33.09,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-414": {
+    "w": 35.25,
+    "h": 35.25,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-768": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-1280": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 2,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1366": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 1,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1920": {
+    "w": 40.0,
+    "h": 40.0,
+    "shape": "circle",
+    "dpr": 1,
+    "size": "sm",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      0.0
+     ]
+    },
+    "commons": "avatar"
+   }
+  },
+  "starting-five-review": {
+   "phone-360": {
+    "w": 57.6,
+    "h": 57.6,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-390": {
+    "w": 63.6,
+    "h": 63.6,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-414": {
+    "w": 68.4,
+    "h": 68.4,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-768": {
+    "w": 87.2,
+    "h": 87.2,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-1280": {
+    "w": 87.2,
+    "h": 87.2,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1366": {
+    "w": 87.2,
+    "h": 87.2,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1920": {
+    "w": 87.2,
+    "h": 87.2,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   }
+  }
+ }
+}

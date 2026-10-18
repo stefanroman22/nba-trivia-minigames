@@ -218,7 +218,7 @@ function Silhouette() {
 
 /** Slot face (also the answer review's slots). */
 export function Headshot({ player }: { player: { person_id: number } }) {
-  return <PlayerPhoto personId={player.person_id} alt="" size="sm" className="sd-photo" fallbackClassName="sd-silhouette" />;
+  return <PlayerPhoto personId={player.person_id} alt="" size="sm" frame="avatar" className="sd-photo" fallbackClassName="sd-silhouette" />;
 }
 
 type Phase = "loading" | "error" | "draft" | "reveal";

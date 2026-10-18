@@ -46,8 +46,6 @@
 }
 .waya-silhouette { fill: var(--surface3); stroke: var(--line2); padding: 8px 0; }
 .waya-silhouette--none { stroke: none; }
-/* Commons photos too: this wide strip would behead a cover-cropped portrait. */
-.waya-photo[data-source="commons"] { object-fit: contain; object-position: center; }
 /* Guesses-left moved to <GameFrame.Status>; this holds only the photo toggle,
    floated over the photo (absolute = zero layout footprint, frame stays fixed)
    instead of claiming its own row under the image. */

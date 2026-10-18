@@ -1,13 +1,17 @@
-/* Shared player-photo rules (components/ui/PlayerPhoto.tsx). Each game keeps its own
-   frame size; these only cover what differs by source. */
+/* Shared player-photo rules (components/ui/PlayerPhoto.tsx). Each game keeps its own frame
+   size; a Commons photo sits in a .player-photo-frame span that takes the game's class, and the
+   component places the photo inside it (utils/playerPhotos placePhoto). */
 
-/* NBA headshots are a uniform studio crop with a transparent background, so each game's
-   own fit applies. Commons photos are arbitrary (portrait, action, wide), so they always
-   fill the frame and anchor near the top, where the face is. `html img[…]` (0,1,2)
-   outranks the games' fit rules (`.x-photo`, `.x-frame img`). */
-html img[data-source="commons"] {
-  object-fit: cover;
-  object-position: 50% 18%;
+/* The frame clips the placed photo. :where() keeps it at zero specificity, so a game's own
+   size rule (e.g. 44px circles) wins; a frame with no class fills its parent (Contexto). */
+:where(.player-photo-frame) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.player-photo-frame {
+  position: relative;
+  overflow: hidden;
   background: var(--surface3);
 }
 

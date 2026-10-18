@@ -19,6 +19,7 @@ const MAP_OUT = join(root, "public", "photos", "player-photos.json");
 const IDS_OUT = join(root, "public", "photos", "player-ids.json");
 const CREDITS_OUT = join(root, "src", "data", "photo-credits.json");
 const EXTRA_IN = join(root, "scripts", "player-photos", "commons-extra.json");
+const FACES_IN = join(root, "scripts", "player-photos", "faces.json");
 
 const NBA_PLACEHOLDER_ETAG = '"7475ba9619305909d7998dd9dba02481"';
 const UA = "SwishQuest-photo-map/1.0 (https://swishquest.com)";
@@ -121,6 +122,7 @@ async function commonsInfo(files) {
       const meta = ii.extmetadata ?? {};
       info.set(file, {
         width: ii.width,
+        height: ii.height,
         mime: ii.mime,
         artist: stripHtml(meta.Artist?.value) || "Unknown author",
         license: stripHtml(meta.LicenseShortName?.value) || "See file page",
@@ -145,9 +147,13 @@ console.log(`[player-photos] NBA headshot: ${players.length - missing.length}; w
 
 const wd = await wikidataImages();
 // Hand-verified finds (identity, license, a clear face), which win over Wikidata:
-// { "<person_id>": { file, face_x, face_y } } — see commons-extra.json's producers in the README.
+// { "<person_id>": { file, face_x, face_y } }, or { exclude: true, reason } to drop a player's
+// photo (a jersey, a back view, a group shot) — see the README.
 const extra = existsSync(EXTRA_IN) ? JSON.parse(readFileSync(EXTRA_IN, "utf8")) : {};
-const fileFor = (p) => extra[p.person_id]?.file ?? wd.get(String(p.person_id));
+// Face boxes per Commons photo (detect_faces.py; hand-fixed ones are marked manual):
+// { "<person_id>": { file, aspect, box: [x, y, w, h] | null } }, fractions of the image.
+const faces = existsSync(FACES_IN) ? JSON.parse(readFileSync(FACES_IN, "utf8")) : {};
+const fileFor = (p) => (extra[p.person_id]?.exclude ? undefined : (extra[p.person_id]?.file ?? wd.get(String(p.person_id))));
 const wanted = [...new Set(missing.map(fileFor).filter(Boolean))];
 console.log(`[player-photos] Wikidata images for missing players: ${wanted.length} — reading Commons metadata…`);
 const info = await commonsInfo(wanted);
@@ -175,7 +181,14 @@ const commons = {};
 const none = [];
 const credits = [];
 let rejected = 0;
+let excluded = 0;
+const noFaceData = [];
 for (const p of missing) {
+  if (extra[p.person_id]?.exclude) {
+    excluded++;
+    none.push(p.person_id);
+    continue;
+  }
   const file = fileFor(p);
   const meta = file && info.get(file);
   const picked = extra[p.person_id];
@@ -186,9 +199,19 @@ for (const p of missing) {
     continue;
   }
   const underscored = file.replace(/ /g, "_");
-  // [path, width] — plus the face's position in percent when known, so the game crops to it.
-  commons[p.person_id] = [`${hashDir(underscored)}/${underscored}`, meta.width];
-  if (picked?.face_y != null) commons[p.person_id].push(Math.round(picked.face_x ?? 50), Math.round(picked.face_y));
+  // [path, width, height] + the face (centre x, y, box w, h in % of the image) so every game can
+  // place the photo on it (utils/playerPhotos placePhoto). A face recorded for another file is stale.
+  const entry = [`${hashDir(underscored)}/${underscored}`, meta.width, meta.height];
+  const fc = faces[p.person_id]?.file === underscored ? faces[p.person_id] : null;
+  const pct = (v) => Math.round(v * 1000) / 10;
+  if (fc?.box) {
+    const [x, y, w, h] = fc.box;
+    entry.push(pct(x + w / 2), pct(y + h / 2), pct(w), pct(h));
+  } else if (!fc && picked?.face_y != null) {
+    entry.push(Math.round(picked.face_x ?? 50), Math.round(picked.face_y));
+  }
+  if (!fc) noFaceData.push(p.person_id);
+  commons[p.person_id] = entry;
   credits.push({
     player: p.full_name,
     file: underscored,
@@ -217,5 +240,11 @@ const covered = players.length - none.length;
 console.log(
   `[player-photos] done: ${covered}/${players.length} with a photo ` +
     `(${players.length - missing.length} NBA + ${Object.keys(commons).length} Commons), ${none.length} silhouette; ` +
-    `${rejected} Commons files skipped as possibly someone else`,
+    `${rejected} Commons files skipped as possibly someone else, ${excluded} excluded by review`,
 );
+if (noFaceData.length) {
+  console.log(
+    `[player-photos] ${noFaceData.length} Commons photos have no face data yet — run ` +
+      `py -3.11 scripts/player-photos/detect_faces.py, review, then this build again: ${noFaceData.join(", ")}`,
+  );
+}
