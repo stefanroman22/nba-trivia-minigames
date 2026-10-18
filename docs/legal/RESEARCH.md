@@ -50,8 +50,8 @@ and vendor blogs rather than regulator pages, so re-check any citation before re
   ("I'm 13 or older and agree to the Terms of Service and Privacy Policy"), for email and Google sign-up. The owner chose
   this knowingly over a neutral age screen: it is a weaker age gate (the COPPA "neutral screen" practice above is no
   longer followed at sign-up). Birth month/year is asked only when a player adds a profile photo; until an age proves
-  16+, the account is treated as a teen account (no photo, off the public leaderboard and name search, "Player" to
-  strangers in random matches). Counsel should confirm this is acceptable for the markets that matter.
+  16+, the account is treated as a teen account (no photo; since the owner decision of 2026-10-19 that is the only
+  difference: teen accounts are on the public leaderboard and in name search like every account). Counsel should confirm this is acceptable for the markets that matter.
 
 ## Platform rules (DSA, UK OSA)
 

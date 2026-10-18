@@ -193,42 +193,33 @@ function toUid(uid, event, payload) {
   if (sid) io.to(sid).emit(event, payload);
 }
 
-/** 13-15 year-olds (Django's is_teen) are kept off public surfaces: strangers in a random match
- *  see "Player". Friend rooms are joined by a code the teen chose to share, so names show there. */
-function maskedForStrangers(user) {
-  if (!user?.is_teen) return false;
-  const room = rooms.get(players.get(user.id)?.roomCode);
-  return !room || room.type === "match";
-}
-
-/** Wire view of a player as seen by `viewerUid` (null = a stranger). A masked stranger carries no
- *  name, photo or permanent id (`id: null, masked: true`); a player is never masked from themselves. */
-const publicUser = (user, viewerUid = null) => {
+/** Wire view of a player. Every player shows their real name, photo and permanent id to everyone,
+ *  strangers in a random match included (owner decision 2026-10-19 ended the teen masking);
+ *  `masked` stays on the wire, always false, for clients that still read it. */
+const publicUser = (user) => {
   if (!user) return { id: null, masked: false, username: "Player" };
-  const masked = maskedForStrangers(user) && user.id !== viewerUid;
   return {
-    id: masked ? null : user.id ?? null,       // permanent public id (#K7F3QD)
-    masked,
-    username: masked ? "Player" : user.username,
-    profile_photo: masked ? null : user.profile_photo ?? null,
+    id: user.id ?? null,       // permanent public id (#K7F3QD)
+    masked: false,
+    username: user.username,
+    profile_photo: user.profile_photo ?? null,
     rank: user.rank,
     points: user.points,
   };
 };
 
-/** The uid as `viewerUid` may see it: the uid, or null when that player is masked for the viewer.
- *  Masked players exist only in random 1v1 rooms, so the client's username fallback key cannot collide. */
+/** The uid as `viewerUid` may see it: the uid, or null for a player the relay doesn't know. */
 const publicIdOf = (uid, viewerUid = null) => {
   const user = players.get(uid)?.user;
   if (!user) return uid === viewerUid ? uid : null;   // unknown player: fail closed
-  return uid !== viewerUid && maskedForStrangers(user) ? null : uid;
+  return uid;
 };
 
-/** Display name for "X left" style messages (masked like publicUser). */
+/** Display name for "X left" style messages. */
 const nameOf = (uid) => {
   const user = players.get(uid)?.user;
   if (!user) return "A player";
-  return maskedForStrangers(user) ? "Player" : user.username || "A player";
+  return user.username || "A player";
 };
 
 // Games dealt from the pre-generated questions (questions.js: the manifest-v3 data
@@ -339,7 +330,7 @@ async function dealRound(room) {
  * carry elapsedMs so clients can show how a tie was broken. Shared by
  * settleMatch AND snapshotFor so live results and resumes can never disagree.
  * Rows are internal ({ uid, score, elapsedMs, outcome }); standingsFor() builds
- * the wire rows for one recipient (masked strangers carry no id).
+ * the wire rows for one recipient.
  */
 function rankRoom(room) {
   const timeKey = (uid) => (room.times[uid] == null ? Infinity : room.times[uid]);
@@ -486,7 +477,6 @@ function restartRound(room, gameObj, why, notice = null) {
  *  if two or more remain (and it isn't a turn game), otherwise everyone returns to the lobby. */
 function removeMember(room, uid, why) {
   const name = nameOf(uid);
-  // Resolved before the seat is cleared: once roomCode is null, maskedForStrangers sees no room.
   const shownId = new Map(othersOf(room, uid).map((m) => [m, publicIdOf(uid, m)]));
   if (room.type !== "friend" || room.members[0] === uid) {
     if (room.phase === "lobby") {
@@ -543,7 +533,6 @@ function lobbySnapshot(room) {
     min,                                     // the game's player bounds, for the host's size stepper
     max,
     hostUid: room.members[0],
-    // Friend lobbies are never masked (maskedForStrangers), so ids stay.
     members: room.members.map((uid) => ({
       ...publicUser(players.get(uid)?.user),
       id: uid,

@@ -70,7 +70,7 @@ def distribution():
 
 
 def you_block(user, dist):
-    """Where `user` stands against the public population. Works for accounts outside it (teens)."""
+    """Where `user` stands against the public population. Works for accounts outside it (banned)."""
     total = dist["total_players"]
     position = leaderboard.rank_of(user)
     if position is None:

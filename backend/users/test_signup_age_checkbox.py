@@ -83,15 +83,14 @@ class UnknownAgeIsTeenTests(TestCase):
         self.assertTrue(self.me("u@example.com")["is_teen"])
         self.assertFalse(self.me("adult@example.com")["is_teen"])
 
-    def test_unknown_age_is_off_the_public_leaderboard_and_name_search(self):
+    def test_unknown_age_is_on_the_public_leaderboard_and_in_name_search(self):
         names = [row["username"] for row in leaderboard.top()]
         self.assertIn("Adult", names)
-        self.assertNotIn("Unknown", names)
+        self.assertIn("Unknown", names)
         token = login(self.client, "adult@example.com").json()["access"]
         auth = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
-        self.assertEqual(self.client.get(reverse("search-users"), {"q": "Unknow"}, **auth).json()["results"], [])
-        exact = self.client.get(reverse("search-users"), {"q": self.unknown.public_id}, **auth).json()["results"]
-        self.assertEqual([r["id"] for r in exact], [self.unknown.public_id])
+        found = self.client.get(reverse("search-users"), {"q": "Unknow"}, **auth).json()["results"]
+        self.assertEqual([r["id"] for r in found], [self.unknown.public_id])
 
     def test_the_private_friends_board_still_shows_the_player(self):
         board, rank, count = leaderboard.friends_board(self.unknown)

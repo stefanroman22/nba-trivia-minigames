@@ -33,7 +33,10 @@ class UniformLoginErrorTests(TestCase):
         self.assertEqual(unknown.json(), wrong.json())
 
 
-class TeenPrivacyTests(TestCase):
+class TeenAccountsAreFullPlayersTests(TestCase):
+    """Owner decision 2026-10-19: accounts without a confirmed age of 16+ (13-15, or unknown) work like
+    every other account; the profile photo is the only thing they can't have (test_photos)."""
+
     def setUp(self):
         cache.clear()
         signup(self.client, username="Adult", email="adult@example.com")
@@ -44,22 +47,37 @@ class TeenPrivacyTests(TestCase):
             content_type="application/json",
         )
         self.teen = User.objects.get(email="teen@example.com")
+        self.unknown = User.objects.create_user(username="NoAgeYet", email="noage@example.com", password="x", points=70)
         User.objects.filter(pk__in=[self.adult.pk, self.teen.pk]).update(points=50)
+        User.objects.filter(pk=self.teen.pk).update(points=90)
+        self.teen.refresh_from_db()
 
-    def test_teens_are_not_on_the_global_leaderboard(self):
-        names = [row["username"] for row in leaderboard.top()]
-        self.assertIn("Adult", names)
-        self.assertNotIn("TeenPlayer", names)
+    def test_teens_and_unknown_ages_are_on_the_global_leaderboard(self):
+        self.assertEqual(self.teen.age_group, "teen")
+        self.assertEqual(self.unknown.age_group, "")
+        self.assertEqual([row["username"] for row in leaderboard.top()], ["TeenPlayer", "NoAgeYet", "Adult"])
+        self.assertEqual((leaderboard.rank_of(self.teen), leaderboard.rank_of(self.unknown), leaderboard.total()), (1, 2, 3))
+        token = login(self.client, "teen@example.com").json()["access"]
+        resp = self.client.get(reverse("get-users"), HTTP_AUTHORIZATION=f"Bearer {token}").json()
+        self.assertEqual((resp["user_rank"], resp["number_users"]), (1, 3))
+
+    def test_teens_are_on_the_weekly_board(self):
+        from trivia.models import GameSession
+
+        GameSession.objects.create(user=self.teen, game="wordle", score=10, awarded=40)
+        GameSession.objects.create(user=self.adult, game="wordle", score=10, awarded=20)
+        board, my_rank, count, mine = leaderboard.weekly_board(self.teen)
+        self.assertEqual([r["username"] for r in board], ["TeenPlayer", "Adult"])
+        self.assertEqual((my_rank, count, mine), (1, 2, 40))
 
     def search(self, q):
         token = login(self.client, "adult@example.com").json()["access"]
         return self.client.get(reverse("search-users"), {"q": q}, HTTP_AUTHORIZATION=f"Bearer {token}").json()["results"]
 
-    def test_teens_are_found_only_by_their_exact_player_id(self):
-        self.assertEqual(self.search("TeenPl"), [])
-        self.assertNotIn(self.teen.public_id, [r["id"] for r in self.search(self.teen.public_id[:3])])
-        exact = self.search(self.teen.public_id)
-        self.assertEqual([r["id"] for r in exact], [self.teen.public_id])
+    def test_teens_are_found_by_name_and_by_partial_id(self):
+        self.assertEqual([r["id"] for r in self.search("TeenPl")], [self.teen.public_id])
+        self.assertEqual([r["id"] for r in self.search("NoAge")], [self.unknown.public_id])
+        self.assertIn(self.teen.public_id, [r["id"] for r in self.search(self.teen.public_id[:3])])
 
 
 class BanNoticeTests(TestCase):

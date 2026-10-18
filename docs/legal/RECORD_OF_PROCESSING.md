@@ -65,5 +65,5 @@ of: ads or analytics, chat, location, an app-store release, or reaching a scale 
 
 HTTPS with 1-year HSTS in production; salted PBKDF2 password hashes; 15-minute access tokens and 90-day rotating,
 blacklistable refresh tokens; rate limits on sign-in, sign-up, refresh and account actions; Django admin and admin API
-restricted to staff; production refuses to start without a real `DJANGO_SECRET_KEY`; generic API error messages and one generic login failure message; teens hidden from the public leaderboard and name search; baseline
+restricted to staff; production refuses to start without a real `DJANGO_SECRET_KEY`; generic API error messages and one generic login failure message; baseline
 security headers; weekly pruning. Known gaps are tracked in OPEN_ITEMS.md (CSP, HttpOnly cookies, admin 2FA and audit log).

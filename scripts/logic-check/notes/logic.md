@@ -97,8 +97,8 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
   is unreachable): LC-PROFILE-02/04 would then fail on the upload, not on the age gate.
 - **Upload** is multipart, which `api.fetch` (JSON only) cannot send: profile.spec has its own fetch that asks the guard
   first. The image is a 1x1 PNG (the backend normalises it to a 256x256 JPEG data URL).
-- **Search rule** (`users/friends.py search_users`): unknown-age and teen players are findable by exact player id only,
-  never by name. testuser5 is unknown-age by default, so a name search finds it only once LC-FRIENDS-08 makes it adult.
+- **Search rule** (`users/friends.py search_users`): every non-banned player is findable by name or player id, whatever
+  their age (owner decision 2026-10-19; unknown-age and teen players were findable by exact id only until then).
   Blocked players are hidden in both directions; a send is refused (403) from either side; the block row is one-way.
 - **friends-overview** is cached 60 s (`friends_cache`) and invalidated by every write view; one Django process with
   LocMemCache, so reads after a write are consistent.

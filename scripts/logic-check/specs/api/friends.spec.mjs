@@ -262,7 +262,7 @@ test('[LC-FRIENDS-07] unblock: 200 unblocked, no longer listed; a request is pos
   await lc.done();
 });
 
-test('[LC-FRIENDS-08] search: by player id (also "#id") finds the peer with relationship none; by name only once the peer is a known adult (unknown age / teen: id only); one character → empty', async ({ api, lc }) => {
+test('[LC-FRIENDS-08] search: by player id (also "#id") finds the peer with relationship none; by name too, whether the peer\'s age is unknown or adult; one character → empty', async ({ api, lc }) => {
   const users = await pair();
   const { a, p } = users;
   const route = '/api/search-users/';
@@ -277,9 +277,10 @@ test('[LC-FRIENDS-08] search: by player id (also "#id") finds the peer with rela
           if (!row || row.username !== PEER || row.relationship !== 'none') lc.violation('search', { route, selector: `q=${q}`, measured: rows === null ? 'no answer' : JSON.stringify(row || rows.map((x) => x.id)).slice(0, 120), expected: `{ id: ${p.id}, username: ${PEER}, relationship: "none" }` });
         }
       });
-      await test.step('by name while the peer\'s age is unknown → not listed (id only)', async () => {
+      await test.step('by name while the peer\'s age is unknown → listed (age plays no part since 2026-10-19)', async () => {
         const rows = await search(api, a, PEER);
-        if (rows === null || found(rows)) lc.violation('search', { route, selector: `q=${PEER} (age unknown)`, measured: rows === null ? 'no answer' : `${PEER} listed`, expected: `${PEER} hidden: unknown-age and teen players are findable by exact player id only (users/friends.py search_users)` });
+        const row = found(rows);
+        if (!row || row.relationship !== 'none') lc.violation('search', { route, selector: `q=${PEER} (age unknown)`, measured: rows === null ? 'no answer' : `${PEER} not listed`, expected: `{ id: ${p.id}, username: ${PEER}, relationship: "none" }: every player is findable by name, whatever their age (users/friends.py search_users)` });
       });
       await test.step('the peer gives an adult age → by name → listed', async () => {
         const r = await as(api, p).post('/account/age/', { birth_month: 1, birth_year: new Date().getFullYear() - 30 });

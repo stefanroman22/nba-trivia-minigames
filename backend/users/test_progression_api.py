@@ -113,7 +113,7 @@ class WeeklyBoardTests(TestCase):
         self.b = User.objects.create_user(username="bob", email="b@example.com", password="x", points=100, age_group="adult")
         self.teen = User.objects.create_user(username="kid", email="k@example.com", password="x", points=5, age_group="teen")
         now = timezone.now()
-        # This week: bob 300, alice 120, the teen 900 (hidden). Last week: alice 5,000 (ignored).
+        # This week: the teen 900 (on the board like everyone), bob 300, alice 120. Last week: alice 5,000 (ignored).
         GameSession.objects.create(user=self.b, game="wordle", score=200, awarded=300)
         GameSession.objects.create(user=self.a, game="wordle", score=100, awarded=120)
         GameSession.objects.create(user=self.teen, game="wordle", score=500, awarded=900)
@@ -122,8 +122,8 @@ class WeeklyBoardTests(TestCase):
 
     def test_weekly_scope_sums_this_weeks_awards(self):
         res = Client().get("/api/get-users/?scope=weekly").json()
-        self.assertEqual([(r["username"], r["points"]) for r in res["top_100_users"]], [("bob", 300), ("alice", 120)])
-        self.assertEqual(res["number_users"], 2)
+        self.assertEqual([(r["username"], r["points"]) for r in res["top_100_users"]], [("kid", 900), ("bob", 300), ("alice", 120)])
+        self.assertEqual(res["number_users"], 3)
         self.assertIsNone(res["user_rank"])
         self.assertEqual(res["user_points"], 0)
 
@@ -131,7 +131,7 @@ class WeeklyBoardTests(TestCase):
         c = Client()
         tokens = c.post("/api/login/", {"id": "a@example.com", "password": "x"}, content_type="application/json").json()
         res = c.get("/api/get-users/?scope=weekly", HTTP_AUTHORIZATION=f"Bearer {tokens['access']}").json()
-        self.assertEqual(res["user_rank"], 2)
+        self.assertEqual(res["user_rank"], 3)
         self.assertEqual(res["user_points"], 120)
 
     def test_global_rows_carry_rank_names(self):
