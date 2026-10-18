@@ -75,6 +75,8 @@
 .ps-delete { overflow: hidden; }
 .ps-delete-inner { display: flex; flex-direction: column; gap: 10px; padding: 4px 0 6px; }
 .ps-delete-inner .btn { align-self: flex-start; }
+.ps-delete-field { display: flex; flex-direction: column; gap: 6px; }
+.ps-delete-hint { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
 
 .ps-logout { display: flex; justify-content: center; padding-top: 6px; }
 

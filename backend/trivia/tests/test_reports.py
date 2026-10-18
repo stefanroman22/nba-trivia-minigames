@@ -90,7 +90,7 @@ class ReportQuestionTests(TestCase):
         ann, auth = self.sign_in()
         self.post({"game": "career-path", "question_id": "2544"}, **auth)
         guest = report_model().objects.create(game="wordle", question_id="CURRY")
-        resp = self.client.post(reverse("account_delete"), data={"password": "Testpass123!", "confirm": "DELETE"},
+        resp = self.client.post(reverse("account_delete"), data={"confirm_username": "Ann", "confirm_text": "delete"},
                                 content_type="application/json", **auth)
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(list(report_model().objects.all()), [guest])
