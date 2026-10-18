@@ -275,7 +275,7 @@ function GameCard({ game }: { game: AdminGame }) {
             ))}
             {meta && meta.maxPoints > 0 && (
               <span className="chip chip-brand tnum">
-                {meta.pointsPerCorrect} pts / correct · max {meta.maxPoints}
+                {meta.pointsPerCorrect} pts / correct · max {meta.maxPoints.toLocaleString("en-US")}
               </span>
             )}
           </div>

@@ -71,7 +71,7 @@ function GameResult({ score, maxPoints, onPlayAgain, onClose, onReport }: GameRe
         {!unscored && (
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, margin: "4px 0" }}>
             <span className="font-display tnum" style={{ fontSize: 48, color: "var(--brand)" }}><AnimatedNumber value={score} /></span>
-            <span className="font-display" style={{ fontSize: 20, color: "var(--muted)" }}>/ {maxPoints}</span>
+            <span className="font-display" style={{ fontSize: 20, color: "var(--muted)" }}>/ {maxPoints.toLocaleString("en-US")}</span>
           </div>
         )}
         <p style={{ fontSize: 13.5, color: "var(--muted)", maxWidth: 300, lineHeight: 1.5 }}>{message}</p>

@@ -16,7 +16,7 @@ export default function GamePickerModal({ currentId, seated = 0, onPick, onClose
           const { max } = roomBounds(g.id);
           const current = g.id === currentId;
           const tooSmall = seated > max;
-          const note = current ? "Playing now" : tooSmall ? `${max} players only` : friend ? g.tag : `up to ${g.maxPoints} pts`;
+          const note = current ? "Playing now" : tooSmall ? `${max} players only` : friend ? g.tag : `up to ${g.maxPoints.toLocaleString("en-US")} pts`;
           return (
             <button
               key={g.id}

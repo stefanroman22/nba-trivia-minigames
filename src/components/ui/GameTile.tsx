@@ -93,7 +93,7 @@ export default function GameTile({
       )}
       <div className="gtile-scrim" />
       {maxPoints > 0 && (
-        <Chip className="gtile-pts">up to <span className="tnum gtile-pts-num">{maxPoints}</span> pts</Chip>
+        <Chip className="gtile-pts">up to <span className="tnum gtile-pts-num">{maxPoints.toLocaleString("en-US")}</span> pts</Chip>
       )}
       <div className="gtile-body">
        
