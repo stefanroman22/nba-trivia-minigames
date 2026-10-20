@@ -20,15 +20,35 @@ type AutoSizeProps = {
  * size changes instantly.
  */
 export function AutoSize({ axis, children, className, style, duration = 0.3 }: AutoSizeProps & { axis: "height" | "width" }) {
+  const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
+  const targetRef = useRef<number | null>(null);
   const [size, setSize] = useState<number | "auto">("auto");
   const [animating, setAnimating] = useState(false);
   const reduce = useReducedMotionSafe();
+  const reduceRef = useRef(reduce);
+  useLayoutEffect(() => { reduceRef.current = reduce; }, [reduce]);
 
   useLayoutEffect(() => {
     const el = innerRef.current;
     if (!el) return;
-    const measure = () => setSize(axis === "height" ? el.offsetHeight : el.offsetWidth);
+    const measure = () => {
+      const next = axis === "height" ? el.offsetHeight : el.offsetWidth;
+      const box = outerRef.current;
+      // The observer runs before this frame paints, but the box only reaches its new size (and only
+      // clips) after React re-renders and the animation starts, a few frames later. Without this, grown
+      // content would paint past the box's edge until then. So the stale-size frame is fixed here, on the
+      // element: clipped when a glide is about to start, already at the new size under reduced motion.
+      if (box && targetRef.current !== null && Math.abs(next - targetRef.current) > 0.5) {
+        const shown = axis === "height" ? box.offsetHeight : box.offsetWidth;
+        if (Math.abs(next - shown) > 0.5) {
+          if (reduceRef.current) box.style[axis] = `${next}px`;
+          else box.style.overflow = "hidden";
+        }
+      }
+      targetRef.current = next;
+      setSize(next);
+    };
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
@@ -38,6 +58,7 @@ export function AutoSize({ axis, children, className, style, duration = 0.3 }: A
   const inline = axis === "width";
   return (
     <motion.div
+      ref={outerRef}
       className={className}
       initial={false}
       animate={axis === "height" ? { height: size } : { width: size }}

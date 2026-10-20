@@ -89,7 +89,10 @@ export function newCtx({ cap, fiber, vp, audit }, scenario, { online = false, po
 // ---------------------------------------------------------------- in-page instruments
 
 function installResizeWatch() {
-  const shell = document.querySelector('.stage-shell');
+  // The content box, not .stage-shell: the shell glides to it (Stage's AutoHeight, Rule 3.2), so watching the
+  // shell would log one entry per animation frame of a single resize. .stage-inner jumps once, by the true delta.
+  // Findings keep the '.stage-shell' selector (same height, minus the shell's border) so they still dedupe.
+  const shell = document.querySelector('.stage-inner');
   if (!shell) return false;
   if (window.__gmRO && window.__gmRO.ro) window.__gmRO.ro.disconnect();
   const w = (window.__gmRO = { log: [], turn: 0, h: shell.getBoundingClientRect().height, ro: null });
@@ -546,7 +549,7 @@ async function phaseChange(audit, label, click, ready) {
 
 /** Start watching `.stage-shell` height changes (Rule 6.2); call once the playing shell is up. */
 export async function watchStage(page) {
-  if (!(await page.evaluate(installResizeWatch))) throw new Error('game driver: no .stage-shell to watch');
+  if (!(await page.evaluate(installResizeWatch))) throw new Error('game driver: no .stage-inner to watch');
 }
 
 /**

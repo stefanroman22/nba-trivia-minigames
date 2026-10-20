@@ -54,7 +54,6 @@
        to stretch to, not just "the tallest item in the row". This is the
        pre-mount / safety fallback. */
     max-height: calc(100dvh - 104px);
-    transition: height 0.2s ease;
   }
   /* The list can now run longer than it's tall; fade its bottom edge into the
      page background instead of clipping the last row hard. */
@@ -198,6 +197,10 @@
    below + a small gap to the exit, instead of stretching into the tall board
    budget. Board games (which grow a flex:1 area to fill) keep the height above. */
 .playing-wrap:has(> .gf:not(.gf--fill)) { height: auto; }
+/* A game's own wait before its frame mounts (an inline Spinner while a names list loads) hugs its
+   content too, so the stage keeps the loader's floor height instead of jumping to the full play
+   budget and back once the frame arrives (Rule 3.2). */
+.playing-wrap:not(:has(> .gf)) { height: auto; }
 /* the game root manages its own internal layout so header + board + input all
    stay visible without page scroll; boards opt into filling via height:100% */
 .playing-wrap > :first-child { max-height: 100%; min-height: 0; width: 100%; }

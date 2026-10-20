@@ -1,6 +1,7 @@
 import { Children, useLayoutEffect, useRef, type ReactNode } from "react";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import { durations } from "../../motion/tokens";
+import { stageEnter } from "../../motion/variants";
 
 /** True when a slot was given nothing renderable. `Children.toArray` already
  *  drops null/undefined/booleans, so an empty result means "nothing to show". */
@@ -34,7 +35,29 @@ interface GameFrameProps {
 }
 
 function GameFrame({ fill = false, children }: GameFrameProps) {
-  return <div className={`gf${fill ? " gf--fill" : ""}`}>{children}</div>;
+  const ref = useRef<HTMLDivElement>(null);
+  // Rule 3.2: a frame mounting with its phase rides the Stage's (or an online screen's) entrance, whose
+  // wrapper is still fully transparent at this point. A frame mounting any later (after the game's own wait,
+  // e.g. a names fetch, even mid-entrance) replays that same entrance itself, so it always starts from 0
+  // instead of popping in part- or fully-opaque; opacity only under reduced motion. Runs before paint.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let shown = 1;
+    // Computed, not inline: motion leaves the inline start value (0) in place while its fade runs.
+    for (let p = el.parentElement; p; p = p.parentElement) shown *= parseFloat(getComputedStyle(p).opacity);
+    if (shown < 0.05) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const from = reduce ? { opacity: 0 } : { opacity: 0, transform: `translateY(${stageEnter.y}px)` };
+    const to = reduce ? { opacity: 1 } : { opacity: 1, transform: "none" };
+    const enter = el.animate([from, to], {
+      duration: (reduce ? durations.fast : stageEnter.duration) * 1000,
+      easing: `cubic-bezier(${stageEnter.ease.join(",")})`,
+      fill: "backwards",
+    });
+    return () => enter.cancel();
+  }, []);
+  return <div ref={ref} className={`gf${fill ? " gf--fill" : ""}`}>{children}</div>;
 }
 
 /**
