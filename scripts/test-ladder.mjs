@@ -3,13 +3,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  percentileHeadline, aheadCopy, sameRankCopy, toTopCopy, nextRankCopy, gateCopy, softCapCopy, streakCopy,
+  percentileHeadline, aheadCopy, sameRankCopy, toTopCopy, nextRankCopy, gateCopy, streakCopy,
   ladderCacheFresh,
 } from "../src/utils/ladder.ts";
 import { RANK_TAGLINES, RANK_ORDER, percentileShareText } from "../src/utils/ranks.ts";
 
 const you = { rank: "Starter", division: null, position: 287, percentile: 23.1, ahead_of_pct: 76.9, same_rank_pct: 18, next_rank: "All-Star", points_to_next: 1240, days_to_next: 2, to_top: { "1": 39800, "10": 3000, "25": 0 } };
-const rules = { first_game_bonus: 100, daily_full: 1500, daily_half: 1500, daily_tail_rate: 0.1, streak_milestones: { "7": 200, "30": 1000, "100": 5000 }, max_freezes: 1, guest_carryover_max: 1000 };
+const rules = { first_game_bonus: 100, streak_milestones: { "10": 1000, "25": 3000, "50": 7500, "100": 20000, "200": 50000, "500": 150000, "1000": 400000 }, max_freezes: 1, guest_carryover_max: 1000 };
 
 test("headline: top x % with one decimal, early adopter under 20 players", () => {
   assert.equal(percentileHeadline(you, 1240), "Top 23.1%");
@@ -62,9 +62,11 @@ test("gate and rules copy", () => {
   assert.equal(gateCopy({ name: "Rookie", points: 0, days: 0 }), "Start here");
   assert.equal(gateCopy({ name: "Role Player", points: 100, days: 0 }), "100 pts");
   assert.equal(gateCopy({ name: "X", points: 100, days: 1 }), "100 pts · 1 day");
-  assert.equal(softCapCopy(rules), "First 1,500 pts a day count in full, the next 1,500 at half, the rest at 10%");
-  assert.equal(streakCopy(rules), "One game a day keeps your streak · 1 freeze · +200 / +1,000 / +5,000 at day 7 / 30 / 100");
-  assert.equal(streakCopy({ ...rules, max_freezes: 2 }), "One game a day keeps your streak · 2 freezes · +200 / +1,000 / +5,000 at day 7 / 30 / 100");
+  assert.deepEqual(streakCopy(rules), [
+    "Play at least one scoring game a day to keep your streak going.",
+    "Miss a day and it resets, unless you hold a freeze: you get 1, refilled every 7 days of streak.",
+    "Streak bonuses: day 10 +1,000 · day 25 +3,000 · day 50 +7,500 · day 100 +20,000 · day 200 +50,000 · day 500 +150,000 · day 1,000 +400,000",
+  ]);
 });
 
 test("every rank has a tagline and the share line names the percentile", () => {

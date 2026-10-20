@@ -3,7 +3,7 @@
 
 export interface LadderRow { name: string; points: number; days: number; players: number; share_pct: number }
 export interface LadderRules {
-  first_game_bonus: number; daily_full: number; daily_half: number; daily_tail_rate: number;
+  first_game_bonus: number;
   streak_milestones: Record<string, number>; max_freezes: number; guest_carryover_max: number;
 }
 export interface LadderYou {
@@ -69,11 +69,13 @@ export function standingCopy(you: LadderYou, totalPlayers: number): string {
   const place = you.position <= totalPlayers ? `#${n(you.position)} of ${n(totalPlayers)} ${totalPlayers === 1 ? "player" : "players"}` : `#${n(you.position)}`;
   return `${place} · ahead of ${pct0(Math.min(99, Math.round(you.ahead_of_pct)))}`;
 }
-export function softCapCopy(r: LadderRules): string {
-  return `First ${n(r.daily_full)} pts a day count in full, the next ${n(r.daily_half)} at half, the rest at ${Math.round(r.daily_tail_rate * 100)}%`;
-}
-export function streakCopy(r: LadderRules): string {
+/** The streak rules as three short lines: keep it, lose it (or freeze), and the milestone bonuses (sorted). */
+export function streakCopy(r: Pick<LadderRules, "streak_milestones" | "max_freezes">): string[] {
   const days = Object.keys(r.streak_milestones).map(Number).sort((a, b) => a - b);
-  const bonuses = days.map((d) => `+${n(r.streak_milestones[String(d)])}`).join(" / ");
-  return `One game a day keeps your streak · ${r.max_freezes} ${r.max_freezes === 1 ? "freeze" : "freezes"} · ${bonuses} at day ${days.join(" / ")}`;
+  const bonuses = days.map((d) => `day ${n(d)} +${n(r.streak_milestones[String(d)])}`).join(" · ");
+  return [
+    "Play at least one scoring game a day to keep your streak going.",
+    `Miss a day and it resets, unless you hold a freeze: you get ${r.max_freezes}, refilled every 7 days of streak.`,
+    `Streak bonuses: ${bonuses}`,
+  ];
 }

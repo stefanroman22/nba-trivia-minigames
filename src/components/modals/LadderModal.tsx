@@ -9,7 +9,7 @@ import { reducedFade, staggerContainer, staggerItem, swap } from "../../motion/v
 import { visibleGames } from "../../utils/GameUtils";
 import { RANK_COLORS, RANK_TAGLINES, rankLabel } from "../../utils/ranks";
 import {
-  nextRankCopy, requirementCopy, softCapCopy, standingCopy, streakCopy, toTopCopy,
+  nextRankCopy, requirementCopy, standingCopy, streakCopy, toTopCopy,
   type LadderData, type LadderRow, type LadderRules,
 } from "../../utils/ladder";
 
@@ -140,8 +140,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
           </ul>
           <ul className="ld-rules">
             {isNum(rules.first_game_bonus) && <li><strong className="tnum">+{rules.first_game_bonus}</strong> for your first scoring game of the day</li>}
-            {isNum(rules.daily_full) && isNum(rules.daily_half) && isNum(rules.daily_tail_rate) && <li>{softCapCopy(rules as LadderRules)}</li>}
-            {rules.streak_milestones && isNum(rules.max_freezes) && <li>{streakCopy(rules as LadderRules)}</li>}
+            {rules.streak_milestones && isNum(rules.max_freezes) && streakCopy(rules as LadderRules).map((line) => <li key={line}>{line}</li>)}
             <li>Ranks need points <em>and</em> active days — they never drop</li>
             {!you && isNum(rules.guest_carryover_max) && <li>Sign up and keep up to <span className="tnum">{rules.guest_carryover_max.toLocaleString()}</span> guest points</li>}
           </ul>
