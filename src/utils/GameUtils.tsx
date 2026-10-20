@@ -115,12 +115,12 @@ export const games: Game[] = [
     name: "Name the NBA Club",
     tag: "LOGOS",
     description: "Only real fans name every logo.",
-    seoDescription: "Name the NBA franchise behind each team logo. Five rounds, 20 points per correct answer. A free NBA logo quiz you can play right in your browser.",
+    seoDescription: "Name the NBA franchise behind each team logo. Five rounds, 10 points per correct answer. A free NBA logo quiz you can play right in your browser.",
     intro: "How sharp is your eye for NBA branding? Name the team behind the badge.",
     rules: [
       { n: "1", t: "A team logo appears each round." },
       { n: "2", t: "Type or pick the matching franchise." },
-      { n: "3", t: "5 rounds. 20 points per correct answer." },
+      { n: "3", t: "5 rounds. 10 points per correct answer." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -128,7 +128,7 @@ export const games: Game[] = [
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Correctly identify the team name associated with the logo.</li>
           <li><strong>Format:</strong> 5 rounds per game.</li>
-          <li><strong>Reward:</strong> 20 points per correct answer.</li>
+          <li><strong>Reward:</strong> 10 points per correct answer.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
@@ -136,8 +136,8 @@ export const games: Game[] = [
     loadingMessage: "Fetching logos...",
     backgroundImage: `url('${guessLogoBg.src}')`,
     urlPath: "/name-logo",
-    pointsPerCorrect: 20,
-    maxPoints: 100,
+    pointsPerCorrect: 10,
+    maxPoints: 50,
     fetchData: () => fetchGamePool("name-logo", 5),
     handleError: handleErrorDefault,
   },
@@ -177,12 +177,12 @@ export const games: Game[] = [
     name: "Fill in the Starting 5",
     tag: "LINEUPS",
     description: "Remember who actually started that night.",
-    seoDescription: "Fill in the real starting five of a historic NBA game, point guard to center. Three lives; complete the lineup for 150 points. Free NBA lineup trivia.",
+    seoDescription: "Fill in the real starting five of a historic NBA game, point guard to center. Three lives, 60 points per player, 300 for the lineup. Free NBA lineup trivia.",
     intro: "Be the coach's memory.",
     rules: [
       { n: "1", t: "A real game and its winner are shown." },
       { n: "2", t: "Fill all 5 positions (PG, SG, SF, PF, C)." },
-      { n: "3", t: "3 lives. Complete the lineup for 150 points." },
+      { n: "3", t: "3 lives. 60 points per player, 300 for the full lineup." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -191,7 +191,7 @@ export const games: Game[] = [
           <li><strong>Goal:</strong> Fill in all 5 positions (PG, SG, SF, PF, C).</li>
           <li><strong>Lives:</strong> You have 3 lives. Each wrong guess costs 1 life.</li>
           <li><strong>High Stakes:</strong> Complete the full lineup to win the round.</li>
-          <li><strong>Reward:</strong> 150 points for a perfect completion.</li>
+          <li><strong>Reward:</strong> 60 points per player, 300 for a perfect completion.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
@@ -199,8 +199,8 @@ export const games: Game[] = [
     loadingMessage: "Fetching NBA game...",
     backgroundImage: `url('${startingFiveBg.src}')`,
     urlPath: "/starting-five",
-    pointsPerCorrect: 20,
-    maxPoints: 150,
+    pointsPerCorrect: 60,
+    maxPoints: 300,
     fetchData: () => fetchGamePool("starting-five", 1),
     handleError: handleErrorDefault,
   },
@@ -403,7 +403,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "Guess any player. Attributes come back green (exact) or yellow (close)." },
       { n: "2", t: "Every miss sharpens the photo. 8 guesses max." },
-      { n: "3", t: "Solve early: 200 points minus 25 per wrong guess." },
+      { n: "3", t: "Solve early: 250 points minus 30 per wrong guess." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -411,7 +411,7 @@ export const games: Game[] = [
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Clues:</strong> Team, position, age, jersey, draft. Green exact, yellow close, arrows for direction.</li>
           <li><strong>Guesses:</strong> 8 attempts.</li>
-          <li><strong>Reward:</strong> 200 points, −25 per wrong guess.</li>
+          <li><strong>Reward:</strong> 250 points, −30 per wrong guess.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
@@ -419,8 +419,8 @@ export const games: Game[] = [
     loadingMessage: "Blurring the mystery player...",
     backgroundImage: `url('${thumb_who_are_ya.src}')`,
     urlPath: "/who-are-ya",
-    pointsPerCorrect: 25,
-    maxPoints: 200,
+    pointsPerCorrect: 30,
+    maxPoints: 250,
     fetchData: () => fetchQuestion("who-are-ya"),
     handleError: handleErrorDefault,
   },
@@ -450,8 +450,8 @@ export const games: Game[] = [
     loadingMessage: "Chalking the duel board...",
     backgroundImage: `url('${thumb_tictactoe.src}')`,
     urlPath: "/tictactoe",
-    pointsPerCorrect: 20,
-    maxPoints: 200,
+    pointsPerCorrect: 30,
+    maxPoints: 300,
     fetchData: () => fetchQuestion("tictactoe"),
     handleError: handleErrorDefault,
   },
@@ -496,7 +496,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "Guess any player. You get a similarity rank (#1 is the answer)." },
       { n: "2", t: "Franchise, era, position, draft and stats drive the similarity." },
-      { n: "3", t: "200 points, −5 per guess past your tenth." },
+      { n: "3", t: "3,000 points, −75 per guess past your tenth." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -504,7 +504,7 @@ export const games: Game[] = [
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Reach rank #1, the secret player.</li>
           <li><strong>Guesses:</strong> Unlimited; the rank guides you closer.</li>
-          <li><strong>Reward:</strong> 200 points, −5 per guess after the tenth.</li>
+          <li><strong>Reward:</strong> 3,000 points, −75 per guess after the tenth.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
@@ -512,8 +512,8 @@ export const games: Game[] = [
     loadingMessage: "Calibrating the radar...",
     backgroundImage: `url('${thumb_contexto.src}')`,
     urlPath: "/contexto",
-    pointsPerCorrect: 5,
-    maxPoints: 200,
+    pointsPerCorrect: 75,
+    maxPoints: 3000,
     // One play per Paris day, server-gated like Wordle — see src/utils/wordleDaily.ts.
     fetchData: () => playContextoDaily(),
     handleError: handleErrorDefault,

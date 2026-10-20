@@ -1,5 +1,5 @@
 // Adapter: Name the NBA Club (src/Game Renderers/NameLogo.tsx). 5 rounds, one guess per round through the
-// autocomplete + Confirm; a right guess shows "Correct! +20" and advances after 1.5 s, a wrong one shows
+// autocomplete + Confirm; a right guess shows "Correct! +10" and advances after 1.5 s, a wrong one shows
 // "It was the <team>" and advances after 1.8 s; the last round hands over to the full-screen GameResult
 // (allowlisted).
 //
@@ -28,7 +28,7 @@ export default {
   online: true,
   lives: null,
   timerMs: null,
-  pointsPerCorrect: 20,
+  pointsPerCorrect: 10,
   scenarios: {
     perfect: true,
     wrong: true,

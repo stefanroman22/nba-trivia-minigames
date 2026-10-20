@@ -303,7 +303,7 @@ function MiniGame() {
             <div className="idle-chips">
               <Chip>{game?.roundsLabel ?? "5 rounds"}</Chip>
               {(game?.maxPoints ?? 0) > 0 && (
-                <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints}</span> pts</Chip>
+                <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints.toLocaleString("en-US")}</span> pts</Chip>
               )}
             </div>
             {/* One slot, three states: the Play button's height is reserved (.idle-action) so a
@@ -420,7 +420,7 @@ function MiniGame() {
                     <span className="rail-sub">
                       {dailyCards.card(g.id).label !== null
                         ? <SwapText swapKey="locked">{dailyCards.card(g.id).label}</SwapText>
-                        : g.maxPoints > 0 ? `up to ${g.maxPoints} pts` : g.id === "coming-soon" ? "soon" : "opinion vote"}
+                        : g.maxPoints > 0 ? `up to ${g.maxPoints.toLocaleString("en-US")} pts` : g.id === "coming-soon" ? "soon" : "opinion vote"}
                     </span>
                   </span>
                 </button>

@@ -11,7 +11,6 @@ import { BACKEND_ORIGIN } from "../configurations/backend";
 import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
 import { matchAnswer } from "../utils/answerMatch";
 import { createGuessLogger } from "../utils/guessLog";
-import { STARTING_FIVE_BONUS as COMPLETION_BONUS } from "../utils/gameScoring";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
 import "../styles/StartingFive.css";
@@ -120,7 +119,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   }, [gameInfo]);
 
   const currentGame = gameInfo && gameInfo.length > 0 ? gameInfo[0] : null;
-  const maxPoints = 5 * pointsPerCorrect + COMPLETION_BONUS;
+  const maxPoints = 5 * pointsPerCorrect;
 
   /** The answer review handed back with the score: each card's player, found or revealed. */
   const reviewOf = (found: Record<string, string>, all: Record<string, string>): AnswerReview | undefined =>

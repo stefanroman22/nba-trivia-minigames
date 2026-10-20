@@ -150,7 +150,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
           <h4 className="ld-h">How points work</h4>
           <ul className="ld-games">
             {games.map((g) => (
-              <li key={g.id}><span>{g.name}</span><span className="tnum">up to {g.maxPoints} pts</span></li>
+              <li key={g.id}><span>{g.name}</span><span className="tnum">up to {g.maxPoints.toLocaleString("en-US")} pts</span></li>
             ))}
           </ul>
           <ul className="ld-rules">
