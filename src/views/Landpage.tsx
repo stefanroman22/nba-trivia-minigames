@@ -11,7 +11,6 @@ import Navigation from "../components/Navigation";
 import UserProfile from "../components/UserProfile";
 import Leaderboard from "../components/Leaderboard";
 import GuestPanel from "../components/GuestPanel";
-import LegalChangeNotice from "../components/LegalChangeNotice";
 import Reveal from "../components/motion/Reveal";
 import SwapText from "../components/motion/SwapText";
 import { reducedFade, swap } from "../motion/variants";
@@ -95,7 +94,6 @@ const Landpage = () => {
       <Navigation type="full" />
 
       <main className="page">
-        <LegalChangeNotice />
         {/* ===== HERO ===== */}
         <section id="play" className="hero">
           <div className="hero-grain" aria-hidden="true" />
