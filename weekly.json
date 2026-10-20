@@ -1,5 +1,9 @@
 {
-  "lease": null,
+  "lease": {
+    "holder": "windows-Stefan-39432",
+    "since": "2026-10-20T21:15:38.261Z",
+    "until": "2026-10-21T04:15:38.261Z"
+  },
   "runs": [
     {
       "holder": "windows-Stefan-14516",
@@ -8,6 +12,13 @@
       "startedAt": "2026-10-18T20:32:50.291Z",
       "status": "failed",
       "endedAt": "2026-10-18T20:38:44.907Z"
+    },
+    {
+      "holder": "windows-Stefan-39432",
+      "where": "Stefan",
+      "scheduled": false,
+      "startedAt": "2026-10-20T21:15:38.261Z",
+      "status": "running"
     }
   ]
 }
