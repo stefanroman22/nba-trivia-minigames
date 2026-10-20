@@ -1,9 +1,6 @@
-from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 from users import leaderboard
-
-User = get_user_model()
 
 
 class Command(BaseCommand):
@@ -15,8 +12,8 @@ class Command(BaseCommand):
             raise CommandError("REDIS_URL is not set; nothing to sync.")
         mapping = {
             u.public_id: u.points
-            # Banned accounts are hidden from every board (users.strikes).
-            for u in User.objects.filter(banned_at__isnull=True).only("public_id", "points")
+            # Only accounts that may appear on the board (leaderboard._ranked: banned ones are hidden).
+            for u in leaderboard._ranked().only("public_id", "points")
         }
         r.delete(leaderboard.ZKEY)
         if mapping:

@@ -106,16 +106,18 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
           await expect(L(g.page, 'account.psPhotoState')).toHaveText('Shown to other players', { timeout: 20_000 });
         });
 
-        await test.step('delete account (wrong password, nothing is deleted)', async () => {
+        // The button only unlocks once the username and the word match (no password to get wrong), so the
+        // throwaway really deletes itself here; the finally below is then a no-op cleanup.
+        await test.step('delete account (the throwaway is deleted once)', async () => {
           await g.audit.goto('/profile', { waitFor: 'section.ps-hero' });
           await L(g.page, 'account.psDeleteToggle').click();
-          await L(g.page, 'account.psDeleteWord').fill('DELETE');
-          await L(g.page, 'account.psDeletePassword').fill('not-the-password');
+          await L(g.page, 'account.psDeleteName').fill(tokens.user.username);
+          await L(g.page, 'account.psDeleteWord').fill('delete');
           await submitGuard(g.audit, {
             label: 'delete account', button: L(g.page, 'account.psDeleteConfirm'), urlRe: /\/api\/account\/delete\/$/,
-            busy: `(() => { const b = [...document.querySelectorAll('.ps-delete button')].find((x) => /Delet/.test(x.textContent)); return !!b && (b.disabled || /Deleting/.test(b.textContent)); })()`,
+            busy: `(() => { const b = [...document.querySelectorAll('.ps-delete button')].find((x) => /Delet/.test(x.textContent)); return !b || b.disabled || /Deleting/.test(b.textContent); })()`,
           });
-          await expect(L(g.page, 'account.psDeleteError')).toBeVisible({ timeout: 10_000 });
+          await expect(g.page.locator('section.ps-empty')).toBeVisible({ timeout: 10_000 });
         });
         await g.audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of (403|428)/, /^(403|428) POST /] });
         await g.audit.done();

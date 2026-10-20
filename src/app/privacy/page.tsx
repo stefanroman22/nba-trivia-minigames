@@ -20,7 +20,7 @@ export default function PrivacyPage() {
         <strong>The short version.</strong>
         <LegalList>
           <li>You can play without an account, and then we do not keep your name or email.</li>
-          <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players (players under 16, and accounts whose age we do not know yet, are not shown on the public leaderboard). Your email is never shown.</li>
+          <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players, on the public leaderboard too, whatever your age. Your email is never shown.</li>
           <li>There are no ads, no analytics and no tracking cookies. We never sell your data.</li>
           <li>You can download everything we hold and delete your account yourself, from your profile.</li>
           <li>Accounts are for people aged {LEGAL.minimumAge} and over: you confirm this with one tick-box when you sign up, by email or with Google.</li>
@@ -66,8 +66,8 @@ export default function PrivacyPage() {
 
       <LegalHeading id="public">3. What other people can see</LegalHeading>
       <LegalList>
-        <li><strong>Everyone</strong> who opens the site can see leaderboard rows: display name, player ID, rank, points and photo (if you added one). Teen accounts (see section 10) are not on the public leaderboard.</li>
-        <li><strong>Other players</strong> can find you by name or player ID, see your photo, and send a friend request; online opponents see your name, ID, rank, points and photo during a match. Teen accounts can be found only by their exact player ID, and strangers in a random online match see them as &ldquo;Player&rdquo;.</li>
+        <li><strong>Everyone</strong> who opens the site can see leaderboard rows: display name, player ID, rank, points and photo (if you added one). This applies to every account, whatever its age.</li>
+        <li><strong>Other players</strong> can find you by name or player ID, see your photo, and send a friend request; online opponents see your name, ID, rank, points and photo during a match.</li>
         <li><strong>Nobody else</strong> sees your email, your game history, your answers or your feedback. Only the operator, and anyone the operator authorises to run the service, can read those.</li>
       </LegalList>
       <p>Please do not use your real name as your display name, and do not upload a photo you do not want others to see.</p>
@@ -168,10 +168,10 @@ export default function PrivacyPage() {
         box to confirm you are {LEGAL.minimumAge} or older; we record that you confirmed it and when. We do not ask your
         birth date at sign-up. We ask for your birth month and year only when you add a profile photo, and we do not
         store them: we keep only whether you are under or over {LEGAL.photoMinimumAge}, and you can give it once.
-        Until you have told us you are {LEGAL.photoMinimumAge} or over, your account is treated as a teen account: no
-        profile photo, not on the public leaderboard, not found by a name search (only by its exact player ID), and shown
-        as &ldquo;Player&rdquo; to strangers in random online matches. Players under {LEGAL.photoMinimumAge} cannot add a
-        profile photo. If we learn that an account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
+        Until you have told us you are {LEGAL.photoMinimumAge} or over, your account cannot have a profile photo; that is
+        the only difference. Like every account it is on the public leaderboard, can be found by name or player ID, and
+        shows its name to other players in online matches. Players under {LEGAL.photoMinimumAge} cannot add a profile
+        photo. If we learn that an account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
         Anyone can play as a guest, and a guest&apos;s answers are not tied to a person. Parents and guardians can write to{" "}
         <MailLink /> to ask us to remove a child&apos;s data.
       </p>

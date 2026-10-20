@@ -60,10 +60,10 @@ several times in one hour on one stack hits the limit and shows up as HTTP 429 i
 
 - `slow POST /api/(signup|login|account/delete)/`: password hashing takes 1-2 s here. Their budget is the explicit
   in-page timing (sign-up and log in: click to avatar <= 1500 ms); `account/delete` has no budget.
-- 401 console lines in AC-LOGIN-02, 409 in AC-SIGNUP-02, 428 in AC-PROFILE-02, 403 in AC-PROFILE-03 and AC-BLOCK-01:
-  the status is the thing under test (bad token, duplicate email, `age_required` hand-off, wrong delete password).
-- AC-PROFILE-03 does not require the delete password to be filled to enable the button: Google-only accounts have no
-  password (the placeholder says so); the server answers 403 for a wrong one, which the test asserts.
+- 401 console lines in AC-LOGIN-02, 409 in AC-SIGNUP-02, 428 in AC-PROFILE-02:
+  the status is the thing under test (bad token, duplicate email, `age_required` hand-off).
+- Delete account has no password field since 2026-10-19: the button unlocks once the username (exact) and the word
+  delete (any case) are typed, so AC-PROFILE-03 asserts the unlock rules and AC-BLOCK-01's throwaway really deletes itself.
 - No "username taken" checks: names repeat by design. The checks assert an existing name passes the rules.
 - AC-SURF-02 and the throttled parts of AC-BLOCK-01 run on the core viewports only (shared `testuser2`, friend-request
   and login/sign-up throttles); AC-BLOCK-01 signs up on `phone-390` only.

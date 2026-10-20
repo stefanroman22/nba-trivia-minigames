@@ -141,8 +141,8 @@ function checkRound(s, who, rd, gameId) {
   if (idKey) s.check(new Set(rd.gameData.map((r) => JSON.stringify(r[idKey]))).size === rd.gameData.length, `${who} ← roundData ${idKey}`, 'a duplicate', 'each row once');
 }
 
-/** The name a stranger sees in a random 1v1: "Player" for a teen or an account of unknown age (index.js maskedForStrangers). */
-const shown = (s, name) => (s.user[name].is_teen ? 'Player' : name);
+/** The name a stranger sees in a random 1v1: the real name, whatever the age (the relay's teen masking ended 2026-10-19). */
+const shown = (_s, name) => name;
 
 /** /me/ points of a persona (api fixture), or null. */
 async function points(api, persona) {

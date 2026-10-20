@@ -178,8 +178,8 @@ test('[LC-SIGNUP-05] happy path: a new lgc account gets 201 + tokens, logs in, /
       const gone = await removeAccount(api, { access: r.json.access, email: repeat.body.email, password });
       if (gone) alive.delete('repeat'); else v('cleanup', `POST /api/account/delete/ ${repeat.body.email}`, 'not deleted', '200');
     });
-    await test.step('delete with password + "DELETE" → 200', async () => {
-      const r = await attempt(post(api, '/account/delete/', { password, confirm: 'DELETE' }, { token: first.access }));
+    await test.step('delete with the username + "delete" → 200', async () => {
+      const r = await attempt(post(api, '/account/delete/', { confirm_username: happy.body.username, confirm_text: 'delete' }, { token: first.access }));
       if (r.status !== 200 || !r.json || !r.json.status) v('delete', 'POST /api/account/delete/', r, '200 { status }');
       else alive.delete('happy');
     });

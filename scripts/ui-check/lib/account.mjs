@@ -11,7 +11,7 @@ export { apiBase, drawerMode, openDrawer };
 
 export const THROTTLED = 'throttled endpoint — core viewports only';
 
-/** Password hashing makes POST /signup/, /login/ and /account/delete/ (it checks the password) slow by design
+/** Password hashing makes POST /signup/ and /login/ slow by design (/account/delete/ checked the password before 2026-10-19)
  *  (1-2 s here); their budgets are the explicit timings in AC-SIGNUP-02 / AC-LOGIN-01, not the generic 1 s slow-api rule. */
 export const HASHING = [/^slow POST \S+\/api\/(signup|login|account\/delete)\/$/];
 
@@ -66,7 +66,10 @@ export async function tokenFor(username) {
 export async function deleteAccountApi(request, username) {
   let t;
   try { t = await tokenFor(username); } catch { return 'no-account'; }
-  const r = await apiCall(request, t.access, 'POST', 'account/delete/', { password: credentials(username).password, confirm: 'DELETE' });
+  // The username + delete confirm; the old password/DELETE fields ride along for a backend from before 2026-10-19.
+  const r = await apiCall(request, t.access, 'POST', 'account/delete/', {
+    confirm_username: t.user?.username ?? username, confirm_text: 'delete', password: credentials(username).password, confirm: 'DELETE',
+  });
   return r.status;
 }
 

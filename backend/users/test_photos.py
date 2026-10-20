@@ -210,3 +210,24 @@ class UpdateProfilePhotoTests(TestCase):
 
         user_b.refresh_from_db()
         self.assertIsNone(user_b.profile_photo_data)
+
+    def test_admin_uploads_whatever_the_age_on_file(self):
+        """Staff skip the age checks (no 428 age_required, no 403 teen block); size checks still apply."""
+        data = image_bytes(Image.new("RGB", (50, 50), (0, 255, 0)), "PNG")
+        for i, age_group in enumerate(("", "teen")):
+            user, access = make_user(username=f"Admin{i}", email=f"admin{i}@example.com")
+            User.objects.filter(pk=user.pk).update(age_group=age_group, is_staff=True)
+            res = self._upload(access, "x.png", data, "image/png")
+            self.assertEqual(res.status_code, 200, age_group)
+            user.refresh_from_db()
+            self.assertIsNotNone(user.profile_photo_data)
+            big = SimpleUploadedFile("big.jpg", b"\xff" * (4 * 1024 * 1024 + 1), content_type="image/jpeg")
+            res = self.client.post(reverse("update"), {"profile_photo": big}, HTTP_AUTHORIZATION=f"Bearer {access}")
+            self.assertEqual(res.status_code, 400)
+
+    def test_non_admin_age_checks_still_apply(self):
+        data = image_bytes(Image.new("RGB", (50, 50), (0, 255, 0)), "PNG")
+        for i, (age_group, code) in enumerate((("", 428), ("teen", 403))):
+            user, access = make_user(username=f"Kid{i}", email=f"kid{i}@example.com")
+            User.objects.filter(pk=user.pk).update(age_group=age_group)
+            self.assertEqual(self._upload(access, "x.png", data, "image/png").status_code, code, age_group)

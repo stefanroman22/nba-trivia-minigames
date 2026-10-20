@@ -126,6 +126,69 @@ class LeaderboardRedisTests(TestCase):
         self.assertEqual(len(rows), 3)
         self.assertEqual(len({r["id"] for r in rows}), 3)
 
+    def _swap_bob_for_a_ghost(self, points):
+        """Same member count, different set: bob is missing and a deleted account's id sits in his place."""
+        self.fake.zrem(leaderboard.ZKEY, User.objects.get(username="bob").public_id)
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST1": points})
+
+    def test_same_size_drift_shows_the_real_board(self):
+        """Equal counts but a ghost in bob's place: no placeholder row, and bob (missing from the ZSET) is listed."""
+        self._swap_bob_for_a_ghost(999)
+        rows = leaderboard.top(10)
+        self.assertEqual([r["username"] for r in rows], ["alice", "carol", "bob"])
+        self.assertNotIn("GHOST1", [r["id"] for r in rows])
+        self.assertEqual([r["username"] for r in leaderboard.top(2)], ["alice", "carol"])
+
+    def test_drift_is_logged_at_most_once_a_minute(self):
+        leaderboard._last_drift_warning = float("-inf")
+        self._swap_bob_for_a_ghost(999)
+        with self.assertLogs("users.leaderboard", level="WARNING") as logs:
+            leaderboard.top(10)
+            leaderboard.top(10)
+        self.assertEqual(len(logs.records), 1)
+        self.assertIn("out of sync", logs.output[0])
+        leaderboard._last_drift_warning = float("-inf")
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST2": 1})  # now the sizes differ too
+        with self.assertLogs("users.leaderboard", level="WARNING") as logs:
+            self.assertEqual(leaderboard.total(), 3)
+            leaderboard.top(10)
+        self.assertEqual(len(logs.records), 1)
+
+    def test_in_sync_zset_logs_nothing(self):
+        leaderboard._last_drift_warning = float("-inf")
+        with self.assertNoLogs("users.leaderboard", level="WARNING"):
+            self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
+
+    def test_drifted_zset_falls_back_to_postgres(self):
+        """A ZSET missing a player (never synced) must not hide them, nor rank others above them."""
+        dave = User.objects.create_user(username="dave", email="dave@example.com", password="x", points=250, age_group="adult")
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "dave", "carol", "bob"])
+        self.assertEqual(leaderboard.rank_of(dave), 2)
+        self.assertEqual(leaderboard.rank_of(User.objects.get(username="bob")), 4)
+        self.assertEqual(leaderboard.total(), 4)
+
+    def test_total_counts_board_players_only(self):
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST1": 5, "GHOST2": 7})
+        self.assertEqual(leaderboard.total(), 3)
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
+
+    def test_rank_of_is_none_for_an_account_off_the_board(self):
+        banned = User.objects.create_user(username="eve", email="eve@example.com", password="x", points=999, age_group="adult")
+        User.objects.filter(pk=banned.pk).update(banned_at="2026-10-01T00:00:00Z")
+        banned.refresh_from_db()
+        self.assertIsNone(leaderboard.rank_of(banned))
+
+    def test_sync_adds_only_board_accounts(self):
+        from io import StringIO
+
+        from django.core.management import call_command
+
+        banned = User.objects.create_user(username="eve", email="eve@example.com", password="x", points=999, age_group="adult")
+        User.objects.filter(pk=banned.pk).update(banned_at="2026-10-01T00:00:00Z")
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST1": 5})
+        call_command("sync_leaderboard", stdout=StringIO())
+        self.assertEqual(set(self.fake.z[leaderboard.ZKEY]), {u.public_id for u in User.objects.filter(banned_at__isnull=True)})
+
 
 class SignupSyncsLeaderboardTests(TestCase):
     """New accounts must enter the ZSET on creation, so total()/ranks stay consistent."""

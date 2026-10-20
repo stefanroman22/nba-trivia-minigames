@@ -22,7 +22,7 @@ from datetime import date
 from django.utils import timezone
 
 # Bump when the Terms or Privacy Policy change materially; it is stored with each acceptance.
-TERMS_VERSION = "2026-10-15.1"
+TERMS_VERSION = "2026-10-19.1"
 MIN_AGE = 13
 PHOTO_MIN_AGE = 16
 
@@ -100,7 +100,8 @@ CONSENT_FIELDS = ["terms_accepted_at", "terms_version", "age_confirmed_at", "age
 
 
 def is_teen(user):
-    """Unknown age counts as teen: only an age that proves PHOTO_MIN_AGE+ makes an account public."""
+    """Unknown age counts as teen: only an age that proves PHOTO_MIN_AGE+ allows a profile photo, the
+    one thing a teen account can't do (owner decision 2026-10-19)."""
     return getattr(user, "age_group", "") != "adult"
 
 

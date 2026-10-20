@@ -39,7 +39,7 @@ export default function TermsPage() {
       <LegalHeading id="eligibility">2. Who can use it</LegalHeading>
       <LegalList>
         <li>Anyone can play as a guest. You must be at least {LEGAL.minimumAge} to create an account, and at least {LEGAL.photoMinimumAge} to add a profile photo.</li>
-        <li>We ask for your birth month and year only when you add a profile photo. Until you have told us you are {LEGAL.photoMinimumAge} or over, your account is treated as a teen account: no profile photo, and not shown on the public leaderboard or in name search (see the Privacy Policy, section 10).</li>
+        <li>We ask for your birth month and year only when you add a profile photo. Until you have told us you are {LEGAL.photoMinimumAge} or over, your account cannot have a profile photo; everything else works the same for every account (see the Privacy Policy, section 10).</li>
         <li>You may not use the service if the law of your country forbids it, if you are located in the Russian Federation, or in a country or region under comprehensive international sanctions, or if you are on a sanctions list.</li>
         <li>If you use the service for a company or other organisation, you confirm you can bind it to these terms.</li>
       </LegalList>

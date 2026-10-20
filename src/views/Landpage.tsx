@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { useNavigate } from "../hooks/useNavigate";
 import { useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
@@ -13,6 +13,7 @@ import Leaderboard from "../components/Leaderboard";
 import GuestPanel from "../components/GuestPanel";
 import LegalChangeNotice from "../components/LegalChangeNotice";
 import Reveal from "../components/motion/Reveal";
+import SwapText from "../components/motion/SwapText";
 import { reducedFade, swap } from "../motion/variants";
 import { useReducedMotionSafe } from "../hooks/useReducedMotionSafe";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
@@ -22,11 +23,30 @@ import { useLoginReveal } from "../hooks/useLoginReveal";
 import { scrollToSection } from "../utils/ScrolllToSection";
 import type { RootState } from "../store";
 
+// Whether this browser holds a session (a refresh token): known only in the browser, so the server
+// snapshot is null ("unknown") and the hero's second button shows no label until it is known.
+const subscribeStorage = (cb: () => void) => {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
+};
+const readHasSession = () => {
+  try {
+    return !!localStorage.getItem("refreshToken");
+  } catch {
+    return false;
+  }
+};
+const serverHasSession = () => null;
+
 const Landpage = () => {
   const navigate = useNavigate();
   // Opacity-only swap under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
   const swapVariants = useReducedMotionSafe() ? reducedFade : swap;
   const { user } = useSelector((state: RootState) => state.user);
+  // The hero's second button: a signed-in player (or a stored session still being restored) browses, a guest
+  // logs in; "unknown" before hydration, so a returning player never sees "Log In / Sign Up" on first paint.
+  const hasSession = useSyncExternalStore<boolean | null>(subscribeStorage, readHasSession, serverHasSession);
+  const heroAuth = user || hasSession ? "player" : hasSession === null ? "unknown" : "guest";
   // The profile card fades in on a fresh login only (never on a cold load of an existing session).
   const profileReveal = useLoginReveal();
   const { open } = useModal();
@@ -101,8 +121,21 @@ const Landpage = () => {
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
                 Play today's game
               </Button>
-              <Button size="lg" variant="secondary" onClick={() => document.getElementById("games-grid")?.scrollIntoView({ behavior: "smooth" })}>
-                Browse all games
+              {/* Guests get the way in; signed-in players browse. One button, the label swaps in a box
+                  sized for both, so the row never resizes when the session resolves. Until the browser knows
+                  (server HTML, before hydration) the slot is empty and a tap does nothing. */}
+              <Button
+                size="lg"
+                variant="secondary"
+                aria-busy={heroAuth === "unknown" || undefined}
+                onClick={() => {
+                  if (heroAuth === "player") document.getElementById("games-grid")?.scrollIntoView({ behavior: "smooth" });
+                  else if (heroAuth === "guest") open("login");
+                }}
+              >
+                <SwapText swapKey={heroAuth} reserveWidth={["Browse all games", "Log In / Sign Up"]}>
+                  {heroAuth === "player" ? "Browse all games" : heroAuth === "guest" ? "Log In / Sign Up" : " "}
+                </SwapText>
               </Button>
             </motion.div>
             <motion.div className="hero-stats" initial={{ y: 14 }} animate={{ y: 0 }} transition={{ duration: 0.4, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}>

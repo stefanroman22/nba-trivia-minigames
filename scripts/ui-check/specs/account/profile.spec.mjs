@@ -165,7 +165,7 @@ test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo 
 test.describe('throwaway account', () => {
   test.use({ persona: 'guest' });
 
-  test('[AC-PROFILE-03] export downloads the data as JSON; delete account needs DELETE (and the password), then logs out', async ({ page, context, baseURL, audit, vp, request }) => {
+  test('[AC-PROFILE-03] export downloads the data as JSON; delete account needs the username and the word delete (no password), then logs out', async ({ page, context, baseURL, audit, vp, request }) => {
     test.skip(!vp.core, THROTTLED);
     test.setTimeout(180_000);
     // A throwaway user made the way sign-up makes it (consent stamped), signed in with a minted session.
@@ -198,24 +198,21 @@ test.describe('throwaway account', () => {
         await audit.shot('delete-panel');
         const confirm = L(page, 'account.psDeleteConfirm');
         await expect(confirm).toBeDisabled();
+        // No password field: the username (exact, case-sensitive) and the word delete (any case) unlock it.
+        await expect(page.locator('.ps-delete input[type="password"]')).toHaveCount(0);
+        await L(page, 'account.psDeleteName').fill(name.toUpperCase());
         await L(page, 'account.psDeleteWord').fill('delete');
-        await expect(confirm, 'lower-case "delete" does not unlock the button').toBeDisabled();
-        await L(page, 'account.psDeleteWord').fill('DELETE');
-        await expect(confirm).toBeEnabled();
-        // A wrong password: the server refuses, the message shows inline, the account stays.
-        await L(page, 'account.psDeletePassword').fill(`${password}x`);
-        await motionStep(audit, 'wrong delete password', async () => {
-          await confirm.click();
-          await expect(L(page, 'account.psDeleteError')).toBeVisible({ timeout: 10_000 });
-        }, { watch: ['.ps-card', '.ps-delete'], settleMs: 700 });
-        await expect(L(page, 'account.psDeleteError')).toContainText(/password/i);
+        await expect(confirm, 'the username in another case does not unlock the button').toBeDisabled();
+        await L(page, 'account.psDeleteName').fill(name);
+        await L(page, 'account.psDeleteWord').fill('remove');
+        await expect(confirm, 'another word does not unlock the button').toBeDisabled();
+        await L(page, 'account.psDeleteWord').fill(' DELETE ');
         await expect(confirm).toBeEnabled();
         expect(await accountExists(request, email, password), 'the account is still there').toBe(true);
-        await audit.shot('delete-wrong-password');
+        await audit.shot('delete-unlocked');
       });
 
       await test.step('delete: confirmed', async () => {
-        await L(page, 'account.psDeletePassword').fill(password);
         await L(page, 'account.psDeleteConfirm').click();
         await expect(L(page, 'guest.profilePrompt')).toBeVisible({ timeout: 20_000 });
         expect(await navState(page)).toMatchObject({ chip: null });

@@ -189,66 +189,63 @@ test("a score for a room that no longer exists ends the waiting screen", async (
   assert.match((await left).message, /no longer running/);
 });
 
-test("teens show as Player with no permanent id to strangers in random matches, by name in friend rooms", async () => {
+test("teens show their real name, photo and id to strangers in random matches (no masking since 2026-10-19)", async () => {
   const tina = await player("Tina");
   const hank = await player("Hank");
   const { code, foundA, foundB } = await matchUp(tina, hank, "series-winner");
-  // Hank's view of Tina: name, photo AND the permanent id are hidden.
-  assert.equal(foundB.opponent.username, "Player");
-  assert.equal(foundB.opponent.id, null);
-  assert.equal(foundB.opponent.masked, true);
-  assert.equal(foundB.opponents[0].id, null);
-  // Tina's view: Hank as usual, and herself unmasked.
+  // Hank's view of Tina (a teen): her real name and permanent id, never "Player".
+  assert.equal(foundB.opponent.username, "Tina");
+  assert.equal(foundB.opponent.id, "TINA00");
+  assert.equal(foundB.opponent.masked, false);
+  assert.equal(foundB.opponents[0].id, "TINA00");
   assert.equal(foundA.opponent.username, "Hank");
-  assert.equal(foundA.opponent.id, "HANK00");
-  assert.equal(foundA.opponent.masked, false);
   assert.equal(foundA.you.id, "TINA00");
-  assert.equal(foundA.you.username, "Tina");
 
-  // Presence events carry no id for a masked stranger.
+  // Presence events carry her id and name too.
   const progress = next(hank, "opponentProgress");
   tina.emit("reportProgress", { code, round: 1, total: 5 });
   const prog = await progress;
-  assert.equal(prog.id, null);
-  assert.equal(prog.username, "Player");
+  assert.equal(prog.id, "TINA00");
+  assert.equal(prog.username, "Tina");
 
-  // Hank's connection is replaced mid-round: the resume snapshot masks Tina too.
+  // Hank's connection is replaced mid-round: the resume snapshot shows Tina by name and id too.
   const hank2 = await connect();
   const resumed = next(hank2, "resumeMatch");
   hank2.emit("identify", { token: tok("Hank") });
   const snap = await resumed;
-  assert.equal(snap.opponents[0].id, null);
-  assert.equal(snap.opponents[0].masked, true);
-  assert.equal(snap.opponent.id, null);
+  assert.equal(snap.opponents[0].id, "TINA00");
+  assert.equal(snap.opponents[0].username, "Tina");
+  assert.equal(snap.opponents[0].masked, false);
+  assert.equal(snap.opponent.id, "TINA00");
 
   const finished = next(hank2, "opponentFinished");
   const resultT = next(tina, "matchResult");
   const resultH = next(hank2, "matchResult");
   tina.emit("submitScore", { code, score: 30, elapsedMs: 9000 });
-  assert.equal((await finished).id, null);
+  const fin = await finished;
+  assert.equal(fin.id, "TINA00");
+  assert.equal(fin.username, "Tina");
   hank2.emit("submitScore", { code, score: 20, elapsedMs: 9500 });
   const [rT, rH] = await Promise.all([resultT, resultH]);
-  // Standings are per recipient: Hank's row for Tina has no id; Tina's own row keeps hers.
-  const tinaForHank = rH.standings.find((r) => r.username === "Player");
-  assert.equal(tinaForHank.id, null);
-  assert.equal(tinaForHank.masked, true);
-  assert.equal(rH.standings.find((r) => r.username === "Hank").id, "HANK00");
-  assert.deepEqual(rT.standings.map((r) => r.id).sort(), ["HANK00", "TINA00"]);
-  assert.equal(rT.standings.find((r) => r.id === "TINA00").username, "Tina");
-  assert.equal(JSON.stringify(rH).includes("TINA00"), false);
+  // Both sides see both real rows.
+  for (const r of [rT, rH]) {
+    assert.deepEqual(r.standings.map((s) => s.id).sort(), ["HANK00", "TINA00"]);
+    assert.equal(r.standings.find((s) => s.id === "TINA00").username, "Tina");
+    assert.equal(r.standings.every((s) => s.masked === false), true);
+  }
 
-  // A resume on the results screen rebuilds the same masked standings.
+  // A resume on the results screen rebuilds the same standings, Tina included.
   const hank3 = await connect();
   const resumed2 = next(hank3, "resumeMatch");
   hank3.emit("identify", { token: tok("Hank") });
   const snap2 = await resumed2;
   assert.equal(snap2.phase, "results");
-  assert.equal(JSON.stringify(snap2).includes("TINA00"), false);
-  assert.equal(snap2.standings.find((r) => r.username === "Player").id, null);
+  assert.equal(snap2.standings.find((s) => s.username === "Tina").id, "TINA00");
 
   tina.emit("leaveMatch", { code });
   await wait(200);
 
+  // Friend rooms show her by name and id, as before.
   const ivy = await player("Ivy");
   const created = next(tina, "friendRoomCreated");
   tina.emit("createFriendRoom", { game: { id: "name-logo" } });

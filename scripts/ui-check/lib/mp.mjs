@@ -314,12 +314,10 @@ export const layoutBoth = (pair) => both(pair, async (p) => {
 });
 
 /**
- * The name the OTHER player sees for `p`: in a random 1v1 match the relay shows a 13-15 year-old (and an account of
- * unknown age, which counts as one: backend users/consent.py is_teen) as "Player" with no photo (multiplayer_server
- * publicUser / maskedForStrangers); friend rooms show the real name. The test accounts never gave an age, so they are
- * masked in 1v1 matches by design.
+ * The name the OTHER player sees for `p`: the real name in every room type, whatever the age (the relay's teen
+ * masking ended 2026-10-19, owner decision). `type` is kept for the callers.
  */
-export const shownName = (p, type) => (type === 'match' && p.user && p.user.is_teen !== false ? 'Player' : p.username);
+export const shownName = (p, _type) => p.username;
 
 // ---------------------------------------------------------------- friend rooms
 
