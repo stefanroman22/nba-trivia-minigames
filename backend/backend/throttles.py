@@ -87,6 +87,12 @@ class SeenRateThrottle(UserRateThrottle):
     scope = "seen"
 
 
+class ActivityRateThrottle(UserRateThrottle):
+    """Time-on-site reports (users.activity). A tab reports every 5 minutes and when it is hidden,
+    so even several open devices stay far below this; it only bounds a script filling the table."""
+    scope = "activity"
+
+
 class ReportRateThrottle(UserRateThrottle):
     """"Report a problem" on a question. Open to guests, so without a limit it is an open write path;
     a player with a real problem reports a few, not dozens."""

@@ -72,7 +72,7 @@ const valueLabels: Plugin<"bar"> = {
   },
 };
 
-function ChartFrame({
+export function ChartFrame({
   title,
   hint,
   children,

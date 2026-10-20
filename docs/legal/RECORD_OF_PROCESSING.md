@@ -15,6 +15,7 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 | 6 | Game sessions and per-guess answers | Account holders; guests (answers only, unlinked) | Player record, statistics, fair play | Contract (own record); legitimate interests (statistics) | Operator | Sessions 24 months; answers 30 days | Postgres (`GameSession`, `GuessLog`) |
 | 6a | Questions already shown to you (user, game, question ID, time; no answer text) | Account holders | No repeats | Contract | Operator | Until the question is retired or the account is deleted | Postgres (`SeenQuestion`) |
 | 6b | Problem reports about questions (game, question ID, optional note up to 500 characters, user if signed in, time) | Account holders and guests | Fix wrong questions | Legitimate interests | Operator | Until handled, at most 12 months; deleted with the account. When the doctor scan handles a report it copies the note alone (no user, no time) onto the question, kept until 180 days after the question is retired; the weekly doctor research sends those notes to Anthropic (section 2), and its copies (GitHub artifacts) are deleted after 1 day | Postgres (`QuestionReport`; handled notes in `Question.quality`) |
+| 6c | Time on the site per day (seconds the tab was visible and in use) and the connection's country code (ISO 3166, from Vercel's `x-vercel-ip-country` header; no IP stored) | Account holders only (guests are never tracked) | Usage statistics for the operator (admin Users tab): how much and from where the service is used | Legitimate interests (LIA in section 3b) | Operator | 12 months; deleted with the account; in the export | Postgres (`DailyActivity`) |
 | 7 | Wordle play gate (user or random device ID, date) | Account holders, guests | One Wordle per day | Legitimate interests | Operator | Pruned daily after the day | Postgres (`WordlePlay`) |
 | 8 | Feedback (rating, message, page, email and name snapshot) | Any sender | Product improvement, reply | Legitimate interests | Operator | Until handled; resolved: 12 months; deleted with account | Postgres (`Feedback`) |
 | 9 | Moderation events (reason code, salted SHA-256 of IP) and the strike count / ban status on the account | Account holders; sign-up attempts | Enforce rules, stop repeat abuse | Legitimate interests (LIA below) | Operator | Events 12 months (or while a ban stands); strike count and ban status stay with the account (strikes do not expire); ban record at most 5 years | Postgres (`ModerationEvent`, user fields) |
@@ -24,7 +25,8 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 | 12 | Multiplayer session (name, ID, rank, points, photo) | Players online | Run a match | Contract | Opponents | Memory only, until the match ends | Game server (not yet deployed) |
 | 13 | Browser storage: tokens, cached profile, device code, theme, game caches, questions already shown per game, whether the legal-change notice was hidden | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent banner | The user | Until cleared; tokens 90 days max | The user's browser |
 
-No special-category data is collected on purpose. No ads, analytics, tracking pixels or data sales.
+No special-category data is collected on purpose. No ads, third-party analytics, tracking pixels or data sales;
+the only usage measurement is first-party row 6c.
 
 ## 2. Recipients and processors
 
@@ -47,6 +49,14 @@ No special-category data is collected on purpose. No ads, analytics, tracking pi
 - **Safeguards:** the classifier (when deployed) keeps no image; ban records are capped at five years; erasure is possible except the minimal ban record.
 - **Outcome:** legitimate interests apply. Review yearly and whenever the moderation rules change.
 
+## 3b. Legitimate-interests assessment (time on the site and country, row 6c; added 2026-10-20)
+
+- **Purpose:** know how much the service is used, by whom and from which countries, to decide what to build, spot drop-off and plan capacity.
+- **Necessity:** a daily total of seconds and one country code per player-day is the least that answers those questions; no page-by-page trail, no IP, no device fingerprint, no third-party tool. Counting stops when the tab is hidden or idle for 3 minutes.
+- **Balance:** signed-in players only, visible to the operator only, 12 months, in the export and erased with the account. Disclosed in the Privacy Policy row and the 14-day home-page notice. Country-level location is coarse and not used to decide anything about the player.
+- **Safeguards:** server-side clamps (15 minutes per report, 24 hours per day); no cookie or new browser storage (ePrivacy Art 5(3) not engaged beyond the existing sign-in token).
+- **Outcome:** legitimate interests apply. Objection: on request the operator deletes the rows (no self-service switch yet; see OPEN_ITEMS.md).
+
 ## 4. DPIA screening (Art 35)
 
 | Trigger | Present? | Note |
@@ -55,7 +65,8 @@ No special-category data is collected on purpose. No ads, analytics, tracking pi
 | Children's data | Mitigated: accounts 13+ (self-declared tick-box since 2026-10-11, owner decision), no birth date stored, no photo or chat for under-16s; accounts without a confirmed 16+ age are kept off the public leaderboard and name search | Residual: minors lying about age (easier with a tick-box than with a birth-date screen) |
 | User-generated photos shown publicly | Yes | Automated classifier, fail-closed, removable |
 | Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request |
-| Special categories, location, biometric | No | Photos are not used for identification |
+| Special categories, location, biometric | Country only (row 6c, since 2026-10-20) | No IP, city or GPS is stored; photos are not used for identification |
+| Usage analytics | First-party only (row 6c, since 2026-10-20) | Daily seconds on the site for signed-in players, operator-only, 12 months; screened 2026-10-20: no DPIA needed at this scope |
 
 **Conclusion:** a full DPIA is not mandatory today; this screening is the record of that decision. Redo it before any
 of: ads or analytics, chat, location, an app-store release, or reaching a scale at which a lawyer advises a DPO/DPIA

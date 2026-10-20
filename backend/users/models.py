@@ -209,6 +209,7 @@ class ModerationEvent(models.Model):
         ("name_signup", "Name at signup"),
         ("name_change", "Name change"),
         ("photo", "Profile photo"),
+        ("admin", "Admin action"),
     ]
     TIER_CHOICES = [
         ("severe", "Severe"),
@@ -243,3 +244,34 @@ class ModerationEvent(models.Model):
 
     def __str__(self):
         return f"{self.public_id or '-'} {self.kind} {self.tier} {self.reason}"
+
+
+class DailyActivity(models.Model):
+    """How long a signed-in player had the site open and in use on one Paris day (users.activity).
+
+    The browser counts seconds while the tab is visible and the player has interacted recently,
+    then reports them in batches (POST /api/activity/). `country` is the ISO 3166 code our host
+    derives from the connection (Vercel's x-vercel-ip-country); the IP itself is never stored.
+    Admin-only (the Users tab); guests are never tracked. Kept ACTIVITY_DAYS (users.retention).
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="daily_activity",
+        # The (user, day) unique constraint below already serves user lookups.
+        db_index=False,
+    )
+    day = models.DateField()
+    seconds = models.PositiveIntegerField(default=0)
+    country = models.CharField(max_length=2, blank=True, default="")
+    last_seen_at = models.DateTimeField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "day"], name="uniq_activity_user_day"),
+        ]
+        indexes = [models.Index(fields=["day"], name="activity_day_idx")]
+
+    def __str__(self):
+        return f"{self.user_id} {self.day}: {self.seconds}s"

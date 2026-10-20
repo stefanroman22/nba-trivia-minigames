@@ -17,7 +17,7 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 
 from trivia.models import Feedback, GameSession, GuessLog, QuestionReport, SeenQuestion, WordlePlay
 from users import friends_cache, leaderboard
-from users.models import BlockedUser, FriendRequest, Friendship, ModerationEvent
+from users.models import BlockedUser, DailyActivity, FriendRequest, Friendship, ModerationEvent
 from users.tokens import revoke_sessions
 
 ANONYMISED_NAME = "Deleted player"
@@ -52,6 +52,7 @@ def delete_account(user):
         GuessLog.objects.filter(user=user).delete()
         WordlePlay.objects.filter(user=user).delete()
         SeenQuestion.objects.filter(user=user).delete()
+        DailyActivity.objects.filter(user=user).delete()
         QuestionReport.objects.filter(user=user).delete()  # SET_NULL by default: would keep the note
         Feedback.objects.filter(user=user).delete()
         Feedback.objects.filter(public_id=public_id).delete()  # snapshot rows whose FK was nulled
@@ -183,6 +184,10 @@ def export_account(user):
         "question_reports": [
             {"game": r.game, "question_id": r.question_id, "note": r.note, "status": r.status, "at": _iso(r.created_at)}
             for r in QuestionReport.objects.filter(user=user).order_by("id")
+        ],
+        "daily_activity": [
+            {"day": a.day.isoformat(), "seconds": a.seconds, "country": a.country, "last_seen_at": _iso(a.last_seen_at)}
+            for a in DailyActivity.objects.filter(user=user).order_by("day")
         ],
         "wordle_plays": [{"date": p.play_date.isoformat(), "device_id": p.device_id} for p in WordlePlay.objects.filter(user=user)],
         "feedback": [
