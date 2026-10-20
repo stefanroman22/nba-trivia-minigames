@@ -13,14 +13,19 @@ Banned accounts (users.strikes) are hidden, not deleted: every Postgres path fil
 `remove()` drops them from the ZSET at ban time and `record_score` never re-adds them; an unban
 re-records the score, so the row comes back with its points.
 """
+import logging
 import os
+import time
 
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 ZKEY = "leaderboard"
 _client = None
+DRIFT_WARNING_INTERVAL = 60  # seconds between two "out of sync" warnings
+_last_drift_warning = float("-inf")
 
 
 def _ranked():
@@ -43,12 +48,26 @@ def _redis():
     return _client
 
 
+def _warn_drift(detail):
+    """Log that the ZSET has drifted and Postgres is answering, at most once a minute per process (the
+    fallback is silent to players, so this is how it shows up)."""
+    global _last_drift_warning
+    now = time.monotonic()
+    if now - _last_drift_warning >= DRIFT_WARNING_INTERVAL:
+        _last_drift_warning = now
+        logger.warning("leaderboard ZSET out of sync (%s); answering from Postgres until sync_leaderboard runs", detail)
+
+
 def _in_sync(r):
     """True when the ZSET holds as many members as there are ranked accounts. A ZSET that is
     missing players (never synced, or written while they were hidden) or still holds hidden or
     deleted ones has drifted: the callers then answer from Postgres, which is always right, until
     `sync_leaderboard` rebuilds it."""
-    return r.zcard(ZKEY) == _ranked().count()
+    members, ranked = r.zcard(ZKEY), _ranked().count()
+    if members != ranked:
+        _warn_drift(f"{members} members for {ranked} ranked accounts")
+        return False
+    return True
 
 
 def _is_ranked(user):
@@ -65,17 +84,16 @@ def top(n=100):
     r = _redis()
     if r is None or not _in_sync(r):
         return _postgres_top(n)
-    # Over-fetch: a member that is not on the board (hidden or deleted since it was added) is
-    # skipped rather than shown as a placeholder row, and the page still fills to `n`.
-    entries = r.zrevrange(ZKEY, 0, 2 * n - 1, withscores=True)
+    entries = r.zrevrange(ZKEY, 0, n - 1, withscores=True)
     ids = [m for m, _ in entries]
     # One query resolves the display names for the whole page.
     info = {pid: (name, rank) for pid, name, rank in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank")}
-    return [
-        {"id": m, "username": info[m][0], "rank": info[m][1], "points": int(s)}
-        for m, s in entries
-        if m in info
-    ][:n]
+    if len(info) < len(ids):
+        # A member that is not on the board (hidden or deleted since it was added) means the ZSET has
+        # drifted even though its size matches, so a real player is missing from it: Postgres answers.
+        _warn_drift(f"{len(ids) - len(info)} of the top {len(ids)} members are not on the board")
+        return _postgres_top(n)
+    return [{"id": m, "username": info[m][0], "rank": info[m][1], "points": int(s)} for m, s in entries]
 
 
 def rank_of(user):

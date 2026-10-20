@@ -131,15 +131,33 @@ class LeaderboardRedisTests(TestCase):
         self.fake.zrem(leaderboard.ZKEY, User.objects.get(username="bob").public_id)
         self.fake.zadd(leaderboard.ZKEY, {"GHOST1": points})
 
-    def test_top_skips_members_that_are_not_on_the_board(self):
+    def test_same_size_drift_shows_the_real_board(self):
+        """Equal counts but a ghost in bob's place: no placeholder row, and bob (missing from the ZSET) is listed."""
         self._swap_bob_for_a_ghost(999)
         rows = leaderboard.top(10)
-        self.assertEqual([r["username"] for r in rows], ["alice", "carol"])
-        self.assertNotIn("Player", [r["username"] for r in rows])
-
-    def test_top_still_fills_n_rows_past_skipped_members(self):
-        self._swap_bob_for_a_ghost(999)
+        self.assertEqual([r["username"] for r in rows], ["alice", "carol", "bob"])
+        self.assertNotIn("GHOST1", [r["id"] for r in rows])
         self.assertEqual([r["username"] for r in leaderboard.top(2)], ["alice", "carol"])
+
+    def test_drift_is_logged_at_most_once_a_minute(self):
+        leaderboard._last_drift_warning = float("-inf")
+        self._swap_bob_for_a_ghost(999)
+        with self.assertLogs("users.leaderboard", level="WARNING") as logs:
+            leaderboard.top(10)
+            leaderboard.top(10)
+        self.assertEqual(len(logs.records), 1)
+        self.assertIn("out of sync", logs.output[0])
+        leaderboard._last_drift_warning = float("-inf")
+        self.fake.zadd(leaderboard.ZKEY, {"GHOST2": 1})  # now the sizes differ too
+        with self.assertLogs("users.leaderboard", level="WARNING") as logs:
+            self.assertEqual(leaderboard.total(), 3)
+            leaderboard.top(10)
+        self.assertEqual(len(logs.records), 1)
+
+    def test_in_sync_zset_logs_nothing(self):
+        leaderboard._last_drift_warning = float("-inf")
+        with self.assertNoLogs("users.leaderboard", level="WARNING"):
+            self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
 
     def test_drifted_zset_falls_back_to_postgres(self):
         """A ZSET missing a player (never synced) must not hide them, nor rank others above them."""
