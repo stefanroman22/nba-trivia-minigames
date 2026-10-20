@@ -54,23 +54,6 @@ class CapTests(SimpleTestCase):
         self.assertEqual(awarding.clamp_score("wordle", "single", "250"), 250)
 
 
-class SoftCapTests(SimpleTestCase):
-    def test_first_1500_count_in_full(self):
-        self.assertEqual(awarding.soft_capped(500, 0), 500)
-        self.assertEqual(awarding.soft_capped(500, 1_000), 500)
-
-    def test_next_1500_count_half(self):
-        self.assertEqual(awarding.soft_capped(500, 1_600), 250)
-        # Straddles the boundary: 300 full + 200 half.
-        self.assertEqual(awarding.soft_capped(500, 1_200), 400)
-
-    def test_beyond_3000_counts_a_tenth(self):
-        self.assertEqual(awarding.soft_capped(500, 3_000), 50)
-        self.assertEqual(awarding.soft_capped(500, 10_000), 50)
-        # Straddles both boundaries: 200 full + 1500 half + 300 tenth.
-        self.assertEqual(awarding.soft_capped(2_000, 1_300), 200 + 750 + 30)
-
-
 class DayTests(SimpleTestCase):
     def test_day_and_week_start_are_paris_midnight(self):
         start = awarding.day_start_utc(DAY)
@@ -112,14 +95,13 @@ class AwardTests(TestCase):
         # The bonus is still waiting for the first game that scores.
         self.assertEqual(self.receipt(50)["first_game_bonus"], 100)
 
-    def test_daily_soft_cap_applies_to_game_points_only(self, _):
+    def test_a_big_day_of_points_is_added_in_full(self, _):
         self.receipt(500, game="wordle")          # 500 + 100 bonus
-        self.receipt(500, game="heatmap")         # 1,000 earned so far (solo Wordle scores once a day)
-        self.receipt(500, game="pack-five")       # 1,500
-        r = self.receipt(500, game="connections")  # earned_today 1,500 -> half
-        self.assertEqual(r["base"], 250)
-        self.assertEqual(r["awarded"], 250)
-        self.assertEqual(User.objects.get(pk=self.user.pk).points, 100 + 1_500 + 250)
+        self.receipt(500, game="heatmap")
+        self.receipt(500, game="pack-five")
+        r = self.receipt(500, game="connections")  # no daily soft cap: still in full
+        self.assertEqual((r["base"], r["awarded"]), (500, 500))
+        self.assertEqual(User.objects.get(pk=self.user.pk).points, 100 + 2_000)
 
     def test_first_day_counts_as_active_and_starts_the_streak(self, _):
         self.receipt(80)
@@ -144,17 +126,26 @@ class AwardTests(TestCase):
         user = User.objects.get(pk=self.user.pk)
         self.assertEqual((user.streak_days, user.streak_best, user.active_days), (1, 2, 3))
 
-    def test_day_seven_pays_the_milestone_and_refills_the_freeze(self, today):
+    def test_day_seven_refills_the_freeze_without_a_bonus(self, today):
         User.objects.filter(pk=self.user.pk).update(streak_freezes=0)
         for i in range(6):
             today.return_value = DAY + datetime.timedelta(days=i)
             self.receipt(80)
         today.return_value = DAY + datetime.timedelta(days=6)
         r = self.receipt(80)
-        self.assertEqual(r["streak_bonus"], 200)
+        self.assertEqual(r["streak_bonus"], 0)
         self.assertEqual(r["streak"]["days"], 7)
         self.assertEqual(r["streak"]["freezes"], 1)
-        self.assertEqual(r["awarded"], 80 + 100 + 200)
+        self.assertEqual(r["awarded"], 80 + 100)
+
+    def test_day_ten_pays_the_milestone_once(self, today):
+        User.objects.filter(pk=self.user.pk).update(
+            streak_days=9, streak_best=9, active_days=9, last_active_day=DAY - datetime.timedelta(days=1))
+        r = self.receipt(80)
+        self.assertEqual(r["streak_bonus"], 1_000)
+        self.assertEqual(r["streak"]["days"], 10)
+        self.assertEqual(r["awarded"], 80 + 100 + 1_000)
+        self.assertEqual(self.receipt(80)["streak_bonus"], 0)
 
     def test_rank_up_is_reported_once(self, _):
         r = self.receipt(100)   # 100 + 100 bonus = 200 -> Role Player
@@ -187,9 +178,9 @@ class AwardTests(TestCase):
         self.receipt(0, game="wordle")
         self.assertEqual(self.receipt(300, game="wordle")["base"], 300)
 
-    def test_the_first_solo_contexto_of_the_day_scores_up_to_the_soft_cap(self, _):
+    def test_the_first_solo_contexto_of_the_day_scores_in_full(self, _):
         r = self.receipt(3_000, game="contexto")
-        self.assertEqual((r["base"], r["first_game_bonus"], r["awarded"]), (2_250, 100, 2_350))
+        self.assertEqual((r["base"], r["first_game_bonus"], r["awarded"]), (3_000, 100, 3_100))
         self.assertEqual(User.objects.get(pk=self.user.pk).active_days, 1)
 
     def test_a_second_solo_contexto_of_the_day_scores_nothing(self, _):
@@ -207,7 +198,7 @@ class AwardTests(TestCase):
     def test_another_game_after_a_solo_contexto_still_scores(self, _):
         self.receipt(3_000, game="contexto")
         r = self.receipt(80)
-        self.assertEqual(r["base"], awarding.soft_capped(80, 3_000))
+        self.assertEqual(r["base"], 80)
         self.assertGreater(r["awarded"], 0)
 
     def test_online_contexto_is_not_once_a_day(self, _):
@@ -217,12 +208,12 @@ class AwardTests(TestCase):
 
     def test_a_zero_contexto_does_not_use_up_the_day(self, _):
         self.receipt(0, game="contexto")
-        self.assertEqual(self.receipt(3_000, game="contexto")["base"], 2_250)
+        self.assertEqual(self.receipt(3_000, game="contexto")["base"], 3_000)
 
     def test_contexto_scores_again_the_next_day(self, today):
         self.receipt(3_000, game="contexto")
         today.return_value = DAY + datetime.timedelta(days=1)
-        self.assertEqual(self.receipt(3_000, game="contexto")["base"], 2_250)
+        self.assertEqual(self.receipt(3_000, game="contexto")["base"], 3_000)
 
     def test_day_is_paris_not_utc(self, today):
         """Two plays on the same Paris day either side of UTC midnight share one day."""

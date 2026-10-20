@@ -149,7 +149,7 @@ class GameSession(models.Model):
     game = models.CharField(max_length=40)
     mode = models.CharField(max_length=10, default="single")  # single | match | friend
     score = models.IntegerField(default=0)
-    # What actually landed on the account for this play (score after the daily soft cap, plus any
+    # What actually landed on the account for this play (score, plus any
     # first-game / streak bonus) — trivia.awarding writes it; the weekly board sums it. 0 for guests,
     # friend rooms and before 2026-10.
     awarded = models.IntegerField(default=0, db_default=0)

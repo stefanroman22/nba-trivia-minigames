@@ -144,7 +144,7 @@ class LadderEndpointTests(TestCase):
         self.assertIsNone(body["you"])
         self.assertEqual(len(body["ladder"]), 9)
         self.assertEqual(body["rules"]["first_game_bonus"], awarding.FIRST_GAME_BONUS)
-        self.assertEqual(body["rules"]["daily_full"], awarding.DAILY_FULL)
+        self.assertNotIn("daily_full", body["rules"])
         self.assertEqual(body["rules"]["streak_milestones"], {str(k): v for k, v in awarding.STREAK_MILESTONES.items()})
         self.assertEqual(body["rules"]["max_freezes"], awarding.MAX_FREEZES)
         self.assertEqual(body["rules"]["guest_carryover_max"], GUEST_CARRYOVER_MAX)
