@@ -208,15 +208,57 @@ test("teens show their real name, photo and id to strangers in random matches (n
   assert.equal(prog.id, "TINA00");
   assert.equal(prog.username, "Tina");
 
-  const resultH = next(hank, "matchResult");
+  // Hank's connection is replaced mid-round: the resume snapshot shows Tina by name and id too.
+  const hank2 = await connect();
+  const resumed = next(hank2, "resumeMatch");
+  hank2.emit("identify", { token: tok("Hank") });
+  const snap = await resumed;
+  assert.equal(snap.opponents[0].id, "TINA00");
+  assert.equal(snap.opponents[0].username, "Tina");
+  assert.equal(snap.opponents[0].masked, false);
+  assert.equal(snap.opponent.id, "TINA00");
+
+  const finished = next(hank2, "opponentFinished");
+  const resultT = next(tina, "matchResult");
+  const resultH = next(hank2, "matchResult");
   tina.emit("submitScore", { code, score: 30, elapsedMs: 9000 });
-  hank.emit("submitScore", { code, score: 20, elapsedMs: 9500 });
-  const rH = await resultH;
-  assert.deepEqual(rH.standings.map((r) => r.id).sort(), ["HANK00", "TINA00"]);
-  assert.equal(rH.standings.find((r) => r.id === "TINA00").username, "Tina");
-  assert.equal(rH.standings.every((r) => r.masked === false), true);
+  const fin = await finished;
+  assert.equal(fin.id, "TINA00");
+  assert.equal(fin.username, "Tina");
+  hank2.emit("submitScore", { code, score: 20, elapsedMs: 9500 });
+  const [rT, rH] = await Promise.all([resultT, resultH]);
+  // Both sides see both real rows.
+  for (const r of [rT, rH]) {
+    assert.deepEqual(r.standings.map((s) => s.id).sort(), ["HANK00", "TINA00"]);
+    assert.equal(r.standings.find((s) => s.id === "TINA00").username, "Tina");
+    assert.equal(r.standings.every((s) => s.masked === false), true);
+  }
+
+  // A resume on the results screen rebuilds the same standings, Tina included.
+  const hank3 = await connect();
+  const resumed2 = next(hank3, "resumeMatch");
+  hank3.emit("identify", { token: tok("Hank") });
+  const snap2 = await resumed2;
+  assert.equal(snap2.phase, "results");
+  assert.equal(snap2.standings.find((s) => s.username === "Tina").id, "TINA00");
+
   tina.emit("leaveMatch", { code });
   await wait(200);
+
+  // Friend rooms show her by name and id, as before.
+  const ivy = await player("Ivy");
+  const created = next(tina, "friendRoomCreated");
+  tina.emit("createFriendRoom", { game: { id: "name-logo" } });
+  const lobby = await created;
+  const joined = next(ivy, "friendRoomJoined");
+  ivy.emit("joinFriendRoom", { code: lobby.code });
+  await joined;
+  const found = next(ivy, "matchFound");
+  tina.emit("startRoomNow", { code: lobby.code });
+  const friendView = (await found).opponent;
+  assert.equal(friendView.username, "Tina");
+  assert.equal(friendView.id, "TINA00");
+  assert.equal(friendView.masked, false);
 });
 
 test("the join-code limit follows the player across reconnects", async () => {
