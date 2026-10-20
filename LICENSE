@@ -1,21 +1,17 @@
-MIT License
+Copyright (c) 2025-2026 Roman Ioan-Stefan (GitHub: stefanroman22). All rights reserved.
 
-Copyright (c) 2025 stefanroman22
+This repository and everything in it (source code, data, assets and documentation) is
+proprietary. No licence is granted. You may not copy, modify, distribute, sublicense,
+publish, sell, host or otherwise use any part of it, in whole or in part, without the
+prior written permission of the copyright holder.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+The repository is publicly visible so it can be read. Viewing it, and forking it on
+GitHub to the extent the GitHub Terms of Service require, does not grant any right to
+use the code or its contents.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Earlier versions of this repository were published under the MIT License. That licence
+covers only copies obtained before this notice was added; it does not apply to any later
+change.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+To ask for permission, open an issue at
+https://github.com/stefanroman22/nba-trivia-minigames/issues
