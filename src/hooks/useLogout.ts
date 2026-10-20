@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
 import { logout } from "../store/userSlice";
@@ -13,14 +13,21 @@ export function useLogout() {
   const dispatch = useDispatch<AppDispatch>();
   const { open } = useModal();
   const [loggingOut, setLoggingOut] = useState(false);
+  // A ref, not the state: the confirm modal holds the logOut of the render that opened it, whose
+  // `loggingOut` is stale, so a double tap would otherwise run it twice.
+  const busy = useRef(false);
 
   const logOut = async () => {
-    if (loggingOut) return;
+    if (busy.current) return;
+    busy.current = true;
     const refreshToken = localStorage.getItem("refreshToken");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
     setLoggingOut(true);
     try {
+      // Already logged out (another tab, or a second tap after the first finished): nothing to revoke,
+      // and a POST without a token would only come back as an error alert.
+      if (!refreshToken) return;
       const res = await fetch(`${BACKEND_URL}/logout/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,6 +40,7 @@ export function useLogout() {
     } finally {
       dispatch(logout());
       setLoggingOut(false);
+      busy.current = false;
     }
   };
 
