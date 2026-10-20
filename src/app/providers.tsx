@@ -8,6 +8,7 @@ import { apiFetch, clearTokens, getAccessToken, getRefreshToken, refreshSession,
 import { clearCachedUser, isAccessTokenExpired, prewarmBackend, readCachedUser, writeCachedUser } from "../utils/session";
 import { BACKEND_URL } from "../configurations/backend";
 import { setBanHandler } from "../utils/ban";
+import { useActivityTracker } from "../hooks/useActivityTracker";
 import { ModalProvider } from "../context/ModalContext";
 import { MultiplayerProvider } from "../context/MultiplayerContext";
 import { PageTransitionProvider } from "../context/PageTransitionContext";
@@ -18,6 +19,9 @@ import EnvBadge from "../components/EnvBadge";
 /** The app-wide effects that used to live in the App component. */
 function AppEffects() {
   const dispatch = useDispatch();
+
+  // Time on the site for signed-in players (admin Users tab). Guests are never tracked.
+  useActivityTracker();
 
   // Dark-only theme: drop any previously saved light preference.
   useEffect(() => {

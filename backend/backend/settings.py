@@ -191,6 +191,7 @@ REST_FRAMEWORK = {
         "guess-log": "120/hour",
         "seen": "240/hour",
         "report": "10/hour",
+        "activity": "120/hour",
     },
 }
 

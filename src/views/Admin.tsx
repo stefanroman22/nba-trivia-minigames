@@ -11,10 +11,12 @@ import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
 import { games as gameCatalog } from "../utils/GameUtils";
 import FeedbackTab from "../components/admin/FeedbackTab";
+import UsersTab from "../components/admin/UsersTab";
 import type { RootState } from "../store";
 import "../styles/LandPage.css";
 import "../styles/Admin.css";
 import "../styles/AdminFeedback.css";
+import "../styles/AdminUsers.css";
 
 /* ------------------------------------------------------------------ */
 /*  API payload types (see backend/trivia/admin_api.py)                */
@@ -428,17 +430,6 @@ function GamesTab() {
   );
 }
 
-function UsersTab() {
-  return (
-    <div className="surface admin-placeholder">
-      <span className="font-display admin-placeholder-title">Users</span>
-      <p className="admin-muted">
-        User management lands here next.
-      </p>
-    </div>
-  );
-}
-
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
@@ -536,7 +527,7 @@ function Admin() {
       <main className="page admin-page">
         <header className="admin-head">
           <h1 className="font-display admin-title">Admin</h1>
-          <p className="admin-sub">Games, data sources, player feedback and content health.</p>
+          <p className="admin-sub">Games, data sources, player feedback, players and how they use the site.</p>
         </header>
         {content}
       </main>

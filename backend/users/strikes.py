@@ -146,7 +146,7 @@ def ban_user(user, reason, kind="name_change", ip_hash=""):
 
 def unban_user(user):
     """Lift a ban and reset strikes; the account's points and data were never touched."""
-    kind = "photo" if user.ban_reason == "photo" else "name_change"
+    kind = {BAN_REASON_PHOTO: "photo", BAN_REASON_ADMIN: "admin"}.get(user.ban_reason, "name_change")
     with transaction.atomic():
         user.banned_at = None
         user.ban_reason = ""

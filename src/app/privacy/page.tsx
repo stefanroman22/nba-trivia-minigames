@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         <LegalList>
           <li>You can play without an account, and then we do not keep your name or email.</li>
           <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players, on the public leaderboard too, whatever your age. Your email is never shown.</li>
-          <li>There are no ads, no analytics and no tracking cookies. We never sell your data.</li>
+          <li>There are no ads, no third-party analytics and no tracking cookies. We never sell your data. For signed-in players we count how long you use the site each day and note the country you connect from, only for our own statistics.</li>
           <li>You can download everything we hold and delete your account yourself, from your profile.</li>
           <li>Accounts are for people aged {LEGAL.minimumAge} and over: you confirm this with one tick-box when you sign up, by email or with Google.</li>
         </LegalList>
@@ -51,6 +51,7 @@ export default function PrivacyPage() {
           [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
           ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 30 days."],
+          ["Time on the site (signed-in players only): how many seconds a day you had the site open and in use (counting stops when the tab is hidden or you have been idle for 3 minutes), and the country your connection comes from, which our hosting provider works out from your network address. We do not store the address itself", "Understand how much and from where the service is used, so we can improve it and plan capacity", "Legitimate interests", "12 months"],
           ["Which questions you have already been shown (the game and the question, not your answers)", "So you don't get the same question twice", "Contract", "Until the question is retired or you delete the account"],
           ["Problem reports about questions (the game, the question and your optional note; linked to your account if you are signed in)", "Fix wrong questions", "Legitimate interests", "Until handled, at most 12 months, and deleted with your account. When we handle a report, your note alone (not who sent it) is kept with the question until 180 days after the question is retired. To check a reported question, that note (still not who sent it), together with anonymous counts of the wrong answers players typed, is passed to Anthropic's AI model Claude, which researches the question for us; the copies our job makes for that are deleted after one day."],
           ["Feedback you send (rating, message, page, and your email and name if you are signed in)", "Improve the service and reply to you", "Legitimate interests", "Until handled; resolved feedback is deleted after 12 months, and with your account"],
@@ -68,7 +69,7 @@ export default function PrivacyPage() {
       <LegalList>
         <li><strong>Everyone</strong> who opens the site can see leaderboard rows: display name, player ID, rank, points and photo (if you added one). This applies to every account, whatever its age.</li>
         <li><strong>Other players</strong> can find you by name or player ID, see your photo, and send a friend request; online opponents see your name, ID, rank, points and photo during a match.</li>
-        <li><strong>Nobody else</strong> sees your email, your game history, your answers or your feedback. Only the operator, and anyone the operator authorises to run the service, can read those.</li>
+        <li><strong>Nobody else</strong> sees your email, your game history, your time on the site, your country, your answers or your feedback. Only the operator, and anyone the operator authorises to run the service, can read those.</li>
       </LegalList>
       <p>Please do not use your real name as your display name, and do not upload a photo you do not want others to see.</p>
 
@@ -185,8 +186,7 @@ export default function PrivacyPage() {
         <li>your sign-in tokens, and a cached copy of your profile so the page loads signed in;</li>
         <li>a random device code, used for the one-play-a-day limit on Wordle and LeContexto for guests;</li>
         <li>your theme choice and cached game data so games start quickly;</li>
-        <li>which questions you have already been shown in each game, so you don&apos;t get the same question twice;</li>
-        <li>whether you hid the home-page notice about a change to these documents.</li>
+        <li>which questions you have already been shown in each game, so you don&apos;t get the same question twice.</li>
       </LegalList>
       <p>You can clear all of it in your browser settings; you will be signed out.</p>
 
@@ -204,7 +204,7 @@ export default function PrivacyPage() {
         share it for cross-context behavioural advertising, and do not use or disclose sensitive personal information to
         infer anything about you. You can still request access, deletion and correction as described in section 8, and we
         will not treat you differently for doing so. We do not respond to &ldquo;Do Not Track&rdquo; signals because we do
-        not track you.
+        not track you across other websites.
       </p>
 
       <LegalHeading id="where">14. Where the service is available</LegalHeading>

@@ -13,7 +13,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | **Git history cleaned (done 2026-10-08).** Remaining: rotate the Google OAuth client secret (it was public) and ask GitHub Support to purge cached views and old PR refs | Audit finding C2; see HISTORY-CLEANUP-2026-10-08.md for the exact steps and the request text | Google Cloud Console, Vercel env `CLIENT_SECRET`, GitHub Support |
 | **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
 | **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice) | Public and permanent | `contactEmail` in `legal.ts` |
-| **Terms/Privacy version 2026-10-20.1, promoted 2026-10-20 with an owner waiver.** The dates were set to the promotion day (effective 3 November 2026, notice shown until then). Because `main` deploys the backend with the frontend, the backend and relay changes apply from 2026-10-20, before `effective`. Waiver: the owner instructed the promotion on 2026-10-20 in the session ("promote to production"); production had 4 accounts. Revisit if a player objects before 3 November. | The change notice promises existing accounts 14 days before a material change applies | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
+| **Terms/Privacy version 2026-10-20.1, promoted 2026-10-20 with an owner waiver.** The dates are the promotion day (effective 3 November 2026; the home-page notice was removed before launch, see the notice-mechanism row below). Because `main` deploys the backend with the frontend, the backend and relay changes apply from 2026-10-20, before `effective`. Waiver: the owner instructed the promotion on 2026-10-20 in the session ("promote to production"); production had 4 accounts. | Terms section 12 promises existing accounts the change applies from `effective` | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
 
 ## B. Decisions that are yours
 
@@ -52,7 +52,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | Item | Risk it addresses |
 |---|---|
 | Existing accounts (created before the consent step) have no consent record and no age check; also needed for the 14-day change notice. Show the Terms and an age prompt on next sign-in and store acceptance | Pre-existing users are not covered by a recorded agreement |
-| Notice mechanism for changes to Terms/Privacy: a home-page banner now exists (`src/components/LegalChangeNotice.tsx`, dates in `LEGAL.changeNotice`); the operator still has to set its dates for each significant change and promote it at least 14 days before the change applies (RUNBOOKS F) | Terms section 12 |
+| Notice mechanism for changes to Terms/Privacy: the home-page banner (`src/components/LegalChangeNotice.tsx`) was removed on 2026-10-20 because the app has not launched and there are no players to notify; after launch, restore it from git history for each significant change and promote it at least 14 days before the change applies (RUNBOOKS F) | Terms section 12 |
 | In-product "Report" button for players, names, photos | DSA notice-and-action is email-only today |
 | Email sending (verification, password reset, notices) | No password reset, no email change, no email verification today; also enables inactive-account warnings |
 | "Log out everywhere" and change-password | Account security basics |
@@ -63,6 +63,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | Remove `.sqlite3` data and `backend/media/profiles/*` personal-looking files, and `local deployment/ADMIN_CREDENTIALS.md`, from the OneDrive-synced tree | Personal data and a credential in a cloud-synced folder |
 | ~~`StartingFive.tsx` sent revealed player names to `i.pravatar.cc` for placeholder faces~~ | Resolved 2026-10-16: it was rendered on every card flip; replaced by real photos via `PlayerPhoto` (cdn.nba.com, else Wikimedia Commons with credits at `/credits`, else a silhouette) |
 | Accept and file the Vercel and Supabase DPAs (dated copies) | Art 28 evidence |
+| Self-service "don't count my time on the site" switch (row 6c in RECORD_OF_PROCESSING.md); today an objection is handled by email and the operator deletes the `DailyActivity` rows | Art 21 objection to legitimate-interests processing |
 | Throttle or require login for the public photo endpoint | Scraping; weighed and left public for now (the photos are already public on leaderboards) |
 
 ## F. Done in this change (for the record)

@@ -26,6 +26,7 @@ from .friends import (
     unblock_user,
     friends_overview,
 )
+from .activity import report_activity
 from .photos import profile_photo_view
 from .tokens import SessionRefreshView
 
@@ -47,6 +48,8 @@ urlpatterns = [
     path('check-name/', check_name, name='check-name'),
     # Rotating refresh with an absolute 90-day session cap (see users.tokens).
     path('token/refresh/', SessionRefreshView.as_view(), name='token_refresh'),
+    # Time on the site, reported by signed-in browsers in batches (see users.activity).
+    path('activity/', report_activity, name='activity'),
 
     # Friends
     path('search-users/', search_users, name='search-users'),

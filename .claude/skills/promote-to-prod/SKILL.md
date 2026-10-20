@@ -12,7 +12,7 @@ themselves. Without that, stop — see CLAUDE.md "Shipping".
 Pre-flight:
 - **Legal version dates.** If the promotion carries a new terms/privacy version (`TERMS_VERSION` in
   `backend/users/consent.py` differs from production's), on the day the production frontend is promoted set
-  `updated`/`updatedIso`/`changeNotice.effective`/`changeNotice.showUntilIso` in `src/configurations/legal.ts`
+  `updated`/`updatedIso`/`changeNotice.effective` in `src/configurations/legal.ts`
   (+ the version in both `consent.py` and `legal.ts`) to that day; promote the backend + relay no earlier than
   `effective`, or record an owner waiver (docs/legal/OPEN_ITEMS.md).
 
