@@ -1,14 +1,5 @@
 {
-  "blocks": [
-    {
-      "service": "signup",
-      "by": "LC-SIGNUP-03",
-      "finding": "UIC-20261017-0350-logic-001",
-      "card": "3fb2cfb1-c595-81af-95b2-fb3e3d1d1ced",
-      "runId": "20261017-0350-logic",
-      "since": "2026-10-16T06:28:11.186Z"
-    }
-  ],
+  "blocks": [],
   "deferred": [
     {
       "checker": "ui",
@@ -17,7 +8,8 @@
       "blockedBy": "LC-SIGNUP-03",
       "service": "signup",
       "runId": "20261017-0402",
-      "since": "2026-10-16T07:34:33.170Z"
+      "since": "2026-10-16T07:34:33.170Z",
+      "resolvedAt": "2026-10-20T21:15:58.752Z"
     },
     {
       "checker": "ui",
@@ -26,7 +18,8 @@
       "blockedBy": "LC-SIGNUP-03",
       "service": "signup",
       "runId": "20261017-0402",
-      "since": "2026-10-16T07:34:33.295Z"
+      "since": "2026-10-16T07:34:33.295Z",
+      "resolvedAt": "2026-10-20T21:15:58.752Z"
     },
     {
       "checker": "ui",
@@ -35,7 +28,8 @@
       "blockedBy": "LC-SIGNUP-03",
       "service": "signup",
       "runId": "20261017-0402",
-      "since": "2026-10-16T07:34:33.317Z"
+      "since": "2026-10-16T07:34:33.317Z",
+      "resolvedAt": "2026-10-20T21:15:58.752Z"
     }
   ],
   "resolved": [
@@ -48,6 +42,17 @@
       "since": "2026-10-16T06:06:57.267Z",
       "resolvedAt": "2026-10-16T06:06:59.610Z",
       "commit": "a9e44bad8f40f4d93883dbc8af463951f9472e3a",
+      "how": "fix on main"
+    },
+    {
+      "service": "signup",
+      "by": "LC-SIGNUP-03",
+      "finding": "UIC-20261017-0350-logic-001",
+      "card": "3fb2cfb1-c595-81af-95b2-fb3e3d1d1ced",
+      "runId": "20261017-0350-logic",
+      "since": "2026-10-16T06:28:11.186Z",
+      "resolvedAt": "2026-10-20T21:15:58.752Z",
+      "commit": "229b3a4953190dbb9a27200c3ac46fc6bcf2a125",
       "how": "fix on main"
     }
   ]
