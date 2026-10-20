@@ -84,6 +84,8 @@ def delete_account(user):
             user.last_login = None
             user.terms_version, user.terms_accepted_at = "", None
             user.age_confirmed_at, user.age_group, user.consent_source = None, "", ""
+            user.birth_month = user.birth_year = None
+            user.age_sets = 0
             user.is_active = False
             user.save()
             OutstandingToken.objects.filter(user=user).delete()
@@ -150,6 +152,8 @@ def export_account(user):
             "terms_version": user.terms_version,
             "age_confirmed_at": _iso(user.age_confirmed_at),
             "age_group": user.age_group,
+            "birth_month": user.birth_month,
+            "birth_year": user.birth_year,
             "consent_source": user.consent_source,
             "strike_count": user.strike_count,
             "banned_at": _iso(user.banned_at),

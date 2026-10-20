@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle and one LeContexto a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle and LeContexto limit", "Legitimate interests", "Answers: 30 days. Wordle and LeContexto plays: removed after the day ends. The device code stays in your browser until you clear it."],
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
-          ["Consent record: the Terms version you accepted, when, that you confirmed you are 13 or older and how (the sign-up tick-box, by email or with Google), and, if you gave your birth month and year when adding a photo, only whether you are 16 or over (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
+          ["Consent record: the Terms version you accepted, when, that you confirmed you are 13 or older and how (the sign-up tick-box, by email or with Google), and, if you gave your birth month and year (when adding a photo or in Profile settings), that month and year and whether you are 16 or over (we never keep the day)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
           [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
           ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 30 days."],
@@ -167,8 +167,9 @@ export default function PrivacyPage() {
       <p>
         Accounts are only for people aged {LEGAL.minimumAge} or over. When you sign up, by email or with Google, you tick a
         box to confirm you are {LEGAL.minimumAge} or older; we record that you confirmed it and when. We do not ask your
-        birth date at sign-up. We ask for your birth month and year only when you add a profile photo, and we do not
-        store them: we keep only whether you are under or over {LEGAL.photoMinimumAge}, and you can give it once.
+        birth date at sign-up. We ask for your birth month and year only when you add a profile photo. We keep the
+        month and year you give (never the day) and whether that makes you under or over {LEGAL.photoMinimumAge}; you
+        can see them in Profile settings and give them twice in all: the first time and one change.
         Until you have told us you are {LEGAL.photoMinimumAge} or over, your account cannot have a profile photo; that is
         the only difference. Like every account it is on the public leaderboard, can be found by name or player ID, and
         shows its name to other players in online matches. Players under {LEGAL.photoMinimumAge} cannot add a profile

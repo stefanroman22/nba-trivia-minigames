@@ -70,13 +70,19 @@ def _in_sync(r):
     return True
 
 
+def _row(public_id, username, rank, points, photo_version):
+    """One board row. `photo_version` (0 = no photo) lets the client build the cacheable photo URL
+    /api/users/<id>/photo/?v=<version> (users.photos); the photo bytes never travel in a board."""
+    return {"id": public_id, "username": username, "rank": rank, "points": points, "photo_version": photo_version}
+
+
 def _is_ranked(user):
     return not getattr(user, "banned_at", None)
 
 
 def _postgres_top(n):
-    rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank")
-    return [{"id": u["public_id"], "username": u["username"], "rank": u["rank"], "points": u["points"]} for u in rows]
+    rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank", "profile_photo_version")
+    return [_row(u["public_id"], u["username"], u["rank"], u["points"], u["profile_photo_version"]) for u in rows]
 
 
 def top(n=100):
@@ -87,13 +93,16 @@ def top(n=100):
     entries = r.zrevrange(ZKEY, 0, n - 1, withscores=True)
     ids = [m for m, _ in entries]
     # One query resolves the display names for the whole page.
-    info = {pid: (name, rank) for pid, name, rank in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank")}
+    info = {
+        pid: (name, rank, photo)
+        for pid, name, rank, photo in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank", "profile_photo_version")
+    }
     if len(info) < len(ids):
         # A member that is not on the board (hidden or deleted since it was added) means the ZSET has
         # drifted even though its size matches, so a real player is missing from it: Postgres answers.
         _warn_drift(f"{len(ids) - len(info)} of the top {len(ids)} members are not on the board")
         return _postgres_top(n)
-    return [{"id": m, "username": info[m][0], "rank": info[m][1], "points": int(s)} for m, s in entries]
+    return [_row(m, info[m][0], info[m][1], int(s), info[m][2]) for m, s in entries]
 
 
 def rank_of(user):
@@ -156,9 +165,9 @@ def friends_board(user):
     rows = list(
         User.objects.filter(banned_at__isnull=True, pk__in=ids)
         .order_by("-points")
-        .values("pk", "public_id", "username", "points", "rank")
+        .values("pk", "public_id", "username", "points", "rank", "profile_photo_version")
     )
-    board = [{"id": r["public_id"], "username": r["username"], "rank": r["rank"], "points": r["points"]} for r in rows]
+    board = [_row(r["public_id"], r["username"], r["rank"], r["points"], r["profile_photo_version"]) for r in rows]
     my_rank = next((i + 1 for i, r in enumerate(rows) if r["pk"] == user.pk), len(board))
     return board, my_rank, len(board)
 
@@ -176,11 +185,13 @@ def weekly_board(user=None):
 
     rows = list(
         GameSession.objects.filter(user__in=_ranked(), finished_at__gte=week_start_utc(cet_today()), awarded__gt=0)
-        .values("user__public_id", "user__username", "user__rank")
+        .values("user__public_id", "user__username", "user__rank", "user__profile_photo_version")
         .annotate(points=Sum("awarded"))
         .order_by("-points", "user__public_id")
     )
-    board = [{"id": r["user__public_id"], "username": r["user__username"], "rank": r["user__rank"], "points": r["points"]} for r in rows]
+    board = [
+        _row(r["user__public_id"], r["user__username"], r["user__rank"], r["points"], r["user__profile_photo_version"]) for r in rows
+    ]
     my_rank = None
     mine = None
     if user is not None:

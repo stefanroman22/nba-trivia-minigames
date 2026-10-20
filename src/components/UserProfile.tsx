@@ -154,10 +154,7 @@ function UserProfile() {
                 <span className="pc-progress-note tnum">
                   <SwapText>
                     {user.rank_progress.next_rank
-                      ? `${user.rank_progress.points_to_next.toLocaleString()} pts to ${user.rank_progress.next_rank}` +
-                        (user.rank_progress.days_to_next > 0
-                          ? ` · ${user.rank_progress.days_to_next} more active ${user.rank_progress.days_to_next === 1 ? "day" : "days"}`
-                          : "")
+                      ? `${user.rank_progress.points_to_next.toLocaleString()} pts to ${user.rank_progress.next_rank}`
                       : "Top of the ladder"}
                   </SwapText>
                 </span>

@@ -176,7 +176,8 @@ class NameChangeTests(StrikeTestCase):
         resp = self.google_login("admin@example.com")
         self.assertEqual(resp.status_code, 200, resp.content)
         user = User.objects.get(email="admin@example.com")
-        self.assertRegex(user.username, r"^[A-Za-z]+\d{4}$")
+        # The email name fails the username check, so a word + 2 digits is used instead.
+        self.assertRegex(user.username, r"^[A-Za-z]+\d{2}$")
         self.assertNotIn("admin", user.username.lower())
         self.assertEqual(user.strike_count, 0)
         self.assertFalse(ModerationEvent.objects.exists())

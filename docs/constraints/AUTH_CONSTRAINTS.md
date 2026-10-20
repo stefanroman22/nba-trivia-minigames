@@ -170,9 +170,9 @@ if (err instanceof SessionNetworkError || getRefreshToken()) { console.error("Se
 It has two callers: `log_session` (solo games, the signed-in browser) and `multiplayer_result` (online
 matches, the relay only; see AUTH-7). Both clamp the score with `awarding.clamp_score` (per-game
 `GAME_MAX_POINTS`, online Wordle `MATCH_MAX_POINTS`) and `log_session` records the `GameSession` in the same
-step; it is throttled by `ScoreSubmitRateThrottle` (`score-submit`, 60/hour). The award applies the daily soft
-cap (1,500 points in full, the next 1,500 at half, the rest at 10 %), the +100 first-scoring-game bonus and the
-streak milestones; solo Wordle and solo LeContexto (`ONE_SCORING_PLAY_A_DAY`, one puzzle a day) credit only the
+step; it is throttled by `ScoreSubmitRateThrottle` (`score-submit`, 60/hour). The award credits every game point
+in full (no daily cap since 2026-10-20), plus the +100 first-scoring-game bonus and the streak milestones (days
+10/25/50/100/200/500/1000, `STREAK_MILESTONES`); solo Wordle and solo LeContexto (`ONE_SCORING_PLAY_A_DAY`, one puzzle a day) credit only the
 day's first scoring solo play (a repeat is logged with its score but awards 0 and touches no streak or active day;
 online rounds are not limited), and the response is the receipt `{awarded, points, rank, rank_up, progress, streak,
 first_game_bonus, streak_bonus, base}`, which `userSlice.applyAward` applies. `users/views.py` `update_profile`

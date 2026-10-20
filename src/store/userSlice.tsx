@@ -22,6 +22,12 @@ export type User = {
   streak_freezes?: number;
   active_days?: number;
   founding_member?: boolean;
+  /** "adult" (16+), "teen" or "" (not told yet); absent on a cached /me/ from before it was sent. */
+  age_group?: string;
+  /** The birth month and year the player gave (null until given); how many times they can still change it. */
+  birth_month?: number | null;
+  birth_year?: number | null;
+  age_sets_left?: number;
 };
 
 type UserState = {
@@ -108,8 +114,18 @@ const userSlice = createSlice({
         state.user.profile_photo = action.payload;
       }
     },
+    /** The server's answer after a birth-date change: the age group, and the photo (gone when the new age is under 16). */
+    updateAge: (state, action: PayloadAction<{ age_group: string; profile_photo: string | null; birth_month: number | null; birth_year: number | null; age_sets_left: number }>) => {
+      if (state.user) {
+        state.user.age_group = action.payload.age_group;
+        state.user.profile_photo = action.payload.profile_photo;
+        state.user.birth_month = action.payload.birth_month;
+        state.user.birth_year = action.payload.birth_year;
+        state.user.age_sets_left = action.payload.age_sets_left;
+      }
+    },
   },
 });
 
-export const { login, logout, accountBanned, hydrateSession, updatePoints, updateRank, applyAward, clearRankUp, updateUsername, updateProfilePhoto } = userSlice.actions;
+export const { login, logout, accountBanned, hydrateSession, updatePoints, updateRank, applyAward, clearRankUp, updateUsername, updateProfilePhoto, updateAge } = userSlice.actions;
 export default userSlice.reducer;

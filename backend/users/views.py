@@ -23,6 +23,7 @@ from users.consent import (
     CONSENT_FIELDS,
     PHOTO_MIN_AGE,
     age_group_for,
+    age_sets_left,
     check_consent,
     consent_source_for,
     is_teen,
@@ -30,7 +31,7 @@ from users.consent import (
     stamp_consent,
 )
 from users.google_auth import GoogleAuthError, verify_google_code
-from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for
+from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for, strip_accents
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
 from users.tokens import issue_session_tokens, revoke_sessions
 
@@ -98,6 +99,11 @@ def user_payload(request, user):
         # photo gate (no photo until 16+ is confirmed); they are public everywhere else, and the relay no
         # longer masks them. Kept on the payload for clients that still read it.
         "is_teen": is_teen(user),
+        # "adult" (16+), "teen" or "" (not told yet): what Profile settings shows next to the birth-date change.
+        "age_group": user.age_group,
+        "birth_month": user.birth_month,
+        "birth_year": user.birth_year,
+        "age_sets_left": age_sets_left(user),
     }
 
 
@@ -153,25 +159,53 @@ def _digits(n):
     return "".join(str(secrets.randbelow(10)) for _ in range(n))
 
 
-# Neutral basketball words for new Google accounts' names (+ 4 digits): no real names, nothing the
-# moderation lists touch (users.test_signup_age_checkbox checks every word), at most 16 letters.
+# Neutral basketball words for the fallback names of new Google accounts (+ 2 digits): no real names,
+# nothing the moderation lists touch (users.test_signup_age_checkbox checks every word), at most 16 letters.
 GOOGLE_NAME_WORDS = (
     "Hooper", "Baller", "Dunker", "Playmaker", "Fastbreak", "Crossover",
     "Alleyoop", "Jumpshot", "Rimrunner", "Courtside", "Backboard", "Buzzerbeater",
 )
 
+# The email name keeps room for 2 digits inside the 20-character username limit.
+EMAIL_STEM_MAX = 18
+EMAIL_STEM_MIN = 3
 
-def generated_username():
-    """A neutral display name for a new Google account: a GOOGLE_NAME_WORDS word + 4 random digits,
-    free in any case, retried up to USERNAME_TRIES times; then Player + 4 digits, then Player + 6.
 
-    Nothing from the email ever becomes public (audit finding C1, owner decision 2026-10-11). The
-    player is offered to pick their own name right after sign-up and can rename in Profile settings.
+def _email_stem(email):
+    """The part of the email before the "@" (and before any "+tag"), accents stripped and cut to what a
+    username allows, or "" when too little is left (or no letter) to make a name."""
+    local = str(email or "").split("@")[0].split("+")[0]
+    stem = re.sub(r"[^A-Za-z0-9_]", "", strip_accents(local))[:EMAIL_STEM_MAX]
+    return stem if len(stem) >= EMAIL_STEM_MIN and re.search(r"[A-Za-z]", stem) else ""
+
+
+def _first_free(stems):
+    """The first `stem + 2 digits` (random order, 00-99 for each stem in turn) that is valid, passes
+    moderation and is not taken (case-insensitive). One query per stem, not one per candidate."""
+    for stem in stems:
+        taken = {n.lower() for n in User.objects.filter(username__istartswith=stem).values_list("username", flat=True)}
+        numbers = [f"{n:02d}" for n in range(100)]
+        while numbers:
+            candidate = f"{stem}{numbers.pop(secrets.randbelow(len(numbers)))}"
+            if candidate.lower() not in taken and _username_usable(candidate):
+                return candidate
+    return None
+
+
+def generated_username(email=""):
+    """The display name of a new Google account: the email's name before the "@" + 2 random digits,
+    the digits re-rolled until the name is free; when the email gives no usable name (too short, or
+    every one of the 100 numbers is taken), a GOOGLE_NAME_WORDS word + 2 digits in random order of word;
+    only then Player + 4 digits, then Player + 6.
+
+    The email name is public on leaderboards, search and in matches (owner decision 2026-10-20, replacing
+    the neutral-names-only rule of 2026-10-11). The player is offered to pick their own name right after
+    sign-up and can rename in Profile settings.
     """
-    for _ in range(USERNAME_TRIES):
-        candidate = f"{secrets.choice(GOOGLE_NAME_WORDS)}{_digits(4)}"
-        if _username_usable(candidate):
-            return candidate
+    stems = [_email_stem(email)] if _email_stem(email) else []
+    candidate = _first_free(stems) or _first_free(secrets.SystemRandom().sample(GOOGLE_NAME_WORDS, len(GOOGLE_NAME_WORDS)))
+    if candidate:
+        return candidate
     for _ in range(USERNAME_TRIES):
         candidate = f"Player{_digits(4)}"
         if not _username_taken(candidate):
@@ -213,10 +247,10 @@ def _user_for_google_identity(identity, age_group=None, consent_source="", data=
     if age_group is None:
         raise GoogleConsentRequired()
 
-    # The display name is public (leaderboards, search, matches), so it is never derived from the email:
-    # a generated neutral name, which the player is offered to change right after sign-up.
+    # The display name is the email's name before the "@" + 2 digits (a word + 2 digits when that gives
+    # nothing usable); the player is offered to change it right after sign-up.
     try:
-        user = User.objects.create_user(username=generated_username(), email=email, password=None, google_sub=sub)
+        user = User.objects.create_user(username=generated_username(email), email=email, password=None, google_sub=sub)
     except IntegrityError:
         # A concurrent first sign-in created it between our lookup and insert.
         user = User.objects.filter(google_sub=sub).first() or User.objects.get(email__iexact=email)
@@ -409,16 +443,17 @@ PHOTO_AGE_REQUIRED_MESSAGE = f"Profile photos are for players aged {PHOTO_MIN_AG
 @permission_classes([IsAuthenticated])
 @throttle_classes([AccountDataRateThrottle])
 def set_my_age(request):
-    """POST {"birth_month", "birth_year"}: give the age once, when adding a profile photo.
-
-    Only the coarse age group (adult 16+ / teen) is kept, never the date, and only while it is
-    still unknown, so a teen can't retry with an older year (409).
+    """POST {"birth_month", "birth_year"}: give the age when adding a profile photo, or change it later in
+    Profile settings. Allowed twice in all (409 after that). The month and year are kept, never the day.
+    Changing it to under 16 removes an existing profile photo, as a photo is for 16+ only.
     """
     data = request.data if isinstance(request.data, dict) else {}
     ok, message = set_age_from_birth_date(request.user, data)
     if not ok:
-        code = status.HTTP_409_CONFLICT if request.user.age_group else status.HTTP_400_BAD_REQUEST
+        code = status.HTTP_409_CONFLICT if age_sets_left(request.user) <= 0 else status.HTTP_400_BAD_REQUEST
         return Response({"error": message}, status=code)
+    if is_teen(request.user) and not request.user.is_staff and request.user.profile_photo_version:
+        remove_photo(request.user)
     return Response({"user": user_payload(request, request.user)})
 
 

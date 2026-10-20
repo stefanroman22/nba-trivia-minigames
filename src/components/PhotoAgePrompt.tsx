@@ -12,21 +12,24 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December",
 ];
 
-/** Inline birth month + year form in the photo flow (landing card, Profile settings), shown when an
- *  account of unknown age tries to add its first photo (hooks/useProfilePhoto `agePrompt`). Only
- *  whether the player is 16+ is kept, never the date. Glides open and closed (shared slot motion). */
+/** Inline birth month + year form: in the photo flow (landing card, Profile settings), shown when an
+ *  account of unknown age tries to add its first photo (hooks/useProfilePhoto `agePrompt`), and in Profile
+ *  settings to change the birth date later (`settings`). Only whether the player is 16+ is kept, never the
+ *  date. Glides open and closed (shared slot motion). */
 export default function PhotoAgePrompt({
   open,
   saving,
   error,
   onSubmit,
   onCancel,
+  settings = false,
 }: {
   open: boolean;
   saving: boolean;
   error: string;
   onSubmit: (month: string, year: string) => void;
   onCancel: () => void;
+  settings?: boolean;
 }) {
   const [month, setMonth] = useState("");
   const [year, setYear] = useState("");
@@ -44,11 +47,12 @@ export default function PhotoAgePrompt({
               onSubmit(month, year);
             }}
           >
-            <p className="photo-age-title">How old are you?</p>
-            <p className="photo-age-copy">
-              Profile photos are for players aged {LEGAL.photoMinimumAge} and over. Pick your birth month and year; we
-              keep only whether you&apos;re {LEGAL.photoMinimumAge}+, never the date, and you can set it once.
-            </p>
+            <p className="photo-age-title">{settings ? "Your birth month and year" : "How old are you?"}</p>
+            {!settings && (
+              <p className="photo-age-copy">
+                Profile photos are for players aged {LEGAL.photoMinimumAge} and over. Pick your birth month and year.
+              </p>
+            )}
             <div className="auth-consent-row">
               <Select
                 className="modal-input"
@@ -79,7 +83,7 @@ export default function PhotoAgePrompt({
             <div className="photo-age-actions">
               <button type="button" className="photo-age-cancel" onClick={onCancel} disabled={saving}>Cancel</button>
               <Button type="submit" size="sm" disabled={saving}>
-                <SwapText reserveWidth={["Continue", "Saving…"]}>{saving ? "Saving…" : "Continue"}</SwapText>
+                <SwapText reserveWidth={[settings ? "Save" : "Continue", "Saving…"]}>{saving ? "Saving…" : settings ? "Save" : "Continue"}</SwapText>
               </Button>
             </div>
           </form>

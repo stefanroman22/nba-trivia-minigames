@@ -55,8 +55,8 @@ class RecountTests(TestCase):
     def test_rank_follows_the_new_ladder(self):
         User.objects.filter(pk=self.user.pk).update(points=6_000, rank="GOAT")
         self.play(_noon(TODAY))
-        # 6,000 points but one active day: Starter needs 3 days, so Sixth Man.
-        self.assertEqual(self.run_recount().rank, "Sixth Man")
+        # 6,000 points: All-Star on points alone (no day gates).
+        self.assertEqual(self.run_recount().rank, "All-Star")
 
     def test_a_player_active_yesterday_has_a_live_streak(self):
         self.play(_noon(TODAY - datetime.timedelta(days=1)))

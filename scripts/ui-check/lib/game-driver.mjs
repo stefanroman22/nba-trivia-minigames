@@ -524,8 +524,8 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, sessionLog, l
       } else if (!c.json) {
         audit.violation('points-not-logged', { selector: 'POST /trivia/log-session/', measured: `HTTP ${c.status} without a JSON body`, expected: '{ ok, awarded, points, rank }' });
       } else if (want > 0 && c.json.rank != null) {
-        // Signed in (a guest's reply has rank null). The award is the score after the daily soft cap plus the
-        // first-game / streak bonuses, so it need not equal the score: it must be positive and add up.
+        // Signed in (a guest's reply has rank null). The award is the score plus the first-game / streak
+        // bonuses, so it need not equal the score: it must be positive and add up.
         const j = c.json;
         const sum = typeof j.base === 'number' ? j.base + (j.first_game_bonus || 0) + (j.streak_bonus || 0) : null;
         if (!(j.awarded > 0) || (sum != null && sum !== j.awarded)) {

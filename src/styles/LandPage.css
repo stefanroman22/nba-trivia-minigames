@@ -267,7 +267,9 @@ html { scroll-behavior: smooth; }
    under it; its values shrink a little on the narrowest cards so "Hall of Famer III" still fits. */
 @container profile-card (max-width: 400px) {
   .pc-grid { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "photo meta" "stats stats"; }
-  .pc-stats { min-width: 0; }
+  /* Only as wide as its content (not stretched across the card), so the label and its value stay close. */
+  .pc-stats { min-width: 0; justify-self: start; width: fit-content; max-width: 100%; padding: 7px 12px; gap: 4px; }
+  .pc-stat { gap: 18px; }
   .pc-stat-num { font-size: clamp(13px, 4.6cqi, 15px); }
 }
 

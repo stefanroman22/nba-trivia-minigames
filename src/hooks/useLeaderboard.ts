@@ -67,12 +67,13 @@ async function fetchBoard(userKey: string | null, scope: LeaderboardScope): Prom
       caches[scope] = { leaders: [], error: true, userRank: null, numberUsers: null, userPoints: null, userKey, fetchedAt: Date.now() };
     } else {
       caches[scope] = {
-        leaders: live.map((u: { username: string; id?: string; points: number; rank?: string }, i: number) => ({
+        leaders: live.map((u: { username: string; id?: string; points: number; rank?: string; photo_version?: number }, i: number) => ({
           rank: i + 1,
           name: u.username,
           id: u.id ?? null,
           points: u.points,
           rankName: u.rank,
+          photoVersion: u.photo_version ?? 0,
         })),
         error: false,
         userRank: typeof data?.user_rank === "number" ? data.user_rank : null,

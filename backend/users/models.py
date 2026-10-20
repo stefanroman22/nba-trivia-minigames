@@ -85,8 +85,15 @@ class CustomUser(AbstractUser):
     age_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
     # "teen" (13-15) or "adult" (16+), from a birth month + year (older sign-ups, or given when adding a
     # profile photo); "" = unknown, which counts as teen (users.consent.is_teen). Teens cannot upload a
-    # public profile photo. The birth date itself is never stored.
+    # public profile photo.
     age_group = models.CharField(max_length=5, blank=True, default="", editable=False)
+    # The birth month + year the player gave (never the day), so Profile settings can show it back. Null
+    # until given (older accounts only have the age group). `age_sets` counts how many times it was given;
+    # the player may give it twice in all (users.consent.MAX_AGE_SETS). db_default so the previous backend
+    # (same shared database) can still insert rows while both versions are live.
+    birth_month = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
+    birth_year = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
+    age_sets = models.PositiveSmallIntegerField(default=0, db_default=0, editable=False)
     # How the 13+ confirmation was given: "signup_checkbox", "google_signup_checkbox", or "*_birth_date"
     # from older clients; "" on accounts created before 2026-10-11. db_default so the previous backend
     # (same shared database) can still insert rows while both versions are live.

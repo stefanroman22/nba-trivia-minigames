@@ -91,7 +91,9 @@ class SignupConsentTests(TestCase):
         self.assertEqual(user.terms_version, consent.TERMS_VERSION)
         self.assertIsNotNone(user.terms_accepted_at)
         self.assertIsNotNone(user.age_confirmed_at)
-        self.assertFalse(any("birth" in f.name for f in User._meta.get_fields()))
+        # Only a month and a year are ever stored (and only when given in Profile settings / at the photo), never a day.
+        self.assertEqual((user.birth_month, user.birth_year, user.age_sets), (None, None, 0))
+        self.assertFalse(any(f.name in ("birth_date", "birth_day", "date_of_birth") for f in User._meta.get_fields()))
 
 
 class GoogleConsentTests(TestCase):
