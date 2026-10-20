@@ -1,5 +1,4 @@
-import { useRef, useState, type CSSProperties } from "react";
-import copy from "copy-to-clipboard";
+import type { CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import "../../styles/Ladder.css";
 import { useLadder } from "../../hooks/useLadder";
@@ -8,9 +7,9 @@ import { Button, Chip, CourtLoader } from "../ui";
 import SwapText from "../motion/SwapText";
 import { reducedFade, staggerContainer, staggerItem, swap } from "../../motion/variants";
 import { visibleGames } from "../../utils/GameUtils";
-import { RANK_COLORS, RANK_TAGLINES, rankLabel, percentileShareText } from "../../utils/ranks";
+import { RANK_COLORS, RANK_TAGLINES, rankLabel } from "../../utils/ranks";
 import {
-  aheadCopy, gateCopy, nextRankCopy, percentileHeadline, sameRankCopy, softCapCopy, streakCopy, toTopCopy,
+  nextRankCopy, requirementCopy, softCapCopy, standingCopy, streakCopy, toTopCopy,
   type LadderData, type LadderRow, type LadderRules,
 } from "../../utils/ladder";
 
@@ -59,32 +58,19 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
   // An older backend may send fewer fields: a missing rule just drops its line.
   const total = data.total_players ?? 0;
   const rules: Partial<LadderRules> = data.rules ?? {};
-  const [shared, setShared] = useState(false);
-  const timer = useRef<number | null>(null);
-  const share = async () => {
-    if (!you) return;
-    const text = percentileShareText(you.percentile, you.rank);
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) { await navigator.share({ text }); return; }
-    } catch { /* sheet dismissed: fall through */ }
-    copy(text);
-    setShared(true);
-    if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setShared(false), 1600);
-  };
   const myIndex = you ? ladder.findIndex((r) => r.name === you.rank) : -1;
   const games = visibleGames.filter((g) => g.maxPoints > 0);
 
   return (
     <div className="ld">
       {/* You / guest hero */}
-      <section className="ld-hero" style={{ "--rank-color": (you && RANK_COLORS[you.rank]) || "var(--brand)" } as CSSProperties}>
+      <section className={`ld-hero${you ? " ld-hero-you" : ""}`} style={{ "--rank-color": (you && RANK_COLORS[you.rank]) || "var(--brand)" } as CSSProperties}>
         <span className="ld-badge" aria-hidden="true">★</span>
         {you ? (
           <div className="ld-hero-text">
-            <span className="ld-eyebrow">{rankLabel(you.rank, you.division)} · #{you.position.toLocaleString()}{you.position <= total && ` of ${total.toLocaleString()}`}</span>
-            <h3 className="font-display ld-headline">{percentileHeadline(you, total)}</h3>
-            <p className="ld-sub">{aheadCopy(you)} · {sameRankCopy(you)}</p>
+            <span className="ld-eyebrow">Your rank</span>
+            <h3 className="font-display ld-headline">{rankLabel(you.rank, you.division)}</h3>
+            <p className="ld-sub tnum">{standingCopy(you, total)}</p>
             <p className="ld-next tnum"><SwapText>{nextRankCopy(you)}</SwapText></p>
           </div>
         ) : (
@@ -96,13 +82,11 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
             </p>
           </div>
         )}
-        <div className="ld-hero-actions">
-          {you ? (
-            <Button size="sm" onClick={share}><SwapText reserveWidth={["Share", "Copied!"]}>{shared ? "Copied!" : "Share"}</SwapText></Button>
-          ) : (
+        {!you && (
+          <div className="ld-hero-actions">
             <Button size="sm" onClick={onSignUp}>Log in / Sign up</Button>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       <div className="ld-cols">
@@ -123,11 +107,12 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
                       {myIndex >= 0 && i === myIndex + 1 && <Chip>next</Chip>}
                     </span>
                     <span className="ld-row-tag">{RANK_TAGLINES[row.name]}</span>
+                    <span className="ld-row-req tnum">{requirementCopy(row)}</span>
                     <span className="ld-bar" aria-hidden="true"><span className="ld-bar-fill" style={{ "--w": Math.min(100, Math.max(row.share_pct, row.players > 0 ? 1.5 : 0)) / 100 } as CSSProperties} /></span>
                   </span>
                   <span className="ld-row-side tnum">
-                    <span className="ld-row-gate">{gateCopy(row)}</span>
                     <span className="ld-row-pct">{sharePct(row)}</span>
+                    <span className="ld-row-of">of players</span>
                   </span>
                 </motion.li>
               );

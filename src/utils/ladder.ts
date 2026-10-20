@@ -59,6 +59,16 @@ export function gateCopy(row: Pick<LadderRow, "name" | "points" | "days">): stri
   if (row.points === 0) return "Start here";
   return row.days > 0 ? `${n(row.points)} pts · ${row.days} ${row.days === 1 ? "day" : "days"}` : `${n(row.points)} pts`;
 }
+/** What a row asks for, as plain text under the rank name. */
+export function requirementCopy(row: Pick<LadderRow, "points" | "days">): string {
+  if (row.points === 0) return "Starting rank";
+  return `From ${n(row.points)} pts${row.days > 0 ? ` · ${row.days} active ${row.days === 1 ? "day" : "days"}` : ""}`;
+}
+/** "#23 of 25 players · ahead of 8%": position, field size and the share you are ahead of (never 100%). */
+export function standingCopy(you: LadderYou, totalPlayers: number): string {
+  const place = you.position <= totalPlayers ? `#${n(you.position)} of ${n(totalPlayers)} ${totalPlayers === 1 ? "player" : "players"}` : `#${n(you.position)}`;
+  return `${place} · ahead of ${pct0(Math.min(99, Math.round(you.ahead_of_pct)))}`;
+}
 export function softCapCopy(r: LadderRules): string {
   return `First ${n(r.daily_full)} pts a day count in full, the next ${n(r.daily_half)} at half, the rest at ${Math.round(r.daily_tail_rate * 100)}%`;
 }
