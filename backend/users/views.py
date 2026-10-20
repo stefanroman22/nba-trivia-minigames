@@ -94,9 +94,9 @@ def user_payload(request, user):
         "profile_photo": profile_photo_url(request, user),
         # UI hint only — every admin endpoint re-checks is_staff server-side.
         "is_admin": bool(user.is_staff),
-        # 13-15 year-olds, and accounts whose age is unknown, are kept off public surfaces; the
-        # multiplayer relay reads this to show them as "Player" to strangers in random matches
-        # (multiplayer_server/src/index.js publicUser).
+        # 13-15 year-olds, and accounts whose age is unknown: since 2026-10-19 this only drives the profile
+        # photo gate (no photo until 16+ is confirmed); they are public everywhere else, and the relay no
+        # longer masks them. Kept on the payload for clients that still read it.
         "is_teen": is_teen(user),
     }
 

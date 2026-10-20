@@ -215,7 +215,9 @@ Escape-to-close, focus trap, focus restore and body-scroll lock, and `ModalHost`
 `ModalHost.tsx` and a presentational component in `src/components/modals/` that only receives
 `onClose` (never its own backdrop). Current kinds: `login`, `feedback`, `leaderboard`,
 `instructions`, `multiplayerInfo`, `gamePicker`, `answerReview` (lazy-loaded: it bundles every
-game's review view, which only a game page in a match opens).
+game's review view, which only a game page in a match opens), `confirmLogout` (the "Log out?" confirm,
+payload `{ onConfirm }`, opened by `useLogout().requestLogOut`; its Cancel carries `data-autofocus`, which
+`useFocusTrap` focuses first).
 
 ```tsx
 ❌ WRONG — a component rendering its own overlay outside ModalHost
