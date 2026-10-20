@@ -23,17 +23,19 @@ export interface SelectOption {
   disabled?: boolean;
 }
 
-interface SelectProps {
+interface SelectBaseProps {
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
   /** Shown (muted) while `value` matches no option, e.g. "Birth year". Not an option itself. */
   placeholder?: string;
   disabled?: boolean;
-  "aria-label"?: string;
   /** Skin for the trigger (`modal-input`, `fb-select`, …); without one it takes the `.field` look. */
   className?: string;
 }
+/** A combobox needs a name: an `aria-label`, or the id of a visible label in `aria-labelledby`. */
+type SelectProps = SelectBaseProps &
+  ({ "aria-label": string; "aria-labelledby"?: string } | { "aria-label"?: string; "aria-labelledby": string });
 
 type Side = "below" | "above";
 interface Placement {
@@ -55,6 +57,30 @@ const GAP = 6; // trigger ↔ menu
 const EDGE = 8; // menu ↔ viewport edge
 
 const subscribe = () => () => {};
+
+/** Bottom of the sticky site header (`.nav3`) when it covers the top of the viewport, else 0. Inside a
+ *  dialog the modal backdrop sits above the header, so that space is free. */
+function headerBottom(trigger: HTMLElement) {
+  if (trigger.closest('[role="dialog"]')) return 0;
+  const nav = document.querySelector(".nav3");
+  return nav ? Math.max(0, nav.getBoundingClientRect().bottom) : 0;
+}
+
+/** Swallow the click that follows an outside press which closed a menu, so closing never also
+ *  presses what is under the pointer (as a native select). Disarms itself after 400 ms if no click comes. */
+function swallowNextClick() {
+  const swallow = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    disarm();
+  };
+  const disarm = () => {
+    window.removeEventListener("click", swallow, true);
+    window.clearTimeout(timer);
+  };
+  window.addEventListener("click", swallow, true);
+  const timer = window.setTimeout(disarm, 400);
+}
 const menuMotion = (dy: number): Variants => ({
   hidden: { opacity: 0, y: dy, scale: 0.97 },
   visible: { opacity: 1, y: 0, scale: 1, transition: { duration: durations.base, ease: easing.out } },
@@ -78,6 +104,7 @@ export default function Select({
   placeholder = "",
   disabled = false,
   "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
   className = "",
 }: SelectProps) {
   const [open, setOpen] = useState(false);
@@ -104,7 +131,7 @@ export default function Select({
     const vh = document.documentElement.clientHeight;
     const want = Math.min(MAX_HEIGHT, options.length * ROW + PAD * 2 + BORDER * 2);
     const below = vh - r.bottom - GAP - EDGE;
-    const above = r.top - GAP - EDGE;
+    const above = r.top - GAP - EDGE - headerBottom(trigger); // the sticky header's strip is not free space
     let side: Side;
     if (keep === "below" && below >= want) side = "below";
     else if (keep === "above" && above >= want) side = "above";
@@ -129,6 +156,8 @@ export default function Select({
 
   const openMenu = (at: number) => {
     if (disabled || options.length === 0) return;
+    // Safari/iOS don't focus a pressed button: focus it so the keys and the blur-to-close work there too.
+    triggerRef.current?.focus({ preventScroll: true });
     setPlace(measure());
     setActive(at >= 0 ? at : firstEnabled(0, 1));
     setOpen(true);
@@ -228,24 +257,33 @@ export default function Select({
     else if (top + ROW > list.scrollTop + list.clientHeight) list.scrollTop = top + ROW + PAD - list.clientHeight;
   }, [open, active]);
 
-  // While open: follow the trigger on scroll/resize (re-choosing the side), close on an outside press
-  // or when the trigger scrolls off screen.
+  // While open: follow the trigger on scroll/resize (re-choosing the side, once per frame), close on an
+  // outside press (swallowing its click) or when the trigger scrolls off screen or under the sticky header.
   useEffect(() => {
     if (!open) return;
+    let raf = 0;
     const follow = (e: Event) => {
       if (e.type === "scroll" && e.target === listRef.current) return;
-      const r = triggerRef.current?.getBoundingClientRect();
-      if (!r || r.bottom < 0 || r.top > document.documentElement.clientHeight) return close();
-      setPlace((p) => measure(p?.side));
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        const trigger = triggerRef.current;
+        const r = trigger?.getBoundingClientRect();
+        if (!trigger || !r || r.bottom < headerBottom(trigger) || r.top > document.documentElement.clientHeight) return close();
+        setPlace((p) => measure(p?.side));
+      });
     };
     const onDown = (e: PointerEvent) => {
       const t = e.target as Node;
-      if (!triggerRef.current?.contains(t) && !listRef.current?.contains(t)) close();
+      if (triggerRef.current?.contains(t) || listRef.current?.contains(t)) return;
+      close();
+      swallowNextClick();
     };
     window.addEventListener("resize", follow);
     window.addEventListener("scroll", follow, true);
     document.addEventListener("pointerdown", onDown, true);
     return () => {
+      cancelAnimationFrame(raf);
       window.removeEventListener("resize", follow);
       window.removeEventListener("scroll", follow, true);
       document.removeEventListener("pointerdown", onDown, true);
@@ -253,6 +291,11 @@ export default function Select({
     // `measure` reads refs and the current options; re-binding per render is not needed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // A control that turns disabled while open (the form is saving) closes its menu.
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   useEffect(() => () => window.clearTimeout(typed.current.timer), []);
 
@@ -271,8 +314,9 @@ export default function Select({
         aria-controls={listId}
         aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
         aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
         disabled={disabled}
-        className={`sel-trigger ${className || "sel-field"}`}
+        className={`sel-trigger ${className || "field"}`}
         onClick={() => (open ? close() : openMenu(selectedIndex))}
         onKeyDown={onKeyDown}
         onKeyUp={(e) => { if (e.key === " ") e.preventDefault(); }}
@@ -283,10 +327,13 @@ export default function Select({
           {[placeholder, ...options.map((o) => o.label)].map((label, i) => (
             <span key={i} className="sel-reserve" aria-hidden="true">{label}</span>
           ))}
-          <span className={`sel-current${selected ? "" : " is-placeholder"}`}>
+          {/* The visible label animates (SwapText keeps the old one in the DOM for a moment), so screen
+              readers read the always-current copy below instead. */}
+          <span className={`sel-current${selected ? "" : " is-placeholder"}`} aria-hidden="true">
             <SwapText swapKey={selected ? `v:${selected.value}` : "placeholder"}>{selected ? selected.label : placeholder}</SwapText>
           </span>
         </span>
+        <span className="sel-sr">{selected ? selected.label : placeholder}</span>
         <motion.span
           className="sel-chevron"
           aria-hidden="true"
@@ -306,6 +353,7 @@ export default function Select({
                 id={listId}
                 role="listbox"
                 aria-label={ariaLabel}
+                aria-labelledby={ariaLabelledBy}
                 className="sel-menu"
                 style={{
                   top: place.top,
