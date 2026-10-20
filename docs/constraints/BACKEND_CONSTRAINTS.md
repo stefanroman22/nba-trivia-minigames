@@ -213,7 +213,8 @@ if not rows:
 `@api_view` (+ `permission_classes`, `throttle_classes`) is used across `users/views.py`,
 `users/friends.py`, `trivia/admin_api.py`/`trivia/feedback_api.py` (`IsAdminUser`, return DRF
 `Response`) and on `trivia/views.py`'s state-changing or throttled endpoints (`log_guesses`,
-`log_session`, `submit_feedback`, `wordle_daily_status`, `wordle_daily_play`). The rest of
+`log_session`, `submit_feedback`, `wordle_daily_status`, `wordle_daily_play`, `contexto_daily_status`,
+`contexto_daily_play`). The rest of
 `trivia/views.py` (`get_random_playoff_series`, `get_mvps`, `get_manifest`, `get_pool`, ...) and all
 `trivia/games/*.py::get_round` are bare functions returning `django.http.JsonResponse`, with no
 `@api_view` anywhere in `trivia/games/` (`nba_grid_tally`, an `EXTRA_URLS` entry, is also plain).
@@ -432,7 +433,7 @@ There is deliberately no `DEFAULT_THROTTLE_CLASSES`: each throttle is a `UserRat
 `backend/backend/throttles.py` with a `scope`, whose rate lives in
 `settings.REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"]`, applied with `@throttle_classes([...])` on
 endpoints worth abusing (`login_view`, `signup_view`, `log_session`, `submit_feedback`,
-`wordle_daily_play`, friends search/actions, `SessionRefreshView.throttle_classes`). Public game-data
+`wordle_daily_play`, `contexto_daily_play`, friends search/actions, `SessionRefreshView.throttle_classes`). Public game-data
 reads stay unthrottled. DRF stores counters in the default cache, so `settings.py` picks `CACHES` by
 environment: `REDIS_URL` set -> `RedisCache`; else `DATABASE_URL` set -> `DatabaseCache`
 (`django_cache_table`, created by `createcachetable` in `vercel.json`'s build); else `LocMemCache`

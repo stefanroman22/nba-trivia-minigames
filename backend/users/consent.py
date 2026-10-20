@@ -100,7 +100,8 @@ CONSENT_FIELDS = ["terms_accepted_at", "terms_version", "age_confirmed_at", "age
 
 
 def is_teen(user):
-    """Unknown age counts as teen: only an age that proves PHOTO_MIN_AGE+ makes an account public."""
+    """Unknown age counts as teen: only an age that proves PHOTO_MIN_AGE+ allows a profile photo, the
+    one thing a teen account can't do (owner decision 2026-10-19)."""
     return getattr(user, "age_group", "") != "adult"
 
 

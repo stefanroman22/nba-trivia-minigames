@@ -1,8 +1,9 @@
-"""Daily word-of-the-day logic for single-player Wordle (once-per-day gate).
+"""Daily word-of-the-day logic for single-player Wordle, and the once-per-day
+play gate every daily solo game shares (Wordle, Contexto).
 
 Multiplayer keeps using `get_wordle` in views.py unchanged — a fresh random
 word per round, same as every other game's round. This module is only for the
-single-player "one play per day" puzzle.
+single-player "one play per day" puzzles.
 
 The day boundary is Europe/Paris (CET/CEST) civil midnight, not a fixed UTC
 offset, so the flip stays at real local midnight across the DST change.
@@ -22,6 +23,9 @@ CET = ZoneInfo("Europe/Paris")
 
 # A repick is skipped once a word has been used within this many days.
 NO_REPEAT_DAYS = 180
+
+# The solo games played once per Paris day (one WordlePlay row per identity, game and day).
+DAILY_GAMES = ("wordle", "contexto")
 
 
 def cet_today() -> datetime.date:
@@ -88,7 +92,7 @@ def resolve_device_id(request) -> str:
     return str(raw or "")[:64]
 
 
-def has_played_today(user, device_id: str, day: datetime.date) -> bool:
+def has_played_today(user, device_id: str, day: datetime.date, game: str = "wordle") -> bool:
     if user is not None and user.is_authenticated:
         identity = Q(user=user)
         if device_id:
@@ -98,15 +102,16 @@ def has_played_today(user, device_id: str, day: datetime.date) -> bool:
     else:
         # No account and no device id offered — nothing to gate on; treat as unplayed.
         return False
-    return WordlePlay.objects.filter(identity, play_date=day).exists()
+    return WordlePlay.objects.filter(identity, game=game, play_date=day).exists()
 
 
-def record_play(user, device_id: str, day: datetime.date) -> None:
+def record_play(user, device_id: str, day: datetime.date, game: str = "wordle") -> None:
     try:
         with transaction.atomic():
             WordlePlay.objects.create(
                 user=user if (user is not None and user.is_authenticated) else None,
                 device_id=device_id or None,
+                game=game,
                 play_date=day,
             )
     except IntegrityError:
@@ -116,7 +121,7 @@ def record_play(user, device_id: str, day: datetime.date) -> None:
 
 
 def prune_stale_plays(current_day: datetime.date) -> int:
-    """Delete every play row that isn't today's — keeps the table bounded to
-    the current day's player count instead of accumulating forever."""
+    """Delete every play row (every daily game) that isn't today's — keeps the
+    table bounded to the current day's player count instead of accumulating forever."""
     deleted, _ = WordlePlay.objects.exclude(play_date=current_day).delete()
     return deleted

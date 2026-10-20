@@ -94,9 +94,9 @@ def user_payload(request, user):
         "profile_photo": profile_photo_url(request, user),
         # UI hint only — every admin endpoint re-checks is_staff server-side.
         "is_admin": bool(user.is_staff),
-        # 13-15 year-olds, and accounts whose age is unknown, are kept off public surfaces; the
-        # multiplayer relay reads this to show them as "Player" to strangers in random matches
-        # (multiplayer_server/src/index.js publicUser).
+        # 13-15 year-olds, and accounts whose age is unknown: since 2026-10-19 this only drives the profile
+        # photo gate (no photo until 16+ is confirmed); they are public everywhere else, and the relay no
+        # longer masks them. Kept on the payload for clients that still read it.
         "is_teen": is_teen(user),
     }
 
@@ -388,15 +388,16 @@ def remove_my_photo(request):
 def delete_my_account(request):
     """Permanently delete the signed-in account and its data (GDPR Art 17).
 
-    Always needs the word DELETE typed, and for password accounts the password too (Google-only
-    accounts have none). See users.account_data for what is removed and the one exception for
-    banned accounts.
+    Needs the account's username typed exactly (`confirm_username`, case-sensitive) and the word
+    delete (`confirm_text`, any case); no password, so Google-only accounts confirm the same way.
+    See users.account_data for what is removed and the one exception for banned accounts.
     """
     user = request.user
-    if request.data.get("confirm") != "DELETE":
-        return Response({"error": "Type DELETE to confirm."}, status=status.HTTP_400_BAD_REQUEST)
-    if user.has_usable_password() and not user.check_password(str(request.data.get("password") or "")):
-        return Response({"error": "That password is incorrect."}, status=status.HTTP_403_FORBIDDEN)
+    data = request.data if isinstance(request.data, dict) else {}
+    if str(data.get("confirm_username") or "").strip() != user.username:
+        return Response({"error": "Type your username exactly as it appears to confirm."}, status=status.HTTP_400_BAD_REQUEST)
+    if str(data.get("confirm_text") or "").strip().lower() != "delete":
+        return Response({"error": "Type delete to confirm."}, status=status.HTTP_400_BAD_REQUEST)
     outcome = delete_account(user)
     return Response({"status": outcome})
 
@@ -470,14 +471,15 @@ def update_profile(request):
         return Response({"error": "Nothing to update"}, status=status.HTTP_400_BAD_REQUEST)
 
     if request.content_type.startswith("multipart/form-data"):
-        if not user.age_group:
+        # Admins can always upload: the age checks below are for players only.
+        if not user.is_staff and not user.age_group:
             # Age unknown (signed up with the 13+ tick-box): ask for the birth month + year now
             # (POST account/age/), then the client retries the upload.
             return Response(
                 {"code": "age_required", "error": PHOTO_AGE_REQUIRED_MESSAGE},
                 status=status.HTTP_428_PRECONDITION_REQUIRED,
             )
-        if user.age_group == "teen":
+        if not user.is_staff and user.age_group == "teen":
             return Response(
                 {"error": f"Profile photos are available from age {PHOTO_MIN_AGE}."},
                 status=status.HTTP_403_FORBIDDEN,

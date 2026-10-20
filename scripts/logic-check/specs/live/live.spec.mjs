@@ -164,6 +164,7 @@ test('[LC-LIVE-03] every visible game\'s data source loads with its shape and a 
         if (pools.has(d.key) && DATA_BASE) await v3Pool(game, d.key); else await bundledPool(game, d.key);
       } else if (d.fn === 'fetchQuestion') await question(game, d.key);
       else if (d.fn === 'playWordleDaily') await wordle(game);
+      else if (d.fn === 'playContextoDaily') await question(game, 'contexto'); // the daily gate names the day; the data is the contexto questions
       else bad(game, `fetchData ${d.fn}`, 'unknown data source', 'a source LC-LIVE-03 knows (pool, question, wordle) — teach it the new one');
     });
   }

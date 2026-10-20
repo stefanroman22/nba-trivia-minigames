@@ -8,7 +8,8 @@
 //                ask for. Only NUM_PROXIES = 0 (REMOTE_ADDR only) breaks this: cases then report `throttled`.
 //   post / get   → api.fetch's result ({ status, ok, json, text, headers, ms }) with that header and an optional token
 //   throwawayName(i)   `lgc<12 digits of this process's start ms><i, 2 digits>` (17 chars; the sweep's lgc<digits>)
-//   deleteAccount      POST /account/delete/ { password, confirm: 'DELETE' } as the account
+//   deleteAccount      POST /account/delete/ { confirm_username, confirm_text: 'delete' } as the account (+ the old
+//                      password/DELETE fields for a backend from before 2026-10-19)
 //   login              POST /login/ { id, password }
 //   accountsCreated() / noteAccount(entry) / capReached()   the run's account ledger: <runDir>/signup-accounts.json,
 //                one JSON object per line, appended (O_APPEND) by every check that created an account through
@@ -57,8 +58,18 @@ export const get = (api, p, { token = null, ip = clientIp() } = {}) =>
 
 export const login = (api, id, password, opts) => post(api, '/login/', { id, password }, opts);
 
-export const deleteAccount = (api, { access, password }, opts) =>
-  post(api, '/account/delete/', { password, confirm: 'DELETE' }, { ...opts, token: access });
+/** The account's own username (GET /me/), for the delete confirmation. */
+export const ownUsername = async (api, access) => {
+  const me = await attempt(get(api, '/me/', { token: access }));
+  return (me.json && me.json.user && me.json.user.username) || '';
+};
+
+/** Confirms with the username + the word delete; the old password + DELETE fields ride along so the same call
+ *  also works on a backend from before 2026-10-19 (the production backend until it is promoted). */
+export const deleteAccount = async (api, { access, password, username }, opts) =>
+  post(api, '/account/delete/', {
+    confirm_username: username ?? await ownUsername(api, access), confirm_text: 'delete', password, confirm: 'DELETE',
+  }, { ...opts, token: access });
 
 /** One-line HTTP summary of a response for a violation's `measured`. */
 export const said = (r) => {

@@ -159,7 +159,8 @@ class AccountDeletionTests(TestCase):
         return {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
 
     def delete(self, **data):
-        data.setdefault("confirm", "DELETE")
+        data.setdefault("confirm_username", "Ann")
+        data.setdefault("confirm_text", "delete")
         return self.client.post(reverse("account_delete"), data=data, content_type="application/json", **self.auth())
 
     def fill(self):
@@ -174,22 +175,33 @@ class AccountDeletionTests(TestCase):
         Feedback.objects.create(user=self.ann, email=self.ann.email, display_name="Ann", public_id=self.ann.public_id, rating=5, message="hi")
         ModerationEvent.objects.create(user=self.ann, public_id=self.ann.public_id, kind="name_change", tier="mild", reason="blocked")
 
-    def test_wrong_password_deletes_nothing(self):
-        self.assertEqual(self.delete(password="nope").status_code, 403)
+    def test_wrong_username_deletes_nothing(self):
+        for name in ("Bob", "ann", "", "Ann2"):
+            resp = self.delete(confirm_username=name)
+            self.assertEqual(resp.status_code, 400, name)
+            self.assertIn("username", resp.json()["error"])
         self.assertTrue(User.objects.filter(pk=self.ann.pk).exists())
+
+    def test_wrong_word_deletes_nothing(self):
+        for word in ("", "DELET", "remove", "delete me"):
+            resp = self.delete(confirm_text=word)
+            self.assertEqual(resp.status_code, 400, word)
+            self.assertIn("delete", resp.json()["error"])
+        self.assertTrue(User.objects.filter(pk=self.ann.pk).exists())
+
+    def test_no_password_is_needed_and_the_checks_trim_and_ignore_the_words_case(self):
+        resp = self.delete(confirm_username=" Ann ", confirm_text=" DeLeTe ")
+        self.assertEqual((resp.status_code, resp.json()["status"]), (200, "deleted"))
+        self.assertFalse(User.objects.filter(pk=self.ann.pk).exists())
 
     def test_requires_sign_in(self):
-        resp = self.client.post(reverse("account_delete"), data={"password": "x", "confirm": "DELETE"}, content_type="application/json")
+        resp = self.client.post(reverse("account_delete"), data={"confirm_username": "Ann", "confirm_text": "delete"}, content_type="application/json")
         self.assertEqual(resp.status_code, 401)
-
-    def test_typing_delete_is_required_even_with_the_right_password(self):
-        self.assertEqual(self.delete(password="Testpass123!", confirm="").status_code, 400)
-        self.assertTrue(User.objects.filter(pk=self.ann.pk).exists())
 
     def test_deletion_removes_the_account_and_everything_tied_to_it(self):
         self.fill()
         pid = self.ann.public_id
-        resp = self.delete(password="Testpass123!")
+        resp = self.delete()
         self.assertEqual((resp.status_code, resp.json()["status"]), (200, "deleted"))
         self.assertFalse(User.objects.filter(email="ann@example.com").exists())
         self.assertFalse(GameSession.objects.exists() or GuessLog.objects.exists() or WordlePlay.objects.exists())
@@ -205,25 +217,25 @@ class AccountDeletionTests(TestCase):
 
         Feedback.objects.create(email="ann@example.com", rating=3, message="sent before I had an account")
         self.assertTrue(OutstandingToken.objects.filter(user=self.ann).exists())
-        self.delete(password="Testpass123!")
+        self.delete()
         self.assertFalse(Feedback.objects.exists())
         self.assertFalse(OutstandingToken.objects.filter(user_id=self.ann.pk).exists())
         self.assertFalse(OutstandingToken.objects.filter(user__isnull=True).exists())
 
     def test_deletion_signs_the_old_session_out(self):
         refresh = login(self.client, "ann@example.com").json()["refresh"]
-        self.delete(password="Testpass123!")
+        self.delete()
         resp = self.client.post(reverse("token_refresh"), data={"refresh": refresh}, content_type="application/json")
         self.assertEqual(resp.status_code, 401)
 
-    def test_google_only_account_must_type_delete(self):
+    def test_google_only_account_confirms_the_same_way(self):
         user = User.objects.create_user(username="G", email="g@example.com", password=None, google_sub="gs")
         from users.tokens import issue_session_tokens
 
         self.token = str(issue_session_tokens(user).access_token)
-        self.assertEqual(self.delete(confirm="").status_code, 400)
-        self.assertEqual(self.delete(confirm="delete").status_code, 400)
-        self.assertEqual(self.delete().status_code, 200)
+        self.assertEqual(self.delete(confirm_username="G", confirm_text="").status_code, 400)
+        self.assertEqual(self.delete(confirm_username="Ann").status_code, 400)
+        self.assertEqual(self.delete(confirm_username="G").status_code, 200)
         self.assertFalse(User.objects.filter(pk=user.pk).exists())
 
     def test_banned_account_is_anonymised_keeping_only_the_ban_record(self):

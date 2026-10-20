@@ -5,7 +5,7 @@ import type { ReviewRound } from "../utils/reviewRounds";
 import type { PendingRankUp } from "../store/userSlice";
 
 /** Which overlay is currently open. `null` = nothing open. */
-export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion" | "rankUp" | "ladder";
+export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion" | "rankUp" | "ladder" | "confirmLogout";
 
 export interface InstructionsPayload {
   game: Game;
@@ -52,8 +52,13 @@ export interface ReportQuestionPayload {
 /** The promotion the rank-up modal celebrates (from user.pendingRankUp). */
 export type RankUpPayload = PendingRankUp;
 
+/** "Log out?" (useLogout's requestLogOut): what "Log out" runs once confirmed. */
+export interface ConfirmLogoutPayload {
+  onConfirm: () => void;
+}
+
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | RankUpPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | RankUpPayload | ConfirmLogoutPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

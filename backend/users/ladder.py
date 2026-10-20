@@ -70,9 +70,12 @@ def distribution():
 
 
 def you_block(user, dist):
-    """Where `user` stands against the public population. Works for accounts outside it (teens)."""
+    """Where `user` stands against the public population. Works for accounts outside it (banned)."""
     total = dist["total_players"]
     position = leaderboard.rank_of(user)
+    if position is None:
+        # Not on the board itself: where it would stand among the players who are.
+        position = leaderboard._ranked().filter(points__gt=user.points).count() + 1
     percentile = round(100 * position / total, 1) if total else 100.0
     percentile = min(99.9, max(0.1, percentile))
     same = next((row["players"] for row in dist["ladder"] if row["name"] == user.rank), 0)

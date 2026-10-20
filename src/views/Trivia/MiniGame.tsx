@@ -26,8 +26,8 @@ import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { AutoSize } from '../../components/motion/AutoHeight';
 import { GAME_IN_PROGRESS } from '../../constants/messages';
-import { useWordleCardState } from '../../hooks/useWordleCardState';
-import { fetchWordleDailyStatus, formatWordleCountdown, type WordleDailyStatus } from '../../utils/wordleDaily';
+import { useDailyCardState } from '../../hooks/useDailyCardState';
+import { DAILY_COPY, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, type DailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import { FOCUSABLE } from '../../hooks/useFocusTrap';
@@ -122,10 +122,10 @@ function MiniGame() {
       // storage blocked: the position just isn't remembered
     }
   };
-  // Wordle-only: whether this account/browser already played today's word.
-  // Re-checked every time we land on idle for wordle, so it's fresh both on
-  // first load and after finishing a run (Play again / Close game).
-  const [wordleStatus, setWordleStatus] = useState<WordleDailyStatus | null>(null);
+  // Daily games only (Wordle, Contexto): whether this account/browser already played today's puzzle.
+  // Re-checked every time we land on idle for one, so it's fresh both on
+  // first load and after finishing a run (Close game).
+  const [dailyStatus, setDailyStatus] = useState<DailyStatus | null>(null);
   const [, forceCountdownTick] = useState(0);
 
   useEffect(() => {
@@ -270,24 +270,24 @@ function MiniGame() {
     prevStageRef.current = stage;
   }, [stage]);
 
-  // Wordle only: check the once-per-day gate whenever we land on idle for it.
+  // Daily games only: check the once-per-day gate whenever we land on idle for one.
   useEffect(() => {
-    if (gameId !== "wordle" || stage !== "idle") { setWordleStatus(null); return; }
+    if (!isDailyLockGame(gameId) || stage !== "idle") { setDailyStatus(null); return; }
     let cancelled = false;
-    fetchWordleDailyStatus().then((status) => { if (!cancelled) setWordleStatus(status); });
+    fetchDailyStatus(gameId).then((status) => { if (!cancelled) setDailyStatus(status); });
     return () => { cancelled = true; };
   }, [gameId, stage]);
 
-  const wordleCard = useWordleCardState();
-  const wordleLocked = gameId === "wordle" && !!wordleStatus?.locked;
+  const dailyCards = useDailyCardState();
+  const dailyLocked = isDailyLockGame(gameId) && !!dailyStatus?.locked;
 
   // Tick the countdown copy once a minute while it's actually shown — the
   // deadline itself lives on the server response, this just forces a re-render.
   useEffect(() => {
-    if (!wordleLocked) return;
+    if (!dailyLocked) return;
     const id = setInterval(() => forceCountdownTick((n) => n + 1), 60_000);
     return () => clearInterval(id);
-  }, [wordleLocked]);
+  }, [dailyLocked]);
 
   // "Report a problem" (shell-owned, both end paths): the questions this game dealt, if any carry an id.
   const reportRounds = reviewRounds(review);
@@ -315,7 +315,7 @@ function MiniGame() {
             <div className="idle-action">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
-                  key={inLobby ? "lobby" : wordleLocked && wordleStatus ? "locked" : "play"}
+                  key={inLobby ? "lobby" : dailyLocked && dailyStatus ? "locked" : "play"}
                   variants={swapVariants}
                   initial="hidden"
                   animate="visible"
@@ -325,9 +325,9 @@ function MiniGame() {
                     <p className="idle-room-note">
                       You're in a private room.
                     </p>
-                  ) : wordleLocked && wordleStatus ? (
+                  ) : dailyLocked && dailyStatus && isDailyLockGame(gameId) ? (
                     <p className="idle-room-note">
-                      Next word available in {formatWordleCountdown(wordleStatus.nextResetAt)}.
+                      Next {DAILY_COPY[gameId].puzzle} available in {formatDailyCountdown(dailyStatus.nextResetAt)}.
                     </p>
                   ) : (
                     <Button size="lg" onClick={handleStart}>
@@ -379,8 +379,8 @@ function MiniGame() {
           </div>
         );
       case "result":
-        // Wordle is once per day: Play again would only hit the daily lock, so its result offers Close game alone.
-        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={gameId === "wordle" ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} />;
+        // Wordle and Contexto are once per day: Play again would only hit the daily lock, so their result offers Close game alone.
+        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={isDailyLockGame(gameId) ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} />;
     }
   };
 
@@ -398,7 +398,7 @@ function MiniGame() {
                 key={g.id}
                 aria-current={g.id === game?.id ? "true" : undefined}
                 className={`rail-chip${g.id === game?.id ? " is-active" : ""}${inProgress && g.id !== game?.id ? " is-locked" : ""}`}
-                disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
+                disabled={g.id === "coming-soon" || dailyCards.card(g.id).locked}
                 onClick={() => goToGame(g)}
               >
                 {g.name}
@@ -413,17 +413,17 @@ function MiniGame() {
               {visibleGames.map((g) => (
                 <button
                   key={g.id}
-                  disabled={g.id === "coming-soon" || (g.id === "wordle" && wordleCard.locked)}
+                  disabled={g.id === "coming-soon" || dailyCards.card(g.id).locked}
                   onClick={() => goToGame(g)}
                   aria-current={g.id === game?.id ? "true" : undefined}
-                  className={`rail-item${g.id === game?.id ? " is-active" : ""}${g.id === "wordle" && wordleCard.locked ? " is-played" : ""}${inProgress && g.id !== game?.id ? " is-locked" : ""}`}
+                  className={`rail-item${g.id === game?.id ? " is-active" : ""}${dailyCards.card(g.id).locked ? " is-played" : ""}${inProgress && g.id !== game?.id ? " is-locked" : ""}`}
                 >
                   <span className="rail-thumb" style={{ backgroundImage: g.backgroundImage }} />
                   <span className="rail-meta">
                     <span className="rail-name">{g.name}</span>
                     <span className="rail-sub">
-                      {g.id === "wordle" && wordleCard.label !== null
-                        ? <SwapText swapKey="locked">{wordleCard.label}</SwapText>
+                      {dailyCards.card(g.id).label !== null
+                        ? <SwapText swapKey="locked">{dailyCards.card(g.id).label}</SwapText>
                         : g.maxPoints > 0 ? `up to ${g.maxPoints.toLocaleString("en-US")} pts` : g.id === "coming-soon" ? "soon" : "opinion vote"}
                     </span>
                   </span>
@@ -436,7 +436,7 @@ function MiniGame() {
           <section className="stage-col" ref={stageColRef}>
             <div className="stage-title">
               <h1 className="font-display" style={{ fontSize: "clamp(19px,2.6vw,26px)" }}>{game?.name}</h1>
-              <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" && !wordleLocked ? handleStart : undefined })}>
+              <button className="info-btn" aria-label="How to play" onClick={() => game && open("instructions", { game, onPlay: stage === "idle" && !dailyLocked ? handleStart : undefined })}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
               </button>
               {/* One chip whose label swaps (SwapText): three conditional <Chip>s reused one element and

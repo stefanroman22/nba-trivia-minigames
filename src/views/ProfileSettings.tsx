@@ -35,7 +35,7 @@ export default function ProfileSettings() {
   const { user, authChecked } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto, agePrompt, ageSaving, ageError, submitAge, cancelAge } = useProfilePhoto();
-  const { loggingOut, logOut } = useLogout();
+  const { loggingOut, requestLogOut } = useLogout();
 
   // ---- Username ----
   const [isEditing, setIsEditing] = useState(false);
@@ -105,8 +105,10 @@ export default function ProfileSettings() {
 
   // ---- Your data: download everything we hold, or delete the account (GDPR export / erasure) ----
   const [showDelete, setShowDelete] = useState(false);
-  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteName, setDeleteName] = useState("");
   const [deleteWord, setDeleteWord] = useState("");
+  // The username exactly (case-sensitive) and the word delete in any case, both trimmed.
+  const deleteConfirmed = !!user && deleteName.trim() === user.username && deleteWord.trim().toLowerCase() === "delete";
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
@@ -127,17 +129,23 @@ export default function ProfileSettings() {
   };
 
   const handleDelete = async () => {
-    if (deleteBusy) return;
+    if (deleteBusy || !deleteConfirmed) return;
     setDeleteBusy(true);
     setDeleteError("");
     try {
       const res = await apiFetch(`${BACKEND_URL}/account/delete/`, {
         method: "POST",
-        body: JSON.stringify({ password: deletePassword, confirm: deleteWord }),
+        // `confirm: "DELETE"` is for a backend from before 2026-10-19 (the production one until it is
+        // promoted): the current backend ignores it, the old one then deletes a Google-only account.
+        body: JSON.stringify({ confirm_username: deleteName.trim(), confirm_text: deleteWord.trim(), confirm: "DELETE" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setDeleteError(data.error || "We couldn't delete your account. Please try again.");
+        // That old backend also wants the password, which this form no longer asks for.
+        const oldBackend = typeof data.error === "string" && /password/i.test(data.error);
+        setDeleteError(oldBackend
+          ? "Account deletion will be available after the next server update."
+          : data.error || "We couldn't delete your account. Please try again.");
         return;
       }
       localStorage.removeItem("accessToken");
@@ -290,25 +298,34 @@ export default function ProfileSettings() {
               >
                 <div className="ps-delete-inner">
                   <p className="ps-muted ps-small">This can&apos;t be undone.</p>
-                  <input
-                    type="password"
-                    className="modal-input"
-                    aria-label="Password"
-                    placeholder="Password (leave empty if you signed up with Google)"
-                    autoComplete="current-password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                  />
-                  <input
-                    className="modal-input"
-                    aria-label="Type DELETE to confirm"
-                    placeholder="Type DELETE to confirm"
-                    autoComplete="off"
-                    value={deleteWord}
-                    onChange={(e) => setDeleteWord(e.target.value)}
-                  />
+                  <label className="ps-delete-field">
+                    <span className="ps-label">Type your username: <strong className="ps-delete-hint">{user.username}</strong></span>
+                    <input
+                      className="modal-input"
+                      name="confirm_username"
+                      placeholder={user.username}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      value={deleteName}
+                      onChange={(e) => setDeleteName(e.target.value)}
+                    />
+                  </label>
+                  <label className="ps-delete-field">
+                    <span className="ps-label">Type <strong className="ps-delete-hint">delete</strong> to confirm</span>
+                    <input
+                      className="modal-input"
+                      name="confirm_text"
+                      placeholder="delete"
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      value={deleteWord}
+                      onChange={(e) => setDeleteWord(e.target.value)}
+                    />
+                  </label>
                   {deleteError && <p className="auth-error" role="alert">{deleteError}</p>}
-                  <Button variant="danger" disabled={deleteWord !== "DELETE" || deleteBusy} onClick={handleDelete}>
+                  <Button variant="danger" disabled={!deleteConfirmed || deleteBusy} onClick={handleDelete}>
                     {deleteBusy ? "Deleting…" : "Delete my account"}
                   </Button>
                 </div>
@@ -318,7 +335,7 @@ export default function ProfileSettings() {
         </section>
 
         <div className="ps-logout">
-          <Button variant="secondary" disabled={loggingOut} onClick={logOut}>{loggingOut ? "Logging out…" : "Log out"}</Button>
+          <Button variant="secondary" disabled={loggingOut} onClick={requestLogOut}>{loggingOut ? "Logging out…" : "Log out"}</Button>
         </div>
       </motion.div>
     );

@@ -296,7 +296,7 @@ All 11 visible games now have adapters (`coming-soon` excluded).
 | starting-five / fan-favorites | driven | driven | driven | no clock | no give-up | not daily |
 | career-path / who-are-ya | driven | driven | driven | no clock | no give-up | not daily |
 | wordle | driven (500) | driven (5 misses, 0) | driven (2 misses, 300) | no clock | no give-up | **driven** |
-| contexto | secret first guess (3000) | reason: never ends on its own, Give up covers it | 3 misses then the secret (3000) | no clock | **driven** (4 misses, Give up, 0) | not daily for the player |
+| contexto | secret first guess (3000) | reason: never ends on its own, Give up covers it | 3 misses then the secret (3000) | no clock | **driven** (4 misses, Give up, 0) | **driven** (4 misses, Give up) |
 | tictactoe | 9 valid players (300) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (300) | **driven** (page.clock) | no give-up | not daily |
 
 Answer methods: Wordle = the `daily-play` POST response `{series:[WORD]}` (by design the word is in the response), fiber `gameInfo`
@@ -313,6 +313,8 @@ context (`freshAccount: true`): per full run 16 scenario plays + 3 latency plays
 (GM-SHELL-01, one IP bucket: a third full run inside an hour would pass 20 there; `--stop` resets). Account lifecycle: minted
 (`uic<digits>`, note metric `fresh account`), used (daily play + log-session awarded to it), deleted in `finally`; after the final run
 no `uic%` user remains and the teardown sweep reported `deleted []`.
+Contexto (since 2026-10-18) has the same solo gate (`WordlePlay.game = "contexto"`, same device id) with its own throttle
+bucket `contexto-play` 20/h, so its scenarios are `freshAccount: true` too and GM-SHELL-01 adds one guest play to that bucket.
 
 Clock path (tictactoe `timeout`): see adapter rule 8: `page.clock.setSystemTime`, not `fastForward`/`runFor` (framer-motion WAAPI
 vs a jumped `performance.now`). Proven: after the shift `Time!` (bad) shows, clock 0:00, `FINAL BOARD`, unsolved cells revealed one by

@@ -13,21 +13,26 @@ Banned accounts (users.strikes) are hidden, not deleted: every Postgres path fil
 `remove()` drops them from the ZSET at ban time and `record_score` never re-adds them; an unban
 re-records the score, so the row comes back with its points.
 """
+import logging
 import os
+import time
 
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 ZKEY = "leaderboard"
 _client = None
+DRIFT_WARNING_INTERVAL = 60  # seconds between two "out of sync" warnings
+_last_drift_warning = float("-inf")
 
 
 def _ranked():
-    """Every account that may appear on a board. Banned accounts are hidden (users.strikes), and so
-    are 13-15 year-olds and accounts whose age is unknown (only age_group "adult" is public; see
-    users.consent.is_teen): minors are not public by default (GDPR Art 25)."""
-    return User.objects.filter(banned_at__isnull=True, age_group="adult")
+    """Every account that may appear on a board: every account except banned ones, which are hidden
+    (users.strikes). Age plays no part (owner decision 2026-10-19: the only age limit left is the
+    profile photo)."""
+    return User.objects.filter(banned_at__isnull=True)
 
 
 def _redis():
@@ -43,26 +48,61 @@ def _redis():
     return _client
 
 
+def _warn_drift(detail):
+    """Log that the ZSET has drifted and Postgres is answering, at most once a minute per process (the
+    fallback is silent to players, so this is how it shows up)."""
+    global _last_drift_warning
+    now = time.monotonic()
+    if now - _last_drift_warning >= DRIFT_WARNING_INTERVAL:
+        _last_drift_warning = now
+        logger.warning("leaderboard ZSET out of sync (%s); answering from Postgres until sync_leaderboard runs", detail)
+
+
+def _in_sync(r):
+    """True when the ZSET holds as many members as there are ranked accounts. A ZSET that is
+    missing players (never synced, or written while they were hidden) or still holds hidden or
+    deleted ones has drifted: the callers then answer from Postgres, which is always right, until
+    `sync_leaderboard` rebuilds it."""
+    members, ranked = r.zcard(ZKEY), _ranked().count()
+    if members != ranked:
+        _warn_drift(f"{members} members for {ranked} ranked accounts")
+        return False
+    return True
+
+
+def _is_ranked(user):
+    return not getattr(user, "banned_at", None)
+
+
+def _postgres_top(n):
+    rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank")
+    return [{"id": u["public_id"], "username": u["username"], "rank": u["rank"], "points": u["points"]} for u in rows]
+
+
 def top(n=100):
     """Top `n` rows as [{"id", "username", "rank", "points"}], highest first."""
     r = _redis()
-    if r is None:
-        rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank")
-        return [{"id": u["public_id"], "username": u["username"], "rank": u["rank"], "points": u["points"]} for u in rows]
+    if r is None or not _in_sync(r):
+        return _postgres_top(n)
     entries = r.zrevrange(ZKEY, 0, n - 1, withscores=True)
     ids = [m for m, _ in entries]
     # One query resolves the display names for the whole page.
     info = {pid: (name, rank) for pid, name, rank in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank")}
-    return [
-        {"id": m, "username": info.get(m, ("Player", "Rookie"))[0], "rank": info.get(m, ("Player", "Rookie"))[1], "points": int(s)}
-        for m, s in entries
-    ]
+    if len(info) < len(ids):
+        # A member that is not on the board (hidden or deleted since it was added) means the ZSET has
+        # drifted even though its size matches, so a real player is missing from it: Postgres answers.
+        _warn_drift(f"{len(ids) - len(info)} of the top {len(ids)} members are not on the board")
+        return _postgres_top(n)
+    return [{"id": m, "username": info[m][0], "rank": info[m][1], "points": int(s)} for m, s in entries]
 
 
 def rank_of(user):
-    """1-based rank of `user` (number of players with strictly more points, + 1)."""
+    """1-based rank of `user` (number of players with strictly more points, + 1), or None for an
+    account that is not on the board."""
+    if not _is_ranked(user):
+        return None
     r = _redis()
-    if r is None:
+    if r is None or not _in_sync(r):
         return _ranked().filter(points__gt=user.points).count() + 1
     rank = r.zrevrank(ZKEY, user.public_id)
     if rank is None:
@@ -72,19 +112,15 @@ def rank_of(user):
 
 
 def total():
-    """Total number of ranked players. With Redis, the ZSET is authoritative (every
-    account is added on creation + via `sync_leaderboard`), so we don't mix in a
-    Postgres count, which would hide drift."""
-    r = _redis()
-    if r is None:
-        return _ranked().count()
-    return r.zcard(ZKEY)
+    """Total number of ranked players, from Postgres: the ZSET can hold members that are no
+    longer on the board, or miss some that are (see `_in_sync`)."""
+    return _ranked().count()
 
 
 def record_score(user):
     """Upsert a user's score into the ZSET (no-op without Redis, and for a banned account)."""
     r = _redis()
-    if r is None or getattr(user, "banned_at", None) or getattr(user, "age_group", "") != "adult":
+    if r is None or getattr(user, "banned_at", None):
         return
     r.zadd(ZKEY, {user.public_id: user.points})
 
@@ -116,8 +152,7 @@ def friends_board(user):
     friend_ids = {hi if lo == user.pk else lo for lo, hi in pairs}
     ids = list(friend_ids) + [user.pk]
 
-    # Not public (only the player and their friends see it), so teens and accounts of unknown age
-    # stay on it; banned accounts are still hidden.
+    # Banned accounts are hidden, as on every board.
     rows = list(
         User.objects.filter(banned_at__isnull=True, pk__in=ids)
         .order_by("-points")

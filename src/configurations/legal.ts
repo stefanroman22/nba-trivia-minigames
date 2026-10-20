@@ -13,6 +13,10 @@ export const LEGAL = {
   operatorAddress: "Orizontului 7, 407035 Apahida, Cluj County, Romania",
   /** Country whose law governs the Terms, e.g. "Romania". */
   country: "Romania",
+  /* ⚠ PROMOTION STEP: on the day the production frontend is promoted, set updated/updatedIso/effective/
+   * showUntilIso (+ the version here AND in backend/users/consent.py) to that day; promote the backend + relay
+   * no earlier than `effective`, or record an owner waiver. See docs/legal/OPEN_ITEMS.md and the promote-to-prod
+   * runbook. The values below were written on dev on 2026-10-20. */
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
   version: "2026-10-20.1",
   updated: "20 October 2026",
@@ -26,7 +30,7 @@ export const LEGAL = {
     /** First day the notice is no longer shown (14 days after `updatedIso`). */
     showUntilIso: "2026-11-03",
     summary:
-      "Sign-up is now one tick-box confirming you're 13 or older (Google sign-up too), and we ask your birth month and year only when you add a profile photo. Accounts without a confirmed age of 16 or over are treated as teen accounts: no photo, and not shown on the public leaderboard or in name search. We now delete the answers you submit after 30 days, and for signed-in players we remember which questions you have already been shown so you don't get repeats. For signed-in players we also count how long you use the site each day and note the country you connect from (never your IP address), kept 12 months for our own statistics.",
+      "Sign-up is now one tick-box confirming you're 13 or older (Google sign-up too), and we ask your birth month and year only when you add a profile photo. Every account is on the public leaderboard and in name search, and online opponents see your name, whatever your age: the only thing an account without a confirmed age of 16 or over can't do is add a profile photo. We now delete the answers you submit after 30 days, and for signed-in players we remember which questions you have already been shown so you don't get repeats. For signed-in players we also count how long you use the site each day and note the country you connect from (never your IP address), kept 12 months for our own statistics.",
   },
   minimumAge: 13,
   /** Accounts younger than this cannot upload a public profile photo. Equals PHOTO_MIN_AGE in backend/users/consent.py. */
