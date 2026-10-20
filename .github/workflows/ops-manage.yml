@@ -19,6 +19,8 @@ on:
           - factory_supply
           - apply_editorial_proposals
           - seed_who_would_win_votes
+          - recount_progression
+          - sync_leaderboard
   push:
     branches: ["ops/run-**"]
 concurrency:
@@ -36,6 +38,8 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      # Only sync_leaderboard needs it; empty until the owner adds the REDIS_URL secret.
+      REDIS_URL: ${{ secrets.REDIS_URL }}
       INPUT_COMMAND: ${{ inputs.command }}
       REF_NAME: ${{ github.ref_name }}
     steps:
@@ -56,7 +60,7 @@ jobs:
             cmd=$(printf '%s' "$REF_NAME" | sed -E 's#^ops/run-([a-z_]+)(-.*)?$#\1#')
           fi
           case "$cmd" in
-            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes) ;;
+            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes|recount_progression|sync_leaderboard) ;;
             *) echo "::error::command '$cmd' is not allow-listed"; exit 1 ;;
           esac
           echo "cmd=$cmd" >> "$GITHUB_OUTPUT"
