@@ -13,7 +13,7 @@ from the admin's own account.
 | Browser tracker (signed-in only; visible tab + interaction in the last 3 min; batched every 5 min and on hide/close with `keepalive`) | `src/hooks/useActivityTracker.ts`, mounted in `src/app/providers.tsx` |
 | Admin API | `users/admin_users_api.py`, mounted under `/api/admin/users/…` in `trivia/admin_urls.py` |
 | Users tab UI | `src/components/admin/{UsersTab,UsersCharts,usersApi}.tsx`, `src/styles/AdminUsers.css` |
-| Privacy | policy row + summary, `LEGAL.version`/`TERMS_VERSION` 2026-10-20.1, 14-day notice to 3 Nov, record of processing row 6c + LIA 3b + DPIA rows, OPEN_ITEMS objection switch, retention 12 months, export + deletion |
+| Privacy | policy row + summary, `LEGAL.version`/`TERMS_VERSION` 2026-10-20.1 (applies to existing accounts from 3 Nov; no home-page banner pre-launch), record of processing row 6c + LIA 3b + DPIA rows, OPEN_ITEMS objection switch, retention 12 months, export + deletion |
 
 ### Endpoints (all `IsAdminUser`)
 - `GET /api/admin/users/overview/?period=7d|30d|90d|12m|all` — users (total/new/banned/admins/Google), active today/7d/30d/period,

@@ -55,5 +55,5 @@ Awareness starts the clock: **72 hours** to the supervisory authority if the bre
 ## F. Changing the Privacy Policy or Terms
 
 1. Edit the pages, bump `LEGAL.version` and `TERMS_VERSION` (same value), update `docs/legal/`.
-2. For a significant change, put a notice on the site's home page for **at least 14 days before** the change takes effect (the text promises this): set `LEGAL.changeNotice` in `src/configurations/legal.ts` (effective date, last day shown, one-line summary; the banner is `src/components/LegalChangeNotice.tsx`), then promote.
+2. For a significant change, put a notice on the site's home page for **at least 14 days before** the change takes effect (the text promises this): set `LEGAL.changeNotice.effective` in `src/configurations/legal.ts` and add a home-page banner (the old one, `src/components/LegalChangeNotice.tsx`, was removed before launch because there were no players to notify; restore it from git history), then promote.
 3. Keep the previous text (git history) and send it to anyone who asks.

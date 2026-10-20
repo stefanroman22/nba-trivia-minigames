@@ -23,7 +23,7 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 | 11a | Rate-limit counters (IP address) in the database cache table | Visitors | Stop guessing and flooding | Legitimate interests | Operator | About an hour | Postgres (`django_cache_table`) |
 | 11 | Server logs (IP, time, URL) | Visitors | Security, operations | Legitimate interests | Operator | Provider-defined short period | Vercel |
 | 12 | Multiplayer session (name, ID, rank, points, photo) | Players online | Run a match | Contract | Opponents | Memory only, until the match ends | Game server (not yet deployed) |
-| 13 | Browser storage: tokens, cached profile, device code, theme, game caches, questions already shown per game, whether the legal-change notice was hidden | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent banner | The user | Until cleared; tokens 90 days max | The user's browser |
+| 13 | Browser storage: tokens, cached profile, device code, theme, game caches, questions already shown per game | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent banner | The user | Until cleared; tokens 90 days max | The user's browser |
 
 No special-category data is collected on purpose. No ads, third-party analytics, tracking pixels or data sales;
 the only usage measurement is first-party row 6c.
@@ -53,7 +53,7 @@ the only usage measurement is first-party row 6c.
 
 - **Purpose:** know how much the service is used, by whom and from which countries, to decide what to build, spot drop-off and plan capacity.
 - **Necessity:** a daily total of seconds and one country code per player-day is the least that answers those questions; no page-by-page trail, no IP, no device fingerprint, no third-party tool. Counting stops when the tab is hidden or idle for 3 minutes.
-- **Balance:** signed-in players only, visible to the operator only, 12 months, in the export and erased with the account. Disclosed in the Privacy Policy row and the 14-day home-page notice. Country-level location is coarse and not used to decide anything about the player.
+- **Balance:** signed-in players only, visible to the operator only, 12 months, in the export and erased with the account. Disclosed in the Privacy Policy row and summary. Country-level location is coarse and not used to decide anything about the player.
 - **Safeguards:** server-side clamps (15 minutes per report, 24 hours per day); no cookie or new browser storage (ePrivacy Art 5(3) not engaged beyond the existing sign-in token).
 - **Outcome:** legitimate interests apply. Objection: on request the operator deletes the rows (no self-service switch yet; see OPEN_ITEMS.md).
 

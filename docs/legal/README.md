@@ -27,4 +27,4 @@ system does.** When behaviour changes, change the code, these documents and the 
 1. Edit `src/app/privacy/page.tsx` / `terms/page.tsx`.
 2. Bump `LEGAL.version` and `LEGAL.updated` in `src/configurations/legal.ts` and `TERMS_VERSION` in `backend/users/consent.py` (same value).
 3. Update `RECORD_OF_PROCESSING.md` and `retention.py` if data or periods changed.
-4. A material change needs notice to players before it applies (Terms section 12): set `LEGAL.changeNotice` (the home-page banner, `src/components/LegalChangeNotice.tsx`) and keep it up for at least 14 days.
+4. A material change needs notice to players before it applies (Terms section 12): set `LEGAL.changeNotice.effective` and put a home-page banner up for at least 14 days (RUNBOOKS F; the pre-launch banner was removed, restore it from git history).

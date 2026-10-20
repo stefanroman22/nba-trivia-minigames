@@ -13,7 +13,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | **Git history cleaned (done 2026-10-08).** Remaining: rotate the Google OAuth client secret (it was public) and ask GitHub Support to purge cached views and old PR refs | Audit finding C2; see HISTORY-CLEANUP-2026-10-08.md for the exact steps and the request text | Google Cloud Console, Vercel env `CLIENT_SECRET`, GitHub Support |
 | **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
 | **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice) | Public and permanent | `contactEmail` in `legal.ts` |
-| **Terms/Privacy version 2026-10-19.1 dates (noted 2026-10-19).** On the day the production frontend is promoted, set updated/updatedIso/effective/showUntilIso (+ the version in both consent.py and legal.ts) to that day; promote the backend + relay no earlier than `effective`, or record an owner waiver. | The change notice promises existing accounts 14 days before a material change applies; the dates on dev were written on 2026-10-19, not on the promotion day | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION`, `.claude/skills/promote-to-prod/SKILL.md` pre-flight |
+| **Terms/Privacy version 2026-10-19.1 dates (noted 2026-10-19).** On the day the production frontend is promoted, set updated/updatedIso/effective (+ the version in both consent.py and legal.ts) to that day; promote the backend + relay no earlier than `effective`, or record an owner waiver. | The change notice promises existing accounts 14 days before a material change applies; the dates on dev were written on 2026-10-19, not on the promotion day | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION`, `.claude/skills/promote-to-prod/SKILL.md` pre-flight |
 
 ## B. Decisions that are yours
 
@@ -52,7 +52,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | Item | Risk it addresses |
 |---|---|
 | Existing accounts (created before the consent step) have no consent record and no age check; also needed for the 14-day change notice. Show the Terms and an age prompt on next sign-in and store acceptance | Pre-existing users are not covered by a recorded agreement |
-| Notice mechanism for changes to Terms/Privacy: a home-page banner now exists (`src/components/LegalChangeNotice.tsx`, dates in `LEGAL.changeNotice`); the operator still has to set its dates for each significant change and promote it at least 14 days before the change applies (RUNBOOKS F) | Terms section 12 |
+| Notice mechanism for changes to Terms/Privacy: the home-page banner (`src/components/LegalChangeNotice.tsx`) was removed on 2026-10-20 because the app has not launched and there are no players to notify; after launch, restore it from git history for each significant change and promote it at least 14 days before the change applies (RUNBOOKS F) | Terms section 12 |
 | In-product "Report" button for players, names, photos | DSA notice-and-action is email-only today |
 | Email sending (verification, password reset, notices) | No password reset, no email change, no email verification today; also enables inactive-account warnings |
 | "Log out everywhere" and change-password | Account security basics |
