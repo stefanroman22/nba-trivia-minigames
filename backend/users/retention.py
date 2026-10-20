@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from trivia.models import Feedback, GameSession, GuessLog, QuestionReport, RollupWatermark
 from trivia.questions.rollup import GUESS_LOG
-from users.models import ModerationEvent
+from users.models import DailyActivity, ModerationEvent
 
 # Per-guess answers feed question statistics; the per-game score history backs a player's own record.
 # An answer is deleted only once the nightly roll-up has counted it (id at or below its watermark).
@@ -28,6 +28,8 @@ RESOLVED_FEEDBACK_DAYS = 365
 QUESTION_REPORT_DAYS = 365
 # The Privacy Policy promises a ban record is never kept longer than five years after the ban.
 BAN_RECORD_DAYS = 365 * 5
+# Time on the site and country per day (users.activity).
+ACTIVITY_DAYS = 365
 
 
 def prune_personal_data(now=None):
@@ -61,6 +63,7 @@ def prune_personal_data(now=None):
         "question_reports": QuestionReport.objects.filter(
             Q(status=QuestionReport.HANDLED) | Q(created_at__lt=before(QUESTION_REPORT_DAYS))
         ).delete()[0],
+        "daily_activity": DailyActivity.objects.filter(day__lt=before(ACTIVITY_DAYS).date()).delete()[0],
     }
 
 

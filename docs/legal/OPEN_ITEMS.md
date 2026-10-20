@@ -63,6 +63,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | Remove `.sqlite3` data and `backend/media/profiles/*` personal-looking files, and `local deployment/ADMIN_CREDENTIALS.md`, from the OneDrive-synced tree | Personal data and a credential in a cloud-synced folder |
 | ~~`StartingFive.tsx` sent revealed player names to `i.pravatar.cc` for placeholder faces~~ | Resolved 2026-10-16: it was rendered on every card flip; replaced by real photos via `PlayerPhoto` (cdn.nba.com, else Wikimedia Commons with credits at `/credits`, else a silhouette) |
 | Accept and file the Vercel and Supabase DPAs (dated copies) | Art 28 evidence |
+| Self-service "don't count my time on the site" switch (row 6c in RECORD_OF_PROCESSING.md); today an objection is handled by email and the operator deletes the `DailyActivity` rows | Art 21 objection to legitimate-interests processing |
 | Throttle or require login for the public photo endpoint | Scraping; weighed and left public for now (the photos are already public on leaderboards) |
 
 ## F. Done in this change (for the record)

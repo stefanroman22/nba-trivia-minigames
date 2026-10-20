@@ -16,17 +16,17 @@ export const LEGAL = {
   /* ⚠ PROMOTION STEP: on the day the production frontend is promoted, set updated/updatedIso/effective
    * (+ the version here AND in backend/users/consent.py) to that day; promote the backend + relay
    * no earlier than `effective`, or record an owner waiver. See docs/legal/OPEN_ITEMS.md and the promote-to-prod
-   * runbook. The values below were written on dev on 2026-10-19. */
+   * runbook. The values below were written on dev on 2026-10-20. */
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
-  version: "2026-10-19.1",
-  updated: "19 October 2026",
+  version: "2026-10-20.1",
+  updated: "20 October 2026",
   /** The same date as ISO, for the sitemap. */
-  updatedIso: "2026-10-19",
+  updatedIso: "2026-10-20",
   /** When a significant change applies to existing accounts (Terms section 12, Privacy section 15).
    *  Accounts created from `updated` on accept the new version at sign-up; older accounts from `effective`.
    *  No home-page notice: removed before launch (no players to notify); see docs/legal/RUNBOOKS.md F. */
   changeNotice: {
-    effective: "2 November 2026",
+    effective: "3 November 2026",
   },
   minimumAge: 13,
   /** Accounts younger than this cannot upload a public profile photo. Equals PHOTO_MIN_AGE in backend/users/consent.py. */

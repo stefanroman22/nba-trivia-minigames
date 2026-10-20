@@ -1,0 +1,104 @@
+/* Admin → Users tab. Tokens from theme.css, primitives from ui.css; the filter bar, stat tiles,
+   charts and detail grid come from AdminFeedback.css, the shared admin shell from Admin.css. */
+
+.au-tracked { margin-left: auto; }
+
+.au-chart-empty { height: 100%; display: flex; align-items: center; justify-content: center; }
+
+.au-list-label { margin: 8px 0 0; }
+
+/* Column tracks are fixed so every row resolves the same widths (same rule as .admin-card-head). */
+.au-list-head,
+.au-row-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) 96px 92px 64px 104px 84px;
+  align-items: center;
+  gap: 12px;
+}
+.au-list-head {
+  padding: 0 16px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.au-row-head {
+  width: 100%;
+  padding: 11px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.au-row-head:hover { background: var(--surface2); }
+
+.au-who { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.au-who-text { display: flex; flex-direction: column; min-width: 0; }
+.au-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.au-chip { font-size: 9.5px; padding: 2px 7px; color: var(--brand); border-color: var(--brand); }
+.au-chip-bad { color: var(--bad); border-color: var(--bad); }
+
+.au-cell { font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.au-dim { color: var(--muted); }
+.au-country { white-space: nowrap; }
+
+.au-panel { display: flex; flex-direction: column; }
+.au-panel-msg { padding: 22px 0 8px; display: flex; justify-content: center; }
+.au-actions { margin-top: 14px; }
+.au-action { margin-left: 0; }
+.au-ban.is-danger { color: var(--bad); border-color: var(--bad); }
+.au-ban.is-danger:hover:not(:disabled) { color: var(--bad); border-color: var(--bad); background: var(--bad-soft); }
+.au-inline-error { padding: 5px 10px; font-size: 12px; }
+.au-banned { color: var(--bad); }
+.au-panel-chart { margin-top: 16px; }
+
+/* Email + ban dialogs */
+.au-compose,
+.au-confirm { display: flex; flex-direction: column; gap: 12px; }
+.au-confirm p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--text); }
+.au-compose-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.au-compose-body { height: auto; min-height: 150px; padding: 10px 12px; resize: vertical; font: inherit; line-height: 1.5; text-transform: none; letter-spacing: normal; }
+.au-compose-note { margin: 0; }
+.au-compose-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.au-compose-actions .btn { text-decoration: none; }
+
+@media (max-width: 900px) {
+  .au-list-head { display: none; }
+  .au-row-head {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "who  games time"
+      "rank country seen";
+    row-gap: 6px;
+  }
+  .au-row-head > .au-who { grid-area: who; }
+  .au-row-head > .au-rank { grid-area: rank; }
+  .au-row-head > :nth-child(3) { grid-area: games; text-align: right; }
+  .au-row-head > :nth-child(4) { grid-area: time; text-align: right; }
+  .au-row-head > :nth-child(5) { grid-area: country; text-align: right; }
+  .au-row-head > :nth-child(6) { display: none; }
+  .au-row-head > :nth-child(7) { grid-area: seen; text-align: right; }
+  .au-tracked { margin-left: 0; flex-basis: 100%; }
+}
