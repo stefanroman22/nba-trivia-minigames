@@ -41,7 +41,7 @@ Duplicating a catalogued (or merely existing-but-uncatalogued) unit is a review-
 on top of what's already there — extending a hook, composing an existing component — beats a
 parallel implementation every time, even if the existing one isn't a perfect fit; adapt it first.
 
-## Motion and sizing (always — UI_SHELL_CONSTRAINTS UI-21/22/23)
+## Motion and sizing (always — UI_SHELL_CONSTRAINTS UI-21/22/23/24)
 - **Text that changes with state** goes through `SwapText`, in ONE element: never
   `cond ? <Chip>A</Chip> : <Chip>B</Chip>` (React reuses the element and the text snaps). A box whose
   width follows the label (chip, pill) sits in `AutoSize axis="width"`.
@@ -53,6 +53,8 @@ parallel implementation every time, even if the existing one isn't a perfect fit
   second swap/resize component.
 - **Same component, same spacing:** every state of one card ends with the same bottom space; no
   always-mounted empty placeholder lines at the end of a state.
+- **Dropdowns** are never a native `<select>`: use `Select` from `src/components/ui` (chevron right
+  when closed, turns toward the menu; the menu fades in and out) — UI-24.
 
 ## Design skills (use when available — they are optional, the docs above are not)
 If the environment offers any of these skills, invoke the relevant one **before** writing UI, and

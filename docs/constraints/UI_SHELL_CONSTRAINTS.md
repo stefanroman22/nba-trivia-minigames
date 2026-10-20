@@ -670,11 +670,19 @@ pick-one-of-a-list control is `Select` from `src/components/ui` (`src/components
 - **Menu:** fades in from the trigger side (opacity + a slight scale/travel) and fades out on close;
   `reducedFade` under reduced motion. It renders in a portal at `z-index: 80` (level with `.nav3-menu`,
   above modals), scrolls on its own when long, and opens with the selected option in view.
+- **Placement:** the strip under the sticky `.nav3` header is not free space when it picks up or
+  down, and the menu closes once its trigger scrolls under the header or off screen.
 - **Skin:** pass the look of the surrounding inputs as `className` (`modal-input` in forms,
-  `fb-select` in the admin filters); with none it takes the `.field` look. Always give an `aria-label`.
-- Keyboard and screen readers come with it (combobox + listbox, focus stays on the trigger): don't
-  rebuild a dropdown by hand. Menus of *actions* (the nav profile menu) are not selects, but still
-  fade in and out.
+  `fb-select` in the admin filters); with none it is a `.field`. A name is required: `aria-label`,
+  or `aria-labelledby` pointing at a visible label.
+- **Closing by pressing outside** swallows that one click, as a native select does: the press that
+  closes the menu never also presses the button, link or backdrop under the pointer.
+- Keyboard and screen readers come with it (combobox + listbox, focus stays on the trigger; the
+  value is read from an always-current hidden copy, not the animating label): don't rebuild a
+  dropdown by hand. Trade-off of the portal: on mobile screen readers, swipe order reaches the
+  options at the end of the page rather than after the trigger; the trigger's arrow keys and
+  `aria-activedescendant` remain the way through the list. Menus of *actions* (the nav profile menu)
+  are not selects, but still fade in and out.
 
 ```tsx
 ❌ WRONG — src/components/PhotoAgePrompt.tsx before: a native select, its arrow clipped, the list snaps open
