@@ -54,7 +54,6 @@
        to stretch to, not just "the tallest item in the row". This is the
        pre-mount / safety fallback. */
     max-height: calc(100dvh - 104px);
-    transition: height 0.2s ease;
   }
   /* The list can now run longer than it's tall; fade its bottom edge into the
      page background instead of clipping the last row hard. */
