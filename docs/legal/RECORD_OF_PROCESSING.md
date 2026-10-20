@@ -52,7 +52,7 @@ No special-category data is collected on purpose. No ads, analytics, tracking pi
 | Trigger | Present? | Note |
 |---|---|---|
 | Large-scale processing of personal data | Possibly, as the user base grows | Public display data of many users |
-| Children's data | Mitigated: accounts 13+ (self-declared tick-box since 2026-10-11, owner decision), no birth date stored, no photo or chat for under-16s; accounts without a confirmed 16+ age are kept off the public leaderboard and name search | Residual: minors lying about age (easier with a tick-box than with a birth-date screen) |
+| Children's data | Mitigated: accounts 13+ (self-declared tick-box since 2026-10-11, owner decision), no birth date stored, no photo or chat for under-16s; the profile photo is the only age limit (owner decision 2026-10-19): accounts without a confirmed 16+ age cannot add a photo, and are otherwise on the public leaderboard and in name search like every account | Residual: minors lying about age (easier with a tick-box than with a birth-date screen) |
 | User-generated photos shown publicly | Yes | Automated classifier, fail-closed, removable |
 | Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request |
 | Special categories, location, biometric | No | Photos are not used for identification |

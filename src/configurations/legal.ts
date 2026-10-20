@@ -13,6 +13,10 @@ export const LEGAL = {
   operatorAddress: "Orizontului 7, 407035 Apahida, Cluj County, Romania",
   /** Country whose law governs the Terms, e.g. "Romania". */
   country: "Romania",
+  /* ⚠ PROMOTION STEP: on the day the production frontend is promoted, set updated/updatedIso/effective/
+   * showUntilIso (+ the version here AND in backend/users/consent.py) to that day; promote the backend + relay
+   * no earlier than `effective`, or record an owner waiver. See docs/legal/OPEN_ITEMS.md and the promote-to-prod
+   * runbook. The values below were written on dev on 2026-10-19. */
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
   version: "2026-10-19.1",
   updated: "19 October 2026",
