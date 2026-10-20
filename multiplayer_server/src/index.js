@@ -87,7 +87,7 @@ const RESTART_MIN_MS = 3000;       // a room can't restart (re-deal, re-fetch) a
 const SWITCH_STALE_MS = 2000;      // after a mid-round switch, a score this soon is the dropped round's (the client's intro alone is 2.6 s)
 const AWAY_NOTICE_MS = 15 * 60000; // how long a player removed while away (grace ran out) is told so on return
 const AWAY_MESSAGE = "You were away too long and left the room.";
-const MAX_SCORE = 3000;            // every game's maxPoints (LeContexto's 3000 is the largest)
+const MAX_SCORE = 500;             // every game's maxPoints (solo Wordle's 500 is the largest)
 const INTRO_ALLOWANCE_MS = 5000;   // the VS intro (2.6 s) + latency between the deal and the first answer
 
 // Matchmaking: nobody waits for a "fair" opponent who may never come (few players online). A new
