@@ -167,7 +167,7 @@ test("a score sent before the reconnect's identify is kept, and scores are clamp
   dan.emit("submitScore", { code, score: 1e9, elapsedMs: 10 });
   const r = await result;
   assert.equal(r.yourScore, 3);
-  assert.equal(r.opponentScore, 3000);
+  assert.equal(r.opponentScore, 500);
 });
 
 test("re-identifying the same socket does not resume or tell the opponent", async () => {

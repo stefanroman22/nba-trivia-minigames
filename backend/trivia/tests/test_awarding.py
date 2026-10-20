@@ -35,11 +35,11 @@ class CapTests(SimpleTestCase):
         self.assertEqual(awarding.cap_for("tictactoe", "match"), 300)
 
     def test_owner_adjusted_ceilings_2026_10_18(self):
-        adjusted = {"name-logo": 50, "starting-five": 300, "tictactoe": 300, "contexto": 3000, "who-are-ya": 250}
+        adjusted = {"name-logo": 50, "starting-five": 300, "tictactoe": 300, "contexto": 350, "who-are-ya": 250}
         for game, cap in adjusted.items():
             for mode in ("single", "match"):
                 self.assertEqual(awarding.cap_for(game, mode), cap, (game, mode))
-        self.assertEqual(awarding.clamp_score("contexto", "match", 10**9), 3000)
+        self.assertEqual(awarding.clamp_score("contexto", "match", 10**9), 350)
 
     def test_online_wordle_pays_less(self):
         self.assertEqual(awarding.cap_for("wordle", "match"), 200)

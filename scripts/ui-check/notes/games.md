@@ -296,7 +296,7 @@ All 11 visible games now have adapters (`coming-soon` excluded).
 | starting-five / fan-favorites | driven | driven | driven | no clock | no give-up | not daily |
 | career-path / who-are-ya | driven | driven | driven | no clock | no give-up | not daily |
 | wordle | driven (500) | driven (5 misses, 0) | driven (2 misses, 300) | no clock | no give-up | **driven** |
-| contexto | secret first guess (3000) | reason: never ends on its own, Give up covers it | 3 misses then the secret (3000) | no clock | **driven** (4 misses, Give up, 0) | **driven** (4 misses, Give up) |
+| contexto | secret first guess (350) | reason: never ends on its own, Give up covers it | 3 misses then the secret (350) | no clock | **driven** (4 misses, Give up, 0) | **driven** (4 misses, Give up) |
 | tictactoe | 9 valid players (300) | reason: a miss costs nothing, covered in partial/timeout | 2 misses then the board (300) | **driven** (page.clock) | no give-up | not daily |
 
 Answer methods: Wordle = the `daily-play` POST response `{series:[WORD]}` (by design the word is in the response), fiber `gameInfo`

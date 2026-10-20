@@ -38,11 +38,11 @@ export const TTT_CELL_POINTS = 30;
 export const TTT_CLEAR_BONUS = 30;
 export const TTT_SOLO_MAX = 9 * TTT_CELL_POINTS + TTT_CLEAR_BONUS;
 
-/** LeContexto: 3000 through the tenth guess, minus 75 per guess after it, floor 750. */
-export const CONTEXTO_MAX = 3000;
+/** LeContexto: 350 through the tenth guess, minus 10 per guess after it, floor 100. */
+export const CONTEXTO_MAX = 350;
 export const CONTEXTO_FREE_GUESSES = 10;
-export const CONTEXTO_COST = 75;
-export const CONTEXTO_MIN = 750;
+export const CONTEXTO_COST = 10;
+export const CONTEXTO_MIN = 100;
 export function contextoScore(guesses: number): number {
   return Math.max(CONTEXTO_MIN, CONTEXTO_MAX - CONTEXTO_COST * Math.max(0, guesses - CONTEXTO_FREE_GUESSES));
 }

@@ -512,8 +512,8 @@ export const games: Game[] = [
     loadingMessage: "Calibrating the radar...",
     backgroundImage: `url('${thumb_contexto.src}')`,
     urlPath: "/contexto",
-    pointsPerCorrect: 75,
-    maxPoints: 3000,
+    pointsPerCorrect: 10,
+    maxPoints: 350,
     // One play per Paris day, server-gated like Wordle — see src/utils/wordleDaily.ts.
     fetchData: () => playContextoDaily(),
     handleError: handleErrorDefault,
