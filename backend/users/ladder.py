@@ -101,9 +101,6 @@ def rules():
 
     return {
         "first_game_bonus": awarding.FIRST_GAME_BONUS,
-        "daily_full": awarding.DAILY_FULL,
-        "daily_half": awarding.DAILY_HALF,
-        "daily_tail_rate": awarding.DAILY_TAIL_RATE,
         "streak_milestones": {str(k): v for k, v in awarding.STREAK_MILESTONES.items()},
         "max_freezes": awarding.MAX_FREEZES,
         "guest_carryover_max": GUEST_CARRYOVER_MAX,
