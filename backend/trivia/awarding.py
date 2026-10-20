@@ -19,7 +19,7 @@ from users import leaderboard, ranks
 GAME_MAX_POINTS = {
     "series-winner": 100, "name-logo": 50, "guess-mvps": 100, "starting-five": 300,
     "wordle": 500, "fan-favorites": 200, "career-path": 200, "who-are-ya": 250,
-    "tictactoe": 300, "contexto": 3000, "who-would-win": 100,
+    "tictactoe": 300, "contexto": 350, "who-would-win": 100,
     "heatmap": 300, "connections": 200, "nba-grid": 270, "bingo": 200, "pack-five": 220, "superdraft": 100,
 }
 # Online rounds that pay less than the solo game: online Wordle has no daily lock, so no daily jackpot.
