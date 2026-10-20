@@ -3,7 +3,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LEGAL } from "../configurations/legal";
 import { nameNoteSlot } from "../utils/nameCheck";
-import { Button } from "./ui";
+import { Button, Select } from "./ui";
 import SwapText from "./motion/SwapText";
 import "../styles/PhotoAgePrompt.css";
 
@@ -50,14 +50,24 @@ export default function PhotoAgePrompt({
               keep only whether you&apos;re {LEGAL.photoMinimumAge}+, never the date, and you can set it once.
             </p>
             <div className="auth-consent-row">
-              <select className="modal-input" aria-label="Birth month" value={month} disabled={saving} onChange={(e) => setMonth(e.target.value)}>
-                <option value="" disabled>Birth month</option>
-                {MONTHS.map((name, i) => <option key={name} value={String(i + 1)}>{name}</option>)}
-              </select>
-              <select className="modal-input" aria-label="Birth year" value={year} disabled={saving} onChange={(e) => setYear(e.target.value)}>
-                <option value="" disabled>Birth year</option>
-                {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
-              </select>
+              <Select
+                className="modal-input"
+                aria-label="Birth month"
+                placeholder="Birth month"
+                value={month}
+                disabled={saving}
+                onChange={setMonth}
+                options={MONTHS.map((name, i) => ({ value: String(i + 1), label: name }))}
+              />
+              <Select
+                className="modal-input"
+                aria-label="Birth year"
+                placeholder="Birth year"
+                value={year}
+                disabled={saving}
+                onChange={setYear}
+                options={years.map((y) => ({ value: String(y), label: String(y) }))}
+              />
             </div>
             <AnimatePresence initial={false}>
               {error && (

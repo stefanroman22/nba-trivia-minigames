@@ -358,8 +358,9 @@
 .auth-check input { width: 16px; height: 16px; margin: 1px 0 0; accent-color: var(--brand); flex: none; cursor: pointer; }
 .auth-check a, .auth-note a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
 /* Birth month + year selects (the profile photo age prompt, components/PhotoAgePrompt). */
-.auth-consent-row { display: flex; gap: 8px; }
-.auth-consent-row select { flex: 1; min-width: 0; }
+/* Side by side while both fit "Birth month" (from ~375px); on narrower phones each takes its own line. */
+.auth-consent-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.auth-consent-row .sel-trigger { flex: 1 1 128px; min-width: 0; padding-right: 12px; }
 
 /* ---- Sign-up password rules (components/PasswordRules): a red cross turns into a green check ---- */
 .pw-rules { list-style: none; margin: 0; padding: 10px 2px 0; display: grid; gap: 6px; }
