@@ -50,7 +50,7 @@ async function expectAnswer(lc, rule, r, { route, selector, status, error }) {
   return r;
 }
 
-/** Delete a throwaway this check minted (password + DELETE); a failure is a `cleanup` violation (the lgc sweep catches it). */
+/** Delete a throwaway this check minted (username + delete); a failure is a `cleanup` violation (the lgc sweep catches it). */
 async function dropThrowaway(api, lc, t, name) {
   const d = await attempt(deleteAccount(api, { access: t.access, password: credentials(name).password }));
   if (d.status !== 200) lc.violation('cleanup', { route: '/api/account/delete/', selector: `delete throwaway ${name}`, measured: said(d), expected: 'HTTP 200 (else the teardown sweep removes it)' });
@@ -214,32 +214,33 @@ test('[LC-PROFILE-05] export: GET /account/export/ is a JSON attachment with the
   await lc.done();
 });
 
-test('[LC-PROFILE-06] delete: wrong password → 403, no DELETE → 400, both → 200 deleted; afterwards login → 401 and the token → 401', async ({ api, lc }) => {
+test('[LC-PROFILE-06] delete: wrong username → 400, no "delete" → 400, both → 200 deleted (no password); afterwards login → 401 and the token → 401', async ({ api, lc }) => {
   const route = '/api/account/delete/';
   const name = throwawayName(63);
   const { password } = credentials(name);
   const t = (await mintTokens([name]))[name];
+  const username = t.user.username;
   let deleted = false;
   try {
-    await test.step('wrong password + DELETE → 403, account kept', async () => {
-      const r = await attempt(post(api, '/account/delete/', { password: `${password}x`, confirm: 'DELETE' }, { token: t.access }));
-      await expectAnswer(lc, 'delete', r, { route, selector: 'wrong password', status: 403, error: 'That password is incorrect.' });
+    await test.step('wrong username + delete → 400, account kept', async () => {
+      const r = await attempt(post(api, '/account/delete/', { confirm_username: `${username}x`, confirm_text: 'delete' }, { token: t.access }));
+      await expectAnswer(lc, 'delete', r, { route, selector: 'wrong username', status: 400, error: 'Type your username exactly as it appears to confirm.' });
       if (r.status === 200) deleted = true;
     });
     if (!deleted) {
-      await test.step('right password, no DELETE → 400, account kept', async () => {
-        const r = await attempt(post(api, '/account/delete/', { password }, { token: t.access }));
-        await expectAnswer(lc, 'delete', r, { route, selector: 'confirm missing', status: 400, error: 'Type DELETE to confirm.' });
+      await test.step('right username, no "delete" → 400, account kept', async () => {
+        const r = await attempt(post(api, '/account/delete/', { confirm_username: username }, { token: t.access }));
+        await expectAnswer(lc, 'delete', r, { route, selector: 'confirm missing', status: 400, error: 'Type delete to confirm.' });
         if (r.status === 200) deleted = true;
         const m = await me(api, t.access);
         if (!deleted && m.status !== 200) lc.violation('delete', { route: '/api/me/', selector: 'the account after two refused deletes', measured: said(m), expected: 'HTTP 200 (still there)' });
       });
     }
     if (!deleted) {
-      await test.step('password + DELETE → 200 {"status": "deleted"}', async () => {
-        const r = await attempt(deleteAccount(api, { access: t.access, password }));
+      await test.step('username + "DELETE" (any case), no password → 200 {"status": "deleted"}', async () => {
+        const r = await attempt(post(api, '/account/delete/', { confirm_username: username, confirm_text: 'DELETE' }, { token: t.access }));
         if (r.status === 200) deleted = true;
-        if (r.status !== 200 || !r.json || r.json.status !== 'deleted') lc.violation(r.status >= 500 ? 'server-error' : 'delete', { route, selector: 'password + DELETE', measured: said(r), expected: '200 {"status": "deleted"}' });
+        if (r.status !== 200 || !r.json || r.json.status !== 'deleted') lc.violation(r.status >= 500 ? 'server-error' : 'delete', { route, selector: 'username + delete', measured: said(r), expected: '200 {"status": "deleted"}' });
       });
     }
     if (deleted) {

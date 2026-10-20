@@ -9,6 +9,13 @@ Precondition: the owner explicitly asked for promotion in this conversation ("pr
 "ship it to prod", "push dev to main"), or already ran the "Promote dev to main" workflow
 themselves. Without that, stop — see CLAUDE.md "Shipping".
 
+Pre-flight:
+- **Legal version dates.** If the promotion carries a new terms/privacy version (`TERMS_VERSION` in
+  `backend/users/consent.py` differs from production's), on the day the production frontend is promoted set
+  `updated`/`updatedIso`/`changeNotice.effective`/`changeNotice.showUntilIso` in `src/configurations/legal.ts`
+  (+ the version in both `consent.py` and `legal.ts`) to that day; promote the backend + relay no earlier than
+  `effective`, or record an owner waiver (docs/legal/OPEN_ITEMS.md).
+
 1. Trigger it (`gh workflow run dev-ci.yml`, then `gh run list --workflow dev-ci.yml` / `gh run
    watch <id>`) or confirm the owner already ran it. `main` deploys the frontend AND the backend
    Vercel projects.

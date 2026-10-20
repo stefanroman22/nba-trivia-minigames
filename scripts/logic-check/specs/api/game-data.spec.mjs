@@ -256,12 +256,10 @@ test('[LC-GAMEDATA-03] the logged-in leaderboard agrees with the points: user_ra
       if (complete && j.user_rank !== above + 1) v('user_rank', `${j.user_rank} with ${u.points} points`, `${above + 1} (${above} listed player(s) with more points, + 1: leaderboard.rank_of)`);
       if (!complete && j.user_rank <= rows.length) v('user_rank', String(j.user_rank), `> ${rows.length}: ${u.points} points is below the 100th row (${rows[rows.length - 1].points})`);
       const mine = rows.find((x) => x.id === u.id);
-      if (u.is_teen && mine) v(`top_100_users row ${u.id}`, 'listed', 'not listed: a teen / age-unknown account is hidden from the public board (leaderboard._ranked)');
-      if (!u.is_teen) {
-        if (mine && mine.points !== u.points) v(`top_100_users row ${u.id}`, `${mine.points} points`, `${u.points} (/me/)`);
-        if (!mine && complete && rows.length < 100) v(`top_100_users`, `${u.username} (${u.id}) missing`, 'an adult player with fewer than 100 players above is listed');
-        if (j.number_users < j.user_rank) v('number_users', String(j.number_users), `≥ user_rank ${j.user_rank} (the player is counted)`);
-      }
+      // Every non-banned account is on the public board, teens and unknown ages included (owner decision 2026-10-19).
+      if (mine && mine.points !== u.points) v(`top_100_users row ${u.id}`, `${mine.points} points`, `${u.points} (/me/)`);
+      if (!mine && complete && rows.length < 100) v(`top_100_users`, `${u.username} (${u.id}) missing`, 'a player with fewer than 100 players above is listed, whatever their age');
+      if (j.number_users < j.user_rank) v('number_users', String(j.number_users), `≥ user_rank ${j.user_rank} (the player is counted)`);
       lc.metric('global rank', j.user_rank, { unit: '', route, kind: 'data' });
       lc.metric('ranked players', j.number_users, { unit: '', route, kind: 'data' });
     });

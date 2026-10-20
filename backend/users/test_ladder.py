@@ -32,8 +32,7 @@ class DistributionTests(TestCase):
         ranks = ["Rookie"] * 4 + ["Role Player"] * 3 + ["Sixth Man"] * 2 + ["Starter"]
         for i, (p, r) in enumerate(zip(pts, ranks)):
             _player(i, p, r)
-        # Hidden from the public population: a teen and a banned account.
-        _player(90, 50_000, "GOAT", age_group="teen")
+        # Hidden from the public population: a banned account.
         banned = _player(91, 50_000, "GOAT")
         from django.utils import timezone
         User.objects.filter(pk=banned.pk).update(banned_at=timezone.now())
@@ -79,6 +78,15 @@ class DistributionTests(TestCase):
         digest = hashlib.md5(repr(ranks.LADDER).encode()).hexdigest()[:8]
         self.assertEqual(ladder.LADDER_CACHE_KEY, f"ladder:v1:{digest}")
 
+    def test_teens_and_unknown_ages_count_like_everyone(self):
+        _player(90, 50_000, "GOAT", age_group="teen")
+        _player(92, 5, "Rookie", age_group="")
+        cache.clear()
+        d = ladder.distribution()
+        self.assertEqual(d["total_players"], 12)
+        by = {row["name"]: row for row in d["ladder"]}
+        self.assertEqual((by["GOAT"]["players"], by["Rookie"]["players"]), (1, 5))
+
     def test_empty_population(self):
         User.objects.all().delete()
         cache.clear()
@@ -113,10 +121,10 @@ class YouBlockTests(TestCase):
         self.assertEqual(you["to_top"]["50"], 2_000 - 900)
         self.assertEqual(you["to_top"]["10"], 160_000 - 900)
 
-    def test_teen_gets_a_you_block(self):
+    def test_teen_is_ranked_like_everyone(self):
         teen = _player(99, 700, "Sixth Man", age_group="teen")
         you = ladder.you_block(teen, ladder.distribution())
-        self.assertEqual(you["position"], 7)  # 6 public players have more points
+        self.assertEqual(you["position"], 7)  # 6 players have more points; the teen is one of the 11
         self.assertLessEqual(you["same_rank_pct"], 100.0)
         self.assertGreater(you["percentile"], 0)
 

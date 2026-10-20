@@ -92,6 +92,9 @@ function MiniGame() {
   // by game and by phase) so the "all games" list is as tall as the game
   // container instead of shrinking to its own content or a fixed cap.
   const stageColRef = useRef<HTMLElement | null>(null);
+  // Written straight onto the rail (no re-render): the stage's height now glides (Rule 3.2), so this
+  // fires every frame of a resize, and a state update would re-render the whole game each frame.
+  const railRef = useRef<HTMLElement | null>(null);
 
   // Mobile game strip: keep the horizontal position the player left it at across game switches
   // (each switch mounts a fresh page), instead of jumping back to the first chip. Before paint, so
@@ -119,7 +122,6 @@ function MiniGame() {
       // storage blocked: the position just isn't remembered
     }
   };
-  const [railHeight, setRailHeight] = useState<number | null>(null);
   // Daily games only (Wordle, Contexto): whether this account/browser already played today's puzzle.
   // Re-checked every time we land on idle for one, so it's fresh both on
   // first load and after finishing a run (Close game).
@@ -134,7 +136,9 @@ function MiniGame() {
   useEffect(() => {
     const el = stageColRef.current;
     if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setRailHeight(entry.contentRect.height));
+    const ro = new ResizeObserver(([entry]) => {
+      railRef.current?.style.setProperty("height", `min(${entry.contentRect.height}px, calc(100dvh - 104px))`);
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -403,7 +407,7 @@ function MiniGame() {
           </div>
 
           {/* Desktop rail */}
-          <aside className="rail" aria-label="All games" style={railHeight != null ? { height: `min(${railHeight}px, calc(100dvh - 104px))` } : undefined}>
+          <aside className="rail" aria-label="All games" ref={railRef}>
             <div className="rail-head"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>
             <div className="rail-list">
               {visibleGames.map((g) => (

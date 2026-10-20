@@ -19,6 +19,7 @@ Sept 2026. Route files live in `src/app/`; page components live in `src/views/` 
 | Routing / route-level transition | `src/app/[game]/page.tsx` (one dynamic route for every game), `src/app/template.tsx` + `src/context/PageTransitionContext.tsx` + `src/hooks/useNavigate.ts` |
 | Single overlay host | `src/components/ModalHost.tsx`, `src/context/ModalContext.tsx`, `src/components/ui/Modal.tsx` |
 | Shared design-system primitives | `src/components/ui/index.ts` |
+| Dropdown (pick one of a list) | `src/components/ui/Select.tsx` + `src/styles/Select.css` (UI-24) |
 | Sliding tab/pill switcher | `src/components/motion/SegmentedTabs.tsx` + `src/styles/SegmentedTabs.css` + `springs.thumb` in `src/motion/tokens.ts` |
 | Animated label swap ("Copy"→"Copied!") | `src/components/motion/SwapText.tsx` (see `src/components/modals/FeedbackModal.tsx`) |
 | One-shot system messages (not modals) | `src/utils/Alerts.tsx` |
@@ -214,7 +215,9 @@ Escape-to-close, focus trap, focus restore and body-scroll lock, and `ModalHost`
 `ModalHost.tsx` and a presentational component in `src/components/modals/` that only receives
 `onClose` (never its own backdrop). Current kinds: `login`, `feedback`, `leaderboard`,
 `instructions`, `multiplayerInfo`, `gamePicker`, `answerReview` (lazy-loaded: it bundles every
-game's review view, which only a game page in a match opens).
+game's review view, which only a game page in a match opens), `confirmLogout` (the "Log out?" confirm,
+payload `{ onConfirm }`, opened by `useLogout().requestLogOut`; its Cancel carries `data-autofocus`, which
+`useFocusTrap` focuses first).
 
 ```tsx
 ❌ WRONG — a component rendering its own overlay outside ModalHost
@@ -626,7 +629,8 @@ new size. Reuse the shared primitives, never hand-roll one:
   measures the content (ResizeObserver) and animates the box's height, clips only while moving
   (focus rings and popovers are never cut off at rest), and is instant under reduced motion. Put it
   around the `AnimatePresence` of UI-22, not on the swapped child. Used by the landing profile card
-  (Profile / Friends and the Friends sub-tabs) and the game page's Multiplayer card.
+  (Profile / Friends and the Friends sub-tabs), the game page's Multiplayer card and the game `Stage`
+  (every phase and game, GAME_DESIGN_CONSTRAINTS Rule 3.2).
 - **Width:** inline boxes (chips, pills, badges) whose label changes use `AutoSize axis="width"`
   (same file) around the element, with `SwapText` inside for the text (UI-21).
 - **State styling:** a box that changes border, background or glow with state (for example
@@ -652,6 +656,53 @@ new size. Reuse the shared primitives, never hand-roll one:
 <div className="profile-wrap">
   <AutoHeight>{view === "friends" ? <FriendsPanel /> : <ProfileSummary />}</AutoHeight>
 </div>
+```
+
+---
+
+## Rule UI-24: Dropdowns are never a native `<select>` — use `ui/Select`
+
+A native `<select>` clips or restyles its arrow per browser and its option list can't animate. Every
+pick-one-of-a-list control is `Select` from `src/components/ui` (`src/components/ui/Select.tsx` +
+`src/styles/Select.css`), with the native-like API `value` / `onChange(value: string)` /
+`options: { value, label, disabled? }[]` / `placeholder` / `disabled` / `aria-label` / `className`.
+
+- **Chevron:** fully visible on the right, pointing **right** while closed. On open it turns (0.2 s,
+  `easing.out`) toward the menu — **down** when the menu opens below the trigger, **up** when only the
+  space above fits it — and back to right on close. Instant under reduced motion.
+- **Menu:** fades in from the trigger side (opacity + a slight scale/travel) and fades out on close;
+  `reducedFade` under reduced motion. It renders in a portal at `z-index: 80` (level with `.nav3-menu`,
+  above modals), scrolls on its own when long, and opens with the selected option in view.
+- **Placement:** the strip under the sticky `.nav3` header is not free space when it picks up or
+  down, and the menu closes once its trigger scrolls under the header or off screen.
+- **Skin:** pass the look of the surrounding inputs as `className` (`modal-input` in forms,
+  `fb-select` in the admin filters); with none it is a `.field`. A name is required: `aria-label`,
+  or `aria-labelledby` pointing at a visible label.
+- **Closing by pressing outside** swallows that one click, as a native select does: the press that
+  closes the menu never also presses the button, link or backdrop under the pointer.
+- Keyboard and screen readers come with it (combobox + listbox, focus stays on the trigger; the
+  value is read from an always-current hidden copy, not the animating label): don't rebuild a
+  dropdown by hand. Trade-off of the portal: on mobile screen readers, swipe order reaches the
+  options at the end of the page rather than after the trigger; the trigger's arrow keys and
+  `aria-activedescendant` remain the way through the list. Menus of *actions* (the nav profile menu)
+  are not selects, but still fade in and out.
+
+```tsx
+❌ WRONG — src/components/PhotoAgePrompt.tsx before: a native select, its arrow clipped, the list snaps open
+<select className="modal-input" aria-label="Birth year" value={year} onChange={(e) => setYear(e.target.value)}>
+  <option value="" disabled>Birth year</option>
+  {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
+</select>
+
+✅ RIGHT — src/components/PhotoAgePrompt.tsx
+<Select
+  className="modal-input"
+  aria-label="Birth year"
+  placeholder="Birth year"
+  value={year}
+  onChange={setYear}
+  options={years.map((y) => ({ value: String(y), label: String(y) }))}
+/>
 ```
 
 ---
@@ -755,3 +806,15 @@ another rail item on desktop): the popup has `.swal2-custom-popup`, its backgrou
 the tabs and search box show at once, and the line under the list fades "Loading your friends…" →
 "No friends yet — try the Find tab." (or the list) with no jump in the card's height; in Find, type
 one letter then two and watch the hint → "Searching…" → "No players found." swap in the same line.
+
+**15. Dropdowns (Rule UI-24).**
+```bash
+grep -rn "<select" src --include=*.tsx   # MUST print nothing
+```
+Signed in with an account whose age is unknown, add a profile photo on `/profile` to open the birth
+month + year prompt. Closed: the chevron points right and is fully inside the field. Scroll so the
+field sits near the bottom of the viewport and open it: the menu opens above and the chevron turns
+up; near the top it opens below and the chevron turns down. The menu fades in and out (sample
+`getComputedStyle(document.querySelector('.sel-menu')).opacity` over a few frames: it climbs from 0
+to 1). Keyboard: Enter opens, typing "19" jumps to 1999, Enter picks it, Escape closes the menu only
+and focus stays on the trigger.

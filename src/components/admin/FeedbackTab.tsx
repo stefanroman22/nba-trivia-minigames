@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { CourtLoader, Field } from "../ui";
+import { CourtLoader, Field, Select } from "../ui";
 import SwapText from "../motion/SwapText";
 import { games as gameCatalog } from "../../utils/GameUtils";
 import {
@@ -435,11 +435,13 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
             />
           </div>
 
-          <select className="fb-select" value={filters.sort} onChange={(e) => patch({ sort: e.target.value })} aria-label="Sort">
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>{s.label}</option>
-            ))}
-          </select>
+          <Select
+            className="fb-select"
+            value={filters.sort}
+            onChange={(sort) => patch({ sort })}
+            aria-label="Sort"
+            options={SORTS.map((s) => ({ value: s.key, label: s.label }))}
+          />
 
           <button className={`fb-pill${showFilters ? " is-active" : ""}`} onClick={() => setShowFilters((v) => !v)}>
             Filters{activeCount ? ` (${activeCount})` : ""}
@@ -488,28 +490,32 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
 
             <div className="fb-filter-group">
               <span className="fb-filter-label">Sender</span>
-              <select
+              <Select
                 className="fb-select"
                 value={filters.audience}
-                onChange={(e) => patch({ audience: e.target.value as FeedbackFilters["audience"] })}
-              >
-                <option value="all">Everyone</option>
-                <option value="registered">Signed-in players</option>
-                <option value="guest">Guests</option>
-              </select>
+                onChange={(audience) => patch({ audience: audience as FeedbackFilters["audience"] })}
+                aria-label="Sender"
+                options={[
+                  { value: "all", label: "Everyone" },
+                  { value: "registered", label: "Signed-in players" },
+                  { value: "guest", label: "Guests" },
+                ]}
+              />
             </div>
 
             <div className="fb-filter-group">
               <span className="fb-filter-label">Message</span>
-              <select
+              <Select
                 className="fb-select"
                 value={filters.hasMessage}
-                onChange={(e) => patch({ hasMessage: e.target.value as FeedbackFilters["hasMessage"] })}
-              >
-                <option value="">Any</option>
-                <option value="true">With a message</option>
-                <option value="false">Rating only</option>
-              </select>
+                onChange={(hasMessage) => patch({ hasMessage: hasMessage as FeedbackFilters["hasMessage"] })}
+                aria-label="Message"
+                options={[
+                  { value: "", label: "Any" },
+                  { value: "true", label: "With a message" },
+                  { value: "false", label: "Rating only" },
+                ]}
+              />
             </div>
 
             <div className="fb-filter-group">
@@ -540,13 +546,17 @@ export default function FeedbackTab({ onNewCount }: { onNewCount?: (n: number) =
 
             <div className="fb-filter-group">
               <span className="fb-filter-label">Game</span>
-              <select className="fb-select" value={filters.game} onChange={(e) => patch({ game: e.target.value })}>
-                <option value="">All games</option>
-                <option value={NO_GAME}>(no game)</option>
-                {gameCatalog.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
-                ))}
-              </select>
+              <Select
+                className="fb-select"
+                value={filters.game}
+                onChange={(game) => patch({ game })}
+                aria-label="Game"
+                options={[
+                  { value: "", label: "All games" },
+                  { value: NO_GAME, label: "(no game)" },
+                  ...gameCatalog.map((g) => ({ value: g.id, label: g.name })),
+                ]}
+              />
             </div>
 
             <div className="fb-filter-group is-wide">

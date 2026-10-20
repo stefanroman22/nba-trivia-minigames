@@ -40,6 +40,10 @@ export const staggerItem: Variants = {
   exit: { opacity: 0, y: -12, transition: { duration: durations.fast, ease: easing.in } },
 };
 
+// The game Stage's phase entrance (fade up from 12px). A game root that mounts after its phase has
+// already entered replays it from GameFrame (GAME_DESIGN_CONSTRAINTS Rule 3.2).
+export const stageEnter = { y: 12, duration: 0.25, ease: easing.out };
+
 // Mutually-exclusive screen swaps (AnimatePresence mode="wait")
 export const swap: Variants = {
   hidden: { opacity: 0, y: 14, scale: 0.985 },

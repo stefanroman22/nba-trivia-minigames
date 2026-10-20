@@ -93,7 +93,7 @@ class SeenTests(TestCase):
 
     def test_delete_account_removes_them(self):
         self.add("career-path", ["cp-1", "cp-2"])
-        resp = self.client.post(reverse("account_delete"), data={"password": "Testpass123!", "confirm": "DELETE"},
+        resp = self.client.post(reverse("account_delete"), data={"confirm_username": "Ann", "confirm_text": "delete"},
                                 content_type="application/json", **self.auth())
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(seen_model().objects.exists())

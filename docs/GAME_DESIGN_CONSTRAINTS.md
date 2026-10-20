@@ -20,6 +20,7 @@ without a rendered screenshot. History and rationale for these rules live in `do
 | 1.2 | A game that cannot fit MUST let the shell grow (content game, page scrolls) — never clip, never squash — and MUST have a deviations entry | `ui:audit` (`shellContainsGame`) + review |
 | 2.1 | The idle screen is shell-owned; a game MUST NOT build its own | review |
 | 3.1 | Loading is shell-owned (`CourtLoader`, 2000 ms hold); a game MUST NOT add a full-stage loader | review |
+| 3.2 | Every game MUST enter and resize through the shared shell (the stage height glides, the frame fades in with its phase); a game MUST NOT animate its own entrance or container height, nor wrap its own wait in `<GameFrame>` | manual rAF check (snippet in the rule) |
 | 4.1 | Every game MUST be classified: a board that scrolls internally → `<GameFrame fill>`; anything else → `<GameFrame>` | `ui:audit` (`gameToExit` per family) |
 | 4.2 | The three shell distances MUST be identical in every game | `ui:audit` (`shellTop`, `gameToExit`, `exitToBottom`) |
 | 4.2a | An empty slot MUST be omitted, never rendered | `ui:audit` (lone-slot alignment) |
@@ -67,9 +68,9 @@ rule. Neither is automated — treat them as the rules most likely to regress.
 
 ### RULE 0 — Your root is `<GameFrame>`. This rule outranks every other rule here.
 Your renderer's root is `<GameFrame>` (`src/components/ui/GameFrame.tsx`) in every state the game
-renders, including its own empty/error states. Never declare a root class, `max-width`, `gap`,
-`margin` or `padding` at the top level, and never hand-roll a status row. `Board` is the only
-free-form region. `GameFrame.Action` returns `null` when empty.
+renders, including its own empty/error states (its own wait is the one exception, Rule 3.2). Never
+declare a root class, `max-width`, `gap`, `margin` or `padding` at the top level, and never hand-roll a
+status row. `Board` is the only free-form region. `GameFrame.Action` returns `null` when empty.
 
 ```tsx
 <GameFrame>                                   {/* owns width, max-width, 20px gap */}
@@ -122,9 +123,10 @@ section.stage-col
 ├── div.stage-title          h1 game name · info button · tag chip
 └── div.stage-shell          border, radius 16px, overflow visible (dropdowns escape)
       ├── div.stage-dots     decorative
-      └── div.stage-inner    padding: var(--stage-pad); align-items: safe center
-            └── motion.div   Stage phase cross-fade (0.25 s)
-                  └── .idle | CourtLoader | .playing-wrap › your root + .feedback-slot + .exit-link | GameResult
+      └── AutoHeight         the shell's height glides to its content (Rule 3.2)
+            └── div.stage-inner    padding: var(--stage-pad); align-items: safe center
+                  └── motion.div   Stage phase cross-fade (0.25 s, `stageEnter`)
+                        └── .idle | CourtLoader | .playing-wrap › your root + .feedback-slot + .exit-link | GameResult
 ```
 
 ### RULE 1.0 — Size children against `--stage-avail`, never `--stage-max`
@@ -179,8 +181,52 @@ Pressing Play shows `<CourtLoader label="Warming up the court…" />` (scale 1) 
 full-stage loader. For a small inline wait (pending vote, end-of-game score) use `Spinner`.
 
 **Why:** one loading moment for every game.
-**Check:** no `CourtLoader` import in `src/Game Renderers/`; a renderer's waiting state is a
-`<GameFrame>` with an inline `Spinner`, not a bare `<div>` root (Rule 0).
+**Check:** no `CourtLoader` import in `src/Game Renderers/`; a renderer's own wait is an inline
+`Spinner` returned in place of its `<GameFrame>` (Rule 3.2).
+
+### RULE 3.2 — Every game enters and resizes through the shared shell. **HARD RULE.**
+Every game enters and resizes through the shared shell: `Stage` wraps `.stage-inner` in `AutoHeight`
+(UI-23), so the shell's height glides to whatever a phase renders, and every phase enters on
+`stageEnter` (`src/motion/variants.ts`: fade up from 12 px, 0.25 s, `easing.out`). A game root that mounts after its
+phase has already entered (its own wait resolved, e.g. a names list) replays that same entrance from
+`GameFrame`, opacity-only under reduced motion. So the game owns none of it:
+- never animate your root's entrance, and never set a height, `min-height` or transition on a wrapper
+  to bridge loader → board; the shell already does both, for every game;
+- an in-game wait is an inline `Spinner` returned **instead of** your `<GameFrame>`; the shell keeps it at
+  the loader's height (`.playing-wrap:not(:has(> .gf))`) and your frame enters when the data lands;
+- never wrap that wait in `<GameFrame>`: the frame would mount before its content, which would then
+  appear in one frame with nothing to fade it.
+
+```tsx
+❌ return <GameFrame><Spinner label="Loading players…" /></GameFrame>;   // board pops in when names land
+❌ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}><GameFrame>…</GameFrame></motion.div>
+✅ if (names === null) return <Spinner label="Loading players…" />;      // WhoAreYa.tsx: the shell fades the frame in
+   return <GameFrame>…</GameFrame>;
+```
+
+**Why:** the stage used to jump to each game's height in one frame (100–550 px) and the games with a
+names fetch showed their board at full opacity in one frame; only Series Winner and Name the Club looked
+smooth, because their board happens to be about the loader's height and mounts with the phase.
+**Check:** paste this in DevTools on the idle screen, press Play, and after ~5 s `snaps()` must be `[]`
+at 1280 and 375 px (a step > 4 px that starts and ends in one frame, or the frame first painted ≥ 0.9
+opaque):
+
+```js
+const shell = document.querySelector('.stage-shell'), f = [];
+// read after each frame has painted (a read inside rAF can catch motion mid-commit)
+(function tick() { requestAnimationFrame(() => setTimeout(() => {
+  const gf = document.querySelector('.stage-inner .gf'); let o = 0;
+  if (gf) { o = 1; for (let e = gf; e; e = e.parentElement) o *= +getComputedStyle(e).opacity; }
+  f.push({ h: shell.getBoundingClientRect().height, gf, o });
+  if (f.length < 360) tick();
+})); })();
+var snaps = () => f.flatMap((x, i) => {
+  const a = f[i - 1], b = f[i + 1], z = f[i - 2];
+  const jump = a && b && Math.abs(x.h - a.h) > 4 && Math.abs(b.h - x.h) < 0.5 && (!z || Math.abs(a.h - z.h) < 0.5);
+  const pop = a && x.gf && x.o >= 0.9 && !(a.gf === x.gf && a.o >= 0.5);
+  return [...(jump ? [`height ${a.h.toFixed(0)}→${x.h.toFixed(0)}`] : []), ...(pop ? ['frame popped in'] : [])];
+});
+```
 
 ---
 

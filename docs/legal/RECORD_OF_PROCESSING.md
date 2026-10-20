@@ -52,7 +52,7 @@ No special-category data is collected on purpose. No ads, analytics, tracking pi
 | Trigger | Present? | Note |
 |---|---|---|
 | Large-scale processing of personal data | Possibly, as the user base grows | Public display data of many users |
-| Children's data | Mitigated: accounts 13+ (self-declared tick-box since 2026-10-11, owner decision), no birth date stored, no photo or chat for under-16s; accounts without a confirmed 16+ age are kept off the public leaderboard and name search | Residual: minors lying about age (easier with a tick-box than with a birth-date screen) |
+| Children's data | Mitigated: accounts 13+ (self-declared tick-box since 2026-10-11, owner decision), no birth date stored, no photo or chat for under-16s; the profile photo is the only age limit (owner decision 2026-10-19): accounts without a confirmed 16+ age cannot add a photo, and are otherwise on the public leaderboard and in name search like every account | Residual: minors lying about age (easier with a tick-box than with a birth-date screen) |
 | User-generated photos shown publicly | Yes | Automated classifier, fail-closed, removable |
 | Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request |
 | Special categories, location, biometric | No | Photos are not used for identification |
@@ -65,5 +65,5 @@ of: ads or analytics, chat, location, an app-store release, or reaching a scale 
 
 HTTPS with 1-year HSTS in production; salted PBKDF2 password hashes; 15-minute access tokens and 90-day rotating,
 blacklistable refresh tokens; rate limits on sign-in, sign-up, refresh and account actions; Django admin and admin API
-restricted to staff; production refuses to start without a real `DJANGO_SECRET_KEY`; generic API error messages and one generic login failure message; teens hidden from the public leaderboard and name search; baseline
+restricted to staff; production refuses to start without a real `DJANGO_SECRET_KEY`; generic API error messages and one generic login failure message; baseline
 security headers; weekly pruning. Known gaps are tracked in OPEN_ITEMS.md (CSP, HttpOnly cookies, admin 2FA and audit log).
