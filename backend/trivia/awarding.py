@@ -1,14 +1,13 @@
 """Everything between a finished game's score and the points that land on the account.
 
 `award()` is the ONLY writer of points, rank, active days and the streak (AUTH-6). Per-game ceilings,
-the daily soft cap, the first-game-of-the-day bonus and the streak live here so `log_session` (solo,
+the first-game-of-the-day bonus and the streak live here so `log_session` (solo,
 the signed-in browser) and `multiplayer_result` (online, the relay) can't drift apart. Day boundaries
 are Europe/Paris, like the daily Wordle. Design: docs/superpowers/specs/2026-10-16-progression-design.md.
 """
 import datetime
 
 from django.db import transaction
-from django.db.models import Sum
 
 from trivia.models import GameSession
 from trivia.wordle_daily import CET, DAILY_GAMES, cet_today
@@ -28,15 +27,12 @@ MATCH_MAX_POINTS = {"wordle": 200}
 DEFAULT_MAX_POINTS = 300
 
 FIRST_GAME_BONUS = 100
-# Daily soft cap on GAME points (bonuses excluded): the first DAILY_FULL of a day count in full, the
-# next DAILY_HALF at 50%, the rest at DAILY_TAIL_RATE. Rewards coming back tomorrow over farming today.
-DAILY_FULL = 1_500
-DAILY_HALF = 1_500
-DAILY_TAIL_RATE = 0.10
-# Paid once, on the day the streak reaches the milestone.
-STREAK_MILESTONES = {7: 200, 30: 1_000, 100: 5_000}
-# A held freeze covers one missed day; refilled whenever the streak reaches a multiple of 7.
+# Every game point counts in full (owner decision 2026-10-20: no daily soft cap). Streak milestones are the
+# reward for coming back: paid once, automatically, on the day the streak reaches the milestone.
+STREAK_MILESTONES = {10: 500, 25: 1_500, 50: 4_000, 100: 10_000, 200: 25_000, 500: 75_000, 1_000: 200_000}
+# A held freeze covers one missed day; refilled whenever the streak reaches a multiple of FREEZE_EVERY_DAYS.
 MAX_FREEZES = 1
+FREEZE_EVERY_DAYS = 7
 
 ACTIVITY_FIELDS = ["points", "rank", "active_days", "last_active_day", "streak_days", "streak_best", "streak_freezes"]
 
@@ -65,20 +61,6 @@ def week_start_utc(day):
     return day_start_utc(day - datetime.timedelta(days=day.weekday()))
 
 
-def soft_capped(score, earned_today):
-    """How much of `score` still counts after `earned_today` game points already earned today."""
-    total = 0.0
-    remaining = score
-    take = min(remaining, max(0, DAILY_FULL - earned_today))
-    total += take
-    remaining -= take
-    take = min(remaining, max(0, DAILY_FULL + DAILY_HALF - max(earned_today, DAILY_FULL)))
-    total += take * 0.5
-    remaining -= take
-    total += remaining * DAILY_TAIL_RATE
-    return int(round(total))
-
-
 def streak_alive(user, today):
     """True while a scoring game today would extend the streak: last active today or yesterday, or two
     days ago with a freeze held to cover the missed day."""
@@ -102,7 +84,7 @@ def _touch_activity(user, today):
     user.active_days += 1
     user.last_active_day = today
     user.streak_best = max(user.streak_best, user.streak_days)
-    if user.streak_days % 7 == 0:
+    if user.streak_days % FREEZE_EVERY_DAYS == 0:
         user.streak_freezes = min(MAX_FREEZES, user.streak_freezes + 1)
     return STREAK_MILESTONES.get(user.streak_days, 0)
 
@@ -132,9 +114,8 @@ def award(user, game, mode, score, duration_ms):
         todays = GameSession.objects.filter(
             user=user, finished_at__gte=since, finished_at__lt=until, mode__in=("single", "match")
         )
-        earned_today = todays.aggregate(s=Sum("score"))["s"] or 0
         scoring = score > 0 and not _repeat_blocked(user, game, mode, todays)
-        base = soft_capped(score, earned_today) if scoring else 0
+        base = score if scoring else 0
         first_bonus = FIRST_GAME_BONUS if scoring and not todays.filter(score__gt=0).exists() else 0
         streak_bonus = _touch_activity(user, today) if scoring else 0
         awarded = base + first_bonus + streak_bonus

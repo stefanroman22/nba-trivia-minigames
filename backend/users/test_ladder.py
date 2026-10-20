@@ -52,7 +52,7 @@ class DistributionTests(TestCase):
         self.assertEqual(by["GOAT"]["players"], 0)
         self.assertEqual(by["GOAT"]["share_pct"], 0.0)
         self.assertEqual(by["Starter"]["points"], 1_500)
-        self.assertEqual(by["Starter"]["days"], 3)
+        self.assertEqual(by["Starter"]["days"], 0)
 
     def test_percentile_thresholds(self):
         d = ladder.distribution()
@@ -144,7 +144,8 @@ class LadderEndpointTests(TestCase):
         self.assertIsNone(body["you"])
         self.assertEqual(len(body["ladder"]), 9)
         self.assertEqual(body["rules"]["first_game_bonus"], awarding.FIRST_GAME_BONUS)
-        self.assertEqual(body["rules"]["daily_full"], awarding.DAILY_FULL)
+        self.assertNotIn("daily_full", body["rules"])
+        self.assertEqual(body["rules"]["freeze_every_days"], awarding.FREEZE_EVERY_DAYS)
         self.assertEqual(body["rules"]["streak_milestones"], {str(k): v for k, v in awarding.STREAK_MILESTONES.items()})
         self.assertEqual(body["rules"]["max_freezes"], awarding.MAX_FREEZES)
         self.assertEqual(body["rules"]["guest_carryover_max"], GUEST_CARRYOVER_MAX)

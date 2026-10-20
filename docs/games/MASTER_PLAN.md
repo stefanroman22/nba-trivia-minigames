@@ -35,7 +35,7 @@ Update this table whenever a game ships or its status changes.
 | W2-6 | Teammate Chain | 📋 Wave 2 | P2 | /teammate-chain | 250 | S/M/F |
 | W3-1 | NBA Bingo | ✅ Built 2026-07-06 | P2 | /bingo | 200 | S/M/F |
 | W3-2 | Brickless (inverse Fan Favorites) | 📋 Wave 3 | P2 | /brickless | 300 | S/M/F |
-| W3-3 | LeContexto (similarity guesser) | ✅ Built 2026-07-06 | P2 | /contexto | 3,000 | S/M/F |
+| W3-3 | LeContexto (similarity guesser) | ✅ Built 2026-07-06 | P2 | /contexto | 350 | S/M/F |
 | W3-4 | Emoji Riddles | 📋 Wave 3 | P3 | /emoji | 150 | S/M/F |
 | W3-5 | Pixel Reveal (players + retro logos) | 📋 Wave 3 | P2 | /pixel-reveal | 150 | S/M/F |
 | W3-6 | NBA Timeline | 📋 Wave 3 | P3 | /timeline | 200 | S/M/F |

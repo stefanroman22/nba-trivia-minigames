@@ -181,6 +181,16 @@ function MiniGame() {
     setShowResult(false);
     setEndedInPlace(false);
     setReview(undefined);
+    // On a phone the game ran below the fold: once it closes and the stage is idle again, glide back up
+    // if the stage is not fully in view (after the layout settles, so the check sees the idle stage).
+    requestAnimationFrame(() => {
+      const el = stageColRef.current;
+      if (!el || !mountedRef.current) return;
+      const r = el.getBoundingClientRect();
+      if (r.top >= 0 && r.bottom <= window.innerHeight) return;
+      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    });
   };
 
   const handleExit = () => {

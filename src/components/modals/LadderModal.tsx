@@ -10,7 +10,7 @@ import { reducedFade, staggerContainer, staggerItem, swap } from "../../motion/v
 import { visibleGames } from "../../utils/GameUtils";
 import { RANK_COLORS, RANK_TAGLINES, rankLabel, percentileShareText } from "../../utils/ranks";
 import {
-  aheadCopy, gateCopy, nextRankCopy, percentileHeadline, sameRankCopy, softCapCopy, streakCopy, toTopCopy,
+  aheadCopy, gateCopy, nextRankCopy, percentileHeadline, sameRankCopy, streakBonusCopy, freezeCopy, toTopCopy,
   type LadderData, type LadderRow, type LadderRules,
 } from "../../utils/ladder";
 
@@ -92,7 +92,7 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
             <span className="ld-eyebrow">Playing as guest</span>
             <h3 className="font-display ld-headline">Claim your rank</h3>
             <p className="ld-sub">
-              {total === 0 ? "Sign up to claim a rank." : `Sign up to see where you stand against ${total.toLocaleString()} ${total === 1 ? "player" : "players"}.`}
+              Sign up to see where you stand against other players.
             </p>
           </div>
         )}
@@ -155,9 +155,12 @@ function Ladder({ data, onClose, onSignUp }: { data: LadderData; onClose: () => 
           </ul>
           <ul className="ld-rules">
             {isNum(rules.first_game_bonus) && <li><strong className="tnum">+{rules.first_game_bonus}</strong> for your first scoring game of the day</li>}
-            {isNum(rules.daily_full) && isNum(rules.daily_half) && isNum(rules.daily_tail_rate) && <li>{softCapCopy(rules as LadderRules)}</li>}
-            {rules.streak_milestones && isNum(rules.max_freezes) && <li>{streakCopy(rules as LadderRules)}</li>}
-            <li>Ranks need points <em>and</em> active days — they never drop</li>
+            {rules.streak_milestones && isNum(rules.max_freezes) && isNum(rules.freeze_every_days) && (
+              <>
+                <li><strong>Streak bonus, added automatically:</strong> <span className="tnum">{streakBonusCopy(rules as LadderRules)}</span></li>
+                <li>{freezeCopy(rules as LadderRules)}</li>
+              </>
+            )}
             {!you && isNum(rules.guest_carryover_max) && <li>Sign up and keep up to <span className="tnum">{rules.guest_carryover_max.toLocaleString()}</span> guest points</li>}
           </ul>
         </section>

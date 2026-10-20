@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 import { reducedFade, swap } from "../../motion/variants";
 import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboard";
+import { friendPhotoUrl } from "../../hooks/useFriends";
 import { Avatar, CourtLoader } from "../ui";
 import SegmentedTabs from "../motion/SegmentedTabs";
 import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from "../../constants/leaderboard";
@@ -18,6 +19,7 @@ interface LeaderboardModalProps {
 
 export default function LeaderboardModal({ scope: pickedScope, onScopeChange }: LeaderboardModalProps) {
   const loggedIn = useSelector((s: RootState) => s.user.user) !== null;
+  const myPhoto = useSelector((s: RootState) => s.user.user?.profile_photo ?? null);
   // A player who logs out on Friends lands on Global (guests have no Friends tab).
   const scope: LeaderboardScope = !loggedIn && pickedScope === "friends" ? "global" : pickedScope;
   const { loading, leaders, self } = useLeaderboard(scope);
@@ -62,7 +64,7 @@ export default function LeaderboardModal({ scope: pickedScope, onScopeChange }: 
               return (
                 <div key={u.id ?? `${u.rank}-${u.name}`} className={`lbf-row${isSelf ? " is-self" : ""}`}>
                   <span className="tnum lbf-rank" style={{ color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
-                  <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} />
+                  <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} src={u.id ? friendPhotoUrl(u.id, u.photoVersion ?? 0) : null} />
                   <span className="lbf-name" style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
                     {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
@@ -77,7 +79,7 @@ export default function LeaderboardModal({ scope: pickedScope, onScopeChange }: 
             <div className="lbf-selfbar">
               <div className="lbf-selfbar-inner">
                 <span className="tnum lbf-rank" style={{ width: "auto", minWidth: 34, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
-                <Avatar initials={initials(self.name)} size={30} bg={SELF_AVATAR_BG} />
+                <Avatar initials={initials(self.name)} size={30} bg={SELF_AVATAR_BG} src={myPhoto} />
                 <span style={{ flex: 1, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
                   <span style={{ fontWeight: 700, fontSize: 14 }}>{self.name}</span>
                   {self.id && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>#{self.id}</span>}

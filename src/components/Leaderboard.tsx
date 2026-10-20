@@ -7,6 +7,7 @@ import SegmentedTabs from './motion/SegmentedTabs';
 import { staggerContainer, staggerItem } from '../motion/variants';
 import { durations, easing } from '../motion/tokens';
 import { useLeaderboard, type LeaderboardScope } from '../hooks/useLeaderboard';
+import { friendPhotoUrl } from '../hooks/useFriends';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { useModal } from '../context/ModalContext';
@@ -29,6 +30,8 @@ function timeAgo(ts: number, now: number): string {
 function Leaderboard() {
   const [pickedScope, setScope] = useState<LeaderboardScope>("global");
   const loggedIn = useSelector((s: RootState) => s.user.user) !== null;
+  // The signed-in player's own photo (the same one the header shows), for their bar under the list.
+  const myPhoto = useSelector((s: RootState) => s.user.user?.profile_photo ?? null);
   // A player who logs out on Friends lands on Global (guests have no Friends tab).
   const scope: LeaderboardScope = !loggedIn && pickedScope === "friends" ? "global" : pickedScope;
   const { loading, leaders, self, refresh, refreshing, lastUpdated, now } = useLeaderboard(scope);
@@ -93,7 +96,7 @@ function Leaderboard() {
                   {preview.map((u) => (
                     <motion.div key={u.id ?? `${u.rank}-${u.name}`} variants={staggerItem} className="lb-row">
                       <span className="tnum" style={{ minWidth: 24, textAlign: "center", fontWeight: 700, fontSize: 13, color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
-                      <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} />
+                      <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} src={u.id ? friendPhotoUrl(u.id, u.photoVersion ?? 0) : null} />
                       <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                         <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
                         {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
@@ -110,7 +113,7 @@ function Leaderboard() {
           {!loading && self && !selfInList && !noWeeklyPosition && (
             <div className="lb-self">
               <span className="tnum" style={{ minWidth: 34, textAlign: "center", fontWeight: 700, fontSize: 13, color: "var(--brand)" }}>{self.rank.toLocaleString()}</span>
-              <Avatar initials={initials(self.name)} size={26} bg={SELF_AVATAR_BG} />
+              <Avatar initials={initials(self.name)} size={26} bg={SELF_AVATAR_BG} src={myPhoto} />
               <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
                 <span style={{ fontWeight: 700, fontSize: 13.5 }}>{self.name}</span>
                 <span style={{ fontWeight: 500, color: "var(--muted)", fontSize: 11.5 }}>

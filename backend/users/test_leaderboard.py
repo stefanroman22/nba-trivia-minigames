@@ -76,7 +76,7 @@ class LeaderboardPostgresFallbackTests(TestCase):
         User.objects.filter(username="alice").update(rank="Role Player")
         self.assertEqual(leaderboard.top(10)[0]["rank"], "Role Player")
         board, _, _ = leaderboard.friends_board(User.objects.get(username="alice"))
-        self.assertEqual(board, [{"id": board[0]["id"], "username": "alice", "rank": "Role Player", "points": 300}])
+        self.assertEqual(board, [{"id": board[0]["id"], "username": "alice", "rank": "Role Player", "points": 300, "photo_version": 0}])
 
 
 class LeaderboardRedisTests(TestCase):
@@ -93,7 +93,11 @@ class LeaderboardRedisTests(TestCase):
         rows = leaderboard.top(10)
         self.assertEqual([r["username"] for r in rows], ["alice", "carol", "bob"])
         alice = User.objects.get(username="alice")
-        self.assertEqual(rows[0], {"id": alice.public_id, "username": "alice", "rank": "Rookie", "points": 300})
+        self.assertEqual(rows[0], {"id": alice.public_id, "username": "alice", "rank": "Rookie", "points": 300, "photo_version": 0})
+
+    def test_rows_carry_the_photo_version(self):
+        User.objects.filter(username="alice").update(profile_photo_version=4)
+        self.assertEqual(leaderboard.top(10)[0]["photo_version"], 4)
 
     def test_rank_from_zset(self):
         self.assertEqual(leaderboard.rank_of(User.objects.get(username="alice")), 1)

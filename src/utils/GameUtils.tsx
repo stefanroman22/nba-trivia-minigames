@@ -496,7 +496,7 @@ export const games: Game[] = [
     rules: [
       { n: "1", t: "Guess any player. You get a similarity rank (#1 is the answer)." },
       { n: "2", t: "Franchise, era, position, draft and stats drive the similarity." },
-      { n: "3", t: "3,000 points, −75 per guess past your tenth." },
+      { n: "3", t: "350 points, −10 per guess past your tenth." },
     ],
     instruction: `
       <div class="space-y-2">
@@ -504,7 +504,7 @@ export const games: Game[] = [
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Reach rank #1, the secret player.</li>
           <li><strong>Guesses:</strong> Unlimited; the rank guides you closer.</li>
-          <li><strong>Reward:</strong> 3,000 points, −75 per guess after the tenth.</li>
+          <li><strong>Reward:</strong> 350 points, −10 per guess after the tenth.</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>

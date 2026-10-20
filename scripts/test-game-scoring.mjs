@@ -56,7 +56,7 @@ test("starting five: no full-lineup bonus any more", () => {
   assert.equal("STARTING_FIVE_BONUS" in scoring, false);
 });
 
-test("contexto: 3000 through ten guesses, minus 75 per guess after, floor 750", () => {
+test("contexto: 350 through ten guesses, minus 10 per guess after, floor 100", () => {
   assert.equal(CONTEXTO_MAX, 350);
   assert.equal(contextoScore(1), 350);
   assert.equal(contextoScore(10), 350);

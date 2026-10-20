@@ -33,12 +33,12 @@ export const RANK_TAGLINES: Record<string, string> = {
   "Rookie": "Everyone starts here",
   "Role Player": "First points on the board",
   "Sixth Man": "Off the bench, into the rotation",
-  "Starter": "Three days in — you're in the lineup",
+  "Starter": "You're in the lineup",
   "All-Star": "Top of the regulars",
   "All-NBA": "Elite company",
   "MVP": "Best in the building",
   "Hall of Famer": "Legend status",
-  "GOAT": "The 180-day club",
+  "GOAT": "The greatest of all time",
 };
 
 /** The ladder's share line. */

@@ -153,41 +153,70 @@ class GoogleSignupCheckboxTests(TestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(resp.json()["new_account"])
 
-    def test_the_new_name_is_generated_and_never_from_the_email(self):
+    def test_the_new_name_is_the_email_name_plus_two_digits(self):
         with self.verify(email="runforfun12@gmail.com"):
             resp = self.post(code="c", **TICKED)
         name = User.objects.get(email="runforfun12@gmail.com").username
-        self.assertRegex(name, GENERATED)
-        self.assertNotIn("runforfun", name.lower())
+        self.assertRegex(name, r"^runforfun12\d{2}$")
         self.assertEqual(resp.json()["user"]["username"], name)
 
 
-GENERATED = r"^(%s)\d{4}$" % "|".join(GOOGLE_NAME_WORDS)
+GENERATED = r"^(%s)\d{2}$" % "|".join(GOOGLE_NAME_WORDS)
 
 
 class GeneratedUsernameTests(TestCase):
     def test_every_word_makes_a_valid_name_that_passes_moderation(self):
         for word in GOOGLE_NAME_WORDS:
-            for digits in ("0000", "1234", "9999"):
+            for digits in ("00", "42", "99"):
                 name = f"{word}{digits}"
                 self.assertRegex(name, USERNAME_RE)
                 self.assertEqual(check_username(name).tier, "ok", name)
         self.assertRegex("Player000000", USERNAME_RE)
         self.assertEqual(check_username("Player000000").tier, "ok")
 
-    def test_a_generated_name_is_valid_and_free(self):
+    def test_a_generated_name_without_an_email_is_a_word_plus_two_digits_and_free(self):
         name = generated_username()
         self.assertRegex(name, GENERATED)
         self.assertFalse(User.objects.filter(username__iexact=name).exists())
 
-    def test_a_taken_candidate_is_retried(self):
-        with mock.patch("users.views._username_taken", side_effect=[True, False]) as taken:
-            self.assertRegex(generated_username(), GENERATED)
-        self.assertEqual(taken.call_count, 2)
+    def test_the_email_name_gets_two_digits_before_a_plus_tag_and_without_accents(self):
+        self.assertRegex(generated_username("josé_luis+nba@gmail.com"), r"^jose_luis\d{2}$")
+
+    def test_a_long_email_name_is_cut_to_leave_room_for_two_digits(self):
+        name = generated_username("a" * 30 + "@gmail.com")
+        self.assertRegex(name, r"^a{18}\d{2}$")
+        self.assertRegex(name, USERNAME_RE)
+
+    def test_a_taken_email_name_gets_another_number(self):
+        for n in range(100):  # every number but 57 is taken
+            if n != 57:
+                User.objects.create_user(username=f"hooper{n:02d}", email=f"h{n}@example.com", password="x")
+        self.assertEqual(generated_username("hooper@gmail.com"), "hooper57")
+
+    def test_taken_is_case_insensitive(self):
+        for n in range(100):
+            if n != 3:
+                User.objects.create_user(username=f"HOOPER{n:02d}", email=f"h{n}@example.com", password="x")
+        self.assertEqual(generated_username("hooper@gmail.com"), "hooper03")
+
+    def test_all_hundred_numbers_taken_falls_back_to_a_word(self):
+        for n in range(100):
+            User.objects.create_user(username=f"hooper{n:02d}", email=f"h{n}@example.com", password="x")
+        self.assertRegex(generated_username("hooper@gmail.com"), GENERATED)
+
+    def test_an_unusable_email_name_falls_back_to_a_word(self):
+        for email in ("ab@gmail.com", "1234567@gmail.com", "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@", "", "...@gmail.com"):
+            self.assertRegex(generated_username(email), GENERATED, email)
+
+    def test_an_email_name_that_fails_moderation_falls_back_to_a_word(self):
+        with mock.patch("users.views.check_username", return_value=mock.Mock(tier="blocked")):
+            self.assertRegex(generated_username("someone@gmail.com"), r"^Player\d{4}$")
 
     def test_retries_are_bounded_then_fall_back_to_player(self):
-        with mock.patch("users.views._username_taken", return_value=True):
-            self.assertRegex(generated_username(), r"^Player\d{6}$")
+        with mock.patch("users.views._username_usable", return_value=False), mock.patch(
+            "users.views._username_taken", return_value=True
+        ):
+            self.assertRegex(generated_username("someone@gmail.com"), r"^Player\d{6}$")
 
 
 class RenameEmailDerivedNamesTests(TestCase):

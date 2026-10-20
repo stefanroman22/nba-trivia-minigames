@@ -1,12 +1,11 @@
-"""The rank ladder: lifetime points AND active days, both required.
+"""The rank ladder: lifetime points decide the rank. Ranks never drop.
 
-Points alone used to decide the rank (GOAT at 5,000 pts was 1-2 hours of play). The day gates make the
-top ranks a record of sticking around, not of one long weekend: GOAT is 150,000 points and 180 active
-days (a Paris day with at least one scoring game, trivia.awarding). Ranks never drop. The frontend holds
-no thresholds; it displays `progress()` as the backend sends it (users.views.user_payload).
+Each rank can carry an active-days gate (`Rank.days`, a Paris day with at least one scoring game,
+trivia.awarding); since 2026-10-20 every gate is 0, so points alone decide (owner decision). The frontend
+holds no thresholds; it displays `progress()` as the backend sends it (users.views.user_payload).
 
-Changing LADDER, the rank gates or the daily rules also means: update `RANK_TAGLINES` in src/utils/ranks.ts (it
-names the 3-day and 180-day gates). The ladder cache key (`LADDER_CACHE_KEY` in users/ladder.py, one cache shared by
+Changing LADDER, the rank gates or the daily rules also means: update `RANK_TAGLINES` in src/utils/ranks.ts.
+The ladder cache key (`LADDER_CACHE_KEY` in users/ladder.py, one cache shared by
 dev and prod) hashes LADDER, so a gate change gets a fresh key by itself; the daily rules are read per request and
 never cached. Bump the key's version by hand only if the cached payload's shape changes.
 """
@@ -24,12 +23,12 @@ LADDER = (
     Rank("Rookie", 0, 0),
     Rank("Role Player", 100, 0),
     Rank("Sixth Man", 500, 0),
-    Rank("Starter", 1_500, 3),
-    Rank("All-Star", 5_000, 7),
-    Rank("All-NBA", 15_000, 20),
-    Rank("MVP", 40_000, 45),
-    Rank("Hall of Famer", 80_000, 90),
-    Rank("GOAT", 150_000, 180),
+    Rank("Starter", 1_500, 0),
+    Rank("All-Star", 5_000, 0),
+    Rank("All-NBA", 15_000, 0),
+    Rank("MVP", 40_000, 0),
+    Rank("Hall of Famer", 80_000, 0),
+    Rank("GOAT", 150_000, 0),
 )
 RANK_NAMES = [r.name for r in LADDER]
 # Divisions (III -> II -> I) split the long climbs from All-Star up into thirds of the point span, so a

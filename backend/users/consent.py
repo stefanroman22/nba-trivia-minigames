@@ -14,7 +14,8 @@ give their birth month and year (set_age_from_birth_date); until an age proves 1
 treated as a teen (is_teen). Older clients that still send birth_month/birth_year are accepted, and
 those fields still refuse an under-13 sign-up.
 
-The birth date is NEVER stored: only the coarse age group, that the confirmation was given, and when.
+What is stored: the coarse age group, the birth month and year the player gave (never the day; shown
+back in Profile settings, given twice at most) and that the confirmation was given, and when.
 """
 import calendar
 from datetime import date
@@ -22,7 +23,7 @@ from datetime import date
 from django.utils import timezone
 
 # Bump when the Terms or Privacy Policy change materially; it is stored with each acceptance.
-TERMS_VERSION = "2026-10-20.1"
+TERMS_VERSION = "2026-10-20.2"
 MIN_AGE = 13
 PHOTO_MIN_AGE = 16
 
@@ -106,15 +107,31 @@ def is_teen(user):
 
 
 def set_age_from_birth_date(user, data, today=None):
-    """Record the coarse age group from a birth month + year given at photo upload -> (ok, message).
-
-    Only for an account whose age is still unknown, so a teen can't retry with another year. The
-    birth date itself is not stored.
+    """Record the birth month + year (and the age group they give), given at photo upload or changed later
+    in Profile settings -> (ok, message). It can be given twice in all (MAX_AGE_SETS, owner decision
+    2026-10-20): the first time, and one change. The day is never asked for or stored.
     """
-    if user.age_group:
-        return False, "Your age is already confirmed."
+    used = age_sets_used(user)
+    if used >= MAX_AGE_SETS:
+        return False, AGE_SETS_RULE
     if not is_old_enough(data.get("birth_year"), data.get("birth_month"), today, min_age=0):
         return False, "Please choose your birth month and year."
     user.age_group = age_group_for(data, today)
-    user.save(update_fields=["age_group"])
+    user.birth_month, user.birth_year = int(data["birth_month"]), int(data["birth_year"])
+    user.age_sets = used + 1
+    user.save(update_fields=["age_group", "birth_month", "birth_year", "age_sets"])
     return True, ""
+
+
+MAX_AGE_SETS = 2
+AGE_SETS_RULE = "You can set your birth month and year twice only: once, and one change later."
+
+
+def age_sets_used(user):
+    """Times the age was given. An account whose age was set before this was counted (age group but no
+    count) has used one."""
+    return max(user.age_sets, 1 if user.age_group else 0)
+
+
+def age_sets_left(user):
+    return max(0, MAX_AGE_SETS - age_sets_used(user))

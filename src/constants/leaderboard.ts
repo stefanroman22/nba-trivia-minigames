@@ -17,6 +17,8 @@ export interface LeaderRow {
   points: number;
   /** The player's rank name (Rookie … GOAT), from the board row's `rank`. */
   rankName?: string;
+  /** The row's `photo_version` (0/absent = no photo); the photo URL is friendPhotoUrl(id, photoVersion). */
+  photoVersion?: number;
 }
 
 export interface SelfRow {
