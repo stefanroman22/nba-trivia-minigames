@@ -184,7 +184,10 @@ def export_account(user):
             {"game": r.game, "question_id": r.question_id, "note": r.note, "status": r.status, "at": _iso(r.created_at)}
             for r in QuestionReport.objects.filter(user=user).order_by("id")
         ],
-        "wordle_plays": [{"date": p.play_date.isoformat(), "device_id": p.device_id} for p in WordlePlay.objects.filter(user=user)],
+        "daily_plays": [
+            {"game": p.game, "date": p.play_date.isoformat(), "device_id": p.device_id}
+            for p in WordlePlay.objects.filter(user=user)
+        ],
         "feedback": [
             {
                 "rating": f.rating, "message": f.message, "page": f.page, "game": f.game, "email": f.email,

@@ -11,7 +11,7 @@ from django.db import transaction
 from django.db.models import Sum
 
 from trivia.models import GameSession
-from trivia.wordle_daily import CET, cet_today
+from trivia.wordle_daily import CET, DAILY_GAMES, cet_today
 from users import leaderboard, ranks
 
 # The highest honest score of each game (src/utils/GameUtils.tsx maxPoints): a forged submission is
@@ -37,8 +37,6 @@ DAILY_TAIL_RATE = 0.10
 STREAK_MILESTONES = {7: 200, 30: 1_000, 100: 5_000}
 # A held freeze covers one missed day; refilled whenever the streak reaches a multiple of 7.
 MAX_FREEZES = 1
-# Solo games that deal the same puzzle all day: only the day's first scoring solo play is credited.
-ONE_SCORING_PLAY_A_DAY = ("wordle", "contexto")
 
 ACTIVITY_FIELDS = ["points", "rank", "active_days", "last_active_day", "streak_days", "streak_best", "streak_freezes"]
 
@@ -117,13 +115,9 @@ def _promoted(before, after):
 
 
 def _repeat_blocked(user, game, mode, todays):
-    """Solo Wordle and solo LeContexto deal one puzzle a day (trivia.wordle_daily, the daily Contexto secret): only
-    the day's first scoring solo play counts. Repeated claims were the easiest route onto the weekly board."""
-    return (
-        game in ONE_SCORING_PLAY_A_DAY
-        and mode == "single"
-        and todays.filter(game=game, mode="single", score__gt=0).exists()
-    )
+    """Solo Wordle and Contexto are once a day (trivia.wordle_daily): only the day's first scoring play
+    counts. Repeated claims were the easiest route onto the weekly board."""
+    return game in DAILY_GAMES and mode == "single" and todays.filter(game=game, mode="single", score__gt=0).exists()
 
 
 def award(user, game, mode, score, duration_ms):

@@ -249,40 +249,45 @@ class WordleDailyWord(models.Model):
 
 
 class WordlePlay(models.Model):
-    """One identity's play of the daily Wordle for one day — the once-per-day gate.
+    """One identity's play of a daily solo game for one day — the once-per-day gate.
 
-    Only ever holds today's rows: the daily word-picker job deletes anything
-    not the current day right after picking the new word, so this never grows
-    with historical players. `user` and `device_id` are independent signals —
-    a logged-in play stamps both, so a logged-out replay from the same browser
-    is still caught by `device_id` even though `user` is absent that time.
+    Despite the name it serves every daily game (`game`: "wordle", "contexto");
+    rows from before the field existed are Wordle plays. Only ever holds today's
+    rows: the daily word-picker job deletes anything not the current day right
+    after picking the new word, so this never grows with historical players.
+    `user` and `device_id` are independent signals — a logged-in play stamps
+    both, so a logged-out replay from the same browser is still caught by
+    `device_id` even though `user` is absent that time.
     """
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE
     )
     device_id = models.CharField(max_length=64, null=True, blank=True)
+    # db_default too: a backend still on the old code (same database, deploy window) inserts
+    # without the column and must keep getting Wordle rows.
+    game = models.CharField(max_length=20, default="wordle", db_default="wordle")
     play_date = models.DateField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "play_date"],
+                fields=["user", "game", "play_date"],
                 condition=models.Q(user__isnull=False),
-                name="uniq_wordleplay_user_day",
+                name="uniq_dailyplay_user_game_day",
             ),
             models.UniqueConstraint(
-                fields=["device_id", "play_date"],
+                fields=["device_id", "game", "play_date"],
                 condition=models.Q(device_id__isnull=False),
-                name="uniq_wordleplay_device_day",
+                name="uniq_dailyplay_device_game_day",
             ),
         ]
         indexes = [models.Index(fields=["play_date"])]
 
     def __str__(self):
         who = self.user_id or self.device_id or "?"
-        return f"{self.play_date} played by {who}"
+        return f"{self.play_date} {self.game} played by {who}"
 
 
 class SyncRun(models.Model):

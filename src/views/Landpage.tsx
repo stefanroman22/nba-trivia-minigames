@@ -18,7 +18,8 @@ import { reducedFade, swap } from "../motion/variants";
 import { useReducedMotionSafe } from "../hooks/useReducedMotionSafe";
 import { Button, GameTile, SectionHeader, Field } from "../components/ui";
 import { useModal } from "../context/ModalContext";
-import { useWordleCardState } from "../hooks/useWordleCardState";
+import { useDailyCardState } from "../hooks/useDailyCardState";
+import { isDailyLockGame } from "../utils/wordleDaily";
 import { useLoginReveal } from "../hooks/useLoginReveal";
 import { scrollToSection } from "../utils/ScrolllToSection";
 import type { RootState } from "../store";
@@ -51,7 +52,7 @@ const Landpage = () => {
   const profileReveal = useLoginReveal();
   const { open } = useModal();
   const [query, setQuery] = useState("");
-  const wordleCard = useWordleCardState();
+  const dailyCards = useDailyCardState();
 
   // Navigation.tsx routes cross-page "Games"/"Leaderboard" taps to "/#<section>"
   // so the section is deep-linkable. Next scrolls to it on mount while the
@@ -176,9 +177,10 @@ const Landpage = () => {
           ) : (
             <motion.div key="grid" className="games-grid3" variants={swapVariants} initial="hidden" animate="visible" exit="exit">
               {filtered.map((game, index) => {
-                // Today's Wordle already played: grey tile + "Next Wordle in …" countdown.
-                const playedLabel = game.id === "wordle" && wordleCard.locked ? wordleCard.label : null;
-                const wordlePlayed = playedLabel !== null;
+                // Today's daily game (Wordle, Contexto) already played: grey tile + "Next Wordle in …" countdown.
+                const daily = dailyCards.card(game.id);
+                const playedLabel = daily.locked ? daily.label : null;
+                const dailyPlayed = playedLabel !== null;
                 return (
                   <GameTile
                     key={game.id}
@@ -188,11 +190,11 @@ const Landpage = () => {
                     tag={game.tag}
                     maxPoints={game.maxPoints}
                     cta={game.id === "coming-soon" ? "Coming soon" : playedLabel ?? "Play now"}
-                    dimmed={wordlePlayed}
-                    ctaTone={wordlePlayed ? "muted" : "default"}
-                    ctaSwapKey={game.id === "wordle" ? (wordlePlayed ? "locked" : "play") : undefined}
+                    dimmed={dailyPlayed}
+                    ctaTone={dailyPlayed ? "muted" : "default"}
+                    ctaSwapKey={isDailyLockGame(game.id) ? (dailyPlayed ? "locked" : "play") : undefined}
                     index={index}
-                    disabled={game.id === "coming-soon" || wordlePlayed}
+                    disabled={game.id === "coming-soon" || dailyPlayed}
                     href={game.urlPath}
                     onClick={() => openGame(game.id, game.urlPath)}
                   />

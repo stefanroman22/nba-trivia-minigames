@@ -219,6 +219,11 @@ class AwardTests(TestCase):
         self.receipt(0, game="contexto")
         self.assertEqual(self.receipt(3_000, game="contexto")["base"], 2_250)
 
+    def test_contexto_scores_again_the_next_day(self, today):
+        self.receipt(3_000, game="contexto")
+        today.return_value = DAY + datetime.timedelta(days=1)
+        self.assertEqual(self.receipt(3_000, game="contexto")["base"], 2_250)
+
     def test_day_is_paris_not_utc(self, today):
         """Two plays on the same Paris day either side of UTC midnight share one day."""
         early = datetime.datetime(2026, 10, 15, 23, 30, tzinfo=datetime.timezone.utc)   # 01:30 Paris, the 16th

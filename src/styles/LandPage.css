@@ -409,8 +409,10 @@ html { scroll-behavior: smooth; }
      !important because GameTile sets the title size inline. */
   @media (max-width: 380px) { .games-grid3 .gtile h3 { font-size: 15px !important; } }
   .games-grid3 .gtile p { display: none; }
-  /* "Next Wordle in 23h 59m" + arrow fits one line on the 129px-wide tile body at 360px. */
+  /* A played daily tile is disabled, so its CTA drops the arrow: the longest label, "Next Contexto in 23h 59m"
+     (117px at 9.5px), then fits one line on the 129px-wide tile body at 360px. */
   .games-grid3 .gtile-cta--muted { font-size: 9.5px; letter-spacing: 0; }
+  .games-grid3 .gtile-cta--muted svg { display: none; }
 
 }
 

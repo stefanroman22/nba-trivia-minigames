@@ -1,8 +1,9 @@
 // "Play today's game": one deterministic pick per Europe/Paris day, the same for every player.
 // Pure (no runtime imports) so it can be unit-tested with plain Node: scripts/test-daily-game.mjs.
 
-/** Games that never count as "today's game": the placeholder, and Wordle (it has its own daily lock). */
-export const DAILY_EXCLUDED_IDS = ["coming-soon", "wordle"];
+/** Games that never count as "today's game": the placeholder, and Wordle and Contexto (each has its own
+ *  daily lock, so "today's game" could land on a game already played). */
+export const DAILY_EXCLUDED_IDS = ["coming-soon", "wordle", "contexto"];
 
 let parisFormatter: Intl.DateTimeFormat | null = null;
 

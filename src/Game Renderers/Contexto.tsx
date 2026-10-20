@@ -35,9 +35,8 @@ export interface ContextoProps {
   /** One precomputed ContextoQuestion — the same shape in single-player and multiplayer. */
   gameInfo: ContextoQuestion[];
   onGameEnd: OnGameEnd;
-  /** Single-player only: the in-place ScorePanel's "Play again". */
-  onPlayAgain?: () => void;
-  /** Closes the game and returns to idle — the in-place ScorePanel's "Close game". */
+  /** Closes the game and returns to idle — the in-place ScorePanel's "Close game".
+   *  No "Play again": solo Contexto is once per day. */
   onClose?: () => void;
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
@@ -64,7 +63,7 @@ interface GuessEntry {
   elapsed_ms: number;
 }
 
-export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: ContextoProps) {
+export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps) {
   // The round IS the question, however it arrived (fetched solo, dealt online).
   const question = gameInfo[0] as ContextoQuestion | undefined;
 
@@ -129,7 +128,7 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
     }).catch(() => { /* analytics only */ });
   };
 
-  // Fresh state whenever a new question arrives (e.g. play-again).
+  // Fresh state whenever a new question arrives.
   useEffect(() => {
     clearTimers();
     setRows([]);
@@ -357,7 +356,6 @@ export default function Contexto({ gameInfo, onGameEnd, onPlayAgain, onClose }: 
               outOf={CONTEXTO_MAX}
               label={endState?.won ? "Found it!" : undefined}
               won={endState?.won}
-              onPlayAgain={onPlayAgain}
               onClose={onClose}
             />
           }

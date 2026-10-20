@@ -72,7 +72,7 @@ test("excluded ids are never returned; degenerate lists are safe", () => {
     key = nextKey(key);
   }
   assert.equal(dailyGameId([], at("2026-10-04T12:00:00Z")), "");
-  assert.equal(dailyGameId([{ id: "wordle" }, { id: "coming-soon" }], at("2026-10-04T12:00:00Z")), "");
+  assert.equal(dailyGameId([{ id: "wordle" }, { id: "contexto" }, { id: "coming-soon" }], at("2026-10-04T12:00:00Z")), "");
   assert.notEqual(dailyGameId([{ id: "a" }, { id: "b" }], at("2026-10-04T12:00:00Z")), dailyGameId([{ id: "a" }, { id: "b" }], at("2026-10-05T12:00:00Z")));
   assert.equal(dailyGameId([{ id: "a" }], at("2026-10-04T12:00:00Z")), "a");
 });

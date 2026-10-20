@@ -208,11 +208,11 @@ export const renderGame = ({
 
     case "contexto":
       // One ContextoQuestion in both modes (fetched solo, dealt by the relay online).
+      // Once per day solo: no onPlayAgain (it would only hit the daily lock).
       return (
         <Contexto
           gameInfo={gameData as ContextoQuestion[]}
           onGameEnd={onGameEnd}
-          onPlayAgain={onPlayAgain}
           onClose={onClose}
         />
       );

@@ -44,7 +44,7 @@ export default function PrivacyPage() {
       <LegalTable
         head={["What", "Why", "Basis", "How long"]}
         rows={[
-          ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle limit", "Legitimate interests", "Answers: 30 days. Wordle plays: removed after the day ends. The device code stays in your browser until you clear it."],
+          ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle and one LeContexto a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle and LeContexto limit", "Legitimate interests", "Answers: 30 days. Wordle and LeContexto plays: removed after the day ends. The device code stays in your browser until you clear it."],
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
           ["Consent record: the Terms version you accepted, when, that you confirmed you are 13 or older and how (the sign-up tick-box, by email or with Google), and, if you gave your birth month and year when adding a photo, only whether you are 16 or over (we do not keep your birth date)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
       </p>
       <LegalList>
         <li>your sign-in tokens, and a cached copy of your profile so the page loads signed in;</li>
-        <li>a random device code, used for the one-Wordle-a-day limit for guests;</li>
+        <li>a random device code, used for the one-play-a-day limit on Wordle and LeContexto for guests;</li>
         <li>your theme choice and cached game data so games start quickly;</li>
         <li>which questions you have already been shown in each game, so you don&apos;t get the same question twice;</li>
         <li>whether you hid the home-page notice about a change to these documents.</li>
