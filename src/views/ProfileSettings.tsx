@@ -135,11 +135,17 @@ export default function ProfileSettings() {
     try {
       const res = await apiFetch(`${BACKEND_URL}/account/delete/`, {
         method: "POST",
-        body: JSON.stringify({ confirm_username: deleteName.trim(), confirm_text: deleteWord.trim() }),
+        // `confirm: "DELETE"` is for a backend from before 2026-10-19 (the production one until it is
+        // promoted): the current backend ignores it, the old one then deletes a Google-only account.
+        body: JSON.stringify({ confirm_username: deleteName.trim(), confirm_text: deleteWord.trim(), confirm: "DELETE" }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setDeleteError(data.error || "We couldn't delete your account. Please try again.");
+        // That old backend also wants the password, which this form no longer asks for.
+        const oldBackend = typeof data.error === "string" && /password/i.test(data.error);
+        setDeleteError(oldBackend
+          ? "Account deletion will be available after the next server update."
+          : data.error || "We couldn't delete your account. Please try again.");
         return;
       }
       localStorage.removeItem("accessToken");
