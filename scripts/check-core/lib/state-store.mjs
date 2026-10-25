@@ -7,6 +7,7 @@
 //   notion-cards.json       the cards ledger (lib/cards-ledger.mjs), entries without title/url (the repo is public)
 //   logic-live-state.json   the live probes' consecutive-failure state (logic-check/lib/live-triage.mjs)
 //   weekly.json             { lease, runs[] }: one weekly run at a time, and "already ran since Sunday 00:00 Paris"
+//   seo/ledger.json         the SEO agent's per-URL ledger (scripts/seo/lib/ledger.mjs); seo/lease.json its run lease
 //   notes/<checker>/…       the judges' and the triage's notes (scripts/<checker>/notes/), canonical copy
 //   notes-base/<checker>/…  dev's version of those notes at the last merge (so a notes edit on dev flows in)
 //
@@ -23,11 +24,11 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSy
 import os from 'node:os';
 import path from 'node:path';
 import { ROOT } from './home.mjs';
-import { mergeChannel, mergeLedger, merge3Value } from './state-merge.mjs';
+import { mergeChannel, mergeLedger, mergeSeoLedger, merge3Value } from './state-merge.mjs';
 import { lastSundayMidnight } from './weekly-slot.mjs';
 
 export const DEFAULT_BRANCH = 'checks-state';
-export const JSON_FILES = ['channel.json', 'notion-cards.json', 'logic-live-state.json'];
+export const JSON_FILES = ['channel.json', 'notion-cards.json', 'logic-live-state.json', 'seo/ledger.json'];
 export const NOTES = [
   { checker: 'ui-check', dir: path.join('scripts', 'ui-check', 'notes') },
   { checker: 'logic-check', dir: path.join('scripts', 'logic-check', 'notes') },
@@ -206,6 +207,8 @@ export function mergeJsonFiles(base, local, remote) {
   store['notion-cards.json'] = l.store; out['notion-cards.json'] = l.local;
   const s = merge3Value(base['logic-live-state.json'], local['logic-live-state.json'], remote['logic-live-state.json']);
   if (s !== undefined) { store['logic-live-state.json'] = s; out['logic-live-state.json'] = s; }
+  const g = mergeSeoLedger(base['seo/ledger.json'], local['seo/ledger.json'], remote['seo/ledger.json']);
+  if (g !== undefined) { store['seo/ledger.json'] = g; out['seo/ledger.json'] = g; }
   return { store, local: out };
 }
 
@@ -290,7 +293,7 @@ export function sync({ git, home, notes = false, repo = git.cwd, headRev = null,
 
   // Local copies and the new base, only after the store holds them.
   for (const [f, v] of Object.entries(merged.m.local)) {
-    if (f === 'logic-live-state.json' && v === undefined) continue;
+    if ((f === 'logic-live-state.json' || f === 'seo/ledger.json') && v === undefined) continue;
     writeAtomic(path.join(home, f), jsonText(v));
   }
   for (const [f, v] of Object.entries(merged.m.store)) writeAtomic(path.join(bdir, f), jsonText(v));

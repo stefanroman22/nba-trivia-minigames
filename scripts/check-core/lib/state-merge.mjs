@@ -88,3 +88,52 @@ export function mergeLedger(base, local, remote) {
   for (const [k, v] of Object.entries(store)) out[k] = lFull && lFull[k] && same(publicEntry(lFull[k]), v) ? lFull[k] : v;
   return { store, local: out };
 }
+
+// seo/ledger.json (scripts/seo/lib/ledger.mjs): `urls` per URL with the rules above. A URL both writers changed is
+// merged per field (a request on one side and an inspection on the other both survive); a field both changed takes
+// the side whose entry is newer (gsc.inspectedAt, else audit.runId; a tie keeps local's), except `requests`, which is
+// the union of both. `dataAsOf` per key → the newest ISO; `history` by runId, oldest first, the last 52 runs.
+export const SEO_HISTORY_KEPT = 52;
+const requestKey = (q) => `${q.at}|${q.by}|${q.note}`;
+
+function newerSide(l, r) {
+  for (const f of [(e) => e?.gsc?.inspectedAt, (e) => e?.audit?.runId]) {
+    const a = f(l) ?? '', b = f(r) ?? '';
+    if (a !== b) return b > a ? 'remote' : 'local';
+  }
+  return 'local';
+}
+
+function mergeSeoUrl(b = {}, l = {}, r = {}) {
+  const side = newerSide(l, r);
+  const out = {};
+  for (const k of new Set([...Object.keys(b), ...Object.keys(l), ...Object.keys(r)])) {
+    const lc = !same(l[k], b[k]), rc = !same(r[k], b[k]);
+    let v;
+    if (!lc) v = r[k];
+    else if (!rc) v = l[k];
+    else if (k === 'requests') v = [...new Map([...(l[k] || []), ...(r[k] || [])].map((q) => [requestKey(q), q])).values()].sort((x, y) => String(x.at).localeCompare(String(y.at)));
+    else v = side === 'remote' ? r[k] : l[k];
+    if (v !== undefined) out[k] = v;
+  }
+  return out;
+}
+
+export function mergeSeoLedger(base, local, remote) {
+  if (base === undefined && local === undefined && remote === undefined) return undefined;
+  const e = (x) => ({ dataAsOf: x?.dataAsOf || {}, urls: x?.urls || {}, history: x?.history || [] });
+  const b = e(base), l = local === undefined ? b : e(local), r = e(remote);
+  const urls = merge3Map(b.urls, l.urls, r.urls);
+  for (const k of Object.keys(urls)) {
+    if (!Object.hasOwn(l.urls, k) || !Object.hasOwn(r.urls, k) || same(l.urls[k], r.urls[k])) continue;
+    if (!same(l.urls[k], b.urls[k]) && !same(r.urls[k], b.urls[k])) urls[k] = mergeSeoUrl(b.urls[k], l.urls[k], r.urls[k]);
+  }
+  const dataAsOf = {};
+  for (const k of new Set(['audit', 'gsc', 'indexnow', ...Object.keys(l.dataAsOf), ...Object.keys(r.dataAsOf)])) {
+    const vals = [l.dataAsOf[k], r.dataAsOf[k]].filter(Boolean).sort();
+    dataAsOf[k] = vals.length ? vals.at(-1) : null;
+  }
+  const history = merge3List(b.history, l.history, r.history, (h) => h.runId)
+    .sort((x, y) => String(x.at ?? '').localeCompare(String(y.at ?? ''))).slice(-SEO_HISTORY_KEPT);
+  return { dataAsOf, urls, history };
+}
