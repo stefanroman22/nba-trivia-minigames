@@ -56,6 +56,7 @@ test('osv: one finding per package version (all advisories), max severity, highe
   assert.equal(f.file, 'multiplayer_server/package-lock.json');
   assert.equal(f.severity, 'high');
   assert.match(f.fix[0], /to 4\.2\.10 or later/);
+  assert.doesNotMatch(f.fix[0], /pip/);
   assert.match(f.title, /2 advisories/);
   assert.equal(f.rootCause, 'deps-multiplayer-server-package-lock-json');
   // a newly published advisory against the same version keeps the fingerprint
@@ -67,6 +68,9 @@ test('dedupe keeps the strongest, ignore mutes by fingerprint until its date, bl
   const a = fromClaude(raw, () => VIEW);
   const weak = { ...a, severity: 'medium', confidence: 8 };
   assert.equal(dedupe([weak, a])[0].severity, 'high');
+  const leak = { ...a, fingerprint: 'g1', tool: 'gitleaks', category: 'secret', line: 8 };
+  const same = { ...a, fingerprint: 'c1', category: 'secret', line: 9 };
+  assert.deepEqual(dedupe([leak, same, a]).map((x) => x.fingerprint).sort(), [a.fingerprint, 'g1'].sort(), 'the review re-reporting a gitleaks leak is dropped');
   assert.equal(applyIgnore([a], [{ fingerprint: a.fingerprint, reason: 'fp' }]).length, 0);
   assert.equal(applyIgnore([a], [{ fingerprint: a.fingerprint }]).length, 1, 'no reason, no mute');
   assert.equal(applyIgnore([a], [{ fingerprint: a.fingerprint, reason: 'x', until: '2000-01-01' }]).length, 1);

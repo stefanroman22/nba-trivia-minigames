@@ -91,7 +91,7 @@ export function fromGitleaks(g, { mode = 'weekly' } = {}) {
   return {
     fingerprint: fingerprintOf(rule, file, contextHash(g.Secret || g.Match || g.Fingerprint)),
     tool: 'gitleaks', rule, category: 'secret', priority: priorityOf('secret'), severity: 'critical', confidence: 9,
-    title: `Leaked ${g.Description || g.RuleID || 'secret'} in ${file}`, file, line: Number(g.StartLine) || 0,
+    title: `Leaked ${g.RuleID || 'secret'} credential in ${file}`, file, line: Number(g.StartLine) || 0,
     snippet: '', commit,
     exploitPath: `${where} holds a ${g.RuleID} credential. The repository is public, so anyone who clones it (or reads the commit on GitHub) has the key → they can call the service as this project${mode === 'pr' ? ' (the branch was already pushed, so the key is public now)' : ''}.`,
     fix: [
@@ -143,9 +143,10 @@ export function fromOsv(report, { root = '' } = {}) {
         tool: 'osv', rule: `osv-${slug(pkg.name)}`, category: 'dependency', priority: priorityOf('dependency'), severity, confidence: 8,
         title: `${pkg.name}@${pkg.version}: ${ids.length > 1 ? `${ids.length} advisories` : summary}`.slice(0, 200), file, line: 0, snippet: `${pkg.ecosystem}:${pkg.name}@${pkg.version}`, commit: null,
         exploitPath: `${pkg.name}@${pkg.version} (${pkg.ecosystem}, locked in ${file}) is affected by ${idText} (e.g. ${summary}). Exploitable only where the app reaches the vulnerable API; a build/dev-only package is lower risk.`,
-        fix: [target ? `Upgrade ${pkg.name} from ${pkg.version} to ${target} or later in \`${file}\` (npm: \`npm install ${pkg.name}@${target}\` for a direct dependency, an \`overrides\` entry for a transitive one; pip: pin ${pkg.name}>=${target}).` : `No fixed version is published for ${pkg.name}@${pkg.version}: replace it, or confirm the vulnerable API is unused and mute the fingerprint in .security/ignore.json with that reason.`],
-        acceptance: `osv-scanner reports nothing for ${pkg.name} in \`${file}\`.`,
-        verify: `The area's existing tests pass after the upgrade; \`osv-scanner scan source -r .\` no longer lists ${pkg.name}.`,
+        fix: [target ? `Upgrade ${pkg.name} from ${pkg.version} to ${target} or later in \`${file}\` (${pkg.ecosystem === 'PyPI' ? `pin \`${pkg.name}>=${target}\`` : `\`npm install ${pkg.name}@${target}\` for a direct dependency, an \`overrides\` entry for a transitive one`}).` : `No fixed version is published for ${pkg.name}@${pkg.version}: replace it, or confirm the vulnerable API is unused and mute the fingerprint in .security/ignore.json with that reason.`],
+        // one line per lockfile in the ticket (the group dedupes identical text)
+        acceptance: `osv-scanner reports none of the packages above in \`${file}\`.`,
+        verify: `The tests of the area \`${file}\` serves pass after the upgrades; \`osv-scanner scan source -r .\` no longer lists them.`,
         rootCause: `deps-${slug(file)}`, area: 'deps',
       });
     }
@@ -153,8 +154,11 @@ export function fromOsv(report, { root = '' } = {}) {
   return out;
 }
 
-/** Same fingerprint twice (two detectors, two lockfiles, one model reporting a sink twice): keep the strongest. */
+/** Same fingerprint twice (two detectors, two lockfiles, one model reporting a sink twice): keep the strongest. A secret
+ *  the review reports where gitleaks already did (same file, within 2 lines) is the same leak: gitleaks' finding stays. */
 export function dedupe(findings) {
+  const leaks = findings.filter((f) => f.tool === 'gitleaks');
+  findings = findings.filter((f) => !(f.tool === 'claude' && f.category === 'secret' && leaks.some((g) => g.file === f.file && Math.abs((g.line || 0) - (f.line || 0)) <= 2)));
   const by = new Map();
   for (const f of findings) {
     const prev = by.get(f.fingerprint);

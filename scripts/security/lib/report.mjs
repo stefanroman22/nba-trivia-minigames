@@ -115,9 +115,14 @@ export function prComment({ blockingFindings = [], otherFindings = [], result, r
       for (const f of blockingFindings) { lines.push('', `**${f.title}** (\`${loc(f)}\`)`); for (const s of f.fix) lines.push(`- ${s}`); }
     }
   }
-  if (otherFindings.length) {
-    lines.push('', `Not blocking (medium/low, added to the weekly security ticket):`, '', ...table(otherFindings));
-    for (const f of otherFindings) { lines.push('', `**${f.title}** (\`${loc(f)}\`)`); for (const s of f.fix) lines.push(`- ${s}`); }
+  const history = otherFindings.filter((f) => f.historyOnly);
+  const rest = otherFindings.filter((f) => !f.historyOnly);
+  if (history.length) {
+    lines.push('', 'Secrets in this PR\'s commits, removed from the code since (not blocking, a commit cannot fix them; added to the weekly security ticket):', '', ...table(history));
+  }
+  if (rest.length) {
+    lines.push('', `Not blocking (medium/low, added to the weekly security ticket):`, '', ...table(rest));
+    for (const f of rest) { lines.push('', `**${f.title}** (\`${loc(f)}\`)`); for (const s of f.fix) lines.push(`- ${s}`); }
   }
   if (blockingFindings.some((f) => f.category === 'secret') || otherFindings.some((f) => f.category === 'secret')) {
     lines.push('', '**A secret reached this public branch: revoke / rotate it at the provider now.** Removing it from the code does not un-publish it; squash-merge so the commit that holds it never reaches `main`, and delete this branch afterwards.');
