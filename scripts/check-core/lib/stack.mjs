@@ -77,9 +77,16 @@ export function venvPython(repo = appRepo()) {
   return WIN ? 'python' : 'python3';
 }
 
+/** The check stack's settings module (djsettings/check_settings.py: the app's settings + sqlite IMMEDIATE/timeout). */
+export const CHECK_SETTINGS_DIR = path.join(ROOT, 'scripts', 'check-core', 'lib', 'djsettings');
+export const checkSettingsEnv = () => ({
+  DJANGO_SETTINGS_MODULE: 'check_settings',
+  PYTHONPATH: [CHECK_SETTINGS_DIR, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter),
+});
+
 /** Env for anything Django: always the local sqlite DB and locmem cache, never the dev-env probe. */
 export function djangoEnv(extra = {}) {
-  return { ...process.env, DATABASE_URL: '', REDIS_URL: '', NBA_DEV_ENV_SKIP: '1', PYTHONUNBUFFERED: '1', ...extra };
+  return { ...process.env, DATABASE_URL: '', REDIS_URL: '', NBA_DEV_ENV_SKIP: '1', PYTHONUNBUFFERED: '1', ...checkSettingsEnv(), ...extra };
 }
 
 const sleepSync = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);

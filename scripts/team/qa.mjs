@@ -18,7 +18,7 @@ import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
 import { loadQaMap, resolveQa } from "./lib/qa-map.mjs";
 import { runDir, readJson, readState, writeState } from "./lib/state.mjs";
 import { verifyPlan, verifyArgs, parseVerifyOutput } from "./lib/check-card.mjs";
-import { excludeSqliteSidecars } from "../check-core/lib/stack.mjs";
+import { checkSettingsEnv, excludeSqliteSidecars } from "../check-core/lib/stack.mjs";
 
 process.chdir(ROOT); // qa-browser.mjs resolves .team/qa against cwd — pin it to the main checkout
 if (process.env.TEAM_CLOUD === "1" && !process.env.PLAYWRIGHT_BROWSERS_PATH) process.env.PLAYWRIGHT_BROWSERS_PATH = "/opt/pw-browsers"; // where infra/routine/setup.sh installed Chromium
@@ -137,7 +137,8 @@ try {
   // against production). The worktree has no sqlite (ignored file): migrate first, seconds on sqlite.
   const py = venvPython();
   // CORS_ALLOWED_ORIGINS is additive in settings.py (env_list_merge), so this only adds the lane's origin.
-  const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1", CORS_ALLOWED_ORIGINS: `http://localhost:${ports.vite}`, ...(verifies.length ? { MULTIPLAYER_SHARED_SECRET: relayKey } : {}) } };
+  // check_settings: the worktree's settings + sqlite IMMEDIATE/timeout (no "database is locked" under parallel verify).
+  const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1", ...checkSettingsEnv(), CORS_ALLOWED_ORIGINS: `http://localhost:${ports.vite}`, ...(verifies.length ? { MULTIPLAYER_SHARED_SECRET: relayKey } : {}) } };
   const mig = spawnSync(py, ["manage.py", "migrate", "--noinput", "-v", "0"], { ...dj, env: { ...process.env, ...dj.env }, encoding: "utf8" });
   if (mig.status !== 0) notes.push(`migrate failed: ${((mig.stderr || "") + (mig.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
   else {

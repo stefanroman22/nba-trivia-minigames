@@ -228,19 +228,19 @@ test.describe('logged out', () => {
     });
 
     await test.step('log out (asks first: Cancel keeps the session, Log out confirms)', async () => {
-      const askLogout = async () => {
+      const askLogout = async (shot) => {
         if (vp.width <= 500) {
           await openDrawer(page);
           await L(page, 'common.drawerLogout').click();
         } else {
           await L(page, 'common.navUserChip').click();
           await expect(L(page, 'common.profileMenu')).toBeVisible();
-          await audit.shot('profile-menu');
+          if (shot) await audit.shot('profile-menu');
           await L(page, 'common.profileMenuLogout').click();
         }
         await expect(L(page, 'common.logoutConfirm')).toBeVisible({ timeout: 5000 });
       };
-      await askLogout();
+      await askLogout(true);
       await audit.shot('logout-confirm');
       await L(page, 'common.logoutCancel').click();
       await expect(L(page, 'guest.modalBackdrop')).toHaveCount(0, { timeout: 5000 });

@@ -15,7 +15,7 @@ seconds to start here; a mint takes milliseconds).
     {"op": "sweep", "scope": "ui|logic|all"}   -> {"ok": true, "deleted": [...], "restored": [...], "photos": [...], "friend_rows": n}
         (scope default "ui": `uic<digits>` throwaways + the testuser3 family <-> testuser2; "logic": `lgc<digits>`
         throwaways + testuser4/5/6 and testuser4 <-> testuser5; "all": both)
-    {"op": "forget_age", "users": [...]}   -> {"ok": true}   (age_group back to "": the photo age prompt shows again)
+    {"op": "forget_age", "users": [...]}   -> {"ok": true}   (age unknown, both age sets left: the photo age prompt shows again)
     {"op": "promote_admin", "users": [...]}   -> {"ok": true, "users": {"testuser6": {"is_staff": true}}}
         (the app's own `manage.py promote_admin <email>` command, on test accounts of this database only)
 
@@ -135,10 +135,9 @@ def sweep(scope="ui"):
             if u.profile_photo_version:
                 remove_photo(u)
                 out["photos"].append(want)
-            if s == "logic" and u.age_group:
+            if s == "logic" and (u.age_group or getattr(u, "age_sets", 0)):
                 # Logic's profile/friends checks give testuser4/5 an age; minted accounts start with it unknown.
-                u.age_group = ""
-                u.save(update_fields=["age_group"])
+                unset_age(u)
                 out.setdefault("ages", []).append(want)
         if partner:
             other = User.objects.filter(email__iexact=partner + EMAIL_DOMAIN).first()
@@ -150,6 +149,18 @@ def sweep(scope="ui"):
                 for b in fam[i + 1:]:
                     out["friend_rows"] += clear(a, b)
     return {"ok": True, **out}
+
+
+def unset_age(user):
+    """Back to "age unknown", with both age sets left (users.consent.MAX_AGE_SETS): resetting only age_group left the
+    count behind, so after two runs every POST /account/age/ answered 409 and the photo flow could never finish."""
+    fields = ["age_group"]
+    user.age_group = ""
+    for name, value in (("birth_month", None), ("birth_year", None), ("age_sets", 0)):
+        if hasattr(user, name):
+            setattr(user, name, value)
+            fields.append(name)
+    user.save(update_fields=fields)
 
 
 def promote_admin(spec, password):
@@ -178,8 +189,7 @@ def handle(req, password):
         # Back to "age unknown" so the photo flow asks for the birth month + year again (account suite).
         for spec in users:
             user, _ = account(spec, password)
-            user.age_group = ""
-            user.save(update_fields=["age_group"])
+            unset_age(user)
         return {"ok": True}
     if req.get("op") == "promote_admin":
         return {"ok": True, "users": {spec["username"]: promote_admin(spec, password) for spec in users}}
