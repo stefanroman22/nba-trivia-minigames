@@ -227,16 +227,26 @@ test.describe('logged out', () => {
       expect(await page.evaluate(() => !!localStorage.getItem('refreshToken'))).toBe(true);
     });
 
-    await test.step('log out', async () => {
-      if (vp.width <= 500) {
-        await openDrawer(page);
-        await L(page, 'common.drawerLogout').click();
-      } else {
-        await L(page, 'common.navUserChip').click();
-        await expect(L(page, 'common.profileMenu')).toBeVisible();
-        await audit.shot('profile-menu');
-        await L(page, 'common.profileMenuLogout').click();
-      }
+    await test.step('log out (asks first: Cancel keeps the session, Log out confirms)', async () => {
+      const askLogout = async () => {
+        if (vp.width <= 500) {
+          await openDrawer(page);
+          await L(page, 'common.drawerLogout').click();
+        } else {
+          await L(page, 'common.navUserChip').click();
+          await expect(L(page, 'common.profileMenu')).toBeVisible();
+          await audit.shot('profile-menu');
+          await L(page, 'common.profileMenuLogout').click();
+        }
+        await expect(L(page, 'common.logoutConfirm')).toBeVisible({ timeout: 5000 });
+      };
+      await askLogout();
+      await audit.shot('logout-confirm');
+      await L(page, 'common.logoutCancel').click();
+      await expect(L(page, 'guest.modalBackdrop')).toHaveCount(0, { timeout: 5000 });
+      await expectSignedIn(page, who.username);
+      await askLogout();
+      await L(page, 'common.logoutConfirm').click();
       await expect.poll(() => navState(page).then((s) => s.chip), { timeout: 10_000 }).toBeNull();
       expect(await page.evaluate(() => [localStorage.getItem('accessToken'), localStorage.getItem('refreshToken')])).toEqual([null, null]);
       if (!drawerMode(vp)) await expect(L(page, 'common.navLogin')).toBeVisible();

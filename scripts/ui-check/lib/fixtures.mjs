@@ -19,7 +19,7 @@ import { capture } from './capture.mjs';
 import { fiberReader } from './fiber.mjs';
 
 export { expect };
-export { L } from './pagemap.mjs';
+export { L, pick } from './pagemap.mjs';
 
 const AXE_PATH = path.join(REPO_ROOT, 'node_modules', 'axe-core', 'axe.min.js');
 let axeSource = null;
@@ -30,7 +30,12 @@ const PERF_BUDGETS = { ttfb: 800, lcp: 2500, cls: 0.1 };
 const AUTO_CROPS_PER_CALL = 3;
 const AUTO_CROPS_PER_AUDIT = 12;
 /** Soft rules: recorded as audit.warnings (same shape as violations), never make done() throw. */
-export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-explained']);
+export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-explained', 'external-network']);
+/** A network-level load failure (no HTTP answer at all) on a third-party host: the check runner's network, not the app
+ *  (cdn.nba.com resets HTTP/2 for CI networks, a sandbox proxy blocks every external host). A warning, never a
+ *  `console` violation. A third-party HTTP error status (404, 5xx) and anything on the app's own host stay violations. */
+export const isExternalNetworkError = (text, resourceUrl, pageUrl) =>
+  /^Failed to load resource: net::ERR_/.test(String(text)) && !!resourceUrl && !ownHost(pageUrl, resourceUrl);
 /** Console noise only React's DEV build prints (a dependency touching element.ref); the prod build never does, so it is
  *  ignored only outside UI_CHECK_MODE=prod — prod audits stay strict, dev-mode fix loops are not blocked by it. */
 export const DEV_ONLY_NOISE = [/Accessing element\.ref was removed in React 19/];
@@ -145,7 +150,7 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
     return p;
   };
   const violations = [], warnings = [], metrics = [], shots = [], routes = [];
-  const logs = { console: [], pageErrors: [], responses: [], slowApi: [] };
+  const logs = { console: [], pageErrors: [], responses: [], slowApi: [], external: [] };
   let crops = 0, attached = false;
   const env = envOf(testInfo);
   const guard = env === 'live' ? await guardLive(page.context(), { block: liveBlocks(testInfo) }) : null;
@@ -154,7 +159,12 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
   const route = () => routeOf(page.url());
   const noteRoute = (r) => { if (r && !routes.includes(r)) routes.push(r); };
 
-  page.on('console', (m) => { if (m.type() === 'error') logs.console.push({ text: m.text(), route: route() }); });
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    const text = m.text(), at = (m.location() || {}).url || '';
+    if (isExternalNetworkError(text, at, page.url())) logs.external.push({ text, url: at, route: route() });
+    else logs.console.push({ text, route: route() });
+  });
   page.on('pageerror', (e) => logs.pageErrors.push({ text: String((e && e.message) || e), route: route() }));
   page.on('response', (r) => {
     const status = r.status();
@@ -339,8 +349,13 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
         if (ok(`slow ${s.method} ${s.url}`)) continue;
         items.push({ rule: 'slow-api', route: s.route, selector: `${s.method} ${pathOf(s.url)}`, measured: `${s.ms}ms`, expected: '≤ 1000ms' });
       }
+      for (const x of logs.external) {
+        let host = x.url;
+        try { host = new URL(x.url).host; } catch { /* keep the raw url */ }
+        group(`x|${x.route}|${host}|${x.text}`, { rule: 'external-network', route: x.route, selector: host, measured: trunc(x.text), expected: 'third-party resources load (the runner\'s network, not the app: a warning)' });
+      }
       for (const g of grouped.values()) { const { n, ...v } = g; items.push(n > 1 ? { ...v, note: `×${n}` } : v); }
-      logs.console.length = logs.pageErrors.length = logs.responses.length = logs.slowApi.length = 0;
+      logs.console.length = logs.pageErrors.length = logs.responses.length = logs.slowApi.length = logs.external.length = 0;
       return items.map(record);
     },
 

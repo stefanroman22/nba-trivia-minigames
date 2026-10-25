@@ -18,6 +18,7 @@ import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
 import { loadQaMap, resolveQa } from "./lib/qa-map.mjs";
 import { runDir, readJson, readState, writeState } from "./lib/state.mjs";
 import { verifyPlan, verifyArgs, parseVerifyOutput } from "./lib/check-card.mjs";
+import { excludeSqliteSidecars } from "../check-core/lib/stack.mjs";
 
 process.chdir(ROOT); // qa-browser.mjs resolves .team/qa against cwd — pin it to the main checkout
 if (process.env.TEAM_CLOUD === "1" && !process.env.PLAYWRIGHT_BROWSERS_PATH) process.env.PLAYWRIGHT_BROWSERS_PATH = "/opt/pw-browsers"; // where infra/routine/setup.sh installed Chromium
@@ -139,6 +140,15 @@ try {
   const dj = { cwd: resolve(repo, "backend"), env: { DATABASE_URL: "", NBA_DEV_ENV_SKIP: "1", CORS_ALLOWED_ORIGINS: `http://localhost:${ports.vite}`, ...(verifies.length ? { MULTIPLAYER_SHARED_SECRET: relayKey } : {}) } };
   const mig = spawnSync(py, ["manage.py", "migrate", "--noinput", "-v", "0"], { ...dj, env: { ...process.env, ...dj.env }, encoding: "utf8" });
   if (mig.status !== 0) notes.push(`migrate failed: ${((mig.stderr || "") + (mig.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
+  else {
+    // WAL + Player rows (Wordle's words), as the check stack does: a migrated-only lane DB answered GET /trivia/wordle/
+    // with 500, which failed the 2026-10-25 P0 card's QA although its fix was right.
+    excludeSqliteSidecars(repo);
+    const prep = spawnSync(py, ["manage.py", "shell", "-c", `import runpy; runpy.run_path(r'${resolve(ROOT, "scripts/check-core/lib/prepare_sqlite.py")}', run_name='prepare')`], { ...dj, env: { ...process.env, ...dj.env }, encoding: "utf8" });
+    const line = String(prep.stdout || "").split("\n").find((l) => l.startsWith("PREPARE_SQLITE:"));
+    if (prep.status !== 0 || !line) notes.push(`prepare_sqlite failed: ${((prep.stderr || "") + (prep.stdout || "")).split("\n").filter(Boolean).slice(-2).join(" | ").slice(0, 300)}`);
+    else log(line.replace("PREPARE_SQLITE: ", "sqlite: "));
+  }
   start("django", py, ["manage.py", "runserver", String(ports.django), "--noreload"], dj);
 
   const feEnv = { NBA_DEV_ENV_SKIP: "1", PORT: String(ports.vite), VITE_BACKEND_URL: `http://localhost:${ports.django}/api`, VITE_SOCKET_URL: `http://localhost:${ports.socket}` };

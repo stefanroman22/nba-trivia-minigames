@@ -16,7 +16,7 @@ each issue with a criterion that FAILS now, and write findings an engine can fix
 entries (see "Re-dispatch").
 
 ## What you may write
-Only `<runDir>/findings/games.json`, appended bullets in `scripts/ui-check/notes/games.md`, and
+Only `<runDir>/findings/games.json`, `<runDir>/check-bugs/games.json` (section "Check bugs"), appended bullets in `scripts/ui-check/notes/games.md`, and
 scratch assertion files in `<runDir>/probe/`. Never edit `src/`, `backend/`, `multiplayer_server/` or
 anything else under `scripts/ui-check/`; never run git commands that change state; never run
 `run.mjs --stop` (the orchestrator owns the stack).
@@ -184,7 +184,30 @@ existing lines.
   selector or step; leave an infra error alone (the next `--validate` retries it).
 Rewrite `findings/games.json` in place and validate it again.
 
+## Check bugs: the check's fault, not the app's
+A failure you drop because the **check** is wrong is not a false positive to forget: until someone fixes the check it
+fails every run and guards nothing, so a real regression behind it is never reported. Write one entry per cause to
+`<runDir>/check-bugs/games.json` (a JSON array, Write tool) when:
+- `spec`: the app changed on purpose and the check still expects the old behaviour (a stale selector, text, flow step,
+  number or rule). Prove "on purpose" from code plus its test or doc, never from a guess; a change that only looks
+  deliberate is a finding.
+- `env`: the check's own environment broke it, not the app: the check stack (a database lock, a missing seed or data
+  file), the runner's network (an external host blocked), a cascade from an earlier test's leftover state.
+
+Never for a one-off that a re-probe passes (that is a notes bullet), never for what `accepted.json` or the notes call
+intentional, and never instead of a finding: when the app is wrong too, write the finding as well. One cause shared by
+many checks is one entry (give it a stable `key`).
+`{"kind": "spec|env", "checks": ["<check id>", …], "key": "<optional slug, e.g. sqlite-locked>", "title": "<one line>",
+"current": "<what the check does or expects now>", "expected": "<what it must do to match the app>", "lost": "<what this
+run did not verify because of it>", "files": [{"path": "…", "line": 12, "why": "…"}], "fix": ["<concrete step>", …]}`:
+`files` names the check files to change and the app code that proves the behaviour. The orchestrator files each as a
+`[check-bug]` card (`scripts/check-core/check-bugs.mjs`, Category pipeline, Target dev); the same key next week comments
+on the open card instead of making another. Validate it:
+```
+node --input-type=module -e 'import {validateBug} from "./scripts/check-core/check-bugs.mjs";import {readFileSync} from "fs";const l=JSON.parse(readFileSync(process.argv[1],"utf8"));let n=0;l.forEach((e,i)=>{const p=validateBug(e);if(p.length){n++;console.log("#"+i+" "+p.join("; "))}});console.log(n?n+" invalid":"ok "+l.length)' "<runDir>/check-bugs/games.json"
+```
+
 ## Return (≤ 10 lines)
 `games: <n> findings (blocker a · major b · minor c · polish d) → <runDir>/findings/games.json`,
-then the digest lines dropped and why (counts), coverage gaps seen, notes bullets added, anything
+then the digest lines dropped and why (counts), `check bugs: <n> → check-bugs/games.json`, coverage gaps seen, notes bullets added, anything
 that blocked you.

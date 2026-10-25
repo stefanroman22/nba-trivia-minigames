@@ -6,8 +6,8 @@
 // Prints the line. --post sends it to #pipeline (slack.mjs post-text general, never fails the caller); --dry-run with
 // --post prints instead of posting.
 // State (every field optional): { startedAt, endedAt, runs: { logicCatchUp, uiCatchUp, logic, ui, uiLive },
-//   exits: { <same keys>: code }, cards: { logic: { new, regression, skipped, errors }, ui: { … } },
-//   blocks: { new, kept }, resolved, notes: [ "…" ] }
+//   exits: { <same keys>: code }, cards: { logic: { new, regression, skipped, errors }, ui: { … }, checkBugs: { new, seen, errors } },
+//   blocks: { new, kept }, resolved, unverified: { checks: [ids the judges / triage dropped as check bugs] }, notes: [ "…" ] }
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -39,6 +39,11 @@ export function summaryLine(state = {}, { deferred = 0 } = {}) {
   parts.push(`logic ${runText(runs.logic, exits.logic)}: ${cardsText(cards.logic)}, ${blocks.new || 0} block(s) written${blocks.kept ? ` (+${blocks.kept} kept)` : ''}`);
   parts.push(`ui ${runText(runs.ui, exits.ui)} + live ${runText(runs.uiLive, exits.uiLive)}: ${cardsText(cards.ui)}`);
   parts.push(`resolved ${state.resolved || 0}`, `deferred ${deferred}`);
+  const un = state.unverified;
+  if (un && (un.checks || []).length) {
+    const c = cards.checkBugs || {};
+    parts.push(`UNVERIFIED ${un.checks.length} check(s) (${un.checks.join(', ')}): ${c.new || 0} new check-bug card(s), ${c.seen || 0} still open${c.errors ? `, ${c.errors} push error(s)` : ''}`);
+  }
   for (const n of state.notes || []) if (n) parts.push(String(n));
   return oneLine(parts.join(' · '));
 }

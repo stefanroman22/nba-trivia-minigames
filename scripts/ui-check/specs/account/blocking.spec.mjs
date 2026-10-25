@@ -1,7 +1,7 @@
 // Account suite: every submit in the suite blocks a second submit. Each server answer is held back 1.5 s
 // (page.route) so the busy window is long enough to see; the button must show it within 100 ms of the
 // click, and a second click while it is busy must not send a second request.
-import { test, expect, L, createAudit, seedContext } from '../../lib/fixtures.mjs';
+import { test, expect, L, pick, createAudit, seedContext } from '../../lib/fixtures.mjs';
 import { contextOptions } from '../../lib/viewports.mjs';
 import { mintTokens, credentials, soloUsername } from '../../lib/accounts.mjs';
 import { LOCAL_LOAD, openLogin, routeLatency } from '../../lib/guest.mjs';
@@ -97,8 +97,8 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
           await g.audit.goto('/profile', { waitFor: 'section.ps-hero' });
           await L(g.page, 'account.psPhotoInput').setInputFiles(AVATAR);
           await expect(L(g.page, 'account.agePrompt')).toBeVisible({ timeout: 15_000 });
-          await L(g.page, 'account.ageMonth').selectOption('6');
-          await L(g.page, 'account.ageYear').selectOption(String(new Date().getFullYear() - 30));
+          await pick(g.page, 'account.ageMonth', 'June');
+          await pick(g.page, 'account.ageYear', String(new Date().getFullYear() - 30));
           await submitGuard(g.audit, {
             label: 'photo age Continue', button: L(g.page, 'account.ageContinue'), urlRe: /\/api\/account\/age\/$/,
             busy: `(() => { const b = document.querySelector('form.photo-age button[type=submit]'); return !!b && (b.disabled || /Saving/.test(b.textContent)); })()`,

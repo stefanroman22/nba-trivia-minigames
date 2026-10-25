@@ -17,7 +17,7 @@ const USERNAME_RULES = 'Username must be 3-20 characters using letters, numbers 
 const PHOTO_MIN_AGE = 16; // users/consent.py
 const AGE_REQUIRED = `Profile photos are for players aged ${PHOTO_MIN_AGE} and over. Tell us your birth month and year first.`;
 const TEEN_REFUSED = `Profile photos are available from age ${PHOTO_MIN_AGE}.`;
-const AGE_KNOWN = 'Your age is already confirmed.'; // consent.set_age_from_birth_date
+const AGE_SETS_RULE = 'You can set your birth month and year twice only: once, and one change later.'; // consent.AGE_SETS_RULE
 const LOGIN_FAILED = 'Incorrect email, username or password.';
 const YEAR = new Date().getFullYear();
 const ADULT = { birth_month: 1, birth_year: YEAR - 30 };
@@ -129,7 +129,7 @@ test('[LC-PROFILE-02] photo upload: age unknown → 428 age_required (nothing sa
   await lc.done();
 });
 
-test('[LC-PROFILE-03] teen: POST /account/age/ teen → 200 is_teen true; upload → 403; the age cannot be given again (409)', async ({ api, guard, lc }) => {
+test('[LC-PROFILE-03] teen: POST /account/age/ teen → 200 is_teen true; upload → 403; one change allowed, a third age → 409', async ({ api, guard, lc }) => {
   const name = throwawayName(60);
   const t = (await mintTokens([name]))[name]; // a fresh lgc account, age unknown
   try {
@@ -144,9 +144,18 @@ test('[LC-PROFILE-03] teen: POST /account/age/ teen → 200 is_teen true; upload
       const m = await me(api, t.access);
       if (photoOf(m) !== null) lc.violation('photo-teen', { route: '/api/me/', selector: 'profile_photo after the 403', measured: String(photoOf(m)).slice(0, 40), expected: 'null' });
     });
-    await test.step('the teen gives an adult year → 409 (age set once)', async () => {
+    await test.step('the one change: an adult year → 200, is_teen false, no change left', async () => {
       const r = await attempt(post(api, '/account/age/', ADULT, { token: t.access }));
-      await expectAnswer(lc, 'photo-teen', r, { route: '/api/account/age/', selector: 'POST /api/account/age/ adult after teen', status: 409, error: AGE_KNOWN });
+      if (r.status !== 200 || !r.json || !r.json.user) { lc.violation(r.status >= 500 ? 'server-error' : 'photo-teen', { route: '/api/account/age/', selector: 'POST /api/account/age/ adult after teen (the one change)', measured: said(r), expected: '200 { user }' }); return; }
+      const u = r.json.user;
+      if (u.is_teen !== false || u.age_sets_left !== 0) lc.violation('photo-teen', { route: '/api/account/age/', selector: 'user after the change', measured: `is_teen ${JSON.stringify(u.is_teen)}, age_sets_left ${JSON.stringify(u.age_sets_left)}`, expected: 'is_teen false, age_sets_left 0' });
+    });
+    await test.step('a third age (teen again) → 409, the age stays adult', async () => {
+      const r = await attempt(post(api, '/account/age/', TEEN, { token: t.access }));
+      await expectAnswer(lc, 'photo-teen', r, { route: '/api/account/age/', selector: 'POST /api/account/age/ a third time', status: 409, error: AGE_SETS_RULE });
+      const m = await me(api, t.access);
+      const teen = m.json && m.json.user ? m.json.user.is_teen : undefined;
+      if (teen !== false) lc.violation('photo-teen', { route: '/api/me/', selector: 'is_teen after the refused third age', measured: JSON.stringify(teen), expected: 'false (unchanged)' });
     });
   } finally {
     await dropThrowaway(api, lc, t, name);

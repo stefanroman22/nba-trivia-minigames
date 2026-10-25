@@ -26,7 +26,8 @@
 import { io } from 'socket.io-client';
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-const brief = (log, n = 8) => log.slice(-n).map((e) => e.event).join(', ') || 'nothing';
+// An *Error event carries its message (e.g. friendJoinError "No room found for that code."), so a timeout says why.
+const brief = (log, n = 8) => log.slice(-n).map((e) => (/Error$/.test(e.event) && e.data && typeof e.data.message === 'string' ? `${e.event} "${e.data.message.slice(0, 80)}"` : e.event)).join(', ') || 'nothing';
 const OPTIONS = { transports: ['websocket', 'polling'], tryAllTransports: true, reconnection: false, forceNew: true };
 
 /** An io() socket, connected → resolves it; rejects only after `timeout` (with the last connect_error). */

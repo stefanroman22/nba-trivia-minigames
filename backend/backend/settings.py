@@ -264,6 +264,10 @@ else:
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
+            # Parallel requests (the checks' workers, a QA lane) on one sqlite file: a transaction that reads and
+            # then writes (trivia.awarding.award) must take the write lock up front, or two of them deadlock and
+            # one answers "database is locked" at once; the timeout lets a writer wait for the lock instead.
+            "OPTIONS": {"transaction_mode": "IMMEDIATE", "timeout": 20},
         }
     }
 

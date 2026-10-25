@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Merge the judges' findings into one validated, deduplicated report.
-//   node scripts/ui-check/report.mjs [--run <id>] [--validate] [--prev <runId>] [--mode dev|prod] [--keep-stack]
+//   node scripts/ui-check/report.mjs [--run <id>] [--validate] [--prev <runId>] [--mode dev|prod] [--keep-stack] [--ports django=…,socket=…,web=…]
 // Reads <runDir>/findings/*.json (judge output), validates each finding against findings.schema.json plus the
 // acceptance DSL, merges equal fingerprints (rule|route|selector), drops accepted.json fingerprints, assigns ids
 // UIC-<runId>-NNN (a fingerprint already seen in this run or the previous run keeps its id: --prev, else the newest
@@ -15,7 +15,8 @@
 // trees + diff, frontend build stamp, mode; scripts/ui-check is ignored) they are read from the run's results.json
 // (FAILED there = fails, passed = guard; absent/skipped re-run); otherwise they re-run, batched per project set.
 // Assertions always run. The path taken is printed. The stack runs the checkout the run tested (run-meta.json `repo`,
-// e.g. the `--ref main` worktree) on the run's ports when validating in the run's own mode.
+// e.g. the `--ref main` worktree) on the run's ports when validating in the run's own mode. --ports overrides them: a `--live`
+// run starts no stack and records none, so the weekly run passes the ports of the stack it kept up.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -24,10 +25,10 @@ import {
 } from './lib/findings.mjs';
 import { appRepo, codeDiff, codeState } from './lib/stack.mjs';
 import { runApp, stamp, verifyFindings, withStack, writeDetail } from './lib/verify-core.mjs';
-import { PORT_SETS, formatPorts } from '../check-core/lib/ports.mjs';
+import { PORT_SETS, formatPorts, parsePorts } from '../check-core/lib/ports.mjs';
 
 function parseArgs(argv) {
-  const o = { run: null, prev: null, validate: false, mode: null, keepStack: false };
+  const o = { run: null, prev: null, validate: false, mode: null, keepStack: false, ports: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const val = () => { const v = argv[++i]; if (v === undefined || v.startsWith('--')) throw new Error(`${a} needs a value`); return v; };
@@ -36,6 +37,7 @@ function parseArgs(argv) {
     else if (a === '--validate') o.validate = true;
     else if (a === '--mode') o.mode = val();
     else if (a === '--keep-stack') o.keepStack = true;
+    else if (a === '--ports') o.ports = parsePorts(val());
     else if (a === '--help' || a === '-h') o.help = true;
     else throw new Error(`unknown argument ${a}`);
   }
@@ -48,7 +50,7 @@ async function main() {
   let o;
   try { o = parseArgs(process.argv.slice(2)); } catch (e) { console.error(`report: ${e.message}`); return 2; }
   if (o.help) {
-    console.log('usage: node scripts/ui-check/report.mjs [--run <id>] [--validate] [--prev <runId>] [--mode dev|prod] [--keep-stack]');
+    console.log('usage: node scripts/ui-check/report.mjs [--run <id>] [--validate] [--prev <runId>] [--mode dev|prod] [--keep-stack] [--ports django=…,socket=…,web=…]');
     return 0;
   }
   const runId = o.run || latestRunId();
@@ -119,8 +121,8 @@ async function main() {
     // The checkout the run tested (a `--ref main` worktree) and, in the run's own mode, its ports.
     const app = runApp(runId, mode);
     if (app.gone) console.error(`report: the run's checkout ${app.gone} no longer exists — validating ${appRepo()} instead`);
-    const repo = app.repo || appRepo(), ports = app.ports || PORT_SETS[mode];
-    console.log(`validate: app ${repo} · ports ${formatPorts(ports)}${app.repo ? ' (from run-meta.json)' : ''}`);
+    const repo = app.repo || appRepo(), ports = o.ports || app.ports || PORT_SETS[mode];
+    console.log(`validate: app ${repo} · ports ${formatPorts(ports)}${o.ports ? ' (--ports)' : app.ports ? ' (from run-meta.json)' : ''}${app.repo ? ' · checkout from run-meta.json' : ''}`);
     let cur = null;
     try { cur = codeState(mode, { repo, ports }); } catch (e) { console.error(`report: code state unavailable (${e.message.split('\n')[0]})`); }
     const differs = codeDiff(ran, cur);

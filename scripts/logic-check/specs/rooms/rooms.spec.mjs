@@ -511,13 +511,18 @@ test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → m
         if (r) s.check(r.yourScore === score[who] && r.outcome === (who === PEER ? 'win' : 'loss'), `${who} ← matchResult`, { yourScore: r.yourScore, outcome: r.outcome }, `{ yourScore: ${score[who]}, outcome: ${who === PEER ? 'win' : 'loss'} }`);
       }
       const keyed = relayKeyed();
+      // pointsAwarded is Django's receipt (trivia.awarding award()): base = the clamped match score, plus the day's
+      // first-game bonus and a streak milestone when they land; /me/ moves by `awarded`, once.
+      const awarded = {};
       for (const who of [HOST, PEER]) {
         const pa = await s.c[who].quiet('pointsAwarded', { since: m[who], within: 8000 });
-        if (!pa) { (keyed ? lc.violation : lc.warn)('credit', { route: '/trivia/multiplayer-result/', selector: `${who} ← pointsAwarded`, measured: 'none within 8 s', expected: `{ awarded: ${score[who]} } (creditRoom → Django)${keyed ? '' : ' — this stack has no shared relay key'}` }); continue; }
-        s.check(pa.awarded === score[who], `${who} ← pointsAwarded.awarded`, String(pa.awarded), String(score[who]));
+        if (!pa) { (keyed ? lc.violation : lc.warn)('credit', { route: '/trivia/multiplayer-result/', selector: `${who} ← pointsAwarded`, measured: 'none within 8 s', expected: `{ base: ${score[who]} } (creditRoom → Django)${keyed ? '' : ' — this stack has no shared relay key'}` }); continue; }
+        s.check(pa.base === score[who], `${who} ← pointsAwarded.base`, String(pa.base), String(score[who]));
+        s.check(pa.awarded === pa.base + pa.first_game_bonus + pa.streak_bonus, `${who} ← pointsAwarded.awarded`, `${pa.awarded} (base ${pa.base} + first ${pa.first_game_bonus} + streak ${pa.streak_bonus})`, 'base + first_game_bonus + streak_bonus');
+        awarded[who] = pa.awarded;
       }
       const after = { [HOST]: await points(api, 'logic.actor'), [PEER]: await points(api, 'logic.peer') };
-      if (keyed) for (const who of [HOST, PEER]) s.check(after[who] - before[who] === score[who], `${who} /me/ points`, `${before[who]} → ${after[who]}`, `+${score[who]} (the match score, credited once)`);
+      if (keyed) for (const who of [HOST, PEER]) if (awarded[who] !== undefined) s.check(after[who] - before[who] === awarded[who], `${who} /me/ points`, `${before[who]} → ${after[who]}`, `+${awarded[who]} (pointsAwarded.awarded, credited once)`);
     });
     await test.step('proposeAgain → proposalPending / proposalReceived; accept → matchRestart + a new roundData on both', async () => {
       const m = { [HOST]: s.c[HOST].mark(), [PEER]: s.c[PEER].mark() };
