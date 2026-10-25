@@ -3,11 +3,14 @@
 // push, never force), so the weekly run and every PR run share it without clobbering each other.
 //
 //   { version: 1, entries: { <fingerprint>: Entry }, runs: [ { id, mode, at, slot?, status, new, open, resolved, ticket } ] }
-//   Entry: { fp, tool, rule, category, severity, status: open|resolved, firstSeen, lastSeen, resolvedAt, source: weekly|pr,
-//            pr, ticket (Notion page id | null), ticketedAt, details }
+//   Entry: { fp, tool, status: open|resolved|closed, firstSeen, lastSeen, resolvedAt, missed, source: weekly|pr, pr,
+//            ticket (Notion page id | null), ticketedAt, details }
+//   closed = its ticket was Done but the finding is a secret still in old history: the owner closed it (rotated, history
+//   not purged); never re-ticketed. A new leak is a new fingerprint (it hashes the secret).
 //
-// The repo is public, so an entry carries no path, title or exploit text in clear: `details` is that finding, AES-256-GCM
-// encrypted with SECURITY_STATE_KEY (a repo secret). Without the key `details` is null and only fingerprints are kept.
+// The repo is public, so an entry carries nothing about the vulnerability in clear (no rule, category, severity, path,
+// title or exploit text): `details` is the finding, AES-256-GCM encrypted with SECURITY_STATE_KEY (a repo secret).
+// Without the key `details` is null and only fingerprints are kept.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 import { storeGit, update } from '../../check-core/lib/state-store.mjs';
 
@@ -55,28 +58,38 @@ export function parseState(buf) {
 }
 
 const iso = (t) => new Date(t).toISOString();
+export const MISSED_TO_RESOLVE = 3;
 
 /**
  * The weekly diff of the state against this run's findings (pure).
- *   findings: this run's findings (ignore list applied, any confidence; only ≥ MIN_CONFIDENCE ones reach here).
- *   stillPresent(entry, details) → true when a finding this run did not report is still in the code (the model is not
- *   deterministic: an open finding it skipped this week stays open while its code is still there).
- * → { state, fresh: [finding] (to ticket: new, or open without a ticket, or reopened after a Done ticket), still: [fp], resolved: [fp] }
+ *   findings: this run's findings (ignore list applied, confidence ≥ MIN_CONFIDENCE).
+ *   stillPresent(entry, details) → true when a finding this run did not report still looks present (its sink line is
+ *   still in the file). The model is not deterministic, so such a finding stays open — but only for MISSED_TO_RESOLVE
+ *   runs in a row (a fix often adds a guard above an unchanged sink line), and it is never re-ticketed from here.
+ *   failedTools: detectors that did not run this time; their entries are left as they are.
+ * → { state, fresh: [finding] (to ticket), still: [fp], resolved: [fp] }
+ *   fresh = new, reopened after resolved, re-reported after its ticket was Done, or an unticketed PR-recorded finding.
  */
-export function reconcile(prev, findings, { now = Date.now(), secret = null, source = 'weekly', pr = null, doneTickets = new Set(), stillPresent = () => false } = {}) {
+export function reconcile(prev, findings, { now = Date.now(), secret = null, source = 'weekly', pr = null, doneTickets = new Set(), stillPresent = () => false, failedTools = [] } = {}) {
   const state = { ...prev, entries: { ...prev.entries } };
   const seen = new Set();
   const fresh = [], still = [], resolved = [];
   for (const f of findings) {
     seen.add(f.fingerprint);
     const e = state.entries[f.fingerprint];
-    const base = { fp: f.fingerprint, tool: f.tool, rule: f.rule, category: f.category, severity: f.severity, lastSeen: iso(now), details: seal(f, secret) ?? e?.details ?? null };
-    if (!e || e.status === 'resolved') {
-      state.entries[f.fingerprint] = { ...base, status: 'open', firstSeen: iso(now), resolvedAt: null, source, pr, ticket: null, ticketedAt: null, reopened: e ? true : undefined };
+    const base = { fp: f.fingerprint, tool: f.tool, lastSeen: iso(now), missed: 0, details: seal(f, secret) ?? e?.details ?? null };
+    if (e?.status === 'closed') {
+      state.entries[f.fingerprint] = { ...e, ...base };
+    } else if (!e || e.status === 'resolved') {
+      state.entries[f.fingerprint] = { ...base, status: 'open', firstSeen: iso(now), resolvedAt: null, source, pr, ticket: null, ticketedAt: null, ...(e ? { reopened: true } : {}) };
       fresh.push(f);
+    } else if (e.ticket && doneTickets.has(e.ticket) && f.tool === 'gitleaks' && f.commit) {
+      // a history secret whose ticket is Done: rotated, history not purged — the owner's call, do not nag every week
+      state.entries[f.fingerprint] = { ...e, ...base, status: 'closed' };
+      still.push(f.fingerprint);
     } else if (!e.ticket || doneTickets.has(e.ticket)) {
-      // open, never ticketed (a PR run recorded it), or its ticket is Done while the code is still there: ticket it now
-      state.entries[f.fingerprint] = { ...e, ...base, status: 'open', ticket: null, ticketedAt: null, reopened: e.ticket ? true : e.reopened };
+      // never ticketed (a PR run recorded it), or re-reported after its ticket went Done (not fixed / regressed)
+      state.entries[f.fingerprint] = { ...e, ...base, status: 'open', ticket: null, ticketedAt: null, ...(e.ticket ? { reopened: true } : {}) };
       fresh.push(f);
     } else {
       state.entries[f.fingerprint] = { ...e, ...base };
@@ -84,14 +97,16 @@ export function reconcile(prev, findings, { now = Date.now(), secret = null, sou
     }
   }
   for (const [fp, e] of Object.entries(state.entries)) {
-    if (seen.has(fp) || e.status !== 'open') continue;
+    if (seen.has(fp) || e.status !== 'open' || failedTools.includes(e.tool)) continue;
     const details = unseal(e.details, secret);
-    if (stillPresent(e, details)) {
+    const missed = (e.missed || 0) + 1;
+    if (missed < MISSED_TO_RESOLVE && stillPresent(e, details)) {
+      state.entries[fp] = { ...e, missed };
       still.push(fp);
-      // an unticketed PR finding the full scan did not re-report but whose code is still there: ticket it from its details
-      if ((!e.ticket || doneTickets.has(e.ticket)) && details) { fresh.push(details); state.entries[fp] = { ...e, ticket: null, ticketedAt: null }; }
+      // a PR-recorded finding never ticketed yet: ticket it from its details (once: it has a ticket afterwards)
+      if (!e.ticket && details) fresh.push(details);
     } else {
-      state.entries[fp] = { ...e, status: 'resolved', resolvedAt: iso(now) };
+      state.entries[fp] = { ...e, missed, status: 'resolved', resolvedAt: iso(now) };
       resolved.push(fp);
     }
   }
@@ -103,7 +118,7 @@ export function recordPr(prev, findings, { now = Date.now(), secret = null, pr =
   const state = { ...prev, entries: { ...prev.entries } };
   for (const f of findings) {
     const e = state.entries[f.fingerprint];
-    const base = { fp: f.fingerprint, tool: f.tool, rule: f.rule, category: f.category, severity: f.severity, lastSeen: iso(now), details: seal(f, secret) ?? e?.details ?? null };
+    const base = { fp: f.fingerprint, tool: f.tool, lastSeen: iso(now), details: seal(f, secret) ?? e?.details ?? null };
     state.entries[f.fingerprint] = e && e.status === 'open'
       ? { ...e, ...base }
       : { ...base, status: 'open', firstSeen: iso(now), resolvedAt: null, source: 'pr', pr, ticket: null, ticketedAt: null };

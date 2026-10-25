@@ -73,6 +73,16 @@ test('dedupe keeps the strongest, ignore mutes by fingerprint until its date, bl
   assert.equal(blocking(a), true);
   assert.equal(blocking({ ...a, confidence: 7 }), false);
   assert.equal(blocking({ ...a, severity: 'medium' }), false);
+  assert.equal(blocking({ ...a, historyOnly: true }), false, 'a secret only in old PR commits cannot be fixed by a commit');
+});
+
+test('cardOf: the 32-hex Notion id at the end of the URL, never a hex-looking title word', async () => {
+  const { cardOf } = await import('./run.mjs');
+  const id = '3be2cfb1c595816e9ff8fa0909d3641f';
+  assert.equal(cardOf(`fix: x\n\nNotion: https://www.notion.so/Fix-the-bad-${id}\nCategory: backend`), id);
+  assert.equal(cardOf(`Notion: https://www.notion.so/${id}?pvs=4`), id);
+  assert.equal(cardOf('Notion: https://www.notion.so/3be2cfb1-c595-816e-9ff8-fa0909d3641f'), '3be2cfb1-c595-816e-9ff8-fa0909d3641f');
+  assert.equal(cardOf('no card here'), null);
 });
 
 test('priority order: exploitable 1, db exposure 2, data leak 3, secret 4, rest 5', () => {

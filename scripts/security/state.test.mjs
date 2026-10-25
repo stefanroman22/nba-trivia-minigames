@@ -36,11 +36,33 @@ test('reconcile: never re-tickets an open ticketed finding; re-tickets when that
   assert.equal(reconcile(s, [f('a')], { secret: KEY, doneTickets: new Set(['card-1']) }).fresh.length, 1);
 });
 
-test('reconcile: an unreported finding whose code is still there stays open (model non-determinism)', () => {
-  const s = markTicketed(reconcile(emptyState(), [f('a')], { secret: KEY }).state, ['a'], 'card-1');
-  const r = reconcile(s, [], { secret: KEY, stillPresent: (e, d) => d.snippet === 'Room.objects.get(pk=pk)' });
-  assert.deepEqual(r.still, ['a']);
-  assert.equal(r.state.entries.a.status, 'open');
+test('reconcile: an unreported finding whose code is still there stays open, but only for 3 runs, and is never re-ticketed from there', () => {
+  let s = markTicketed(reconcile(emptyState(), [f('a')], { secret: KEY }).state, ['a'], 'card-1');
+  const present = (e, d) => d.snippet === 'Room.objects.get(pk=pk)';
+  const r1 = reconcile(s, [], { secret: KEY, stillPresent: present, doneTickets: new Set(['card-1']) });
+  assert.deepEqual([r1.still, r1.fresh], [['a'], []], 'Done ticket + not re-reported: fixed with the sink line unchanged, no re-ticket');
+  const r2 = reconcile(r1.state, [], { secret: KEY, stillPresent: present });
+  assert.equal(r2.state.entries.a.status, 'open');
+  const r3 = reconcile(r2.state, [], { secret: KEY, stillPresent: present });
+  assert.deepEqual(r3.resolved, ['a']);
+  // re-reported in between resets the count
+  s = reconcile(r1.state, [f('a')], { secret: KEY }).state;
+  assert.equal(s.entries.a.missed, 0);
+});
+
+test('reconcile: a history secret whose ticket is Done is closed by the owner (not re-ticketed every week)', () => {
+  const g = f('g', { tool: 'gitleaks', category: 'secret', commit: 'abc123' });
+  const s = markTicketed(reconcile(emptyState(), [g], { secret: KEY }).state, ['g'], 'card-9');
+  const r = reconcile(s, [g], { secret: KEY, doneTickets: new Set(['card-9']) });
+  assert.deepEqual(r.fresh, []);
+  assert.equal(r.state.entries.g.status, 'closed');
+  assert.deepEqual(reconcile(r.state, [g], { secret: KEY }).fresh, []);
+});
+
+test('reconcile: entries of a detector that failed this run are left alone', () => {
+  const s = markTicketed(reconcile(emptyState(), [f('a')], { secret: KEY }).state, ['a'], 'c');
+  const r = reconcile(s, [], { secret: KEY, failedTools: ['claude'] });
+  assert.deepEqual([r.resolved, r.state.entries.a.missed], [[], 0]);
 });
 
 test('PR-recorded medium/low: the weekly run tickets it from its sealed details even when it is not re-reported', () => {
@@ -53,10 +75,12 @@ test('PR-recorded medium/low: the weekly run tickets it from its sealed details 
   assert.deepEqual(r2.fresh.map((x) => x.fingerprint), ['m']);
 });
 
-test('entries carry no path or title in clear', () => {
+test('entries carry nothing about the vulnerability in clear (no path, title, rule, category, severity)', () => {
   const s = reconcile(emptyState(), [f('a', { title: 'secret-title', file: 'backend/hidden.py' })], { secret: KEY }).state;
   const text = JSON.stringify(s);
-  assert.ok(!text.includes('secret-title') && !text.includes('hidden.py'));
+  for (const w of ['secret-title', 'hidden.py', 'idor', '"high"']) assert.ok(!text.includes(w), w);
+  const p = JSON.stringify(recordPr(emptyState(), [f('b', { severity: 'medium' })], { secret: KEY }));
+  assert.ok(!p.includes('idor') && !p.includes('medium'));
 });
 
 test('slotDone, runs kept, parseState tolerates garbage', () => {

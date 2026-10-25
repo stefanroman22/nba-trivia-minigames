@@ -21,7 +21,8 @@ export function priorityOf(category) {
 }
 
 export const MIN_CONFIDENCE = 8;
-export const blocking = (f) => sevRank(f.severity) >= 3 && f.confidence >= MIN_CONFIDENCE;
+// a secret only in the PR's commits (removed since) cannot be fixed by a commit: reported and recorded, not blocking
+export const blocking = (f) => sevRank(f.severity) >= 3 && f.confidence >= MIN_CONFIDENCE && !f.historyOnly;
 
 const sha = (s) => createHash('sha256').update(String(s)).digest('hex');
 export const normalise = (s) => String(s ?? '').replace(/\s+/g, ' ').trim();

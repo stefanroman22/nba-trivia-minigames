@@ -153,25 +153,52 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Mark the check pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/security/run.mjs status --state pending --desc "security scan running" || true
       - name: Install gitleaks, osv-scanner, Claude Code
         run: bash scripts/security/install-tools.sh
-      - name: PR scan (and auto-fix)
+      # Scan + auto-fix: the only secret here is the Claude token. The agents (review, fix) run in this step, so no
+      # GitHub / state / Notion token is in their process tree; fixes are committed locally and pushed by the next step.
+      - name: Scan (and auto-fix)
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet --no-tags origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
+          ARGS=(pr --phase scan --base "origin/$BASE" --branch "$BRANCH" --result "$RUNNER_TEMP/security-result.json")
+          [ -n "$PR" ] && ARGS+=(--pr "$PR")
+          [ "$TRUSTED" = "true" ] && ARGS+=(--trusted)
+          [ "$GATE" = "true" ] && ARGS+=(--fix off)
+          # no OAuth token (a fork PR): deterministic tools only
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && ARGS+=(--llm off --fix off)
+          node scripts/security/run.mjs "${ARGS[@]}"
+      # A fresh copy of the tooling, fetched after the agents ran: nothing they changed in the scanned checkout (scripts,
+      # .git/config, hooks) runs with the report step's tokens. The report fetches the scanned commits from there.
+      - name: Fresh tooling checkout
+        if: always()
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          path: .security-tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Report (push the fix, status, comment, state)
         id: scan
+        if: always()
+        working-directory: .security-tooling
         env:
           GH_TOKEN: ${{ github.token }}
           PUSH_TOKEN: ${{ env.TRUSTED == 'true' && github.token || '' }}
           SECURITY_STATE_TOKEN: ${{ env.TRUSTED == 'true' && github.token || '' }}
           SECURITY_STATE_KEY: ${{ secrets.SECURITY_STATE_KEY }}
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           NOTION_TOKEN: ${{ github.event_name == 'push' && secrets.NOTION_TOKEN || '' }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -euo pipefail
-          git fetch --quiet --no-tags origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
-          ARGS=(pr --base "origin/$BASE" --branch "$BRANCH" --state-branch "$STATE_BRANCH")
+          ARGS=(pr --phase report --result "$RUNNER_TEMP/security-result.json" --repo "$GITHUB_WORKSPACE" --branch "$BRANCH" --state-branch "$STATE_BRANCH")
           [ -n "$PR" ] && ARGS+=(--pr "$PR")
-          [ "$TRUSTED" = "true" ] && ARGS+=(--trusted)
-          [ "$GATE" = "true" ] && ARGS+=(--fix off --gate-card)
-          # no OAuth token (a fork PR): deterministic tools only
-          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && ARGS+=(--llm off --fix off)
+          [ "$GATE" = "true" ] && ARGS+=(--gate-card)
           node scripts/security/run.mjs "${ARGS[@]}"

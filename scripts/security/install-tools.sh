@@ -24,7 +24,7 @@ mv osv-scanner_linux_amd64 osv-scanner
 chmod +x gitleaks osv-scanner
 echo "$bin" >> "${GITHUB_PATH:-/dev/null}"
 ./gitleaks version
-./osv-scanner --version | head -1
+./osv-scanner --version | sed -n 1p # sed reads all input: no SIGPIPE under pipefail
 
 if [ "${1:-}" != "--no-claude" ]; then
   npm install -g --no-audit --no-fund "@anthropic-ai/claude-code@${CLAUDE_VERSION}" >/dev/null

@@ -68,7 +68,7 @@ Model text and `<pageId>` as in the Target = dev procedure.
 6b. Security gate — `main` accepts a commit only with the status `security/pr-scan` = success on it (a ruleset,
    docs/security/README.md): `git -C <worktree> push origin HEAD:refs/heads/security-gate/<slug>` (a stale remote one from
    an earlier attempt: `git push origin --delete security-gate/<slug>` first; never force), then
-   `node scripts/security/wait-status.mjs <SHA> --timeout-min 30` (security.yml scans the diff against `main`; no auto-fix
+   `node scripts/security/wait-status.mjs <SHA>` (up to 60 min; security.yml scans the diff against `main`; no auto-fix
    on a gate branch). Exit 0 → step 7. Exit 1 → `git push origin --delete security-gate/<slug>` and
    `SHIP-FAIL security gate: <its output line>` (the gate already commented the findings on the card, so the next attempt
    has them). Exit 3 → the same with `SHIP-FAIL security gate timed out`.
