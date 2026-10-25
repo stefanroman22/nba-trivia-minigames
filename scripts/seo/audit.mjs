@@ -7,8 +7,8 @@
 //                              [--findings] [--run-dir <dir>] [--json]
 //
 // Writes digest.md, results.json and baseline.json to <uicHome()>/seo/runs/<runId>/ (or --run-dir); --findings adds
-// findings.json (one card per regressed check). --baseline takes a Baseline ({ url: failing ids }) or a previous run's
-// results.json. --json prints the AuditResult on stdout (the progress lines go to stderr). First line
+// findings.json (one card per regressed check). --baseline takes a Baseline ({ url: failing ids }; a --only/--url run
+// writes { only, urls } and is compared on its `only` ids alone) or a previous run's results.json. --json prints the AuditResult on stdout (the progress lines go to stderr). First line
 // `seo-audit: run <runId> · site <site> · <n> urls · <f> failing checks`, last line `seo-audit: digest <path>`.
 // Exit 0 all pass, 1 a check failed, 2 infra (site unreachable, bad arguments), 3 a regression against the baseline.
 import { existsSync, readFileSync } from 'node:fs';
@@ -20,12 +20,14 @@ import { fetcher as makeFetcher, DEFAULT_UA } from './lib/fetcher.mjs';
 import { extractSignals, checkPage } from './lib/html-checks.mjs';
 import { parseRobots, robotsAllows } from './lib/robots.mjs';
 import { parseSitemap } from './lib/sitemap.mjs';
-import { allFailures, digestHeader, regressionsAgainst, toBaseline, writeDigest, writeRegressionFindings } from './lib/digest.mjs';
+import { allFailures, digestHeader, isSubsetBaseline, regressionsAgainst, toBaseline, writeDigest, writeRegressionFindings } from './lib/digest.mjs';
 
 export { toBaseline, regressionsAgainst };
 
 export const IX_IDS = Array.from({ length: 12 }, (_, i) => `IX-${String(i + 1).padStart(2, '0')}`);
 export const RUNS_ROOT = path.join(uicHome(), 'seo', 'runs');
+/** Checks a --url run cannot judge for its page alone (they compare against, or walk, the rest of the site). */
+const PARTIAL_UNDER_URL = ['IX-05', 'IX-06', 'IX-10', 'IX-11'];
 
 const pad = (n) => String(n).padStart(2, '0');
 const minuteId = (d) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}-seo`;
@@ -64,9 +66,10 @@ function manifestHref(html, url) {
 
 /**
  * @typedef {{ id: string, url: string, evidence: string }} Failure
- * @typedef {{ runId: string, site: string, urls: Record<string, { status: number, failures: Failure[] }>,
+ * @typedef {{ runId: string, site: string, only: string[]|null, urls: Record<string, { status: number, failures: Failure[] }>,
  *   siteFailures: Failure[], regressions: Failure[]|null, gaps: string[], counts: { urls: number, pass: number, fail: number } }} AuditResult
- *   `urls`: every fetched page (sitemap URLs, the home page, the expected-noindex pages) with its status (0 = the request
+ *   `only`: the ids this run fully checked, null for a full run (--only's list; under --url also without IX-05, IX-06,
+ *   IX-10 and IX-11, which need the whole site); its baseline then vouches for those ids only. `urls`: every fetched page (sitemap URLs, the home page, the expected-noindex pages) with its status (0 = the request
  *   failed) and its page checks (IX-02 status, IX-03…IX-09, IX-12). `siteFailures`: IX-01, the IX-02 variants and the
  *   unknown slug, IX-10, IX-11 and the favicon/manifest IX-12; a site-wide failure without a page of its own (robots.txt,
  *   the sitemap file, the slug, the icons) is reported on the home page's URL. `regressions`: null without a baseline.
@@ -287,9 +290,13 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
   const kept = siteFailures.filter((f) => want(f.id)).sort((a, b) => a.id.localeCompare(b.id) || a.url.localeCompare(b.url));
   const failing = new Set(allFailures({ urls, siteFailures: kept }).map((f) => f.url));
   const fail = targets.filter((u) => failing.has(u)).length;
+  // The ids this run fully checked (null = all): the --only list, minus under --url the checks that need the whole
+  // site (uniqueness, sitemap-wide, orphans), so its baseline never claims those clean.
+  const checked = url ? (only ?? IX_IDS).filter((id) => !PARTIAL_UNDER_URL.includes(id)) : only;
   const result = {
     runId: runId ?? minuteId(now),
     site,
+    only: checked ? [...checked] : null,
     urls,
     siteFailures: kept,
     regressions: null,
@@ -331,13 +338,18 @@ export function parseArgs(argv) {
   return opts;
 }
 
-/** A Baseline file, or a previous run's results.json (an AuditResult, turned into its Baseline). */
-function readBaseline(file) {
+/**
+ * A Baseline file (a full `{ url: [failing ids] }` or a subset `{ only, urls }`), or a previous run's results.json (an
+ * AuditResult, turned into its Baseline, which keeps that run's `only`).
+ */
+export function readBaseline(file) {
   const doc = JSON.parse(readFileSync(file, 'utf8').replace(/^﻿/, ''));
   if (doc && typeof doc.urls === 'object' && Array.isArray(doc.siteFailures)) return toBaseline(doc);
-  const valid = doc && typeof doc === 'object' && !Array.isArray(doc)
-    && Object.values(doc).every((ids) => Array.isArray(ids) && ids.every((id) => typeof id === 'string'));
-  if (!valid) throw new Error('not a Baseline ({ url: [failing ids] }) or an audit results.json');
+  const map = isSubsetBaseline(doc) ? doc.urls : doc;
+  const valid = map && typeof map === 'object' && !Array.isArray(map)
+    && Object.values(map).every((ids) => Array.isArray(ids) && ids.every((id) => typeof id === 'string'))
+    && (!isSubsetBaseline(doc) || doc.only.every((id) => IX_IDS.includes(id)));
+  if (!valid) throw new Error('not a Baseline ({ url: [failing ids] } or { only, urls }) or an audit results.json');
   return doc;
 }
 

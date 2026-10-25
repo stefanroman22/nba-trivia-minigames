@@ -46,26 +46,36 @@ export function allFailures(result) {
 /**
  * Baseline = { [url]: failing ids } over every audited URL ([] when clean) and every URL a site-wide failure names
  * (site-wide checks report on the home page's URL, so a robots.txt break is a regression of the home page).
- * @returns {Record<string, string[]>}
+ * A subset run (`result.only`: --only, or --url) checked only those ids, so its baseline is
+ * `{ only, urls: { [url]: ids } }` over the audited pages alone: its [] means "clean for the `only` ids", never "clean".
+ * @returns {Record<string, string[]> | { only: string[], urls: Record<string, string[]> }}
  */
 export function toBaseline(result) {
   const out = Object.fromEntries(Object.keys(result.urls).map((u) => [u, []]));
   for (const f of allFailures(result)) {
+    if (result.only && !Object.hasOwn(out, f.url)) continue; // a --url run's site-wide line on a page it did not audit
     out[f.url] ??= [];
     if (!out[f.url].includes(f.id)) out[f.url].push(f.id);
   }
   for (const ids of Object.values(out)) ids.sort();
-  return out;
+  return result.only ? { only: [...result.only], urls: out } : out;
 }
 
+/** True for a subset baseline `{ only: string[], urls: {…} }` (a full one is keyed by absolute URLs, never "only"). */
+export const isSubsetBaseline = (b) => Array.isArray(b?.only) && b.urls && typeof b.urls === 'object' && !Array.isArray(b.urls);
+
 /**
- * The failures of `result` whose (url, id) is new against `baseline`: the url is in the baseline and the id is not in
- * its list. A URL absent from the baseline is never a regression (a new page has no "was fine" to compare with).
+ * The failures of `result` whose (url, id) is new against `baseline`: the url is in the baseline, the baseline checked
+ * the id (every id for a full baseline, its `only` ids for a subset one) and the id is not in the url's list. A URL
+ * absent from the baseline is never a regression (a new page has no "was fine" to compare with), nor is an id a
+ * subset baseline never checked.
  * @param {object} result an AuditResult
- * @param {Record<string, string[]>} baseline
+ * @param {Record<string, string[]> | { only: string[], urls: Record<string, string[]> }} baseline
  */
 export function regressionsAgainst(result, baseline) {
-  return allFailures(result).filter((f) => Object.hasOwn(baseline, f.url) && !(baseline[f.url] ?? []).includes(f.id));
+  const { only, urls } = isSubsetBaseline(baseline) ? baseline : { only: null, urls: baseline };
+  return allFailures(result).filter((f) => (!only || only.includes(f.id))
+    && Object.hasOwn(urls, f.url) && !(urls[f.url] ?? []).includes(f.id));
 }
 
 /** The header line: also the CLI's first line (without the "# "). */

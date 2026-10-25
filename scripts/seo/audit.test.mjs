@@ -234,6 +234,43 @@ test('--findings writes findings.json with one card finding per regressed id, ur
   assert.deepEqual(JSON.parse(readFileSync(path.join(out, 'findings.json'), 'utf8')).findings, []);
 });
 
+test('a subset run\'s baseline: no regression for ids outside its only list, still one inside it; a full-run baseline as before', async () => {
+  // IX-02/IX-10 on /old and IX-11 on /orphan fail in every run; /wordle newly gains noindex (IX-03).
+  const subset = await audit({ only: ['IX-03'] });
+  assert.deepEqual(subset.only, ['IX-03']);
+  const subsetBaseline = toBaseline(subset);
+  assert.deepEqual(subsetBaseline.only, ['IX-03']);
+  assert.deepEqual(subsetBaseline.urls[`${O}/orphan`], []);
+  const full = await audit();
+  assert.equal(full.only, null);
+  const fullBaseline = toBaseline(full);
+  assert.deepEqual(fullBaseline[`${O}/orphan`], ['IX-11']); // the full baseline keeps the old { url: ids } shape
+  // A --url run's baseline covers its page alone and never vouches for the whole-site checks (here IX-11).
+  const one = await audit({ url: `${O}/orphan` });
+  assert.ok(!one.only.includes('IX-11') && one.only.includes('IX-03'));
+  assert.deepEqual(Object.keys(toBaseline(one).urls), [`${O}/orphan`]);
+
+  state.noindex = new Set(['/wordle']);
+  const regressed = (baseline) => audit({ baseline }).then((r) => r.regressions.map((f) => `${f.id} ${f.url}`));
+  assert.deepEqual(await regressed(subsetBaseline), [`IX-03 ${O}/wordle`]);
+  assert.deepEqual(await regressed(toBaseline(one)), []);
+  assert.deepEqual(await regressed(fullBaseline), [`IX-03 ${O}/wordle`]);
+  assert.deepEqual(await regressed({ [`${O}/orphan`]: [], [`${O}/wordle`]: [] }), [`IX-03 ${O}/wordle`, `IX-11 ${O}/orphan`]);
+
+  // The CLI: a --only run's baseline.json and its results.json both carry `only` into the next run.
+  state.noindex = new Set();
+  const dir = tmp();
+  const first = await cli(['--site', O, '--only', 'IX-03', '--run-dir', path.join(dir, 'subset')]);
+  assert.equal(first.code, 0, first.stderr); // under IX-03 alone the fake site is clean
+  state.noindex = new Set(['/wordle']);
+  for (const file of ['baseline.json', 'results.json']) {
+    const run = await cli(['--site', O, '--baseline', path.join(dir, 'subset', file), '--run-dir', path.join(dir, file)]);
+    assert.equal(run.code, 3, run.stderr);
+    const regressions = readFileSync(path.join(dir, file, 'digest.md'), 'utf8').split('## Regressions\n')[1].split('\n\n')[0];
+    assert.equal(regressions, `- IX-03 ${O}/wordle: <meta name="robots" content="noindex">`);
+  }
+});
+
 test('runAudit never follows a redirect: the url map has /old with status 301 and no second entry for /wordle', async () => {
   const result = await audit();
   assert.deepEqual(result.urls[`${O}/old`].status, 301);
