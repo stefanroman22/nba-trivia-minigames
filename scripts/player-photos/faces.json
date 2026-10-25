@@ -18205,11 +18205,12 @@
 "file": "Dion_Waiters_OCT_2015.jpg",
 "aspect": 0.956,
 "box": [
-0.1243,
-0.0021,
-0.218,
-0.2781
-]
+0.38,
+0.1,
+0.25,
+0.23
+],
+"manual": true
 },
 "203080": {
 "file": "Thomas_Robinson_(basketball)_0_BC_Khimki_EuroLeague_20180321.jpg",
@@ -23586,11 +23587,12 @@
 "file": "Max_Strus_-_53368732580_(cropped).jpg",
 "aspect": 1.322,
 "box": [
-0.1111,
-0.1918,
-0.1912,
-0.1858
-]
+0.35,
+0.19,
+0.18,
+0.14
+],
+"manual": true
 },
 "1629623": {
 "file": "Lindell_Wigginton_2020.jpg",
@@ -23716,11 +23718,12 @@
 "file": "Jaxson_hayes.jpg",
 "aspect": 1.3904,
 "box": [
-0.0058,
-0.3222,
-0.27,
-0.2742
-]
+0.38,
+0.17,
+0.25,
+0.17
+],
+"manual": true
 },
 "1629639": {
 "file": "Tyler_Herro.jpg",
@@ -24001,11 +24004,12 @@
 "file": "Neemias_Queta_celebrates_successful_basket.jpg",
 "aspect": 1.4,
 "box": [
-0.8678,
-0.4024,
-0.1033,
-0.099
-]
+0.515,
+0.36,
+0.14,
+0.095
+],
+"manual": true
 },
 "1629675": {
 "file": "Naz_Reid_(51733687822)_(cropped).jpg",
@@ -24391,11 +24395,12 @@
 "file": "Onyeka_Okongwu_jump_ball_(cropped).jpg",
 "aspect": 1.174,
 "box": [
--0.0046,
-0.2022,
-0.0857,
-0.168
-]
+0.19,
+0.18,
+0.15,
+0.11
+],
+"manual": true
 },
 "1630169": {
 "file": "Tyrese_Haliburton_(51923778880)_(cropped).jpg",
@@ -24441,11 +24446,12 @@
 "file": "Precious_Achiuwa_(51655475460)_(cropped).jpg",
 "aspect": 1.394,
 "box": [
-0.1386,
-0.7301,
-0.1076,
-0.0936
-]
+0.41,
+0.33,
+0.17,
+0.1
+],
+"manual": true
 },
 "1630174": {
 "file": "Aaron_Nesmith_(51688510120)_(cropped).jpg",

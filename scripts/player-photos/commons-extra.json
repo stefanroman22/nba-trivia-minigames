@@ -711,5 +711,429 @@
  "78253": {
   "exclude": true,
   "reason": "photo review 2026-10-18: face too small to recognise in the Super Draft circle even zoomed 4.5x (full-body action shot)"
+ },
+ "120": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: back view, no face"
+ },
+ "136": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away"
+ },
+ "252": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on ball, face unclear"
+ },
+ "275": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away"
+ },
+ "731": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: too dark and blurred"
+ },
+ "953": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny"
+ },
+ "1496": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny"
+ },
+ "1504": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face not located, box on arm"
+ },
+ "1510": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny, seated"
+ },
+ "1607": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face tiny and unclear"
+ },
+ "1630": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on jersey, face not visible"
+ },
+ "1711": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on jersey number, face cropped"
+ },
+ "1719": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, turned away"
+ },
+ "1747": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box misplaced, face too small"
+ },
+ "1882": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong person"
+ },
+ "1903": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: dark photo, no usable face"
+ },
+ "2201": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: head cut off, only jacket"
+ },
+ "2446": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny dark face"
+ },
+ "2733": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face hidden by cap, dark"
+ },
+ "2754": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on background spectator"
+ },
+ "2853": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face cut off at edge"
+ },
+ "76912": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: trading card scan"
+ },
+ "77929": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny"
+ },
+ "200811": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away, hidden"
+ },
+ "200821": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny, unclear"
+ },
+ "201582": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny face"
+ },
+ "201589": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: too blurred and dark"
+ },
+ "201967": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, game shot"
+ },
+ "202700": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, box on ball"
+ },
+ "202719": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny"
+ },
+ "202730": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny"
+ },
+ "202732": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, wrong subject"
+ },
+ "202918": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny, unclear"
+ },
+ "203121": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on spectator, not player"
+ },
+ "203187": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: too dark and tiny"
+ },
+ "203210": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong person"
+ },
+ "203315": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on fan, not player"
+ },
+ "203580": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong tiny person"
+ },
+ "203913": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face in wide game shot"
+ },
+ "203940": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: dark silhouette, no usable face"
+ },
+ "203912": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny and dark"
+ },
+ "203991": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: no visible face"
+ },
+ "600001": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny blurry face in game shot"
+ },
+ "1626146": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny dark face in game shot"
+ },
+ "1626155": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face in group game shot"
+ },
+ "1626166": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face occluded in crowded shot"
+ },
+ "1626173": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face tiny, group shot"
+ },
+ "1626175": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face tiny, mostly hidden"
+ },
+ "1626176": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: head cut off at top"
+ },
+ "1626178": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on distant bystander"
+ },
+ "1626191": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: two people, subject unclear"
+ },
+ "1626203": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned down, dark"
+ },
+ "1627395": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face cut off at top"
+ },
+ "1627738": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face obscured, too small"
+ },
+ "1627767": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face dark, unrecognisable"
+ },
+ "1627785": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, unclear subject"
+ },
+ "1627786": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: head cut off at top"
+ },
+ "1627812": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away"
+ },
+ "1627816": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny face"
+ },
+ "1627846": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face cut off at top"
+ },
+ "1627848": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny face"
+ },
+ "1627863": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny face"
+ },
+ "1627883": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too dark and small"
+ },
+ "1628391": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, unclear subject"
+ },
+ "1628396": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, unclear subject"
+ },
+ "1628397": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny face"
+ },
+ "1628411": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny face"
+ },
+ "1628422": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away"
+ },
+ "1628443": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, hands covering"
+ },
+ "1628444": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face in crowd"
+ },
+ "1628476": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, hoodie shot"
+ },
+ "1628493": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box misplaced, tiny group shot"
+ },
+ "1628495": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face in crowd"
+ },
+ "1628510": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away, tiny"
+ },
+ "1628537": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, group shot"
+ },
+ "1628962": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face hidden behind ball"
+ },
+ "1628998": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong person"
+ },
+ "1629111": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong person"
+ },
+ "1629597": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face turned away"
+ },
+ "1629648": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: no face visible, far away"
+ },
+ "1629658": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face in wide shot"
+ },
+ "1629723": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on opponent, subject unclear"
+ },
+ "1630192": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face tiny and turned away"
+ },
+ "1630237": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face hidden behind raised arms"
+ },
+ "1630271": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face tiny and distant"
+ },
+ "1630288": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box not on player's face"
+ },
+ "1630568": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong person"
+ },
+ "1630589": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, subject unclear"
+ },
+ "1630692": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, subject unclear"
+ },
+ "1630811": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face too tiny"
+ },
+ "1631128": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face hidden, unclear"
+ },
+ "1631174": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face in game shot"
+ },
+ "1631338": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on wrong person"
+ },
+ "1641730": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: ambiguous player in game shot"
+ },
+ "1641741": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: tiny face, two-player shot"
+ },
+ "1641757": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on opponent, subject unclear"
+ },
+ "1641780": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face hidden by ball, box on ball"
+ },
+ "1642262": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face masked, box on spectator"
+ },
+ "1642354": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: back of player, no face"
+ },
+ "1642382": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: group shot, tiny unclear face"
+ },
+ "1642396": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on other player"
+ },
+ "1642868": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: face cropped off at top"
+ },
+ "1642955": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: box on crowd, face unclear"
+ },
+ "1642854": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: blurry zoom, box uncertain"
+ },
+ "940": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: fit: FACE_TOO_SMALL in who-are-ya"
+ },
+ "76421": {
+  "exclude": true,
+  "reason": "photo review 2026-10-25: fit: FACE_TOO_SMALL in who-are-ya"
  }
 }
