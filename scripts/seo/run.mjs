@@ -47,7 +47,7 @@ import { allFailures as onpageFailures, cli as onpageCli } from './onpage.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { allFailures, writeDigest } from './lib/digest.mjs';
 import { DEFAULT_UA, fetcher as makeFetcher } from './lib/fetcher.mjs';
-import { GSC_CHECK, findingsPath, fingerprintOf, readFindings, validateFindings } from './lib/findings.mjs';
+import { GSC_CHECK, OP_NO_CARD, findingsPath, fingerprintOf, readFindings, validateFindings } from './lib/findings.mjs';
 import { credentialsFromEnv, tokenSource } from './lib/google-auth.mjs';
 import { analyticsRange, gscClient } from './lib/gsc-client.mjs';
 import { applyAudit, applyDecisions, applyInspections, baselineFrom, summary } from './lib/ledger.mjs';
@@ -269,7 +269,8 @@ export async function runWeekly(o, deps) {
         const pq = path.join(runDir, 'gsc-analytics-pq.json');
         const op = await soft('onpage', () => d.onpage({ site, runId, runDir, analyticsFile: existsSync(pq) ? pq : null }));
         if (op) {
-          s.onpageFails = new Set(onpageFailures(op).map((f) => f.id)).size;
+          // Only the OP ids that can become a card: OP-07 (URL) and OP-11 (measurement) never do.
+          s.onpageFails = new Set(onpageFailures(op).map((f) => f.id).filter((id) => !OP_NO_CARD[id])).size;
           log(`onpage: ${op.counts.urls} urls · ${s.onpageFails} failing checks`);
         }
       }
@@ -447,15 +448,18 @@ export async function searchConsoleStep({ creds, urls, runDir, config, client, n
 /**
  * The on-page step: onpage.mjs's CLI in-process (as the IndexNow and export steps), into the weekly run dir (its name is
  * the run id), with `--analytics <analyticsFile>` when the gsc step wrote one and `--psi` when env PSI_API_KEY is set.
- * Its lines go to the log file only (counts, ids, paths: never a query or a value); exit 2 (infra) throws.
+ * Its lines go to the log file only (counts, ids, paths: never a query or a value); exit 2 (infra) throws, and so does
+ * an onpage.json whose run id is not the weekly `runId` (onpage.mjs takes it from the run dir's name).
  * `fetcher` and `fetch` are injectable (tests). → the run dir's onpage.json (an OnpageResult without `queries`)
  */
-export async function onpageStep({ site, runDir, analyticsFile = null, env = process.env, toLog, fetcher = null, fetch: fetchImpl = globalThis.fetch }) {
+export async function onpageStep({ site, runId, runDir, analyticsFile = null, env = process.env, toLog, fetcher = null, fetch: fetchImpl = globalThis.fetch }) {
   const argv = ['--site', site, '--run-dir', runDir, ...(analyticsFile ? ['--analytics', analyticsFile] : []), ...(env.PSI_API_KEY?.trim() ? ['--psi'] : [])];
   let why = null;
   const code = await onpageCli(argv, { log: toLog, err: (m) => { why = m; toLog(m); }, env, fetcher, fetch: fetchImpl });
   if (code === 2) throw new Error(String(why ?? 'onpage.mjs exit 2').replace(/^seo-onpage: (infra: )?/, ''));
-  return JSON.parse(readFileSync(path.join(runDir, 'onpage.json'), 'utf8'));
+  const result = JSON.parse(readFileSync(path.join(runDir, 'onpage.json'), 'utf8'));
+  if (runId && result.runId !== runId) throw new Error(`onpage.json has run id ${result.runId}, want the weekly run's ${runId}`);
+  return result;
 }
 
 /** claude -p as check-run.mjs runs it: prompt on stdin, the process tree killed after timeoutSec. → { status, code? } */

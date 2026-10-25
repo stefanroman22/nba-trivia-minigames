@@ -127,6 +127,18 @@ test('the good game page passes every OP check', () => {
   assert.ok(wordCount(uniqueSentences(GOOD.signals, sharedSets(games)).join(' ')) >= 150);
 });
 
+test('OP-08 fails a game page whose artwork <img> has alt="" or no alt at all', () => {
+  const ART_ALT = / alt="NBA Career Path Quiz board[^"]*"/;
+  assert.match(fixture('career-path-good.html'), ART_ALT);
+  for (const [label, alt] of [['alt=""', ' alt=""'], ['no alt', '']]) {
+    const html = fixture('career-path-good.html').replace(ART_ALT, alt);
+    const p = { url: `${S}/career-path`, signals: pageSignals(html, { url: `${S}/career-path` }) };
+    const failures = checkOnpage(p, gameCtx(p, [p, WORDLE]));
+    assert.deepEqual(ids(failures), ['OP-08'], label);
+    assert.match(failures[0].evidence, /1 <img> without alt text \(https:\/\/swishquest\.com\/games\/nba-career-path-quiz\.webp\)/, label);
+  }
+});
+
 test('OP-02 checks length, query position and the brand suffix', () => {
   const games = [TODAY, WORDLE];
   const withTitle = (title) => ({ ...TODAY, signals: { ...TODAY.signals, title } });

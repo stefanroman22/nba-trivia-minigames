@@ -36,15 +36,19 @@ const auditResult = (runId) => ({
   counts: { urls: 4, pass: 3, fail: 1 },
 });
 
-/** An OnpageResult (onpage.json): OP-02 on the home page, OP-02 and OP-05 on /wordle → 2 failing checks. */
+/**
+ * An OnpageResult (onpage.json): OP-02 on the home page, OP-02 and OP-05 on /wordle, OP-07 on /nba_grid → 2 failing
+ * checks that can be a card (OP-07 never is, so it does not count).
+ */
 const onpageResult = (runId) => ({
   runId, site: SITE, gaps: [],
   urls: {
     [`${SITE}/`]: { status: 200, path: '/', kind: 'home', failures: [{ id: 'OP-02', url: `${SITE}/`, evidence: 'title 12 characters' }] },
     [`${SITE}/wordle`]: { status: 200, path: '/wordle', kind: 'game', failures: [
       { id: 'OP-02', url: `${SITE}/wordle`, evidence: 'no brand suffix' }, { id: 'OP-05', url: `${SITE}/wordle`, evidence: '10 unique words' }] },
+    [`${SITE}/nba_grid`]: { status: 200, path: '/nba_grid', kind: 'game', failures: [{ id: 'OP-07', url: `${SITE}/nba_grid`, evidence: 'underscore in the path' }] },
   },
-  counts: { urls: 2, pass: 0, fail: 2 },
+  counts: { urls: 3, pass: 0, fail: 3 },
 });
 
 /** Every dep faked; `calls` records the step order. `over` replaces deps (ledgerStore fields merge). */
@@ -463,9 +467,31 @@ test('--areas indexing,onpage: audit, gsc with the page × query pull, then the 
   assert.equal(seen.gsc.pageQuery, true);
   assert.deepEqual(seen.onpage, { site: SITE, runId: r.state.runId, runDir, analyticsFile: path.join(runDir, 'gsc-analytics-pq.json') });
   assert.equal(seen.agent.prompt, agentPrompt(runDir, SITE, { onpage: true }));
-  assert.ok(lines.includes('onpage: 2 urls · 2 failing checks'), lines.join('\n'));
+  // OP-02 and OP-05 count; OP-07 (never a card) does not.
+  assert.ok(lines.includes('onpage: 3 urls · 2 failing checks'), lines.join('\n'));
   assert.match(r.line, / · audit fails 1 · onpage fails 2 · cards /);
   assert.equal(r.state.onpageFails, 2);
+});
+
+test('onpage fails counts only the OP ids that can be a card (not OP-07, not OP-11)', async () => {
+  const only = (ids) => async ({ runId }) => ({ ...onpageResult(runId), urls: { [`${SITE}/x`]: { status: 200, path: '/x', kind: 'game', failures: ids.map((id) => ({ id, url: `${SITE}/x`, evidence: 'e' })) } } });
+  for (const [ids, n] of [[['OP-07'], 0], [['OP-07', 'OP-11'], 0], [['OP-07', 'OP-10'], 1], [['OP-01', 'OP-08', 'OP-11'], 2]]) {
+    const { deps } = fakes({ onpage: only(ids) });
+    const r = await runWeekly(opts(['--areas', 'indexing,onpage']), deps);
+    assert.equal(r.state.onpageFails, n, ids.join(','));
+    assert.match(r.line, new RegExp(` · onpage fails ${n} · `));
+  }
+});
+
+test('--areas indexing,onpage: a throwing gsc step still runs the on-page step, with no analytics file', async () => {
+  const { deps, calls, seen } = fakes({ gsc: async () => { calls.push('gsc'); throw new Error('token refresh failed'); } });
+  const r = await runWeekly(opts(['--areas', 'indexing,onpage']), deps);
+  assert.equal(r.code, 1);
+  assert.deepEqual(calls.slice(0, 5), ['lease', 'pull', 'audit', 'gsc', 'onpage']);
+  assert.equal(seen.onpage.analyticsFile, null);
+  assert.equal(seen.onpage.runId, r.state.runId);
+  assert.equal(r.state.onpageFails, 2);
+  assert.match(r.line, /failed: gsc: token refresh failed/);
 });
 
 test('--areas indexing,onpage with --gsc off and no agent: the on-page step runs without analytics; REPORT.md placeholder carries its summary', async () => {
@@ -567,6 +593,11 @@ test('onpageStep runs onpage.mjs in the run dir: onpage.json back, queries-summa
 
   await assert.rejects(onpageStep({ site: SITE, runId, runDir: path.join(tmp(), runId), analyticsFile: null, env: {}, fetcher: { get: async () => ({ status: 500, headers: {}, body: '' }) }, log: () => {}, toLog: () => {} }),
     /sitemap\.xml answered 500/);
+
+  // The on-page run id is the weekly run's: onpage.mjs names it after the run dir, and a dir of another name is refused.
+  assert.equal(plain.result.runId, path.basename(plain.runDir));
+  await assert.rejects(onpageStep({ site: SITE, runId, runDir: path.join(tmp(), 'not-a-run-id'), analyticsFile: null, env: {}, fetcher, toLog: () => {} }),
+    /onpage\.json has run id \d{8}-\d{4}-seo, want the weekly run's 20261026-0600-seo/);
 });
 
 test('the agent never gets PSI_API_KEY', () => {

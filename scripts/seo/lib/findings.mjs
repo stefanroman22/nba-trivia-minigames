@@ -1,7 +1,7 @@
 // The findings contract of an SEO run (spec §3, §8): `<runDir>/findings.json`, written by the seo agent (weekly run) or
 // by audit.mjs --findings (post-deploy regressions, lib/digest.mjs writeRegressionFindings), read by notion-push.mjs.
 //   { runId, findings: [ { id: 'SEO-<runId>-NNN', check: 'IX-04', severity, urls, current, expected, files, howToFix,
-//     acceptance: { audit, qa: [{ route, selector, expect }] }, fingerprint: 'IX-04|<sorted urls>', regression?: true,
+//     acceptance: { audit, qa: [{ route, selector, expect }] }, fingerprint: 'IX-04|<sorted urls>' (OP: 'OP-05|onpage'), regression?: true,
 //     decision: 'card'|'owner'|'wait'|'none', owner?: { action, clickPath }, recheckAfter?: iso } ] }
 // `files` are free-form strings (a path, or a path with a note such as `src/app/layout.tsx (footer)`).
 // `check` is an IX id, an OP id (phase 2, on-page), or GSC for a Search Console verdict with no IX failure behind it
@@ -19,8 +19,11 @@ export const SEVERITIES = ['blocker', 'major', 'minor'];
 export const DECISIONS = ['card', 'owner', 'wait', 'none'];
 
 export const findingsPath = (runDir) => path.join(runDir, 'findings.json');
-/** The fingerprint a finding must carry: its check and its URLs, sorted, comma-joined. */
-export const fingerprintOf = (f) => `${f.check}|${[...(f.urls || [])].sort().join(',')}`;
+/**
+ * The fingerprint a finding must carry: an IX or GSC finding its check and its URLs, sorted, comma-joined; an OP finding
+ * `OP-nn|onpage` (one card per OP check whatever pages fail it: the URLs are in the body, never in the fingerprint).
+ */
+export const fingerprintOf = (f) => (OP_IDS.includes(f.check) ? `${f.check}|onpage` : `${f.check}|${[...(f.urls || [])].sort().join(',')}`);
 
 /** The parsed `<runDir>/findings.json`, or null when there is none (throws on a file that is not JSON). */
 export function readFindings(runDir) {
