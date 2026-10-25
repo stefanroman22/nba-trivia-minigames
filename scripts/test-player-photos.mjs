@@ -20,6 +20,18 @@ test("Commons entry, none entry, and an id the map does not know", async () => {
   assert.equal(photoSource(999999), null); // not in the map: the silhouette, never a cdn.nba.com URL
 });
 
+test("the photo pipeline covers the live pool: curated rows with a team stint", async () => {
+  const { playablePlayers, PLAYERS_SOURCE } = await import("./player-photos/players.mjs");
+  const rows = [
+    { person_id: 1, full_name: "Has Stints", teams: [{ abbr: "BOS" }] },
+    { person_id: 2, full_name: "2026 Draftee", teams: [] },
+    { person_id: 3, full_name: "No Teams Key" },
+  ];
+  assert.deepEqual(playablePlayers(rows).map((p) => p.person_id), [1]);
+  // The data refresh commits players_curated.json (data-refresh.yml); players-index.json is not refreshed.
+  assert.match(PLAYERS_SOURCE.replace(/\\/g, "/"), /backend\/trivia\/data_static\/players_curated\.json$/);
+});
+
 test("a failed map fetch puts everyone on the silhouette", async () => {
   globalThis.fetch = async () => { throw new Error("offline"); };
   const { loadPhotoMap, photoSource } = await import("../src/utils/playerPhotos.ts?offline");

@@ -2,7 +2,7 @@
 // (src/data/photo-credits.json). Run by hand after a data sync adds players:
 //   node scripts/player-photos/build.mjs
 //
-// For every players-index row: the Wikidata image (P18) of the item whose NBA.com player
+// For every player of the live pool (players.mjs): the Wikidata image (P18) of the item whose NBA.com player
 // id (P3647) matches, if that file is a free JPEG/PNG on Commons that passes the checks
 // below, else the silhouette. No photo comes from cdn.nba.com (its headshots are NBA
 // property). The map lists every player, as a Commons file or in `none`; an id it
@@ -12,9 +12,9 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadPlayablePlayers } from "./players.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const PLAYERS = join(root, "backend", "trivia", "data", "players-index.json");
 const MAP_OUT = join(root, "public", "photos", "player-photos.json");
 const IDS_OUT = join(root, "public", "photos", "player-ids.json");
 const CREDITS_OUT = join(root, "src", "data", "photo-credits.json");
@@ -109,7 +109,7 @@ function hashDir(underscored) {
   return `${h[0]}/${h.slice(0, 2)}`;
 }
 
-const players = JSON.parse(readFileSync(PLAYERS, "utf8"));
+const players = loadPlayablePlayers();
 console.log(`[player-photos] ${players.length} players — reading Wikidata…`);
 
 const wd = await wikidataImages();

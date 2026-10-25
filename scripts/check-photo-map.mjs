@@ -1,5 +1,5 @@
 // Guards the player photo map (public/photos/player-photos.json, written by scripts/player-photos/build.mjs):
-//   - every player in players-index is listed once, as a Commons photo or as `none` (silhouette); an id the
+//   - every player of the live pool (player-photos/players.mjs) is listed once, as a Commons photo or as `none` (silhouette); an id the
 //     map doesn't list would show the silhouette without anyone deciding it;
 //   - every Commons entry carries its face box, and has its row on /credits;
 //   - no player headshot is loaded from cdn.nba.com anywhere in src/ (team logos are a separate step).
@@ -7,11 +7,12 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadPlayablePlayers } from "./player-photos/players.mjs";
 
 const root = new URL("..", import.meta.url);
 const read = (p) => JSON.parse(readFileSync(new URL(p, root), "utf8"));
 
-const players = read("backend/trivia/data/players-index.json");
+const players = loadPlayablePlayers();
 const map = read("public/photos/player-photos.json");
 const credits = read("src/data/photo-credits.json");
 

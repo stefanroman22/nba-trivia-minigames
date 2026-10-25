@@ -148,7 +148,9 @@ def get(url):
 def players_per_game():
     """person_id -> games that can show it (see the photo-fit audit for the definitions)."""
     load = lambda p: json.load(open(os.path.join(ROOT, p), encoding="utf8"))
-    pi, pm, ids, s5 = load("backend/trivia/data/players-index.json"), load("public/photos/player-photos.json"), \
+    # The live pool, as scripts/player-photos/players.mjs: curated rows with a team stint.
+    pi = [p for p in load("backend/trivia/data_static/players_curated.json") if p.get("teams")]
+    pm, ids, s5 = load("public/photos/player-photos.json"), \
         load("public/photos/player-ids.json"), load("backend/trivia/data/starting-five.json")
     games = defaultdict(set)
     man = json.loads(get(DATA + "manifest.json"))["games"]
