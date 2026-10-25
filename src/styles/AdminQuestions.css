@@ -6,7 +6,12 @@
 .aq-progress { display: flex; flex-direction: column; gap: 6px; }
 .aq-progress-line { font-size: 13px; font-weight: 600; }
 .aq-progress-track { height: 6px; border-radius: 999px; background: var(--surface3); overflow: hidden; }
-.aq-progress-fill { height: 100%; border-radius: inherit; background: var(--brand); transition: width 0.35s var(--ease-out); }
+.aq-progress-fill {
+  height: 100%;
+  background: var(--brand);
+  transform-origin: left center;
+  transition: transform 0.35s var(--ease-out);
+}
 .aq-hint { margin: 0; color: var(--muted); font-size: 12px; }
 
 /* Toolbar: the filter (a SegmentedTabs track), the search and the sort */
