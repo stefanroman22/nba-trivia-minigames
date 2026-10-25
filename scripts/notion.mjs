@@ -371,6 +371,15 @@ async function cmdFindCards(args) {
   console.log(JSON.stringify(pages.map((p) => ({ ...row(p), status: p.properties.Status?.select?.name || null, created: p.created_time })), null, 2));
 }
 
+// Non-archived cards whose Commit is one of the given SHAs (matched on the first 12 characters, at most 50): which
+// cards a push to main shipped (relay-deploy.yml reports its deploy on them).
+async function cmdFindByCommit(args) {
+  const shas = [...new Set(args.filter((a) => /^[0-9a-f]{7,40}$/i.test(a)).map((s) => s.slice(0, 12).toLowerCase()))].slice(0, 50);
+  if (!shas.length) { console.error("find-by-commit <sha> [<sha> …] required"); process.exit(2); }
+  const pages = await queryAll({ or: shas.map((s) => ({ property: "Commit", rich_text: { contains: s } })) });
+  console.log(JSON.stringify(pages.map((p) => ({ ...row(p), status: p.properties.Status?.select?.name || null })), null, 2));
+}
+
 // One card's properties (+ status) as JSON: what channel.mjs resolve needs (Status Done and its Commit).
 async function cmdGetCard(pageId) {
   if (!pageId) { console.error("get-card <pageId> required"); process.exit(2); }
@@ -411,6 +420,7 @@ const run = {
   "migrate-v2": () => cmdMigrateV2(args),
   "migrate-v3": cmdMigrateV3,
   "find-cards": () => cmdFindCards(args),
+  "find-by-commit": () => cmdFindByCommit(args),
   "get-card": () => cmdGetCard(args[0]),
   "list-comments": () => cmdListComments(args[0]),
 }[cmd];

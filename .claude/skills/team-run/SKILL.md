@@ -171,4 +171,4 @@ and a `{"verify": …}` QA assertion, there is no plan writer or design round, g
 --from` on the lane (every FAIL line is a fix-round failure, relay it verbatim), and `target: "main"` cuts
 the worktree from `origin/main` (§1) and ships to `main` (ship skill). A fix touching `multiplayer_server/`
 never reaches `main` automatically: ship opens an unmerged PR to `main` and prints `SHIPPED-PR <url>`; the
-owner merges it and runs `railway up` in the same window (Needs human set; main-sync marks Done on the merge).
+owner merges it, and the merge deploys the relay by itself (relay-deploy.yml; Needs human set; main-sync marks Done on the merge).

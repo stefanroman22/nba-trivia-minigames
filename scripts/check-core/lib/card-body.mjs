@@ -98,7 +98,7 @@ export function renderBody(cluster, { checker = 'ui', runId, runDir, meta = {}, 
   L.push(`- Engine protocol: "${PROTOCOL[checker] || PROTOCOL.ui}" in .claude/agents/${cluster.engine}.md; the full finding objects are in the attached findings.json (this body is a summary).`);
   L.push('- QA: verify assertion runs the attached findings (node scripts/ui-check/verify.mjs --from <attached findings.json>); every finding must PASS.');
   L.push(target === 'main'
-    ? `- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev.${items.some((f) => (f.files || []).some((x) => String(x.path).startsWith('multiplayer_server/'))) ? ' Relay (multiplayer_server/) deploys are parked for the owner.' : ''}`
+    ? `- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev.${items.some((f) => (f.files || []).some((x) => String(x.path).startsWith('multiplayer_server/'))) ? ' Relay (multiplayer_server/): the PR to main deploys it on merge (relay-deploy.yml, after the production frontend).' : ''}`
     : '- Ship: Target dev — the normal pipeline flow.');
   L.push('- Fingerprints (Source key = rule|route|selector):');
   for (const f of items) for (const fp of [f.fingerprint, ...(f.mergedFingerprints || [])]) L.push(`- ${fpKey(fp)} = ${fp}`);

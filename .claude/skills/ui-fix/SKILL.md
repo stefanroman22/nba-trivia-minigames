@@ -196,7 +196,7 @@ Every `git` command below runs in the worktree (`git -C <worktree> …`); `gh` r
    git -C <worktree> switch -c fix/ui-check-<runId>-relay origin/main
    git -C <worktree> cherry-pick <the relay commits>
    git -C <worktree> push -u origin fix/ui-check-<runId>-relay
-   gh pr create --base main --head fix/ui-check-<runId>-relay --title "ui-fix: <runId> relay (<ids>)" --body "<finding · title lines>. Relay change: merge this PR with a merge commit (not squash/rebase), then run \`cd multiplayer_server && railway up\` in the same window, then back-merge main into dev."
+   gh pr create --base main --head fix/ui-check-<runId>-relay --title "ui-fix: <runId> relay (<ids>)" --body "<finding · title lines>. Relay change: merge this PR with a merge commit (not squash/rebase); the merge deploys the relay by itself (relay-deploy.yml), then back-merge main into dev."
    git -C <worktree> switch fix/ui-check-<runId>-main
    ```
    Never merge the relay PR. `<head>` = `fix/ui-check-<runId>-main` (skip steps 5-10 when it has no
@@ -302,7 +302,7 @@ with the reason) · commit; the PR links (to `main` or `dev`, the back-merge PR,
 whether each is merged or left open; the cards updated (id · shipped / relay PR / partial comment)
 and the findings left out because the pipeline holds their card; for target `main`, the production
 check (both deployments READY, the live checks that passed, which findings could not be checked
-live) and, for a relay PR, "needs owner: merge with a merge commit + `railway up` in the same
-window, then back-merge"; the uncommitted tooling left in this checkout (notes appends, check fixes,
+live) and, for a relay PR, "needs owner: merge with a merge commit (the merge deploys the relay),
+then back-merge"; the uncommitted tooling left in this checkout (notes appends, check fixes,
 `accepted.json`) for the next tooling PR to `dev`; the absolute path of the run's `REPORT.md`;
 confirmation that the stack is stopped and the worktree removed.

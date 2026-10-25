@@ -70,7 +70,7 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 |---|---|---|
 | Frontend | push to `main` → production; push to `dev` → dev alias | Vercel git integration; `vercel.json` selects the Next.js preset |
 | Django API | push to `main` → production; other pushes → preview builds | Vercel git integration with Root Directory `backend` (verified 2026-10-15: deploys in lockstep with the frontend on every push, alias `backend-git-main-…`, runs as a PR check) |
-| Multiplayer | **manual CLI only** — `cd multiplayer_server && railway up` | Railway, not git-connected; env vars set with `railway variable set` |
+| Multiplayer | push to `main` that changes `multiplayer_server/` → production, after the frontend (`.github/workflows/relay-deploy.yml`, since 2026-10-25); by hand: `cd multiplayer_server && railway up`, or run the workflow | Railway, not git-connected: the workflow runs `railway up` with the project token secret `RAILWAY_TOKEN`; env vars set with `railway variable set` |
 
 So a push to `main` — the manual dev→main promotion, or a checker hotfix shipped with `Target = main` —
 deploys the frontend AND the backend to production. The relay is never deployed by a push.
