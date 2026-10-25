@@ -4,10 +4,10 @@
     python scripts/player-photos/check_fit.py --list     # every issue, one line each
 
 The frame of each game x ui-check viewport was measured once in the real app (frames.json). This
-reproduces how the photo is drawn there — the game's CSS fit for cdn.nba.com headshots (one uniform
-studio crop, NBA_FACE below), utils/playerPhotos placePhoto for Commons photos with the face box from
-faces.json — and checks the face: fully visible, centred, big enough, not upscaled. Pure Python, no
-dependencies; it reads the answer players of the question games from the public data host.
+reproduces how the photo is drawn there — every photo is a Commons photo placed by utils/playerPhotos
+placePhoto with the face box from faces.json — and checks the face: fully visible, centred, big
+enough, not upscaled. Pure Python, no dependencies; it reads the answer players of the question games
+from the public data host.
 
 Major (exit 1): HEAD_CUT through the face or mouth, FACE_TOO_SMALL, NO_FACE. Minor (reported):
 trimmed hair, OFF_CENTRE, BLURRY, LETTERBOX. Thresholds come from the 2026-10-17 photo-fit audit,
@@ -158,7 +158,7 @@ def players_per_game():
             for txt in ex.map(get, [f"{DATA}{g}/{q}.{s}.json" for q, s in files.items()]):
                 m = re.search(r'"person_id":\s*(\d+)', txt)
                 if m:
-                    games[int(m.group(1))] |= {g, f"{g}-review"} if g == "career-path" else {g}
+                    games[int(m.group(1))] |= {g, f"{g}-review"}
     for game in s5:
         for p in game["starting_5"]:
             if p["name"] in ids:
