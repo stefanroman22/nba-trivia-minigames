@@ -1,15 +1,16 @@
 """Detect the face in every Commons player photo that faces.json doesn't cover yet.
 
-    py -3.11 scripts/player-photos/detect_faces.py            (needs: pip install opencv-python numpy)
+    py -3.11 scripts/player-photos/detect_faces.py [--per-sheet 48]   (needs: pip install opencv-python numpy)
 
 Reads public/photos/player-photos.json (so run build.mjs first), downloads each new photo's 500px
 thumbnail, finds the largest face with OpenCV's YuNet detector and adds it to faces.json as
-{file, aspect, box: [x, y, w, h] | null} (fractions of the image). It also writes
-faces-review.png next to this script: look at it, and for a wrong or missing box either set "box"
-by hand (and "manual": true) or exclude the player in commons-extra.json. Then run build.mjs again.
-Entries marked "manual" are never overwritten.
+{file, aspect, box: [x, y, w, h] | null} (fractions of the image). It also writes review sheets
+faces-review-01.png, faces-review-02.png, ... next to this script, --per-sheet photos each: look at
+every one, and for a wrong or missing box either set "box" by hand (and "manual": true) or exclude
+the player in commons-extra.json (apply_review.py does both from review/*.json). Then run build.mjs
+again. Entries marked "manual" are never overwritten.
 """
-import json, os, sys, time, urllib.parse, urllib.request
+import argparse, json, os, sys, time, urllib.parse, urllib.request
 
 import cv2
 import numpy as np
@@ -56,6 +57,9 @@ def detect(img, det, thr):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--per-sheet", type=int, default=48, help="photos per review sheet (8 rows of 6)")
+    per_sheet = ap.parse_args().per_sheet
     os.makedirs(CACHE, exist_ok=True)
     model = os.path.join(CACHE, "yunet.onnx")
     if not os.path.exists(model):
@@ -92,11 +96,15 @@ def main():
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(dict(sorted(faces.items(), key=lambda kv: int(kv[0]))), f, ensure_ascii=False, indent=0)
     os.replace(tmp, FACES)
-    if done:  # review sheet: every new photo with its box (orange) — check each one
-        cw, ch, cols = 220, 240, 6
-        rows = (len(done) + cols - 1) // cols
+    # Review sheets: every new photo with its box (orange) — check each one.
+    cw, ch, cols = 220, 240, 6
+    groups = [done[i:i + per_sheet] for i in range(0, len(done), per_sheet)]
+    if groups:
+        print(f"review sheets: {len(groups)} files, {per_sheet} photos each")
+    for n, group in enumerate(groups, 1):
+        rows = (len(group) + cols - 1) // cols
         sheet = np.full((rows * ch, cols * cw, 3), 24, np.uint8)
-        for i, (pid, img, box) in enumerate(done):
+        for i, (pid, img, box) in enumerate(group):
             s = min((cw - 10) / img.shape[1], (ch - 30) / img.shape[0])
             t = cv2.resize(img, None, fx=s, fy=s)
             x, y = (i % cols) * cw + 5, (i // cols) * ch + 5
@@ -106,8 +114,9 @@ def main():
                 p1 = (int(x + (box[0] + box[2]) * t.shape[1]), int(y + (box[1] + box[3]) * t.shape[0]))
                 cv2.rectangle(sheet, p0, p1, (0, 140, 255), 2)
             cv2.putText(sheet, pid + ("" if box else " NO FACE"), (x, y + ch - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (230, 230, 230), 1)
-        cv2.imwrite(os.path.join(HERE, "faces-review.png"), sheet)
-        print("review sheet:", os.path.join(HERE, "faces-review.png"))
+        path = os.path.join(HERE, f"faces-review-{n:02d}.png")
+        cv2.imwrite(path, sheet)
+        print(" ", path)
 
 
 if __name__ == "__main__":
