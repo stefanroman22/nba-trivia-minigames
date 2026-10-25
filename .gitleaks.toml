@@ -1,0 +1,13 @@
+# gitleaks config shared by dev-ci.yml (tree scan on every push/PR to dev) and the security agent
+# (.github/workflows/security.yml: full history weekly, the PR's added lines on PRs to main). Tune false positives here:
+# an allowlist entry needs a comment saying why. A leaked real secret is never allowlisted: revoke it, then purge it.
+title = "nba-minigames gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Generated files whose hashes look like secrets"
+paths = [
+  '''(^|/)package-lock\.json$''',
+]

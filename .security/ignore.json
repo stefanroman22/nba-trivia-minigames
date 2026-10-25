@@ -1,0 +1,7 @@
+{
+  "_comment": "False positives muted by fingerprint (the 16-hex id in the ticket, the PR comment and findings.json). Every entry needs a reason; an optional ISO `until` unmutes it after that date. See docs/security/README.md.",
+  "ignore": [
+    { "fingerprint": "6b459dde1f58a03f", "reason": "gitleaks generic-api-key on scripts/seo/config.json indexNowKey: an IndexNow key is public by design (served as public/<key>.txt for search engines to verify)." },
+    { "fingerprint": "8543195f29aa1502", "reason": "gitleaks generic-api-key on scripts/seo/indexnow.test.mjs: a dummy UUID test fixture, not a credential." }
+  ]
+}

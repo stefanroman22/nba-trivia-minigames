@@ -44,19 +44,63 @@ jobs:
       # Scan the WORKING TREE (current committed files) for exposed secrets/keys/tokens.
       # --no-git avoids failing on secrets that only exist in old history (use a history
       # purge / .gitleaks.toml allowlist for those). Runs the gitleaks binary via Docker
-      # so there is no marketplace-action license gating on a personal repo.
+      # so there is no marketplace-action license gating on a personal repo. Rules and allowlist:
+      # .gitleaks.toml, shared with the security agent (security.yml), which also scans the full history weekly.
       - name: Run gitleaks
         run: |
           docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.21.2 \
-            detect --source=/repo --no-git --redact --verbose --exit-code 1
+            detect --source=/repo --no-git --config=/repo/.gitleaks.toml --redact --verbose --exit-code 1
 
-  promote:
-    name: Promote dev to main
+  # main requires the commit status security/pr-scan on every commit pushed to it (a ruleset, docs/security/README.md),
+  # so a promotion goes PR → security gate → push: the PR gives the scan a place to comment, the gate (security.yml's
+  # PR mode) scans dev's diff against main and may auto-fix dev, and the push below promotes exactly the scanned commit.
+  promote-pr:
+    name: Promotion PR dev → main
     needs: [lint, security]
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      pr: ${{ steps.pr.outputs.pr }}
+    steps:
+      - name: Open (or reuse) the dev → main PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          n=$(gh pr list -R "$GITHUB_REPOSITORY" --base main --head dev --state open --json number --jq '.[0].number // empty')
+          if [ -z "$n" ]; then
+            url=$(gh pr create -R "$GITHUB_REPOSITORY" --base main --head dev --title "Promote dev to main" \
+              --body "Opened by the Promote job (dev-ci.yml) so the security gate scans this promotion. The job pushes main itself once the gate passes; this PR then closes as merged.")
+            n=${url##*/}
+          fi
+          echo "pr=$n" >> "$GITHUB_OUTPUT"
+
+  security-gate:
+    name: Security gate (dev → main)
+    needs: promote-pr
+    uses: ./.github/workflows/security.yml
+    with:
+      base: main
+      branch: dev
+      pr: ${{ needs.promote-pr.outputs.pr }}
+    secrets: inherit
+    permissions:
       contents: write
+      statuses: write
+      pull-requests: write
+
+  promote:
+    name: Promote dev to main
+    needs: [lint, security, security-gate]
+    if: github.event_name == 'workflow_dispatch' && needs.security-gate.outputs.result == 'pass'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      statuses: write # the status of a promotion merge commit (below)
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
     steps:
@@ -72,17 +116,27 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Merge dev into main and push
+        env:
+          SCANNED: ${{ needs.security-gate.outputs.sha }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git fetch origin main dev
           git checkout -B main origin/main
-          if git merge --ff-only origin/dev; then
-            echo "Fast-forwarded main to dev."
+          # exactly the commit the gate scanned (dev may have moved since: the next promotion takes the rest)
+          if git merge --ff-only "$SCANNED"; then
+            echo "Fast-forwarded main to ${SCANNED:0:7}."
           else
             echo "Fast-forward not possible; creating a merge commit."
-            git merge --no-ff origin/dev -m "Auto-merge dev into main [skip ci]"
+            git merge --no-ff "$SCANNED" -m "Auto-merge dev into main [skip ci]"
+            # main requires security/pr-scan on the pushed commit; the merge adds nothing the gate did not scan
+            tmp="promote/$(git rev-parse --short HEAD)"
+            git push origin "HEAD:refs/heads/$tmp"
+            gh api -X POST "repos/$GITHUB_REPOSITORY/statuses/$(git rev-parse HEAD)" -f state=success \
+              -f context=security/pr-scan -f description="promotion merge of scanned ${SCANNED:0:7}" >/dev/null
           fi
           git push origin main
+          [ -n "${tmp:-}" ] && git push origin --delete "$tmp" || true
       # A GITHUB_TOKEN push does not fire other on:push workflows (GitHub's anti-recursion
       # behavior), so main-sync.yml never sees this push. Do the same QA -> Done marking
       # inline instead of relying on that trigger. main-sync.yml stays correct for the OTHER
