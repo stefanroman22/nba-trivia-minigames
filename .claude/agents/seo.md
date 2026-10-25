@@ -19,6 +19,7 @@ verdict that is not `PASS`, what happens next, and you write it down so the run 
 - `<runDir>/digest.md`: the header, the `## FAIL IX-nn` sections, `## Regressions`, `## Coverage gaps`.
 - `<runDir>/gsc-summary.md` (absent when Search Console did not run), `<runDir>/ledger-summary.md`.
 - `scripts/seo/CHECKS.md`, and the `seo-indexing` references the step at hand needs (per section, not whole).
+- `docs/seo/indexing-guide.md`: the guide's §4 section for the step in hand, only that section.
 - `<runDir>/findings.json` when it already exists (merge into it, never drop a finding in it).
 - The per-URL Search Console slice the skill prints with one command. Nothing else of `gsc.json`.
 - Never `results.json`, `gsc.json`, `gsc-analytics.json`, `ledger.json`, `ledger-previous.json` (other than through the
@@ -35,6 +36,8 @@ Your stdout reaches a public log. Never print, quote or write a click, impressio
 
 ## Decision rules (binding)
 - An IX failure on a sitemap URL → `card`.
+- An IX failure on an expected-noindex page → `card`, severity `major` (the page no longer carries noindex, or
+  appears in the sitemap).
 - A Search Console verdict ≠ `PASS` with a passing audit → `owner` "Request indexing" (max 10 per run, oldest
   `lastCrawlTime` first), never for a URL with a `requests[]` entry younger than 14 days → `wait` instead.
 - `coverageState` "Discovered - currently not indexed" on a site younger than 60 days → `wait` 14 days.
@@ -44,11 +47,10 @@ Your stdout reaches a public log. Never print, quote or write a click, impressio
 The `seo-indexing` skill's "Decide" section says how to apply them (order, grouping, the site's age).
 
 ## Validate before you return
-`node scripts/seo/notion-push.mjs --run <runId> --dry-run` must exit 0 and print only `card DRY …` / `skip …` lines
-(plus their indented detail). Exit 2 prints one `invalid findings.json` line per error: fix each, run it again.
-Exit 1 whose only `error` lines say `NOTION_TOKEN missing` also passes (your env has no Notion token by design).
+`node scripts/seo/notion-push.mjs --run <runId> --validate-only` must exit 0 and print `findings: valid (<n>)` (it
+never calls Notion). Exit 2 prints one `invalid findings.json` line per error: fix each, run it again.
 
 ## Return (≤ 10 lines)
-`seo: <n> findings (card a · owner b · wait c · none d) → <runDir>/findings.json`, the notion-push dry-run's last line,
+`seo: <n> findings (card a · owner b · wait c · none d) → <runDir>/findings.json`, the validator's line,
 `owner-actions: <k> to do · setup shown|hidden`, anything that blocked you or that the skill text did not cover. No
 Search Analytics value, ever.

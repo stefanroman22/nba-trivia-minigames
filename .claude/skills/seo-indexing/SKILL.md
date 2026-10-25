@@ -110,18 +110,30 @@ concrete for the failing URLs; its `files` come from `CHECKS.md` plus `reference
 - Likes: problems fixed at the cause (steps 1-9). Dislikes: re-requesting instead of fixing.
 
 ## Decide
+The rules (binding, the same text as the agent file):
+- An IX failure on a sitemap URL → `card`.
+- An IX failure on an expected-noindex page → `card`, severity `major` (the page no longer carries noindex, or
+  appears in the sitemap).
+- A Search Console verdict ≠ `PASS` with a passing audit → `owner` "Request indexing" (max 10 per run, oldest
+  `lastCrawlTime` first), never for a URL with a `requests[]` entry younger than 14 days → `wait` instead.
+- `coverageState` "Discovered - currently not indexed" on a site younger than 60 days → `wait` 14 days.
+- "Crawled - currently not indexed" → `card` only when an IX-05/06/08 finding exists, else `wait` 28 days with the note
+  "content/links".
+- Everything else → `none`.
+
 Run date = the runId's `YYYYMMDD`. Young site = run date before the hub's live date + 60 days. Sitemap URL = an
 audited URL not on the expected-noindex list (the home page is one; site-wide failures are reported on it).
 
 **A. The digest.** For each `## FAIL IX-nn` section:
 - its sitemap URLs → one `card` finding for that IX id, URLs sorted; `regression: true` when `## Regressions` names
   the id. Severity `blocker` for IX-01…IX-04, `major` for IX-05…IX-11, `minor` for IX-12.
-- its other URLs (expected-noindex pages) → one `none` finding for that IX id (the rules file no card for them; say so
-  in `REPORT.md`'s Summary so the owner sees it).
+- its expected-noindex URLs → a second `card` finding for that IX id, severity `major` (the page no longer carries
+  noindex, or appears in the sitemap), URLs sorted, `regression` as above.
 
 **B. The slice**, row by row; the first rule that matches wins:
 1. `error …` → no finding; one `## Coverage gaps` line in `REPORT.md` (`<url>: inspection error <code>`).
-2. An expected-noindex URL → `none` (one `GSC` finding for all of them, "kept out of the index on purpose").
+2. An expected-noindex URL → `none` (one `GSC` finding for all of them, "kept out of the index on purpose"); when `ix`
+   lists IX ids, its card from A covers it instead (no `GSC` finding).
 3. `ix` lists IX ids (its card from A exists): "Crawled - currently not indexed" with no IX-05/06/08 among them →
    `wait` 28 days, note "content/links"; anything else → no extra finding, the card covers the URL (add
    `Search Console: <verdict> · <coverageState>` to that card's `current`).
@@ -190,8 +202,6 @@ order: `OA-<runId>-1`, `-2`, … ; the setup finding goes under `## Setup (once)
 findings), every other one under `## Do now`.
 
 ### Validate
-`node scripts/seo/notion-push.mjs --run <runId> --dry-run` (or `--run-dir <runDir>`): exit 0, only `card DRY …` and
-`skip …` lines plus their indented detail and the summary line. Exit 2: fix every `invalid findings.json` line, again.
-Exit 1 with `error <key> notion.mjs find-cards failed: NOTION_TOKEN missing` as the only error lines is a pass too: the
-weekly agent's env holds no Notion token by design, the dedupe lookup of a `card` finding needs one, and an invalid
-file exits 2 before any Notion call. Any other `error` line: report it in your return.
+`node scripts/seo/notion-push.mjs --run <runId> --validate-only` (or `--run-dir <runDir>`): exit 0 and
+`findings: valid (<n>)`; it never calls Notion, so no token is needed. Exit 2: fix every `invalid findings.json` line,
+run it again.

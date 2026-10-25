@@ -2,7 +2,9 @@
 // An SEO run's findings.json (lib/findings.mjs) → one ordinary Notion team card per `decision: 'card'` finding, deduped by
 // the card's Source property (`seo-check fp:<fpKey> run:<runId>`). Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md §5, §8.
 //   node scripts/seo/notion-push.mjs --run <runId> [--run-dir <dir>] [--dry-run] [--priority P0|P1|P2] [--regressions-only]
-// Validates findings.json first: errors → exit 2, one line per error. --regressions-only keeps the `regression: true`
+//   node scripts/seo/notion-push.mjs --run <runId> [--run-dir <dir>] --validate-only
+// Validates findings.json first: errors → exit 2, one line per error. --validate-only stops there: `findings: valid (<n>)`
+// and exit 0, never a Notion call (no token needed; the seo agent's validator). --regressions-only keeps the `regression: true`
 // findings (the post-deploy workflow). The same decision table as scripts/check-core/notion-push.mjs (its decide()):
 //   - any non-Done card → no card; one "seen again in run <id>" comment per card per run (none in QA, none when the
 //     card's own Source says run:<id>).
@@ -127,7 +129,7 @@ export function pushFindings(doc, client, { dryRun = false, priorityOverride = n
 }
 
 function parseArgs(argv) {
-  const o = { run: null, runDir: null, dryRun: false, priority: null, regressionsOnly: false };
+  const o = { run: null, runDir: null, dryRun: false, priority: null, regressionsOnly: false, validateOnly: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--run') o.run = argv[++i];
@@ -135,21 +137,29 @@ function parseArgs(argv) {
     else if (a === '--priority') o.priority = argv[++i];
     else if (a === '--dry-run') o.dryRun = true;
     else if (a === '--regressions-only') o.regressionsOnly = true;
-    else { console.error(`notion-push: unknown argument ${a}`); process.exit(2); }
+    else if (a === '--validate-only') o.validateOnly = true;
+    else throw new Error(`unknown argument ${a}`);
   }
   return o;
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const o = parseArgs(process.argv.slice(2));
-  if (!o.run && !o.runDir) { console.error('notion-push: --run <runId> (or --run-dir <dir>) required'); process.exit(2); }
-  if (o.priority && !PRIORITIES.includes(o.priority)) { console.error(`notion-push: --priority ${PRIORITIES.join('|')}`); process.exit(2); }
+/** The CLI → exit code. `client`: a factory for the Notion client, called only when findings are pushed. */
+export function cli(argv, { log = console.log, err = console.error, client = cliClient } = {}) {
+  let o;
+  try { o = parseArgs(argv); } catch (e) { err(`notion-push: ${e.message}`); return 2; }
+  if (!o.run && !o.runDir) { err('notion-push: --run <runId> (or --run-dir <dir>) required'); return 2; }
+  if (o.priority && !PRIORITIES.includes(o.priority)) { err(`notion-push: --priority ${PRIORITIES.join('|')}`); return 2; }
   const runDir = path.resolve(o.runDir || path.join(RUNS_ROOT, o.run));
   let doc;
-  try { doc = readFindings(runDir); } catch (e) { console.error(`notion-push: invalid findings.json: ${e.message}`); process.exit(2); }
-  if (!doc) { console.error(`notion-push: no findings.json in ${runDir}`); process.exit(1); }
+  try { doc = readFindings(runDir); } catch (e) { err(`notion-push: invalid findings.json: ${e.message}`); return 2; }
+  if (!doc) { err(`notion-push: no findings.json in ${runDir}`); return 1; }
   const errors = validateFindings(doc);
-  if (errors.length) { for (const e of errors) console.error(`notion-push: invalid findings.json: ${e}`); process.exit(2); }
-  const results = pushFindings(doc, cliClient(), { dryRun: o.dryRun, priorityOverride: o.priority, regressionsOnly: o.regressionsOnly });
-  if (results.some((r) => r.action === 'error')) process.exitCode = 1;
+  if (errors.length) { for (const e of errors) err(`notion-push: invalid findings.json: ${e}`); return 2; }
+  if (o.validateOnly) { log(`findings: valid (${doc.findings.length})`); return 0; }
+  const results = pushFindings(doc, client(), { dryRun: o.dryRun, priorityOverride: o.priority, regressionsOnly: o.regressionsOnly, log });
+  return results.some((r) => r.action === 'error') ? 1 : 0;
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  process.exitCode = cli(process.argv.slice(2));
 }

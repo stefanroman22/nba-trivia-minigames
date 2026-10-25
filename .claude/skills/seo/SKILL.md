@@ -31,7 +31,8 @@ because the scripts do the bulk work.
 ## 2. Read budget and token rules (binding, agent and session alike)
 - Read only: `<runDir>/digest.md` (header, `## FAIL IX-nn`, `## Regressions`, `## Coverage gaps`),
   `<runDir>/gsc-summary.md`, `<runDir>/ledger-summary.md`, `scripts/seo/CHECKS.md`, `<runDir>/findings.json` when the
-  run already wrote one, and the `seo-indexing` references a step needs.
+  run already wrote one, the `seo-indexing` references a step needs, and `docs/seo/indexing-guide.md`: the guide's
+  §4 section for the step in hand, only that section.
 - Never open `results.json`, `gsc.json`, `gsc-analytics.json`, `ledger.json`, `ledger-previous.json`, an export, a CSV.
   The one exception is the per-URL slice command in `seo-indexing` ("Inputs"), which prints coverage fields only.
 - Never print or write a click, impression, CTR, position or query: the weekly run's stdout is a public log, and the
@@ -50,8 +51,8 @@ node scripts/seo/run.mjs --notion dry --slack off --agents off
 - The second line is `seo-run: run <runId> · site <site> · <runDir>`. Then load `seo-indexing` and do its "Producing the
   run's output" on that `<runDir>`, as the agent would. The run wrote a placeholder `REPORT.md` (overwrite it) and,
   without Google credentials, a `findings.json` with the "Set up Search Console access" finding (merge into it).
-- Validate: `node scripts/seo/notion-push.mjs --run <runId> --dry-run` (exit 0). Cards for real only when the owner asks:
-  the same command without `--dry-run`.
+- Validate: `node scripts/seo/notion-push.mjs --run <runId> --validate-only` (exit 0, no Notion call). A preview of the
+  cards: `--dry-run` instead (reads Notion, needs `NOTION_TOKEN`); cards for real only when the owner asks: neither flag.
 - To delegate instead: `--agents on` (`--agent-model fable`, watchdog `--agent-timeout-sec 1800`), or dispatch
   `subagent_type: "seo"` with the run's prompt: `Load the seo skill, then the seo-indexing skill. Run dir: <runDir>.
   Site: <site>. Write <runDir>/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.`
@@ -82,6 +83,6 @@ store. When the owner says in a session that they clicked, run it for them, once
 days before it asks for that URL again.
 
 ## 6. Hand over (a session run)
-Give the owner: the absolute path of `<runDir>/REPORT.md` and its `## Summary`, the notion-push dry-run's result lines,
+Give the owner: the absolute path of `<runDir>/REPORT.md` and its `## Summary`, the validator's line (and the dry-run's result lines when you ran one),
 what `docs/seo/owner-actions.md` now asks them to do, and that it stays uncommitted on a local run (the weekly run
 commits it).

@@ -3,14 +3,14 @@
 // client (as scripts/check-core/notion-push.test.mjs). Never calls the real Notion.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fpKey } from '../check-core/lib/card-body.mjs';
 import { seenText } from '../check-core/notion-push.mjs';
 import { validateFindings, readFindings } from './lib/findings.mjs';
 import { renderCard } from './lib/card-body.mjs';
-import { pushFindings, cliClient } from './notion-push.mjs';
+import { pushFindings, cliClient, cli } from './notion-push.mjs';
 import { writeRegressionFindings } from './lib/digest.mjs';
 
 const RUN = '20261027-0600-seo';
@@ -216,4 +216,23 @@ test('createCard is called with --target dev always', () => {
   assert.equal(a.includes('--attach'), false);
   assert.deepEqual(a.slice(1, 3), ['create-card', m.title]);
   assert.equal(a[a.indexOf('--source') + 1], m.source);
+});
+
+test('--validate-only: a valid findings.json → exit 0, "findings: valid (n)", no Notion client; an invalid one → exit 2', () => {
+  const run = (doc, extra = []) => {
+    const dir = tmp();
+    writeFileSync(path.join(dir, 'findings.json'), JSON.stringify(doc));
+    const out = [];
+    let made = 0;
+    const code = cli(['--run-dir', dir, '--validate-only', ...extra], { log: (m) => out.push(m), err: (m) => out.push(m), client: () => { made += 1; throw new Error('no Notion'); } });
+    return { code, out, made };
+  };
+  const ok = run(docOf(finding(), finding({ id: `SEO-${RUN}-002`, check: 'GSC', decision: 'wait', recheckAfter: '2026-11-10', files: undefined, howToFix: undefined, acceptance: undefined })));
+  assert.equal(ok.code, 0, ok.out.join('\n'));
+  assert.deepEqual(ok.out, ['findings: valid (2)']);
+  assert.equal(ok.made, 0);
+  const bad = run(docOf(finding({ files: [] }), finding({ id: `SEO-${RUN}-002`, check: 'GSC' })));
+  assert.equal(bad.code, 2);
+  assert.equal(bad.made, 0);
+  assert.ok(bad.out.length >= 2 && bad.out.every((l) => l.startsWith('notion-push: invalid findings.json: ')), bad.out.join('\n'));
 });
