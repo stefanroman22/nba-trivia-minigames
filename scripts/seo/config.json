@@ -1,0 +1,9 @@
+{
+  "site": "https://swishquest.com",
+  "property": "sc-domain:swishquest.com",
+  "expectedNoindex": ["/admin", "/profile", "/credits", "/coming-soon"],
+  "driveFolderId": null,
+  "indexNowKey": null,
+  "slackChannel": "agent-frontend",
+  "inspectBudget": 200
+}
