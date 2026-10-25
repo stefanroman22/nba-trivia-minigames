@@ -735,7 +735,7 @@
  },
  "953": {
   "exclude": true,
-  "reason": "photo review 2026-10-25: face too tiny"
+  "reason": "photo review 2026-10-25: fit: FACE_TOO_SMALL in who-are-ya"
  },
  "1496": {
   "exclude": true,
@@ -762,36 +762,40 @@
   "reason": "photo review 2026-10-25: box on jersey number, face cropped"
  },
  "1719": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: tiny face, turned away"
+  "file": "Bonzi-Wells-as-a-Houston-Rocket crop.jpg",
+  "face_x": 54,
+  "face_y": 19
  },
  "1747": {
   "exclude": true,
   "reason": "photo review 2026-10-25: box misplaced, face too small"
  },
  "1882": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: box on wrong person"
+  "file": "Elton Brand in March 2013.jpg",
+  "face_x": 55,
+  "face_y": 23
  },
  "1903": {
   "exclude": true,
   "reason": "photo review 2026-10-25: dark photo, no usable face"
  },
  "2201": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: head cut off, only jacket"
+  "file": "Eddy Curry cropped.jpg",
+  "face_x": 49,
+  "face_y": 16
  },
  "2446": {
   "exclude": true,
   "reason": "photo review 2026-10-25: tiny dark face"
  },
  "2733": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face hidden by cap, dark"
+  "file": "Shaun Livingston with Warriors (cropped).jpg",
+  "face_x": 54,
+  "face_y": 23
  },
  "2754": {
   "exclude": true,
-  "reason": "photo review 2026-10-25: box on background spectator"
+  "reason": "photo review 2026-10-25: box on spectator, player face turned up"
  },
  "2853": {
   "exclude": true,
@@ -802,8 +806,9 @@
   "reason": "photo review 2026-10-25: trading card scan"
  },
  "77929": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face too tiny"
+  "file": "Willis Reed 1969.jpeg",
+  "face_x": 47,
+  "face_y": 21
  },
  "200811": {
   "exclude": true,
@@ -814,8 +819,9 @@
   "reason": "photo review 2026-10-25: face too tiny, unclear"
  },
  "201582": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: group shot, tiny face"
+  "file": "Alexis Ajinca Pelicans (cropped).jpg",
+  "face_x": 66,
+  "face_y": 18
  },
  "201589": {
   "exclude": true,
@@ -826,16 +832,19 @@
   "reason": "photo review 2026-10-25: tiny face, game shot"
  },
  "202700": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: group shot, box on ball"
+  "file": "Donatas Motiejunas.jpg",
+  "face_x": 69,
+  "face_y": 21
  },
  "202719": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face too tiny"
+  "file": "Jeremy Tyler Tokyo Apache.jpg",
+  "face_x": 52,
+  "face_y": 16
  },
  "202730": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face too tiny"
+  "file": "Lavoy Allen 76ers.jpg",
+  "face_x": 47,
+  "face_y": 20
  },
  "202732": {
   "exclude": true,
@@ -883,8 +892,9 @@
   "face_y": 20
  },
  "600001": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: tiny blurry face in game shot"
+  "file": "Nate Thurmond (18348391063) (cropped).jpg",
+  "face_x": 45,
+  "face_y": 36
  },
  "1626146": {
   "exclude": true,
@@ -895,8 +905,9 @@
   "reason": "photo review 2026-10-25: tiny face in group game shot"
  },
  "1626166": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face occluded in crowded shot"
+  "file": "Cameron Payne (cropped).jpg",
+  "face_x": 49,
+  "face_y": 23
  },
  "1626173": {
   "exclude": true,
@@ -911,16 +922,18 @@
   "reason": "photo review 2026-10-25: head cut off at top"
  },
  "1626178": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: box on distant bystander"
+  "file": "Rondae Hollis-Jefferson.JPG",
+  "face_x": 62,
+  "face_y": 16
  },
  "1626191": {
   "exclude": true,
   "reason": "photo review 2026-10-25: two people, subject unclear"
  },
  "1626203": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face turned down, dark"
+  "file": "Brooklyn Nets vs NY Knicks 2018-10-03 td 054 - Pregame.jpg",
+  "face_x": 53,
+  "face_y": 16
  },
  "1627395": {
   "exclude": true,
@@ -959,8 +972,9 @@
   "reason": "photo review 2026-10-25: group shot, tiny face"
  },
  "1627863": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: group shot, tiny face"
+  "file": "Danuel House.jpg",
+  "face_x": 52,
+  "face_y": 11
  },
  "1627883": {
   "exclude": true,
@@ -980,12 +994,14 @@
   "reason": "photo review 2026-10-25: group shot, tiny face"
  },
  "1628411": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: group shot, tiny face"
+  "file": "Wes Iwundu Andorra 2026 (cropped).jpg",
+  "face_x": 49,
+  "face_y": 26
  },
  "1628422": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face turned away"
+  "file": "Damyean Dotson 2021.jpg",
+  "face_x": 38,
+  "face_y": 22
  },
  "1628443": {
   "exclude": true,
@@ -1136,12 +1152,14 @@
   "face_y": 21
  },
  "940": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: fit: FACE_TOO_SMALL in who-are-ya"
+  "file": "Earl Cureton 2011.jpg",
+  "face_x": 43,
+  "face_y": 22
  },
  "76421": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: fit: FACE_TOO_SMALL in who-are-ya"
+  "file": "Doug Collins ISU.jpg",
+  "face_x": 60,
+  "face_y": 12
  },
  "165": {
   "file": "Hakeem at University of Houston.jpg",
@@ -1307,5 +1325,120 @@
   "file": "WizardsRaptors 35 (51589304503) (cropped).jpg",
   "face_x": 46,
   "face_y": 17
+ },
+ "15": {
+  "file": "Ericp1.jpg",
+  "face_x": 55,
+  "face_y": 28
+ },
+ "358": {
+  "file": "Penny Hardaway Knicks.jpg",
+  "face_x": 52,
+  "face_y": 27
+ },
+ "891": {
+  "file": "Charles Oakley.jpg",
+  "face_x": 55,
+  "face_y": 19
+ },
+ "949": {
+  "file": "Shareef Adur-Rahim Sacramento Kings 2005.jpg",
+  "face_x": 45,
+  "face_y": 12
+ },
+ "1715": {
+  "file": "J-Will.jpg",
+  "face_x": 30,
+  "face_y": 24
+ },
+ "201168": {
+  "file": "Tiago Splitter Paris Basketball Euroleague 20250325 (1).jpg",
+  "face_x": 46,
+  "face_y": 25
+ },
+ "201941": {
+  "file": "Lakers vs Nuggets 2013-01-06 cropped.jpg",
+  "face_x": 51,
+  "face_y": 22
+ },
+ "202683": {
+  "file": "Enes Kanter Western Conference Finals 2019 (cropped).jpg",
+  "face_x": 50,
+  "face_y": 27
+ },
+ "202703": {
+  "file": "Nikola Mirotic (16240996134).jpg",
+  "face_x": 48,
+  "face_y": 20
+ },
+ "202709": {
+  "file": "Cory Joseph 2016.jpg",
+  "face_x": 59,
+  "face_y": 53
+ },
+ "203107": {
+  "file": "Tomas Satoransky 2018 Wizards.jpg",
+  "face_x": 67,
+  "face_y": 12
+ },
+ "203115": {
+  "file": "Will Barton (cropped).jpg",
+  "face_x": 56,
+  "face_y": 37
+ },
+ "203482": {
+  "file": "Kelly Olynyk at Celtics alumni recognition ceremony-1.jpg",
+  "face_x": 49,
+  "face_y": 31
+ },
+ "203489": {
+  "file": "Nejt.jpg",
+  "face_x": 67,
+  "face_y": 23
+ },
+ "203518": {
+  "file": "Alex Abrines (Thunder at Wizards 2-13-17) (cropped).jpg",
+  "face_x": 49,
+  "face_y": 21
+ },
+ "203894": {
+  "file": "Shabazz Napier 2020.jpg",
+  "face_x": 48,
+  "face_y": 26
+ },
+ "203933": {
+  "file": "TJ Warren.jpg",
+  "face_x": 68,
+  "face_y": 20
+ },
+ "203957": {
+  "file": "Dante Exum Utah (cropped).jpg",
+  "face_x": 57,
+  "face_y": 9
+ },
+ "600006": {
+  "file": "Earl Monroe, May 2009 (12) (cropped).jpg",
+  "face_x": 49,
+  "face_y": 34
+ },
+ "1627733": {
+  "file": "Dragan Bender.JPG",
+  "face_x": 49,
+  "face_y": 22
+ },
+ "1628464": {
+  "file": "Theis 2021.jpg",
+  "face_x": 53,
+  "face_y": 20
+ },
+ "1629676": {
+  "file": "Isaiah Roby.jpg",
+  "face_x": 35,
+  "face_y": 23
+ },
+ "1630537": {
+  "file": "Chris Duarte.jpg",
+  "face_x": 34,
+  "face_y": 12
  }
 }
