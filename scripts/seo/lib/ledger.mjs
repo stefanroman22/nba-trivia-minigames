@@ -56,9 +56,13 @@ export function applyAudit(ledger, result, { expectNoindex = [], now = Date.now(
   // A full run is the whole audit set: a URL it did not audit (dropped from the sitemap, or once a --url run's) loses
   // its audit block, so baselineFrom() is that run's baseline.json and the URL counts as new if it comes back.
   if (!result.only) for (const [url, e] of Object.entries(l.urls)) if (!Object.hasOwn(failing, url)) e.audit = null;
-  for (const [url, fail] of Object.entries(failing)) {
+  for (const [url, listed] of Object.entries(failing)) {
     const e = entryOf(l, url);
     if (Object.hasOwn(result.urls, url)) { e.expectNoindex = noindex.has(url); e.inSitemap = !noindex.has(url); }
+    // An id the run could not judge (result.unchecked) keeps the URL's previous verdict; with none, it is not vouched
+    // for (fail), as toBaseline lists it.
+    const skip = result.unchecked?.[url] ?? [];
+    const fail = [...listed.filter((id) => !skip.includes(id)), ...skip.filter((id) => !e.audit?.pass?.includes(id))];
     if (!result.only) {
       e.audit = { runId: result.runId, pass: IX_IDS.filter((id) => !fail.includes(id)), fail: sorted(fail) };
       continue;

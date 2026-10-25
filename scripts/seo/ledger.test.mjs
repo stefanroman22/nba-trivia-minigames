@@ -69,6 +69,19 @@ test('applyAudit records pass/fail ids per url and dataAsOf.audit', () => {
   assert.deepEqual(fresh.urls[W].audit, { runId: '20261026-0800-seo', pass: ['IX-04'], fail: ['IX-05'] });
 });
 
+test('applyAudit: an id the run could not judge keeps the previous verdict, and is not vouched for without one', () => {
+  const l = applyAudit(emptyLedger(), fullRun(), { now: NOW }); // W fails IX-04, passes the rest
+  const transient = { ...fullRun(), runId: '20261026-0800-seo', urls: { ...fullRun().urls, [W]: { status: 0, failures: [failure('IX-02', W)] } },
+    unchecked: { [W]: [...IX_IDS] } };
+  const t = applyAudit(l, transient, { now: NOW });
+  assert.deepEqual(t.urls[W].audit.fail, ['IX-04']);
+  assert.deepEqual(t.urls[W].audit.pass, l.urls[W].audit.pass);
+  assert.deepEqual(baselineFrom(t)[W], ['IX-04']);
+  const fresh = applyAudit(emptyLedger(), transient, { now: NOW });
+  assert.deepEqual(fresh.urls[W].audit.fail, [...IX_IDS]);
+  assert.deepEqual(baselineFrom(fresh), toBaseline(transient));
+});
+
 test('applyInspections: an error inspection keeps the previous gsc block and sets gsc.error', () => {
   const l = applyInspections(emptyLedger(), { [W]: { ...inspection(), clicks: 12, impressions: 300 } });
   assert.equal(l.urls[W].gsc.verdict, 'PASS');

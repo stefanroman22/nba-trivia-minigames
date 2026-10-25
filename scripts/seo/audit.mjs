@@ -75,7 +75,10 @@ function manifestHref(html, url) {
  * @typedef {{ id: string, url: string, evidence: string, transient?: true }} Failure
  *   `transient`: the failure comes from a request that could not complete (see transientFailure).
  * @typedef {{ runId: string, site: string, only: string[]|null, urls: Record<string, { status: number, failures: Failure[] }>,
- *   siteFailures: Failure[], regressions: Failure[]|null, gaps: string[], counts: { urls: number, pass: number, fail: number } }} AuditResult
+ *   siteFailures: Failure[], unchecked: Record<string, string[]>, regressions: Failure[]|null, gaps: string[],
+ *   counts: { urls: number, pass: number, fail: number } }} AuditResult
+ *   `unchecked`: per URL, the ids a failed request kept this run from judging (neither pass nor fail; toBaseline lists
+ *   them with the failing ids, applyAudit carries the URL's previous verdict for them).
  *   `only`: the ids this run fully checked, null for a full run (--only's list; under --url also without IX-05, IX-06,
  *   IX-10 and IX-11, which need the whole site); its baseline then vouches for those ids only. `urls`: every fetched page (sitemap URLs, the home page, the expected-noindex pages) with its status (0 = the request
  *   failed) and its page checks (IX-02 status, IX-03…IX-09, IX-12). `siteFailures`: IX-01, the IX-02 variants and the
@@ -321,12 +324,25 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
   // The ids this run fully checked (null = all): the --only list, minus under --url the checks that need the whole
   // site (uniqueness, sitemap-wide, orphans), so its baseline never claims those clean.
   const checked = url ? (only ?? IX_IDS).filter((id) => !PARTIAL_UNDER_URL.includes(id)) : only;
+  // What a failed request kept this run from judging, per URL: every id of a page that did not load, each (url, id)
+  // whose only failures are transient, and, while any page did not load, IX-05/IX-06 (uniqueness against the pages
+  // read) of the others. A real failure is always judged. The baseline and the ledger never record these as passing.
+  const scope = checked ?? IX_IDS;
+  const judged = new Set(allFailures({ urls, siteFailures: kept }).filter((f) => !f.transient).map((f) => `${f.id} ${f.url}`));
+  const notJudged = new Map();
+  const mark = (u, id) => { if (scope.includes(id) && !judged.has(`${id} ${u}`)) notJudged.set(u, new Set([...(notJudged.get(u) ?? []), id])); };
+  const unloaded = targets.filter((u) => pages.get(u).status === 0);
+  for (const u of unloaded) for (const id of IX_IDS) mark(u, id);
+  for (const f of allFailures({ urls, siteFailures: kept }).filter((x) => x.transient)) mark(f.url, f.id);
+  if (unloaded.length) for (const u of indexable) for (const id of ['IX-05', 'IX-06']) mark(u, id);
+  const unchecked = Object.fromEntries([...notJudged].sort(([a], [b]) => a.localeCompare(b)).map(([u, ids]) => [u, [...ids].sort()]));
   const result = {
     runId: runId ?? minuteId(now),
     site,
     only: checked ? [...checked] : null,
     urls,
     siteFailures: kept,
+    unchecked,
     regressions: null,
     gaps,
     counts: { urls: targets.length, pass: targets.length - fail, fail },

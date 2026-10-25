@@ -48,15 +48,19 @@ export function allFailures(result) {
  * (site-wide checks report on the home page's URL, so a robots.txt break is a regression of the home page).
  * A subset run (`result.only`: --only, or --url) checked only those ids, so its baseline is
  * `{ only, urls: { [url]: ids } }` over the audited pages alone: its [] means "clean for the `only` ids", never "clean".
+ * An id the run could not judge on a URL (`result.unchecked`: a request that failed) is listed as if failing: the
+ * baseline never vouches for it, so the next run cannot call it a regression.
  * @returns {Record<string, string[]> | { only: string[], urls: Record<string, string[]> }}
  */
 export function toBaseline(result) {
   const out = Object.fromEntries(Object.keys(result.urls).map((u) => [u, []]));
-  for (const f of allFailures(result)) {
-    if (result.only && !Object.hasOwn(out, f.url)) continue; // a --url run's site-wide line on a page it did not audit
-    out[f.url] ??= [];
-    if (!out[f.url].includes(f.id)) out[f.url].push(f.id);
-  }
+  const add = (url, id) => {
+    if (result.only && !Object.hasOwn(out, url)) return; // a --url run's site-wide line on a page it did not audit
+    out[url] ??= [];
+    if (!out[url].includes(id)) out[url].push(id);
+  };
+  for (const f of allFailures(result)) add(f.url, f.id);
+  for (const [url, ids] of Object.entries(result.unchecked ?? {})) for (const id of ids) add(url, id);
   for (const ids of Object.values(out)) ids.sort();
   return result.only ? { only: [...result.only], urls: out } : out;
 }

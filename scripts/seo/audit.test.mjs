@@ -13,8 +13,10 @@ import { parseRobots, robotsAllows } from './lib/robots.mjs';
 import { parseSitemap } from './lib/sitemap.mjs';
 import { fetcher, DEFAULT_UA, RETRY_DELAYS_MS } from './lib/fetcher.mjs';
 import { writeDigest, writeRegressionFindings } from './lib/digest.mjs';
-import { runAudit, toBaseline, exitCodeFor } from './audit.mjs';
+import { runAudit, toBaseline, exitCodeFor, IX_IDS } from './audit.mjs';
 import { loadConfig } from './lib/config.mjs';
+import { applyAudit, baselineFrom, emptyLedger } from './lib/ledger.mjs';
+import { cli as ledgerCli } from './ledger.mjs';
 
 const SITE_DIR = fileURLToPath(new URL('./fixtures/site/', import.meta.url));
 const AUDIT = fileURLToPath(new URL('./audit.mjs', import.meta.url));
@@ -355,6 +357,73 @@ test('a request that still fails is a transient failure: exit 1 not 3 against a 
   assert.match(gaps, new RegExp(`- IX-10 ${O}/wordle not judged: request failed`));
   assert.match(text, new RegExp(`## FAIL IX-02[^\\n]*\\n(- [^\\n]*\\n)*- ${O}/wordle: request failed`));
   assert.match(text, /## Regressions\n- none\n/);
+});
+
+/** The real client, except that GET `failing` (an absolute URL) never completes. */
+const failingOn = (failing) => {
+  const real = client();
+  return { get: (u) => (u === failing ? Promise.reject(new Error(`GET ${u}: ECONNRESET`)) : real.get(u)), head: real.head };
+};
+const regressionsIn = (dir) => readFileSync(path.join(dir, 'digest.md'), 'utf8').split('## Regressions\n')[1].split('\n\n')[0];
+
+test('a transient run never vouches for what it could not check: baseline [IX-04] → transient → IX-04 still failing is exit 1, not 3, on the file and the ledger paths', async () => {
+  state.echoCanonical = true; // every page fails IX-04, the long-standing failure
+  const W = `${O}/wordle`;
+  const first = await audit({ runId: '20261026-0700-seo' });
+  assert.ok(toBaseline(first)[W].includes('IX-04'));
+  const transient = await audit({ fetcher: failingOn(W), baseline: toBaseline(first), runId: '20261026-0800-seo' });
+  assert.equal(exitCodeFor(transient), 1);
+  assert.deepEqual(transient.unchecked[W], IX_IDS, 'nothing judged on the page that did not load');
+  assert.ok(toBaseline(transient)[W].includes('IX-04'), 'the file baseline does not record IX-04 as passing');
+
+  // The file path: the transient run's results.json or baseline.json as the next --baseline.
+  const dir = tmp();
+  writeDigest(transient, dir);
+  for (const file of ['results.json', 'baseline.json']) {
+    const run = await cli(['--site', O, '--baseline', path.join(dir, file), '--run-dir', path.join(dir, `next-${file}`)]);
+    assert.equal(run.code, 1, `${file}: ${run.stdout}${run.stderr}`);
+    assert.equal(regressionsIn(path.join(dir, `next-${file}`)), '- none');
+  }
+
+  // The ledger path: applyAudit carries /wordle's previous verdicts, so baselineFrom keeps IX-04 failing.
+  const l2 = applyAudit(applyAudit(emptyLedger(), first), transient);
+  assert.deepEqual(l2.urls[W].audit.fail, applyAudit(emptyLedger(), first).urls[W].audit.fail);
+  assert.ok(baselineFrom(l2)[W].includes('IX-04'));
+  const next = await audit({ baseline: baselineFrom(l2) });
+  assert.deepEqual(next.regressions, []);
+  assert.equal(exitCodeFor(next), 1);
+
+  // The same through ledger.mjs record-audit (twice) and ledger.mjs baseline --out.
+  const prev = process.env.SEO_SITE;
+  process.env.SEO_SITE = O; // the fake site is the configured site for record-audit's host check
+  try {
+    const home = tmp();
+    for (const r of [first, transient]) writeDigest(r, path.join(home, 'seo', 'runs', r.runId));
+    const io = { log: () => {}, err: (m) => assert.fail(m) };
+    for (const r of [first, transient]) assert.equal(await ledgerCli(['record-audit', '--run', r.runId, '--no-state', '--home', home], io), 0);
+    const out = path.join(home, 'baseline.json');
+    assert.equal(await ledgerCli(['baseline', '--out', out, '--no-state', '--home', home], io), 0);
+    assert.ok(JSON.parse(readFileSync(out, 'utf8'))[W].includes('IX-04'), 'ledger.mjs baseline still lists IX-04 for /wordle');
+    const run = await cli(['--site', O, '--baseline', out, '--run-dir', path.join(home, 'next')]);
+    assert.equal(run.code, 1, `${run.stdout}${run.stderr}`);
+    assert.equal(regressionsIn(path.join(home, 'next')), '- none');
+  } finally {
+    if (prev === undefined) delete process.env.SEO_SITE; else process.env.SEO_SITE = prev;
+  }
+});
+
+test('IX-11 while a linking page did not load: the orphan failure is transient, never a regression', async () => {
+  const W = `${O}/wordle`; // linked from the home page alone
+  const baseline = toBaseline(await audit());
+  assert.deepEqual(baseline[W], []);
+  const result = await audit({ fetcher: failingOn(`${O}/`), baseline });
+  const ix11 = result.siteFailures.find((f) => f.id === 'IX-11' && f.url === W);
+  assert.match(ix11.evidence, new RegExp(`^request failed \\(GET ${O}/: ECONNRESET\\): ${O}/ not read; no <a href>`));
+  assert.equal(ix11.transient, true);
+  assert.ok(result.unchecked[W].includes('IX-11'));
+  assert.deepEqual(result.regressions, []);
+  assert.equal(exitCodeFor(result), 1);
+  assert.ok(toBaseline(result)[W].includes('IX-11'), 'the next baseline does not vouch for it either');
 });
 
 test('fetcher: at most 4 requests in flight, no redirect followed', async () => {
