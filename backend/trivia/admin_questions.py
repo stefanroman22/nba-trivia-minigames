@@ -8,6 +8,9 @@ against the live player dataset, as the publisher does), the question factory's 
 
 Only LABEL_GAMES can be labeled (Tic-Tac-Toe for now). Every view REQUIRES is_staff (IsAdminUser).
 """
+import json
+import os
+
 from django.db.models import Sum
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -15,7 +18,7 @@ from rest_framework.response import Response
 
 from trivia.data_pipeline import live_pool
 from trivia.models import Question, QuestionLabel, QuestionStats
-from trivia.questions.base import Invalid, load_dataset_from_rows
+from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES
 
 LABEL_GAMES = ("tictactoe",)
@@ -24,14 +27,24 @@ FILTERS = ("all", "unreviewed", *DIFFICULTIES)
 SORTS = ("qid", "factory", "accuracy", "updated")
 TOP_ANSWERS = 3
 
-_dataset_cache = {"rows": None, "dataset": None}
+_dataset_cache = {"key": None, "dataset": None}
 
 
 def _dataset():
-    """The live player dataset as the question modules want it, rebuilt only when live_pool reloads its rows."""
-    rows = live_pool.load_dataset()
-    if _dataset_cache["rows"] is not rows:
-        _dataset_cache.update(rows=rows, dataset=load_dataset_from_rows(rows, "live"))
+    """The player dataset exactly as the publisher materializes boards with it: players_curated.json with the active
+    DataCorrections overlaid (publish_v3.curated_dataset), so the panel and the difficulty rules see what players get
+    (a correction such as Eddie Johnson's 1989 Sixth Man exists only there). Rebuilt when the file or the set of
+    active corrections changes."""
+    from trivia.data_pipeline.publish_v3 import curated_dataset
+    from trivia.questions import corrections
+
+    try:
+        mtime = os.stat(live_pool.CURATED_PATH).st_mtime_ns
+    except OSError:
+        mtime = None
+    key = (mtime, tuple((c.pk, c.field_path, json.dumps(c.new_value, sort_keys=True)) for c in corrections.active_corrections()))
+    if _dataset_cache["key"] != key:
+        _dataset_cache.update(key=key, dataset=curated_dataset())
     return _dataset_cache["dataset"]
 
 

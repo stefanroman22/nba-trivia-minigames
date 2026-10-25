@@ -267,8 +267,9 @@ function handleTTT(room, uid, action, helpers) {
   }
 
   // --- answer validation (id lookup against the pre-generated question's valid[cell]) ---
-  const id = t.lookup.toId(name);
-  if (id === null || !t.valid[cell].includes(id)) {
+  // Namesakes (two Eddie Johnsons): the one who fits this square counts.
+  const id = t.lookup.toIds(name).find((x) => t.valid[cell].includes(x)) ?? null;
+  if (id === null) {
     return helpers.reject(uid, `${name} doesn't fit that square.`);
   }
   const displayName = t.lookup.nameOf(id); // canonicalise (handles aliases / casing)

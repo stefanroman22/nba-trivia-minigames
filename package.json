@@ -28,6 +28,7 @@
     "test:game-scoring": "node --experimental-strip-types scripts/test-game-scoring.mjs",
     "test:ban": "node --experimental-strip-types scripts/test-ban.mjs",
     "test:award": "node --experimental-strip-types scripts/test-award.mjs",
+    "test:name-lookup": "node --experimental-strip-types scripts/test-name-lookup.mjs",
     "test:ranks": "node --experimental-strip-types scripts/test-ranks.mjs",
     "test:ladder": "node --experimental-strip-types scripts/test-ladder.mjs",
     "team": "%SystemRoot%\\System32\\WindowsPowerShell\\v1.0\\powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/team-run.ps1",

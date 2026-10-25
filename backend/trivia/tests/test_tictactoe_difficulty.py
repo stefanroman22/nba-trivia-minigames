@@ -46,6 +46,18 @@ class RulesTests(TestCase):
         self.assertTrue(pair_matches(by_name["Kyrie Irving"], team("DAL"), era))
         self.assertTrue(pair_matches(by_name["Jayson Tatum"], era, team("BOS")))  # either order
 
+    def test_the_rules_see_the_active_corrections(self):
+        # The owner's position standard (NBA listing + Basketball-Reference, migration 0018) and Eddie Johnson's 1989
+        # Sixth Man (0014) are overlaid, as the publisher does.
+        from trivia.games.tictactoe import player_matches
+        by_name = {p["full_name"]: p for p in self.ds.playable}
+        center = {"type": "position", "value": "center", "label": "Center"}
+        guard = {"type": "position", "value": "guard", "label": "Guard"}
+        self.assertTrue(player_matches(by_name["Chris Bosh"], center))
+        self.assertTrue(player_matches(by_name["Jayson Tatum"], guard))  # G-F: a hybrid counts for both
+        self.assertFalse([p["full_name"] for p in self.ds.playable if not p.get("position")])
+        self.assertIn(1989, next(p for p in self.ds.playable if p["person_id"] == 698)["awards"]["smoy"])
+
     def test_current_teams_are_todays_thirty(self):
         teams = D.current_teams(self.ds)
         self.assertEqual(len(teams), 30)

@@ -45,6 +45,12 @@ Easy = broad categories everyone knows **and** general answers: many well-known 
 
 A team × decade cell needs a stint with that team in the decade (`tictactoe.pair_matches`): the contract's era criterion alone checks the whole career, which accepted Kyrie Irving for "Celtics × Played in the 2020s" (the independent audit of 2026-10-25 found 28% of era-cell answers were like that). "International" is the country the NBA lists for the player, not his birthplace.
 
+Position standard (owner, 2026-10-25): the NBA's official listing plus any position Basketball-Reference's player
+page adds; a hybrid counts for both (Tatum, NBA G-F, is a guard and a forward). Migration 0018 seeds 55 sourced
+`position` DataCorrections: Bosh and Ibaka F → F-C, Mobley C → F-C, and the 52 players who had none. The rules and
+the admin panel read the dataset with every active correction overlaid (`publish_v3.curated_dataset`), so they agree
+with what is published (Eddie Johnson's 1989 Sixth Man included).
+
 Position comes from the dataset's codes G, F, C, G-F, F-C (no point / shooting guard split exists), so the criterion
 is `position` guard / forward / center, a hybrid counting for both its positions — added to all five copies of the
 criteria contract (`src/utils/criteria.ts` and the four Python mirrors; `test_criteria_mirror`).

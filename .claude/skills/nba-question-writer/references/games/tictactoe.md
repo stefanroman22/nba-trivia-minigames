@@ -29,7 +29,7 @@ hardest cell. Judge and build boards pair by pair (`pair_library`), never by the
 | Type | Values | Label style | Difficulty |
 |---|---|---|---|
 | `team` (rows) | franchise abbr, modern name | "Miami Heat" | the 30 current franchises are easy; defunct ones are not |
-| `position` | `guard` (G, G-F), `forward` (F, G-F, F-C), `center` (C, F-C) | "Guard" | easy (broad). The data has no point / shooting guard split: never write "Point Guard" |
+| `position` | `guard` (G, G-F), `forward` (F, G-F, F-C), `center` (C, F-C) | "Guard" | easy (broad). The data has no point / shooting guard split: never write "Point Guard". Standard (owner, 2026-10-25): the NBA's official listing plus any position Basketball-Reference's player page adds, a hybrid counting for both (Tatum G-F is a guard and a forward); gaps are fixed with sourced `position` DataCorrections (migration 0018: Bosh, Ibaka, Mobley F-C, 52 missing filled), never by editing players_curated.json |
 | `country` | `USA`, `INTL` (any other listed country), or one country name: the country the NBA lists, not the birthplace (Kyrie Irving is USA) | "From USA", "International", "From France" | USA / INTL easy; one named country is almost never easy (see below) |
 | `era` | `1990s` … `2020s` | "Played in the 2010s" | 2010s / 2020s easy; older decades need history. On a team row the cell needs a stint WITH that team in the decade (`tictactoe.pair_matches`; the contract's era alone is any stint, which let Kyrie Irving answer "Celtics × 2020s") |
 | `award` | `mvp`, `fmvp`, `dpoy`, `roty`, `smoy`, `ring`, `allnba`, `allstar5plus` | "Finals MVP" | hard (needs NBA history); Sixth Man the hardest (players don't know what qualifies) |
@@ -72,6 +72,12 @@ today's player data (e.g. Sacramento Kings × Sixth Man: 2 valid players).
   (pending by default: the Checker sees them before players). Rule labels for unreviewed boards:
   `python manage.py tictactoe_difficulty --label-rules [--dry-run]`. Never hand-write a board the rules reject.
 - A cell with 3 valid answers in a 5,000-player pool is legal but nasty; easy boards need at least 8.
+
+Answers: a typed name resolves to every player of that name (`buildNameLookup` / the relay's `nameLookup`
+`toIds`), and the game keeps the one who fits the cell, so namesakes (the two Eddie Johnsons) are all reachable; a
+name typed without its Jr. / II suffix finds the suffixed player after any exact match ("Gary Payton" stays Gary
+Payton). A nickname a fan types needs a hand-written alias on the row ("Steve Smith" for Steven Smith). The rules
+and the panel read the dataset with the active DataCorrections overlaid, exactly as the publisher does.
 
 Known issue: team rows use the modern franchise, so a relocated franchise's old players count (Gary Payton fits
 Oklahoma City Thunder through the Seattle years; same for Vancouver → Memphis, New Jersey → Brooklyn).
