@@ -218,6 +218,53 @@ test('createCard is called with --target dev always', () => {
   assert.equal(a[a.indexOf('--source') + 1], m.source);
 });
 
+// ---- phase 2: the OP checks
+
+const opFinding = (check, over = {}) => finding({
+  check, urls: [`${SITE}/wordle`], current: '10 unique words, no how-to-play section', expected: '>= 150 unique words and a How to play H2',
+  files: ['src/views/Trivia/MiniGame.tsx'], acceptance: { audit: `node scripts/seo/onpage.mjs --site ${SITE}`, qa: [] }, ...over,
+});
+
+test('validateFindings: OP-01..OP-11 are checks; OP-07 and OP-11 never with decision card; OP-12 is unknown', () => {
+  for (const id of ['OP-01', 'OP-02', 'OP-03', 'OP-04', 'OP-05', 'OP-06', 'OP-08', 'OP-09', 'OP-10']) {
+    assert.deepEqual(validateFindings(docOf(opFinding(id))), [], id);
+  }
+  for (const id of ['OP-07', 'OP-11']) {
+    const errors = validateFindings(docOf(opFinding(id)));
+    assert.ok(errors.some((e) => e.includes(id) && /decision card/.test(e)), `${id}: ${errors.join('\n')}`);
+    assert.deepEqual(validateFindings(docOf(opFinding(id, { decision: 'none', files: [] }))), [], `${id} none`);
+  }
+  const unknown = validateFindings(docOf(opFinding('OP-12')));
+  assert.ok(unknown.some((e) => /unknown check "OP-12"/.test(e) && /OP-01\.\.OP-11/.test(e) && /IX-01\.\.IX-12/.test(e)), unknown.join('\n'));
+  // The GSC rule is unchanged.
+  assert.ok(validateFindings(docOf(finding({ check: 'GSC' }))).some((e) => e.endsWith('decision card needs an IX check (GSC findings carry no code change)')));
+});
+
+test('renderCard: OP-01/02/05 are P1, the other OP ids P2, category frontend, the area in the title; no P0 for an OP regression', () => {
+  for (const id of ['OP-01', 'OP-02', 'OP-05']) assert.equal(renderCard(opFinding(id), { runId: RUN, site: SITE }).priority, 'P1', id);
+  for (const id of ['OP-03', 'OP-04', 'OP-06', 'OP-08', 'OP-09', 'OP-10']) assert.equal(renderCard(opFinding(id), { runId: RUN, site: SITE }).priority, 'P2', id);
+  const card = renderCard(opFinding('OP-05'), { runId: RUN, site: SITE });
+  assert.equal(card.title, '[seo] OP-05 content on 1 page(s)');
+  assert.equal(card.category, 'frontend');
+  assert.equal(renderCard(opFinding('OP-08', { files: ['.github/workflows/x.yml'] }), { runId: RUN, site: SITE }).category, 'frontend');
+  // A regression (a Done card back, or regression: true) stays the OP priority; for an IX id it is still P0.
+  const back = [{ id: 'old-1', url: 'https://notion.test/old-1', commit: 'abc1234' }];
+  assert.equal(renderCard(opFinding('OP-05'), { runId: RUN, site: SITE, regressionOf: back }).priority, 'P1');
+  assert.equal(renderCard(opFinding('OP-09'), { runId: RUN, site: SITE, regressionOf: back }).priority, 'P2');
+  assert.equal(renderCard({ ...opFinding('OP-04'), regression: true }, { runId: RUN, site: SITE }).priority, 'P2');
+  assert.equal(renderCard(finding({ check: 'IX-06' }), { runId: RUN, site: SITE, regressionOf: back }).priority, 'P0');
+});
+
+test('pushFindings: an OP card back after a Done card on main → a regression card at the OP priority, not P0', () => {
+  const f = opFinding('OP-02');
+  const k = fpKey(f.fingerprint);
+  const client = fakeClient({ cards: [{ id: 'old-2', title: 'old', source: `seo-check fp:${k} run:r0`, status: 'Done', commit: 'abc1234', url: 'https://notion.test/old-2' }] });
+  const { results } = push(client, docOf(f));
+  assert.equal(results[0].action, 'regression');
+  assert.equal(client.calls.create[0].m.title, '[seo] Regression: OP-02 title on 1 page(s)');
+  assert.equal(client.calls.create[0].m.priority, 'P1');
+});
+
 test('--validate-only: a valid findings.json → exit 0, "findings: valid (n)", no Notion client; an invalid one → exit 2', () => {
   const run = (doc, extra = []) => {
     const dir = tmp();

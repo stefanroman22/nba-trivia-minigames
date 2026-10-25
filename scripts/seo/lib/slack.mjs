@@ -10,13 +10,15 @@ export const duration = (ms) => (ms < 60_000 ? `${Math.max(0, Math.round(ms / 10
  * The run's state → one line:
  * `seo: run <id> · <n> urls · indexed <i> · not indexed <k> · audit fails <f> · cards <c> new/<s> seen · owner actions <o>
  *  · drive <ok|skipped> · <duration>`, then ` · judgement needed` when the agent did not run and ` · failed: <why>` per
- * infra failure.
- * @param {{ runId: string, urls: number, indexed: number, notIndexed: number, auditFails: number, cards: { new: number, seen: number },
- *   ownerActions: number, drive: string, durationMs: number, judgementNeeded?: boolean, failures?: string[] }} s
+ * infra failure. ` · onpage fails <n>` follows `audit fails` only when the on-page step ran (`onpageFails` a number).
+ * @param {{ runId: string, urls: number, indexed: number, notIndexed: number, auditFails: number, onpageFails?: number|null,
+ *   cards: { new: number, seen: number }, ownerActions: number, drive: string, durationMs: number, judgementNeeded?: boolean,
+ *   failures?: string[] }} s
  */
 export function seoLine(s) {
   const parts = [
     `seo: run ${s.runId}`, `${s.urls} urls`, `indexed ${s.indexed}`, `not indexed ${s.notIndexed}`, `audit fails ${s.auditFails}`,
+    ...(typeof s.onpageFails === 'number' ? [`onpage fails ${s.onpageFails}`] : []),
     `cards ${s.cards.new} new/${s.cards.seen} seen`, `owner actions ${s.ownerActions}`, `drive ${s.drive}`, duration(s.durationMs),
   ];
   if (s.judgementNeeded) parts.push('judgement needed');

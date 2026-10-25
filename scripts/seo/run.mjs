@@ -7,7 +7,10 @@
 //   2. audit (audit.mjs runAudit) with the previous run's baseline (ledger baselineFrom) → digest.md, results.json, baseline.json
 //   3. Search Console: inspections of the audited URLs, the sitemaps, Search Analytics → gsc.json, gsc-analytics.json,
 //      gsc-summary.md (counts only). --gsc off or no credentials skips it; no credentials also files the owner action
-//      "Set up Search Console access" in findings.json
+//      "Set up Search Console access" in findings.json. With --areas indexing,onpage also Search Analytics page × query
+//      → gsc-analytics-pq.json (private: never the summary, the log, the Drive export, the store or the artifact)
+//  3b. only with --areas indexing,onpage (phase 2, opt-in): the on-page checks (onpage.mjs) in the run dir, with
+//      gsc-analytics-pq.json when step 3 wrote it → onpage.json, onpage-summary.md, queries-summary.md (private)
 //   4. ledger merge (audit + inspections) → ledger-summary.md
 //   5. the seo agent: claude -p --model <--agent-model> (prompt on stdin, the process tree killed after
 //      --agent-timeout-sec) writes findings.json, REPORT.md and docs/seo/owner-actions.md; that file, when it changed and
@@ -21,6 +24,8 @@
 //  10. one Slack line (config.json slackChannel; --dry-run / --slack off: printed as `dry: <line>`); release the lease
 //   node scripts/seo/run.mjs [--dry-run] [--site <url>] [--gsc on|off] [--notion live|dry] [--slack on|off] [--agents on|off]
 //        [--agent-model fable] [--agent-timeout-sec 1800] [--holder <id>] [--state-branch checks-state] [--no-state] [--home <dir>]
+//        [--areas indexing|indexing,onpage]
+// --areas: default indexing (phase 1 alone, exactly as before phase 2 existed); onpage runs only on top of indexing.
 // --dry-run: everything is measured and written to the run dir, nothing leaves the machine (no lease or ledger push, no
 // card, no ping, no upload, no commit, no Slack). --no-state: the home's ledger alone (no git). Run dir
 // <home>/seo/runs/<runId>/, log <home>/seo/logs/run-<ts>.log. Nothing secret and no Search Analytics number reaches the
@@ -38,6 +43,7 @@ import { newRunId, runAudit } from './audit.mjs';
 import { cli as exportCli } from './export.mjs';
 import { cli as indexnowCli } from './indexnow.mjs';
 import { cliClient, pushFindings } from './notion-push.mjs';
+import { allFailures as onpageFailures, cli as onpageCli } from './onpage.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { allFailures, writeDigest } from './lib/digest.mjs';
 import { DEFAULT_UA, fetcher as makeFetcher } from './lib/fetcher.mjs';
@@ -54,13 +60,24 @@ const MODEL_RE = /^[\w.[\]-]+$/; // it reaches a shell command line on Windows
 const HISTORY_MAX = 52;
 const OWNER_ACTIONS_REL = 'docs/seo/owner-actions.md';
 const REJECTED = 'owner actions: push rejected, file left in the run artifact';
-export const SECRET_ENV = ['GOOGLE_SEO_CLIENT_ID', 'GOOGLE_SEO_CLIENT_SECRET', 'GOOGLE_SEO_REFRESH_TOKEN', 'NOTION_TOKEN', 'SLACK_BOT_TOKEN', 'CHECKS_STATE_TOKEN'];
+export const SECRET_ENV = ['GOOGLE_SEO_CLIENT_ID', 'GOOGLE_SEO_CLIENT_SECRET', 'GOOGLE_SEO_REFRESH_TOKEN', 'NOTION_TOKEN', 'SLACK_BOT_TOKEN', 'CHECKS_STATE_TOKEN', 'PSI_API_KEY'];
 export const SETUP_ACTION = { action: 'Set up Search Console access', clickPath: 'docs/seo/README.md → Owner setup' };
+/** The areas --areas takes, in run order: phase 1 (indexing) and phase 2 (onpage, opt-in, only on top of indexing). */
+export const AREAS = ['indexing', 'onpage'];
+
+/** "indexing,onpage" (any order, spaces, duplicates) → ['indexing', 'onpage']; throws on an unknown area or onpage alone. */
+function parseAreas(v) {
+  const list = [...new Set(v.split(',').map((x) => x.trim()).filter(Boolean))];
+  const unknown = list.filter((x) => !AREAS.includes(x));
+  if (!list.length || unknown.length) throw new Error(`--areas: ${unknown.length ? `unknown area ${unknown.join(', ')}` : 'empty'} (want indexing or indexing,onpage)`);
+  if (!list.includes('indexing')) throw new Error('--areas onpage needs indexing: phase 2 runs on top of phase 1 (--areas indexing,onpage)');
+  return AREAS.filter((x) => list.includes(x));
+}
 
 export function parseArgs(argv) {
   const o = {
     dryRun: false, site: null, gsc: true, notion: 'live', slack: true, agents: true, agentModel: 'fable', agentTimeoutSec: 1800,
-    holder: null, stateBranch: process.env.CHECKS_STATE_BRANCH || DEFAULT_BRANCH, state: true, home: null,
+    holder: null, stateBranch: process.env.CHECKS_STATE_BRANCH || DEFAULT_BRANCH, state: true, home: null, areas: ['indexing'],
   };
   const onOff = (a, v) => { if (v !== 'on' && v !== 'off') throw new Error(`${a} on|off`); return v === 'on'; };
   for (let i = 0; i < argv.length; i++) {
@@ -78,6 +95,7 @@ export function parseArgs(argv) {
     else if (a === '--holder') o.holder = val();
     else if (a === '--state-branch') o.stateBranch = val();
     else if (a === '--home') o.home = path.resolve(val());
+    else if (a === '--areas') o.areas = parseAreas(val());
     else throw new Error(`unknown argument ${a}`);
   }
   if (o.site !== null) {
@@ -93,7 +111,10 @@ export function parseArgs(argv) {
   return o;
 }
 
-export const agentPrompt = (runDir, site) => `Load the seo skill, then the seo-indexing skill. Run dir: ${runDir}. Site: ${site}. Write ${runDir}/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.`;
+/** The agent's prompt; `onpage` (--areas indexing,onpage) adds the seo-onpage skill. */
+export const agentPrompt = (runDir, site, { onpage = false } = {}) => (onpage
+  ? `Load the seo skill, then the seo-indexing skill, then the seo-onpage skill. Run dir: ${runDir}. Site: ${site}. Write ${runDir}/findings.json and docs/seo/owner-actions.md per the skills. Return ≤ 10 lines.`
+  : `Load the seo skill, then the seo-indexing skill. Run dir: ${runDir}. Site: ${site}. Write ${runDir}/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.`);
 
 /** The agent's env: `env` without any secret (SECRET_ENV and every GOOGLE_SEO_*), plus claude -p's background-task ceiling. */
 export function agentEnv(env) {
@@ -135,8 +156,11 @@ export function coverageCounts(ledger) {
 const countBy = (items) => [...items.reduce((m, k) => m.set(k, (m.get(k) ?? 0) + 1), new Map())].sort(([a], [b]) => String(a).localeCompare(String(b)))
   .map(([k, n]) => `${k} ${n}`).join(' · ') || 'none';
 
-/** gsc-summary.md: counts by verdict and coverageState, the errors, the data age; never a Search Analytics value. */
-export function gscSummary(inspections, { sitemaps = [], analyticsError = null, now = Date.now() } = {}) {
+/**
+ * gsc-summary.md: counts by verdict and coverageState, the errors, the data age; never a Search Analytics value.
+ * `pageQuery`: null (not pulled: no line), or { error } of the page × query pull.
+ */
+export function gscSummary(inspections, { sitemaps = [], analyticsError = null, pageQuery = null, now = Date.now() } = {}) {
   const all = Object.values(inspections);
   const ok = all.filter((i) => !i.error);
   const newest = ok.map((i) => i.inspectedAt).filter(Boolean).sort().at(-1) ?? null;
@@ -148,6 +172,7 @@ export function gscSummary(inspections, { sitemaps = [], analyticsError = null, 
     `- data as of: ${newest ?? 'never'}`,
     `- sitemaps: ${sitemaps.length} listed · errors ${sitemaps.reduce((n, s) => n + s.errors, 0)} · warnings ${sitemaps.reduce((n, s) => n + s.warnings, 0)} · pending ${sitemaps.filter((s) => s.isPending).length}`,
     `- analytics: ${analyticsError ? `failed (${analyticsError})` : `28 days to ${analyticsRange(28, new Date(now)).endDate} in gsc-analytics.json (Drive export only)`}`,
+    ...(pageQuery ? [`- page × query: ${pageQuery.error ? `failed (${pageQuery.error})` : '28 days in gsc-analytics-pq.json (private: never uploaded)'}`] : []),
     '',
   ].join('\n');
 }
@@ -162,12 +187,13 @@ function placeholderReport({ runId, site, why, runDir }) {
     `# SEO run ${runId}`, '', `Site: ${site}`, '', '## Summary', '',
     `judgement needed: ${why}. The measurements are below and in the run dir; decide with the seo skill (/seo).`, '',
     ...part('Audit', 'digest.md'), ...part('Ledger', 'ledger-summary.md'), ...part('Search Console', 'gsc-summary.md'),
+    ...part('On-page', 'onpage-summary.md'), // never queries-summary.md: it is private
   ].join('\n');
 }
 
 /**
  * One weekly run (the order in the header). `o`: parseArgs() plus `home`. `deps` (all injectable): { now, log, toLog?,
- * env, config, credentials, ledgerStore: { acquire, pull, push, release }, audit, gsc, runAgent, ownerActionsFile,
+ * env, config, credentials, ledgerStore: { acquire, pull, push, release }, audit, gsc, onpage, runAgent, ownerActionsFile,
  * ownerActionsChanged, commitOwnerActions, notionPush, indexnow, exportDrive, postLine }.
  * → { code, skipped, state, line } (code: 1 when any step could not do its job, else 0).
  */
@@ -177,6 +203,7 @@ export async function runWeekly(o, deps) {
   const toLog = d.toLog ?? log;
   const site = (o.site ?? config.site).replace(/\/+$/, '');
   const dry = o.dryRun;
+  const onpage = Boolean(o.areas?.includes('onpage'));
   const started = d.now();
   const runsRoot = path.join(o.home, 'seo', 'runs');
   const runId = newRunId({ now: new Date(started), root: runsRoot });
@@ -230,10 +257,21 @@ export async function runWeekly(o, deps) {
       else if (!o.gsc) log('gsc: skipped (--gsc off)');
       else if (new URL(site).host !== new URL(config.site).host) log(`gsc: skipped (${site} is not the property's site ${config.site})`);
       else {
-        const r = await soft('gsc', () => d.gsc({ creds, urls: Object.keys(result.urls).sort(), runDir }));
+        const r = await soft('gsc', () => d.gsc({ creds, urls: Object.keys(result.urls).sort(), runDir, ...(onpage && { pageQuery: true }) }));
         if (r?.error) fail('gsc', r.error);
         inspections = r?.inspections ?? null;
         if (inspections) log(`gsc: ${Object.keys(inspections).length} url(s) inspected`);
+      }
+
+      // 3b. On-page (--areas indexing,onpage only), with the page × query export when step 3 pulled it.
+      if (onpage) {
+        at = 'onpage';
+        const pq = path.join(runDir, 'gsc-analytics-pq.json');
+        const op = await soft('onpage', () => d.onpage({ site, runId, runDir, analyticsFile: existsSync(pq) ? pq : null }));
+        if (op) {
+          s.onpageFails = new Set(onpageFailures(op).map((f) => f.id)).size;
+          log(`onpage: ${op.counts.urls} urls · ${s.onpageFails} failing checks`);
+        }
       }
 
       // 4. Ledger merge.
@@ -329,7 +367,7 @@ export async function runWeekly(o, deps) {
   async function agentStep() {
     if (!o.agents) return 'the agent did not run (--agents off)';
     try {
-      const r = await d.runAgent({ prompt: agentPrompt(runDir, site), model: o.agentModel, timeoutSec: o.agentTimeoutSec, env: agentEnv(d.env), runDir });
+      const r = await d.runAgent({ prompt: agentPrompt(runDir, site, { onpage }), model: o.agentModel, timeoutSec: o.agentTimeoutSec, env: agentEnv(d.env), runDir });
       if (r?.status === 'done' && r.code === 0) return null;
       if (r?.status === 'timeout') return `agent timed out after ${o.agentTimeoutSec} s`;
       if (r?.status === 'missing') return 'claude is not available';
@@ -386,17 +424,38 @@ async function auditStep({ site, runId, runDir, baseline, config }) {
   return result;
 }
 
-/** Search Console → gsc.json (inspections by URL), gsc-analytics.json, gsc-summary.md. → { inspections, error } */
-export async function searchConsoleStep({ creds, urls, runDir, config, client, now = Date.now }) {
+/**
+ * Search Console → gsc.json (inspections by URL), gsc-analytics.json, gsc-summary.md; with `pageQuery` (--areas
+ * indexing,onpage) also gsc-analytics-pq.json, Search Analytics page × query for the on-page step (private). → { inspections, error }
+ */
+export async function searchConsoleStep({ creds, urls, runDir, config, client, now = Date.now, pageQuery = false }) {
   const c = client ?? gscClient({ token: tokenSource(creds), property: config.property, budget: config.inspectBudget });
   const sitemaps = await c.sitemaps();
   const inspections = {};
   for (const u of urls) inspections[u] = await c.inspect(u); // one at a time: well under the 600/min quota
   let analyticsError = null;
   try { writeJson(path.join(runDir, 'gsc-analytics.json'), await c.analytics({ days: 28 })); } catch (e) { analyticsError = firstLine(e); }
+  let pqError = null;
+  if (pageQuery) {
+    try { writeJson(path.join(runDir, 'gsc-analytics-pq.json'), await c.analytics({ days: 28, dimensions: ['page', 'query'] })); } catch (e) { pqError = firstLine(e); }
+  }
   writeJson(path.join(runDir, 'gsc.json'), inspections);
-  writeFileSync(path.join(runDir, 'gsc-summary.md'), gscSummary(inspections, { sitemaps, analyticsError, now: now() }));
-  return { inspections, error: analyticsError };
+  writeFileSync(path.join(runDir, 'gsc-summary.md'), gscSummary(inspections, { sitemaps, analyticsError, pageQuery: pageQuery ? { error: pqError } : null, now: now() }));
+  return { inspections, error: analyticsError || (pqError ? `page × query analytics: ${pqError}` : null) };
+}
+
+/**
+ * The on-page step: onpage.mjs's CLI in-process (as the IndexNow and export steps), into the weekly run dir (its name is
+ * the run id), with `--analytics <analyticsFile>` when the gsc step wrote one and `--psi` when env PSI_API_KEY is set.
+ * Its lines go to the log file only (counts, ids, paths: never a query or a value); exit 2 (infra) throws.
+ * `fetcher` and `fetch` are injectable (tests). → the run dir's onpage.json (an OnpageResult without `queries`)
+ */
+export async function onpageStep({ site, runDir, analyticsFile = null, env = process.env, toLog, fetcher = null, fetch: fetchImpl = globalThis.fetch }) {
+  const argv = ['--site', site, '--run-dir', runDir, ...(analyticsFile ? ['--analytics', analyticsFile] : []), ...(env.PSI_API_KEY?.trim() ? ['--psi'] : [])];
+  let why = null;
+  const code = await onpageCli(argv, { log: toLog, err: (m) => { why = m; toLog(m); }, env, fetcher, fetch: fetchImpl });
+  if (code === 2) throw new Error(String(why ?? 'onpage.mjs exit 2').replace(/^seo-onpage: (infra: )?/, ''));
+  return JSON.parse(readFileSync(path.join(runDir, 'onpage.json'), 'utf8'));
 }
 
 /** claude -p as check-run.mjs runs it: prompt on stdin, the process tree killed after timeoutSec. → { status, code? } */
@@ -510,6 +569,7 @@ export function defaultDeps(o, { home, log, toLog, token }) {
     ledgerStore: ledgerStoreFor(o, { git, home }),
     audit: (a) => auditStep({ ...a, config }),
     gsc: (a) => searchConsoleStep({ ...a, config }),
+    onpage: (a) => onpageStep({ ...a, env: process.env, toLog }),
     runAgent: (a) => runClaude({ ...a, claude, log, toLog }),
     ownerActionsFile: path.join(ROOT, ...OWNER_ACTIONS_REL.split('/')),
     ownerActionsChanged: () => String(spawnSync('git', ['status', '--porcelain', '--', OWNER_ACTIONS_REL], { cwd: ROOT, encoding: 'utf8', windowsHide: true }).stdout || '').trim() !== '',
@@ -546,7 +606,7 @@ async function main(argv) {
   const token = process.env.CHECKS_STATE_TOKEN || null;
   delete process.env.CHECKS_STATE_TOKEN; // the store's and the owner-actions push only: no child ever sees it
   try {
-    log(`seo-run | repo ${ROOT} | home ${o.home} | store ${o.state ? o.stateBranch : 'off (--no-state)'} | holder ${o.holder} | gsc ${o.gsc ? 'on' : 'off'} · notion ${o.notion} · slack ${o.slack ? 'on' : 'off'} · agents ${o.agents ? o.agentModel : 'off'} | log ${logFile}`);
+    log(`seo-run | repo ${ROOT} | home ${o.home} | store ${o.state ? o.stateBranch : 'off (--no-state)'} | holder ${o.holder} | gsc ${o.gsc ? 'on' : 'off'} · notion ${o.notion} · slack ${o.slack ? 'on' : 'off'} · agents ${o.agents ? o.agentModel : 'off'}${o.areas.includes('onpage') ? ` · areas ${o.areas.join(',')}` : ''} | log ${logFile}`);
     const r = await runWeekly(o, defaultDeps(o, { home: o.home, log, toLog, token }));
     if (r.line && process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${r.line}\n`);
     return r.code;

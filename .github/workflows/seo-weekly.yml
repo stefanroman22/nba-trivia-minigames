@@ -15,6 +15,11 @@ name: SEO weekly
 # e.g. dev branch protection, is logged and the file stays in the run artifact). The repo is public: logs and the
 # artifact are world-readable, so no Search Analytics number and no secret reaches the console, the log or the
 # artifact (gsc.json, gsc-analytics.json and the exports are never uploaded).
+#
+# Phase 2 (on-page) is opt-in: the `areas` input `indexing,onpage` adds the OP checks (scripts/seo/onpage.mjs) and the
+# Search Analytics page × query pull. The schedule passes no --areas (phase 1 only) until the owner changes it.
+# gsc-analytics-pq.json and queries-summary.md (query strings and their numbers) are never uploaded; onpage-summary.md
+# (counts and page evidence only) is. PSI_API_KEY (optional) lets the on-page step read PageSpeed Insights.
 on:
   schedule:
     - cron: "0 4 * * 1"
@@ -46,6 +51,11 @@ on:
       agent_model:
         description: "model of the seo agent"
         default: fable
+      areas:
+        description: "indexing = phase 1 only; indexing,onpage adds the on-page checks (phase 2)"
+        type: choice
+        options: [indexing, "indexing,onpage"]
+        default: indexing
 
 jobs:
   gate:
@@ -88,10 +98,11 @@ jobs:
           AGENTS: ${{ inputs.agents || 'on' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
           MODEL: ${{ inputs.agent_model || 'fable' }}
+          AREAS: ${{ inputs.areas && format('--areas {0}', inputs.areas) || '' }}
         run: |
           set -euo pipefail
-          { echo "args=--gsc $GSC --notion $NOTION --slack $SLACK $DRY"; echo "agents=$AGENTS"; echo "model=$MODEL"; } >> "$GITHUB_OUTPUT"
-          echo "event ${{ github.event_name }} · gsc $GSC · notion $NOTION · slack $SLACK · agents $AGENTS ($MODEL) $DRY"
+          { echo "args=--gsc $GSC --notion $NOTION --slack $SLACK $DRY $AREAS"; echo "agents=$AGENTS"; echo "model=$MODEL"; } >> "$GITHUB_OUTPUT"
+          echo "event ${{ github.event_name }} · gsc $GSC · notion $NOTION · slack $SLACK · agents $AGENTS ($MODEL) $DRY $AREAS"
       - uses: actions/checkout@v5
         with:
           ref: dev # run.mjs commits docs/seo/owner-actions.md only from a checkout at origin/dev
@@ -126,6 +137,7 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CHECKS_STATE_TOKEN: ${{ github.token }}
+          PSI_API_KEY: ${{ secrets.PSI_API_KEY }} # optional: OP-10 PageSpeed data with --areas indexing,onpage
           AGENTS: ${{ steps.claude.outputs.agents || 'off' }}
           MODEL: ${{ steps.knobs.outputs.model }}
         run: node scripts/seo/run.mjs --holder "cloud-${{ github.run_id }}" --agents "$AGENTS" --agent-model "$MODEL" ${{ steps.knobs.outputs.args }}
@@ -143,3 +155,4 @@ jobs:
             .ui-check/seo/runs/*/REPORT.md
             .ui-check/seo/runs/*/ledger-summary.md
             .ui-check/seo/runs/*/owner-actions.md
+            .ui-check/seo/runs/*/onpage-summary.md

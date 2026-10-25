@@ -35,8 +35,9 @@ and `push: main` workflows only from `main`: both files are inert until dev is p
 ## The weekly run, step by step
 
 `node scripts/seo/run.mjs [--dry-run] [--gsc on|off] [--notion live|dry] [--slack on|off] [--agents on|off]
-[--agent-model fable] [--agent-timeout-sec 1800] [--holder <id>] [--state-branch checks-state] [--no-state]`
-(header of `scripts/seo/run.mjs`). One run, in this order:
+[--agent-model fable] [--agent-timeout-sec 1800] [--holder <id>] [--state-branch checks-state] [--no-state]
+[--areas indexing|indexing,onpage]` (header of `scripts/seo/run.mjs`). One run, in this order (step 3b only with
+`--areas indexing,onpage`, see "Phase 2: on-page" below):
 
 | # | step | writes | skipped when |
 |---|---|---|---|
@@ -44,6 +45,7 @@ and `push: main` workflows only from `main`: both files are inert until dev is p
 | 1 | pull the store's ledger | `ledger-previous.json` | `--no-state`: the home's ledger only |
 | 2 | full audit of the site with the previous run's baseline | `digest.md`, `results.json`, `baseline.json` | never |
 | 3 | Search Console: inspections of the audited URLs, the sitemaps, Search Analytics | `gsc.json`, `gsc-analytics.json`, `gsc-summary.md` (counts only) | `--gsc off`, or no Google credentials (then the owner action "Set up Search Console access" is filed) |
+| 3b | on-page checks (`onpage.mjs`) in the run dir; with `--areas indexing,onpage` step 3 also pulls Search Analytics page × query | `onpage.json`, `onpage-summary.md`; `gsc-analytics-pq.json` and `queries-summary.md` (private) | without `--areas indexing,onpage` (the default) |
 | 4 | ledger merge (audit + inspections) | `ledger-summary.md` | never |
 | 5 | the `seo` agent (`claude -p --model <agent-model>`, killed after `--agent-timeout-sec`) | `findings.json`, `REPORT.md`, `docs/seo/owner-actions.md` (copied into the run dir; committed and pushed to `dev` when it changed) | `--agents off` or a failed preflight: a placeholder `REPORT.md`, the Slack line says `judgement needed` |
 | 6 | Notion cards from `findings.json` (deduped by Source) → decisions into the ledger | cards, comments | no `findings.json`; `--notion dry` reads Notion and writes nothing |
@@ -61,6 +63,7 @@ commit, no Slack. A step that fails is reported as `failed: <step>` on the Slack
 |---|---|---|---|---|
 | `run.mjs` | the run did its job (findings are not failures), or skipped (lock / lease) | an infra failure in a step | bad arguments | |
 | `audit.mjs` | every check passed | a check failed | infra: site unreachable, bad arguments | a regression against the baseline |
+| `onpage.mjs` | every OP check passed | an OP check failed | infra: sitemap unreachable, bad arguments, an unreadable `--analytics` file | |
 | `ledger.mjs` | ok | a store or file error | bad arguments (also a `--run` without `results.json`) | |
 | `notion-push.mjs` | done (`--validate-only`: `findings: valid (<n>)`) | a finding failed, or no `findings.json` | `findings.json` invalid, bad arguments | |
 | `indexnow.mjs` | pinged, skipped or dry | the ping failed or was refused | bad arguments | |
@@ -81,7 +84,8 @@ console's second line names both: `seo-run: run <runId> · site <site> · <runDi
    they are only in the Drive export (`SEO/Indexing/exports/`).
 
 On GitHub: the job's artifact `seo-weekly-<run id>-<attempt>` holds the log, `digest.md`, `REPORT.md`,
-`ledger-summary.md` and `owner-actions.md` (never `gsc.json`, `gsc-analytics.json` or the exports: the repo is public);
+`ledger-summary.md`, `owner-actions.md` and, with phase 2, `onpage-summary.md` (never `gsc.json`, `gsc-analytics.json`,
+`gsc-analytics-pq.json`, `queries-summary.md` or the exports: the repo is public);
 `seo-audit-<run id>-<attempt>` holds `digest.md` and `results.json`, and the job summary shows the digest.
 
 ## The owner loop
@@ -100,12 +104,12 @@ On GitHub: the job's artifact `seo-weekly-<run id>-<attempt>` holds the log, `di
 | | `seo-audit.yml` (post-deploy) | `seo-weekly.yml` (weekly) |
 |---|---|---|
 | triggers | `push` to `main`; `workflow_dispatch` | crons `0 4 * * 1` and `0 5 * * 1` (UTC; the second only a backup); `workflow_dispatch` |
-| knobs (`workflow_dispatch`) | `site` (default `https://swishquest.com`), `slack` `on`/`off`, `notion` `live`/`dry` | `gsc` `on`/`off`, `notion` `live`/`dry`, `slack` `on`/`off`, `agents` `on`/`off`, `dry_run` (boolean), `agent_model` (default `fable`) |
+| knobs (`workflow_dispatch`) | `site` (default `https://swishquest.com`), `slack` `on`/`off`, `notion` `live`/`dry` | `gsc` `on`/`off`, `notion` `live`/`dry`, `slack` `on`/`off`, `agents` `on`/`off`, `dry_run` (boolean), `agent_model` (default `fable`), `areas` `indexing`/`indexing,onpage` (default `indexing`; the schedule passes none) |
 | gate | waits for the two Vercel statuses of the pushed commit (30 s polls, 15 min); `failure`/`error` or a timeout → a `::warning::` and no audit | `ledger.mjs weekly-status --github-output` on a scheduled trigger: `done` (an `ok` run since Monday 00:00 Paris) or `busy` (another holder's lease) → skipped; a dispatch always runs |
 | job | dev checkout (tooling), node 22, `npm ci`; `ledger.mjs baseline` → `audit.mjs --findings`; exit 3 → `notion-push.mjs --priority P0 --regressions-only` and the line `seo: production regression · <ids> · <urls>`; always `ledger.mjs record-audit`; the card, the line and the record only for the default `site` (a dispatch on another origin is an audit and its artifact alone); exit 2 fails the job | dev checkout, node 22, `npm ci`, the Claude Code preflight (`claude -p --model <agent_model>`; a failure means `--agents off`), `run.mjs --holder cloud-<run id> --agent-model <agent_model> …knobs` |
-| secrets | `NOTION_TOKEN`, `SLACK_BOT_TOKEN`; `CHECKS_STATE_TOKEN` and `GH_TOKEN` = the job's `github.token` | `GOOGLE_SEO_CLIENT_ID`, `GOOGLE_SEO_CLIENT_SECRET`, `GOOGLE_SEO_REFRESH_TOKEN`, `NOTION_TOKEN`, `SLACK_BOT_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`; `CHECKS_STATE_TOKEN` = `github.token` |
+| secrets | `NOTION_TOKEN`, `SLACK_BOT_TOKEN`; `CHECKS_STATE_TOKEN` and `GH_TOKEN` = the job's `github.token` | `GOOGLE_SEO_CLIENT_ID`, `GOOGLE_SEO_CLIENT_SECRET`, `GOOGLE_SEO_REFRESH_TOKEN`, `NOTION_TOKEN`, `SLACK_BOT_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`, `PSI_API_KEY` (optional, phase 2); `CHECKS_STATE_TOKEN` = `github.token` |
 | permissions | `contents: write` (the `checks-state` branch) | `contents: write` (`checks-state` and the owner-actions commit to `dev`) |
-| artifact (14 days) | `digest.md`, `results.json` | the log, `digest.md`, `REPORT.md`, `ledger-summary.md`, `owner-actions.md` |
+| artifact (14 days) | `digest.md`, `results.json` | the log, `digest.md`, `REPORT.md`, `ledger-summary.md`, `owner-actions.md`, `onpage-summary.md` (phase 2) |
 
 **Inert until promoted.** GitHub runs `schedule` and `push: main` workflows only from the default branch's copy of the
 file, so neither workflow does anything until the next dev → main promotion. The first live test after it: a
@@ -116,6 +120,38 @@ The weekly run's owner-actions commit is a plain push to `dev` with the job's `g
 push made with that token starts no other workflow. If `dev` ever gets branch protection that rejects it, every week's
 push fails: the run logs `owner actions: push rejected, file left in the run artifact` and carries on, and the file is
 then only in the artifact.
+
+## Phase 2: on-page
+
+Phase 1 gets the pages indexed; phase 2 makes them rank and get clicked. `scripts/seo/onpage.mjs` measures, GET only,
+the home page and every sitemap URL against the keyword map `scripts/seo/keyword-map.json`: the keyword map (title and
+H1 carry the page's primary query), the title, the description, the headings, the unique content and a how-to-play
+section, the internal links between games, the URL shape, the images and their alt text, the structured data
+(BreadcrumbList, VideoGame), page experience (HTML size, PageSpeed Insights when there is a key) and, with Search
+Analytics page × query data, per-page query flags (`low-ctr`, `striking`, `mismatch`). The checks are the OP table
+in `scripts/seo/CHECKS.md` ("On-page (phase 2)"); the agent's rules for them are the `seo-onpage` skill.
+
+- On its own: `node scripts/seo/onpage.mjs --site https://swishquest.com [--run-dir <dir>] [--analytics <gsc-analytics-pq.json>] [--psi]`
+  → `onpage.json`, `onpage-summary.md` (header `# seo-onpage: run … · <f> failing checks`, one `## FAIL OP-nn` per
+  failing check, `## Coverage gaps`) and, with `--analytics`, `queries-summary.md`. Exit 0 all pass, 1 a check
+  failed, 2 infra.
+- In the weekly run: `node scripts/seo/run.mjs --areas indexing,onpage` (opt-in; the default `--areas indexing` is
+  phase 1 exactly as before; `--areas onpage` alone is refused with exit 2: phase 2 runs on top of phase 1). The Search
+  Console step then also pulls page × query (28 days) into `gsc-analytics-pq.json`, the on-page step runs after it in
+  the same run dir, the agent loads `seo`, `seo-indexing` and `seo-onpage`, and the Slack line gets `· onpage fails <n>`.
+- On GitHub: `seo-weekly.yml` → Run workflow → `areas` `indexing,onpage`. The schedule passes no `--areas` (phase 1
+  only) until the owner changes it.
+- Cards: an OP finding is a card like an IX one (Target `dev`, category `frontend`), P1 for OP-01, OP-02 and OP-05, P2
+  for the others; an OP check failing again after its card was Done is ordinary work, never the P0 of an IX
+  regression. OP-07 (URL, existing URLs are never renamed) and OP-11 (measurement) are never a card.
+- **Privacy.** Query strings and Search Analytics numbers (clicks, impressions, CTR, positions) live only in
+  `gsc-analytics-pq.json` and `queries-summary.md` (first line `PRIVATE: …`) in the run dir, and in Notion card bodies.
+  They never reach the console, the log, the Slack line, `REPORT.md`, `owner-actions.md`, the store or ledger, the
+  Drive export or the workflow artifact (`onpage-summary.md`, uploaded, holds counts and page evidence only).
+- `PSI_API_KEY` (optional; a free Google Cloud API key with the PageSpeed Insights API enabled, as a repo secret or a
+  local env var): with it the on-page step passes `--psi` and OP-10 checks the mobile lab and field numbers of the
+  home page and up to 3 game pages; without it, or on a 429/403, OP-10 checks the HTML size only and `onpage-summary.md`
+  says so under Coverage gaps. The agent's env never gets the key.
 
 ## Owner setup
 
