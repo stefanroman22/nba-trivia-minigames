@@ -221,7 +221,7 @@ export default function QuestionLabeler({ game, onCounts }: { game: string; onCo
             {c ? `${fmt(c.reviewed)} of ${fmt(c.total)} questions reviewed` : "Loading questions…"}
           </SwapText>
         </div>
-        <div className="aq-progress-track"><div className="aq-progress-fill" style={{ width: `${reviewedPct}%` }} /></div>
+        <div className="aq-progress-track"><div className="aq-progress-fill" style={{ transform: `scaleX(${reviewedPct / 100})` }} /></div>
         <p className="aq-hint">Focus a board and press 1 Easy · 2 Medium · 3 Hard (or E / M / H): it saves and moves to the next board.</p>
       </div>
 
