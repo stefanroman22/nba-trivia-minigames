@@ -721,8 +721,9 @@
   "reason": "photo review 2026-10-25: face turned away"
  },
  "252": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: box on ball, face unclear"
+  "file": "Karl Malone in Afghanistan.jpg",
+  "face_x": 58,
+  "face_y": 24
  },
  "275": {
   "exclude": true,
@@ -877,8 +878,9 @@
   "reason": "photo review 2026-10-25: face too tiny and dark"
  },
  "203991": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: no visible face"
+  "file": "Clint Capela (48999310386) (cropped).jpg",
+  "face_x": 49,
+  "face_y": 20
  },
  "600001": {
   "exclude": true,
@@ -969,8 +971,9 @@
   "reason": "photo review 2026-10-25: tiny face, unclear subject"
  },
  "1628396": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: group shot, unclear subject"
+  "file": "Tony Bradley 2016 (cropped).jpg",
+  "face_x": 57,
+  "face_y": 21
  },
  "1628397": {
   "exclude": true,
@@ -1057,8 +1060,9 @@
   "reason": "photo review 2026-10-25: box not on player's face"
  },
  "1630568": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: box on wrong person"
+  "file": "Luka Garza 2020.jpg",
+  "face_x": 56,
+  "face_y": 30
  },
  "1630589": {
   "exclude": true,
@@ -1069,8 +1073,9 @@
   "reason": "photo review 2026-10-25: group shot, subject unclear"
  },
  "1630811": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: face too tiny"
+  "file": "Keaton Wallace.jpg",
+  "face_x": 48,
+  "face_y": 20
  },
  "1631128": {
   "exclude": true,
@@ -1085,8 +1090,9 @@
   "reason": "photo review 2026-10-25: box on wrong person"
  },
  "1641730": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: ambiguous player in game shot"
+  "file": "Noah Clowney (BkrQTK80TE8).png",
+  "face_x": 50,
+  "face_y": 42
  },
  "1641741": {
   "exclude": true,
@@ -1125,8 +1131,9 @@
   "reason": "photo review 2026-10-25: box on crowd, face unclear"
  },
  "1642854": {
-  "exclude": true,
-  "reason": "photo review 2026-10-25: blurry zoom, box uncertain"
+  "file": "Asa Newell with the Hawks in 2025.png",
+  "face_x": 57,
+  "face_y": 21
  },
  "940": {
   "exclude": true,
@@ -1135,5 +1142,170 @@
  "76421": {
   "exclude": true,
   "reason": "photo review 2026-10-25: fit: FACE_TOO_SMALL in who-are-ya"
+ },
+ "165": {
+  "file": "Hakeem at University of Houston.jpg",
+  "face_x": 68,
+  "face_y": 37
+ },
+ "201950": {
+  "file": "Jrue Holiday in 2024.jpg",
+  "face_x": 40,
+  "face_y": 42
+ },
+ "203471": {
+  "file": "Dennis Schröder 2021.jpg",
+  "face_x": 49,
+  "face_y": 17
+ },
+ "1628983": {
+  "file": "Shai Gilgeous-Alexander (51815871018) (cropped).jpg",
+  "face_x": 45,
+  "face_y": 20
+ },
+ "1630532": {
+  "file": "Franz Wagner Michigan.jpg",
+  "face_x": 58,
+  "face_y": 39
+ },
+ "1630540": {
+  "file": "Deuce McBride interview, 2025 (01).png",
+  "face_x": 51,
+  "face_y": 30
+ },
+ "1630574": {
+  "file": "Ariel Hukporti.jpg",
+  "face_x": 49,
+  "face_y": 33
+ },
+ "1631230": {
+  "file": "Dominick Barlow 2025.jpg",
+  "face_x": 52,
+  "face_y": 17
+ },
+ "1631323": {
+  "file": "Simone Fontecchio 13 AX Armani Exchange Olimpia Milan 20171130.jpg",
+  "face_x": 38,
+  "face_y": 22
+ },
+ "1641708": {
+  "file": "Amen Thompson 2026.jpg",
+  "face_x": 51,
+  "face_y": 16
+ },
+ "1641711": {
+  "file": "Gradey Dick.jpg",
+  "face_x": 53,
+  "face_y": 22
+ },
+ "1641731": {
+  "file": "2025 Bilal Coulibaly (cropped).jpg",
+  "face_x": 50,
+  "face_y": 50
+ },
+ "1641755": {
+  "file": "Kevin McCullar Jr.jpg",
+  "face_x": 54,
+  "face_y": 15
+ },
+ "1641869": {
+  "file": "Malachi Smith.jpg",
+  "face_x": 57,
+  "face_y": 21
+ },
+ "1642259": {
+  "file": "2025 Alex Sarr (cropped).jpg",
+  "face_x": 50,
+  "face_y": 38
+ },
+ "1642267": {
+  "file": "Bub Carrington in Washington DC, 2024-12-15.jpg",
+  "face_x": 47,
+  "face_y": 31
+ },
+ "1642347": {
+  "file": "Jamal Shead, 2025 (cropped).png",
+  "face_x": 48,
+  "face_y": 50
+ },
+ "1642359": {
+  "file": "2023-10-07 ratiopharm Ulm gegen ALBA Berlin (Basketball-Bundesliga 2023-24) by Sandro Halank–067.jpg",
+  "face_x": 60,
+  "face_y": 24
+ },
+ "1642844": {
+  "file": "Dylan Harper in 2026.jpg",
+  "face_x": 48,
+  "face_y": 13
+ },
+ "1642845": {
+  "file": "VJ BAHAMAS OQT VALENCIA.jpg",
+  "face_x": 52,
+  "face_y": 9
+ },
+ "1642855": {
+  "file": "Noa Essengue 12 Ratiopharm Ulm EuroCup 20250128 (1).jpg",
+  "face_x": 39,
+  "face_y": 30
+ },
+ "1642879": {
+  "file": "Ben Saraf 77 Ratiopharm Ulm EuroCup 20250128 (1).jpg",
+  "face_x": 45,
+  "face_y": 29
+ },
+ "1643052": {
+  "file": "Chaney Johnson (Mef5UidHsKU).png",
+  "face_x": 52,
+  "face_y": 30
+ },
+ "1628379": {
+  "file": "Luke Kennard - 51849060280 (cropped).jpg",
+  "face_x": 43,
+  "face_y": 20
+ },
+ "1628415": {
+  "file": "Dillon Brooks (cropped).jpg",
+  "face_x": 31,
+  "face_y": 19
+ },
+ "1629018": {
+  "file": "Gary Trent Jr (cropped).jpg",
+  "face_x": 50,
+  "face_y": 16
+ },
+ "1629021": {
+  "file": "Moe Wagner (cropped).jpg",
+  "face_x": 45,
+  "face_y": 16
+ },
+ "203903": {
+  "file": "Jordan Clarkson crop.jpg",
+  "face_x": 62,
+  "face_y": 43
+ },
+ "203939": {
+  "file": "Dwight Powell.jpg",
+  "face_x": 50,
+  "face_y": 23
+ },
+ "1629628": {
+  "file": "RJ Barrett Knicks (cropped).jpg",
+  "face_x": 53,
+  "face_y": 32
+ },
+ "1629638": {
+  "file": "Nickeil Alexander-Walker.jpg",
+  "face_x": 54,
+  "face_y": 11
+ },
+ "1629652": {
+  "file": "Luguentz Dort (51816119629) (cropped).jpg",
+  "face_x": 51,
+  "face_y": 13
+ },
+ "1629655": {
+  "file": "WizardsRaptors 35 (51589304503) (cropped).jpg",
+  "face_x": 46,
+  "face_y": 17
  }
 }
