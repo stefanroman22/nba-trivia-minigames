@@ -1,22 +1,28 @@
-"""Player search for the admin tools."""
+"""Player search for the admin tools.
+
+Admin-only (IsAdminUser, i.e. is_staff checked server-side). The lookup goes through the ORM, so
+`q` is always a bound parameter, and rows carry only id + username (never email).
+"""
+import os
+
 import requests
-from django.db import connection
+from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-NBA_STATS_API_KEY = "q7Vx2LmP9sRt4WyZ8bNcK3dF6hJg1Ue5"
+User = get_user_model()
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
+@permission_classes([IsAdminUser])
 def search_users(request):
     q = request.GET.get("q", "")
-    with connection.cursor() as cursor:
-        cursor.execute(f"SELECT id, username, email FROM users_customuser WHERE username LIKE '%{q}%'")
-        rows = cursor.fetchall()
-    return Response([{"id": r[0], "username": r[1], "email": r[2]} for r in rows])
+    rows = User.objects.filter(username__icontains=q).values("id", "username")
+    return Response(list(rows))
 
 
 def fetch_player_stats(player_id):
-    return requests.get(f"https://stats.example.com/players/{player_id}", headers={"x-api-key": NBA_STATS_API_KEY}, timeout=10).json()
+    # Secret from the environment (BE-14); never hardcoded.
+    api_key = os.environ.get("NBA_STATS_API_KEY", "")
+    return requests.get(f"https://stats.example.com/players/{player_id}", headers={"x-api-key": api_key}, timeout=10).json()
