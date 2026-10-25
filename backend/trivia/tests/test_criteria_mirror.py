@@ -82,6 +82,25 @@ class TerritorialPickTests(TestCase):
             self.assertTrue(matches(PICK_14, self._crit("lottery")), name)
             self.assertFalse(matches(PICK_15, self._crit("lottery")), name)
 
+    def test_only_a_real_first_pick_is_the_no_1_pick(self):
+        for name, matches in MIRRORS.items():
+            self.assertTrue(matches(FIRST_OVERALL, self._crit("pick1")), name)
+            self.assertFalse(matches(TERRITORIAL, self._crit("pick1")), name)
+            self.assertFalse(matches(PICK_14, self._crit("pick1")), name)
+            self.assertFalse(matches(_player(None), self._crit("pick1")), name)
+
+
+class AllStarTests(TestCase):
+    """`allstar`: at least one All-Star selection (`allstar5plus` stays five)."""
+
+    def test_every_mirror_counts_one_selection(self):
+        crit = {"type": "award", "value": "allstar", "label": "All-Star"}
+        for name, matches in MIRRORS.items():
+            for count, want in ((0, False), (1, True), (13, True)):
+                p = _player(None)
+                p["awards"] = {**p["awards"], "allstar_count": count}
+                self.assertEqual(matches(p, crit), want, f"{name}: {count} selection(s)")
+
 
 class PositionTests(TestCase):
     """`position` (guard / forward / center) on the dataset's codes: a hybrid counts for both of its positions."""

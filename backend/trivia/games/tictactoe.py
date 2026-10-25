@@ -23,7 +23,7 @@ CURATED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "players
 CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era", "position"}
 # `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
 POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
-AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar5plus", "allnba"}
+AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar", "allstar5plus", "allnba"}
 STAT_VALUES = {"20kpts", "25kpts", "ppg20", "rpg10", "apg8", "seasons15plus"}
 CURRENT_YEAR = date.today().year
 
@@ -64,6 +64,7 @@ def player_matches(p, c):
             "roty": a.get("roty") is not None,
             "smoy": bool(a.get("smoy")),
             "ring": bool(a.get("rings")),
+            "allstar": a.get("allstar_count", 0) >= 1,
             "allstar5plus": a.get("allstar_count", 0) >= 5,
             "allnba": a.get("allnba_count", 0) > 0,
         }.get(v, False)
@@ -81,6 +82,8 @@ def player_matches(p, c):
             return False
         # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
         # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+        if v == "pick1":
+            return d.get("pick") == 1
         if v == "top5":
             return 1 <= d.get("pick", 99) <= 5
         if v == "lottery":

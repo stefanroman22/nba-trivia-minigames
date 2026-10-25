@@ -59,21 +59,58 @@ criteria contract (`src/utils/criteria.ts` and the four Python mirrors; `test_cr
 boards): every team on 119–121 boards, every column on 450–600. The question factory's own difficulty formula, which
 is independent of these rules, also rates all 1,200 easy.
 
-## 4. Running it
+## 4. Medium, and more hard (owner brief, 2026-10-25)
+
+The owner: medium is a bit more niche than easy but far less than hard; we choose the criteria. His examples:
+"Played with Kobe" (more of these, only the top-of-the-top stars), Played in the 90s / 2000s, NBA ring, MVP. Stats
+("+10 assists per game") are hard, not medium.
+
+Every column now has a tier (`column_tier`) and a board's band is its hardest column's:
+
+| Tier | Columns |
+|---|---|
+| easy | Guard / Forward / Center; From USA / International; Played in the 2010s / 2020s |
+| medium | Played w/ Jordan, Kobe, LeBron, Shaq, Duncan, Curry, Durant, Magic; NBA Champion; Won MVP; All-Star (1+); No. 1 pick; Played in the 1990s / 2000s |
+| hard | everything else: Finals MVP, DPOY, ROY, All-NBA, 5x All-Star, Sixth Man; other draft facts; college; career stats; decades before 1990 |
+
+Why these: a fan who follows the NBA knows each without looking anything up: a superstar's famous teammates, who
+won a title or an MVP, who was an All-Star or a No. 1 pick, which teams a player was on in a decade they watched.
+Measured on the live data, each passes the medium pair rule for 21–30 of the 30 teams (Played w/ Magic 21, No. 1
+pick 22), except Won MVP: 6 teams, so it appears only on boards of teams that had MVPs.
+
+- **Teammate** (`teammate`, value = the star's person_id): at least one season on the same franchise as the star;
+  the row team is any of the player's teams ("Timberwolves × Played w/ Kobe" is a Kobe teammate who also played for
+  Minnesota). It is resolved at publish time from the stints (`tictactoe.teammates`) into the board's `valid` ids, so
+  it is Tic-Tac-Toe only and not part of contract #3. Stints are per season, so a player traded away mid-season
+  before the star arrived still counts (rare; accepted).
+- **New contract values** `allstar` (allstar_count ≥ 1) and `pick1` (pick = 1, never a territorial pick 0), added to
+  all five copies of the criteria contract with `test_criteria_mirror` cases.
+- **Medium pair rule:** ≥ 5 valid answers and ≥ 1 well-known (KNOWN+), ≤ 400. **Medium board:** ≥ 2 medium columns,
+  the third medium or easy; ≤ 2 teammate, ≤ 2 award, ≤ 1 decade, ≤ 1 draft column.
+- **Hard (little focus):** new boards with at least one career-stat column (20+ PPG, 10+ RPG, 8+ APG career, 20K
+  points, 15+ seasons) beside the hard awards and draft facts; cells need only the publisher's 3–400 answers. The
+  data has career averages only, so single-season stats ("+10 APG in a season") are not possible yet.
+
+Local generation: 1,200 medium and 220 hard, for 1,200 easy / 1,200 medium / about 600 hard, the spec's 40/40/20
+mix. Re-running `--label-rules` keeps the 380 factory boards hard (none has two medium columns without a hard one)
+and rewrites their reasons without NBA Champion / MVP, which are medium now.
+
+## 5. Running it
 
 ```
 python manage.py tictactoe_difficulty --label-rules [--dry-run]
-python manage.py tictactoe_difficulty --generate-easy 1000 [--status pending|active] [--seed N] [--dry-run]
+python manage.py tictactoe_difficulty --generate-easy 1000 --generate-medium 1000 --generate-hard 200 \
+    [--status pending|active] [--seed N] [--dry-run]
 ```
 
-Generated boards are `created_by = "easy-rules"`, status `pending` by default (the factory's Checker sees them
-before players do), labeled easy by rule. The admin labeler shows rule labels as a faint thumb with their reason;
+Generated boards are `created_by = "<band>-rules"`, status `pending` by default (the factory's Checker sees them
+before players do), labeled with their band by rule. The admin labeler shows rule labels as a faint thumb with their reason;
 confirming or changing one makes it the owner's.
 
-## 5. Not done yet
+## 6. Not done yet
 
-- Production: the local database holds the 1,200 boards and the rule labels; on production the command runs after
+- Production: the local database holds the generated boards and the rule labels; on production the command runs after
   this code is promoted (pending boards → Checker → published).
 - Serving by difficulty: the game deals a random board from every published one; with more easy than hard, players
   will mostly meet easy boards. A difficulty choice (or a mix per session) is the next product decision.
-- Medium: the "neither" band of `classify`, after the owner labels easy boards and gives more input.
+- Medium tuning: after the owner labels medium boards (which stars, which honours feel too easy or too hard).

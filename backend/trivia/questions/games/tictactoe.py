@@ -76,10 +76,38 @@ def _team_criteria(dataset):
     ]
 
 
-def pair_matches(p, a, b):
+def _seasons(p):
+    """{(franchise, season)} of every season `p` played, a season named by its start year: a stint runs from its
+    start_year to the season before its end_year (the year its last season ended); an open stint through now."""
+    return {(s["abbr"], y) for s in p.get("teams") or []
+            for y in range(s["start_year"], max(s.get("end_year") or CURRENT_YEAR + 1, s["start_year"] + 1))}
+
+
+def teammates(dataset, star_id):
+    """Ids of the players who shared a season on one franchise with player `star_id` (the `teammate` criterion,
+    Tic-Tac-Toe only: answers are checked against the board's materialized `valid` ids, so it is not part of
+    contract #3). Stints are per season, so a player traded away mid-season before the star arrived still counts.
+    Cached on the dataset."""
+    cache = dataset.extra.setdefault("ttt_teammates", {})
+    if star_id not in cache:
+        star = dataset.by_id.get(star_id)
+        mine = _seasons(star) if star else set()
+        cache[star_id] = frozenset(p["person_id"] for p in dataset.playable
+                                   if p["person_id"] != star_id and not _seasons(p).isdisjoint(mine))
+    return cache[star_id]
+
+
+def _matches(p, c, dataset):
+    if c.get("type") == "teammate":
+        return dataset is not None and p["person_id"] in teammates(dataset, int(c["value"]))
+    return player_matches(p, c)
+
+
+def pair_matches(p, a, b, dataset=None):
     """Does player `p` answer the cell of criteria `a` x `b`? Both criteria, except a team x decade pair: a fan reads
     "Celtics x Played in the 2020s" as a stint WITH the Celtics in the 2020s, so that pair needs one stint of that
-    franchise overlapping the decade (the contract's era alone is any stint, which accepted Kyrie Irving there)."""
+    franchise overlapping the decade (the contract's era alone is any stint, which accepted Kyrie Irving there).
+    A `teammate` criterion ("Played w/ Kobe": any season with him, on any team) needs the dataset."""
     kinds = {a.get("type"), b.get("type")}
     if kinds == {"team", "era"}:
         team, era = (a, b) if a.get("type") == "team" else (b, a)
@@ -88,13 +116,13 @@ def pair_matches(p, a, b):
             s.get("abbr") == team.get("value") and s.get("start_year", 9999) <= ds + 9 and (s.get("end_year") or CURRENT_YEAR) >= ds
             for s in p.get("teams") or []
         )
-    return player_matches(p, a) and player_matches(p, b)
+    return _matches(p, a, dataset) and _matches(p, b, dataset)
 
 
 def _cell_valid(dataset, row_c, col_c):
     """Matching ids, most famous first: the renderer reveals a cell's first unused id on
     time-up, and checker_view samples the first three, so what is revealed was checked."""
-    players = [p for p in dataset.playable if pair_matches(p, row_c, col_c)]
+    players = [p for p in dataset.playable if pair_matches(p, row_c, col_c, dataset)]
     return [p["person_id"] for p in sorted(players, key=lambda p: (-fame.fame_score(p), p["person_id"]))]
 
 

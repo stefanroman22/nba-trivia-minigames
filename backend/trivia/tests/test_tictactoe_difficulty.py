@@ -58,6 +58,49 @@ class RulesTests(TestCase):
         self.assertFalse([p["full_name"] for p in self.ds.playable if not p.get("position")])
         self.assertIn(1989, next(p for p in self.ds.playable if p["person_id"] == 698)["awards"]["smoy"])
 
+    def test_played_with_a_star_means_a_season_together_on_one_franchise(self):
+        from trivia.questions.games.tictactoe import teammates
+        by_name = {p["full_name"]: p for p in self.ds.playable}
+        kobe = teammates(self.ds, by_name["Kobe Bryant"]["person_id"])
+        for name in ("Pau Gasol", "Shaquille O'Neal", "Derek Fisher"):
+            self.assertIn(by_name[name]["person_id"], kobe, name)
+        for name in ("Kobe Bryant", "LeBron James", "Kevin Love"):  # himself, and never on his team
+            self.assertNotIn(by_name[name]["person_id"], kobe, name)
+        self.assertEqual([c["label"] for c in D.teammate_columns(self.ds)],
+                         [f"Played w/ {short}" for _, short in D.STARS])
+
+    def test_column_tiers(self):
+        col = lambda t, v: {"type": t, "value": v, "label": v}  # noqa: E731
+        self.assertEqual(D.column_tier(col("position", "guard")), "easy")
+        self.assertEqual(D.column_tier(col("era", "2020s")), "easy")
+        for t, v in (("award", "ring"), ("award", "mvp"), ("award", "allstar"), ("draft", "pick1"), ("era", "1990s"),
+                     ("era", "2000s"), ("teammate", "977")):
+            self.assertEqual(D.column_tier(col(t, v)), "medium", v)
+        for t, v in (("award", "smoy"), ("award", "fmvp"), ("draft", "lottery"), ("draft", "top5"), ("stat", "apg8"),
+                     ("era", "1980s"), ("college", "Duke")):
+            self.assertEqual(D.column_tier(col(t, v)), "hard", v)
+
+    def test_generated_medium_boards_pass_the_medium_rules_on_every_pair(self):
+        boards = D.generate_medium(self.ds, set(), set(), random.Random(3), 12)
+        self.assertEqual(len(boards), 12)
+        for b in boards:
+            band, reason = D.classify(b, self.ds)
+            self.assertEqual(band, "medium", (b, reason))
+            tiers = [D.column_tier(c) for c in b["cols"]]
+            self.assertGreaterEqual(tiers.count("medium"), 2, b)
+            self.assertNotIn("hard", tiers)
+            groups = [D._group(c) for c in b["cols"]]
+            self.assertLessEqual(groups.count("teammate"), 2)
+            self.assertLessEqual(groups.count("decade"), 1)
+            self.assertTrue(all(D.cell_is_medium(*D.cell_stats(self.ds, r, c)) for r in b["rows"] for c in b["cols"]))
+
+    def test_generated_hard_boards_have_a_career_stat_column(self):
+        boards = D.generate_hard(self.ds, set(), set(), random.Random(3), 8)
+        self.assertEqual(len(boards), 8)
+        for b in boards:
+            self.assertEqual(D.classify(b, self.ds)[0], "hard")
+            self.assertTrue(any(c["type"] == "stat" for c in b["cols"]), b)
+
     def test_current_teams_are_todays_thirty(self):
         teams = D.current_teams(self.ds)
         self.assertEqual(len(teams), 30)
@@ -115,6 +158,14 @@ class CommandTests(TestCase):
         q = made.first()
         res = api.post(f"/api/admin/questions/{q.pk}/label/", {"difficulty": "easy"}, format="json").json()
         self.assertEqual((res["label"]["source"], res["label"]["reviewed"], res["counts"]["reviewed"]), ("owner", True, 2))
+
+    def test_generate_medium_and_hard_label_their_band(self):
+        self.assertIn("2 medium board(s) as active", self.run_cmd("--generate-medium", "2", "--status", "active", "--seed", "5"))
+        self.assertIn("1 hard board(s) as active", self.run_cmd("--generate-hard", "1", "--status", "active", "--seed", "5"))
+        for band, n in (("medium", 2), ("hard", 1)):
+            made = Question.objects.filter(created_by=f"{band}-rules")
+            self.assertEqual(made.count(), n)
+            self.assertTrue(all(q.label.difficulty == band and q.label.source == QuestionLabel.RULE for q in made))
 
     def test_dry_run_writes_nothing(self):
         self.run_cmd("--generate-easy", "2", "--label-rules", "--dry-run")

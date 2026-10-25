@@ -29,10 +29,10 @@ MAX_FAME_TIER_DEALT = 3  # the client only deals fame_tier <= 3 players
 CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era"}
 # `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
 POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
-AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar5plus", "allnba"}
+AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar", "allstar5plus", "allnba"}
 STAT_VALUES = {"20kpts", "25kpts", "ppg20", "rpg10", "apg8", "seasons15plus"}
 ERA_VALUES = {"1980s", "1990s", "2000s", "2010s", "2020s"}
-DRAFT_VALUES = {"top5", "lottery", "round2", "undrafted",
+DRAFT_VALUES = {"pick1", "top5", "lottery", "round2", "undrafted",
                 "decade-1980s", "decade-1990s", "decade-2000s", "decade-2010s", "decade-2020s"}
 
 
@@ -82,6 +82,7 @@ def criterion_matches(p, c):
             "roty": a.get("roty") is not None,
             "smoy": bool(a.get("smoy")),
             "ring": bool(a.get("rings")),
+            "allstar": a.get("allstar_count", 0) >= 1,
             "allstar5plus": a.get("allstar_count", 0) >= 5,
             "allnba": a.get("allnba_count", 0) > 0,
         }.get(value, False)
@@ -99,6 +100,8 @@ def criterion_matches(p, c):
             return False
         # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
         # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+        if value == "pick1":
+            return draft["pick"] == 1
         if value == "top5":
             return 1 <= draft["pick"] <= 5
         if value == "lottery":

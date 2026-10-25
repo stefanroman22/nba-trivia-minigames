@@ -52,6 +52,7 @@ def player_matches(p, c):
             "roty": a.get("roty") is not None,
             "smoy": len(a.get("smoy", [])) > 0,
             "ring": len(a.get("rings", [])) > 0,
+            "allstar": a.get("allstar_count", 0) >= 1,
             "allstar5plus": a.get("allstar_count", 0) >= 5,
             "allnba": a.get("allnba_count", 0) > 0,
         }.get(v, False)
@@ -69,6 +70,8 @@ def player_matches(p, c):
             return False
         # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
         # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+        if v == "pick1":
+            return d["pick"] == 1
         if v == "top5":
             return 1 <= d["pick"] <= 5
         if v == "lottery":

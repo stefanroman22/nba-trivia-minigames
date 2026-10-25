@@ -39,6 +39,7 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
         case "roty": return a.roty != null;
         case "smoy": return a.smoy.length > 0;
         case "ring": return a.rings.length > 0;
+        case "allstar": return a.allstar_count >= 1;
         case "allstar5plus": return a.allstar_count >= 5;
         case "allnba": return a.allnba_count > 0;
         default: return false;
@@ -55,6 +56,7 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
       if (!p.draft) return false;
       // Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
       // Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+      if (c.value === "pick1") return p.draft.pick === 1;
       if (c.value === "top5") return p.draft.pick >= 1 && p.draft.pick <= 5;
       if (c.value === "lottery") return p.draft.pick >= 1 && p.draft.pick <= 14;
       if (c.value === "round2") return p.draft.round === 2;
