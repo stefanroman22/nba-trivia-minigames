@@ -166,6 +166,13 @@ test('pushFindings: Done card with Commit on main → regression card', () => {
   assert.deepEqual(results, [{ action: 'regression', id: `SEO-${RUN}-001`, cardId: 'new-1', why: 'regression of old-1' }]);
   assert.ok(out.includes('regression old-1 → new-1'), out.join('\n'));
   assert.equal(client.calls.comment.length, 0);
+  // A regression is P0 whatever its check (IX-06 alone would be P1).
+  const ix06 = finding({ check: 'IX-06' });
+  const k06 = fpKey(ix06.fingerprint);
+  const back = fakeClient({ cards: [{ id: 'old-6', title: 'old', source: `seo-check fp:${k06} run:r0`, status: 'Done', commit: 'abc1234', url: 'https://notion.test/old-6' }] });
+  assert.equal(renderCard(ix06, { runId: RUN, site: SITE }).priority, 'P1');
+  assert.equal(push(back, docOf(ix06)).results[0].action, 'regression');
+  assert.equal(back.calls.create[0].m.priority, 'P0');
 });
 
 test('pushFindings: decision owner/wait/none → no card', () => {

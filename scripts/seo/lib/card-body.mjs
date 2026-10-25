@@ -26,7 +26,7 @@ export const categoryFor = (f) => ((f.files || []).length && f.files.every((x) =
 
 /**
  * { title, category, priority, difficulty, source, target, keys, body } for one finding. `regressionOf`: [{ id, url,
- * commit }] of the Done cards it came back after; `priority` overrides the computed one (notion-push --priority).
+ * commit }] of the Done cards it came back after (a regression: P0); `priority` overrides the computed one (notion-push --priority).
  */
 export function renderCard(f, { runId, site, regressionOf = [], priority = null, catalogue = readCatalogue(), expectedNoindex } = {}) {
   const what = f.check === GSC_CHECK ? 'Search Console' : (catalogue.get(f.check)?.what ?? '');
@@ -35,7 +35,7 @@ export function renderCard(f, { runId, site, regressionOf = [], priority = null,
   const card = {
     title: `[seo] ${regressionOf.length ? 'Regression: ' : ''}${`${f.check} ${what}`.trim()} on ${n} page(s)`,
     category: categoryFor(f),
-    priority: priority || priorityFor(f, expectedNoindex ? { expectedNoindex } : {}),
+    priority: priority || (regressionOf.length ? 'P0' : priorityFor(f, expectedNoindex ? { expectedNoindex } : {})),
     difficulty: 'standard',
     source: `seo-check fp:${key} run:${runId}`,
     target: 'dev',
