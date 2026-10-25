@@ -38,14 +38,14 @@ reuse one, because a rule may have changed.
 | /who-are-ya | Who Are Ya? | Who Are Ya? NBA Mystery Player Quiz | 49 |
 | /tictactoe | NBA Tic-Tac-Toe | NBA Tic-Tac-Toe: Player Grid Trivia | 49 |
 | /name-logo | Name the NBA Club | Guess the NBA Logo: Team Logo Quiz | 48 |
-| /guess-mvps | Guess the MVP | NBA MVP Quiz: Name the MVP of Each Season | 55 |
+| /guess-mvps | Guess the MVP | NBA MVP Quiz: Name the MVP by Season | 50 |
 | /contexto | LeContexto | NBA Contexto: Guess the Secret Player | 51 |
 | /starting-five | Fill in the Starting 5 | NBA Starting Five Quiz: Name the Lineup | 53 |
 | /series-winner | Guess the Series Winner | NBA Playoff Series Quiz: Pick the Winner | 54 |
 | /fan-favorites | Fan Favorites | NBA Fan Favorites Quiz: Guess the Top Answers | 59 |
 | /who-would-win | Who Would Win? | Who Would Win? NBA Dream Matchups Across Eras | 59 |
 
-The guide's "NBA MVP Quiz: Name Every MVP" overclaims (a game is five seasons): the table's version is the truthful one.
+"Name Every MVP" would overclaim (a game is five seasons): the guide (area 2) and this table use "Name the MVP by Season".
 Count the characters with `node -e 'console.log("<title> | Swish Quest".length)'` before you propose one.
 
 ## H1 (OP-01, OP-04)
@@ -87,9 +87,12 @@ him. Run out of guesses and the round scores 0.</p>
 quickly, while a run of short stints points to a player who changed teams often. Guess as soon as you have a strong
 name, because every miss costs 40 points.</p>
 ```
-The guide's /wordle example has a wrong scoring line ("Five rounds, up to 100 points each"): the real one is "A solve on
-the first try is the 500-point jackpot; each wrong attempt costs 100 points" (`wordlePoints` in `gameScoring.ts`, five
-attempts at a five-letter last name, `WORD_LENGTH` in `Wordle.tsx`). This is why rule 1 sends you to the code.
+The guide's /wordle example (area 5) was written from the code: "Solve it on the first try for 500 points; each wrong
+attempt costs 100." (`wordlePoints` in `gameScoring.ts`: `WORDLE_SOLO_PER_GUESS` 100, five attempts, `WORDLE_MAX_GUESSES`,
+at a five-letter last name, `WORD_LENGTH` in `Wordle.tsx`). An earlier draft said "Five rounds, up to 100 points each",
+which was wrong: this is why rule 1 sends you to the code. Those numbers are the solo scoring; online play scores
+`WORDLE_ONLINE_PER_GUESS` (40) per remaining attempt, so 200 for a first-try solve. Page copy describes the solo scoring
+only; never mix the two.
 
 ## Related-games block (OP-06)
 Two or three links per game page under an H2, to games a player of this one would like (same kind of puzzle first),
@@ -140,8 +143,10 @@ Wordle") needs a games page, which the site does not have: two levels, never an 
 ## Image alt (OP-08)
 The artwork is `game.backgroundImage` (a CSS `url('…')`; `backgroundUrl()` in `GameUtils.tsx` gives the path), drawn
 as the `.idle-thumb` background in `MiniGame.tsx`. Render it as `<img src={backgroundUrl(game.backgroundImage)}
-alt="…" width height>` in the idle card. Write the alt from the image itself (open the file under
-`src/assets/Games Backrounds/` with the Read tool, which shows it), in context, ≤ 125 characters, no "image of":
+alt="…" width height>` in the idle card. Never open the image files or read pixel sizes yourself: the `howToFix` tells
+the builder to take `width` and `height` from the static image import's `.width`/`.height` (Next.js static import,
+e.g. `thumb_career_path` imported from `src/assets/Games Backrounds/` in `GameUtils.tsx`), and to write a descriptive
+alt from what the artwork shows, in context, ≤ 125 characters, no "image of":
 - Before: `<div class="idle-thumb" style="background-image:url(…/thumb_career_path.jpg)">` (no image for Google)
-- After: `<img src="…/thumb_career_path.jpg" width="…" height="…" alt="<what the artwork shows>, NBA Career Path Quiz">`
-Width and height are the file's real pixel size (read them, never guess). The files are JPEG: do not promise WebP.
+- After: `<img src={thumb_career_path.src} width={thumb_career_path.width} height={thumb_career_path.height} alt="<what the artwork shows>, NBA Career Path Quiz">`
+The files are JPEG: do not promise WebP.

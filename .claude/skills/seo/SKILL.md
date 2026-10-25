@@ -47,7 +47,7 @@ because the scripts do the bulk work.
 - Query data (phase 2): `queries-summary.md` is read with the Read tool, never through Bash. Its query strings and
   numbers may be written only into the `current`/`howToFix` of a `card` finding in `findings.json` (they reach the
   Notion card body); never into `REPORT.md`, `docs/seo/owner-actions.md`, another finding, a log, Slack or a return.
-  `notion-push.mjs --dry-run` prints card bodies: on a phase-2 run, use it only in a local session, never paste it.
+  `notion-push.mjs --dry-run` never prints card bodies; `--dry-run --print-body` does: local session only, never paste it.
 - Never a secret: `run.mjs` strips them from the agent's env; do not go looking for them.
 - Source code: Grep, then Read about 30 lines around the hit. Never a whole file you do not need.
 

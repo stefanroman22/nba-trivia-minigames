@@ -44,7 +44,7 @@ and `push: main` workflows only from `main`: both files are inert until dev is p
 | 0 | lock `<home>/seo/run.lock`, then the SEO lease `seo/lease.json` on the store (90 min) | the lease | another live run (lock) or holder (lease): exit 0 |
 | 1 | pull the store's ledger | `ledger-previous.json` | `--no-state`: the home's ledger only |
 | 2 | full audit of the site with the previous run's baseline | `digest.md`, `results.json`, `baseline.json` | never |
-| 3 | Search Console: inspections of the audited URLs, the sitemaps, Search Analytics | `gsc.json`, `gsc-analytics.json`, `gsc-summary.md` (counts only) | `--gsc off`, or no Google credentials (then the owner action "Set up Search Console access" is filed) |
+| 3 | Search Console: inspections of the audited URLs, the sitemaps, Search Analytics | `gsc.json`, `gsc-analytics.json`, `gsc-summary.md` (counts only); with `--areas indexing,onpage` also `gsc-analytics-pq.json` (page × query, private) | `--gsc off`, or no Google credentials (then the owner action "Set up Search Console access" is filed) |
 | 3b | on-page checks (`onpage.mjs`) in the run dir; with `--areas indexing,onpage` step 3 also pulls Search Analytics page × query | `onpage.json`, `onpage-summary.md`; `gsc-analytics-pq.json` and `queries-summary.md` (private) | without `--areas indexing,onpage` (the default) |
 | 4 | ledger merge (audit + inspections) | `ledger-summary.md` | never |
 | 5 | the `seo` agent (`claude -p --model <agent-model>`, killed after `--agent-timeout-sec`) | `findings.json`, `REPORT.md`, `docs/seo/owner-actions.md` (copied into the run dir; committed and pushed to `dev` when it changed) | `--agents off` or a failed preflight: a placeholder `REPORT.md`, the Slack line says `judgement needed` |
@@ -81,7 +81,8 @@ console's second line names both: `seo-run: run <runId> · site <site> · <runDi
 4. `gsc-summary.md` and `ledger-summary.md`: counts by verdict and coverage state, the data ages, what changed since
    the previous inspection, the URLs with failing IX checks.
 5. The log: every step's line, the agent's exit, push results. Search Analytics numbers are never in any of these;
-   they are only in the Drive export (`SEO/Indexing/exports/`).
+   they are only in the Drive export (`SEO/Indexing/exports/`) (and, with phase 2, the private run-dir files
+   `gsc-analytics-pq.json`/`queries-summary.md` and Notion card bodies).
 
 On GitHub: the job's artifact `seo-weekly-<run id>-<attempt>` holds the log, `digest.md`, `REPORT.md`,
 `ledger-summary.md`, `owner-actions.md` and, with phase 2, `onpage-summary.md` (never `gsc.json`, `gsc-analytics.json`,
@@ -138,12 +139,13 @@ in `scripts/seo/CHECKS.md` ("On-page (phase 2)"); the agent's rules for them are
 - In the weekly run: `node scripts/seo/run.mjs --areas indexing,onpage` (opt-in; the default `--areas indexing` is
   phase 1 exactly as before; `--areas onpage` alone is refused with exit 2: phase 2 runs on top of phase 1). The Search
   Console step then also pulls page × query (28 days) into `gsc-analytics-pq.json`, the on-page step runs after it in
-  the same run dir, the agent loads `seo`, `seo-indexing` and `seo-onpage`, and the Slack line gets `· onpage fails <n>`.
+  the same run dir, the agent loads `seo`, `seo-indexing` and `seo-onpage`, and the Slack line gets `· onpage fails <n>`
+  (the failing OP checks that can be a card: never OP-07 or OP-11).
 - On GitHub: `seo-weekly.yml` → Run workflow → `areas` `indexing,onpage`. The schedule passes no `--areas` (phase 1
   only) until the owner changes it.
-- Cards: an OP finding is a card like an IX one (Target `dev`, category `frontend`), P1 for OP-01, OP-02 and OP-05, P2
-  for the others; an OP check failing again after its card was Done is ordinary work, never the P0 of an IX
-  regression. OP-07 (URL, existing URLs are never renamed) and OP-11 (measurement) are never a card.
+- Cards: an OP finding is a card like an IX one (Target `dev`, category `frontend`), one per OP check (fingerprint
+  `OP-nn|onpage`, the URLs in the body), P1 for OP-01, OP-02 and OP-05, P2 for the others; an OP check failing again
+  after its card was Done is ordinary work, never the P0 of an IX regression. OP-07 (URL, existing URLs are never renamed) and OP-11 (measurement) are never a card.
 - **Privacy.** Query strings and Search Analytics numbers (clicks, impressions, CTR, positions) live only in
   `gsc-analytics-pq.json` and `queries-summary.md` (first line `PRIVATE: …`) in the run dir, and in Notion card bodies.
   They never reach the console, the log, the Slack line, `REPORT.md`, `owner-actions.md`, the store or ledger, the

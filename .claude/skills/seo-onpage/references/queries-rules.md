@@ -25,15 +25,17 @@ Per path: `## <path>`, `- primary query: …`, `- flags: low-ctr, striking, mism
   for something else).
 
 ## Flag → action
-Decision rule 3. "The run's card" = the `decision: "card"` finding of that OP id in this run's `findings.json`; add
-the page's URL to its `urls` if it is not there (sorted; recompute `fingerprint`). A finding of that id that is `wait`
-(over the card budget) is not a card: the query data never goes into it.
+Decision rule 3. "The run's card" = the `decision: "card"` finding of that OP id in this run's `findings.json`. Query
+flags never change a card's `urls` or `fingerprint`: the flagged page and its proposed rewrite go only into the card's
+`current`/`howToFix`, and only when the page is already in its `urls` (it fails that check). A flagged page that passes
+the check (not in that card's `urls`) gets the OP-11 `none` finding instead (last row). A finding of that id that is
+`wait` (over the card budget) is not a card: the query data never goes into it.
 | flag | goes to | what you add | guide (area 11) |
 |---|---|---|---|
 | `low-ctr` | the run's OP-02 card; also the OP-03 card when the run has one | `current`: `Search Console 28 days, <path>: <impressions> impressions, CTR <x> %, top query "<q>"`; `howToFix`: a rewritten title and description for the page that answers the top queries (copy rules apply) | "Many impressions, CTR under about 2%: rewrite the title and description" |
 | `striking` | the run's OP-05 card; also the OP-06 card when the run has one | `current`: `… position <p> for "<q>"`; `howToFix`: content for the page (a section on what the query asks, from the game's real rules) and related-game links | "Average position 8 to 20: strengthen content and internal links" |
-| `mismatch` | the run's OP-01 card | `current`: `… top query "<q>" vs primary "<primary>"`; `howToFix`: one of (a) retarget: the new `scripts/seo/keyword-map.json` entry, `"<path>": { "primary": "…", "related": ["…"] }`, when the query fits the game better than the current primary; (b) a section answering the query, when the game does what the query asks and the primary stays | "Ranking for an unexpected query: add a section that answers it, or give it its own page" |
-| no such card in this run (no page fails that check, or it is over the budget) | nothing new | the page goes into the OP-11 `none` finding only (`current`: `<path>: <flags>; no on-page card to attach (re-check on the next 28-day window)`) | see the 28-day rule |
+| `mismatch` | the run's OP-01 card | `current`: `… top query "<q>" vs primary "<primary>"`; `howToFix`: one of (a) retarget: the new `scripts/seo/keyword-map.json` entry, `"<path>": { "primary": "…", "related": ["…"] }`, only when the query fits the game better than the current primary and also appears in Google autocomplete (public), and the card says so (`the query is in Google autocomplete`); (b) otherwise a section answering the query, when the game does what the query asks and the primary stays. `keyword-map.json` is in the public repo: it never receives a query seen only in Search Console | "Ranking for an unexpected query: add a section that answers it, or give it its own page" |
+| no such card in this run (no page fails that check, or it is over the budget), or the page passes that check (not in the card's `urls`) | nothing new | the page goes into the OP-11 `none` finding only (`current`: `<path>: <flags>; no on-page card to attach (re-check on the next 28-day window)`) | see the 28-day rule |
 
 A flagged page never opens a card on its own: the on-page checks decide what is broken (rule 1), the query data
 says where it hurts most and what to write.

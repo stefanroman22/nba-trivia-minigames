@@ -35,7 +35,7 @@ Your stdout reaches a public log: never print, quote or write a click, impressio
 or secret. One exception: `queries-summary.md` (Read tool only) may be quoted in a `card` finding's `current`/`howToFix`
 (it goes to Notion); never in REPORT.md, owner-actions.md, another finding, a command line or your return.
 
-## Decision rules (binding): the bullets are phase 1, the numbers phase 2
+## Decision rules (binding): the bullets are phase 1, the numbers phase 2; the skills' "Decide" sections apply them
 - An IX failure on a sitemap URL → `card`.
 - An IX failure on an expected-noindex page → `card`, severity `major` (the page no longer carries noindex, or
   appears in the sitemap).
@@ -46,19 +46,19 @@ or secret. One exception: `queries-summary.md` (Read tool only) may be quoted in
   "content/links".
 - Everything else → `none`.
 1. An OP failure on a game page or the home page → `card`, one finding per OP id grouping its URLs, except OP-07 and
-   OP-11 (`none`; OP-11 flags feed rule 3) and OP-10 without PSI data (Coverage gaps).
+   OP-11 (`none`; OP-11 flags feed rule 3) and the PageSpeed part of OP-10 without PSI data (Coverage gaps); an OP-10
+   HTML-size failure is a card.
 2. At most 5 OP cards per run, in this order: OP-05, OP-02, OP-01, OP-04, OP-06, OP-08, OP-09, OP-03, OP-10; the rest
    `wait` 7 days ("card budget").
-3. With query data: `low-ctr` → add the page to the OP-02/OP-03 card with a proposed rewrite; `striking` → add to the
-   OP-05/OP-06 card; `mismatch` → note in the OP-01 card: either retarget the keyword map (propose the new entry) or add
-   a section answering the query. Query strings and numbers go only into the card body (`current`/`howToFix`), never
-   into REPORT.md, owner-actions.md or the agent's return.
+3. With query data (it never changes a card's `urls` or `fingerprint`; a flagged page outside them → the OP-11 `none`
+   finding): `low-ctr` → a proposed rewrite in the OP-02/OP-03 card; `striking` → content in the OP-05/OP-06 card;
+   `mismatch` → in the OP-01 card, a keyword-map retarget or a section answering the query. Query strings and numbers
+   go only into the card body (`current`/`howToFix`), never into REPORT.md, owner-actions.md or the agent's return.
 4. Every card's `howToFix` gives exact copy ready to paste: the proposed title, H1, description, the how-to-play /
    scoring / tips section text, the related-game links, the BreadcrumbList JSON-LD — written from the real game rules
    (read the game's entry and renderer; never invent rules, points or features) and from the keyword map. Copy rules are
    in `references/copy-examples.md`.
 5. A page whose open card already covers the check gets nothing new (notion-push dedupes; do not work around it).
-The skills' "Decide" sections say how to apply them (order, grouping, the site's age, the budget).
 
 ## Validate, then return (≤ 10 lines)
 `node scripts/seo/notion-push.mjs --run <runId> --validate-only` must exit 0 and print `findings: valid (<n>)` (no

@@ -25,9 +25,9 @@ its examples; this file does not repeat them). References, read per check, never
    says how to read it and where its contents may go (only into card `current`/`howToFix`).
 4. `scripts/seo/keyword-map.json`: `{ "<path>": { "primary", "related" } }`, the page's target query (whole file).
 5. `<runDir>/findings.json` (phase 1's, written earlier in this session) and `docs/seo/onpage-guide.md`, the area in hand.
-6. For copy: the game's entry (Grep `id: "<slug>"` in `src/utils/GameUtils.tsx`, Read about 35 lines), its scoring
+6. For copy: the game's entry (Grep `id: "<slug>"` in `src/utils/GameUtils.tsx`, Read about 30 lines), its scoring
    (Grep the game in `src/utils/gameScoring.ts`), its renderer in `src/Game Renderers/` only when those two leave a
-   rule open; for alt text, the artwork file (the Read tool shows images).
+   rule open. Never an image file: the builder writes the alt from the artwork (`references/copy-examples.md`).
 
 ## Where the signals are set
 | signal | file · line pattern |
@@ -92,7 +92,7 @@ with copy for every failing URL (`references/copy-examples.md`).
 ### OP-08 Images (area 8)
 - What: the game artwork is a real `<img>` with descriptive alt, width and height; every `<img>` has alt.
 - How: render `backgroundUrl(game.backgroundImage)` as an `<img>` in the idle card instead of the `.idle-thumb`
-  background; alt written from the image itself.
+  background; width/height from the static import, the alt written by the builder from what the artwork shows.
 - Verify: OP-08. Likes: alt that describes the image in context. Dislikes: missing or stuffed alt, CSS-only images.
 
 ### OP-09 Structured data (area 9)
@@ -115,13 +115,14 @@ with copy for every failing URL (`references/copy-examples.md`).
 ## Decide
 The rules (binding, the same text as the agent file):
 1. An OP failure on a game page or the home page → `card`, one finding per OP id grouping its URLs, except OP-07 and
-   OP-11 (`none`; OP-11 flags feed rule 3) and OP-10 without PSI data (Coverage gaps).
+   OP-11 (`none`; OP-11 flags feed rule 3) and the PageSpeed part of OP-10 without PSI data (Coverage gaps); an OP-10
+   HTML-size failure is a card.
 2. At most 5 OP cards per run, in this order: OP-05, OP-02, OP-01, OP-04, OP-06, OP-08, OP-09, OP-03, OP-10; the rest
    `wait` 7 days ("card budget").
-3. With query data: `low-ctr` → add the page to the OP-02/OP-03 card with a proposed rewrite; `striking` → add to the
-   OP-05/OP-06 card; `mismatch` → note in the OP-01 card: either retarget the keyword map (propose the new entry) or add
-   a section answering the query. Query strings and numbers go only into the card body (`current`/`howToFix`), never
-   into REPORT.md, owner-actions.md or the agent's return.
+3. With query data (it never changes a card's `urls` or `fingerprint`; a flagged page outside them → the OP-11 `none`
+   finding): `low-ctr` → a proposed rewrite in the OP-02/OP-03 card; `striking` → content in the OP-05/OP-06 card;
+   `mismatch` → in the OP-01 card, a keyword-map retarget or a section answering the query. Query strings and numbers
+   go only into the card body (`current`/`howToFix`), never into REPORT.md, owner-actions.md or the agent's return.
 4. Every card's `howToFix` gives exact copy ready to paste: the proposed title, H1, description, the how-to-play /
    scoring / tips section text, the related-game links, the BreadcrumbList JSON-LD — written from the real game rules
    (read the game's entry and renderer; never invent rules, points or features) and from the keyword map. Copy rules are
@@ -131,19 +132,21 @@ The rules (binding, the same text as the agent file):
 How to apply them, in this order:
 - **A. The summary.** Each `## FAIL OP-nn` section is one finding for that id, its URLs sorted (home and game pages
   only; `/privacy` and `/terms` never fail anything but OP-07).
-- **B. OP-10.** "Without PSI data" = `## Coverage gaps` has `OP-10 PageSpeed lab and field data not checked`: then no
-  OP-10 finding; one `REPORT.md` Coverage gaps line `OP-10 not judged without PageSpeed data (HTML size failing on <k>
-  page(s))`. With PSI data for some pages, the OP-10 finding covers every OP-10 URL of the summary.
+- **B. OP-10.** An HTML-size failure (`## FAIL OP-10` with or without PSI data) is an OP-10 finding like any other
+  (rule 1). "Without PSI data" = `## Coverage gaps` has `OP-10 PageSpeed lab and field data not checked`: then only the
+  PageSpeed part is not judged; one `REPORT.md` Coverage gaps line `OP-10 PageSpeed part not judged without PageSpeed
+  data`. With PSI data for some pages, the OP-10 finding covers every OP-10 URL of the summary.
 - **C. OP-07** → `none`, severity `minor`, `current` the evidence lines. OP-11 → `references/queries-rules.md` "OP-11
   finding".
 - **D. The budget.** Walk the rule-2 order over the ids of A-B: the first 5 → `card`; the rest → `wait`, `recheckAfter`
-  = run date + 7 days, `current` ending in `; card budget`.
+  = run date + 7 days, `current` ending in `; card budget`. The 5 include cards that will dedupe onto open cards (rule
+  5): an intended throttle, the pipeline works the top 5 checks until they are fixed, then the next ones get cards.
 - **E. Query data** (only with `queries-summary.md`): `references/queries-rules.md` "Flag → action", into the cards of D.
 - **F. Copy.** For every card, per URL, the copy of rule 4 that its check needs (OP-01/02: title and H1; OP-03:
-  description; OP-04/05: the section with its H2s; OP-06: the links; OP-08: the `<img>` and alt; OP-09: the object).
+  description; OP-04/05: the section with its H2s; OP-06: the links; OP-08: the `<img>`, its size and alt as copy-examples says; OP-09: the object).
   When OP-01, OP-02 and OP-04 are all cards, give the same title and H1 in each (the builder applies them once).
-- **G. Rule 5.** Same check and URLs as an open card = the same fingerprint: notion-push comments on the open card and
-  files nothing. Never vary `urls` or `check` to get a second card.
+- **G. Rule 5.** Same OP check as an open card = the same fingerprint (`OP-nn|onpage`, whatever its URLs): notion-push
+  comments on the open card and files nothing. Never vary `check` or the fingerprint to get a second card.
 
 Run date = the runId's `YYYYMMDD`. Severity: `major` for OP-01, OP-02, OP-05; `minor` for every other OP finding.
 
@@ -152,15 +155,16 @@ Run date = the runId's `YYYYMMDD`. Severity: `major` for OP-01, OP-02, OP-05; `m
 Keep every finding already in the file; add the OP findings after them in OP id order, ids numbered after the highest
 `NNN`, skipping a `fingerprint` already present. An OP finding is a phase-1 finding with these values:
 - `check` `OP-01`…`OP-11` · `current` the summary's evidence lines joined with `; ` (plus the query data of rule 3, cards
-  only) · `expected` the OP pass rule of `CHECKS.md` · `fingerprint` `<OP-nn>|<urls sorted, joined by ",">`.
+  only) · `expected` the OP pass rule of `CHECKS.md` · `fingerprint` `<OP-nn>|onpage` exactly (one card per OP check:
+  the URLs are in `urls` and the card body, never in the fingerprint; IX findings keep `<check>|<urls>`).
 - `card` (never OP-07, OP-11): `files` from "Where the signals are set" (with a note, e.g. `src/types/types.tsx (Game:
   seoTitle, seoHeading)`), `howToFix` (rule 4; one paragraph, copy rule 9; end with `Acceptance: onpage.mjs shows no ##
   FAIL OP-nn for these URLs.`), `acceptance` `{ "audit": "node scripts/seo/onpage.mjs --site <site>", "qa": [ … ] }`.
-- `qa`: one per failing URL (at most 5), `route` its path; `[]` for OP-10. Selectors: OP-01 `h1` (`contains every word
+- `qa`: one for each of the first 5 failing URLs in sorted order, `route` its path; `[]` for OP-10. Selectors: OP-01 `h1` (`contains every word
   of "<primary>"`), OP-02 `title` (`"<proposed title> | Swish Quest"`), OP-03 `meta[name=description]` (`content
   110-160 characters, unique`), OP-04 `main h2` (`≥ 2, visible in the server HTML`), OP-05 `main h2` (`one reads "How
   to play …"; ≥ 150 words of the game's own text`), OP-06 `main a[href]` (`≥ 2 links to other games with the anchors of
-  the card`), OP-08 `main img` (`the game artwork, alt "<proposed alt>"`), OP-09 `script[type="application/ld+json"]`
+  the card`), OP-08 `main img` (`the game artwork, a descriptive non-empty alt, width and height`), OP-09 `script[type="application/ld+json"]`
   (`a BreadcrumbList with 2 ListItems; VideoGame; no aggregateRating`).
 - `wait`: `recheckAfter` (rule D); no `files`, `howToFix`, `acceptance`, and never query data.
 

@@ -69,7 +69,7 @@ characters so it is not cut. Titles are set per game in `src/app/[game]/page.tsx
 |------------------|-------------------------------------|------------------------------------------------------|
 | **/career-path** | Career Path Challenge \| Swish Quest | NBA Career Path Quiz: Guess the Player \| Swish Quest |
 | **/name-logo**   | Name the NBA Club \| Swish Quest     | Guess the NBA Logo: Team Logo Quiz \| Swish Quest     |
-| **/guess-mvps**  | Guess the MVP \| Swish Quest         | NBA MVP Quiz: Name Every MVP \| Swish Quest           |
+| **/guess-mvps**  | Guess the MVP \| Swish Quest         | NBA MVP Quiz: Name the MVP by Season \| Swish Quest   |
 | **/contexto**    | LeContexto \| Swish Quest            | NBA Contexto: Guess the Hidden Player \| Swish Quest  |
 
 | Google likes                                                | Google does not like                                                                              |
@@ -123,10 +123,10 @@ usually enough. Keep it visible, not hidden behind tabs.
 
 ```html
 <h2>How to play NBA Wordle</h2>
-<p>Guess today's mystery NBA player in five tries. After each guess the letters turn
-green (right letter, right spot) or yellow (in the name, wrong spot).</p>
+<p>Guess today's mystery NBA player's last name in five tries. After each guess the letters
+turn green (right spot), yellow (in the name, wrong spot) or gray (not in it).</p>
 <h2>Scoring</h2>
-<p>Five rounds, up to 100 points each: the fewer guesses you need, the more you score.</p>
+<p>Solve it on the first try for 500 points; each wrong attempt costs 100.</p>
 <h2>Tip</h2>
 <p>Start with a short, common surname such as "Paul" or "Rose" to test vowels.</p>
 ```
