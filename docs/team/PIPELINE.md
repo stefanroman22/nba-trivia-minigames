@@ -138,6 +138,11 @@ agent pushes `dev` to `main` directly when explicitly asked to in that conversat
 its own initiative. On push to `main`, `main-sync.yml` moves every QA card whose commit is now in
 `main` to Done. A prompt-injected task can at most reach `dev`; reaching `main` always needs a
 human decision, made outside the pipeline's own control flow.
+**Security gate on `main`:** a ruleset requires the commit status `security/pr-scan` on every commit
+that reaches `main` (`.github/workflows/security.yml`, docs/security/README.md). The promote job
+opens a dev → main PR, runs the gate (which may auto-fix `dev`) and pushes exactly the scanned
+commit; a `Target = main` ship pushes `security-gate/<slug>` and waits for the gate (ship skill
+step 6b) before pushing `main`. PRs to `main` (ui-fix, relay) get the gate like any PR.
 
 ## 11. Troubleshooting
 
@@ -392,3 +397,19 @@ regression is a P0 card, still Target `dev`) and **never an attachment**: the fi
 to fix, acceptance) is in the card body. `seo-check` is not a check-card Source (`isCheckCard` matches only
 `ui-check`/`logic-check`), so every stage treats them like any owner card: the usual classify, plan writer and design
 round when warranted, the usual QA, and ship to `dev`.
+
+## 16. Security cards and direct mode
+
+**Weekly security card.** `.github/workflows/security.yml` (Fridays 12:00 Europe/Amsterdam) files at most ONE card per
+week: `[security] Weekly scan <date>: …`, `Source` = `security-check fp:<keys> run:<id>`, `Target` = `dev`, Priority P0
+when anything is high or critical, a `findings.json` attachment. Like SEO cards it is an ordinary card (`isCheckCard`
+does not match `security-check`): classify treats it as security work (risk high, design round), and the body's numbered,
+file-naming fix steps become the plan. Leaked-secret groups start with owner-only actions (revoke/rotate, history purge);
+the pipeline does the code part and never force-pushes. Dedupe lives on the branch `security-state`, not in Notion.
+
+**Direct mode (no Notion).** The security gate on a PR to `main` calls the pipeline directly on the PR branch:
+`scripts/team/direct.mjs <slug> --spec-file … --base <sha> --branch <b>` writes `card.json`/`classify.json`/`state.json`
+and runs `brief.mjs`; then `claude -p "/team-direct <slug>"` (skill `.claude/skills/team-direct`) runs build (opus
+engine) → `verify.mjs` → fable review with the usual fix rounds, and ends with `DIRECT-DONE`/`DIRECT-FAIL`. It never
+commits, pushes or touches Notion/Slack: `scripts/security/run.mjs` commits, pushes and re-scans (2 rounds per PR at
+most). docs/security/README.md.
