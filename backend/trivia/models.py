@@ -343,6 +343,25 @@ class Question(models.Model):
         return f"{self.game}/{self.qid} [{self.status}]"
 
 
+class QuestionLabel(models.Model):
+    """The owner's difficulty label for one question, set in the admin panel (Games → a labeled game → View
+    questions; trivia.admin_questions). No row means not reviewed yet, shown and counted as hard (the default).
+    Kept apart from Question so the factory rewriting a question row never touches the label."""
+
+    EASY, MEDIUM, HARD = "easy", "medium", "hard"
+    DIFFICULTIES = [(EASY, "Easy"), (MEDIUM, "Medium"), (HARD, "Hard")]
+
+    question = models.OneToOneField(Question, on_delete=models.CASCADE, related_name="label")
+    difficulty = models.CharField(max_length=8, choices=DIFFICULTIES, default=HARD)
+    labeled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.question_id}: {self.difficulty}"
+
+
 class Feedback(models.Model):
     """One player rating (1–5 stars) plus an optional written message.
 

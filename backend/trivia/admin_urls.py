@@ -1,7 +1,7 @@
 """URLs for the admin-panel API — mounted at /api/admin/ (IsAdminUser-gated)."""
 from django.urls import path
 
-from trivia import admin_api, feedback_api
+from trivia import admin_api, admin_questions, feedback_api
 from users import admin_users_api
 
 urlpatterns = [
@@ -11,6 +11,8 @@ urlpatterns = [
     path("users/<str:public_id>/ban/", admin_users_api.admin_user_ban, name="admin-user-ban"),
     path("games/", admin_api.admin_games, name="admin-games"),
     path("source-rows/", admin_api.admin_source_rows, name="admin-source-rows"),
+    path("questions/", admin_questions.admin_questions, name="admin-questions"),
+    path("questions/<int:pk>/label/", admin_questions.admin_question_label, name="admin-question-label"),
     path("feedback/", feedback_api.admin_feedback_list, name="admin-feedback"),
     path("feedback/stats/", feedback_api.admin_feedback_stats, name="admin-feedback-stats"),
     path("feedback/<int:pk>/", feedback_api.admin_feedback_update, name="admin-feedback-update"),

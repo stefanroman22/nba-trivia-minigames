@@ -29,6 +29,7 @@ from trivia.models import (
     Team,
     WordleDailyWord,
 )
+from trivia.admin_questions import LABEL_GAMES, label_counts
 from trivia.views import _game_data_dir
 
 # ---------------------------------------------------------------------------
@@ -383,6 +384,8 @@ def admin_games(request):
             "modes": spec["modes"],
             "config": spec["config"],
             "sources": [_source(ref) for ref in spec["sources"]],
+            # The game's active questions and the owner's difficulty labels (only the games that can be labeled).
+            "questions": label_counts(spec["id"]) if spec["id"] in LABEL_GAMES else None,
         }
         for spec in GAME_REGISTRY
     ]

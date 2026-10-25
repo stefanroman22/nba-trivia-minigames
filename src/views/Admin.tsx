@@ -7,11 +7,14 @@ import { useSelector } from "react-redux";
 import Navigation from "../components/Navigation";
 import { Button, CourtLoader, Field } from "../components/ui";
 import SwapText from "../components/motion/SwapText";
+import AutoHeight from "../components/motion/AutoHeight";
 import { apiFetch } from "../utils/Api";
 import { BACKEND_URL } from "../configurations/backend";
 import { games as gameCatalog } from "../utils/GameUtils";
 import FeedbackTab from "../components/admin/FeedbackTab";
 import UsersTab from "../components/admin/UsersTab";
+import QuestionLabeler from "../components/admin/QuestionLabeler";
+import type { QuestionCounts } from "../components/admin/questionsApi";
 import type { RootState } from "../store";
 import "../styles/LandPage.css";
 import "../styles/Admin.css";
@@ -42,6 +45,8 @@ type AdminGame = {
   modes: { singleplayer: boolean; multiplayer: boolean; turn_based: boolean; party: boolean };
   config: string[];
   sources: AdminSource[];
+  /** Active questions and the owner's difficulty labels; only for the games that can be labeled (else null). */
+  questions: QuestionCounts | null;
 };
 
 type AdminOverview = {
@@ -232,6 +237,8 @@ function SourceLine({ source }: { source: AdminSource }) {
 /* ------------------------------------------------------------------ */
 function GameCard({ game }: { game: AdminGame }) {
   const [expanded, setExpanded] = useState(false);
+  const [counts, setCounts] = useState<QuestionCounts | null>(game.questions);
+  const [labeling, setLabeling] = useState(false);
   const meta = gameCatalog.find((g) => g.id === game.id);
   const primary = game.sources[0];
 
@@ -242,8 +249,8 @@ function GameCard({ game }: { game: AdminGame }) {
           {game.name}
           {game.status === "backend-only" && <span className="chip admin-chip">backend only</span>}
         </span>
-        <span className="admin-card-source">{primary?.label ?? "—"}</span>
-        <span className="admin-card-count tnum">{fmtCount(primary?.count)}</span>
+        <span className="admin-card-source">{counts ? "question bank" : (primary?.label ?? "—")}</span>
+        <span className="admin-card-count tnum">{fmtCount(counts ? counts.total : primary?.count)}</span>
         <span className="admin-card-date">{fmtDate(primary?.last_updated)}</span>
         <svg
           className={`admin-chevron${expanded ? " is-open" : ""}`}
@@ -268,6 +275,27 @@ function GameCard({ game }: { game: AdminGame }) {
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
           {meta && <p className="admin-desc">{meta.description}</p>}
+
+          {counts && (
+            <>
+              <div className="admin-section-label">Questions</div>
+              <div className="admin-source">
+                <div className="admin-source-row">
+                  <span className="admin-kind admin-kind--db">DB</span>
+                  <span className="admin-source-label tnum">{fmtCount(counts.total)} active questions</span>
+                  <span className="admin-source-meta tnum">
+                    <SwapText swapKey={`${counts.easy}-${counts.medium}-${counts.hard}-${counts.reviewed}`}>
+                      {`Easy ${fmtCount(counts.easy)} · Medium ${fmtCount(counts.medium)} · Hard ${fmtCount(counts.hard)} · ${fmtCount(counts.reviewed)} reviewed`}
+                    </SwapText>
+                  </span>
+                  <button className="admin-browse" onClick={() => setLabeling((l) => !l)} aria-expanded={labeling}>
+                    <SwapText>{labeling ? "Hide questions" : "View questions"}</SwapText>
+                  </button>
+                </div>
+                <AutoHeight>{labeling && <QuestionLabeler game={game.id} onCounts={setCounts} />}</AutoHeight>
+              </div>
+            </>
+          )}
 
           <div className="admin-chip-row">
             {modeChips(game.modes).map((m) => (
