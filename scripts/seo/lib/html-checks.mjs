@@ -12,10 +12,10 @@ export const TEXT_MIN = 300;
 
 const NAMED_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 // A start tag up to its closing ">", skipping any ">" inside quoted attribute values.
-const ATTRS = `((?:[^>"']|"[^"]*"|'[^']*')*)`;
+export const ATTRS = `((?:[^>"']|"[^"]*"|'[^']*')*)`;
 
 /** `s` with numeric and the common named HTML entities decoded (unknown entities are left as written). */
-function decodeEntities(s) {
+export function decodeEntities(s) {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
     if (e[0] !== '#') return NAMED_ENTITIES[e.toLowerCase()] ?? m;
     const cp = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
@@ -24,7 +24,7 @@ function decodeEntities(s) {
 }
 
 /** Attributes of one start tag's attribute source → { lowercased name: decoded value } (first occurrence wins). */
-function parseAttrs(src) {
+export function parseAttrs(src) {
   const out = {};
   for (const m of src.matchAll(/([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)) {
     const key = m[1].toLowerCase();
@@ -34,12 +34,12 @@ function parseAttrs(src) {
 }
 
 /** Attribute maps of every `<name …>` start tag in `html`, in document order. */
-function startTags(html, name) {
+export function startTags(html, name) {
   return [...html.matchAll(new RegExp(`<${name}\\b${ATTRS}>`, 'gi'))].map((m) => parseAttrs(m[1]));
 }
 
 /** `html` with every `<name>…</name>` element removed (non-greedy, so a nested element of the same name ends early). */
-function dropElements(html, names) {
+export function dropElements(html, names) {
   return names.reduce((h, n) => h.replace(new RegExp(`<${n}\\b${ATTRS}>[\\s\\S]*?</${n}\\s*>`, 'gi'), ' '), html);
 }
 

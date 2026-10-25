@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // An SEO run's findings.json (lib/findings.mjs) → one ordinary Notion team card per `decision: 'card'` finding, deduped by
 // the card's Source property (`seo-check fp:<fpKey> run:<runId>`). Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md §5, §8.
-//   node scripts/seo/notion-push.mjs --run <runId> [--run-dir <dir>] [--dry-run] [--priority P0|P1|P2] [--regressions-only]
+//   node scripts/seo/notion-push.mjs --run <runId> [--run-dir <dir>] [--dry-run [--print-body]] [--priority P0|P1|P2] [--regressions-only]
 //   node scripts/seo/notion-push.mjs --run <runId> [--run-dir <dir>] --validate-only
 // Validates findings.json first: errors → exit 2, one line per error. --validate-only stops there: `findings: valid (<n>)`
 // and exit 0, never a Notion call (no token needed; the seo agent's validator). --regressions-only keeps the `regression: true`
@@ -16,7 +16,8 @@
 //   skip <key> <why>                (already open card <id> · done without commit (closed by hand) card <id> · decision owner …)
 //   regression <old card> → <new card>
 //   error <key> <message>           (that finding only; the others still run → exit 1)
-// --dry-run reads Notion but writes nothing.
+// --dry-run reads Notion but writes nothing, and never prints a card body (it can hold Search Console query data and
+// the weekly log is public): --print-body adds it, for a local manual preview only (run.mjs never passes it).
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -60,7 +61,7 @@ export function cliClient({ root = ROOT, spawn = spawnSync } = {}) {
  * Pushes a validated findings document. → [{ action: 'card'|'skip'|'regression'|'error', id, cardId|null, why }]
  * (`why`: 'new', 'regression of <old ids>', 'open'|'byHand'|'pending', 'decision <owner|wait|none>', or the error).
  */
-export function pushFindings(doc, client, { dryRun = false, priorityOverride = null, regressionsOnly = false, site = loadConfig().site,
+export function pushFindings(doc, client, { dryRun = false, printBody = false, priorityOverride = null, regressionsOnly = false, site = loadConfig().site,
   log = console.log, workDir = path.join(uicHome(), 'seo', 'notion-push', String(doc.runId)) } = {}) {
   const runId = doc.runId;
   const findings = (doc.findings || []).filter((f) => !regressionsOnly || f.regression === true);
@@ -104,7 +105,7 @@ export function pushFindings(doc, client, { dryRun = false, priorityOverride = n
         log(`  Category ${m.category} · Priority ${m.priority} · Difficulty ${m.difficulty} · Status To Do · Target ${m.target}`);
         log(`  Source ${m.source}`);
         log('  Attachment none (the finding is in the body)');
-        log(m.body.trimEnd().split('\n').map((l) => `  | ${l}`).join('\n'));
+        if (printBody) log(m.body.trimEnd().split('\n').map((l) => `  | ${l}`).join('\n'));
       } else {
         const dir = path.join(workDir, String(i + 1));
         mkdirSync(dir, { recursive: true });
@@ -129,13 +130,14 @@ export function pushFindings(doc, client, { dryRun = false, priorityOverride = n
 }
 
 function parseArgs(argv) {
-  const o = { run: null, runDir: null, dryRun: false, priority: null, regressionsOnly: false, validateOnly: false };
+  const o = { run: null, runDir: null, dryRun: false, printBody: false, priority: null, regressionsOnly: false, validateOnly: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--run') o.run = argv[++i];
     else if (a === '--run-dir') o.runDir = argv[++i];
     else if (a === '--priority') o.priority = argv[++i];
     else if (a === '--dry-run') o.dryRun = true;
+    else if (a === '--print-body') o.printBody = true;
     else if (a === '--regressions-only') o.regressionsOnly = true;
     else if (a === '--validate-only') o.validateOnly = true;
     else throw new Error(`unknown argument ${a}`);
@@ -156,7 +158,7 @@ export function cli(argv, { log = console.log, err = console.error, client = cli
   const errors = validateFindings(doc);
   if (errors.length) { for (const e of errors) err(`notion-push: invalid findings.json: ${e}`); return 2; }
   if (o.validateOnly) { log(`findings: valid (${doc.findings.length})`); return 0; }
-  const results = pushFindings(doc, client(), { dryRun: o.dryRun, priorityOverride: o.priority, regressionsOnly: o.regressionsOnly, log });
+  const results = pushFindings(doc, client(), { dryRun: o.dryRun, printBody: o.printBody, priorityOverride: o.priority, regressionsOnly: o.regressionsOnly, log });
   return results.some((r) => r.action === 'error') ? 1 : 0;
 }
 

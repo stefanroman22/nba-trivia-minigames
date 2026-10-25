@@ -19,3 +19,26 @@ the step of `docs/seo/indexing-guide.md` §4 the check proves; `files` is where 
 | IX-10 | sitemap | XML parses, absolute URLs, every URL canonical and 200, no `priority`/`changefreq`, `lastmod` (where present) is ISO and not in the future and not equal on every URL | 8 | `src/app/sitemap.ts` |
 | IX-11 | internal links | every sitemap URL is linked (`<a href>`) from the home page or from another sitemap URL (orphan check) | 9 | `src/app/page.tsx`, `src/app/layout.tsx` (footer) |
 | IX-12 | share and icons | `og:title`, `og:description`, `og:image` present; the `og:image` URL answers 200 with an image type; `/favicon.ico` and the manifest answer 200 | 6 | `src/app/opengraph-image.tsx`, `src/app/[game]/opengraph-image.tsx`, `src/app/layout.tsx`, `src/app/manifest.ts` |
+
+## On-page (phase 2)
+
+The OP checks of `scripts/seo/onpage.mjs` (`lib/onpage-checks.mjs`): deterministic, GET only, over the home page and
+every sitemap URL, with the keyword map `scripts/seo/keyword-map.json`. Game pages = sitemap URLs except `/`,
+`/privacy`, `/terms`; home = `/`. OP-07 applies to every sitemap URL, the others to the home page and the game pages
+("game pages:" rules to the game pages only). "Shared" text and links are those present on every game page (the game
+menu, the header and footer); a link is its target plus its anchor text. Run:
+`node scripts/seo/onpage.mjs [--site <url>] [--run-dir <dir>] [--analytics <gsc-analytics-pq.json>] [--psi]`.
+
+| id | area | pass rule |
+|---|---|---|
+| OP-01 | keyword map | the page has an entry in `scripts/seo/keyword-map.json`, and every word of its primary query (lowercased, ignoring "the", "a") appears in the title and in the H1 |
+| OP-02 | title | 30–60 characters; the primary query's words start within the first 40 characters; ends with ` \| Swish Quest` (home: starts with `Swish Quest`) |
+| OP-03 | description | 110–160 characters; unique; contains at least one non-stopword of the primary query |
+| OP-04 | headings | exactly one H1; game pages: ≥ 2 H2 |
+| OP-05 | content | game pages: ≥ 150 unique visible words (text of `<main>` minus every sentence that occurs on all game pages, i.e. the shared menu) and an H2 matching /how to play/i |
+| OP-06 | internal links | game pages: ≥ 2 links to other game pages that are not in the shared link set (links present on every page), each anchor ≥ 3 words and not generic ("click here", "play", "more") |
+| OP-07 | URL | lowercase, hyphen-separated, no underscores, no query string. Informational: existing URLs are never renamed (decision `none`) |
+| OP-08 | images | every `<img>` has non-empty alt; game pages have ≥ 1 `<img>` besides the logo (the game artwork) |
+| OP-09 | structured data | game pages: a BreadcrumbList with ≥ 2 ListItems and a VideoGame node; no `aggregateRating`/`review` |
+| OP-10 | page experience | HTML ≤ 250 KB; with PageSpeed data (`--psi`, env `PSI_API_KEY`): mobile lab LCP ≤ 2500 ms, TBT ≤ 200 ms, CLS ≤ 0.1, field p75 LCP/INP/CLS when present (INP ≤ 200 ms). No PSI data → a Coverage gaps line, not a failure |
+| OP-11 | measurement | from `gsc-analytics-pq.json` (page × query, 28 days) when present: per page, flags `low-ctr` (≥ 100 impressions, CTR < 2 %), `striking` (position 8–20, ≥ 50 impressions), `mismatch` (top query by impressions shares no non-stopword with the primary query). Never a card itself; the flags and numbers go to the private `queries-summary.md` only |

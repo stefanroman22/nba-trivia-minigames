@@ -1,13 +1,14 @@
 ---
 name: seo
-description: SEO hub for nba-minigames: which area skill to load (indexing now), the ledger and export rules, the read budget. Use for "/seo", "SEO check", "indexing", "is page X indexed", "Search Console".
+description: SEO hub for nba-minigames: which area skill to load (indexing; on-page, opt-in phase 2), the ledger and export rules, the read budget, the privacy of query data. Use for "/seo", "SEO check", "indexing", "is page X indexed", "Search Console", "on-page", "titles", "keywords".
 ---
 
 # SEO (hub)
 
 Scripts measure, the `seo` agent (or this session) judges. Background: `docs/seo/README.md`; design
-`docs/superpowers/specs/2026-10-25-seo-agent-design.md`; the owner's study `docs/seo/indexing-guide.md`; catalogue
-`scripts/seo/CHECKS.md`; config `scripts/seo/config.json`.
+`docs/superpowers/specs/2026-10-25-seo-agent-design.md`; the owner's study `docs/seo/indexing-guide.md` (phase 1) and
+`docs/seo/onpage-guide.md` (phase 2); catalogue `scripts/seo/CHECKS.md`; config `scripts/seo/config.json`; keyword map
+`scripts/seo/keyword-map.json`.
 
 ## Config
 | key | value | used by |
@@ -20,11 +21,12 @@ Scripts measure, the `seo` agent (or this session) judges. Background: `docs/seo
 ## 1. Areas
 | area | skill | status |
 |---|---|---|
-| indexing (can every page be indexed, is it, what to do next) | `seo-indexing` | live |
-| search queries (Search Analytics by page and query) | `seo-queries` | reserved, phase 2 |
-| performance (Core Web Vitals) | `seo-performance` | reserved |
+| indexing (can every page be indexed, is it, what to do next) | `seo-indexing` | live, phase 1 (every run) |
+| on-page (keyword map, title, description, headings, content, links, URL, images, structured data, page experience, Search Console query data) | `seo-onpage` | live, phase 2, opt-in: `--areas indexing,onpage`; always after `seo-indexing` |
 
-Load the area skill the task names; "/seo", "SEO check", "indexing", "is page X indexed" all mean `seo-indexing`.
+Load the area skill the task names; "/seo", "SEO check", "indexing", "is page X indexed" all mean `seo-indexing`;
+"on-page", "titles", "keywords", "content", "why does page X not get clicks" mean `seo-indexing` then `seo-onpage`
+(the query data and page experience of earlier plans are its areas 10 and 11).
 Model rule: the judgement runs on `fable` (the agent's frontmatter); nothing the agent does needs a cheaper tier,
 because the scripts do the bulk work.
 
@@ -33,10 +35,19 @@ because the scripts do the bulk work.
   `<runDir>/gsc-summary.md`, `<runDir>/ledger-summary.md`, `scripts/seo/CHECKS.md`, `<runDir>/findings.json` when the
   run already wrote one, the `seo-indexing` references a step needs, and `docs/seo/indexing-guide.md`: the guide's
   §4 section for the step in hand, only that section.
-- Never open `results.json`, `gsc.json`, `gsc-analytics.json`, `ledger.json`, `ledger-previous.json`, an export, a CSV.
-  The one exception is the per-URL slice command in `seo-indexing` ("Inputs"), which prints coverage fields only.
+- Phase 2 adds: `<runDir>/onpage-summary.md`, `<runDir>/queries-summary.md` (PRIVATE, see below),
+  `scripts/seo/keyword-map.json`, the `seo-onpage` references a check needs, and `docs/seo/onpage-guide.md`: the §6
+  area in hand, only that area.
+- Never open `results.json`, `gsc.json`, `gsc-analytics.json`, `gsc-analytics-pq.json`, `onpage.json`, `ledger.json`,
+  `ledger-previous.json`, an export, a CSV. The exceptions are the per-URL slice commands in `seo-indexing` and
+  `seo-onpage` ("Inputs"), which print coverage fields and page signals only.
 - Never print or write a click, impression, CTR, position or query: the weekly run's stdout is a public log, and the
-  repo, its branches and the run artifacts are world-readable. Search Analytics lives only in the Drive export.
+  repo, its branches and the run artifacts are world-readable. Search Analytics lives only in the Drive export and,
+  with phase 2, in the run dir's `gsc-analytics-pq.json` and `queries-summary.md` (never uploaded).
+- Query data (phase 2): `queries-summary.md` is read with the Read tool, never through Bash. Its query strings and
+  numbers may be written only into the `current`/`howToFix` of a `card` finding in `findings.json` (they reach the
+  Notion card body); never into `REPORT.md`, `docs/seo/owner-actions.md`, another finding, a log, Slack or a return.
+  `notion-push.mjs --dry-run` never prints card bodies; `--dry-run --print-body` does: local session only, never paste it.
 - Never a secret: `run.mjs` strips them from the agent's env; do not go looking for them.
 - Source code: Grep, then Read about 30 lines around the hit. Never a whole file you do not need.
 
@@ -51,11 +62,16 @@ node scripts/seo/run.mjs --notion dry --slack off --agents off
 - The second line is `seo-run: run <runId> · site <site> · <runDir>`. Then load `seo-indexing` and do its "Producing the
   run's output" on that `<runDir>`, as the agent would. The run wrote a placeholder `REPORT.md` (overwrite it) and,
   without Google credentials, a `findings.json` with the "Set up Search Console access" finding (merge into it).
+- Phase 2 on top: add `--areas indexing,onpage` (the on-page step, and with Google credentials Search Analytics page ×
+  query; `PSI_API_KEY` in the env adds PageSpeed data). After `seo-indexing`, load `seo-onpage` and do its "Producing
+  the run's output" on the same `<runDir>`. The on-page step alone: `node scripts/seo/onpage.mjs --site <site>`.
 - Validate: `node scripts/seo/notion-push.mjs --run <runId> --validate-only` (exit 0, no Notion call). A preview of the
   cards: `--dry-run` instead (reads Notion, needs `NOTION_TOKEN`); cards for real only when the owner asks: neither flag.
 - To delegate instead: `--agents on` (`--agent-model fable`, watchdog `--agent-timeout-sec 1800`), or dispatch
   `subagent_type: "seo"` with the run's prompt: `Load the seo skill, then the seo-indexing skill. Run dir: <runDir>.
-  Site: <site>. Write <runDir>/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.`
+  Site: <site>. Write <runDir>/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.` (phase 2:
+  `Load the seo skill, then the seo-indexing skill, then the seo-onpage skill. Run dir: … Site: … Write
+  <runDir>/findings.json and docs/seo/owner-actions.md per the skills. Return ≤ 10 lines.`)
 - A dev build: `node scripts/seo/audit.mjs --site http://localhost:5173` (a preview blocks crawling by design; the
   audit then checks the HTML signals only). One check: `--only IX-04`; one page: `--url <u>`.
 - Run order, exit codes, how to read a run, the two workflows and troubleshooting: `docs/seo/README.md`.
