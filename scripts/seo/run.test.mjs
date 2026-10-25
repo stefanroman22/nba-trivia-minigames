@@ -19,7 +19,7 @@ const ENV = {
   GOOGLE_SEO_CLIENT_ID: 'cid', GOOGLE_SEO_CLIENT_SECRET: 'csecret', GOOGLE_SEO_REFRESH_TOKEN: 'rtoken',
   NOTION_TOKEN: 'ntoken', SLACK_BOT_TOKEN: 'stoken', CHECKS_STATE_TOKEN: 'ctoken',
 };
-const CONFIG = { site: SITE, property: 'sc-domain:swishquest.com', expectedNoindex: ['/admin'], slackChannel: 'agent-frontend', inspectBudget: 200 };
+const CONFIG = { site: SITE, property: 'sc-domain:swishquest.com', expectedNoindex: ['/admin'], slackChannel: 'frontend', inspectBudget: 200 };
 
 /** An AuditResult: the home page and /wordle clean, /trivia failing IX-03, /admin the expected-noindex page. */
 const auditResult = (runId) => ({
@@ -269,6 +269,14 @@ test('an audit infra failure: exit 1, the store still gets a failed history entr
   assert.deepEqual(calls, ['lease', 'pull', 'audit', 'push', 'slack', 'release']);
   assert.equal(seen.push.history.at(-1).status, 'failed');
   assert.match(r.line, /failed: audit: every page request failed/);
+});
+
+test('the Slack post throws: exit 1 and the lease is still released', async () => {
+  const { deps, calls } = fakes({ postLine: async () => { calls.push('slack'); throw new Error('slack.mjs crashed'); } });
+  const r = await runWeekly(opts(), deps);
+  assert.equal(r.code, 1);
+  assert.deepEqual(calls.slice(-2), ['slack', 'release']);
+  assert.deepEqual(r.state.failures, ['slack: slack.mjs crashed']);
 });
 
 test('searchConsoleStep writes gsc.json, gsc-analytics.json and a short summary without any Search Analytics value', async () => {

@@ -194,121 +194,130 @@ export async function runWeekly(o, deps) {
   let leaseHeld = false;
   let ledger = null;
   let at = 'state store';
+  let line = null;
+  // The finally is the one guarantee that a held lease goes, whatever throws; the inner catch lets 9-10 run after 0-8 failed.
   try {
-    if ((await d.ledgerStore.acquire()) === 'busy') {
-      log('seo-run: skipped, another run holds the SEO lease (seo/lease.json)');
-      return { code: 0, skipped: true, state: s, line: null };
+    try {
+      if ((await d.ledgerStore.acquire()) === 'busy') {
+        log('seo-run: skipped, another run holds the SEO lease (seo/lease.json)');
+        return { code: 0, skipped: true, state: s, line: null };
+      }
+      leaseHeld = true;
+      mkdirSync(runDir, { recursive: true });
+      log(`seo-run: run ${runId} · site ${site} · ${runDir}${dry ? ' · DRY RUN' : ''}`);
+
+      // 1. Pull the store.
+      at = 'store pull';
+      const previous = await d.ledgerStore.pull();
+      writeJson(previousFile, previous);
+      ledger = previous;
+
+      // 2. Audit against the previous run's baseline.
+      at = 'audit';
+      const base = baselineFrom(previous);
+      const result = await d.audit({ site, runId, runDir, baseline: Object.keys(base).length ? base : null });
+      s.urls = result.counts.urls;
+      s.auditFails = new Set(allFailures(result).map((f) => f.id)).size;
+      log(`audit: ${s.urls} urls · ${s.auditFails} failing checks${result.regressions ? ` · ${result.regressions.length} regression(s)` : ' · no baseline'}`);
+
+      // 3. Search Console.
+      at = 'gsc';
+      let creds = null;
+      try { creds = d.credentials(); } catch (e) { log(`gsc: ${firstLine(e)}`); }
+      let inspections = null;
+      if (!creds) log('gsc: skipped (no Google credentials): owner action "Set up Search Console access" filed');
+      else if (!o.gsc) log('gsc: skipped (--gsc off)');
+      else if (new URL(site).host !== new URL(config.site).host) log(`gsc: skipped (${site} is not the property's site ${config.site})`);
+      else {
+        const r = await soft('gsc', () => d.gsc({ creds, urls: Object.keys(result.urls).sort(), runDir }));
+        if (r?.error) fail('gsc', r.error);
+        inspections = r?.inspections ?? null;
+        if (inspections) log(`gsc: ${Object.keys(inspections).length} url(s) inspected`);
+      }
+
+      // 4. Ledger merge.
+      at = 'ledger';
+      ledger = applyAudit(previous, result, { expectNoindex: config.expectedNoindex ?? [], now: started });
+      if (inspections) ledger = applyInspections(ledger, inspections);
+      writeFileSync(path.join(runDir, 'ledger-summary.md'), summary(ledger, { now: started }));
+
+      // 5. The agent, then its owner-actions file.
+      at = 'agent';
+      let why = await agentStep();
+      if (!why && !existsSync(findingsPath(runDir))) why = 'the agent wrote no findings.json';
+      if (!why && !existsSync(reportFile)) why = 'the agent wrote no REPORT.md';
+      if (why) { s.judgementNeeded = true; log(`judgement needed: ${why}`); }
+      if (!existsSync(reportFile)) writeFileSync(reportFile, placeholderReport({ runId, site, why, runDir }));
+      await ownerActionsStep();
+
+      // The findings: the setup action when there are no credentials; their decisions into the ledger.
+      let doc = null, readable = true;
+      try { doc = readFindings(runDir); } catch { readable = false; fail('findings', 'findings.json is not JSON'); }
+      if (!creds && readable) { doc = withSetupAction(doc, { runId, site }); writeJson(findingsPath(runDir), doc); }
+      if (doc && !validateFindings(doc).length) {
+        ledger = applyDecisions(ledger, doc.findings, runId);
+        s.ownerActions = doc.findings.filter((f) => f.decision === 'owner').length;
+      }
+
+      // 6. Notion cards.
+      at = 'notion';
+      if (existsSync(findingsPath(runDir))) {
+        const r = await soft('notion', () => d.notionPush({ runId, runDir, dryRun: dry || o.notion === 'dry' }));
+        if (r?.errors?.length) fail('notion', `findings.json invalid (${r.errors.length} error(s))`);
+        const results = r?.results ?? [];
+        s.cards.new = results.filter((x) => x.action === 'card' || x.action === 'regression').length;
+        s.cards.seen = results.filter((x) => x.action === 'skip' && !String(x.why ?? '').startsWith('decision')).length;
+        const errors = results.filter((x) => x.action === 'error').length;
+        if (errors) fail('notion', `${errors} card error(s)`);
+      } else log('notion: skipped (no findings.json)');
+
+      // 7. IndexNow.
+      at = 'indexnow';
+      writeJson(ledgerFile, ledger);
+      const ping = await soft('indexnow', () => d.indexnow({ runId, runDir, ledgerFile, previousFile, dryRun: dry }));
+      if (ping?.code) fail('indexnow', `exit ${ping.code}`);
+      const rec = ping?.record;
+      if (rec && rec.status !== null && rec.status !== undefined && !rec.dryRun) {
+        for (const u of rec.urls ?? []) if (ledger.urls[u]) ledger.urls[u].indexnow = { lastPingAt: rec.at, status: rec.status };
+        ledger.dataAsOf.indexnow = rec.at;
+      }
+
+      // 8. Drive export.
+      at = 'export';
+      writeJson(ledgerFile, ledger);
+      const ex = await soft('export', () => d.exportDrive({ runId, runDir, ledgerFile, dryRun: dry }));
+      s.drive = ex?.drive ?? 'failed';
+      if (ex?.code) fail('export', `exit ${ex.code}`);
+    } catch (e) {
+      fail(at, e);
     }
-    leaseHeld = true;
-    mkdirSync(runDir, { recursive: true });
-    log(`seo-run: run ${runId} · site ${site} · ${runDir}${dry ? ' · DRY RUN' : ''}`);
 
-    // 1. Pull the store.
-    at = 'store pull';
-    const previous = await d.ledgerStore.pull();
-    writeJson(previousFile, previous);
-    ledger = previous;
-
-    // 2. Audit against the previous run's baseline.
-    at = 'audit';
-    const base = baselineFrom(previous);
-    const result = await d.audit({ site, runId, runDir, baseline: Object.keys(base).length ? base : null });
-    s.urls = result.counts.urls;
-    s.auditFails = new Set(allFailures(result).map((f) => f.id)).size;
-    log(`audit: ${s.urls} urls · ${s.auditFails} failing checks${result.regressions ? ` · ${result.regressions.length} regression(s)` : ' · no baseline'}`);
-
-    // 3. Search Console.
-    at = 'gsc';
-    let creds = null;
-    try { creds = d.credentials(); } catch (e) { log(`gsc: ${firstLine(e)}`); }
-    let inspections = null;
-    if (!creds) log('gsc: skipped (no Google credentials): owner action "Set up Search Console access" filed');
-    else if (!o.gsc) log('gsc: skipped (--gsc off)');
-    else if (new URL(site).host !== new URL(config.site).host) log(`gsc: skipped (${site} is not the property's site ${config.site})`);
-    else {
-      const r = await soft('gsc', () => d.gsc({ creds, urls: Object.keys(result.urls).sort(), runDir }));
-      if (r?.error) fail('gsc', r.error);
-      inspections = r?.inspections ?? null;
-      if (inspections) log(`gsc: ${Object.keys(inspections).length} url(s) inspected`);
+    // 9. The history entry, then the store.
+    at = 'history';
+    if (ledger) {
+      ledger = structuredClone(ledger);
+      Object.assign(s, coverageCounts(ledger));
+      const entry = { runId, at: new Date(started).toISOString(), status: s.failures.length ? 'failed' : 'ok', indexed: s.indexed, notIndexed: s.notIndexed, failedChecks: s.auditFails, cards: s.cards.new };
+      ledger.history = [...(ledger.history ?? []), entry].slice(-HISTORY_MAX);
+      if (existsSync(runDir)) writeJson(ledgerFile, ledger);
+      if (!dry) {
+        const r = await soft('store push', () => d.ledgerStore.push(ledger, `seo: run ${runId}`));
+        if (r) toLog(`store: ${r.pushed ? `pushed ${String(r.sha ?? '').slice(0, 7)}` : 'up to date'}`);
+      }
     }
 
-    // 4. Ledger merge.
-    at = 'ledger';
-    ledger = applyAudit(previous, result, { expectNoindex: config.expectedNoindex ?? [], now: started });
-    if (inspections) ledger = applyInspections(ledger, inspections);
-    writeFileSync(path.join(runDir, 'ledger-summary.md'), summary(ledger, { now: started }));
-
-    // 5. The agent, then its owner-actions file.
-    at = 'agent';
-    let why = await agentStep();
-    if (!why && !existsSync(findingsPath(runDir))) why = 'the agent wrote no findings.json';
-    if (!why && !existsSync(reportFile)) why = 'the agent wrote no REPORT.md';
-    if (why) { s.judgementNeeded = true; log(`judgement needed: ${why}`); }
-    if (!existsSync(reportFile)) writeFileSync(reportFile, placeholderReport({ runId, site, why, runDir }));
-    await ownerActionsStep();
-
-    // The findings: the setup action when there are no credentials; their decisions into the ledger.
-    let doc = null, readable = true;
-    try { doc = readFindings(runDir); } catch { readable = false; fail('findings', 'findings.json is not JSON'); }
-    if (!creds && readable) { doc = withSetupAction(doc, { runId, site }); writeJson(findingsPath(runDir), doc); }
-    if (doc && !validateFindings(doc).length) {
-      ledger = applyDecisions(ledger, doc.findings, runId);
-      s.ownerActions = doc.findings.filter((f) => f.decision === 'owner').length;
-    }
-
-    // 6. Notion cards.
-    at = 'notion';
-    if (existsSync(findingsPath(runDir))) {
-      const r = await soft('notion', () => d.notionPush({ runId, runDir, dryRun: dry || o.notion === 'dry' }));
-      if (r?.errors?.length) fail('notion', `findings.json invalid (${r.errors.length} error(s))`);
-      const results = r?.results ?? [];
-      s.cards.new = results.filter((x) => x.action === 'card' || x.action === 'regression').length;
-      s.cards.seen = results.filter((x) => x.action === 'skip' && !String(x.why ?? '').startsWith('decision')).length;
-      const errors = results.filter((x) => x.action === 'error').length;
-      if (errors) fail('notion', `${errors} card error(s)`);
-    } else log('notion: skipped (no findings.json)');
-
-    // 7. IndexNow.
-    at = 'indexnow';
-    writeJson(ledgerFile, ledger);
-    const ping = await soft('indexnow', () => d.indexnow({ runId, runDir, ledgerFile, previousFile, dryRun: dry }));
-    if (ping?.code) fail('indexnow', `exit ${ping.code}`);
-    const rec = ping?.record;
-    if (rec && rec.status !== null && rec.status !== undefined && !rec.dryRun) {
-      for (const u of rec.urls ?? []) if (ledger.urls[u]) ledger.urls[u].indexnow = { lastPingAt: rec.at, status: rec.status };
-      ledger.dataAsOf.indexnow = rec.at;
-    }
-
-    // 8. Drive export.
-    at = 'export';
-    writeJson(ledgerFile, ledger);
-    const ex = await soft('export', () => d.exportDrive({ runId, runDir, ledgerFile, dryRun: dry }));
-    s.drive = ex?.drive ?? 'failed';
-    if (ex?.code) fail('export', `exit ${ex.code}`);
+    // 10. One Slack line (the lease goes in the finally).
+    at = 'slack';
+    s.durationMs = d.now() - started;
+    line = seoLine(s);
+    if (dry || !o.slack) log(`dry: ${line}`);
+    else { const p = await d.postLine(line); if (p?.ok !== false) log(line); }
   } catch (e) {
     fail(at, e);
-  }
-
-  // 9. The history entry, then the store.
-  if (ledger) {
-    ledger = structuredClone(ledger);
-    Object.assign(s, coverageCounts(ledger));
-    const entry = { runId, at: new Date(started).toISOString(), status: s.failures.length ? 'failed' : 'ok', indexed: s.indexed, notIndexed: s.notIndexed, failedChecks: s.auditFails, cards: s.cards.new };
-    ledger.history = [...(ledger.history ?? []), entry].slice(-HISTORY_MAX);
-    if (existsSync(runDir)) writeJson(ledgerFile, ledger);
-    if (!dry) {
-      const r = await soft('store push', () => d.ledgerStore.push(ledger, `seo: run ${runId}`));
-      if (r) toLog(`store: ${r.pushed ? `pushed ${String(r.sha ?? '').slice(0, 7)}` : 'up to date'}`);
+  } finally {
+    if (leaseHeld) {
+      try { await d.ledgerStore.release(); } catch (e) { toLog(`lease not released (it expires on its own): ${firstLine(e)}`); }
     }
-  }
-
-  // 10. One Slack line, then the lease goes.
-  s.durationMs = d.now() - started;
-  const line = seoLine(s);
-  if (dry || !o.slack) log(`dry: ${line}`);
-  else { const p = await d.postLine(line); if (p?.ok !== false) log(line); }
-  if (leaseHeld) {
-    try { await d.ledgerStore.release(); } catch (e) { toLog(`lease not released (it expires on its own): ${firstLine(e)}`); }
   }
   return { code: s.failures.length ? 1 : 0, skipped: false, state: s, line };
 

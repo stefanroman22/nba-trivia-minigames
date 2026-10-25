@@ -4,6 +4,6 @@
   "expectedNoindex": ["/admin", "/profile", "/credits", "/coming-soon"],
   "driveFolderId": null,
   "indexNowKey": null,
-  "slackChannel": "agent-frontend",
+  "slackChannel": "frontend",
   "inspectBudget": 200
 }
