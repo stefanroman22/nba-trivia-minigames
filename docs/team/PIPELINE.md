@@ -368,16 +368,19 @@ acceptance is the check passing on main while still guarding its rule. The weekl
 round, one engine pass that starts from file:line pointers, and a QA gate that is the finding's own
 acceptance re-run — the same judge the checker used.
 
-**Relay rule.** The relay (`multiplayer_server/`, Railway) is billed and never deployed by the
-pipeline, and relay code must not reach production before the relay deploy. So a `Target = main` fix
-whose commit touches `multiplayer_server/` is never pushed to `main`: ship pushes `team/<slug>`, opens
-an **unmerged PR to `main`**, moves the card to QA with the PR's head SHA, sets **Needs human** and
-comments "merge with a merge commit + `railway up`; do not untick Needs human". You merge the PR **with a
-merge commit (not squash/rebase)**, then run `cd multiplayer_server && railway up` in the same window;
+**Relay rule.** The relay (`multiplayer_server/`, Railway) is billed, and a relay change reaches
+production only through your merge. So a `Target = main` fix whose commit touches
+`multiplayer_server/` is never pushed to `main`: ship pushes `team/<slug>`, opens an **unmerged PR to
+`main`**, moves the card to QA with the PR's head SHA, sets **Needs human** and comments "merge with a
+merge commit; the merge deploys the relay; do not untick Needs human". You merge the PR **with a merge
+commit (not squash/rebase)**; the merge deploys the relay by itself: `.github/workflows/relay-deploy.yml`
+(any push to `main` that changes `multiplayer_server/`, promotions included) waits for the production
+frontend of the commit, lets live rooms drain (10 min at most), runs `railway up` (secret `RAILWAY_TOKEN`),
+checks `/health` answers from the new instance and comments the result on the card and in #pipeline.
 `main-sync` then marks the card Done. A squash or rebase rewrites the SHA, so main-sync never finds it:
 then set the card Done by hand. The run
 reports it as `SHIPPED-PR <url>`. In the cloud (no `gh`) ship pushes `team/<slug>`, runs `ship-card --target main --branch team/<slug>` and
-`set-props --needs-human`, comments "open the PR to main by hand (merge commit) + railway up", and ends with `SHIPPED-PR <branch>`.
+`set-props --needs-human`, comments "open the PR to main by hand (merge commit); the merge deploys the relay", and ends with `SHIPPED-PR <branch>`.
 
 **Cloud.** `infra/routine/setup.sh` now installs Chromium with `--with-deps` and runs `npm ci --prefix
 multiplayer_server` so `verify.mjs` can start the relay on the VM. **Re-paste `infra/routine/setup.sh`

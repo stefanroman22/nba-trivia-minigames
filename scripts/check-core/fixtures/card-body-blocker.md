@@ -45,7 +45,7 @@ Acceptance:
 ## Pipeline
 - Engine protocol: "Fixing a UI-check finding" in .claude/agents/backend-engine.md; the full finding objects are in the attached findings.json (this body is a summary).
 - QA: verify assertion runs the attached findings (node scripts/ui-check/verify.mjs --from <attached findings.json>); every finding must PASS.
-- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev. Relay (multiplayer_server/) deploys are parked for the owner.
+- Ship: Target main — branch from origin/main, PR into main, then back-merge main into dev. Relay (multiplayer_server/): the PR to main deploys it on merge (relay-deploy.yml, after the production frontend).
 - Fingerprints (Source key = rule|route|selector):
 - 5d9d7ae6d0be = teen-masking|/series-winner|.om-matchup .om-pc-tag
 - 193af9d6b382 = teen-masking|/series-winner|.om-stage--results .om-pc-tag

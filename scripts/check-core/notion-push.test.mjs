@@ -183,9 +183,9 @@ test('a big cluster body shows the top findings in full and lists the rest by id
   assert.ok(markdown.includes(`Also in this cluster (${big.items.length - BODY_FULL} more;`));
 });
 
-test('the relay-parked line appears only when a finding touches multiplayer_server/', () => {
+test('the relay line appears only when a finding touches multiplayer_server/', () => {
   const relay = renderBody(blockerCluster(), { runId: RUN, runDir: '/r' }).markdown;
-  assert.match(relay, /Relay \(multiplayer_server\/\) deploys are parked/);
+  assert.match(relay, /Relay \(multiplayer_server\/\): the PR to main deploys it on merge/);
   const fe = planClusters(selectOpen(doc.findings, { ids: ['UIC-20261014-1153-003'] }), { perfIds })[0];
   assert.doesNotMatch(renderBody(fe, { runId: RUN, runDir: '/r' }).markdown, /Relay/);
 });

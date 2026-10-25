@@ -1,0 +1,35 @@
+name: Relay deploy
+# Every push to main that changes multiplayer_server/ (a shipped pipeline card, a promotion, a hotfix) deploys the
+# Railway relay: after the production frontend of that commit is live, once live rooms drain (10 min at most), with
+# `railway up` (secret RAILWAY_TOKEN: a project token of the production environment). It checks /health answers from
+# the new instance and reports on the card(s) whose Commit is in the push and in #pipeline. scripts/team/relay-deploy.mjs.
+on:
+  push:
+    branches: [main]
+    paths: ['multiplayer_server/**']
+  workflow_dispatch:
+concurrency:
+  group: relay-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      statuses: read
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      RAILWAY_SERVICE: ${{ vars.RAILWAY_SERVICE }}
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Deploy the relay
+        run: node scripts/team/relay-deploy.mjs --sha "$GITHUB_SHA" --before "${{ github.event.before }}" --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
