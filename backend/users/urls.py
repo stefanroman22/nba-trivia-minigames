@@ -1,4 +1,5 @@
 from django.urls import path
+from . import player_search
 from .views import (
     login_view,
     get_current_user,
@@ -31,6 +32,7 @@ from .photos import profile_photo_view
 from .tokens import SessionRefreshView
 
 urlpatterns = [
+    path('player-search/', player_search.search_users, name='player_search'),
     path('login/', login_view, name='login'),
     path('signup/', signup_view, name='signup'),
     path('me/', get_current_user, name='get_user'),
