@@ -52,7 +52,7 @@ test('card: a pipeline card on dev with the fingerprint in Source, body names wh
   const m = cardFor(bug(), { checker: 'ui', runId: RUN });
   assert.deepEqual([m.category, m.priority, m.difficulty, m.target], ['pipeline', 'P1', 'standard', 'dev']);
   assert.ok(m.title.startsWith('[check-bug] AC-PROFILE-02, AC-BLOCK-01: ') && m.title.length <= 110);
-  assert.equal(m.source, `check-bug fp:${bugFingerprint(bug())} checker:ui checks:AC-PROFILE-02,AC-BLOCK-01 run:${RUN}`);
+  assert.equal(m.source, `check-bug fp:${bugFingerprint(bug())} cb:AC-PROFILE-02; cb:AC-BLOCK-01; checker:ui run:${RUN}`);
   const body = renderBugBody(bug(), { checker: 'ui', runId: RUN });
   assert.match(body, /## What went unverified\n\nphoto upload/);
   assert.match(body, /node scripts\/ui-check\/run\.mjs --only "AC-PROFILE-02,AC-BLOCK-01" --vp all --ref main/);
@@ -66,6 +66,16 @@ test('pushBugs: new → card; open card → one "seen again" comment, no card; i
   assert.deepEqual(r.map((x) => x.action), ['create', 'seen', 'error']);
   assert.equal(c.made.length, 1);
   assert.deepEqual(c.comments, [{ id: 'open-1', text: seenText(RUN) }]);
+});
+
+test('pushBugs: another key for a check that already has an open card comments there (no second card); QA cards get no comment', () => {
+  const open = { id: 'open-2', title: 't', status: 'To Do', source: `check-bug fp:aaaaaaaaaaaa cb:AC-BLOCK-01; checker:ui run:20261018-0200` };
+  const qa = { id: 'qa-1', title: 't', status: 'QA', source: `check-bug fp:bbbbbbbbbbbb cb:LC-ROOMS-1; run:x` };
+  const c = fakeClient([open, qa]);
+  const r = pushBugs({ bugs: [bug({ checks: ['AC-BLOCK-01'] }), bug({ checks: ['LC-ROOMS-1'] }), bug({ checks: ['LC-ROOMS-10'] })], runId: RUN, checker: 'ui', client: c, log: quiet, ledgerFile: tmpLedger(), workDir: mkdtempSync(path.join(os.tmpdir(), 'cbw-')) });
+  assert.deepEqual(r.map((x) => x.action), ['seen', 'seen', 'create']); // LC-ROOMS-10 never matches cb:LC-ROOMS-1;
+  assert.equal(c.comments.length, 1);
+  assert.match(c.comments[0].text, new RegExp(`^${seenText(RUN)} · also: spec "the age prompt`));
 });
 
 test('pushBugs: a Done card does not stop a new card (the drift came back)', () => {

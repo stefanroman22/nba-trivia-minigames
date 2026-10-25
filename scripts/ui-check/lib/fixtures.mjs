@@ -31,11 +31,16 @@ const AUTO_CROPS_PER_CALL = 3;
 const AUTO_CROPS_PER_AUDIT = 12;
 /** Soft rules: recorded as audit.warnings (same shape as violations), never make done() throw. */
 export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-explained', 'external-network']);
-/** A network-level load failure (no HTTP answer at all) on a third-party host: the check runner's network, not the app
+/** A connection-level load failure on a hotlinked third-party image host: the check runner's network, not the app
  *  (cdn.nba.com resets HTTP/2 for CI networks, a sandbox proxy blocks every external host). A warning, never a
- *  `console` violation. A third-party HTTP error status (404, 5xx) and anything on the app's own host stay violations. */
-export const isExternalNetworkError = (text, resourceUrl, pageUrl) =>
-  /^Failed to load resource: net::ERR_/.test(String(text)) && !!resourceUrl && !ownHost(pageUrl, resourceUrl);
+ *  `console` violation. Kept strict: an HTTP error status (404, 5xx), a DNS or certificate error, and every other host
+ *  (the app's own, its backend, relay, data host and questions store) stay violations. */
+const EXTERNAL_ASSET_HOSTS = [/(^|\.)cdn\.nba\.com$/, /(^|\.)wikimedia\.org$/, /(^|\.)wikipedia\.org$/];
+const RUNNER_NETWORK_ERRORS = /^Failed to load resource: net::ERR_(HTTP2_PROTOCOL_ERROR|CONNECTION_(RESET|CLOSED|TIMED_OUT|REFUSED|FAILED)|TIMED_OUT|TUNNEL_CONNECTION_FAILED|PROXY_CONNECTION_FAILED|EMPTY_RESPONSE)\b/;
+export const isExternalNetworkError = (text, resourceUrl, pageUrl) => {
+  if (!RUNNER_NETWORK_ERRORS.test(String(text)) || !resourceUrl || ownHost(pageUrl, resourceUrl)) return false;
+  try { const h = new URL(resourceUrl).hostname; return EXTERNAL_ASSET_HOSTS.some((re) => re.test(h)); } catch { return false; }
+};
 /** Console noise only React's DEV build prints (a dependency touching element.ref); the prod build never does, so it is
  *  ignored only outside UI_CHECK_MODE=prod — prod audits stay strict, dev-mode fix loops are not blocked by it. */
 export const DEV_ONLY_NOISE = [/Accessing element\.ref was removed in React 19/];

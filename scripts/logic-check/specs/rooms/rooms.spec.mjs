@@ -13,6 +13,7 @@ import { visibleGames } from '../../../ui-check/lib/games-catalog.mjs';
 import { appRepo, readStack } from '../../../ui-check/lib/stack.mjs';
 import { activePorts } from '../../../check-core/lib/ports.mjs';
 import { ROLES, mintTokens } from '../../../check-core/lib/accounts.mjs';
+import { awardRules, receiptProblems } from '../../lib/awarding.mjs';
 
 test.describe.configure({ mode: 'default' });
 
@@ -42,7 +43,9 @@ const MSG = {
   opponentLeft: 'Your opponent left the match.',
   noMatch: 'This match is no longer running.',
 };
-const ID_KEYS = ['qid', 'id', 'person_id', 'match_id', 'game_id', 'team_id', 'season'];
+// A row's identity (as LC-GAMEDATA-01): mvps rows carry five awards per season, so award + season is their key.
+const ID_KEYS = ['qid', 'id', 'person_id', 'match_id', 'game_id', 'team_id', ['award', 'season'], 'season'];
+const idParts = (k) => (Array.isArray(k) ? k : [k]);
 
 /** Keys every row of the bundled pool carries (backend/trivia/data/<key>.json): what the renderers read. */
 function poolKeys(key) {
@@ -137,18 +140,20 @@ function checkRound(s, who, rd, gameId) {
   const keys = poolKeys(spec.key);
   const bad = rd.gameData.find((r) => !isObj(r) || keys.some((k) => !(k in r)));
   s.check(!bad, `${who} ← roundData row`, bad ? `missing ${keys.filter((k) => !isObj(bad) || !(k in bad)).join(', ')}` : '', `every row carries ${keys.join(', ')} (the ${spec.key} pool's shape)`);
-  const idKey = ID_KEYS.find((k) => rd.gameData.every((r) => isObj(r) && r[k] != null));
-  if (idKey) s.check(new Set(rd.gameData.map((r) => JSON.stringify(r[idKey]))).size === rd.gameData.length, `${who} ← roundData ${idKey}`, 'a duplicate', 'each row once');
+  const idKey = ID_KEYS.find((k) => rd.gameData.every((r) => isObj(r) && idParts(k).every((p) => r[p] != null)));
+  if (idKey) s.check(new Set(rd.gameData.map((r) => JSON.stringify(idParts(idKey).map((p) => r[p])))).size === rd.gameData.length, `${who} ← roundData ${idParts(idKey).join('+')}`, 'a duplicate', 'each row once');
 }
 
 /** The name a stranger sees in a random 1v1: the real name, whatever the age (the relay's teen masking ended 2026-10-19). */
 const shown = (_s, name) => name;
 
-/** /me/ points of a persona (api fixture), or null. */
-async function points(api, persona) {
+/** /me/ of a persona (api fixture), or null. */
+async function meOf(api, persona) {
   const r = await api.call(persona, 'GET', '/me/');
-  return r.status === 200 && r.json && r.json.user ? r.json.user.points : null;
+  return r.status === 200 && r.json && r.json.user ? r.json.user : null;
 }
+/** /me/ points of a persona, or null. */
+const points = async (api, persona) => (await meOf(api, persona))?.points ?? null;
 
 test.beforeAll(() => {
   if (!GAME || !OTHER) throw new Error(`rooms: need two online round games in the catalogue (found ${ROUND.map((g) => g.id).join(', ') || 'none'}; ROUND_GAMES ${Object.keys(ROUND_GAMES).join(', ') || 'unparsed'})`);
@@ -502,7 +507,7 @@ test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → m
     if (!rounds[HOST] || !rounds[PEER]) return;
 
     await test.step('scores (waiting host 50, guest 10) → matchResult; a random match credits each score (pointsAwarded, /me/)', async () => {
-      const before = { [HOST]: await points(api, 'logic.actor'), [PEER]: await points(api, 'logic.peer') };
+      const before = { [HOST]: await meOf(api, 'logic.actor'), [PEER]: await meOf(api, 'logic.peer') };
       const score = { [PEER]: 50, [HOST]: 10 };
       const m = { [HOST]: s.c[HOST].mark(), [PEER]: s.c[PEER].mark() };
       for (const who of [PEER, HOST]) s.c[who].emit('submitScore', { code, score: score[who], elapsedMs: 25_000 });
@@ -511,18 +516,24 @@ test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → m
         if (r) s.check(r.yourScore === score[who] && r.outcome === (who === PEER ? 'win' : 'loss'), `${who} ← matchResult`, { yourScore: r.yourScore, outcome: r.outcome }, `{ yourScore: ${score[who]}, outcome: ${who === PEER ? 'win' : 'loss'} }`);
       }
       const keyed = relayKeyed();
-      // pointsAwarded is Django's receipt (trivia.awarding award()): base = the clamped match score, plus the day's
-      // first-game bonus and a streak milestone when they land; /me/ moves by `awarded`, once.
-      const awarded = {};
+      // pointsAwarded is Django's receipt (trivia.awarding award()): base = the clamped match score, and the day's
+      // first-game bonus / a streak milestone exactly when /me/ shows the day counted (lib/awarding.mjs); /me/ moves by
+      // `awarded`, once.
+      const rules = awardRules(readApp('backend/trivia/awarding.py'));
+      if (!rules) lc.violation('setup', { route: '/trivia/multiplayer-result/', selector: 'backend/trivia/awarding.py FIRST_GAME_BONUS / STREAK_MILESTONES', measured: 'not parsed', expected: 'the bonuses' });
+      const pas = {};
       for (const who of [HOST, PEER]) {
         const pa = await s.c[who].quiet('pointsAwarded', { since: m[who], within: 8000 });
         if (!pa) { (keyed ? lc.violation : lc.warn)('credit', { route: '/trivia/multiplayer-result/', selector: `${who} ← pointsAwarded`, measured: 'none within 8 s', expected: `{ base: ${score[who]} } (creditRoom → Django)${keyed ? '' : ' — this stack has no shared relay key'}` }); continue; }
         s.check(pa.base === score[who], `${who} ← pointsAwarded.base`, String(pa.base), String(score[who]));
-        s.check(pa.awarded === pa.base + pa.first_game_bonus + pa.streak_bonus, `${who} ← pointsAwarded.awarded`, `${pa.awarded} (base ${pa.base} + first ${pa.first_game_bonus} + streak ${pa.streak_bonus})`, 'base + first_game_bonus + streak_bonus');
-        awarded[who] = pa.awarded;
+        pas[who] = pa;
       }
-      const after = { [HOST]: await points(api, 'logic.actor'), [PEER]: await points(api, 'logic.peer') };
-      if (keyed) for (const who of [HOST, PEER]) if (awarded[who] !== undefined) s.check(after[who] - before[who] === awarded[who], `${who} /me/ points`, `${before[who]} → ${after[who]}`, `+${awarded[who]} (pointsAwarded.awarded, credited once)`);
+      const after = { [HOST]: await meOf(api, 'logic.actor'), [PEER]: await meOf(api, 'logic.peer') };
+      for (const who of Object.keys(pas)) {
+        if (!before[who] || !after[who]) { s.check(false, `${who} /me/`, 'unreadable', '200 { user } before and after'); continue; }
+        if (rules) for (const p of receiptProblems(pas[who], before[who], after[who], rules)) s.check(false, `${who} ← pointsAwarded.${p.part}`, p.measured, p.expected);
+        if (keyed) s.check(after[who].points - before[who].points === pas[who].awarded, `${who} /me/ points`, `${before[who].points} → ${after[who].points}`, `+${pas[who].awarded} (pointsAwarded.awarded, credited once)`);
+      }
     });
     await test.step('proposeAgain → proposalPending / proposalReceived; accept → matchRestart + a new roundData on both', async () => {
       const m = { [HOST]: s.c[HOST].mark(), [PEER]: s.c[PEER].mark() };

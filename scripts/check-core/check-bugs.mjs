@@ -18,10 +18,13 @@ import { fileURLToPath } from 'node:url';
 import { uicHome } from './lib/home.mjs';
 import { runPath, readJson } from './lib/findings.mjs';
 import { recordLedger, ledgerPath } from './lib/cards-ledger.mjs';
-import { cliClient, seenText, sourceHasRun, notionUrl } from './notion-push.mjs';
+import { cliClient, seenText, seenRe, sourceHasRun, notionUrl } from './notion-push.mjs';
 
 export const KINDS = ['spec', 'env'];
-const ID_RE = /^(LC|G|AC|GM|MP)-[A-Za-z0-9-]+$/;
+const ID_RE = /^(LC|G|AC|GM|MP|ST)-[A-Za-z0-9-]+$/;
+/** One Source token per check (`;` ends it: cb:LC-ROOMS-1; never matches cb:LC-ROOMS-10;), so next week's entry for the
+ *  same check finds the open card even when its key or check set differs. */
+export const checkToken = (id) => `cb:${id};`;
 const TITLE_MAX = 110;
 
 export const bugKey = (e) => `${e.kind}|${e.key || [...e.checks].sort().join(',')}`;
@@ -73,7 +76,7 @@ export function cardFor(e, { checker, runId }) {
     priority: 'P1',
     difficulty: 'standard',
     target: 'dev',
-    source: `check-bug fp:${fp} checker:${checker} checks:${e.checks.join(',')} run:${runId}`,
+    source: `check-bug fp:${fp} ${e.checks.map(checkToken).join(' ')} checker:${checker} run:${runId}`,
   };
 }
 
@@ -129,13 +132,17 @@ export function pushBugs({ bugs, runId, checker, client, dryRun = false, log = c
     if (problems.length) { log(`error check-bugs.json[${i}] ${problems.join('; ')}`); results.push({ action: 'error', index: i, error: problems.join('; ') }); return; }
     const m = cardFor(e, { checker, runId });
     try {
-      const open = client.findCards([m.fp]).filter((c) => c.status !== 'Done');
+      const open = client.findCards([m.fp, ...e.checks.map(checkToken)]).filter((c) => c.status !== 'Done');
       if (open.length) {
-        const c = open[0];
-        if (sourceHasRun(c.source, runId)) log(`  (card ${c.id} was created from run ${runId}: no comment)`);
-        else if (client.listComments(c.id).some((x) => String(x.text || '').includes(seenText(runId)))) log(`  (card ${c.id} already has "${seenText(runId)}")`);
-        else if (dryRun) log(`  (dry: would comment on ${c.id}: ${seenText(runId)})`);
-        else client.comment(c.id, seenText(runId));
+        // The card of this cause (its fp), else any open card of one of these checks.
+        const c = open.find((x) => String(x.source || '').includes(`fp:${m.fp}`)) || open[0];
+        const other = !String(c.source || '').includes(`fp:${m.fp}`);
+        const text = `${seenText(runId)}${other ? ` · also: ${e.kind} "${e.title}" (${e.checks.join(', ')})` : ''}`;
+        if (c.status === 'QA') log(`  (card ${c.id} is in QA: no comment)`);
+        else if (sourceHasRun(c.source, runId)) log(`  (card ${c.id} was created from run ${runId}: no comment)`);
+        else if (client.listComments(c.id).some((x) => seenRe(runId).test(String(x.text || '')))) log(`  (card ${c.id} already has "${seenText(runId)}")`);
+        else if (dryRun) log(`  (dry: would comment on ${c.id}: ${text})`);
+        else client.comment(c.id, text);
         log(`seen ${bugKey(e)} open card ${c.id}`);
         if (!dryRun) recordLedger({ [`check-bug|${bugKey(e)}`]: { key: m.fp, card: c.id, url: c.url || notionUrl(c.id), title: c.title, status: c.status, decision: 'skip:open', run: runId, at } }, ledgerFile);
         results.push({ action: 'seen', card: c.id, key: bugKey(e) });

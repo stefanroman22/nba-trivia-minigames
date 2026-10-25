@@ -13,6 +13,7 @@ import { attempt, clientIp, deleteAccount, said, throwawayName } from '../../lib
 import { visibleGames } from '../../../ui-check/lib/games-catalog.mjs';
 import { appRepo, djangoEnv, venvPython } from '../../../ui-check/lib/stack.mjs';
 import { ROLES, credentials, mintTokens } from '../../../check-core/lib/accounts.mjs';
+import { awardRules, receiptProblems } from '../../lib/awarding.mjs';
 
 const ACTOR = ROLES['logic.actor'];
 const env = prodEnv();
@@ -50,15 +51,6 @@ function rankTiers() {
   if (!body) return null;
   const tiers = [...body[1].matchAll(/Rank\("([^"]+)",\s*([\d_]+),\s*([\d_]+)\)/g)].map((m) => ({ name: m[1], min: num(m[2]), days: num(m[3]) }));
   return tiers.length ? tiers.reverse() : null;
-}
-/** The awarding rules from backend/trivia/awarding.py → { max, perGame: { id: cap }, firstBonus } or null. */
-function awardRules() {
-  const src = readApp('backend/trivia/awarding.py');
-  const max = /^DEFAULT_MAX_POINTS\s*=\s*([\d_]+)/m.exec(src);
-  const per = /^GAME_MAX_POINTS\s*=\s*\{([^}]*)\}/m.exec(src);
-  const first = /^FIRST_GAME_BONUS\s*=\s*([\d_]+)/m.exec(src);
-  if (!max || !per || !first) return null;
-  return { max: num(max[1]), perGame: Object.fromEntries([...per[1].matchAll(/"([^"]+)"\s*:\s*([\d_]+)/g)].map((m) => [m[1], num(m[2])])), firstBonus: num(first[1]) };
 }
 const tierOf = (t, points, days) => (t ? (t.find((x) => points >= x.min && days >= x.days) ?? t[t.length - 1]).name : null);
 
@@ -189,17 +181,16 @@ test('[LC-GAMEDATA-02] log-session credits exactly the reported score: /me/ poin
   const origin = backendOrigin(api.base);
   const tiers = rankTiers();
   if (!tiers) lc.violation('setup', { route, selector: 'backend/users/ranks.py LADDER', measured: 'not parsed', expected: 'the points → rank ladder' });
-  const rules = awardRules();
-  if (!rules) lc.violation('setup', { route, selector: 'backend/trivia/awarding.py GAME_MAX_POINTS / DEFAULT_MAX_POINTS / FIRST_GAME_BONUS', measured: 'not parsed', expected: 'the score caps and the first-game bonus' });
+  const rules = awardRules(readApp('backend/trivia/awarding.py'));
+  if (!rules) lc.violation('setup', { route, selector: 'backend/trivia/awarding.py GAME_MAX_POINTS / DEFAULT_MAX_POINTS / FIRST_GAME_BONUS / STREAK_MILESTONES', measured: 'not parsed', expected: 'the score caps and the bonuses' });
   const game = visibleGames().find((g) => g.data && g.data.fn === 'fetchGamePool');
   const SCORE = 37;
   const log = (body, token) => attempt(api.fetch(`${origin}${route}`, { method: 'POST', body, token, headers: { 'x-forwarded-for': clientIp() } }));
   const { access } = (await mintTokens([ACTOR]))[ACTOR];
-  let bonusPaid = false; // the first-game bonus is paid once per Paris day (trivia.awarding award())
 
-  /** One authenticated POST: the receipt adds up (awarded = base + first_game_bonus + streak_bonus, base = the clamped
-   *  score) and its `awarded` and `points` agree with /me/ before and after. `base: null` = an uncredited play
-   *  (awarded 0, no receipt parts). */
+  /** One authenticated POST: base = the clamped score, the bonuses follow the day's activity exactly
+   *  (lib/awarding.mjs receiptProblems: /me/ active_days and streak_days before and after) and the receipt's `awarded`
+   *  and `points` agree with /me/. `base: null` = an uncredited play (awarded 0, no receipt parts). */
   async function play(label, body, { base: want }) {
     await test.step(`${label} → base ${want === null ? 'none (awarded 0)' : Array.isArray(want) ? want.join(' or ') : want}`, async () => {
       const before = await me(api, lc, 'logic.actor', `before ${label}`);
@@ -208,19 +199,16 @@ test('[LC-GAMEDATA-02] log-session credits exactly the reported score: /me/ poin
       const selector = `POST ${route} ${label}`;
       if (r.status !== 200 || !r.json || r.json.ok !== true) { lc.violation(r.status >= 500 ? 'server-error' : 'log-session', { route, selector, measured: said(r), expected: '200 { ok: true, awarded, points, rank }' }); return; }
       const got = r.json.awarded;
-      if (want === null) {
-        if (got !== 0) lc.violation('log-session', { route, selector: `${selector} awarded`, measured: String(got), expected: '0' });
-      } else {
-        const { base, first_game_bonus: first, streak_bonus: streak } = r.json;
-        const allowed = Array.isArray(want) ? want : [want];
-        if (!allowed.includes(base)) lc.violation('log-session', { route, selector: `${selector} base`, measured: String(base), expected: allowed.join(' or ') });
-        if (got !== base + first + streak) lc.violation('log-session', { route, selector: `${selector} awarded`, measured: `${got} (base ${base} + first ${first} + streak ${streak})`, expected: 'base + first_game_bonus + streak_bonus' });
-        const firstOk = rules ? (bonusPaid || base === 0 ? first === 0 : first === 0 || first === rules.firstBonus) : true;
-        if (!firstOk) lc.violation('log-session', { route, selector: `${selector} first_game_bonus`, measured: String(first), expected: bonusPaid || base === 0 ? '0 (already paid today, or nothing scored)' : `0 or ${rules.firstBonus}` });
-        if (base > 0) bonusPaid = true;
-      }
       const after = await me(api, lc, 'logic.actor', `after ${label}`);
       if (!after) return;
+      if (want === null) {
+        if (got !== 0) lc.violation('log-session', { route, selector: `${selector} awarded`, measured: String(got), expected: '0' });
+        if (after.active_days !== before.active_days) lc.violation('log-session', { route: '/api/me/', selector: `/me/ active_days after ${label}`, measured: `${before.active_days} → ${after.active_days}`, expected: 'unchanged (an uncredited play counts no day)' });
+      } else {
+        const allowed = Array.isArray(want) ? want : [want];
+        if (!allowed.includes(r.json.base)) lc.violation('log-session', { route, selector: `${selector} base`, measured: String(r.json.base), expected: allowed.join(' or ') });
+        if (rules) for (const p of receiptProblems(r.json, before, after, rules)) lc.violation('log-session', { route, selector: `${selector} ${p.part}`, measured: p.measured, expected: p.expected });
+      }
       lc.metric(`${label}: awarded`, got, { unit: 'pts', route, kind: 'data' });
       if (after.points - before.points !== got) lc.violation('points', { route: '/api/me/', selector: `/me/ points after ${label}`, measured: `${before.points} → ${after.points} (Δ ${after.points - before.points})`, expected: `Δ ${got} (exactly what log-session reported, once)` });
       if (r.json.points !== after.points) lc.violation('points', { route, selector: `${selector} points`, measured: String(r.json.points), expected: `${after.points} (/me/)` });

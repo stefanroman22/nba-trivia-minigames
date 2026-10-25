@@ -25,6 +25,8 @@ from django.db import connection
 
 from trivia.models import Player
 
+SUFFIXES = {"Jr", "Sr", "II", "III", "IV", "V"}
+
 
 def guard():
     engine = settings.DATABASES["default"]["ENGINE"]
@@ -50,12 +52,14 @@ def seed_players():
         name = str(r.get("full_name") or "").strip()
         if not name or r.get("person_id") is None:
             continue
-        first, _, last = name.partition(" ")
+        # "Gary Payton II" → last name "Payton" (nba_api's own last_name drops the suffix too).
+        words = [w for w in name.split() if w.rstrip(".") not in SUFFIXES]
+        first, last = (words[0], " ".join(words[1:])) if len(words) > 1 else (name, name)
         teams = r.get("teams") or []
         starts = [t["start_year"] for t in teams if isinstance(t.get("start_year"), int)]
         ends = [t["end_year"] for t in teams if isinstance(t.get("end_year"), int)]
         players.append(Player(
-            person_id=int(r["person_id"]), full_name=name[:120], first_name=first[:60], last_name=(last or first)[:60],
+            person_id=int(r["person_id"]), full_name=name[:120], first_name=first[:60], last_name=last[:60],
             from_year=min(starts) if starts else None, to_year=max(ends) if ends else None, is_active=bool(r.get("is_active")),
         ))
     Player.objects.bulk_create(players, batch_size=500, ignore_conflicts=True)

@@ -325,7 +325,7 @@ async function main(argv) {
     const { bugs, bad } = loadBugs(runDir);
     if (!bugs.length && !bad.length) return;
     const un = state.unverified ||= { checks: [] };
-    for (const b of bugs) for (const ch of b.checks || []) if (!un.checks.includes(ch)) un.checks.push(ch);
+    for (const b of bugs) for (const ch of Array.isArray(b?.checks) ? b.checks : []) if (typeof ch === 'string' && !un.checks.includes(ch)) un.checks.push(ch);
     const r = await runNode(S.checkBugs(id));
     const m = lastMatch(r.lines, /^check-bugs done: (\d+) new \S (\d+) seen again \S (\d+) error/);
     const c = state.cards.checkBugs ||= { new: 0, seen: 0, errors: 0 };
@@ -383,7 +383,8 @@ async function main(argv) {
         log(`triage needed (claude not used): ${lg.digest}`);
         state.notes.push(`logic triage needed: ${lg.digest}`);
       } else if (lg.runDir && !existsSync(path.join(lg.runDir, 'findings', 'logic.json'))) {
-        state.notes.push(`logic ${lg.id}: triage wrote no findings/logic.json, its ${lg.fails} FAIL section(s) were not carded`);
+        // The triage writes findings/logic.json even when it keeps nothing: its absence means it did not finish.
+        state.notes.push(`logic ${lg.id}: triage did not finish (no findings/logic.json), its ${lg.fails} FAIL section(s) were not carded`);
       }
     }
     if (lg.runDir && existsSync(path.join(lg.runDir, 'findings', 'logic.json'))) {
@@ -409,8 +410,9 @@ async function main(argv) {
           log(`judges needed (claude not used): ${u.digest}`);
           state.notes.push(`ui judges needed: ${u.digest}`);
         } else if (!existsSync(path.join(u.runDir, 'findings.json'))) {
-          // The judges ran but nothing validated (a validate error, a timeout): their findings never reach Notion.
-          state.notes.push(`ui ${u.id}: judges wrote no findings.json, its ${u.fails} FAIL section(s) were not carded`);
+          // report.mjs writes findings.json even with nothing kept: without it validation never finished (a stack
+          // error, a timeout), so the judges' findings never reach Notion.
+          state.notes.push(`ui ${u.id}: validation did not finish (no findings.json), its ${u.fails} FAIL section(s) were not carded`);
         }
       }
       if (existsSync(path.join(u.runDir, 'findings.json'))) await pushCards('ui', u.id);
