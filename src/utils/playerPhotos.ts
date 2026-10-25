@@ -1,9 +1,8 @@
-// Where a player's photo comes from. cdn.nba.com has real headshots for roughly every
-// player since 2000 but answers a missing id with its own grey silhouette (never a 404),
-// so `onError` can't detect a missing photo. scripts/player-photos/build.mjs records the
-// exceptions in /photos/player-photos.json: players served from Wikimedia Commons instead,
-// and players with no photo anywhere (they get the app's silhouette). An id the map doesn't
-// mention uses cdn.nba.com.
+// Where a player's photo comes from: Wikimedia Commons (free licences, credited on /credits),
+// else the app's silhouette. scripts/player-photos/build.mjs lists every player in
+// /photos/player-photos.json, as a Commons file (with its face box) or in `none`. An id the
+// map doesn't mention gets the silhouette too; `npm run check:photos` makes sure there is none.
+// No photo comes from cdn.nba.com (its headshots are NBA property).
 import { useEffect, useState } from "react";
 
 /** A Commons entry: ["a/ab/File_name.jpg", original width, original height, then optionally the
@@ -16,12 +15,9 @@ type CommonsEntry =
 
 interface PhotoMap {
   commons: Record<string, CommonsEntry>;
-  /** person_ids with no photo on either source */
+  /** person_ids with no usable free photo (the silhouette) */
   none: number[];
 }
-
-/** "sm" for avatar-sized slots (<= ~60px), "lg" for cards and reveals. */
-export type PhotoSize = "sm" | "lg";
 
 /** How a frame crops a Commons photo (see placePhoto): a small `avatar` (circle or tiny square)
  *  zooms onto the face, a `card` keeps the head in view, a wide `strip` shows the whole photo. */
@@ -35,11 +31,8 @@ export interface PhotoFace {
   fh?: number;
 }
 
-export type PhotoSource =
-  | { source: "nba"; src: string }
-  | { source: "commons"; path: string; width: number; aspect: number; face?: PhotoFace };
+export type PhotoSource = { source: "commons"; path: string; width: number; aspect: number; face?: PhotoFace };
 
-const NBA_SIZE: Record<PhotoSize, string> = { sm: "260x190", lg: "1040x760" };
 // Commons' standard thumbnail widths (other widths are throttled), smallest first.
 const COMMONS_BUCKETS = [120, 250, 330, 500, 960, 1280];
 
@@ -47,7 +40,7 @@ let map: PhotoMap | null = null;
 let none: Set<number> | null = null;
 let mapPromise: Promise<void> | null = null;
 
-/** Fetch the map once per session. A failed fetch means "everything from cdn.nba.com". */
+/** Fetch the map once per session. A failed fetch means "everyone on the silhouette". */
 export function loadPhotoMap(): Promise<void> {
   if (!mapPromise) {
     mapPromise = fetch("/photos/player-photos.json")
@@ -126,7 +119,7 @@ export function placePhoto(W: number, H: number, aspect: number, face: PhotoFace
 }
 
 /** The photo to show, or null for "no photo, use the silhouette". Call after loadPhotoMap. */
-export function photoSource(personId: number, size: PhotoSize): PhotoSource | null {
+export function photoSource(personId: number): PhotoSource | null {
   if (none?.has(personId)) return null;
   const c = map?.commons[String(personId)];
   if (c) {
@@ -134,7 +127,7 @@ export function photoSource(personId: number, size: PhotoSize): PhotoSource | nu
     const face = cx == null || cy == null ? undefined : { cx: cx / 100, cy: cy / 100, fw: fw == null ? undefined : fw / 100, fh: fh == null ? undefined : fh / 100 };
     return { source: "commons", path, width, aspect: height / width, face };
   }
-  return { source: "nba", src: `https://cdn.nba.com/headshots/nba/latest/${NBA_SIZE[size]}/${personId}.png` };
+  return null;
 }
 
 let ids: Record<string, number> | null = null;
@@ -178,7 +171,7 @@ export function usePersonIdByName(name: string | null | undefined): number | nul
 
 /** undefined while the map (or an undefined = still-resolving personId) loads; render nothing
  *  yet, so there is no silhouette -> photo swap. null personId = unknown player. */
-export function usePhotoSource(personId: number | null | undefined, size: PhotoSize): PhotoSource | null | undefined {
+export function usePhotoSource(personId: number | null | undefined): PhotoSource | null | undefined {
   const [ready, setReady] = useState(map !== null);
   useEffect(() => {
     if (ready) return;
@@ -189,5 +182,5 @@ export function usePhotoSource(personId: number | null | undefined, size: PhotoS
     };
   }, [ready]);
   if (personId === null) return null;
-  return ready && personId !== undefined ? photoSource(personId, size) : undefined;
+  return ready && personId !== undefined ? photoSource(personId) : undefined;
 }
