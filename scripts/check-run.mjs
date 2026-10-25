@@ -40,6 +40,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ROOT, uicHome } from './check-core/lib/home.mjs';
 import { DEFAULT_BRANCH, acquireLease, releaseLease, releaseNotes, storeGit, sync } from './check-core/lib/state-store.mjs';
+import { loadBugs } from './check-core/check-bugs.mjs';
 
 const WIN = process.platform === 'win32';
 const CI = process.env.GITHUB_ACTIONS === 'true';
@@ -93,6 +94,7 @@ export function stepArgs(o) {
     logic: ['scripts/logic-check/run.mjs', '--suite', o.logicSuite, '--ref', 'main', ...(logicLive ? ['--live'] : []), '--keep-stack', ...P],
     validate: (id) => ['scripts/ui-check/report.mjs', '--run', id, '--validate', '--keep-stack'],
     push: (id, checker) => ['scripts/check-core/notion-push.mjs', '--run', id, '--checker', checker, '--target', 'main', ...(o.notion === 'dry' ? ['--dry-run'] : [])],
+    checkBugs: (id) => ['scripts/check-core/check-bugs.mjs', '--run', id, ...(o.notion === 'dry' ? ['--dry-run'] : [])],
     blockRun: (id) => ['scripts/check-core/lib/channel.mjs', 'block-run', '--run', id],
     ui: o.uiSuite === 'none' ? null : ['scripts/ui-check/run.mjs', '--suite', o.uiSuite, ...(o.uiVp !== 'all' ? ['--vp', o.uiVp] : []), '--ref', 'main', '--keep-stack', ...P],
     uiLive: o.uiLive ? ['scripts/ui-check/run.mjs', '--live', ...(o.uiVp !== 'all' ? ['--vp', o.uiVp] : [])] : null,
@@ -102,7 +104,7 @@ export function stepArgs(o) {
 }
 
 export const triagePrompt = (run, ports) => `Run only step 2 (Triage) of the logic-check skill (.claude/skills/logic-check/SKILL.md) for runDir ${run.runDir}, runId ${run.id}, mode prod. The stack is up on ${ports} (kept). Do not run the suites, report.mjs, notion-push, channel.mjs or run.mjs --stop: scripts/check-run.mjs runs those. Return at most 10 lines.`;
-export const judgesPrompt = (run, ports) => `Run only steps 2 and 3 of the ui-check skill (.claude/skills/ui-check/SKILL.md) for runDir ${run.runDir}, runId ${run.id}, mode prod: dispatch the judges for the suites that ran, then node scripts/ui-check/report.mjs --run ${run.id} --validate (one re-dispatch round). The stack is up on ${ports} (kept). Do not run steps 1, 1b, 3b or 4: scripts/check-run.mjs runs the suites, pushes the cards and stops the stack. Return at most 10 lines.`;
+export const judgesPrompt = (run, ports) => `Run only steps 2 and 3 of the ui-check skill (.claude/skills/ui-check/SKILL.md) for runDir ${run.runDir}, runId ${run.id}, mode prod: dispatch the judges for the suites that ran, then node scripts/ui-check/report.mjs --run ${run.id} --validate --ports ${ports} (one re-dispatch round; always pass these --ports: a --live run records none). The stack is up on ${ports} (kept). Do not run steps 1, 1b, 3b or 4: scripts/check-run.mjs runs the suites, pushes the cards and stops the stack. Return at most 10 lines.`;
 
 /** The last line matching re → its match, else null. */
 export function lastMatch(lines, re) {
@@ -177,11 +179,12 @@ function planLines(o, { home, logFile, stateFile, lock, branch, isMain, claude }
     '3b. if its digest has \'## FAIL\' sections: claude --dangerously-skip-permissions --model sonnet -p <logic-check skill step 2 (Triage)> (prompt on stdin)',
     `3c. if <runDir>/findings/logic.json: ${n(s.validate('<3a run>'))}`,
     `3d. ${n(s.push('<3a run>', 'logic'))}`,
-    `3e. ${n(s.blockRun('<3a run>'))}; store sync`,
+    `3e. ${n(s.blockRun('<3a run>'))}`,
+    `3f. if <runDir>/check-bugs/*.json: ${n(s.checkBugs('<3a run>'))}; triage ran but wrote no findings/logic.json -> a note; store sync`,
     `4a. ${s.ui ? n(s.ui) : '(--ui-suite none: no UI check)'}`,
     `4b. ${s.uiLive ? n(s.uiLive) : '(--ui-live off)'}`,
     '4c. per 4a/4b run with \'## FAIL\' sections: claude --dangerously-skip-permissions --model sonnet -p <ui-check skill steps 2-3: judges + validate>',
-    `4d. per 4a/4b run with findings.json: ${n(s.push('<run>', 'ui'))}; store sync`,
+    `4d. per 4a/4b run with findings.json: ${n(s.push('<run>', 'ui'))}; with check-bugs/*.json: ${n(s.checkBugs('<run>'))}; judges ran but no findings.json -> a note (its failures were not carded); store sync`,
     `5.  ${n(s.retain(home))}`,
     `6a. ${n(s.stop)}`,
     '6b. store sync --notes, release the notes overlay; lease release (ok | failed)',
@@ -315,6 +318,19 @@ async function main(argv) {
     const c = state.cards[name] ||= { new: 0, regression: 0, skipped: 0, errors: 0 };
     if (m) { c.new += +m[1]; c.regression += +m[2]; c.skipped += +m[3]; c.errors += +m[4]; } else if (r.code !== 0) c.errors += 1;
   };
+  // Failures a judge or the triage dropped as the check's own fault (<runDir>/check-bugs/*.json) → [check-bug] cards, and
+  // their checks go into the Slack line as unverified: dropped quietly, a stale check guards nothing week after week.
+  const pushCheckBugs = async (runDir, id) => {
+    if (!runDir) return;
+    const { bugs, bad } = loadBugs(runDir);
+    if (!bugs.length && !bad.length) return;
+    const un = state.unverified ||= { checks: [] };
+    for (const b of bugs) for (const ch of Array.isArray(b?.checks) ? b.checks : []) if (typeof ch === 'string' && !un.checks.includes(ch)) un.checks.push(ch);
+    const r = await runNode(S.checkBugs(id));
+    const m = lastMatch(r.lines, /^check-bugs done: (\d+) new \S (\d+) seen again \S (\d+) error/);
+    const c = state.cards.checkBugs ||= { new: 0, seen: 0, errors: 0 };
+    if (m) { c.new += +m[1]; c.seen += +m[2]; c.errors += +m[3]; } else if (r.code !== 0) c.errors += 1;
+  };
 
   try {
     log(`check-run ${ts} | repo ${ROOT} (${branch}) | home ${home} | ports ${o.ports} | store ${git ? o.stateBranch : 'off'} | holder ${o.holder} | claude ${claude ? 'yes' : 'no'}${envFile ? ` | env ${envFile}` : ''}`);
@@ -361,9 +377,15 @@ async function main(argv) {
     const lg = await checker('logic', S.logic);
     state.runs.logic = lg.id; state.exits.logic = lg.code;
     if ((lg.code !== 0 && lg.code !== 1) || !lg.digest) { infra = true; state.notes.push(`logic run infra exit ${lg.code} (run ${lg.id}), see ${logFile}`); }
-    else if (lg.fails > 0 && (await runClaude(`logic triage ${lg.id}`, triagePrompt(lg, o.ports))) === 'missing') {
-      log(`triage needed (claude not used): ${lg.digest}`);
-      state.notes.push(`logic triage needed: ${lg.digest}`);
+    else if (lg.fails > 0) {
+      const t = await runClaude(`logic triage ${lg.id}`, triagePrompt(lg, o.ports));
+      if (t === 'missing') {
+        log(`triage needed (claude not used): ${lg.digest}`);
+        state.notes.push(`logic triage needed: ${lg.digest}`);
+      } else if (lg.runDir && !existsSync(path.join(lg.runDir, 'findings', 'logic.json'))) {
+        // The triage writes findings/logic.json even when it keeps nothing: its absence means it did not finish.
+        state.notes.push(`logic ${lg.id}: triage did not finish (no findings/logic.json), its ${lg.fails} FAIL section(s) were not carded`);
+      }
     }
     if (lg.runDir && existsSync(path.join(lg.runDir, 'findings', 'logic.json'))) {
       const v = await runNode(S.validate(lg.id));
@@ -373,6 +395,7 @@ async function main(argv) {
       const bm = lastMatch(b.lines, /^block-run: (\d+) new \S (\d+) kept/);
       if (bm) { state.blocks.new += +bm[1]; state.blocks.kept += +bm[2]; }
     }
+    await pushCheckBugs(lg.runDir, lg.id);
     storeSync('logic');
 
     // 4. UI check on main, then the @live subset → judges → push. Blocks written in 3 defer their checks.
@@ -381,11 +404,19 @@ async function main(argv) {
     if (S.uiLive) { const live = await checker('ui', S.uiLive); state.runs.uiLive = live.id; state.exits.uiLive = live.code; uiRuns.push(live); }
     for (const u of uiRuns) {
       if (u.code === 2 || !u.digest) { infra = true; state.notes.push(`ui infra (exit ${u.code}) run ${u.id}`); continue; }
-      if (u.fails > 0 && (await runClaude(`ui judges ${u.id}`, judgesPrompt(u, o.ports))) === 'missing') {
-        log(`judges needed (claude not used): ${u.digest}`);
-        state.notes.push(`ui judges needed: ${u.digest}`);
+      if (u.fails > 0) {
+        const j = await runClaude(`ui judges ${u.id}`, judgesPrompt(u, o.ports));
+        if (j === 'missing') {
+          log(`judges needed (claude not used): ${u.digest}`);
+          state.notes.push(`ui judges needed: ${u.digest}`);
+        } else if (!existsSync(path.join(u.runDir, 'findings.json'))) {
+          // report.mjs writes findings.json even with nothing kept: without it validation never finished (a stack
+          // error, a timeout), so the judges' findings never reach Notion.
+          state.notes.push(`ui ${u.id}: validation did not finish (no findings.json), its ${u.fails} FAIL section(s) were not carded`);
+        }
       }
       if (existsSync(path.join(u.runDir, 'findings.json'))) await pushCards('ui', u.id);
+      await pushCheckBugs(u.runDir, u.id);
     }
     storeSync('ui');
 

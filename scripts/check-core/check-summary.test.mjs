@@ -42,3 +42,13 @@ test('CLI reads the state file and the pending deferrals of channel.json', () =>
   assert.equal(r.stdout.trim(), 'nba-checks 1m · logic r1 exit 0: no cards pushed, 0 block(s) written · ui not run + live not run: no cards pushed · resolved 0 · deferred 1');
   assert.equal(spawnSync(process.execPath, [cli], { encoding: 'utf8' }).status, 2);
 });
+
+test('summaryLine: checks dropped as check bugs are named as unverified, with their cards', () => {
+  const line = summaryLine({
+    durationSec: 60,
+    cards: { checkBugs: { new: 2, seen: 1, errors: 0 } },
+    unverified: { checks: ['LC-GAMEDATA-02', 'AC-LOGIN-01', 'AC-PROFILE-02'] },
+  });
+  assert.ok(line.includes(' · UNVERIFIED 3 check(s) (LC-GAMEDATA-02, AC-LOGIN-01, AC-PROFILE-02): 2 new check-bug card(s), 1 still open'), line);
+  assert.ok(!summaryLine({ durationSec: 60, unverified: { checks: [] } }).includes('UNVERIFIED'));
+});

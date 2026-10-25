@@ -18,5 +18,10 @@
   "drawerFeedback": { "css": "#nav-drawer button.drawer-link:has-text('Feedback')" },
   "drawerProfile": { "css": "#nav-drawer button.drawer-link:has-text('Profile settings')" },
   "drawerLogin": { "css": "#nav-drawer button:text-is('Log in / Sign up')" },
-  "drawerLogout": { "css": "#nav-drawer .drawer-foot button:text-is('Log out')" }
+  "drawerLogout": { "css": "#nav-drawer .drawer-foot button:text-is('Log out')" },
+  "_logoutConfirm": "Every player-started log out asks first (src/components/modals/ConfirmLogoutModal.tsx): Cancel (focused) keeps the session, Log out confirms.",
+  "logoutConfirm": { "css": ".modal-panel button:text-is('Log out')" },
+  "logoutCancel": { "css": ".modal-panel button:text-is('Cancel')" },
+  "_rankUpKeepPlaying": "A finished game that lifts the account a rank opens \"Rank up!\" over the end screen (src/components/modals/RankUpModal.tsx); Keep playing closes it.",
+  "rankUpKeepPlaying": { "css": ".modal-panel button:text-is('Keep playing')" }
 }

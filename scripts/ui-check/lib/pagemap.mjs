@@ -37,3 +37,15 @@ export function L(page, key) {
   if (e.text) return page.getByText(e.text, { exact: !!e.exact });
   throw new Error(`pagemap: entry "${key}" needs role, css or text`);
 }
+
+/** Choose `label` in the app's dropdown at pagemap `key` (src/components/ui/Select.tsx: a `role="combobox"` button
+ *  whose listbox renders in a portal, never a native select) as a player does: open it, click the option, and wait
+ *  until the trigger shows it. */
+export async function pick(page, key, label) {
+  const trigger = L(page, key);
+  await trigger.click();
+  const name = await trigger.getAttribute('aria-label');
+  const list = name ? page.getByRole('listbox', { name, exact: true }) : page.getByRole('listbox');
+  await list.getByRole('option', { name: label, exact: true }).click();
+  await trigger.locator('.sel-sr').filter({ hasText: label }).waitFor({ state: 'attached', timeout: 5000 });
+}

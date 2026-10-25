@@ -33,7 +33,7 @@ export const notionUrl = (id) => `https://www.notion.so/${String(id).replace(/-/
 const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 /** Source written by this run (anchored: run 20261014-1153 never matches run:20261014-1153x). */
 export const sourceHasRun = (source, runId) => new RegExp(`(^|\\s)run:${esc(runId)}(\\s|$)`).test(String(source || ''));
-const seenRe = (runId) => new RegExp(`${esc(seenText(runId))}(?![\\w-])`);
+export const seenRe = (runId) => new RegExp(`${esc(seenText(runId))}(?![\\w-])`);
 
 /** Notion through scripts/notion.mjs (one process per call, like the pipeline's intake), shipped-ness through git. */
 export function cliClient({ root = ROOT } = {}) {

@@ -355,6 +355,15 @@ the truth. Design: `docs/superpowers/specs/2026-10-15-checks-prod-logic-design.m
   card (Needs human, comment, Slack) — the pipeline never rolls back or fixes forward on its own.
   `Target = dev` ships exactly like any other card.
 
+**Check-bug cards** (`[check-bug] <check ids>: …`, Source `check-bug fp:<key> …`, since 2026-10-25). When a judge or
+the Logic triage drops a failure because the *check* is wrong — out of date with an on-purpose app change (`spec`) or
+broken by its environment (`env`: the check stack, a seed, the runner's network) — it writes `<runDir>/check-bugs/
+<writer>.json` and the weekly run files one card per cause with `scripts/check-core/check-bugs.mjs` (Category pipeline,
+Priority P1, Target dev: the checker tooling lives on dev). Their Source does not start with `ui-check`/`logic-check`, so
+they are ordinary cards (no findings attachment, no verify gate): the body names what went unverified and the
+acceptance is the check passing on main while still guarding its rule. The weekly Slack line lists those checks as
+`UNVERIFIED`; the same cause next week comments "seen again" on the open card.
+
 **Efficiency.** A check card costs one classify (no judgment left to make), no plan writer, no design
 round, one engine pass that starts from file:line pointers, and a QA gate that is the finding's own
 acceptance re-run — the same judge the checker used.

@@ -13,6 +13,7 @@ import { attempt, clientIp, deleteAccount, said, throwawayName } from '../../lib
 import { visibleGames } from '../../../ui-check/lib/games-catalog.mjs';
 import { appRepo, djangoEnv, venvPython } from '../../../ui-check/lib/stack.mjs';
 import { ROLES, credentials, mintTokens } from '../../../check-core/lib/accounts.mjs';
+import { awardRules, receiptProblems } from '../../lib/awarding.mjs';
 
 const ACTOR = ROLES['logic.actor'];
 const env = prodEnv();
@@ -20,9 +21,10 @@ const DATA_BASE = env.VITE_DATA_BASE; // the v3 data host the build bakes in (th
 const QUESTIONS_BASE = env.VITE_QUESTIONS_BASE;
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
 const short = (s, n = 100) => { s = String(s ?? '').replace(/\s+/g, ' ').trim(); return s.length > n ? `${s.slice(0, n)}…` : s; };
-// A row's identity: the first of these keys every row of the pool carries (playoff match_id, name-logo team_id, mvps
-// season, starting-five game_id, fan-favorites / who-would-win qid, players-index person_id).
-const ID_KEYS = ['qid', 'id', 'person_id', 'match_id', 'game_id', 'team_id', 'season'];
+// A row's identity: the first of these keys (or key sets) every row of the pool carries (playoff match_id, name-logo
+// team_id, mvps award + season — five awards share a season since 2026-10-20 —, starting-five game_id, fan-favorites /
+// who-would-win qid, players-index person_id).
+const ID_KEYS = ['qid', 'id', 'person_id', 'match_id', 'game_id', 'team_id', ['award', 'season'], 'season'];
 
 const readApp = (rel) => { try { return readFileSync(path.join(appRepo(), rel), 'utf8'); } catch { return ''; } };
 
@@ -31,31 +33,26 @@ function rowProblems(rows) {
   if (!Array.isArray(rows)) return { problems: [`${typeof rows}, not an array`] };
   if (!rows.length) return { problems: ['an empty pool'] };
   if (!rows.every(isObj)) return { problems: ['a row is not an object'] };
-  const idKey = ID_KEYS.find((k) => rows.every((r) => r[k] !== undefined && r[k] !== null));
-  if (!idKey) return { problems: [] };
+  const parts = (k) => (Array.isArray(k) ? k : [k]);
+  const found = ID_KEYS.find((k) => rows.every((r) => parts(k).every((p) => r[p] !== undefined && r[p] !== null)));
+  if (!found) return { problems: [] };
+  const idKey = parts(found).join('+');
   const seen = new Set();
   const dups = [];
-  for (const r of rows) { const k = JSON.stringify(r[idKey]); if (seen.has(k)) dups.push(k); seen.add(k); }
+  for (const r of rows) { const k = JSON.stringify(parts(found).map((p) => r[p]).join('|')); if (seen.has(k)) dups.push(k); seen.add(k); }
   return { problems: dups.length ? [`${dups.length} duplicate ${idKey}(s), e.g. ${short(dups[0], 40)}`] : [], idKey };
 }
 
-/** The account rank names by points, parsed from backend/users/models.py update_rank (highest threshold first). */
+const num = (s) => Number(String(s).replace(/_/g, ''));
+/** The rank ladder, parsed from backend/users/ranks.py LADDER (`Rank("name", points, days)`), highest first. */
 function rankTiers() {
-  const src = readApp('backend/users/models.py');
-  const body = /def update_rank\(self\):([\s\S]*?)\n\s*else:\s*\n\s*self\.rank = "([^"]+)"/.exec(src);
+  const src = readApp('backend/users/ranks.py');
+  const body = /^LADDER\s*=\s*\(([\s\S]*?)^\)/m.exec(src);
   if (!body) return null;
-  const tiers = [...body[1].matchAll(/self\.points >= (\d+):\s*\n\s*self\.rank = "([^"]+)"/g)].map((m) => ({ min: Number(m[1]), name: m[2] }));
-  return { tiers, base: body[2] };
+  const tiers = [...body[1].matchAll(/Rank\("([^"]+)",\s*([\d_]+),\s*([\d_]+)\)/g)].map((m) => ({ name: m[1], min: num(m[2]), days: num(m[3]) }));
+  return tiers.length ? tiers.reverse() : null;
 }
-/** log-session's score caps from backend/trivia/views.py → { max, perGame: { id: cap } } or null. */
-function sessionCaps() {
-  const src = readApp('backend/trivia/views.py');
-  const max = /^MAX_SESSION_POINTS\s*=\s*(\d+)/m.exec(src);
-  const per = /^PER_GAME_MAX_POINTS\s*=\s*\{([^}]*)\}/m.exec(src);
-  if (!max || !per) return null;
-  return { max: Number(max[1]), perGame: Object.fromEntries([...per[1].matchAll(/"([^"]+)"\s*:\s*(\d+)/g)].map((m) => [m[1], Number(m[2])])) };
-}
-const tierOf = (t, points) => (t ? (t.tiers.find((x) => points >= x.min)?.name ?? t.base) : null);
+const tierOf = (t, points, days) => (t ? (t.find((x) => points >= x.min && days >= x.days) ?? t[t.length - 1]).name : null);
 
 test('[LC-GAMEDATA-01] every visible game\'s data sources load: JSON, expected shape, non-empty pool, no duplicate ids', async ({ api, lc, baseURL }) => {
   const origin = backendOrigin(api.base);
@@ -183,49 +180,58 @@ test('[LC-GAMEDATA-02] log-session credits exactly the reported score: /me/ poin
   const route = '/trivia/log-session/';
   const origin = backendOrigin(api.base);
   const tiers = rankTiers();
-  if (!tiers) lc.violation('setup', { route, selector: 'backend/users/models.py update_rank', measured: 'not parsed', expected: 'the points → rank tiers' });
+  if (!tiers) lc.violation('setup', { route, selector: 'backend/users/ranks.py LADDER', measured: 'not parsed', expected: 'the points → rank ladder' });
+  const rules = awardRules(readApp('backend/trivia/awarding.py'));
+  if (!rules) lc.violation('setup', { route, selector: 'backend/trivia/awarding.py GAME_MAX_POINTS / DEFAULT_MAX_POINTS / FIRST_GAME_BONUS / STREAK_MILESTONES', measured: 'not parsed', expected: 'the score caps and the bonuses' });
   const game = visibleGames().find((g) => g.data && g.data.fn === 'fetchGamePool');
   const SCORE = 37;
   const log = (body, token) => attempt(api.fetch(`${origin}${route}`, { method: 'POST', body, token, headers: { 'x-forwarded-for': clientIp() } }));
   const { access } = (await mintTokens([ACTOR]))[ACTOR];
 
-  /** One authenticated POST: the answer's `awarded` and `points` agree with /me/ before and after. */
-  async function play(label, body, { awarded: want }) {
-    await test.step(`${label} → awarded ${Array.isArray(want) ? want.join(' or ') : want}`, async () => {
+  /** One authenticated POST: base = the clamped score, the bonuses follow the day's activity exactly
+   *  (lib/awarding.mjs receiptProblems: /me/ active_days and streak_days before and after) and the receipt's `awarded`
+   *  and `points` agree with /me/. `base: null` = an uncredited play (awarded 0, no receipt parts). */
+  async function play(label, body, { base: want }) {
+    await test.step(`${label} → base ${want === null ? 'none (awarded 0)' : Array.isArray(want) ? want.join(' or ') : want}`, async () => {
       const before = await me(api, lc, 'logic.actor', `before ${label}`);
       if (!before) return;
       const r = await log(body, access);
       const selector = `POST ${route} ${label}`;
       if (r.status !== 200 || !r.json || r.json.ok !== true) { lc.violation(r.status >= 500 ? 'server-error' : 'log-session', { route, selector, measured: said(r), expected: '200 { ok: true, awarded, points, rank }' }); return; }
       const got = r.json.awarded;
-      const allowed = Array.isArray(want) ? want : [want];
-      if (!allowed.includes(got)) lc.violation('log-session', { route, selector: `${selector} awarded`, measured: String(got), expected: allowed.join(' or ') });
       const after = await me(api, lc, 'logic.actor', `after ${label}`);
       if (!after) return;
+      if (want === null) {
+        if (got !== 0) lc.violation('log-session', { route, selector: `${selector} awarded`, measured: String(got), expected: '0' });
+        if (after.active_days !== before.active_days) lc.violation('log-session', { route: '/api/me/', selector: `/me/ active_days after ${label}`, measured: `${before.active_days} → ${after.active_days}`, expected: 'unchanged (an uncredited play counts no day)' });
+      } else {
+        const allowed = Array.isArray(want) ? want : [want];
+        if (!allowed.includes(r.json.base)) lc.violation('log-session', { route, selector: `${selector} base`, measured: String(r.json.base), expected: allowed.join(' or ') });
+        if (rules) for (const p of receiptProblems(r.json, before, after, rules)) lc.violation('log-session', { route, selector: `${selector} ${p.part}`, measured: p.measured, expected: p.expected });
+      }
       lc.metric(`${label}: awarded`, got, { unit: 'pts', route, kind: 'data' });
       if (after.points - before.points !== got) lc.violation('points', { route: '/api/me/', selector: `/me/ points after ${label}`, measured: `${before.points} → ${after.points} (Δ ${after.points - before.points})`, expected: `Δ ${got} (exactly what log-session reported, once)` });
       if (r.json.points !== after.points) lc.violation('points', { route, selector: `${selector} points`, measured: String(r.json.points), expected: `${after.points} (/me/)` });
-      if (tiers && after.rank !== tierOf(tiers, after.points)) lc.violation('rank-tier', { route: '/api/me/', selector: '/me/ rank', measured: `${after.rank} at ${after.points} points`, expected: `${tierOf(tiers, after.points)} (users.models update_rank)` });
+      const tier = tierOf(tiers, after.points, after.active_days ?? 0);
+      if (tiers && after.rank !== tier) lc.violation('rank-tier', { route: '/api/me/', selector: '/me/ rank', measured: `${after.rank} at ${after.points} points`, expected: `${tier} (users/ranks.py LADDER)` });
       if (r.json.rank !== after.rank) lc.violation('rank-tier', { route, selector: `${selector} rank`, measured: String(r.json.rank), expected: `${after.rank} (/me/)` });
     });
   }
 
   const body = { game: game.id, mode: 'single', score: SCORE, duration_ms: 60_000 };
-  await play(`single ${game.id} score ${SCORE}`, body, { awarded: SCORE });
+  await play(`single ${game.id} score ${SCORE}`, body, { base: SCORE });
   // The backend keeps no per-play key: every POST is one finished game (a GameSession row) and is credited; the site's
   // MiniGame awardedRef sends it once per game, and score-submit 60/h bounds a replay. Asserted: whatever it reports as
-  // awarded (37 today, 0 if a dedupe lands) is exactly what /me/ gains — never a hidden double count.
-  await play('the identical POST again', body, { awarded: [SCORE, 0] });
-  await play('mode match (online results are the relay\'s to credit, AUTH-7)', { ...body, mode: 'match' }, { awarded: 0 });
-  await play('score 0', { ...body, score: 0 }, { awarded: 0 });
-  // The clamp: a forged score is awarded exactly the game's cap (views.py PER_GAME_MAX_POINTS, else MAX_SESSION_POINTS).
+  // awarded (base 37 today, 0 if a dedupe lands, never a second first-game bonus) is exactly what /me/ gains.
+  await play('the identical POST again', body, { base: [SCORE, 0] });
+  await play('mode match (online results are the relay\'s to credit, AUTH-7)', { ...body, mode: 'match' }, { base: null });
+  await play('score 0', { ...body, score: 0 }, { base: 0 });
+  // The clamp: a forged score's base is exactly the game's cap (awarding.GAME_MAX_POINTS, else DEFAULT_MAX_POINTS).
   // The visible game with the smallest cap keeps what the actor gains per run small.
-  const caps = sessionCaps();
-  if (!caps) lc.violation('setup', { route, selector: 'backend/trivia/views.py MAX_SESSION_POINTS / PER_GAME_MAX_POINTS', measured: 'not parsed', expected: 'the score caps' });
-  else {
-    const capOf = (id) => caps.perGame[id] ?? caps.max;
+  if (rules) {
+    const capOf = (id) => rules.perGame[id] ?? rules.max;
     const capped = visibleGames().filter((g) => g.data && g.data.fn !== 'fetchGameData').sort((a, b) => capOf(a.id) - capOf(b.id))[0];
-    await play(`score 1e6 on ${capped.id} (cap ${capOf(capped.id)})`, { ...body, game: capped.id, score: 1e6 }, { awarded: capOf(capped.id) });
+    await play(`score 1e6 on ${capped.id} (cap ${capOf(capped.id)})`, { ...body, game: capped.id, score: 1e6 }, { base: capOf(capped.id) });
   }
   await test.step('a guest → 200, awarded 0, no account', async () => {
     const r = await log(body, null);

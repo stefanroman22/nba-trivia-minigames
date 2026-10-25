@@ -679,9 +679,22 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
   return { ctx, ...result };
 }
 
+/** A finished game that lifts the account a rank opens "Rank up!" over the end screen (an app feature: a fresh account
+ *  ranks up on its first scored game). Close it as a player does, with Keep playing, before the end screen's controls:
+ *  behind it every click waits for the test timeout (GM-wordle-perfect timed out on every @perf viewport). */
+async function closeRankUp(audit) {
+  const keep = L(audit.page, 'common.rankUpKeepPlaying').first();
+  if (!(await keep.waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false))) return;
+  await audit.shot('rank-up');
+  await keep.click();
+  await keep.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
+  audit.metrics.push({ kind: 'note', label: 'rank-up modal closed after the end', value: 1, unit: '', route: audit.route });
+}
+
 /** After the end: Play again → playing shell → Close game → idle; or (closeFromEnd, or `playAgain: false`) the end screen's Close game → idle. */
 export async function afterEnd(audit, adapter, { closeFromEnd = false } = {}) {
   const page = audit.page;
+  await closeRankUp(audit);
   const again = L(page, 'games.endPlayAgain');
   // A daily game (Wordle) is locked once its play is used: closing lands on the countdown note, not on a Play button.
   const idleReady = async () => { await expect(L(page, adapter.idleAfterPlay || 'games.playBtn')).toBeVisible({ timeout: 10_000 }); };

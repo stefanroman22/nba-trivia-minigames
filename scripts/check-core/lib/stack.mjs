@@ -77,9 +77,16 @@ export function venvPython(repo = appRepo()) {
   return WIN ? 'python' : 'python3';
 }
 
+/** The check stack's settings module (djsettings/check_settings.py: the app's settings + sqlite IMMEDIATE/timeout). */
+export const CHECK_SETTINGS_DIR = path.join(ROOT, 'scripts', 'check-core', 'lib', 'djsettings');
+export const checkSettingsEnv = () => ({
+  DJANGO_SETTINGS_MODULE: 'check_settings',
+  PYTHONPATH: [CHECK_SETTINGS_DIR, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter),
+});
+
 /** Env for anything Django: always the local sqlite DB and locmem cache, never the dev-env probe. */
 export function djangoEnv(extra = {}) {
-  return { ...process.env, DATABASE_URL: '', REDIS_URL: '', NBA_DEV_ENV_SKIP: '1', PYTHONUNBUFFERED: '1', ...extra };
+  return { ...process.env, DATABASE_URL: '', REDIS_URL: '', NBA_DEV_ENV_SKIP: '1', PYTHONUNBUFFERED: '1', ...checkSettingsEnv(), ...extra };
 }
 
 const sleepSync = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -356,9 +363,34 @@ function nextBuild(env, stamp, repo) {
   log(`next build done in ${Math.round((Date.now() - t0) / 1000)}s`);
 }
 
+const PREPARE_SQLITE = path.join(ROOT, 'scripts', 'check-core', 'lib', 'prepare_sqlite.py');
+const SQLITE_SIDECARS = ['backend/db.sqlite3-wal', 'backend/db.sqlite3-shm'];
+
+/** WAL mode (prepare_sqlite.py) keeps db.sqlite3-wal / -shm next to the database. Older refs' .gitignore names only
+ *  db.sqlite3, and an untracked file under backend/ marks the tested code dirty (codeState): list them in the clone's
+ *  shared info/exclude, which every worktree of it honours whatever ref it checks out. */
+export function excludeSqliteSidecars(repo) {
+  try {
+    const common = path.resolve(repo, git(['rev-parse', '--git-common-dir'], repo).toString('utf8').trim());
+    const file = path.join(common, 'info', 'exclude');
+    const have = existsSync(file) ? readFileSync(file, 'utf8') : '';
+    const lines = have.split(/\r?\n/);
+    const add = SQLITE_SIDECARS.filter((p) => !lines.includes(p));
+    if (!add.length) return;
+    mkdirSync(path.dirname(file), { recursive: true });
+    writeFileSync(file, `${have}${have && !have.endsWith('\n') ? '\n' : ''}${add.join('\n')}\n`);
+  } catch (e) { log(`warning: info/exclude not updated (${String(e.message).split('\n')[0]})`); }
+}
+
 function migrate(repo) {
   const r = spawnSync(venvPython(repo), ['manage.py', 'migrate', '--noinput', '-v', '0'], { cwd: path.join(repo, 'backend'), env: djangoEnv(), encoding: 'utf8', windowsHide: true });
   if (r.status !== 0) throw new Error(`manage.py migrate failed: ${((r.stderr || '') + (r.stdout || '')).slice(-600)}`);
+  // WAL (no more `database is locked` 500s under parallel checks) + Player rows (Wordle's words): prepare_sqlite.py.
+  excludeSqliteSidecars(repo);
+  const p = spawnSync(venvPython(repo), ['manage.py', 'shell', '-c', `import runpy; runpy.run_path(r'${PREPARE_SQLITE}', run_name='prepare')`], { cwd: path.join(repo, 'backend'), env: djangoEnv(), encoding: 'utf8', windowsHide: true });
+  const line = String(p.stdout || '').split(/\r?\n/).find((l) => l.startsWith('PREPARE_SQLITE:'));
+  if (p.status !== 0 || !line) log(`warning: prepare_sqlite.py failed, the checks run on a plain sqlite (expect "database is locked" and Wordle 500s): ${((p.stderr || '') + (p.stdout || '')).trim().split('\n').slice(-3).join(' | ').slice(0, 400)}`);
+  else log(line.replace('PREPARE_SQLITE: ', 'sqlite: '));
 }
 
 /**

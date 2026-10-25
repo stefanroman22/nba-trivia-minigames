@@ -1,7 +1,7 @@
 // Account suite: /profile (ProfileSettings) — username, player ID, photo with the age prompt, data export
 // and account deletion. The solo account is restored in a `finally` whatever happens.
 import { readFileSync } from 'node:fs';
-import { test, expect, L, seedContext } from '../../lib/fixtures.mjs';
+import { test, expect, L, pick, seedContext } from '../../lib/fixtures.mjs';
 import { mintTokens, credentials, forgetAge } from '../../lib/accounts.mjs';
 import { fileURLToPath } from 'node:url';
 import { LOCAL_LOAD } from '../../lib/guest.mjs';
@@ -131,8 +131,8 @@ test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo 
       }, { watch: ['.ps-card', 'form.photo-age'], settleMs: 700 });
       await audit.layout({ scope: 'main.ps-page' });
       await audit.shot('age-prompt');
-      await L(page, 'account.ageMonth').selectOption('6');
-      await L(page, 'account.ageYear').selectOption(String(new Date().getFullYear() - 30));
+      await pick(page, 'account.ageMonth', 'June');
+      await pick(page, 'account.ageYear', String(new Date().getFullYear() - 30));
       await motionStep(audit, 'age submitted, photo uploads', async () => {
         await L(page, 'account.ageContinue').click();
         await expect(state).toHaveText('Shown to other players', { timeout: 20_000 });

@@ -16,7 +16,7 @@ pictures: you never open an image.
 stack the run used is still up (`run.mjs --keep-stack`): probe with `--run <runId> --keep-stack` and never stop it.
 
 ## What you may write
-Only `<runDir>/findings/logic.json`, scratch files in `<runDir>/probe/`, and appended bullets in
+Only `<runDir>/findings/logic.json`, `<runDir>/check-bugs/logic.json` (section "Check bugs"), scratch files in `<runDir>/probe/`, and appended bullets in
 `scripts/logic-check/notes/logic.md`. The owner advisories are appended to `findings/logic.json` by
 `scripts/logic-check/lib/advisories.mjs` (step 6).
 
@@ -25,12 +25,12 @@ Only `<runDir>/findings/logic.json`, scratch files in `<runDir>/probe/`, and app
   matrix). A slow TTFB or a long frame is not yours unless a Logic check failed on it (`LC-LIVE-07`).
 - No screenshots, contact sheets or images of any kind, even when a browser case (`LC-PAGES-01`, `LC-AUTH-GOOGLE-01`,
   `LC-SIGNUP-UI-01`) left one.
-- No edits outside `<runDir>/findings/logic.json`, `<runDir>/probe/` and `scripts/logic-check/notes/logic.md`: never
+- No edits outside `<runDir>/findings/logic.json`, `<runDir>/check-bugs/logic.json`, `<runDir>/probe/` and `scripts/logic-check/notes/logic.md`: never
   `src/`, `backend/`, `multiplayer_server/`, the specs, `CHECKS.md`, `lib/`, `accepted.json` or the channel. No git
   command that changes state, no `run.mjs --stop`, no `notion-push`, no `channel.mjs` (the orchestrator owns them).
 - Never read the whole digest, `results.json`, a whole constraint doc or `docs/team/CODE_MAP.md` whole.
 - Never mark an expected-by-the-spec failure as fine: a matrix row the backend accepts is a finding (or, when the
-  backend's documented behaviour proves the row wrong, a `check-bug` line in your return, not a finding).
+  backend's documented behaviour proves the row wrong, a `spec` entry in `check-bugs/logic.json`, not a finding).
 
 ## Read budget
 1. Your digest slice (Bash tool): the header, every `## FAIL LC-…` section and the `## Coverage gaps` section of the
@@ -68,7 +68,8 @@ Only `<runDir>/findings/logic.json`, scratch files in `<runDir>/probe/`, and app
    cause (the same branch of the same view) are one finding; one check with two causes (`LC-SIGNUP-03`'s similarity
    validator vs the non-string password 500) is two findings.
 2. Drop what `notes/logic.md` calls a harness or environment issue (budget, `signup-budget`, `throttled`, a stack/minter
-   mismatch, a missing local fixture): list them in your return instead.
+   mismatch, a missing local fixture): list them in your return instead. One that hides what a check guards on every run
+   (a missing seed, a stack the check cannot use) is also an `env` entry in `check-bugs/logic.json` (section "Check bugs").
 3. Confirm each candidate with `probe.mjs` (next section). Not reproducible → drop it and add a notes bullet.
 4. Map it to source: real `files[{path, line, why}]` (CODE_MAP + Grep). Never invent a path or a line.
 5. Write the fix: `change` (concrete edits), `reuse` (existing helpers by name and path), `build` (only what Grep proves
@@ -136,6 +137,29 @@ Append only what a later run can reuse (a harness false positive and why, a prot
   reproduces, else rewrite the acceptance so it fails. `validation-error`: fix a bad path or persona; leave an infra
   error alone (the next `--validate` retries it). Rewrite `findings/logic.json` in place and validate it again.
 
+## Check bugs: the check's fault, not the app's
+A failure you drop because the **check** is wrong is not a false positive to forget: until someone fixes the check it
+fails every run and guards nothing, so a real regression behind it is never reported. Write one entry per cause to
+`<runDir>/check-bugs/logic.json` (a JSON array, Write tool) when:
+- `spec`: the backend or relay changed on purpose and the check still expects the old behaviour (a stale status, text,
+  number, parsed constant or rule). Prove "on purpose" from code plus its test or doc, never from a guess; a change
+  that only looks deliberate is a finding.
+- `env`: the check's own environment broke it, not the app: the check stack (a database lock, a missing seed or data
+  file), a cascade from an earlier step's leftover state.
+
+Never for a one-off that a re-probe passes (that is a notes bullet), never for what `notes/logic.md` calls intentional,
+and never instead of a finding: when the app is wrong too, write the finding as well. One cause shared by many checks
+is one entry (give it a stable `key`).
+`{"kind": "spec|env", "checks": ["<check id>", …], "key": "<optional slug, e.g. sqlite-locked>", "title": "<one line>",
+"current": "<what the check does or expects now>", "expected": "<what it must do to match the app>", "lost": "<what this
+run did not verify because of it>", "files": [{"path": "…", "line": 12, "why": "…"}], "fix": ["<concrete step>", …]}`:
+`files` names the check files to change and the app code that proves the behaviour. The orchestrator files each as a
+`[check-bug]` card (`scripts/check-core/check-bugs.mjs`, Category pipeline, Target dev); the same key next week comments
+on the open card instead of making another. Validate it:
+```
+node --input-type=module -e 'import {validateBug} from "./scripts/check-core/check-bugs.mjs";import {readFileSync} from "fs";const l=JSON.parse(readFileSync(process.argv[1],"utf8"));let n=0;l.forEach((e,i)=>{const p=validateBug(e);if(p.length){n++;console.log("#"+i+" "+p.join("; "))}});console.log(n?n+" invalid":"ok "+l.length)' "<runDir>/check-bugs/logic.json"
+```
+
 ## Return (≤ 10 lines)
 `logic: <n> findings (blocker a · major b · minor c) → <runDir>/findings/logic.json`, the advisories line, the digest
-lines dropped and why (counts), any `check-bug`, notes bullets added, anything that blocked you.
+lines dropped and why (counts), `check bugs: <n> → check-bugs/logic.json`, notes bullets added, anything that blocked you.
