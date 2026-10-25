@@ -25,6 +25,7 @@ its examples; this file does not repeat them). References, read per check, never
    says how to read it and where its contents may go (only into card `current`/`howToFix`).
 4. `scripts/seo/keyword-map.json`: `{ "<path>": { "primary", "related" } }`, the page's target query (whole file).
 5. `<runDir>/findings.json` (phase 1's, written earlier in this session) and `docs/seo/onpage-guide.md`, the area in hand.
+   Where docs/seo/onpage-guide.md and references/copy-examples.md differ, copy-examples.md wins (it is checked against the code).
 6. For copy: the game's entry (Grep `id: "<slug>"` in `src/utils/GameUtils.tsx`, Read about 30 lines), its scoring
    (Grep the game in `src/utils/gameScoring.ts`), its renderer in `src/Game Renderers/` only when those two leave a
    rule open. Never an image file: the builder writes the alt from the artwork (`references/copy-examples.md`).

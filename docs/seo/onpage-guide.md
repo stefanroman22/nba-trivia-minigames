@@ -128,7 +128,7 @@ turn green (right spot), yellow (in the name, wrong spot) or gray (not in it).</
 <h2>Scoring</h2>
 <p>Solve it on the first try for 500 points; each wrong attempt costs 100.</p>
 <h2>Tip</h2>
-<p>Start with a short, common surname such as "Paul" or "Rose" to test vowels.</p>
+<p>Start with a common five-letter surname such as "Curry" or "James" to test vowels.</p>
 ```
 
 | Google likes                                                                                   | Google does not like                                                                                  |
