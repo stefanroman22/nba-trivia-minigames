@@ -81,3 +81,17 @@ class TerritorialPickTests(TestCase):
             self.assertFalse(matches(PICK_14, self._crit("top5")), name)
             self.assertTrue(matches(PICK_14, self._crit("lottery")), name)
             self.assertFalse(matches(PICK_15, self._crit("lottery")), name)
+
+
+class PositionTests(TestCase):
+    """`position` (guard / forward / center) on the dataset's codes: a hybrid counts for both of its positions."""
+
+    def test_every_mirror_reads_positions_and_hybrids_alike(self):
+        cases = {"G": {"guard"}, "F": {"forward"}, "C": {"center"}, "G-F": {"guard", "forward"},
+                 "F-C": {"forward", "center"}, None: set()}
+        for name, matches in MIRRORS.items():
+            for code, want in cases.items():
+                p = {**_player(None), "position": code}
+                got = {v for v in ("guard", "forward", "center") if matches(p, {"type": "position", "value": v, "label": v})}
+                self.assertEqual(got, want, f"{name}: position {code}")
+            self.assertFalse(matches(_player(None), {"type": "position", "value": "point-guard", "label": "?"}), name)

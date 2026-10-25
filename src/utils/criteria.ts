@@ -14,6 +14,8 @@
 import type { Criterion, PlayerIndexEntry } from "../types/types";
 
 const CURRENT_YEAR = new Date().getFullYear();
+/** `position` criterion values → the dataset's position codes that satisfy them. */
+const POSITION_CODES: Record<string, string[]> = { guard: ["G", "G-F"], forward: ["F", "G-F", "F-C"], center: ["C", "F-C"] };
 
 /** "1990s" / "decade-1990s" -> 1990; null when the value has no decade. */
 function decadeStart(value: string): number | null {
@@ -86,6 +88,10 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
         (t) => t.start_year <= d + 9 && (t.end_year ?? CURRENT_YEAR) >= d,
       );
     }
+
+    case "position":
+      // The dataset lists G, F, C and the hybrids G-F / F-C; a hybrid counts for both of its positions.
+      return (POSITION_CODES[c.value] ?? []).includes(p.position);
 
     default:
       return false;

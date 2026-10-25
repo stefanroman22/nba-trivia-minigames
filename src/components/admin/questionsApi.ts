@@ -14,15 +14,18 @@ export const DIFFICULTY_LABEL: Record<Difficulty, string> = { easy: "Easy", medi
 
 export type QuestionCounts = {
   total: number;
+  /** Labeled by the owner (a rule's label leaves a question to review). */
   reviewed: number;
   unreviewed: number;
+  by_rule: number;
   easy: number;
   medium: number;
   /** Includes the unreviewed questions (hard is the default). */
   hard: number;
 };
 
-export type QuestionLabel = { difficulty: Difficulty; reviewed: boolean; updated_at: string | null };
+/** `source` "rule": set by a difficulty rule from the owner's insight (with its `reason`); null: no label (hard). */
+export type QuestionLabel = { difficulty: Difficulty; reviewed: boolean; source: "owner" | "rule" | null; reason: string; updated_at: string | null };
 
 export type BoardCell = { count: number; top: string[]; attempts: number; accuracy: number | null };
 

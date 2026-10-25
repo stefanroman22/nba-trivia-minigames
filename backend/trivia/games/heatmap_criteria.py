@@ -14,6 +14,9 @@ from django.conf import settings
 
 from trivia.data_pipeline.curated_players import playable_rows
 
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
+
 # Row-major hex ids 0..27. Even rows flush, odd rows indented +0.5 (honeycomb).
 ROW_WIDTHS = [4, 5, 5, 5, 5, 4]  # == 28 playable hexes
 
@@ -117,6 +120,8 @@ def player_matches(p, c):
             s["start_year"] <= ds + 9 and (s["end_year"] or CURRENT_YEAR) >= ds
             for s in p["teams"]
         )
+    if t == "position":
+        return p.get("position") in POSITION_CODES.get(v, ())
     return False
 
 

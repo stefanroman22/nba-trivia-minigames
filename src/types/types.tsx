@@ -149,7 +149,7 @@ export interface PlayerIndexEntry {
 
 /** A player-matching rule (semantics implemented in utils/criteria.ts). */
 export interface Criterion {
-  type: "team" | "award" | "country" | "draft" | "college" | "stat" | "era";
+  type: "team" | "award" | "country" | "draft" | "college" | "stat" | "era" | "position";
   value: string;
   label: string;
 }

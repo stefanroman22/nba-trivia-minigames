@@ -30,6 +30,9 @@ sys.path.insert(0, os.path.dirname(BASE))
 
 from trivia.data_pipeline.curated_players import playable_rows  # noqa: E402
 
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
+
 
 def _decade_start(value):
     m = re.search(r"(\d{4})s$", value)
@@ -97,6 +100,8 @@ def player_matches(p, c):
             and (s.get("end_year") or CURRENT_YEAR) >= ds
             for s in p.get("teams", [])
         )
+    if t == "position":
+        return p.get("position") in POSITION_CODES.get(v, ())
     return False
 
 

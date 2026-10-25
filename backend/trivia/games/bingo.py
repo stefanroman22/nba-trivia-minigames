@@ -27,6 +27,8 @@ MIN_MATCHES_PER_CELL = 4
 MAX_FAME_TIER_DEALT = 3  # the client only deals fame_tier <= 3 players
 
 CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era"}
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
 AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar5plus", "allnba"}
 STAT_VALUES = {"20kpts", "25kpts", "ppg20", "rpg10", "apg8", "seasons15plus"}
 ERA_VALUES = {"1980s", "1990s", "2000s", "2010s", "2020s"}
@@ -130,6 +132,8 @@ def criterion_matches(p, c):
             t.get("start_year", 9999) <= d + 9 and (t.get("end_year") or current_year) >= d
             for t in p.get("teams", [])
         )
+    if ctype == "position":
+        return p.get("position") in POSITION_CODES.get(value, ())
     return False
 
 

@@ -20,7 +20,9 @@ GAME_NAME = "NBA Tic-Tac-Toe"
 SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "tictactoe_seed.json")
 CURATED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "players_curated.json")
 
-CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era"}
+CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era", "position"}
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
 AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar5plus", "allnba"}
 STAT_VALUES = {"20kpts", "25kpts", "ppg20", "rpg10", "apg8", "seasons15plus"}
 CURRENT_YEAR = date.today().year
@@ -111,6 +113,8 @@ def player_matches(p, c):
             s.get("start_year", 9999) <= ds + 9 and (s.get("end_year") or CURRENT_YEAR) >= ds
             for s in p.get("teams", [])
         )
+    if t == "position":
+        return p.get("position") in POSITION_CODES.get(v, ())
     return False
 
 
