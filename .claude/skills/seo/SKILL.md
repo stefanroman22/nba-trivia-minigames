@@ -58,6 +58,7 @@ node scripts/seo/run.mjs --notion dry --slack off --agents off
   Site: <site>. Write <runDir>/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.`
 - A dev build: `node scripts/seo/audit.mjs --site http://localhost:5173` (a preview blocks crawling by design; the
   audit then checks the HTML signals only). One check: `--only IX-04`; one page: `--url <u>`.
+- Run order, exit codes, how to read a run, the two workflows and troubleshooting: `docs/seo/README.md`.
 
 ## 4. State rules (spec §6)
 - The ledger is `seo/ledger.json` on the `checks-state` branch, written only through `scripts/seo/lib/store.mjs`

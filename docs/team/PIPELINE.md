@@ -385,3 +385,10 @@ reports it as `SHIPPED-PR <url>`. In the cloud (no `gh`) ship pushes `team/<slug
 **Cloud.** `infra/routine/setup.sh` now installs Chromium with `--with-deps` and runs `npm ci --prefix
 multiplayer_server` so `verify.mjs` can start the relay on the VM. **Re-paste `infra/routine/setup.sh`
 into the routine's "Setup script" field** (claude.ai/code/routines) — the routine keeps its own copy.
+
+**SEO cards are ordinary cards.** The SEO agent (`scripts/seo/notion-push.mjs`, `docs/seo/README.md`) files cards
+with `Source` = `seo-check fp:<key> run:<runId>` (the dedupe key, as above), `Target` = `dev` always (a post-deploy
+regression is a P0 card, still Target `dev`) and **never an attachment**: the finding (current, expected, files, how
+to fix, acceptance) is in the card body. `seo-check` is not a check-card Source (`isCheckCard` matches only
+`ui-check`/`logic-check`), so every stage treats them like any owner card: the usual classify, plan writer and design
+round when warranted, the usual QA, and ship to `dev`.
