@@ -88,5 +88,194 @@
     "run": "20261017-0350-logic",
     "at": "2026-10-17T01:02:20.647Z",
     "id": "UIC-20261017-0350-logic-002"
+  },
+  "match-flow|/wordle|div.stage-inner > div > div.om > div.om-stage": {
+    "key": "ce3c6347e7df",
+    "card": "4042cfb1-c595-8183-b711-ee1a01d4d6d2",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-001"
+  },
+  "stage-resized|/who-are-ya|.stage-shell": {
+    "key": "7bca3cf8340f",
+    "card": "4042cfb1-c595-8116-8aa3-d7c11e2a2e9e",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-007"
+  },
+  "a11y|/|.lb-row:nth-child(1) > span:nth-child(2)": {
+    "key": "32d0cd02bed5",
+    "card": "4042cfb1-c595-81ac-bb4a-e83020c1df0d",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-002"
+  },
+  "tap-target|/|div > div.engage-strip > div.lb-card > div.lb-head > button.lb-viewall": {
+    "key": "85ef3f879796",
+    "card": "4042cfb1-c595-81ac-bb4a-e83020c1df0d",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-010"
+  },
+  "stage-resized|/contexto|.stage-shell": {
+    "key": "883e0d73ce88",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-003"
+  },
+  "clipped|/series-winner|aside.rail > div.rail-list > button.rail-item.is-active > span.rail-meta > span.rail-name": {
+    "key": "e2ad57eebf56",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-008"
+  },
+  "tap-target|/contexto|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
+    "key": "e096f6ff0238",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-013"
+  },
+  "stage-resized|/guess-mvps|.stage-shell": {
+    "key": "46220f9b87f6",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-004"
+  },
+  "tap-target|/guess-mvps|div.stage-inner > div > div > div > button.report-link": {
+    "key": "da7fc245a45a",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-014"
+  },
+  "stage-resized|/series-winner|.stage-shell": {
+    "key": "fd3e1eb0c8e1",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-005"
+  },
+  "tap-target|/series-winner|div.stage-inner > div > div > div > button.report-link": {
+    "key": "8cb5090938e9",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-015"
+  },
+  "stage-resized|/starting-five|.stage-shell": {
+    "key": "3cc2215d9f03",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-006"
+  },
+  "tap-target|/starting-five|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
+    "key": "8ef133623701",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-016"
+  },
+  "feedback-missing|/tictactoe|.feedback-slot > *": {
+    "key": "cffa7fd07a97",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-011"
+  },
+  "stage-resized|/tictactoe|.stage-shell": {
+    "key": "1f93576360b3",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-012"
+  },
+  "tap-target|/tictactoe|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
+    "key": "b71ccf82f337",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-017"
+  },
+  "tap-target|/who-would-win|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
+    "key": "7989118628f8",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-018"
+  },
+  "tap-target|/wordle|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
+    "key": "b3d648750d42",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-019"
+  },
+  "clipped|/starting-five|div.ar > div.ar-board > div.s5-cards > div.s5-card.is-correct:nth-of-type(2) > span.s5-card-pos": {
+    "key": "219d334f8319",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-020"
+  },
+  "clipped|/starting-five|div.gf > div.gf-board > div.s5-cards > div.s5-card:nth-of-type(2) > span.s5-card-pos": {
+    "key": "4f5e7e5dcf57",
+    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-021"
+  },
+  "slow-action|/|log in success - > nav avatar usable": {
+    "key": "1c7ef966a0de",
+    "card": "4042cfb1-c595-81a7-865c-d6942fd2dde9",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261025-0128",
+    "at": "2026-10-25T05:35:10.206Z",
+    "id": "UIC-20261025-0128-009"
   }
 }
