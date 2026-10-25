@@ -70,8 +70,8 @@ The repository ruleset **"security-pr-scan on main"** requires the status `secur
 that needs a human). It is created **disabled**: `main`'s current promote job and ship skill push without the gate, so it
 must be switched on right after the promotion that brings this tooling to `main`:
 `gh api -X PUT repos/stefanroman22/nba-trivia-minigames/rulesets/<id> -f enforcement=active`
-(`gh api repos/stefanroman22/nba-trivia-minigames/rulesets` lists the id). The test ruleset on `ci-test/security-main`
-is the same rule, used for the end-to-end test. The two direct pushes to `main` go through it:
+(`gh api repos/stefanroman22/nba-trivia-minigames/rulesets` lists the id). To re-run the end-to-end PR test, create
+the same rule on `refs/heads/ci-test/security-main`, push a branch with a planted finding and open a PR to it. The two direct pushes to `main` go through it:
 the promote job opens a dev → main PR, runs this gate and pushes exactly the scanned commit; the ship skill's
 `Target = main` path pushes `security-gate/<slug>` and waits (`scripts/security/wait-status.mjs`) before pushing `main`.
 
