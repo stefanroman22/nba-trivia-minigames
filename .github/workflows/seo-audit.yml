@@ -125,6 +125,7 @@ jobs:
           name: seo-audit-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 14
           if-no-files-found: ignore
+          include-hidden-files: true # the run dir is under the hidden .ui-check/, which upload-artifact skips otherwise
           path: |
             .ui-check/seo/runs/${{ steps.audit.outputs.run_id }}/digest.md
             .ui-check/seo/runs/${{ steps.audit.outputs.run_id }}/results.json

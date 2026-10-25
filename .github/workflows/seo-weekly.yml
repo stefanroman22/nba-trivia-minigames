@@ -136,6 +136,7 @@ jobs:
           name: seo-weekly-${{ github.run_id }}-${{ github.run_attempt }}
           retention-days: 14
           if-no-files-found: ignore
+          include-hidden-files: true # the run dir and log are under the hidden .ui-check/, which upload-artifact skips otherwise
           path: |
             .ui-check/seo/logs/run-*.log
             .ui-check/seo/runs/*/digest.md
