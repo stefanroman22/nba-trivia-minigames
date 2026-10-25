@@ -1,3 +1,5 @@
+> Superseded by docs/seo/owner-actions.md (written by the SEO run) from 2026-10-25; kept for the history of the move.
+
 # SEO: owner to-do (after the swishquest.com move, 2026-10-09)
 
 Everything in code and the cutover is done and live. These need your Google/Microsoft sign-in or are follow-ups.

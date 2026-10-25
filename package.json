@@ -40,6 +40,8 @@
     "logic:check": "node scripts/logic-check/run.mjs",
     "logic:live": "node scripts/logic-check/run.mjs --suite live --live",
     "logic:selftest": "node node_modules/@playwright/test/cli.js test -c scripts/logic-check --project selftest",
+    "test:seo": "node --test \"scripts/seo/**/*.test.mjs\"",
+    "seo:audit": "node scripts/seo/audit.mjs",
     "ui:audit": "node scripts/ui-audit.mjs --label desktop --width 1100 --height 900 && node scripts/ui-audit.mjs --label laptop --width 854 --height 694 && node scripts/ui-audit.mjs --label mobile --width 390 --height 844",
     "cards:render": "node scripts/game-cards/render.mjs",
     "cards:finish": "node scripts/game-cards/finish.mjs",

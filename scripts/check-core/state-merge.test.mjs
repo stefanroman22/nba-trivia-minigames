@@ -1,7 +1,7 @@
 // node --test scripts/check-core/state-merge.test.mjs — the store's 3-way merges (lib/state-merge.mjs).
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { merge3List, merge3Map, merge3Value, mergeChannel, mergeLedger, publicLedger } from './lib/state-merge.mjs';
+import { merge3List, merge3Map, merge3Value, mergeChannel, mergeLedger, mergeSeoLedger, publicLedger } from './lib/state-merge.mjs';
 
 const k = (x) => x.id;
 
@@ -63,4 +63,34 @@ test('mergeLedger: a remote status change reaches the local copy; an unchanged l
   const r = mergeLedger({ fp1: pub }, { fp1: { ...pub, title: 'T' } }, { fp1: { ...pub, status: 'Done' } });
   assert.equal(r.store.fp1.status, 'Done');
   assert.equal(r.local.fp1.status, 'Done');
+});
+
+test('mergeSeoLedger: different urls from two writers both survive; same url → newer inspectedAt wins; history union by runId', () => {
+  const u = (p) => `https://swishquest.com/${p}`;
+  const entry = (inspectedAt, extra = {}) => ({ inSitemap: true, audit: { runId: '20261019-0600-seo', pass: [], fail: [] }, gsc: { verdict: 'PASS', inspectedAt }, requests: [], ...extra });
+  const run = (runId, at) => ({ runId, at, status: 'ok' });
+  const base = { dataAsOf: { audit: '2026-10-19T06:00:00.000Z', gsc: '2026-10-19T06:00:00.000Z', indexnow: null }, urls: { [u('wordle')]: entry('2026-10-19T06:00:00.000Z'), [u('grid')]: entry('2026-10-19T06:00:00.000Z') }, history: [run('r1', '2026-10-19T06:00:00.000Z')] };
+  const local = { dataAsOf: { ...base.dataAsOf, gsc: '2026-10-26T06:10:00.000Z' }, history: [...base.history, run('r2', '2026-10-26T06:00:00.000Z')],
+    urls: { ...base.urls, [u('local-only')]: entry(null), [u('wordle')]: entry('2026-10-26T06:10:00.000Z', { gsc: { verdict: 'NEUTRAL', inspectedAt: '2026-10-26T06:10:00.000Z' } }),
+      [u('grid')]: entry('2026-10-19T06:00:00.000Z', { requests: [{ at: '2026-10-26T09:00:00.000Z', by: 'owner', note: 'n' }] }) } };
+  const remote = { dataAsOf: { ...base.dataAsOf, audit: '2026-10-26T07:00:00.000Z' }, history: [...base.history, run('r3', '2026-10-26T07:00:00.000Z')],
+    urls: { ...base.urls, [u('remote-only')]: entry(null), [u('wordle')]: entry('2026-10-26T06:05:00.000Z', { gsc: { verdict: 'FAIL', inspectedAt: '2026-10-26T06:05:00.000Z' } }),
+      [u('grid')]: entry('2026-10-26T06:05:00.000Z', { gsc: { verdict: 'FAIL', inspectedAt: '2026-10-26T06:05:00.000Z' } }) } };
+  const m = mergeSeoLedger(base, local, remote);
+  assert.deepEqual(Object.keys(m.urls).sort(), [u('grid'), u('local-only'), u('remote-only'), u('wordle')]);
+  assert.equal(m.urls[u('wordle')].gsc.verdict, 'NEUTRAL', 'local inspected later');
+  assert.equal(mergeSeoLedger(base, remote, local).urls[u('wordle')].gsc.verdict, 'NEUTRAL', 'whichever side is newer');
+  // one writer's request and the other's inspection of the same url: both kept
+  assert.equal(m.urls[u('grid')].gsc.verdict, 'FAIL');
+  assert.equal(m.urls[u('grid')].requests.length, 1);
+  assert.deepEqual(m.history.map((h) => h.runId), ['r1', 'r2', 'r3']);
+  assert.deepEqual(m.dataAsOf, { audit: '2026-10-26T07:00:00.000Z', gsc: '2026-10-26T06:10:00.000Z', indexnow: null });
+  // no base: same url on both sides with an equal inspectedAt → the newer audit runId; history capped at 52
+  const a = { urls: { [u('x')]: { audit: { runId: '20261026-0700-seo' }, gsc: { inspectedAt: 't' } } }, history: Array.from({ length: 60 }, (_, i) => run(`a${i}`, `2026-01-01T00:00:${String(i).padStart(2, '0')}.000Z`)) };
+  const b = { urls: { [u('x')]: { audit: { runId: '20261026-0800-seo' }, gsc: { inspectedAt: 't' } } }, history: [] };
+  const n = mergeSeoLedger(undefined, a, b);
+  assert.equal(n.urls[u('x')].audit.runId, '20261026-0800-seo');
+  assert.equal(n.history.length, 52);
+  assert.equal(n.history.at(-1).runId, 'a59');
+  assert.equal(mergeSeoLedger(undefined, undefined, undefined), undefined);
 });

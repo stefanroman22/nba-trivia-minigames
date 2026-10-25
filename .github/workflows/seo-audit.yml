@@ -1,0 +1,137 @@
+name: SEO post-deploy audit
+# After every push to main (a dev → main promotion or a hotfix): wait until Vercel reports both production deploys
+# green, then audit https://swishquest.com (scripts/seo/audit.mjs, the IX checks, GET/HEAD only) against the last
+# audit on the store. A regression (exit 3: a check that passed on a URL now fails) → a P0 card, Target dev
+# (scripts/seo/notion-push.mjs --priority P0 --regressions-only) and one Slack line to #agent-frontend
+# (`seo: production regression · <ids> · <urls>`, scripts/seo/lib/slack.mjs). The new results always become the
+# store's baseline (ledger.mjs record-audit: seo/ledger.json on the branch checks-state, fast-forward, never main or dev).
+# A dispatch with another `site` than https://swishquest.com only audits: no card, no Slack line, no record.
+# No agent, no Google API, ~2 min. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
+# GitHub runs `push: main` workflows from main's copy of this file: it is inert until dev is promoted.
+# The repo is public: the log and the artifact are world-readable (digest.md and results.json hold only the IX
+# evidence of public pages).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      site:
+        description: "origin to audit"
+        default: https://swishquest.com
+      slack:
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      notion:
+        type: choice
+        options: [live, dry]
+        default: live
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: write # the state store branch only
+    concurrency:
+      group: seo-audit
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev # tooling: the scripts run from dev; the site under test is production
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Wait for Vercel (both production deploys of this commit)
+        id: vercel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          newest() { awk -F'|' -v c="$1" '$1 == c { print $2; exit }'; } # the API lists the newest status first
+          for i in $(seq 1 30); do
+            OUT="$(gh api "repos/$REPO/commits/$SHA/statuses" --jq '.[] | "\(.context)|\(.state)"' 2>/dev/null || true)"
+            FE="$(printf '%s\n' "$OUT" | newest 'Vercel – nba-minigames')"
+            BE="$(printf '%s\n' "$OUT" | newest 'Vercel – backend')"
+            echo "poll $i: frontend ${FE:-none} · backend ${BE:-none}"
+            if [ "$FE" = success ] && [ "$BE" = success ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+            case " $FE $BE " in
+              *" failure "*|*" error "*)
+                echo "::warning::Vercel deploy of ${SHA:0:7} failed (frontend ${FE:-none}, backend ${BE:-none}): SEO audit skipped"
+                echo "ready=false" >> "$GITHUB_OUTPUT"; exit 0;;
+            esac
+            if [ "$i" -lt 30 ]; then sleep 30; fi
+          done
+          echo "::warning::Vercel did not report both deploys of ${SHA:0:7} as success within 15 min: SEO audit skipped"
+          echo "ready=false" >> "$GITHUB_OUTPUT"
+      - name: Baseline from the store
+        if: steps.vercel.outputs.ready == 'true'
+        run: node scripts/seo/ledger.mjs baseline --out "$RUNNER_TEMP/baseline.json"
+      - name: Audit
+        id: audit
+        if: steps.vercel.outputs.ready == 'true'
+        env:
+          SITE: ${{ inputs.site || 'https://swishquest.com' }}
+        run: |
+          set +e
+          node scripts/seo/audit.mjs --site "$SITE" --baseline "$RUNNER_TEMP/baseline.json" --findings | tee "$RUNNER_TEMP/audit.log"
+          CODE="${PIPESTATUS[0]}"
+          RUN_ID="$(sed -n '1s/^seo-audit: run \([^ ]*\) .*/\1/p' "$RUNNER_TEMP/audit.log")"
+          { echo "code=$CODE"; echo "run_id=$RUN_ID"; echo "run_dir=$GITHUB_WORKSPACE/.ui-check/seo/runs/$RUN_ID"; } >> "$GITHUB_OUTPUT"
+          echo "audit exit $CODE · run ${RUN_ID:-none}"
+          if [ -n "$RUN_ID" ] && [ -f ".ui-check/seo/runs/$RUN_ID/digest.md" ]; then cat ".ui-check/seo/runs/$RUN_ID/digest.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          exit 0
+      - name: P0 card for the regression (Target dev)
+        if: steps.audit.outputs.code == '3' && (inputs.site == '' || inputs.site == 'https://swishquest.com')
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          RUN_ID: ${{ steps.audit.outputs.run_id }}
+          DRY: ${{ inputs.notion == 'dry' && '--dry-run' || '' }}
+        run: node scripts/seo/notion-push.mjs --run "$RUN_ID" --priority P0 --regressions-only $DRY
+      - name: Slack line for the regression
+        if: always() && steps.audit.outputs.code == '3' && (inputs.site == '' || inputs.site == 'https://swishquest.com')
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          RESULTS: ${{ steps.audit.outputs.run_dir }}/results.json
+          SLACK: ${{ inputs.slack || 'on' }}
+        run: |
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            import { postSeoLine } from "./scripts/seo/lib/slack.mjs";
+            const regressions = JSON.parse(readFileSync(process.env.RESULTS, "utf8")).regressions ?? [];
+            const ids = [...new Set(regressions.map((f) => f.id))].join(", ");
+            const urls = [...new Set(regressions.map((f) => f.url))].join(" ");
+            postSeoLine(`seo: production regression · ${ids} · ${urls}`, { dryRun: process.env.SLACK === "off" });
+          '
+      - name: Record the audit in the store (the next baseline)
+        if: always() && steps.audit.outputs.run_id != '' && (inputs.site == '' || inputs.site == 'https://swishquest.com')
+        env:
+          CHECKS_STATE_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.audit.outputs.run_id }}
+        run: |
+          if [ ! -f ".ui-check/seo/runs/$RUN_ID/results.json" ]; then echo "no results.json for run $RUN_ID: nothing to record"; exit 0; fi
+          node scripts/seo/ledger.mjs record-audit --run "$RUN_ID"
+      - name: Run files (14 days)
+        if: always() && steps.audit.outputs.run_id != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-audit-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: ignore
+          include-hidden-files: true # the run dir is under the hidden .ui-check/, which upload-artifact skips otherwise
+          path: |
+            .ui-check/seo/runs/${{ steps.audit.outputs.run_id }}/digest.md
+            .ui-check/seo/runs/${{ steps.audit.outputs.run_id }}/results.json
+      - name: Fail the job on an audit infra failure
+        if: steps.audit.outputs.code == '2'
+        run: |
+          echo "::error::seo audit infra failure (exit 2): the site was unreachable or the arguments were bad, see the Audit step"
+          exit 1

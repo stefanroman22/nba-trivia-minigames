@@ -1,0 +1,145 @@
+name: SEO weekly
+# The weekly SEO run (scripts/seo/run.mjs), Mondays 06:00 Europe/Paris, on GitHub's runner: the owner's PC can be off.
+# Full audit of https://swishquest.com, the Search Console pull, the per-URL ledger, the seo agent (claude -p,
+# CLAUDE_CODE_OAUTH_TOKEN as checks-weekly.yml), Notion cards (Source `seo-check …`, Target dev), IndexNow, the Drive
+# export and one Slack line to #agent-frontend. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
+#
+# Start time. GitHub's cron is UTC: 04:00 UTC is 06:00 CEST (summer) and 05:00 CET (winter); 05:00 UTC is the backup.
+# The gate (scripts/seo/ledger.mjs weekly-status, read-only) skips a scheduled trigger when the store already holds an
+# ok run since Monday 00:00 Paris (`done`) or another run holds the SEO lease (`busy`), so the second cron runs only when
+# the first was dropped or failed. GitHub runs scheduled workflows only from main: this file is inert until dev is promoted.
+#
+# What it touches. Tooling: a checkout of dev. Writes: seo/ledger.json and seo/lease.json on the branch checks-state
+# (fast-forward pushes, never force), Notion cards, Drive files, IndexNow pings, one Slack line, and one commit of
+# docs/seo/owner-actions.md pushed to dev when the agent changed it (a plain push with this job's token; a rejection,
+# e.g. dev branch protection, is logged and the file stays in the run artifact). The repo is public: logs and the
+# artifact are world-readable, so no Search Analytics number and no secret reaches the console, the log or the
+# artifact (gsc.json, gsc-analytics.json and the exports are never uploaded).
+on:
+  schedule:
+    - cron: "0 4 * * 1"
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+    inputs:
+      gsc:
+        description: "Search Console pull (needs the GOOGLE_SEO_* secrets)"
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      notion:
+        type: choice
+        options: [live, dry]
+        default: live
+      slack:
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      agents:
+        description: "the seo agent through claude -p (CLAUDE_CODE_OAUTH_TOKEN)"
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      dry_run:
+        description: "measure and write the run dir only: no store push, card, ping, upload, commit or Slack"
+        type: boolean
+        default: false
+      agent_model:
+        description: "model of the seo agent"
+        default: fable
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      run: ${{ github.event_name != 'schedule' || steps.week.outputs.weekly == 'free' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: dev
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: This week's run in the state store
+        id: week
+        if: github.event_name == 'schedule'
+        run: node scripts/seo/ledger.mjs weekly-status --github-output
+
+  weekly:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write # the state store branch and the owner-actions commit to dev
+    concurrency:
+      group: seo-weekly
+      cancel-in-progress: false
+    steps:
+      - name: Settings for this event
+        id: knobs
+        env:
+          GSC: ${{ inputs.gsc || 'on' }}
+          NOTION: ${{ inputs.notion || 'live' }}
+          SLACK: ${{ inputs.slack || 'on' }}
+          AGENTS: ${{ inputs.agents || 'on' }}
+          DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+          MODEL: ${{ inputs.agent_model || 'fable' }}
+        run: |
+          set -euo pipefail
+          { echo "args=--gsc $GSC --notion $NOTION --slack $SLACK $DRY"; echo "agents=$AGENTS"; echo "model=$MODEL"; } >> "$GITHUB_OUTPUT"
+          echo "event ${{ github.event_name }} · gsc $GSC · notion $NOTION · slack $SLACK · agents $AGENTS ($MODEL) $DRY"
+      - uses: actions/checkout@v5
+        with:
+          ref: dev # run.mjs commits docs/seo/owner-actions.md only from a checkout at origin/dev
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22 # Claude Code needs 22
+          cache: npm
+      - name: Install (tooling)
+        run: npm ci --no-audit --no-fund
+      - name: Claude Code for the seo agent (Max subscription token, no API key)
+        id: claude
+        if: steps.knobs.outputs.agents == 'on'
+        continue-on-error: true
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          MODEL: ${{ steps.knobs.outputs.model }}
+        run: |
+          set -euo pipefail
+          npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.285
+          OUT="$(echo 'Reply with the single word OK and nothing else.' | claude -p --model "$MODEL" 2>&1 || true)"
+          echo "preflight: $(echo "$OUT" | head -c 200)"
+          echo "$OUT" | grep -q OK
+          echo "agents=on" >> "$GITHUB_OUTPUT"
+      - name: Weekly SEO run (scripts/seo/run.mjs)
+        env:
+          GOOGLE_SEO_CLIENT_ID: ${{ secrets.GOOGLE_SEO_CLIENT_ID }}
+          GOOGLE_SEO_CLIENT_SECRET: ${{ secrets.GOOGLE_SEO_CLIENT_SECRET }}
+          GOOGLE_SEO_REFRESH_TOKEN: ${{ secrets.GOOGLE_SEO_REFRESH_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          CHECKS_STATE_TOKEN: ${{ github.token }}
+          AGENTS: ${{ steps.claude.outputs.agents || 'off' }}
+          MODEL: ${{ steps.knobs.outputs.model }}
+        run: node scripts/seo/run.mjs --holder "cloud-${{ github.run_id }}" --agents "$AGENTS" --agent-model "$MODEL" ${{ steps.knobs.outputs.args }}
+      - name: Run files (14 days; no Search Console data, no exports)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seo-weekly-${{ github.run_id }}-${{ github.run_attempt }}
+          retention-days: 14
+          if-no-files-found: ignore
+          include-hidden-files: true # the run dir and log are under the hidden .ui-check/, which upload-artifact skips otherwise
+          path: |
+            .ui-check/seo/logs/run-*.log
+            .ui-check/seo/runs/*/digest.md
+            .ui-check/seo/runs/*/REPORT.md
+            .ui-check/seo/runs/*/ledger-summary.md
+            .ui-check/seo/runs/*/owner-actions.md
