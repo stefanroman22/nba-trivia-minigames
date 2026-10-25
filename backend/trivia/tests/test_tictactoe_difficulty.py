@@ -37,6 +37,15 @@ class RulesTests(TestCase):
         self.assertIn("Sixth Man: an award whose rule most players don't know", reason)
         self.assertIn("Lottery pick: a draft fact", reason)
 
+    def test_a_team_by_decade_cell_needs_a_stint_with_that_team_in_that_decade(self):
+        from trivia.questions.games.tictactoe import pair_matches
+        by_name = {p["full_name"]: p for p in self.ds.playable}
+        era = {"type": "era", "value": "2020s", "label": "Played in the 2020s"}
+        team = lambda abbr: {"type": "team", "value": abbr, "label": abbr}  # noqa: E731
+        self.assertFalse(pair_matches(by_name["Kyrie Irving"], team("BOS"), era))  # Celtics 2017-19 only
+        self.assertTrue(pair_matches(by_name["Kyrie Irving"], team("DAL"), era))
+        self.assertTrue(pair_matches(by_name["Jayson Tatum"], era, team("BOS")))  # either order
+
     def test_current_teams_are_todays_thirty(self):
         teams = D.current_teams(self.ds)
         self.assertEqual(len(teams), 30)

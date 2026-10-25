@@ -38,10 +38,12 @@ Easy = broad categories everyone knows **and** general answers: many well-known 
 | Part | Rule | Evidence (live dataset, 2026-10-25) |
 |---|---|---|
 | Rows | the 30 current franchises | defunct franchises are unknown to casual fans |
-| Columns | Guard / Forward / Center; From USA / Born outside the USA; Played in the 2010s / 2020s | each is easy with 30 teams (USA with 17: older franchises exceed the 400-answer cap) |
+| Columns | Guard / Forward / Center; From USA / International; Played in the 2010s / 2020s | each is easy with 30 teams (USA with 17: older franchises exceed the 400-answer cap) |
 | Named countries | allowed only where every pair passes | France, Canada, Germany, Serbia, Lithuania pass with 0–1 teams: one country is **not** an easy column in this data (Trail Blazers × Germany has no well-known answer) |
 | Every pair | ≥ 8 valid answers and ≥ 2 well-known (fame band KNOWN or better) | fame: `trivia.questions.fame` |
 | Every board | ≤ 2 position columns, ≤ 1 origin column, ≤ 1 decade column; no repeated criteria set; teams spread evenly | |
+
+A team × decade cell needs a stint with that team in the decade (`tictactoe.pair_matches`): the contract's era criterion alone checks the whole career, which accepted Kyrie Irving for "Celtics × Played in the 2020s" (the independent audit of 2026-10-25 found 28% of era-cell answers were like that). "International" is the country the NBA lists for the player, not his birthplace.
 
 Position comes from the dataset's codes G, F, C, G-F, F-C (no point / shooting guard split exists), so the criterion
 is `position` guard / forward / center, a hybrid counting for both its positions — added to all five copies of the

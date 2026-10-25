@@ -126,7 +126,10 @@ one the game reveals when time runs out. For every cell, each sampled player mus
 row's team **and** meet the column's criterion: the award won at least once in the NBA (MVP, Finals
 MVP, Defensive Player of the Year, Rookie of the Year, Sixth Man), NBA champion (any team), All-NBA
 (any team, any year), Undrafted (never picked in an NBA draft), Lottery pick (picked 1-14 in his
-draft, in any era, including before the lottery existed). Also check that each row and column label is a real, unambiguous team
+draft, in any era, including before the lottery existed), Guard / Forward / Center (his listed position; a
+guard-forward counts as both, a forward-center as both), From USA / International (the country the NBA lists
+for him, not his birthplace: Kyrie Irving, born in Australia, is From USA), Played
+in the 2010s / 2020s (at least one season with the NBA in that decade). Also check that each row and column label is a real, unambiguous team
 or criterion. Every sampled player is one claim.
 
 **Fan Favorites** (`kind: fan-favorites`): a survey board: the `prompt`, its `category` (player, team

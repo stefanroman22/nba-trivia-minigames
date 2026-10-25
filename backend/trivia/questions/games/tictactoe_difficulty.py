@@ -13,7 +13,7 @@ such columns, so `classify` labels them all hard, with the reasons.
 EASY — the owner's criteria: broad categories everyone knows, and answers that are general (many well-known players
 fit), not only many. Concretely:
   - rows: the current franchises (a casual fan knows today's 30 teams, not the defunct ones);
-  - columns: position (Guard / Forward / Center), origin (From USA / Born outside the USA, or one named country
+  - columns: position (Guard / Forward / Center), origin (From USA / International, or one named country
     where a famous player fits every row, e.g. Spurs x France), decade played (2010s / 2020s);
   - every cell: at least MIN_POOL valid players AND at least MIN_NAMEABLE of them well known (fame band KNOWN or
     better, trivia.questions.fame), so a casual fan can name one; at most MAX_POOL (the publisher's eligibility cap);
@@ -23,7 +23,7 @@ fit), not only many. Concretely:
 import itertools
 from collections import Counter
 
-from trivia.games.tictactoe import CURRENT_YEAR, player_matches
+from trivia.games.tictactoe import CURRENT_YEAR
 from trivia.questions import fame
 from trivia.questions.games import tictactoe as ttt
 from trivia.questions.hashing import content_hash
@@ -47,7 +47,9 @@ HARD_WHY = {
 }
 
 POSITIONS = [{"type": "position", "value": v, "label": label} for v, label in (("guard", "Guard"), ("forward", "Forward"), ("center", "Center"))]
-ORIGINS = [{"type": "country", "value": "USA", "label": "From USA"}, {"type": "country", "value": "INTL", "label": "Born outside the USA"}]
+# `country` is the country the NBA lists for the player (Kyrie Irving, born in Australia, is USA), not his birthplace:
+# hence "International", never "Born outside the USA".
+ORIGINS = [{"type": "country", "value": "USA", "label": "From USA"}, {"type": "country", "value": "INTL", "label": "International"}]
 DECADES = [{"type": "era", "value": d, "label": f"Played in the {d}"} for d in ("2010s", "2020s")]
 
 
@@ -72,7 +74,7 @@ def named_countries(dataset):
 
 def cell_stats(dataset, row, col):
     """(pool, nameable): valid players of the pair, and how many of them are well known."""
-    players = [p for p in dataset.playable if player_matches(p, row) and player_matches(p, col)]
+    players = [p for p in dataset.playable if ttt.pair_matches(p, row, col)]
     return len(players), sum(1 for p in players if fame.at_least(p, fame.KNOWN))
 
 

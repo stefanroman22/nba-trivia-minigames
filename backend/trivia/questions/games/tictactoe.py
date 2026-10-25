@@ -6,7 +6,7 @@ import os
 
 from django.conf import settings
 
-from trivia.games.tictactoe import player_matches
+from trivia.games.tictactoe import CURRENT_YEAR, _decade_start, player_matches
 from trivia.questions import fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
@@ -76,10 +76,25 @@ def _team_criteria(dataset):
     ]
 
 
+def pair_matches(p, a, b):
+    """Does player `p` answer the cell of criteria `a` x `b`? Both criteria, except a team x decade pair: a fan reads
+    "Celtics x Played in the 2020s" as a stint WITH the Celtics in the 2020s, so that pair needs one stint of that
+    franchise overlapping the decade (the contract's era alone is any stint, which accepted Kyrie Irving there)."""
+    kinds = {a.get("type"), b.get("type")}
+    if kinds == {"team", "era"}:
+        team, era = (a, b) if a.get("type") == "team" else (b, a)
+        ds = _decade_start(era.get("value"))
+        return ds is not None and any(
+            s.get("abbr") == team.get("value") and s.get("start_year", 9999) <= ds + 9 and (s.get("end_year") or CURRENT_YEAR) >= ds
+            for s in p.get("teams") or []
+        )
+    return player_matches(p, a) and player_matches(p, b)
+
+
 def _cell_valid(dataset, row_c, col_c):
     """Matching ids, most famous first: the renderer reveals a cell's first unused id on
     time-up, and checker_view samples the first three, so what is revealed was checked."""
-    players = [p for p in dataset.playable if player_matches(p, row_c) and player_matches(p, col_c)]
+    players = [p for p in dataset.playable if pair_matches(p, row_c, col_c)]
     return [p["person_id"] for p in sorted(players, key=lambda p: (-fame.fame_score(p), p["person_id"]))]
 
 
