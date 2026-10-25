@@ -1,4 +1,7 @@
 @import "tailwindcss";
+/* Tailwind scans the repo for class names; docs/ holds no UI, and a Windows path in a doc ("\a221…") reads as a
+   CSS escape that crashed `npm run dev` ("Invalid code point"). The Vercel build already leaves docs/ out. */
+@source not "../docs";
 
 body {
   margin: 0 !important;
