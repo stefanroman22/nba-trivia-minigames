@@ -56,6 +56,17 @@ class ApplyReviewTest(unittest.TestCase):
         self.assertEqual(open(self.extra).read(), before_extra)
         self.assertEqual(open(self.faces).read(), before_faces)
 
+    def test_applied_files_move_and_are_not_reapplied(self):
+        self.sheet("sheet-01.json", exclude={"2242": "group shot"})
+        apply(self.review, self.extra, self.faces, TODAY)
+        self.assertTrue(os.path.exists(os.path.join(self.review, "applied", "sheet-01.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.review, "sheet-01.json")))
+        extra = self.read(self.extra)
+        extra["2242"] = {"file": "Terence Morris 2008.jpg", "face_x": 50, "face_y": 20}  # a later hand find
+        self.write(self.extra, extra)
+        self.assertEqual(apply(self.review, self.extra, self.faces, TODAY), (0, 0))
+        self.assertEqual(self.read(self.extra)["2242"], {"file": "Terence Morris 2008.jpg", "face_x": 50, "face_y": 20})
+
     def test_faces_sorted_numerically_extra_keeps_order_and_counts_returned(self):
         self.sheet("sheet-01.json", exclude={"100": "tiny face"}, box={"21": [0.4, 0.1, 0.2, 0.2]})
         self.sheet("sheet-02.json", exclude={"2": "jersey"})

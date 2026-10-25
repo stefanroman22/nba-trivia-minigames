@@ -7,7 +7,8 @@ Reads every review/*.json next to this script (git-ignored), one per reviewed sh
 An exclusion becomes {"exclude": true, "reason": "photo review <today>: <reason>"} in commons-extra.json
 (replacing any hand find for that player); a box replaces the detector's in faces.json (fractions of the
 image) and is marked "manual", so detect_faces.py never overwrites it. A box for a player faces.json
-doesn't have is an error and nothing is written. Then run build.mjs again.
+doesn't have is an error and nothing is written. Applied files move to review/applied/, so a later run
+applies only new verdicts and never undoes a hand find added since. Then run build.mjs again.
 """
 import glob, json, os, sys
 from datetime import date
@@ -31,7 +32,8 @@ def apply(review_dir, extra_path, faces_path, today):
     """Apply every review file in review_dir; returns (players excluded, boxes set)."""
     extra, faces = _load(extra_path), _load(faces_path)
     excluded = boxed = 0
-    for path in sorted(glob.glob(os.path.join(review_dir, "*.json"))):
+    paths = sorted(glob.glob(os.path.join(review_dir, "*.json")))
+    for path in paths:
         review = _load(path)
         for pid, reason in review.get("exclude", {}).items():
             extra[pid] = {"exclude": True, "reason": f"photo review {today}: {reason}"}
@@ -43,6 +45,11 @@ def apply(review_dir, extra_path, faces_path, today):
             boxed += 1
     _save(extra_path, extra, 1)
     _save(faces_path, dict(sorted(faces.items(), key=lambda kv: int(kv[0]))), 0)
+    # Each verdict applies once: a later run must not undo a hand find made after the review.
+    done = os.path.join(review_dir, "applied")
+    os.makedirs(done, exist_ok=True)
+    for path in paths:
+        os.replace(path, os.path.join(done, os.path.basename(path)))
     return excluded, boxed
 
 
