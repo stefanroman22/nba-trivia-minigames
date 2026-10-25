@@ -9,7 +9,7 @@ import path from 'node:path';
 import { emptyLedger } from './lib/ledger.mjs';
 import { validateFindings } from './lib/findings.mjs';
 import { seoLine } from './lib/slack.mjs';
-import { SECRET_ENV, agentPrompt, parseArgs, runWeekly, searchConsoleStep } from './run.mjs';
+import { SECRET_ENV, agentPrompt, commitOwnerActions, parseArgs, runWeekly, searchConsoleStep } from './run.mjs';
 
 const SITE = 'https://swishquest.com';
 const NOW = Date.parse('2026-10-26T05:00:00Z');
@@ -260,6 +260,81 @@ test('commitOwnerActions: only when the file changed and not on --dry-run; a rej
     assert.ok(existsSync(path.join(o.home, 'seo', 'runs', r.state.runId, 'owner-actions.md')));
     assert.ok(f.calls.includes('push'));
   }
+});
+
+/** A fake git for commitOwnerActions: HEAD `head`, FETCH_HEAD bbb; the checkout resets `file` to HEAD's content. */
+function fakeGit(file, { head = 'aaa', ffOk = true } = {}) {
+  const calls = [];
+  const seen = {};
+  const ok = (stdout = '') => ({ status: 0, stdout, stderr: '' });
+  const git = (args) => {
+    calls.push(args.join(' '));
+    if (args[0] === 'rev-parse') return ok(`${args[1] === 'HEAD' ? head : 'bbb'}\n`);
+    if (args[0] === 'checkout') { writeFileSync(file, 'old\n'); return ok(); }
+    if (args[0] === 'merge') {
+      seen.fileAtMerge = readFileSync(file, 'utf8');
+      if (!ffOk) return { status: 128, stdout: '', stderr: 'fatal: Not possible to fast-forward, aborting.' };
+      head = 'bbb';
+      return ok();
+    }
+    if (args[0] === 'merge-base') return { status: head === 'bbb' ? 0 : 1, stdout: '', stderr: '' };
+    return ok();
+  };
+  return { git, calls, seen };
+}
+
+test('commitOwnerActions: dev moved during the run → fast-forward with the file kept, then commit and a plain push to dev', () => {
+  const file = path.join(tmp(), 'owner-actions.md');
+  writeFileSync(file, 'new\n');
+  const { git, calls, seen } = fakeGit(file);
+  const r = commitOwnerActions({ runId: 'r1', toLog: () => {}, git, file });
+  assert.deepEqual(r, { status: 'pushed' });
+  assert.deepEqual(calls, [
+    'fetch --quiet origin dev', 'rev-parse HEAD', 'rev-parse FETCH_HEAD', 'checkout --quiet HEAD -- docs/seo/owner-actions.md',
+    'merge --ff-only --quiet FETCH_HEAD', 'merge-base --is-ancestor HEAD FETCH_HEAD', 'add -- docs/seo/owner-actions.md',
+    'commit --quiet -m seo: owner actions r1 -- docs/seo/owner-actions.md', 'push --porcelain origin HEAD:dev',
+  ]);
+  assert.equal(seen.fileAtMerge, 'old\n', 'the tree is clean for the fast-forward');
+  assert.equal(readFileSync(file, 'utf8'), 'new\n', 'the run\'s content survives it');
+  assert.ok(!calls.some((c) => /force|stash/.test(c)));
+
+  // HEAD already at origin/dev: no merge, straight to the commit.
+  const same = fakeGit(file, { head: 'bbb' });
+  assert.deepEqual(commitOwnerActions({ runId: 'r1', toLog: () => {}, git: same.git, file }), { status: 'pushed' });
+  assert.ok(!same.calls.some((c) => c.startsWith('merge ') || c.startsWith('checkout')));
+});
+
+test('commitOwnerActions: the fast-forward fails → skipped and logged, nothing committed, the file kept', async () => {
+  const file = path.join(tmp(), 'owner-actions.md');
+  writeFileSync(file, 'new\n');
+  const { git, calls } = fakeGit(file, { ffOk: false });
+  const logged = [];
+  const r = commitOwnerActions({ runId: 'r1', toLog: (m) => logged.push(m), git, file });
+  assert.deepEqual(r, { status: 'skipped', why: 'the fast-forward to origin/dev failed, not committed' });
+  assert.deepEqual(logged, ['fatal: Not possible to fast-forward, aborting.']);
+  assert.ok(!calls.some((c) => /^(add|commit|push)\b/.test(c)), calls.join('\n'));
+  assert.equal(readFileSync(file, 'utf8'), 'new\n');
+
+  // Through the run: one log line, the run goes on.
+  const f = fakes({ ownerActionsChanged: () => true, commitOwnerActions: ({ runId }) => commitOwnerActions({ runId, toLog: () => {}, git: fakeGit(file, { ffOk: false }).git, file }) });
+  const run = await runWeekly(opts(), f.deps);
+  assert.equal(run.code, 0);
+  assert.ok(f.lines.includes('owner actions: the fast-forward to origin/dev failed, not committed, file left in the run artifact'), f.lines.join('\n'));
+
+  // HEAD ahead of origin/dev (another branch): the ff is a no-op, HEAD is no ancestor of FETCH_HEAD → skipped.
+  const ahead = fakeGit(file, { head: 'ccc' });
+  const aheadGit = (args) => (args[0] === 'merge' ? { status: 0, stdout: 'Already up to date.', stderr: '' } : ahead.git(args));
+  assert.deepEqual(commitOwnerActions({ runId: 'r1', toLog: () => {}, git: aheadGit, file }),
+    { status: 'skipped', why: 'the tooling checkout is not at origin/dev, not committed' });
+});
+
+test('a --site of another host than the configured site: the store is not pushed, the run goes on', async () => {
+  const { deps, calls, lines } = fakes({ audit: async ({ runId }) => { calls.push('audit'); return { ...auditResult(runId), site: 'http://localhost:5173' }; } });
+  const r = await runWeekly(opts(['--site', 'http://localhost:5173']), deps);
+  assert.equal(r.code, 0);
+  assert.ok(!calls.includes('push'), calls.join(' '));
+  assert.ok(calls.includes('slack') && calls.includes('release'));
+  assert.ok(lines.includes('ledger: not recorded (site localhost:5173 is not the configured swishquest.com)'), lines.join('\n'));
 });
 
 test('an audit infra failure: exit 1, the store still gets a failed history entry, the lease is released', async () => {

@@ -16,7 +16,8 @@
 //   6. notion-push (only with a findings.json) → decisions mirrored into the ledger
 //   7. IndexNow for the URLs whose audit result changed → ledger.urls[url].indexnow
 //   8. Drive export (ledger CSV, Search Analytics CSV, REPORT.md)
-//   9. the history entry; push the store
+//   9. the history entry; push the store (not when --site is another host than config.json's site: a preview's URLs
+//      never reach the store's ledger, the run goes on store-read-only as under --dry-run)
 //  10. one Slack line (config.json slackChannel; --dry-run / --slack off: printed as `dry: <line>`); release the lease
 //   node scripts/seo/run.mjs [--dry-run] [--site <url>] [--gsc on|off] [--notion live|dry] [--slack on|off] [--agents on|off]
 //        [--agent-model fable] [--agent-timeout-sec 1800] [--holder <id>] [--state-branch checks-state] [--no-state] [--home <dir>]
@@ -300,7 +301,10 @@ export async function runWeekly(o, deps) {
       const entry = { runId, at: new Date(started).toISOString(), status: s.failures.length ? 'failed' : 'ok', indexed: s.indexed, notIndexed: s.notIndexed, failedChecks: s.auditFails, cards: s.cards.new };
       ledger.history = [...(ledger.history ?? []), entry].slice(-HISTORY_MAX);
       if (existsSync(runDir)) writeJson(ledgerFile, ledger);
-      if (!dry) {
+      // Another host than the configured site (a preview, a local build): its URLs never reach the store's ledger.
+      const [host, configured] = [new URL(site).host, new URL(config.site).host];
+      if (!dry && host !== configured) log(`ledger: not recorded (site ${host} is not the configured ${configured})`);
+      else if (!dry) {
         const r = await soft('store push', () => d.ledgerStore.push(ledger, `seo: run ${runId}`));
         if (r) toLog(`store: ${r.pushed ? `pushed ${String(r.sha ?? '').slice(0, 7)}` : 'up to date'}`);
       }
@@ -439,15 +443,30 @@ function toolingGit(token) {
 }
 
 /**
- * Commits docs/seo/owner-actions.md and pushes HEAD to dev (plain push, never force). Only from a checkout whose HEAD
- * is origin/dev (the workflow's fresh dev checkout): pushing another branch's HEAD to dev would ship its commits.
+ * Commits docs/seo/owner-actions.md and pushes HEAD to dev (plain push, never force). When dev moved during the run
+ * (the team pipeline ships to it unattended), HEAD is fast-forwarded to origin/dev first: the file's new content is
+ * kept in memory, the file reset to HEAD's, `git merge --ff-only FETCH_HEAD`, the content written back (no stash in
+ * this repo's worktrees). Only from a checkout whose HEAD is then origin/dev (the workflow's fresh dev checkout):
+ * pushing another branch's HEAD to dev would ship its commits. `git` and `file` are injectable (tests).
  */
-function commitOwnerActions({ runId, token, toLog }) {
-  const git = toolingGit(token);
+export function commitOwnerActions({ runId, token, toLog, git = toolingGit(token), file = path.join(ROOT, ...OWNER_ACTIONS_REL.split('/')) }) {
   const fetched = git(['fetch', '--quiet', 'origin', 'dev']);
   if (fetched.status !== 0) return { status: 'skipped', why: 'git fetch origin dev failed' };
   const rev = (ref) => String(git(['rev-parse', ref]).stdout || '').trim();
-  if (!rev('HEAD') || rev('HEAD') !== rev('FETCH_HEAD')) {
+  const head = rev('HEAD');
+  if (!head) return { status: 'skipped', why: 'the tooling checkout is not at origin/dev, not committed' };
+  if (head !== rev('FETCH_HEAD')) {
+    const content = existsSync(file) ? readFileSync(file) : null;
+    rmSync(file, { force: true });
+    git(['checkout', '--quiet', 'HEAD', '--', OWNER_ACTIONS_REL]); // fails harmlessly when HEAD has no such file
+    const ff = git(['merge', '--ff-only', '--quiet', 'FETCH_HEAD']);
+    if (content === null) rmSync(file, { force: true }); else writeFileSync(file, content);
+    if (ff.status !== 0) {
+      toLog(`${ff.stdout || ''}${ff.stderr || ''}`.trim());
+      return { status: 'skipped', why: 'the fast-forward to origin/dev failed, not committed' };
+    }
+  }
+  if (git(['merge-base', '--is-ancestor', 'HEAD', 'FETCH_HEAD']).status !== 0) {
     return { status: 'skipped', why: 'the tooling checkout is not at origin/dev, not committed' };
   }
   for (const args of [['add', '--', OWNER_ACTIONS_REL], ['commit', '--quiet', '-m', `seo: owner actions ${runId}`, '--', OWNER_ACTIONS_REL]]) {

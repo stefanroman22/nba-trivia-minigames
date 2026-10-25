@@ -10,14 +10,18 @@ export const DEFAULT_UA =
  *   `headers` lowercased; `body` '' for HEAD; `location` the Location header resolved against the request URL, or null.
  */
 
+/** The waits before the second and the third attempt of a request that could not complete. */
+export const RETRY_DELAYS_MS = [500, 1500];
+
 /**
- * A rate-limited, non-following HTTP client. A request that cannot complete (DNS, refused, timeout) rejects with an
- * Error naming the method, the URL and the cause; any HTTP status, 4xx/5xx included, resolves.
+ * A rate-limited, non-following HTTP client. A request that cannot complete (DNS, refused, timeout) is tried again
+ * after each of `retryDelaysMs` (the slot is freed while it waits); when the last attempt fails too it rejects with an
+ * Error naming the method, the URL and the cause. Any HTTP status, 4xx/5xx included, resolves (never retried).
  *
- * @param {{ ua?: string, concurrency?: number, timeoutMs?: number, redirect?: 'manual' }} [opts]
+ * @param {{ ua?: string, concurrency?: number, timeoutMs?: number, redirect?: 'manual', retryDelaysMs?: number[], fetch?: typeof fetch }} [opts]
  * @returns {{ get(url: string): Promise<FetchResult>, head(url: string): Promise<FetchResult> }}
  */
-export function fetcher({ ua = DEFAULT_UA, concurrency = 4, timeoutMs = 15000, redirect = 'manual' } = {}) {
+export function fetcher({ ua = DEFAULT_UA, concurrency = 4, timeoutMs = 15000, redirect = 'manual', retryDelaysMs = RETRY_DELAYS_MS, fetch: fetchImpl = globalThis.fetch } = {}) {
   if (redirect !== 'manual') throw new Error(`fetcher: redirect must be 'manual' (the audit never follows a redirect), got ${redirect}`);
   let active = 0;
   const waiting = [];
@@ -27,11 +31,11 @@ export function fetcher({ ua = DEFAULT_UA, concurrency = 4, timeoutMs = 15000, r
   // A freed slot goes straight to the next waiter, so `active` never exceeds `concurrency`.
   const release = () => { const next = waiting.shift(); if (next) next(); else active -= 1; };
 
-  async function request(method, url) {
+  async function attempt(method, url) {
     await acquire();
     try {
       const signal = AbortSignal.timeout(timeoutMs);
-      const res = await fetch(url, {
+      const res = await fetchImpl(url, {
         method,
         redirect: 'manual',
         signal,
@@ -47,6 +51,17 @@ export function fetcher({ ua = DEFAULT_UA, concurrency = 4, timeoutMs = 15000, r
       throw new Error(`${method} ${url}: ${why}`);
     } finally {
       release();
+    }
+  }
+
+  async function request(method, url) {
+    for (let i = 0; ; i++) {
+      try {
+        return await attempt(method, url);
+      } catch (e) {
+        if (i >= retryDelaysMs.length) throw e;
+        await new Promise((resolve) => setTimeout(resolve, retryDelaysMs[i]));
+      }
     }
   }
 

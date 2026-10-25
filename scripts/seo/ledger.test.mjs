@@ -2,8 +2,12 @@
 // owner requests, decisions, the summary, the CSV, the baseline it hands the next audit, and the weekly gate.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { toBaseline } from './lib/digest.mjs';
 import { IX_IDS } from './audit.mjs';
+import { cli } from './ledger.mjs';
 import {
   applyAudit, applyDecisions, applyInspections, baselineFrom, emptyLedger, markRequested, summary, toCsv, weeklyStatus,
 } from './lib/ledger.mjs';
@@ -148,6 +152,30 @@ test('weeklyStatus: done when history has an ok run since Monday 00:00 Paris, bu
   assert.equal(weeklyStatus(run('2026-06-28T22:30:00.000Z'), null, { now: wed }), 'done');
   assert.equal(weeklyStatus(run('2026-06-28T21:30:00.000Z'), null, { now: wed }), 'free');
   assert.equal(weeklyStatus(run('2026-06-29T08:00:00.000Z'), null, { now: Date.parse('2026-07-05T12:00:00.000Z') }), 'done');
+});
+
+test('record-audit: a run of another host than the configured site is not recorded (exit 0), the production run is', async () => {
+  const prev = process.env.SEO_SITE;
+  delete process.env.SEO_SITE;
+  try {
+    const home = mkdtempSync(path.join(os.tmpdir(), 'seo-ledger-'));
+    const P = 'https://preview-abc.vercel.app';
+    const preview = { ...fullRun(), runId: 'r-preview', site: P, urls: { [`${P}/`]: { status: 200, failures: [] } }, siteFailures: [] };
+    for (const r of [preview, fullRun()]) {
+      mkdirSync(path.join(home, 'seo', 'runs', r.runId), { recursive: true });
+      writeFileSync(path.join(home, 'seo', 'runs', r.runId, 'results.json'), JSON.stringify(r));
+    }
+    const out = [];
+    const io = { log: (m) => out.push(m), err: (m) => out.push(m), now: NOW };
+    const ledgerFile = path.join(home, 'seo', 'ledger.json');
+    assert.equal(await cli(['record-audit', '--run', 'r-preview', '--no-state', '--home', home], io), 0);
+    assert.deepEqual(out, ['ledger: not recorded (site preview-abc.vercel.app is not the configured swishquest.com)']);
+    assert.equal(existsSync(ledgerFile), false, 'nothing written');
+    assert.equal(await cli(['record-audit', '--run', fullRun().runId, '--no-state', '--home', home], io), 0);
+    assert.deepEqual(Object.keys(JSON.parse(readFileSync(ledgerFile, 'utf8')).urls).sort(), [H, A, G, W].sort());
+  } finally {
+    if (prev === undefined) delete process.env.SEO_SITE; else process.env.SEO_SITE = prev;
+  }
 });
 
 test('baseline from a ledger: { url: fail[] } for every url with an audit block', () => {

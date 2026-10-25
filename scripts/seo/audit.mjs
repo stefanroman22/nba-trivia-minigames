@@ -54,6 +54,13 @@ function statusText(res) {
   return res.location ? `${res.status} → ${res.location}` : String(res.status);
 }
 
+/**
+ * A failure caused by a request that could not complete even after the fetcher's retries (status 0): its evidence
+ * starts with "request failed" and it carries `transient: true`, so it fails the run (exit 1) and is listed under
+ * Coverage gaps, but it is never a regression (regressionsAgainst).
+ */
+const transientFailure = (id, url, res, context) => ({ id, url, evidence: `request failed (${res.error})${context ? `: ${context}` : ''}`, transient: true });
+
 /** The href of the page's `<link rel="manifest">`, resolved against `url`, or null. */
 function manifestHref(html, url) {
   for (const [tag] of String(html).matchAll(/<link\b[^>]*>/gi)) {
@@ -65,7 +72,8 @@ function manifestHref(html, url) {
 }
 
 /**
- * @typedef {{ id: string, url: string, evidence: string }} Failure
+ * @typedef {{ id: string, url: string, evidence: string, transient?: true }} Failure
+ *   `transient`: the failure comes from a request that could not complete (see transientFailure).
  * @typedef {{ runId: string, site: string, only: string[]|null, urls: Record<string, { status: number, failures: Failure[] }>,
  *   siteFailures: Failure[], regressions: Failure[]|null, gaps: string[], counts: { urls: number, pass: number, fail: number } }} AuditResult
  *   `only`: the ids this run fully checked, null for a full run (--only's list; under --url also without IX-05, IX-06,
@@ -159,19 +167,25 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     const ctx = { url: u, sitemapUrl: bySitemap.get(u)?.loc ?? null, xRobotsTag: res.headers['x-robots-tag'] ?? null, siteTitles, siteDescriptions };
     if (noindexUrls.has(u)) {
       const found = checkPage(signals.get(u), { ...ctx, expectNoindex: true });
-      if (res.status !== 200) for (const f of found) f.evidence = `answered ${statusText(res)}; ${f.evidence}`;
+      if (res.status === 0) for (const f of found) Object.assign(f, { evidence: `${statusText(res)}; ${f.evidence}`, transient: true });
+      else if (res.status !== 200) for (const f of found) f.evidence = `answered ${statusText(res)}; ${f.evidence}`;
       urls[u].failures.push(...found);
+    } else if (res.status === 0) {
+      urls[u].failures.push(transientFailure('IX-02', u, res, 'want 200'));
     } else if (res.status !== 200) {
       urls[u].failures.push({ id: 'IX-02', url: u, evidence: `answered ${statusText(res)}, want 200` });
     } else {
       urls[u].failures.push(...checkPage(signals.get(u), { ...ctx, expectNoindex: false }));
     }
   }
-  /** Adds `reason` to the page's `id` failure (one Failure per page and check), creating it when there is none. */
-  const addPageReason = (u, id, reason) => {
+  /**
+   * Adds `reason` to the page's `id` failure (one Failure per page and check), creating it when there is none. The
+   * failure stays transient only while every reason is (a request that failed).
+   */
+  const addPageReason = (u, id, reason, transient = false) => {
     const existing = urls[u].failures.find((f) => f.id === id);
-    if (existing) existing.evidence += `; ${reason}`;
-    else urls[u].failures.push({ id, url: u, evidence: reason });
+    if (existing) { existing.evidence += `; ${reason}`; if (!transient) delete existing.transient; }
+    else urls[u].failures.push({ id, url: u, evidence: reason, ...(transient ? { transient: true } : {}) });
   };
   for (const [u, res] of refPages) {
     if (res.status !== 200) continue; // a variant that does not answer is not a canonical question
@@ -211,7 +225,8 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
         if (!t.hostname.startsWith('www.')) variants.push(`https://www.${t.host}${t.pathname}${t.search}`);
         for (const v of variants) {
           extra.push(head(v).then((res) => {
-            if (![301, 308].includes(res.status) || !res.location || !sameUrl(res.location, e.fetchUrl)) {
+            if (res.status === 0) siteFailures.push(transientFailure('IX-02', e.fetchUrl, res, `${v}, want one 301/308 hop to ${e.fetchUrl}`));
+            else if (![301, 308].includes(res.status) || !res.location || !sameUrl(res.location, e.fetchUrl)) {
               siteFail('IX-02', `${v} answered ${statusText(res)}, want one 301/308 hop to ${e.fetchUrl}`, e.fetchUrl);
             }
           }));
@@ -220,7 +235,8 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     }
     const slug = `${site}/__seo-audit-404-${now.getTime()}`;
     extra.push(get(slug).then((res) => {
-      if (![404, 410].includes(res.status)) siteFail('IX-02', `unknown slug ${slug} answered ${statusText(res)}, want 404`);
+      if (res.status === 0) siteFailures.push(transientFailure('IX-02', home, res, `unknown slug ${slug}, want 404`));
+      else if (![404, 410].includes(res.status)) siteFail('IX-02', `unknown slug ${slug} answered ${statusText(res)}, want 404`);
     }));
   }
 
@@ -242,6 +258,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     if (reasons.length) siteFail('IX-10', `${sitemapUrl}: ${reasons.join('; ')}`);
     for (const e of inScope) {
       const res = pages.get(e.fetchUrl);
+      if (res.status === 0) { siteFailures.push(transientFailure('IX-10', e.fetchUrl, res, 'listed in the sitemap')); continue; }
       if (res.status !== 200) { siteFail('IX-10', `listed in the sitemap but answers ${statusText(res)}`, e.fetchUrl); continue; }
       const canonical = signals.get(e.fetchUrl).canonical;
       if (canonical.length === 1 && /^https?:\/\//i.test(canonical[0]) && !sameUrl(canonical[0], e.loc)) {
@@ -254,10 +271,14 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
   if (want('IX-11') && !url) {
     const linkers = [...new Set([home, ...entries.map((e) => e.fetchUrl)])].filter((u) => indexable.includes(u));
     const linksOf = new Map(linkers.map((u) => [u, new Set(signals.get(u).internalLinks.map(bare))]));
+    // A page whose request failed may be the one that links: an orphan found without it is not judged.
+    const unread = [...new Set([home, ...entries.map((e) => e.fetchUrl)])].filter((u) => pages.get(u)?.status === 0);
     for (const e of entries.filter((x) => indexable.includes(x.fetchUrl))) {
       const target = bare(e.fetchUrl);
       if (!linkers.some((p) => p !== e.fetchUrl && linksOf.get(p).has(target))) {
-        siteFail('IX-11', `no <a href> to it from the home page or another sitemap URL (${linkers.length - 1} other pages read)`, e.fetchUrl);
+        const evidence = `no <a href> to it from the home page or another sitemap URL (${linkers.length - 1} other pages read)`;
+        if (unread.length) siteFailures.push(transientFailure('IX-11', e.fetchUrl, pages.get(unread[0]), `${unread.join(', ')} not read; ${evidence}`));
+        else siteFail('IX-11', evidence, e.fetchUrl);
       }
     }
   }
@@ -273,7 +294,8 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
       try { img = new URL(image, u).href; } catch { addPageReason(u, 'IX-12', `og:image "${image}" is not a URL`); continue; }
       extra.push(headOnce(img).then((res) => {
         const type = res.headers['content-type'] ?? '';
-        if (res.status !== 200) addPageReason(u, 'IX-12', `og:image ${img} answered ${statusText(res)}, want 200`);
+        if (res.status === 0) addPageReason(u, 'IX-12', `${statusText(res)}: og:image ${img}, want 200`, true);
+        else if (res.status !== 200) addPageReason(u, 'IX-12', `og:image ${img} answered ${statusText(res)}, want 200`);
         else if (!/^image\//i.test(type)) addPageReason(u, 'IX-12', `og:image ${img} is ${type || 'untyped'}, want an image type`);
       }));
     }
@@ -281,13 +303,19 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     const withManifest = [home, ...targets].find((u) => ok(u) && manifestHref(pages.get(u).body, u));
     const manifest = withManifest ? manifestHref(pages.get(withManifest).body, withManifest) : `${site}/manifest.webmanifest`;
     for (const icon of [favicon, manifest]) {
-      extra.push(headOnce(icon).then((res) => { if (res.status !== 200) siteFail('IX-12', `${icon} answered ${statusText(res)}, want 200`); }));
+      extra.push(headOnce(icon).then((res) => {
+        if (res.status === 0) siteFailures.push(transientFailure('IX-12', home, res, `${icon}, want 200`));
+        else if (res.status !== 200) siteFail('IX-12', `${icon} answered ${statusText(res)}, want 200`);
+      }));
     }
   }
   await Promise.all(extra);
 
   for (const u of targets) urls[u].failures = urls[u].failures.filter((f) => want(f.id));
   const kept = siteFailures.filter((f) => want(f.id)).sort((a, b) => a.id.localeCompare(b.id) || a.url.localeCompare(b.url));
+  for (const f of allFailures({ urls, siteFailures: kept }).filter((x) => x.transient)) {
+    gaps.push(`${f.id} ${f.url} not judged: ${f.evidence} (retried, still failing: a failure of this run, never a regression)`);
+  }
   const failing = new Set(allFailures({ urls, siteFailures: kept }).map((f) => f.url));
   const fail = targets.filter((u) => failing.has(u)).length;
   // The ids this run fully checked (null = all): the --only list, minus under --url the checks that need the whole

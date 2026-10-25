@@ -11,7 +11,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseRobots, robotsAllows } from './lib/robots.mjs';
 import { parseSitemap } from './lib/sitemap.mjs';
-import { fetcher, DEFAULT_UA } from './lib/fetcher.mjs';
+import { fetcher, DEFAULT_UA, RETRY_DELAYS_MS } from './lib/fetcher.mjs';
 import { writeDigest, writeRegressionFindings } from './lib/digest.mjs';
 import { runAudit, toBaseline, exitCodeFor } from './audit.mjs';
 import { loadConfig } from './lib/config.mjs';
@@ -315,6 +315,46 @@ test('writeDigest: header line "seo-audit: run <id> · site <site> · <n> urls �
   assert.match(out[0], new RegExp(`^seo-audit: run \\d{8}-\\d{4}-seo · site ${O} · 8 urls · 3 failing checks$`));
   assert.equal(out.at(-1), `seo-audit: digest ${path.join(dir2, 'cli', 'digest.md')}`);
   assert.ok(existsSync(path.join(dir2, 'cli', 'results.json')));
+});
+
+test('fetcher: a request that cannot complete is tried twice more (500 ms, then 1500 ms), an HTTP error status never', async () => {
+  assert.deepEqual(RETRY_DELAYS_MS, [500, 1500]);
+  let calls = 0;
+  const flaky = (failures) => async () => {
+    calls += 1;
+    if (calls <= failures) throw Object.assign(new TypeError('fetch failed'), { cause: new Error('ECONNRESET') });
+    return new Response('ok', { status: 200 });
+  };
+  const res = await fetcher({ fetch: flaky(2), retryDelaysMs: [1, 1] }).get(`${O}/x`);
+  assert.equal(calls, 3);
+  assert.deepEqual([res.status, res.body], [200, 'ok']);
+  calls = 0;
+  await assert.rejects(fetcher({ fetch: flaky(3), retryDelaysMs: [1, 1] }).head(`${O}/x`), new RegExp(`^Error: HEAD ${O}/x: ECONNRESET$`));
+  assert.equal(calls, 3);
+  calls = 0;
+  const notFound = await fetcher({ fetch: async () => { calls += 1; return new Response('', { status: 503 }); }, retryDelaysMs: [1, 1] }).get(`${O}/x`);
+  assert.deepEqual([notFound.status, calls], [503, 1]);
+});
+
+test('a request that still fails is a transient failure: exit 1 not 3 against a clean baseline, listed under Coverage gaps', async () => {
+  const baseline = toBaseline(await audit());
+  assert.deepEqual(baseline[`${O}/wordle`], []);
+  const real = client();
+  const flaky = { get: (u) => (u === `${O}/wordle` ? Promise.reject(new Error(`GET ${u}: ECONNRESET`)) : real.get(u)), head: real.head };
+  const result = await audit({ fetcher: flaky, baseline });
+  assert.equal(result.urls[`${O}/wordle`].status, 0);
+  assert.deepEqual(result.urls[`${O}/wordle`].failures, [{ id: 'IX-02', url: `${O}/wordle`, evidence: `request failed (GET ${O}/wordle: ECONNRESET): want 200`, transient: true }]);
+  const ix10 = result.siteFailures.find((f) => f.id === 'IX-10' && f.url === `${O}/wordle`);
+  assert.match(ix10.evidence, /^request failed /);
+  assert.equal(ix10.transient, true);
+  assert.deepEqual(result.regressions, []);
+  assert.equal(exitCodeFor(result), 1);
+  const text = readFileSync(writeDigest(result, tmp()).digestPath, 'utf8');
+  const gaps = text.split('## Coverage gaps\n')[1];
+  assert.match(gaps, new RegExp(`- IX-02 ${O}/wordle not judged: request failed`));
+  assert.match(gaps, new RegExp(`- IX-10 ${O}/wordle not judged: request failed`));
+  assert.match(text, new RegExp(`## FAIL IX-02[^\\n]*\\n(- [^\\n]*\\n)*- ${O}/wordle: request failed`));
+  assert.match(text, /## Regressions\n- none\n/);
 });
 
 test('fetcher: at most 4 requests in flight, no redirect followed', async () => {

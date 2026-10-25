@@ -68,13 +68,14 @@ export const isSubsetBaseline = (b) => Array.isArray(b?.only) && b.urls && typeo
  * The failures of `result` whose (url, id) is new against `baseline`: the url is in the baseline, the baseline checked
  * the id (every id for a full baseline, its `only` ids for a subset one) and the id is not in the url's list. A URL
  * absent from the baseline is never a regression (a new page has no "was fine" to compare with), nor is an id a
- * subset baseline never checked.
+ * subset baseline never checked. A transient failure (a request that could not complete, `transient: true`) is never a
+ * regression either: it still fails the run and is listed under Coverage gaps.
  * @param {object} result an AuditResult
  * @param {Record<string, string[]> | { only: string[], urls: Record<string, string[]> }} baseline
  */
 export function regressionsAgainst(result, baseline) {
   const { only, urls } = isSubsetBaseline(baseline) ? baseline : { only: null, urls: baseline };
-  return allFailures(result).filter((f) => (!only || only.includes(f.id))
+  return allFailures(result).filter((f) => !f.transient && (!only || only.includes(f.id))
     && Object.hasOwn(urls, f.url) && !(urls[f.url] ?? []).includes(f.id));
 }
 

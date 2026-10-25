@@ -7,6 +7,7 @@
 //   node scripts/seo/ledger.mjs requested <url> [--note "…"]  the owner asked Google for <url> (default note:
 //                                                             "URL Inspection → Request indexing"); pushes the store
 //   node scripts/seo/ledger.mjs record-audit --run <runId>    applyAudit from <home>/seo/runs/<runId>/results.json; pushes the store
+//                                                             (a run of another host than config.json's site: not recorded, exit 0)
 //   node scripts/seo/ledger.mjs weekly-status [--github-output]
 //       `seo-weekly free|busy|done` (read-only): what a weekly run starting now would find; --github-output also
 //       appends `weekly=<status>` to $GITHUB_OUTPUT
@@ -102,7 +103,10 @@ export async function cli(argv, { log = console.log, err = console.error, now = 
     const resultsPath = path.join(home, 'seo', 'runs', o.run, 'results.json');
     if (!existsSync(resultsPath)) { err(`ledger: no results.json for run ${o.run} (${resultsPath})`); return 2; }
     const result = JSON.parse(readFileSync(resultsPath, 'utf8'));
-    const expectNoindex = loadConfig().expectedNoindex ?? [];
+    const config = loadConfig();
+    const [host, configured] = [new URL(result.site).host, new URL(config.site).host];
+    if (host !== configured) { log(`ledger: not recorded (site ${host} is not the configured ${configured})`); return 0; }
+    const expectNoindex = config.expectedNoindex ?? [];
     const { saved } = change((l) => applyAudit(l, result, { expectNoindex, now }), `seo: audit ${result.runId}`);
     log(`ledger: record-audit ${result.runId} · ${Object.keys(result.urls).length} url(s)${result.only ? ` · only ${result.only.join(',')}` : ''} · ${saved}`);
     return 0;

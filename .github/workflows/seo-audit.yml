@@ -5,6 +5,7 @@ name: SEO post-deploy audit
 # (scripts/seo/notion-push.mjs --priority P0 --regressions-only) and one Slack line to #agent-frontend
 # (`seo: production regression · <ids> · <urls>`, scripts/seo/lib/slack.mjs). The new results always become the
 # store's baseline (ledger.mjs record-audit: seo/ledger.json on the branch checks-state, fast-forward, never main or dev).
+# A dispatch with another `site` than https://swishquest.com only audits: no card, no Slack line, no record.
 # No agent, no Google API, ~2 min. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
 # GitHub runs `push: main` workflows from main's copy of this file: it is inert until dev is promoted.
 # The repo is public: the log and the artifact are world-readable (digest.md and results.json hold only the IX
@@ -89,14 +90,14 @@ jobs:
           if [ -n "$RUN_ID" ] && [ -f ".ui-check/seo/runs/$RUN_ID/digest.md" ]; then cat ".ui-check/seo/runs/$RUN_ID/digest.md" >> "$GITHUB_STEP_SUMMARY"; fi
           exit 0
       - name: P0 card for the regression (Target dev)
-        if: steps.audit.outputs.code == '3'
+        if: steps.audit.outputs.code == '3' && (inputs.site == '' || inputs.site == 'https://swishquest.com')
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
           RUN_ID: ${{ steps.audit.outputs.run_id }}
           DRY: ${{ inputs.notion == 'dry' && '--dry-run' || '' }}
         run: node scripts/seo/notion-push.mjs --run "$RUN_ID" --priority P0 --regressions-only $DRY
       - name: Slack line for the regression
-        if: always() && steps.audit.outputs.code == '3'
+        if: always() && steps.audit.outputs.code == '3' && (inputs.site == '' || inputs.site == 'https://swishquest.com')
         env:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           RESULTS: ${{ steps.audit.outputs.run_dir }}/results.json
@@ -111,7 +112,7 @@ jobs:
             postSeoLine(`seo: production regression · ${ids} · ${urls}`, { dryRun: process.env.SLACK === "off" });
           '
       - name: Record the audit in the store (the next baseline)
-        if: always() && steps.audit.outputs.run_id != ''
+        if: always() && steps.audit.outputs.run_id != '' && (inputs.site == '' || inputs.site == 'https://swishquest.com')
         env:
           CHECKS_STATE_TOKEN: ${{ github.token }}
           RUN_ID: ${{ steps.audit.outputs.run_id }}
