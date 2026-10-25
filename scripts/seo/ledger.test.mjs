@@ -155,4 +155,22 @@ test('baseline from a ledger: { url: fail[] } for every url with an audit block'
   let l = applyAudit(emptyLedger(), fullRun(), { now: NOW });
   l = applyInspections(l, { [`${S}/connections`]: inspection() }); // gsc only: no audit block
   assert.deepEqual(baselineFrom(l), { [H]: ['IX-01'], [W]: ['IX-04'], [G]: ['IX-11'], [A]: [] });
+
+  // a second full run without G: G's audit block goes (its gsc, requests and decision stay), the baseline is run2's
+  l = markRequested(applyInspections(l, { [G]: inspection({ googleCanonical: G, userCanonical: G }) }), G, 'n', { now: NOW });
+  l = applyDecisions(l, [{ id: 'SEO-r-001', urls: [G], decision: 'wait' }], '20261026-0700-seo');
+  const run2 = fullRun();
+  run2.runId = '20261102-0700-seo';
+  delete run2.urls[G];
+  run2.siteFailures = [failure('IX-01', H)];
+  const l2 = applyAudit(l, run2, { now: NOW });
+  assert.deepEqual(Object.keys(baselineFrom(l2)).sort(), Object.keys(toBaseline(run2)).sort());
+  assert.deepEqual(baselineFrom(l2), toBaseline(run2));
+  assert.equal(l2.urls[G].audit, null);
+  assert.equal(l2.urls[G].gsc.googleCanonical, G);
+  assert.equal(l2.urls[G].requests.length, 1);
+  assert.equal(l2.urls[G].decision.kind, 'wait');
+  // a subset run never clears a URL it did not audit
+  const sub = applyAudit(l, { ...run2, only: ['IX-04'], urls: { [W]: { status: 200, failures: [] } }, siteFailures: [] }, { now: NOW });
+  assert.deepEqual(sub.urls[G].audit, l.urls[G].audit);
 });
