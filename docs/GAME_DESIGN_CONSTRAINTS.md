@@ -19,7 +19,7 @@ without a rendered screenshot. History and rationale for these rules live in `do
 | 1.1 | The play area MUST fit 390×844 with no in-game scroll | `ui:audit` mobile (`playAreaFitsViewport`, reported) + QA |
 | 1.2 | A game that cannot fit MUST let the shell grow (content game, page scrolls) — never clip, never squash — and MUST have a deviations entry | `ui:audit` (`shellContainsGame`) + review |
 | 2.1 | The idle screen is shell-owned; a game MUST NOT build its own | review |
-| 3.1 | Loading is shell-owned (`CourtLoader`, 2000 ms hold); a game MUST NOT add a full-stage loader | review |
+| 3.1 | Loading is shell-owned (`CourtLoader`, 800 ms minimum hold); a game MUST NOT add a full-stage loader | review |
 | 3.2 | Every game MUST enter and resize through the shared shell (the stage height glides, the frame fades in with its phase); a game MUST NOT animate its own entrance or container height, nor wrap its own wait in `<GameFrame>` | manual rAF check (snippet in the rule) |
 | 4.1 | Every game MUST be classified: a board that scrolls internally → `<GameFrame fill>`; anything else → `<GameFrame>` | `ui:audit` (`gameToExit` per family) |
 | 4.2 | The three shell distances MUST be identical in every game | `ui:audit` (`shellTop`, `gameToExit`, `exitToBottom`) |
@@ -176,8 +176,9 @@ for a new game.
 ## 3. Loading
 
 ### RULE 3.1 — Loading is shell-owned
-Pressing Play shows `<CourtLoader label="Warming up the court…" />` (scale 1) and holds it for
-**2000 ms** (`handleStart()` in `MiniGame.tsx`) so it never flashes. A game never adds its own
+Pressing Play shows `<CourtLoader label="Warming up the court…" />` (scale 1) and starts loading the
+game's data at once; the loader holds for at least **800 ms** from the press, or until the data is in
+if that takes longer (`handleStart()` in `MiniGame.tsx`), so it never flashes. A game never adds its own
 full-stage loader. For a small inline wait (pending vote, end-of-game score) use `Spinner`.
 
 **Why:** one loading moment for every game.
@@ -402,7 +403,7 @@ position (`key={i}`). Reference: `PlayOffSeries.tsx`.
 ### Shared constants
 | Constant | Value | Where it comes from |
 |---|---|---|
-| Loading hold | 2000 ms | `MiniGame.tsx` (Rule 3.1) |
+| Loading hold (minimum) | 800 ms | `MiniGame.tsx` (Rule 3.1) |
 | Reveal dwell (lock → next round) | 1800 ms | game timer; `PlayOffSeries.tsx` |
 | In-place loader beat | 1.5 s | game timer (Rule 7.3) |
 | End-of-game stagger | 260 ms per item, ~300 ms lead-in | game timer (Rule 7.2) |
