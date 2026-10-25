@@ -160,12 +160,13 @@ Keep every finding already in the file; add the OP findings after them in OP id 
 - `card` (never OP-07, OP-11): `files` from "Where the signals are set" (with a note, e.g. `src/types/types.tsx (Game:
   seoTitle, seoHeading)`), `howToFix` (rule 4; one paragraph, copy rule 9; end with `Acceptance: onpage.mjs shows no ##
   FAIL OP-nn for these URLs.`), `acceptance` `{ "audit": "node scripts/seo/onpage.mjs --site <site>", "qa": [ … ] }`.
-- `qa`: one for each of the first 5 failing URLs in sorted order, `route` its path; `[]` for OP-10. Selectors: OP-01 `h1` (`contains every word
-  of "<primary>"`), OP-02 `title` (`"<proposed title> | Swish Quest"`), OP-03 `meta[name=description]` (`content
-  110-160 characters, unique`), OP-04 `main h2` (`≥ 2, visible in the server HTML`), OP-05 `main h2` (`one reads "How
-  to play …"; ≥ 150 words of the game's own text`), OP-06 `main a[href]` (`≥ 2 links to other games with the anchors of
-  the card`), OP-08 `main img` (`the game artwork, a descriptive non-empty alt, width and height`), OP-09 `script[type="application/ld+json"]`
-  (`a BreadcrumbList with 2 ListItems; VideoGame; no aggregateRating`).
+- `qa`: one for each of the first 5 failing URLs in sorted order, `route` its path; `[]` for OP-10. Selectors: OP-01
+  `h1` (`contains every word of "<primary>"`), OP-02 `title` (`"<proposed title> | Swish Quest"`), OP-03
+  `meta[name=description]` (`content 110-160 characters, unique`), OP-04 `main h2` (`≥ 2, visible in the server
+  HTML`), OP-05 `main h2` (`one reads "How to play …"; ≥ 150 words of the game's own text`), OP-06 `main a[href]` (`≥ 2
+  links to other games with the anchors of the card`), OP-08 `main img` (`the game artwork, a descriptive non-empty
+  alt, width and height`), OP-09 `script[type="application/ld+json"]` (`a BreadcrumbList with 2 ListItems; VideoGame;
+  no aggregateRating`).
 - `wait`: `recheckAfter` (rule D); no `files`, `howToFix`, `acceptance`, and never query data.
 
 ### REPORT.md (the file `seo-indexing` wrote: add, never change its sections)
