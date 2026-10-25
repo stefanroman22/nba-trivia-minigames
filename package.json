@@ -14,6 +14,7 @@
     "build": "npm run copy:data && next build",
     "check:games": "node scripts/check-game-results.mjs",
     "check:legal": "node scripts/check-legal-config.mjs",
+    "check:photos": "node scripts/check-photo-map.mjs",
     "check:ids": "node scripts/check-constraint-ids.mjs",
     "check:seen": "node scripts/check-seen.mjs",
     "check:review-rounds": "node scripts/check-review-rounds.mjs",
