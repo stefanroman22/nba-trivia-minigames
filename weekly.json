@@ -1,8 +1,8 @@
 {
   "lease": {
-    "holder": "windows-Stefan-39432",
-    "since": "2026-10-20T21:15:38.261Z",
-    "until": "2026-10-21T04:15:38.261Z"
+    "holder": "cloud-40150283416-1",
+    "since": "2026-10-25T01:22:18.220Z",
+    "until": "2026-10-25T08:22:18.220Z"
   },
   "runs": [
     {
@@ -18,6 +18,13 @@
       "where": "Stefan",
       "scheduled": false,
       "startedAt": "2026-10-20T21:15:38.261Z",
+      "status": "running"
+    },
+    {
+      "holder": "cloud-40150283416-1",
+      "where": "github-actions",
+      "scheduled": true,
+      "startedAt": "2026-10-25T01:22:18.220Z",
       "status": "running"
     }
   ]
