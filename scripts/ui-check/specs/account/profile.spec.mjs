@@ -136,6 +136,8 @@ test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo 
       await motionStep(audit, 'age submitted, photo uploads', async () => {
         await L(page, 'account.ageContinue').click();
         await expect(state).toHaveText('Shown to other players', { timeout: 20_000 });
+        // The age given in the prompt reaches the page without a reload (the store, not only the server).
+        await expect(L(page, 'account.psDobState')).toContainText(`June ${new Date().getFullYear() - 30} · 16 or over`, { timeout: 5000 });
         await expect(L(page, 'account.agePrompt')).toHaveCount(0, { timeout: 5000 });
       }, { watch: ['.ps-card', '.ps-hero'], settleMs: 800 });
       const after = await avatar.getAttribute('src');

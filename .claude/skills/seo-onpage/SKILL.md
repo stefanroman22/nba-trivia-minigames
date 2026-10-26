@@ -146,7 +146,7 @@ How to apply them, in this order:
 - **F. Copy.** For every card, per URL, the copy of rule 4 that its check needs (OP-01/02: title and H1; OP-03:
   description; OP-04/05: the section with its H2s; OP-06: the links; OP-08: the `<img>`, its size and alt as copy-examples says; OP-09: the object).
   When OP-01, OP-02 and OP-04 are all cards, give the same title and H1 in each (the builder applies them once).
-- **G. Rule 5.** Same OP check as an open card = the same fingerprint (`OP-nn|onpage`, whatever its URLs): notion-push
+- **G. Guide rule 5.** Same OP check as an open card = the same fingerprint (`OP-nn|onpage`, whatever its URLs): notion-push
   comments on the open card and files nothing. Never vary `check` or the fingerprint to get a second card.
 
 Run date = the runId's `YYYYMMDD`. Severity: `major` for OP-01, OP-02, OP-05; `minor` for every other OP finding.
