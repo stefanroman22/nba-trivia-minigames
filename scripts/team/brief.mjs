@@ -11,6 +11,7 @@ import { extractRules, selectRules, ruleIndex } from "./lib/rules.mjs";
 import { classifyTouched } from "./lib/touched.mjs";
 import { runDir, readJson, writeState } from "./lib/state.mjs";
 import { isCheckCard, findingsOf, rulesOfFindings, renderCheckFindings, withVerifyAssertion } from "./lib/check-card.mjs";
+import { touchesSeo } from "../seo/lib/seo-paths.mjs";
 import { writeFileSync } from "node:fs";
 
 const argv = process.argv.slice(2);
@@ -47,10 +48,13 @@ for (const h of classify.codeMapHits || []) { const m = h.match(/`([^`]+)`/); if
 for (const g of cls.games) kw.add(g);
 for (const w of String(card.title).toLowerCase().split(/[^a-z0-9]+/)) if (w.length >= 5) kw.add(w);
 for (const a of classify.areas || []) kw.add(a);
+// SEO paths (scripts/seo/lib/seo-paths.mjs) always bring the SEO rules: classify is an agent and may forget them
+const seo = touchesSeo(planFiles) || (classify.areas || []).includes("seo");
+if (seo) for (const k of ["seo", "sitemap", "metadata"]) kw.add(k);
 
 // --- rules: a global budget so two docs cannot blow the 400-line cap (6 rules for the first doc,
 // 3 for each further one, 25 body lines each — the index still lists every id)
-const docs = [...new Set([...(classify.docs || []), ...checkRules.docs])];
+const docs = [...new Set([...(classify.docs || []), ...checkRules.docs, ...(seo ? ["docs/constraints/SEO_CONSTRAINTS.md"] : [])])];
 const ruleSections = [];
 let rulesQuoted = 0;
 docs.forEach((d, di) => {
