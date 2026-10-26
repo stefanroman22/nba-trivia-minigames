@@ -102,7 +102,10 @@ An independent audit recomputed every cell of the 1,420 medium and hard boards w
 
 - **One year rule** for every criterion in this game: a season belongs to the decade it starts in (the 2010s begin
   with 2010-11; 2009-10 is the 2000s). Decades, team × decade cells, "Played w/" and "current franchise" all read
-  seasons from `tictactoe._seasons`; the contract's calendar-year era is no longer used by Tic-Tac-Toe.
+  seasons from `tictactoe._seasons`. Then extended to every game (owner, 2026-10-26): the contract's `era` in
+  `criteria.ts` and its four Python mirrors (Grid, Heatmap, Bingo, the legacy Tic-Tac-Toe seed) and Who Would Win's
+  decade sides ("'90s Bulls" = 1990-91 .. 1999-00) read decades the same way. Three Heatmap boards that leaned on
+  the old calendar edge (hm-board-1, 5, 10) were rebuilt with heatmap_gen's own build_board; manifest 2026-10-26.yr.
 - **Teammates:** sharing a season on one franchise counts, even when the player left before the star arrived
   mid-season (owner: "if Jordan still played the half season, it counts").
 - **Missing players:** 334 rows had no stints because PlayerCareerStats answers `{}` for them. The league's game

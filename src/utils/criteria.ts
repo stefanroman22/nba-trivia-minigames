@@ -13,7 +13,9 @@
 
 import type { Criterion, PlayerIndexEntry } from "../types/types";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const NOW = new Date();
+/** Start year of the season being played (or the last one, before October). */
+const CURRENT_SEASON = NOW.getMonth() >= 9 ? NOW.getFullYear() : NOW.getFullYear() - 1;
 /** `position` criterion values → the dataset's position codes that satisfy them. */
 const POSITION_CODES: Record<string, string[]> = { guard: ["G", "G-F"], forward: ["F", "G-F", "F-C"], center: ["C", "F-C"] };
 
@@ -83,11 +85,13 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
       }
 
     case "era": {
-      // Any stint [start_year, end_year || current] intersecting the decade.
+      // A season belongs to the decade it starts in (2009-10 is the 2000s, the 2010s begin with 2010-11): any
+      // stint with a season starting in the decade. A stint's seasons start start_year .. end_year - 1, an open
+      // one's through the current season.
       const d = decadeStart(c.value);
       if (d == null) return false;
       return p.teams.some(
-        (t) => t.start_year <= d + 9 && (t.end_year ?? CURRENT_YEAR) >= d,
+        (t) => t.start_year <= d + 9 && Math.max((t.end_year ?? CURRENT_SEASON + 1) - 1, t.start_year) >= d,
       );
     }
 

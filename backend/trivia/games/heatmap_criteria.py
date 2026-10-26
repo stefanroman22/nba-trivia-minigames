@@ -21,6 +21,8 @@ POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center
 ROW_WIDTHS = [4, 5, 5, 5, 5, 4]  # == 28 playable hexes
 
 CURRENT_YEAR = datetime.now(timezone.utc).year
+# Start year of the season being played (or the last one, before October).
+CURRENT_SEASON = CURRENT_YEAR if datetime.now(timezone.utc).month >= 10 else CURRENT_YEAR - 1
 
 
 def _centers():
@@ -119,8 +121,10 @@ def player_matches(p, c):
         ds = _decade_start(v)
         if ds is None:
             return False
+        # A season belongs to the decade it starts in (2009-10 is the 2000s): a stint's seasons start
+        # start_year .. end_year - 1, an open one's through the current season.
         return any(
-            s["start_year"] <= ds + 9 and (s["end_year"] or CURRENT_YEAR) >= ds
+            s["start_year"] <= ds + 9 and max((s["end_year"] or CURRENT_SEASON + 1) - 1, s["start_year"]) >= ds
             for s in p["teams"]
         )
     if t == "position":

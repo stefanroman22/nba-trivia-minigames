@@ -1,5 +1,5 @@
 {
-  "version": "2026-10-01.ff",
+  "version": "2026-10-26.yr",
   "games": {
     "all-players": {
       "file": "all-players.json",
@@ -23,7 +23,7 @@
     },
     "heatmap": {
       "file": "heatmap.json",
-      "sha256": "c1abe37827bfa341694d743e370cc1cb5183c21b3cbd82c7b1fbb2d2bd0c9212",
+      "sha256": "a1315fb505a0426898e3c26545b075eb85e903a3f582b666a6d036863a838a52",
       "count": 12
     },
     "imposter": {

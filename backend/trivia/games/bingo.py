@@ -130,9 +130,13 @@ def criterion_matches(p, c):
         d = _decade_start(value)
         if d is None:
             return False
-        current_year = date.today().year
+        # A season belongs to the decade it starts in (2009-10 is the 2000s): a stint's seasons start
+        # start_year .. end_year - 1, an open one's through the current season.
+        today = date.today()
+        current_season = today.year if today.month >= 10 else today.year - 1
         return any(
-            t.get("start_year", 9999) <= d + 9 and (t.get("end_year") or current_year) >= d
+            t.get("start_year", 9999) <= d + 9
+            and max((t.get("end_year") or current_season + 1) - 1, t.get("start_year", 9999)) >= d
             for t in p.get("teams", [])
         )
     if ctype == "position":

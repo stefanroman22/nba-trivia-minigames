@@ -26,6 +26,8 @@ POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center
 AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar", "allstar5plus", "allnba"}
 STAT_VALUES = {"20kpts", "25kpts", "ppg20", "rpg10", "apg8", "seasons15plus"}
 CURRENT_YEAR = date.today().year
+# Start year of the season being played (or the last one, before October).
+CURRENT_SEASON = CURRENT_YEAR if date.today().month >= 10 else CURRENT_YEAR - 1
 
 
 def _load_json(path):
@@ -112,8 +114,11 @@ def player_matches(p, c):
         ds = _decade_start(v)
         if ds is None:
             return False
+        # A season belongs to the decade it starts in (2009-10 is the 2000s): a stint's seasons start
+        # start_year .. end_year - 1, an open one's through the current season.
         return any(
-            s.get("start_year", 9999) <= ds + 9 and (s.get("end_year") or CURRENT_YEAR) >= ds
+            s.get("start_year", 9999) <= ds + 9
+            and max((s.get("end_year") or CURRENT_SEASON + 1) - 1, s.get("start_year", 9999)) >= ds
             for s in p.get("teams", [])
         )
     if t == "position":

@@ -84,9 +84,9 @@ def _current_season():
 
 
 def _seasons(p):
-    """{(franchise, season)} of every season `p` played. THE year rule of every Tic-Tac-Toe criterion (owner,
-    2026-10-25): a season is named by the year it starts and belongs to that year's decade, so 2009-10 is the
-    2000s and 2010-11 the first season of the 2010s. A stint runs from its start_year to the season before its
+    """{(franchise, season)} of every season `p` played. The year rule of every game (owner, 2026-10-25; the
+    contract's `era` in criteria.ts and its mirrors reads it the same way): a season is named by the year it starts
+    and belongs to that year's decade, so 2009-10 is the 2000s and 2010-11 the first season of the 2010s. A stint runs from its start_year to the season before its
     end_year (the year its last season ended); an open stint through the current season."""
     return {(s["abbr"], y) for s in p.get("teams") or []
             for y in range(s["start_year"], max(s.get("end_year") or _current_season() + 1, s["start_year"] + 1))}
@@ -114,9 +114,6 @@ def teammates(dataset, star_id):
 def _matches(p, c, dataset):
     if c.get("type") == "teammate":
         return dataset is not None and p["person_id"] in teammates(dataset, int(c["value"]))
-    if c.get("type") == "era":  # by season (see _seasons), not the contract's calendar-year overlap
-        ds = _decade_start(c.get("value"))
-        return ds is not None and played_in_decade(p, ds)
     return player_matches(p, c)
 
 

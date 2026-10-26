@@ -90,6 +90,25 @@ class TerritorialPickTests(TestCase):
             self.assertFalse(matches(_player(None), self._crit("pick1")), name)
 
 
+class EraTests(TestCase):
+    """`era`: a season belongs to the decade it starts in (owner, 2026-10-25): 2009-10 is the 2000s, the 2010s
+    begin with 2010-11. A stint's end_year is the year its last season ENDED."""
+
+    def test_every_mirror_reads_decades_by_season_start(self):
+        cases = [
+            ({"start_year": 2003, "end_year": 2010}, {"2000s"}),           # 2003-04 .. 2009-10
+            ({"start_year": 2009, "end_year": 2010}, {"2000s"}),           # one season, 2009-10
+            ({"start_year": 2010, "end_year": 2011}, {"2010s"}),           # one season, 2010-11
+            ({"start_year": 1999, "end_year": 2001}, {"1990s", "2000s"}),  # 1999-00, 2000-01
+            ({"start_year": 2019, "end_year": None}, {"2010s", "2020s"}),  # still on the team
+        ]
+        for name, matches in MIRRORS.items():
+            for stint, want in cases:
+                p = {**_player(None), "teams": [{"abbr": "LAL", "name": "Lakers", "gp": 82, "ppg": 10.0, **stint}]}
+                got = {d for d in ("1990s", "2000s", "2010s", "2020s") if matches(p, {"type": "era", "value": d, "label": d})}
+                self.assertEqual(got, want, f"{name}: {stint}")
+
+
 class AllStarTests(TestCase):
     """`allstar`: at least one All-Star selection (`allstar5plus` stays five)."""
 
