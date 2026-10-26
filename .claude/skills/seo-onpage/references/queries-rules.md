@@ -47,9 +47,10 @@ says where it hurts most and what to write.
   carries query data with: `Re-check: 28 days after this is live, the seo run reads this page's query data again; a flag
   before then is the old copy.`
 - That is also why a flag alone never opens a card (the last row above): the page's copy may be younger than the
-  window. The OP-11 `none` finding keeps it visible in `findings.json`; the owner reads the numbers in the Drive export.
-- "Clicks falling after a change" (the guide's fourth row) needs two windows to compare: it is the owner's (Drive
-  export), never a finding.
+  window. The OP-11 `none` finding keeps it visible in `findings.json`; the owner reads the numbers in Search Console's
+  Performance report.
+- "Clicks falling after a change" (the guide's fourth row) needs two windows to compare: it is the owner's (Search
+  Console's Performance report), never a finding.
 
 ## OP-11 finding
 One `none` finding per run when `queries-summary.md` has at least one flagged path: `check` `OP-11`, `severity`

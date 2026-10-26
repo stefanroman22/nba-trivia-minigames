@@ -3,7 +3,7 @@
 //   node scripts/seo/auth.mjs
 //
 // Takes GOOGLE_SEO_CLIENT_ID / GOOGLE_SEO_CLIENT_SECRET from env or asks for them in the terminal (never a command-line
-// argument), opens Google's consent page (Search Console + Drive), catches the redirect on 127.0.0.1, exchanges the
+// argument), opens Google's consent page (Search Console), catches the redirect on 127.0.0.1, exchanges the
 // code for a refresh token and writes { clientId, clientSecret, refreshToken } (mode 0600) to credentialsPath(). Then
 // it writes the three values to three temp files and prints the `gh secret set` commands that read them; no value is
 // printed.
@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url';
 import { TOKEN_URL, credentialsPath, readJson } from './lib/google-auth.mjs';
 
 export const AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-export const SCOPES = ['https://www.googleapis.com/auth/webmasters', 'https://www.googleapis.com/auth/drive'];
+export const SCOPES = ['https://www.googleapis.com/auth/webmasters'];
 const REPO = 'stefanroman22/nba-trivia-minigames';
 
 /** Google's consent URL for an offline (refresh-token) grant of SCOPES, redirecting to `redirectUri`. */

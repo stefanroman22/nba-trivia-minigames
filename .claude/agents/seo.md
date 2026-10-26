@@ -22,8 +22,8 @@ failure and every Search Console verdict that is not `PASS`, what happens next, 
 - Phase 2: `<runDir>/onpage-summary.md`, `<runDir>/queries-summary.md` (PRIVATE), `scripts/seo/keyword-map.json`.
 - `<runDir>/findings.json` when it already exists (merge into it, never drop a finding in it).
 - The per-URL slices the skills print with one command. Nothing else of `gsc.json` or `onpage.json`.
-- Never `results.json`, `gsc.json`, `gsc-analytics.json`, `gsc-analytics-pq.json`, `ledger.json`, `ledger-previous.json`
-  (other than through a slice command), any export or CSV. Never a whole source file: Grep, then Read about 30 lines.
+- Never `results.json`, `gsc.json`, `gsc-analytics-pq.json`, `ledger.json`, `ledger-previous.json`
+  (other than through a slice command), any CSV. Never a whole source file: Grep, then Read about 30 lines.
 
 ## What you may write
 Only `<runDir>/findings.json`, `<runDir>/REPORT.md` and `docs/seo/owner-actions.md`. Never `src/`, `scripts/`,

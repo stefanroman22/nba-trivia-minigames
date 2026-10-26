@@ -8,7 +8,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { exportFiles } from './export.mjs';
 import { emptyLedger } from './lib/ledger.mjs';
 import { validateFindings } from './lib/findings.mjs';
 import { seoLine } from './lib/slack.mjs';
@@ -88,7 +87,6 @@ function fakes(over = {}) {
     }),
     notionPush: rec('notion', () => ({ results: [{ action: 'card', id: 'x', cardId: 'c1' }, { action: 'skip', id: 'y', cardId: 'c2', why: 'open' }] })),
     indexnow: rec('indexnow', () => ({ code: 0, record: { at: '2026-10-26T05:01:00.000Z', status: 202, count: 1, urls: [`${SITE}/trivia`], dryRun: false } })),
-    exportDrive: rec('export', () => ({ code: 0, drive: 'ok' })),
     postLine: rec('slack', () => ({ ok: true })),
     ...over,
     ledgerStore: {
@@ -144,7 +142,7 @@ test('runWeekly runs the steps in order, merges the ledger and appends the histo
   const o = opts();
   const r = await runWeekly(o, deps);
   assert.equal(r.code, 0);
-  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'notion', 'indexnow', 'export', 'push', 'slack', 'release']);
+  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'notion', 'indexnow', 'push', 'slack', 'release']);
   const runDir = path.join(o.home, 'seo', 'runs', r.state.runId);
   assert.ok(existsSync(path.join(runDir, 'ledger-previous.json')));
   assert.match(readFileSync(path.join(runDir, 'ledger-summary.md'), 'utf8'), /# Ledger summary/);
@@ -158,7 +156,7 @@ test('runWeekly runs the steps in order, merges the ledger and appends the histo
   assert.equal(ledger.dataAsOf.indexnow, '2026-10-26T05:01:00.000Z');
   assert.equal(ledger.history.length, 1);
   assert.deepEqual(ledger.history[0], { runId: r.state.runId, at: new Date(NOW).toISOString(), status: 'ok', indexed: 2, notIndexed: 1, failedChecks: 1, cards: 1 });
-  assert.equal(r.line, `seo: run ${r.state.runId} · 4 urls · indexed 2 · not indexed 1 · audit fails 1 · cards 1 new/1 seen · owner actions 0 · drive ok · 0 s`);
+  assert.equal(r.line, `seo: run ${r.state.runId} · 4 urls · indexed 2 · not indexed 1 · audit fails 1 · cards 1 new/1 seen · owner actions 0 · 0 s`);
   assert.deepEqual(seen.slack, r.line);
 });
 
@@ -228,7 +226,7 @@ test('the agent throws: the run goes on, REPORT.md is the placeholder and the li
   const o = opts();
   const r = await runWeekly(o, deps);
   assert.equal(r.code, 0);
-  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'indexnow', 'export', 'push', 'slack', 'release']);
+  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'indexnow', 'push', 'slack', 'release']);
   assert.match(r.line, / · judgement needed$/);
   const report = readFileSync(path.join(o.home, 'seo', 'runs', r.state.runId, 'REPORT.md'), 'utf8');
   assert.match(report, /## Summary\n+judgement needed/);
@@ -376,32 +374,34 @@ test('the Slack post throws: exit 1 and the lease is still released', async () =
   assert.deepEqual(r.state.failures, ['slack: slack.mjs crashed']);
 });
 
-test('searchConsoleStep writes gsc.json, gsc-analytics.json and a short summary without any Search Analytics value', async () => {
+test('searchConsoleStep writes gsc.json and a short summary; no Search Analytics pull without pageQuery', async () => {
   const runDir = tmp();
+  let analyticsCalls = 0;
   const client = {
     sitemaps: async () => [{ path: `${SITE}/sitemap.xml`, errors: 0, warnings: 1, isPending: false }],
     inspect: async (u) => (u.endsWith('/x') ? { error: 'budget' } : { verdict: 'PASS', coverageState: 'Submitted and indexed', inspectedAt: '2026-10-26T05:00:00.000Z' }),
-    analytics: async () => [{ keys: [`${SITE}/`], clicks: 98765, impressions: 43210, ctr: 0.0123, position: 7.5 }],
+    analytics: async () => { analyticsCalls += 1; return []; },
   };
-  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`, `${SITE}/x`], runDir, config: CONFIG, client, now: () => NOW });
+  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`, `${SITE}/x`], runDir, config: CONFIG, client });
   assert.equal(r.error, null);
+  assert.equal(analyticsCalls, 0);
   assert.deepEqual(Object.keys(read(path.join(runDir, 'gsc.json'))), [`${SITE}/`, `${SITE}/x`]);
-  assert.equal(read(path.join(runDir, 'gsc-analytics.json'))[0].clicks, 98765);
+  assert.ok(!existsSync(path.join(runDir, 'gsc-analytics.json')));
   const md = readFileSync(path.join(runDir, 'gsc-summary.md'), 'utf8');
   assert.ok(md.trimEnd().split('\n').length <= 10);
   assert.match(md, /verdict: PASS 1/);
   assert.match(md, /errors: budget 1/);
-  for (const v of ['98765', '43210', '0.0123', '7.5']) assert.ok(!md.includes(v), `${v} in the summary`);
+  assert.ok(!md.includes('analytics'), 'no analytics line');
 });
 
 test('seoLine: the one Slack line', () => {
   const s = { runId: '20261026-0600-seo', urls: 17, indexed: 14, notIndexed: 1, auditFails: 0, cards: { new: 1, seen: 2 }, ownerActions: 1,
-    drive: 'ok', durationMs: 7 * 60_000 + 10_000, judgementNeeded: false, failures: [] };
-  assert.equal(seoLine(s), 'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · drive ok · 7 min');
-  assert.equal(seoLine({ ...s, drive: 'skipped', durationMs: 42_000, judgementNeeded: true }),
-    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · drive skipped · 42 s · judgement needed');
+    durationMs: 7 * 60_000 + 10_000, judgementNeeded: false, failures: [] };
+  assert.equal(seoLine(s), 'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · 7 min');
+  assert.equal(seoLine({ ...s, durationMs: 42_000, judgementNeeded: true }),
+    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · 42 s · judgement needed');
   assert.equal(seoLine({ ...s, onpageFails: 4 }),
-    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · onpage fails 4 · cards 1 new/2 seen · owner actions 1 · drive ok · 7 min');
+    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · onpage fails 4 · cards 1 new/2 seen · owner actions 1 · 7 min');
   assert.equal(seoLine({ ...s, onpageFails: 0 }), seoLine(s).replace(' · cards', ' · onpage fails 0 · cards'));
   assert.equal(seoLine({ ...s, onpageFails: null }), seoLine(s), 'no on-page step, no on-page part');
 });
@@ -463,7 +463,7 @@ test('--areas indexing,onpage: audit, gsc with the page × query pull, then the 
   const r = await runWeekly(o, deps);
   const runDir = path.join(o.home, 'seo', 'runs', r.state.runId);
   assert.equal(r.code, 0, r.state.failures.join('\n'));
-  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'onpage', 'agent', 'notion', 'indexnow', 'export', 'push', 'slack', 'release']);
+  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'onpage', 'agent', 'notion', 'indexnow', 'push', 'slack', 'release']);
   assert.equal(seen.gsc.pageQuery, true);
   assert.deepEqual(seen.onpage, { site: SITE, runId: r.state.runId, runDir, analyticsFile: path.join(runDir, 'gsc-analytics-pq.json') });
   assert.equal(seen.agent.prompt, agentPrompt(runDir, SITE, { onpage: true }));
@@ -523,35 +523,29 @@ test('searchConsoleStep with pageQuery: gsc-analytics-pq.json (page × query); t
     inspect: async () => ({ verdict: 'PASS', coverageState: 'Submitted and indexed', inspectedAt: '2026-10-26T05:00:00.000Z' }),
     analytics: async (a) => {
       asked.push(a);
-      return a.dimensions ? [{ keys: [`${SITE}/wordle`, 'secret nba query'], clicks: 31337, impressions: 4242, ctr: 0.0731, position: 9.25 }]
-        : [{ keys: [`${SITE}/`], clicks: 98765, impressions: 43210, ctr: 0.0123, position: 7.5 }];
+      return [{ keys: [`${SITE}/wordle`, 'secret nba query'], clicks: 31337, impressions: 4242, ctr: 0.0731, position: 9.25 }];
     },
   };
-  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir, config: CONFIG, client, now: () => NOW, pageQuery: true });
+  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir, config: CONFIG, client, pageQuery: true });
   assert.equal(r.error, null);
-  assert.deepEqual(asked, [{ days: 28 }, { days: 28, dimensions: ['page', 'query'] }]);
+  assert.deepEqual(asked, [{ days: 28, dimensions: ['page', 'query'] }]);
   assert.equal(read(path.join(runDir, 'gsc-analytics-pq.json'))[0].keys[1], 'secret nba query');
-  assert.equal(read(path.join(runDir, 'gsc-analytics.json'))[0].clicks, 98765);
+  assert.ok(!existsSync(path.join(runDir, 'gsc-analytics.json')));
   const md = readFileSync(path.join(runDir, 'gsc-summary.md'), 'utf8');
   assert.match(md, /page × query: 28 days in gsc-analytics-pq\.json \(private: never uploaded\)/);
   for (const v of ['31337', '4242', '0.0731', '9.25', 'secret nba query']) assert.ok(!md.includes(v), `${v} in the summary`);
-  // The Drive export never picks the page × query file up.
-  writeFileSync(path.join(runDir, 'REPORT.md'), '# r\n');
-  const names = exportFiles({ runDir, ledger: emptyLedger(), date: '2026-10-26' }).map((f) => f.name);
-  assert.deepEqual(names, ['ledger-2026-10-26.csv', 'gsc-analytics-2026-10-26.csv', 'REPORT-2026-10-26.md']);
-  assert.ok(!exportFiles({ runDir, ledger: emptyLedger(), date: '2026-10-26' }).some((f) => f.body.includes('secret nba query')));
 
-  // Without pageQuery: one analytics call, as phase 1, and no page × query file or line.
+  // Without pageQuery: no analytics call, as phase 1, and no page × query file or line.
   const plain = tmp();
   asked.length = 0;
-  await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir: plain, config: CONFIG, client, now: () => NOW });
-  assert.deepEqual(asked, [{ days: 28 }]);
+  await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir: plain, config: CONFIG, client });
+  assert.deepEqual(asked, []);
   assert.ok(!existsSync(path.join(plain, 'gsc-analytics-pq.json')));
   assert.ok(!readFileSync(path.join(plain, 'gsc-summary.md'), 'utf8').includes('page × query'));
 
   // A failed page × query pull is the step's error (and a summary line), never a crash.
   const failing = { ...client, analytics: async (a) => { if (a.dimensions) throw new Error('analytics: 403'); return []; } };
-  const bad = await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir: tmp(), config: CONFIG, client: failing, now: () => NOW, pageQuery: true });
+  const bad = await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir: tmp(), config: CONFIG, client: failing, pageQuery: true });
   assert.equal(bad.error, 'page × query analytics: analytics: 403');
 });
 

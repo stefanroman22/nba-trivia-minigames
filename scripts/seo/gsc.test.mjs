@@ -207,10 +207,10 @@ test('no secret in a thrown error message (token 401 → message is "google auth
   await assert.rejects(client.inspect('https://swishquest.com/'), { message: 'google auth: 401' });
 });
 
-test('buildAuthUrl asks for both scopes, offline access and the consent prompt', () => {
+test('buildAuthUrl asks for the Search Console scope only, offline access and the consent prompt', () => {
   const u = new URL(buildAuthUrl({ clientId: SECRETS.clientId, redirectUri: 'http://127.0.0.1:54321', state: 's1' }));
   assert.equal(u.origin + u.pathname, 'https://accounts.google.com/o/oauth2/v2/auth');
-  assert.equal(u.searchParams.get('scope'), 'https://www.googleapis.com/auth/webmasters https://www.googleapis.com/auth/drive');
+  assert.equal(u.searchParams.get('scope'), 'https://www.googleapis.com/auth/webmasters');
   assert.equal(u.searchParams.get('access_type'), 'offline');
   assert.equal(u.searchParams.get('prompt'), 'consent');
   assert.equal(u.searchParams.get('response_type'), 'code');
