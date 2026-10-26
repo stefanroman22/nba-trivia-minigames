@@ -81,3 +81,55 @@ class TerritorialPickTests(TestCase):
             self.assertFalse(matches(PICK_14, self._crit("top5")), name)
             self.assertTrue(matches(PICK_14, self._crit("lottery")), name)
             self.assertFalse(matches(PICK_15, self._crit("lottery")), name)
+
+    def test_only_a_real_first_pick_is_the_no_1_pick(self):
+        for name, matches in MIRRORS.items():
+            self.assertTrue(matches(FIRST_OVERALL, self._crit("pick1")), name)
+            self.assertFalse(matches(TERRITORIAL, self._crit("pick1")), name)
+            self.assertFalse(matches(PICK_14, self._crit("pick1")), name)
+            self.assertFalse(matches(_player(None), self._crit("pick1")), name)
+
+
+class EraTests(TestCase):
+    """`era`: a season belongs to the decade it starts in (owner, 2026-10-25): 2009-10 is the 2000s, the 2010s
+    begin with 2010-11. A stint's end_year is the year its last season ENDED."""
+
+    def test_every_mirror_reads_decades_by_season_start(self):
+        cases = [
+            ({"start_year": 2003, "end_year": 2010}, {"2000s"}),           # 2003-04 .. 2009-10
+            ({"start_year": 2009, "end_year": 2010}, {"2000s"}),           # one season, 2009-10
+            ({"start_year": 2010, "end_year": 2011}, {"2010s"}),           # one season, 2010-11
+            ({"start_year": 1999, "end_year": 2001}, {"1990s", "2000s"}),  # 1999-00, 2000-01
+            ({"start_year": 2019, "end_year": None}, {"2010s", "2020s"}),  # still on the team
+        ]
+        for name, matches in MIRRORS.items():
+            for stint, want in cases:
+                p = {**_player(None), "teams": [{"abbr": "LAL", "name": "Lakers", "gp": 82, "ppg": 10.0, **stint}]}
+                got = {d for d in ("1990s", "2000s", "2010s", "2020s") if matches(p, {"type": "era", "value": d, "label": d})}
+                self.assertEqual(got, want, f"{name}: {stint}")
+
+
+class AllStarTests(TestCase):
+    """`allstar`: at least one All-Star selection (`allstar5plus` stays five)."""
+
+    def test_every_mirror_counts_one_selection(self):
+        crit = {"type": "award", "value": "allstar", "label": "All-Star"}
+        for name, matches in MIRRORS.items():
+            for count, want in ((0, False), (1, True), (13, True)):
+                p = _player(None)
+                p["awards"] = {**p["awards"], "allstar_count": count}
+                self.assertEqual(matches(p, crit), want, f"{name}: {count} selection(s)")
+
+
+class PositionTests(TestCase):
+    """`position` (guard / forward / center) on the dataset's codes: a hybrid counts for both of its positions."""
+
+    def test_every_mirror_reads_positions_and_hybrids_alike(self):
+        cases = {"G": {"guard"}, "F": {"forward"}, "C": {"center"}, "G-F": {"guard", "forward"},
+                 "F-C": {"forward", "center"}, None: set()}
+        for name, matches in MIRRORS.items():
+            for code, want in cases.items():
+                p = {**_player(None), "position": code}
+                got = {v for v in ("guard", "forward", "center") if matches(p, {"type": "position", "value": v, "label": v})}
+                self.assertEqual(got, want, f"{name}: position {code}")
+            self.assertFalse(matches(_player(None), {"type": "position", "value": "point-guard", "label": "?"}), name)

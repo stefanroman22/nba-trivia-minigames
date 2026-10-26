@@ -149,7 +149,8 @@ export interface PlayerIndexEntry {
 
 /** A player-matching rule (semantics implemented in utils/criteria.ts). */
 export interface Criterion {
-  type: "team" | "award" | "country" | "draft" | "college" | "stat" | "era";
+  // `teammate` (Tic-Tac-Toe only, value = a star's person_id) is resolved at publish time into the board's valid ids.
+  type: "team" | "award" | "country" | "draft" | "college" | "stat" | "era" | "position" | "teammate";
   value: string;
   label: string;
 }

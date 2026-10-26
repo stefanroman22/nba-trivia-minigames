@@ -67,9 +67,9 @@ class CriterionMatchesTests(TestCase):
         self.assertFalse(bingo.criterion_matches(big, {"type": "stat", "value": "apg8", "label": ""}))
 
     def test_era_overlap_and_open_ended_stint(self):
-        p = _player()  # 2001-2010
+        p = _player()  # 2001-2010: seasons 2001-02 .. 2009-10, all of them the 2000s (a season's decade is its start's)
         self.assertTrue(bingo.criterion_matches(p, {"type": "era", "value": "2000s", "label": ""}))
-        self.assertTrue(bingo.criterion_matches(p, {"type": "era", "value": "2010s", "label": ""}))
+        self.assertFalse(bingo.criterion_matches(p, {"type": "era", "value": "2010s", "label": ""}))
         self.assertFalse(bingo.criterion_matches(p, {"type": "era", "value": "1990s", "label": ""}))
         active = _player(teams=[{"abbr": "ATL", "name": "Hawks", "start_year": 2018, "end_year": None, "gp": None, "ppg": None}])
         self.assertTrue(bingo.criterion_matches(active, {"type": "era", "value": "2020s", "label": ""}))

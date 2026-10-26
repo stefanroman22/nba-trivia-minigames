@@ -13,7 +13,11 @@
 
 import type { Criterion, PlayerIndexEntry } from "../types/types";
 
-const CURRENT_YEAR = new Date().getFullYear();
+const NOW = new Date();
+/** Start year of the season being played (or the last one, before October). */
+const CURRENT_SEASON = NOW.getMonth() >= 9 ? NOW.getFullYear() : NOW.getFullYear() - 1;
+/** `position` criterion values → the dataset's position codes that satisfy them. */
+const POSITION_CODES: Record<string, string[]> = { guard: ["G", "G-F"], forward: ["F", "G-F", "F-C"], center: ["C", "F-C"] };
 
 /** "1990s" / "decade-1990s" -> 1990; null when the value has no decade. */
 function decadeStart(value: string): number | null {
@@ -37,6 +41,7 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
         case "roty": return a.roty != null;
         case "smoy": return a.smoy.length > 0;
         case "ring": return a.rings.length > 0;
+        case "allstar": return a.allstar_count >= 1;
         case "allstar5plus": return a.allstar_count >= 5;
         case "allnba": return a.allnba_count > 0;
         default: return false;
@@ -53,6 +58,7 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
       if (!p.draft) return false;
       // Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
       // Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+      if (c.value === "pick1") return p.draft.pick === 1;
       if (c.value === "top5") return p.draft.pick >= 1 && p.draft.pick <= 5;
       if (c.value === "lottery") return p.draft.pick >= 1 && p.draft.pick <= 14;
       if (c.value === "round2") return p.draft.round === 2;
@@ -79,13 +85,19 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
       }
 
     case "era": {
-      // Any stint [start_year, end_year || current] intersecting the decade.
+      // A season belongs to the decade it starts in (2009-10 is the 2000s, the 2010s begin with 2010-11): any
+      // stint with a season starting in the decade. A stint's seasons start start_year .. end_year - 1, an open
+      // one's through the current season.
       const d = decadeStart(c.value);
       if (d == null) return false;
       return p.teams.some(
-        (t) => t.start_year <= d + 9 && (t.end_year ?? CURRENT_YEAR) >= d,
+        (t) => t.start_year <= d + 9 && Math.max((t.end_year ?? CURRENT_SEASON + 1) - 1, t.start_year) >= d,
       );
     }
+
+    case "position":
+      // The dataset lists G, F, C and the hybrids G-F / F-C; a hybrid counts for both of its positions.
+      return Object.hasOwn(POSITION_CODES, c.value) && POSITION_CODES[c.value].includes(p.position);
 
     default:
       return false;

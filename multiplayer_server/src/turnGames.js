@@ -259,31 +259,31 @@ function handleTTT(room, uid, action, helpers) {
     if (!existing) return helpers.reject(uid, "Nothing to steal there — claim it.");
     if (existing.ownerUid === uid) return helpers.reject(uid, "You already own that square.");
     if ((s.stealsLeft[uid] || 0) <= 0) return helpers.reject(uid, "No steals left.");
-    if (normalizeAnswer(name) === normalizeAnswer(existing.playerName)) {
-      return helpers.reject(uid, "Name a different player to steal it.");
-    }
   } else {
     return helpers.reject(uid, "Unknown move.");
   }
 
   // --- answer validation (id lookup against the pre-generated question's valid[cell]) ---
-  const id = t.lookup.toId(name);
-  if (id === null || !t.valid[cell].includes(id)) {
+  // Namesakes (two Eddie Johnsons): the one who fits this square counts.
+  const id = t.lookup.toIds(name).find((x) => t.valid[cell].includes(x)) ?? null;
+  if (id === null) {
     return helpers.reject(uid, `${name} doesn't fit that square.`);
   }
   const displayName = t.lookup.nameOf(id); // canonicalise (handles aliases / casing)
+  if (action.type === "steal" && existing.playerId === id) {
+    return helpers.reject(uid, "Name a different player to steal it.");
+  }
 
   // --- used-player check (mirrors solo mode: a real player fills at most one
-  // cell on the board, even across the two duelling players) ---
-  const usedElsewhere = s.board.some(
-    (occ, idx) => idx !== cell && occ && normalizeAnswer(occ.playerName) === normalizeAnswer(displayName),
-  );
+  // cell on the board, even across the two duelling players). By id, so the
+  // other Eddie Johnson is still free. ---
+  const usedElsewhere = s.board.some((occ, idx) => idx !== cell && occ && occ.playerId === id);
   if (usedElsewhere) {
     return helpers.reject(uid, `${displayName} is already on the board.`);
   }
 
   // --- apply the move ---
-  s.board[cell] = { ownerUid: uid, playerName: displayName };
+  s.board[cell] = { ownerUid: uid, playerName: displayName, playerId: id };
   if (action.type === "steal") s.stealsLeft[uid] -= 1;
 
   const winner = tttWinner(s.board);

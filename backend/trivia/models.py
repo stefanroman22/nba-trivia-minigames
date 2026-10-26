@@ -350,9 +350,15 @@ class QuestionLabel(models.Model):
 
     EASY, MEDIUM, HARD = "easy", "medium", "hard"
     DIFFICULTIES = [(EASY, "Easy"), (MEDIUM, "Medium"), (HARD, "Hard")]
+    # Who set it: the owner in the panel, or a difficulty rule (trivia.questions.games.tictactoe_difficulty) that
+    # applies the owner's insight to the boards he has not reviewed. An owner label always wins over a rule's.
+    OWNER, RULE = "owner", "rule"
+    SOURCES = [(OWNER, "Owner"), (RULE, "Rule")]
 
     question = models.OneToOneField(Question, on_delete=models.CASCADE, related_name="label")
     difficulty = models.CharField(max_length=8, choices=DIFFICULTIES, default=HARD)
+    source = models.CharField(max_length=8, choices=SOURCES, default=OWNER)
+    reason = models.TextField(blank=True)  # a rule's explanation (empty for an owner label)
     labeled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
     )
