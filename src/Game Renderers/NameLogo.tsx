@@ -52,23 +52,36 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   const currentTeam = seriesList[currentIndex];
 
   const [scrambleFailed, setScrambleFailed] = useState(false);
-  // The round whose name is in the DOM: set on the answer, so the name is never on the page (find in
-  // page, copy) before the guess, and still there while it fades out after the last round.
-  const [answeredIdx, setAnsweredIdx] = useState(-1);
+  // The team whose name is in the DOM: set on the answer, so the name is never on the page (find in
+  // page, copy) before the guess, and cleared only once it has faded out (the next round's colours
+  // never swap in while the old name is still showing).
+  const [answered, setAnswered] = useState<{ name: string; id: number } | null>(null);
 
   // While guessing only the scrambled logo is shown; once the guess is in it cross-fades into the team
   // name, filled with the team's colours (never the real logo). Without a scrambled file (or when it
   // fails to load), a generic basketball badge is the puzzle: the game never loads a real NBA logo.
   const puzzleSrc = scrambleFailed ? null : scrambledLogoUrl(currentTeam?.team_id, currentTeam?.full_name);
   const revealed = showAnswer || showPointsAnimation;
-  const answerName = currentTeam?.full_name || "";
-  const answerId = currentTeam?.team_id;
+  // Clear the name once it has faded out, unless the next guess is already in. Read through a ref:
+  // framer-motion may call an exit callback from an earlier render.
+  const revealedRef = useRef(revealed);
+  useEffect(() => { revealedRef.current = revealed; }, [revealed]);
+  const clearAnswered = () => { if (!revealedRef.current) setAnswered(null); };
+  const answerName = answered?.name ?? "";
+  // The slot's height as rendered: the logo box is capped at 20dvh on short viewports.
   const nameStyle = useMemo(() => ({
-    "--nl-chars": longestLineChars(answerName), "--nl-slot": LOGO_SIZE,
+    "--nl-chars": longestLineChars(answerName), "--nl-slot": `min(${LOGO_SIZE}, 20dvh)`,
   } as React.CSSProperties), [answerName]);
 
-  // retry the scrambled file each round
-  useEffect(() => { setScrambleFailed(false); }, [currentIndex]);
+  // Retry the scrambled file each round, once the last answer has faded out: on the fallback crest
+  // the name sits outside the per-round box, so switching back to the scrambled path earlier would
+  // unmount it mid-fade.
+  const retriedIdx = useRef(0);
+  useEffect(() => {
+    if (answered || retriedIdx.current === currentIndex) return;
+    retriedIdx.current = currentIndex;
+    setScrambleFailed(false);
+  }, [currentIndex, answered]);
   // The loader tracks the puzzle <img> itself (keyed by src, so a new round or a fallback src mounts
   // a fresh one): it reads "loaded" the moment the element mounts. Resetting on currentIndex instead
   // would flip the spinner on while the previous logo is still fading out (AnimatePresence "wait").
@@ -99,7 +112,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     const isCorrect =
       matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
     picksRef.current[currentIndex] = { pick: teamName.trim(), correct: isCorrect };
-    setAnsweredIdx(currentIndex);
+    setAnswered({ name: currentTeam.full_name, id: currentTeam.team_id });
     guessLog.add({
       question_id: String(currentTeam.team_id),
       answer: teamName.trim(),
@@ -158,10 +171,11 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
       initial={false}
       animate={revealed ? LOGO_SHOWN : LOGO_HIDDEN}
       transition={LOGO_REVEAL}
+      onAnimationComplete={clearAnswered}
       style={nameStyle}
     >
       <p className="nl-name font-display">
-        <TeamNameGradient name={answerName} teamId={answerId} surface="board" blank={answeredIdx !== currentIndex} />
+        <TeamNameGradient name={answerName} teamId={answered?.id} surface="board" blank={!answered} />
       </p>
     </motion.div>
   );
@@ -198,7 +212,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <AnimatePresence mode="wait">
+                <AnimatePresence mode="wait" onExitComplete={clearAnswered}>
                   <motion.div
                     key={currentTeam?.full_name}
                     initial={reduce ? false : { opacity: 0 }}
@@ -232,6 +246,9 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
               </>
             )}
           </div>
+          {/* The revealed name for screen readers (the popup's slot is aria-hidden): empty until the
+              guess is in, so the answer never reaches assistive tech before it. */}
+          <span className="sr-only" role="status" aria-live="polite">{revealed && answered ? answered.name : ""}</span>
         </div>
       </GameFrame.Board>
 

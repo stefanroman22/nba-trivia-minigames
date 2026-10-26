@@ -103,10 +103,13 @@ function distance(a: string, b: string): number {
 }
 
 // The browser blends the stops in sRGB, and the blend of two passing colours can dip below them
-// (two saturated hues meet in a darker middle): check the gradient itself at every tenth.
+// (two saturated hues meet in a darker middle): check the gradient itself at 200 points, against a
+// small margin over 4.5:1 so no shade the browser renders between two samples falls under it.
+const GRADIENT_SAMPLES = 200;
+const GRADIENT_TARGET = 4.55;
 function gradientPasses(a: string, b: string, backgrounds: readonly string[]): boolean {
-  for (let i = 0; i <= 10; i++) {
-    if (minContrast(toHex(mix(toRgb(a), toRgb(b), i / 10)), backgrounds) < MIN_CONTRAST) return false;
+  for (let i = 0; i <= GRADIENT_SAMPLES; i++) {
+    if (minContrast(toHex(mix(toRgb(a), toRgb(b), i / GRADIENT_SAMPLES)), backgrounds) < GRADIENT_TARGET) return false;
   }
   return true;
 }
@@ -133,8 +136,8 @@ export function teamNameGradient(
   const backgrounds = typeof background === "string" ? [background] : background;
   const colors = teamColorsFor(name, teamId) ?? BRAND;
   let stops: GradientStops = ["#000000", "#000000"];
-  // Raise the bar a quarter step at a time only when the blend between the stops dips below 4.5:1.
-  for (let min = MIN_CONTRAST; min <= 21; min += 0.25) {
+  // Raise the bar a quarter step at a time only when the blend between the stops dips below the target.
+  for (let min = GRADIENT_TARGET; min <= 21; min += 0.25) {
     const [p, s, t] = [colors.primary, colors.secondary, colors.tertiary].map((c) => legibleColor(c, backgrounds, min));
     stops = [p, distance(p, s) < DISTINCT && distance(p, t) > distance(p, s) ? t : s];
     if (gradientPasses(stops[0], stops[1], backgrounds)) break;

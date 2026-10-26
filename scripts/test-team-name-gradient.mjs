@@ -57,9 +57,14 @@ after(() => {
   }
 });
 
-// Every stop and every tenth of the blend between them, on every background of `surface`, in both themes.
+// Points checked along each gradient: the browser renders every shade between the stops, and a blend
+// can dip below 4.5:1 between coarse samples (tenths missed Phoenix Suns at ~4.48 around the middle).
+const SAMPLES = 200;
+
+// Every stop and SAMPLES + 1 points of the blend between them, on every background of `surface`, in both themes.
 function assertLegible(surface) {
   const lowest = (lowestBy[surface] ??= { ratio: Infinity });
+  const failures = new Map(); // "name theme" -> its lowest failing point, so one run lists every name
   for (const name of NAMES) {
     const both = teamNameGradients(name, undefined, surface);
     for (const theme of THEMES) {
@@ -68,15 +73,19 @@ function assertLegible(surface) {
       assert.deepEqual(stops, teamNameGradient(name, NAME_SURFACES[surface][theme]), `${name} ${theme}`);
       for (const stop of stops) assert.match(stop, /^#[0-9a-f]{6}$/, `${name} ${theme}`);
       for (const bg of NAME_SURFACES[surface][theme]) {
-        for (let i = 0; i <= 10; i++) {
-          const color = lerp(stops[0], stops[1], i / 10);
+        for (let i = 0; i <= SAMPLES; i++) {
+          const color = lerp(stops[0], stops[1], i / SAMPLES);
           const ratio = contrastRatio(color, bg);
-          if ((i === 0 || i === 10) && ratio < lowest.ratio) Object.assign(lowest, { ratio, name, theme, stop: color, bg });
-          assert.ok(ratio >= MIN_CONTRAST, `${surface} ${name} ${theme}: ${color} on ${bg} is ${ratio.toFixed(2)}:1`);
+          if (ratio < lowest.ratio) Object.assign(lowest, { ratio, name, theme, stop: color, bg });
+          const key = `${name} ${theme}`;
+          if (ratio < MIN_CONTRAST && !(failures.get(key)?.ratio <= ratio)) {
+            failures.set(key, { ratio, text: `${surface} ${key}: ${color} (${(i / SAMPLES * 100).toFixed(1)}%) on ${bg} is ${ratio.toFixed(3)}:1` });
+          }
         }
       }
     }
   }
+  assert.deepEqual([...failures.values()].map((f) => f.text), [], `${failures.size} gradient(s) dip below ${MIN_CONTRAST}:1`);
 }
 
 // theme.css token values: the dark ones on :root, the light ones on .light.
