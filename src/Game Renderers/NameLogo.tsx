@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { Fragment, useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -8,6 +8,7 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import TeamCrest from "../components/ui/TeamCrest";
 import { currentLogoUrl, scrambledLogoUrl } from "../constants/teamLogos";
 import { matchAnswer } from "../utils/answerMatch";
+import { teamNameGradients } from "../utils/teamNameGradient";
 import { createGuessLogger } from "../utils/guessLog";
 import type { NbaTeamLogo, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
@@ -21,11 +22,22 @@ interface NameLogoProps {
 
 const LOGO_SIZE = "clamp(92px, 18dvh, 140px)";
 const LOGO_IMG: React.CSSProperties = { display: "block", width: "100%", height: "100%", objectFit: "contain" };
-// Reveal: a pure cross-fade, scrambled out and real in. Opacity only: the slot and both images keep
-// their size (scrambled files are generated at their real logo's footprint), so nothing grows or shrinks.
+// Reveal: a pure cross-fade, the puzzle out and the team name in. Opacity only: the name sits in the
+// same fixed slot (NameLogo.css .nl-name-layer), so nothing grows or shrinks.
 const LOGO_SHOWN = { opacity: 1 };
 const LOGO_HIDDEN = { opacity: 0 };
 const LOGO_REVEAL = { duration: 0.6, ease: [0.4, 0, 0.2, 1] as const };
+
+/** Characters on the longer line of the name's best two-line split: the font size is fitted to it. */
+function longestLineChars(name: string): number {
+  const words = name.replace(/\//g, "/ ").split(/\s+/).filter(Boolean);
+  if (words.length < 2) return Math.max(1, name.length);
+  let best = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    best = Math.min(best, Math.max(words.slice(0, i).join(" ").length, words.slice(i).join(" ").length));
+  }
+  return best;
+}
 
 function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLogoProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -49,13 +61,26 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   }, [currentTeam]);
   const [srcIdx, setSrcIdx] = useState(0);
   const [scrambleFailed, setScrambleFailed] = useState(false);
+  // The round whose name is in the DOM: set on the answer, so the name is never on the page (find in
+  // page, copy) before the guess, and still there while it fades out after the last round.
+  const [answeredIdx, setAnsweredIdx] = useState(-1);
 
-  // While guessing only the scrambled logo is shown; the real one waits underneath (preloaded) and
-  // cross-fades in once the guess is in. Without a scrambled file, the real logo is the puzzle.
+  // While guessing only the scrambled logo is shown; once the guess is in it cross-fades into the team
+  // name, filled with the team's colours (never the real logo). Without a scrambled file, the real logo
+  // is the puzzle.
   const scrambledSrc = scrambleFailed ? null : scrambledLogoUrl(currentTeam?.team_id, currentTeam?.full_name);
   const originalSrc = logoCandidates[srcIdx];
   const puzzleSrc = scrambledSrc ?? originalSrc;
   const revealed = showAnswer || showPointsAnimation;
+  const answerName = currentTeam?.full_name || "";
+  const answerId = currentTeam?.team_id;
+  const nameStyle = useMemo(() => {
+    const { dark, light } = teamNameGradients(answerName, answerId);
+    return {
+      "--nl-a-dark": dark[0], "--nl-b-dark": dark[1], "--nl-a-light": light[0], "--nl-b-light": light[1],
+      "--nl-chars": longestLineChars(answerName), "--nl-slot": LOGO_SIZE,
+    } as React.CSSProperties;
+  }, [answerName, answerId]);
 
   // reset the logo sources each round
   useEffect(() => { setSrcIdx(0); setScrambleFailed(false); }, [currentIndex]);
@@ -89,6 +114,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     const isCorrect =
       matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
     picksRef.current[currentIndex] = { pick: teamName.trim(), correct: isCorrect };
+    setAnsweredIdx(currentIndex);
     guessLog.add({
       question_id: String(currentTeam.team_id),
       answer: teamName.trim(),
@@ -139,6 +165,27 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
 
   if (!currentTeam) return null;
 
+  // The answer: the team name as real text, in the team's colours, over the puzzle in the same slot.
+  // Hidden (and out of the accessibility tree) until the guess is in.
+  const nameLayer = (
+    <motion.div
+      className="nl-name-layer"
+      aria-hidden={!revealed}
+      initial={false}
+      animate={revealed ? LOGO_SHOWN : LOGO_HIDDEN}
+      transition={LOGO_REVEAL}
+      style={nameStyle}
+    >
+      <p className="nl-name font-display">
+        <span className="nl-name-ink">
+          {answeredIdx === currentIndex &&
+            answerName.split("/").map((part, i) => (
+              <Fragment key={i}>{i > 0 && <>/<wbr /></>}{part}</Fragment>
+            ))}
+        </span>
+      </p>
+    </motion.div>
+  );
 
   return (
     <GameFrame>
@@ -154,8 +201,8 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
         <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 18 }}>
           <GameFrame.Prompt eyebrow="GUESS THE TEAM" title="Which franchise is this?" />
 
-          {/* Logo: the scrambled mark is the puzzle; on reveal the real logo cross-fades in over it */}
-          <div style={{ position: "relative", display: "flex", justifyContent: "center", height: LOGO_SIZE, alignItems: "center" }}>
+          {/* Logo: the scrambled mark is the puzzle; on reveal the team name cross-fades in over it */}
+          <div className="nl-slot" style={{ position: "relative", display: "flex", justifyContent: "center", height: LOGO_SIZE, alignItems: "center" }}>
             {puzzleSrc ? (
               <>
                 <AnimatePresence>
@@ -189,35 +236,21 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                       onLoad={() => setImgLoaded(true)}
                       onError={() => (scrambledSrc ? setScrambleFailed(true) : setSrcIdx((i) => i + 1))}
                       initial={false}
-                      animate={revealed && scrambledSrc ? LOGO_HIDDEN : LOGO_SHOWN}
+                      animate={revealed ? LOGO_HIDDEN : LOGO_SHOWN}
                       transition={LOGO_REVEAL}
                       style={LOGO_IMG}
                     />
-                    {scrambledSrc && (
-                      <motion.div
-                        aria-hidden={!revealed}
-                        initial={false}
-                        animate={revealed ? LOGO_SHOWN : LOGO_HIDDEN}
-                        transition={LOGO_REVEAL}
-                        style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center" }}
-                      >
-                        {originalSrc ? (
-                          <img
-                            src={originalSrc}
-                            alt={revealed ? `${currentTeam?.full_name} logo` : ""}
-                            onError={() => setSrcIdx((i) => i + 1)}
-                            style={LOGO_IMG}
-                          />
-                        ) : (
-                          <TeamCrest src={null} name={currentTeam?.full_name || ""} size={120} />
-                        )}
-                      </motion.div>
-                    )}
+                    {nameLayer}
                   </motion.div>
                 </AnimatePresence>
               </>
             ) : (
-              <TeamCrest src={null} name={currentTeam?.full_name || ""} size={120} style={{ filter: showAnswer ? "grayscale(100%)" : "none", opacity: showAnswer ? 0.5 : 1 }} />
+              <>
+                <motion.div initial={false} animate={revealed ? LOGO_HIDDEN : LOGO_SHOWN} transition={LOGO_REVEAL} style={{ display: "flex" }}>
+                  <TeamCrest src={null} name={currentTeam?.full_name || ""} size={120} />
+                </motion.div>
+                {nameLayer}
+              </>
             )}
           </div>
         </div>

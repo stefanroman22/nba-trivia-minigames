@@ -5,7 +5,7 @@
 // they resolve to null and callers fall back to a generated crest.
 //
 // Generated from the shipped game data — keep in sync if franchises move/rename.
-const TEAM_NAME_TO_ID: Record<string, number> = {
+export const TEAM_NAME_TO_ID: Record<string, number> = {
   "Atlanta Hawks": 1610612737,
   "Baltimore Bullets": 1610612764,
   "Boston Celtics": 1610612738,
@@ -72,6 +72,11 @@ const TEAM_NAME_TO_ID: Record<string, number> = {
 const NORMALIZED: Record<string, number> = Object.fromEntries(
   Object.entries(TEAM_NAME_TO_ID).map(([name, id]) => [name.toLowerCase(), id]),
 );
+
+/** The current franchise's team id for a team name (current, relocated or renamed), or null. */
+export function franchiseIdForName(name?: string | null): number | null {
+  return (name && NORMALIZED[name.trim().toLowerCase()]) || null;
+}
 
 /** Logo URL for a team id (one of the 30 current franchises). */
 export function logoForId(teamId: number): string {
