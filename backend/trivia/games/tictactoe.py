@@ -20,10 +20,14 @@ GAME_NAME = "NBA Tic-Tac-Toe"
 SEED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "tictactoe_seed.json")
 CURATED_PATH = os.path.join(settings.BASE_DIR, "trivia", "data_static", "players_curated.json")
 
-CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era"}
-AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar5plus", "allnba"}
+CRITERION_TYPES = {"team", "award", "country", "draft", "college", "stat", "era", "position"}
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
+AWARD_VALUES = {"mvp", "fmvp", "dpoy", "roty", "smoy", "ring", "allstar", "allstar5plus", "allnba"}
 STAT_VALUES = {"20kpts", "25kpts", "ppg20", "rpg10", "apg8", "seasons15plus"}
 CURRENT_YEAR = date.today().year
+# Start year of the season being played (or the last one, before October).
+CURRENT_SEASON = CURRENT_YEAR if date.today().month >= 10 else CURRENT_YEAR - 1
 
 
 def _load_json(path):
@@ -62,6 +66,7 @@ def player_matches(p, c):
             "roty": a.get("roty") is not None,
             "smoy": bool(a.get("smoy")),
             "ring": bool(a.get("rings")),
+            "allstar": a.get("allstar_count", 0) >= 1,
             "allstar5plus": a.get("allstar_count", 0) >= 5,
             "allnba": a.get("allnba_count", 0) > 0,
         }.get(v, False)
@@ -79,6 +84,8 @@ def player_matches(p, c):
             return False
         # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
         # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+        if v == "pick1":
+            return d.get("pick") == 1
         if v == "top5":
             return 1 <= d.get("pick", 99) <= 5
         if v == "lottery":
@@ -107,10 +114,15 @@ def player_matches(p, c):
         ds = _decade_start(v)
         if ds is None:
             return False
+        # A season belongs to the decade it starts in (2009-10 is the 2000s): a stint's seasons start
+        # start_year .. end_year - 1, an open one's through the current season.
         return any(
-            s.get("start_year", 9999) <= ds + 9 and (s.get("end_year") or CURRENT_YEAR) >= ds
+            s.get("start_year", 9999) <= ds + 9
+            and max((s.get("end_year") or CURRENT_SEASON + 1) - 1, s.get("start_year", 9999)) >= ds
             for s in p.get("teams", [])
         )
+    if t == "position":
+        return p.get("position") in POSITION_CODES.get(v, ())
     return False
 
 

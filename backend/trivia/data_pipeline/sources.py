@@ -550,10 +550,29 @@ def fetch_player_profile(person_id, per_call_timeout=30, pause=0.6):
     )
     career = career or {}  # empty body -> the normal shape with empty lists
     awards = awards or {}
+    seasons = career.get("SeasonTotalsRegularSeason", [])
+    totals = career.get("CareerTotalsRegularSeason", [])
+    if not seasons:
+        # PlayerCareerStats answers `{}` for some players who did play (Mike Penberthy, Lakers 2000-02); the
+        # league's game finder still has their games, so their seasons are rebuilt from those. No games: a player
+        # who never debuted, and the row stays a zeroed one.
+        from nba_api.stats.endpoints import leaguegamefinder
+
+        from trivia.data_pipeline.curated_players import season_rows_from_games
+
+        games = _paced(
+            lambda: leaguegamefinder.LeagueGameFinder(
+                player_or_team_abbreviation="P", player_id_nullable=person_id,
+                season_type_nullable="Regular Season", league_id_nullable="00",
+                timeout=per_call_timeout, get_request=False,
+            ),
+            "LeagueGameFinder",
+        ) or {}
+        seasons, totals = season_rows_from_games(games.get("LeagueGameFinderResults", []))
     return {
         "info": info.get("CommonPlayerInfo", []),
-        "career": career.get("SeasonTotalsRegularSeason", []),
-        "career_totals": career.get("CareerTotalsRegularSeason", []),
+        "career": seasons,
+        "career_totals": totals,
         "awards": awards.get("PlayerAwards", []),
     }
 

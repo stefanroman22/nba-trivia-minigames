@@ -39,7 +39,7 @@ the only usage measurement is first-party row 6c.
 | Developer tooling (AI-assisted tools used by the operator) | Processor-like: may be given database access for maintenance | Provider-defined | Provider terms | Restrict to non-personal tables where possible (OPEN_ITEMS) |
 | Google (sign-in) | Independent controller for its own account data | Global | Google's terms; API Services User Data Policy (Limited Use) | Verify the OAuth consent screen (branding, domains) |
 | Game-server host (to be chosen) | Processor | To be set | DPA required before launch | Choose an EU region; list it in the policy |
-| NBA CDN, Wikimedia | Image sources (browser fetches directly; they see the visitor's IP) | Global | None possible; disclosed in the policy | See OPEN_ITEMS (asset licensing) |
+| Wikimedia Foundation (`upload.wikimedia.org`: every player photo, some logos), NBA (`cdn.nba.com`: most team logos; no player photos since 2026-10-26) | Independent controllers for what they log; the operator is jointly responsible only for making the visitor's browser send the request (CJEU C-40/17 Fashion ID). They receive IP, browser/device details and the site origin (Referrer-Policy `strict-origin-when-cross-origin`); nothing from the account | United States / global | No contract possible; legitimate interests (show the game pictures without copying them); disclosed in Privacy section 5 with how to object (block the hosts: silhouette and plain badge fallbacks) | Removing the direct request (serving the pictures from our own domain) is OPEN_ITEMS E; LG München I 3 O 17493/20 (Google Fonts) is the risk it removes |
 
 ## 3. Legitimate-interests assessment (moderation and anti-abuse records, rows 9-10)
 

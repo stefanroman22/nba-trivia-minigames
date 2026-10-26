@@ -331,8 +331,21 @@ def build_awards(award_rows, span=None, stolen=None):
     return awards
 
 
+def _games_recording(stat, season_rows, gp):
+    """Games of the seasons that recorded `stat`: all `gp` unless a season row has it as None. Rebounds were not
+    kept before 1950-51, so George Mikan's rebounds count over his 1950-54 games only (13.4 rpg, not 9.5)."""
+    per_team = [r for r in season_rows
+                if (r.get("LEAGUE_ID") or "00") == "00" and _int(r.get("TEAM_ID"), 0)
+                and (r.get("TEAM_ABBREVIATION") or "").strip() != "TOT"]
+    recorded = [r for r in per_team if r.get(stat) is not None]
+    if len(recorded) == len(per_team):
+        return gp
+    return sum(_int(r.get("GP"), 0) for r in recorded)
+
+
 def build_career(career_totals, season_rows):
-    """Exact career regular-season totals + the per-game averages they imply."""
+    """Exact career regular-season totals + the per-game averages they imply, each over the games of the seasons
+    that recorded the stat (see _games_recording)."""
     totals = career_totals[0] if career_totals else {}
     gp = _int(totals.get("GP"), 0)
     pts = _int(totals.get("PTS"), 0)
@@ -343,12 +356,45 @@ def build_career(career_totals, season_rows):
         for r in season_rows
         if (r.get("LEAGUE_ID") or "00") == "00" and r.get("SEASON_ID")
     }
-    per_game = (lambda total: round(total / gp, 1)) if gp else (lambda total: 0.0)
+
+    def per_game(total, stat):
+        games = _games_recording(stat, season_rows, gp)
+        return round(total / games, 1) if games else 0.0
+
     return {
         "pts": pts, "reb": reb, "ast": ast,
-        "ppg": per_game(pts), "rpg": per_game(reb), "apg": per_game(ast),
+        "ppg": per_game(pts, "PTS"), "rpg": per_game(reb, "REB"), "apg": per_game(ast, "AST"),
         "seasons": len(seasons),
     }
+
+
+def season_rows_from_games(games):
+    """(season rows, career totals) in playercareerstats' shape, from LeagueGameFinder's regular-season games.
+
+    PlayerCareerStats answers `{}` for some real players (Mike Penberthy, 56 games for the 2000-02 Lakers), while
+    the league's game finder still has every game they played, so the games are summed per season and team: one
+    row per (season, team) in the order the player played for them, like a traded season's rows.
+    """
+    by_key, order = {}, []
+    for g in sorted(games, key=lambda g: str(g.get("GAME_DATE") or "")):
+        sid = str(g.get("SEASON_ID") or "")
+        start = _int(sid[1:]) if len(sid) == 5 else None  # "22000" = regular season 2000-01
+        team_id = _int(g.get("TEAM_ID"), 0)
+        if start is None or not team_id:
+            continue
+        key = (start, team_id)
+        if key not in by_key:
+            by_key[key] = {"SEASON_ID": f"{start}-{str(start + 1)[-2:]}", "LEAGUE_ID": "00", "TEAM_ID": team_id,
+                           "TEAM_ABBREVIATION": g.get("TEAM_ABBREVIATION"), "GP": 0, "PTS": 0, "REB": 0, "AST": 0}
+            order.append(key)
+        row = by_key[key]
+        row["GP"] += 1
+        for stat in ("PTS", "REB", "AST"):
+            row[stat] += _int(g.get(stat), 0)
+    rows = [by_key[k] for k in sorted(order, key=lambda k: (k[0], order.index(k)))]
+    if not rows:
+        return [], []
+    return rows, [{stat: sum(r[stat] for r in rows) for stat in ("GP", "PTS", "REB", "AST")}]
 
 
 # ---------------------------------------------------------------------------
@@ -491,6 +537,7 @@ def build_roster_only_row(roster_entry, drafts, carry):
 MAX_CAREER_PPG, MAX_CAREER_RPG, MAX_CAREER_APG = 55.0, 30.0, 20.0
 MAX_SEASONS = 30  # Vince Carter's 22 is the record
 AVERAGE_TOLERANCE = 1.0  # per-game averages must agree with totals/games this closely
+REBOUNDS_RECORDED_FROM = 1950  # the first season with rebound counts is 1950-51
 
 
 def stint_seasons(stint, open_end):
@@ -576,6 +623,12 @@ def check_plausibility(rows):
             if average > ceiling:
                 problems.append(f"{name}: career {average_key} {average} exceeds {ceiling}")
             implied = totals[total_key] / games
+            # Rebounds were not kept before 1950-51, so a career that started earlier averages its rebounds over
+            # fewer games (build_career): its rpg can only be higher than rebounds / all games.
+            no_early_rebounds = total_key == "reb" and min(
+                ((s.get("start_year") or 9999) for s in row.get("teams") or []), default=9999) < REBOUNDS_RECORDED_FROM
+            if no_early_rebounds and average >= implied - AVERAGE_TOLERANCE:
+                continue
             if abs(implied - average) > AVERAGE_TOLERANCE:
                 problems.append(
                     f"{name}: career {average_key} {average} but {totals[total_key]} "

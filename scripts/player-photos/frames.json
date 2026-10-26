@@ -1,5 +1,5 @@
 {
- "_about": "Rendered photo frame per game x ui-check viewport (css px), measured in the real app on 2026-10-17 (the -review frames derived from the same CSS). nba = the game's CSS fit for cdn.nba.com headshots; commons = the PlayerPhoto frame kind (utils/playerPhotos placePhoto). Re-measure when a game's photo CSS changes.",
+ "_about": "Rendered photo frame per game x ui-check viewport (css px), measured in the real app on 2026-10-17 (the -review frames derived from the same CSS). nba = the game's CSS fit for cdn.nba.com headshots; commons = the PlayerPhoto frame kind (utils/playerPhotos placePhoto). Re-measure when a game's photo CSS changes. who-are-ya-review reuses the career-path frame (.cp-reveal-photo) and contexto-review the contexto frame (.cx-reveal-photo): the answer reviews draw the same boxes.",
  "viewports": {
   "phone-360": {
    "w": 360,
@@ -1113,6 +1113,220 @@
      ]
     },
     "commons": "card"
+   }
+  },
+  "who-are-ya-review": {
+   "phone-360": {
+    "w": 94.0,
+    "h": 68.14,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-390": {
+    "w": 94.0,
+    "h": 68.14,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "phone-414": {
+    "w": 97.36,
+    "h": 70.59,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-768": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "tablet-1280": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1366": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   },
+   "desktop-1920": {
+    "w": 126.0,
+    "h": 91.53,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "cover",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "card"
+   }
+  },
+  "contexto-review": {
+   "phone-360": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-390": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "phone-414": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-768": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "tablet-1280": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 2,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1366": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
+   },
+   "desktop-1920": {
+    "w": 62.0,
+    "h": 46.0,
+    "shape": "rect",
+    "dpr": 1,
+    "size": "lg",
+    "nba": {
+     "fit": "contain",
+     "pos": [
+      50.0,
+      50.0
+     ]
+    },
+    "commons": "avatar"
    }
   }
  }

@@ -314,11 +314,37 @@ test('a page that does not load is a Coverage gaps line, not a failure', async (
   assert.deepEqual(r.urls[`${S}/wordle`].failures, []);
 });
 
+test('--as: links that name the alias origin are internal links of --site, the run equals the one on the origin itself, every request on --site', async () => {
+  const L = 'http://localhost:5612';
+  const sitemap = SITEMAP.replace('</urlset>', `<url><loc>${S}/who-are-ya</loc></url><url><loc>${S}/starting-five</loc></url></urlset>`);
+  const relative = { '/sitemap.xml': sitemap, '/career-path': fixture('career-path-good.html') };
+  const absolute = Object.fromEntries(['/', '/career-path', '/wordle', '/privacy'].map((p) => [p, (relative[p] ?? FAKE[p]).replaceAll('href="/', `href="${S}/`)]));
+  const over = { ...relative, ...absolute };
+  const op06 = (r, origin) => r.urls[`${origin}/career-path`].failures.find((f) => f.id === 'OP-06');
+  const idsByPath = (r) => Object.values(r.urls).map((e) => [e.path, ids(e.failures)]);
+
+  const own = await runOnpage({ site: S, fetcher: fakeFetcher(relative), keywordMap: KEYWORDS, runId: 'r1' });
+  assert.equal(op06(own, S), undefined, 'the good fixture passes OP-06 on its own origin');
+  const plain = await runOnpage({ site: L, fetcher: fakeFetcher(over), keywordMap: KEYWORDS, runId: 'r1' });
+  assert.ok(op06(plain, L), 'without --as the absolute links are not internal');
+
+  const f = fakeFetcher(over);
+  const r = await runOnpage({ site: L, fetcher: f, keywordMap: KEYWORDS, runId: 'r1', asOrigin: S });
+  assert.equal(op06(r, L), undefined);
+  assert.deepEqual(idsByPath(r), idsByPath(own));
+  assert.ok(f.seen.every((x) => x.startsWith(`GET ${L}/`)), f.seen.join('\n'));
+
+  const io = capture();
+  assert.equal(await cli(['--site', L, '--as', `${S}/`, '--run-dir', tmp()], { ...io, fetcher: fakeFetcher(over), env: {} }), 1);
+  assert.match(io.lines[0], new RegExp(`^seo-onpage: run \\S+ · site ${L} · 6 urls · `));
+  assert.equal(await cli(['--site', L, '--as', 'not a url', '--run-dir', tmp()], { ...capture(), fetcher: fakeFetcher(over), env: {} }), 2);
+});
+
 test('--psi without PSI_API_KEY, and a 429, are one Coverage gaps line each; the key is never printed', async () => {
   const noKey = await runOnpage({ site: S, fetcher: fakeFetcher(), keywordMap: KEYWORDS, runId: 'r1', psi: { key: null, fetch: async () => { throw new Error('must not be called'); } } });
   assert.equal(noKey.gaps.filter((g) => /PSI_API_KEY/.test(g)).length, 1);
 
-  const KEY = 'TESTKEY-abc123';
+  const KEY = 'TESTKEY-abc123'; // gitleaks:allow (fake key for the test)
   let calls = 0;
   const limited = await runOnpage({ site: S, fetcher: fakeFetcher(), keywordMap: KEYWORDS, runId: 'r1', psi: { key: KEY, fetch: async () => { calls += 1; return new Response('{}', { status: 429 }); } } });
   assert.equal(calls, 1, 'stops after the first 429');

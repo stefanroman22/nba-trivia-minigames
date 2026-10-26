@@ -46,15 +46,17 @@ const NAMES = [
   { id: 7, full_name: "Magic Johnson", aliases: [] },
   { id: 8, full_name: "Larry Bird", aliases: [] },
   { id: 9, full_name: "Hakeem Olajuwon", aliases: [] },
+  { id: 10, full_name: "Eddie Johnson", aliases: [] },
+  { id: 11, full_name: "Eddie Johnson", aliases: [] },
 ];
 
 // 3x3 board, row-major. cell4 also accepts id 3 (Shaquille O'Neal) besides
 // cell1, so the "same player on a second cell" rejection has somewhere legal
-// (name-wise) to land.
+// (name-wise) to land. Cells 7 and 8 each accept one of the two Eddie Johnsons.
 const TTT_VALID = [
   [1, 2], [3, 4], [5, 6],
   [7, 8], [3, 9], [2, 8],
-  [4, 9], [5, 7], [6, 8],
+  [4, 9], [5, 7, 10], [6, 8, 11],
 ];
 
 const FIXTURE = {
@@ -236,7 +238,15 @@ async function simTTTValidation() {
   const unknownRejected = st.board[6] === null;
   line(`cell 6 stayed empty: ${unknownRejected ? "PASS" : "FAIL"}`);
 
-  return canonicalised && usedRejected && unknownRejected;
+  // Namesakes: two different Eddie Johnsons (ids 10 and 11). The one on cell 7
+  // does not use up the other, who fits cell 8 (mirrors solo mode, by id).
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 7, playerName: "Eddie Johnson" }, helpers);
+  line(`${st.turnUid} claims cell 8 with "Eddie Johnson" (the other one)`);
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 8, playerName: "Eddie Johnson" }, helpers);
+  const namesakes = st.board[7]?.playerId === 10 && st.board[8]?.playerId === 11;
+  line(`both Eddie Johnsons on the board: ${namesakes ? "PASS" : "FAIL"}`);
+
+  return canonicalised && usedRejected && unknownRejected && namesakes;
 }
 
 // ================================================================= IMPOSTER

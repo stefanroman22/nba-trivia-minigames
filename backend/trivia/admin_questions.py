@@ -8,6 +8,9 @@ against the live player dataset, as the publisher does), the question factory's 
 
 Only LABEL_GAMES can be labeled (Tic-Tac-Toe for now). Every view REQUIRES is_staff (IsAdminUser).
 """
+import json
+import os
+
 from django.db.models import Sum
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -15,7 +18,7 @@ from rest_framework.response import Response
 
 from trivia.data_pipeline import live_pool
 from trivia.models import Question, QuestionLabel, QuestionStats
-from trivia.questions.base import Invalid, load_dataset_from_rows
+from trivia.questions.base import Invalid
 from trivia.questions.games import GAME_MODULES
 
 LABEL_GAMES = ("tictactoe",)
@@ -24,14 +27,24 @@ FILTERS = ("all", "unreviewed", *DIFFICULTIES)
 SORTS = ("qid", "factory", "accuracy", "updated")
 TOP_ANSWERS = 3
 
-_dataset_cache = {"rows": None, "dataset": None}
+_dataset_cache = {"key": None, "dataset": None}
 
 
 def _dataset():
-    """The live player dataset as the question modules want it, rebuilt only when live_pool reloads its rows."""
-    rows = live_pool.load_dataset()
-    if _dataset_cache["rows"] is not rows:
-        _dataset_cache.update(rows=rows, dataset=load_dataset_from_rows(rows, "live"))
+    """The player dataset exactly as the publisher materializes boards with it: players_curated.json with the active
+    DataCorrections overlaid (publish_v3.curated_dataset), so the panel and the difficulty rules see what players get
+    (a correction such as Eddie Johnson's 1989 Sixth Man exists only there). Rebuilt when the file or the set of
+    active corrections changes."""
+    from trivia.data_pipeline.publish_v3 import curated_dataset
+    from trivia.questions import corrections
+
+    try:
+        mtime = os.stat(live_pool.CURATED_PATH).st_mtime_ns
+    except OSError:
+        mtime = None
+    key = (mtime, tuple((c.pk, c.field_path, json.dumps(c.new_value, sort_keys=True)) for c in corrections.active_corrections()))
+    if _dataset_cache["key"] != key:
+        _dataset_cache.update(key=key, dataset=curated_dataset())
     return _dataset_cache["dataset"]
 
 
@@ -40,21 +53,33 @@ def _iso(dt):
 
 
 def label_counts(game):
-    """{total, reviewed, unreviewed, easy, medium, hard} over the game's active questions; unreviewed count as hard."""
+    """{total, reviewed, unreviewed, by_rule, easy, medium, hard} over the game's active questions. `reviewed` counts
+    the owner's labels only; the difficulty counts use the effective label (owner, else a rule's, else hard)."""
     active = Question.objects.filter(game=game, status=Question.STATUS_ACTIVE)
     total = active.count()
     labels = dict.fromkeys(DIFFICULTIES, 0)
-    for d in QuestionLabel.objects.filter(question__in=active).values_list("difficulty", flat=True):
+    reviewed = by_rule = 0
+    for d, source in QuestionLabel.objects.filter(question__in=active).values_list("difficulty", "source"):
         labels[d] = labels.get(d, 0) + 1
-    reviewed = sum(labels.values())
+        reviewed += source == QuestionLabel.OWNER
+        by_rule += source == QuestionLabel.RULE
+    unlabeled = total - reviewed - by_rule
     return {
         "total": total,
         "reviewed": reviewed,
         "unreviewed": total - reviewed,
+        "by_rule": by_rule,
         "easy": labels["easy"],
         "medium": labels["medium"],
-        "hard": labels["hard"] + (total - reviewed),
+        "hard": labels["hard"] + unlabeled,
     }
+
+
+def _label_json(lab):
+    if lab is None:
+        return {"difficulty": QuestionLabel.HARD, "reviewed": False, "source": None, "reason": "", "updated_at": None}
+    return {"difficulty": lab.difficulty, "reviewed": lab.source == QuestionLabel.OWNER, "source": lab.source,
+            "reason": lab.reason, "updated_at": _iso(lab.updated_at)}
 
 
 def _stats(game):
@@ -130,8 +155,12 @@ def admin_questions(request):
     def label_of(q):
         return getattr(q, "label", None)
 
-    if flt == "unreviewed":
-        questions = [q for q in questions if label_of(q) is None]
+    def owner_label(q):
+        lab = label_of(q)
+        return lab if lab is not None and lab.source == QuestionLabel.OWNER else None
+
+    if flt == "unreviewed":  # not reviewed by the owner (a rule's label still leaves it to review)
+        questions = [q for q in questions if owner_label(q) is None]
     elif flt in DIFFICULTIES:
         questions = [q for q in questions if (label_of(q).difficulty if label_of(q) else QuestionLabel.HARD) == flt]
     if query:
@@ -141,8 +170,8 @@ def admin_questions(request):
         questions.sort(key=lambda q: ((q.quality or {}).get("difficulty") is None, (q.quality or {}).get("difficulty") or 0, q.qid))
     elif sort == "accuracy":  # played questions first, hardest (lowest accuracy) first
         questions.sort(key=lambda q: (_accuracy(stats.get(q.qid)) is None, _accuracy(stats.get(q.qid)) or 0, q.qid))
-    elif sort == "updated":  # most recently labeled first, then the unreviewed
-        questions.sort(key=lambda q: (label_of(q) is None, -(label_of(q).updated_at.timestamp() if label_of(q) else 0), q.qid))
+    elif sort == "updated":  # most recently labeled by the owner first, then the rest
+        questions.sort(key=lambda q: (owner_label(q) is None, -(owner_label(q).updated_at.timestamp() if owner_label(q) else 0), q.qid))
     else:
         questions.sort(key=lambda q: q.qid)
 
@@ -154,7 +183,7 @@ def admin_questions(request):
         rows.append({
             "id": q.pk,
             "qid": q.qid,
-            "label": {"difficulty": lab.difficulty if lab else QuestionLabel.HARD, "reviewed": lab is not None, "updated_at": _iso(lab.updated_at) if lab else None},
+            "label": _label_json(lab),
             "factory": {"band": (q.quality or {}).get("band"), "difficulty": (q.quality or {}).get("difficulty")},
             "plays": {"attempts": s["attempts"] if s else 0, "correct": s["correct"] if s else 0, "accuracy": _accuracy(s)},
             "board": _board(mod, q.definition, dataset, s),
@@ -174,10 +203,7 @@ def admin_question_label(request, pk):
     difficulty = str((request.data or {}).get("difficulty") or "")
     if difficulty not in DIFFICULTIES:
         return Response({"error": f"difficulty must be one of {', '.join(DIFFICULTIES)}"}, status=400)
-    lab, _ = QuestionLabel.objects.update_or_create(question=q, defaults={"difficulty": difficulty, "labeled_by": request.user})
-    return Response({
-        "id": q.pk,
-        "qid": q.qid,
-        "label": {"difficulty": lab.difficulty, "reviewed": True, "updated_at": _iso(lab.updated_at)},
-        "counts": label_counts(q.game),
-    })
+    lab, _ = QuestionLabel.objects.update_or_create(
+        question=q, defaults={"difficulty": difficulty, "labeled_by": request.user, "source": QuestionLabel.OWNER, "reason": ""}
+    )
+    return Response({"id": q.pk, "qid": q.qid, "label": _label_json(lab), "counts": label_counts(q.game)})

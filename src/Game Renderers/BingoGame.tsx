@@ -39,7 +39,7 @@ interface ClaimedBy { name: string; person_id: number }
 const FADE_ONLY = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 
 function DealPhoto({ player }: { player: PlayerIndexEntry }) {
-  return <PlayerPhoto personId={player.person_id} alt="" size="sm" frame="avatar" className="bng-deal-photo" fallbackClassName="bng-deal-fallback" />;
+  return <PlayerPhoto personId={player.person_id} alt="" frame="avatar" className="bng-deal-photo" fallbackClassName="bng-deal-fallback" />;
 }
 
 function BingoGame({ gameInfo, onGameEnd }: BingoGameProps) {

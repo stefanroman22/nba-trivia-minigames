@@ -2,6 +2,7 @@
 // instead of judgment (design §4–§5): which checks verify runs, whether QA runs at all, whether the
 // motion reviewer wakes, whether the review needs the heavy model.
 import { execFileSync } from "node:child_process";
+import { touchesSeo } from "../../seo/lib/seo-paths.mjs";
 
 // Renderer file name (without .tsx) -> catalogue id in src/utils/GameUtils.tsx.
 const RENDERER_TO_ID = {
@@ -67,6 +68,12 @@ export function classifyTouched(files, diffText = "") {
   const motion = norm.some((f) => MOTION_PATH_RE.test(f)) || (hasUiSource && MOTION_DIFF_RE.test(String(diffText || "")));
   const isProtected = norm.some((f) => PROTECTED_RES.some((re) => re.test(f)));
   return { frontend, backend, multiplayer, scripts, docsOnly, motion, protected: isProtected, games, files: norm };
+}
+
+/** Verify runs `npm run check:seo` on its own when an SEO path changed but no frontend file did (for example only
+ *  scripts/seo/config.json): a frontend change already runs it inside `npm run lint`. */
+export function seoCheckOnly(files) {
+  return touchesSeo(files) && !classifyTouched(files).frontend;
 }
 
 function git(repoDir, args) {

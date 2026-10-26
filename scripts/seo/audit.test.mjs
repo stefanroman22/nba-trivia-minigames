@@ -29,8 +29,10 @@ let O; // the fake site's origin, e.g. http://127.0.0.1:53211
 /** Every request the fake site saw: { method, path, search, ua }. */
 let requests = [];
 /** Per-test knobs: robots → a robots.txt body replacing the fixture; noindex → paths served with a robots noindex meta;
- *  echoCanonical → every page's canonical is the requested URL, query included. */
-const state = { robots: null, noindex: new Set(), echoCanonical: false, inFlight: 0, maxInFlight: 0 };
+ *  echoCanonical → every page's canonical is the requested URL, query included; origin → the origin the fixtures name
+ *  instead of the server's own (a local build naming production); absoluteLinks → every root-relative href written
+ *  absolute on that origin; xRobotsTag → an X-Robots-Tag header on every page (next.config.ts's host rule). */
+const state = { robots: null, noindex: new Set(), echoCanonical: false, origin: null, absoluteLinks: false, xRobotsTag: null, inFlight: 0, maxInFlight: 0 };
 
 const NOT_FOUND = '<!DOCTYPE html><html><head><meta name="robots" content="noindex"/><title>404</title></head><body><h1>404</h1></body></html>';
 
@@ -41,27 +43,30 @@ function handle(req, res) {
     res.writeHead(status, { 'content-type': type, ...headers });
     res.end(req.method === 'HEAD' ? undefined : body);
   };
+  const named = state.origin ?? O;
   const page = (name) => {
-    let html = fixture(name).replaceAll('__ORIGIN__', O);
+    let html = fixture(name).replaceAll('__ORIGIN__', named);
+    if (state.absoluteLinks) html = html.replaceAll('href="/', `href="${named}/`);
     if (state.noindex.has(pathname)) html = html.replace('<head>', '<head>\n<meta name="robots" content="noindex"/>');
     if (state.echoCanonical) html = html.replace(/<link rel="canonical" href="[^"]*"\/>/, `<link rel="canonical" href="${href}"/>`);
     return html;
   };
+  const html = (status, body) => send(status, 'text/html; charset=utf-8', body, state.xRobotsTag ? { 'x-robots-tag': state.xRobotsTag } : {});
   if (pathname === '/slow') {
     state.inFlight += 1;
     state.maxInFlight = Math.max(state.maxInFlight, state.inFlight);
     setTimeout(() => { state.inFlight -= 1; send(200, 'text/plain', 'ok'); }, 40);
     return;
   }
-  if (pathname === '/robots.txt') return send(200, 'text/plain', state.robots ?? fixture('robots.txt').replaceAll('__ORIGIN__', O));
-  if (pathname === '/sitemap.xml') return send(200, 'application/xml', fixture('sitemap.xml').replaceAll('__ORIGIN__', O));
+  if (pathname === '/robots.txt') return send(200, 'text/plain', state.robots ?? fixture('robots.txt').replaceAll('__ORIGIN__', named));
+  if (pathname === '/sitemap.xml') return send(200, 'application/xml', fixture('sitemap.xml').replaceAll('__ORIGIN__', named));
   if (pathname === '/old') return send(301, 'text/plain', 'Moved', { location: `${O}/wordle` });
-  if (pathname === '/') return send(200, 'text/html; charset=utf-8', page('index.html'));
-  if (['/wordle', '/orphan', '/admin'].includes(pathname)) return send(200, 'text/html; charset=utf-8', page(`${pathname.slice(1)}.html`));
+  if (pathname === '/') return html(200, page('index.html'));
+  if (['/wordle', '/orphan', '/admin'].includes(pathname)) return html(200, page(`${pathname.slice(1)}.html`));
   if (pathname.endsWith('/opengraph-image.png')) return send(200, 'image/png', 'png');
   if (pathname === '/favicon.ico') return send(200, 'image/x-icon', 'ico');
   if (pathname === '/manifest.webmanifest') return send(200, 'application/manifest+json', '{}');
-  return send(404, 'text/html; charset=utf-8', NOT_FOUND);
+  return html(404, NOT_FOUND);
 }
 
 before(async () => {
@@ -73,7 +78,7 @@ after(() => {
   for (const d of tmpDirs) rmSync(d, { recursive: true, force: true });
   return new Promise((resolve) => server.close(resolve));
 });
-beforeEach(() => { requests = []; state.robots = null; state.noindex = new Set(); state.echoCanonical = false; });
+beforeEach(() => { requests = []; state.robots = null; state.noindex = new Set(); state.echoCanonical = false; state.origin = null; state.absoluteLinks = false; state.xRobotsTag = null; });
 
 const client = () => fetcher({ ua: DEFAULT_UA, concurrency: 4, timeoutMs: 15000, redirect: 'manual' });
 /** The fake site as the configured production site, with /admin as the only expected-noindex page. */
@@ -424,6 +429,59 @@ test('IX-11 while a linking page did not load: the orphan failure is transient, 
   assert.deepEqual(result.regressions, []);
   assert.equal(exitCodeFor(result), 1);
   assert.ok(toBaseline(result)[W].includes('IX-11'), 'the next baseline does not vouch for it either');
+});
+
+// --as <origin>: a local build that names the production origin in its sitemap, canonicals, JSON-LD, og:image, links.
+const AS = 'https://example.test';
+/** The real client, recording every URL it is asked for. */
+const recording = () => {
+  const real = client();
+  const seen = [];
+  return { seen, get: (u) => { seen.push(u); return real.get(u); }, head: (u) => { seen.push(u); return real.head(u); } };
+};
+
+test('--as: a site whose sitemap, canonicals and links name another origin fails IX-04 without it, audits as its own origin with it, every request on --site', async () => {
+  state.origin = AS;
+  state.absoluteLinks = true;
+  const plain = await audit({ only: ['IX-04'] }); // --only: no og:image HEAD to the alias origin
+  assert.ok(allFails(plain).includes(`IX-04 ${O}/`), allFails(plain).join('\n'));
+
+  requests = [];
+  const f = recording();
+  const result = await audit({ fetcher: f, asOrigin: AS });
+  // Exactly the failures of the fake site served on its own origin (the first runAudit test).
+  assert.deepEqual(allFails(result), [`IX-02 ${O}/old`, `IX-10 ${O}/old`, `IX-11 ${O}/orphan`]);
+  assert.deepEqual(Object.keys(result.urls).sort(), [`${O}/`, `${O}/admin`, `${O}/old`, `${O}/orphan`, `${O}/wordle`]);
+  assert.ok(f.seen.length && f.seen.every((u) => u.startsWith(`${O}/`)), f.seen.filter((u) => !u.startsWith(`${O}/`)).join('\n'));
+  const heads = requests.filter((r) => r.method === 'HEAD').map((r) => r.path).sort();
+  assert.deepEqual(heads, ['/favicon.ico', '/manifest.webmanifest', '/opengraph-image.png', '/orphan/opengraph-image.png', '/wordle/opengraph-image.png']);
+  // The existing non-production skips keep their lines: the variants (a local host); one X-Robots-Tag line.
+  assert.ok(result.gaps.some((g) => /IX-02/.test(g) && /variants/.test(g)), result.gaps.join('\n'));
+  assert.deepEqual(result.gaps.filter((g) => g.startsWith('IX-03 X-Robots-Tag')), [`IX-03 X-Robots-Tag not judged: ${new URL(O).host} is served as ${AS} (the host rule in next.config.ts)`]);
+});
+
+test('--as: X-Robots-Tag noindex on every page is not judged (one Coverage gaps line), a robots meta noindex still fails IX-03', async () => {
+  state.origin = AS;
+  state.xRobotsTag = 'noindex';
+  const plain = await audit({ config: fakeConfig({ site: AS }), only: ['IX-03'] });
+  assert.ok(allFails(plain).includes(`IX-03 ${O}/wordle`), 'without --as the header fails IX-03');
+
+  const result = await audit({ asOrigin: AS });
+  assert.ok(!allFails(result).some((x) => x.startsWith('IX-03')), allFails(result).join('\n'));
+  assert.equal(result.gaps.filter((g) => g.startsWith('IX-03 X-Robots-Tag not judged')).length, 1);
+
+  state.noindex = new Set(['/wordle']);
+  const meta = await audit({ asOrigin: AS });
+  assert.ok(allFails(meta).includes(`IX-03 ${O}/wordle`), allFails(meta).join('\n'));
+  assert.equal(meta.urls[`${O}/wordle`].failures.find((x) => x.id === 'IX-03').evidence, '<meta name="robots" content="noindex">');
+
+  // The CLI: --as <origin>, the gaps line in digest.md; a bad --as is exit 2.
+  const dir = tmp();
+  const run = await cli(['--site', O, '--as', `${AS}/`, '--run-dir', dir]);
+  assert.equal(run.code, 1, run.stderr);
+  assert.match(readFileSync(path.join(dir, 'digest.md'), 'utf8').split('## Coverage gaps\n')[1], new RegExp(`^- IX-03 X-Robots-Tag not judged: ${new URL(O).host} is served as ${AS} \\(the host rule in next\\.config\\.ts\\)$`, 'm'));
+  assert.equal((await cli(['--site', O, '--as', 'ftp://example.test', '--run-dir', tmp()])).code, 2);
+  assert.equal((await cli(['--site', O, '--as'])).code, 2);
 });
 
 test('fetcher: at most 4 requests in flight, no redirect followed', async () => {

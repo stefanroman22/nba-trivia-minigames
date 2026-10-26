@@ -196,21 +196,50 @@ export async function fetchQuestion(game: string, day?: string): Promise<FetchRe
   }
 }
 
+const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)\.?$/i;
+/** The name without a trailing generational suffix ("Bobby Portis Jr." → "Bobby Portis"), or null when it has none. */
+const withoutSuffix = (name: string) => (NAME_SUFFIX.test(name) ? name.replace(NAME_SUFFIX, "") : null);
+/** The lookup key: normalized, then without spaces, so a space typed for an apostrophe, hyphen or initials'
+ * dot still matches ("Shaquille O Neal", "Karl Anthony Towns", "A C Green"). */
+const nameKey = (s: string) => normalizeAnswer(s).replace(/\s+/g, "");
+
+/**
+ * Typed name → players. Several players can share a name (two Eddie Johnsons): `toIds` gives every one, so a game that
+ * knows which ids it accepts (Tic-Tac-Toe's cell) can pick the right one; `toId` keeps the first, as before. A name
+ * typed without its suffix ("Bobby Portis") falls back to the players whose name only differs by it, after every
+ * exact full name or alias, so "Gary Payton" stays Gary Payton and not Gary Payton II; a suffix the player's name
+ * does not carry ("Mike Conley Jr") falls back to the name without it. Names compare by nameKey.
+ */
 export function buildNameLookup(names: NamesEntry[]) {
-  const toIdMap = new Map<string, number>();
+  const exact = new Map<string, number[]>();
+  const loose = new Map<string, number[]>();
   const byId = new Map<number, NamesEntry>();
+  const add = (m: Map<string, number[]>, key: string, id: number) => {
+    if (!key) return;
+    const ids = m.get(key);
+    if (!ids) m.set(key, [id]);
+    else if (!ids.includes(id)) ids.push(id);
+  };
   for (const n of names) {
     byId.set(n.id, n);
-    const canon = normalizeAnswer(n.full_name);
-    if (canon && !toIdMap.has(canon)) toIdMap.set(canon, n.id);
-    for (const a of n.aliases) {
-      const k = normalizeAnswer(a);
-      if (k && !toIdMap.has(k)) toIdMap.set(k, n.id);
+    add(exact, nameKey(n.full_name), n.id);
+    for (const a of n.aliases) add(exact, nameKey(a), n.id);
+    for (const s of [n.full_name, ...n.aliases]) {
+      const bare = withoutSuffix(s);
+      if (bare) add(loose, nameKey(bare), n.id);
     }
   }
+  const toIds = (guess: string): number[] => {
+    const key = nameKey(guess);
+    const out: number[] = [];
+    for (const ids of [exact.get(key), loose.get(key)]) for (const id of ids ?? []) if (!out.includes(id)) out.push(id);
+    const bare = out.length ? null : withoutSuffix(guess.trim());
+    return bare ? [...(exact.get(nameKey(bare)) ?? [])] : out;
+  };
   return {
     suggestions: names.map((n) => n.full_name),
-    toId: (guess: string) => toIdMap.get(normalizeAnswer(guess)) ?? null,
+    toId: (guess: string) => toIds(guess)[0] ?? null,
+    toIds,
     nameOf: (id: number) => byId.get(id)?.full_name ?? null,
     getEntry: (id: number) => byId.get(id) ?? null,
   };

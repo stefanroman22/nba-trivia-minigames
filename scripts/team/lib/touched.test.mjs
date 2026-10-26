@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { classifyTouched, gameIdFor } from "./touched.mjs";
+import { classifyTouched, gameIdFor, seoCheckOnly } from "./touched.mjs";
 
 test("docs-only diff", () => {
   const c = classifyTouched(["docs/team/RETRO.md", "README.md"]);
@@ -32,6 +32,20 @@ test("protected backend paths", () => {
   assert.equal(c.protected, true);
   assert.equal(classifyTouched(["backend/trivia/games/contexto.py"]).protected, false);
   assert.equal(classifyTouched(["multiplayer_server/src/index.js"]).multiplayer, true);
+});
+
+test("verify runs check:seo alone only for SEO paths without frontend files", () => {
+  assert.equal(seoCheckOnly(["scripts/seo/config.json"]), true);
+  assert.equal(seoCheckOnly(["scripts/seo/keyword-map.json", "docs/seo/onpage-guide.md"]), true);
+  assert.equal(seoCheckOnly(["scripts\\seo\\config.json"]), true);
+  // a frontend change runs `npm run lint`, which already includes check:seo
+  assert.equal(seoCheckOnly(["scripts/seo/config.json", "src/app/privacy/page.tsx"]), false);
+  assert.equal(seoCheckOnly(["src/app/sitemap.ts"]), false);
+  assert.equal(seoCheckOnly(["scripts/seo/config.json", "package.json"]), false);
+  // no SEO path
+  assert.equal(seoCheckOnly(["scripts/seo/audit.mjs"]), false);
+  assert.equal(seoCheckOnly(["backend/users/views.py"]), false);
+  assert.equal(seoCheckOnly([]), false);
 });
 
 test("gameIdFor maps renderer names", () => {

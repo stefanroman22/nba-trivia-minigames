@@ -313,7 +313,9 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     setGuess("");
     const qid = `${question.qid}:${selectedCell}`;
     const elapsed = Date.now() - startRef.current;
-    const id = lookup?.toId(raw) ?? null;
+    // Namesakes (two Eddie Johnsons): the one who fits this cell and is not used yet wins.
+    const ids = lookup?.toIds(raw) ?? [];
+    const id = ids.find((x) => question.valid[selectedCell].includes(x) && !usedIdsRef.current.has(x)) ?? ids[0] ?? null;
     if (id === null) {
       guessLogRef.current.push({ question_id: qid, answer: normalizeAnswer(raw), correct: false, elapsed_ms: elapsed });
       flashPopup("Not in our player index", "var(--muted)");
