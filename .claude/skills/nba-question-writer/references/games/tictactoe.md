@@ -31,8 +31,8 @@ hardest cell. Judge and build boards pair by pair (`pair_library`), never by the
 | `team` (rows) | franchise abbr, modern name | "Miami Heat" | the 30 current franchises are easy; defunct ones are not |
 | `position` | `guard` (G, G-F), `forward` (F, G-F, F-C), `center` (C, F-C) | "Guard" | easy (broad). The data has no point / shooting guard split: never write "Point Guard". Standard (owner, 2026-10-25): the NBA's official listing plus any position Basketball-Reference's player page adds, a hybrid counting for both (Tatum G-F is a guard and a forward); gaps are fixed with sourced `position` DataCorrections (migration 0018: Bosh, Ibaka, Mobley F-C, 52 missing filled), never by editing players_curated.json |
 | `country` | `USA`, `INTL` (any other listed country), or one country name: the country the NBA lists, not the birthplace (Kyrie Irving is USA) | "From USA", "International", "From France" | USA / INTL easy; one named country is almost never easy (see below) |
-| `era` | `1990s` … `2020s` | "Played in the 2010s" | 2010s / 2020s easy; 1990s / 2000s medium; earlier hard. On a team row the cell needs a stint WITH that team in the decade (`tictactoe.pair_matches`; the contract's era alone is any stint, which let Kyrie Irving answer "Celtics × 2020s") |
-| `teammate` | a star's person_id (STARS: Jordan, Kobe, LeBron, Shaq, Duncan, Curry, Durant, Magic) | "Played w/ Kobe" | medium (the owner's favourite). At least one season on the same franchise as the star, the row team being any of the player's teams; the star himself never counts. Tic-Tac-Toe only, resolved at publish time (`tictactoe.teammates`), not in contract #3. Only top-of-the-top stars: never add a star whose teammates a fan can't name |
+| `era` | `1990s` … `2020s` | "Played in the 2010s" | 2010s / 2020s easy; 1990s / 2000s medium; earlier hard. The year rule (owner, 2026-10-25), the same for every year in this game: a season belongs to the decade it STARTS in, so the 2010s begin with 2010-11 and 2009-10 is the 2000s (`tictactoe._seasons`). On a team row the cell needs a season WITH that team in the decade (`tictactoe.pair_matches`; the contract's era alone is any stint, which let Kyrie Irving answer "Celtics × 2020s") |
+| `teammate` | a star's person_id (STARS: Jordan, Kobe, LeBron, Shaq, Duncan, Curry, Durant, Magic) | "Played w/ Kobe" | medium (the owner's favourite). At least one season on the same franchise as the star, the row team being any of the player's teams; the star himself never counts. Sharing the season is enough (owner: a player on the team in the half season Jordan played counts). Tic-Tac-Toe only, resolved at publish time (`tictactoe.teammates`), not in contract #3. Only top-of-the-top stars: never add a star whose teammates a fan can't name |
 | `award` | `ring`, `mvp`, `allstar` (1+ selection) | "NBA Champion", "Won MVP", "All-Star" | medium (famous honours) |
 | `award` | `fmvp`, `dpoy`, `roty`, `smoy`, `allnba`, `allstar5plus` | "Finals MVP" | hard (needs NBA history); Sixth Man the hardest (players don't know what qualifies) |
 | `draft` | `pick1` | "No. 1 pick" | medium (first overall picks are famous) |
@@ -93,7 +93,9 @@ rules carry at least one career-stat column; each cell needs only the publisher'
 Answers: a typed name resolves to every player of that name (`buildNameLookup` / the relay's `nameLookup`
 `toIds`), and the game keeps the one who fits the cell, so namesakes (the two Eddie Johnsons) are all reachable; a
 name typed without its Jr. / II suffix finds the suffixed player after any exact match ("Gary Payton" stays Gary
-Payton). A nickname a fan types needs a hand-written alias on the row ("Steve Smith" for Steven Smith). The rules
+Payton), and a typed suffix the name lacks falls back to the name ("Mike Conley Jr"). Names compare without spaces and
+punctuation ("Shaquille O Neal", "Karl Anthony Towns", "A C Green" all work). A nickname or former name a fan types
+needs an alias, added as an `aliases` DataCorrection (migration 0019: "Shaq", "Ron Artest", "Enes Kanter", ...). The rules
 and the panel read the dataset with the active DataCorrections overlaid, exactly as the publisher does.
 
 Known issue: team rows use the modern franchise, so a relocated franchise's old players count (Gary Payton fits

@@ -129,10 +129,12 @@ MVP, Defensive Player of the Year, Rookie of the Year, Sixth Man), NBA champion 
 draft, in any era, including before the lottery existed), Guard / Forward / Center (his listed position; a
 guard-forward counts as both, a forward-center as both), From USA / International (the country the NBA lists
 for him, not his birthplace: Kyrie Irving, born in Australia, is From USA), Played
-in the 1990s / 2000s / 2010s / 2020s (at least one season WITH THE ROW'S TEAM in that decade), All-Star (selected at
+in the 1990s / 2000s / 2010s / 2020s (at least one season WITH THE ROW'S TEAM in that decade; a season belongs to the
+decade it starts in, so 2009-10 is the 2000s and the 2010s begin with 2010-11), All-Star (selected at
 least once), 5x All-Star, No. 1 pick (first overall in his draft), Top-5 pick, Played w/ <star> (at least one
 season on the same team as that star, on any team; the star himself does not count), and the career-stat columns
-(20+ PPG / 10+ RPG / 8+ APG career average, 20K career points, 15+ seasons). Also check that each row and column
+(20+ PPG / 10+ RPG / 8+ APG career average, 20K career points, 15+ seasons; NBA regular season only, and a rebound
+average counts only the seasons that recorded rebounds, from 1950-51). Also check that each row and column
 label is a real, unambiguous team or criterion. Every sampled player is one claim.
 
 **Fan Favorites** (`kind: fan-favorites`): a survey board: the `prompt`, its `category` (player, team

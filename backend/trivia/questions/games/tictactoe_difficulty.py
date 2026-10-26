@@ -34,7 +34,6 @@ fit), not only many. Concretely:
 import itertools
 from collections import Counter
 
-from trivia.games.tictactoe import CURRENT_YEAR
 from trivia.questions import fame
 from trivia.questions.games import tictactoe as ttt
 from trivia.questions.hashing import content_hash
@@ -111,8 +110,9 @@ def _hard_why(c):
 
 
 def current_teams(dataset):
-    """Team criteria (modern name) of the franchises playing now: an open stint, or one that ended this season or the last."""
-    live = {s["abbr"] for p in dataset.playable for s in p.get("teams") or [] if s.get("end_year") is None or s["end_year"] >= CURRENT_YEAR - 1}
+    """Team criteria (modern name) of the franchises playing now: someone played this season or the last for them."""
+    recent = ttt._current_season() - 1
+    live = {abbr for p in dataset.playable for abbr, y in ttt._seasons(p) if y >= recent}
     return [t for t in ttt._team_criteria(dataset) if t["value"] in live]
 
 

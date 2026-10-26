@@ -95,7 +95,29 @@ Local generation: 1,200 medium and 220 hard, for 1,200 easy / 1,200 medium / abo
 mix. Re-running `--label-rules` keeps the 380 factory boards hard (none has two medium columns without a hard one)
 and rewrites their reasons without NBA Champion / MVP, which are medium now.
 
-## 5. Running it
+## 5. Answer coverage audit and fixes (2026-10-25)
+
+An independent audit recomputed every cell of the 1,420 medium and hard boards with its own matcher: 0 missing and
+0 wrong answers in the code. What it found was in the data and the names; the owner's decisions:
+
+- **One year rule** for every criterion in this game: a season belongs to the decade it starts in (the 2010s begin
+  with 2010-11; 2009-10 is the 2000s). Decades, team × decade cells, "Played w/" and "current franchise" all read
+  seasons from `tictactoe._seasons`; the contract's calendar-year era is no longer used by Tic-Tac-Toe.
+- **Teammates:** sharing a season on one franchise counts, even when the player left before the star arrived
+  mid-season (owner: "if Jordan still played the half season, it counts").
+- **Missing players:** 334 rows had no stints because PlayerCareerStats answers `{}` for them. The league's game
+  finder (official stats.nba.com) still has their games, so their stints and career come from those games
+  (`season_rows_from_games`; the pipeline now falls back to it), as sourced DataCorrections (migration 0019).
+  Corey Williams (no commonplayerinfo at all) gets his bio from Wikipedia, which matches the NBA's game counts.
+- **Averages:** a career average counts only the games of the seasons that recorded the stat (rebounds from
+  1950-51): George Mikan 13.4 rpg, not 9.5. Fixed in `build_career` and as corrections for the pre-1951 players.
+- **Names:** lookups compare names without spaces and punctuation ("Shaquille O Neal", "Karl Anthony Towns", "A C
+  Green"), a typed suffix the name lacks falls back ("Mike Conley Jr"), the suggestion list ignores accents and
+  punctuation, and common nicknames / former names are alias corrections ("Shaq", "Ron Artest", "Enes Kanter").
+- Not changed: "Lottery pick" keeps counting picks 1-14 before 1985, and stats are NBA-only (no ABA), as the
+  official NBA statistics are.
+
+## 6. Running it
 
 ```
 python manage.py tictactoe_difficulty --label-rules [--dry-run]
@@ -107,7 +129,7 @@ Generated boards are `created_by = "<band>-rules"`, status `pending` by default 
 before players do), labeled with their band by rule. The admin labeler shows rule labels as a faint thumb with their reason;
 confirming or changing one makes it the owner's.
 
-## 6. Not done yet
+## 7. Not done yet
 
 - Production: the local database holds the generated boards and the rule labels; on production the command runs after
   this code is promoted (pending boards → Checker → published).

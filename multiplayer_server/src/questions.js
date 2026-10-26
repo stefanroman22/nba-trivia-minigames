@@ -121,8 +121,10 @@ async function deal(gameId) {
 // ({ id, full_name, aliases, ... }, mirrors src/types/types.tsx), not tuples —
 // same shape src/utils/questions.ts's buildNameLookup consumes.
 // Mirrors buildNameLookup: `toIds` gives every player of a typed name (namesakes like the two Eddie Johnsons), exact
-// full names and aliases first, then the names that only differ by a Jr./Sr./II/III suffix; `toId` is the first.
+// full names and aliases first, then the names that only differ by a Jr./Sr./II/III suffix, then a typed suffix the
+// name does not carry; `toId` is the first. Keys are normalized without spaces ("Shaquille O Neal").
 const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)\.?$/i;
+const nameKey = (s) => normalizeAnswer(s).replace(/\s+/g, "");
 function nameLookup(names) {
   const exact = new Map();
   const loose = new Map();
@@ -135,16 +137,19 @@ function nameLookup(names) {
   };
   for (const n of names) {
     nameOf.set(n.id, n.full_name);
-    add(exact, normalizeAnswer(n.full_name), n.id);
-    for (const a of n.aliases || []) add(exact, normalizeAnswer(a), n.id);
+    add(exact, nameKey(n.full_name), n.id);
+    for (const a of n.aliases || []) add(exact, nameKey(a), n.id);
     for (const s of [n.full_name, ...(n.aliases || [])]) {
-      if (NAME_SUFFIX.test(s)) add(loose, normalizeAnswer(s.replace(NAME_SUFFIX, "")), n.id);
+      if (NAME_SUFFIX.test(s)) add(loose, nameKey(s.replace(NAME_SUFFIX, "")), n.id);
     }
   }
   const toIds = (g) => {
-    const key = normalizeAnswer(g);
-    const first = exact.get(key) || [];
-    return [...first, ...(loose.get(key) || []).filter((id) => !first.includes(id))];
+    const key = nameKey(g);
+    const out = [];
+    for (const ids of [exact.get(key), loose.get(key)]) for (const id of ids || []) if (!out.includes(id)) out.push(id);
+    const typed = String(g).trim();
+    const bare = !out.length && NAME_SUFFIX.test(typed) ? typed.replace(NAME_SUFFIX, "") : null;
+    return bare ? [...(exact.get(nameKey(bare)) || [])] : out;
   };
   return { toId: (g) => toIds(g)[0] ?? null, toIds, nameOf: (id) => nameOf.get(id) ?? null };
 }

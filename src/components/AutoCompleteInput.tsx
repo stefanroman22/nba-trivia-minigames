@@ -15,6 +15,10 @@ interface AutocompleteInputProps {
   maxResults?: number;
 }
 
+/** Lowercase, accent-free, letters and digits only ("Karl-Anthony Towns" → "karlanthonytowns"). */
+const compact = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/g, "");
+
 export default function AutocompleteInput({
   placeholder,
   value,
@@ -49,18 +53,19 @@ export default function AutocompleteInput({
     const inputValue = e.target.value;
     setValue(inputValue);
 
-    // Filter suggestions based on input (guard against non-string entries)
+    // Filter suggestions based on input (guard against non-string entries). Compared without accents, spaces and
+    // punctuation, so "jokic" finds "Nikola Jokić" and "karl anthony" finds "Karl-Anthony Towns".
     if (inputValue.trim().length >= 2) {
-      const q = inputValue.toLowerCase();
-      const matches = (suggestions || []).filter(
-        (s) => typeof s === "string" && s.toLowerCase().includes(q)
-      );
+      const q = compact(inputValue);
+      const matches = q ? (suggestions || []).filter(
+        (s) => typeof s === "string" && compact(s).includes(q)
+      ) : [];
       if (maxResults && maxResults > 0) {
         // Prefer prefix matches, then shorter (closer) names, then cap — keeps
         // the dropdown tight and relevant for large pools.
         matches.sort((a, b) => {
-          const ap = a.toLowerCase().startsWith(q) ? 0 : 1;
-          const bp = b.toLowerCase().startsWith(q) ? 0 : 1;
+          const ap = compact(a).startsWith(q) ? 0 : 1;
+          const bp = compact(b).startsWith(q) ? 0 : 1;
           return ap !== bp ? ap - bp : a.length - b.length;
         });
         setLocalSuggestions(matches.slice(0, maxResults));

@@ -3,10 +3,11 @@ to the ids that satisfy both criteria. Matching semantics are
 trivia.games.tictactoe.player_matches (the server's port of src/utils/criteria.ts)."""
 import json
 import os
+from datetime import date
 
 from django.conf import settings
 
-from trivia.games.tictactoe import CURRENT_YEAR, _decade_start, player_matches
+from trivia.games.tictactoe import _decade_start, player_matches
 from trivia.questions import fame, quality, specs
 from trivia.questions.base import Invalid, envelope
 from trivia.questions.hashing import content_hash
@@ -76,11 +77,24 @@ def _team_criteria(dataset):
     ]
 
 
+def _current_season():
+    """Start year of the season being played (or the last one, before October)."""
+    today = date.today()
+    return today.year if today.month >= 10 else today.year - 1
+
+
 def _seasons(p):
-    """{(franchise, season)} of every season `p` played, a season named by its start year: a stint runs from its
-    start_year to the season before its end_year (the year its last season ended); an open stint through now."""
+    """{(franchise, season)} of every season `p` played. THE year rule of every Tic-Tac-Toe criterion (owner,
+    2026-10-25): a season is named by the year it starts and belongs to that year's decade, so 2009-10 is the
+    2000s and 2010-11 the first season of the 2010s. A stint runs from its start_year to the season before its
+    end_year (the year its last season ended); an open stint through the current season."""
     return {(s["abbr"], y) for s in p.get("teams") or []
-            for y in range(s["start_year"], max(s.get("end_year") or CURRENT_YEAR + 1, s["start_year"] + 1))}
+            for y in range(s["start_year"], max(s.get("end_year") or _current_season() + 1, s["start_year"] + 1))}
+
+
+def played_in_decade(p, decade_start, team=None):
+    """At least one season starting in decade_start..decade_start+9 (with franchise `team` when given)."""
+    return any(decade_start <= y <= decade_start + 9 and (team is None or abbr == team) for abbr, y in _seasons(p))
 
 
 def teammates(dataset, star_id):
@@ -100,22 +114,22 @@ def teammates(dataset, star_id):
 def _matches(p, c, dataset):
     if c.get("type") == "teammate":
         return dataset is not None and p["person_id"] in teammates(dataset, int(c["value"]))
+    if c.get("type") == "era":  # by season (see _seasons), not the contract's calendar-year overlap
+        ds = _decade_start(c.get("value"))
+        return ds is not None and played_in_decade(p, ds)
     return player_matches(p, c)
 
 
 def pair_matches(p, a, b, dataset=None):
     """Does player `p` answer the cell of criteria `a` x `b`? Both criteria, except a team x decade pair: a fan reads
-    "Celtics x Played in the 2020s" as a stint WITH the Celtics in the 2020s, so that pair needs one stint of that
-    franchise overlapping the decade (the contract's era alone is any stint, which accepted Kyrie Irving there).
+    "Celtics x Played in the 2020s" as a season WITH the Celtics in the 2020s, so that pair needs one season of that
+    franchise in the decade (any stint alone accepted Kyrie Irving there). Decades go by season start (_seasons).
     A `teammate` criterion ("Played w/ Kobe": any season with him, on any team) needs the dataset."""
     kinds = {a.get("type"), b.get("type")}
     if kinds == {"team", "era"}:
         team, era = (a, b) if a.get("type") == "team" else (b, a)
         ds = _decade_start(era.get("value"))
-        return ds is not None and any(
-            s.get("abbr") == team.get("value") and s.get("start_year", 9999) <= ds + 9 and (s.get("end_year") or CURRENT_YEAR) >= ds
-            for s in p.get("teams") or []
-        )
+        return ds is not None and played_in_decade(p, ds, team.get("value"))
     return _matches(p, a, dataset) and _matches(p, b, dataset)
 
 

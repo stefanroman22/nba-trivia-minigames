@@ -5884,9 +5884,7 @@
  {
   "person_id": 120,
   "full_name": "Steven Smith",
-  "aliases": [
-   "Steve Smith"
-  ],
+  "aliases": [],
   "fame_tier": 4,
   "position": "G-F",
   "height_in": 80,

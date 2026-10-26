@@ -21,6 +21,11 @@ const NAMES = [
   { id: 1627780, full_name: "Gary Payton II", aliases: [] },
   { id: 1626171, full_name: "Bobby Portis Jr.", aliases: [] },
   { id: 3, full_name: "Steven Smith", aliases: ["Steve Smith"] },
+  { id: 1495, full_name: "Shaquille O'Neal", aliases: ["Shaq"] },
+  { id: 1626164, full_name: "Karl-Anthony Towns", aliases: [] },
+  { id: 920, full_name: "A.C. Green", aliases: [] },
+  { id: 201144, full_name: "Mike Conley", aliases: [] },
+  { id: 203077, full_name: "Nikola Jokić", aliases: ["Nikola Jokic"] },
 ];
 
 for (const [label, lookup] of [["client buildNameLookup", buildNameLookup(NAMES)], ["relay nameLookup", nameLookup(NAMES)]]) {
@@ -33,6 +38,16 @@ for (const [label, lookup] of [["client buildNameLookup", buildNameLookup(NAMES)
     assert.deepEqual(lookup.toIds("Gary Payton"), [56, 1627780]);
     assert.equal(lookup.toId("Gary Payton"), 56);
     assert.deepEqual(lookup.toIds("Gary Payton II"), [1627780]);
+  });
+  test(`${label}: a space typed for an apostrophe, hyphen or initials' dot still matches`, () => {
+    for (const typed of ["Shaquille O Neal", "Shaquille ONeal", "shaquille o'neal", "Shaq"]) assert.deepEqual(lookup.toIds(typed), [1495], typed);
+    for (const typed of ["Karl Anthony Towns", "Karl-Anthony Towns", "karlanthony towns"]) assert.deepEqual(lookup.toIds(typed), [1626164], typed);
+    for (const typed of ["A C Green", "AC Green", "A.C. Green"]) assert.deepEqual(lookup.toIds(typed), [920], typed);
+    assert.deepEqual(lookup.toIds("Nikola Jokic"), [203077]);
+  });
+  test(`${label}: a suffix the name does not carry falls back to the name without it`, () => {
+    assert.deepEqual(lookup.toIds("Mike Conley Jr"), [201144]);
+    assert.deepEqual(lookup.toIds("Mike Conley Jr."), [201144]);
   });
   test(`${label}: aliases and unknown names`, () => {
     assert.deepEqual(lookup.toIds("Steve Smith"), [3]);

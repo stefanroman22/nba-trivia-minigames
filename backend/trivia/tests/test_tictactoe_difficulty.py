@@ -57,6 +57,29 @@ class RulesTests(TestCase):
         self.assertTrue(player_matches(by_name["Jayson Tatum"], guard))  # G-F: a hybrid counts for both
         self.assertFalse([p["full_name"] for p in self.ds.playable if not p.get("position")])
         self.assertIn(1989, next(p for p in self.ds.playable if p["person_id"] == 698)["awards"]["smoy"])
+        # 0019: players PlayerCareerStats answers {} for, rebuilt from their official games; averages over the
+        # seasons that recorded the stat; the names fans type.
+        from trivia.questions.games.tictactoe import teammates
+        self.assertIn(by_name["Mike Penberthy"]["person_id"], teammates(self.ds, by_name["Kobe Bryant"]["person_id"]))
+        self.assertIn(by_name["Corey Williams"]["person_id"], teammates(self.ds, by_name["Michael Jordan"]["person_id"]))
+        self.assertEqual((by_name["Corey Williams"]["country"], by_name["Corey Williams"]["position"]), ("USA", "G"))
+        self.assertEqual(by_name["George Mikan"]["career"]["rpg"], 13.4)
+        self.assertIn("Shaq", by_name["Shaquille O'Neal"]["aliases"])
+        self.assertFalse([p["full_name"] for p in self.ds.playable if not p.get("country")])
+
+    def test_a_season_belongs_to_the_decade_it_starts_in(self):
+        # The owner: the 2010s start with 2010-11. One rule for every year in the game (decades, teammates).
+        from trivia.questions.games.tictactoe import pair_matches
+        by_name = {p["full_name"]: p for p in self.ds.playable}
+        era = lambda d: {"type": "era", "value": d, "label": d}  # noqa: E731
+        team = lambda abbr: {"type": "team", "value": abbr, "label": abbr}  # noqa: E731
+        iverson = by_name["Allen Iverson"]  # last season 2009-10 with the 76ers
+        self.assertTrue(pair_matches(iverson, team("PHI"), era("2000s")))
+        self.assertFalse(pair_matches(iverson, team("PHI"), era("2010s")))
+        self.assertFalse(pair_matches(iverson, era("2010s"), {"type": "position", "value": "guard", "label": "Guard"}))
+        curry = by_name["Stephen Curry"]  # debut 2009-10
+        self.assertTrue(pair_matches(curry, team("GSW"), era("2000s")))
+        self.assertTrue(pair_matches(curry, team("GSW"), era("2020s")))
 
     def test_played_with_a_star_means_a_season_together_on_one_franchise(self):
         from trivia.questions.games.tictactoe import teammates
