@@ -6,7 +6,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, loadConfig } from "../lib/team-config.mjs";
-import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
+import { classifyTouched, seoCheckOnly, touchedFiles } from "./lib/touched.mjs";
 import { failuresOnly } from "./lib/output.mjs";
 import { runDir, writeJson, readState, writeState } from "./lib/state.mjs";
 
@@ -51,6 +51,8 @@ if (cls.frontend) {
   // port (a check card's verify starts a relay there).
   if (ran.every((r) => r.exit === 0)) ran.push(run("build", "npm", ["run", "build", "--silent"], { env: { NBA_DEV_ENV_SKIP: "1", VITE_BACKEND_URL: `http://localhost:${ports.django}/api`, VITE_SOCKET_URL: `http://localhost:${ports.socket || 4100}` } }));
 }
+// SEO config without page code (e.g. scripts/seo/config.json): the static check only, no build.
+if (seoCheckOnly(touched)) ran.push(run("check:seo", "npm", ["run", "check:seo", "--silent"]));
 if (cls.backend) {
   const py = venvPython(repo);
   const env = { DATABASE_URL: "" };

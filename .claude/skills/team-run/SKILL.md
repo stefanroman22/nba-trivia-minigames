@@ -104,7 +104,8 @@ disjoint → spawn both at once. **Keep every engine's agent id** in `state.engi
 **gate 2 — QA** → `node scripts/team/qa.mjs <slug> --base <baseSha> --lane <n> --repo <wt>`. Exit 1 → fix round.
 If its output lists `flows`, spawn `Agent(model: sonnet, browser-qa)` with `<repo>/.team/run/<slug>/brief.md`,
 `<repo>/.team/qa/<slug>/verdict.json`, `<wt>`, the lane and the flow text; it appends to the verdict. Fail → fix
-round. A missing browser makes the script write a skipped-pass verdict itself (never a fix round).
+round. A missing browser makes the script write a skipped-pass verdict itself (never a fix round), unless the SEO
+audit (run before the browser on an SEO diff) failed: that verdict is a fail and a fix round, browser or not.
 
 **review** → `node scripts/team/review-package.mjs <slug> --base <baseSha> --repo <wt>` → `{reviewModel, motion}`.
 Spawn `Agent(model: <reviewModel>, code-reviewer)` on `<repo>/.team/run/<slug>/review-package.md`; if `motion`,
@@ -114,7 +115,8 @@ minor/nit/missing → noted in the commit body.
 **ship** → `ship` skill from the worktree. `SHIPPED <sha>` (or `SHIPPED-PR <url>`, a check card's relay change left as
 a PR to `main` for the owner: same bookkeeping, `commit` = the PR's head SHA, plus `pr` in the json) → `shipped.push({title, category})`, write
 `.team/qa-<slug>.json` `{pageId, title, category, priority, model, effort, planModel|null, fixCycles, did, check, commit}`
-(`check` = one line: navigate → action → expected result; `fixCycles` = sum of `state.fixRounds`),
+(`check` = one line: navigate → action → expected result; `fixCycles` = sum of `state.fixRounds`;
+when the QA verdict notes have a `seo:` line, append ` · SEO: pass | <n> IX failures | skipped (<why>)` from it),
 `node scripts/slack.mjs post-qa-card .team/qa-<slug>.json` (non-fatal), then delete `.team/run/<slug>/`.
 `SHIP-FAIL <reason>` → fail procedure, except `SHIP-FAIL back-merge failed: …`: `main` is already shipped
 and the ship skill recorded the commit, commented and set Needs human, so skip `fail-card` (no attempt) and

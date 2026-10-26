@@ -3,9 +3,10 @@
 //
 // Id sources (one extractRules call each, from scripts/team/lib/rules.mjs):
 //   docs/GAME_DESIGN_CONSTRAINTS.md                         -> "RULE 4.2a"
-//   docs/constraints/{UI_SHELL,BACKEND,MULTIPLAYER,AUTH}_CONSTRAINTS.md -> "UI-4", "BE-2", "MP-12", "AUTH-3"
+//   docs/constraints/{UI_SHELL,BACKEND,MULTIPLAYER,AUTH,SEO}_CONSTRAINTS.md -> "UI-4", "BE-2", "MP-12", "AUTH-3", "SEO-1"
 // Fails on: a duplicate id inside one doc; a `Rule x.y` / `RULE x.y` reference that is not a game-doc id;
-// a `UI-n` / `BE-n` / `MP-n` / `AUTH-n` reference that is not an id of its doc; and the retired forms
+// a `UI-n` / `BE-n` / `MP-n` / `AUTH-n` / `SEO-n` reference that is not an id of its doc (SEO agent finding ids such as
+// SEO-20261026-1055-seo-001 are skipped); and the retired forms
 // (the old section names "7a"/"7b" with Rule or the section sign, and the three-part id 4.2.1), which the mapping in
 // docs/team/designs/2026-10-03-game-constraints-review.md replaced with 7.4 / 7.3 / 4.5.
 // Known limit: in a slash list such as `Rules 1.1 / 4.2` only the first id is resolved.
@@ -22,6 +23,7 @@ const PREFIXED_DOCS = {
   BE: "docs/constraints/BACKEND_CONSTRAINTS.md",
   MP: "docs/constraints/MULTIPLAYER_CONSTRAINTS.md",
   AUTH: "docs/constraints/AUTH_CONSTRAINTS.md",
+  SEO: "docs/constraints/SEO_CONSTRAINTS.md",
 };
 
 // Dated records that describe the doc as it was keep the ids they were written with, so they are not scanned.
@@ -81,7 +83,9 @@ for (const { dir, exts } of SCAN_DIRS) files.push(...walk(dir, exts));
 
 const GAME_REF = /\b(?:RULE|Rule)s?\s+(\d+(?:\.\d+)?[a-z]?)\b/g;
 // Not inside a Logic Check id: LC-AUTH-01 / LC-SIGNUP-UI-01 name a check, not the rule AUTH-1 / UI-1.
-const PREFIXED_REF = /(?<!LC-(?:[A-Z]+-)*)\b(UI|BE|MP|AUTH)-(\d+)\b/g;
+// Not an SEO agent finding id either: SEO-20261026-1055-seo-001 names a finding, not a rule SEO-n.
+const PREFIXED_REF = /(?<!LC-(?:[A-Z]+-)*)\b(UI|BE|MP|AUTH|SEO)-(\d+)\b/g;
+const SEO_FINDING_ID = /^SEO-\d{8}-/;
 const RETIRED = /(?:Rule|RULE|§)\s*7[ab]\b|\bRULE\s+4\.2\.1\b/;
 
 let resolved = 0;
@@ -102,6 +106,7 @@ for (const rel of files) {
       else problems.push(`${at}: Rule ${m[1]} does not resolve`);
     }
     for (const m of line.matchAll(PREFIXED_REF)) {
+      if (SEO_FINDING_ID.test(line.slice(m.index))) continue;
       const id = `${m[1]}-${m[2]}`;
       if (prefixedIds[m[1]].has(id)) resolved += 1;
       else problems.push(`${at}: ${id} does not resolve`);

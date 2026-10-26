@@ -3,7 +3,7 @@
 // already parses); sharedSets() finds the text and links every game page carries (the shared game menu, the header and
 // footer links); checkOnpage() turns one page's signals into OP-01…OP-10 failures; queryFlags() turns Search Analytics
 // page × query rows into the OP-11 flags. Everything here is pure: the fetches live in scripts/seo/onpage.mjs.
-import { ATTRS, SITE_NAME, decodeEntities, dropElements, extractSignals, parseAttrs, startTags } from './html-checks.mjs';
+import { ATTRS, SITE_NAME, decodeEntities, dropElements, extractSignals, parseAttrs, startTags, underOrigin } from './html-checks.mjs';
 
 export const OP_IDS = Array.from({ length: 11 }, (_, i) => `OP-${String(i + 1).padStart(2, '0')}`);
 export const OP_AREAS = {
@@ -84,7 +84,8 @@ const typesOf = (node) => {
 
 /**
  * The on-page signals of one page's server HTML. `url` is the URL it was fetched from; relative links and images
- * resolve against it and only links to its host count.
+ * resolve against it and only links to its host count; with `asOrigin` (an `--as` run) a link on that origin is read
+ * on `url`'s origin, so it counts too.
  *
  * `mainText`: the visible text of the first `<main>` (the `<body>` without `<nav>`, `<header>` and `<footer>` when there
  * is none), without scripts, styles, `<svg>`, `<template>` and `<noscript>`, one sentence per line (a block element ends
@@ -94,14 +95,14 @@ const typesOf = (node) => {
  * the most ListItems of any BreadcrumbList node. `hasRating`: an aggregateRating or review key anywhere in the JSON-LD.
  *
  * @param {string} html
- * @param {{ url: string }} opts
+ * @param {{ url: string, asOrigin?: string|null }} opts
  * @returns {{ title: string|null, description: string|null, h1: string[], h2: string[], mainText: string,
  *   links: { href: string, text: string }[], images: { src: string, alt: string|null }[], jsonLdTypes: string[],
  *   breadcrumbItems: number, hasRating: boolean, htmlBytes: number }}
  */
-export function pageSignals(html, { url }) {
+export function pageSignals(html, { url, asOrigin = null }) {
   const source = String(html ?? '');
-  const base = extractSignals(source, { url });
+  const base = extractSignals(source, { url, asOrigin });
   const clean = source.replace(/<!--[\s\S]*?-->/g, ' ');
   const visible = dropElements(clean, ['script', 'style', 'svg', 'template', 'noscript']);
 
@@ -121,6 +122,7 @@ export function pageSignals(html, { url }) {
     if (!href || href.startsWith('#')) continue;
     let target;
     try { target = new URL(href, url); } catch { continue; }
+    if (asOrigin) target = new URL(underOrigin(target.href, asOrigin, url));
     if (!/^https?:$/.test(target.protocol) || target.host !== host) continue;
     target.hash = '';
     links.push({ href: target.href, text: textOf(m[2]) || collapse(a['aria-label'] ?? '') });
