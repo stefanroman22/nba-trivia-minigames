@@ -5,7 +5,7 @@ import "../../styles/Multiplayer.css";
 import { playerKey, useMultiplayer } from "../../context/MultiplayerContext";
 import { useModal } from "../../context/ModalContext";
 import { renderGame } from "../../Game Renderers/RenderGame";
-import { popIn } from "../../motion/variants";
+import { popIn, swap as swapVariants } from "../../motion/variants";
 import { CourtLoader } from "../ui";
 import SessionTimer from "../ui/SessionTimer";
 import SwapText from "../motion/SwapText";
@@ -122,11 +122,22 @@ export default function OnlineMatch() {
       <motion.div key="intro" {...swap} className="om-stage">
         <span className="om-eyebrow">{mp.roomType === "friend" ? "Private match" : "Match found"}</span>
         <Matchup mp={mp} />
-        <p className="om-introline">
-          <SwapText swapKey={mp.error ? "error" : mp.gameData || mp.turnState ? "ready" : "loading"}>
-            {mp.error ? mp.error : mp.gameData || mp.turnState ? "Get ready..." : "Loading the game..."}
-          </SwapText>
-        </p>
+        {/* A round that failed to load: the line swaps to the error and the phase's own exit control
+            fades in under it (the box glides to fit), so nobody is stuck on the VS card. */}
+        <AutoHeight style={{ width: "100%" }}>
+          <p className="om-introline">
+            <SwapText swapKey={mp.error ? "error" : mp.gameData || mp.turnState ? "ready" : "loading"}>
+              {mp.error ? mp.error : mp.gameData || mp.turnState ? "Get ready..." : "Loading the game..."}
+            </SwapText>
+          </p>
+          <AnimatePresence initial={false}>
+            {mp.error && (
+              <motion.div key="intro-exit" variants={swapVariants} initial="hidden" animate="visible" exit="exit">
+                {ExitLink}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </AutoHeight>
       </motion.div>
     );
   } else if (mp.phase === "playing") {
