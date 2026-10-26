@@ -13,6 +13,13 @@ two cards with disjoint areas run at once. Design: `designs/2026-10-03-pipeline-
 is a separate, deliberate step you (or an agent you explicitly ask) take later. You mostly
 interact with it through Notion, not the terminal.
 
+**SEO rules before dev** (`docs/seo/README.md` "Before dev"). When a plan file is an SEO path
+(`scripts/seo/lib/seo-paths.mjs`: pages, layouts, sitemap, robots, `GameUtils.tsx`, the SEO config…), the brief quotes
+`docs/constraints/SEO_CONSTRAINTS.md`. Gate 1 runs `npm run check:seo` (inside `npm run lint`, or alone for an
+SEO-only config change). Gate 2, on an SEO diff with the production build served, runs the IX audit and the on-page
+check against the lane's build as swishquest.com before the browser starts: IX failures are QA failures
+(`seo IX-nn: …`); on-page results, infra and transient results are notes; a non-SEO diff runs neither.
+
 ## 2. Daily use
 
 The board has five columns. Write cards in **Backlog** while you're still thinking; drag a card

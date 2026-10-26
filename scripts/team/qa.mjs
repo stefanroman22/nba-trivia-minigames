@@ -4,6 +4,8 @@
 //   routes touched → smoke at 390×844 and 1100×900 (loads, no console/page errors, screenshot)
 //   brief `## QA assertions` → {route, selector, expect} checks; {verify: <findings.json>} (check cards) →
 //   scripts/ui-check/verify.mjs --from on the lane after the smoke, every FAIL line a failure (never skipped)
+//   SEO path touched + production build → scripts/seo/audit.mjs + onpage.mjs --as https://swishquest.com before the
+//   browser (lib/seo-gate.mjs): IX failures fail, OP results are warnings
 // Evidence and verdict go to <main checkout>/.team/qa/<slug>/ whatever --repo is. Exits 0/1; a
 // missing browser is "skipped", not a failure. Kills what it started, also on SIGTERM.
 // Usage: node scripts/team/qa.mjs <slug> --base <sha> [--lane 1|2] [--repo <dir>]
@@ -18,6 +20,7 @@ import { classifyTouched, touchedFiles } from "./lib/touched.mjs";
 import { loadQaMap, resolveQa } from "./lib/qa-map.mjs";
 import { runDir, readJson, readState, writeState } from "./lib/state.mjs";
 import { verifyPlan, verifyArgs, parseVerifyOutput } from "./lib/check-card.mjs";
+import { seoGate } from "./lib/seo-gate.mjs";
 import { checkSettingsEnv, excludeSqliteSidecars } from "../check-core/lib/stack.mjs";
 
 process.chdir(ROOT); // qa-browser.mjs resolves .team/qa against cwd — pin it to the main checkout
@@ -168,13 +171,20 @@ try {
   await waitForServer(`http://localhost:${ports.django}/api/health/`, 90000).catch(() => notes.push("django health did not answer in 90s"));
   log("servers up");
 
+  // --- SEO built-page check (an SEO path changed, production build): HTTP only, so it runs before the browser and
+  // also without one. IX failures are QA failures; OP results, infra and transient results are notes.
+  const seo = await seoGate({ touched, prodBuild, baseUrl, runDir: resolve(qaDir, "seo"), repo, run: (args) => runAsync(process.execPath, args, { timeoutMs: 5 * 60000 }) });
+  if (seo.ran) log(seo.notes[0]);
+  failures.push(...seo.failures);
+  notes.push(...seo.notes);
+
   // --- browser (missing → skipped, never a failure)
   let browser;
   try { browser = await launchBrowser(); }
   catch (e) {
     log(`no browser: ${String(e.message).split("\n")[0]}`);
     // a check card is judged by verify (its own Playwright browser): no skipped pass, only the smoke is dropped
-    if (!verifies.length) await finish(true, [], [`skipped: no browser available (${String(e.message).split("\n")[0].slice(0, 120)})`, ...notes], { skipped: "no-browser" });
+    if (!verifies.length) await finish(!failures.length, failures, [`skipped: no browser available (${String(e.message).split("\n")[0].slice(0, 120)})`, ...notes], { skipped: "no-browser" });
     notes.push(`smoke skipped: no browser (${String(e.message).split("\n")[0].slice(0, 120)})`);
   }
 

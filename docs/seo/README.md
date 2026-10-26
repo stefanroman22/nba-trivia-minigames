@@ -32,6 +32,44 @@ the playbook follows: `docs/seo/indexing-guide.md`. Config: `scripts/seo/config.
 Both workflows are `workflow_dispatch`-able; their knobs are under "The two workflows" below. GitHub runs schedules
 and `push: main` workflows only from `main`: both files are inert until dev is promoted (as `checks-weekly.yml`).
 
+## Before dev
+
+The audits above run after a deploy to `main`. The same rules are checked earlier, before work lands on `dev`, in three
+layers (design `docs/superpowers/specs/2026-10-26-seo-dev-gate-design.md`). The files that trigger them are one list,
+`scripts/seo/lib/seo-paths.mjs` (pages, layouts, sitemap, robots, manifest, share images, `site.ts`, `GameUtils.tsx`,
+`JsonLd.tsx`, `MiniGame.tsx`, `scripts/seo/config.json`, `keyword-map.json`).
+
+| layer | what | where it runs | blocks |
+|---|---|---|---|
+| 1. rules | `docs/constraints/SEO_CONSTRAINTS.md` (`SEO-1` … `SEO-9`, each naming the check that proves it) | quoted in the team brief when a plan file is an SEO path; read by humans | no |
+| 2. static check | `npm run check:seo` (`scripts/check-seo.mjs`, part of `npm run lint`): the source only, no build | pipeline gate 1 (verify: `npm run lint` for frontend changes, `check:seo` alone for an SEO-only config change); `dev-ci` lint job | yes |
+| 3. built-page check | `audit.mjs` (IX) and `onpage.mjs` (OP) against the locally served production build, judged as swishquest.com | pipeline gate 2 (QA, `scripts/team/lib/seo-gate.mjs`, before the browser starts); `dev-ci` job `seo-pages` (push and PR to `dev`) | IX failures only; OP results are warnings |
+
+Commands, locally (a production build: `npm run build`, then `next start -p 5400`; without `--run-dir` the files go
+to `<home>/seo/runs/<runId>/`, `seo-pages` passes `--run-dir seo-gate/audit` and `seo-gate/onpage`):
+
+```
+npm run check:seo
+node scripts/seo/audit.mjs  --site http://localhost:5400 --as https://swishquest.com
+node scripts/seo/onpage.mjs --site http://localhost:5400 --as https://swishquest.com
+```
+
+**`--as <origin>`.** A local build names `https://swishquest.com` in its canonicals, sitemap and `og:image`. With
+`--as`, every URL on that origin is read on `--site` and compared modulo the origin, so nothing leaves the local
+server. The `X-Robots-Tag` response header is not judged: `next.config.ts` sends `X-Robots-Tag: noindex` to every host
+that is not swishquest.com (previews stay out of Google), so a local build always carries it; the digest lists it
+under Coverage gaps, and the post-deploy audit judges the header on production. The page's `<meta name="robots">` is
+still judged. On a local host IX-01 (robots.txt disallows everything off production) and the IX-02 `http`/`www`
+variants are skipped as well.
+
+**What blocks.** `check:seo` violations (`SEO-n <file>: …`) fail gate 1 and the lint job. IX failures fail gate 2,
+one QA failure per id (`seo IX-nn: <evidence>`, up to three evidence lines), and fail `seo-pages` (any non-zero audit
+exit). In QA a transient result (a request that failed after retries), an infra exit (2) or a timeout is a note, and
+a diff touching no SEO path, or a build served by `next dev`, runs no audit. OP failures never block: QA lists them as
+`seo warning OP-nn …` notes, `seo-pages` as warnings in the job summary. The QA verdict notes carry one line
+`seo: IX pass|FAIL … · on-page <n> warning(s)`; `seo-pages` uploads `digest.md` and `onpage-summary.md` (7 days) and is
+not a promotion prerequisite.
+
 ## The weekly run, step by step
 
 `node scripts/seo/run.mjs [--dry-run] [--gsc on|off] [--notion live|dry] [--slack on|off] [--agents on|off]
