@@ -59,10 +59,14 @@ class Command(BaseCommand):
                 continue
             band, reason = rules.classify(q.definition, dataset)
             counts[band or "none"] += 1
-            if band and not dry_run:
+            if dry_run:
+                continue
+            if band:
                 QuestionLabel.objects.update_or_create(
                     question=q, defaults={"difficulty": band, "source": QuestionLabel.RULE, "reason": reason, "labeled_by": None}
                 )
+            elif lab is not None:  # the rules no longer say anything: an old rule label would be stale
+                lab.delete()
         self.stdout.write(f"label-rules{' (dry run)' if dry_run else ''}: hard {counts['hard']} · medium {counts['medium']} · "
                           f"easy {counts['easy']} · neither {counts['none']} · owner labels kept {counts['owner']}")
 

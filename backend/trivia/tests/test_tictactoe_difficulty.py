@@ -190,6 +190,17 @@ class CommandTests(TestCase):
             self.assertEqual(made.count(), n)
             self.assertTrue(all(q.label.difficulty == band and q.label.source == QuestionLabel.RULE for q in made))
 
+    def test_a_rule_label_the_rules_no_longer_give_is_removed(self):
+        # A board once labeled easy by rule whose cells no longer pass any rule (e.g. after a data refresh).
+        thin = {"rows": HARD_BOARD["rows"], "cols": [{"type": "country", "value": "Lithuania", "label": "From Lithuania"},
+                                                       {"type": "position", "value": "center", "label": "Center"},
+                                                       {"type": "era", "value": "2020s", "label": "Played in the 2020s"}]}
+        q = Question.objects.create(game="tictactoe", qid="ttt-0009", definition=thin, content_hash="h9")
+        QuestionLabel.objects.create(question=q, difficulty="easy", source=QuestionLabel.RULE, reason="Easy by rule: old.")
+        self.run_cmd("--label-rules")
+        self.assertFalse(QuestionLabel.objects.filter(question=q).exists())
+        self.assertEqual(QuestionLabel.objects.get(question=self.mine).difficulty, "medium")  # owner label untouched
+
     def test_dry_run_writes_nothing(self):
         self.run_cmd("--generate-easy", "2", "--label-rules", "--dry-run")
         self.assertFalse(Question.objects.filter(created_by="easy-rules").exists())

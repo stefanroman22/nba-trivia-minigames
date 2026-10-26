@@ -97,7 +97,7 @@ export function playerMatches(p: PlayerIndexEntry, c: Criterion): boolean {
 
     case "position":
       // The dataset lists G, F, C and the hybrids G-F / F-C; a hybrid counts for both of its positions.
-      return (POSITION_CODES[c.value] ?? []).includes(p.position);
+      return Object.hasOwn(POSITION_CODES, c.value) && POSITION_CODES[c.value].includes(p.position);
 
     default:
       return false;
