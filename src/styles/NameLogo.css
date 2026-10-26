@@ -1,9 +1,38 @@
 /* src/styles/NameLogo.css — Name the Logo (also imported by Guess the MVPs).
 
-   Intentionally empty. The root, status row and submission row now come from
-   <GameFrame> (ui.css): the old `.guess-container` was a hand-rolled input row
+   The root, status row and submission row come from <GameFrame> (ui.css): the
+   old `.guess-container` was a hand-rolled input row
    with its own width, gap and mobile stacking rules — that is exactly the kind
    of per-game divergence RULE 0 exists to remove. Use
    <GameFrame.Action> + <GameFrame.InputRow> instead; do not re-add a root or
    input-row rule here. Only genuinely game-specific board markup belongs in
    this file. */
+
+/* The revealed team name, in the logo's fixed slot (height LOGO_SIZE): as wide as the board, centred on
+   the logo, never taller than the slot, so the board keeps its height between puzzle and reveal. */
+.nl-slot { container-type: inline-size; }
+.nl-name-layer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100cqi;
+  margin-left: -50cqi;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+/* Up to two balanced lines. The size fits the longer line of the name's best two-line split
+   (--nl-chars, a measured Russo One advance per character) to the slot width, and two lines to the
+   slot height (--nl-slot / 2.3 at line-height 1.1). */
+/* The fill (the team's colours per theme) is TeamNameGradient's (TeamNameGradient.css). */
+.nl-name {
+  margin: 0;
+  max-width: 100%;
+  text-align: center;
+  text-wrap: balance;
+  font-weight: 700;
+  line-height: 1.1;
+  font-size: clamp(16px, min(calc(100cqi / (var(--nl-chars) * 0.7)), calc(var(--nl-slot) / 2.3)), 44px);
+}

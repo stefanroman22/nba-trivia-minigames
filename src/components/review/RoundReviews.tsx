@@ -1,5 +1,6 @@
 // Answer reviews for the round-by-round games: every round with its right answer and your pick.
 import TeamCrest from "../ui/TeamCrest";
+import TeamNameGradient from "../ui/TeamNameGradient";
 import { Headshot } from "../../Game Renderers/SuperDraft";
 import { ReviewPick, ReviewRound, ReviewSummary } from "./ReviewParts";
 import type { AnswerReview } from "../../types/review";
@@ -50,7 +51,7 @@ export function SeriesReview({ review }: { review: Of<"series-winner"> }) {
   );
 }
 
-/** Name the NBA Club: each logo with the franchise it belongs to. */
+/** Name the NBA Club: each round's franchise, its name in the team's colours (no real logo). */
 export function LogoReview({ review }: { review: Of<"name-logo"> }) {
   return (
     <>
@@ -61,7 +62,7 @@ export function LogoReview({ review }: { review: Of<"name-logo"> }) {
             key={i}
             no={i + 1}
             ok={r.correct}
-            answer={<><TeamCrest src={r.logo} name={r.team} size={32} /><span>{r.team}</span></>}
+            answer={<TeamNameGradient name={r.team} teamId={r.teamId} surface="review" />}
             pick={<ReviewPick pick={r.pick} ok={r.correct} />}
           />
         ))}
