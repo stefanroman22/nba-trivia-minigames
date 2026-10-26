@@ -26,6 +26,7 @@
   "psPhotoInput": { "css": "#ps-photo" },
   "psPhotoRemove": { "css": ".ps-row button.ps-link-btn--muted" },
   "psPhotoState": { "css": ".ps-row:has(.ps-label:text-is('Profile photo')) .ps-value" },
+  "psDobState": { "css": ".ps-row:has(.ps-label:text-is('Date of birth')) .ps-value" },
   "psDownload": { "css": ".ps-row:has(.ps-value:text-is('Download my data')) button.ps-link-btn" },
   "psDeleteToggle": { "css": "button.ps-link-btn--danger" },
   "psDeletePanel": { "css": ".ps-delete" },

@@ -1,0 +1,14 @@
+{
+  "/": { "primary": "nba trivia games", "related": ["nba games online free to play", "nba trivia quiz"] },
+  "/wordle": { "primary": "nba wordle", "related": ["nba wordle unlimited", "nba wordle today", "nba wordle game"] },
+  "/career-path": { "primary": "nba career path quiz", "related": ["nba career path game", "guess the nba player by career path"] },
+  "/who-are-ya": { "primary": "who are ya nba", "related": ["guess the nba player", "who are ya nba player"] },
+  "/tictactoe": { "primary": "nba tic tac toe", "related": ["nba tic tac toe online", "nba tic tac toe multiplayer", "nba grid"] },
+  "/name-logo": { "primary": "guess the nba logo", "related": ["nba logo quiz", "guess the nba logo game"] },
+  "/guess-mvps": { "primary": "nba mvp quiz", "related": ["nba mvp quiz by year", "nba mvp trivia"] },
+  "/contexto": { "primary": "nba contexto", "related": ["nba contexto game"] },
+  "/starting-five": { "primary": "nba starting five quiz", "related": ["guess the nba starting five"] },
+  "/series-winner": { "primary": "nba playoff series quiz", "related": ["guess the nba series winner"] },
+  "/fan-favorites": { "primary": "nba fan favorites quiz", "related": ["guess the nba fan favorite"] },
+  "/who-would-win": { "primary": "who would win nba", "related": ["nba who would win game"] }
+}

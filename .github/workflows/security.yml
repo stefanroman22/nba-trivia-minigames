@@ -1,0 +1,204 @@
+name: Security
+# The security agent (docs/security/README.md, scripts/security/run.mjs). Two modes:
+#
+# weekly  Fridays 12:00 Europe/Amsterdam: full-repo scan (gitleaks over the full history, osv-scanner, Claude security
+#         review) → findings by fingerprint on the branch security-state → ONE parent Notion ticket for the team
+#         pipeline with what is new (none when nothing is). GitHub's cron is UTC and fires late, so three crons fire around
+#         the slot and scripts/security/lib/slot.mjs decides (summer slot 10:00 UTC, winter 11:00 UTC):
+#           Fri 09:30 UTC  summer primary (waits 30 min) · winter: skipped
+#           Fri 10:30 UTC  winter primary (waits 30 min) · summer: backup (the state says the slot already ran)
+#           Fri 11:30 UTC  winter backup                 · summer: backup
+#         Manual: "Run workflow" (any branch with this file once it is on main). Test: a push to a branch
+#         `ci-test/security-weekly**` runs it with the test store security-state-test and the card in Backlog.
+#
+# pr      Every PR to main (and the promote job of dev-ci.yml through workflow_call, and the pipeline's
+#         security-gate/* pushes before a Target = main ship): diff-only scan, commit status `security/pr-scan`
+#         (required on main by a ruleset). High/critical at confidence ≥ 8 fail it; for a trusted, same-repo PR the team
+#         pipeline's direct mode (team-direct skill) fixes the branch, the fix is pushed and re-scanned, at most 2 rounds.
+#         Medium/low: PR comment + the state. Never Notion (a gate branch comments its card). A fork PR gets no secrets:
+#         deterministic scan only, no status, no fix — the owner reviews it.
+#
+# The repo is public: logs show counts only; findings stay in $RUNNER_TEMP (no artifact upload).
+on:
+  schedule:
+    - cron: "30 9 * * 5"
+    - cron: "30 10 * * 5"
+    - cron: "30 11 * * 5"
+  workflow_dispatch:
+    inputs:
+      notion:
+        description: "live = To Do card for the pipeline · backlog = card parked in Backlog (test) · dry = no card, no state write"
+        type: choice
+        options: [live, backlog, dry]
+        default: live
+      state_branch:
+        description: "state store branch (security-state = the real one)"
+        default: security-state
+      llm:
+        type: choice
+        options: ["on", "off"]
+        default: "on"
+      force:
+        description: "run even if this week's slot already ran ok"
+        type: boolean
+        default: false
+  pull_request:
+    branches: [main, "ci-test/security-main"]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: ["security-gate/**", "ci-test/security-weekly**"]
+  workflow_call:
+    inputs:
+      base:
+        type: string
+        default: main
+      branch:
+        type: string
+        required: true
+      pr:
+        type: string
+        default: ""
+    outputs:
+      result:
+        value: ${{ jobs.pr.outputs.result }}
+      sha:
+        value: ${{ jobs.pr.outputs.sha }}
+
+permissions:
+  contents: read
+
+jobs:
+  weekly:
+    # In a workflow_call github.event_name is the caller's (workflow_dispatch): inputs.branch tells the two apart.
+    if: >-
+      !inputs.branch && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/ci-test/security-weekly')))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    concurrency:
+      group: security-weekly
+      cancel-in-progress: false
+    permissions:
+      contents: write # the state store branch only (fast-forward pushes, never dev or main)
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # gitleaks scans the full history of every branch
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Slot gate
+        id: slot
+        run: node scripts/security/lib/slot.mjs plan --event "${{ github.event_name }}"
+      - name: Install gitleaks, osv-scanner, Claude Code
+        if: steps.slot.outputs.run == 'true'
+        run: bash scripts/security/install-tools.sh
+      - name: Wait for the slot
+        if: steps.slot.outputs.run == 'true' && steps.slot.outputs.wait != '0'
+        run: node scripts/check-core/lib/weekly-slot.mjs wait --until "${{ steps.slot.outputs.until }}"
+      - name: Weekly scan
+        if: steps.slot.outputs.run == 'true'
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          SECURITY_STATE_KEY: ${{ secrets.SECURITY_STATE_KEY }}
+          SECURITY_STATE_TOKEN: ${{ github.token }}
+          TEST_RUN: ${{ github.event_name == 'push' }}
+        run: |
+          set -euo pipefail
+          if [ "$TEST_RUN" = "true" ]; then NOTION=backlog; STATE=security-state-test; LLM=on; FORCE=--force
+          else NOTION="${{ inputs.notion || 'live' }}"; STATE="${{ inputs.state_branch || 'security-state' }}"; LLM="${{ inputs.llm || 'on' }}"; FORCE="${{ inputs.force && '--force' || '' }}"; fi
+          node scripts/security/run.mjs weekly --run-id "gh-${{ github.run_id }}" \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --slot "${{ steps.slot.outputs.slot }}" --notion "$NOTION" --state-branch "$STATE" --llm "$LLM" $FORCE
+
+  pr:
+    if: >-
+      inputs.branch || github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/heads/security-gate/'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    concurrency:
+      group: security-pr-${{ inputs.branch || github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    permissions:
+      contents: write # push the auto-fix to the PR branch; the state store branch
+      statuses: write # security/pr-scan
+      pull-requests: write # the scan comment
+    outputs:
+      result: ${{ steps.scan.outputs.result }}
+      sha: ${{ steps.scan.outputs.sha }}
+    env:
+      # same-repo PRs from people with write access, the promote job and pipeline gate branches are trusted; forks never
+      TRUSTED: >-
+        ${{ inputs.branch != '' || github.event_name == 'push' ||
+        (github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)) }}
+      BASE: ${{ inputs.branch && inputs.base || github.base_ref || 'main' }}
+      BRANCH: ${{ inputs.branch || github.head_ref || github.ref_name }}
+      PR: ${{ inputs.pr || github.event.pull_request.number || '' }}
+      GATE: ${{ github.event_name == 'push' }}
+      STATE_BRANCH: ${{ startsWith(github.base_ref, 'ci-test/') && 'security-state-test' || 'security-state' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # the branch itself (not the merge ref), so a fix can be committed on it; a fork's head by sha
+          ref: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name != github.repository) && github.event.pull_request.head.sha || (inputs.branch || github.head_ref || github.ref_name) }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Mark the check pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/security/run.mjs status --state pending --desc "security scan running" || true
+      - name: Install gitleaks, osv-scanner, Claude Code
+        run: bash scripts/security/install-tools.sh
+      # Scan + auto-fix: the only secret here is the Claude token. The agents (review, fix) run in this step, so no
+      # GitHub / state / Notion token is in their process tree; fixes are committed locally and pushed by the next step.
+      - name: Scan (and auto-fix)
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          git fetch --quiet --no-tags origin "+refs/heads/$BASE:refs/remotes/origin/$BASE"
+          ARGS=(pr --phase scan --base "origin/$BASE" --branch "$BRANCH" --result "$RUNNER_TEMP/security-result.json")
+          [ -n "$PR" ] && ARGS+=(--pr "$PR")
+          [ "$TRUSTED" = "true" ] && ARGS+=(--trusted)
+          [ "$GATE" = "true" ] && ARGS+=(--fix off)
+          # no OAuth token (a fork PR): deterministic tools only
+          [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ] && ARGS+=(--llm off --fix off)
+          node scripts/security/run.mjs "${ARGS[@]}"
+      # A fresh copy of the tooling, fetched after the agents ran: nothing they changed in the scanned checkout (scripts,
+      # .git/config, hooks) runs with the report step's tokens. The report fetches the scanned commits from there.
+      - name: Fresh tooling checkout
+        if: always()
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          path: .security-tooling
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Report (push the fix, status, comment, state)
+        id: scan
+        if: always()
+        working-directory: .security-tooling
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PUSH_TOKEN: ${{ env.TRUSTED == 'true' && github.token || '' }}
+          SECURITY_STATE_TOKEN: ${{ env.TRUSTED == 'true' && github.token || '' }}
+          SECURITY_STATE_KEY: ${{ secrets.SECURITY_STATE_KEY }}
+          NOTION_TOKEN: ${{ github.event_name == 'push' && secrets.NOTION_TOKEN || '' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          ARGS=(pr --phase report --result "$RUNNER_TEMP/security-result.json" --repo "$GITHUB_WORKSPACE" --branch "$BRANCH" --state-branch "$STATE_BRANCH")
+          [ -n "$PR" ] && ARGS+=(--pr "$PR")
+          [ "$GATE" = "true" ] && ARGS+=(--gate-card)
+          node scripts/security/run.mjs "${ARGS[@]}"

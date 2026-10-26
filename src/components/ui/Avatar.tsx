@@ -4,6 +4,8 @@ interface AvatarProps {
   initials: string;
   size?: number;
   bg?: string;
+  /** Initials colour; must reach 4.5:1 against `bg`. */
+  color?: string;
   /** Photo URL. The initials show while it is null and again if it fails to load. */
   src?: string | null;
 }
@@ -12,6 +14,7 @@ export default function Avatar({
   initials,
   size = 28,
   bg = "linear-gradient(140deg, var(--brand), var(--brand-deep))",
+  color = "#fff",
   src = null,
 }: AvatarProps) {
   // Remember which URL failed, not just "failed": a re-upload bumps the version in the URL,
@@ -30,7 +33,7 @@ export default function Avatar({
         justifyContent: "center",
         fontSize: Math.round(size * 0.42),
         fontWeight: 700,
-        color: "#fff",
+        color,
         flex: "none",
         overflow: "hidden",
       }}

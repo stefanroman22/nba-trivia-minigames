@@ -15,3 +15,15 @@ Post-mortems are appended here by the fail procedure of the team pipeline.
 **Last error.**
 FAIL UIC-20261025-0128-001 — check MP-MATCH-01 @ mp@pairA: console `console.error` on /series-winner: Failed to load resource: net::ERR_TUNNEL_CONNECTION_FAILED (expected no console errors)
 (same on pairB/C/D; MP-GAME-wordle @ mp@pairA: pass)
+
+---
+
+# Post-mortem: ui-check-who-are-ya-stage (attempt at QA, 2026-10-26 cloud run)
+
+**Tried:** frontend-engine (sonnet) implemented the finding: `.waya-feed` is always mounted at a fixed height (clamp(140px, 30dvh, 280px), scrolls inside) with a muted empty hint faded via the shared fadeIn variant, so the stage no longer changes on a guess. Gate 1 (lint, typegen, tsc, build) passed. The fix is pushed on `team/ui-check-who-are-ya-stage` (2d8c45b) for attempt 2.
+
+**Why it failed:** gate 2's ui-check verify timed out on every GM-who-are-ya check (all 7 viewports of -perfect plus -wrong/-partial) waiting for `.playing-wrap` after Play: the game never starts in the cloud sandbox. Who Are Ya? is a questions-store game with no bundled /data copy, and the sandbox's egress proxy refuses both sources the build reads: nba-minigames-data.vercel.app (VITE_DATA_BASE) and roscfxiuxsbrymdtqmth.supabase.co (VITE_QUESTIONS_BASE) — probe: "[questions] who-are-ya: data host unavailable, using the questions store" then ERR_TUNNEL_CONNECTION_FAILED. Environment, not the fix.
+
+**Suggested next step:** allow those two hosts in the routine environment's network policy (or run attempt 2 locally); then re-run the card as is from the pushed branch. The same blocker applies to every questions-store game (career-path, who-are-ya, tictactoe, contexto): the contexto cluster card was released to To Do untouched for the same reason.
+
+**Last error:** FAIL UIC-20261025-0128-007 — check GM-who-are-ya-perfect @ games@phone-360: TimeoutError: page.waitForSelector: Timeout 30000ms exceeded (waiting for locator('.playing-wrap') to be visible)

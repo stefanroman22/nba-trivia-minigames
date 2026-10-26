@@ -65,8 +65,16 @@ Model text and `<pageId>` as in the Target = dev procedure.
 6. Notion, BEFORE the push: `node scripts/notion.mjs ship-card <pageId> --commit <SHA> --branch team/<slug> --target main --model "<model text>"`.
    Why first: `main-sync.yml` fires on the push to `main` and marks Done only the cards it finds in QA with a
    commit on `main`; a card moved to QA after the push would wait for the next push to `main`.
-7. `git -C <worktree> push origin HEAD:main`. Rejected (main moved) → repeat steps 2–5 **once**, re-run step 6
-   with the new `<SHA>`, push again; rejected again → `SHIP-FAIL main moved twice during ship`.
+6b. Security gate — `main` accepts a commit only with the status `security/pr-scan` = success on it (a ruleset,
+   docs/security/README.md): `git -C <worktree> push origin HEAD:refs/heads/security-gate/<slug>` (a stale remote one from
+   an earlier attempt: `git push origin --delete security-gate/<slug>` first; never force), then
+   `node scripts/security/wait-status.mjs <SHA>` (up to 60 min; security.yml scans the diff against `main`; no auto-fix
+   on a gate branch). Exit 0 → step 7. Exit 1 → `git push origin --delete security-gate/<slug>` and
+   `SHIP-FAIL security gate: <its output line>` (the gate already commented the findings on the card, so the next attempt
+   has them). Exit 3 → the same with `SHIP-FAIL security gate timed out`.
+7. `git -C <worktree> push origin HEAD:main`, then `git push origin --delete security-gate/<slug>`. Rejected (main moved)
+   → repeat steps 2–5 **once**, re-run steps 6 and 6b with the new `<SHA>`, push again; rejected again →
+   `SHIP-FAIL main moved twice during ship`.
    `--force` / `--force-with-lease` are forbidden. After a successful push `main` is shipped: nothing below
    undoes it, and a later failure never runs the fail procedure's `fail-card`.
 8. Back-merge `main → dev` (merge commit, auto-merged PR), in the worktree:

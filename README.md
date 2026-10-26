@@ -67,6 +67,23 @@ deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ---
 
+## Security scan
+
+`.github/workflows/security.yml` runs one security agent (gitleaks + osv-scanner + a Claude security review with
+`.security/scan-instructions.md`) in two modes:
+
+- **Weekly**, Fridays 12:00 Europe/Amsterdam: full-repo scan (gitleaks over the full git history). New findings with
+  confidence ≥ 8 become ONE grouped Notion card for the team pipeline; nothing new → no card.
+- **Every PR to `main`** (promotions and pipeline hotfixes included): diff-only scan behind the required status
+  `security/pr-scan`. High/critical blocks it, and for a trusted same-repo PR the team pipeline fixes the branch and the
+  scan re-runs (2 rounds at most, then a human). Medium/low → a PR comment and the next weekly card.
+
+State lives on the branch `security-state` (`findings.json`, one entry per finding fingerprint, details encrypted with
+the `SECURITY_STATE_KEY` secret). False positives: add the fingerprint and a reason to `.security/ignore.json`; tune the
+review in `.security/scan-instructions.md`, gitleaks rules in `.gitleaks.toml`. Details: [docs/security/README.md](docs/security/README.md).
+
+---
+
 ## Documentation map
 
 | Doc | What's in it |
@@ -78,6 +95,7 @@ deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 | [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md) | Every game the app has, is building, or should build — status tracker |
 | [docs/games/DATA_REQUIREMENTS.md](docs/games/DATA_REQUIREMENTS.md), [PLAYERS_DATA.md](docs/games/PLAYERS_DATA.md), [TEAMS_DATA.md](docs/games/TEAMS_DATA.md) | Data-field wishlists the games above draw on |
 | [docs/game-research/](docs/game-research/) | Reference screenshots from other trivia games (mechanics only — never copy visual style) |
+| [docs/security/README.md](docs/security/README.md) | The security agent: weekly scan, PR gate, state, tuning false positives |
 | [CLAUDE.md](CLAUDE.md) | Instructions for AI coding agents working in this repo |
 | [.claude/README.md](.claude/README.md) | How the coding-agent model/effort profile is configured and switched |
 
