@@ -17,6 +17,12 @@
   padding: 24px;
 }
 
+/* Auth success takeover: the page behind takes clicks while the success pane holds and the modal
+   leaves (UI-22: no animation holds up an action by more than 400 ms); the panel keeps its own
+   clicks (tap-to-skip). */
+.modal-backdrop--passthrough { pointer-events: none; }
+.modal-backdrop--passthrough .modal-panel { pointer-events: auto; }
+
 .modal-panel {
   width: min(440px, 94vw);
   max-height: 88vh;

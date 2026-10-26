@@ -17,7 +17,8 @@ interface ModalProps {
   /** Wider panel (used by the full leaderboard). */
   wide?: boolean;
   /** Success takeover (auth): on a sheet viewport the panel expands to the full screen and then
-   *  fades into the page; on desktop it scales/fades out. Off = the default enter/exit. */
+   *  fades into the page; on desktop it scales/fades out. Off = the default enter/exit. While it is
+   *  on, the backdrop lets clicks through to the page, so the success hold never blocks it (UI-22). */
   takeover?: boolean;
   children: ReactNode;
 }
@@ -42,7 +43,7 @@ export default function Modal({ title, onClose, wide = false, takeover = false, 
 
   return (
     <motion.div
-      className="modal-backdrop"
+      className={`modal-backdrop${takeover ? " modal-backdrop--passthrough" : ""}`}
       onClick={onClose}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
