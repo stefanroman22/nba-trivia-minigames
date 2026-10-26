@@ -344,7 +344,7 @@ test('--psi without PSI_API_KEY, and a 429, are one Coverage gaps line each; the
   const noKey = await runOnpage({ site: S, fetcher: fakeFetcher(), keywordMap: KEYWORDS, runId: 'r1', psi: { key: null, fetch: async () => { throw new Error('must not be called'); } } });
   assert.equal(noKey.gaps.filter((g) => /PSI_API_KEY/.test(g)).length, 1);
 
-  const KEY = 'TESTKEY-abc123';
+  const KEY = 'TESTKEY-abc123'; // gitleaks:allow (fake key for the test)
   let calls = 0;
   const limited = await runOnpage({ site: S, fetcher: fakeFetcher(), keywordMap: KEYWORDS, runId: 'r1', psi: { key: KEY, fetch: async () => { calls += 1; return new Response('{}', { status: 429 }); } } });
   assert.equal(calls, 1, 'stops after the first 429');
