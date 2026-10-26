@@ -96,9 +96,17 @@ test("exit 1 whose only failures are transient: a note, never a failure", async 
   assert.match(r.notes[0], /^seo: IX not judged, only transient failures \(1\): http:\/\/localhost:5273\/a: request failed/);
 });
 
-test("a `request failed` evidence without the flag is still transient", () => {
-  const lines = auditFailureLines({ urls: {}, siteFailures: [{ id: "IX-12", url: "u", evidence: "request failed (x): /favicon.ico, want 200" }] });
-  assert.deepEqual(lines, { failures: [], transient: ["u: request failed (x): /favicon.ico, want 200"], ids: [] });
+test("transient means the flag only: a mixed real + failed-request failure (flag dropped by audit.mjs) still fails", () => {
+  const lines = auditFailureLines({ urls: {}, siteFailures: [
+    { id: "IX-12", url: "u", evidence: "og:image a answered 404, want 200; request failed (x): og:image b, want 200" },
+    { id: "IX-12", url: "v", evidence: "request failed (x): /favicon.ico, want 200" },
+    { id: "IX-12", url: "w", evidence: "request failed (y): /manifest.webmanifest, want 200", transient: true },
+  ] });
+  assert.deepEqual(lines, {
+    failures: ["seo IX-12: u: og:image a answered 404, want 200; request failed (x): og:image b, want 200 | v: request failed (x): /favicon.ico, want 200"],
+    transient: ["w: request failed (y): /manifest.webmanifest, want 200"],
+    ids: ["IX-12"],
+  });
 });
 
 test("exit 1 with an unreadable results.json falls back to the stdout FAIL lines", async () => {
@@ -108,13 +116,26 @@ test("exit 1 with an unreadable results.json falls back to the stdout FAIL lines
   assert.match(r.failures[0], /^seo IX-04: 2 url\(s\) \(results\.json unreadable/);
 });
 
-test("exit 2 (infra) and a timeout: notes, not failures", async () => {
-  for (const audit of [{ status: 2, stdout: "", stderr: "seo-audit: infra: every page request failed (ECONNREFUSED)" }, { status: null, stdout: "", stderr: "verify timed out after 5 min" }]) {
-    const { run } = fakeRun({ audit });
-    const r = await gate({ run, readFile: files({}) });
+test("exit 2 (infra): a note, not a failure", async () => {
+  const { run } = fakeRun({ audit: { status: 2, stdout: "", stderr: "seo-audit: infra: every page request failed (ECONNREFUSED)" } });
+  const r = await gate({ run, readFile: files({}) });
+  assert.deepEqual(r.failures, []);
+  assert.equal(r.notes[0], "seo: IX not judged (exit 2): seo-audit: infra: every page request failed (ECONNREFUSED) · on-page 0 warning(s)");
+});
+
+test("a timeout is a note, also when the kill left status 1 (Windows taskkill /F)", async () => {
+  for (const audit of [{ status: 1, timedOut: true, stdout: "", stderr: "verify timed out after 5 min" }, { status: null, stdout: "", stderr: "" }]) {
+    const { run } = fakeRun({ audit, onpage: { status: 1, timedOut: true, stdout: "", stderr: "" } });
+    const r = await gate({ run, readFile: files({ "results.json": result({ siteFailures: [{ id: "IX-01", url: "u", evidence: "real" }] }) }) });
     assert.deepEqual(r.failures, [], JSON.stringify(audit));
-    assert.match(r.notes[0], /^seo: IX not judged \((exit 2|timed out)\): /);
+    assert.deepEqual(r.notes, ["seo: IX not judged (seo audit timed out after 5 min) · on-page not judged (seo on-page timed out after 5 min)"]);
   }
+});
+
+test("the runner gets the timeout", async () => {
+  const seen = [];
+  await gate({ run: async (args, ms) => { seen.push(ms); return { status: 0, stdout: AUDIT_HEAD, stderr: "" }; }, timeoutMs: 120000 });
+  assert.deepEqual(seen, [120000, 120000]);
 });
 
 test("on-page FAIL headers become `seo warning OP-nn …` notes, never failures", async () => {

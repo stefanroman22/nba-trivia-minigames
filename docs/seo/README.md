@@ -63,8 +63,8 @@ still judged. On a local host IX-01 (robots.txt disallows everything off product
 variants are skipped as well.
 
 **What blocks.** `check:seo` violations (`SEO-n <file>: …`) fail gate 1 and the lint job. IX failures fail gate 2,
-one QA failure per id (`seo IX-nn: <evidence>`, up to three evidence lines), and fail `seo-pages` (any non-zero audit
-exit). In QA a transient result (a request that failed after retries), an infra exit (2) or a timeout is a note, and
+one QA failure per id (`seo IX-nn: <evidence>`, up to three evidence lines), and fail `seo-pages` (a non-zero audit
+exit; an exit 1 is run once more and fails only if the second run fails too). In QA a transient result (a request that failed after retries), an infra exit (2) or a timeout is a note, and
 a diff touching no SEO path, or a build served by `next dev`, runs no audit. OP failures never block: QA lists them as
 `seo warning OP-nn …` notes, `seo-pages` as warnings in the job summary. The QA verdict notes carry one line
 `seo: IX pass|FAIL … · on-page <n> warning(s)`; `seo-pages` uploads `digest.md` and `onpage-summary.md` (7 days) and is

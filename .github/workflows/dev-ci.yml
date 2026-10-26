@@ -95,29 +95,41 @@ jobs:
         run: |
           nohup node node_modules/next/dist/bin/next start -p 5400 > "$RUNNER_TEMP/next.log" 2>&1 &
           for i in $(seq 1 60); do
-            curl -fsS -o /dev/null http://localhost:5400/ && { echo "up after ${i}s"; exit 0; }
+            curl -fsS -m 5 -o /dev/null http://localhost:5400/ && { echo "up after ${i}s"; exit 0; }
             sleep 1
           done
           echo "next start did not answer / in 60 s"; tail -n 40 "$RUNNER_TEMP/next.log"; exit 1
+      # A network flake on the runner must not block (design anti-goal): exit 1 runs the audit once more, and only a
+      # second non-zero exit fails the job. Exit 2 (infra) fails at once.
       - name: IX audit (failures fail the job)
         if: steps.paths.outputs.seo == 'true'
-        run: node scripts/seo/audit.mjs --site http://localhost:5400 --as https://swishquest.com --run-dir seo-gate/audit
+        run: |
+          set +e
+          node scripts/seo/audit.mjs --site http://localhost:5400 --as https://swishquest.com --run-dir seo-gate/audit
+          code=$?
+          if [ "$code" -eq 1 ]; then
+            echo "audit exit 1: running it once more"
+            node scripts/seo/audit.mjs --site http://localhost:5400 --as https://swishquest.com --run-dir seo-gate/audit
+            code=$?
+          fi
+          exit "$code"
       - name: On-page (warnings only)
         if: ${{ !cancelled() && steps.paths.outputs.seo == 'true' && steps.serve.outcome == 'success' }}
         run: |
           node scripts/seo/onpage.mjs --site http://localhost:5400 --as https://swishquest.com --run-dir seo-gate/onpage || true
+          summary=seo-gate/onpage/onpage-summary.md
+          heads=$([ -f "$summary" ] && grep '^## FAIL OP-' "$summary" | sed 's/^## FAIL //' || true)
           {
             echo "## SEO built-page check"
-            [ -f seo-gate/audit/digest.md ] && head -n 1 seo-gate/audit/digest.md | sed 's/^# //' || echo "IX audit: no digest (see the log)"
+            if [ -f seo-gate/audit/digest.md ]; then head -n 1 seo-gate/audit/digest.md | sed 's/^# //'; else echo "IX audit: no digest (see the log)"; fi
             echo
             echo "### On-page warnings (never blocking)"
-            if [ -f seo-gate/onpage/onpage-summary.md ]; then
-              grep '^## FAIL OP-' seo-gate/onpage/onpage-summary.md | sed 's/^## FAIL /- warning /' || echo "- none"
-            else
-              echo "- on-page did not run (see the log)"
+            if [ ! -f "$summary" ]; then echo "- on-page did not run (see the log)"
+            elif [ -z "$heads" ]; then echo "- none"
+            else printf '%s\n' "$heads" | sed 's/^/- warning /'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
-          [ -f seo-gate/onpage/onpage-summary.md ] && grep '^## FAIL OP-' seo-gate/onpage/onpage-summary.md | sed 's/^## FAIL /::warning title=SEO on-page::/' || true
+          [ -n "$heads" ] && printf '%s\n' "$heads" | sed 's/^/::warning title=SEO on-page::/' || true
       - name: Upload the digests
         if: ${{ !cancelled() && steps.paths.outputs.seo == 'true' }}
         uses: actions/upload-artifact@v4

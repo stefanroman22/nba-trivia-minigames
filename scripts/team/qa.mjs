@@ -120,7 +120,7 @@ function runAsync(cmd, args, { timeoutMs, env = {} }) {
       timedOut = true;
       try { if (win) spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" }); else process.kill(-child.pid, "SIGTERM"); } catch { /* gone */ }
     }, timeoutMs);
-    child.on("close", (status) => { clearTimeout(timer); res({ status, stdout, stderr: timedOut ? `${stderr}\nverify timed out after ${Math.round(timeoutMs / 60000)} min` : stderr }); });
+    child.on("close", (status) => { clearTimeout(timer); res({ status, timedOut, stdout, stderr: timedOut ? `${stderr}\nverify timed out after ${Math.round(timeoutMs / 60000)} min` : stderr }); });
   });
 }
 const lanePorts = `django=${ports.django},socket=${ports.socket},web=${ports.vite}`;
@@ -173,7 +173,7 @@ try {
 
   // --- SEO built-page check (an SEO path changed, production build): HTTP only, so it runs before the browser and
   // also without one. IX failures are QA failures; OP results, infra and transient results are notes.
-  const seo = await seoGate({ touched, prodBuild, baseUrl, runDir: resolve(qaDir, "seo"), repo, run: (args) => runAsync(process.execPath, args, { timeoutMs: 5 * 60000 }) });
+  const seo = await seoGate({ touched, prodBuild, baseUrl, runDir: resolve(qaDir, "seo"), repo, run: (args, timeoutMs) => runAsync(process.execPath, args, { timeoutMs }) });
   if (seo.ran) log(seo.notes[0]);
   failures.push(...seo.failures);
   notes.push(...seo.notes);
