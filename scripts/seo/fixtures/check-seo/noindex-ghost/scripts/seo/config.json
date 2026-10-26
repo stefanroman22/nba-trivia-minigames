@@ -1,0 +1,8 @@
+{
+  "site": "https://example.com",
+  "expectedNoindex": [
+    "/admin",
+    "/coming-soon",
+    "/ghost"
+  ]
+}
