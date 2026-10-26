@@ -1,6 +1,7 @@
 // Answer reviews for the board and mystery-player games. Each one redraws the game's own board
 // (its exported pieces and CSS classes) read-only, with the answers filled in.
 import TeamCrest from "../ui/TeamCrest";
+import PlayerPhoto from "../ui/PlayerPhoto";
 import { Line } from "../../Game Renderers/Wordle";
 import { RevealedFace } from "../../Game Renderers/StartingFive";
 import { TIER_COLOR, TIER_INK } from "../../Game Renderers/ConnectionsGame";
@@ -20,7 +21,6 @@ import "../../styles/BingoGame.css";
 type Of<G extends AnswerReview["game"]> = Extract<AnswerReview, { game: G }>;
 
 const WORDLE_ROWS = 5;
-const headshotUrl = (personId: number) => `https://cdn.nba.com/headshots/nba/latest/1040x760/${personId}.png`;
 
 const CHECK = (
   <svg className="ng-check" viewBox="0 0 24 24" aria-hidden="true">
@@ -318,7 +318,7 @@ export function WhoAreYaReview({ review }: { review: Of<"who-are-ya"> }) {
         {review.won ? <>Found in <b className="tnum">{review.rows.length}</b></> : <>Not found in <span className="tnum">{review.rows.length}</span> guesses</>}
       </ReviewSummary>
       <div className="ar-board">
-        <img className="cp-reveal-photo" src={headshotUrl(review.mystery.person_id)} alt={review.mystery.full_name} />
+        <PlayerPhoto personId={review.mystery.person_id} alt={review.mystery.full_name} className="cp-reveal-photo" fallbackClassName="cp-reveal-fallback" />
         <div className={`waya-reveal${review.won ? " is-won" : ""}`} style={{ width: "100%" }}>
           <span className="waya-reveal-name font-display">{review.mystery.full_name}</span>
           <span className="waya-reveal-sub tnum">{review.mystery.sub}</span>
@@ -345,7 +345,7 @@ export function ContextoReview({ review }: { review: Of<"contexto"> }) {
         {review.won ? <>Found in <b className="tnum">{review.rows.length}</b> guesses</> : <>Gave up after <span className="tnum">{review.rows.length}</span> guesses</>}
       </ReviewSummary>
       <div className={`cx-reveal ${review.won ? "is-good" : "is-brand"}`}>
-        <span className="cx-reveal-photo"><img src={headshotUrl(review.secret.person_id)} alt={review.secret.full_name} draggable={false} /></span>
+        <span className="cx-reveal-photo"><PlayerPhoto personId={review.secret.person_id} alt={review.secret.full_name} frame="avatar" /></span>
         <span className="cx-reveal-text">
           <span className="cx-reveal-label">The secret player</span>
           <span className="cx-row-name font-display">{review.secret.full_name}</span>

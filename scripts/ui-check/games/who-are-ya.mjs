@@ -5,8 +5,8 @@
 // 8th too: the ordinary wrong copy, Rule 6.3). Ends in place: reveal card + EndSequence loader (1.5 s) → ScorePanel.
 //
 // Right answer: the question payload `{ schema, game: 'who-are-ya', qid, player }` the page received (capQuestions:
-// dev from the questions store, prod from the manifest-v3 host). The mystery is identified by the headshot URL
-// (`.../headshots/nba/latest/1040x760/<person_id>.png`); with no photo (CDN blocked) the newest payload is taken.
+// dev from the questions store, prod from the manifest-v3 host). The photo is a Wikimedia Commons file (or the
+// silhouette), whose URL carries no person_id, so the newest payload is taken.
 // Fallback: fiber — WhoAreYa props `gameInfo`. The typed text must resolve through the game's own name lookup
 // (utils/questions.ts buildNameLookup over the captured autocomplete list, first claim wins, canonical names and
 // aliases): the adapter rebuilds it, types the mystery's full name only when it resolves to the mystery, and a wrong

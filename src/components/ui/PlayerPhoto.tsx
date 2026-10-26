@@ -1,12 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import {
-  commonsUrl,
-  placePhoto,
-  usePhotoSource,
-  type PhotoFrame,
-  type PhotoSize,
-  type PhotoSource,
-} from "../../utils/playerPhotos";
+import { commonsUrl, placePhoto, usePhotoSource, type PhotoFrame, type PhotoSource } from "../../utils/playerPhotos";
 import "../../styles/PlayerPhoto.css";
 
 /** The one "no photo" figure every game shows: an orange player silhouette. */
@@ -31,12 +24,10 @@ interface PlayerPhotoProps {
    *  undefined while it is still being resolved: an invisible placeholder. */
   personId: number | null | undefined;
   alt: string;
-  size?: PhotoSize;
-  /** How the frame crops a Commons photo (utils/playerPhotos placePhoto). NBA headshots are one
-   *  uniform studio crop and keep the game's own CSS fit. */
+  /** How the frame crops the photo (utils/playerPhotos placePhoto). */
   frame?: PhotoFrame;
-  /** Class of the photo box: the <img> for NBA headshots, the frame <span> around a Commons
-   *  photo. The game's frame size / radius / filter rules key off it. */
+  /** Class of the frame <span> around the photo. The game's frame size / radius / filter rules
+   *  key off it. */
   className?: string;
   /** Class of the silhouette shown when there is no photo. */
   fallbackClassName?: string;
@@ -44,19 +35,18 @@ interface PlayerPhotoProps {
 }
 
 /**
- * A player's photo: cdn.nba.com, else Wikimedia Commons, else the silhouette — the same
- * order and the same fallback in every game (see utils/playerPhotos).
+ * A player's photo: Wikimedia Commons, else the silhouette — the same order and the same
+ * fallback in every game (see utils/playerPhotos).
  */
 export default function PlayerPhoto({
   personId,
   alt,
-  size = "lg",
   frame = "card",
   className,
   fallbackClassName,
   style,
 }: PlayerPhotoProps) {
-  const photo = usePhotoSource(personId, size);
+  const photo = usePhotoSource(personId);
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [personId]);
 
@@ -65,21 +55,7 @@ export default function PlayerPhoto({
     return <PlayerSilhouette className={`${fallbackClassName ?? ""} player-photo-pending`} />;
   }
   if (!photo || failed) return <PlayerSilhouette className={fallbackClassName} />;
-  if (photo.source === "commons") {
-    return <CommonsPhoto photo={photo} alt={alt} frame={frame} className={className} style={style} onFail={() => setFailed(true)} />;
-  }
-  return (
-    <img
-      className={className}
-      src={photo.src}
-      alt={alt}
-      data-source="nba"
-      style={style}
-      decoding="async"
-      draggable={false}
-      onError={() => setFailed(true)}
-    />
-  );
+  return <CommonsPhoto photo={photo} alt={alt} frame={frame} className={className} style={style} onFail={() => setFailed(true)} />;
 }
 
 /**
@@ -96,7 +72,7 @@ function CommonsPhoto({
   style,
   onFail,
 }: {
-  photo: Extract<PhotoSource, { source: "commons" }>;
+  photo: PhotoSource;
   alt: string;
   frame: PhotoFrame;
   className?: string;
