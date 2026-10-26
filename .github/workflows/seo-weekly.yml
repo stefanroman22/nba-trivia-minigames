@@ -45,7 +45,7 @@ on:
         options: ["on", "off"]
         default: "on"
       dry_run:
-        description: "measure and write the run dir only: no store push, card, ping, upload, commit or Slack"
+        description: "measure and write the run dir only: no store push, card, ping, commit or Slack"
         type: boolean
         default: false
       agent_model:
@@ -141,7 +141,7 @@ jobs:
           AGENTS: ${{ steps.claude.outputs.agents || 'off' }}
           MODEL: ${{ steps.knobs.outputs.model }}
         run: node scripts/seo/run.mjs --holder "cloud-${{ github.run_id }}" --agents "$AGENTS" --agent-model "$MODEL" ${{ steps.knobs.outputs.args }}
-      - name: Run files (14 days; no Search Console data, no exports)
+      - name: Run files (14 days; no Search Console data)
         if: always()
         uses: actions/upload-artifact@v4
         with:
