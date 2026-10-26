@@ -33,7 +33,7 @@ const cases = {
     ],
   ],
   "name-logo": [
-    { game: "name-logo", rounds: [{ team: "Lakers", teamId: 1610612747, logo: null, pick: "Lakers", correct: true }] },
+    { game: "name-logo", rounds: [{ team: "Lakers", teamId: 1610612747, pick: "Lakers", correct: true }] },
     [{ question_id: "1610612747", label: "Lakers logo" }],
   ],
   "guess-mvps": [

@@ -1,0 +1,28 @@
+/* src/styles/TeamNameGradient.css — components/ui/TeamNameGradient: a team name in its team's colours
+   (Name the NBA Club's revealed answer and its answer review rows). Only the fill: font, size and
+   weight come from the parent. */
+
+/* Each theme has its own pair of stops (src/utils/teamNameGradient.ts: >= 4.5:1 on that theme's
+   surface), so a theme switch swaps them without a re-render. */
+.tng {
+  --tng-a: var(--tng-a-dark);
+  --tng-b: var(--tng-b-dark);
+  color: var(--tng-a);
+}
+.light .tng {
+  --tng-a: var(--tng-a-light);
+  --tng-b: var(--tng-b-light);
+}
+/* The gradient runs across each line (clone), from the team's first colour to its second. Without
+   background-clip: text the name keeps the solid first stop above. */
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .tng {
+    background-image: linear-gradient(90deg, var(--tng-a), var(--tng-b));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+}

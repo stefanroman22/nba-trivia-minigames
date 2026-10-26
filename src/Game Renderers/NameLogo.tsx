@@ -1,14 +1,14 @@
-import { Fragment, useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame, Spinner } from "../components/ui";
-import TeamCrest from "../components/ui/TeamCrest";
-import { currentLogoUrl, scrambledLogoUrl } from "../constants/teamLogos";
+import { BasketballCrest } from "../components/ui/TeamCrest";
+import TeamNameGradient from "../components/ui/TeamNameGradient";
+import { scrambledLogoUrl } from "../constants/teamLogos";
 import { matchAnswer } from "../utils/answerMatch";
-import { teamNameGradients } from "../utils/teamNameGradient";
 import { createGuessLogger } from "../utils/guessLog";
 import type { NbaTeamLogo, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
@@ -51,39 +51,24 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
 
   const currentTeam = seriesList[currentIndex];
 
-  // Logo sources tried in order: period-accurate (from the data) → current logo.
-  const logoCandidates = useMemo(() => {
-    const list: string[] = [];
-    if (currentTeam?.logo) list.push(currentTeam.logo);
-    const cur = currentLogoUrl(currentTeam?.full_name);
-    if (cur && cur !== currentTeam?.logo) list.push(cur);
-    return list;
-  }, [currentTeam]);
-  const [srcIdx, setSrcIdx] = useState(0);
   const [scrambleFailed, setScrambleFailed] = useState(false);
   // The round whose name is in the DOM: set on the answer, so the name is never on the page (find in
   // page, copy) before the guess, and still there while it fades out after the last round.
   const [answeredIdx, setAnsweredIdx] = useState(-1);
 
   // While guessing only the scrambled logo is shown; once the guess is in it cross-fades into the team
-  // name, filled with the team's colours (never the real logo). Without a scrambled file, the real logo
-  // is the puzzle.
-  const scrambledSrc = scrambleFailed ? null : scrambledLogoUrl(currentTeam?.team_id, currentTeam?.full_name);
-  const originalSrc = logoCandidates[srcIdx];
-  const puzzleSrc = scrambledSrc ?? originalSrc;
+  // name, filled with the team's colours (never the real logo). Without a scrambled file (or when it
+  // fails to load), a generic basketball badge is the puzzle: the game never loads a real NBA logo.
+  const puzzleSrc = scrambleFailed ? null : scrambledLogoUrl(currentTeam?.team_id, currentTeam?.full_name);
   const revealed = showAnswer || showPointsAnimation;
   const answerName = currentTeam?.full_name || "";
   const answerId = currentTeam?.team_id;
-  const nameStyle = useMemo(() => {
-    const { dark, light } = teamNameGradients(answerName, answerId);
-    return {
-      "--nl-a-dark": dark[0], "--nl-b-dark": dark[1], "--nl-a-light": light[0], "--nl-b-light": light[1],
-      "--nl-chars": longestLineChars(answerName), "--nl-slot": LOGO_SIZE,
-    } as React.CSSProperties;
-  }, [answerName, answerId]);
+  const nameStyle = useMemo(() => ({
+    "--nl-chars": longestLineChars(answerName), "--nl-slot": LOGO_SIZE,
+  } as React.CSSProperties), [answerName]);
 
-  // reset the logo sources each round
-  useEffect(() => { setSrcIdx(0); setScrambleFailed(false); }, [currentIndex]);
+  // retry the scrambled file each round
+  useEffect(() => { setScrambleFailed(false); }, [currentIndex]);
   // The loader tracks the puzzle <img> itself (keyed by src, so a new round or a fallback src mounts
   // a fresh one): it reads "loaded" the moment the element mounts. Resetting on currentIndex instead
   // would flip the spinner on while the previous logo is still fading out (AnimatePresence "wait").
@@ -154,7 +139,6 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
           rounds: seriesList.map((t, i) => ({
             team: t.full_name,
             teamId: t.team_id,
-            logo: t.logo || currentLogoUrl(t.full_name) || null,
             pick: picksRef.current[i]?.pick ?? null,
             correct: !!picksRef.current[i]?.correct,
           })),
@@ -177,12 +161,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
       style={nameStyle}
     >
       <p className="nl-name font-display">
-        <span className="nl-name-ink">
-          {answeredIdx === currentIndex &&
-            answerName.split("/").map((part, i) => (
-              <Fragment key={i}>{i > 0 && <>/<wbr /></>}{part}</Fragment>
-            ))}
-        </span>
+        <TeamNameGradient name={answerName} teamId={answerId} surface="board" blank={answeredIdx !== currentIndex} />
       </p>
     </motion.div>
   );
@@ -231,10 +210,10 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                     <motion.img
                       key={puzzleSrc}
                       src={puzzleSrc}
-                      alt={scrambledSrc ? "Scrambled team logo" : "NBA Team"}
+                      alt="Scrambled team logo"
                       ref={onPuzzleImgRef}
                       onLoad={() => setImgLoaded(true)}
-                      onError={() => (scrambledSrc ? setScrambleFailed(true) : setSrcIdx((i) => i + 1))}
+                      onError={() => setScrambleFailed(true)}
                       initial={false}
                       animate={revealed ? LOGO_HIDDEN : LOGO_SHOWN}
                       transition={LOGO_REVEAL}
@@ -247,7 +226,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
             ) : (
               <>
                 <motion.div initial={false} animate={revealed ? LOGO_HIDDEN : LOGO_SHOWN} transition={LOGO_REVEAL} style={{ display: "flex" }}>
-                  <TeamCrest src={null} name={currentTeam?.full_name || ""} size={120} />
+                  <BasketballCrest label="NBA Team" size={120} />
                 </motion.div>
                 {nameLayer}
               </>

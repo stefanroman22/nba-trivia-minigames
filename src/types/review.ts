@@ -26,7 +26,7 @@ export type AnswerReview =
         pick: string | null;
       }[];
     }
-  | { game: "name-logo"; rounds: { team: string; teamId: number; logo: string | null; pick: string | null; correct: boolean }[] }
+  | { game: "name-logo"; rounds: { team: string; teamId: number; pick: string | null; correct: boolean }[] }
   | { game: "guess-mvps"; rounds: { season: string; award?: string; mvp: string; pick: string | null; correct: boolean }[] }
   | {
       game: "starting-five";

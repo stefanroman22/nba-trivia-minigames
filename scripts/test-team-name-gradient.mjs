@@ -1,6 +1,6 @@
-// Node test for src/utils/teamNameGradient.ts (the gradient Name the NBA Club fills the revealed team
-// name with): every stop, and every point of the gradient between them, keeps WCAG 2.x contrast
-// >= 4.5:1 against the board in both themes, for every team the game can show.
+// Node test for src/utils/teamNameGradient.ts (the gradient Name the NBA Club fills the team name with,
+// on the board and in the answer review): every stop, and every point of the gradient between them,
+// keeps WCAG 2.x contrast >= 4.5:1 against each surface in both themes, for every team the game can show.
 //   npm run test:team-name-gradient      (node --experimental-strip-types; Node >= 22.6)
 import { register } from "node:module";
 import { readFileSync } from "node:fs";
@@ -33,7 +33,7 @@ register("data:text/javascript," + encodeURIComponent(`
 const { nbaTeamColors } = await import("../src/constants/nbaTeamColors.tsx");
 const { TEAM_NAME_TO_ID } = await import("../src/constants/teamLogos.ts");
 const {
-  MIN_CONTRAST, NAME_BACKGROUNDS, contrastRatio, legibleColor, teamNameGradient, teamNameGradients,
+  MIN_CONTRAST, NAME_BACKGROUNDS, NAME_SURFACES, contrastRatio, legibleColor, teamNameGradient, teamNameGradients,
 } = await import("../src/utils/teamNameGradient.ts");
 
 const dataNames = JSON.parse(readFileSync(new URL("../backend/trivia/data/name-logo.json", import.meta.url), "utf8"))
@@ -50,8 +50,42 @@ const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const lerp = (a, b, t) => "#" + hex(a).map((c, i) => Math.round(c + (hex(b)[i] - c) * t).toString(16).padStart(2, "0")).join("");
 const dist = (a, b) => Math.hypot(...hex(a).map((c, i) => c - hex(b)[i]));
 
-let lowest = { ratio: Infinity };
-after(() => console.log(`lowest contrast: ${lowest.ratio.toFixed(2)}:1 (${lowest.name}, ${lowest.theme}, ${lowest.stop} on ${lowest.bg})`));
+const lowestBy = {};
+after(() => {
+  for (const [surface, l] of Object.entries(lowestBy)) {
+    if (Number.isFinite(l.ratio)) console.log(`lowest contrast (${surface}): ${l.ratio.toFixed(2)}:1 (${l.name}, ${l.theme}, ${l.stop} on ${l.bg})`);
+  }
+});
+
+// Every stop and every tenth of the blend between them, on every background of `surface`, in both themes.
+function assertLegible(surface) {
+  const lowest = (lowestBy[surface] ??= { ratio: Infinity });
+  for (const name of NAMES) {
+    const both = teamNameGradients(name, undefined, surface);
+    for (const theme of THEMES) {
+      const stops = both[theme];
+      assert.equal(stops.length, 2, `${name} ${theme}`);
+      assert.deepEqual(stops, teamNameGradient(name, NAME_SURFACES[surface][theme]), `${name} ${theme}`);
+      for (const stop of stops) assert.match(stop, /^#[0-9a-f]{6}$/, `${name} ${theme}`);
+      for (const bg of NAME_SURFACES[surface][theme]) {
+        for (let i = 0; i <= 10; i++) {
+          const color = lerp(stops[0], stops[1], i / 10);
+          const ratio = contrastRatio(color, bg);
+          if ((i === 0 || i === 10) && ratio < lowest.ratio) Object.assign(lowest, { ratio, name, theme, stop: color, bg });
+          assert.ok(ratio >= MIN_CONTRAST, `${surface} ${name} ${theme}: ${color} on ${bg} is ${ratio.toFixed(2)}:1`);
+        }
+      }
+    }
+  }
+}
+
+// theme.css token values: the dark ones on :root, the light ones on .light.
+const themeCss = readFileSync(new URL("../src/styles/theme.css", import.meta.url), "utf8");
+function token(selector, name) {
+  const block = themeCss.slice(themeCss.indexOf(`${selector} {`));
+  const m = new RegExp(`${name}:\\s*(#[0-9a-fA-F]{6})`).exec(block.slice(0, block.indexOf("}")));
+  return m && m[1].toLowerCase();
+}
 
 test("contrastRatio matches WCAG 2.x reference values", () => {
   assert.equal(contrastRatio("#000000", "#ffffff").toFixed(2), "21.00");
@@ -61,31 +95,27 @@ test("contrastRatio matches WCAG 2.x reference values", () => {
 });
 
 test("both theme backgrounds are listed, dark ones for dark and light ones for light", () => {
-  for (const bg of NAME_BACKGROUNDS.dark) assert.ok(contrastRatio(bg, "#000000") < contrastRatio(bg, "#ffffff"), bg);
-  for (const bg of NAME_BACKGROUNDS.light) assert.ok(contrastRatio(bg, "#ffffff") < contrastRatio(bg, "#000000"), bg);
+  for (const backgrounds of Object.values(NAME_SURFACES)) {
+    for (const bg of backgrounds.dark) assert.ok(contrastRatio(bg, "#000000") < contrastRatio(bg, "#ffffff"), bg);
+    for (const bg of backgrounds.light) assert.ok(contrastRatio(bg, "#ffffff") < contrastRatio(bg, "#000000"), bg);
+  }
 });
 
 test(`every stop and the gradient between them is >= ${MIN_CONTRAST}:1 for ${NAMES.length} names in both themes`, () => {
   assert.equal(MIN_CONTRAST, 4.5);
-  for (const name of NAMES) {
-    const both = teamNameGradients(name);
-    for (const theme of THEMES) {
-      const stops = both[theme];
-      assert.equal(stops.length, 2, `${name} ${theme}`);
-      assert.deepEqual(stops, teamNameGradient(name, NAME_BACKGROUNDS[theme]), `${name} ${theme}`);
-      for (const stop of stops) assert.match(stop, /^#[0-9a-f]{6}$/, `${name} ${theme}`);
-      for (const bg of NAME_BACKGROUNDS[theme]) {
-        for (let i = 0; i <= 10; i++) {
-          const color = lerp(stops[0], stops[1], i / 10);
-          const ratio = contrastRatio(color, bg);
-          if (i === 0 || i === 10) {
-            if (ratio < lowest.ratio) lowest = { ratio, name, theme, stop: color, bg };
-          }
-          assert.ok(ratio >= MIN_CONTRAST, `${name} ${theme}: ${color} on ${bg} is ${ratio.toFixed(2)}:1`);
-        }
-      }
-    }
-  }
+  assert.equal(NAME_SURFACES.board, NAME_BACKGROUNDS);
+  for (const name of NAMES) assert.deepEqual(teamNameGradients(name, undefined, "board"), teamNameGradients(name), name);
+  assertLegible("board");
+});
+
+test("the review surfaces are the answer review's row and modal panel tokens (theme.css)", () => {
+  // .ar-round rows (AnswerReview.css: --surface2) inside the modal panel (Modal.css: --surface).
+  assert.deepEqual([...NAME_SURFACES.review.dark], [token(":root", "--surface2"), token(":root", "--surface")]);
+  assert.deepEqual([...NAME_SURFACES.review.light], [token(".light", "--surface2"), token(".light", "--surface")]);
+});
+
+test(`in the answer review every stop and the gradient between them is >= ${MIN_CONTRAST}:1 for ${NAMES.length} names in both themes`, () => {
+  assertLegible("review");
 });
 
 test("a black primary is lightened on the dark board, a white one darkened on the light board", () => {

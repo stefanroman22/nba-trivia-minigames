@@ -1,12 +1,15 @@
-// The two-colour gradient Name the NBA Club fills the revealed team name with. Team colours are often
-// too dark (Nets #000000, Nuggets #0E2240) or too light (Spurs #C4CED4, Bucks cream) for the stage, so
-// each stop is tinted toward white on the dark theme or shaded toward black on the light one, in small
-// steps and keeping its hue, until it reaches WCAG 2.x contrast >= 4.5:1 against the stage.
+// The two-colour gradient Name the NBA Club fills the team name with (the revealed answer on the board,
+// and each round in the answer review). Team colours are often too dark (Nets #000000, Nuggets #0E2240)
+// or too light (Spurs #C4CED4, Bucks cream) for the surface, so each stop is tinted toward white on the
+// dark theme or shaded toward black on the light one, in small steps and keeping its hue, until it
+// reaches WCAG 2.x contrast >= 4.5:1 against every background of the surface the name sits on.
 // Pure: no DOM. Tested by `npm run test:team-name-gradient`.
 import { nbaTeamColors, type TeamColor } from "../constants/nbaTeamColors";
 import { franchiseIdForName } from "../constants/teamLogos";
 
 export type NameTheme = "dark" | "light";
+/** Where the name sits: the game board, or a row of the answer review modal. */
+export type NameSurface = "board" | "review";
 export type GradientStops = [string, string];
 
 export const MIN_CONTRAST = 4.5;
@@ -22,6 +25,19 @@ export const MIN_CONTRAST = 4.5;
 export const NAME_BACKGROUNDS: Record<NameTheme, readonly string[]> = {
   dark: ["#1c1c1e", "#432f26"],
   light: ["#ffffff", "#f6e4db"],
+};
+
+/**
+ * Every surface's backgrounds per theme. The review: the round row (`.ar-round` in AnswerReview.css,
+ * opaque `--surface2`) inside the modal panel (`.modal-panel` in Modal.css, `--surface`).
+ *   dark:  #232327, #1c1c1e        light: #f4f1ea, #ffffff
+ */
+export const NAME_SURFACES: Record<NameSurface, Record<NameTheme, readonly string[]>> = {
+  board: NAME_BACKGROUNDS,
+  review: {
+    dark: ["#232327", "#1c1c1e"],
+    light: ["#f4f1ea", "#ffffff"],
+  },
 };
 
 // --brand into --brand2 (theme.css), for a name with no team colours. Two shades of one orange are
@@ -126,10 +142,14 @@ export function teamNameGradient(
   return stops;
 }
 
-/** Both themes' stops, for the two CSS custom properties the name picks between. */
-export function teamNameGradients(name: string | null | undefined, teamId?: number | null): Record<NameTheme, GradientStops> {
+/** Both themes' stops on `surface`, for the two CSS custom properties the name picks between. */
+export function teamNameGradients(
+  name: string | null | undefined,
+  teamId?: number | null,
+  surface: NameSurface = "board",
+): Record<NameTheme, GradientStops> {
   return {
-    dark: teamNameGradient(name, NAME_BACKGROUNDS.dark, teamId),
-    light: teamNameGradient(name, NAME_BACKGROUNDS.light, teamId),
+    dark: teamNameGradient(name, NAME_SURFACES[surface].dark, teamId),
+    light: teamNameGradient(name, NAME_SURFACES[surface].light, teamId),
   };
 }
