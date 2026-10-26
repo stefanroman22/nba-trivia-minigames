@@ -21,7 +21,9 @@ function brief(name, spec, classify = {}) {
   writeFileSync(resolve(dir, "classify.json"), JSON.stringify({ difficulty: "standard", docs: [], ...classify }));
   execFileSync(process.execPath, [resolve(ROOT, "scripts/team/brief.mjs"), slug], { encoding: "utf8" });
   const text = readFileSync(resolve(dir, "brief.md"), "utf8");
-  return text.slice(text.indexOf("## Rules that apply"), text.indexOf("## Reuse"));
+  const from = text.indexOf("## Rules that apply"), to = text.indexOf("## Reuse");
+  assert.ok(from >= 0 && to > from, "brief.md has the Rules and Reuse sections");
+  return text.slice(from, to);
 }
 
 test("a plan naming src/app/sitemap.ts quotes the SEO doc", () => {
