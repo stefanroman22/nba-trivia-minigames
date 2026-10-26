@@ -3,8 +3,13 @@
 // (lib/html-checks.mjs; plus one `?ref=seo-audit` variant per page for IX-04) → the site-wide checks IX-01, IX-02 (status, http:// and www. variants, an unknown slug),
 // IX-10 (sitemap), IX-11 (orphans) and the IX-12 fetches (og:image, favicon, manifest; HEAD).
 //
-//   node scripts/seo/audit.mjs [--site <url>] [--only IX-04,IX-10] [--url <u>] [--baseline <baseline.json>]
+//   node scripts/seo/audit.mjs [--site <url>] [--as <origin>] [--only IX-04,IX-10] [--url <u>] [--baseline <baseline.json>]
 //                              [--findings] [--run-dir <dir>] [--json]
+//
+// --as <origin>: --site serves the site as <origin> (a local production build names https://swishquest.com): every URL
+// on <origin> (sitemap, canonicals, JSON-LD, og:image, manifest, links) is read on --site and compared modulo the
+// origin, so no request leaves --site; the X-Robots-Tag header is not judged (next.config.ts sends noindex to every host
+// but swishquest.com), the robots meta still is.
 //
 // Writes digest.md, results.json and baseline.json to <uicHome()>/seo/runs/<runId>/ (or --run-dir); --findings adds
 // findings.json (one card per regressed check). --baseline takes a Baseline ({ url: failing ids }; a --only/--url run
@@ -17,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 import { uicHome } from '../check-core/lib/home.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { fetcher as makeFetcher, DEFAULT_UA } from './lib/fetcher.mjs';
-import { extractSignals, checkPage } from './lib/html-checks.mjs';
+import { extractSignals, checkPage, underOrigin } from './lib/html-checks.mjs';
 import { parseRobots, robotsAllows } from './lib/robots.mjs';
 import { parseSitemap } from './lib/sitemap.mjs';
 import { allFailures, digestHeader, isSubsetBaseline, regressionsAgainst, toBaseline, writeDigest, writeRegressionFindings } from './lib/digest.mjs';
@@ -92,15 +97,20 @@ function manifestHref(html, url) {
  * there are the http:// and www. variants checked, and a robots.txt that disallows everything on any other host is
  * a preview, so IX-01 is skipped). Sitemap URLs on the production host are fetched on `site` when `site` is another
  * host. `only` keeps those check ids (and skips the fetches only the others need); `url` audits that one page.
+ * `asOrigin` (--as): `site` serves the site as that origin; every URL on it is read on `site` and compared modulo the
+ * origin, and IX-03 does not judge the X-Robots-Tag header (one Coverage gaps line).
  *
  * @param {{ site: string, config: object, fetcher: ReturnType<typeof makeFetcher>, baseline?: Record<string, string[]>|null,
- *   only?: string[]|null, url?: string|null, runId?: string, now?: Date }} opts
+ *   only?: string[]|null, url?: string|null, asOrigin?: string|null, runId?: string, now?: Date }} opts
  * @returns {Promise<AuditResult>}
  */
-export async function runAudit({ site, config, fetcher, baseline = null, only = null, url = null, runId, now = new Date() }) {
+export async function runAudit({ site, config, fetcher, baseline = null, only = null, url = null, asOrigin = null, runId, now = new Date() }) {
   site = site.replace(/\/+$/, '');
   const siteUrl = new URL(site);
   const home = `${site}/`;
+  if (asOrigin) asOrigin = new URL(asOrigin).origin;
+  /** `u` read on `site` when it is on `asOrigin` (--as); unchanged otherwise. */
+  const local = (u) => underOrigin(u, asOrigin, site);
   const configHost = new URL(config.site).host;
   const isProduction = siteUrl.host === configHost;
   const variantsReachable = isProduction && !isLocalHost(siteUrl.hostname);
@@ -127,8 +137,8 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     let abs;
     try { abs = new URL(loc); } catch { continue; } // a relative loc is already a sitemap error
     if (!/^https?:$/.test(abs.protocol)) continue;
-    let fetchUrl = abs.href;
-    if (abs.host !== siteUrl.host) {
+    let fetchUrl = local(abs.href);
+    if (new URL(fetchUrl).host !== siteUrl.host) {
       if (isProduction) { foreign.push(abs.href); continue; }
       fetchUrl = new URL(`${abs.pathname}${abs.search}`, site).href; // a preview or local build lists the production URLs
     }
@@ -140,7 +150,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
   // 3. Fetch the pages (the fetcher keeps 4 in flight).
   let targets = [...new Set([home, ...entries.map((e) => e.fetchUrl), ...noindexUrls])];
   if (url) {
-    targets = [new URL(url, site).href];
+    targets = [local(new URL(url, site).href)];
     gaps.push(`--url ${targets[0]}: IX-11 (orphans) not checked; IX-05/IX-06 uniqueness and the per-URL IX-10 checks cover this page only`);
   }
   const pages = new Map(await Promise.all(targets.map(async (u) => [u, await get(u)])));
@@ -154,7 +164,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     : new Map(await Promise.all(inScope.filter((e) => ok(e.fetchUrl) && !noindexUrls.has(e.fetchUrl)).map(async (e) => [e.fetchUrl, await get(refOf(e.fetchUrl))])));
 
   const signals = new Map();
-  for (const [u, res] of pages) if (res.status === 200 || noindexUrls.has(u)) signals.set(u, extractSignals(res.body, { url: u }));
+  for (const [u, res] of pages) if (res.status === 200 || noindexUrls.has(u)) signals.set(u, extractSignals(res.body, { url: u, asOrigin }));
   const indexable = targets.filter((u) => ok(u) && !noindexUrls.has(u));
 
   // 4. Per-page checks. Titles and descriptions are compared across the indexable pages only (a noindex page sharing
@@ -167,7 +177,9 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
   const urls = Object.fromEntries(targets.map((u) => [u, { status: pages.get(u).status, failures: [] }]));
   for (const u of targets) {
     const res = pages.get(u);
-    const ctx = { url: u, sitemapUrl: bySitemap.get(u)?.loc ?? null, xRobotsTag: res.headers['x-robots-tag'] ?? null, siteTitles, siteDescriptions };
+    // --as: the X-Robots-Tag header is the host rule of next.config.ts (noindex off swishquest.com), not the page's.
+    const xRobotsTag = asOrigin ? null : res.headers['x-robots-tag'] ?? null;
+    const ctx = { url: u, sitemapUrl: bySitemap.get(u)?.loc ?? null, xRobotsTag, siteTitles, siteDescriptions, asOrigin };
     if (noindexUrls.has(u)) {
       const found = checkPage(signals.get(u), { ...ctx, expectNoindex: true });
       if (res.status === 0) for (const f of found) Object.assign(f, { evidence: `${statusText(res)}; ${f.evidence}`, transient: true });
@@ -193,8 +205,8 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
   for (const [u, res] of refPages) {
     if (res.status !== 200) continue; // a variant that does not answer is not a canonical question
     const variant = refOf(u);
-    const ctx = { url: variant, sitemapUrl: bySitemap.get(u).loc, expectNoindex: false, xRobotsTag: null, siteTitles, siteDescriptions };
-    const canonical = checkPage(extractSignals(res.body, { url: variant }), ctx).find((f) => f.id === 'IX-04');
+    const ctx = { url: variant, sitemapUrl: bySitemap.get(u).loc, expectNoindex: false, xRobotsTag: null, siteTitles, siteDescriptions, asOrigin };
+    const canonical = checkPage(extractSignals(res.body, { url: variant, asOrigin }), ctx).find((f) => f.id === 'IX-04');
     if (canonical) addPageReason(u, 'IX-04', `variant ${variant}: ${canonical.evidence}`);
   }
 
@@ -210,7 +222,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
       const blocked = entries.filter((e) => !robotsAllows(robots, e.fetchUrl)).map((e) => e.fetchUrl);
       if (blocked.length) reasons.push(`User-agent: * disallows sitemap URL(s) ${blocked.join(', ')}`);
       if (robotsAllows(robots, `${site}/admin`)) reasons.push('User-agent: * allows /admin');
-      if (!robots.sitemaps.some((s) => sameUrl(s, sitemapUrl))) reasons.push(`no "Sitemap: ${sitemapUrl}" line${robots.sitemaps.length ? ` (it names ${robots.sitemaps.join(', ')})` : ''}`);
+      if (!robots.sitemaps.some((s) => sameUrl(local(s), sitemapUrl))) reasons.push(`no "Sitemap: ${sitemapUrl}" line${robots.sitemaps.length ? ` (it names ${robots.sitemaps.join(', ')})` : ''}`);
       for (const line of robots.unsupported.filter((l) => /^(noindex|crawl-delay)\s*:/i.test(l))) reasons.push(`unsupported line "${line}"`);
     }
     if (reasons.length) siteFail('IX-01', `${robotsUrl}: ${reasons.join('; ')}`);
@@ -243,6 +255,9 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     }));
   }
 
+  // IX-03 under --as: the page checks above were given no X-Robots-Tag header.
+  if (asOrigin && want('IX-03')) gaps.push(`IX-03 X-Robots-Tag not judged: ${siteUrl.host} is served as ${asOrigin} (the host rule in next.config.ts)`);
+
   // IX-10 the sitemap
   if (want('IX-10')) {
     const reasons = [];
@@ -264,7 +279,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
       if (res.status === 0) { siteFailures.push(transientFailure('IX-10', e.fetchUrl, res, 'listed in the sitemap')); continue; }
       if (res.status !== 200) { siteFail('IX-10', `listed in the sitemap but answers ${statusText(res)}`, e.fetchUrl); continue; }
       const canonical = signals.get(e.fetchUrl).canonical;
-      if (canonical.length === 1 && /^https?:\/\//i.test(canonical[0]) && !sameUrl(canonical[0], e.loc)) {
+      if (canonical.length === 1 && /^https?:\/\//i.test(canonical[0]) && !sameUrl(local(canonical[0]), local(e.loc))) {
         siteFail('IX-10', `listed as ${e.loc} but the page's canonical is ${canonical[0]}`, e.fetchUrl);
       }
     }
@@ -294,7 +309,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
       const image = signals.get(u).og.image;
       if (!image) continue;
       let img;
-      try { img = new URL(image, u).href; } catch { addPageReason(u, 'IX-12', `og:image "${image}" is not a URL`); continue; }
+      try { img = local(new URL(image, u).href); } catch { addPageReason(u, 'IX-12', `og:image "${image}" is not a URL`); continue; }
       extra.push(headOnce(img).then((res) => {
         const type = res.headers['content-type'] ?? '';
         if (res.status === 0) addPageReason(u, 'IX-12', `${statusText(res)}: og:image ${img}, want 200`, true);
@@ -304,7 +319,7 @@ export async function runAudit({ site, config, fetcher, baseline = null, only = 
     }
     const favicon = `${site}/favicon.ico`;
     const withManifest = [home, ...targets].find((u) => ok(u) && manifestHref(pages.get(u).body, u));
-    const manifest = withManifest ? manifestHref(pages.get(withManifest).body, withManifest) : `${site}/manifest.webmanifest`;
+    const manifest = withManifest ? local(manifestHref(pages.get(withManifest).body, withManifest)) : `${site}/manifest.webmanifest`;
     for (const icon of [favicon, manifest]) {
       extra.push(headOnce(icon).then((res) => {
         if (res.status === 0) siteFailures.push(transientFailure('IX-12', home, res, `${icon}, want 200`));
@@ -357,9 +372,9 @@ export function exitCodeFor(result) {
   return allFailures(result).length ? 1 : 0;
 }
 
-/** CLI flags → { site, only, url, baseline, findings, runDir, json }; throws on an unknown flag or a bad check id. */
+/** CLI flags → { site, as, only, url, baseline, findings, runDir, json }; throws on an unknown flag or a bad check id. */
 export function parseArgs(argv) {
-  const opts = { site: null, only: null, url: null, baseline: null, findings: false, runDir: null, json: false };
+  const opts = { site: null, as: null, only: null, url: null, baseline: null, findings: false, runDir: null, json: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -368,6 +383,7 @@ export function parseArgs(argv) {
       return v;
     };
     if (a === '--site') opts.site = value();
+    else if (a === '--as') opts.as = value();
     else if (a === '--only') {
       opts.only = value().split(',').map((s) => s.trim().toUpperCase()).filter(Boolean);
       const bad = opts.only.filter((id) => !IX_IDS.includes(id));
@@ -403,6 +419,7 @@ async function main(argv) {
   try {
     opts = parseArgs(argv);
     if (opts.site && !/^https?:$/.test(new URL(opts.site).protocol)) throw new Error(`--site ${opts.site} is not an http(s) URL`);
+    if (opts.as && !/^https?:$/.test(new URL(opts.as).protocol)) throw new Error(`--as ${opts.as} is not an http(s) URL`);
     if (opts.baseline) baseline = readBaseline(opts.baseline);
   } catch (e) {
     console.error(`seo-audit: ${e.message}`);
@@ -415,7 +432,7 @@ async function main(argv) {
   const say = opts.json ? (s) => console.error(s) : (s) => console.log(s);
   try {
     const client = makeFetcher({ ua: DEFAULT_UA, concurrency: 4, timeoutMs: 15000, redirect: 'manual' });
-    const result = await runAudit({ site, config, fetcher: client, baseline, only: opts.only, url: opts.url, runId });
+    const result = await runAudit({ site, config, fetcher: client, baseline, only: opts.only, url: opts.url, asOrigin: opts.as, runId });
     say(digestHeader(result));
     const ids = [...new Set(allFailures(result).map((f) => f.id))];
     for (const id of ids) say(`seo-audit: FAIL ${id} · ${new Set(allFailures(result).filter((f) => f.id === id).map((f) => f.url)).size} url(s)`);

@@ -14,10 +14,15 @@ from django.conf import settings
 
 from trivia.data_pipeline.curated_players import playable_rows
 
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
+
 # Row-major hex ids 0..27. Even rows flush, odd rows indented +0.5 (honeycomb).
 ROW_WIDTHS = [4, 5, 5, 5, 5, 4]  # == 28 playable hexes
 
 CURRENT_YEAR = datetime.now(timezone.utc).year
+# Start year of the season being played (or the last one, before October).
+CURRENT_SEASON = CURRENT_YEAR if datetime.now(timezone.utc).month >= 10 else CURRENT_YEAR - 1
 
 
 def _centers():
@@ -68,6 +73,7 @@ def player_matches(p, c):
             "roty": a["roty"] is not None,
             "smoy": len(a["smoy"]) > 0,
             "ring": len(a["rings"]) > 0,
+            "allstar": a["allstar_count"] >= 1,
             "allstar5plus": a["allstar_count"] >= 5,
             "allnba": a["allnba_count"] > 0,
         }.get(v, False)
@@ -85,6 +91,8 @@ def player_matches(p, c):
             return False
         # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
         # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+        if v == "pick1":
+            return d["pick"] == 1
         if v == "top5":
             return 1 <= d["pick"] <= 5
         if v == "lottery":
@@ -113,10 +121,14 @@ def player_matches(p, c):
         ds = _decade_start(v)
         if ds is None:
             return False
+        # A season belongs to the decade it starts in (2009-10 is the 2000s): a stint's seasons start
+        # start_year .. end_year - 1, an open one's through the current season.
         return any(
-            s["start_year"] <= ds + 9 and (s["end_year"] or CURRENT_YEAR) >= ds
+            s["start_year"] <= ds + 9 and max((s["end_year"] or CURRENT_SEASON + 1) - 1, s["start_year"]) >= ds
             for s in p["teams"]
         )
+    if t == "position":
+        return p.get("position") in POSITION_CODES.get(v, ())
     return False
 
 

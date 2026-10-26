@@ -22,6 +22,8 @@ CURATED_PATH = os.environ.get("NBA_GRID_CURATED") or os.path.join(
     BASE, "data_static", "players_curated.json"
 )
 CURRENT_YEAR = date.today().year
+# Start year of the season being played (or the last one, before October).
+CURRENT_SEASON = CURRENT_YEAR if date.today().month >= 10 else CURRENT_YEAR - 1
 MIN_PER_CELL = 3
 
 # backend/ on the path so the shared pool rule imports whether this runs as
@@ -29,6 +31,9 @@ MIN_PER_CELL = 3
 sys.path.insert(0, os.path.dirname(BASE))
 
 from trivia.data_pipeline.curated_players import playable_rows  # noqa: E402
+
+# `position` values → the dataset's position codes (G, F, C, G-F, F-C); a hybrid counts for both positions.
+POSITION_CODES = {"guard": ("G", "G-F"), "forward": ("F", "G-F", "F-C"), "center": ("C", "F-C")}
 
 
 def _decade_start(value):
@@ -49,6 +54,7 @@ def player_matches(p, c):
             "roty": a.get("roty") is not None,
             "smoy": len(a.get("smoy", [])) > 0,
             "ring": len(a.get("rings", [])) > 0,
+            "allstar": a.get("allstar_count", 0) >= 1,
             "allstar5plus": a.get("allstar_count", 0) >= 5,
             "allnba": a.get("allnba_count", 0) > 0,
         }.get(v, False)
@@ -66,6 +72,8 @@ def player_matches(p, c):
             return False
         # Territorial picks carry round 0 / pick 0, so a bare "<= 5" would count
         # Wilt Chamberlain as a top-5 pick. A real pick is >= 1.
+        if v == "pick1":
+            return d["pick"] == 1
         if v == "top5":
             return 1 <= d["pick"] <= 5
         if v == "lottery":
@@ -92,11 +100,15 @@ def player_matches(p, c):
         ds = _decade_start(v)
         if ds is None:
             return False
+        # A season belongs to the decade it starts in (2009-10 is the 2000s): a stint's seasons start
+        # start_year .. end_year - 1, an open one's through the current season.
         return any(
             s.get("start_year", 9999) <= ds + 9
-            and (s.get("end_year") or CURRENT_YEAR) >= ds
+            and max((s.get("end_year") or CURRENT_SEASON + 1) - 1, s.get("start_year", 9999)) >= ds
             for s in p.get("teams", [])
         )
+    if t == "position":
+        return p.get("position") in POSITION_CODES.get(v, ())
     return False
 
 

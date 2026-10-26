@@ -56,10 +56,10 @@ class AdminQuestionsTests(TestCase):
         res = self.api.get(URL, {"game": "tictactoe"})
         self.assertEqual(res.status_code, 200, res.content)
         body = res.json()
-        self.assertEqual(body["counts"], {"total": 2, "reviewed": 0, "unreviewed": 2, "easy": 0, "medium": 0, "hard": 2})
+        self.assertEqual(body["counts"], {"total": 2, "reviewed": 0, "unreviewed": 2, "by_rule": 0, "easy": 0, "medium": 0, "hard": 2})
         self.assertEqual([r["qid"] for r in body["rows"]], ["ttt-0001", "ttt-0002"])  # the retired board is left out
         first = body["rows"][0]
-        self.assertEqual(first["label"], {"difficulty": "hard", "reviewed": False, "updated_at": None})
+        self.assertEqual(first["label"], {"difficulty": "hard", "reviewed": False, "source": None, "reason": "", "updated_at": None})
         self.assertEqual(first["factory"], {"band": "medium", "difficulty": 0.42})
         board = first["board"]
         self.assertIsNone(board["error"])
@@ -77,7 +77,7 @@ class AdminQuestionsTests(TestCase):
         res = self.label(self.q1, "easy")
         self.assertEqual(res.status_code, 200, res.content)
         self.assertEqual(res.json()["label"]["difficulty"], "easy")
-        self.assertEqual(res.json()["counts"], {"total": 2, "reviewed": 1, "unreviewed": 1, "easy": 1, "medium": 0, "hard": 1})
+        self.assertEqual(res.json()["counts"], {"total": 2, "reviewed": 1, "unreviewed": 1, "by_rule": 0, "easy": 1, "medium": 0, "hard": 1})
         self.assertEqual(QuestionLabel.objects.get(question=self.q1).labeled_by, self.admin)
         self.assertEqual(self.label(self.q1, "medium").json()["counts"]["medium"], 1)  # a change, not a second label
         self.assertEqual(QuestionLabel.objects.count(), 1)

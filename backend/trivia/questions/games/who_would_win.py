@@ -48,15 +48,15 @@ def nickname(name):
 
 
 def _seasons(season):
-    """The playoff seasons a side's season covers: itself, or every season of a decade
-    (end years decade..decade+9)."""
+    """The playoff seasons a side's season covers: itself, or every season of a decade. A season belongs
+    to the decade it starts in, as in every game (the 1990s are 1990-91 .. 1999-00)."""
     m = DECADE_RE.fullmatch(season)
     if m is None:
         rules.check_season(season, "season")
         return [season]
     decade = int(m.group(1)) * 10
     return sorted({r["season"] for r in rules.playoff_rows()
-                   if decade <= rules.season_end_year(r["season"]) <= decade + 9})
+                   if decade <= rules.season_end_year(r["season"]) - 1 <= decade + 9})
 
 
 def _side(side, dataset):

@@ -64,7 +64,7 @@
 .aq-meta { color: var(--muted); font-size: 12.5px; }
 
 /* The Easy / Medium / Hard switch: the thumb takes the label's colour; dark text keeps it readable on all three.
-   A question nobody labeled yet shows Hard (the default) as a faint thumb. */
+   A label the owner has not confirmed (the default Hard, or a rule's label) shows as a faint thumb of its colour. */
 .aq-label { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .aq-seg { display: flex; padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; }
 .aq-seg--easy { --seg-thumb-bg: var(--good); }
@@ -84,9 +84,14 @@
 }
 .aq-seg-item:hover:not(.is-active) { color: var(--text); }
 .aq-seg .aq-seg-item.is-active { color: #111; font-weight: 700; }
-.aq-seg.is-default { --seg-thumb-bg: var(--bad-soft); }
-.aq-seg.is-default .aq-seg-item.is-active { color: var(--bad); }
+.aq-seg--easy.is-faint { --seg-thumb-bg: var(--good-soft); }
+.aq-seg--easy.is-faint .aq-seg-item.is-active { color: var(--good); }
+.aq-seg--medium.is-faint { --seg-thumb-bg: rgba(240, 180, 41, 0.16); }
+.aq-seg--medium.is-faint .aq-seg-item.is-active { color: #f0b429; }
+.aq-seg--hard.is-faint { --seg-thumb-bg: var(--bad-soft); }
+.aq-seg--hard.is-faint .aq-seg-item.is-active { color: var(--bad); }
 .aq-status { min-width: 180px; color: var(--muted); font-size: 12px; }
+.aq-reason { margin: -4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .aq-status.is-bad { color: var(--bad); }
 
 /* The board: a corner, the three column criteria, then each row criterion and its three cells */

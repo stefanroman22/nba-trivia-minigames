@@ -29,6 +29,24 @@
         ],
         "createdAt": "2026-10-15T22:19:21.781Z",
         "reason": "Claude: L27 is a doc comment mentioning <img>; the real img always has src={photo.src} and a silhouette fallback"
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          "scripts/seo/fixtures/onpage/career-path-good.html"
+        ],
+        "createdAt": "2026-10-25T21:54:04.208Z",
+        "reason": "Claude: unstyled test fixture HTML read by scripts/seo/onpage.test.mjs (parser input, never rendered UI)"
+      },
+      {
+        "rule": "skipped-heading",
+        "value": "*",
+        "files": [
+          "scripts/seo/fixtures/onpage/career-path-good.html"
+        ],
+        "createdAt": "2026-10-25T21:54:04.610Z",
+        "reason": "Claude: test fixture for the SEO on-page parser (headings are test data for OP-04/OP-05, not a rendered page)"
       }
     ]
   }

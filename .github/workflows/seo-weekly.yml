@@ -1,8 +1,8 @@
 name: SEO weekly
 # The weekly SEO run (scripts/seo/run.mjs), Mondays 06:00 Europe/Paris, on GitHub's runner: the owner's PC can be off.
 # Full audit of https://swishquest.com, the Search Console pull, the per-URL ledger, the seo agent (claude -p,
-# CLAUDE_CODE_OAUTH_TOKEN as checks-weekly.yml), Notion cards (Source `seo-check …`, Target dev), IndexNow, the Drive
-# export and one Slack line to #agent-frontend. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
+# CLAUDE_CODE_OAUTH_TOKEN as checks-weekly.yml), Notion cards (Source `seo-check …`, Target dev), IndexNow and one
+# Slack line to #agent-frontend. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
 #
 # Start time. GitHub's cron is UTC: 04:00 UTC is 06:00 CEST (summer) and 05:00 CET (winter); 05:00 UTC is the backup.
 # The gate (scripts/seo/ledger.mjs weekly-status, read-only) skips a scheduled trigger when the store already holds an
@@ -10,11 +10,16 @@ name: SEO weekly
 # the first was dropped or failed. GitHub runs scheduled workflows only from main: this file is inert until dev is promoted.
 #
 # What it touches. Tooling: a checkout of dev. Writes: seo/ledger.json and seo/lease.json on the branch checks-state
-# (fast-forward pushes, never force), Notion cards, Drive files, IndexNow pings, one Slack line, and one commit of
+# (fast-forward pushes, never force), Notion cards, IndexNow pings, one Slack line, and one commit of
 # docs/seo/owner-actions.md pushed to dev when the agent changed it (a plain push with this job's token; a rejection,
 # e.g. dev branch protection, is logged and the file stays in the run artifact). The repo is public: logs and the
 # artifact are world-readable, so no Search Analytics number and no secret reaches the console, the log or the
-# artifact (gsc.json, gsc-analytics.json and the exports are never uploaded).
+# artifact (gsc.json and gsc-analytics-pq.json are never uploaded).
+#
+# Phase 2 (on-page) is opt-in: the `areas` input `indexing,onpage` adds the OP checks (scripts/seo/onpage.mjs) and the
+# Search Analytics page × query pull. The schedule passes no --areas (phase 1 only) until the owner changes it.
+# gsc-analytics-pq.json and queries-summary.md (query strings and their numbers) are never uploaded; onpage-summary.md
+# (counts and page evidence only) is. PSI_API_KEY (optional) lets the on-page step read PageSpeed Insights.
 on:
   schedule:
     - cron: "0 4 * * 1"
@@ -40,12 +45,17 @@ on:
         options: ["on", "off"]
         default: "on"
       dry_run:
-        description: "measure and write the run dir only: no store push, card, ping, upload, commit or Slack"
+        description: "measure and write the run dir only: no store push, card, ping, commit or Slack"
         type: boolean
         default: false
       agent_model:
         description: "model of the seo agent"
         default: fable
+      areas:
+        description: "indexing = phase 1 only; indexing,onpage adds the on-page checks (phase 2)"
+        type: choice
+        options: [indexing, "indexing,onpage"]
+        default: indexing
 
 jobs:
   gate:
@@ -88,10 +98,11 @@ jobs:
           AGENTS: ${{ inputs.agents || 'on' }}
           DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
           MODEL: ${{ inputs.agent_model || 'fable' }}
+          AREAS: ${{ inputs.areas && format('--areas {0}', inputs.areas) || '' }}
         run: |
           set -euo pipefail
-          { echo "args=--gsc $GSC --notion $NOTION --slack $SLACK $DRY"; echo "agents=$AGENTS"; echo "model=$MODEL"; } >> "$GITHUB_OUTPUT"
-          echo "event ${{ github.event_name }} · gsc $GSC · notion $NOTION · slack $SLACK · agents $AGENTS ($MODEL) $DRY"
+          { echo "args=--gsc $GSC --notion $NOTION --slack $SLACK $DRY $AREAS"; echo "agents=$AGENTS"; echo "model=$MODEL"; } >> "$GITHUB_OUTPUT"
+          echo "event ${{ github.event_name }} · gsc $GSC · notion $NOTION · slack $SLACK · agents $AGENTS ($MODEL) $DRY $AREAS"
       - uses: actions/checkout@v5
         with:
           ref: dev # run.mjs commits docs/seo/owner-actions.md only from a checkout at origin/dev
@@ -126,10 +137,11 @@ jobs:
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           CHECKS_STATE_TOKEN: ${{ github.token }}
+          PSI_API_KEY: ${{ secrets.PSI_API_KEY }} # optional: OP-10 PageSpeed data with --areas indexing,onpage
           AGENTS: ${{ steps.claude.outputs.agents || 'off' }}
           MODEL: ${{ steps.knobs.outputs.model }}
         run: node scripts/seo/run.mjs --holder "cloud-${{ github.run_id }}" --agents "$AGENTS" --agent-model "$MODEL" ${{ steps.knobs.outputs.args }}
-      - name: Run files (14 days; no Search Console data, no exports)
+      - name: Run files (14 days; no Search Console data)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -143,3 +155,4 @@ jobs:
             .ui-check/seo/runs/*/REPORT.md
             .ui-check/seo/runs/*/ledger-summary.md
             .ui-check/seo/runs/*/owner-actions.md
+            .ui-check/seo/runs/*/onpage-summary.md

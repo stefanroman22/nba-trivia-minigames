@@ -3,13 +3,15 @@
 // owner-actions commit and the Slack line.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { emptyLedger } from './lib/ledger.mjs';
 import { validateFindings } from './lib/findings.mjs';
 import { seoLine } from './lib/slack.mjs';
-import { SECRET_ENV, agentPrompt, commitOwnerActions, parseArgs, runWeekly, searchConsoleStep } from './run.mjs';
+import { SECRET_ENV, agentPrompt, commitOwnerActions, onpageStep, parseArgs, runWeekly, searchConsoleStep } from './run.mjs';
 
 const SITE = 'https://swishquest.com';
 const NOW = Date.parse('2026-10-26T05:00:00Z');
@@ -33,6 +35,21 @@ const auditResult = (runId) => ({
   counts: { urls: 4, pass: 3, fail: 1 },
 });
 
+/**
+ * An OnpageResult (onpage.json): OP-02 on the home page, OP-02 and OP-05 on /wordle, OP-07 on /nba_grid → 2 failing
+ * checks that can be a card (OP-07 never is, so it does not count).
+ */
+const onpageResult = (runId) => ({
+  runId, site: SITE, gaps: [],
+  urls: {
+    [`${SITE}/`]: { status: 200, path: '/', kind: 'home', failures: [{ id: 'OP-02', url: `${SITE}/`, evidence: 'title 12 characters' }] },
+    [`${SITE}/wordle`]: { status: 200, path: '/wordle', kind: 'game', failures: [
+      { id: 'OP-02', url: `${SITE}/wordle`, evidence: 'no brand suffix' }, { id: 'OP-05', url: `${SITE}/wordle`, evidence: '10 unique words' }] },
+    [`${SITE}/nba_grid`]: { status: 200, path: '/nba_grid', kind: 'game', failures: [{ id: 'OP-07', url: `${SITE}/nba_grid`, evidence: 'underscore in the path' }] },
+  },
+  counts: { urls: 3, pass: 0, fail: 3 },
+});
+
 /** Every dep faked; `calls` records the step order. `over` replaces deps (ledgerStore fields merge). */
 function fakes(over = {}) {
   const calls = [];
@@ -50,6 +67,10 @@ function fakes(over = {}) {
     ownerActionsChanged: () => false,
     commitOwnerActions: rec('commitOwnerActions', () => ({ status: 'pushed' })),
     audit: rec('audit', ({ runId }) => auditResult(runId)),
+    onpage: rec('onpage', ({ runId, runDir }) => {
+      writeFileSync(path.join(runDir, 'onpage-summary.md'), `# seo-onpage: run ${runId} · site ${SITE} · 2 urls · 2 failing checks\n\n## FAIL OP-05 content\n- ${SITE}/wordle: 10 unique words\n`);
+      return onpageResult(runId);
+    }),
     gsc: rec('gsc', ({ urls }) => ({
       inspections: Object.fromEntries(urls.map((u) => [u, u.endsWith('/trivia')
         ? { verdict: 'NEUTRAL', coverageState: 'Crawled - currently not indexed', inspectedAt: '2026-10-26T05:00:00.000Z' }
@@ -66,7 +87,6 @@ function fakes(over = {}) {
     }),
     notionPush: rec('notion', () => ({ results: [{ action: 'card', id: 'x', cardId: 'c1' }, { action: 'skip', id: 'y', cardId: 'c2', why: 'open' }] })),
     indexnow: rec('indexnow', () => ({ code: 0, record: { at: '2026-10-26T05:01:00.000Z', status: 202, count: 1, urls: [`${SITE}/trivia`], dryRun: false } })),
-    exportDrive: rec('export', () => ({ code: 0, drive: 'ok' })),
     postLine: rec('slack', () => ({ ok: true })),
     ...over,
     ledgerStore: {
@@ -122,7 +142,7 @@ test('runWeekly runs the steps in order, merges the ledger and appends the histo
   const o = opts();
   const r = await runWeekly(o, deps);
   assert.equal(r.code, 0);
-  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'notion', 'indexnow', 'export', 'push', 'slack', 'release']);
+  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'notion', 'indexnow', 'push', 'slack', 'release']);
   const runDir = path.join(o.home, 'seo', 'runs', r.state.runId);
   assert.ok(existsSync(path.join(runDir, 'ledger-previous.json')));
   assert.match(readFileSync(path.join(runDir, 'ledger-summary.md'), 'utf8'), /# Ledger summary/);
@@ -136,7 +156,7 @@ test('runWeekly runs the steps in order, merges the ledger and appends the histo
   assert.equal(ledger.dataAsOf.indexnow, '2026-10-26T05:01:00.000Z');
   assert.equal(ledger.history.length, 1);
   assert.deepEqual(ledger.history[0], { runId: r.state.runId, at: new Date(NOW).toISOString(), status: 'ok', indexed: 2, notIndexed: 1, failedChecks: 1, cards: 1 });
-  assert.equal(r.line, `seo: run ${r.state.runId} · 4 urls · indexed 2 · not indexed 1 · audit fails 1 · cards 1 new/1 seen · owner actions 0 · drive ok · 0 s`);
+  assert.equal(r.line, `seo: run ${r.state.runId} · 4 urls · indexed 2 · not indexed 1 · audit fails 1 · cards 1 new/1 seen · owner actions 0 · 0 s`);
   assert.deepEqual(seen.slack, r.line);
 });
 
@@ -206,7 +226,7 @@ test('the agent throws: the run goes on, REPORT.md is the placeholder and the li
   const o = opts();
   const r = await runWeekly(o, deps);
   assert.equal(r.code, 0);
-  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'indexnow', 'export', 'push', 'slack', 'release']);
+  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'agent', 'indexnow', 'push', 'slack', 'release']);
   assert.match(r.line, / · judgement needed$/);
   const report = readFileSync(path.join(o.home, 'seo', 'runs', r.state.runId, 'REPORT.md'), 'utf8');
   assert.match(report, /## Summary\n+judgement needed/);
@@ -354,28 +374,226 @@ test('the Slack post throws: exit 1 and the lease is still released', async () =
   assert.deepEqual(r.state.failures, ['slack: slack.mjs crashed']);
 });
 
-test('searchConsoleStep writes gsc.json, gsc-analytics.json and a short summary without any Search Analytics value', async () => {
+test('searchConsoleStep writes gsc.json and a short summary; no Search Analytics pull without pageQuery', async () => {
   const runDir = tmp();
+  let analyticsCalls = 0;
   const client = {
     sitemaps: async () => [{ path: `${SITE}/sitemap.xml`, errors: 0, warnings: 1, isPending: false }],
     inspect: async (u) => (u.endsWith('/x') ? { error: 'budget' } : { verdict: 'PASS', coverageState: 'Submitted and indexed', inspectedAt: '2026-10-26T05:00:00.000Z' }),
-    analytics: async () => [{ keys: [`${SITE}/`], clicks: 98765, impressions: 43210, ctr: 0.0123, position: 7.5 }],
+    analytics: async () => { analyticsCalls += 1; return []; },
   };
-  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`, `${SITE}/x`], runDir, config: CONFIG, client, now: () => NOW });
+  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`, `${SITE}/x`], runDir, config: CONFIG, client });
   assert.equal(r.error, null);
+  assert.equal(analyticsCalls, 0);
   assert.deepEqual(Object.keys(read(path.join(runDir, 'gsc.json'))), [`${SITE}/`, `${SITE}/x`]);
-  assert.equal(read(path.join(runDir, 'gsc-analytics.json'))[0].clicks, 98765);
+  assert.ok(!existsSync(path.join(runDir, 'gsc-analytics.json')));
   const md = readFileSync(path.join(runDir, 'gsc-summary.md'), 'utf8');
   assert.ok(md.trimEnd().split('\n').length <= 10);
   assert.match(md, /verdict: PASS 1/);
   assert.match(md, /errors: budget 1/);
-  for (const v of ['98765', '43210', '0.0123', '7.5']) assert.ok(!md.includes(v), `${v} in the summary`);
+  assert.ok(!md.includes('analytics'), 'no analytics line');
 });
 
 test('seoLine: the one Slack line', () => {
   const s = { runId: '20261026-0600-seo', urls: 17, indexed: 14, notIndexed: 1, auditFails: 0, cards: { new: 1, seen: 2 }, ownerActions: 1,
-    drive: 'ok', durationMs: 7 * 60_000 + 10_000, judgementNeeded: false, failures: [] };
-  assert.equal(seoLine(s), 'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · drive ok · 7 min');
-  assert.equal(seoLine({ ...s, drive: 'skipped', durationMs: 42_000, judgementNeeded: true }),
-    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · drive skipped · 42 s · judgement needed');
+    durationMs: 7 * 60_000 + 10_000, judgementNeeded: false, failures: [] };
+  assert.equal(seoLine(s), 'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · 7 min');
+  assert.equal(seoLine({ ...s, durationMs: 42_000, judgementNeeded: true }),
+    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · cards 1 new/2 seen · owner actions 1 · 42 s · judgement needed');
+  assert.equal(seoLine({ ...s, onpageFails: 4 }),
+    'seo: run 20261026-0600-seo · 17 urls · indexed 14 · not indexed 1 · audit fails 0 · onpage fails 4 · cards 1 new/2 seen · owner actions 1 · 7 min');
+  assert.equal(seoLine({ ...s, onpageFails: 0 }), seoLine(s).replace(' · cards', ' · onpage fails 0 · cards'));
+  assert.equal(seoLine({ ...s, onpageFails: null }), seoLine(s), 'no on-page step, no on-page part');
+});
+
+// ---- Phase 2 (on-page): opt-in through --areas
+
+const OLD_PROMPT = (runDir, site) => `Load the seo skill, then the seo-indexing skill. Run dir: ${runDir}. Site: ${site}. Write ${runDir}/findings.json and docs/seo/owner-actions.md per the skill. Return ≤ 10 lines.`;
+
+test('parseArgs --areas: default indexing; indexing,onpage in any order, deduped; onpage alone or an unknown area is an error', () => {
+  assert.deepEqual(parseArgs([]).areas, ['indexing']);
+  assert.deepEqual(parseArgs(['--areas', 'indexing']).areas, ['indexing']);
+  for (const v of ['indexing,onpage', 'onpage,indexing', 'onpage, indexing,onpage', 'indexing,indexing,onpage']) {
+    assert.deepEqual(parseArgs(['--areas', v]).areas, ['indexing', 'onpage'], v);
+  }
+  assert.throws(() => parseArgs(['--areas', 'onpage']), /--areas onpage needs indexing/);
+  for (const bad of [['--areas', 'queries'], ['--areas', 'indexing,perf'], ['--areas', ','], ['--areas']]) {
+    assert.throws(() => parseArgs(bad), Error, bad.join(' '));
+  }
+});
+
+test('run.mjs --areas onpage exits 2 with a clear message before any step', () => {
+  const runMjs = fileURLToPath(new URL('./run.mjs', import.meta.url));
+  const home = tmp();
+  const r = spawnSync(process.execPath, [runMjs, '--areas', 'onpage', '--home', home], { encoding: 'utf8', env: { ...process.env, CHECKS_STATE_TOKEN: '' } });
+  assert.equal(r.status, 2, r.stdout + r.stderr);
+  assert.match(r.stdout, /^seo-run: --areas onpage needs indexing/m);
+  assert.ok(!existsSync(path.join(home, 'seo')), 'nothing written');
+});
+
+test('agentPrompt: the default is byte-for-byte the phase 1 prompt; with onpage the three-skill prompt', () => {
+  const runDir = path.join('C:', 'h', 'seo', 'runs', '20261026-0600-seo');
+  assert.equal(agentPrompt(runDir, SITE), OLD_PROMPT(runDir, SITE));
+  assert.equal(agentPrompt(runDir, SITE, { onpage: false }), OLD_PROMPT(runDir, SITE));
+  assert.equal(agentPrompt(runDir, SITE, { onpage: true }),
+    `Load the seo skill, then the seo-indexing skill, then the seo-onpage skill. Run dir: ${runDir}. Site: ${SITE}. Write ${runDir}/findings.json and docs/seo/owner-actions.md per the skills. Return ≤ 10 lines.`);
+});
+
+test('the default run (no --areas) is phase 1 exactly: no on-page step, no page × query pull, the old prompt and line', async () => {
+  const { deps, calls, seen } = fakes();
+  const o = opts();
+  const r = await runWeekly(o, deps);
+  const runDir = path.join(o.home, 'seo', 'runs', r.state.runId);
+  assert.ok(!calls.includes('onpage'));
+  assert.deepEqual(Object.keys(seen.gsc).sort(), ['creds', 'runDir', 'urls']);
+  assert.equal(seen.agent.prompt, OLD_PROMPT(runDir, SITE));
+  assert.ok(!/onpage/.test(r.line));
+  assert.ok(!existsSync(path.join(runDir, 'onpage-summary.md')));
+});
+
+test('--areas indexing,onpage: audit, gsc with the page × query pull, then the on-page step; the new prompt; onpage fails on the line', async () => {
+  const { deps, calls, seen, lines } = fakes({
+    gsc: async (a) => {
+      calls.push('gsc'); seen.gsc = a;
+      if (a.pageQuery) writeFileSync(path.join(a.runDir, 'gsc-analytics-pq.json'), '[]\n');
+      return { inspections: Object.fromEntries(a.urls.map((u) => [u, { verdict: 'PASS', coverageState: 'Submitted and indexed', inspectedAt: '2026-10-26T05:00:00.000Z' }])) };
+    },
+  });
+  const o = opts(['--areas', 'indexing,onpage']);
+  const r = await runWeekly(o, deps);
+  const runDir = path.join(o.home, 'seo', 'runs', r.state.runId);
+  assert.equal(r.code, 0, r.state.failures.join('\n'));
+  assert.deepEqual(calls, ['lease', 'pull', 'audit', 'gsc', 'onpage', 'agent', 'notion', 'indexnow', 'push', 'slack', 'release']);
+  assert.equal(seen.gsc.pageQuery, true);
+  assert.deepEqual(seen.onpage, { site: SITE, runId: r.state.runId, runDir, analyticsFile: path.join(runDir, 'gsc-analytics-pq.json') });
+  assert.equal(seen.agent.prompt, agentPrompt(runDir, SITE, { onpage: true }));
+  // OP-02 and OP-05 count; OP-07 (never a card) does not.
+  assert.ok(lines.includes('onpage: 3 urls · 2 failing checks'), lines.join('\n'));
+  assert.match(r.line, / · audit fails 1 · onpage fails 2 · cards /);
+  assert.equal(r.state.onpageFails, 2);
+});
+
+test('onpage fails counts only the OP ids that can be a card (not OP-07, not OP-11)', async () => {
+  const only = (ids) => async ({ runId }) => ({ ...onpageResult(runId), urls: { [`${SITE}/x`]: { status: 200, path: '/x', kind: 'game', failures: ids.map((id) => ({ id, url: `${SITE}/x`, evidence: 'e' })) } } });
+  for (const [ids, n] of [[['OP-07'], 0], [['OP-07', 'OP-11'], 0], [['OP-07', 'OP-10'], 1], [['OP-01', 'OP-08', 'OP-11'], 2]]) {
+    const { deps } = fakes({ onpage: only(ids) });
+    const r = await runWeekly(opts(['--areas', 'indexing,onpage']), deps);
+    assert.equal(r.state.onpageFails, n, ids.join(','));
+    assert.match(r.line, new RegExp(` · onpage fails ${n} · `));
+  }
+});
+
+test('--areas indexing,onpage: a throwing gsc step still runs the on-page step, with no analytics file', async () => {
+  const { deps, calls, seen } = fakes({ gsc: async () => { calls.push('gsc'); throw new Error('token refresh failed'); } });
+  const r = await runWeekly(opts(['--areas', 'indexing,onpage']), deps);
+  assert.equal(r.code, 1);
+  assert.deepEqual(calls.slice(0, 5), ['lease', 'pull', 'audit', 'gsc', 'onpage']);
+  assert.equal(seen.onpage.analyticsFile, null);
+  assert.equal(seen.onpage.runId, r.state.runId);
+  assert.equal(r.state.onpageFails, 2);
+  assert.match(r.line, /failed: gsc: token refresh failed/);
+});
+
+test('--areas indexing,onpage with --gsc off and no agent: the on-page step runs without analytics; REPORT.md placeholder carries its summary', async () => {
+  const { deps, calls, seen } = fakes();
+  const o = opts(['--areas', 'indexing,onpage', '--gsc', 'off', '--agents', 'off']);
+  const r = await runWeekly(o, deps);
+  const runDir = path.join(o.home, 'seo', 'runs', r.state.runId);
+  assert.deepEqual(calls.slice(0, 4), ['lease', 'pull', 'audit', 'onpage']);
+  assert.equal(seen.onpage.analyticsFile, null);
+  const report = readFileSync(path.join(runDir, 'REPORT.md'), 'utf8');
+  assert.match(report, /## On-page \(onpage-summary\.md\)\n\n## seo-onpage: run /);
+  assert.ok(!report.includes('queries-summary'), 'the private file never reaches REPORT.md');
+});
+
+test('the on-page step throws: failed: onpage on the line, no onpage fails part, the run goes on', async () => {
+  const { deps, calls } = fakes({ onpage: async () => { calls.push('onpage'); throw new Error('every page request failed (ECONNREFUSED)'); } });
+  const r = await runWeekly(opts(['--areas', 'indexing,onpage']), deps);
+  assert.equal(r.code, 1);
+  assert.ok(calls.includes('agent') && calls.includes('push') && calls.includes('release'));
+  assert.ok(!/onpage fails/.test(r.line));
+  assert.match(r.line, /failed: onpage: every page request failed/);
+});
+
+test('searchConsoleStep with pageQuery: gsc-analytics-pq.json (page × query); the summary has neither values nor query strings', async () => {
+  const runDir = tmp();
+  const asked = [];
+  const client = {
+    sitemaps: async () => [],
+    inspect: async () => ({ verdict: 'PASS', coverageState: 'Submitted and indexed', inspectedAt: '2026-10-26T05:00:00.000Z' }),
+    analytics: async (a) => {
+      asked.push(a);
+      return [{ keys: [`${SITE}/wordle`, 'secret nba query'], clicks: 31337, impressions: 4242, ctr: 0.0731, position: 9.25 }];
+    },
+  };
+  const r = await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir, config: CONFIG, client, pageQuery: true });
+  assert.equal(r.error, null);
+  assert.deepEqual(asked, [{ days: 28, dimensions: ['page', 'query'] }]);
+  assert.equal(read(path.join(runDir, 'gsc-analytics-pq.json'))[0].keys[1], 'secret nba query');
+  assert.ok(!existsSync(path.join(runDir, 'gsc-analytics.json')));
+  const md = readFileSync(path.join(runDir, 'gsc-summary.md'), 'utf8');
+  assert.match(md, /page × query: 28 days in gsc-analytics-pq\.json \(private: never uploaded\)/);
+  for (const v of ['31337', '4242', '0.0731', '9.25', 'secret nba query']) assert.ok(!md.includes(v), `${v} in the summary`);
+
+  // Without pageQuery: no analytics call, as phase 1, and no page × query file or line.
+  const plain = tmp();
+  asked.length = 0;
+  await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir: plain, config: CONFIG, client });
+  assert.deepEqual(asked, []);
+  assert.ok(!existsSync(path.join(plain, 'gsc-analytics-pq.json')));
+  assert.ok(!readFileSync(path.join(plain, 'gsc-summary.md'), 'utf8').includes('page × query'));
+
+  // A failed page × query pull is the step's error (and a summary line), never a crash.
+  const failing = { ...client, analytics: async (a) => { if (a.dimensions) throw new Error('analytics: 403'); return []; } };
+  const bad = await searchConsoleStep({ creds: null, urls: [`${SITE}/`], runDir: tmp(), config: CONFIG, client: failing, pageQuery: true });
+  assert.equal(bad.error, 'page × query analytics: analytics: 403');
+});
+
+test('onpageStep runs onpage.mjs in the run dir: onpage.json back, queries-summary.md only with analytics, PSI only with a key, no query in the log', async () => {
+  const page = (title) => `<!doctype html><html><head><title>${title}</title></head><body><main><h1>${title}</h1></main></body></html>`;
+  const bodies = {
+    '/sitemap.xml': `<?xml version="1.0"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${SITE}/</loc></url><url><loc>${SITE}/wordle</loc></url><url><loc>${SITE}/contexto</loc></url></urlset>`,
+    '/': page('Swish Quest'), '/wordle': page('Wordle'), '/contexto': page('Contexto'),
+  };
+  const fetcher = { get: async (u) => { const b = bodies[new URL(u).pathname]; return b ? { status: 200, headers: {}, body: b, location: null } : { status: 404, headers: {}, body: '', location: null }; } };
+  const runId = '20261026-0600-seo';
+  const run = async ({ analytics = false, env = {}, fetch } = {}) => {
+    const runDir = path.join(tmp(), runId);
+    let analyticsFile = null;
+    if (analytics) {
+      analyticsFile = path.join(runDir, 'gsc-analytics-pq.json');
+      mkdirSync(runDir, { recursive: true });
+      writeFileSync(analyticsFile, JSON.stringify([{ keys: [`${SITE}/wordle`, 'secret nba query'], clicks: 31337, impressions: 4242, ctr: 0.0731, position: 9.25 }]));
+    }
+    const logged = [];
+    const result = await onpageStep({ site: SITE, runId, runDir, analyticsFile, env, fetcher, fetch, log: (m) => logged.push(m), toLog: (m) => logged.push(m) });
+    return { runDir, result, logged };
+  };
+  const plain = await run();
+  assert.equal(plain.result.runId, runId);
+  assert.ok(plain.result.counts.urls >= 3);
+  assert.ok(existsSync(path.join(plain.runDir, 'onpage.json')) && existsSync(path.join(plain.runDir, 'onpage-summary.md')));
+  assert.ok(!existsSync(path.join(plain.runDir, 'queries-summary.md')));
+  assert.match(readFileSync(path.join(plain.runDir, 'onpage-summary.md'), 'utf8'), /run with --psi and env PSI_API_KEY/);
+
+  const withData = await run({ analytics: true });
+  assert.ok(existsSync(path.join(withData.runDir, 'queries-summary.md')));
+  for (const v of ['secret nba query', '31337', '4242']) assert.ok(!withData.logged.join('\n').includes(v), `${v} logged`);
+
+  let psiCalls = 0;
+  const keyed = await run({ env: { PSI_API_KEY: 'K-123' }, fetch: async () => { psiCalls += 1; return new Response('{}', { status: 429 }); } });
+  assert.equal(psiCalls, 1);
+  assert.ok(!keyed.logged.join('\n').includes('K-123'));
+
+  await assert.rejects(onpageStep({ site: SITE, runId, runDir: path.join(tmp(), runId), analyticsFile: null, env: {}, fetcher: { get: async () => ({ status: 500, headers: {}, body: '' }) }, log: () => {}, toLog: () => {} }),
+    /sitemap\.xml answered 500/);
+
+  // The on-page run id is the weekly run's: onpage.mjs names it after the run dir, and a dir of another name is refused.
+  assert.equal(plain.result.runId, path.basename(plain.runDir));
+  await assert.rejects(onpageStep({ site: SITE, runId, runDir: path.join(tmp(), 'not-a-run-id'), analyticsFile: null, env: {}, fetcher, toLog: () => {} }),
+    /onpage\.json has run id \d{8}-\d{4}-seo, want the weekly run's 20261026-0600-seo/);
+});
+
+test('the agent never gets PSI_API_KEY', () => {
+  assert.ok(SECRET_ENV.includes('PSI_API_KEY'));
 });

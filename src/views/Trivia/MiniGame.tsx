@@ -42,6 +42,10 @@ import "../../styles/MiniGame.css";
 // several games with 100-230px of dead space above the Exit button.
 
 const RAIL_STRIP_KEY = "sq:rail-strip-x";
+// Shortest time the loader stays up after Play (Rule 3.1), counted from the press while the data
+// loads: the idle fade-out plus the loader's fade-in take 500 ms (Stage), so it is fully on screen
+// for ~300 ms and never flashes.
+const LOADING_HOLD_MS = 800;
 
 function MiniGame() {
   // Opacity-only idle swap under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
@@ -158,20 +162,18 @@ function MiniGame() {
     setReview(undefined);
     awardedRef.current = false;
     runIdRef.current += 1;
-    // The account's seen set (signed in): fetched during the warm-up, waited on for at most 1.5 s.
-    const seenSync = syncSeenFromServer(game.id);
-    setTimeout(async () => {
-      if (!game) return;
-      await seenSync;
-      const result = await game.fetchData();
-      if (result.success) {
-        setGameData(result.data ?? []);
-      } else {
-        game.handleError(result.error ?? { title: "Something went wrong", message: "Please try again." });
-        setGameStarted(false);
-      }
-      setLoading(false);
-    }, 2000);
+    // The data loads during the hold: the account's seen set first (signed in, waited on for at most
+    // 1.5 s), then the game's data.
+    const hold = new Promise((resolve) => setTimeout(resolve, LOADING_HOLD_MS));
+    const data = syncSeenFromServer(game.id).then(() => game.fetchData());
+    const [result] = await Promise.all([data, hold]);
+    if (result.success) {
+      setGameData(result.data ?? []);
+    } else {
+      game.handleError(result.error ?? { title: "Something went wrong", message: "Please try again." });
+      setGameStarted(false);
+    }
+    setLoading(false);
   };
 
   const handleRestart = async () => {

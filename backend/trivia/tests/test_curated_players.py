@@ -351,6 +351,13 @@ def _awards_body():
     return _body(_result_set("PlayerAwards", ["PERSON_ID", "DESCRIPTION", "SEASON"], []))
 
 
+_GAME_HEADERS = ["SEASON_ID", "TEAM_ID", "TEAM_ABBREVIATION", "GAME_DATE", "PTS", "REB", "AST"]
+
+
+def _games_body(games=()):
+    return _body(_result_set("LeagueGameFinderResults", _GAME_HEADERS, games))
+
+
 class _FakeHTTPResponse:
     def __init__(self, text, status_code=200):
         self.url = "https://stats.nba.com/stats/test"
@@ -389,6 +396,7 @@ class EmptyApiResponseTests(TestCase):
             "commonplayerinfo": bodies.get("info", _info_body()),
             "playercareerstats": bodies.get("career", _career_body()),
             "playerawards": bodies.get("awards", _awards_body()),
+            "leaguegamefinder": bodies.get("games", _games_body()),
         })
         NBAStatsHTTP.set_session(session)
         self.addCleanup(NBAStatsHTTP.set_session, None)
@@ -422,6 +430,22 @@ class EmptyApiResponseTests(TestCase):
                                          "rpg": 0.0, "apg": 0.0, "seasons": 0})
         self.assertEqual(curated.check_plausibility(rows), [])
         self.assertEqual(curated.check_cross_stints(rows), [])
+
+    def test_an_empty_career_is_rebuilt_from_the_game_finder(self):
+        # Mike Penberthy: PlayerCareerStats answers {} although he played 56 games for the 2000-02 Lakers.
+        lal = 1610612747
+        self._serve(career="{}", games=_games_body([
+            ["22000", lal, "LAL", "2000-11-01T00:00:00", 5, 1, 2],
+            ["22000", lal, "LAL", "2001-04-17T00:00:00", 7, 0, 1],
+            ["22001", lal, "LAL", "2001-11-02T00:00:00", 3, 1, 0],
+        ]))
+        profile = sources.fetch_player_profile(2130, pause=0)
+        self.assertEqual([(r["SEASON_ID"], r["GP"], r["PTS"]) for r in profile["career"]], [("2000-01", 2, 12), ("2001-02", 1, 3)])
+        self.assertEqual(profile["career_totals"], [{"GP": 3, "PTS": 15, "REB": 2, "AST": 3}])
+        row = curated.build_row(profile, {}, {}, {lal: "LAL"}, {})
+        self.assertEqual([(s["abbr"], s["start_year"], s["end_year"], s["gp"]) for s in row["teams"]], [("LAL", 2000, 2002, 3)])
+        self.assertEqual(row["career"]["seasons"], 2)
+        self.assertEqual(curated.check_plausibility([row]), [])
 
     def test_the_empty_answer_costs_one_call_and_no_backoff(self):
         session = self._serve(career="{}")
@@ -590,6 +614,20 @@ class PlausibilityCheckTests(TestCase):
             [], {"pts": 0, "reb": 0, "ast": 0, "ppg": 0.0, "rpg": 0.0,
                  "apg": 0.0, "seasons": 0},
         )]), [])
+
+    def test_rebounds_average_over_the_seasons_that_counted_them(self):
+        seasons = [_season("1948-49", 1610612747, "MNL", 60, 1698, reb=None), _season("1950-51", 1610612747, "MNL", 68, 1932, reb=958)]
+        career = curated.build_career([{"GP": 128, "PTS": 3630, "REB": 958, "AST": 400}], seasons)
+        self.assertEqual((career["ppg"], career["rpg"], career["apg"]), (28.4, 14.1, 3.1))  # rpg over 68 games, not 128
+
+    def test_a_career_before_rebound_counts_may_average_above_rebounds_over_all_games(self):
+        # George Mikan: 13.4 rpg over his 1950-54 games, 9.5 over all of them (none counted before 1950-51).
+        mikan = {"pts": 10156, "reb": 4167, "ast": 1245, "ppg": 23.1, "rpg": 13.4, "apg": 2.8, "seasons": 7}
+        self.assertEqual(curated.check_plausibility([self._row([{"abbr": "LAL", "start_year": 1948, "gp": 439}], mikan)]), [])
+        # The same numbers on a modern career are still wrong.
+        problems = curated.check_plausibility([self._row([{"abbr": "LAL", "start_year": 1990, "gp": 439}], mikan)])
+        self.assertEqual(len(problems), 1)
+        self.assertIn("career rpg 13.4", problems[0])
 
     def test_impossible_seasons_count_is_flagged(self):
         problems = curated.check_plausibility([self._row(

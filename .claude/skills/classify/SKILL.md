@@ -36,6 +36,8 @@ accepted, so do not re-derive it:
 4. Grep `docs/team/CODE_MAP.md` for nouns in the spec; collect up to 10 relevant entries.
 5. Apply the difficulty rubric, then the model rubric. If the card has a Difficulty override, it wins.
 
+A card that adds a page or a game, changes metadata, the sitemap or robots, or whose `source` starts with `seo-check` lists `docs/constraints/SEO_CONSTRAINTS.md` in `docs`.
+
 ## Difficulty rubric (drives risk / design-round — unchanged)
 - **trivial** — docs/copy/config/single-file change, no logic branches.
 - **standard** — one area, bounded logic, existing patterns cover it. Also: a spec whose body

@@ -120,16 +120,38 @@ async function deal(gameId) {
 // names is the manifest's players-names.json: an array of NamesEntry objects
 // ({ id, full_name, aliases, ... }, mirrors src/types/types.tsx), not tuples —
 // same shape src/utils/questions.ts's buildNameLookup consumes.
+// Mirrors buildNameLookup: `toIds` gives every player of a typed name (namesakes like the two Eddie Johnsons), exact
+// full names and aliases first, then the names that only differ by a Jr./Sr./II/III suffix, then a typed suffix the
+// name does not carry; `toId` is the first. Keys are normalized without spaces ("Shaquille O Neal").
+const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)\.?$/i;
+const nameKey = (s) => normalizeAnswer(s).replace(/\s+/g, "");
 function nameLookup(names) {
-  const toId = new Map();
+  const exact = new Map();
+  const loose = new Map();
   const nameOf = new Map();
+  const add = (m, key, id) => {
+    if (!key) return;
+    const ids = m.get(key);
+    if (!ids) m.set(key, [id]);
+    else if (!ids.includes(id)) ids.push(id);
+  };
   for (const n of names) {
     nameOf.set(n.id, n.full_name);
-    const c = normalizeAnswer(n.full_name);
-    if (c && !toId.has(c)) toId.set(c, n.id);
-    for (const a of n.aliases || []) { const k = normalizeAnswer(a); if (k && !toId.has(k)) toId.set(k, n.id); }
+    add(exact, nameKey(n.full_name), n.id);
+    for (const a of n.aliases || []) add(exact, nameKey(a), n.id);
+    for (const s of [n.full_name, ...(n.aliases || [])]) {
+      if (NAME_SUFFIX.test(s)) add(loose, nameKey(s.replace(NAME_SUFFIX, "")), n.id);
+    }
   }
-  return { toId: (g) => toId.get(normalizeAnswer(g)) ?? null, nameOf: (id) => nameOf.get(id) ?? null };
+  const toIds = (g) => {
+    const key = nameKey(g);
+    const out = [];
+    for (const ids of [exact.get(key), loose.get(key)]) for (const id of ids || []) if (!out.includes(id)) out.push(id);
+    const typed = String(g).trim();
+    const bare = !out.length && NAME_SUFFIX.test(typed) ? typed.replace(NAME_SUFFIX, "") : null;
+    return bare ? [...(exact.get(nameKey(bare)) || [])] : out;
+  };
+  return { toId: (g) => toIds(g)[0] ?? null, toIds, nameOf: (id) => nameOf.get(id) ?? null };
 }
 
 function _setForTest(fixture) { testFiles = fixture ? fixture.files : null; manifest = null; files.clear(); warned.clear(); }

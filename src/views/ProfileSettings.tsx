@@ -17,6 +17,7 @@ import { useProfilePhoto } from "../hooks/useProfilePhoto";
 import { useLogout } from "../hooks/useLogout";
 import Navigation from "../components/Navigation";
 import SwapText from "../components/motion/SwapText";
+import AutoHeight from "../components/motion/AutoHeight";
 import PasswordRules from "../components/PasswordRules";
 import PhotoAgePrompt from "../components/PhotoAgePrompt";
 import { Button } from "../components/ui";
@@ -298,38 +299,41 @@ export default function ProfileSettings() {
             </div>
           </div>
 
-          <div className="ps-row">
-            <div className="ps-row-main">
-              <span className="ps-label">Profile photo</span>
-              <span className="ps-value ps-muted">{user.profile_photo ? "Shown to other players" : "No photo"}</span>
+          {/* The two inline age forms open and close here: the card glides with them (UI-23). */}
+          <AutoHeight>
+            <div className="ps-row">
+              <div className="ps-row-main">
+                <span className="ps-label">Profile photo</span>
+                <span className="ps-value ps-muted">{user.profile_photo ? "Shown to other players" : "No photo"}</span>
+              </div>
+              <div className="ps-row-actions">
+                <label htmlFor="ps-photo" className="ps-link-btn">Change</label>
+                <input id="ps-photo" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+                {user.profile_photo && <button className="ps-link-btn ps-link-btn--muted" onClick={handleRemovePhoto}>Remove</button>}
+              </div>
             </div>
-            <div className="ps-row-actions">
-              <label htmlFor="ps-photo" className="ps-link-btn">Change</label>
-              <input id="ps-photo" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
-              {user.profile_photo && <button className="ps-link-btn ps-link-btn--muted" onClick={handleRemovePhoto}>Remove</button>}
-            </div>
-          </div>
-          <PhotoAgePrompt open={agePrompt} saving={ageSaving} error={ageError} onSubmit={submitAge} onCancel={cancelAge} />
+            <PhotoAgePrompt open={agePrompt} saving={ageSaving} error={ageError} onSubmit={submitAge} onCancel={cancelAge} />
 
-          <div className="ps-row">
-            <div className="ps-row-main">
-              <span className="ps-label">Date of birth</span>
-              <span className="ps-value ps-muted">{ageLabel}</span>
+            <div className="ps-row">
+              <div className="ps-row-main">
+                <span className="ps-label">Date of birth</span>
+                <span className="ps-value ps-muted">{ageLabel}</span>
+              </div>
+              {/* The rule shows on hover (a disabled button shows no tooltip of its own, so it sits on the wrapper). */}
+              <span title={ageLocked ? `${AGE_RULE} You have used both.` : `${AGE_RULE}${user?.age_sets_left === 1 ? " 1 left." : ""}`}>
+                <button
+                  className="ps-link-btn"
+                  onClick={() => { setAgeErr(""); setAgeOpen((v) => !v); }}
+                  aria-expanded={ageOpen}
+                  disabled={ageLocked}
+                  style={ageLocked ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
+                >
+                  <SwapText>{ageOpen ? "Cancel" : user?.age_group ? "Change" : "Set"}</SwapText>
+                </button>
+              </span>
             </div>
-            {/* The rule shows on hover (a disabled button shows no tooltip of its own, so it sits on the wrapper). */}
-            <span title={ageLocked ? `${AGE_RULE} You have used both.` : `${AGE_RULE}${user?.age_sets_left === 1 ? " 1 left." : ""}`}>
-              <button
-                className="ps-link-btn"
-                onClick={() => { setAgeErr(""); setAgeOpen((v) => !v); }}
-                aria-expanded={ageOpen}
-                disabled={ageLocked}
-                style={ageLocked ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
-              >
-                <SwapText>{ageOpen ? "Cancel" : user?.age_group ? "Change" : "Set"}</SwapText>
-              </button>
-            </span>
-          </div>
-          <PhotoAgePrompt settings open={ageOpen} saving={ageBusy} error={ageErr} onSubmit={saveAge} onCancel={() => setAgeOpen(false)} />
+            <PhotoAgePrompt settings open={ageOpen} saving={ageBusy} error={ageErr} onSubmit={saveAge} onCancel={() => setAgeOpen(false)} />
+          </AutoHeight>
         </section>
 
         {/* Your data */}

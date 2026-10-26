@@ -5,9 +5,9 @@
       {
         "id": 0,
         "criterion": {
-          "type": "team",
-          "value": "MIL",
-          "label": "Milwaukee Bucks"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           1,
@@ -17,9 +17,9 @@
       {
         "id": 1,
         "criterion": {
-          "type": "team",
-          "value": "CHI",
-          "label": "Chicago Bulls"
+          "type": "stat",
+          "value": "rpg10",
+          "label": "10+ RPG career"
         },
         "neighbors": [
           0,
@@ -31,9 +31,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "era",
-          "value": "2020s",
-          "label": "Played in the 2020s"
+          "type": "team",
+          "value": "PHX",
+          "label": "Phoenix Suns"
         },
         "neighbors": [
           1,
@@ -45,9 +45,9 @@
       {
         "id": 3,
         "criterion": {
-          "type": "draft",
-          "value": "round2",
-          "label": "2nd-round pick"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           2,
@@ -59,8 +59,8 @@
         "id": 4,
         "criterion": {
           "type": "draft",
-          "value": "decade-2010s",
-          "label": "Drafted in the 2010s"
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           0,
@@ -73,9 +73,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "team",
-          "value": "PHX",
-          "label": "Phoenix Suns"
+          "type": "draft",
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           1,
@@ -90,8 +90,8 @@
         "id": 6,
         "criterion": {
           "type": "draft",
-          "value": "decade-2010s",
-          "label": "Drafted in the 2010s"
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           2,
@@ -105,9 +105,9 @@
       {
         "id": 7,
         "criterion": {
-          "type": "team",
-          "value": "SAS",
-          "label": "San Antonio Spurs"
+          "type": "award",
+          "value": "fmvp",
+          "label": "Finals MVP"
         },
         "neighbors": [
           3,
@@ -120,9 +120,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "draft",
-          "value": "round2",
-          "label": "2nd-round pick"
+          "type": "era",
+          "value": "1980s",
+          "label": "Played in the 80s"
         },
         "neighbors": [
           7,
@@ -133,8 +133,8 @@
         "id": 9,
         "criterion": {
           "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           4,
@@ -145,9 +145,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           4,
@@ -161,9 +161,9 @@
       {
         "id": 11,
         "criterion": {
-          "type": "era",
-          "value": "2020s",
-          "label": "Played in the 2020s"
+          "type": "team",
+          "value": "PHX",
+          "label": "Phoenix Suns"
         },
         "neighbors": [
           5,
@@ -177,9 +177,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           6,
@@ -193,9 +193,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "award",
+          "value": "mvp",
+          "label": "MVP"
         },
         "neighbors": [
           7,
@@ -208,9 +208,9 @@
       {
         "id": 14,
         "criterion": {
-          "type": "team",
-          "value": "DAL",
-          "label": "Dallas Mavericks"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           9,
@@ -223,9 +223,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "stat",
+          "value": "20kpts",
+          "label": "20,000+ pts"
         },
         "neighbors": [
           10,
@@ -239,9 +239,9 @@
       {
         "id": 16,
         "criterion": {
-          "type": "team",
-          "value": "PHI",
-          "label": "Philadelphia 76ers"
+          "type": "draft",
+          "value": "top5",
+          "label": "Top-5 pick"
         },
         "neighbors": [
           11,
@@ -256,8 +256,8 @@
         "id": 17,
         "criterion": {
           "type": "era",
-          "value": "2020s",
-          "label": "Played in the 2020s"
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           12,
@@ -272,8 +272,8 @@
         "id": 18,
         "criterion": {
           "type": "draft",
-          "value": "decade-2010s",
-          "label": "Drafted in the 2010s"
+          "value": "lottery",
+          "label": "Lottery pick"
         },
         "neighbors": [
           13,
@@ -284,9 +284,9 @@
       {
         "id": 19,
         "criterion": {
-          "type": "team",
-          "value": "LAL",
-          "label": "Los Angeles Lakers"
+          "type": "award",
+          "value": "fmvp",
+          "label": "Finals MVP"
         },
         "neighbors": [
           14,
@@ -297,9 +297,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "draft",
-          "value": "decade-2000s",
-          "label": "Drafted in the 2000s"
+          "type": "stat",
+          "value": "25kpts",
+          "label": "25,000+ pts"
         },
         "neighbors": [
           14,
@@ -313,9 +313,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "era",
-          "value": "2020s",
-          "label": "Played in the 2020s"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           15,
@@ -329,9 +329,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "stat",
+          "value": "ppg20",
+          "label": "20+ PPG career"
         },
         "neighbors": [
           16,
@@ -345,9 +345,9 @@
       {
         "id": 23,
         "criterion": {
-          "type": "team",
-          "value": "GSW",
-          "label": "Golden State Warriors"
+          "type": "stat",
+          "value": "20kpts",
+          "label": "20,000+ pts"
         },
         "neighbors": [
           17,
@@ -359,9 +359,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "stat",
+          "value": "20kpts",
+          "label": "20,000+ pts"
         },
         "neighbors": [
           19,
@@ -373,8 +373,8 @@
         "id": 25,
         "criterion": {
           "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "value": "2020s",
+          "label": "Played in the 2020s"
         },
         "neighbors": [
           20,
@@ -386,9 +386,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "team",
-          "value": "DEN",
-          "label": "Denver Nuggets"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           21,
@@ -400,9 +400,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "team",
+          "value": "LAL",
+          "label": "Los Angeles Lakers"
         },
         "neighbors": [
           22,
@@ -1657,9 +1657,9 @@
       {
         "id": 0,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           1,
@@ -1683,9 +1683,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "team",
-          "value": "NYK",
-          "label": "New York Knicks"
+          "type": "era",
+          "value": "1980s",
+          "label": "Played in the 80s"
         },
         "neighbors": [
           1,
@@ -1697,9 +1697,9 @@
       {
         "id": 3,
         "criterion": {
-          "type": "team",
-          "value": "DEN",
-          "label": "Denver Nuggets"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           2,
@@ -1710,9 +1710,9 @@
       {
         "id": 4,
         "criterion": {
-          "type": "team",
-          "value": "NYK",
-          "label": "New York Knicks"
+          "type": "award",
+          "value": "ring",
+          "label": "Won a ring"
         },
         "neighbors": [
           0,
@@ -1725,9 +1725,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "team",
+          "value": "HOU",
+          "label": "Houston Rockets"
         },
         "neighbors": [
           1,
@@ -1741,9 +1741,9 @@
       {
         "id": 6,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "team",
+          "value": "DAL",
+          "label": "Dallas Mavericks"
         },
         "neighbors": [
           2,
@@ -1758,8 +1758,8 @@
         "id": 7,
         "criterion": {
           "type": "team",
-          "value": "BOS",
-          "label": "Boston Celtics"
+          "value": "MIL",
+          "label": "Milwaukee Bucks"
         },
         "neighbors": [
           3,
@@ -1772,9 +1772,9 @@
       {
         "id": 8,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "stat",
+          "value": "20kpts",
+          "label": "20,000+ pts"
         },
         "neighbors": [
           7,
@@ -1784,9 +1784,9 @@
       {
         "id": 9,
         "criterion": {
-          "type": "draft",
-          "value": "undrafted",
-          "label": "Undrafted"
+          "type": "team",
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           4,
@@ -1797,9 +1797,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "team",
-          "value": "HOU",
-          "label": "Houston Rockets"
+          "type": "draft",
+          "value": "undrafted",
+          "label": "Undrafted"
         },
         "neighbors": [
           4,
@@ -1813,9 +1813,9 @@
       {
         "id": 11,
         "criterion": {
-          "type": "team",
-          "value": "NYK",
-          "label": "New York Knicks"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           5,
@@ -1829,9 +1829,9 @@
       {
         "id": 12,
         "criterion": {
-          "type": "draft",
-          "value": "decade-2000s",
-          "label": "Drafted in the 2000s"
+          "type": "era",
+          "value": "1980s",
+          "label": "Played in the 80s"
         },
         "neighbors": [
           6,
@@ -1845,9 +1845,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           7,
@@ -1860,9 +1860,9 @@
       {
         "id": 14,
         "criterion": {
-          "type": "era",
-          "value": "2010s",
-          "label": "Played in the 2010s"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           9,
@@ -1875,9 +1875,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "era",
-          "value": "2020s",
-          "label": "Played in the 2020s"
+          "type": "team",
+          "value": "HOU",
+          "label": "Houston Rockets"
         },
         "neighbors": [
           10,
@@ -1907,9 +1907,9 @@
       {
         "id": 17,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           12,
@@ -1924,8 +1924,8 @@
         "id": 18,
         "criterion": {
           "type": "team",
-          "value": "BOS",
-          "label": "Boston Celtics"
+          "value": "DAL",
+          "label": "Dallas Mavericks"
         },
         "neighbors": [
           13,
@@ -1936,9 +1936,9 @@
       {
         "id": 19,
         "criterion": {
-          "type": "team",
-          "value": "ATL",
-          "label": "Atlanta Hawks"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           14,
@@ -1950,8 +1950,8 @@
         "id": 20,
         "criterion": {
           "type": "team",
-          "value": "HOU",
-          "label": "Houston Rockets"
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           14,
@@ -1965,9 +1965,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           15,
@@ -1981,9 +1981,9 @@
       {
         "id": 22,
         "criterion": {
-          "type": "team",
-          "value": "LAL",
-          "label": "Los Angeles Lakers"
+          "type": "era",
+          "value": "1990s",
+          "label": "Played in the 90s"
         },
         "neighbors": [
           16,
@@ -1997,9 +1997,9 @@
       {
         "id": 23,
         "criterion": {
-          "type": "draft",
-          "value": "lottery",
-          "label": "Lottery pick"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           17,
@@ -2011,9 +2011,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "draft",
-          "value": "decade-2000s",
-          "label": "Drafted in the 2000s"
+          "type": "team",
+          "value": "MIL",
+          "label": "Milwaukee Bucks"
         },
         "neighbors": [
           19,
@@ -2024,9 +2024,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "college",
-          "value": "none",
-          "label": "No college"
+          "type": "team",
+          "value": "CHI",
+          "label": "Chicago Bulls"
         },
         "neighbors": [
           20,
@@ -2038,9 +2038,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "draft",
-          "value": "decade-2000s",
-          "label": "Drafted in the 2000s"
+          "type": "team",
+          "value": "HOU",
+          "label": "Houston Rockets"
         },
         "neighbors": [
           21,
@@ -2052,9 +2052,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "team",
-          "value": "CLE",
-          "label": "Cleveland Cavaliers"
+          "type": "era",
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           22,
@@ -3722,9 +3722,9 @@
       {
         "id": 0,
         "criterion": {
-          "type": "team",
-          "value": "GSW",
-          "label": "Golden State Warriors"
+          "type": "award",
+          "value": "allnba",
+          "label": "All-NBA"
         },
         "neighbors": [
           1,
@@ -3734,9 +3734,9 @@
       {
         "id": 1,
         "criterion": {
-          "type": "team",
-          "value": "ATL",
-          "label": "Atlanta Hawks"
+          "type": "college",
+          "value": "Kentucky",
+          "label": "Kentucky Wildcats"
         },
         "neighbors": [
           0,
@@ -3748,9 +3748,9 @@
       {
         "id": 2,
         "criterion": {
-          "type": "team",
-          "value": "MIL",
-          "label": "Milwaukee Bucks"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           1,
@@ -3762,9 +3762,9 @@
       {
         "id": 3,
         "criterion": {
-          "type": "draft",
-          "value": "decade-2010s",
-          "label": "Drafted in the 2010s"
+          "type": "team",
+          "value": "CLE",
+          "label": "Cleveland Cavaliers"
         },
         "neighbors": [
           2,
@@ -3775,9 +3775,9 @@
       {
         "id": 4,
         "criterion": {
-          "type": "team",
-          "value": "CLE",
-          "label": "Cleveland Cavaliers"
+          "type": "era",
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           0,
@@ -3790,9 +3790,9 @@
       {
         "id": 5,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "era",
+          "value": "2020s",
+          "label": "Played in the 2020s"
         },
         "neighbors": [
           1,
@@ -3807,8 +3807,8 @@
         "id": 6,
         "criterion": {
           "type": "team",
-          "value": "CHI",
-          "label": "Chicago Bulls"
+          "value": "DAL",
+          "label": "Dallas Mavericks"
         },
         "neighbors": [
           2,
@@ -3838,8 +3838,8 @@
         "id": 8,
         "criterion": {
           "type": "team",
-          "value": "MIA",
-          "label": "Miami Heat"
+          "value": "UTA",
+          "label": "Utah Jazz"
         },
         "neighbors": [
           7,
@@ -3849,9 +3849,9 @@
       {
         "id": 9,
         "criterion": {
-          "type": "draft",
-          "value": "round2",
-          "label": "2nd-round pick"
+          "type": "award",
+          "value": "allstar5plus",
+          "label": "5+ All-Stars"
         },
         "neighbors": [
           4,
@@ -3862,9 +3862,9 @@
       {
         "id": 10,
         "criterion": {
-          "type": "team",
-          "value": "GSW",
-          "label": "Golden State Warriors"
+          "type": "country",
+          "value": "USA",
+          "label": "USA-born"
         },
         "neighbors": [
           4,
@@ -3879,8 +3879,8 @@
         "id": 11,
         "criterion": {
           "type": "team",
-          "value": "ATL",
-          "label": "Atlanta Hawks"
+          "value": "LAL",
+          "label": "Los Angeles Lakers"
         },
         "neighbors": [
           5,
@@ -3910,9 +3910,9 @@
       {
         "id": 13,
         "criterion": {
-          "type": "draft",
-          "value": "decade-2010s",
-          "label": "Drafted in the 2010s"
+          "type": "team",
+          "value": "CLE",
+          "label": "Cleveland Cavaliers"
         },
         "neighbors": [
           7,
@@ -3926,8 +3926,8 @@
         "id": 14,
         "criterion": {
           "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "value": "2010s",
+          "label": "Played in the 2010s"
         },
         "neighbors": [
           9,
@@ -3940,9 +3940,9 @@
       {
         "id": 15,
         "criterion": {
-          "type": "team",
-          "value": "CLE",
-          "label": "Cleveland Cavaliers"
+          "type": "era",
+          "value": "2020s",
+          "label": "Played in the 2020s"
         },
         "neighbors": [
           10,
@@ -3957,8 +3957,8 @@
         "id": 16,
         "criterion": {
           "type": "team",
-          "value": "CHI",
-          "label": "Chicago Bulls"
+          "value": "DAL",
+          "label": "Dallas Mavericks"
         },
         "neighbors": [
           11,
@@ -3973,8 +3973,8 @@
         "id": 17,
         "criterion": {
           "type": "era",
-          "value": "2020s",
-          "label": "Played in the 2020s"
+          "value": "2000s",
+          "label": "Played in the 2000s"
         },
         "neighbors": [
           12,
@@ -3989,8 +3989,8 @@
         "id": 18,
         "criterion": {
           "type": "team",
-          "value": "MIL",
-          "label": "Milwaukee Bucks"
+          "value": "SAS",
+          "label": "San Antonio Spurs"
         },
         "neighbors": [
           13,
@@ -4002,8 +4002,8 @@
         "id": 19,
         "criterion": {
           "type": "team",
-          "value": "GSW",
-          "label": "Golden State Warriors"
+          "value": "DEN",
+          "label": "Denver Nuggets"
         },
         "neighbors": [
           14,
@@ -4014,9 +4014,9 @@
       {
         "id": 20,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "draft",
+          "value": "decade-2000s",
+          "label": "Drafted in the 2000s"
         },
         "neighbors": [
           14,
@@ -4030,9 +4030,9 @@
       {
         "id": 21,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "award",
+          "value": "ring",
+          "label": "Won a ring"
         },
         "neighbors": [
           15,
@@ -4063,8 +4063,8 @@
         "id": 23,
         "criterion": {
           "type": "team",
-          "value": "PHI",
-          "label": "Philadelphia 76ers"
+          "value": "DAL",
+          "label": "Dallas Mavericks"
         },
         "neighbors": [
           17,
@@ -4076,9 +4076,9 @@
       {
         "id": 24,
         "criterion": {
-          "type": "stat",
-          "value": "seasons15plus",
-          "label": "15+ seasons"
+          "type": "era",
+          "value": "2020s",
+          "label": "Played in the 2020s"
         },
         "neighbors": [
           19,
@@ -4089,9 +4089,9 @@
       {
         "id": 25,
         "criterion": {
-          "type": "draft",
-          "value": "top5",
-          "label": "Top-5 pick"
+          "type": "team",
+          "value": "CLE",
+          "label": "Cleveland Cavaliers"
         },
         "neighbors": [
           20,
@@ -4103,9 +4103,9 @@
       {
         "id": 26,
         "criterion": {
-          "type": "era",
-          "value": "2000s",
-          "label": "Played in the 2000s"
+          "type": "team",
+          "value": "DAL",
+          "label": "Dallas Mavericks"
         },
         "neighbors": [
           21,
@@ -4117,9 +4117,9 @@
       {
         "id": 27,
         "criterion": {
-          "type": "country",
-          "value": "USA",
-          "label": "USA-born"
+          "type": "stat",
+          "value": "seasons15plus",
+          "label": "15+ seasons"
         },
         "neighbors": [
           22,

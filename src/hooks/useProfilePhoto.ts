@@ -1,12 +1,13 @@
 import { useRef, useState, type ChangeEvent } from "react";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
-import { updateProfilePhoto } from "../store/userSlice";
+import { updateAge, updateProfilePhoto } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
 import { isBanPayload } from "../utils/ban";
 import { showErrorAlert } from "../utils/Alerts";
 import { PhotoPrepError, prepareProfilePhoto } from "../utils/imagePrep";
 import { BACKEND_URL } from "../configurations/backend";
+import { LEGAL } from "../configurations/legal";
 
 /** Change / remove the profile photo. Shared by the landing profile card and the Profile settings page.
  *
@@ -89,10 +90,22 @@ export function useProfilePhoto() {
         setAgeError(data?.error || "We couldn't save that. Please try again.");
         return;
       }
+      // Same mapping as Profile settings' own age form, so the Date of birth row and the change count
+      // follow without a reload (the server has already counted this as one of the two age sets).
+      dispatch(updateAge({
+        age_group: data?.user?.age_group ?? "",
+        profile_photo: data?.user?.profile_photo ?? null,
+        birth_month: data?.user?.birth_month ?? null,
+        birth_year: data?.user?.birth_year ?? null,
+        age_sets_left: data?.user?.age_sets_left ?? 0,
+      }));
       setAgePrompt(false);
       const photo = heldPhoto.current;
       heldPhoto.current = null;
-      if (photo) {
+      // Under 16: no photo is allowed, so the held one is dropped (and the player told why) instead of being sent again.
+      if (photo && data?.user?.age_group !== "adult") {
+        showErrorAlert(`Profile photos are for players aged ${LEGAL.photoMinimumAge} and over.`, "Photo not allowed");
+      } else if (photo) {
         setUploadingPhoto(true);
         try {
           await sendPhoto(photo);

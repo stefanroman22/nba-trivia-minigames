@@ -12,10 +12,10 @@ export const TEXT_MIN = 300;
 
 const NAMED_ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' };
 // A start tag up to its closing ">", skipping any ">" inside quoted attribute values.
-const ATTRS = `((?:[^>"']|"[^"]*"|'[^']*')*)`;
+export const ATTRS = `((?:[^>"']|"[^"]*"|'[^']*')*)`;
 
 /** `s` with numeric and the common named HTML entities decoded (unknown entities are left as written). */
-function decodeEntities(s) {
+export function decodeEntities(s) {
   return s.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (m, e) => {
     if (e[0] !== '#') return NAMED_ENTITIES[e.toLowerCase()] ?? m;
     const cp = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
@@ -24,7 +24,7 @@ function decodeEntities(s) {
 }
 
 /** Attributes of one start tag's attribute source → { lowercased name: decoded value } (first occurrence wins). */
-function parseAttrs(src) {
+export function parseAttrs(src) {
   const out = {};
   for (const m of src.matchAll(/([^\s"'=<>/]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)) {
     const key = m[1].toLowerCase();
@@ -34,12 +34,12 @@ function parseAttrs(src) {
 }
 
 /** Attribute maps of every `<name …>` start tag in `html`, in document order. */
-function startTags(html, name) {
+export function startTags(html, name) {
   return [...html.matchAll(new RegExp(`<${name}\\b${ATTRS}>`, 'gi'))].map((m) => parseAttrs(m[1]));
 }
 
 /** `html` with every `<name>…</name>` element removed (non-greedy, so a nested element of the same name ends early). */
-function dropElements(html, names) {
+export function dropElements(html, names) {
   return names.reduce((h, n) => h.replace(new RegExp(`<${n}\\b${ATTRS}>[\\s\\S]*?</${n}\\s*>`, 'gi'), ' '), html);
 }
 
@@ -48,6 +48,18 @@ const collapse = (s) => s.replace(/\s+/g, ' ').trim();
 /** `u` normalised by the URL parser (so `https://x.com` equals `https://x.com/`); unparsable input is returned as is. */
 function normalizeUrl(u, base) {
   try { return new URL(u, base).href; } catch { return u; }
+}
+
+/**
+ * `u` read on `on` when it is on the origin `asOrigin` (an `--as` run: a local build names the production origin in its
+ * URLs, which are the same paths on the served site); any other input, or no `asOrigin`, is returned as is.
+ */
+export function underOrigin(u, asOrigin, on) {
+  if (!asOrigin) return u;
+  try {
+    const x = new URL(u);
+    return x.origin === asOrigin ? new URL(`${x.pathname}${x.search}${x.hash}`, on).href : u;
+  } catch { return u; }
 }
 
 /** `url` without its query and fragment: the URL a `?ref=x` variant should canonicalise to. */
@@ -78,7 +90,8 @@ function readJsonLd(html) {
 
 /**
  * The indexing signals of one page's server HTML. `url` is the URL the HTML was fetched from; relative links resolve
- * against it and only links to its host count as internal.
+ * against it and only links to its host count as internal. With `asOrigin` (an `--as` run) a link on that origin is
+ * read on `url`'s origin (underOrigin), so it is internal too.
  *
  * Text heuristic (`textLength`): the `<body>` (the whole document when there is none) without comments and without
  * `<script>`, `<style>`, `<nav>`, `<header>` and `<footer>` elements, then every tag replaced by a space, entities
@@ -86,12 +99,12 @@ function readJsonLd(html) {
  * hidden by CSS still counts. `h1Count` likewise counts `<h1>` tags without a `hidden` attribute.
  *
  * @param {string} html
- * @param {{ url: string }} opts
+ * @param {{ url: string, asOrigin?: string|null }} opts
  * @returns {{ title: string|null, description: string|null, canonical: string[], robotsMeta: string[], h1Count: number,
  *   textLength: number, internalLinks: string[], jsonLd: { ok: boolean, blocks: object[], errors: string[] },
  *   og: { title: string|null, description: string|null, image: string|null }, viewport: boolean }}
  */
-export function extractSignals(html, { url }) {
+export function extractSignals(html, { url, asOrigin = null }) {
   const clean = String(html ?? '').replace(/<!--[\s\S]*?-->/g, ' ');
   // Tags are read outside scripts, so markup quoted inside an inline script never counts as a tag.
   const markup = dropElements(clean, ['script']);
@@ -126,6 +139,7 @@ export function extractSignals(html, { url }) {
     if (!href || href.startsWith('#')) continue;
     let target;
     try { target = new URL(href, url); } catch { continue; }
+    if (asOrigin) target = new URL(underOrigin(target.href, asOrigin, url));
     if (!/^https?:$/.test(target.protocol) || target.host !== host) continue;
     target.hash = '';
     if (!internalLinks.includes(target.href)) internalLinks.push(target.href);
@@ -190,7 +204,8 @@ function checkCanonical(s, ctx) {
   }
   const [href] = s.canonical;
   if (!/^https?:\/\//i.test(href)) return [`canonical "${href}" is not absolute`];
-  return normalizeUrl(href) === normalizeUrl(expected) ? [] : [`canonical ${href} differs from the sitemap URL ${expected}`];
+  const local = (u) => underOrigin(normalizeUrl(u), ctx.asOrigin, ctx.url);
+  return local(href) === local(expected) ? [] : [`canonical ${href} differs from the sitemap URL ${expected}`];
 }
 
 function checkTitle(s, ctx) {
@@ -222,6 +237,7 @@ function checkContent(s) {
 
 function checkStructuredData(s, ctx) {
   const canonical = s.canonical.length === 1 ? normalizeUrl(s.canonical[0], ctx.url) : normalizeUrl(ctx.sitemapUrl ?? stripQuery(ctx.url));
+  const local = (u) => underOrigin(u, ctx.asOrigin, ctx.url);
   const reasons = [...s.jsonLd.errors];
   s.jsonLd.blocks.forEach((block, i) => {
     const label = `ld+json block ${i + 1}`;
@@ -232,7 +248,7 @@ function checkStructuredData(s, ctx) {
     for (const node of nodes) {
       if (!node || typeof node !== 'object') continue;
       if (!node['@type']) reasons.push(`${label} has a node without @type`);
-      if (typeof node.url === 'string' && normalizeUrl(node.url, ctx.url) !== canonical) reasons.push(`${label} url ${node.url} differs from the canonical ${canonical}`);
+      if (typeof node.url === 'string' && local(normalizeUrl(node.url, ctx.url)) !== local(canonical)) reasons.push(`${label} url ${node.url} differs from the canonical ${canonical}`);
     }
     const banned = [...findKeys(block, ['aggregateRating', 'review'])];
     if (banned.length) reasons.push(`${label} has ${banned.join(' and ')}`);
@@ -249,11 +265,12 @@ function checkShare(s) {
  * The IX-03…IX-09 and IX-12 failures of one page: at most one Failure per check, its evidence the reasons joined by
  * "; ". An expected-noindex page (ctx.expectNoindex) is only held to IX-03: it must carry noindex (meta or header) and
  * have no sitemap URL; the indexability checks do not apply to it. siteTitles / siteDescriptions map each title /
- * description (as extractSignals returns it) to the URLs that use it.
+ * description (as extractSignals returns it) to the URLs that use it. `asOrigin` (an `--as` run): the canonical, the
+ * sitemap URL and JSON-LD urls are compared modulo that origin (underOrigin onto `url`'s origin).
  *
  * @param {ReturnType<typeof extractSignals>} signals
  * @param {{ url: string, sitemapUrl: string|null, expectNoindex: boolean, xRobotsTag: string|null,
- *   siteTitles: Map<string, string[]>, siteDescriptions: Map<string, string[]> }} ctx
+ *   siteTitles: Map<string, string[]>, siteDescriptions: Map<string, string[]>, asOrigin?: string|null }} ctx
  * @returns {{ id: string, url: string, evidence: string }[]}
  */
 export function checkPage(signals, ctx) {

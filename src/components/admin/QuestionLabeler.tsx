@@ -89,7 +89,14 @@ function QuestionCard({
   onKeyLabel: (e: KeyboardEvent<HTMLElement>, q: AdminQuestion) => void;
 }) {
   const options = DIFFICULTIES.map((d) => ({ key: d, label: DIFFICULTY_LABEL[d] }));
-  const status = saving ? "Saving…" : q.label.reviewed ? `Labeled ${DIFFICULTY_LABEL[q.label.difficulty]}` : "Not reviewed · Hard by default";
+  const byRule = !q.label.reviewed && q.label.source === "rule";
+  const status = saving
+    ? "Saving…"
+    : q.label.reviewed
+      ? `Labeled ${DIFFICULTY_LABEL[q.label.difficulty]}`
+      : byRule
+        ? `${DIFFICULTY_LABEL[q.label.difficulty]} by rule · not reviewed`
+        : "Not reviewed · Hard by default";
   return (
     <article className={`aq-card${q.label.reviewed ? "" : " is-unreviewed"}`} tabIndex={0} data-qid={q.qid} onKeyDown={(e) => onKeyLabel(e, q)}>
       <header className="aq-card-head">
@@ -106,7 +113,7 @@ function QuestionCard({
             options={options}
             value={q.label.difficulty}
             onChange={(d) => onLabel(q, d)}
-            className={`aq-seg aq-seg--${q.label.difficulty}${q.label.reviewed ? "" : " is-default"}`}
+            className={`aq-seg aq-seg--${q.label.difficulty}${q.label.reviewed ? "" : " is-faint"}`}
             itemClassName="aq-seg-item"
             thumbRadius={7}
             aria-label={`Difficulty of ${q.qid}`}
@@ -116,6 +123,7 @@ function QuestionCard({
           </span>
         </div>
       </header>
+      {byRule && q.label.reason && <p className="aq-reason">{q.label.reason}</p>}
       <Board q={q} />
     </article>
   );
@@ -218,7 +226,7 @@ export default function QuestionLabeler({ game, onCounts }: { game: string; onCo
       <div className="aq-progress" aria-label="Labeling progress">
         <div className="aq-progress-line tnum">
           <SwapText swapKey={c ? `${c.reviewed}/${c.total}` : "loading"}>
-            {c ? `${fmt(c.reviewed)} of ${fmt(c.total)} questions reviewed` : "Loading questions…"}
+            {c ? `${fmt(c.reviewed)} of ${fmt(c.total)} questions reviewed by you${c.by_rule ? ` · ${fmt(c.by_rule)} labeled by rule` : ""}` : "Loading questions…"}
           </SwapText>
         </div>
         <div className="aq-progress-track"><div className="aq-progress-fill" style={{ transform: `scaleX(${reviewedPct / 100})` }} /></div>

@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 export const CONFIG_PATH = fileURLToPath(new URL('../config.json', import.meta.url));
 
 /**
- * The parsed config.json → { site, property, expectedNoindex, driveFolderId, indexNowKey, slackChannel, inspectBudget }.
+ * The parsed config.json → { site, property, expectedNoindex, indexNowKey, slackChannel, inspectBudget }.
  * A non-empty env SEO_SITE replaces `site` (trailing slashes dropped).
  */
 export function loadConfig() {
