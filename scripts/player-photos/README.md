@@ -66,4 +66,6 @@ Run it after a data sync adds players, and commit the three files. `npm run chec
   flags faces cut, off-centre, too small, upscaled or missing.
 
 Commons photos are public domain or CC. The CC licenses need the author, the license and a link,
-which `/credits` lists.
+which `/credits` lists (`credit.mjs`): the author without Commons' hidden duplicates, the attribution line a licence
+asks for when Commons gives one, and the source when no author is known but attribution is required. An author that a
+file page states only in its text (no infobox) goes in `credit-overrides.json`, checked by hand against the page.

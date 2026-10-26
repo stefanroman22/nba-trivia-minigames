@@ -1,0 +1,5 @@
+{
+ "_about": "Authors that Commons states only in a file page's text (no Information infobox, so extmetadata has no Artist). Keyed by the file name with spaces, as build.mjs reads it. Checked by hand against the page wikitext.",
+ "Bill Cartwright Univ of San Francisco (cropped).jpg": { "artist": "Shawncalhoun at English Wikipedia (own work)" },
+ "Blocked shots by Oscar Torres.JPG": { "artist": "Massimo Finizio" }
+}

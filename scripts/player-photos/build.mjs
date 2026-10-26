@@ -12,6 +12,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { creditFields, stripHtml } from "./credit.mjs";
 import { loadPlayablePlayers } from "./players.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -19,6 +20,7 @@ const MAP_OUT = join(root, "public", "photos", "player-photos.json");
 const IDS_OUT = join(root, "public", "photos", "player-ids.json");
 const CREDITS_OUT = join(root, "src", "data", "photo-credits.json");
 const EXTRA_IN = join(root, "scripts", "player-photos", "commons-extra.json");
+const CREDIT_OVERRIDES = JSON.parse(readFileSync(join(root, "scripts", "player-photos", "credit-overrides.json"), "utf8"));
 const FACES_IN = join(root, "scripts", "player-photos", "faces.json");
 
 const UA = "SwishQuest-photo-map/1.0 (https://swishquest.com)";
@@ -53,16 +55,7 @@ async function wikidataImages() {
   return byId;
 }
 
-const stripHtml = (s) =>
-  (s ?? "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
-
-/** Commons file name -> { width, mime, artist, license, license_url }, 50 titles a call. */
+/** Commons file name -> { width, mime, artist, attribution?, source?, license, license_url }, 50 titles a call. */
 async function commonsInfo(files) {
   const info = new Map();
   for (let i = 0; i < files.length; i += 50) {
@@ -73,7 +66,7 @@ async function commonsInfo(files) {
       formatversion: "2",
       prop: "imageinfo",
       iiprop: "size|mime|extmetadata",
-      iiextmetadatafilter: "Artist|LicenseShortName|LicenseUrl",
+      iiextmetadatafilter: "Artist|Credit|Attribution|AttributionRequired|LicenseShortName|LicenseUrl",
       titles: batch.map((f) => `File:${f}`).join("|"),
     });
     const r = await retry(() =>
@@ -94,7 +87,7 @@ async function commonsInfo(files) {
         width: ii.width,
         height: ii.height,
         mime: ii.mime,
-        artist: stripHtml(meta.Artist?.value) || "Unknown author",
+        ...creditFields(meta, CREDIT_OVERRIDES[file]),
         license: stripHtml(meta.LicenseShortName?.value) || "See file page",
         license_url: meta.LicenseUrl?.value ?? "",
       });
@@ -183,6 +176,8 @@ for (const p of players) {
     player: p.full_name,
     file: underscored,
     artist: meta.artist,
+    ...(meta.attribution && { attribution: meta.attribution }),
+    ...(meta.source && { source: meta.source }),
     license: meta.license,
     license_url: meta.license_url,
   });

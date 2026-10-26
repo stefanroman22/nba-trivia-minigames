@@ -32,6 +32,33 @@ test("the photo pipeline covers the live pool: curated rows with a team stint", 
   assert.match(PLAYERS_SOURCE.replace(/\\/g, "/"), /backend\/trivia\/data_static\/players_curated\.json$/);
 });
 
+test("credits: author once, the licence's required attribution, the source when the author is unknown", async () => {
+  const { creditFields } = await import("./player-photos/credit.mjs");
+  const v = (value) => ({ value });
+  // Commons repeats "Unknown author" in a hidden span; public domain needs no more.
+  assert.deepEqual(creditFields({ Artist: v('Unknown author<span style="display: none;">Unknown author</span>'), AttributionRequired: v("false") }), { artist: "Unknown author" });
+  // CC BY with no named author: credit the source Commons gives.
+  assert.deepEqual(
+    creditFields({
+      Artist: v('Unknown author<span style="display: none;">Unknown author</span>'),
+      Credit: v('<a rel="nofollow" class="external free" href="http://www.pallacanestrovarese.it/squadra/roster/">http://www.pallacanestrovarese.it/squadra/roster/</a>'),
+      AttributionRequired: v("true"),
+    }),
+    { artist: "Unknown author", source: "http://www.pallacanestrovarese.it/squadra/roster/" },
+  );
+  // A licence that names the attribution to use ("Attribution", CC BY with an attribution line).
+  assert.deepEqual(
+    creditFields({
+      Artist: v("臺北市政府"),
+      Attribution: v('<a href="https://www.wikidata.org/wiki/Q19853359" class="extiw" title="d:Q19853359">Department of Sports, Taipei City Government</a>'),
+    }),
+    { artist: "臺北市政府", attribution: "Department of Sports, Taipei City Government" },
+  );
+  assert.deepEqual(creditFields({ Artist: v("<a href='//commons.wikimedia.org/wiki/User:Keith'>Keith Allison</a> &amp; friends") }), { artist: "Keith Allison & friends" });
+  // An author Commons states only in the page text (no infobox), set by hand in credit-overrides.json.
+  assert.deepEqual(creditFields({ AttributionRequired: v("true") }, { artist: "Massimo Finizio" }), { artist: "Massimo Finizio" });
+});
+
 test("a failed map fetch puts everyone on the silhouette", async () => {
   globalThis.fetch = async () => { throw new Error("offline"); };
   const { loadPhotoMap, photoSource } = await import("../src/utils/playerPhotos.ts?offline");

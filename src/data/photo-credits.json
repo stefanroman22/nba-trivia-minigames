@@ -87,6 +87,7 @@
   "player": "Adam Morrison",
   "file": "Adam_Morrison_Zvezda.jpg",
   "artist": "Bobik at Serbian Wikipedia",
+  "attribution": "Bobik at Serbian Wikipedia",
   "license": "CC BY 3.0 rs",
   "license_url": "https://creativecommons.org/licenses/by/3.0/rs/deed.en"
  },
@@ -156,7 +157,7 @@
  {
   "player": "Adrian Smith",
   "file": "Adrian_Smith_Royals.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -198,7 +199,7 @@
  {
   "player": "Al Bianchi",
   "file": "Al_Bianchi_1958.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -317,7 +318,7 @@
  {
   "player": "Albert King",
   "file": "Albert_King_-_Philips_Milano.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -394,7 +395,7 @@
  {
   "player": "Alex Hannum",
   "file": "Alex_Hannum_1969.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -541,7 +542,7 @@
  {
   "player": "Alvan Adams",
   "file": "Alvan_Adams_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -555,7 +556,7 @@
  {
   "player": "Alvin Robertson",
   "file": "AlvinRobertsonArkansas_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -730,7 +731,7 @@
  {
   "player": "Andrew Levane",
   "file": "Andrew_Levane.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -772,7 +773,7 @@
  {
   "player": "Andy Johnson",
   "file": "Andy_Johnson_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -786,7 +787,7 @@
  {
   "player": "Andy Phillip",
   "file": "Andy_Phillip.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -884,7 +885,7 @@
  {
   "player": "Anthony Cook",
   "file": "Anthony_Cook_-_Arizona_Wildcats.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -899,6 +900,7 @@
   "player": "Anthony Edwards",
   "file": "Anthony_Edwards_Argentina_v_Egypt_7_July_2026-069_(cropped).jpg",
   "artist": "Bryan Berlin",
+  "attribution": "Bryan Berlin / WikiPortraits",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -1045,7 +1047,7 @@
  {
   "player": "Arlen Bockhorn",
   "file": "Arlen_Bockhorn.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1059,7 +1061,7 @@
  {
   "player": "Armen Gilliam",
   "file": "Armon_Gilliam_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1101,7 +1103,7 @@
  {
   "player": "Arnie Risen",
   "file": "Arnie_Risen.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1297,14 +1299,14 @@
  {
   "player": "Belus Smawley",
   "file": "Belus_Smawley_Bennett_ad_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Ben Goldfaden",
   "file": "Ben_Goldfaden.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1374,14 +1376,14 @@
  {
   "player": "Bernard Thompson",
   "file": "Bernard_Thompson_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bernie Fryer",
   "file": "Bernie_Fryer.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1416,14 +1418,14 @@
  {
   "player": "Bill Cartwright",
   "file": "Bill_Cartwright_Univ_of_San_Francisco_(cropped).jpg",
-  "artist": "Unknown author",
+  "artist": "Shawncalhoun at English Wikipedia (own work)",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
  {
   "player": "Bill Chamberlain",
   "file": "Bill_Chamberlain_1969_(2).jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1444,35 +1446,35 @@
  {
   "player": "Bill McGill",
   "file": "Bill_McGill_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bill Miller",
   "file": "Bill_Miller_1948.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bill Russell",
   "file": "Bill_russell_dribbling_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bill Sharman",
   "file": "Bill_Sharman,_Boston_Celtics,_signed.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bill Stricker",
   "file": "Bill_Stricker.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1507,7 +1509,7 @@
  {
   "player": "Billy Gabor",
   "file": "Billy_Gabor.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1605,35 +1607,35 @@
  {
   "player": "Bob Boozer",
   "file": "Bob_Boozer.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Cousy",
   "file": "Bob_Cousy_(1).jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Davies",
   "file": "Bob_Davies.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Davis",
   "file": "Bob_Davis.JPG",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Dille",
   "file": "Bob_Dille.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1661,14 +1663,14 @@
  {
   "player": "Bob Gross",
   "file": "Bob_Gross.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Hahn",
   "file": "Bob_Hahn.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1710,14 +1712,14 @@
  {
   "player": "Bob Leonard",
   "file": "Bobby_Leonard.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Love",
   "file": "BobLove10.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1752,7 +1754,7 @@
  {
   "player": "Bob Pettit",
   "file": "Bob_Pettit_1961.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1780,7 +1782,7 @@
  {
   "player": "Bob Tough",
   "file": "Bob_Tough.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1801,14 +1803,14 @@
  {
   "player": "Bob Weiss",
   "file": "Bob_Weiss.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bob Wiesenhahn",
   "file": "Bob_Wiesenhahn.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1822,7 +1824,7 @@
  {
   "player": "Bob Wilson",
   "file": "Bob_Wilson_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -1857,14 +1859,14 @@
  {
   "player": "Bobby Jones",
   "file": "BobbyJones2.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Bobby Lewis",
   "file": "Bobby_Lewis_1963.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2004,7 +2006,7 @@
  {
   "player": "Brady Walker",
   "file": "Brady_Walker_1946.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2047,6 +2049,7 @@
   "player": "Brandon Davies",
   "file": "2022-03-22_ALBA_Berlin_gegen_FC_Barcelona_Bàsquet_(EuroLeague_2021-22)_by_Sandro_Halank–021.jpg",
   "artist": "Sandro Halank, Wikimedia Commons",
+  "attribution": "Sandro Halank, Wikimedia Commons, CC BY-SA 4.0",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -2158,7 +2161,7 @@
  {
   "player": "Brett Vroman",
   "file": "Brett_Vroman_1973.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2208,6 +2211,7 @@
   "player": "Brian Scalabrine",
   "file": "Brian_Scalabrine_of_the_Boston_Celtics_at_NBA_Media_Day_2007.png",
   "artist": "Original uploader was 8-Hype at en.wikipedia",
+  "attribution": "8-Hype at en.wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -2257,6 +2261,7 @@
   "player": "Bronny James",
   "file": "Bronny_James_Jr._(55095342116)_(cropped).jpg",
   "artist": "Erik Drost",
+  "attribution": "Erik Drost",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0"
  },
@@ -2278,6 +2283,7 @@
   "player": "Bruce Brown",
   "file": "Bruce_Brown_2021.png",
   "artist": "YESNetwork",
+  "attribution": "YESNetwork",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -2313,6 +2319,7 @@
   "player": "Bryce Drew",
   "file": "Bryce_drew.jpg",
   "artist": "Jefe317 (talk) (Uploads)",
+  "attribution": "Jefe317 at English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -2382,7 +2389,7 @@
  {
   "player": "Butch Van Breda Kolff",
   "file": "Butch_van_Breda_Kolff_1968.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2473,7 +2480,7 @@
  {
   "player": "Calvin Garrett",
   "file": "Calvin_Garrett_1982-83_TCMA.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2523,6 +2530,7 @@
   "player": "Cameron Bairstow",
   "file": "Cameron_Bairstow.JPG",
   "artist": "Stephreef",
+  "attribution": "Stephreef at English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -2550,7 +2558,7 @@
  {
   "player": "Carl Braun",
   "file": "Carl_Braun.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2655,7 +2663,7 @@
  {
   "player": "Cazzie Russell",
   "file": "Cazzie_Russell_MVP_(cropped).png",
-  "artist": "File:Cazzie Russell MVP.png: UnknownUnknown (Ensian published by University of Michigan) derivative work: Shakeydeal33",
+  "artist": "File:Cazzie Russell MVP.png: Unknown (Ensian published by University of Michigan) derivative work: Shakeydeal33",
   "license": "Public domain",
   "license_url": ""
  },
@@ -2677,6 +2685,7 @@
   "player": "Cedric Maxwell",
   "file": "Cedric_Maxwell_at_Celtics_alumni_recognition_ceremony-1.jpg",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -2831,20 +2840,21 @@
   "player": "Charlie Hardnett",
   "file": "Charles_Hardnett_Zephyrs_1962.jpg",
   "artist": "Hardnett (talk)",
+  "attribution": "Hardnett at English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
  {
   "player": "Charlie Pittman",
   "file": "Charles_Pittman_1982-83_TCMA.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Charlie Scott",
   "file": "Charlie_Scott.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3013,6 +3023,7 @@
   "player": "Chris Dudley",
   "file": "Chrisdudley.jpg",
   "artist": "Eaglecap Backpack at English Wikipedia",
+  "attribution": "Eaglecap Backpack at English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -3160,6 +3171,7 @@
   "player": "Christian Eyenga",
   "file": "PLK_Eyenga_Stelmet.jpg",
   "artist": "Sebastian Rzepiel",
+  "attribution": "Sebastian Rzepiel / PLK.pl",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -3222,7 +3234,7 @@
  {
   "player": "Chuck Williams",
   "file": "Chuck_Williams.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3341,14 +3353,14 @@
  {
   "player": "Clyde Lovellette",
   "file": "Clyde_Lovellette_1956_(1).jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Coby Dietrick",
   "file": "Coby_Dietrick.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3439,7 +3451,7 @@
  {
   "player": "Connie Hawkins",
   "file": "Connie_Hawkins_ABA_MVP.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3453,7 +3465,7 @@
  {
   "player": "Connie Simmons",
   "file": "Connie_Simmons.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3558,7 +3570,7 @@
  {
   "player": "Coulby Gunther",
   "file": "Colby_Gunther.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3607,7 +3619,7 @@
  {
   "player": "Craig Raymond",
   "file": "Craig_Raymond_1968.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3642,7 +3654,7 @@
  {
   "player": "Curtis Rowe",
   "file": "Curtis_Rowe.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3740,7 +3752,7 @@
  {
   "player": "Dale Schlueter",
   "file": "Dale_Schlueter_and_Wilt_Chamberlain.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -3832,6 +3844,7 @@
   "player": "Damon Stoudamire",
   "file": "Damon_Stoudamire_2021.png",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -3930,6 +3943,7 @@
   "player": "Daniel Orton",
   "file": "2021年12月18日_Daniel_Orton_臺南市政府.jpg",
   "artist": "臺南市政府",
+  "attribution": "Tainan City Government",
   "license": "Attribution",
   "license_url": ""
  },
@@ -4111,7 +4125,7 @@
  {
   "player": "Darrall Imhoff",
   "file": "Darrall_Imhoff.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4188,7 +4202,7 @@
  {
   "player": "Dave DeBusschere",
   "file": "Dave_DeBusschere.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4202,7 +4216,7 @@
  {
   "player": "Dave Gambee",
   "file": "Dave_Gambee.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4244,21 +4258,21 @@
  {
   "player": "Dave Minor",
   "file": "Dave_Minor_1950.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Dave Piontek",
   "file": "Dave_Piontek.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Dave Robisch",
   "file": "Dave_Robisch_1973.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4272,14 +4286,14 @@
  {
   "player": "Dave Twardzik",
   "file": "Dave_Twardzik.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Dave Zeller",
   "file": "Dave_Zeller.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4413,6 +4427,7 @@
   "player": "De'Aaron Fox",
   "file": "DeAaron_Fox_DBZ_2.jpg",
   "artist": "Bandai Namco Entertainment America",
+  "attribution": "Bandai Namco Entertainment America",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -4475,7 +4490,7 @@
  {
   "player": "Deb Smith",
   "file": "Deb_Smith_1942.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4615,7 +4630,7 @@
  {
   "player": "Dennis Layton",
   "file": "Mo_Layton.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4924,6 +4939,7 @@
   "player": "Diamond Stone",
   "file": "Diamond_Stone_2022.jpg",
   "artist": "桃園市政府",
+  "attribution": "Taoyuan City Government",
   "license": "Attribution",
   "license_url": ""
  },
@@ -4937,7 +4953,7 @@
  {
   "player": "Dick Barnett",
   "file": "Dick_Barnett.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -4958,28 +4974,28 @@
  {
   "player": "Dick Garmaker",
   "file": "Dick_Garmaker.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Dick Groat",
   "file": "Dick_Groat_1960.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Dick Hemric",
   "file": "Dick_Hemric.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Dick Mehen",
   "file": "Dick_Mehen_Bennett_ad_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5007,7 +5023,7 @@
  {
   "player": "Dick Schulz",
   "file": "Dick_Schulz.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5105,7 +5121,7 @@
  {
   "player": "Dolph Schayes",
   "file": "Dolph_Schayes.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5140,7 +5156,7 @@
  {
   "player": "Don Barksdale",
   "file": "Don_Barksdale_1948.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5168,7 +5184,7 @@
  {
   "player": "Don Henriksen",
   "file": "Don_Henriksen.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5210,21 +5226,21 @@
  {
   "player": "Don Ray",
   "file": "Don_Ray_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Don Rehfeldt",
   "file": "Don_Rehfeldt_Bennett's_ad_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Don Sunderlage",
   "file": "Don_Sunderlage_1956.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5252,7 +5268,7 @@
  {
   "player": "Donnie Freeman",
   "file": "Donnie_Freeman_1975.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5336,7 +5352,7 @@
  {
   "player": "Dorie Murrey",
   "file": "Dorie_Murrey.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5462,7 +5478,7 @@
  {
   "player": "Dudley Bradley",
   "file": "Dudley_Bradley_1976.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5665,14 +5681,14 @@
  {
   "player": "Ed Macauley",
   "file": "Ed_macauley_1948_photo_cropped.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Ed Manning",
   "file": "Ed_Manning.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5700,7 +5716,7 @@
  {
   "player": "Ed Sadowski",
   "file": "Sadowski_card_variation.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5763,7 +5779,7 @@
  {
   "player": "Eddie Miles",
   "file": "Eddie_Miles_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5840,7 +5856,7 @@
  {
   "player": "Elgin Baylor",
   "file": "Elgin_Baylor_Night_program-(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -5868,14 +5884,14 @@
  {
   "player": "Elvin Hayes",
   "file": "Elvin_Hayes_1969.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Emanuel Leaks",
   "file": "Manny_Leaks.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6029,7 +6045,7 @@
  {
   "player": "Ernie DiGregorio",
   "file": "Digregorio_braves.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6064,7 +6080,7 @@
  {
   "player": "Essie Hollis",
   "file": "Essie_Hollis.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6155,7 +6171,7 @@
  {
   "player": "Floyd Volker",
   "file": "Floyd_Volker.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6239,7 +6255,7 @@
  {
   "player": "Frank Ramsey",
   "file": "Frank_Ramsey_Celtics.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6289,6 +6305,7 @@
   "player": "Fred Hoiberg",
   "file": "Fred_Hoiberg_ISU_Coach.jpg",
   "artist": "Jfurlong at en.wikipedia",
+  "attribution": "Jfurlong at en.wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -6316,7 +6333,7 @@
  {
   "player": "Fred Schaus",
   "file": "Fred_Schaus.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6337,14 +6354,14 @@
  {
   "player": "Freddie Crawford",
   "file": "Frederick_crawford_portrait_1962.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Freddie Lewis",
   "file": "Freddie_Lewis.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6428,7 +6445,7 @@
  {
   "player": "Garfield Smith",
   "file": "Garfield_Smith.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6463,7 +6480,7 @@
  {
   "player": "Gary Bergen",
   "file": "Gary_Bergen.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6491,7 +6508,7 @@
  {
   "player": "Gary Gregor",
   "file": "Gary_Gregor_(1970).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6526,7 +6543,7 @@
  {
   "player": "Gary Phillips",
   "file": "Gary_Phillips_basketball.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6561,7 +6578,7 @@
  {
   "player": "Gene Conley",
   "file": "Gene_Conley_1960_(cropped).JPG",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6575,14 +6592,14 @@
  {
   "player": "Gene Guarilia",
   "file": "Gene_guarilia_1960.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Gene Rock",
   "file": "Gene_Rock_1947_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6610,7 +6627,7 @@
  {
   "player": "George Carter",
   "file": "Georgecarterbona.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "CC0",
   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
  },
@@ -6645,7 +6662,7 @@
  {
   "player": "George King",
   "file": "George_King_(basketball).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6680,14 +6697,14 @@
  {
   "player": "George McGinnis",
   "file": "George_McGinnis_(ca_1972).png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "George Mikan",
   "file": "George_mikan_1958_press_photo.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6708,7 +6725,7 @@
  {
   "player": "George Yardley",
   "file": "George_Yardley_1959.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -6722,7 +6739,8 @@
  {
   "player": "Georgi Glouchkov",
   "file": "Georgi_Glushkov.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
+  "attribution": "Government.bg",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0"
  },
@@ -6842,6 +6860,7 @@
   "player": "Glenn McDonald",
   "file": "Glenn_McDonald_at_Celtics_alumni_recognition_ceremony-2_(cropped).jpg",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -6863,6 +6882,7 @@
   "player": "God Shammgod",
   "file": "God_Shammgod.png",
   "artist": "FOX Sports",
+  "attribution": "FOX Sports",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -7037,7 +7057,7 @@
  {
   "player": "Gus Johnson",
   "file": "Gus_Johnson_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7065,7 +7085,7 @@
  {
   "player": "Guy Sparrow",
   "file": "Guy_Sparrow.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7093,14 +7113,14 @@
  {
   "player": "Hal Greer",
   "file": "Hal_Greer_1969.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Hal Uplinger",
   "file": "Hal_Uplinger_1951.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7128,7 +7148,7 @@
  {
   "player": "Hank Finkel",
   "file": "Hank_Finkel_1969.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7149,7 +7169,7 @@
  {
   "player": "Harold Fox",
   "file": "Harold_Fox_(1972).jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7184,14 +7204,14 @@
  {
   "player": "Harry Barnes",
   "file": "Harry_Barnes_1969.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Harry Gallatin",
   "file": "Harry_Gallatin.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7324,14 +7344,14 @@
  {
   "player": "Horace McKinney",
   "file": "Bones_McKinney.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Horace Walker",
   "file": "Horace_Walker_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7359,14 +7379,14 @@
  {
   "player": "Howard Tidrick",
   "file": "Hal_Tidrick.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Howie Carl",
   "file": "Howie_Carl.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7394,7 +7414,7 @@
  {
   "player": "Hub Reed",
   "file": "Hub_Reed.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7506,7 +7526,7 @@
  {
   "player": "Irv Torgoff",
   "file": "Irv_Torgoff_1946.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7779,14 +7799,14 @@
  {
   "player": "Jack Molinas",
   "file": "Jack_Molinas_1951.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Jack Nichols",
   "file": "Jack_Nichols.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7814,14 +7834,14 @@
  {
   "player": "Jack Turner",
   "file": "Jack_Turner_1962.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Jack Twyman",
   "file": "Jack_Twyman.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -7871,6 +7891,7 @@
   "player": "Jacque Vaughn",
   "file": "Jacque_Vaughn_(Feb_2024)_03.png",
   "artist": "YESNetwork",
+  "attribution": "YESNetwork",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -7878,6 +7899,7 @@
   "player": "Jaden Hardy",
   "file": "Jaden_Hardy.png",
   "artist": "Clocked In TV",
+  "attribution": "Clocked In TV",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -8038,7 +8060,8 @@
  {
   "player": "Jalen Johnson",
   "file": "Jalen-Johnson.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
+  "source": "https://www.youtube.com/watch?v=DtKN0EP8wRw",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0"
  },
@@ -8115,7 +8138,7 @@
  {
   "player": "Jamaal Wilkes",
   "file": "Jamaal_wilkes_ucla_team.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -8186,13 +8209,14 @@
   "player": "James Donaldson",
   "file": "James_Donaldson_01A.jpg",
   "artist": "Joe Mabel",
+  "attribution": "Joe Mabel",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
  {
   "player": "James Edwards",
   "file": "James_Edwards_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -8235,6 +8259,7 @@
   "player": "James Posey",
   "file": "James_Posey.jpg",
   "artist": "Original uploader was Chrisjnelson at en.wikipedia",
+  "attribution": "Chrisjnelson at en.wikipedia",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -8626,7 +8651,7 @@
  {
   "player": "Jay Miller",
   "file": "Jay_Miller.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -8717,7 +8742,7 @@
  {
   "player": "Jeff Cook",
   "file": "Jeff_Cook_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -8788,6 +8813,7 @@
   "player": "Jeff Withey",
   "file": "Jeff_Withey_2013.jpg",
   "artist": "Kinser (talk)",
+  "attribution": "Kinser at English Wikipedia",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -8801,7 +8827,7 @@
  {
   "player": "Jeffrey Crompton",
   "file": "Geoff_Crompton_1976.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -8963,6 +8989,7 @@
   "player": "Jerome Jordan",
   "file": "Jordan-_unniks_(cropped).jpg",
   "artist": "Cristina Ruiz - unniks.com",
+  "attribution": "Cristina Ruiz/Unnika",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -8997,7 +9024,7 @@
  {
   "player": "Jerry Chambers",
   "file": "Jerry_Chambers.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9011,7 +9038,7 @@
  {
   "player": "Jerry Lucas",
   "file": "Jerry_Lucas_1961.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9067,7 +9094,7 @@
  {
   "player": "Jim Ard",
   "file": "Jim_Ard.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9116,7 +9143,7 @@
  {
   "player": "Jim Johnstone",
   "file": "Jim_Johnstone_1982-83_TCMA.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9137,14 +9164,14 @@
  {
   "player": "Jim Loscutoff",
   "file": "Jim_Loscutoff,_Boston_Celtics.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Jim Marsh",
   "file": "Jim_Marsh.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9193,7 +9220,7 @@
  {
   "player": "Jim Pollard",
   "file": "Jim_Pollard.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9214,7 +9241,7 @@
  {
   "player": "Jim Slaughter",
   "file": "JimSlaughter.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9256,14 +9283,14 @@
  {
   "player": "Jimmy Jones",
   "file": "Jimmy_Jones_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Jimmy Walker",
   "file": "Jimmy_Walker1.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9313,6 +9340,7 @@
   "player": "Joe Alexander",
   "file": "Joe_Alexander.JPG",
   "artist": "Blgill (talk)",
+  "attribution": "Blgill at the English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "http://creativecommons.org/licenses/by-sa/3.0/"
  },
@@ -9326,7 +9354,7 @@
  {
   "player": "Joe Buckhalter",
   "file": "Joe_Buckhalter.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9347,14 +9375,14 @@
  {
   "player": "Joe Fulks",
   "file": "Joe_Fulks.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Joe Graboski",
   "file": "Joe_Graboski_1953.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9501,21 +9529,21 @@
  {
   "player": "John Barber",
   "file": "John_Barber_1953.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "John Barnhill",
   "file": "John_Barnhill.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "John Block",
   "file": "John_Block_1969.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9536,7 +9564,7 @@
  {
   "player": "John Clemens",
   "file": "Barry_Clemens.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9550,21 +9578,21 @@
  {
   "player": "John Coughran",
   "file": "John_Coughran_1982-83_TCMA.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "John Dillon",
   "file": "Hook_Dillon.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "John Fairchild",
   "file": "John_Fairchild_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9585,7 +9613,7 @@
  {
   "player": "John Havlicek",
   "file": "John_Havliceck,_Boston_Celtics,_1960s.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9669,7 +9697,7 @@
  {
   "player": "John Pilch",
   "file": "John_Pilch.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9732,14 +9760,14 @@
  {
   "player": "John Trapp",
   "file": "John_Trapp_1969_front.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "John Tresvant",
   "file": "John_Tres.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9767,7 +9795,7 @@
  {
   "player": "John Wetzel",
   "file": "John_Wetzel_(head_coach)-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9788,7 +9816,7 @@
  {
   "player": "Johnny Cox",
   "file": "Johnny_Cox.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9816,7 +9844,7 @@
  {
   "player": "Johnny Green",
   "file": "Johnny_Green_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9837,7 +9865,7 @@
  {
   "player": "Johnny Kerr",
   "file": "John_Kerr_in_Chicago_Bulls_1974-75_Media_Guide.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9858,7 +9886,7 @@
  {
   "player": "Johnny Neumann",
   "file": "Johnny_Neumann_1974.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9872,7 +9900,7 @@
  {
   "player": "Johnny Norlander",
   "file": "Johnny_Norlander.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -9900,7 +9928,7 @@
  {
   "player": "Jojo White",
   "file": "Jojo_white_press_photo.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10076,6 +10104,7 @@
   "player": "Jorge Gutierrez",
   "file": "JorgeGutierrez.JPG",
   "artist": "Stephreef",
+  "attribution": "User:Stephreef",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -10118,6 +10147,7 @@
   "player": "Josh Childress",
   "file": "Josh_Childress.jpg",
   "artist": "Chrisjnelson at English Wikipedia",
+  "attribution": "Chrisjnelson at English Wikipedia",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -10313,7 +10343,7 @@
  {
   "player": "Jud Buechler",
   "file": "Jud_Buechler_-_Arizona_Wildcats.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10349,13 +10379,14 @@
   "player": "Julian Wright",
   "file": "2021年1月3日_Julian_Wright_臺北市政府.jpg",
   "artist": "臺北市政府",
+  "attribution": "Department of Sports, Taipei City Government",
   "license": "Attribution",
   "license_url": ""
  },
  {
   "player": "Julius Erving",
   "file": "Julius_Erving_–_76ers_(1).jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10383,7 +10414,7 @@
  {
   "player": "Junior Bridgeman",
   "file": "Junior_Bridgeman_1977.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10419,6 +10450,7 @@
   "player": "Justin Holiday",
   "file": "Justin_Holiday_2021.png",
   "artist": "Rocky Padila",
+  "attribution": "Rocky Padila",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -10453,7 +10485,7 @@
  {
   "player": "Justus Thigpen",
   "file": "Justus_Thigpen_1968.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10481,7 +10513,7 @@
  {
   "player": "K.C. Jones",
   "file": "K.C._Jones_-_Boston_celtics_1960_(cropped).JPG",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10650,6 +10682,7 @@
   "player": "Kelly Olynyk",
   "file": "Kelly_Olynyk_at_Celtics_alumni_recognition_ceremony-1.jpg",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -10677,7 +10710,7 @@
  {
   "player": "Ken Murray",
   "file": "Ken_Murray_Bennett's_ad_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10691,7 +10724,7 @@
  {
   "player": "Ken Sears",
   "file": "Ken_Sears.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10754,7 +10787,7 @@
  {
   "player": "Kenny Carr",
   "file": "Kenny_Carr.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10817,7 +10850,7 @@
  {
   "player": "Kent Benson",
   "file": "Kent_Benson_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -10839,6 +10872,7 @@
   "player": "Keon Ellis",
   "file": "Keon_Ellis.jpg",
   "artist": "The University of Alabama",
+  "attribution": "The University of Alabama",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -10902,6 +10936,7 @@
   "player": "Kevin Hervey",
   "file": "Kevin_Hervey_-_2018_NBA_Summer_League.png",
   "artist": "Thunder Heads",
+  "attribution": "Thunder Heads",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -10965,6 +11000,7 @@
   "player": "Kevin McHale",
   "file": "Kevin_McHale_2012_press_conference_-_headshot.jpg",
   "artist": "thepanamerican",
+  "attribution": "thepanamerican",
   "license": "CC BY-SA 2.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/2.0"
  },
@@ -10979,6 +11015,7 @@
   "player": "Kevin Murphy",
   "file": "Kevin_Murphy_SIG_saison_2013-2014.jpg",
   "artist": "Photo Claude TRUONG-NGOC",
+  "attribution": "Claude Truong-Ngoc / Wikimedia Commons",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -11013,7 +11050,7 @@
  {
   "player": "Kevin Willis",
   "file": "KevinWillisMichigan.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11181,7 +11218,7 @@
  {
   "player": "Kon Knueppel",
   "file": "Kon_Knueppel.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "CC0",
   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
  },
@@ -11476,6 +11513,7 @@
   "player": "LaPhonso Ellis",
   "file": "LaPhonso_Ellis_2020.png",
   "artist": "Auburn Athletics",
+  "attribution": "Auburn Athletics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -11490,13 +11528,14 @@
   "player": "Larry Bird",
   "file": "Larrybird.jpg",
   "artist": "Kurt Shimala",
+  "attribution": "Kurt Shimala",
   "license": "CC BY-SA 2.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/2.0"
  },
  {
   "player": "Larry Cannon",
   "file": "Larry_Cannon.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11531,7 +11570,7 @@
  {
   "player": "Larry Jones",
   "file": "Larry_Jones_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11545,7 +11584,7 @@
  {
   "player": "Larry Nance",
   "file": "Larry_Nance_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11580,14 +11619,14 @@
  {
   "player": "Larry Steele",
   "file": "Larry_Steele_2.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Larue Martin",
   "file": "LaRue_Martin_(2).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11672,6 +11711,7 @@
   "player": "Lee Johnson",
   "file": "Lee_Johnson,_basketball_player_in_Maccabi_Tel_Aviv_(FL45847511).jpg",
   "artist": "Efi Sharir",
+  "attribution": "Efi Sharir / Dan Hadani collection / National Library of Israel / The Pritzker Family National Photography Collection",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0"
  },
@@ -11741,7 +11781,7 @@
  {
   "player": "Leo Mogus",
   "file": "Leo_Mogus.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11756,6 +11796,7 @@
   "player": "Leon Powe",
   "file": "Leon_Powe_at_Celtics_alumni_recognition_ceremony.jpg",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -11805,6 +11846,7 @@
   "player": "Linas Kleiza",
   "file": "Linas_Kleiza1.2009-07-31_(cropped).jpg",
   "artist": "Algirdas at Lithuanian Wikipedia",
+  "attribution": "Algirdas at the Lithuanian language Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "http://creativecommons.org/licenses/by-sa/3.0/"
  },
@@ -11853,7 +11895,7 @@
  {
   "player": "Lloyd Neal",
   "file": "Lloyd_Neal.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11916,7 +11958,7 @@
  {
   "player": "Lou Tsioropoulos",
   "file": "Lou_Tsioropoulos.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11944,7 +11986,7 @@
  {
   "player": "Loy Petersen",
   "file": "Loy_Petersen.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -11952,6 +11994,7 @@
   "player": "Luc Longley",
   "file": "Luc_Longley.JPG",
   "artist": "Stephreef",
+  "attribution": "Stephreef at English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -11966,20 +12009,21 @@
   "player": "Lucas Nogueira",
   "file": "Estudiantes_vs_Unicaja_Málaga_-_Lucas_Nogueira_-_01.jpg",
   "artist": "Carlos Delgado",
+  "attribution": "Carlos Delgado",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
  {
   "player": "Lucious Jackson",
   "file": "Phil_Jackson,_Walt_Bellamy,_Bill_Cunningham_and_Lucious_Jackson.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Lucius Allen",
   "file": "Walt_Frazier_and_Lucius_Allen.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -12001,6 +12045,7 @@
   "player": "Luka Dončić",
   "file": "Luka_Doncic_(51914951721)_(cropped1).jpg",
   "artist": "Erik Drost",
+  "attribution": "Eric drost",
   "license": "CC BY 2.0",
   "license_url": "https://creativecommons.org/licenses/by/2.0"
  },
@@ -12084,7 +12129,7 @@
  {
   "player": "Luther Burden",
   "file": "Luther_Burden.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -12099,6 +12144,7 @@
   "player": "Maalik Wayns",
   "file": "Wayns_Penya_-_unniks.jpg",
   "artist": "Cristina Ruiz - unniks.com",
+  "attribution": "Cristina Ruiz/Unnika",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -12127,13 +12173,14 @@
   "player": "Maciej Lampe",
   "file": "20160813_Basketball_ÖBV_Vier-Nationen-Turnier_2357.jpg",
   "artist": "Ailura",
+  "attribution": "Ailura, CC BY-SA 3.0 AT",
   "license": "CC BY-SA 3.0 at",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0/at/deed.en"
  },
  {
   "player": "Mack Calvin",
   "file": "Mack_Calvin.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -12155,6 +12202,7 @@
   "player": "Mal Graham",
   "file": "Malcolm_Graham_at_Celtics_alumni_recognition_ceremony-2.jpg",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -12602,7 +12650,8 @@
  {
   "player": "Marko Jaric",
   "file": "Marko_Jarić_(2011).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
+  "source": "www.pallacanestrovarese.it (original photo)",
   "license": "CC BY 2.0",
   "license_url": "https://creativecommons.org/licenses/by/2.0"
  },
@@ -12798,7 +12847,7 @@
  {
   "player": "Matt Zunic",
   "file": "Matt_Zunic.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -12917,7 +12966,7 @@
  {
   "player": "Mel Daniels",
   "file": "Mel_Daniels.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -12931,7 +12980,7 @@
  {
   "player": "Mel McGaha",
   "file": "Mel_McGaha_1965.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -12946,6 +12995,7 @@
   "player": "Melvin Frazier Jr.",
   "file": "Melvin_Frazier.jpg",
   "artist": "Michael Barera",
+  "attribution": "Michael Barera",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -13099,7 +13149,7 @@
  {
   "player": "Micheal Ray Richardson",
   "file": "Micheal_Ray_Richardson.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -13197,7 +13247,7 @@
  {
   "player": "Mike Iuzzolino",
   "file": "Mike_Iuzzolino_(NL-HlmNHA_1478_45091K00_33)_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "CC0",
   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
  },
@@ -13267,7 +13317,7 @@
  {
   "player": "Mike Sanders",
   "file": "Mike_Sanders_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -13288,7 +13338,7 @@
  {
   "player": "Mike Sojourner",
   "file": "Mike_Sojourner_Utah.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -13415,6 +13465,7 @@
   "player": "Mitchell Anderson",
   "file": "Mitchell_Anderson.jpg",
   "artist": "Berns at Italian Wikipedia",
+  "attribution": "Berns at Italian Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "http://creativecommons.org/licenses/by-sa/3.0/"
  },
@@ -13450,6 +13501,7 @@
   "player": "Monta Ellis",
   "file": "Monta_Ellis_2014-10-20.jpg",
   "artist": "Danny Bollinger",
+  "attribution": "Danny Bollinger",
   "license": "CC BY 2.0",
   "license_url": "https://creativecommons.org/licenses/by/2.0"
  },
@@ -13547,7 +13599,7 @@
  {
   "player": "Muggsy Bogues",
   "file": "Muggsy_Bogues_(250128-Z-KG453-1009)_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -13624,7 +13676,7 @@
  {
   "player": "Nat Clifton",
   "file": "Nat_Clifton_1949.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -13666,7 +13718,7 @@
  {
   "player": "Nate Williams",
   "file": "Nate_Williams_1968.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -13863,6 +13915,7 @@
   "player": "Nicolas Batum",
   "file": "Nicolas_Batum_2012.jpg",
   "artist": "Georges Biard",
+  "attribution": "Georges Biard",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -14002,7 +14055,7 @@
  {
   "player": "Norm Stewart",
   "file": "Norm_Stewart.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14017,13 +14070,14 @@
   "player": "Norman Black",
   "file": "Norman_Black_2025.jpg",
   "artist": "https://www.youtube.com/@RockyPadila",
+  "attribution": "Rocky Padilla",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
  {
   "player": "Norman Glick",
   "file": "Normie_Glick.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14044,7 +14098,8 @@
  {
   "player": "Norvel Pelle",
   "file": "Norvel_Pelle.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
+  "source": "http://www.pallacanestrovarese.it/squadra/roster/",
   "license": "CC BY 2.0",
   "license_url": "https://creativecommons.org/licenses/by/2.0"
  },
@@ -14080,6 +14135,7 @@
   "player": "Ognjen Kuzmic",
   "file": "2022-11-22_ALBA_Berlin_gegen_KK_Crvena_zvezda_(EuroLeague_2022-23)_by_Sandro_Halank–034.jpg",
   "artist": "Sandro Halank, Wikimedia Commons",
+  "attribution": "Sandro Halank, Wikimedia Commons, CC BY-SA 4.0",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -14128,7 +14184,7 @@
  {
   "player": "Ollie Johnson",
   "file": "Ollie_Johnson.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14212,14 +14268,14 @@
  {
   "player": "Oscar Robertson",
   "file": "Oscar_Robertson_1960.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Oscar Torres",
   "file": "Blocked_shots_by_Oscar_Torres.JPG",
-  "artist": "Unknown author",
+  "artist": "Massimo Finizio",
   "license": "CC BY-SA 2.0 it",
   "license_url": "https://creativecommons.org/licenses/by-sa/2.0/it/deed.en"
  },
@@ -14255,6 +14311,7 @@
   "player": "Othello Hunter",
   "file": "2022-06-17_ALBA_Berlin_gegen_FC_Bayern_München_(Basketball-Bundesliga_2021-22)_by_Sandro_Halank–033.jpg",
   "artist": "Sandro Halank, Wikimedia Commons",
+  "attribution": "Sandro Halank, Wikimedia Commons, CC BY-SA 4.0",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -14339,6 +14396,7 @@
   "player": "Pacôme Dadiet",
   "file": "2023-10-07_ratiopharm_Ulm_gegen_ALBA_Berlin_(Basketball-Bundesliga_2023-24)_by_Sandro_Halank–067.jpg",
   "artist": "Sandro Halank, Wikimedia Commons",
+  "attribution": "Sandro Halank, Wikimedia Commons, CC BY-SA 4.0",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -14465,6 +14523,7 @@
   "player": "Pau Gasol",
   "file": "Pau_Gasol_2022_(cropped).png",
   "artist": "Pool Moncloa/Borja Puig de la Bellacasa",
+  "attribution": "Ministry of the Presidency. Government of Spain",
   "license": "Attribution",
   "license_url": ""
  },
@@ -14527,7 +14586,7 @@
  {
   "player": "Paul Neumann",
   "file": "Paul_Neumann_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14555,7 +14614,7 @@
  {
   "player": "Paul Seymour",
   "file": "Paul_Seymour_basketball_1958.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14639,7 +14698,7 @@
  {
   "player": "Pete Brennan",
   "file": "Pete_Brennan.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14696,6 +14755,7 @@
   "player": "Peyton Watson",
   "file": "Peyton_Watson_2025_(54856827608)_(cropped).jpg",
   "artist": "Jeff Ruane",
+  "attribution": "Jeff Ruane",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0"
  },
@@ -14709,7 +14769,7 @@
  {
   "player": "Phil Hankinson",
   "file": "Phil_Hankinson.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14730,7 +14790,7 @@
  {
   "player": "Phil Lumpkin",
   "file": "Phil_Lumpkin.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14940,7 +15000,7 @@
  {
   "player": "Ralph Davis",
   "file": "Ralph_Davis_basketball.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14968,7 +15028,7 @@
  {
   "player": "Ralph Simpson",
   "file": "Ralph_Simpson.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -14989,7 +15049,7 @@
  {
   "player": "Randy Denton",
   "file": "Randy_Denton_1970.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15137,6 +15197,7 @@
   "player": "Red Holzman",
   "file": "Knicks_coach_Red_Holzman.jpg",
   "artist": "artiphax",
+  "attribution": "Artiphax at English Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -15283,7 +15344,7 @@
  {
   "player": "Richard Petruska",
   "file": "Richard_Petruška_(NL-HlmNHA_1478_43665K00_29)_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "CC0",
   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
  },
@@ -15311,14 +15372,14 @@
  {
   "player": "Richie Regan",
   "file": "Richie_Regan_1953.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Rick Adelman",
   "file": "Rick_Adelman.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15360,7 +15421,7 @@
  {
   "player": "Rick Roberson",
   "file": "Rick_Roberson.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15479,7 +15540,7 @@
  {
   "player": "Robert Nordmann",
   "file": "Bob_Nordmann.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15507,7 +15568,7 @@
  {
   "player": "Robert Smith",
   "file": "Robert_Smith_(NL-HlmNHA_1478_33543K00_23)_(cropped).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "CC0",
   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en"
  },
@@ -15556,7 +15617,7 @@
  {
   "player": "Rod Hundley",
   "file": "Rod_Hundley_Lakers.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15570,7 +15631,7 @@
  {
   "player": "Rod Thorn",
   "file": "Rod_Thorn.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15654,7 +15715,7 @@
  {
   "player": "Roland Taylor",
   "file": "Roland_Taylor_1972.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15689,7 +15750,7 @@
  {
   "player": "Ron Boone",
   "file": "Ron_Boone.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15724,14 +15785,14 @@
  {
   "player": "Ron Knight",
   "file": "Ron_Knight_basketball_1970.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Ron Reed",
   "file": "Ron_Reed_-_Atlanta_Braves.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15752,7 +15813,7 @@
  {
   "player": "Ron Williams",
   "file": "Ron_\"Fritz\"_Williams.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -15787,7 +15848,8 @@
  {
   "player": "Rony Seikaly",
   "file": "Rony_Seikaly_Image_2026-07-27.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
+  "source": "Rony Seikaly",
   "license": "CC BY 4.0",
   "license_url": "https://creativecommons.org/licenses/by/4.0"
  },
@@ -15865,6 +15927,7 @@
   "player": "Rudy Fernandez",
   "file": "Rudy_Fernández_2016_(cropped).jpg",
   "artist": "Cristina Ruiz - unniks.com",
+  "attribution": "Cristina Ruiz/Unnika",
   "license": "CC BY-SA 4.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/4.0"
  },
@@ -16047,13 +16110,14 @@
   "player": "Sam Hauser",
   "file": "Sam_Hauser_2022.png",
   "artist": "Boston Celtics",
+  "attribution": "Boston Celtics",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
  {
   "player": "Sam Jones",
   "file": "Sam_Jones,_Boston_Celtics,_1969.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16249,7 +16313,7 @@
  {
   "player": "Sean Elliott",
   "file": "Sean_Elliott_-_Arizona_Wildcats.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16291,7 +16355,7 @@
  {
   "player": "Sean Rooks",
   "file": "Sean_Rooks_-_Arizona_Wildcats.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16403,7 +16467,7 @@
  {
   "player": "Shaler Halimon",
   "file": "Shaler_Halimon.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16550,14 +16614,14 @@
  {
   "player": "Si Green",
   "file": "Sihugo_Green_1962.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Sidney Hertzberg",
   "file": "Sidney_Hertzberg.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16578,7 +16642,7 @@
  {
   "player": "Sidney Wicks",
   "file": "Sidney_Wicks_–_Trail_Blazers_(1).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16613,7 +16677,7 @@
  {
   "player": "Skip Harlicka",
   "file": "Skip_Harlicka_1967.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16627,7 +16691,7 @@
  {
   "player": "Slater Martin",
   "file": "Slater_Martin_(1).jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16641,7 +16705,7 @@
  {
   "player": "Slick Watts",
   "file": "Slick_Watts.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16663,6 +16727,7 @@
   "player": "Solomon Jones",
   "file": "Solomon_Jones.jpg",
   "artist": "Original uploader was Chrisjnelson at en.wikipedia",
+  "attribution": "Chrisjnelson at en.wikipedia",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
@@ -16739,7 +16804,7 @@
  {
   "player": "Stan McKenzie",
   "file": "Stan_McKenzie.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16823,7 +16888,7 @@
  {
   "player": "Stephon Marbury",
   "file": "Stephon_Marbury_@_Amazon_Fishbowl_2.jpg",
-  "artist": "Cheuk-man Kong Camera location47° 35′ 50.36″ N, 122° 19′ 42.5″ W View this and other nearby images on: OpenStreetMap 47.597323; -122.328472",
+  "artist": "Cheuk-man Kong Camera location47° 35′ 50.36″ N, 122° 19′ 42.5″ W View this and other nearby images on: OpenStreetMap",
   "license": "CC BY-SA 2.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/2.0"
  },
@@ -16851,7 +16916,7 @@
  {
   "player": "Steve Hawes",
   "file": "Steve_Hawes_1972.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -16893,7 +16958,7 @@
  {
   "player": "Steve Patterson",
   "file": "Steve_Patterson.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17006,6 +17071,7 @@
   "player": "Tamar Slay",
   "file": "Tamar_Slay.jpg",
   "artist": "Fire90",
+  "attribution": "Fire90 at Italian Wikipedia",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -17166,14 +17232,14 @@
  {
   "player": "Terry Dischinger",
   "file": "Terry_Dischinger.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Terry Driscoll",
   "file": "Terry_Driscoll_1968.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17279,6 +17345,7 @@
   "player": "Thomas Welsh",
   "file": "2021年12月11日_Thomas_Welsh_臺中市政府.jpg",
   "artist": "臺中市政府",
+  "attribution": "Taichung City Government",
   "license": "Attribution",
   "license_url": ""
  },
@@ -17447,6 +17514,7 @@
   "player": "Tom Chambers",
   "file": "Tom_Chambers_by_Gage_Skidmore.jpg",
   "artist": "Gage Skidmore",
+  "attribution": "Gage Skidmore",
   "license": "CC BY-SA 3.0",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0"
  },
@@ -17467,7 +17535,7 @@
  {
   "player": "Tom Heinsohn",
   "file": "Tom_heinsohn_press_photo_1970.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17488,7 +17556,7 @@
  {
   "player": "Tom LaGarde",
   "file": "Tom_LaGarde.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17502,7 +17570,7 @@
  {
   "player": "Tom Meschery",
   "file": "Tom_Meschery.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17523,14 +17591,14 @@
  {
   "player": "Tom Thacker",
   "file": "Tom_Thacker.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Tom Tolbert",
   "file": "Tom_Tolbert_-_Arizona_Wildcats.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17621,7 +17689,7 @@
  {
   "player": "Tony Jaros",
   "file": "Tony_Jaros_1950.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -17957,7 +18025,7 @@
  {
   "player": "Truck Robinson",
   "file": "Truck_Robinson.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18244,7 +18312,7 @@
  {
   "player": "Vern Mikkelsen",
   "file": "Vern_Mikkelsen.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18406,6 +18474,7 @@
   "player": "Vlatko Čančar",
   "file": "Vlatko_Čančar.jpg",
   "artist": "Ailura",
+  "attribution": "Ailura, CC BY-SA 3.0 AT",
   "license": "CC BY-SA 3.0 at",
   "license_url": "https://creativecommons.org/licenses/by-sa/3.0/at/deed.en"
  },
@@ -18447,7 +18516,7 @@
  {
   "player": "Wally Osterkorn",
   "file": "Wally_Osterkorn_1948.JPG",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18468,7 +18537,7 @@
  {
   "player": "Wally Walker",
   "file": "Wally_Walker_(1).png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18496,14 +18565,14 @@
  {
   "player": "Walt Gilmore",
   "file": "Walt_Gilmore.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Walt Hazzard",
   "file": "Walt_Hazzard_(UCLA).jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18531,7 +18600,7 @@
  {
   "player": "Walt Wesley",
   "file": "Walt_Wesley.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18552,7 +18621,7 @@
  {
   "player": "Walter Davis",
   "file": "Walter_Davis_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18601,14 +18670,14 @@
  {
   "player": "Wayne Embry",
   "file": "Wayne_Embry.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Wayne Hightower",
   "file": "Wayne_Hightower_1966.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18622,7 +18691,7 @@
  {
   "player": "Wayne Molis",
   "file": "Wayne_Molis_1967.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18762,14 +18831,14 @@
  {
   "player": "William Averitt",
   "file": "Bird_Averitt.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "William Bell",
   "file": "Whitey_Bell.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18804,14 +18873,14 @@
  {
   "player": "Willie McCarter",
   "file": "Willie_McCarter.png",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Willie Naulls",
   "file": "Willie_Naulls.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18825,14 +18894,14 @@
  {
   "player": "Willis Reed",
   "file": "Willis_Reed_1969.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Wilmer Hosket",
   "file": "Bill_Hosket_Jr_1969.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -18860,14 +18929,14 @@
  {
   "player": "Winston Crite",
   "file": "Winston_Crite_-_Phoenix_Suns.jpg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
  {
   "player": "Woody Sauldsberry",
   "file": "Woody_Sauldsberry.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },
@@ -19064,13 +19133,14 @@
   "player": "Zeljko Rebraca",
   "file": "Жељко_Ребрача_2020.png",
   "artist": "tvpirot pirot",
+  "attribution": "tvpirot pirot",
   "license": "CC BY 3.0",
   "license_url": "https://creativecommons.org/licenses/by/3.0"
  },
  {
   "player": "Zelmo Beaty",
   "file": "Zelmo_Beaty_Utah.jpeg",
-  "artist": "Unknown authorUnknown author",
+  "artist": "Unknown author",
   "license": "Public domain",
   "license_url": ""
  },

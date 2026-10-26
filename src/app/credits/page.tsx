@@ -17,6 +17,10 @@ interface Credit {
   player: string;
   file: string;
   artist: string;
+  /** The attribution the licence asks for, when Commons gives one. */
+  attribution?: string;
+  /** Where the photo comes from, credited when no author is known but the licence requires attribution. */
+  source?: string;
   license: string;
   license_url: string;
 }
@@ -34,15 +38,22 @@ export default function CreditsPage() {
           <p style={{ color: "var(--muted)", marginBottom: "1.5rem" }}>
             Every player photo comes from <a href="https://commons.wikimedia.org" style={link}>Wikimedia Commons</a>{" "}
             ({rows.length} photos, used under the license named below); players without a usable free photo get a
-            silhouette. Each photo may be cropped to fit the game.
+            silhouette. We change the photos only by cropping and resizing them to fit each game; where a photo&apos;s
+            license is a ShareAlike one (CC BY-SA), our crops are shared under that same license. The photos show
+            players as part of the trivia only: no player, photographer or team endorses {SITE_NAME}.
           </p>
           <ul style={{ display: "flex", flexDirection: "column", gap: "0.35rem", fontSize: "0.92rem" }}>
             {rows.map((c) => (
               <li key={c.file}>
                 <strong>{c.player}</strong>
                 {" — "}
-                <a href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c.file)}`} style={link}>photo</a>
-                {` by ${c.artist}, `}
+                <a href={`https://commons.wikimedia.org/wiki/File:${encodeURIComponent(c.file)}`} style={link}>
+                  {c.file.replace(/_/g, " ").replace(/\.[a-z]+$/i, "")}
+                </a>
+                {` by ${c.artist}`}
+                {c.attribution && ` (credit: ${c.attribution})`}
+                {c.source && ` (source: ${c.source})`}
+                {", "}
                 {c.license_url ? <a href={c.license_url} style={link}>{c.license}</a> : c.license}
               </li>
             ))}
