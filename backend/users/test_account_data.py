@@ -14,138 +14,26 @@ from users.models import BlockedUser, FriendRequest, Friendship, ModerationEvent
 from users.tests import GOOGLE_ID, google, login, signup
 
 User = get_user_model()
-OK = {"accepted_terms": True, "birth_year": 1990, "birth_month": 6}
-
-
-class AgeCheckTests(TestCase):
-    TODAY = date(2026, 10, 7)
-
-    def old_enough(self, year, month):
-        return consent.is_old_enough(year, month, self.TODAY)
-
-    def test_clearly_adult_and_clearly_young(self):
-        self.assertTrue(self.old_enough(1990, 6))
-        self.assertFalse(self.old_enough(2015, 1))
-
-    def test_the_thirteenth_birthday_month_counts_only_from_its_last_day(self):
-        # Born October 2013: turns 13 sometime in October 2026. The day is unknown, so the
-        # younger reading applies and they pass only on 31 October.
-        self.assertFalse(consent.is_old_enough(2013, 10, date(2026, 10, 30)))
-        self.assertTrue(consent.is_old_enough(2013, 10, date(2026, 10, 31)))
-        self.assertTrue(consent.is_old_enough(2013, 9, self.TODAY))
-
-    def test_teen_and_adult_groups_split_at_sixteen(self):
-        thirty = {"birth_year": 1996, "birth_month": 1}
-        fourteen = {"birth_year": self.TODAY.year - 14, "birth_month": 1}
-        self.assertEqual(consent.age_group_for(thirty, self.TODAY), "adult")
-        self.assertEqual(consent.age_group_for(fourteen, self.TODAY), "teen")
-
-    def test_leap_february_and_garbage_input(self):
-        self.assertTrue(consent.is_old_enough(2008, 2, date(2024, 2, 29)))
-        for bad in ((None, 1), ("x", 1), (2000, 0), (2000, 13), (1800, 6), (2999, 1)):
-            self.assertFalse(consent.is_old_enough(*bad, self.TODAY))
-
-
-class SignupConsentTests(TestCase):
-    def setUp(self):
-        cache.clear()
-
-    def post(self, **extra):
-        data = {"username": "Hooper", "email": "h@example.com", "password": "Testpass123!", **extra}
-        return self.client.post(reverse("signup"), data=data, content_type="application/json")
-
-    def test_signup_without_agreeing_is_refused(self):
-        resp = self.post(birth_year=1990, birth_month=6)
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json()["code"], "consent_required")
-        self.assertFalse(User.objects.exists())
-
-    def test_underage_signup_is_refused_without_saying_why(self):
-        resp = self.post(accepted_terms=True, birth_year=date.today().year - 10, birth_month=1)
-        self.assertEqual(resp.status_code, 400)
-        self.assertEqual(resp.json()["code"], "age_requirement")
-        self.assertNotIn("16", resp.json()["error"])
-        self.assertFalse(User.objects.exists())
-
-    def test_a_teen_can_sign_up_but_cannot_upload_a_photo(self):
-        teen = dict(accepted_terms=True, birth_year=date.today().year - 14, birth_month=1)
-        self.assertEqual(self.post(**teen).status_code, 201)
-        user = User.objects.get(email="h@example.com")
-        self.assertEqual(user.age_group, "teen")
-        token = self.client.post(reverse("login"), data={"id": "h@example.com", "password": "Testpass123!"}, content_type="application/json").json()["access"]
-        from django.core.files.uploadedfile import SimpleUploadedFile
-        from users.tests import png_bytes
-
-        upload = SimpleUploadedFile("p.png", png_bytes(), content_type="image/png")
-        resp = self.client.post(reverse("update"), data={"profile_photo": upload}, HTTP_AUTHORIZATION=f"Bearer {token}")
-        self.assertEqual(resp.status_code, 403)
-        self.assertIn("16", resp.json()["error"])
-
-    def test_an_adult_is_marked_adult(self):
-        self.post(**OK)
-        self.assertEqual(User.objects.get(email="h@example.com").age_group, "adult")
-
-    def test_signup_records_consent_but_not_the_birth_date(self):
-        self.assertEqual(self.post(**OK).status_code, 201)
-        user = User.objects.get(email="h@example.com")
-        self.assertEqual(user.terms_version, consent.TERMS_VERSION)
-        self.assertIsNotNone(user.terms_accepted_at)
-        self.assertIsNotNone(user.age_confirmed_at)
-        # Only a month and a year are ever stored (and only when given in Profile settings / at the photo), never a day.
-        self.assertEqual((user.birth_month, user.birth_year, user.age_sets), (None, None, 0))
-        self.assertFalse(any(f.name in ("birth_date", "birth_day", "date_of_birth") for f in User._meta.get_fields()))
 
 
 class GoogleConsentTests(TestCase):
     def setUp(self):
         cache.clear()
 
-    def verify(self):
-        return mock.patch("users.views.verify_google_code", return_value=GOOGLE_ID)
-
-    def post_google(self, **data):
-        return self.client.post(reverse("google_login"), data=data, content_type="application/json")
-
-    def test_new_google_account_needs_consent_then_completes_with_the_token(self):
-        with self.verify():
-            first = self.post_google(code="c")
-        self.assertEqual(first.status_code, 428)
-        body = first.json()
-        self.assertEqual(body["code"], "needs_signup_consent")
-        self.assertFalse(User.objects.exists())
-
-        second = self.post_google(consent_token=body["consent_token"], **OK)
-        self.assertEqual(second.status_code, 200)
-        self.assertTrue(second.json()["new_account"])
-        self.assertEqual(User.objects.get(email=GOOGLE_ID["email"]).terms_version, consent.TERMS_VERSION)
-
-    def test_consent_step_refuses_underage_and_unticked_requests(self):
-        with self.verify():
-            token = self.post_google(code="c").json()["consent_token"]
-        under = self.post_google(consent_token=token, accepted_terms=True, birth_year=date.today().year - 12, birth_month=3)
-        self.assertEqual((under.status_code, under.json()["code"]), (400, "age_requirement"))
-        unticked = self.post_google(consent_token=token, birth_year=1990, birth_month=6)
-        self.assertEqual((unticked.status_code, unticked.json()["code"]), (400, "consent_required"))
-        self.assertFalse(User.objects.exists())
-
-    def test_tampered_or_expired_consent_token_is_refused(self):
-        resp = self.post_google(consent_token="not-a-real-token", **OK)
+    def test_a_consent_token_from_the_retired_two_step_flow_is_not_an_identity(self):
+        # The earlier tick-box flow handed out signed consent tokens; they no longer stand in for a
+        # Google code, so a request carrying one alone creates nothing.
+        resp = self.client.post(
+            reverse("google_login"), data={"consent_token": "anything", "accepted_terms": True}, content_type="application/json"
+        )
         self.assertEqual(resp.status_code, 400)
-        with self.verify():
-            token = self.post_google(code="c").json()["consent_token"]
-        with mock.patch("django.core.signing.time.time", return_value=__import__("time").time() + 3600):
-            self.assertEqual(self.post_google(consent_token=token, **OK).status_code, 400)
+        self.assertFalse(User.objects.exists())
 
-    def test_returning_google_user_is_never_asked_again(self):
-        User.objects.create_user(username="Fan", email=GOOGLE_ID["email"], password=None, google_sub=GOOGLE_ID["sub"])
-        with self.verify():
-            resp = self.post_google(code="c")
-        self.assertEqual(resp.status_code, 200)
-
-    def test_one_step_when_consent_is_sent_with_the_code(self):
-        with self.verify():
+    def test_one_step_with_the_code(self):
+        with mock.patch("users.views.verify_google_code", return_value=GOOGLE_ID):
             resp = google(self.client)
         self.assertEqual(resp.status_code, 200)
+        self.assertEqual(User.objects.get(email=GOOGLE_ID["email"]).terms_version, consent.TERMS_VERSION)
 
 
 class AccountDeletionTests(TestCase):

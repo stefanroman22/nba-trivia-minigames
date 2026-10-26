@@ -25,7 +25,7 @@ PID_RE = re.compile(f"^[{PUBLIC_ID_ALPHABET}]{{{PUBLIC_ID_LENGTH}}}$")
 def signup(client, username="Baller23", email="baller@example.com", password="Testpass123!", **consent):
     return client.post(
         reverse("signup"),
-        data={"username": username, "email": email, "password": password, "accepted_terms": True, "birth_year": 1990, "birth_month": 6, **consent},
+        data={"username": username, "email": email, "password": password, "accepted_terms": True, **consent},
         content_type="application/json",
     )
 
@@ -438,7 +438,7 @@ GOOGLE_ID = {"sub": "g-123", "email": "Fan@Example.com".lower(), "name": "Fan"}
 
 
 def google(client, code="auth-code", **extra):
-    data = {"code": code, "accepted_terms": True, "birth_year": 1990, "birth_month": 6, **extra}
+    data = {"code": code, **extra}
     return client.post(reverse("google_login"), data=data, content_type="application/json")
 
 

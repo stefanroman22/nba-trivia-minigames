@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           <li>An account stores your email, a display name, your scores and the things you choose to add (friends, and later a photo). Your display name, player ID, rank and points are visible to other players, on the public leaderboard too, whatever your age. Your email is never shown.</li>
           <li>There are no ads, no third-party analytics and no tracking cookies. We never sell your data. For signed-in players we count how long you use the site each day and note the country you connect from, only for our own statistics.</li>
           <li>You can download everything we hold and delete your account yourself, from your profile.</li>
-          <li>Accounts are for people aged {LEGAL.minimumAge} and over: you confirm this with one tick-box when you sign up, by email or with Google.</li>
+          <li>Accounts are for people aged {LEGAL.minimumAge} and over, as the Terms say. We do not ask your age when you sign up.</li>
         </LegalList>
       </LegalSummary>
 
@@ -47,8 +47,8 @@ export default function PrivacyPage() {
           ["Playing as a guest: answers you submit to questions (no name, no email), and a random device code in your browser used to give each device one Wordle and one LeContexto a day", "Question statistics (for example how fans answer Fan Favorites); the daily Wordle and LeContexto limit", "Legitimate interests", "Answers: 30 days. Wordle and LeContexto plays: removed after the day ends. The device code stays in your browser until you clear it."],
           ["Account details: email, display name, public player ID, a hash of your password (never the password), or your Google account ID", "Sign you in and run your account", "Contract", "Until you delete the account"],
           ["Points and rank", "Leaderboards and matchmaking", "Contract", "Until you delete the account"],
-          ["Consent record: the Terms version you accepted, when, that you confirmed you are 13 or older and how (the sign-up tick-box, by email or with Google), and, if you gave your birth month and year (when adding a photo or in Profile settings), that month and year and whether you are 16 or over (we never keep the day)", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
-          [`Profile photo (optional, only for players aged ${LEGAL.photoMinimumAge} and over), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
+          ["Consent record: the Terms version you accepted, when, and how (creating an account by email, or continuing with Google). Accounts opened under an earlier version of this policy may also hold that sign-up's 13+ confirmation and, if a birth month and year was given, that month and year and whether the player was under or over 16; we no longer use any of it. We never keep the day of birth", "Prove the account was opened properly", "Legitimate interests and legal obligation", "Until you delete the account"],
+          [`Profile photo (optional), resized to 256x256. Photo upload is switched off until our automatic photo check is live; this row applies from then`, "Show your photo to other players", "Consent: you choose to add it and can remove it any time", "Until you remove it or delete the account"],
           ["Friends, friend requests and blocked players", "Friends features", "Contract", "Until you remove them or delete the account"],
           ["Game history (game, score, time) and your own answers", "Your record, and fair play", "Contract", "Game history: 24 months. Answers: 30 days."],
           ["Time on the site (signed-in players only): how many seconds a day you had the site open and in use (counting stops when the tab is hidden or you have been idle for 3 minutes), and the country your connection comes from, which our hosting provider works out from your network address. We do not store the address itself", "Understand how much and from where the service is used, so we can improve it and plan capacity", "Legitimate interests", "12 months"],
@@ -78,9 +78,9 @@ export default function PrivacyPage() {
         If you choose it, Google tells us your email address and a stable ID for your Google account. We do not receive your
         Google password and we read nothing else from your Google account. We use that information only to create and sign
         you in to your {LEGAL.service} account. We do not sell it, do not use it for advertising and do not transfer it to
-        anyone except our service providers listed below, and only as needed to run your account. Creating a new account
-        with Google needs the same tick-box as signing up by email: you confirm you are {LEGAL.minimumAge} or older and
-        agree to the Terms and this policy before we create it. Google&apos;s sign-in
+        anyone except our service providers listed below, and only as needed to run your account. Continuing with Google
+        creates an account if you do not have one yet, as signing up by email does; the sign-up screen says that doing so
+        means you agree to the Terms and this policy. Google&apos;s sign-in
         window loads only when you open the login box and is run by Google under its own privacy policy. Our use of
         information received from Google APIs follows the Google API Services User Data Policy, including its Limited Use
         requirements.
@@ -182,15 +182,10 @@ export default function PrivacyPage() {
 
       <LegalHeading id="children">10. Age and children</LegalHeading>
       <p>
-        Accounts are only for people aged {LEGAL.minimumAge} or over. When you sign up, by email or with Google, you tick a
-        box to confirm you are {LEGAL.minimumAge} or older; we record that you confirmed it and when. We do not ask your
-        birth date at sign-up. We ask for your birth month and year only when you add a profile photo. We keep the
-        month and year you give (never the day) and whether that makes you under or over {LEGAL.photoMinimumAge}; you
-        can see them in Profile settings and give them twice in all: the first time and one change.
-        Until you have told us you are {LEGAL.photoMinimumAge} or over, your account cannot have a profile photo; that is
-        the only difference. Like every account it is on the public leaderboard, can be found by name or player ID, and
-        shows its name to other players in online matches. Players under {LEGAL.photoMinimumAge} cannot add a profile
-        photo. If we learn that an account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
+        The Terms say accounts are only for people aged {LEGAL.minimumAge} or over. We do not ask your age or birth date
+        when you sign up, by email or with Google, and the app does not check it. Every account is treated the same: on
+        the public leaderboard, found by name or player ID, shown by name to other players in online matches, and free to
+        add a profile photo. If we learn that an account belongs to someone younger than {LEGAL.minimumAge}, we delete it.
         Anyone can play as a guest, and a guest&apos;s answers are not tied to a person. Parents and guardians can write to{" "}
         <MailLink /> to ask us to remove a child&apos;s data.
       </p>

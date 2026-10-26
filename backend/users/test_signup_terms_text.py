@@ -1,26 +1,27 @@
-"""Sign-up with one 13+/Terms checkbox (owner decision 2026-10-11): email and Google sign-up, Google
-display names from the email's local part, the birth-date prompt at photo upload, and unknown age
-treated as teen."""
+"""Sign-up with no age check (owner decision 2026-10-11, pre-launch; removed from the app 2026-10-26):
+the Terms are agreed by the text under the buttons, email sign-up needs only `accepted_terms`, Google
+creates a new account in one step, older clients' age fields are ignored, nobody is a teen and there is
+no age endpoint. Also the generated Google display names (email name + 2 digits)."""
 from datetime import date
 from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.urls import reverse
 
-from users import consent, leaderboard
-from users.tests import GOOGLE_ID, login, png_bytes, signup
+from users import consent
 from users.moderation_text import check_username
+from users.tests import GOOGLE_ID, login
+from users.tokens import issue_session_tokens
 from users.views import GOOGLE_NAME_WORDS, USERNAME_RE, generated_username
 
 User = get_user_model()
-TICKED = {"accepted_terms": True, "age_confirmed": True}
-CONFIRM_MESSAGE = "Please confirm you're 13 or older and agree to the Terms and Privacy Policy."
+TERMS_MESSAGE = "Please agree to the Terms of Service and Privacy Policy."
+OLD_CLIENT = {"accepted_terms": True, "age_confirmed": True}
 
 
-class EmailSignupCheckboxTests(TestCase):
+class EmailSignupTests(TestCase):
     def setUp(self):
         cache.clear()
 
@@ -28,81 +29,44 @@ class EmailSignupCheckboxTests(TestCase):
         data = {"username": "Hooper", "email": "h@example.com", "password": "Testpass123!", **extra}
         return self.client.post(reverse("signup"), data=data, content_type="application/json")
 
-    def test_the_checkbox_alone_creates_an_account_of_unknown_age(self):
-        resp = self.post(**TICKED)
+    def test_agreeing_to_the_terms_alone_creates_the_account(self):
+        resp = self.post(accepted_terms=True)
         self.assertEqual(resp.status_code, 201, resp.content)
         user = User.objects.get(email="h@example.com")
-        self.assertEqual(user.age_group, "")
         self.assertEqual(user.terms_version, consent.TERMS_VERSION)
         self.assertIsNotNone(user.terms_accepted_at)
-        self.assertIsNotNone(user.age_confirmed_at)
-        self.assertEqual(user.consent_source, "signup_checkbox")
-
-    def test_without_the_age_confirmation_nothing_is_created(self):
-        resp = self.post(accepted_terms=True)
-        self.assertEqual((resp.status_code, resp.json()["code"]), (400, "consent_required"))
-        self.assertEqual(resp.json()["error"], CONFIRM_MESSAGE)
-        self.assertFalse(User.objects.exists())
+        self.assertEqual(user.consent_source, "signup_text")
+        # No age is asked, so none is recorded.
+        self.assertIsNone(user.age_confirmed_at)
+        self.assertEqual((user.age_group, user.birth_month, user.birth_year, user.age_sets), ("", None, None, 0))
 
     def test_without_the_terms_nothing_is_created(self):
         resp = self.post(age_confirmed=True)
         self.assertEqual((resp.status_code, resp.json()["code"]), (400, "consent_required"))
+        self.assertEqual(resp.json()["error"], TERMS_MESSAGE)
         self.assertFalse(User.objects.exists())
 
-    def test_old_clients_birth_fields_under_13_are_still_blocked(self):
-        young = {"birth_year": date.today().year - 10, "birth_month": 1}
-        for extra in ({"accepted_terms": True, **young}, {**TICKED, **young}):
-            resp = self.post(**extra)
-            self.assertEqual((resp.status_code, resp.json()["code"]), (400, "age_requirement"))
-        self.assertFalse(User.objects.exists())
-
-    def test_old_clients_birth_fields_still_set_the_age_group(self):
-        self.assertEqual(self.post(accepted_terms=True, birth_year=1990, birth_month=6).status_code, 201)
+    def test_an_old_client_sending_age_confirmed_still_signs_up(self):
+        self.assertEqual(self.post(**OLD_CLIENT).status_code, 201)
         user = User.objects.get(email="h@example.com")
-        self.assertEqual(user.age_group, "adult")
-        self.assertEqual(user.consent_source, "signup_birth_date")
+        self.assertEqual((user.consent_source, user.age_group), ("signup_text", ""))
+        self.assertIsNone(user.age_confirmed_at)
 
+    def test_an_old_clients_birth_fields_are_ignored(self):
+        young = {"birth_year": date.today().year - 10, "birth_month": 1}
+        self.assertEqual(self.post(accepted_terms=True, **young).status_code, 201)
+        user = User.objects.get(email="h@example.com")
+        self.assertEqual((user.age_group, user.birth_month, user.birth_year), ("", None, None))
 
-class UnknownAgeIsTeenTests(TestCase):
-    def setUp(self):
-        cache.clear()
-        signup(self.client, username="Adult", email="adult@example.com")  # legacy birth fields: adult
-        self.client.post(
-            reverse("signup"),
-            data={"username": "Unknown", "email": "u@example.com", "password": "Testpass123!", **TICKED},
-            content_type="application/json",
-        )
-        self.unknown = User.objects.get(email="u@example.com")
-        User.objects.filter(email__in=["adult@example.com", "u@example.com"]).update(points=40)
-
-    def me(self, email):
-        token = login(self.client, email).json()["access"]
-        return self.client.get(reverse("get_user"), HTTP_AUTHORIZATION=f"Bearer {token}").json()["user"]
-
-    def test_unknown_age_is_teen_for_the_relay(self):
-        self.assertTrue(self.me("u@example.com")["is_teen"])
-        self.assertFalse(self.me("adult@example.com")["is_teen"])
-
-    def test_unknown_age_is_on_the_public_leaderboard_and_in_name_search(self):
-        names = [row["username"] for row in leaderboard.top()]
-        self.assertIn("Adult", names)
-        self.assertIn("Unknown", names)
-        token = login(self.client, "adult@example.com").json()["access"]
-        auth = {"HTTP_AUTHORIZATION": f"Bearer {token}"}
-        found = self.client.get(reverse("search-users"), {"q": "Unknow"}, **auth).json()["results"]
-        self.assertEqual([r["id"] for r in found], [self.unknown.public_id])
-
-    def test_the_private_friends_board_still_shows_the_player(self):
-        board, rank, count = leaderboard.friends_board(self.unknown)
-        self.assertEqual(([row["username"] for row in board], rank, count), (["Unknown"], 1, 1))
-
-    def test_the_export_says_how_the_age_was_confirmed(self):
+    def test_the_export_says_how_the_terms_were_agreed(self):
         from users.account_data import export_account
 
-        self.assertEqual(export_account(self.unknown)["account"]["consent_source"], "signup_checkbox")
+        self.post(accepted_terms=True)
+        self.assertEqual(export_account(User.objects.get(email="h@example.com"))["account"]["consent_source"], "signup_text")
+        self.assertEqual(login(self.client, "h@example.com").status_code, 200)
 
 
-class GoogleSignupCheckboxTests(TestCase):
+class GoogleOneStepTests(TestCase):
     def setUp(self):
         cache.clear()
 
@@ -112,53 +76,60 @@ class GoogleSignupCheckboxTests(TestCase):
     def post(self, **data):
         return self.client.post(reverse("google_login"), data=data, content_type="application/json")
 
-    def test_a_new_google_user_without_the_confirmation_is_not_created(self):
+    def test_a_new_google_user_is_created_with_the_code_alone(self):
         with self.verify():
             resp = self.post(code="c")
-        self.assertEqual(resp.status_code, 428)
-        body = resp.json()
-        self.assertEqual(body["code"], "needs_signup_consent")
-        self.assertTrue(body["consent_token"])
-        self.assertFalse(User.objects.exists())
-
-    def test_with_the_confirmation_the_account_is_created_and_consent_stamped(self):
-        with self.verify():
-            resp = self.post(code="c", **TICKED)
         self.assertEqual(resp.status_code, 200, resp.content)
         self.assertTrue(resp.json()["new_account"])
         user = User.objects.get(email=GOOGLE_ID["email"])
-        self.assertEqual(user.consent_source, "google_signup_checkbox")
+        self.assertEqual(user.consent_source, "google_continue")
         self.assertEqual(user.terms_version, consent.TERMS_VERSION)
-        self.assertIsNotNone(user.age_confirmed_at)
+        self.assertIsNotNone(user.terms_accepted_at)
+        self.assertIsNone(user.age_confirmed_at)
         self.assertEqual(user.age_group, "")
 
-    def test_the_held_token_plus_the_confirmation_creates_the_account(self):
+    def test_an_old_client_sending_the_tick_box_fields_gets_the_same(self):
         with self.verify():
-            token = self.post(code="c").json()["consent_token"]
-        resp = self.post(consent_token=token, **TICKED)
+            resp = self.post(code="c", birth_year=date.today().year - 10, birth_month=1, **OLD_CLIENT)
         self.assertEqual(resp.status_code, 200, resp.content)
-        self.assertEqual(User.objects.get(email=GOOGLE_ID["email"]).consent_source, "google_signup_checkbox")
+        user = User.objects.get(email=GOOGLE_ID["email"])
+        self.assertEqual((user.consent_source, user.age_group), ("google_continue", ""))
 
-    def test_the_held_token_without_the_confirmation_is_refused(self):
-        with self.verify():
-            token = self.post(code="c").json()["consent_token"]
-        resp = self.post(consent_token=token, accepted_terms=True)
-        self.assertEqual((resp.status_code, resp.json()["code"]), (400, "consent_required"))
-        self.assertFalse(User.objects.exists())
-
-    def test_an_existing_google_user_logs_in_without_the_confirmation(self):
+    def test_an_existing_google_user_logs_in_and_keeps_their_consent_record(self):
         User.objects.create_user(username="Fan", email=GOOGLE_ID["email"], password=None, google_sub=GOOGLE_ID["sub"])
         with self.verify():
             resp = self.post(code="c")
         self.assertEqual(resp.status_code, 200)
         self.assertFalse(resp.json()["new_account"])
+        self.assertEqual(User.objects.get(email=GOOGLE_ID["email"]).consent_source, "")
 
     def test_the_new_name_is_the_email_name_plus_two_digits(self):
         with self.verify(email="runforfun12@gmail.com"):
-            resp = self.post(code="c", **TICKED)
+            resp = self.post(code="c")
         name = User.objects.get(email="runforfun12@gmail.com").username
         self.assertRegex(name, r"^runforfun12\d{2}$")
         self.assertEqual(resp.json()["user"]["username"], name)
+
+
+class NobodyIsATeenTests(TestCase):
+    """Accounts an earlier sign-up flagged "teen" or "adult", or of unknown age, are all the same."""
+
+    def auth(self, user):
+        return {"HTTP_AUTHORIZATION": f"Bearer {issue_session_tokens(user).access_token}"}
+
+    def test_me_says_nobody_is_a_teen_and_sends_no_age(self):
+        for i, group in enumerate(("adult", "teen", "")):
+            user = User.objects.create_user(username=f"P{i}", email=f"p{i}@example.com", password="x", age_group=group)
+            me = self.client.get(reverse("get_user"), **self.auth(user)).json()["user"]
+            self.assertIs(me["is_teen"], False)
+            self.assertFalse({"age_group", "birth_month", "birth_year", "age_sets_left"} & set(me))
+
+    def test_the_age_endpoint_is_gone(self):
+        user = User.objects.create_user(username="Fan", email="fan@example.com", password="x")
+        resp = self.client.post("/api/account/age/", {"birth_month": 1, "birth_year": 1990}, content_type="application/json", **self.auth(user))
+        self.assertEqual(resp.status_code, 404)
+        user.refresh_from_db()
+        self.assertEqual((user.age_group, user.birth_month, user.birth_year, user.age_sets), ("", None, None, 0))
 
 
 GENERATED = r"^(%s)\d{2}$" % "|".join(GOOGLE_NAME_WORDS)

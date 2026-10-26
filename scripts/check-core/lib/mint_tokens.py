@@ -67,7 +67,10 @@ def account(spec, password):
     if user is None:
         validate_password(password, User(username=username, email=email))
         user = User.objects.create_user(username=username, email=email, password=password)
-        stamp_consent(user, "", "signup_checkbox")
+        try:
+            stamp_consent(user, "signup_text")
+        except TypeError:  # a backend from before 2026-10-26.2 (main until it is promoted) also takes the age group
+            stamp_consent(user, "", "signup_checkbox")
         user.save(update_fields=CONSENT_FIELDS)
         leaderboard.record_score(user)
         return user, True

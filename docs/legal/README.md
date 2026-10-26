@@ -14,7 +14,7 @@ system does.** When behaviour changes, change the code, these documents and the 
 
 | Promise | Enforced by |
 |---|---|
-| Accounts need the 13+/Terms tick-box (email and Google sign-up); only a birth month/year stored (never the day), asked only for a profile photo; the player sees it in Profile settings and can set it twice in all (first time + one change; under 16 removes the photo); unknown age is treated as teen | `backend/users/consent.py`, `signup_view`, `google_login` (a new Google account is created only with the tick-box), `set_my_age` (`POST /api/account/age/`) |
+| No age check (owner decision 2026-10-11, removed from the app 2026-10-26): the Terms say 13+; sign-up agrees to the Terms/Privacy by the text under its buttons (email and Google, no tick-box); no age is asked or used anywhere | `backend/users/consent.py`, `signup_view`, `google_login` (a new Google account is created in one step, consent source `google_continue`) |
 | Delete your account / photo yourself | `backend/users/account_data.py`, `POST /api/account/delete/`, `POST /api/account/remove-photo/`, profile screen |
 | Download your data | `GET /api/account/export/`, profile screen |
 | Banned or locked-out players can still be erased | `python manage.py erase_user <public id or email> --yes` |

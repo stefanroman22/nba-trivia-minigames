@@ -1,6 +1,5 @@
 """Regression tests for the independent audit of 2026-10-08."""
 import re
-from datetime import date
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -12,7 +11,6 @@ from users import leaderboard, strikes
 from users.tests import GOOGLE_ID, google, login, signup
 
 User = get_user_model()
-TEEN = {"accepted_terms": True, "birth_year": date.today().year - 14, "birth_month": 1}
 
 
 class GoogleDisplayNameTests(TestCase):
@@ -33,19 +31,15 @@ class UniformLoginErrorTests(TestCase):
 
 
 class TeenAccountsAreFullPlayersTests(TestCase):
-    """Owner decision 2026-10-19: accounts without a confirmed age of 16+ (13-15, or unknown) work like
-    every other account; the profile photo is the only thing they can't have (test_photos)."""
+    """No age rules (owner decision 2026-10-11, removed from the app 2026-10-26): accounts an earlier
+    sign-up flagged "teen", or of unknown age, work like every other account (photos too: test_photos)."""
 
     def setUp(self):
         cache.clear()
         signup(self.client, username="Adult", email="adult@example.com")
         self.adult = User.objects.get(email="adult@example.com")
-        self.client.post(
-            reverse("signup"),
-            data={"username": "TeenPlayer", "email": "teen@example.com", "password": "Testpass123!", **TEEN},
-            content_type="application/json",
-        )
-        self.teen = User.objects.get(email="teen@example.com")
+        # Legacy flag from the earlier sign-up flow; nothing sets it any more.
+        self.teen = User.objects.create_user(username="TeenPlayer", email="teen@example.com", password="Testpass123!", age_group="teen")
         self.unknown = User.objects.create_user(username="NoAgeYet", email="noage@example.com", password="x", points=70)
         User.objects.filter(pk__in=[self.adult.pk, self.teen.pk]).update(points=50)
         User.objects.filter(pk=self.teen.pk).update(points=90)

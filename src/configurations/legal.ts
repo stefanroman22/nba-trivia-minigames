@@ -18,7 +18,7 @@ export const LEGAL = {
    * no earlier than `effective`, or record an owner waiver. See docs/legal/OPEN_ITEMS.md and the promote-to-prod
    * runbook. The values below were written on dev on 2026-10-26. */
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
-  version: "2026-10-26.1",
+  version: "2026-10-26.2",
   updated: "26 October 2026",
   /** The same date as ISO, for the sitemap. */
   updatedIso: "2026-10-26",
@@ -28,7 +28,6 @@ export const LEGAL = {
   changeNotice: {
     effective: "3 November 2026",
   },
+  /** The age the Terms require for an account. The app does not check it (owner decision 2026-10-11). */
   minimumAge: 13,
-  /** Accounts younger than this cannot upload a public profile photo. Equals PHOTO_MIN_AGE in backend/users/consent.py. */
-  photoMinimumAge: 16,
 } as const;

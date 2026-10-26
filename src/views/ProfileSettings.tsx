@@ -4,7 +4,7 @@ import copy from "copy-to-clipboard";
 import { useDispatch, useSelector } from "react-redux";
 import { AnimatePresence, motion } from "framer-motion";
 import type { AppDispatch, RootState } from "../store";
-import { logout, updateAge, updateUsername } from "../store/userSlice";
+import { logout, updateUsername } from "../store/userSlice";
 import { apiFetch } from "../utils/Api";
 import { isBanPayload } from "../utils/ban";
 import { showErrorAlert } from "../utils/Alerts";
@@ -17,9 +17,7 @@ import { useProfilePhoto } from "../hooks/useProfilePhoto";
 import { useLogout } from "../hooks/useLogout";
 import Navigation from "../components/Navigation";
 import SwapText from "../components/motion/SwapText";
-import AutoHeight from "../components/motion/AutoHeight";
 import PasswordRules from "../components/PasswordRules";
-import PhotoAgePrompt from "../components/PhotoAgePrompt";
 import { Button } from "../components/ui";
 import defaultAvatar from "../assets/default.png";
 import "../styles/ProfileSettings.css";
@@ -35,7 +33,7 @@ export default function ProfileSettings() {
   const dispatch = useDispatch<AppDispatch>();
   const { user, authChecked } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
-  const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto, agePrompt, ageSaving, ageError, submitAge, cancelAge } = useProfilePhoto();
+  const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto } = useProfilePhoto();
   const { loggingOut, requestLogOut } = useLogout();
 
   // ---- Username ----
@@ -92,51 +90,6 @@ export default function ProfileSettings() {
       await revert("Could not reach the server. Please try again.");
     }
   };
-
-  // ---- Birth date: only the 16+ / under-16 result is kept; under 16 removes the photo ----
-  const [ageOpen, setAgeOpen] = useState(false);
-  const [ageBusy, setAgeBusy] = useState(false);
-  const [ageErr, setAgeErr] = useState("");
-  const saveAge = async (month: string, year: string) => {
-    if (ageBusy) return;
-    if (!month || !year) {
-      setAgeErr("Please choose your birth month and year.");
-      return;
-    }
-    setAgeBusy(true);
-    setAgeErr("");
-    try {
-      const res = await apiFetch(`${BACKEND_URL}/account/age/`, {
-        method: "POST",
-        body: JSON.stringify({ birth_month: Number(month), birth_year: Number(year) }),
-      });
-      const data = await res.json().catch(() => null);
-      if (!res.ok) {
-        setAgeErr(data?.error || "We couldn't save that. Please try again.");
-        return;
-      }
-      dispatch(updateAge({
-        age_group: data?.user?.age_group ?? "",
-        profile_photo: data?.user?.profile_photo ?? null,
-        birth_month: data?.user?.birth_month ?? null,
-        birth_year: data?.user?.birth_year ?? null,
-        age_sets_left: data?.user?.age_sets_left ?? 0,
-      }));
-      setAgeOpen(false);
-    } catch {
-      setAgeErr("Unable to contact the server. Please try again later.");
-    } finally {
-      setAgeBusy(false);
-    }
-  };
-  const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const groupLabel = user?.age_group === "adult" ? "16 or over" : user?.age_group === "teen" ? "Under 16" : "";
-  // The date they gave (month + year) when we have it; accounts set before it was kept show the age group only.
-  const dateLabel = user?.birth_month && user?.birth_year ? `${MONTH_NAMES[user.birth_month - 1]} ${user.birth_year}` : "";
-  const ageLabel = [dateLabel, groupLabel].filter(Boolean).join(" · ") || "Not set";
-  // Allowed twice in all: the first time and one change. A cached /me/ without the count leaves it open.
-  const ageLocked = user?.age_sets_left === 0;
-  const AGE_RULE = "You can set your birth month and year twice only: once, and one change later.";
 
   // ---- Player ID ----
   const [idCopied, setIdCopied] = useState(false);
@@ -299,41 +252,17 @@ export default function ProfileSettings() {
             </div>
           </div>
 
-          {/* The two inline age forms open and close here: the card glides with them (UI-23). */}
-          <AutoHeight>
-            <div className="ps-row">
-              <div className="ps-row-main">
-                <span className="ps-label">Profile photo</span>
-                <span className="ps-value ps-muted">{user.profile_photo ? "Shown to other players" : "No photo"}</span>
-              </div>
-              <div className="ps-row-actions">
-                <label htmlFor="ps-photo" className="ps-link-btn">Change</label>
-                <input id="ps-photo" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
-                {user.profile_photo && <button className="ps-link-btn ps-link-btn--muted" onClick={handleRemovePhoto}>Remove</button>}
-              </div>
+          <div className="ps-row">
+            <div className="ps-row-main">
+              <span className="ps-label">Profile photo</span>
+              <span className="ps-value ps-muted">{user.profile_photo ? "Shown to other players" : "No photo"}</span>
             </div>
-            <PhotoAgePrompt open={agePrompt} saving={ageSaving} error={ageError} onSubmit={submitAge} onCancel={cancelAge} />
-
-            <div className="ps-row">
-              <div className="ps-row-main">
-                <span className="ps-label">Date of birth</span>
-                <span className="ps-value ps-muted">{ageLabel}</span>
-              </div>
-              {/* The rule shows on hover (a disabled button shows no tooltip of its own, so it sits on the wrapper). */}
-              <span title={ageLocked ? `${AGE_RULE} You have used both.` : `${AGE_RULE}${user?.age_sets_left === 1 ? " 1 left." : ""}`}>
-                <button
-                  className="ps-link-btn"
-                  onClick={() => { setAgeErr(""); setAgeOpen((v) => !v); }}
-                  aria-expanded={ageOpen}
-                  disabled={ageLocked}
-                  style={ageLocked ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
-                >
-                  <SwapText>{ageOpen ? "Cancel" : user?.age_group ? "Change" : "Set"}</SwapText>
-                </button>
-              </span>
+            <div className="ps-row-actions">
+              <label htmlFor="ps-photo" className="ps-link-btn">Change</label>
+              <input id="ps-photo" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+              {user.profile_photo && <button className="ps-link-btn ps-link-btn--muted" onClick={handleRemovePhoto}>Remove</button>}
             </div>
-            <PhotoAgePrompt settings open={ageOpen} saving={ageBusy} error={ageErr} onSubmit={saveAge} onCancel={() => setAgeOpen(false)} />
-          </AutoHeight>
+          </div>
         </section>
 
         {/* Your data */}
