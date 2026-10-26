@@ -1,8 +1,8 @@
 name: SEO weekly
 # The weekly SEO run (scripts/seo/run.mjs), Mondays 06:00 Europe/Paris, on GitHub's runner: the owner's PC can be off.
 # Full audit of https://swishquest.com, the Search Console pull, the per-URL ledger, the seo agent (claude -p,
-# CLAUDE_CODE_OAUTH_TOKEN as checks-weekly.yml), Notion cards (Source `seo-check …`, Target dev), IndexNow, the Drive
-# export and one Slack line to #agent-frontend. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
+# CLAUDE_CODE_OAUTH_TOKEN as checks-weekly.yml), Notion cards (Source `seo-check …`, Target dev), IndexNow and one
+# Slack line to #agent-frontend. Docs: docs/seo/README.md. Spec: docs/superpowers/specs/2026-10-25-seo-agent-design.md.
 #
 # Start time. GitHub's cron is UTC: 04:00 UTC is 06:00 CEST (summer) and 05:00 CET (winter); 05:00 UTC is the backup.
 # The gate (scripts/seo/ledger.mjs weekly-status, read-only) skips a scheduled trigger when the store already holds an
@@ -10,11 +10,11 @@ name: SEO weekly
 # the first was dropped or failed. GitHub runs scheduled workflows only from main: this file is inert until dev is promoted.
 #
 # What it touches. Tooling: a checkout of dev. Writes: seo/ledger.json and seo/lease.json on the branch checks-state
-# (fast-forward pushes, never force), Notion cards, Drive files, IndexNow pings, one Slack line, and one commit of
+# (fast-forward pushes, never force), Notion cards, IndexNow pings, one Slack line, and one commit of
 # docs/seo/owner-actions.md pushed to dev when the agent changed it (a plain push with this job's token; a rejection,
 # e.g. dev branch protection, is logged and the file stays in the run artifact). The repo is public: logs and the
 # artifact are world-readable, so no Search Analytics number and no secret reaches the console, the log or the
-# artifact (gsc.json, gsc-analytics.json and the exports are never uploaded).
+# artifact (gsc.json and gsc-analytics-pq.json are never uploaded).
 #
 # Phase 2 (on-page) is opt-in: the `areas` input `indexing,onpage` adds the OP checks (scripts/seo/onpage.mjs) and the
 # Search Analytics page × query pull. The schedule passes no --areas (phase 1 only) until the owner changes it.

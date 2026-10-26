@@ -1,6 +1,6 @@
 ---
 name: seo
-description: SEO hub for nba-minigames: which area skill to load (indexing; on-page, opt-in phase 2), the ledger and export rules, the read budget, the privacy of query data. Use for "/seo", "SEO check", "indexing", "is page X indexed", "Search Console", "on-page", "titles", "keywords".
+description: SEO hub for nba-minigames: which area skill to load (indexing; on-page, opt-in phase 2), the ledger rules, the read budget, the privacy of query data. Use for "/seo", "SEO check", "indexing", "is page X indexed", "Search Console", "on-page", "titles", "keywords".
 ---
 
 # SEO (hub)
@@ -38,12 +38,12 @@ because the scripts do the bulk work.
 - Phase 2 adds: `<runDir>/onpage-summary.md`, `<runDir>/queries-summary.md` (PRIVATE, see below),
   `scripts/seo/keyword-map.json`, the `seo-onpage` references a check needs, and `docs/seo/onpage-guide.md`: the §6
   area in hand, only that area.
-- Never open `results.json`, `gsc.json`, `gsc-analytics.json`, `gsc-analytics-pq.json`, `onpage.json`, `ledger.json`,
-  `ledger-previous.json`, an export, a CSV. The exceptions are the per-URL slice commands in `seo-indexing` and
+- Never open `results.json`, `gsc.json`, `gsc-analytics-pq.json`, `onpage.json`, `ledger.json`,
+  `ledger-previous.json`, a CSV. The exceptions are the per-URL slice commands in `seo-indexing` and
   `seo-onpage` ("Inputs"), which print coverage fields and page signals only.
 - Never print or write a click, impression, CTR, position or query: the weekly run's stdout is a public log, and the
-  repo, its branches and the run artifacts are world-readable. Search Analytics lives only in the Drive export and,
-  with phase 2, in the run dir's `gsc-analytics-pq.json` and `queries-summary.md` (never uploaded).
+  repo, its branches and the run artifacts are world-readable. Search Analytics lives only, with phase 2, in the run
+  dir's `gsc-analytics-pq.json` and `queries-summary.md` (never uploaded) and in Notion card bodies.
 - Query data (phase 2): `queries-summary.md` is read with the Read tool, never through Bash. Its query strings and
   numbers may be written only into the `current`/`howToFix` of a `card` finding in `findings.json` (they reach the
   Notion card body); never into `REPORT.md`, `docs/seo/owner-actions.md`, another finding, a log, Slack or a return.
@@ -57,7 +57,7 @@ hand, the same steps with the judgement in this session:
 ```
 node scripts/seo/run.mjs --notion dry --slack off --agents off
 ```
-- Add `--dry-run` to keep everything on this machine (no store push, no ping, no upload, no owner-actions commit),
+- Add `--dry-run` to keep everything on this machine (no store push, no ping, no owner-actions commit),
   `--gsc off` for the audit alone (no Google credentials needed), `--no-state` to use this home's ledger only (no git).
 - The second line is `seo-run: run <runId> · site <site> · <runDir>`. Then load `seo-indexing` and do its "Producing the
   run's output" on that `<runDir>`, as the agent would. The run wrote a placeholder `REPORT.md` (overwrite it) and,
@@ -85,8 +85,6 @@ node scripts/seo/run.mjs --notion dry --slack off --agents off
 - `requests[]` is appended only by the owner's click report (below), so no unchanged page is requested twice.
 - The decisions reach the ledger only through `run.mjs` (step 6). A session's decisions on an `--agents off` run stay
   in its `REPORT.md` and `findings.json`; the next weekly run decides again.
-- Exports (Drive `SEO/Indexing/exports/`): `ledger-<date>.csv`, `gsc-analytics-<date>.csv`, `REPORT-<date>.md`; the
-  full picture, the only place Search Analytics numbers exist.
 - `docs/seo/owner-actions.md` is rewritten by every run from its `owner` decisions; the run commits it to dev
   (`seo: owner actions <runId>`) only when it changed and only from a checkout at `origin/dev`.
 
