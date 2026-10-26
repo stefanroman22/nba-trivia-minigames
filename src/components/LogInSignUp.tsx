@@ -39,7 +39,8 @@ interface AuthError { id: number; message: string; field?: AuthField }
 const NETWORK_ERROR = "Unable to contact the server. Please try again later.";
 const NO_ACCOUNT_YET = "No account yet — tick the box to create one with Google.";
 /** How long the success pane holds before the modal leaves (after the form's fade-out). The sheet
- *  (mobile) and reduced-motion holds are shorter; a tap skips once SKIP_AFTER_MS has passed. */
+ *  (mobile) and reduced-motion holds are shorter; a tap skips once SKIP_AFTER_MS has passed. The page
+ *  behind stays usable meanwhile: the takeover backdrop lets clicks through (Modal.tsx). */
 const SUCCESS_HOLD_MS = 800;
 const SUCCESS_HOLD_SHORT_MS = 600;
 const SKIP_AFTER_MS = 300;
