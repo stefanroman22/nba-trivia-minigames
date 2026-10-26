@@ -87,19 +87,31 @@
 .waya-reveal-sub { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
 
 /* ===== Feedback list — the ONLY scrolling region ===== */
-/* Sizes to its rows rather than claiming the leftover height, so the game hugs
-   its content at the start and grows as the clue trail fills in. Capped so a long
-   trail scrolls inside itself instead of pushing the page down. */
+/* Fixed height (RULE 6.2): mounted from the start and never resizes as rows
+   arrive, so the stage stays constant; a long trail scrolls inside itself. */
 .waya-feed {
+  position: relative;
+  flex: none;
   width: 100%;
-  min-height: 0;
-  max-height: clamp(140px, 30dvh, 280px);
+  height: clamp(140px, 30dvh, 280px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding-right: 2px;
   overscroll-behavior: contain;
+}
+.waya-feed-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 .waya-row {
   flex: none;

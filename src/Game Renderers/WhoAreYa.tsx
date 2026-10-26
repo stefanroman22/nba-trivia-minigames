@@ -8,6 +8,7 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
 import SwapText from "../components/motion/SwapText";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { fadeIn } from "../motion/variants";
 import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
@@ -403,12 +404,17 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
             )}
           </AnimatePresence>
 
-          {/* Feedback rows — newest on top. Only mounted once there is something to
-              show: an empty feed with a placeholder claimed a large blank band in
-              the middle of the game (it was flex:1). No rows → no node → no gap. */}
-          {rows.length > 0 && (
+          {/* Feedback rows — newest on top. Always mounted at a fixed height (RULE 6.2):
+              mounting it on the first guess grew the whole stage. A muted hint fills the
+              empty band and fades out (popLayout, out of flow) when the first row lands. */}
           <div className="waya-feed" role="log" aria-label="Guess feedback">
-            <AnimatePresence initial={false}>
+            <AnimatePresence initial={false} mode="popLayout">
+              {rows.length === 0 && (
+                <motion.p key="empty" className="waya-feed-empty" variants={fadeIn}
+                  initial="hidden" animate="visible" exit="exit">
+                  Each guess shows how close you are.
+                </motion.p>
+              )}
               {rows.map((r) => (
                 <motion.div
                   key={r.key}
@@ -422,7 +428,6 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
               ))}
             </AnimatePresence>
           </div>
-          )}
         </div>
       </GameFrame.Board>
 
