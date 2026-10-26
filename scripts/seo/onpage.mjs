@@ -3,7 +3,10 @@
 // keyword map scripts/seo/keyword-map.json; optionally PageSpeed Insights (OP-10) and a Search Analytics page × query
 // export (OP-11).
 //
-//   node scripts/seo/onpage.mjs [--site <url>] [--run-dir <dir>] [--analytics <gsc-analytics-pq.json>] [--psi]
+//   node scripts/seo/onpage.mjs [--site <url>] [--as <origin>] [--run-dir <dir>] [--analytics <gsc-analytics-pq.json>] [--psi]
+//
+// --as <origin>: --site serves the site as <origin> (a local production build names https://swishquest.com): links on
+// <origin> are read as links on --site (as audit.mjs --as).
 //
 // Writes onpage.json (per URL: a signals summary and its failures) and onpage-summary.md (header, one `## FAIL OP-nn`
 // per failing check, `## Coverage gaps`) to <uicHome()>/seo/runs/<runId>/ (or --run-dir). With --analytics also
@@ -102,15 +105,17 @@ const kindOf = (u) => { const p = pathOf(u); return p === '/' ? 'home' : NON_GAM
  * Runs the on-page checks. Sitemap URLs on another host than `site` (a preview listing the production URLs) are
  * fetched on `site`. A page that does not answer 200 is not judged (a Coverage gaps line: its status is IX-02's).
  * `psi`: null (not asked: one gaps line), or { key, fetch } (no key, a 429 or a 403: one gaps line; other errors one
- * line per page). `analytics`: the page × query rows, or null.
+ * line per page). `analytics`: the page × query rows, or null. `asOrigin` (--as): links on that origin are links on
+ * `site`.
  *
  * @param {{ site: string, fetcher: { get(url: string): Promise<object> }, keywordMap: object, analytics?: object[]|null,
- *   psi?: { key: string|null, fetch?: typeof fetch }|null, runId: string }} opts
+ *   psi?: { key: string|null, fetch?: typeof fetch }|null, asOrigin?: string|null, runId: string }} opts
  * @returns {Promise<OnpageResult>}
  */
-export async function runOnpage({ site, fetcher, keywordMap, analytics = null, psi = null, runId }) {
+export async function runOnpage({ site, fetcher, keywordMap, analytics = null, psi = null, asOrigin = null, runId }) {
   site = site.replace(/\/+$/, '');
   const siteUrl = new URL(site);
+  if (asOrigin) asOrigin = new URL(asOrigin).origin;
   const home = `${site}/`;
   const gaps = [];
   const get = (u) => fetcher.get(u).catch((e) => ({ status: 0, headers: {}, body: '', location: null, error: e.message }));
@@ -134,7 +139,7 @@ export async function runOnpage({ site, fetcher, keywordMap, analytics = null, p
   if (failed.length === pages.size) throw infra(`every page request failed (${failed[0].error})`);
   const ok = (u) => pages.get(u).status === 200;
   for (const u of targets.filter((x) => !ok(x))) gaps.push(`${u} not checked: ${statusText(pages.get(u))}`);
-  const signals = new Map(targets.filter(ok).map((u) => [u, pageSignals(pages.get(u).body, { url: u })]));
+  const signals = new Map(targets.filter(ok).map((u) => [u, pageSignals(pages.get(u).body, { url: u, asOrigin })]));
 
   const games = targets.filter((u) => kindOf(u) === 'game');
   const readGames = games.filter(ok);
@@ -264,9 +269,9 @@ export function writeOnpage(result, runDir) {
 /** 1 when any check failed, else 0. */
 export const exitCodeFor = (result) => (allFailures(result).length ? 1 : 0);
 
-/** CLI flags → { site, runDir, analytics, psi }; throws on an unknown flag or a missing value. */
+/** CLI flags → { site, as, runDir, analytics, psi }; throws on an unknown flag or a missing value. */
 export function parseArgs(argv) {
-  const opts = { site: null, runDir: null, analytics: null, psi: false };
+  const opts = { site: null, as: null, runDir: null, analytics: null, psi: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     const value = () => {
@@ -275,6 +280,7 @@ export function parseArgs(argv) {
       return v;
     };
     if (a === '--site') opts.site = value();
+    else if (a === '--as') opts.as = value();
     else if (a === '--run-dir') opts.runDir = value();
     else if (a === '--analytics') opts.analytics = value();
     else if (a === '--psi') opts.psi = true;
@@ -301,6 +307,7 @@ export async function cli(argv, { log = console.log, err = console.error, env = 
   try {
     opts = parseArgs(argv);
     if (opts.site && !/^https?:$/.test(new URL(opts.site).protocol)) throw new Error(`--site ${opts.site} is not an http(s) URL`);
+    if (opts.as && !/^https?:$/.test(new URL(opts.as).protocol)) throw new Error(`--as ${opts.as} is not an http(s) URL`);
     if (opts.analytics) analytics = readAnalytics(opts.analytics);
   } catch (e) {
     err(`seo-onpage: ${e.message}`);
@@ -321,7 +328,7 @@ export async function cli(argv, { log = console.log, err = console.error, env = 
   try {
     const client = fetcher ?? makeFetcher({ ua: DEFAULT_UA, concurrency: 4, timeoutMs: 15000, redirect: 'manual' });
     const psi = opts.psi ? { key: env.PSI_API_KEY?.trim() || null, fetch: fetchImpl } : null;
-    const result = await runOnpage({ site, fetcher: client, keywordMap: loadKeywordMap(), analytics, psi, runId });
+    const result = await runOnpage({ site, fetcher: client, keywordMap: loadKeywordMap(), analytics, psi, asOrigin: opts.as, runId });
     log(onpageHeader(result));
     const failures = allFailures(result);
     for (const id of OP_IDS) {
