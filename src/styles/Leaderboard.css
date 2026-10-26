@@ -25,6 +25,10 @@
   border: none;
   cursor: pointer;
   letter-spacing: 0.3px;
+  /* 24px+ hit area (WCAG 2.5.8); negative margin keeps the label where it was. */
+  min-height: 24px;
+  padding: 4px 6px;
+  margin: -4px -6px;
 }
 .lb-viewall:hover { text-decoration: underline; }
 

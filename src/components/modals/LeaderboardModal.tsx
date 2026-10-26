@@ -7,7 +7,7 @@ import { useLeaderboard, type LeaderboardScope } from "../../hooks/useLeaderboar
 import { friendPhotoUrl } from "../../hooks/useFriends";
 import { Avatar, CourtLoader } from "../ui";
 import SegmentedTabs from "../motion/SegmentedTabs";
-import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from "../../constants/leaderboard";
+import { initials, avatarBg, avatarFg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from "../../constants/leaderboard";
 
 /** Full leaderboard list shown inside the leaderboard modal — Global top 100
  * or, once toggled, the signed-in player + their friends. The scope is
@@ -64,7 +64,7 @@ export default function LeaderboardModal({ scope: pickedScope, onScopeChange }: 
               return (
                 <div key={u.id ?? `${u.rank}-${u.name}`} className={`lbf-row${isSelf ? " is-self" : ""}`}>
                   <span className="tnum lbf-rank" style={{ color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
-                  <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} src={u.id ? friendPhotoUrl(u.id, u.photoVersion ?? 0) : null} />
+                  <Avatar initials={initials(u.name)} size={30} bg={avatarBg(u.rank)} color={avatarFg(u.rank)} src={u.id ? friendPhotoUrl(u.id, u.photoVersion ?? 0) : null} />
                   <span className="lbf-name" style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                     <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
                     {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10.5, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
