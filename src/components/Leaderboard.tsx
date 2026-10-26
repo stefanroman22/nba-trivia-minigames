@@ -11,7 +11,7 @@ import { friendPhotoUrl } from '../hooks/useFriends';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { useModal } from '../context/ModalContext';
-import { initials, avatarBg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from '../constants/leaderboard';
+import { initials, avatarBg, avatarFg, SELF_AVATAR_BG, LEADERBOARD_SCOPES, GUEST_LEADERBOARD_SCOPES } from '../constants/leaderboard';
 
 /** How many rows the home card shows before "View all →" opens the full list. */
 const PREVIEW_COUNT = 10;
@@ -96,7 +96,7 @@ function Leaderboard() {
                   {preview.map((u) => (
                     <motion.div key={u.id ?? `${u.rank}-${u.name}`} variants={staggerItem} className="lb-row">
                       <span className="tnum" style={{ minWidth: 24, textAlign: "center", fontWeight: 700, fontSize: 13, color: u.rank <= 3 ? "var(--brand)" : "var(--muted)" }}>{u.rank}</span>
-                      <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} src={u.id ? friendPhotoUrl(u.id, u.photoVersion ?? 0) : null} />
+                      <Avatar initials={initials(u.name)} size={26} bg={avatarBg(u.rank)} color={avatarFg(u.rank)} src={u.id ? friendPhotoUrl(u.id, u.photoVersion ?? 0) : null} />
                       <span style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", lineHeight: 1.2 }} title={u.id ? `${u.name} #${u.id}` : u.name}>
                         <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{u.name}</span>
                         {(u.id || u.rankName) && <span className="tnum" style={{ fontSize: 10, fontWeight: 600, color: "var(--muted)" }}>{[u.id && `#${u.id}`, u.rankName].filter(Boolean).join(" · ")}</span>}
