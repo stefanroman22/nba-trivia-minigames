@@ -103,10 +103,25 @@ export default function PrivacyPage() {
         given access to the systems above for maintenance only.
       </p>
       <p>
-        These providers act on our instructions under data processing terms. Separately, some pictures are loaded straight
-        from other websites: team logos and player photos from <strong>cdn.nba.com</strong>, and some logos and player
-        photos from <strong>upload.wikimedia.org</strong> (credited on the <LegalLink href="/credits">photo credits</LegalLink> page). Your browser asks those servers directly, so they can see your IP address and
-        browser details, as with any image on the web. We do not use Google Fonts or any analytics or advertising service.
+        These providers act on our instructions under data processing terms. We do not use Google Fonts or any analytics or
+        advertising service.
+      </p>
+      <p>
+        <strong>Pictures loaded from other websites.</strong> Player photos (and some team logos) are free-licence images
+        from Wikimedia Commons, credited on the <LegalLink href="/credits">photo credits</LegalLink> page, and are loaded
+        from <strong>upload.wikimedia.org</strong>, run by the Wikimedia Foundation, Inc. (United States). Most team logos
+        are loaded from <strong>cdn.nba.com</strong>, run for the NBA (United States). When a game shows such a picture,
+        your browser asks that server for it directly, so the server receives your IP address, your browser and device
+        details and our site&apos;s address (never which page or game you are on, and nothing from your {LEGAL.service} account). We do not
+        receive anything back about you and we have no contract with these organisations: each handles that data as its
+        own controller, under its own privacy policy (
+        <LegalLink href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Wikimedia Foundation</LegalLink>,{" "}
+        <LegalLink href="https://www.nba.com/privacy-policy">NBA</LegalLink>
+        ). We are responsible together with them only for making your browser send that request; our basis is our
+        legitimate interest in showing the pictures the games need without copying them onto our own servers. You can
+        object: block <strong>upload.wikimedia.org</strong> and <strong>cdn.nba.com</strong> in your browser or a content
+        blocker and the games still work, with a silhouette instead of a player photo and a plain badge instead of a team
+        logo.
       </p>
       <p>
         We may disclose data if the law requires it, for example to answer a valid court order or request from a public
@@ -119,7 +134,9 @@ export default function PrivacyPage() {
         Some providers are US companies or process data outside the European Economic Area or the UK. Where that happens we
         rely on safeguards the law recognises: the EU&ndash;US Data Privacy Framework where the provider is certified, and
         otherwise the European Commission&apos;s Standard Contractual Clauses (with the UK addendum), which are part of the
-        providers&apos; data processing terms. You can ask us for a copy of the relevant safeguard.
+        providers&apos; data processing terms. You can ask us for a copy of the relevant safeguard. The picture servers in
+        section 5 are not our providers and we send them nothing ourselves: your browser connects to them, in the United
+        States or wherever their network serves you from, and you can stop that by blocking them as described there.
       </p>
 
       <LegalHeading id="retention">7. How long we keep things</LegalHeading>
