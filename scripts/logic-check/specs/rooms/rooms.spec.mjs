@@ -12,7 +12,7 @@ import { connect } from '../../lib/socket.mjs';
 import { visibleGames } from '../../../ui-check/lib/games-catalog.mjs';
 import { appRepo, readStack } from '../../../ui-check/lib/stack.mjs';
 import { activePorts } from '../../../check-core/lib/ports.mjs';
-import { ROLES, mintTokens } from '../../../check-core/lib/accounts.mjs';
+import { ROLES, forgetAge, mintTokens, seedLegacyTeen } from '../../../check-core/lib/accounts.mjs';
 import { awardRules, receiptProblems } from '../../lib/awarding.mjs';
 
 test.describe.configure({ mode: 'default' });
@@ -144,7 +144,8 @@ function checkRound(s, who, rd, gameId) {
   if (idKey) s.check(new Set(rd.gameData.map((r) => JSON.stringify(idParts(idKey).map((p) => r[p])))).size === rd.gameData.length, `${who} ← roundData ${idParts(idKey).join('+')}`, 'a duplicate', 'each row once');
 }
 
-/** The name a stranger sees in a random 1v1: the real name, whatever the age (the relay's teen masking ended 2026-10-19). */
+/** The name a stranger sees in a random 1v1: the real name, whatever the age (the relay masks nobody: the teen masking
+ *  ended 2026-10-19, the age rules 2026-10-26.2; LC-ROOMS-10 seeds both strangers as legacy teens). */
 const shown = (_s, name) => name;
 
 /** /me/ of a persona (api fixture), or null. */
@@ -477,10 +478,12 @@ test('[LC-ROOMS-09] leaving: guest leaves the lobby / mid-round / drops; the hos
   await lc.done();
 });
 
-test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → matchFound + roundData on both; scores credit points; play-again accept → matchRestart + a new round; decline → proposalDeclined', async ({ api, lc }) => {
+test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → matchFound (strangers unmasked, legacy teens included) + roundData on both; scores credit points; play-again accept → matchRestart + a new round; decline → proposalDeclined', async ({ api, lc }) => {
   test.setTimeout(90_000);
-  const s = await session(lc);
-  try { await (async () => { // an early `return` ends the cases, never skips lc.done()
+  // Both strangers carry a legacy teen's age (14): the relay masks nobody (no age rules since 2026-10-26.2).
+  await seedLegacyTeen([HOST, PEER]);
+  let s = null;
+  try { s = await session(lc); await (async () => { // an early `return` ends the cases, never skips lc.done()
     await test.step('findMatch → searching; cancelFind → the next searcher is not paired with it', async () => {
       const m = s.c[HOST].mark();
       s.c[HOST].emit('findMatch', { game: wire(GAME) });
@@ -502,6 +505,11 @@ test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → m
     // The waiting player becomes the room's host (index.js createMatchRoom(game, candidate, me)).
     s.check(found[PEER].role === 'host' && found[HOST].role === 'guest', 'matchFound.role', `${PEER} ${found[PEER].role}, ${HOST} ${found[HOST].role}`, `${PEER} host (it waited), ${HOST} guest`);
     for (const who of [HOST, PEER]) s.check(found[who].code === code && found[who].roomType === 'match' && found[who].roomSize === 2 && found[who].game && found[who].game.id === GAME.id, `${who} ← matchFound`, { code: found[who].code, roomType: found[who].roomType, game: found[who].game && found[who].game.id }, `{ code: ${code}, roomType: match, roomSize: 2, game: ${GAME.id} }`);
+    // No masking: each stranger sees the other's real name and permanent id, `masked` false (index.js publicUser).
+    for (const [who, other] of [[HOST, PEER], [PEER, HOST]]) {
+      const o = found[who].opponent;
+      s.check(isObj(o) && o.username === shown(s, other) && o.id === s.user[other].id && o.masked === false, `${who} ← matchFound.opponent (both legacy teens)`, o && { id: o.id, username: o.username, masked: o.masked }, `{ id: ${s.user[other].id}, username: ${other}, masked: false }: the relay masks nobody`);
+    }
     const rounds = {};
     for (const who of [HOST, PEER]) { rounds[who] = await s.expect(who, 'roundData', { since: marks[who], timeout: 20_000 }); if (rounds[who]) checkRound(s, who, rounds[who], GAME.id); }
     if (!rounds[HOST] || !rounds[PEER]) return;
@@ -567,6 +575,9 @@ test('[LC-ROOMS-10] matchmaking: cancelFind leaves no queue; findMatch ×2 → m
       const d = await s.expect(PEER, 'opponentLeft', { since: m });
       if (d) s.check(d.message === MSG.opponentLeft, 'opponentLeft.message', d.message, MSG.opponentLeft);
     });
-  })(); } finally { await s.close(); }
+  })(); } finally {
+    if (s) await s.close();
+    await forgetAge([HOST, PEER]).catch((e) => lc.violation('cleanup', { route: '/socket.io/', selector: `forget ${HOST}/${PEER}'s age`, measured: String(e.message).split('\n')[0], expected: 'age unknown again (else the sweep resets it)' }));
+  }
   await lc.done();
 });

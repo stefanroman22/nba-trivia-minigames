@@ -41,7 +41,7 @@ Notes the triage agent reads: `scripts/logic-check/notes/logic.md`. Shared code:
 | pages | `LC-PAGES-` | local, 1 browser | the same routes on the checkout, plus hydration (a click works) |
 | auth | `LC-AUTH-` | local, API (+1 browser case) | login by username / email / Name#ID, `/me/`, refresh rotation + blacklist, logout, throttle config, Google login's bad input, a deleted account's tokens |
 | signup | `LC-SIGNUP-` | local, API (+1 browser case) | the validation matrix (`lib/matrix.mjs`), frontend/backend rule agreement, the happy path, the form showing the backend's error |
-| profile | `LC-PROFILE-` | local, API | username change, photo age gate, teen refusal, photo removal, export, account deletion |
+| profile | `LC-PROFILE-` | local, API | username change, photo upload with no age gate, the age route gone, photo removal, export, account deletion |
 | friends | `LC-FRIENDS-` | local, API, actor ↔ peer | requests arrive on both sides, accept / decline / cancel / remove / block / unblock, symmetric lists, search |
 | game-data | `LC-GAMEDATA-` | local, API | each visible game's data sources, `log-session` credit, leaderboard rank, the Wordle daily gate |
 | rooms | `LC-ROOMS-` | local, socket.io client ×2 | the relay protocol: identify, friend rooms, matchmaking, scores and results, leaving, play-again proposals |

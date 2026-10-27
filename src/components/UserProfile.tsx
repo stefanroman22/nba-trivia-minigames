@@ -10,7 +10,6 @@ import SwapText from "./motion/SwapText";
 import defaultAvatar from "../assets/default.png";
 import FriendsPanel from "./FriendsPanel";
 import { useProfilePhoto } from "../hooks/useProfilePhoto";
-import PhotoAgePrompt from "./PhotoAgePrompt";
 import { useNavigate } from "../hooks/useNavigate";
 import { useModal } from "../context/ModalContext";
 import { Chip, ProgressBar } from "./ui";
@@ -43,7 +42,7 @@ function UserProfile() {
   const { user } = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
   const { open } = useModal();
-  const { uploadingPhoto, handlePhotoUpload, agePrompt, ageSaving, ageError, submitAge, cancelAge } = useProfilePhoto();
+  const { uploadingPhoto, handlePhotoUpload } = useProfilePhoto();
 
   // Profile is the default view; a player who switches to Friends keeps it on later visits.
   // Read before the first paint (this card only renders in the browser, once a user is signed in),
@@ -177,8 +176,6 @@ function UserProfile() {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
             </button>
           </div>
-          {/* First photo of an account whose age is unknown: birth month + year, then the upload continues. */}
-          <PhotoAgePrompt open={agePrompt} saving={ageSaving} error={ageError} onSubmit={submitAge} onCancel={cancelAge} />
         </div>
       )}
       </AutoHeight>

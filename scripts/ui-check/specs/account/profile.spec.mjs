@@ -1,7 +1,7 @@
-// Account suite: /profile (ProfileSettings) — username, player ID, photo with the age prompt, data export
-// and account deletion. The solo account is restored in a `finally` whatever happens.
+// Account suite: /profile (ProfileSettings) — username, player ID, photo (no age prompt since 2026-10-26.2), data
+// export and account deletion. The solo account is restored in a `finally` whatever happens.
 import { readFileSync } from 'node:fs';
-import { test, expect, L, pick, seedContext } from '../../lib/fixtures.mjs';
+import { test, expect, L, seedContext } from '../../lib/fixtures.mjs';
 import { mintTokens, credentials, forgetAge } from '../../lib/accounts.mjs';
 import { fileURLToPath } from 'node:url';
 import { LOCAL_LOAD } from '../../lib/guest.mjs';
@@ -102,10 +102,10 @@ test('[AC-PROFILE-01] @perf /profile layout; username change saves and shows in 
   await audit.done();
 });
 
-test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo upload asks the age, updates the avatar; remove reverts it', async ({ page, audit, request, session }) => {
+test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo upload with no age set updates the avatar straight away (no age prompt, no Date of birth row); remove reverts it', async ({ page, audit, request, session }) => {
   test.setTimeout(240_000);
   await apiCall(request, session.access, 'POST', 'account/remove-photo/');
-  await forgetAge([session.username]);
+  await forgetAge([session.username]); // the state that once opened the age prompt
   try {
     await openProfile(audit);
     const copy = L(page, 'account.psCopyBtn');
@@ -123,23 +123,16 @@ test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo 
     const state = L(page, 'account.psPhotoState');
     const before = await avatar.getAttribute('src');
     await expect(state).toHaveText('No photo');
+    // No age rules (owner decision, 2026-10-26.2): no Date of birth row to set or change.
+    await expect(L(page, 'account.psDobState'), 'no Date of birth row').toHaveCount(0);
 
-    await test.step('upload: age prompt, then the avatar', async () => {
-      await motionStep(audit, 'photo picked, age prompt opens', async () => {
+    await test.step('upload: the avatar straight away, no age prompt', async () => {
+      await motionStep(audit, 'photo picked, uploads', async () => {
         await L(page, 'account.psPhotoInput').setInputFiles(AVATAR);
-        await expect(L(page, 'account.agePrompt')).toBeVisible({ timeout: 15_000 });
-      }, { watch: ['.ps-card', 'form.photo-age'], settleMs: 700 });
-      await audit.layout({ scope: 'main.ps-page' });
-      await audit.shot('age-prompt');
-      await pick(page, 'account.ageMonth', 'June');
-      await pick(page, 'account.ageYear', String(new Date().getFullYear() - 30));
-      await motionStep(audit, 'age submitted, photo uploads', async () => {
-        await L(page, 'account.ageContinue').click();
         await expect(state).toHaveText('Shown to other players', { timeout: 20_000 });
-        // The age given in the prompt reaches the page without a reload (the store, not only the server).
-        await expect(L(page, 'account.psDobState')).toContainText(`June ${new Date().getFullYear() - 30} · 16 or over`, { timeout: 5000 });
-        await expect(L(page, 'account.agePrompt')).toHaveCount(0, { timeout: 5000 });
       }, { watch: ['.ps-card', '.ps-hero'], settleMs: 800 });
+      await expect(L(page, 'account.agePrompt'), 'no age prompt').toHaveCount(0);
+      await audit.layout({ scope: 'main.ps-page' });
       const after = await avatar.getAttribute('src');
       expect(after, 'avatar src changed').not.toBe(before);
       expect(after).not.toMatch(/default/);
@@ -156,8 +149,8 @@ test('[AC-PROFILE-02] @perf player ID copy swaps to "Copied!" and back; a photo 
       await expect(L(page, 'common.navUserChip').locator('img')).toHaveCount(0);
       await audit.shot('photo-removed');
     });
-    // 428 is the designed handshake: the first upload of an account of unknown age answers age_required.
-    await audit.console({ allow: [...LOCAL_LOAD, /status of 428/, /^428 POST /] });
+    // No 428 allowance: an age_required answer would be the removed age gate coming back.
+    await audit.console({ allow: LOCAL_LOAD });
   } finally {
     await removePhoto(audit, request, session.username);
   }

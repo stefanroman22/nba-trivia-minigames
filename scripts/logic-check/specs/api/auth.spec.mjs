@@ -65,6 +65,10 @@ test('[LC-AUTH-03] /me/ returns the minted user; no token or a bad token → 401
       if (JSON.stringify(u[k]) !== JSON.stringify(minted.user[k])) lc.violation('me', { route, selector: `user.${k}`, measured: JSON.stringify(u[k]), expected: `${JSON.stringify(minted.user[k])} (the minted user)` });
     }
     if (u.username !== ACTOR) lc.violation('me', { route, selector: 'user.username', measured: u.username, expected: ACTOR });
+    // No age rules since 2026-10-26.2: is_teen is always false and the age fields left the payload.
+    if (u.is_teen !== false) lc.violation('me', { route, selector: 'user.is_teen', measured: JSON.stringify(u.is_teen), expected: 'false (always: no age rules)' });
+    const ageFields = ['age_group', 'birth_month', 'birth_year', 'age_sets_left'].filter((k) => k in u);
+    if (ageFields.length) lc.violation('me', { route, selector: 'user payload age fields', measured: ageFields.join(', '), expected: 'none (dropped with the age rules)' });
   });
   await test.step('no token → 401', async () => {
     const r = await attempt(get(api, '/me/'));
@@ -171,21 +175,27 @@ test('[LC-AUTH-06] login, Google login, signup and refresh carry their throttles
   await lc.done();
 });
 
-test('[LC-AUTH-07] Google login with a bad code, no code or a forged consent token → 4xx, never 5xx', async ({ api, lc }) => {
+test('[LC-AUTH-07] Google login is one step: a bad code, no code, a non-string code → 400 with an error, never 5xx; an older client\'s consent token or tick-box fields are ignored (no 428 consent step)', async ({ api, lc }) => {
   const route = '/api/login/google/';
+  // Since 2026-10-26.2 the code is the only input (views.py google_login): `consent_token`, `accepted_terms`,
+  // `age_confirmed` and birth fields from an older client change nothing, and no answer asks for a second step.
   const cases = [
     { label: 'bad code', body: { code: 'lc-check-not-a-real-code' }, status: 400 },
-    { label: 'bad code with the consent tick', body: { code: 'lc-check-not-a-real-code', accepted_terms: true, age_confirmed: true }, status: 400 },
+    { label: 'bad code with an older client\'s tick-box fields', body: { code: 'lc-check-not-a-real-code', accepted_terms: true, age_confirmed: true, birth_month: 1, birth_year: new Date().getFullYear() - 5 }, status: 400 },
     { label: 'no code', body: {}, status: 400, error: 'Missing code' },
     { label: 'code not a string', body: { code: 12345 }, status: 400, error: 'Missing code' },
-    { label: 'forged consent token, consent given', body: { consent_token: 'lc-forged', accepted_terms: true, age_confirmed: true }, status: 400, error: 'Your sign-in took too long. Please try again.' },
-    { label: 'forged consent token, no consent', body: { consent_token: 'lc-forged' }, status: 400, code: 'consent_required' },
+    { label: 'an older client\'s consent token, no code', body: { consent_token: 'lc-forged', accepted_terms: true, age_confirmed: true }, status: 400, error: 'Missing code' },
+    { label: 'consent token alone', body: { consent_token: 'lc-forged' }, status: 400, error: 'Missing code' },
   ];
   for (const c of cases) {
     await test.step(`${c.label} → ${c.status}`, async () => {
       const r = await attempt(post(api, '/login/google/', c.body));
       const selector = `POST /api/login/google/ ${c.label}`;
       if (r.status >= 500 || r.status === 0) { lc.violation('server-error', { route, selector, measured: said(r), expected: `HTTP ${c.status} (4xx, never 5xx)` }); return; }
+      if (r.status === 428 || (r.json && (r.json.consent_token || r.json.code === 'needs_signup_consent' || r.json.code === 'consent_required'))) {
+        lc.violation('google-consent-step', { route, selector, measured: said(r), expected: `HTTP ${c.status}: Google sign-in is one step (no 428 needs_signup_consent, no consent_token, no consent_required since 2026-10-26.2)` });
+        return;
+      }
       if (r.status !== c.status) lc.violation('google', { route, selector, measured: said(r), expected: `HTTP ${c.status}` });
       else if (c.error && errorOf(r) !== c.error) lc.violation('google', { route, selector, measured: said(r), expected: `"${c.error}"` });
       else if (c.code && (!r.json || r.json.code !== c.code)) lc.violation('google', { route, selector, measured: said(r), expected: `code ${c.code}` });

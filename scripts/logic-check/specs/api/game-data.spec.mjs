@@ -12,7 +12,7 @@ import { backendOrigin, poolGames, prodEnv } from '../../lib/app.mjs';
 import { attempt, clientIp, deleteAccount, said, throwawayName } from '../../lib/auth.mjs';
 import { visibleGames } from '../../../ui-check/lib/games-catalog.mjs';
 import { appRepo, djangoEnv, venvPython } from '../../../ui-check/lib/stack.mjs';
-import { ROLES, credentials, mintTokens } from '../../../check-core/lib/accounts.mjs';
+import { ROLES, credentials, forgetAge, mintTokens, seedLegacyTeen } from '../../../check-core/lib/accounts.mjs';
 import { awardRules, receiptProblems } from '../../lib/awarding.mjs';
 
 const ACTOR = ROLES['logic.actor'];
@@ -244,8 +244,11 @@ test('[LC-GAMEDATA-02] log-session credits exactly the reported score: /me/ poin
   await lc.done();
 });
 
-test('[LC-GAMEDATA-03] the logged-in leaderboard agrees with the points: user_rank = players with more points + 1, totals cover the rows', async ({ api, lc }) => {
+test('[LC-GAMEDATA-03] the logged-in leaderboard agrees with the points: user_rank = players with more points + 1, totals cover the rows; a legacy teen is listed', async ({ api, lc }) => {
   const route = '/api/get-users/';
+  // The actor carries a legacy teen's age (14) for this check: nobody is hidden from the board, whatever the age (no age
+  // rules since 2026-10-26.2). Forgotten at the end; the logic sweep resets it if the test dies first.
+  await seedLegacyTeen([ACTOR]);
   const u = await me(api, lc, 'logic.actor', 'the actor');
   if (u) {
     const v = (selector, measured, expected) => lc.violation('leaderboard', { route, selector, measured, expected });
@@ -262,9 +265,9 @@ test('[LC-GAMEDATA-03] the logged-in leaderboard agrees with the points: user_ra
       if (complete && j.user_rank !== above + 1) v('user_rank', `${j.user_rank} with ${u.points} points`, `${above + 1} (${above} listed player(s) with more points, + 1: leaderboard.rank_of)`);
       if (!complete && j.user_rank <= rows.length) v('user_rank', String(j.user_rank), `> ${rows.length}: ${u.points} points is below the 100th row (${rows[rows.length - 1].points})`);
       const mine = rows.find((x) => x.id === u.id);
-      // Every non-banned account is on the public board, teens and unknown ages included (owner decision 2026-10-19).
+      // Every non-banned account is on the public board, whatever its age (the actor is a legacy teen here).
       if (mine && mine.points !== u.points) v(`top_100_users row ${u.id}`, `${mine.points} points`, `${u.points} (/me/)`);
-      if (!mine && complete && rows.length < 100) v(`top_100_users`, `${u.username} (${u.id}) missing`, 'a player with fewer than 100 players above is listed, whatever their age');
+      if (!mine && complete && rows.length < 100) v(`top_100_users`, `${u.username} (${u.id}) missing (age_group "teen" in the database)`, 'a player with fewer than 100 players above is listed, whatever their age (no age rules)');
       if (j.number_users < j.user_rank) v('number_users', String(j.number_users), `≥ user_rank ${j.user_rank} (the player is counted)`);
       lc.metric('global rank', j.user_rank, { unit: '', route, kind: 'data' });
       lc.metric('ranked players', j.number_users, { unit: '', route, kind: 'data' });
@@ -282,6 +285,7 @@ test('[LC-GAMEDATA-03] the logged-in leaderboard agrees with the points: user_ra
       if (j.number_users !== j.top_100_users.length) v('friends number_users', String(j.number_users), `${j.top_100_users.length} (the board's rows)`);
     });
   }
+  await forgetAge([ACTOR]).catch((e) => lc.violation('cleanup', { route, selector: `forget ${ACTOR}'s age`, measured: String(e.message).split('\n')[0], expected: 'age unknown again (else the sweep resets it)' }));
   await lc.done();
 });
 

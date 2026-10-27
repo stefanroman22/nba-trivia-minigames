@@ -12,7 +12,6 @@ from .views import (
     delete_my_account,
     remove_my_photo,
     check_name,
-    set_my_age,
 )
 from .friends import (
     search_users,
@@ -39,8 +38,6 @@ urlpatterns = [
     path('account/export/', export_my_data, name='account_export'),
     path('account/delete/', delete_my_account, name='account_delete'),
     path('account/remove-photo/', remove_my_photo, name='account_remove_photo'),
-    # Birth month + year, asked once when an account of unknown age adds a profile photo.
-    path('account/age/', set_my_age, name='account_age'),
     path('logout/', logout_view, name='logout'),
     path('login/google/', google_login, name='google_login'),
     path('get-users/', get_users, name='get-users'),

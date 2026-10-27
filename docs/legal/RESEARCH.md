@@ -52,6 +52,9 @@ and vendor blogs rather than regulator pages, so re-check any citation before re
   longer followed at sign-up). Birth month/year is asked only when a player adds a profile photo; until an age proves
   16+, the account is treated as a teen account (no photo; since the owner decision of 2026-10-19 that is the only
   difference: teen accounts are on the public leaderboard and in name search like every account). Counsel should confirm this is acceptable for the markets that matter.
+- **Changed again (owner decision 2026-10-11, pre-launch; in the app from 2026-10-26, terms version 2026-10-26.2):** no age
+  check at all. The Terms keep the 13+ rule as a statement; sign-up has no tick-box (agreement is the text under the
+  buttons) and asks no age; the photo age prompt and all teen handling are gone. To revisit before launch.
 
 ## Platform rules (DSA, UK OSA)
 

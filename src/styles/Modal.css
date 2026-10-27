@@ -342,31 +342,10 @@
   box-shadow: 0 -2px 16px -6px rgba(0, 0, 0, 0.4);
 }
 
-/* Sign-up tick-box: 13+ and Terms/Privacy in one (components/ConsentFields). It sits above "Create
-   account" and the Google button and covers both; red when continuing without it. The border and
-   background fade (UI-23 state styling). */
-.auth-check {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 11px 12px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--surface2);
-  font-size: 12.5px;
-  color: var(--muted);
-  line-height: 1.45;
-  cursor: pointer;
-  transition: border-color 0.3s ease, background 0.3s ease;
-}
-.auth-check:has(input:checked) { border-color: color-mix(in srgb, var(--brand) 45%, var(--line)); }
-.auth-check.is-invalid { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, var(--surface2)); }
-.auth-check input { width: 16px; height: 16px; margin: 1px 0 0; accent-color: var(--brand); flex: none; cursor: pointer; }
-.auth-check a, .auth-note a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
-/* Birth month + year selects (the profile photo age prompt, components/PhotoAgePrompt). */
-/* Side by side while both fit "Birth month" (from ~375px); on narrower phones each takes its own line. */
-.auth-consent-row { display: flex; flex-wrap: wrap; gap: 8px; }
-.auth-consent-row .sel-trigger { flex: 1 1 128px; min-width: 0; padding-right: 12px; }
+.auth-note a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; }
+/* Sign-up agreement line under the Google button (no tick-box: pressing either button agrees).
+   Balanced so the two lines on a phone break evenly instead of leaving one orphaned word. */
+.auth-terms-note { text-wrap: balance; }
 
 /* ---- Sign-up password rules (components/PasswordRules): a red cross turns into a green check ---- */
 .pw-rules { list-style: none; margin: 0; padding: 10px 2px 0; display: grid; gap: 6px; }

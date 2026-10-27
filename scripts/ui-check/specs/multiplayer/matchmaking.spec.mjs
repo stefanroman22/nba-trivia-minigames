@@ -49,6 +49,7 @@ test('[MP-MATCH-01] Play 1v1 on the same game: searching → match found → VS 
   joiner.audit.metrics.push({ kind: 'timing', label: 'Play 1v1 → match found (second player)', value: Date.now() - t0, unit: 'ms', budget: 5000, route: joiner.audit.route });
   // Intro: "Match found", You vs Opponent with both names (mirrored), the loading / get-ready line. Asserted from the
   // snapshot the state log took on the first complete intro frame (the 2.6 s intro may be over before the test looks).
+  const intros = new Map();
   await both(pair, async (p) => {
     if ((await mpState(p.page)) === 'intro') { await p.audit.layout({ scope: 'section.stage-col' }); await p.audit.shot('intro'); }
     const snap = await readIntro(p.page);
@@ -62,11 +63,16 @@ test('[MP-MATCH-01] Play 1v1 on the same game: searching → match found → VS 
     const want = [{ side: 'You', name: p.username }, { side: 'Opponent', name: shownName(other, 'match') }];
     const got = snap.cards.map(({ side, name }) => ({ side, name }));
     if (JSON.stringify(got) !== JSON.stringify(want)) p.audit.violation('intro', { selector: '.om-matchup', measured: JSON.stringify(got), expected: JSON.stringify(want) });
-    // A stranger shown as "Player" (age unknown or 13-15) should not carry their permanent player ID either: teens are
-    // findable by exact player ID only (backend users/friends.py search_users), so the ID under "Player" undoes the mask.
-    if (want[1].name === 'Player' && snap.cards[1] && snap.cards[1].tag) p.audit.violation('teen-masking', { selector: '.om-matchup .om-pc-tag', measured: `the opponent is shown as "Player" but with its player ID ${snap.cards[1].tag}`, expected: 'a masked stranger shows no permanent player ID (it lets anyone find and friend-request them by ID)' });
+    intros.set(p, snap);
     p.audit.metrics.push({ kind: 'note', label: 'intro snapshot at', value: snap.t, unit: 'ms', route: p.audit.route });
   });
+  // No masking (no age rules since 2026-10-26.2; testuser1/2 never gave an age): each stranger's card carries the
+  // same permanent #id the other player sees on their own "You" card.
+  for (const [p, other] of [[host, joiner], [joiner, host]]) {
+    const mine = intros.get(p), theirs = intros.get(other);
+    if (!mine || !theirs || !mine.cards[1] || !theirs.cards[0]) continue;
+    if (!mine.cards[1].tag || mine.cards[1].tag !== theirs.cards[0].tag) p.audit.violation('masking', { selector: '.om-matchup .om-pc-tag', measured: `the opponent card shows ${mine.cards[1].tag ? `#id ${mine.cards[1].tag}` : 'no player ID'}, the opponent's own card ${theirs.cards[0].tag || 'none'}`, expected: 'the opponent\'s permanent #id (the relay masks nobody)' });
+  }
   await both(pair, (p) => waitState(p, 'playing', 30_000));
   await both(pair, async (p) => {
     await expect(L(p.page, 'multiplayer.gameRoot')).toBeVisible();

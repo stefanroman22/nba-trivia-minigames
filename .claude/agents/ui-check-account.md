@@ -47,11 +47,11 @@ anything else under `scripts/ui-check/`; never run git commands that change stat
 ## Judgement checklist (account: fixed, disjoint from the other three judges)
 **A. Digest lines you own:** every line under a `## FAIL AC-…` section, `AC-` coverage gaps, and the
 warnings your slice prints. Spec §5 (Account): the sign-up form (live password rules, username
-check, consent required, duplicate errors, closing animation on success); log in by email and by
+check, terms by text with no tick-box, duplicate errors, closing animation on success); log in by email and by
 username, wrong-password error, session survives reload, expired access token refreshes silently,
 log out reverts the UI; Google button (renders, sized, opens the popup or GIS frame, in-app-browser
 warning); profile (change username valid / invalid / too long / taken, copy player ID, photo upload
-with the age prompt, remove photo, export data, delete account); logged-in surfaces (profile card,
+with no age prompt, remove photo, export data, delete account); logged-in surfaces (profile card,
 friends panel tabs, friend request round trip, leaderboard friends tab, points panel); permissions
 (`/admin` as non-admin, `/api/admin/*` 403); Play 1v1 opens searching and Cancel works; blocking
 (buttons disable with feedback while submitting, no double submit, no action waits more than 400 ms

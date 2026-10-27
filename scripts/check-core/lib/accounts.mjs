@@ -159,10 +159,19 @@ export async function mintTokens(usernames) {
   return res.tokens;
 }
 
-/** Put accounts back to "age unknown", so the next photo upload asks for the birth month and year again. */
+/** Put accounts back to "age unknown" (the legacy age columns cleared): the state in which a photo upload once asked
+ *  for an age. Since the age rules were dropped (2026-10-26.2) the checks use it to start from that state. */
 export async function forgetAge(usernames) {
   for (const u of usernames) if (!ACCOUNTS[u] && !isTestUsername(u)) throw new Error(`ui-check: unknown test account "${u}"`);
   await mintRequest({ op: 'forget_age', users: usernames.map((u) => ACCOUNTS[u] || acct(u)) });
+}
+
+/** Give accounts the legacy age columns of an earlier 14-year-old ("teen", born 14 years ago). Nothing may read them
+ *  any more: the checks seed one to prove a photo, the board, name search and the relay ignore the age. Undo with
+ *  forgetAge (the logic sweep also resets testuser4/5/6). */
+export async function seedLegacyTeen(usernames) {
+  for (const u of usernames) if (!ACCOUNTS[u] && !isTestUsername(u)) throw new Error(`ui-check: unknown test account "${u}"`);
+  await mintRequest({ op: 'legacy_teen', users: usernames.map((u) => ACCOUNTS[u] || acct(u)) });
 }
 
 /** Admin rights (is_staff + is_superuser) for a test account through the app's `promote_admin` management command —

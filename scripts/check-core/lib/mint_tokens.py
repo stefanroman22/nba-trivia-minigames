@@ -15,11 +15,13 @@ seconds to start here; a mint takes milliseconds).
     {"op": "sweep", "scope": "ui|logic|all"}   -> {"ok": true, "deleted": [...], "restored": [...], "photos": [...], "friend_rows": n}
         (scope default "ui": `uic<digits>` throwaways + the testuser3 family <-> testuser2; "logic": `lgc<digits>`
         throwaways + testuser4/5/6 and testuser4 <-> testuser5; "all": both)
-    {"op": "forget_age", "users": [...]}   -> {"ok": true}   (age unknown, both age sets left: the photo age prompt shows again)
+    {"op": "forget_age", "users": [...]}   -> {"ok": true}   (the legacy age columns cleared: "age unknown", both age sets left)
+    {"op": "legacy_teen", "users": [...]}   -> {"ok": true}   (the legacy age columns of an earlier 14-year-old: "teen")
+        (no age rules since 2026-10-26.2, the columns stay: Logic Check seeds a "teen" to prove nothing reads them)
     {"op": "promote_admin", "users": [...]}   -> {"ok": true, "users": {"testuser6": {"is_staff": true}}}
         (the app's own `manage.py promote_admin <email>` command, on test accounts of this database only)
 
-Accounts are created the way users.views.signup_view does it (consent stamped as a checkbox
+Accounts are created the way users.views.signup_view does it (consent stamped as an email
 sign-up, leaderboard row recorded) and created on demand by "mint" too. Tokens are minted the way
 login does it (users.tokens.issue_session_tokens: the `auth_time` claim and an OutstandingToken
 row), so the app's refresh path (users.tokens.SessionRefreshSerializer) accepts them. Minting
@@ -67,7 +69,10 @@ def account(spec, password):
     if user is None:
         validate_password(password, User(username=username, email=email))
         user = User.objects.create_user(username=username, email=email, password=password)
-        stamp_consent(user, "", "signup_checkbox")
+        try:
+            stamp_consent(user, "signup_text")
+        except TypeError:  # a backend from before 2026-10-26.2 (main until it is promoted) also takes the age group
+            stamp_consent(user, "", "signup_checkbox")
         user.save(update_fields=CONSENT_FIELDS)
         leaderboard.record_score(user)
         return user, True
@@ -136,7 +141,7 @@ def sweep(scope="ui"):
                 remove_photo(u)
                 out["photos"].append(want)
             if s == "logic" and (u.age_group or getattr(u, "age_sets", 0)):
-                # Logic's profile/friends checks give testuser4/5 an age; minted accounts start with it unknown.
+                # Logic's checks seed testuser4/5 as legacy teens (legacy_teen); minted accounts start with no age.
                 unset_age(u)
                 out.setdefault("ages", []).append(want)
         if partner:
@@ -157,6 +162,21 @@ def unset_age(user):
     fields = ["age_group"]
     user.age_group = ""
     for name, value in (("birth_month", None), ("birth_year", None), ("age_sets", 0)):
+        if hasattr(user, name):
+            setattr(user, name, value)
+            fields.append(name)
+    user.save(update_fields=fields)
+
+
+def set_legacy_teen(user):
+    """The age columns an account of an earlier 14-year-old still carries: "teen", born 14 years ago this month, one
+    age set used. The age rules are gone (users.consent, 2026-10-26.2), so nothing may read them: such an account
+    uploads a photo, is listed and found by name, and the relay shows its name (Logic Check proves each)."""
+    from datetime import date
+    today = date.today()
+    fields = ["age_group"]
+    user.age_group = "teen"
+    for name, value in (("birth_month", today.month), ("birth_year", today.year - 14), ("age_sets", 1)):
         if hasattr(user, name):
             setattr(user, name, value)
             fields.append(name)
@@ -186,10 +206,15 @@ def handle(req, password):
     if req.get("op") == "mint":
         return {"ok": True, "tokens": {spec["username"]: mint(spec, password) for spec in users}}
     if req.get("op") == "forget_age":
-        # Back to "age unknown" so the photo flow asks for the birth month + year again (account suite).
+        # Back to "age unknown" (the legacy columns cleared): the state that once made a photo upload ask for an age.
         for spec in users:
             user, _ = account(spec, password)
             unset_age(user)
+        return {"ok": True}
+    if req.get("op") == "legacy_teen":
+        for spec in users:
+            user, _ = account(spec, password)
+            set_legacy_teen(user)
         return {"ok": True}
     if req.get("op") == "promote_admin":
         return {"ok": True, "users": {spec["username"]: promote_admin(spec, password) for spec in users}}

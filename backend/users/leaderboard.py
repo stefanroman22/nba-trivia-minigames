@@ -30,8 +30,8 @@ _last_drift_warning = float("-inf")
 
 def _ranked():
     """Every account that may appear on a board: every account except banned ones, which are hidden
-    (users.strikes). Age plays no part (owner decision 2026-10-19: the only age limit left is the
-    profile photo)."""
+    (users.strikes). Age plays no part (no age rules at all since the owner decision of 2026-10-11,
+    users.consent)."""
     return User.objects.filter(banned_at__isnull=True)
 
 

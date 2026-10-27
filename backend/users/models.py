@@ -77,26 +77,25 @@ class CustomUser(AbstractUser):
     # Filled only when the account is banned (users.strikes.canonical_email); signup and Google
     # sign-up refuse a new account whose canonical email matches. Weak by design (see docs).
     canonical_email = models.CharField(max_length=254, blank=True, default="", db_index=True)
-    # Consent record (users.consent): when the player accepted the Terms/Privacy Policy, which
-    # version, and when they confirmed being old enough. No birth date is kept (data minimisation:
-    # only the fact that the age check passed). Null on accounts created before this existed.
+    # Consent record (users.consent): when the player accepted the Terms/Privacy Policy and which
+    # version. Null on accounts created before this existed.
     terms_accepted_at = models.DateTimeField(null=True, blank=True, editable=False)
     terms_version = models.CharField(max_length=20, blank=True, default="", editable=False)
+    # Legacy (no age check since the owner decision of 2026-10-11, removed from the app 2026-10-26): when
+    # an earlier sign-up confirmed 13+, the coarse "teen"/"adult" group, and the birth month + year (never
+    # the day) given with the earlier photo or Profile-settings flow, and how many times. Nothing writes
+    # or reads them any more; the columns stay so no destructive migration is needed (still exported and
+    # cleared with the account, users.account_data). db_default so the previous backend (same shared
+    # database) can still insert rows while both versions are live.
     age_confirmed_at = models.DateTimeField(null=True, blank=True, editable=False)
-    # "teen" (13-15) or "adult" (16+), from a birth month + year (older sign-ups, or given when adding a
-    # profile photo); "" = unknown, which counts as teen (users.consent.is_teen). Teens cannot upload a
-    # public profile photo.
     age_group = models.CharField(max_length=5, blank=True, default="", editable=False)
-    # The birth month + year the player gave (never the day), so Profile settings can show it back. Null
-    # until given (older accounts only have the age group). `age_sets` counts how many times it was given;
-    # the player may give it twice in all (users.consent.MAX_AGE_SETS). db_default so the previous backend
-    # (same shared database) can still insert rows while both versions are live.
     birth_month = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
     birth_year = models.PositiveSmallIntegerField(null=True, blank=True, editable=False)
     age_sets = models.PositiveSmallIntegerField(default=0, db_default=0, editable=False)
-    # How the 13+ confirmation was given: "signup_checkbox", "google_signup_checkbox", or "*_birth_date"
-    # from older clients; "" on accounts created before 2026-10-11. db_default so the previous backend
-    # (same shared database) can still insert rows while both versions are live.
+    # How the Terms were agreed: "signup_text" (email sign-up) or "google_continue" (new Google
+    # account); "signup_checkbox", "google_signup_checkbox" or "*_birth_date" from the earlier
+    # tick-box flow; "" on older accounts. db_default so the previous backend (same shared database)
+    # can still insert rows while both versions are live.
     consent_source = models.CharField(max_length=30, blank=True, default="", db_default="", editable=False)
 
     USERNAME_FIELD = "email"

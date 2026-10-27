@@ -688,13 +688,13 @@ pick-one-of-a-list control is `Select` from `src/components/ui` (`src/components
   are not selects, but still fade in and out.
 
 ```tsx
-❌ WRONG — src/components/PhotoAgePrompt.tsx before: a native select, its arrow clipped, the list snaps open
+❌ WRONG — the photo age prompt (src/components/PhotoAgePrompt.tsx, removed 2026-10-26) before: a native select, its arrow clipped, the list snaps open
 <select className="modal-input" aria-label="Birth year" value={year} onChange={(e) => setYear(e.target.value)}>
   <option value="" disabled>Birth year</option>
   {years.map((y) => <option key={y} value={String(y)}>{y}</option>)}
 </select>
 
-✅ RIGHT — src/components/PhotoAgePrompt.tsx
+✅ RIGHT — the same prompt after (the pattern for any select)
 <Select
   className="modal-input"
   aria-label="Birth year"
