@@ -5,6 +5,8 @@ import { SITE_NAME } from "../../configurations/site";
 export const alt = `An NBA trivia game on ${SITE_NAME}`;
 export const size = shareCardSize;
 export const contentType = shareCardContentType;
+// Only catalogued slugs are rendered (prebuilt); any other slug is a 404, never an on-demand PNG.
+export const dynamicParams = false;
 
 // Prebuilt for every game page (like the page itself), so no function runs per share.
 export function generateStaticParams() {

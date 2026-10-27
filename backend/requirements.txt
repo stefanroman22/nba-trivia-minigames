@@ -1,14 +1,14 @@
-Django>=5.1,<5.2
+Django>=5.2.18,<5.3
 # IANA timezone database for zoneinfo — Windows/some minimal Linux images don't
 # ship one, and trivia.wordle_daily needs Europe/Paris for the daily CET/CEST flip.
 tzdata
-djangorestframework
-djangorestframework-simplejwt
+djangorestframework>=3.18.3
+djangorestframework-simplejwt>=5.5.1
 django-cors-headers
 python-dotenv
-requests
+requests>=2.34.2
 google-auth
-Pillow
+Pillow>=13.0.0
 # Serve static (admin/DRF) on serverless (Vercel) without a separate static host:
 whitenoise[brotli]>=6.0
 # Production database (used only when DATABASE_URL is set, e.g. Supabase Postgres):
@@ -16,3 +16,6 @@ dj-database-url
 psycopg2-binary
 # Redis leaderboard (used only when REDIS_URL is set, e.g. Upstash):
 redis
+# Security floors for transitive deps the request path reaches:
+PyJWT>=2.15.1  # simplejwt token signing/verification; advisories <2.15
+urllib3>=2.8.0  # requests/google-auth HTTP client; advisories <2.8
