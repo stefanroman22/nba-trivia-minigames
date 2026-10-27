@@ -118,6 +118,8 @@ export interface MpState {
   proposal: Proposal | null;
   ended: { reason: string; message: string } | null;
   notice: Notice | null;
+  /** The current round failed to load (relay roundDataError), while in "intro": OnlineMatch shows it with
+   *  an exit. Cleared by the next round (ROUND_DATA / MATCH_RESTART) and by any new room state. */
   error: string | null;
 }
 
@@ -244,6 +246,11 @@ function reducer(state: MpState, a: Action): MpState {
       return { ...state, turnState: a.state, phase: play ? "playing" : state.phase };
     }
     case "ROUND_ERROR":
+      // The round failed to load. The phase stays "intro" (MP-5): the intro reads `error` and swaps its
+      // line to the message plus the phase's exit control, so the player is never stuck on the VS card.
+      // The relay also resets the room (friend room -> lobby, 1v1 ended). A late error after we left
+      // the intro (lobby, idle) is stale.
+      if (state.phase !== "intro") return state;
       return { ...state, error: a.message };
     case "INTRO_ELAPSED":
       if (state.phase !== "intro") return state;

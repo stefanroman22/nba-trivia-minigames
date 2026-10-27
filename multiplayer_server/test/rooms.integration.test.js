@@ -62,6 +62,8 @@ test.before(async () => {
       return;
     }
     // fan-favorites answers late, so a test can act while its round is still loading.
+    // wordle's round endpoint is down, so its deals fail (roundDataError).
+    if (req.url.startsWith("/trivia/wordle/")) { res.statusCode = 500; res.end(JSON.stringify({ detail: "boom" })); return; }
     if (req.url.startsWith("/trivia/fan-favorites/")) { setTimeout(() => res.end(JSON.stringify({ series: [{ q: 1 }, { q: 2 }] })), 400); return; }
     if (req.url.startsWith("/trivia/")) { res.end(JSON.stringify({ series: [{ q: 1 }, { q: 2 }] })); return; }
     const user = USERS[(req.headers.authorization || "").replace("Bearer ", "")];
@@ -608,6 +610,53 @@ test("the host going back to the lobby from the results says so", async () => {
   pat.emit("stopMatch", { code });
   assert.match((await back).message, /went back to the lobby/);
   pat.emit("leaveMatch", {});
+});
+
+test("a friend round that fails to load sends the room back to its lobby, and a resume lands there", async () => {
+  const cat = await player("Cat");
+  const dan = await player("Dan");
+  const snap = await createRoom(cat, "wordle", 2);
+  const hostSeen = next(cat, "friendLobbyUpdate"); // drain the join update
+  await join(dan, snap.code);
+  await hostSeen;
+  const errors = [next(cat, "roundDataError"), next(dan, "roundDataError")];
+  const stopped = next(dan, "matchStopped");
+  const lobbies = [next(cat, "friendLobbyUpdate"), next(dan, "friendLobbyUpdate")];
+  cat.emit("startRoomNow", { code: snap.code });
+  (await Promise.all(errors)).forEach((e) => assert.match(e.message, /Couldn't load the game/));
+  assert.match((await stopped).message, /Couldn't load the game/);
+  (await Promise.all(lobbies)).forEach((l) => assert.equal(l.members.length, 2));
+
+  const cat2 = await connect();
+  const resumed = next(cat2, "resumeMatch");
+  cat2.emit("identify", { token: tok("Cat") });
+  const r = await resumed;
+  assert.equal(r.phase, "lobby", "a resume restored the failed round's intro");
+  assert.equal(r.lobby.code, snap.code);
+  cat2.emit("leaveMatch", {});
+});
+
+test("a 1v1 round that fails to load ends the match: no resume into the intro, both can search again", async () => {
+  const eve = await player("Eve");
+  const fay = await player("Fay");
+  const errors = [next(eve, "roundDataError"), next(fay, "roundDataError")];
+  const found = next(fay, "matchFound");
+  eve.emit("findMatch", { game: { id: "wordle" } });
+  await wait(100);
+  fay.emit("findMatch", { game: { id: "wordle" } });
+  assert.equal((await found).roomType, "match");
+  (await Promise.all(errors)).forEach((e) => assert.match(e.message, /Couldn't load the game/));
+
+  const eve2 = await connect();
+  const resumed = arrives(eve2, "resumeMatch", 600);
+  eve2.emit("identify", { token: tok("Eve") });
+  assert.equal(await resumed, false, "a resume restored the failed match's intro");
+  const searching = next(eve2, "searching");
+  const refused = arrives(eve2, "matchError", 400);
+  eve2.emit("findMatch", { game: { id: "wordle" } });
+  await searching;
+  assert.equal(await refused, false, "the failed match still holds the player");
+  eve2.emit("leaveMatch", {});
 });
 
 // Turn games below. Each question file is fetched once per relay process, so the two tests that
