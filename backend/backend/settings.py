@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from django.core.exceptions import ImproperlyConfigured
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -51,6 +52,10 @@ if _vercel_url and _vercel_url not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(_vercel_url)
 if ".vercel.app" not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(".vercel.app")
+# The API's first-party host (same site as swishquest.com, so the refresh cookie is not
+# third-party). Inert until the domain is assigned to the backend project.
+if "api.swishquest.com" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("api.swishquest.com")
 
 
 # Application definition
@@ -126,6 +131,15 @@ else:
 
 # For development only - restrict in production!
 CORS_ALLOW_CREDENTIALS = True
+# X-SQ-Session marks a cookie-session request (users.session_cookie); a custom header
+# forces a CORS preflight, which only CORS_ALLOWED_ORIGINS passes.
+CORS_ALLOW_HEADERS = (*default_headers, "x-sq-session")
+
+# HttpOnly refresh-token cookie, set and read only by users/session_cookie.py.
+# __Host- needs Secure + Path=/ + no Domain, so local http dev uses a plain name.
+REFRESH_COOKIE_NAME = "sq_refresh" if DEBUG else "__Host-sq_refresh"
+REFRESH_COOKIE_SECURE = not DEBUG
+REFRESH_COOKIE_SAMESITE = "Strict"
 
 # Origins the frontend is actually served from. Kept in code rather than env because
 # the env var is *additive* (env_list_merge): a partial CORS_ALLOWED_ORIGINS can no
@@ -138,6 +152,7 @@ FRONTEND_ORIGINS = [
     "https://nba-minigames-stefanromanpers-5412s-projects.vercel.app",
     "https://nba-minigames-git-main-stefanromanpers-5412s-projects.vercel.app",
     "https://nba-minigames-git-dev-stefanromanpers-5412s-projects.vercel.app",
+    "https://dev.swishquest.com",
     # Local dev frontend. Deliberate, and it applies in production too: it lets
     # `npm run dev` fall back to the deployed backend when no local Django is
     # running (docs/DEPLOYMENT.md -> Environments). The tradeoff is that any page
