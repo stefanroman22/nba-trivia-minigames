@@ -1335,3 +1335,24 @@ autoprefixer output; the card is surgical).
 Consequences: lockfiles are written by npm 10 only (CI parity); the moderation redeploy, the relay dispatch after
 promotion, the production migrate log and the Supabase PG ≥ 14 check are owner actions listed in the design §7; the
 `sweetalert2` jump (11.6.13 → 11.26.25) is proven by gate 2's Swal flow, with `^11.6.14` as the recorded fallback pin.
+
+## 2026-10-27 — Design: refresh-cookie card ships Phase 1 backend only; CSP report endpoint and throttle raise deferred
+Context: P1 hard card `move-the-refresh-token-into-a` (design `designs/2026-10-27-move-the-refresh-token-into-a.md`). The
+spec is a five-phase programme whose owner questions are unanswered; Phase 0 is the owner's dashboard work and the card
+has a 45-minute budget on one opus engine.
+Weighed (scope): (a) Phase 1 + the frontend switch in one card — rejected: Phase 2 needs the `api.swishquest.com` and
+`dev.swishquest.com` domains (Phase 0, owner) and three owner answers, and the spec itself wants ≥ 1 day between the two
+promotions; (b) Phase 1 backend only, frontend and relay untouched — chosen: the spec says each phase ships alone, the
+legacy `/api/token/refresh/` path keeps LC-AUTH-01..08 green, and the Django test module is the proof.
+Weighed (CSP report endpoint inside Phase 1): (a) build it — rejected: a model + migration (AUTH-11 risk surface), a
+custom parser, retention and an admin list with no producer until the Phase 2 Report-Only header exists, and it does not
+fit the remaining budget; (b) a named follow-up card "CSP report endpoint (Phase 1.5)" — chosen.
+Weighed (`auth-refresh` 60 → 120/h now): rejected for this card; it exists for per-tab refreshes that only the Phase 2
+client makes, and LC-AUTH-06 pins `60/hour` (`scripts/logic-check/specs/api/auth.spec.mjs:139`), so raising it alone would
+fail a checker. Phase 2 raises it with the check.
+Weighed (`logout-all` CSRF check): the spec lists the Origin/`X-SQ-Session` rule for the two cookie endpoints; `logout-all`
+is Bearer-only (not ambient), so it skips the check and only clears the cookie — chosen; noted in the design.
+Decided under the spec's recommended defaults (owner questions unanswered): `SameSite=Strict`; the report endpoint will be
+own-Django, not Sentry. The Vercel-plan question (money) stays with the owner.
+Consequences: production behaviour is unchanged after this card (no client sends `X-SQ-Session` yet); follow-up cards are
+listed in the design §7; gate 2 is one route smoke because the diff is backend-only.
