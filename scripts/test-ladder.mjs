@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   percentileHeadline, aheadCopy, sameRankCopy, toTopCopy, nextRankCopy, gateCopy, streakBonusCopy, freezeCopy,
-  ladderCacheFresh,
+  requirementCopy, standingCopy, ladderCacheFresh,
 } from "../src/utils/ladder.ts";
 import { RANK_TAGLINES, RANK_ORDER, percentileShareText } from "../src/utils/ranks.ts";
 
@@ -59,6 +59,11 @@ test("gate and rules copy", () => {
   assert.equal(gateCopy({ name: "Starter", points: 1500 }), "1,500 pts");
   assert.equal(gateCopy({ name: "Rookie", points: 0 }), "Start here");
   assert.equal(gateCopy({ name: "Role Player", points: 100 }), "100 pts");
+  assert.equal(requirementCopy({ points: 0 }), "Starting rank");
+  assert.equal(requirementCopy({ points: 1500 }), "From 1,500 pts");
+  assert.equal(standingCopy(you, 1240), "#287 of 1,240 players · ahead of 77%");
+  assert.equal(standingCopy({ ...you, position: 1, ahead_of_pct: 100 }, 1), "#1 of 1 player · ahead of 99%");
+  assert.equal(standingCopy(you, 0), "#287 · ahead of 77%");
   assert.equal(streakBonusCopy(rules), "10 days +500 · 25 days +1,500 · 100 days +10,000");
   assert.equal(freezeCopy(rules), "Missed a day? A freeze saves your streak. You earn one every 7 days of streak and can hold 1");
 });

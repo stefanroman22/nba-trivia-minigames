@@ -57,6 +57,16 @@ export function gateCopy(row: Pick<LadderRow, "name" | "points">): string {
   if (row.points === 0) return "Start here";
   return `${n(row.points)} pts`;
 }
+/** What a row asks for, as plain text under the rank name. */
+export function requirementCopy(row: Pick<LadderRow, "points">): string {
+  if (row.points === 0) return "Starting rank";
+  return `From ${n(row.points)} pts`;
+}
+/** "#23 of 25 players · ahead of 8%": position, field size and the share you are ahead of (never 100%). */
+export function standingCopy(you: LadderYou, totalPlayers: number): string {
+  const place = you.position <= totalPlayers ? `#${n(you.position)} of ${n(totalPlayers)} ${totalPlayers === 1 ? "player" : "players"}` : `#${n(you.position)}`;
+  return `${place} · ahead of ${pct0(Math.min(99, Math.round(you.ahead_of_pct)))}`;
+}
 /** The milestones as they are paid: "10 days +500 · 25 days +1,500 · …" (added to your points automatically). */
 export function streakBonusCopy(r: LadderRules): string {
   const days = Object.keys(r.streak_milestones).map(Number).sort((a, b) => a - b);

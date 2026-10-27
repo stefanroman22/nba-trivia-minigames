@@ -9,6 +9,7 @@
 .ld-center { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 2rem 0; color: var(--muted); }
 .ld-hero { display: grid; grid-template-columns: 56px 1fr; grid-template-areas: "badge text" "actions actions"; gap: 12px 14px; align-items: center; padding: 14px; border-radius: 14px; background: var(--surface2); }
 .ld-badge { grid-area: badge; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #101010; background: var(--rank-color); }
+.ld-hero-you { grid-template-areas: "badge text"; }
 .ld-hero-text { grid-area: text; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ld-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .ld-headline { font-size: 26px; line-height: 1.1; }
@@ -28,12 +29,14 @@
 .ld-dot { width: 10px; height: 10px; border-radius: 50%; }
 .ld-row-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .ld-row-name { font-weight: 700; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+.ld-row-req { font-size: 11.5px; color: var(--text); }
 .ld-row-tag { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Track = one step off the surface, rounded and clipping. The fill is a full-width square bar scaled
    to the share (--w, 0..1) from the left: a transform, never a width animation. */
 .ld-bar { display: block; height: 6px; border-radius: 3px; background: var(--surface3); overflow: hidden; }
 .ld-bar-fill { display: block; width: 100%; height: 100%; background: var(--brand); transform: scaleX(var(--w, 0)); transform-origin: left center; transition: transform 600ms var(--ease-out); }
 .ld-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ld-row-of { font-size: 11px; }
 .ld-row-pct { font-weight: 700; color: var(--text); }
 .ld-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ld-games { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: 1fr; gap: 4px 16px; font-size: 13px; }
@@ -45,6 +48,7 @@
 
 @container ladder (min-width: 440px) {
   .ld-hero { grid-template-columns: 64px 1fr auto; grid-template-areas: "badge text actions"; }
+  .ld-hero-you { grid-template-columns: 64px 1fr; grid-template-areas: "badge text"; }
   .ld-badge { width: 64px; height: 64px; font-size: 30px; }
   .ld-games { grid-template-columns: 1fr 1fr; }
 }
