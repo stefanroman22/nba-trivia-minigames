@@ -46,18 +46,23 @@ if it is an existing finding, use `ui-fix <id>` instead (it does both plus revie
 - Next.js 16 differs from older releases (Turbopack, async `params`, no `next lint`) — check the bundled
   docs in `node_modules/next/dist/docs/` before writing routing, config or metadata code.
 - URLs/secrets come from env (`.env`, `backend/.env`); never hardcode or commit them.
-- **Don't run lint/typecheck/build/tests routinely.** They cost time and context, and for a
-  small or obvious edit they tell you nothing you didn't already know. Run them when it
-  actually matters: before committing, when explicitly asked, or when the change is one you
-  can't verify by reading (tricky types, models/migrations, build or settings config). In the
-  autonomous pipeline the verify stage runs them on the diff anyway, so an engine repeating
-  them is pure duplication.
+- **Build and typecheck run only right before a commit or a push to `dev` (owner, 2026-10-25).**
+  Never run `next build` or the typecheck (`npx next typegen && npx tsc --noEmit`) as an
+  intermediate check while you work: run them once, just before committing or pushing to `dev`,
+  or when the owner explicitly asks. Lint and tests follow the same rule, except a change you
+  can't verify by reading (models/migrations, settings config). In the autonomous pipeline the
+  verify stage runs them on the diff anyway, so an engine repeating them is pure duplication.
 
-## Shipping — dev is the default destination; production is an explicit ask
-`dev` is where finished work lands by default. Once a change is verified (build, lint, typecheck,
-a real browser pass when the UI changed), the agent carries it to `dev` itself without stopping
-for confirmation:
-1. Commit and push on a feature branch, open the PR to `dev` (`gh pr create --base dev`), and wait
+## Shipping — push to `dev` only when asked; `main` only when asked
+**In a session with the owner, nothing is pushed or merged — not to `dev`, not to `main` — until the
+owner asks for it in the conversation** ("push it to dev", "merge it", "promote", "ship it to prod").
+This covers every PR to `dev` or `main`, follow-up fixes included, and the skills that ship
+(`ui-fix`, `promote-to-prod`). Finish and verify the work, commit it on a feature branch if useful,
+then stop and report what is ready to go where. (The unattended team pipeline and the weekly
+checker run keep their own documented flows: they have no owner in the loop.)
+
+When the owner asks for `dev`:
+1. Push the feature branch, open the PR to `dev` (`gh pr create --base dev`), and wait
    for the checks (`gh pr checks <n> --watch`). `gh` must be on the `stefanroman22` account.
 2. Merge it yourself (`gh pr merge <n> --merge --delete-branch`; the team pipeline squashes its own).
 3. **Stop there and report it's on `dev`.** Do not trigger, run, or wait on the "Promote dev to
@@ -74,9 +79,9 @@ Once promotion is explicitly requested, follow the `promote-to-prod` skill
 (`.claude/skills/promote-to-prod/SKILL.md`) — trigger, watch both deploys, verify production,
 fix forward or roll back. Never leave production broken and just report it.
 
-The only stops beyond "wait for an explicit promote ask" are the standing ones: anything that
-costs money, a secret you don't have, and deleting data you didn't create. Merge only what
-actually works — a known error is a blocker.
+Beyond "wait for the owner's ask" the standing stops still apply: anything that costs money, a
+secret you don't have, and deleting data you didn't create. Merge only what actually works — a
+known error is a blocker.
 
 **Exception — game data from the question factory (owner, 2026-10-12).** The question factory may
 publish game data (questions, answer lists, data corrections) to production on its own schedule,
@@ -89,7 +94,8 @@ owner's promote.
 logic-check) are the standing exception: `ui-fix` and pipeline cards with `Target = main` ship to
 `main` via the hotfix flow (branch from main, into main — `ui-fix` by a merged PR, the pipeline by
 fast-forward — then a back-merge PR main → dev; relay changes parked for the owner). Everything
-else still stops at dev.
+else still stops at dev. In a session with the owner, `ui-fix` still waits for the owner's ask
+before it pushes (see above).
 
 ## Building or touching any game's UI — read this first
 **`docs/GAME_DESIGN_CONSTRAINTS.md` is mandatory reading before writing or reviewing any game

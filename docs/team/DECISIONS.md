@@ -1313,6 +1313,36 @@ token, `MiniGame.tsx` sends it, the relay for `match`), and today's bounds (60/h
 path was the forged id, which this card closes. `multiplayer_result` keeps the default clamp (relay-authenticated; second follow-up).
 Consequences: `awarding.py` is untouched, so `cap_for("not-a-game")` still returns the default for the relay path; un-hiding a
 game only needs the `HIDDEN_GAMES`/`hidden: true` edits it already needs. Engine sonnet: every step has a done-check.
+## 2026-10-16 — Classify: logic-check sign-up password fixes (risk high) stay on sonnet
+Context: card `logic-check-sign-up-answers` (non-string password 500 -> 400; pass `user=` to `validate_password`). Both edits are in
+`signup_view` (`backend/users/views.py`), auth production code, so `risk: high`; the spec names exact lines and the fix for each.
+Weighed: (a) opus, via the "risk: high goes to opus" override; (b) sonnet, since the override's own wording keeps simple tasks
+on sonnet and this is two explicit, bounded edits with executable acceptance assertions.
+Decision: sonnet (b), effort high; difficulty standard, no design round (a validation bug, not a breach); risk high so the
+review stage still goes to fable.
+Consequences: if the fix grows beyond the two edits (e.g. touching throttles or token issuance), re-classify as security.
+
+## 2026-10-16 — Classify: logic-check log-session point inflation goes to a design round (security, risk high)
+Context: card `logic-check-log-session` (`log_session` credits an unknown game id up to 1000 points; a finished play can be replayed
+60/h). The acceptance is narrow (unknown game id -> awarded 0 or 400), which on size alone is a standard sonnet fix.
+Weighed: (a) standard, no design round, sonnet; (b) security -> `needsDesignRound: true`, `risk: high`, planModel fable, engine opus.
+The card is explicitly "owner decision first" (refuse vs credit 0, and whether a play gets a one-time id the server checks, which is
+a new client/server protocol), and it touches the AUTH-6 single points writer and the `score-submit` throttle surface; point
+inflation by a forged client is abuse, which the rubric makes security work regardless of file count.
+Decision: (b). Difficulty standard, areas backend only (the one-time play id, if chosen, may add frontend: the design round re-counts).
+Consequences: the design round should resolve the owner question with the smallest option (unknown game -> 400/0 against the real game
+id set, keep known games credited exactly their capped score) and park or split the play-id replay guard if it needs an owner call.
+## 2026-10-04 — Remove 'Found n/m' counts from result screens: trivial/haiku vs standard/sonnet vs standard/opus
+Context: P0 frontend card, Difficulty `standard`, spec names exact files/lines (FanFavorites.tsx:308, Rule 7.1 doc edit) and says "Engine: sonnet". Work is one label removal plus a grep sweep of renderer result states, a layout check (no gap, no height jump, Rule 6.2) and a doc wording change.
+Weighed: (a) `trivial`/haiku — rejected: removing a visible UI element changes layout and needs a visual check, and the sweep is judgment over several renderers. (b) `standard`/sonnet as the spec asks — defensible (long-and-explicit, tiny change). (c) `standard`/opus — chosen: the 09-29 override sends a non-trivial P0 to opus, same as the LeContexto card.
+Decision: `difficulty: standard`, `areas: frontend, ui, games`, `risk: low`, `engineModel: opus`, `planModel: sonnet`, `needsDesignRound: false`.
+Consequences: the planner should tag the Fan Favorites removal, doc edit and screenshots `[sonnet]` and keep `[opus]` only for the cross-renderer sweep and the layout-gap judgment. WhoWouldWin is out of scope (separate card).
+
+## 2026-10-04 — Friends tab text swap (SwapText adoption + polish): risk low vs high, standard vs hard, opus vs sonnet
+Context: P1 frontend card, Difficulty `standard`, spec has numbered steps naming files across FriendsPanel, FriendPlay, FeedbackTab, OnlineMatch, Leaderboard, SwapText, motion tokens and a UI-20 doc note. Core work is motion (SwapText adoption, timing, reserveWidth).
+Weighed: (a) `risk: high` because FriendsPanel.tsx is friends/blocking UI — rejected: the change modifies only presentational text rendering (labels, loading/empty states), not friends/blocking logic, backend, auth or throttles. (b) `hard` + design round because the spec spans six components — rejected: one area (frontend/ui), an existing shared component, and explicit steps; no protocol/security/data work. (c) engine `sonnet` — rejected: motion is always opus.
+Decision: `difficulty: standard`, `areas: frontend, ui`, `risk: low`, `engineModel: opus`, `planModel: sonnet`, `needsDesignRound: false`.
+Consequences: planner tags the doc note, token addition and mechanical per-site swaps `[sonnet]` and SwapText polish, merged Friends loading state and reduced-motion/no-height-jump judgment `[opus]`. If the merged loading state turns out to touch more than FriendsPanel (e.g. useFriends), the fix loop escalates.
 
 ## 2026-10-27 — Design: dependency patch ships to `dev` as one card, floors not a lock, `@lhci/cli` kept
 Context: P0 card `patch-vulnerable-dependencies` (design `designs/2026-10-27-patch-vulnerable-dependencies.md`). The
