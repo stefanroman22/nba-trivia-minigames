@@ -5,7 +5,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import { Button, GameFrame, Spinner } from "../components/ui";
-import TeamCrest from "../components/ui/TeamCrest";
+import TeamBadge from "../components/ui/TeamBadge";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
@@ -129,7 +129,6 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
           matchup: {
             gameId: currentGame.game_id,
             teamA: currentGame.team_a, teamB: currentGame.team_b,
-            logoA: currentGame.team_a_logo, logoB: currentGame.team_b_logo,
             winner: currentGame.winning_team, score: currentGame.final_score, date: currentGame.game_date,
           },
           slots: SLOTS.map((s) => ({ key: s.key, label: s.label, name: found[s.key] ?? all[s.key] ?? null, found: !!found[s.key] })),
@@ -240,11 +239,11 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   if (!currentGame) return <Spinner label="Loading lineup…" />;
   if (!currentGame.starting_5) return <p style={{ color: "var(--muted)" }}>No lineup data available.</p>;
 
-  const teamBlock = (name: string, logo: string) => {
+  const teamBlock = (name: string) => {
     const isWinner = currentGame.winning_team === name;
     return (
       <div className={`s5-team${isWinner ? " is-winner" : ""}`}>
-        <TeamCrest src={logo} name={name} className="s5-team-badge" />
+        <TeamBadge name={name} surface="board" className="s5-team-badge" decorative />
         <span className="s5-team-name font-display">{name}</span>
       </div>
     );
@@ -260,14 +259,14 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
       <GameFrame.Board>
       {/* Scoreboard */}
       <div className="s5-board">
-        {teamBlock(currentGame.team_a, currentGame.team_a_logo)}
+        {teamBlock(currentGame.team_a)}
         <div className="s5-score">
           <span className="s5-score-num tnum font-display">{currentGame.final_score}</span>
           <span className="s5-score-date">
             {new Date(currentGame.game_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
           </span>
         </div>
-        {teamBlock(currentGame.team_b, currentGame.team_b_logo)}
+        {teamBlock(currentGame.team_b)}
       </div>
 
       {/* Lives */}

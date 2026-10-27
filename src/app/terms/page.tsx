@@ -117,14 +117,14 @@ export default function TermsPage() {
         The site, its design, text and code belong to the operator or its licensors. {LEGAL.service} is an independent fan
         project. It is <strong>not affiliated with, endorsed by or sponsored by the NBA, any NBA team, the players&apos;
         association, or any player</strong>. NBA, team and player names, logos and images are the property of their owners and
-        appear here as part of the trivia games (for example team logos and player photos in questions). If you own rights in anything shown and want it
+        appear here as part of the trivia games (for example team names and colours, and player photos in questions). If you own rights in anything shown and want it
         changed or removed, email us and we will deal with it quickly.
       </p>
 
       <LegalHeading id="thirdparty">10. Other people&apos;s services</LegalHeading>
       <p>
         Signing in with Google is governed by Google&apos;s own terms and privacy policy. Player photos are loaded from Wikimedia
-        Commons (see the photo credits page) and most team logos from the NBA&apos;s servers; see the Privacy Policy, section 5.
+        Commons (see the photo credits page); see the Privacy Policy, section 5.
         We are not responsible for services we do not run.
       </p>
 

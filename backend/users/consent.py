@@ -13,7 +13,7 @@ The age_confirmed_at / age_group / birth_month / birth_year / age_sets columns s
 from django.utils import timezone
 
 # Bump when the Terms or Privacy Policy change materially; it is stored with each acceptance.
-TERMS_VERSION = "2026-10-26.2"
+TERMS_VERSION = "2026-10-27.2"
 
 CONSENT_REQUIRED_MESSAGE = "Please agree to the Terms of Service and Privacy Policy."
 

@@ -299,9 +299,7 @@ async function dealRound(room) {
     } catch (err) {
       if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
       console.error(`Turn game init failed for room ${room.code}:`, err.message);
-      room.members.forEach((uid) =>
-        toUid(uid, "roundDataError", { message: "Couldn't start the game. Please try again." })
-      );
+      abandonDeal(room, "Couldn't start the game. Please try again.");
     }
     return;
   }
@@ -317,10 +315,18 @@ async function dealRound(room) {
   } catch (err) {
     if (room.dealGen !== gen) return; // a deal the room already abandoned has nothing to report
     console.error(`Round load failed for room ${room.code}:`, err.message);
-    room.members.forEach((uid) =>
-      toUid(uid, "roundDataError", { message: "Couldn't load the game. Please try again." })
-    );
+    abandonDeal(room, "Couldn't load the game. Please try again.");
   }
+}
+
+/** A round that failed to load: tell everyone (roundDataError), then never leave the room on an intro
+ *  with no round, which a resume would restore forever. A friend room goes back to its lobby (the host
+ *  can start again); a 1v1 match ends (nothing was played, so nothing is credited) and the players
+ *  leave from the intro's error with Exit game. */
+function abandonDeal(room, message) {
+  room.members.forEach((uid) => toUid(uid, "roundDataError", { message }));
+  if (room.type === "friend") backToLobby(room, message);
+  else destroyRoom(room, "round load failed");
 }
 
 /**

@@ -7,7 +7,7 @@ import SwapText from "../components/motion/SwapText";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { resultIn, stackPane, popIn, fadeInUp } from "../motion/variants";
 import { Button, GameFrame, ProgressBar, Spinner } from "../components/ui";
-import TeamCrest from "../components/ui/TeamCrest";
+import TeamBadge from "../components/ui/TeamBadge";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -326,7 +326,7 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
                     {faceUp && (
                       <>
                         <span className="cp-card-years tnum">{stintYears(stint)}</span>
-                        <TeamCrest name={stint.name} className="cp-card-logo" />
+                        <TeamBadge name={stint.name} abbr={null} surface="card" className="cp-card-logo" decorative />
                         <span className="cp-card-team font-display">{stint.name}</span>
                         <div className="cp-card-stats">
                           <span className="cp-stat">

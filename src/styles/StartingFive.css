@@ -26,8 +26,7 @@
   transition: opacity 0.3s ease, filter 0.3s ease;
 }
 .s5-team.is-winner { opacity: 1; filter: none; }
-.s5-team img { width: clamp(34px, 8dvh, 48px); height: clamp(34px, 8dvh, 48px); object-fit: contain; }
-.s5-team-badge { width: clamp(34px, 8dvh, 48px); height: clamp(34px, 8dvh, 48px); object-fit: contain; }
+.s5-team-badge { width: clamp(34px, 8dvh, 48px); height: clamp(34px, 8dvh, 48px); }
 .s5-team-name { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.2; }
 
 .s5-score { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -168,7 +167,6 @@
      makes each card ~157px, i.e. LARGER than the ~133px it gets on desktop. */
   .s5-card-pos { font-size: 10px; }
   /* Three card rows need the headline scoreboard to give some height back. */
-  .s5-team img,
   .s5-team-badge { width: 34px; height: 34px; }
   .s5-score-num { font-size: 18px; padding: 3px 10px; }
   /* Input and Confirm share one line to save ~44px per row. */

@@ -3,29 +3,23 @@ import type { CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import ProgressBar from "../components/ui/ProgressBar";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
-import TeamCrest from "../components/ui/TeamCrest";
+import TeamBadge from "../components/ui/TeamBadge";
 import SwapText from "../components/motion/SwapText";
 import { GameFrame } from "../components/ui";
 import { createGuessLogger } from "../utils/guessLog";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
-import type { TeamColor } from "../constants/nbaTeamColors";
 
 interface PlayOffSeriesProps {
   seriesList: PlayoffSeries[];
   pointsPerCorrect: number;
   buttonTeamStyle: CSSProperties;
-  nbaTeamColors: Record<string, TeamColor>;
   getContrastColor: (hex: string) => string;
   onGameEnd: OnGameEnd;
 }
 
-// Crest swap: opacity only (no travel), so the logo tile itself stays put.
-const LOGO_FADE = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
-
 function PlayOffSeries({
   seriesList,
   pointsPerCorrect,
-  nbaTeamColors,
   onGameEnd,
 }: PlayOffSeriesProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -79,8 +73,8 @@ function PlayOffSeries({
               matchId: s.match_id,
               label: `${s.round} · ${s.season}`,
               teams: [
-                { name: s.team_a, logo: s.team_a_logo, wins: s.team_a_wins },
-                { name: s.team_b, logo: s.team_b_logo, wins: s.team_b_wins },
+                { name: s.team_a, abbr: s.team_a_abbreviation ?? null, wins: s.team_a_wins },
+                { name: s.team_b, abbr: s.team_b_abbreviation ?? null, wins: s.team_b_wins },
               ],
               winner: s.winner,
               pick: picksRef.current[i] ?? null,
@@ -94,8 +88,8 @@ function PlayOffSeries({
   if (!currentSeries) return null;
 
   const teams = [
-    { name: currentSeries.team_a, logo: currentSeries.team_a_logo, wins: currentSeries.team_a_wins },
-    { name: currentSeries.team_b, logo: currentSeries.team_b_logo, wins: currentSeries.team_b_wins },
+    { name: currentSeries.team_a, abbr: currentSeries.team_a_abbreviation, wins: currentSeries.team_a_wins },
+    { name: currentSeries.team_b, abbr: currentSeries.team_b_abbreviation, wins: currentSeries.team_b_wins },
   ];
 
   const pickStyle = (teamName: string): CSSProperties => {
@@ -153,15 +147,13 @@ function PlayOffSeries({
                   whileTap={!reduce && !showWinner ? { scale: 0.96 } : undefined}
                   style={pickStyle(t.name)}
                 >
+                  {/* The 54px tile stays mounted; its fill and ring glide (0.25 s) and only the
+                      abbreviation inside cross-fades, opacity only, when the team changes (Rule 5.1). */}
                   <span style={{
-                    width: 54, height: 54, borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
-                    background: nbaTeamColors[t.name]?.primary || "var(--surface3)",
+                    width: 54, height: 54, borderRadius: 14, display: "flex", flex: "none",
                     boxShadow: "0 6px 16px -6px rgba(0,0,0,.5)", overflow: "hidden",
-                    transition: "background 0.25s ease",
                   }}>
-                    <SwapText swapKey={t.name} variants={LOGO_FADE} className="series-crest">
-                      <TeamCrest src={t.logo} name={t.name} size={40} />
-                    </SwapText>
+                    <TeamBadge name={t.name} abbr={t.abbr} size={54} shape="tile" surface="card" decorative />
                   </span>
                   <span className="font-display" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>
                     <SwapText>{t.name}</SwapText>

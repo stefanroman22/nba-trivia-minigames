@@ -21,7 +21,7 @@ export type AnswerReview =
       rounds: {
         matchId: string;
         label: string;
-        teams: { name: string; logo: string; wins: number }[];
+        teams: { name: string; abbr?: string | null; wins: number }[];
         winner: string;
         pick: string | null;
       }[];
@@ -30,7 +30,7 @@ export type AnswerReview =
   | { game: "guess-mvps"; rounds: { season: string; award?: string; mvp: string; pick: string | null; correct: boolean }[] }
   | {
       game: "starting-five";
-      matchup: { gameId: string; teamA: string; teamB: string; logoA: string; logoB: string; winner: string; score: string; date: string };
+      matchup: { gameId: string; teamA: string; teamB: string; winner: string; score: string; date: string };
       slots: { key: string; label: string; name: string | null; found: boolean }[];
     }
   | { game: "wordle"; solution: string; guesses: string[]; won: boolean }

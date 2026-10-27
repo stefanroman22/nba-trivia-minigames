@@ -46,7 +46,7 @@
   align-items: center;
   justify-content: center;
   color: var(--text);
-  transition: background 0.18s ease, filter 0.15s ease;
+  transition: background 0.18s ease, filter 0.15s ease, color 0.18s ease;
 }
 .hm-hex:disabled { cursor: default; }
 .hm-hex:not(:disabled):hover { filter: brightness(1.12); }
@@ -54,8 +54,7 @@
 .hm-hex.is-active { background: var(--brand-soft); box-shadow: inset 0 0 0 2px var(--brand); }
 .hm-hex.is-claimed { background: var(--brand); }
 
-/* criterion stays visible: logo (team) or short label */
-.hm-hex-logo { width: 52%; height: 52%; object-fit: contain; pointer-events: none; }
+/* criterion stays visible: a short label (a team: its nickname in its colours, TeamNameGradient) */
 .hm-hex-label {
   padding: 0 9%;
   font-size: clamp(7px, 1.45dvh, 9.5px);
@@ -67,7 +66,8 @@
   pointer-events: none;
 }
 .hm-hex.is-claimed { color: #fff; }
-.hm-hex.is-claimed .hm-hex-logo { filter: brightness(0) invert(1); opacity: 0.92; }
+.hm-hex .tng { transition: -webkit-text-fill-color 0.18s ease, color 0.18s ease; }
+.hm-hex.is-claimed .tng { background: none; -webkit-text-fill-color: #fff; color: #fff; }
 
 /* The centre SCORE overlay was removed: it duplicated the score already in the
    status row and, being position:absolute over the board, painted on top of the

@@ -28,8 +28,11 @@ export interface PlayoffSeries {
   round: string;
   team_a: string;
   team_b: string;
-  team_a_logo: string;
-  team_b_logo: string;
+  /** Still served by the data; not rendered (teams show as TeamBadge). */
+  team_a_logo?: string;
+  team_b_logo?: string;
+  team_a_abbreviation?: string;
+  team_b_abbreviation?: string;
   team_a_wins: number;
   team_b_wins: number;
   winner: string;
@@ -39,7 +42,8 @@ export interface PlayoffSeries {
 export interface NbaTeamLogo {
   team_id: number;
   full_name: string;
-  logo: string;
+  /** Still served by the data; not rendered. */
+  logo?: string;
 }
 
 export interface AwardWinner {
@@ -67,8 +71,9 @@ export interface StartingFivePlayer {
 export interface StartingFiveGame {
   team_a: string;
   team_b: string;
-  team_a_logo: string;
-  team_b_logo: string;
+  /** Still served by the data; not rendered (teams show as TeamBadge). */
+  team_a_logo?: string;
+  team_b_logo?: string;
   winning_team: string;
   final_score: string;
   game_date: string;

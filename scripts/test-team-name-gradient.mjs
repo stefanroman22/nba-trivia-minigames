@@ -127,6 +127,17 @@ test(`in the answer review every stop and the gradient between them is >= ${MIN_
   assertLegible("review");
 });
 
+test("the hex surface is the Heatmap hex: --surface2, and --brand-soft over it when active (theme.css)", () => {
+  assert.equal(NAME_SURFACES.hex.dark[0], token(":root", "--surface2"));
+  assert.equal(NAME_SURFACES.hex.light[0], token(".light", "--surface2"));
+  // --brand-soft composited over --surface2 (dark .14, light .12).
+  assert.deepEqual([NAME_SURFACES.hex.dark[1], NAME_SURFACES.hex.light[1]], [lerp("#232327", "#ff6a1a", 0.14), lerp("#f4f1ea", "#ff6a1a", 0.12)]);
+});
+
+test(`on a Heatmap hex every stop and the gradient between them is >= ${MIN_CONTRAST}:1 for ${NAMES.length} names in both themes`, () => {
+  assertLegible("hex");
+});
+
 test("a black primary is lightened on the dark board, a white one darkened on the light board", () => {
   const dark = legibleColor("#000000", NAME_BACKGROUNDS.dark);
   assert.notEqual(dark, "#000000");

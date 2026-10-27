@@ -49,20 +49,18 @@ The backend caps every submission at the game's own maximum (`trivia/awarding.py
 
 - The day is the Europe/Paris civil day, the same boundary as the daily Wordle (`trivia.wordle_daily.CET`).
 - **First scoring game of the day: +100** (`FIRST_GAME_BONUS`). A scoring game is one whose clamped score is > 0.
-- **Daily soft cap on game points** (bonuses excluded): the first 1,500 game points of a day count in full, the next
-  1,500 at 50 %, anything beyond at 10 %. "Game points of the day" = the sum of the clamped `score` of the account's
-  single/match sessions today.
+- **No daily cap on game points:** every game point a player scores (the clamped `score`, per-game ceilings in `GAME_MAX_POINTS`) is added in full. The daily soft cap of the first design was removed.
 - **One scoring solo play a day** for solo Wordle and solo LeContexto (`ONE_SCORING_PLAY_A_DAY`): a later scoring
   solo play of the same game that day is logged with its score but awards 0 (no bonus, no streak or active-day touch).
 - **Streak:** one scoring game per day keeps it. `streak_days`, `streak_best`, `streak_freezes` live on the account.
   A missed day is covered by a freeze if one is held (max 1); a freeze is refilled every time the streak reaches a
-  multiple of 7. Milestones pay once, on the day they are reached: day 7 +200, day 30 +1,000, day 100 +5,000.
+  multiple of 7. Milestones pay once, on the day they are reached: day 10 +500, day 25 +1,500, day 50 +4,000, day 100 +10,000, day 200 +25,000, day 500 +75,000, day 1,000 +200,000.
 - **Active days:** `active_days` counts distinct Paris days with at least one scoring game. It gates the top ranks.
 - A session with a 0 score is logged but counts for nothing (no bonus, no streak, no active day): opening and
   closing a game is not activity.
 - Friend rooms still credit nothing. Guests still credit nothing.
-- Every award writes a `GameSession` row with `awarded` = what actually landed on the account (score after the
-  soft cap + bonuses). The weekly board sums this column.
+- Every award writes a `GameSession` row with `awarded` = what actually landed on the account (score
+  + bonuses). The weekly board sums this column.
 
 ## 3. Rank ladder (`users/ranks.py`)
 

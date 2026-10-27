@@ -1,8 +1,9 @@
 // Maps an NBA team's name (current, relocated, or renamed) to the team id of the
-// franchise it belongs to today, so we can resolve a *current* logo for it. The
-// NBA CDN only hosts logos for the 30 active franchises (ids 1610612737–66);
-// defunct early-BAA teams (Chicago Stags, Anderson Packers, …) aren't here, so
-// they resolve to null and callers fall back to a generated crest.
+// franchise it belongs to today. Used for the team's colours (teamColorsFor in
+// utils/teamNameGradient.ts, following relocations: "Seattle SuperSonics" -> the
+// Thunder's) and for Name the NBA Club's scrambled puzzle image. No team logo is
+// loaded anywhere: teams show as TeamBadge / TeamNameGradient. Defunct early-BAA
+// teams (Chicago Stags, Anderson Packers, ...) aren't here and resolve to null.
 //
 // Generated from the shipped game data — keep in sync if franchises move/rename.
 export const TEAM_NAME_TO_ID: Record<string, number> = {
@@ -45,6 +46,7 @@ export const TEAM_NAME_TO_ID: Record<string, number> = {
   "New Orleans Pelicans": 1610612740,
   "New Orleans/Oklahoma City Hornets": 1610612740,
   "New York Knicks": 1610612752,
+  "New York Nets": 1610612751,
   "Oklahoma City Thunder": 1610612760,
   "Orlando Magic": 1610612753,
   "Philadelphia 76ers": 1610612755,
@@ -76,22 +78,6 @@ const NORMALIZED: Record<string, number> = Object.fromEntries(
 /** The current franchise's team id for a team name (current, relocated or renamed), or null. */
 export function franchiseIdForName(name?: string | null): number | null {
   return (name && NORMALIZED[name.trim().toLowerCase()]) || null;
-}
-
-/** Logo URL for a team id (one of the 30 current franchises). */
-export function logoForId(teamId: number): string {
-  return `https://cdn.nba.com/logos/nba/${teamId}/primary/L/logo.svg`;
-}
-
-/**
- * Resolve the *current* NBA CDN logo for a team by name, following relocations
- * and renames (e.g. "Seattle SuperSonics" → Thunder logo). Returns null for
- * defunct franchises that have no current logo, so callers can fall back.
- */
-export function currentLogoUrl(name?: string | null): string | null {
-  if (!name) return null;
-  const id = NORMALIZED[name.trim().toLowerCase()];
-  return id ? logoForId(id) : null;
 }
 
 /**

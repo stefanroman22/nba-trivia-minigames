@@ -1,17 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { currentLogoUrl } from "../../constants/teamLogos";
-
-interface TeamCrestProps {
-  /** The period-accurate logo from the game data (tried first). */
-  src?: string | null;
-  name: string;
-  /** Rendered size in px (ignored when `className` drives sizing). */
-  size?: number;
-  className?: string;
-  style?: React.CSSProperties;
-}
-
-/** The generated basketball crest: TeamCrest's last resort, and a badge that never loads a logo. */
+/** A generated basketball crest (no team, no image request): Name the NBA Club's fallback when no
+ *  scrambled puzzle image exists. Teams themselves show as TeamBadge. */
 export function BasketballCrest({ label, size = 40, className, style }: {
   label: string;
   size?: number;
@@ -37,43 +25,5 @@ export function BasketballCrest({ label, size = 40, className, style }: {
         <path d="M18.6 5.4C15 8.2 15 15.8 18.6 18.6" />
       </g>
     </svg>
-  );
-}
-
-/**
- * A team logo that degrades gracefully and never renders blank/broken:
- *   1. the period-accurate logo from the data,
- *   2. the team's current logo (NBA CDN, incl. relocated/renamed franchises),
- *   3. a generated basketball crest (last resort, e.g. a defunct franchise).
- * Each candidate is tried in turn on load error.
- */
-export default function TeamCrest({ src, name, size = 40, className, style }: TeamCrestProps) {
-  const candidates = useMemo(() => {
-    const list: string[] = [];
-    if (src) list.push(src);
-    const current = currentLogoUrl(name);
-    if (current && current !== src) list.push(current);
-    return list;
-  }, [src, name]);
-
-  const [idx, setIdx] = useState(0);
-  // Restart the chain whenever the team (or its data logo) changes.
-  useEffect(() => setIdx(0), [src, name]);
-
-  const url = candidates[idx];
-
-  if (!url) return <BasketballCrest label={name} size={size} className={className} style={style} />;
-
-  return (
-    <img
-      key={url}
-      src={url}
-      alt={name}
-      className={className}
-      width={className ? undefined : size}
-      height={className ? undefined : size}
-      style={className ? style : { width: size, height: size, objectFit: "contain", ...style }}
-      onError={() => setIdx((i) => i + 1)}
-    />
   );
 }

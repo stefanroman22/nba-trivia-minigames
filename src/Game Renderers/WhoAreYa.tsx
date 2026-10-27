@@ -7,7 +7,9 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
 import SwapText from "../components/motion/SwapText";
+import AutoHeight from "../components/motion/AutoHeight";
 import { BACKEND_ORIGIN } from "../configurations/backend";
+import { fadeIn } from "../motion/variants";
 import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
@@ -388,41 +390,54 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
             </div>
           </div>
 
-          {/* Reveal card (win or fail) */}
-          <AnimatePresence>
-            {finished && (
-              <motion.div
-                className={`waya-reveal${won ? " is-won" : ""}`}
-                initial={reduce ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35 }}
-              >
-                <span className="waya-reveal-name font-display">{mystery.full_name}</span>
-                <span className="waya-reveal-sub tnum">{mysterySub(mystery)}</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Reveal card + feed share one fixed-height box (RULE 6.2): the reveal that
+              mounts on the game-ending guess takes its height from the feed (which glides
+              shorter via AutoHeight and scrolls), so the stage never grows at the end. */}
+          <div className="waya-trail">
+            {/* Reveal card (win or fail) */}
+            <AutoHeight className="waya-reveal-slot">
+              <AnimatePresence>
+                {finished && (
+                  <motion.div
+                    className="waya-reveal-wrap"
+                    initial={reduce ? false : { opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35 }}
+                  >
+                    <div className={`waya-reveal${won ? " is-won" : ""}`}>
+                      <span className="waya-reveal-name font-display">{mystery.full_name}</span>
+                      <span className="waya-reveal-sub tnum">{mysterySub(mystery)}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </AutoHeight>
 
-          {/* Feedback rows — newest on top. Only mounted once there is something to
-              show: an empty feed with a placeholder claimed a large blank band in
-              the middle of the game (it was flex:1). No rows → no node → no gap. */}
-          {rows.length > 0 && (
-          <div className="waya-feed" role="log" aria-label="Guess feedback">
-            <AnimatePresence initial={false}>
-              {rows.map((r) => (
-                <motion.div
-                  key={r.key}
-                  className={`waya-row${r.correct ? " is-correct" : ""}`}
-                  initial={reduce ? false : { opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
-                >
-                  <WayaRowBody row={r} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
+            {/* Feedback rows — newest on top. Always mounted (RULE 6.2): mounting it on the
+                first guess grew the whole stage. It fills .waya-trail and scrolls inside. A muted
+                hint fills the empty band and fades out (popLayout, out of flow) when the first row lands. */}
+            <div className="waya-feed" role="log" aria-label="Guess feedback">
+              <AnimatePresence initial={false} mode="popLayout">
+                {rows.length === 0 && (
+                  <motion.p key="empty" className="waya-feed-empty" variants={fadeIn}
+                    initial="hidden" animate="visible" exit="exit">
+                    Each guess shows how close you are.
+                  </motion.p>
+                )}
+                {rows.map((r) => (
+                  <motion.div
+                    key={r.key}
+                    className={`waya-row${r.correct ? " is-correct" : ""}`}
+                    initial={reduce ? false : { opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25 }}
+                  >
+                    <WayaRowBody row={r} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
           </div>
-          )}
         </div>
       </GameFrame.Board>
 
