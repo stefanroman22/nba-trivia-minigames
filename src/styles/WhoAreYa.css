@@ -12,7 +12,8 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: clamp(8px, 1.4dvh, 14px);
+  --waya-gap: clamp(8px, 1.4dvh, 14px);
+  gap: var(--waya-gap);
 }
 
 /* ===== Photo card — fixed frame, blur changes never shift layout ===== */
@@ -70,6 +71,24 @@
   backdrop-filter: blur(4px);
 }
 
+/* ===== Trail: reveal card + feed in ONE fixed-height box (RULE 6.2) =====
+   Mounted from the start at the feed's play-time height and never resized, so the
+   stage stays constant from Play through the game-ending guess: when the reveal
+   card mounts it takes its height from the feed (AutoHeight glides it open, the
+   feed shrinks and scrolls inside itself) instead of growing the stage. */
+.waya-trail {
+  flex: none;
+  width: 100%;
+  height: clamp(140px, 30dvh, 280px);
+  display: flex;
+  flex-direction: column;
+}
+.waya-reveal-slot { flex: none; }
+.waya-trail > .waya-feed { flex: 1 1 0; min-height: 0; }
+/* The board gap between reveal and feed lives inside the glided box, so no gap is
+   reserved above the feed while there is no reveal. */
+.waya-reveal-wrap { padding-bottom: var(--waya-gap); }
+
 /* ===== Reveal card ===== */
 .waya-reveal {
   flex: none;
@@ -87,19 +106,30 @@
 .waya-reveal-sub { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
 
 /* ===== Feedback list — the ONLY scrolling region ===== */
-/* Sizes to its rows rather than claiming the leftover height, so the game hugs
-   its content at the start and grows as the clue trail fills in. Capped so a long
-   trail scrolls inside itself instead of pushing the page down. */
+/* In the game it fills .waya-trail (RULE 6.2): mounted from the start and never
+   resizes as rows arrive, so the stage stays constant; a long trail scrolls inside
+   itself. The answer review reuses .waya-feed outside a trail and sizes to its rows. */
 .waya-feed {
+  position: relative;
   width: 100%;
-  min-height: 0;
-  max-height: clamp(140px, 30dvh, 280px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 6px;
   padding-right: 2px;
   overscroll-behavior: contain;
+}
+.waya-feed-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0 12px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 .waya-row {
   flex: none;
