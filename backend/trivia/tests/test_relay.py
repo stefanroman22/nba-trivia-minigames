@@ -47,6 +47,7 @@ class RelayTestCase(SimpleTestCase):
 
 class ConfiguredTests(RelayTestCase):
     def test_request_goes_to_the_relay_with_the_key_and_without_host(self):
+        browser_headers = {k: v for k, v in NBAStatsHTTP.headers.items() if k.lower() != "host"}
         with _env(NBA_RELAY_BASE=BASE + "/", NBA_RELAY_KEY=KEY):
             self.assertTrue(relay.configure())
         sent = self._request()
@@ -54,7 +55,9 @@ class ConfiguredTests(RelayTestCase):
         self.assertEqual(sent["headers"]["X-Relay-Key"], KEY)
         self.assertNotIn("host", {name.lower() for name in sent["headers"]})
         # nba_api's browser headers still travel; the relay forwards them upstream.
-        self.assertEqual(sent["headers"]["x-nba-stats-token"], "true")
+        # Compared against nba_api's own set, since its header names change between releases.
+        self.assertTrue(browser_headers)
+        self.assertEqual({k: sent["headers"].get(k) for k in browser_headers}, browser_headers)
 
     def test_configure_logs_the_base_never_the_key(self):
         with _env(NBA_RELAY_BASE=BASE, NBA_RELAY_KEY=KEY), \

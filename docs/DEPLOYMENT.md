@@ -73,7 +73,7 @@ set `VITE_SOCKET_URL` on the frontend (+ `API_BASE_URL`/`CORS_ORIGINS` on the ho
 | Multiplayer | push to `main` that changes `multiplayer_server/` → production, after the frontend (`.github/workflows/relay-deploy.yml`, since 2026-10-25); by hand: `cd multiplayer_server && railway up`, or run the workflow | Railway, not git-connected: the workflow runs `railway up` with the project token secret `RAILWAY_TOKEN`; env vars set with `railway variable set` |
 
 So a push to `main` — the manual dev→main promotion, or a checker hotfix shipped with `Target = main` —
-deploys the frontend AND the backend to production. The relay is never deployed by a push.
+deploys the frontend AND the backend to production. A push to `main` that changes `multiplayer_server/**` deploys the relay through `relay-deploy.yml`, except a push made with `GITHUB_TOKEN` (the dev-ci promotion): after a promotion, dispatch it by hand (`gh workflow run relay-deploy.yml --ref main`).
 
 A manual CLI deploy uploads the **local working tree**, not a commit — such deployments show
 `gitDirty: 1` and can silently pin production to code matching no branch. Production once ran a
@@ -353,6 +353,7 @@ its job summary.
 - Backend tests: `cd backend && venv/Scripts/python.exe manage.py test trivia users`
 - Frontend: `npm run lint && npm run build`
 - Multiplayer syntax: `node --check multiplayer_server/src/index.js`
+- Lockfile changes: write them with npm 10 (`npx -y npm@10 install …` when the local npm is 11); CI runs `npm ci` on npm 10, and npm 11 re-resolves the lock and prunes nested deps, which makes `npm ci` fail with `Missing: … from lock file`.
 - After setting prod env: `manage.py check --deploy` should report no security warnings.
 - Load behavior: content reads hit the CDN/edge (≈unbounded); the origin only handles
   writes/leaderboard/auth, which scale with active engagement, not raw audience.

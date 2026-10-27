@@ -1343,3 +1343,46 @@ Context: P1 frontend card, Difficulty `standard`, spec has numbered steps naming
 Weighed: (a) `risk: high` because FriendsPanel.tsx is friends/blocking UI — rejected: the change modifies only presentational text rendering (labels, loading/empty states), not friends/blocking logic, backend, auth or throttles. (b) `hard` + design round because the spec spans six components — rejected: one area (frontend/ui), an existing shared component, and explicit steps; no protocol/security/data work. (c) engine `sonnet` — rejected: motion is always opus.
 Decision: `difficulty: standard`, `areas: frontend, ui`, `risk: low`, `engineModel: opus`, `planModel: sonnet`, `needsDesignRound: false`.
 Consequences: planner tags the doc note, token addition and mechanical per-site swaps `[sonnet]` and SwapText polish, merged Friends loading state and reduced-motion/no-height-jump judgment `[opus]`. If the merged loading state turns out to touch more than FriendsPanel (e.g. useFriends), the fix loop escalates.
+
+## 2026-10-27 — Design: dependency patch ships to `dev` as one card, floors not a lock, `@lhci/cli` kept
+Context: P0 card `patch-vulnerable-dependencies` (design `designs/2026-10-27-patch-vulnerable-dependencies.md`). The
+spec left five owner questions unanswered; the owner moved the card to To Do, so the planner decided them under the
+pipeline's standing rules.
+Weighed (shipping path): (a) a one-off security hotfix from `main` (frontend + backend into main, back-merge to dev) —
+rejected: the checker-findings exception does not cover it and the pipeline never ships to main on its own; (b) `dev`,
+then the owner's explicit promote — chosen. The dev window doubles as the mixed-version test (new client against the
+production relay and backend).
+Weighed (bundle vs split backend): (a) frontend first, Django/DRF/Pillow a day later — rejected: two promotions for one
+P0, and the DRF DoS and Pillow decoder bugs are the reachable ones; (b) all three services in one card, one commit per
+part so each can be reverted alone — chosen, gated by `makemigrations --check` + an identical `showmigrations --plan`
+before any push (dev and prod share the DB).
+Weighed (Python pinning): (a) security floors only — chosen, it is the ticket's proposal and keeps future bumps cheap;
+(b) a hashed full lock (`uv pip compile`) — deferred to the owner: it changes how every future dependency bump is made
+and `uv` is not on the cloud box.
+Weighed (`@lhci/cli`): dropping a tool is the owner's call; kept, with its 13 dev-only high findings recorded in the
+design and the ship comment. The optional root `npm audit fix` pass is skipped (browserslist/caniuse bumps can change
+autoprefixer output; the card is surgical).
+Consequences: lockfiles are written by npm 10 only (CI parity); the moderation redeploy, the relay dispatch after
+promotion, the production migrate log and the Supabase PG ≥ 14 check are owner actions listed in the design §7; the
+`sweetalert2` jump (11.6.13 → 11.26.25) is proven by gate 2's Swal flow, with `^11.6.14` as the recorded fallback pin.
+
+## 2026-10-27 — Design: refresh-cookie card ships Phase 1 backend only; CSP report endpoint and throttle raise deferred
+Context: P1 hard card `move-the-refresh-token-into-a` (design `designs/2026-10-27-move-the-refresh-token-into-a.md`). The
+spec is a five-phase programme whose owner questions are unanswered; Phase 0 is the owner's dashboard work and the card
+has a 45-minute budget on one opus engine.
+Weighed (scope): (a) Phase 1 + the frontend switch in one card — rejected: Phase 2 needs the `api.swishquest.com` and
+`dev.swishquest.com` domains (Phase 0, owner) and three owner answers, and the spec itself wants ≥ 1 day between the two
+promotions; (b) Phase 1 backend only, frontend and relay untouched — chosen: the spec says each phase ships alone, the
+legacy `/api/token/refresh/` path keeps LC-AUTH-01..08 green, and the Django test module is the proof.
+Weighed (CSP report endpoint inside Phase 1): (a) build it — rejected: a model + migration (AUTH-11 risk surface), a
+custom parser, retention and an admin list with no producer until the Phase 2 Report-Only header exists, and it does not
+fit the remaining budget; (b) a named follow-up card "CSP report endpoint (Phase 1.5)" — chosen.
+Weighed (`auth-refresh` 60 → 120/h now): rejected for this card; it exists for per-tab refreshes that only the Phase 2
+client makes, and LC-AUTH-06 pins `60/hour` (`scripts/logic-check/specs/api/auth.spec.mjs:139`), so raising it alone would
+fail a checker. Phase 2 raises it with the check.
+Weighed (`logout-all` CSRF check): the spec lists the Origin/`X-SQ-Session` rule for the two cookie endpoints; `logout-all`
+is Bearer-only (not ambient), so it skips the check and only clears the cookie — chosen; noted in the design.
+Decided under the spec's recommended defaults (owner questions unanswered): `SameSite=Strict`; the report endpoint will be
+own-Django, not Sentry. The Vercel-plan question (money) stays with the owner.
+Consequences: production behaviour is unchanged after this card (no client sends `X-SQ-Session` yet); follow-up cards are
+listed in the design §7; gate 2 is one route smoke because the diff is backend-only.

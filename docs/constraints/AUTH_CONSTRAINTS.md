@@ -305,7 +305,8 @@ touching them must be classified `risk: high`:
 - `backend/users/views.py` auth endpoints: `login_view`, `signup_view`, `google_login`, `logout_view`, `get_current_user`, `update_profile`, `user_payload`, `auth_response`
 - `backend/users/friends.py` block/request enforcement, `backend/users/photos.py` (privacy, AUTH-12) and `backend/users/photo_moderation.py` (the fail-closed photo gate)
 - `backend/trivia/views.py` `log_session` (the points writer) and `backend/trivia/admin_api.py` / `feedback_api.py` permission decorators
-- `backend/backend/settings.py` `AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`, `CACHES`; `backend/backend/throttles.py`
+- `backend/backend/settings.py` `AUTH_USER_MODEL`, `SIMPLE_JWT`, `REST_FRAMEWORK`, `CACHES`, `REFRESH_COOKIE_*`, `CORS_ALLOW_HEADERS`; `backend/backend/throttles.py`
+- `backend/users/session_cookie.py` (HttpOnly refresh cookie + the `X-SQ-Session`/Origin CSRF rules for `/api/auth/refresh|logout|logout-all/`)
 - `src/utils/Api.tsx`, `src/utils/session.ts`, `src/store/userSlice.tsx`, `src/app/providers.tsx` (`restoreSession`)
 - `multiplayer_server/src/index.js` `identify` handler and `multiplayer_server/src/identity.js` (AUTH-8)
 - `backend/users/authentication.py`, `backend/users/strikes.py` (AUTH-13)

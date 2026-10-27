@@ -33,6 +33,7 @@ from users.consent import (
 from users.google_auth import GoogleAuthError, verify_google_code
 from users.moderation_text import MESSAGE_SIGNUP_SEVERE, MESSAGE_STRIKE, check_username, message_for, strip_accents
 from users.photos import InvalidPhoto, MAX_PHOTO_UPLOAD_BYTES, normalize_profile_photo, profile_photo_data_url
+from users.session_cookie import clear_refresh_cookie, session_origin_ok, set_refresh_cookie
 from users.tokens import issue_session_tokens, revoke_sessions
 
 User = get_user_model()
@@ -112,17 +113,20 @@ def auth_response(request, user, status_code=status.HTTP_200_OK, **extra):
 
     The refresh token is stamped with the session's start time so rotation can't
     extend a session past MAX_SESSION_AGE (see users.tokens).
+    A request carrying X-SQ-Session from an allow-listed Origin gets the refresh token as an HttpOnly
+    cookie instead of in the body (users.session_cookie); any other request gets the legacy body.
     """
     refresh = issue_session_tokens(user)
-    return Response(
-        {
-            "access": str(refresh.access_token),
-            "refresh": str(refresh),
-            "user": user_payload(request, user),
-            **extra,
-        },
-        status=status_code,
-    )
+    body = {
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": user_payload(request, user),
+        **extra,
+    }
+    if session_origin_ok(request):
+        body.pop("refresh")
+        return set_refresh_cookie(Response(body, status=status_code), str(refresh))
+    return Response(body, status=status_code)
 
 
 USERNAME_TRIES = 10
@@ -433,7 +437,7 @@ def delete_my_account(request):
     if str(data.get("confirm_text") or "").strip().lower() != "delete":
         return Response({"error": "Type delete to confirm."}, status=status.HTTP_400_BAD_REQUEST)
     outcome = delete_account(user)
-    return Response({"status": outcome})
+    return clear_refresh_cookie(Response({"status": outcome}))
 
 
 PHOTO_AGE_REQUIRED_MESSAGE = f"Profile photos are for players aged {PHOTO_MIN_AGE} and over. Tell us your birth month and year first."

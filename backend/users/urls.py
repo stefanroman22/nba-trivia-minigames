@@ -29,6 +29,7 @@ from .friends import (
 from .activity import report_activity
 from .photos import profile_photo_view
 from .tokens import SessionRefreshView
+from .session_cookie import SessionCookieRefreshView, cookie_logout, logout_all
 
 urlpatterns = [
     path('login/', login_view, name='login'),
@@ -48,6 +49,10 @@ urlpatterns = [
     path('check-name/', check_name, name='check-name'),
     # Rotating refresh with an absolute 90-day session cap (see users.tokens).
     path('token/refresh/', SessionRefreshView.as_view(), name='token_refresh'),
+    # Cookie session (Phase 1 of the HttpOnly refresh move; see users.session_cookie)
+    path('auth/refresh/', SessionCookieRefreshView.as_view(), name='session_refresh'),
+    path('auth/logout/', cookie_logout, name='session_logout'),
+    path('auth/logout-all/', logout_all, name='session_logout_all'),
     # Time on the site, reported by signed-in browsers in batches (see users.activity).
     path('activity/', report_activity, name='activity'),
 
