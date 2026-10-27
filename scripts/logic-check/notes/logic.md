@@ -71,8 +71,8 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
   plus Django's `/trivia/pool/`; the relay's dealing is checked through `roundData` (LC-ROOMS-07/10).
 - Rooms: the relay acks nothing, so the client helper waits for events from a log position (`mark()` before the emit,
   `waitFor(event, { since })`). Identify has no success event; LC-ROOMS-01 proves it by a reply only a player gets.
-  Strangers in a random match see "Player" for a teen or age-unknown account (testuser4/5 are age-unknown unless the
-  profile suite set an age).
+  Strangers in a random match see the real name and id, whatever the age (no masking; LC-ROOMS-10 seeds both as legacy
+  teens to prove it).
 - Relay throttles (multiplayer_server/src/index.js): `joinFriendRoom` 8 per 10 s per account (JOIN_MAX_TRIES), then
   "Too many attempts…"; `identify` 6 per 10 s per socket (IDENTIFY_MAX_TRIES, the rest are dropped silently); 30
   events/s per socket (EVENT_MAX, the rest are dropped). LC-ROOMS-09, the busiest test, joins about 6 times in about 20 s.
@@ -83,22 +83,26 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
 ## profile + friends suites (2026-10-16)
 
 - **Budget.** Authenticated throttles key by account (user pk), so X-Forwarded-For does not help here. `account-data`
-  10/h per account: testuser4 1 per run (LC-PROFILE-02's age), testuser5 1 (LC-FRIENDS-08's age); the export, the
-  deletes and the teen's age spend `lgc` throwaways' own buckets (a new pk every run). `friend-action` 60/h: testuser4
-  ≈ 9, testuser5 ≈ 2 per run (≥ 6 runs an hour before a 429). `user-search` 120/h: ≤ 8 per user per run. LocMemCache:
+  10/h per account: testuser4 / testuser5 spend none since the age route went (2026-10-26.2); the export and the
+  deletes spend `lgc` throwaways' own buckets (a new pk every run). `friend-action` 60/h: testuser4
+  ≈ 9, testuser5 ≈ 2 per run (≥ 6 runs an hour before a 429). `user-search` 120/h: ≤ 9 per user per run. LocMemCache:
   restarting the stack resets every bucket.
 - **The mint restores a test account's username** on every mint (`mint_tokens.py account()`), so LC-PROFILE-01 mints
   once and renames back through the API; never mint testuser4 between a rename and its check.
-- **Age.** Minted accounts start with the age unknown (`age_group ""`, treated as teen). `POST /account/age/` only works
-  while it is unknown (409 afterwards), so checks call `forgetAge` first and in `finally`; the logic sweep now resets
-  testuser4/5/6 to unknown as well (`ages` in its output).
+- **Age.** No age rules since 2026-10-26.2 (owner decision, pre-launch): no tick-box, no `POST /account/age/` (404), no
+  photo age gate, `is_teen` always false, nobody hidden or masked. The legacy columns (`age_group`, birth month / year,
+  `age_sets`) stay in the database unread. Checks seed a "teen" with the mint's `legacy_teen` op (`seedLegacyTeen`) to
+  prove nothing reads them, and put it back with `forgetAge` in `finally`; the logic sweep resets testuser4/5/6 to
+  unknown as well (`ages` in its output). A check that finds a 428 `age_required`, a teen 403, a 428 Google consent
+  step or a masked stranger is a regression of that decision, never something to "fix" by restoring the gate.
 - **Photo moderation** is skipped on the local stack (`IMAGE_MODERATION_URL` unset, `MODERATION_REQUIRED` false without
   `DATABASE_URL`), so an upload is saved at once. A stack with moderation configured would call the service (503 when it
-  is unreachable): LC-PROFILE-02/04 would then fail on the upload, not on the age gate.
+  is unreachable): LC-PROFILE-02/03/04 would then fail on the upload (a 503), not on an age rule.
 - **Upload** is multipart, which `api.fetch` (JSON only) cannot send: profile.spec has its own fetch that asks the guard
   first. The image is a 1x1 PNG (the backend normalises it to a 256x256 JPEG data URL).
 - **Search rule** (`users/friends.py search_users`): every non-banned player is findable by name or player id, whatever
-  their age (owner decision 2026-10-19; unknown-age and teen players were findable by exact id only until then).
+  their age (owner decision 2026-10-19; unknown-age and teen players were findable by exact id only until then;
+  LC-FRIENDS-08 proves it on a seeded legacy teen).
   Blocked players are hidden in both directions; a send is refused (403) from either side; the block row is one-way.
 - **friends-overview** is cached 60 s (`friends_cache`) and invalidated by every write view; one Django process with
   LocMemCache, so reads after a write are consistent.

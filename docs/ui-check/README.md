@@ -332,14 +332,16 @@ starts with "How judges use this file"; judges append dated bullets and never re
 
 Not automated, check by hand after changes to sign-in:
 - **Google OAuth round trip**: the Google consent screen, the code exchange, the new-account name
-  pane, and the 428 consent hand-off. The account suite only proves the button renders, is sized,
-  opens the Google window or frame, and shows the in-app-browser warning (AC-GOOGLE-01).
+  pane, and that a new Google account is created in one step (no tick-box or second step since
+  2026-10-26.2; its consent source is `google_continue`). The account suite only proves the button
+  renders, is sized, opens the Google window or frame from both tabs, and shows the in-app-browser
+  warning (AC-GOOGLE-01).
 
 ## Cost and throttles
 
 - No paid service is used. Chrome (or Edge) runs locally; the judges run on Sonnet with
   `effort: medium` and see at most 15 images each.
-- Local throttles: sign-up 10/h and log-in 30/h per IP; export, delete and set-age 10/h per account;
+- Local throttles: sign-up 10/h and log-in 30/h per IP; export and delete 10/h per account;
   score-submit 60/h per account; guess-log 120/h. The suites hit throttled endpoints only on the core
   viewports. Counters live in Django's LocMem cache, so a second full run on the same kept stack
   within the hour can reach a limit (`HTTP 429` in the digest): `run.mjs --stop` resets them.

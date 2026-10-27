@@ -1,17 +1,15 @@
 // Account suite: every submit in the suite blocks a second submit. Each server answer is held back 1.5 s
 // (page.route) so the busy window is long enough to see; the button must show it within 100 ms of the
 // click, and a second click while it is busy must not send a second request.
-import { test, expect, L, pick, createAudit, seedContext } from '../../lib/fixtures.mjs';
+import { test, expect, L, createAudit, seedContext } from '../../lib/fixtures.mjs';
 import { contextOptions } from '../../lib/viewports.mjs';
 import { mintTokens, credentials, soloUsername } from '../../lib/accounts.mjs';
 import { LOCAL_LOAD, openLogin, routeLatency } from '../../lib/guest.mjs';
 import { HASHING, apiCall, clearFriendship, openSignupTab, fillSignup, throwawayName, restoreUsername, removePhoto, clearFriendshipChecked, deleteThrowaway } from '../../lib/account.mjs';
-import { fileURLToPath } from 'node:url';
 
-const AVATAR = fileURLToPath(new URL('../../fixtures/upload/avatar.png', import.meta.url));
 const HOLD_MS = 1500;
 /** The 1.5 s answers are held back by this test on purpose, so the generic 1 s slow-api rule does not apply to them. */
-const HELD = [/^slow POST \S+\/api\/(update-profile|send-friend-request|account\/age|account\/delete|login|signup)\/$/];
+const HELD = [/^slow POST \S+\/api\/(update-profile|send-friend-request|account\/delete|login|signup)\/$/];
 const BUSY_MS = 100;
 
 /**
@@ -87,25 +85,13 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
     });
 
     if (throttled) {
-      // Export, delete and set-age share one 10-an-hour limit per ACCOUNT, and the serial pass runs every viewport on the
-      // same solo account (AC-PROFILE-02 already uses seven of them), so these two submits use a throwaway user.
+      // Export and delete share one 10-an-hour limit per ACCOUNT, and the serial pass runs every viewport on the same solo
+      // account, so the delete submit uses a throwaway user. (The photo age Continue submit went with the age prompt,
+      // 2026-10-26.2: a photo now uploads on pick, with no submit button to guard.)
       throwaway = throwawayName(3, vp);
       const tokens = (await mintTokens([throwaway]))[throwaway];
       const g = await guestPage(browser, baseURL, testInfo, vp, 'throwaway', tokens);
       try {
-        await test.step('photo age Continue', async () => {
-          await g.audit.goto('/profile', { waitFor: 'section.ps-hero' });
-          await L(g.page, 'account.psPhotoInput').setInputFiles(AVATAR);
-          await expect(L(g.page, 'account.agePrompt')).toBeVisible({ timeout: 15_000 });
-          await pick(g.page, 'account.ageMonth', 'June');
-          await pick(g.page, 'account.ageYear', String(new Date().getFullYear() - 30));
-          await submitGuard(g.audit, {
-            label: 'photo age Continue', button: L(g.page, 'account.ageContinue'), urlRe: /\/api\/account\/age\/$/,
-            busy: `(() => { const b = document.querySelector('form.photo-age button[type=submit]'); return !!b && (b.disabled || /Saving/.test(b.textContent)); })()`,
-          });
-          await expect(L(g.page, 'account.psPhotoState')).toHaveText('Shown to other players', { timeout: 20_000 });
-        });
-
         // The button only unlocks once the username and the word match (no password to get wrong), so the
         // throwaway really deletes itself here; the finally below is then a no-op cleanup.
         await test.step('delete account (the throwaway is deleted once)', async () => {
@@ -119,7 +105,7 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
           });
           await expect(g.page.locator('section.ps-empty')).toBeVisible({ timeout: 10_000 });
         });
-        await g.audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of (403|428)/, /^(403|428) POST /] });
+        await g.audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of 403/, /^403 POST /] });
         await g.audit.done();
       } finally {
         await g.audit.finalize();
@@ -156,7 +142,6 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
             await openLogin(g.page, vp);
             await openSignupTab(g.page);
             await fillSignup(g.page, { email: credentials('testuser3').email, username: 'BlockCheck', password: who.password });
-            await L(g.page, 'account.consentBox').check();
             await submitGuard(g.audit, {
               label: 'sign up', button: L(g.page, 'account.submit'), urlRe: /\/api\/signup\/$/,
               busy: `(() => { const b = document.querySelector('.modal-panel button.modal-primary-btn'); return !!b && (b.disabled || /Creating/.test(b.textContent)); })()`,
@@ -171,7 +156,7 @@ test('[AC-BLOCK-01] @perf every submit disables or shows its busy label within 1
         });
       }
     }
-    await audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of (403|428)/, /^(403|428) POST /] });
+    await audit.console({ allow: [...LOCAL_LOAD, ...HASHING, ...HELD, /status of 403/, /^403 POST /] });
   } finally {
     await restoreUsername(audit, request, original);
     await removePhoto(audit, request, original);

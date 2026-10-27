@@ -9,7 +9,7 @@ import {
   typeLatency, ruleStates, openSignupTab, fillSignup, drawerMode, openDrawer, NAV_SAMPLER, navFlash,
 } from '../../lib/account.mjs';
 
-const CONSENT_NEEDED = "Please confirm you're 13 or older and agree to the Terms and Privacy Policy.";
+const TERMS_NOTE = 'By creating an account or continuing with Google you agree to our Terms of Service and Privacy Policy.';
 const PW = "input[aria-label='Password']";
 const PW_RULES = ".modal-panel ul[aria-label='Password requirements'] li.pw-rule";
 const NAME_RULES = ".modal-panel ul[aria-label='Username requirements'] li.pw-rule";
@@ -20,7 +20,7 @@ const rulesAre = (sel, states) => `(() => { const li = [...document.querySelecto
 test.describe('logged out', () => {
   test.use({ persona: 'guest' });
 
-  test('[AC-SIGNUP-01] @perf sign-up form: tabs slide, password and username rules update live, consent blocks the submit', async ({ page, audit, vp }) => {
+  test('[AC-SIGNUP-01] @perf sign-up form: tabs slide, password and username rules update live, terms agreed by the text under the buttons (no tick-box)', async ({ page, audit, vp }) => {
     test.setTimeout(180_000);
     const signups = countRequests(page, /\/api\/signup\/$/);
     await audit.goto('/', { waitFor: '#games-grid .gtile' });
@@ -100,23 +100,25 @@ test.describe('logged out', () => {
       await audit.shot('signup-filled');
     });
 
-    // Consent: without the tick the submit sends nothing and says why, inline.
-    await test.step('consent required', async () => {
-      await expect(L(page, 'account.consentBox')).not.toBeChecked();
-      await motionStep(audit, 'consent error', async () => {
-        await L(page, 'account.submit').click();
-        await expect(L(page, 'account.authError')).toBeVisible();
-      }, { watch: ['.modal-panel', '.modal-panel form'], settleMs: 700 });
-      await expect(L(page, 'account.authError')).toHaveText(CONSENT_NEEDED);
-      await expect(L(page, 'account.consentLabel')).toHaveClass(/is-invalid/);
+    // Consent is by text (owner decision, 2026-10-26.2): no tick-box and no age question; the note under the buttons
+    // says pressing either button agrees, and links the Terms and the Privacy Policy. It leaves with the Sign up tab.
+    await test.step('terms by text, no tick-box', async () => {
+      await expect(L(page, 'account.anyCheckbox'), 'no tick-box in the sign-up form').toHaveCount(0);
+      await expect(L(page, 'account.termsNote')).toBeVisible();
+      await expect(L(page, 'account.termsNote')).toHaveText(TERMS_NOTE);
+      await expect(L(page, 'account.termsNoteTerms')).toHaveText('Terms of Service');
+      await expect(L(page, 'account.termsNotePrivacy')).toHaveText('Privacy Policy');
+      await expect(L(page, 'guest.modalPanel')).not.toContainText(/13\+|13 or older|birth/i);
       await expect(L(page, 'account.submit')).toBeEnabled();
       await expect(L(page, 'account.submit')).toHaveText('Create account');
-      expect(signups, 'no POST /api/signup/ without the tick').toHaveLength(0);
       await audit.layout({ scope: '.modal-panel' });
-      await audit.shot('consent-error');
-      await L(page, 'account.consentBox').check();
-      await expect(L(page, 'account.authError')).toHaveCount(0);
-      await expect(L(page, 'account.consentLabel')).not.toHaveClass(/is-invalid/);
+      await audit.shot('terms-note');
+      await motionStep(audit, 'Sign up -> Log in, the terms note leaves', async () => {
+        await L(page, 'guest.authTabLogin').click();
+        await expect(L(page, 'account.termsNote')).toHaveCount(0, { timeout: 5000 });
+      }, { watch: ['.modal-panel', '.modal-panel form'], settleMs: 700 });
+      await expect(L(page, 'guest.modalPanel')).not.toContainText(/13\+|13 or older|birth/i);
+      await expect(L(page, 'account.anyCheckbox')).toHaveCount(0);
     });
     expect(signups, 'the form never posted').toHaveLength(0);
     await audit.console({ allow: LOCAL_LOAD });
@@ -139,7 +141,6 @@ test.describe('logged out', () => {
       // Duplicate email: the server's refusal shows inline, the modal does not jump.
       await test.step('duplicate email', async () => {
         await fillSignup(page, { email: taken, username: name, password });
-        await L(page, 'account.consentBox').check();
         await motionStep(audit, 'duplicate email error', async () => {
           await L(page, 'account.submit').click();
           await expect(L(page, 'account.authError')).toBeVisible({ timeout: 10_000 });

@@ -315,7 +315,7 @@ export const layoutBoth = (pair) => both(pair, async (p) => {
 
 /**
  * The name the OTHER player sees for `p`: the real name in every room type, whatever the age (the relay's teen
- * masking ended 2026-10-19, owner decision). `type` is kept for the callers.
+ * masking ended 2026-10-19, the age rules 2026-10-26.2; owner decisions). `type` is kept for the callers.
  */
 export const shownName = (p, _type) => p.username;
 
@@ -468,17 +468,15 @@ export async function checkResults(pair, want) {
     if (you.side !== 'You' || opp.side !== 'Opponent') bad(`card sides ${you.side} / ${opp.side}`, 'You, then Opponent');
     if (you.name !== p.username) bad(`own card names "${you.name}"`, p.username);
     const oppName = shownName(pair[other], pair.type);
-    if (opp.name !== oppName) bad(`opponent card names "${opp.name}"`, `${oppName}${oppName !== pair[other].username ? ` (${pair[other].username} is of unknown age: masked in a random match)` : ''}`);
-    if (oppName === 'Player' && opp.tag) p.audit.violation('teen-masking', { selector: '.om-stage--results .om-pc-tag', measured: `the opponent is shown as "Player" but with its player ID ${opp.tag}`, expected: 'a masked stranger shows no permanent player ID (it lets anyone find and friend-request them by ID)' });
+    if (opp.name !== oppName) bad(`opponent card names "${opp.name}"`, `${oppName} (the real name: nobody is masked, whatever the age)`);
+    // No masking (no age rules since 2026-10-26.2): the opponent card carries its permanent #id, a stranger's too.
+    if (!opp.tag) p.audit.violation('masking', { selector: '.om-stage--results .om-pc-tag', measured: `the opponent card "${opp.name}" shows no player ID`, expected: 'the opponent\'s #id (OnlineMatch hides it only for a masked player, and the relay masks nobody)' });
     if (w.score != null && Number(you.score) !== w.score) bad(`own score ${you.score}`, `${w.score} (from the answers given)`);
     if (want[other].score != null && Number(opp.score) !== want[other].score) bad(`opponent score ${opp.score}`, `${want[other].score}`);
-    // Mirror: my card on my screen = my card on the other screen. When I am masked on the other screen
-    // (a stranger sees "Player"), that card carries no #id by design; score and time must still match.
+    // Mirror: my card on my screen = my card on the other screen (the same #id, score and time).
     if (o && o.cards.length === 2) {
       const mine = o.cards[1];
-      const maskedThere = shownName(p, pair.type) === 'Player';
-      const tagOk = maskedThere ? mine.tag === null : mine.tag === you.tag;
-      if (!tagOk || mine.score !== you.score || mine.time !== you.time) bad(`own card ${JSON.stringify(you)} vs the ${other}'s view ${JSON.stringify(mine)}`, maskedThere ? 'no #id (masked as "Player" there), the same score and time on both screens' : 'the same player (#id), score and time on both screens');
+      if (mine.tag !== you.tag || mine.score !== you.score || mine.time !== you.time) bad(`own card ${JSON.stringify(you)} vs the ${other}'s view ${JSON.stringify(mine)}`, 'the same player (#id), score and time on both screens');
     }
     // Play times break equal scores; a turn duel's scores come from the board (no times are submitted): want.times false.
     if (want.times !== false && (!you.time || !opp.time || !/^\d+:\d\d$/.test(you.time))) bad(`play times "${you.time}" / "${opp.time}"`, 'm:ss under both cards');

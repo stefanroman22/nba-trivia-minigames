@@ -101,7 +101,7 @@ is the same defect, handled the same way.
 | `review` (answer review) | MP-16 |
 | `turn-reject`, `turn-pass`, `duel`, `duel-banner`, `timeout` | MP-3 |
 | `notice-covers`, `occluded` | UI-12 |
-| `teen-masking` | `docs/legal/README.md` (unknown age is treated as teen) |
+| `masking` | owner decision 2026-10-26.2 (`users/consent.py`): no age rules, the relay masks nobody, so a missing or different opponent #id is a regression |
 | `stale-prompt`, `match-flow`, `round` | MP-2, MP-4 |
 | `overflow-x`, `offscreen`, `clipped` | UI-13 |
 | `tap-target`, `a11y` | WCAG 2.5.8 / the axe rule id |
@@ -179,7 +179,7 @@ and none may error.
   behaviour (`multiplayer_server/`: events, timers, ranking, credit) → `backend`; build warnings,
   env/config, deploy → `ci`.
 - **severity:** `blocker` broken flow (a match that cannot start or end, a player stuck), permission
-  leak or data exposure (e.g. `teen-masking`) · `major` a rule violation users can see, a layout break,
+  leak or data exposure · `major` a rule violation users can see, a layout break,
   a snap on a primary surface · `minor` the same on a secondary surface, or a small inconsistency ·
   `polish` improvement ideas and consistency nits no rule demands.
 

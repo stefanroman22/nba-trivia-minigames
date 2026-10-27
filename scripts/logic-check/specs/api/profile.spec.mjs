@@ -1,27 +1,24 @@
 // Logic Check — profile suite, API (spec §5 profile row): each profile change persists and is enforced. Username change
-// (valid / bad characters / too long / too short), the photo flow (age unknown → 428 → age → upload → /me/ has the photo),
-// a teen's upload refused, photo removal, the data export, and account deletion's two gates.
+// (valid / bad characters / too long / too short), the photo upload with no age set (no age gate since 2026-10-26.2:
+// any signed-in player may upload), the removed age route and a legacy teen's photo, photo removal, the data export, and
+// account deletion's two gates.
 // LC-PROFILE-01/02 change logic.actor (testuser4) and put it back in `finally` (name, photo, age unknown); the sweep's
 // logic scope is the fallback (names, photos and ages of testuser4/5/6). -03..-06 each use their own minted `lgc`
 // throwaway, deleted in `finally` (the lgc sweep as the last resort).
-// Budget: account-data is 10/hour PER ACCOUNT (authenticated throttles key by user, not address). testuser4 spends one
-// (`POST /account/age/` in -02) per run; the export, the teen's age, the removal flow and the deletes spend the
-// throwaways' own buckets. friend-action: one send by -05's throwaway.
+// Budget: account-data is 10/hour PER ACCOUNT (authenticated throttles key by user, not address); testuser4 spends none.
+// The export, the removal flow and the deletes spend the throwaways' own buckets. friend-action: one send by -05's throwaway.
 import { test } from '../../lib/fixtures.mjs';
-import { ROLES, credentials, forgetAge, mintTokens } from '../../../check-core/lib/accounts.mjs';
+import { ROLES, credentials, forgetAge, mintTokens, seedLegacyTeen } from '../../../check-core/lib/accounts.mjs';
 import { attempt, deleteAccount, get, login, post, said, throwawayName } from '../../lib/auth.mjs';
 
 const ACTOR = ROLES['logic.actor'];
 const PEER = ROLES['logic.peer'];
 const USERNAME_RULES = 'Username must be 3-20 characters using letters, numbers or underscores.'; // views.py
-const PHOTO_MIN_AGE = 16; // users/consent.py
-const AGE_REQUIRED = `Profile photos are for players aged ${PHOTO_MIN_AGE} and over. Tell us your birth month and year first.`;
-const TEEN_REFUSED = `Profile photos are available from age ${PHOTO_MIN_AGE}.`;
-const AGE_SETS_RULE = 'You can set your birth month and year twice only: once, and one change later.'; // consent.AGE_SETS_RULE
 const LOGIN_FAILED = 'Incorrect email, username or password.';
-const YEAR = new Date().getFullYear();
-const ADULT = { birth_month: 1, birth_year: YEAR - 30 };
-const TEEN = { birth_month: 1, birth_year: YEAR - 14 };
+// What the removed age route (users/urls.py account/age/, gone 2026-10-26.2) used to take.
+const TEEN = { birth_month: 1, birth_year: new Date().getFullYear() - 14 };
+// /me/ fields that went with the age rules (views.py user_payload): none may come back.
+const AGE_FIELDS = ['age_group', 'birth_month', 'birth_year', 'age_sets_left'];
 // A valid 1x1 PNG (Pillow opens it; the backend normalises it to a 256x256 JPEG).
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 const errorOf = (r) => (r && r.json && typeof r.json.error === 'string' ? r.json.error : null);
@@ -92,70 +89,59 @@ test('[LC-PROFILE-01] username change: valid → 200 and /me/ shows it; bad char
   await lc.done();
 });
 
-test('[LC-PROFILE-02] photo upload: age unknown → 428 age_required (nothing saved); POST /account/age/ adult → 200; upload → 200 and /me/ has the photo', async ({ api, guard, lc }) => {
+/** A successful upload answer and /me/ carry the same normalised photo; a mismatch is a `photo` violation. */
+async function expectPhotoSaved(api, lc, r, token, selector) {
   const route = '/api/update-profile/';
-  await forgetAge([ACTOR]);
+  if (r.status !== 200 || !r.json || r.json.status !== 'success') { lc.violation(r.status >= 500 ? 'server-error' : 'photo', { route, selector, measured: said(r), expected: '200 {"status": "success", user} (no age gate since 2026-10-26.2: no 428 age_required, no 403 for a teen)' }); return; }
+  const m = await me(api, token);
+  const p = photoOf(m);
+  if (typeof p !== 'string' || !p.startsWith('data:image/jpeg;base64,')) lc.violation('photo', { route: '/api/me/', selector: `profile_photo after the upload (${selector})`, measured: JSON.stringify(p === undefined ? said(m) : p).slice(0, 60), expected: 'a data:image/jpeg;base64,… URL (the normalised photo)' });
+  if (photoOf(r) !== p) lc.violation('photo', { route, selector: `user.profile_photo in the upload answer (${selector})`, measured: 'differs from /me/', expected: 'the same photo as /me/' });
+}
+
+test('[LC-PROFILE-02] photo upload with no age set → 200 and /me/ has the photo (no age gate: no 428 age_required)', async ({ api, guard, lc }) => {
+  const route = '/api/update-profile/';
+  await forgetAge([ACTOR]); // the state that once answered 428 age_required
   const t = (await mintTokens([ACTOR]))[ACTOR];
   try {
     await test.step('start without a photo', async () => {
       const r = await attempt(post(api, '/account/remove-photo/', {}, { token: t.access }));
       if (r.status !== 200 || photoOf(r) !== null) lc.violation('setup', { route: '/api/account/remove-photo/', selector: 'remove any photo first', measured: said(r), expected: '200 with profile_photo null' });
     });
-    await test.step('upload with the age unknown → 428 code age_required', async () => {
+    await test.step('upload with no age set → 200 and /me/ carries the photo', async () => {
       const r = await attempt(uploadPhoto(api, guard, t.access));
-      await expectAnswer(lc, 'photo-age', r, { route, selector: 'multipart upload, age unknown', status: 428, error: AGE_REQUIRED });
-      if (r.status === 428 && (!r.json || r.json.code !== 'age_required')) lc.violation('photo-age', { route, selector: 'code', measured: JSON.stringify(r.json && r.json.code), expected: '"age_required" (the client opens the age prompt on it)' });
-      const m = await me(api, t.access);
-      if (photoOf(m) !== null) lc.violation('photo-age', { route: '/api/me/', selector: 'profile_photo after the 428', measured: String(photoOf(m)).slice(0, 40), expected: 'null (nothing saved)' });
-    });
-    await test.step('POST /account/age/ adult → 200, is_teen false', async () => {
-      const r = await attempt(post(api, '/account/age/', ADULT, { token: t.access }));
-      if (r.status !== 200 || !r.json || !r.json.user) { lc.violation(r.status >= 500 ? 'server-error' : 'photo-age', { route: '/api/account/age/', selector: `POST /api/account/age/ ${JSON.stringify(ADULT)}`, measured: said(r), expected: '200 { user }' }); return; }
-      if (r.json.user.is_teen !== false) lc.violation('photo-age', { route: '/api/account/age/', selector: 'user.is_teen', measured: JSON.stringify(r.json.user.is_teen), expected: 'false (adult)' });
-    });
-    await test.step('upload again → 200 and /me/ carries the photo', async () => {
-      const r = await attempt(uploadPhoto(api, guard, t.access));
-      if (r.status !== 200 || !r.json || r.json.status !== 'success') { lc.violation(r.status >= 500 ? 'server-error' : 'photo', { route, selector: 'multipart upload, adult', measured: said(r), expected: '200 {"status": "success", user}' }); return; }
-      const m = await me(api, t.access);
-      const p = photoOf(m);
-      if (typeof p !== 'string' || !p.startsWith('data:image/jpeg;base64,')) lc.violation('photo', { route: '/api/me/', selector: 'profile_photo after the upload', measured: JSON.stringify(p === undefined ? said(m) : p).slice(0, 60), expected: 'a data:image/jpeg;base64,… URL (the normalised photo)' });
-      if (photoOf(r) !== p) lc.violation('photo', { route, selector: 'user.profile_photo in the upload answer', measured: 'differs from /me/', expected: 'the same photo as /me/' });
+      if (r.status === 428 || (r.json && r.json.code === 'age_required')) { lc.violation('photo-age-gate', { route, selector: 'multipart upload, no age set', measured: said(r), expected: '200: the age gate is gone (owner decision, 2026-10-26.2); a 428 age_required means it was restored' }); return; }
+      await expectPhotoSaved(api, lc, r, t.access, 'no age set');
     });
   } finally {
     const r = await attempt(post(api, '/account/remove-photo/', {}, { token: t.access }));
     if (r.status !== 200 || photoOf(r) !== null) lc.violation('cleanup', { route: '/api/account/remove-photo/', selector: `remove ${ACTOR}'s photo`, measured: said(r), expected: '200 with profile_photo null (else the sweep drops it)' });
-    await forgetAge([ACTOR]).catch((e) => lc.violation('cleanup', { route: '/api/account/age/', selector: `forget ${ACTOR}'s age`, measured: String(e.message).split('\n')[0], expected: 'age unknown again (else the sweep resets it)' }));
+    await forgetAge([ACTOR]).catch((e) => lc.violation('cleanup', { route: '/api/me/', selector: `forget ${ACTOR}'s age`, measured: String(e.message).split('\n')[0], expected: 'age unknown again (else the sweep resets it)' }));
   }
   await lc.done();
 });
 
-test('[LC-PROFILE-03] teen: POST /account/age/ teen → 200 is_teen true; upload → 403; one change allowed, a third age → 409', async ({ api, guard, lc }) => {
+test('[LC-PROFILE-03] no age rules: POST /account/age/ → 404 (route gone); a legacy teen account has is_teen false, no age fields on /me/, and its upload → 200', async ({ api, guard, lc }) => {
   const name = throwawayName(60);
-  const t = (await mintTokens([name]))[name]; // a fresh lgc account, age unknown
+  const t = (await mintTokens([name]))[name]; // a fresh lgc account
   try {
-    await test.step('POST /account/age/ teen → 200, is_teen true', async () => {
+    await seedLegacyTeen([name]); // the age columns an earlier 14-year-old's account still carries
+    await test.step('POST /account/age/ (a teen\'s birth date) → 404, the route is gone', async () => {
       const r = await attempt(post(api, '/account/age/', TEEN, { token: t.access }));
-      if (r.status !== 200 || !r.json || !r.json.user) { lc.violation(r.status >= 500 ? 'server-error' : 'photo-age', { route: '/api/account/age/', selector: `POST /api/account/age/ ${JSON.stringify(TEEN)}`, measured: said(r), expected: '200 { user }' }); return; }
-      if (r.json.user.is_teen !== true) lc.violation('photo-age', { route: '/api/account/age/', selector: 'user.is_teen', measured: JSON.stringify(r.json.user.is_teen), expected: 'true (teen)' });
+      if (r.status !== 404) lc.violation(r.status >= 500 ? 'server-error' : 'age-route', { route: '/api/account/age/', selector: `POST /api/account/age/ ${JSON.stringify(TEEN)}`, measured: said(r), expected: 'HTTP 404 (users/urls.py has no account/age/ since 2026-10-26.2)' });
     });
-    await test.step('upload as a teen → 403, nothing saved', async () => {
+    await test.step('/me/ of the legacy teen: is_teen false, no age fields', async () => {
+      const m = await me(api, t.access);
+      const u = m.json && m.json.user;
+      if (m.status !== 200 || !u) { lc.violation('me', { route: '/api/me/', selector: `GET /api/me/ as ${name}`, measured: said(m), expected: '200 { user }' }); return; }
+      if (u.is_teen !== false) lc.violation('is-teen', { route: '/api/me/', selector: 'user.is_teen (age_group "teen" in the database)', measured: JSON.stringify(u.is_teen), expected: 'false (always, views.py user_payload: no age rules)' });
+      const back = AGE_FIELDS.filter((k) => k in u);
+      if (back.length) lc.violation('is-teen', { route: '/api/me/', selector: 'user payload age fields', measured: back.map((k) => `${k} ${JSON.stringify(u[k])}`).join(', '), expected: `none of ${AGE_FIELDS.join(', ')} (dropped with the age rules)` });
+    });
+    await test.step('the legacy teen uploads a photo → 200 (no 403 teen refusal)', async () => {
       const r = await attempt(uploadPhoto(api, guard, t.access));
-      await expectAnswer(lc, 'photo-teen', r, { route: '/api/update-profile/', selector: 'multipart upload, teen', status: 403, error: TEEN_REFUSED });
-      const m = await me(api, t.access);
-      if (photoOf(m) !== null) lc.violation('photo-teen', { route: '/api/me/', selector: 'profile_photo after the 403', measured: String(photoOf(m)).slice(0, 40), expected: 'null' });
-    });
-    await test.step('the one change: an adult year → 200, is_teen false, no change left', async () => {
-      const r = await attempt(post(api, '/account/age/', ADULT, { token: t.access }));
-      if (r.status !== 200 || !r.json || !r.json.user) { lc.violation(r.status >= 500 ? 'server-error' : 'photo-teen', { route: '/api/account/age/', selector: 'POST /api/account/age/ adult after teen (the one change)', measured: said(r), expected: '200 { user }' }); return; }
-      const u = r.json.user;
-      if (u.is_teen !== false || u.age_sets_left !== 0) lc.violation('photo-teen', { route: '/api/account/age/', selector: 'user after the change', measured: `is_teen ${JSON.stringify(u.is_teen)}, age_sets_left ${JSON.stringify(u.age_sets_left)}`, expected: 'is_teen false, age_sets_left 0' });
-    });
-    await test.step('a third age (teen again) → 409, the age stays adult', async () => {
-      const r = await attempt(post(api, '/account/age/', TEEN, { token: t.access }));
-      await expectAnswer(lc, 'photo-teen', r, { route: '/api/account/age/', selector: 'POST /api/account/age/ a third time', status: 409, error: AGE_SETS_RULE });
-      const m = await me(api, t.access);
-      const teen = m.json && m.json.user ? m.json.user.is_teen : undefined;
-      if (teen !== false) lc.violation('photo-teen', { route: '/api/me/', selector: 'is_teen after the refused third age', measured: JSON.stringify(teen), expected: 'false (unchanged)' });
+      if (r.status === 403) { lc.violation('photo-age-gate', { route: '/api/update-profile/', selector: 'multipart upload, legacy teen', measured: said(r), expected: '200: any signed-in player may upload (a 403 means the teen refusal was restored)' }); return; }
+      await expectPhotoSaved(api, lc, r, t.access, 'legacy teen');
     });
   } finally {
     await dropThrowaway(api, lc, t, name);
@@ -163,15 +149,14 @@ test('[LC-PROFILE-03] teen: POST /account/age/ teen → 200 is_teen true; upload
   await lc.done();
 });
 
-test('[LC-PROFILE-04] remove photo: an adult with a photo → POST /account/remove-photo/ 200; /me/ photo null and the public photo URL 404', async ({ api, guard, lc }) => {
+test('[LC-PROFILE-04] remove photo: an account with a photo → POST /account/remove-photo/ 200; /me/ photo null and the public photo URL 404', async ({ api, guard, lc }) => {
   const name = throwawayName(61);
   const t = (await mintTokens([name]))[name];
   try {
     let ready = false;
-    await test.step('setup: adult, photo uploaded', async () => {
-      const a = await attempt(post(api, '/account/age/', ADULT, { token: t.access }));
-      const u = a.status === 200 ? await attempt(uploadPhoto(api, guard, t.access)) : null;
-      if (!u || u.status !== 200 || typeof photoOf(u) !== 'string') { lc.violation('setup', { route: '/api/update-profile/', selector: 'adult + upload', measured: `age ${said(a)}; upload ${said(u)}`, expected: '200, 200 with a photo' }); return; }
+    await test.step('setup: photo uploaded', async () => {
+      const u = await attempt(uploadPhoto(api, guard, t.access));
+      if (u.status !== 200 || typeof photoOf(u) !== 'string') { lc.violation('setup', { route: '/api/update-profile/', selector: 'upload', measured: `upload ${said(u)}`, expected: '200 with a photo' }); return; }
       const pub = await attempt(api.get(`${api.base}/users/${encodeURIComponent(t.user.id)}/photo/`));
       if (pub.status !== 200) lc.violation('photo', { route: '/api/users/<id>/photo/', selector: 'public photo before removal', measured: said(pub), expected: 'HTTP 200' });
       ready = true;

@@ -171,7 +171,7 @@ export async function openSignupTab(page) {
   await expect(L(page, 'guest.authTabSignup')).toHaveAttribute('aria-selected', 'true');
 }
 
-/** Fill the open sign-up form (does not touch the consent box). */
+/** Fill the open sign-up form (there is no consent box: the terms are agreed by the text under the buttons). */
 export async function fillSignup(page, { email, username, password }) {
   await L(page, 'account.signupEmail').fill(email);
   await L(page, 'account.signupUsername').fill(username);

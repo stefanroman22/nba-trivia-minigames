@@ -161,9 +161,10 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
 
 ## Accounts, names and what accumulates per run
 
-- testuser1 / testuser2 never gave an age, so they count as teens (`users/consent.py is_teen`); since 2026-10-19 that no
-  longer matters on the relay: every room type, a RANDOM 1v1 included, shows the real name and photo (`publicUser`; the
-  teen masking was removed). `shownName(p, type)` gives the expected name; results / waiting / prompts / notices use it.
+- testuser1 / testuser2 never gave an age; since 2026-10-19 that no longer matters on the relay and since 2026-10-26.2
+  there are no age rules at all (`is_teen` always false): every room type, a RANDOM 1v1 included, shows the real name,
+  photo and #id (`publicUser`, `masked` always false). `shownName(p, type)` gives the expected name; results / waiting /
+  prompts / notices use it. A missing or different opponent #id on the intro or results card is `masking`.
 - Per full run (4 pairs + pair-A-only files), credited by the relay to the local sqlite only (1v1 matches; friend rooms
   never credit, checked in every MP-GAME test): testuser1 +400 per pair (Series Winner, 100 per credited round: MP-RESULT-01, MP-PROP-01 + rematch,
   MP-PROP-02) = 1600, + 100 in MP-TIMEOUT-01 = **+1700 points**; testuser2 +100 per pair (the all-right rematch in

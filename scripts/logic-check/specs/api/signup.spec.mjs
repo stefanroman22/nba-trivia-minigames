@@ -12,7 +12,7 @@
 // LC-SIGNUP-05 creates 2 when under the cap.
 import { test, expect } from '../../lib/fixtures.mjs';
 import { ACCOUNTS, ROLES, credentials, sweepAccounts } from '../../../check-core/lib/accounts.mjs';
-import { MSG, VALIDATOR_OF, backendRules, errorMismatch, frontendRules, happyRows, signupMatrix, staleMessages } from '../../lib/matrix.mjs';
+import { MSG, TERMS_NOTE, VALIDATOR_OF, backendRules, errorMismatch, frontendRules, happyRows, signupMatrix, staleMessages } from '../../lib/matrix.mjs';
 import { ACCOUNT_CAP, accountsCreated, attempt, capReached, get, login, noteAccount, post, removeAccount, said, throwawayName } from '../../lib/auth.mjs';
 
 const ROUTE = '/api/signup/';
@@ -90,9 +90,13 @@ test('[LC-SIGNUP-00] the frontend\'s stated sign-up rules and the backend\'s val
     const stated = new Set([...fe.rules.map((r) => VALIDATOR_OF[r.key]), ...fe.serverOnly.map((k) => VALIDATOR_OF[k])]);
     for (const val of be.validators) if (!stated.has(val)) v(`backend ${val}`, 'no frontend rule and not declared server-only in passwordRules.ts', 'the form tells the player every rule the backend enforces');
   });
-  await test.step('username pattern and consent message', async () => {
+  await test.step('username pattern; consent by text: the form sends accepted_terms, shows the terms note, asks no age', async () => {
     if (fe.usernamePattern !== be.usernamePattern) v('username pattern', `form pattern ${fe.usernamePattern}, backend USERNAME_RE ${be.usernamePattern}`, 'the same pattern');
-    if (fe.consentText !== be.consentMessage) v('consent message', `frontend CONSENT_NEEDED ${JSON.stringify(fe.consentText)}, backend ${JSON.stringify(be.consentMessage)}`, 'the same text');
+    // The backend still refuses a sign-up without accepted_terms (CONSENT_REQUIRED_MESSAGE); the form never sends one.
+    if (!fe.consent.sendsTerms) v('consent', 'src/components/LogInSignUp.tsx sign-up body', 'no `accepted_terms: true`', 'the sign-up body carries accepted_terms: true (pressing "Create account" is the agreement)');
+    if (!fe.consent.termsNote) v('consent', 'src/components/LogInSignUp.tsx terms note', 'not found', `"${TERMS_NOTE} Terms of Service and Privacy Policy." under the sign-up buttons`);
+    if (fe.consent.ageInputs.length) v('consent', 'src/components/LogInSignUp.tsx', `age / tick-box remnants: ${fe.consent.ageInputs.join(', ')}`, 'no tick-box and no age field (owner decision, 2026-10-26.2)');
+    if (!be.consentMessage) v('consent', 'backend/users/consent.py', 'no CONSENT_REQUIRED_MESSAGE', 'the message a sign-up without accepted_terms gets');
   });
   await test.step('matrix provenance: every literal message exists in the backend source', async () => {
     for (const s of staleMessages()) lc.violation('matrix-stale', { route: ROUTE, selector: `${s.file} (${s.key})`, measured: `"${s.text}" not found`, expected: 'lib/matrix.mjs MSG matches the backend (update the matrix from the source)' });
@@ -113,11 +117,11 @@ test('[LC-SIGNUP-03] password cases: empty and every AUTH_PASSWORD_VALIDATORS ru
   await runCategory(api, lc, 'password');
 });
 
-test('[LC-SIGNUP-04] consent cases: accepted_terms / age_confirmed missing or false, under 13 → 400 with the consent code', async ({ api, lc }) => {
+test('[LC-SIGNUP-04] consent cases: accepted_terms missing, false or a string (also with an older client\'s age_confirmed) → 400 with the consent code; no age row', async ({ api, lc }) => {
   await runCategory(api, lc, 'consent');
 });
 
-test('[LC-SIGNUP-05] happy path: a new lgc account gets 201 + tokens, logs in, /me/ matches, a repeated display name is allowed, delete ends the login', async ({ api, lc }) => {
+test('[LC-SIGNUP-05] happy path: a new lgc account (no age asked) gets 201 + tokens, its consent is stamped signup_text, logs in, /me/ matches, a repeated display name (an older client\'s age fields ignored) is allowed, delete ends the login', async ({ api, lc }) => {
   const password = pw();
   const { happy, repeat } = happyRows({ name: throwawayName, password });
   const alive = new Map(); // label → { access, email } of accounts this test created and has not deleted yet
@@ -163,6 +167,16 @@ test('[LC-SIGNUP-05] happy path: a new lgc account gets 201 + tokens, logs in, /
       const u = r.json && r.json.user;
       if (r.status !== 200 || !u) v('me', 'GET /api/me/', r, '200 { user }');
       else for (const k of ['id', 'username', 'email']) if (u[k] !== first[k]) v('me', `user.${k}`, JSON.stringify(u[k]), JSON.stringify(first[k]));
+    });
+    await test.step('the consent record (export): source signup_text, this Terms version, no age stamped', async () => {
+      const r = await attempt(get(api, '/account/export/', { token: first.access }));
+      const a = r.json && r.json.account;
+      if (r.status !== 200 || !a) { v('consent', 'GET /api/account/export/', r, '200 { account }'); return; }
+      const version = backendRules().termsVersion;
+      if (a.consent_source !== 'signup_text') v('consent', 'account.consent_source', JSON.stringify(a.consent_source), '"signup_text" (agreed by the text under the sign-up buttons, consent.EMAIL_SIGNUP_SOURCE)');
+      if (!a.terms_accepted_at) v('consent', 'account.terms_accepted_at', JSON.stringify(a.terms_accepted_at), 'the sign-up time');
+      if (version && a.terms_version !== version) v('consent', 'account.terms_version', JSON.stringify(a.terms_version), `"${version}" (consent.TERMS_VERSION)`);
+      if (a.age_confirmed_at || a.age_group) v('consent', 'account.age_confirmed_at / age_group', `${JSON.stringify(a.age_confirmed_at)} / ${JSON.stringify(a.age_group)}`, 'null / "" (no age is asked or stamped)');
     });
     await test.step('the same display name with another email → 201 (names are not unique); a bare-name login is then ambiguous', async () => {
       if (capReached()) { v('signup-budget', `POST ${ROUTE} ${repeat.body.username} <${repeat.body.email}>`, `not sent: ${capNote()}`, 'the repeated-name sign-up runs'); return; }

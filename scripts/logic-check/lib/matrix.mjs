@@ -2,8 +2,8 @@
 //   backend/users/views.py signup_view   check order: required fields → consent → USERNAME_RE → moderation (severe /
 //                                         reserved / mild) → validate_email → banned email → validate_password →
 //                                         email taken (409) → create (201)
-//   backend/users/consent.py             check_consent: accepted_terms / age_confirmed must be JSON true; an under-13
-//                                         birth date is refused even with the box ticked
+//   backend/users/consent.py             check_consent: accepted_terms must be JSON true; no age is asked or checked
+//                                         (2026-10-26.2: age_confirmed / birth fields of an older client are ignored)
 //   backend/users/moderation_text.py     generic messages; "Dick" (mild) and "admin1" (reserved) per
 //                                         users/test_moderation.py. Never a severe word: a severe name at sign-up
 //                                         counts against the caller's IP and the third locks sign-ups for 24 h.
@@ -25,7 +25,6 @@ export const SOURCES = {
   moderation: 'backend/users/moderation_text.py',
   settings: 'backend/backend/settings.py',
   passwordRules: 'src/utils/passwordRules.ts',
-  consentTs: 'src/utils/consent.ts',
   form: 'src/components/LogInSignUp.tsx',
 };
 
@@ -40,8 +39,7 @@ export const MSG = {
   nameReserved: { text: 'That name is reserved. Please choose another.', src: 'moderation' },
   emailInvalid: { text: "That email address doesn't look valid.", src: 'views' },
   emailInUse: { text: 'Email already in use! Please use a different email address.', src: 'views' },
-  consentRequired: { text: "Please confirm you're 13 or older and agree to the Terms and Privacy Policy.", src: 'consent' },
-  ageBlocked: { text: /^You need to be at least 13 years old to create an account\.$/, src: 'consent' },
+  consentRequired: { text: 'Please agree to the Terms of Service and Privacy Policy.', src: 'consent' },
   pwShort: { text: /^This password is too short\. It must contain at least 8 characters\.$/, src: 'django' },
   pwCommon: { text: /^This password is too common\.$/, src: 'django' },
   pwNumeric: { text: /^This password is entirely numeric\.$/, src: 'django' },
@@ -55,11 +53,11 @@ export const MSG = {
  * test-account password); `takenEmail` → an existing account's email (logic.actor's).
  * → [{ category, case, body, expectStatus, expectError: { text, code? }, creates? }]
  */
-export function signupMatrix({ name, password, takenEmail, today = new Date() }) {
+export function signupMatrix({ name, password, takenEmail }) {
   let i = 0;
   const row = (category, kase, patch, expectStatus, msg, code) => {
     const n = name(++i);
-    const base = { username: n, email: `${n}@uicheck.test`, password, accepted_terms: true, age_confirmed: true };
+    const base = { username: n, email: `${n}@uicheck.test`, password, accepted_terms: true };
     const body = typeof patch === 'function' ? patch(base, n) : { ...base, ...patch };
     return { category, case: kase, body, expectStatus, expectError: { text: msg.text, ...(code ? { code } : {}) } };
   };
@@ -91,22 +89,22 @@ export function signupMatrix({ name, password, takenEmail, today = new Date() })
     // JSON non-strings: request.data keeps the type, so these reach validate_password as an int / a bool
     row('password', '12345678 (JSON number)', { password: 12345678 }, 400, S.anyError),
     row('password', 'true (JSON boolean)', { password: true }, 400, S.anyError),
-    // consent: both flags must be JSON true; an under-13 birth date is refused even with the box ticked
+    // consent: accepted_terms must be JSON true (the form sends it with every press of "Create account"); no age row,
+    // there is no age check (an older client's age fields are accepted and ignored: LC-SIGNUP-05's repeat row)
     row('consent', 'accepted_terms missing', omit('accepted_terms'), 400, S.consentRequired, 'consent_required'),
     row('consent', 'accepted_terms false', { accepted_terms: false }, 400, S.consentRequired, 'consent_required'),
     row('consent', 'accepted_terms "true" (string)', { accepted_terms: 'true' }, 400, S.consentRequired, 'consent_required'),
-    row('consent', 'age_confirmed missing', omit('age_confirmed'), 400, S.consentRequired, 'consent_required'),
-    row('consent', 'age_confirmed false', { age_confirmed: false }, 400, S.consentRequired, 'consent_required'),
-    row('consent', 'birth date under 13', (b) => { const c = { ...b, birth_year: today.getFullYear() - 5, birth_month: 1 }; delete c.age_confirmed; return c; }, 400, S.ageBlocked, 'age_requirement'),
+    row('consent', 'accepted_terms missing, an older client\'s age_confirmed true', (b) => { const c = { ...b, age_confirmed: true }; delete c.accepted_terms; return c; }, 400, S.consentRequired, 'consent_required'),
   ];
 }
 
-/** The happy path rows (LC-SIGNUP-05): a new account, and the same display name again (names are not unique). */
-export function happyRows({ name, password }) {
+/** The happy path rows (LC-SIGNUP-05): a new account as today's form sends it (accepted_terms, no age), and the same
+ *  display name again from an older client whose age fields (an unticked age box, a birth date under 13) are ignored. */
+export function happyRows({ name, password, today = new Date() }) {
   const n = name(90);
   return {
-    happy: { category: 'happy', case: 'new account', body: { username: n, email: `${n}@uicheck.test`, password, accepted_terms: true, age_confirmed: true }, expectStatus: 201 },
-    repeat: { category: 'happy', case: 'repeated display name, other email', body: { username: n, email: `${n}r@uicheck.test`, password, accepted_terms: true, age_confirmed: true }, expectStatus: 201 },
+    happy: { category: 'happy', case: 'new account', body: { username: n, email: `${n}@uicheck.test`, password, accepted_terms: true }, expectStatus: 201 },
+    repeat: { category: 'happy', case: 'repeated display name, other email, an older client\'s age fields', body: { username: n, email: `${n}r@uicheck.test`, password, accepted_terms: true, age_confirmed: false, birth_month: 1, birth_year: today.getFullYear() - 5 }, expectStatus: 201 },
   };
 }
 
@@ -118,29 +116,35 @@ export const VALIDATOR_OF = {
   common: 'CommonPasswordValidator',
 };
 
+/** The agreement text under the sign-up buttons (LogInSignUp.tsx), up to the first link. */
+export const TERMS_NOTE = 'By creating an account or continuing with Google you agree to our';
+
 /**
- * The frontend's stated rules (src/utils/passwordRules.ts, LogInSignUp.tsx, utils/consent.ts):
- * → { minLength, rules: [{ key, label }], serverOnly: [key], usernamePattern, consentText, problems: [] }
+ * The frontend's stated rules (src/utils/passwordRules.ts, LogInSignUp.tsx):
+ * → { minLength, rules: [{ key, label }], serverOnly: [key], usernamePattern, consent: { sendsTerms, termsNote, ageInputs: [] }, problems: [] }
  * `serverOnly`: rules the file declares as checked by the server only ("Too common" can only be checked by the server).
+ * `consent`: the form agrees by text (no tick-box since 2026-10-26.2): the sign-up body carries `accepted_terms: true`,
+ * the terms note is there, and `ageInputs` lists any age / tick-box remnant found in the form (none expected).
  */
 export function frontendRules(repo = appRepo()) {
   const problems = [];
   const src = readApp(SOURCES.passwordRules, repo);
-  if (!src) return { minLength: null, rules: [], serverOnly: [], usernamePattern: null, consentText: null, problems: [`${SOURCES.passwordRules} not found`] };
+  const form = readApp(SOURCES.form, repo) || '';
+  const ageInputs = [/type="checkbox"/, /age_confirmed/, /consentPayload/, /ConsentFields/, /birth_(month|year)/].filter((re) => re.test(form)).map((re) => re.source);
+  const consent = { sendsTerms: /accepted_terms:\s*true/.test(form), termsNote: form.replace(/\s+/g, ' ').includes(TERMS_NOTE), ageInputs };
+  if (!src) return { minLength: null, rules: [], serverOnly: [], usernamePattern: null, consent, problems: [`${SOURCES.passwordRules} not found`] };
   const rules = [...src.matchAll(/\{\s*key:\s*"(\w+)",\s*label:\s*"([^"]+)"/g)].map((m) => ({ key: m[1], label: m[2] }));
   const min = /key:\s*"length"[^}]*password\.length\s*>=\s*(\d+)/.exec(src);
   if (!min) problems.push('no `password.length >= N` in the length rule');
   const serverOnly = /"Too common" can only be checked by the server/i.test(src) ? ['common'] : [];
-  const form = readApp(SOURCES.form, repo) || '';
   const pat = /aria-label="Username"/.test(form) ? /pattern="([^"]+)"[\s\S]{0,200}?aria-label="Username"/.exec(form) : null;
-  const consent = /CONSENT_NEEDED\s*=\s*"([^"]+)"/.exec(readApp(SOURCES.consentTs, repo) || '');
-  return { minLength: min ? Number(min[1]) : null, rules, serverOnly, usernamePattern: pat ? pat[1] : null, consentText: consent ? consent[1] : null, problems };
+  return { minLength: min ? Number(min[1]) : null, rules, serverOnly, usernamePattern: pat ? pat[1] : null, consent, problems };
 }
 
 /**
  * The backend's rules: AUTH_PASSWORD_VALIDATORS (settings.py; MinimumLengthValidator's min_length OPTIONS, default 8),
- * USERNAME_RE (views.py), CONSENT_REQUIRED_MESSAGE (consent.py).
- * → { validators: [name], minLength, usernamePattern, consentMessage, problems: [] }
+ * USERNAME_RE (views.py), CONSENT_REQUIRED_MESSAGE and TERMS_VERSION (consent.py).
+ * → { validators: [name], minLength, usernamePattern, consentMessage, termsVersion, problems: [] }
  */
 export function backendRules(repo = appRepo()) {
   const problems = [];
@@ -161,8 +165,10 @@ export function backendRules(repo = appRepo()) {
   }
   const views = readApp(SOURCES.views, repo) || '';
   const re = /USERNAME_RE\s*=\s*re\.compile\(r"\^?([^"$]+)\$?"\)/.exec(views);
-  const consent = /CONSENT_REQUIRED_MESSAGE\s*=\s*"([^"]+)"/.exec(readApp(SOURCES.consent, repo) || '');
-  return { validators, minLength, usernamePattern: re ? re[1] : null, consentMessage: consent ? consent[1] : null, problems };
+  const consentSrc = readApp(SOURCES.consent, repo) || '';
+  const consent = /CONSENT_REQUIRED_MESSAGE\s*=\s*"([^"]+)"/.exec(consentSrc);
+  const version = /TERMS_VERSION\s*=\s*"([^"]+)"/.exec(consentSrc);
+  return { validators, minLength, usernamePattern: re ? re[1] : null, consentMessage: consent ? consent[1] : null, termsVersion: version ? version[1] : null, problems };
 }
 
 /** Literal matrix messages missing from their backend source file → [{ key, text, file }]. */
