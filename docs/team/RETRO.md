@@ -33,3 +33,9 @@ FAIL UIC-20261025-0128-001 — check MP-MATCH-01 @ mp@pairA: console `console.er
 - Suggested next step: owner merges the photos-commons legal bump to dev, answers Q1–Q7 as a comment on the card (Q1, Q2, Q4, Q6 at minimum), and names the Terms ticket to ship in the same version; then the pipeline can plan it. No legal text was invented.
 - Last error: blocked by prerequisites 0a/0b/0c (legal.ts on dev = 2026-10-20.2; no owner answers on the card).
 
+## terms-of-service-for-an-ad — 2026-10-27 (blocked at intake/brief, no code written)
+- What was tried: intake picked it after the sibling privacy card was parked; its "What needs to be done" and "Open questions" were checked against dev and the Notion comments before classify.
+- Why it failed: the spec requires one shared legal version with the ads-Privacy ticket (now in Backlog, blocked), bumps from the photos-commons legal version 2026-10-26.1 (dev is still 2026-10-20.2), and every open question that fixes the text is unanswered on the card: strategy approval, ad-blocker sentence, sensitive-category blocks, personalisation for teens/guests, registration data, and Date A (the launch day that sets version, updated, effective and showUntilIso). No comments on the page.
+- Suggested next step: owner answers the six decisions as a comment (Date A at minimum), merges the photos-commons bump to dev, and moves this card and the privacy card to To Do together so the pipeline can ship one version.
+- Last error: blocked by prerequisites (shared version with the parked privacy card; legal.ts on dev = 2026-10-20.2; no owner answers on the card).
+
