@@ -1,6 +1,7 @@
 // Answer reviews for the board and mystery-player games. Each one redraws the game's own board
 // (its exported pieces and CSS classes) read-only, with the answers filled in.
-import TeamCrest from "../ui/TeamCrest";
+import TeamBadge from "../ui/TeamBadge";
+import TeamNameGradient from "../ui/TeamNameGradient";
 import PlayerPhoto from "../ui/PlayerPhoto";
 import { Line } from "../../Game Renderers/Wordle";
 import { RevealedFace } from "../../Game Renderers/StartingFive";
@@ -10,7 +11,7 @@ import { RevealHeadshot, stintYears } from "../../Game Renderers/CareerPath";
 import { WayaRowBody } from "../../Game Renderers/WhoAreYa";
 import { rankColor } from "../../Game Renderers/Contexto";
 import { ImposterReveal } from "../../Game Renderers/ImposterGame";
-import { currentLogoUrl } from "../../constants/teamLogos";
+import { teamNickname } from "../../utils/teamBadge";
 import { ReviewPick, ReviewRound, ReviewSummary } from "./ReviewParts";
 import type { AnswerReview } from "../../types/review";
 import "../../styles/FanFavorites.css";
@@ -55,9 +56,9 @@ export function WordleReview({ review }: { review: Of<"wordle"> }) {
 export function StartingFiveReview({ review }: { review: Of<"starting-five"> }) {
   const m = review.matchup;
   const found = review.slots.filter((s) => s.found).length;
-  const team = (name: string, logo: string) => (
+  const team = (name: string) => (
     <div className={`s5-team${m.winner === name ? " is-winner" : ""}`}>
-      <TeamCrest src={logo} name={name} className="s5-team-badge" />
+      <TeamBadge name={name} surface="board" className="s5-team-badge" decorative />
       <span className="s5-team-name font-display">{name}</span>
     </div>
   );
@@ -66,14 +67,14 @@ export function StartingFiveReview({ review }: { review: Of<"starting-five"> }) 
       <ReviewSummary>You found <b className="tnum">{found}</b> of <span className="tnum">5</span></ReviewSummary>
       <div className="ar-board">
         <div className="s5-board">
-          {team(m.teamA, m.logoA)}
+          {team(m.teamA)}
           <div className="s5-score">
             <span className="s5-score-num tnum font-display">{m.score}</span>
             <span className="s5-score-date">
               {new Date(m.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
             </span>
           </div>
-          {team(m.teamB, m.logoB)}
+          {team(m.teamB)}
         </div>
         <div className="s5-cards">
           {review.slots.map((s) => (
@@ -127,14 +128,13 @@ export function HeatmapReview({ review }: { review: Of<"heatmap"> }) {
         <div className="hm-board" aria-hidden="true">
           {review.rows.map((row, r) => (
             <div key={r} className={`hm-row${r % 2 === 1 ? " is-indent" : ""}`}>
-              {row.map((h) => {
-                const logo = h.type === "team" ? currentLogoUrl(h.label) : null;
-                return (
-                  <div key={h.id} className={`hm-hex${h.claimedBy ? " is-claimed" : ""}`}>
-                    {logo ? <img className="hm-hex-logo" src={logo} alt="" /> : <span className="hm-hex-label">{h.label}</span>}
-                  </div>
-                );
-              })}
+              {row.map((h) => (
+                <div key={h.id} className={`hm-hex${h.claimedBy ? " is-claimed" : ""}`}>
+                  <span className="hm-hex-label">
+                    {h.type === "team" ? <TeamNameGradient name={teamNickname(h.label)} surface="hex" /> : h.label}
+                  </span>
+                </div>
+              ))}
             </div>
           ))}
         </div>
@@ -281,7 +281,7 @@ export function CareerPathReview({ review }: { review: Of<"career-path"> }) {
               <div className="cp-face cp-face--back" aria-hidden="true" />
               <div className="cp-face cp-face--front">
                 <span className="cp-card-years tnum">{stintYears(stint)}</span>
-                <TeamCrest name={stint.name} className="cp-card-logo" />
+                <TeamBadge name={stint.name} abbr={null} surface="card" className="cp-card-logo" decorative />
                 <span className="cp-card-team font-display">{stint.name}</span>
                 <div className="cp-card-stats">
                   <span className="cp-stat"><b className="tnum">{stint.gp ?? "—"}</b> GP</span>

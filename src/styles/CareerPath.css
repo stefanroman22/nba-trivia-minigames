@@ -123,7 +123,7 @@
 /* Face-up front: the stint */
 .cp-face--front { background: var(--surface); transform: rotateY(180deg); }
 .cp-card-years { font-size: clamp(11px, 1.6dvh, 12.5px); font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
-.cp-card-logo { width: clamp(44px, 7dvh, 64px); height: clamp(44px, 7dvh, 64px); object-fit: contain; }
+.cp-card-logo { width: clamp(44px, 7dvh, 64px); height: clamp(44px, 7dvh, 64px); }
 .cp-card-team {
   font-size: clamp(11px, 1.6dvh, 12.5px);
   font-weight: 700;

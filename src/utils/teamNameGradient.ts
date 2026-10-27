@@ -1,5 +1,6 @@
-// The two-colour gradient Name the NBA Club fills the team name with (the revealed answer on the board,
-// and each round in the answer review). Team colours are often too dark (Nets #000000, Nuggets #0E2240)
+// The two-colour gradient a team name is filled with in place of the team's logo (TeamNameGradient):
+// Name the NBA Club's revealed answer on the board and in its answer review, and a team criterion's
+// nickname on a Heatmap hex. Team colours are often too dark (Nets #000000, Nuggets #0E2240)
 // or too light (Spurs #C4CED4, Bucks cream) for the surface, so each stop is tinted toward white on the
 // dark theme or shaded toward black on the light one, in small steps and keeping its hue, until it
 // reaches WCAG 2.x contrast >= 4.5:1 against every background of the surface the name sits on.
@@ -8,8 +9,8 @@ import { nbaTeamColors, type TeamColor } from "../constants/nbaTeamColors";
 import { franchiseIdForName } from "../constants/teamLogos";
 
 export type NameTheme = "dark" | "light";
-/** Where the name sits: the game board, or a row of the answer review modal. */
-export type NameSurface = "board" | "review";
+/** Where the name sits: the game board, a row of the answer review modal, or a Heatmap hex. */
+export type NameSurface = "board" | "review" | "hex";
 export type GradientStops = [string, string];
 
 export const MIN_CONTRAST = 4.5;
@@ -28,15 +29,24 @@ export const NAME_BACKGROUNDS: Record<NameTheme, readonly string[]> = {
 };
 
 /**
- * Every surface's backgrounds per theme. The review: the round row (`.ar-round` in AnswerReview.css,
- * opaque `--surface2`) inside the modal panel (`.modal-panel` in Modal.css, `--surface`).
+ * Every surface's backgrounds per theme.
+ * The review: the round row (`.ar-round` in AnswerReview.css, opaque `--surface2`) inside the modal
+ * panel (`.modal-panel` in Modal.css, `--surface`).
  *   dark:  #232327, #1c1c1e        light: #f4f1ea, #ffffff
+ * The hex: the Heatmap hex (`.hm-hex` in HeatmapGame.css), opaque `--surface2`, and the active hex with
+ * `--brand-soft` over it. A claimed hex paints the label white on `--brand` instead (HeatmapGame.css).
+ *   dark:  #232327; + rgba(255,106,26,.14) = #422d25
+ *   light: #f4f1ea; + rgba(255,106,26,.12) = #f5e1d1
  */
 export const NAME_SURFACES: Record<NameSurface, Record<NameTheme, readonly string[]>> = {
   board: NAME_BACKGROUNDS,
   review: {
     dark: ["#232327", "#1c1c1e"],
     light: ["#f4f1ea", "#ffffff"],
+  },
+  hex: {
+    dark: ["#232327", "#422d25"],
+    light: ["#f4f1ea", "#f5e1d1"],
   },
 };
 
@@ -45,7 +55,7 @@ export const NAME_SURFACES: Record<NameSurface, Record<NameTheme, readonly strin
 const BRAND: TeamColor = { primary: "#ff6a1a", secondary: "#ff8a3d", tertiary: "#ff8a3d" };
 
 // Below this RGB distance two stops read as one colour, and the tertiary is tried instead.
-const DISTINCT = 60;
+export const DISTINCT = 60;
 // Tint/shade step: 2% toward white or black per try.
 const STEPS = 50;
 
@@ -97,7 +107,8 @@ export function legibleColor(hex: string, backgrounds: readonly string[], min = 
   return toHex(target);
 }
 
-function distance(a: string, b: string): number {
+/** Euclidean distance between two hex colours in RGB (0 to ~441). */
+export function distance(a: string, b: string): number {
   const [x, y] = [toRgb(a), toRgb(b)];
   return Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
 }

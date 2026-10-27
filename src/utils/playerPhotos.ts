@@ -2,7 +2,7 @@
 // else the app's silhouette. scripts/player-photos/build.mjs lists every player in
 // /photos/player-photos.json, as a Commons file (with its face box) or in `none`. An id the
 // map doesn't mention gets the silhouette too; `npm run check:photos` makes sure there is none.
-// No photo comes from cdn.nba.com (its headshots are NBA property).
+// No photo comes from the NBA CDN (its headshots are NBA property).
 import { useEffect, useState } from "react";
 
 /** A Commons entry: ["a/ab/File_name.jpg", original width, original height, then optionally the

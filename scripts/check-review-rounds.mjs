@@ -23,8 +23,8 @@ const cases = {
     {
       game: "series-winner",
       rounds: [
-        { matchId: "1981-east-r1-chi-nyk", label: "First Round · 1980-81", teams: [{ name: "Bulls", logo: "", wins: 2 }, { name: "Knicks", logo: "", wins: 0 }], winner: "Bulls", pick: "Bulls" },
-        { matchId: "2016-finals", label: "Finals · 2015-16", teams: [{ name: "Cavaliers", logo: "", wins: 4 }, { name: "Warriors", logo: "", wins: 3 }], winner: "Cavaliers", pick: null },
+        { matchId: "1981-east-r1-chi-nyk", label: "First Round · 1980-81", teams: [{ name: "Bulls", wins: 2 }, { name: "Knicks", wins: 0 }], winner: "Bulls", pick: "Bulls" },
+        { matchId: "2016-finals", label: "Finals · 2015-16", teams: [{ name: "Cavaliers", wins: 4 }, { name: "Warriors", wins: 3 }], winner: "Cavaliers", pick: null },
       ],
     },
     [
@@ -49,7 +49,7 @@ const cases = {
   "starting-five": [
     {
       game: "starting-five",
-      matchup: { gameId: "0021000999", teamA: "Warriors", teamB: "Grizzlies", logoA: "", logoB: "", winner: "Warriors", score: "110-100", date: "2011-03-30" },
+      matchup: { gameId: "0021000999", teamA: "Warriors", teamB: "Grizzlies", winner: "Warriors", score: "110-100", date: "2011-03-30" },
       slots: [],
     },
     [{ question_id: "0021000999", label: "Warriors vs Grizzlies 2011-03-30" }],

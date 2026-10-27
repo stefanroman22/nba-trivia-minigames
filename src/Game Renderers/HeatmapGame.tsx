@@ -11,7 +11,8 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import { Button, GameFrame, Spinner } from "../components/ui";
-import { currentLogoUrl } from "../constants/teamLogos";
+import TeamNameGradient from "../components/ui/TeamNameGradient";
+import { teamNickname } from "../utils/teamBadge";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
 import { playerMatches } from "../utils/criteria";
@@ -240,7 +241,6 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
           <div key={r} className={`hm-row${r % 2 === 1 ? " is-indent" : ""}`}>
             {row.map((h) => {
               const isTeam = h.criterion.type === "team";
-              const logo = isTeam ? currentLogoUrl(h.criterion.label) : null;
               const isClaimed = !!claimed[h.id];
               const isActive = activeId === h.id;
               return (
@@ -254,16 +254,9 @@ export default function HeatmapGame({ gameInfo, onGameEnd, onPlayAgain, onClose 
                   animate={reduce ? undefined : { scale: isActive ? 1.06 : 1 }}
                   transition={{ duration: 0.12 }}
                 >
-                  {logo ? (
-                    <img
-                      className="hm-hex-logo"
-                      src={logo}
-                      alt={h.criterion.label}
-                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
-                    />
-                  ) : (
-                    <span className="hm-hex-label">{h.criterion.label}</span>
-                  )}
+                  <span className="hm-hex-label">
+                    {isTeam ? <TeamNameGradient name={teamNickname(h.criterion.label)} surface="hex" /> : h.criterion.label}
+                  </span>
                 </motion.button>
               );
             })}

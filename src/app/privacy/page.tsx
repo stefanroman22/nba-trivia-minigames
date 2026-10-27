@@ -107,21 +107,19 @@ export default function PrivacyPage() {
         advertising service.
       </p>
       <p>
-        <strong>Pictures loaded from other websites.</strong> Player photos (and some team logos) are free-licence images
-        from Wikimedia Commons, credited on the <LegalLink href="/credits">photo credits</LegalLink> page, and are loaded
-        from <strong>upload.wikimedia.org</strong>, run by the Wikimedia Foundation, Inc. (United States). Most team logos
-        are loaded from <strong>cdn.nba.com</strong>, run for the NBA (United States). When a game shows such a picture,
+        <strong>Pictures loaded from other websites.</strong> Player photos are free-licence images from Wikimedia
+        Commons, credited on the <LegalLink href="/credits">photo credits</LegalLink> page, and are loaded from{" "}
+        <strong>upload.wikimedia.org</strong>, run by the Wikimedia Foundation, Inc. (United States). Teams are shown by
+        their name, abbreviation and colours; no picture is loaded from the NBA&apos;s servers. When a game shows a player photo,
         your browser asks that server for it directly, so the server receives your IP address, your browser and device
         details and our site&apos;s address (never which page or game you are on, and nothing from your {LEGAL.service} account). We do not
-        receive anything back about you and we have no contract with these organisations: each handles that data as its
+        receive anything back about you and we have no contract with that organisation: it handles that data as its
         own controller, under its own privacy policy (
-        <LegalLink href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Wikimedia Foundation</LegalLink>,{" "}
-        <LegalLink href="https://www.nba.com/privacy-policy">NBA</LegalLink>
-        ). We are responsible together with them only for making your browser send that request; our basis is our
+        <LegalLink href="https://foundation.wikimedia.org/wiki/Policy:Privacy_policy">Wikimedia Foundation</LegalLink>
+        ). We are responsible together with it only for making your browser send that request; our basis is our
         legitimate interest in showing the pictures the games need without copying them onto our own servers. You can
-        object: block <strong>upload.wikimedia.org</strong> and <strong>cdn.nba.com</strong> in your browser or a content
-        blocker and the games still work, with a silhouette instead of a player photo and a plain badge instead of a team
-        logo.
+        object: block <strong>upload.wikimedia.org</strong> in your browser or a content blocker and the games still work,
+        with a silhouette instead of a player photo.
       </p>
       <p>
         We may disclose data if the law requires it, for example to answer a valid court order or request from a public

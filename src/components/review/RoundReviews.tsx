@@ -1,5 +1,5 @@
 // Answer reviews for the round-by-round games: every round with its right answer and your pick.
-import TeamCrest from "../ui/TeamCrest";
+import TeamBadge from "../ui/TeamBadge";
 import TeamNameGradient from "../ui/TeamNameGradient";
 import { Headshot } from "../../Game Renderers/SuperDraft";
 import { ReviewPick, ReviewRound, ReviewSummary } from "./ReviewParts";
@@ -35,7 +35,7 @@ export function SeriesReview({ review }: { review: Of<"series-winner"> }) {
                       key={t.name}
                       className={`ar-team${t.name === r.winner ? " is-winner" : t.name === r.pick ? " is-wrong" : ""}`}
                     >
-                      <TeamCrest src={t.logo} name={t.name} size={20} />
+                      <TeamBadge name={t.name} abbr={t.abbr} size={20} surface="review" decorative />
                       <span className="ar-team-name">{t.name}</span>
                       <span className="tnum">{t.wins}</span>
                     </span>

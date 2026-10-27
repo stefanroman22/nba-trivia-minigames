@@ -600,6 +600,7 @@ Deliberate and reviewed — do not "fix" these. A game may break a rule only wit
 | Imposter | custom explainer screen | 2.1 | multiplayer-only rules screen inside the room, not the shell idle | ≤ 2026-10 |
 | Wordle, Contexto | `ScorePanel` without Play again | 7.3 | once per day solo: a replay POSTs `daily-play` and hits the 423 lock | 2026-10 |
 | Wordle, Fan Favorites, TicTacToe, Heatmap, Who Would Win | `color: #fff` on brand/good fills | 0.1 | no white token exists; `ui.css` sets the same precedent | ≤ 2026-10 |
+| All games showing teams | team colours from nbaTeamColors as badge fill, ring and name gradient (not tokens) | 0.1 | team identity is data; contrast is computed per theme/surface (teamBadge.ts, teamNameGradient.ts), ≥4.5:1 text, ≥3:1 ring | 2026-10 |
 
 ---
 

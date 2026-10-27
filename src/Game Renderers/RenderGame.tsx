@@ -18,7 +18,7 @@ import SuperDraft from "../Game Renderers/SuperDraft";
 import ImposterGame from "../Game Renderers/ImposterGame";
 import WhoWouldWin from "../Game Renderers/WhoWouldWin";
 import NoPageFound from "../views/NoPageFound";
-import { nbaTeamColors, getContrastColor } from "../constants/nbaTeamColors";
+import { getContrastColor } from "../constants/nbaTeamColors";
 import { buttonTeamStyle } from "../constants/styles";
 import { nbaTeams } from "../constants/nbaTeams";
 import type {
@@ -77,7 +77,6 @@ export const renderGame = ({
           seriesList={gameData as PlayoffSeries[]}
           pointsPerCorrect={pointsPerCorrect}
           buttonTeamStyle={buttonTeamStyle}
-          nbaTeamColors={nbaTeamColors}
           getContrastColor={getContrastColor}
           onGameEnd={onGameEnd}
         />
