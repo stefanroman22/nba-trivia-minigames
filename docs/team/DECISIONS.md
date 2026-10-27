@@ -1313,3 +1313,25 @@ token, `MiniGame.tsx` sends it, the relay for `match`), and today's bounds (60/h
 path was the forged id, which this card closes. `multiplayer_result` keeps the default clamp (relay-authenticated; second follow-up).
 Consequences: `awarding.py` is untouched, so `cap_for("not-a-game")` still returns the default for the relay path; un-hiding a
 game only needs the `HIDDEN_GAMES`/`hidden: true` edits it already needs. Engine sonnet: every step has a done-check.
+
+## 2026-10-27 — Design: dependency patch ships to `dev` as one card, floors not a lock, `@lhci/cli` kept
+Context: P0 card `patch-vulnerable-dependencies` (design `designs/2026-10-27-patch-vulnerable-dependencies.md`). The
+spec left five owner questions unanswered; the owner moved the card to To Do, so the planner decided them under the
+pipeline's standing rules.
+Weighed (shipping path): (a) a one-off security hotfix from `main` (frontend + backend into main, back-merge to dev) —
+rejected: the checker-findings exception does not cover it and the pipeline never ships to main on its own; (b) `dev`,
+then the owner's explicit promote — chosen. The dev window doubles as the mixed-version test (new client against the
+production relay and backend).
+Weighed (bundle vs split backend): (a) frontend first, Django/DRF/Pillow a day later — rejected: two promotions for one
+P0, and the DRF DoS and Pillow decoder bugs are the reachable ones; (b) all three services in one card, one commit per
+part so each can be reverted alone — chosen, gated by `makemigrations --check` + an identical `showmigrations --plan`
+before any push (dev and prod share the DB).
+Weighed (Python pinning): (a) security floors only — chosen, it is the ticket's proposal and keeps future bumps cheap;
+(b) a hashed full lock (`uv pip compile`) — deferred to the owner: it changes how every future dependency bump is made
+and `uv` is not on the cloud box.
+Weighed (`@lhci/cli`): dropping a tool is the owner's call; kept, with its 13 dev-only high findings recorded in the
+design and the ship comment. The optional root `npm audit fix` pass is skipped (browserslist/caniuse bumps can change
+autoprefixer output; the card is surgical).
+Consequences: lockfiles are written by npm 10 only (CI parity); the moderation redeploy, the relay dispatch after
+promotion, the production migrate log and the Supabase PG ≥ 14 check are owner actions listed in the design §7; the
+`sweetalert2` jump (11.6.13 → 11.26.25) is proven by gate 2's Swal flow, with `^11.6.14` as the recorded fallback pin.
