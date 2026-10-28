@@ -4,9 +4,9 @@
     python scripts/player-photos/check_fit.py --list     # every issue, one line each
 
 The frame of each game x ui-check viewport was measured once in the real app (frames.json). This
-reproduces how the photo is drawn there — every photo is a Commons photo placed by utils/playerPhotos
-placePhoto with the face box from faces.json — and checks the face: fully visible, centred, big
-enough, not upscaled. Pure Python, no dependencies; it reads the answer players of the question games
+reproduces how the photo is drawn there — every photo, NBA headshot or Commons, is placed by
+utils/playerPhotos placePhoto in a headshot-shaped window, with the NBA template's face box or the
+one from faces.json — and checks the face: fully visible, centred, big enough, not upscaled. Pure Python, no dependencies; it reads the answer players of the question games
 from the public data host.
 
 Major (exit 1): HEAD_CUT through the face or mouth, FACE_TOO_SMALL, NO_FACE. Minor (reported):
@@ -26,12 +26,11 @@ UA = {"User-Agent": "SwishQuest-photo-check/1.0 (https://swishquest.com)"}
 # 1,701 headshots (every era uses the same template).
 NBA_FACE = (0.3657, 0.1289, 0.261, 0.4838)
 NBA_ASPECT = 760 / 1040
-NBA_SRC_W = {"lg": 1040, "sm": 260}
 BUCKETS = [120, 250, 330, 500, 960, 1280]  # utils/playerPhotos COMMONS_BUCKETS
 
-# utils/playerPhotos placePhoto constants
-FACE_SHARE = {"avatar": 0.42, "card": 0.30, "strip": 0.42}
-STRIP_MIN_COVERAGE = 0.55
+# utils/playerPhotos placePhoto constants: the face is drawn where NBA_FACE has it
+FACE_SHARE = NBA_FACE[3]
+FACE_Y = NBA_FACE[1] + NBA_FACE[3] / 2
 MAX_ZOOM = {"avatar": 4.5, "card": 3, "strip": 3}
 
 T = dict(head_out=0.15, face_out=0.05, major_head=0.30, major_face=0.20, off_centre=0.20, small_large=0.15,
@@ -43,38 +42,24 @@ def clamp(v, lo, hi):
 
 
 def place_photo(W, H, aspect, face, frame):
-    """utils/playerPhotos placePhoto, line for line. face = (cx, cy, fw, fh) fractions or None."""
-    if frame == "strip":
-        cw = min(W, H / aspect)
-        ch = cw * aspect
-        if (cw * ch) / (W * H) >= STRIP_MIN_COVERAGE or not face:
-            return cw, ch, (W - cw) / 2, (H - ch) / 2
-    cover = max(W, H / aspect)
+    """utils/playerPhotos placePhoto, line for line. face = (cx, cy, fw, fh) fractions or None.
+    Returns the window (x, w in the frame) and the photo's w, h, x, y inside the window."""
+    ww = min(W, H / NBA_ASPECT)
+    win = ((W - ww) / 2, ww)
+    cover = max(ww, H / aspect)
     w = cover
     if face and face[2] and face[3]:
-        want = FACE_SHARE[frame] * H / (face[3] * aspect)
-        head_fits = min(0.92 * H / (face[3] * 1.5 * aspect), 0.95 * W / (face[2] * 1.24))
-        least = cover if head_fits >= cover else max(head_fits, min(W, H / aspect))
+        want = FACE_SHARE * H / (face[3] * aspect)
+        head_fits = min(0.92 * H / (face[3] * 1.5 * aspect), 0.95 * ww / (face[2] * 1.24))
+        least = cover if head_fits >= cover else max(head_fits, min(ww, H / aspect))
         w = clamp(min(want, head_fits), least, cover * MAX_ZOOM[frame])
     h = w * aspect
-    x = (W - w) / 2
-    y = 0 if frame == "avatar" else -(h - H) * 0.05
+    x = (ww - w) / 2
+    y = -(h - H) * 0.05
     if face:
-        x = W / 2 - face[0] * w
-        if face[3]:
-            top = (face[1] - 0.95 * face[3]) * h
-            bottom = (face[1] + 0.55 * face[3]) * h
-            y = H * (0.5 if frame == "avatar" else 0.47) - (top + bottom) / 2
-        else:
-            y = H * 0.42 - face[1] * h
-    return w, h, clamp(x, min(0, W - w), max(0, W - w)), clamp(y, min(0, H - h), max(0, H - h))
-
-
-def place_css(W, H, aspect, fit, pos):
-    """object-fit cover/contain + object-position, as the browser draws an <img>."""
-    s = max(W, H / aspect) if fit == "cover" else min(W, H / aspect)
-    w, h = s, s * aspect
-    return w, h, (W - w) * pos[0] / 100, (H - h) * pos[1] / 100
+        x = ww / 2 - face[0] * w
+        y = H * FACE_Y - face[1] * h
+    return win, w, h, clamp(x, min(0, ww - w), max(0, ww - w)), clamp(y, min(0, H - h), max(0, H - h))
 
 
 def visible(fr, px, py):
@@ -104,24 +89,25 @@ def frac_out(fr, box, inside, n=20):
 def check(fr, source, aspect, box, orig_w):
     """Issues of one photo in one frame: [(issue, severity, detail)]."""
     W, H = fr["w"], fr["h"]
+    face = None if not box else (box[0] + box[2] / 2, box[1] + box[3] / 2, box[2], box[3])
+    (wx, ww), w, h, ox, oy = place_photo(W, H, aspect, face, fr["commons"])
+    ox += wx  # frame coordinates
+    need = w * fr["dpr"]
     if source == "nba":
-        w, h, ox, oy = place_css(W, H, aspect, fr["nba"]["fit"], fr["nba"]["pos"])
-        served = NBA_SRC_W[fr["size"]]
+        served = 260 if need <= 260 else 1040  # utils/playerPhotos nbaUrl
     else:
-        face = None if not box else (box[0] + box[2] / 2, box[1] + box[3] / 2, box[2], box[3])
-        w, h, ox, oy = place_photo(W, H, aspect, face, fr["commons"])
-        need = w * fr["dpr"]
         served = min(orig_w, next((b for b in BUCKETS if b >= need), BUCKETS[-1]))
     issues = []
     if w * fr["dpr"] / served > T["blur"]:
         issues.append(("BLURRY", "minor", f"upscaled {w * fr['dpr'] / served:.1f}x"))
-    if source == "commons" and fr["commons"] == "strip" and (min(w, W) * min(h, H)) / (W * H) < T["letterbox"]:
+    if (min(w, ww) * min(h, H)) / (ww * H) < T["letterbox"]:
         issues.append(("LETTERBOX", "minor", ""))
     if not box:
         return issues + [("NO_FACE", "major", "")]
     fx, fy, fw, fh = box
     to = lambda u, v: (ox + u * w, oy + v * h)
-    inside = lambda px, py: ox - 0.01 <= px <= ox + w + 0.01 and oy - 0.01 <= py <= oy + h + 0.01
+    # Drawn and inside the window (the window clips the photo).
+    inside = lambda px, py: max(ox, wx) - 0.01 <= px <= min(ox + w, wx + ww) + 0.01 and oy - 0.01 <= py <= oy + h + 0.01
     head = (*to(max(0, fx - 0.12 * fw), max(0, fy - 0.45 * fh)), *to(min(1, fx + 1.12 * fw), min(1, fy + 1.05 * fh)))
     face_px = (*to(fx, fy), *to(fx + fw, fy + fh))
     ho, fo = frac_out(fr, head, inside), frac_out(fr, face_px, inside)
@@ -131,7 +117,7 @@ def check(fr, source, aspect, box, orig_w):
         if fr["shape"] == "circle" and fo < 0.30 and not (head[1] < -0.5 or head[0] < -0.5 or head[2] > W + 0.5):
             major = False  # a big face whose chin the avatar circle trims still reads fine
         issues.append(("HEAD_CUT", "major" if major else "minor", f"head {ho:.0%} / face {fo:.0%} out"))
-    if abs((face_px[0] + face_px[2]) / 2 - W / 2) / W > T["off_centre"] and not (source == "commons" and fr["commons"] == "strip"):
+    if abs((face_px[0] + face_px[2]) / 2 - W / 2) / W > T["off_centre"]:
         issues.append(("OFF_CENTRE", "minor", ""))
     fpx = face_px[3] - face_px[1]
     need = T["small_small"] if min(W, H) <= T["small_frame_px"] else T["small_large"]
@@ -184,9 +170,12 @@ def main():
     faces = json.load(open(os.path.join(HERE, "faces.json"), encoding="utf8"))
     shown, pm, names = players_per_game()
     by_type, by_game, players_major, players_any, rows = defaultdict(set), defaultdict(set), set(), set(), []
+    nba = set(pm.get("nba", []))
     for pid, games in shown.items():
         c = pm["commons"].get(str(pid))
-        if c:
+        if pid in nba:
+            source, orig_w, aspect, box = "nba", 1040, NBA_ASPECT, NBA_FACE
+        elif c:
             source, orig_w, aspect = "commons", c[1], c[2] / c[1]
             if len(c) == 7:  # the face exactly as the browser reads it (rounded to 0.1% by build.mjs)
                 cx, cy, fw, fh = (v / 100 for v in c[3:])
@@ -195,7 +184,7 @@ def main():
                 fc = faces.get(str(pid))
                 box = fc["box"] if fc and fc.get("file") == c[0].rsplit("/", 1)[1] else None
         else:
-            source, orig_w, aspect, box = "nba", 10 ** 6, NBA_ASPECT, NBA_FACE
+            continue  # not in the map: check_photos fails on it
         for g in sorted(games):
             for vp, fr in frames[g].items():
                 for issue, sev, detail in check(fr, source, aspect, box, orig_w):

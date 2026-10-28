@@ -1,5 +1,5 @@
 /* Shared player-photo rules (components/ui/PlayerPhoto.tsx). Each game keeps its own frame
-   size; a Commons photo sits in a .player-photo-frame span that takes the game's class, and the
+   size; a photo sits in a .player-photo-frame span that takes the game's class, and the
    component places the photo inside it (utils/playerPhotos placePhoto). */
 
 /* The frame clips the placed photo. :where() keeps it at zero specificity, so a game's own
@@ -13,6 +13,13 @@
   position: relative;
   overflow: hidden;
   background: var(--surface3);
+}
+/* The headshot-shaped window the photo is drawn in (full height; the frame's width or less). */
+.player-photo-window {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
 }
 
 /* Holds the slot while the photo map loads (no visible silhouette -> photo swap). */

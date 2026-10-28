@@ -12,9 +12,9 @@ import { fileURLToPath } from "node:url";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const built = process.argv.includes("--built");
 
-// Every cdn.nba.com URL in src/ (player photos left it on 2026-10-26, team logos on 2026-10-27), the
-// removed CDN builders, and an image-backed TeamCrest.
-const SRC_PATTERNS = [/cdn\.nba\.com/, /\blogoForId\b/, /\bcurrentLogoUrl\b/, /<TeamCrest\b[^>]*\bsrc=/];
+// Every cdn.nba.com logo URL in src/ (team logos left it on 2026-10-27), the removed CDN builders, and an
+// image-backed TeamCrest. Player headshots came back on 2026-10-28; check:photos keeps them in utils/playerPhotos.ts.
+const SRC_PATTERNS = [/cdn\.nba\.com\/logos/, /\blogoForId\b/, /\bcurrentLogoUrl\b/, /<TeamCrest\b[^>]*\bsrc=/];
 // Built output: only the logo path (minified code renames the helpers).
 const BUILT_PATTERNS = [/cdn\.nba\.com\/logos/];
 

@@ -200,9 +200,8 @@
   "face_y": 38
  },
  "335": {
-  "file": "Willie Lloyd Anderson Jr. (2zf8 AJ8YQ0).png",
-  "face_x": 50,
-  "face_y": 27
+  "exclude": true,
+  "reason": "photo review 2026-10-28: too dark to recognise"
  },
  "1442": {
   "file": "Жељко Ребрача 2020.png",
@@ -225,9 +224,8 @@
   "face_y": 17
  },
  "76017": {
-  "file": "Danny, calm as always.jpg",
-  "face_x": 48,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "76096": {
   "file": "John Barber 1953.jpg",
@@ -1157,9 +1155,8 @@
   "face_y": 22
  },
  "76421": {
-  "file": "Doug Collins ISU.jpg",
-  "face_x": 60,
-  "face_y": 12
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
  },
  "165": {
   "file": "Hakeem at University of Houston.jpg",
@@ -1440,5 +1437,369 @@
   "file": "Chris Duarte.jpg",
   "face_x": 34,
   "face_y": 12
+ },
+ "239": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "26": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "299": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "344": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "926": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "976": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "1508": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "1894": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "2050": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76402": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76431": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76631": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76874": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76887": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76971": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "77160": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "77182": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "77340": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "77532": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "77710": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "77844": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78025": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78028": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78117": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78149": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78153": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78195": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "78388": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "101211": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: blurry or pixelated"
+ },
+ "76350": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "76577": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "77093": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "77162": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "77584": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "77596": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "78202": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+ },
+ "146": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "317": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "356": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "458": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "911": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "921": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "1008": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "1381": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "1723": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "1847": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "2501": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76027": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76107": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76133": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76206": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76243": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76348": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76599": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76826": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76881": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "76981": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77043": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77071": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77081": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77103": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77193": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77412": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77626": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77662": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77993": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "78125": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "78350": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "78399": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "78404": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "78437": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "78482": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "101128": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "101130": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "200758": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "200778": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "201189": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "201957": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+ },
+ "77134": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: too dark to recognise"
+ },
+ "77152": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: too dark to recognise"
+ },
+ "78042": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: too dark to recognise"
+ },
+ "78045": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: too dark to recognise"
+ },
+ "78435": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: too dark to recognise"
+ },
+ "244": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "262": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "902": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "2566": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "77414": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "78146": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "202723": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: another person competes for the frame"
+ },
+ "1902": {
+  "exclude": true,
+  "reason": "photo review 2026-10-28: wrong person (a different player of the same name)"
  }
 }

@@ -18,7 +18,7 @@ export const LEGAL = {
    * no earlier than `effective`, or record an owner waiver. See docs/legal/OPEN_ITEMS.md and the promote-to-prod
    * runbook. The values below were written on dev on 2026-10-28. */
   /** Must equal TERMS_VERSION in backend/users/consent.py (checked by `npm run check:legal`). */
-  version: "2026-10-28.1",
+  version: "2026-10-28.2",
   updated: "28 October 2026",
   /** The same date as ISO, for the sitemap. */
   updatedIso: "2026-10-28",
