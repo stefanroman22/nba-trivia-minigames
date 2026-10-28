@@ -125,6 +125,8 @@ export default function TermsPage() {
       <p>
         Signing in with Google is governed by Google&apos;s own terms and privacy policy. Player photos are loaded from Wikimedia
         Commons (see the photo credits page); see the Privacy Policy, section 5.
+        Ads (not live yet): when we switch ads on, they are served by Google; how that uses your data, and how to choose,
+        is in the Privacy Policy, sections 5 and 11.
         We are not responsible for services we do not run.
       </p>
 

@@ -57,3 +57,13 @@ Awareness starts the clock: **72 hours** to the supervisory authority if the bre
 1. Edit the pages, bump `LEGAL.version` and `TERMS_VERSION` (same value), update `docs/legal/`.
 2. For a significant change, put a notice on the site's home page for **at least 14 days before** the change takes effect (the text promises this): set `LEGAL.changeNotice.effective` in `src/configurations/legal.ts` and add a home-page banner (the old one, `src/components/LegalChangeNotice.tsx`, was removed before launch because there were no players to notify; restore it from git history), then promote.
 3. Keep the previous text (git history) and send it to anyone who asks.
+
+## G. Ads consent and opt-out requests
+
+Applies once ads are switched on (`NEXT_PUBLIC_ADS_ENABLED`; not live yet). We hold no ad data ourselves: Google shows
+the ads as its own controller, and the AdSense account only reports totals that are not about anyone.
+
+1. "Change or withdraw my ad / cookie choice": point them to **Privacy and cookie settings** at the bottom of every page (it reopens Google's privacy message).
+2. "Stop personalised ads" / "opt out": ads on this site are non-personalised for everyone (owner decision Q1, 2026-10-27); for other sites, point them to Google's Ads Settings (https://www.google.com/settings/ads), https://optout.aboutads.info and https://www.youronlinechoices.eu.
+3. "Delete my ad data" / access to it: say we hold none; point them to Privacy and cookie settings, Google's Ads Settings and Google's own privacy request forms (https://policies.google.com/privacy); forward the request to Google if they ask us to.
+4. Log it as in A.

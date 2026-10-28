@@ -13,6 +13,8 @@ import "../styles/LandPage.css";
 import "../styles/GlobalStyles.css";
 import Providers from "./providers";
 import SiteFooter from "../components/SiteFooter";
+import AdsLoader from "../components/AdsLoader";
+import { ADS_ENABLED, ADSENSE_PUB_ID } from "../configurations/ads";
 import { GOOGLE_SITE_VERIFICATION, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "../configurations/site";
 
 // No canonical here: every child would inherit "/" (each page sets its own). Icons, the manifest and the
@@ -26,6 +28,8 @@ export const metadata: Metadata = {
   openGraph: { type: "website", siteName: SITE_NAME, locale: "en_US", title: SITE_TITLE, description: SITE_DESCRIPTION },
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
   verification: { google: GOOGLE_SITE_VERIFICATION },
+  // AdSense site connection by meta tag (no Google script needed); only once a publisher id is set.
+  ...(ADSENSE_PUB_ID ? { other: { "google-adsense-account": ADSENSE_PUB_ID } } : {}),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -50,6 +54,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <div id="root">
           <Providers>{children}</Providers>
           <SiteFooter />
+          {ADS_ENABLED && ADSENSE_PUB_ID ? <AdsLoader pubId={ADSENSE_PUB_ID} /> : null}
         </div>
       </body>
     </html>

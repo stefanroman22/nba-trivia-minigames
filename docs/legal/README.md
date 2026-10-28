@@ -8,6 +8,7 @@ system does.** When behaviour changes, change the code, these documents and the 
 | [OPEN_ITEMS.md](OPEN_ITEMS.md) | **Start here.** What must still be decided or done, and what needs a lawyer. |
 | [RECORD_OF_PROCESSING.md](RECORD_OF_PROCESSING.md) | GDPR Art 30 record: every data category, purpose, lawful basis, retention, recipient. Includes the legitimate-interests assessment and DPIA screening. |
 | [RUNBOOKS.md](RUNBOOKS.md) | How to answer a data request, handle a breach, a takedown notice, a ban appeal, a government request. |
+| [DPIA-ADS.md](DPIA-ADS.md) | DPIA for Google AdSense ads (draft, pending owner review; required before ads go live). |
 | [RESEARCH.md](RESEARCH.md) | The legal research behind the design, with sources and confidence. Not legal advice. |
 
 ## Where the promises live in code

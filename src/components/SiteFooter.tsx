@@ -3,6 +3,8 @@ import { visibleGames } from "../utils/GameUtils";
 import { legalLinks } from "../constants/legals";
 import { SITE_NAME } from "../configurations/site";
 import { LEGAL } from "../configurations/legal";
+import { ADS_ENABLED } from "../configurations/ads";
+import PrivacySettingsButton from "./PrivacySettingsButton";
 import "../styles/SiteFooter.css";
 
 /** Site-wide footer: real links to every game and the legal pages (crawlable internal links), the
@@ -32,6 +34,7 @@ export default function SiteFooter() {
             {legalLinks.map((item) => (
               <li key={item.href}><Link href={item.href}>{item.label}</Link></li>
             ))}
+            {ADS_ENABLED ? <li><PrivacySettingsButton /></li> : null}
             <li><a href={`mailto:${LEGAL.contactEmail}`}>Contact</a></li>
           </ul>
         </nav>

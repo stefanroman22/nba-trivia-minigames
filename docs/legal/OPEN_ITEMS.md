@@ -12,8 +12,28 @@ Done: operator name, address and country are set; the Google consent screen is p
 |---|---|---|
 | **Git history cleaned (done 2026-10-08).** Remaining: rotate the Google OAuth client secret (it was public) and ask GitHub Support to purge cached views and old PR refs | Audit finding C2; see HISTORY-CLEANUP-2026-10-08.md for the exact steps and the request text | Google Cloud Console, Vercel env `CLIENT_SECRET`, GitHub Support |
 | **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
-| **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice) | Public and permanent | `contactEmail` in `legal.ts` |
+| **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice). Higher priority once ads are on: ad-related requests would land in a personal Gmail | Public and permanent | `contactEmail` in `legal.ts` |
 | **Terms/Privacy version 2026-10-20.1, promoted 2026-10-20 with an owner waiver.** The dates are the promotion day (effective 3 November 2026; the home-page notice was removed before launch, see the notice-mechanism row below). Because `main` deploys the backend with the frontend, the backend and relay changes apply from 2026-10-20, before `effective`. Waiver: the owner instructed the promotion on 2026-10-20 in the session ("promote to production"); production had 4 accounts. | Terms section 12 promises existing accounts the change applies from `effective` | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
+
+## A2. Before ads go live
+
+Ads (Google AdSense) are built behind `NEXT_PUBLIC_ADS_ENABLED` (unset = off, the production default) and
+`NEXT_PUBLIC_ADSENSE_PUB_ID` (unset now); the Privacy Policy describes them as "not live yet" (legal version
+2026-10-28.1). AdSense and Google's privacy message (CMP, Privacy & messaging) are free; no paid CMP. None of these
+rows is done.
+
+| Item | Why | Where |
+|---|---|---|
+| **Decide the ads launch date** | Not set (owner, 2026-10-27). If the change counts as significant, the policy promises 14 days' home-page notice before it applies (Privacy section 15) | `legal.ts`, RUNBOOKS F |
+| **AdSense account: block sensitive categories** | Young audience; the policy says gambling, betting and simulated-gambling ads will be blocked. Block Gambling & Betting (restricted, default) plus Simulated gambling, Dating, Weight loss, Cosmetic procedures & body modification, Get rich quick, References to sex & sexuality, Sexual & reproductive health, Drugs & supplements, Sensationalism; confirm restricted categories (alcohol, etc.) stay blocked. Category names differ by UI version (UNVERIFIED). Record the list with a date in DPIA-ADS.md | AdSense → Brand safety → Blocking controls |
+| **Lawyer review L1-L7: not booked** (costs money, owner's call) | L1 ePrivacy / Law 506/2004: the ad script request and Google's IVT cookies or storage for limited ads without consent; L2 FCNEC before a choice; L3 joint-responsibility wording (Fashion ID) vs Google's controller-controller framing, and the tension between Google's required-content sentences in Privacy section 5 ("ads based on your prior visits") and the site's non-personalised ads for everyone (NPA-all); L4 DPIA sign-off and "large scale" in ANSPDCP 174/2018 (d); L5 minors (Recital 38, UK Children's Code, COPPA mixed audience); L6 the CCPA 50%-revenue test and other states' minors-ads rules; L7 Romanian gambling-advertising rules and Romanian Bill 256/2026. Also: IVT cookies, DCD 2019/770 (Terms card) | Section C (cost), section D |
+| **Owner sign-off on the DPIA** | Required before ads go live (record section 4) | [DPIA-ADS.md](DPIA-ADS.md) |
+| **Configure Google's CMP** (free): European regulations message for every EEA, UK and CH country, 3-button first layer, privacy link https://swishquest.com/privacy, operator name as on the policy; **RDP for all US states**; **the minimal certified ad partner list** (exact AdSense options UNVERIFIED); no anchor or vignette Auto ads formats | The policy's sections 5, 11 and 13 are true only with this configuration | AdSense → Privacy & messaging, Blocking controls |
+| **Check the section 11 cookie table against the live stack** (consent test plan T2-T6 of the ads ticket: EEA first visit, "Do not consent", "Consent", cookie-table truth) and update the policy before launch | The table is Google's published list, not what was observed | `src/app/privacy/page.tsx` section 11 |
+| **Switch the flags on** in the Vercel project (`NEXT_PUBLIC_ADS_ENABLED=true`, `NEXT_PUBLIC_ADSENSE_PUB_ID`), only on the launch day, and reword the policy's "not live yet" sentences in the same release | The policy must be true at all times | Vercel env, docs/DEPLOYMENT.md |
+| **ui-check:** add "Privacy and cookie settings" to G-NAV-02 in `scripts/ui-check/CHECKS.md` and the guest pagemap when the flag goes on | The footer gains one item | `scripts/ui-check/` |
+| **CSP must allow Google's ad domains** when the CSP is built (pagead2.googlesyndication.com, *.doubleclick.net, fundingchoicesmessages.google.com, *.google.com, *.gstatic.com, *.adtrafficquality.google; full list UNVERIFIED) | Otherwise the ads and the privacy message break | Section E (CSP row) |
+| **Quarterly consent re-test** after launch | Google's CMP and cookies change | Consent test plan |
 
 ## B. Decisions that are yours
 
@@ -23,6 +43,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | **Account deletion confirmation** | **Owner decision 2026-10-19:** Profile → Delete account asks the player to type their username and the word "delete"; no password (Google-only accounts confirm the same way) | Typing the username + "delete" prevents accidents only: anyone holding a live session (an unlocked device, a leaked token) can delete the account. A re-authentication step (password, or a fresh Google sign-in) would close that; not built. |
 | **Public profile defaults** | Display name, ID, rank, points and photo are public; photo is optional and removable | Privacy-by-default arguments favour a "private profile" switch, especially for 16-17 year-olds under the UK Children's Code. Not built. |
 | **Report notes sent to Claude** | The question doctor sends players' optional report notes (no user, no time) to Anthropic's Claude through the Max-plan token, which may not carry a data processing agreement. **Owner accepted this risk on 2026-10-18**; revisit before a public launch | Keep (current), stop sending notes (free; the doctor still sees the question, wrong-answer counts and report count), or pay for a plan with a DPA. Record of processing row "Anthropic". |
+| **Ads configuration (answered 2026-10-27)** | Q1 personalisation: non-personalised ads for everyone (NPA-all), every country, guests and accounts. Q2 US: Option A, restricted data processing for all US states, no "Do Not Sell or Share" link. Q3 UK and Q4 guests: covered by NPA-all. Q5 ad partners: Google plus the minimal certified list. Q6 launch day: not set; everything behind `NEXT_PUBLIC_ADS_ENABLED`, off. Q7 footer label: "Privacy and cookie settings" | NPA-all and RDP cost ad revenue (vendor claims of 40-60% are unverified); the owner trades this for the lowest legal risk with no age data and a young audience. Section A2 |
 | **Inactive-account deletion** | None; accounts stay until deleted | Regulators (CNIL) expect a limit, normally with warning email. The site sends no email at all today, so it cannot warn. Building email (also needed for password reset, email verification) unlocks this. |
 
 ## C. Costs (stop and ask)
@@ -33,6 +54,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | US DMCA designated agent | $6, renew every 3 years | Only matters for the safe harbour on user-uploaded photos for US users. Cheap insurance. |
 | Trademark clearance for "Swish Quest" | Lawyer or search-service fees | No register could be queried in research; a pending "24 8 HOOPS" mark exists. |
 | A lawyer's review of the pages and these items | One-off | See D. Strongly recommended before launch at scale. |
+| A lawyer's review of the ads text and DPIA-ADS.md (L1-L7) | One-off | Not booked; owner decides. Google's CMP is free; a paid CMP is only needed if Google's is dropped. |
 
 ## D. Needs a lawyer's judgement
 
@@ -56,7 +78,7 @@ Done: operator name, address and country are set; the Google consent screen is p
 | In-product "Report" button for players, names, photos | DSA notice-and-action is email-only today |
 | Email sending (verification, password reset, notices) | No password reset, no email change, no email verification today; also enables inactive-account warnings |
 | "Log out everywhere" and change-password | Account security basics |
-| Content-Security-Policy, and moving tokens to HttpOnly cookies | localStorage tokens are readable by any XSS; needs a tested allow-list (Google sign-in, Wikimedia Commons) |
+| Content-Security-Policy, and moving tokens to HttpOnly cookies | localStorage tokens are readable by any XSS; needs a tested allow-list (Google sign-in, Wikimedia Commons, and Google's ad domains once ads are on: section A2) |
 | Admin: audit log of reads of feedback and raw game data, 2FA or IP allow-list, drop raw `user_id` from source-row views | Art 32 access accountability |
 | Deploy and pin the photo-check service (`moderation_service`, set `IMAGE_MODERATION_URL`), then switch photo upload on and update the policy | Photo upload returns 503 in production today |
 | Block Russia and sanctioned regions at the edge (Vercel firewall) | Terms/Privacy say the service is not available there but nothing enforces it |

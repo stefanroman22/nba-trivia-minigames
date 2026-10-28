@@ -1,6 +1,6 @@
 # Record of processing (GDPR Art 30), legitimate-interests assessment, DPIA screening
 
-Verified against the code on 2026-10-07; consent rows updated 2026-10-11; rows 6a and 6b added 2026-10-15; Anthropic recipient added 2026-10-16 (data audit of `backend/`, `src/`, `multiplayer_server/`). Controller and
+Verified against the code on 2026-10-07; consent rows updated 2026-10-11; rows 6a and 6b added 2026-10-15; Anthropic recipient added 2026-10-16; ads rows 14-17, recipient, LIA 3c and the DPIA decision added 2026-10-28 (ads not live: `NEXT_PUBLIC_ADS_ENABLED` off) (data audit of `backend/`, `src/`, `multiplayer_server/`). Controller and
 contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md for the thresholds to watch).
 
 ## 1. Processing activities
@@ -23,10 +23,15 @@ contact: see `src/configurations/legal.ts`. No DPO appointed (see OPEN_ITEMS.md 
 | 11a | Rate-limit counters (IP address) in the database cache table | Visitors | Stop guessing and flooding | Legitimate interests | Operator | About an hour | Postgres (`django_cache_table`) |
 | 11 | Server logs (IP, time, URL) | Visitors | Security, operations | Legitimate interests | Operator | Provider-defined short period | Vercel |
 | 12 | Multiplayer session (name, ID, rank, points, photo) | Players online | Run a match | Contract | Opponents | Memory only, until the match ends | Game server (not yet deployed) |
-| 13 | Browser storage: tokens, cached profile, device code, theme, game caches, questions already shown per game | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent banner | The user | Until cleared; tokens 90 days max | The user's browser |
+| 13 | Browser storage (Privacy section 11 table; keys verified in `src/` on 2026-10-28): `accessToken`, `refreshToken`, `nba3via-session-user` (localStorage); `nba-mg:wordle-device-id`; `nba3via-theme`; `sq:profile-view`; `gamedata:…`, `pool:…`, `questions:…` caches; `seen:<game>`, `seen:<game>:base`; sessionStorage (this tab only): `sq:guest-points`, `sq:rail-strip-x`. No first-party cookie is written by the frontend | Visitors | Sign-in and function | Strictly necessary (ePrivacy Art 5(3)); no consent needed | The user | Until cleared; tokens 90 days max; sessionStorage until the tab closes | The user's browser |
+| 14 | Ad delivery, not live (flag off): IP address, browser and device details, page address, sent by the visitor's browser to Google; no account data ever passed | Visitors (guests and accounts), once ads are on | Show non-personalised ads (NPA for everyone, owner decision Q1 2026-10-27), limit repeats, stop ad fraud | Legitimate interests for a basic ad without cookies and fraud prevention (LIA 3c); consent for advertising cookies (EEA, UK, CH) | Google (independent controller) | Operator keeps nothing; Google per its policy | Google |
+| 15 | Privacy-message choice cookie (`FCCDCF`; possibly `FCNEC`), not live (flag off) | Visitors in the EEA, UK and CH, once ads are on | Remember the visitor's ad and cookie choice and prove it was given | Legal obligation | The user; Google | 13 months (`FCNEC` 1 year), earlier if changed with Privacy and cookie settings | The user's browser (set by Google's CMP) |
+| 16 | Ad measurement and fraud-prevention cookies (`__gads`, `__gpi`, `__gpi_optout`, `__eoi`, `IDE`, `id`, `DSID`, `test_cookie`, `TESTCOOKIESENABLED`), not live (flag off); list from Privacy section 11, to be checked against the live stack before launch | Visitors, once ads are on | Show and measure ads, limit repeats, prevent fraud | Consent (advertising cookies, EEA/UK/CH); fraud-only storage under limited ads is an open ePrivacy point (lawyer L1) | Google and, with consent, the minimal certified ad partner list (Q5) | 15 minutes to 13 months (24 months outside EEA/UK/CH for `IDE`, `id`) | The user's browser |
+| 17 | AdSense reports (earnings, numbers of ads shown), not live (flag off) | None: aggregate totals, not personal data | Run the site's finances | n/a | Operator | As long as useful | AdSense account |
 
-No special-category data is collected on purpose. No ads, third-party analytics, tracking pixels or data sales;
-the only usage measurement is first-party row 6c.
+No special-category data is collected on purpose. No third-party analytics, tracking pixels or sale of account data.
+Ads are not live yet; when switched on (rows 14-17) they are served by Google as an independent controller. The only
+first-party usage measurement is row 6c.
 
 ## 2. Recipients and processors
 
@@ -38,6 +43,7 @@ the only usage measurement is first-party row 6c.
 | Anthropic (Claude, run by the GitHub Action `doctor-research.yml`) | Processor for the question-research step: checks reported questions. Receives the doctor cases, which hold the report notes copied onto the question (row 6b: the note text only, no user, no time; `QuestionReport` rows themselves are never exported), next to anonymous question data and anonymous counts of the wrong answers players typed (`WrongAnswerStats`, no user link). The job has no database access | United States | Anthropic's terms for the plan behind `CLAUDE_CODE_OAUTH_TOKEN` | The cases and verdicts are kept as GitHub artifacts for 1 day (`retention-days: 1`). The plan's terms may not cover processing on our behalf; the owner accepted that risk on 2026-10-18, to revisit before a public launch (OPEN_ITEMS.md section B) |
 | Developer tooling (AI-assisted tools used by the operator) | Processor-like: may be given database access for maintenance | Provider-defined | Provider terms | Restrict to non-personal tables where possible (OPEN_ITEMS) |
 | Google (sign-in) | Independent controller for its own account data | Global | Google's terms; API Services User Data Policy (Limited Use) | Verify the OAuth consent screen (branding, domains) |
+| Google (AdSense and its privacy message / CMP), not live (flag off) | Independent controller for ad delivery and the consent message; the operator is jointly responsible only for the collection step (putting Google's ad code on the page: the visitor's browser contacting Google). Receives what row 14 lists; nothing from the account | Google Ireland Limited (EEA, CH); Google LLC (United States) worldwide | Google Controller-Controller Data Protection Terms (https://business.safety.google/controllerterms/); EU-US Data Privacy Framework (UK and Swiss extensions) with SCCs in Google's terms as a fallback | Before launch: accept the terms in AdSense, configure the CMP, RDP for US states and the minimal ad partner list (OPEN_ITEMS "Before ads go live") |
 | Game-server host (to be chosen) | Processor | To be set | DPA required before launch | Choose an EU region; list it in the policy |
 | Wikimedia Foundation (`upload.wikimedia.org`: every player photo). NBA (`cdn.nba.com`): nothing since 2026-10-27 (no player photos since 2026-10-26, no team logos since 2026-10-27) | Independent controllers for what they log; the operator is jointly responsible only for making the visitor's browser send the request (CJEU C-40/17 Fashion ID). They receive IP, browser/device details and the site origin (Referrer-Policy `strict-origin-when-cross-origin`); nothing from the account | United States / global | No contract possible; legitimate interests (show the game pictures without copying them); disclosed in Privacy section 5 with how to object (block the host: silhouette fallback) | Removing the direct request (serving the pictures from our own domain) is OPEN_ITEMS E; LG München I 3 O 17493/20 (Google Fonts) is the risk it removes |
 
@@ -57,6 +63,14 @@ the only usage measurement is first-party row 6c.
 - **Safeguards:** server-side clamps (15 minutes per report, 24 hours per day); no cookie or new browser storage (ePrivacy Art 5(3) not engaged beyond the existing sign-in token).
 - **Outcome:** legitimate interests apply. Objection: on request the operator deletes the rows (no self-service switch yet; see OPEN_ITEMS.md).
 
+## 3c. Legitimate-interests assessment (limited / non-personalised ad delivery, row 14; added 2026-10-28, ads not live)
+
+- **Purpose:** fund a free service.
+- **Necessity:** an ad request needs the IP and user agent; there is no cookie-free way to show an ad at all.
+- **Balance:** contextual only, no profile, users told in advance (Privacy sections 2 and 11), a content blocker works, nothing from the account is passed.
+- **Safeguards:** NPA for everyone (no age data exists; owner decision Q1 2026-10-27), blocked categories, no Auto ads formats that cover content.
+- **Outcome:** legitimate interests apply to delivery. **The IVT cookies and storage set without consent are an ePrivacy question, not a GDPR one, and LIA cannot fix that (lawyer point L1).**
+
 ## 4. DPIA screening (Art 35)
 
 | Trigger | Present? | Note |
@@ -64,13 +78,15 @@ the only usage measurement is first-party row 6c.
 | Large-scale processing of personal data | Possibly, as the user base grows | Public display data of many users |
 | Children's data | Partly mitigated: the Terms say accounts are 13+, but the app checks no age (owner decision 2026-10-11, pre-launch; removed from the app 2026-10-26); no chat; no birth date asked; deletion on discovering an under-13 account | Residual: nothing stops a minor (or an under-13) from opening an account; every account is public and may add a photo |
 | User-generated photos shown publicly | Yes | Automated classifier, fail-closed, removable |
-| Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request |
+| Profiling, automated decisions with significant effect | Limited | Strike/ban is automated but reviewable by a person on request. Ads (rows 14-16, not live): non-personalised for everyone (Q1 NPA-all), so no ad profiling by Google and its partners is requested |
 | Special categories, location, biometric | Country only (row 6c, since 2026-10-20) | No IP, city or GPS is stored; photos are not used for identification |
 | Usage analytics | First-party only (row 6c, since 2026-10-20) | Daily seconds on the site for signed-in players, operator-only, 12 months; screened 2026-10-20: no DPIA needed at this scope |
+| Third-party advertising | Not live yet (flag off); planned | DPIA required before ads go live: [DPIA-ADS.md](DPIA-ADS.md) (draft, pending owner review). ANSPDCP Decision 174/2018 Art 1(1)(d) names processing of minors' data by automated monitoring of behaviour, including for advertising; the audience includes guests of any age. Under NPA-all the profiling criterion drops out, but the DPIA is kept |
 
-**Conclusion:** a full DPIA is not mandatory today; this screening is the record of that decision. Redo it before any
-of: ads or analytics, chat, location, an app-store release, or reaching a scale at which a lawyer advises a DPO/DPIA
-(see OPEN_ITEMS.md).
+**Conclusion:** a full DPIA is required before ads go live; it is drafted in [DPIA-ADS.md](DPIA-ADS.md) (draft, pending
+owner review; sign-off date left for the owner). For everything else this screening stands. Redo it before analytics,
+chat, location, an app-store release, a change of ad configuration (personalisation, new ad partners, Auto ads formats),
+or reaching a scale at which a lawyer advises a DPO/DPIA (see OPEN_ITEMS.md).
 
 ## 5. Security measures (Art 32)
 

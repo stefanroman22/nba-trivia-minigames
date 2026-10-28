@@ -93,6 +93,19 @@ and vendor blogs rather than regulator pages, so re-check any citation before re
   H. <https://developers.google.com/identity/protocols/oauth2/production-readiness/brand-verification>
   <https://developers.google.com/terms/api-services-user-data-policy>
 
+## Ads (2026-10-26)
+
+Sources behind the ads text in the Privacy Policy (sections 2, 5, 6, 8-11, 13), the record rows 14-17 and
+[DPIA-ADS.md](DPIA-ADS.md), from the 2026-10-26 ads-compliance research ticket. Confidence: **not re-verified by the
+pipeline**; points the ticket itself marked UNVERIFIED (the cookie list, FCNEC before consent, AdSense UI option and
+category names, CMP test parameters, CSP domain list) stay unverified until checked against the live ad stack.
+
+- Google AdSense and consent: <https://support.google.com/adsense/answer/1348695> · <https://www.google.com/about/company/user-consent-policy/> · <https://support.google.com/admanager/answer/13554116> · <https://support.google.com/admanager/answer/9805023> · <https://support.google.com/adsense/answer/16918505> · <https://support.google.com/admanager/answer/10114217> · <https://support.google.com/adsense/answer/10959060> · <https://support.google.com/adsense/answer/10961068> · <https://support.google.com/admanager/answer/9882911> · <https://support.google.com/adsense/answer/9042142> · <https://support.google.com/adsense/answer/9009582> · <https://support.google.com/adsense/answer/17042704> · <https://support.google.com/adsense/answer/9007347> · <https://support.google.com/adsense/answer/10961479> · <https://support.google.com/adsense/answer/9560818> · <https://support.google.com/adsense/answer/14182916> · <https://support.google.com/adsense/answer/12171612> · <https://support.google.com/adsense/answer/7584263> · <https://support.google.com/adsense/answer/164131>
+- Google terms and cookies: <https://business.safety.google/controllerterms/> · <https://policies.google.com/technologies/partner-sites> · <https://business.safety.google/adscookies> · <https://policies.google.com/technologies/cookies>
+- EU / Romania (ePrivacy, consent, DPIA list, transfers): <https://www.mondaq.com/privacy-protection/1782518/upcoming-changes-to-romanian-cookie-consent-framework> · <https://startupcafe.ro/agentie-online-de-turism-amendata-pentru-cookie-urile-de-pe-site-ce-lege-a-incalcat-88031> · <https://www.edpb.europa.eu/documents/guideline/guidelines-22023-on-technical-scope-of-art-53-of-eprivacy-directive_en> · <https://www.edpb.europa.eu/our-work-tools/our-documents/guidelines/guidelines-052020-consent-under-regulation-2016679_en> · <https://dataprotection.ro/servlet/ViewDocument?id=1556> (ANSPDCP Decision 174/2018) · <https://digitalpolicyalert.org/event/35459-latombe-filed-appeal-against-general-court-dismissal-of-challenge-to-european-unionunited-states-data-protection-framework-adequacy-decision-in-latombe-v-commission>
+- US states: <https://www.clym.io/blog/ccpa-applicability-guide>
+- Minors: <https://www.taylorwessing.com/en/insights-and-events/insights/2025/07/rd-european-commission-guidelines-on-protection-of-minors-under-the-digital-services-act> · <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/childrens-information/childrens-code-guidance-and-resources/age-appropriate-design-a-code-of-practice-for-online-services/> · <https://ppc.land/google-begins-machine-learning-age-detection-for-ad-protections-in-us/> · <https://www.romania-insider.com/society/romania-gambling-ad-rules-july-2025>
+
 ## Other jurisdictions (summary)
 
 CCPA/CPRA and most US state laws: thresholds (about 100k consumers) probably not met yet; the policy is written to the

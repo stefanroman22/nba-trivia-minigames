@@ -27,6 +27,9 @@
 .site-footer-col:first-of-type ul { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
 .site-footer a { color: var(--muted); text-decoration: none; transition: color 0.15s ease; }
 .site-footer a:hover, .site-footer a:focus-visible { color: var(--text); }
+/* "Privacy and cookie settings" (ads on only): a button that reads exactly like the links next to it. */
+.site-footer-btn { padding: 0; border: 0; background: none; font: inherit; line-height: inherit; text-align: left; color: var(--muted); cursor: pointer; transition: color 0.15s ease; }
+.site-footer-btn:hover, .site-footer-btn:focus-visible { color: var(--text); }
 .site-footer-copy { max-width: 1180px; margin: 28px auto 0; font-size: 12px; }
 
 @media (max-width: 760px) {

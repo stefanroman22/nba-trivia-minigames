@@ -166,7 +166,12 @@ VITE_SOCKET_URL=https://nba-multiplayer-production.up.railway.app   # set in .en
 # VITE_DATA_BASE is optional — defaults to /data (the build bundles the pools there).
 # Set it only to serve pools from an external CDN/domain instead.
 # NEXT_PUBLIC_SITE_URL is optional and for local QA only — canonical/OG/sitemap/robots/llms.txt URLs default to https://swishquest.com (src/configurations/site.ts).
+# Ads (src/configurations/ads.ts) — both UNSET in every environment until the owner sets the ads launch day:
+# NEXT_PUBLIC_ADS_ENABLED=true            # only "true" switches on the AdSense tag (non-personalised for everyone) and the footer "Privacy and cookie settings" button; unset/anything else = off
+# NEXT_PUBLIC_ADSENSE_PUB_ID=ca-pub-...   # publisher id: unset = /ads.txt is 404 and no google-adsense-account meta; the AdSense tag also needs it
 ```
+Both ads variables are read at build time (the footer and `<head>` are final on the server), so changing them needs a
+redeploy. Keep them unset in production until launch: the Privacy Policy describes ads as "not live yet" (docs/legal/OPEN_ITEMS.md "Before ads go live").
 The `VITE_*` names predate the Next.js migration and are kept on purpose: `next.config.ts`
 inlines these three into the browser bundle (Next only exposes `NEXT_PUBLIC_*` by itself).
 
