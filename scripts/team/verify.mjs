@@ -3,7 +3,7 @@
 // total), write .team/run/<slug>/verify.json and exit 0/1.
 // Usage: node scripts/team/verify.mjs <slug> --base <sha> [--repo <dir>] [--lane 1|2] [--touched a,b,c]
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT, loadConfig } from "../lib/team-config.mjs";
 import { classifyTouched, seoCheckOnly, touchedFiles } from "./lib/touched.mjs";
@@ -27,6 +27,16 @@ export function venvPython(repoDir) {
   const rel = win ? ["backend/.venv/Scripts/python.exe", "backend/venv/Scripts/python.exe"] : ["backend/.venv/bin/python", "backend/venv/bin/python"];
   for (const root of [repoDir, ROOT]) for (const c of rel) if (existsSync(resolve(root, c))) return resolve(root, c);
   return win ? "python" : "python3";
+}
+
+/** One warning line (never a failure) when the venv's Python differs from backend/.python-version (3.12). */
+function warnVenvVersion(py, repoDir) {
+  try {
+    const want = readFileSync(resolve(repoDir, "backend/.python-version"), "utf8").trim();
+    const r = spawnSync(py, ["--version"], { encoding: "utf8" });
+    const have = ((r.stdout || "") + (r.stderr || "")).match(/Python (\d+\.\d+)/)?.[1];
+    if (have && want && have !== want.split(".").slice(0, 2).join(".")) console.warn(`verify: warning: backend venv runs Python ${have} but backend/.python-version is ${want}; recreate it with python${want}`);
+  } catch { /* advisory only */ }
 }
 
 // `npm` needs a shell on Windows (npm.cmd); everything else is called as a node bin directly, no shell.
@@ -55,6 +65,7 @@ if (cls.frontend) {
 if (seoCheckOnly(touched)) ran.push(run("check:seo", "npm", ["run", "check:seo", "--silent"]));
 if (cls.backend) {
   const py = venvPython(repo);
+  warnVenvVersion(py, repo);
   const env = { DATABASE_URL: "" };
   ran.push(run("django check", py, ["manage.py", "check"], { cwd: resolve(repo, "backend"), env }));
   if (ran.at(-1).exit === 0) ran.push(run("django tests", py, ["manage.py", "test", "users", "trivia", "--noinput"], { cwd: resolve(repo, "backend"), env }));

@@ -1,7 +1,9 @@
 """Phase 6 editorial author (spec §4.6): the weekly brief, and the author's proposals applied as
 pending questions through the module gates (the Checker decides what goes live)."""
+import copy
 import json
 import os
+import sys
 import tempfile
 from io import StringIO
 from unittest.mock import patch
@@ -168,7 +170,13 @@ class ApplyProposalsTests(EditorialAuthorTestCase):
         self.assertEqual(self.reasons(), ["malformed", "malformed", "malformed", "not_editorial", "not_editorial"])
 
     def test_too_deeply_nested_definition_is_malformed(self):
-        depth = 1200  # json.load reads it, copy.deepcopy hits the recursion limit
+        # json.load must read it, copy.deepcopy must hit the recursion limit. deepcopy spends two frames
+        # per level and json's own limit differs by interpreter (3.11 counts Python recursion, 3.12 does not),
+        # so derive the depth from the limit: 0.6x is parsed by json everywhere, yet 1.2x frames overflow deepcopy.
+        depth = int(sys.getrecursionlimit() * 0.6)
+        nested = json.loads("[" * depth + "]" * depth)
+        with self.assertRaises(RecursionError):
+            copy.deepcopy(nested)
         deep = '{"game": "fan-favorites", "definition": {"rule": ' + "[" * depth + "]" * depth + '}, "why": "x"}'
         good = json.dumps(proposal("fan-favorites", board()))
         self.write(None, raw='{"proposals": [' + deep + ", " + good + "]}")

@@ -122,6 +122,10 @@ c. **`package.json`'s `"team"` script edit is intentionally uncommitted.** `pack
    path deserves a human's own deliberate look, not a walked-past commit. It must stay
    uncommitted, working-tree-only.
 
+d. **Backend venv = Python 3.12.** Create it with `py -3.12 -m venv backend\.venv` (Linux:
+   `python3.12 -m venv backend/.venv`) to match `backend/.python-version`; a 3.11 venv fails
+   interpreter-dependent tests. Gate 1 prints one `verify: warning:` line when the venv's version differs (it never fails).
+
 ## 9. Secrets rotation
 
 - **`CLAUDE_CODE_OAUTH_TOKEN`** — subscription auth for the
