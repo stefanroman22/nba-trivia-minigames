@@ -65,6 +65,9 @@ def _kept(mod, row, m):
     m["qid"] = row.qid
     item = mod.index_item(row.definition, m)
     item[0] = row.qid
+    labeled = getattr(mod, "index_label", None)  # Tic-Tac-Toe: [qid, difficulty] for the player's choice
+    if labeled is not None:
+        item = labeled(row, item)
     return (row.qid, item, m)
 
 
@@ -215,7 +218,7 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
         )
     kept, pending, retired = [], [], 0
     scored = []  # (definition, materialized, quality) of each live or pending question
-    for row in Question.objects.filter(game=slug, status__in=statuses).order_by("id"):
+    for row in Question.objects.filter(game=slug, status__in=statuses).select_related("label").order_by("id"):
         result = _materialize_row(mod, row, dataset, now, journal, staged, spec)
         if result is not None and spec is not None:
             scored.append((row.definition, result[2], row.quality))
@@ -340,7 +343,7 @@ def materialize_active(games, dataset, now=None, out=None):
         mod = GAME_MODULES[slug]
         view = getattr(mod, "checker_view", None) if slug in checker.STAGED_GAMES else None
         kept, skipped = [], 0
-        for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).order_by("id"):
+        for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).select_related("label").order_by("id"):
             m, problems = _materialize(mod, row.definition, dataset)
             if problems:
                 skipped += 1
