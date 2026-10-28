@@ -26,6 +26,9 @@ interface SegmentedTabsProps<T extends string> {
   /** Thumb corner radius — match the button's own border-radius. Set here (not
       only in CSS) so framer-motion can scale-correct it while the thumb resizes. */
   thumbRadius?: number | string;
+  /** "radio": a setting that swaps no pane (e.g. a difficulty pick) — a radiogroup of role="radio"
+      items with aria-checked instead of a tablist. Same look, motion and arrow keys. */
+  kind?: "tabs" | "radio";
   "aria-label"?: string;
 }
 
@@ -36,15 +39,17 @@ export default function SegmentedTabs<T extends string>({
   className,
   itemClassName,
   thumbRadius = 999,
+  kind = "tabs",
   "aria-label": ariaLabel,
 }: SegmentedTabsProps<T>) {
   const reduce = useReducedMotion();
   // Scoped per instance so two mounted switchers never trade thumbs.
   const layoutId = `seg-thumb-${useId()}`;
   const { onKeyDown, tabIndexFor } = useRovingTabs(options.map((o) => o.key), value, onChange);
+  const radio = kind === "radio";
 
   return (
-    <div className={className} role="tablist" aria-label={ariaLabel} onKeyDown={onKeyDown}>
+    <div className={className} role={radio ? "radiogroup" : "tablist"} aria-label={ariaLabel} onKeyDown={onKeyDown}>
       {options.map((o) => {
         const active = o.key === value;
         return (
@@ -52,8 +57,9 @@ export default function SegmentedTabs<T extends string>({
             key={o.key}
             type="button"
             className={`${itemClassName} seg-item${active ? " is-active" : ""}`}
-            role="tab"
-            aria-selected={active}
+            role={radio ? "radio" : "tab"}
+            aria-selected={radio ? undefined : active}
+            aria-checked={radio ? active : undefined}
             tabIndex={tabIndexFor(o.key)}
             onClick={() => onChange(o.key)}
           >

@@ -6,6 +6,7 @@ import os
 from datetime import date
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 
 from trivia.games.tictactoe import _decade_start, player_matches
 from trivia.questions import fame, quality, specs
@@ -193,6 +194,16 @@ def validate(materialized):
 
 def index_item(definition, materialized):
     return [None]
+
+
+def index_label(row, item):
+    """[qid, difficulty]: the board's label (trivia.QuestionLabel; no label = hard), so a
+    solo player can choose Easy, Medium or Hard. The relay's picker reads only item[0]."""
+    try:
+        difficulty = row.label.difficulty
+    except ObjectDoesNotExist:
+        difficulty = "hard"
+    return [item[0], difficulty]
 
 
 def players_referenced(definition, materialized, dataset=None):

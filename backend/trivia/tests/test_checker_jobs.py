@@ -11,7 +11,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from trivia.data_pipeline import publish_v3
-from trivia.models import FactoryRun, Question
+from trivia.models import FactoryRun, Question, QuestionLabel
 from trivia.questions import checker, runner
 from trivia.questions.games import GAME_MODULES
 from trivia.questions.hashing import content_hash
@@ -105,6 +105,20 @@ class ExportTests(CheckerJobsTestCase):
         with patch("trivia.questions.checker_jobs._view", return_value=({"q": 1}, "s" * 64)):
             return self._questions(self.export("--batch-size", "50", *args))[1]
 
+    def test_tictactoe_difficulties_take_turns(self):
+        Question.objects.all().delete()
+        shutil.rmtree(os.path.join(self.tmp, "batches"), ignore_errors=True)
+        bands = ["easy"] * 4 + ["medium"] * 4 + ["hard"] * 2 + [None]  # None: no label = hard
+        for i, band in enumerate(bands):
+            row = Question.objects.create(game="tictactoe", qid=f"ttt-{i:04d}", definition={"n": i},
+                                          content_hash=f"{i:064d}", status="pending")
+            if band:
+                QuestionLabel.objects.create(question=row, difficulty=band, source="rule")
+        with patch("trivia.questions.checker_jobs._view", return_value=({"q": 1}, "s" * 64)):
+            questions = self._questions(self.export("--limit", "6"))[1]
+        self.assertEqual([q["qid"] for q in questions],
+                         ["ttt-0000", "ttt-0004", "ttt-0008", "ttt-0001", "ttt-0005", "ttt-0009"])
+
     def test_auto_limit_is_150_while_150_or_more_are_pending_else_60(self):
         for pending, exported in ((20, 20), (149, 60), (150, 150), (200, 150)):
             with self.subTest(pending=pending):
@@ -118,6 +132,17 @@ class ExportTests(CheckerJobsTestCase):
         self.assertEqual([n for n in os.listdir(out) if n.startswith("batch-")], [])
         self.assertIn("batches=[]", self.gh_output())
         self.assertIn("count=0", self.gh_output())
+
+
+class TicTacToeIndexLabelTests(CheckerJobsTestCase):
+    def test_published_items_carry_the_difficulty_label(self):
+        self.stage(("tictactoe",))
+        rows = list(Question.objects.filter(game="tictactoe").order_by("id"))
+        Question.objects.filter(id__in=[r.id for r in rows]).update(status="active")
+        QuestionLabel.objects.create(question=rows[0], difficulty="easy", source="rule")
+        items = {qid: item for qid, item, _ in runner.materialize_active(["tictactoe"], self.ds)["tictactoe"]}
+        self.assertEqual(items[rows[0].qid], [rows[0].qid, "easy"])
+        self.assertEqual(items[rows[1].qid], [rows[1].qid, "hard"])  # no label = hard
 
 
 class ApplyTests(CheckerJobsTestCase):

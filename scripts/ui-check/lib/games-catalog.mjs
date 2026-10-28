@@ -2,7 +2,7 @@
 // truth for which games are visible, which are hidden (must 404), and which have an online mode.
 //   visibleGames() → [{ id, path, name, online, data }]   non-hidden entries, in catalogue order (incl. coming-soon)
 //   hiddenGames()  → [{ id, path, name, online, data }]   entries flagged `hidden: true`
-// `data`: how the entry loads its data, from its `fetchData: () => fn("key", n)` line → { fn, key } (key null when the
+// `data`: how the entry loads its data, from its `fetchData: () => fn("key", n)` line (or `(opts) => …`) → { fn, key } (key null when the
 // call has no string argument), or null when the entry has no fetchData (Logic Check's LC-LIVE-03 probes each source).
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -31,7 +31,7 @@ function parse() {
     const name = /\n {4}name: "([^"]*)"/.exec(body);
     const url = /\n {4}urlPath: "([^"]+)"/.exec(body);
     if (!name || !url) throw new Error(`games-catalog: cannot read name/urlPath of game "${m[1]}" in GameUtils.tsx`);
-    const fd = /\n {4}fetchData: \(\) => (\w+)\(\s*(?:"([^"]*)")?/.exec(body);
+    const fd = /\n {4}fetchData: \(\w*\) => (\w+)\(\s*(?:"([^"]*)")?/.exec(body);
     const data = fd ? { fn: fd[1], key: fd[2] ?? null } : null;
     all.push({ id: m[1], path: url[1], name: name[1], online: !off.has(m[1]), hidden: /\bhidden:\s*true\b/.test(body), data });
   }

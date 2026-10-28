@@ -269,6 +269,44 @@ const ctxQids = new Set();
 for (let i = 0; i < 3; i++) ctxQids.add((await qs.fetchQuestion("contexto")).data?.[0]?.qid);
 check("seen: contexto stays the daily question (not tracked)", ctxQids.size === 1 && !store.has("seen:contexto"));
 
+// Difficulty (solo Tic-Tac-Toe): index items [qid, difficulty]; the pick narrows to the band first, then
+// no-repeats runs inside that band; an index without that band (or old bare [qid] items) deals from all.
+const tttIndexPath = MANIFEST.games.tictactoe.index;
+const tttIndex = require(`../multiplayer_server/scripts/fixtures/game-data-v3/${tttIndexPath}`);
+const labeled = (bands) => ({ ...tttIndex, items: tttIndex.items.map(([qid], i) => [qid, bands[i]]) });
+const qidOf = (res) => res.data?.[0]?.qid;
+qserver.overlay[tttIndexPath] = labeled(["easy", "hard", "hard"]);
+store.clear();
+qs = await loadQ();
+const hardPlays = [];
+for (let i = 0; i < 2; i++) hardPlays.push(qidOf(await qs.fetchQuestion("tictactoe", undefined, "hard")));
+check("difficulty: two Hard plays deal the two Hard boards, no repeat", canonical([...hardPlays].sort()) === canonical(["ttt-0002", "ttt-0003"]), hardPlays.join(", "));
+const easyPlay = qidOf(await qs.fetchQuestion("tictactoe", undefined, "easy"));
+check("difficulty: an Easy play deals the Easy board", easyPlay === "ttt-0001", easyPlay);
+const hardAgain = qidOf(await qs.fetchQuestion("tictactoe", undefined, "hard"));
+const seenAfter = JSON.parse(store.get("seen:tictactoe") ?? "[]");
+check("difficulty: the Hard band exhausted resets only Hard (Easy stays seen)",
+  ["ttt-0002", "ttt-0003"].includes(hardAgain) && seenAfter.includes("ttt-0001") && seenAfter.length === 2, `${hardAgain} / seen ${seenAfter.join(", ")}`);
+qserver.overlay[tttIndexPath] = labeled(["hard", "hard", "hard"]);
+store.clear();
+qs = await loadQ();
+const missingBand = [];
+for (let i = 0; i < 3; i++) missingBand.push(qidOf(await qs.fetchQuestion("tictactoe", undefined, "easy")));
+check("difficulty: no board of the chosen band -> deals from all boards (no repeats)", new Set(missingBand).size === 3, missingBand.join(", "));
+delete qserver.overlay[tttIndexPath];
+store.clear();
+qs = await loadQ();
+const oldItems = [];
+for (let i = 0; i < 3; i++) oldItems.push(qidOf(await qs.fetchQuestion("tictactoe", undefined, "medium")));
+check("difficulty: an old index of bare [qid] items -> deals from all boards (no repeats)", new Set(oldItems).size === 3, oldItems.join(", "));
+const bandIndex = { items: [["e1", "easy"], ["m1", "medium"], ["m2", "medium"], ["h1", "hard"]] };
+let inBand = true;
+for (let i = 0; i < 40; i++) if (!["m1", "m2"].includes(gd.pickQuestion("superdraft", bandIndex, Math.random, undefined, "medium"))) inBand = false;
+check("difficulty: pickQuestion narrows an untracked game's pick to the band too", inBand);
+check("difficulty: pickQuestion without a difficulty is unchanged (picks across all items)",
+  gd.pickQuestion("superdraft", bandIndex, () => 0.99) === "h1" && gd.pickQuestion("superdraft", bandIndex, () => 0) === "e1");
+store.clear();
+
 // Fallbacks to the Supabase store.
 const warnings = [];
 const realWarn = console.warn;
