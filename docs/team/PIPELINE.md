@@ -145,6 +145,7 @@ agent pushes `dev` to `main` directly when explicitly asked to in that conversat
 its own initiative. On push to `main`, `main-sync.yml` moves every QA card whose commit is now in
 `main` to Done. A prompt-injected task can at most reach `dev`; reaching `main` always needs a
 human decision, made outside the pipeline's own control flow.
+One-off tasks that must follow the next promotion (migrations, relay deploy, ruleset) are listed in `docs/team/NEXT_PROMOTION.md`; the promote-to-prod skill runs them after production is verified.
 **Security gate on `main`:** a ruleset requires the commit status `security/pr-scan` on every commit
 that reaches `main` (`.github/workflows/security.yml`, docs/security/README.md). The promote job
 opens a dev → main PR, runs the gate (which may auto-fix `dev`) and pushes exactly the scanned
