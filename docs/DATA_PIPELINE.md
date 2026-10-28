@@ -207,6 +207,40 @@ design's hosting table).
   fame tier 1-2 in the generated dataset; contexto's 99 secrets vs `NO_REPEAT_DAYS = 365` will exhaust
   ~99 days after the first run.
 
+## Tic-Tac-Toe difficulty boards (`manage.py tictactoe_difficulty`)
+
+`backend/trivia/management/commands/tictactoe_difficulty.py` (rules in
+`trivia/questions/games/tictactoe_difficulty.py`, design
+`docs/superpowers/specs/2026-10-25-tictactoe-difficulty-design.md`) labels the active boards easy / medium / hard by
+the owner's rules (`--label-rules`; a `QuestionLabel` with `source = owner` is never touched, and only active boards
+are relabeled) and generates new boards per band (`--generate-easy|medium|hard N`), stored as `Question` rows with
+`created_by "<band>-rules"`, a rule label, and `--status pending` (the default) so the Checker reviews them before
+players see them. `--dry-run` writes nothing and prints what it would make.
+
+**Production run (once, after the promotion that brings the command to `main`).** The boards made on 2026-10-26
+live only in the owner's local sqlite; production gets its own, made against the production database from
+`ops-manage.yml` (the only command there that takes dispatch `args`; the input is limited to letters, digits,
+`_=.,:-` and spaces and is refused for every other command). Run it AFTER the promotion and AFTER `db-migrate.yml`
+has applied trivia 0016–0019 (`question_label`, `question_label_source`, the two correction seeds):
+
+```bash
+# optional but recommended first: the same generate line with --dry-run (writes nothing, prints the counts)
+gh workflow run ops-manage.yml -f command=tictactoe_difficulty -f args="--generate-easy 1200 --generate-medium 1200 --generate-hard 220 --status pending --seed 2026 --dry-run"
+# (a) generate the boards as pending
+gh workflow run ops-manage.yml -f command=tictactoe_difficulty -f args="--generate-easy 1200 --generate-medium 1200 --generate-hard 220 --status pending --seed 2026"
+# (b) label the existing active boards by the rules (owner labels kept)
+gh workflow run ops-manage.yml -f command=tictactoe_difficulty -f args="--label-rules"
+# (c) the Checker reviews the new pending boards: its next scheduled pending run, or now
+gh workflow run question-checker.yml -f mode=pending
+```
+
+The counts come from the 2026-10-26 local run (1,200 easy, 1,200 medium, 600 hard, where 600 hard = the existing
+hard boards + 220 generated). Each run prints what it made (`generate-<band>: N <band> board(s) as pending · M
+skipped`, `label-rules: hard … · owner labels kept …`); read it with `gh run view <id> --log`. Run (a) once: a second
+run adds another N boards per band (it never duplicates an existing board, so it does not stop at the count).
+The Checker's export takes up to 150 pending questions per run while 150+ are pending, so 2,620 boards take several
+runs.
+
 ## Superseded command (do not use)
 
 `manage.py refresh_game_data` and `backend/scripts/refresh_game_data.ps1` predate `sync_nba_data` /

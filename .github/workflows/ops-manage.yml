@@ -4,7 +4,9 @@ name: Ops command
 # default branch) or a push to `ops/run-<command>-**` (so it can run before promotion with
 # that branch's code). Anything outside the allow-list is refused. A push run reads the
 # command's arguments from `backend/ops/args/<command>.txt` on that branch when the file
-# exists (one line, whitespace-separated, no shell expansion).
+# exists (one line, whitespace-separated, no shell expansion). A manual dispatch takes arguments
+# only for tictactoe_difficulty, through the `args` input: same splitting, characters limited to
+# [A-Za-z0-9_=.,:-] and spaces, checked before Django starts; `args` on any other command is refused.
 on:
   workflow_dispatch:
     inputs:
@@ -21,6 +23,12 @@ on:
           - seed_who_would_win_votes
           - recount_progression
           - sync_leaderboard
+          - tictactoe_difficulty
+      args:
+        description: "arguments, tictactoe_difficulty only (e.g. --generate-easy 1200 --status pending --seed 2026); letters, digits, _=.,:- and spaces"
+        required: false
+        default: ""
+        type: string
   push:
     branches: ["ops/run-**"]
 concurrency:
@@ -41,6 +49,8 @@ jobs:
       # Only sync_leaderboard needs it; empty until the owner adds the REDIS_URL secret.
       REDIS_URL: ${{ secrets.REDIS_URL }}
       INPUT_COMMAND: ${{ inputs.command }}
+      # Read from the environment only, never interpolated into a script (shell injection).
+      INPUT_ARGS: ${{ inputs.args }}
       REF_NAME: ${{ github.ref_name }}
     steps:
       - uses: actions/checkout@v5
@@ -60,9 +70,24 @@ jobs:
             cmd=$(printf '%s' "$REF_NAME" | sed -E 's#^ops/run-([a-z_]+)(-.*)?$#\1#')
           fi
           case "$cmd" in
-            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes|recount_progression|sync_leaderboard) ;;
+            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes|recount_progression|sync_leaderboard|tictactoe_difficulty) ;;
             *) echo "::error::command '$cmd' is not allow-listed"; exit 1 ;;
           esac
+          if [ -n "$INPUT_ARGS" ]; then
+            if [ "$cmd" != "tictactoe_difficulty" ]; then
+              echo "::error::args are accepted only for tictactoe_difficulty, not '$cmd'"; exit 1
+            fi
+            export LC_ALL=C
+            allowed='^[A-Za-z0-9_=.,: -]*$'
+            if ! [[ "$INPUT_ARGS" =~ $allowed ]]; then
+              echo "::error::args may only contain letters, digits, _=.,:- and spaces"; exit 1
+            fi
+            # Django's own --settings / --pythonpath (and their argparse abbreviations) would load other code.
+            read -r -a words <<< "$INPUT_ARGS"
+            for w in "${words[@]}"; do
+              case "$w" in --set*|--p*) echo "::error::args may not set '$w'"; exit 1 ;; esac
+            done
+          fi
           echo "cmd=$cmd" >> "$GITHUB_OUTPUT"
           echo "running: $cmd"
       - name: Run it
@@ -71,6 +96,11 @@ jobs:
         run: |
           set -euo pipefail
           args=()
-          if [ -f "ops/args/$CMD.txt" ]; then read -r -a args < "ops/args/$CMD.txt"; fi
+          if [ -n "$INPUT_ARGS" ]; then
+            # Validated by "Pick the command"; split on whitespace, no expansion.
+            read -r -a args <<< "$INPUT_ARGS"
+          elif [ -f "ops/args/$CMD.txt" ]; then
+            read -r -a args < "ops/args/$CMD.txt"
+          fi
           echo "running: $CMD ${args[*]:-}"
           python manage.py "$CMD" "${args[@]}"

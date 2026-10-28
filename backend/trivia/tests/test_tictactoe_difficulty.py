@@ -1,6 +1,7 @@
 """Tic-Tac-Toe difficulty rules (trivia.questions.games.tictactoe_difficulty) and the tictactoe_difficulty command,
 on the live player dataset: award / draft boards are hard with their reasons, generated easy boards pass the easy
-rules on all 9 pairs, and an owner label is never overwritten by a rule."""
+rules on all 9 pairs, an owner label is never overwritten by a rule, and boards generated as pending reach the
+Checker's export (question-checker.yml pending mode)."""
 import random
 from io import StringIO
 
@@ -11,6 +12,7 @@ from rest_framework.test import APIClient
 
 from trivia.admin_questions import _dataset
 from trivia.models import Question, QuestionLabel
+from trivia.questions.checker_jobs import export_batches
 from trivia.questions.games import tictactoe_difficulty as D
 
 User = get_user_model()
@@ -204,4 +206,30 @@ class CommandTests(TestCase):
     def test_dry_run_writes_nothing(self):
         self.run_cmd("--generate-easy", "2", "--label-rules", "--dry-run")
         self.assertFalse(Question.objects.filter(created_by="easy-rules").exists())
+        self.assertEqual(QuestionLabel.objects.count(), 1)
+
+    def test_generate_pending_boards_wait_for_the_checker(self):
+        # The production run (docs/DATA_PIPELINE.md, ops-manage.yml): --status pending, then --label-rules, then the
+        # Checker's pending run.
+        self.assertIn("generate-easy: 5 easy board(s) as pending",
+                      self.run_cmd("--generate-easy", "5", "--status", "pending", "--seed", "1"))
+        made = Question.objects.filter(created_by="easy-rules")
+        self.assertEqual(made.count(), 5)
+        self.assertEqual(set(made.values_list("status", flat=True)), {Question.STATUS_PENDING})
+        ds = _dataset()
+        for q in made:
+            self.assertEqual(D.classify(q.definition, ds)[0], "easy")
+            self.assertEqual((q.label.difficulty, q.label.source), ("easy", QuestionLabel.RULE))
+        # The Checker's export (job 1 of question-checker.yml, mode pending) picks every one of them up.
+        exported = {x["qid"] for b in export_batches(ds, "auto", 10) for x in b["questions"] if x["game"] == "tictactoe"}
+        self.assertEqual(exported, set(made.values_list("qid", flat=True)))
+        # --label-rules only relabels active boards: the pending ones keep their rule label, the owner's stays his.
+        self.run_cmd("--label-rules")
+        self.assertEqual(QuestionLabel.objects.filter(question__in=made, difficulty="easy", source=QuestionLabel.RULE).count(), 5)
+        self.assertEqual(QuestionLabel.objects.get(question=self.mine).difficulty, "medium")
+
+    def test_dry_run_of_pending_boards_writes_nothing(self):
+        out = self.run_cmd("--generate-easy", "5", "--status", "pending", "--seed", "1", "--dry-run")
+        self.assertIn("generate-easy (dry run): 5 easy board(s) as pending", out)
+        self.assertEqual(Question.objects.count(), 2)
         self.assertEqual(QuestionLabel.objects.count(), 1)
