@@ -122,6 +122,20 @@ test("unseenOrAll: a picker game deals from the unseen items, the whole index on
   assert.equal(loadSeen("career-path").size, 0, "reset");
 });
 
+test("unseenOrAll over one band of the pool: prunes against the pool, an exhausted band resets only itself", async () => {
+  useStorage(memoryStorage); store.clear();
+  const { unseenOrAll, markSeen, loadSeen } = await load();
+  const pool = [["e1", "easy"], ["h1", "hard"], ["h2", "hard"]];
+  const hard = pool.filter((it) => it[1] === "hard");
+  const qidOf = (it) => String(it[0]);
+  markSeen("tictactoe", ["e1", "h1", "gone"]);
+  assert.deepEqual(unseenOrAll("tictactoe", hard, qidOf, pool).map(qidOf), ["h2"]);
+  assert.deepEqual([...loadSeen("tictactoe")].sort(), ["e1", "h1"], "pruned to the pool, the Easy id kept");
+  markSeen("tictactoe", ["h2"]);
+  assert.deepEqual(unseenOrAll("tictactoe", hard, qidOf, pool).map(qidOf), ["h1", "h2"]);
+  assert.deepEqual([...loadSeen("tictactoe")], ["e1"], "only the Hard ids reset");
+});
+
 test("localStorage unavailable: the seen set lives in memory for the session", async () => {
   useStorage(throwingStorage);
   try {

@@ -5,6 +5,7 @@ import type { KeyboardEvent } from "react";
  * ArrowLeft/Right/Up/Down (wrapping), Home and End, which select AND focus the target tab
  * (automatic activation — these switchers swap content instantly, so selection follows focus).
  * Put `onKeyDown` on the tablist and `tabIndex={tabIndexFor(key)}` on each `role="tab"` button.
+ * A `role="radiogroup"` of `role="radio"` buttons works the same way (SegmentedTabs kind="radio").
  */
 export function useRovingTabs<T extends string>(keys: readonly T[], value: T, onChange: (key: T) => void) {
   const onKeyDown = (e: KeyboardEvent<HTMLElement>) => {
@@ -18,7 +19,7 @@ export function useRovingTabs<T extends string>(keys: readonly T[], value: T, on
     else return;
     e.preventDefault();
     onChange(keys[next]);
-    e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
+    e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"], [role="radio"]')[next]?.focus();
   };
   return { onKeyDown, tabIndexFor: (key: T): 0 | -1 => (key === value ? 0 : -1) };
 }

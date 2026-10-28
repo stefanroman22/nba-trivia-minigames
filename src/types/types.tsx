@@ -224,6 +224,9 @@ export interface FetchResult {
   error?: GameError;
 }
 
+/** A question's difficulty band (Tic-Tac-Toe: item [1] of the published question index). */
+export type Difficulty = "easy" | "medium" | "hard";
+
 export interface Game {
   id: string;
   name: string;
@@ -244,7 +247,10 @@ export interface Game {
   maxPoints: number;
   /** Idle-screen chip for the session length; defaults to "5 rounds". */
   roundsLabel?: string;
-  fetchData: () => Promise<FetchResult>;
+  /** Difficulties the idle screen lets the player pick from (a switch above Play); the pick reaches
+   *  `fetchData`. Omitted = no switch, and fetchData gets no options. */
+  difficulties?: readonly { key: Difficulty; label: string }[];
+  fetchData: (opts?: { difficulty?: Difficulty }) => Promise<FetchResult>;
   handleError: (error: GameError) => void;
   /** Excluded from every user-facing listing (grid, rail, switch pickers) while still catalogued for admin use. */
   hidden?: boolean;

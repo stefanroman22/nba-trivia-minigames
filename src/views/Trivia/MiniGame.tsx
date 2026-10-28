@@ -16,7 +16,7 @@ import { renderGame } from '../../Game Renderers/RenderGame';
 import type { AppDispatch } from '../../store';
 import { applyAward, type AwardReceipt } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
-import type { Game, GameData } from '../../types/types';
+import type { Difficulty, Game, GameData } from '../../types/types';
 import type { AnswerReview } from '../../types/review';
 import { reviewRounds } from '../../utils/reviewRounds';
 import { apiFetch, getAccessToken } from '../../utils/Api';
@@ -25,13 +25,14 @@ import { flushSeenToServer, syncSeenFromServer } from '../../utils/seen';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { AutoSize } from '../../components/motion/AutoHeight';
+import SegmentedTabs from '../../components/motion/SegmentedTabs';
 import { GAME_IN_PROGRESS } from '../../constants/messages';
 import { useDailyCardState } from '../../hooks/useDailyCardState';
 import { DAILY_COPY, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, type DailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import { FOCUSABLE } from '../../hooks/useFocusTrap';
-import { reducedFade, swap } from "../../motion/variants";
+import { fadeIn, reducedFade, swap } from "../../motion/variants";
 import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
 import "../../styles/MiniGame.css";
 
@@ -46,6 +47,10 @@ const RAIL_STRIP_KEY = "sq:rail-strip-x";
 // loads: the idle fade-out plus the loader's fade-in take 500 ms (Stage), so it is fully on screen
 // for ~300 ms and never flashes.
 const LOADING_HOLD_MS = 800;
+// A game that offers difficulties (Game.difficulties) starts on Medium; the player's last pick is
+// remembered per game under this key + the game id.
+const DEFAULT_DIFFICULTY: Difficulty = "medium";
+const DIFFICULTY_KEY = "sq:difficulty:";
 
 function MiniGame() {
   // Opacity-only idle swap under reduced motion; null (pre-hydration) counts as not reduced (UI-20).
@@ -64,6 +69,8 @@ function MiniGame() {
   const [gameStarted, setGameStarted] = useState(false);
   const [gameData, setGameData] = useState<GameData[]>([]);
   const [score, setScore] = useState(0);
+  // The idle switch's pick, for games with difficulties; Play, Play again and the instructions' Play deal it.
+  const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [showResult, setShowResult] = useState(false);
   // An in-place game (answers stay on screen) has ended: its ScorePanel now owns
   // the only "Close game", so the shell's leave link becomes "Report a problem" or is hidden (one per screen).
@@ -137,6 +144,29 @@ function MiniGame() {
     return () => { mountedRef.current = false; };
   }, []);
 
+  // The remembered difficulty, read after hydration (the server renders the default, so the first
+  // client render matches it); an unknown or missing value keeps the default.
+  useEffect(() => {
+    if (!game?.difficulties) return;
+    let saved: string | null = null;
+    try {
+      saved = localStorage.getItem(DIFFICULTY_KEY + game.id);
+    } catch {
+      // storage blocked: the default
+    }
+    setDifficulty(game.difficulties.find((d) => d.key === saved)?.key ?? DEFAULT_DIFFICULTY);
+  }, [game]);
+
+  const pickDifficulty = (d: Difficulty) => {
+    setDifficulty(d);
+    if (!game) return;
+    try {
+      localStorage.setItem(DIFFICULTY_KEY + game.id, d);
+    } catch {
+      // storage blocked: the pick holds for this visit only
+    }
+  };
+
   useEffect(() => {
     const el = stageColRef.current;
     if (!el) return;
@@ -165,7 +195,7 @@ function MiniGame() {
     // The data loads during the hold: the account's seen set first (signed in, waited on for at most
     // 1.5 s), then the game's data.
     const hold = new Promise((resolve) => setTimeout(resolve, LOADING_HOLD_MS));
-    const data = syncSeenFromServer(game.id).then(() => game.fetchData());
+    const data = syncSeenFromServer(game.id).then(() => (game.difficulties ? game.fetchData({ difficulty }) : game.fetchData()));
     const [result] = await Promise.all([data, hold]);
     if (result.success) {
       setGameData(result.data ?? []);
@@ -322,6 +352,24 @@ function MiniGame() {
                 <Chip>up to <span className="tnum" style={{ color: "var(--brand)", fontWeight: 700, marginLeft: 4 }}>{game?.maxPoints.toLocaleString("en-US")}</span> pts</Chip>
               )}
             </div>
+            {/* Only a game that declares difficulties gets the switch; a friend room has no Play to
+                pick for, so it fades out there and the stage's AutoHeight glides the gap away. */}
+            <AnimatePresence initial={false}>
+              {game?.difficulties && !inLobby && (
+                <motion.div key="difficulty" className="idle-diff-wrap" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+                  <SegmentedTabs
+                    kind="radio"
+                    className="idle-diff"
+                    itemClassName="idle-diff-item"
+                    thumbRadius={8}
+                    options={game.difficulties}
+                    value={difficulty}
+                    onChange={pickDifficulty}
+                    aria-label="Difficulty"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
             {/* One slot, three states: the Play button's height is reserved (.idle-action) so a
                 swap never moves the chips; the countdown tick inside "locked" stays instant (timer). */}
             <div className="idle-action">
