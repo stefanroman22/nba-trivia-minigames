@@ -410,6 +410,10 @@ html { scroll-behavior: smooth; }
   /* "Guess the Series Winner" would wrap to three lines in the ~129px body on narrow phones.
      !important because GameTile sets the title size inline. */
   @media (max-width: 380px) { .games-grid3 .gtile h3 { font-size: 15px !important; } }
+  /* At 320-340px the body is only ~111-121px wide, so "Guess the Series Winner" still wraps to three
+     lines at 15px and overflows the two-line slot. 13.5px keeps every title on at most two lines; the slot
+     is 2.4em so it shrinks with the font and rows stay aligned. */
+  @media (max-width: 340px) { .games-grid3 .gtile h3 { font-size: 13.5px !important; letter-spacing: -0.005em; } }
   .games-grid3 .gtile p { display: none; }
   /* A played daily tile is disabled, so its CTA drops the arrow: the longest label, "Next Contexto in 23h 59m"
      (117px at 9.5px), then fits one line on the 129px-wide tile body at 360px. */
