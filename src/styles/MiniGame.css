@@ -141,6 +141,35 @@
 }
 .idle-head { display: flex; flex-direction: column; gap: 7px; max-width: 420px; }
 .idle-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+/* Difficulty switch (games with Game.difficulties): a SegmentedTabs radiogroup in the other switchers'
+   look (.fr-tabs). Equal-width options and one font weight, so a pick only slides the thumb and
+   fades the label colours: nothing around it moves. 44px tall on touch screens. */
+.idle-diff-wrap { width: min(300px, 100%); }
+.idle-diff {
+  --seg-thumb-bg: var(--brand-deep);
+  display: flex;
+  padding: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.idle-diff-item {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 36px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+.idle-diff-item:hover:not(.is-active) { color: var(--text); }
+.idle-diff-item.is-active { color: #fff; }
+@media (pointer: coarse) { .idle-diff-item { height: 44px; } }
 
 .idle-room-note { font-size: 13px; color: var(--muted); max-width: 320px; line-height: 1.5; }
 /* Holds the Play button's height (.btn-lg, 52px) so Play <-> room note / Wordle lock cross-fade

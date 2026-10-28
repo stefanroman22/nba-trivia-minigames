@@ -452,7 +452,12 @@ export const games: Game[] = [
     urlPath: "/tictactoe",
     pointsPerCorrect: 30,
     maxPoints: 300,
-    fetchData: () => fetchQuestion("tictactoe"),
+    difficulties: [
+      { key: "easy", label: "Easy" },
+      { key: "medium", label: "Medium" },
+      { key: "hard", label: "Hard" },
+    ],
+    fetchData: (opts) => fetchQuestion("tictactoe", undefined, opts?.difficulty),
     handleError: handleErrorDefault,
   },
   {

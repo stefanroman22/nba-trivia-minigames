@@ -25,7 +25,7 @@ function warnOnce(key: string, message: string, err?: unknown): void {
 }
 
 /** The v3 question for a game, or null to use the questions store (unset host = silent). */
-async function v3Question(game: string, day?: string): Promise<Question | null> {
+async function v3Question(game: string, day?: string, difficulty?: string): Promise<Question | null> {
   if (!v3Configured()) return null;
   try {
     const m = await getV3Manifest();
@@ -34,7 +34,7 @@ async function v3Question(game: string, day?: string): Promise<Question | null> 
       if (QUESTION_GAMES.has(game)) warnOnce(game, `${game}: not published on the data host yet, using the questions store`);
       return null;
     }
-    return await fetchV3Question(game, Math.random, undefined, day);
+    return await fetchV3Question(game, Math.random, undefined, day, difficulty);
   } catch (err) {
     warnOnce(game, `${game}: data host unavailable, using the questions store`, err);
     return null;
@@ -180,14 +180,15 @@ const UNAVAILABLE = {
 } as const;
 
 /** One question for a game, in the { success, data: [question] } shape MiniGame expects. `day` is a
- *  daily game's day ("YYYY-MM-DD", from the server's daily gate); without it the picker uses its own. */
-export async function fetchQuestion(game: string, day?: string): Promise<FetchResult> {
+ *  daily game's day ("YYYY-MM-DD", from the server's daily gate); without it the picker uses its own.
+ *  `difficulty` deals from that band when the index labels one (gameData.pickQuestion), else from all. */
+export async function fetchQuestion(game: string, day?: string, difficulty?: string): Promise<FetchResult> {
   try {
-    const published = await v3Question(game, day);
+    const published = await v3Question(game, day, difficulty);
     if (published) return { success: true, data: [published] };
     const index = await loadIndex(game);
     if (!index.items.length) return { success: false, error: { title: "No data available", message: "Please try again later." } };
-    const qid = pickQuestion(game, index, Math.random, day);
+    const qid = pickQuestion(game, index, Math.random, day, difficulty);
     const q = await loadQuestion<Question>(game, qid);
     if (SEEN_GAMES.has(game)) markSeen(game, [qid]);
     return { success: true, data: [q] };

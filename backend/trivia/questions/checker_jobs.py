@@ -57,14 +57,24 @@ def export_batches(dataset, limit, batch_size, out=None, mode="pending"):
         return _export_corrections(dataset, limit, out)
     live = Counter(Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_ACTIVE)
                    .values_list("game", flat=True))
+    rows = list(Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_PENDING)
+                .select_related("label").order_by("id"))
+    # A labeled game (Tic-Tac-Toe) takes its difficulties in turn, so a capped run brings
+    # easy, medium and hard boards live together instead of draining the oldest band first.
+    turn, per_band = {}, Counter()
+    for row in rows:
+        labeled = getattr(GAME_MODULES[row.game], "index_label", None)
+        if labeled is not None:
+            band = (row.game, labeled(row, [row.qid])[1])
+            turn[row.id] = per_band[band]
+            per_band[band] += 1
 
     def priority(row):
         if row.game == "contexto":
-            return (0, str(row.definition.get("day", "")), "", row.id)
-        return (1, f"{live.get(row.game, 0):09d}", row.game, row.id)
+            return (0, str(row.definition.get("day", "")), "", 0, row.id)
+        return (1, f"{live.get(row.game, 0):09d}", row.game, turn.get(row.id, 0), row.id)
 
-    pending = sorted(Question.objects.filter(game__in=checker.STAGED_GAMES, status=Question.STATUS_PENDING),
-                     key=priority)
+    pending = sorted(rows, key=priority)
     if limit == "auto":
         limit = AUTO_LIMIT_BACKLOG if len(pending) >= AUTO_LIMIT_BACKLOG else AUTO_LIMIT
     questions = []
