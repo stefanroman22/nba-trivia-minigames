@@ -1,0 +1,478 @@
+{
+  "dataAsOf": {
+    "audit": "2026-10-28T18:36:36.762Z",
+    "gsc": null,
+    "indexnow": null
+  },
+  "urls": {
+    "https://swishquest.com/": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/series-winner": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/name-logo": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/guess-mvps": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/starting-five": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/wordle": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/fan-favorites": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/career-path": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/who-are-ya": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/tictactoe": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/contexto": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/who-would-win": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/privacy": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/terms": {
+      "inSitemap": true,
+      "expectNoindex": false,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/admin": {
+      "inSitemap": false,
+      "expectNoindex": true,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/profile": {
+      "inSitemap": false,
+      "expectNoindex": true,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/credits": {
+      "inSitemap": false,
+      "expectNoindex": true,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    },
+    "https://swishquest.com/coming-soon": {
+      "inSitemap": false,
+      "expectNoindex": true,
+      "audit": {
+        "runId": "20261028-1836-seo",
+        "pass": [
+          "IX-01",
+          "IX-02",
+          "IX-03",
+          "IX-04",
+          "IX-05",
+          "IX-06",
+          "IX-07",
+          "IX-08",
+          "IX-09",
+          "IX-10",
+          "IX-11",
+          "IX-12"
+        ],
+        "fail": []
+      },
+      "gsc": null,
+      "requests": [],
+      "indexnow": null,
+      "decision": null
+    }
+  },
+  "history": []
+}
