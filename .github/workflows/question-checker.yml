@@ -114,7 +114,7 @@ jobs:
       contents: read
     strategy:
       fail-fast: false
-      max-parallel: 2
+      max-parallel: 16
       matrix:
         batch: ${{ fromJSON(needs.export.outputs.batches) }}
     steps:
