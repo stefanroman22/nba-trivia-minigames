@@ -13,12 +13,13 @@ Done: operator name, address and country are set; the Google consent screen is p
 | **Git history cleaned (done 2026-10-08).** Remaining: rotate the Google OAuth client secret (it was public) and ask GitHub Support to purge cached views and old PR refs | Audit finding C2; see HISTORY-CLEANUP-2026-10-08.md for the exact steps and the request text | Google Cloud Console, Vercel env `CLIENT_SECRET`, GitHub Support |
 | **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
 | **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice). Higher priority once ads are on: ad-related requests would land in a personal Gmail | Public and permanent | `contactEmail` in `legal.ts` |
+| **Terms/Privacy version 2026-10-29.1, promoted 2026-10-29 with an owner waiver.** It carries the ads text (ads still off) and the NBA headshots from cdn.nba.com. The dates are the promotion day (effective 12 November 2026, 14 days later; no home-page notice before launch, see the notice-mechanism row below). Because `main` deploys the backend with the frontend, the backend applies the new version from 2026-10-29, before `effective`. Waiver: the owner instructed the promotion on 2026-10-29 in the session ("push everything"). | Terms section 12 promises existing accounts the change applies from `effective` | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
 | **Terms/Privacy version 2026-10-20.1, promoted 2026-10-20 with an owner waiver.** The dates are the promotion day (effective 3 November 2026; the home-page notice was removed before launch, see the notice-mechanism row below). Because `main` deploys the backend with the frontend, the backend and relay changes apply from 2026-10-20, before `effective`. Waiver: the owner instructed the promotion on 2026-10-20 in the session ("promote to production"); production had 4 accounts. | Terms section 12 promises existing accounts the change applies from `effective` | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
 
 ## A2. Before ads go live
 
 Ads (Google AdSense) are built behind `NEXT_PUBLIC_ADS_ENABLED` (unset = off, the production default) and
-`NEXT_PUBLIC_ADSENSE_PUB_ID` (unset now); the Privacy Policy describes them as "not live yet" (legal version
+`NEXT_PUBLIC_ADSENSE_PUB_ID` (unset now); the Privacy Policy describes them as "not live yet" +
 2026-10-28.1). AdSense and Google's privacy message (CMP, Privacy & messaging) are free; no paid CMP. None of these
 rows is done.
 
