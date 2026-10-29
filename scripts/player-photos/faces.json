@@ -1,13 +1,14 @@
 {
 "2": {
-"file": "Byron_Scott_(cropped).jpg",
-"aspect": 1.558,
+"file": "Byron_scott_91_camp_cropped.png",
+"aspect": 2.46,
 "box": [
-0.4031,
-0.0765,
-0.181,
-0.1681
-]
+0.5874,
+0.0496,
+0.311,
+0.1853
+],
+"manual": true
 },
 "15": {
 "file": "Ericp1.jpg",
@@ -100,14 +101,15 @@
 ]
 },
 "42": {
-"file": "Monty_Williams_(cropped).jpg",
-"aspect": 1.22,
+"file": "Monty_Williams_2014_(cropped).jpg",
+"aspect": 1.3194,
 "box": [
-0.4663,
-0.095,
-0.2793,
-0.3013
-]
+0.4507,
+0.0978,
+0.1991,
+0.2127
+],
+"manual": true
 },
 "45": {
 "file": "GeorgeMcCloud-2002.JPEG",
@@ -930,14 +932,15 @@
 ]
 },
 "317": {
-"file": "Lipofsky-John_Starks.jpg",
-"aspect": 1.083,
+"file": "John_Starks_in_2013.jpg",
+"aspect": 1.6,
 "box": [
-0.5171,
-0.4001,
-0.1246,
-0.1435
-]
+0.2619,
+0.0772,
+0.4363,
+0.3808
+],
+"manual": true
 },
 "328": {
 "file": "Rick_Mahorn.jpg",
@@ -2101,14 +2104,15 @@
 ]
 },
 "960": {
-"file": "Tony-Delk.jpg",
-"aspect": 1.8382,
+"file": "20230519_Tony_Delk_at_the_NBA_Draft_Combine.jpg",
+"aspect": 1.3333,
 "box": [
-0.4736,
-0.0665,
-0.1917,
-0.142
-]
+0.4881,
+0.0355,
+0.1074,
+0.117
+],
+"manual": true
 },
 "961": {
 "file": "John_Wallace_Hurricane_Sandy_relief_(cropped).jpg",
@@ -3376,14 +3380,15 @@
 ]
 },
 "1847": {
-"file": "Thurl_Bailey.jpg",
-"aspect": 1.5632,
+"file": "Thurl_Bailey_headshot_(Duke_Chronicle_1983-04-05).jpg",
+"aspect": 1.0669,
 "box": [
-0.4992,
-0.0443,
-0.3923,
-0.2948
-]
+0.177,
+0.1023,
+0.5998,
+0.6965
+],
+"manual": true
 },
 "1853": {
 "file": "Anthony_Carter_cropped.jpg",
@@ -3497,14 +3502,15 @@
 ]
 },
 "1892": {
-"file": "Trajan_Langdon_at_all-star_PBL_game_2011_(1).JPG",
-"aspect": 1.332,
+"file": "Trajan_Langdon_at_all-star_PBL_game_2011_(2).JPG",
+"aspect": 1.331,
 "box": [
-0.4152,
-0.0601,
-0.2031,
-0.2347
-]
+0.3427,
+0.1329,
+0.3283,
+0.3253
+],
+"manual": true
 },
 "1894": {
 "file": "Maggette_looking_up.jpg",
@@ -4037,14 +4043,15 @@
 ]
 },
 "2069": {
-"file": "Hanno_Mottola.jpg",
-"aspect": 1.25,
+"file": "Hanno_Mottola_in_Helsinki.jpg",
+"aspect": 1.0,
 "box": [
-0.3657,
-0.1001,
-0.1209,
-0.1221
-]
+0.3637,
+0.1415,
+0.2259,
+0.3184
+],
+"manual": true
 },
 "2071": {
 "file": "Olumide_Oyedeji.JPG",
@@ -5147,14 +5154,15 @@
 ]
 },
 "2554": {
-"file": "Pietrus_2.jpg",
-"aspect": 1.5017,
+"file": "Mickaël_Piétrus_Paris_2009.jpg",
+"aspect": 0.7212,
 "box": [
-0.4597,
-0.1131,
-0.2124,
-0.185
-]
+0.6142,
+0.1679,
+0.1143,
+0.2059
+],
+"manual": true
 },
 "2555": {
 "file": "Nick_Collison.jpg",
@@ -5488,14 +5496,15 @@
 ]
 },
 "2624": {
-"file": "Quinton_Ross.jpg",
-"aspect": 1.5,
+"file": "LaQuinton_Ross.jpg",
+"aspect": 0.75,
 "box": [
-0.549,
-0.4667,
-0.1974,
-0.1394
-]
+0.4293,
+0.2061,
+0.16,
+0.2822
+],
+"manual": true
 },
 "2668": {
 "file": "Josh_Davis_with_Bucks_in_2005.jpg",
@@ -5689,14 +5698,15 @@
 ]
 },
 "2745": {
-"file": "Kirk_Snyder_2011-03-26_(3).JPG",
-"aspect": 1.332,
+"file": "Kirk_Snyder_2011-03-26_(2).JPG",
+"aspect": 1.3331,
 "box": [
-0.1624,
-0.1374,
-0.4028,
-0.4308
-]
+0.3258,
+0.0878,
+0.3034,
+0.3057
+],
+"manual": true
 },
 "2746": {
 "file": "Josh_Smith_2014.jpg",
@@ -5749,14 +5759,15 @@
 ]
 },
 "2753": {
-"file": "Delonte_West_Celtics.jpg",
-"aspect": 1.084,
+"file": "Delonte_West.jpg",
+"aspect": 1.0823,
 "box": [
-0.3876,
-0.161,
-0.1463,
-0.1782
-]
+0.427,
+0.1827,
+0.1066,
+0.1473
+],
+"manual": true
 },
 "2754": {
 "file": "Tony_Allen_fouled.jpg",
@@ -6200,6 +6211,17 @@
 0.1096
 ]
 },
+"76090": {
+"file": "Cedric_Ball.jpg",
+"aspect": 1.475,
+"box": [
+0.4913,
+0.0292,
+0.1504,
+0.1306
+],
+"manual": true
+},
 "76093": {
 "file": "Gene_Banks_Hawks_vs_Wizards_(cropped).jpg",
 "aspect": 1.1867,
@@ -6347,14 +6369,15 @@
 ]
 },
 "76133": {
-"file": "Zelmo_Beaty_Utah.jpeg",
-"aspect": 1.412,
+"file": "Zelmo_Beaty_1970.jpeg",
+"aspect": 1.6787,
 "box": [
-0.4464,
-0.4357,
-0.1084,
-0.0924
-]
+0.2976,
+0.0587,
+0.2634,
+0.2218
+],
+"manual": true
 },
 "76134": {
 "file": "Byron_Beck.jpg",
@@ -6365,6 +6388,17 @@
 0.2723,
 0.2333
 ]
+},
+"76142": {
+"file": "Dennis_Bell_basketball.jpg",
+"aspect": 1.0609,
+"box": [
+0.3459,
+0.2026,
+0.349,
+0.4447
+],
+"manual": true
 },
 "76143": {
 "file": "Whitey_Bell.jpeg",
@@ -6447,14 +6481,15 @@
 ]
 },
 "76163": {
-"file": "Eddie_Biedenbach.jpg",
-"aspect": 0.772,
+"file": "Eddie_Biedenbach_1967.jpeg",
+"aspect": 1.579,
 "box": [
-0.6203,
-0.2589,
-0.214,
-0.4206
-]
+0.22,
+0.1266,
+0.4847,
+0.3943
+],
+"manual": true
 },
 "76166": {
 "file": "David_Bing_3928ded5aacd10b21cded561668a0444_(1).jpg",
@@ -6679,14 +6714,15 @@
 ]
 },
 "76243": {
-"file": "Carl_Braun.jpeg",
-"aspect": 1.4295,
+"file": "Carl_Braun_1959.jpeg",
+"aspect": 1.2127,
 "box": [
-0.5752,
-0.0566,
-0.1425,
-0.1404
-]
+0.4126,
+0.0617,
+0.2044,
+0.243
+],
+"manual": true
 },
 "76245": {
 "file": "Pete_Brennan.jpeg",
@@ -6739,14 +6775,15 @@
 ]
 },
 "76257": {
-"file": "Allan_Bristow_VT.jpg",
-"aspect": 2.1266,
+"file": "Allan_Bristow,_1972.png",
+"aspect": 2.4613,
 "box": [
-0.0984,
-0.856,
-0.1598,
-0.0966
-]
+0.2492,
+0.0901,
+0.1844,
+0.1035
+],
+"manual": true
 },
 "76259": {
 "file": "Wayman_Britt.png",
@@ -6779,14 +6816,15 @@
 ]
 },
 "76268": {
-"file": "Dallas_Mavericks_asst_coach_Tony_Brown.jpg",
-"aspect": 1.248,
+"file": "Tony_Brown_Wizards.jpg",
+"aspect": 1.0469,
 "box": [
-0.5456,
-0.1356,
-0.1665,
-0.169
-]
+0.4505,
+0.0825,
+0.1618,
+0.214
+],
+"manual": true
 },
 "76276": {
 "file": "John_Brown_Mizzou.jpg",
@@ -7066,14 +7104,15 @@
 ]
 },
 "76362": {
-"file": "Bill_Cartwright_Univ_of_San_Francisco_(cropped).jpg",
-"aspect": 1.334,
+"file": "NBA_Champion_Bill_Cartwright_Celebrates_Launch_of_New_Book_at_College_of_DuPage_(54283377419).jpg",
+"aspect": 0.6667,
 "box": [
-0.3324,
-0.1098,
-0.2929,
-0.2976
-]
+0.4247,
+0.1023,
+0.1483,
+0.2817
+],
+"manual": true
 },
 "76373": {
 "file": "Al_Cervi.jpeg",
@@ -7086,14 +7125,15 @@
 ]
 },
 "76374": {
-"file": "Bill_Chamberlain_1969_(2).jpeg",
-"aspect": 1.388,
+"file": "Bill_Chamberlain_1970.jpeg",
+"aspect": 1.687,
 "box": [
-0.2003,
-0.1028,
-0.4084,
-0.3509
-]
+0.2702,
+0.1569,
+0.6418,
+0.4448
+],
+"manual": true
 },
 "76375": {
 "file": "Wilt_Chamberlain3.jpg",
@@ -7332,14 +7372,15 @@
 ]
 },
 "76458": {
-"file": "Mel_Counts_OSU.jpg",
-"aspect": 0.956,
+"file": "Mel_Counts_1961.jpeg",
+"aspect": 1.6407,
 "box": [
-0.5202,
-0.1254,
-0.156,
-0.2298
-]
+0.1347,
+0.1415,
+0.7347,
+0.6296
+],
+"manual": true
 },
 "76462": {
 "file": "Dave_Cowens.jpeg",
@@ -7508,14 +7549,15 @@
 ]
 },
 "76519": {
-"file": "Charlie_Davis_1971.jpg",
-"aspect": 1.3731,
+"file": "Charlie_Davis_1970.jpeg",
+"aspect": 1.8509,
 "box": [
-0.6038,
-0.1915,
-0.1625,
-0.1541
-]
+0.1531,
+0.1921,
+0.7058,
+0.4873
+],
+"manual": true
 },
 "76521": {
 "file": "Dwight_Davis_basketball.jpg",
@@ -7775,14 +7817,15 @@
 ]
 },
 "76631": {
-"file": "Mark_Eaton_1988-89.jpg",
-"aspect": 1.2186,
+"file": "Mark_Eaton_2017-02-23,_IMG_9623_(32260370413,_cropped).jpg",
+"aspect": 1.4383,
 "box": [
-0.2879,
-0.5768,
-0.1256,
-0.1254
-]
+0.2449,
+0.1602,
+0.3416,
+0.3448
+],
+"manual": true
 },
 "76641": {
 "file": "Franklin_Edwards_1986-87.jpg",
@@ -7793,6 +7836,17 @@
 0.5288,
 0.7193
 ]
+},
+"76647": {
+"file": "John_Egan_portrait_1963.jpg",
+"aspect": 1.4311,
+"box": [
+0.3285,
+0.0899,
+0.2723,
+0.2674
+],
+"manual": true
 },
 "76648": {
 "file": "Lonnie_Eggleston.jpg",
@@ -8272,14 +8326,15 @@
 ]
 },
 "76832": {
-"file": "GailGoodrich-cropped.JPEG",
-"aspect": 0.9882,
+"file": "Gail_Goodrich_LA_Lakers.jpeg",
+"aspect": 1.3457,
 "box": [
-0.4589,
-0.0714,
-0.2234,
-0.311
-]
+0.2053,
+0.1211,
+0.2965,
+0.2983
+],
+"manual": true
 },
 "76838": {
 "file": "Joe_Graboski_1953.jpeg",
@@ -8398,14 +8453,15 @@
 ]
 },
 "76883": {
-"file": "Gary_Gregor_(1970).jpg",
-"aspect": 1.3362,
+"file": "Gary_Gregor_1971_Texaco_front_(cropped).jpg",
+"aspect": 1.0355,
 "box": [
-0.4255,
-0.1489,
-0.3506,
-0.3494
-]
+0.3666,
+0.1602,
+0.1542,
+0.2024
+],
+"manual": true
 },
 "76884": {
 "file": "Claude_Gregory,_Wisconsin_Badgers_MBB_media_guide_1977.jpg",
@@ -9045,9 +9101,15 @@
 ]
 },
 "77058": {
-"file": "Ron_Horn_1960.jpg",
-"aspect": 0.934,
-"box": null
+"file": "Ron_Horn_1960_(4).jpg",
+"aspect": 1.3514,
+"box": [
+0.387,
+0.043,
+0.297,
+0.3283
+],
+"manual": true
 },
 "77061": {
 "file": "Bill_Hosket_Jr_1969.jpg",
@@ -9516,6 +9578,17 @@
 0.7319
 ]
 },
+"77201": {
+"file": "Wil_Jones.jpg",
+"aspect": 1.1407,
+"box": [
+0.2602,
+0.1199,
+0.5058,
+0.5621
+],
+"manual": true
+},
 "77205": {
 "file": "Eddie_Jordan.jpg",
 "aspect": 1.51,
@@ -9638,14 +9711,15 @@
 ]
 },
 "77259": {
-"file": "Toby_Kimball.jpg",
-"aspect": 0.864,
+"file": "Toby_Kimball_1969.jpg",
+"aspect": 1.1059,
 "box": [
-0.3731,
-0.011,
-0.2491,
-0.419
-]
+0.2849,
+0.1175,
+0.2897,
+0.3746
+],
+"manual": true
 },
 "77263": {
 "file": "Albert_King_-_Philips_Milano.jpg",
@@ -9945,9 +10019,15 @@
 "box": null
 },
 "77338": {
-"file": "Stu_Lantz_(1968).jpg",
-"aspect": 2.0714,
-"box": null
+"file": "Stu_Lantz_1969_front.jpg",
+"aspect": 0.8574,
+"box": [
+0.34,
+0.1896,
+0.3013,
+0.5002
+],
+"manual": true
 },
 "77339": {
 "file": "York_Larese_1960.jpeg",
@@ -10166,14 +10246,15 @@
 ]
 },
 "77385": {
-"file": "Bobby_Lewis_1963.jpeg",
-"aspect": 1.182,
+"file": "Bob_Lewis_1966_(2).jpeg",
+"aspect": 1.4235,
 "box": [
-0.3387,
-0.0934,
-0.2405,
-0.2371
-]
+0.2716,
+0.134,
+0.4899,
+0.4768
+],
+"manual": true
 },
 "77387": {
 "file": "Toddlichti.PNG",
@@ -10252,14 +10333,15 @@
 ]
 },
 "77415": {
-"file": "Sidney_Lowe_Wizards.jpg",
-"aspect": 1.064,
+"file": "Sidney_Lowe_headshot_(Duke_Chronicle_1983-04-05).jpg",
+"aspect": 1.0935,
 "box": [
-0.453,
-0.1053,
-0.202,
-0.2315
-]
+0.1883,
+0.0697,
+0.6227,
+0.7182
+],
+"manual": true
 },
 "77418": {
 "file": "Jerry_Lucas_1961.jpeg",
@@ -10573,14 +10655,15 @@
 ]
 },
 "77531": {
-"file": "Bill_McGill_basketball.jpeg",
-"aspect": 1.4389,
+"file": "Billy_McGill_Utah.jpg",
+"aspect": 2.4045,
 "box": [
-0.6135,
-0.3725,
-0.2035,
-0.188
-]
+0.3503,
+0.0507,
+0.2561,
+0.1566
+],
+"manual": true
 },
 "77532": {
 "file": "George_McGinnis_(ca_1972).png",
@@ -10633,13 +10716,13 @@
 ]
 },
 "77543": {
-"file": "Stan_McKenzie.png",
-"aspect": 1.6795,
+"file": "Stan_McKenzie_1971.jpg",
+"aspect": 1.4091,
 "box": [
-0.2042,
-0.1552,
-0.8335,
-0.6708
+0.4399,
+0.1093,
+0.1877,
+0.1702
 ],
 "manual": true
 },
@@ -10689,14 +10772,15 @@
 ]
 },
 "77572": {
-"file": "Dick_Mehen_Bennett_ad_(cropped).jpg",
-"aspect": 1.3651,
+"file": "Dick_Mehen_Bennett_ad.jpg",
+"aspect": 1.2315,
 "box": [
-0.2338,
-0.2014,
-0.4472,
-0.4404
-]
+0.5446,
+0.141,
+0.1912,
+0.2193
+],
+"manual": true
 },
 "77574": {
 "file": "Carl_Meinhold_1945_(cropped).jpg",
@@ -10724,14 +10808,15 @@
 ]
 },
 "77584": {
-"file": "Tom_Meschery.png",
-"aspect": 1.8532,
+"file": "Tom_Meschery_1965.jpg",
+"aspect": 1.5624,
 "box": [
-0.1186,
-0.1414,
-0.8012,
-0.5262
-]
+0.2448,
+0.0353,
+0.467,
+0.4484
+],
+"manual": true
 },
 "77586": {
 "file": "Dave_Meyers_vs_USC.png",
@@ -10875,14 +10960,15 @@
 ]
 },
 "77626": {
-"file": "Sidney_Moncrief_2015.jpg",
-"aspect": 1.242,
+"file": "Sidney_Moncrief_Arkansas.jpg",
+"aspect": 1.0951,
 "box": [
-0.3709,
-0.2058,
-0.2988,
-0.3101
-]
+0.4514,
+0.097,
+0.1132,
+0.1563
+],
+"manual": true
 },
 "77642": {
 "file": "Elmore_Morgenthaler_1947.jpeg",
@@ -11334,9 +11420,15 @@
 ]
 },
 "77786": {
-"file": "Tom_Owens_1969.jpeg",
-"aspect": 1.328,
-"box": null
+"file": "Tom_Owens_1970.jpeg",
+"aspect": 1.5125,
+"box": [
+0.0982,
+0.125,
+0.8344,
+0.6374
+],
+"manual": true
 },
 "77791": {
 "file": "Togo_Palazzi_at_NEBBHOF.jpg",
@@ -11449,14 +11541,15 @@
 ]
 },
 "77844": {
-"file": "Geoff_Petrie_in_2009.jpg",
-"aspect": 1.7336,
+"file": "Geoff_Petrie_1971_Texaco_front_(cropped).jpg",
+"aspect": 1.1254,
 "box": [
-0.4029,
-0.0752,
-0.1319,
-0.1041
-]
+0.5391,
+0.1294,
+0.1861,
+0.1931
+],
+"manual": true
 },
 "77845": {
 "file": "Lipofsky-JDražen_Petrović.jpg",
@@ -11709,14 +11802,15 @@
 ]
 },
 "77917": {
-"file": "Clifford_Ray_cropped.jpg",
-"aspect": 1.008,
+"file": "Clifford_Ray_2017_in_Florida.jpg",
+"aspect": 1.1327,
 "box": [
-0.4239,
-0.0848,
-0.2436,
-0.3692
-]
+0.3497,
+0.1981,
+0.3185,
+0.4035
+],
+"manual": true
 },
 "77918": {
 "file": "Don_Ray_basketball.jpeg",
@@ -11829,9 +11923,15 @@
 ]
 },
 "77954": {
-"file": "John_Richter,_Everett_Case_Commemorative_Program_page_23.jpg",
-"aspect": 2.94,
-"box": null
+"file": "John_Richter_1960.jpeg",
+"aspect": 1.1535,
+"box": [
+0.3298,
+0.1567,
+0.267,
+0.3057
+],
+"manual": true
 },
 "77955": {
 "file": "Dick_Ricketts_Cardinals.jpg",
@@ -11955,24 +12055,26 @@
 ]
 },
 "77999": {
-"file": "Red_Rocha_1948.jpg",
-"aspect": 1.2391,
+"file": "Red_Rocha_Bennett's_ad_(cropped).jpg",
+"aspect": 1.6852,
 "box": [
-0.2335,
-0.1517,
-0.2989,
-0.368
-]
+0.1969,
+0.2025,
+0.6264,
+0.4859
+],
+"manual": true
 },
 "78000": {
-"file": "John_Roche_USC.jpg",
-"aspect": 0.996,
+"file": "John_Roche_1969_(2).jpeg",
+"aspect": 1.6727,
 "box": [
-0.7347,
-0.3,
-0.0181,
-0.0225
-]
+0.0643,
+0.2422,
+0.7655,
+0.5473
+],
+"manual": true
 },
 "78001": {
 "file": "Gene_Rock_1947_(cropped).jpg",
@@ -12082,14 +12184,15 @@
 ]
 },
 "78031": {
-"file": "Brian_Rowsom.jpg",
-"aspect": 1.506,
+"file": "Brian_Rowsom_2012b.jpg",
+"aspect": 1.2794,
 "box": [
-0.4161,
-0.1698,
-0.0808,
-0.0704
-]
+0.5254,
+0.0334,
+0.1702,
+0.1847
+],
+"manual": true
 },
 "78035": {
 "file": "Delaney_Rudd_vs_Johnny_Dawkins,_Duke_Chronicle_1983-02-21.jpg",
@@ -12153,14 +12256,15 @@
 ]
 },
 "78051": {
-"file": "Kenny_Sailors_1948.jpg",
-"aspect": 1.2158,
+"file": "Ken_Sailors_Bennett's_ad_(crop).jpg",
+"aspect": 1.6337,
 "box": [
-0.4003,
-0.0968,
-0.2138,
-0.2442
-]
+0.2119,
+0.1769,
+0.5455,
+0.4741
+],
+"manual": true
 },
 "78055": {
 "file": "Ralph_Sampson_at_Family_farm_in_McGaheysville,_Virginia_on_May_23,_2024_(cropped).jpg",
@@ -12203,14 +12307,15 @@
 ]
 },
 "78067": {
-"file": "Alan_Sawyer_1950.jpeg",
-"aspect": 1.0213,
+"file": "Alan_Sawyer_1945.jpg",
+"aspect": 2.2308,
 "box": [
-0.1836,
-0.191,
-0.5993,
-0.7168
-]
+0.1254,
+0.1703,
+0.8109,
+0.4125
+],
+"manual": true
 },
 "78071": {
 "file": "Herman_Schaefer_1948.jpg",
@@ -12414,14 +12519,15 @@
 ]
 },
 "78121": {
-"file": "Lee_Shaffer_1960.jpeg",
-"aspect": 1.878,
+"file": "Lee_Shaffer_1960_(2).jpeg",
+"aspect": 1.8958,
 "box": [
-0.4187,
-0.3654,
-0.3959,
-0.3081
-]
+0.1641,
+0.0729,
+0.5809,
+0.3946
+],
+"manual": true
 },
 "78123": {
 "file": "Earl_Shannon_1948.jpg",
@@ -12564,14 +12670,15 @@
 ]
 },
 "78153": {
-"file": "Connie_Simmons.jpeg",
-"aspect": 1.8839,
+"file": "Connie_Simmons_1953.jpg",
+"aspect": 1.2385,
 "box": [
-0.3927,
-0.0428,
-0.1424,
-0.1024
-]
+0.5182,
+0.0787,
+0.1995,
+0.2265
+],
+"manual": true
 },
 "78157": {
 "file": "Ralph_Simpson.jpg",
@@ -13056,14 +13163,15 @@
 ]
 },
 "78326": {
-"file": "David_Thompson_and_Julius_Erving.jpeg",
-"aspect": 0.952,
+"file": "David_Thompson_NC_State.jpg",
+"aspect": 1.0536,
 "box": [
-0.1386,
-0.2032,
-0.1192,
-0.1812
-]
+0.3655,
+0.0915,
+0.1671,
+0.1962
+],
+"manual": true
 },
 "78328": {
 "file": "John_Thompson_(cropped).jpg",
@@ -13983,14 +14091,15 @@
 ]
 },
 "78631": {
-"file": "Charlie_Yelverton.jpg",
-"aspect": 1.322,
+"file": "Charlie_Yelverton_1971.jpg",
+"aspect": 1.9256,
 "box": [
-0.6725,
-0.3292,
-0.0814,
-0.0894
-]
+0.4225,
+0.1007,
+0.1422,
+0.1022
+],
+"manual": true
 },
 "78632": {
 "file": "Rich_Yonakor.jpg",
@@ -14054,14 +14163,15 @@
 "manual": true
 },
 "78653": {
-"file": "1947–48_Anderson_Packers_Charlie_Shipp.jpeg",
-"aspect": 1.2985,
+"file": "Charley_Shipp_1938.jpg",
+"aspect": 1.3274,
 "box": [
-0.3551,
-0.1763,
-0.2943,
-0.3085
-]
+0.3946,
+0.1117,
+0.2323,
+0.249
+],
+"manual": true
 },
 "100263": {
 "file": "Bill_Laimbeer_2_(cropped).jpg",
@@ -14144,14 +14254,15 @@
 ]
 },
 "101113": {
-"file": "Ike_Diogu_and_Trevor_Booker.jpg",
-"aspect": 1.316,
+"file": "Ike_Diogu.jpg",
+"aspect": 1.3292,
 "box": [
-0.3043,
-0.0977,
-0.2319,
-0.232
-]
+0.3668,
+0.1349,
+0.4664,
+0.4538
+],
+"manual": true
 },
 "101114": {
 "file": "Deron_Williams_Nets_2.jpg",
@@ -14794,14 +14905,15 @@
 ]
 },
 "200748": {
-"file": "Tyrus_Thomas.jpg",
-"aspect": 1.488,
+"file": "Tyrus_Thomas_in_2008.jpg",
+"aspect": 1.0036,
 "box": [
-0.546,
-0.3564,
-0.1437,
-0.1064
-]
+0.3894,
+0.0577,
+0.2198,
+0.296
+],
+"manual": true
 },
 "200749": {
 "file": "Sheldon_Williams_-_Sacramento_Kings_(2752591654).jpg",
@@ -15044,14 +15156,15 @@
 ]
 },
 "200778": {
-"file": "James_White.JPG",
-"aspect": 1.206,
+"file": "James_White_(basketball)_20260826_(4).JPG",
+"aspect": 1.5,
 "box": [
 0.3255,
-0.1609,
-0.4317,
-0.4691
-]
+0.3796,
+0.2376,
+0.228
+],
+"manual": true
 },
 "200779": {
 "file": "Steve_Novak_March_2012.jpg",
@@ -15274,14 +15387,15 @@
 ]
 },
 "200817": {
-"file": "Pooh_Jeter.JPG",
-"aspect": 1.104,
+"file": "Pooh_Jeter_1.JPG",
+"aspect": 1.2122,
 "box": [
-0.5108,
-0.0893,
-0.0725,
-0.0863
-]
+0.3935,
+0.0963,
+0.1586,
+0.1828
+],
+"manual": true
 },
 "200818": {
 "file": "Justin_Williams_(48885346246)_(cropped).jpg",
@@ -16641,14 +16755,15 @@
 ]
 },
 "201947": {
-"file": "Earl_Clark_Orlando_Magic_cropped.jpg",
-"aspect": 1.864,
+"file": "Earl_Clark_Cavs.jpg",
+"aspect": 1.6277,
 "box": [
-0.0635,
-0.085,
-0.2694,
-0.2053
-]
+0.4245,
+0.0821,
+0.2044,
+0.1685
+],
+"manual": true
 },
 "201948": {
 "file": "Austin_Daye_(cropped).jpg",
@@ -17892,14 +18007,15 @@
 ]
 },
 "202706": {
-"file": "Jordan_Hamilton_Rockets.JPG",
-"aspect": 1.4989,
+"file": "Jordan_Hamilton_1_Uşak_Sportif_20171224_(2).jpg",
+"aspect": 1.3333,
 "box": [
-0.4409,
-0.0686,
-0.209,
-0.1906
-]
+0.4349,
+0.2923,
+0.1452,
+0.1475
+],
+"manual": true
 },
 "202707": {
 "file": "Jajuan_Johnson.jpg",
@@ -18132,14 +18248,15 @@
 ]
 },
 "202731": {
-"file": "Vernon_Macklin_in_2012.jpg",
-"aspect": 1.265,
+"file": "Vernon_Macklin.jpg",
+"aspect": 1.2461,
 "box": [
-0.2637,
-0.0626,
-0.1814,
-0.1982
-]
+0.4932,
+0.2354,
+0.2308,
+0.249
+],
+"manual": true
 },
 "202732": {
 "file": "2022年6月3日_DeAndre_Liggins_新竹縣政府.jpg",
@@ -18182,14 +18299,15 @@
 ]
 },
 "202809": {
-"file": "Cory_Higgins_22_PBC_CSKA_Moscow_20171027_(4).jpg",
-"aspect": 1.422,
+"file": "Cory_Higgins_22_PBC_CSKA_Moscow_EuroLeague_20180316_(3).jpg",
+"aspect": 1.3333,
 "box": [
-0.2272,
-0.0737,
-0.2502,
-0.2376
-]
+0.486,
+0.2194,
+0.105,
+0.1031
+],
+"manual": true
 },
 "202810": {
 "file": "D._J._Kennedy_17_Pınar_Karşıyaka_TSL_20180128_(7).jpg",
@@ -18443,14 +18561,15 @@
 ]
 },
 "203091": {
-"file": "Royce_White_speaks_at_Native_Lives_Matter_Rally_(cropped).jpg",
-"aspect": 1.472,
+"file": "Royce_White,_2023.jpg",
+"aspect": 1.333,
 "box": [
-0.1942,
-0.1507,
-0.3937,
-0.3801
-]
+0.2771,
+0.0946,
+0.4749,
+0.4876
+],
+"manual": true
 },
 "203092": {
 "file": "US_Navy_111027-N-QF368-685_Tyler_Zeller_competes_in_an_exhibition_basketball_game.jpg",
@@ -18613,14 +18732,15 @@
 ]
 },
 "203108": {
-"file": "Bernard_James_Dallas_Mavericks_2013_(cropped).jpg",
-"aspect": 2.0775,
+"file": "Bernard_James_2013.JPG",
+"aspect": 0.9365,
 "box": [
-0.0269,
-0.6171,
-0.2812,
-0.1777
-]
+0.3428,
+0.0688,
+0.2126,
+0.2951
+],
+"manual": true
 },
 "203109": {
 "file": "Jae_Crowder.jpg",
@@ -19018,14 +19138,15 @@
 ]
 },
 "203318": {
-"file": "20100130_Glen_Rice,_Jr..jpg",
-"aspect": 1.5,
+"file": "Glen_Rice_Jr_Wizards.jpg",
+"aspect": 1.116,
 "box": [
-0.3204,
-0.2308,
-0.1519,
-0.1112
-]
+0.2711,
+0.1228,
+0.1917,
+0.225
+],
+"manual": true
 },
 "203382": {
 "file": "Aron_Baynes_(30882239003)_(cropped).jpg",
@@ -20399,14 +20520,15 @@
 ]
 },
 "204054": {
-"file": "Zoran_Dragić_30_-_Anadolu_Efes_S.K._20171130_(cropped).jpg",
-"aspect": 1.512,
+"file": "Zoran_Dragic_30_Anadolu_Efes_20171130_(4).jpg",
+"aspect": 1.3333,
 "box": [
-0.4162,
-0.0742,
-0.2374,
-0.2237
-]
+0.4979,
+0.225,
+0.0939,
+0.0977
+],
+"manual": true
 },
 "204060": {
 "file": "Joe_Ingles_Utah_(cropped).jpg",
