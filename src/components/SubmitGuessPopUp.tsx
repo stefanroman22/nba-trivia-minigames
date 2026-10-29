@@ -8,6 +8,9 @@ interface SubmitGuessPopupProps {
   show: boolean;
   text: string;
   color: string;
+  /** Optional per-message id: a new value re-mounts the line so a second message while the first
+      is still showing enters again (and replaces it) instead of only swapping its text. */
+  popKey?: number | string;
 }
 
 /**
@@ -18,14 +21,14 @@ interface SubmitGuessPopupProps {
  * regardless of message length. Falls back to a 0-height inline overlay for the
  * brief moment before the slot mounts.
  */
-const SubmitGuessPopup = ({ show, text, color }: SubmitGuessPopupProps) => {
+const SubmitGuessPopup = ({ show, text, color, popKey }: SubmitGuessPopupProps) => {
   const slot = useContext(FeedbackSlotContext);
 
   const content = (
-    <AnimatePresence>
+    <AnimatePresence mode="wait">
       {show && (
         <motion.span
-          key="score-feedback"
+          key={popKey === undefined ? "score-feedback" : `score-feedback-${popKey}`}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}

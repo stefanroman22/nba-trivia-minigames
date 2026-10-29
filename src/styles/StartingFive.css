@@ -82,6 +82,8 @@
   text-overflow: ellipsis;
 }
 .s5-card.is-correct .s5-card-pos { color: var(--brand); }
+/* Online, the board sits in a narrower column: tighter tracking so "Shooting Guard" is never cut. */
+.om-stage--play .s5-card-pos { font-size: 9.5px; letter-spacing: 0.3px; }
 
 /* Flip stage */
 .s5-card-stage { position: relative; width: 100%; aspect-ratio: 1 / 1; perspective: 900px; }
@@ -132,6 +134,16 @@
 
 /* Footer: input + confirm, or the revealed name (fixed height = stable cards) */
 .s5-card-foot { display: flex; flex-direction: column; justify-content: flex-start; }
+/* Wide layouts: the foot keeps the stacked input + Confirm height (38 + 6 + 38) when the input is replaced
+   by the player name, so the stage never shrinks as the cards fill (Rule 6.2). Phones set their own below. */
+.s5-card-foot { min-height: 82px; }
+/* The end slot (loader -> score) mounts when the lineup completes: its 20px root gap and its height grow in
+   instead of adding ~79px to the stage in one frame (Rule 6.2). */
+@keyframes s5-end-in {
+  from { margin-top: -20px; max-height: 0; opacity: 0; overflow: hidden; }
+  to { margin-top: 0; max-height: 90px; opacity: 1; overflow: hidden; }
+}
+.gf:has(.s5-cards) > .gf-action { animation: s5-end-in 0.3s var(--ease-out); }
 .s5-card-input { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .s5-card-name {
   text-align: center;
@@ -171,10 +183,14 @@
   .s5-score-num { font-size: 18px; padding: 3px 10px; }
   /* Input and Confirm share one line to save ~44px per row. */
   .s5-card-input { flex-direction: row; align-items: center; gap: 6px; }
+  /* The foot keeps the input row's height (38px input; also a 2-line name: 6px + 2 x 16.25px)
+     when the input is replaced by the player name, so the stage never resizes (Rule 6.2). */
+  .s5-card-foot { min-height: 39px; }
   .s5-card-input > *:first-child { flex: 1 1 auto; min-width: 0; }
   .s5-card-input .btn { flex: none; width: auto; padding: 0 12px; font-size: 11px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .s5-flip { transition: none; }
+  .gf:has(.s5-cards) > .gf-action { animation: none; }
 }

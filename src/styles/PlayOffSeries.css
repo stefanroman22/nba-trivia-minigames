@@ -1,0 +1,7 @@
+/* Pick-card team name: reserves the longest wrap so a short name never changes the card height
+   (Rules 4.4 / 6.2). 2 lines at 15px / 1.25 above 414px, 3 lines (e.g. Golden State Warriors) on
+   narrow phones. */
+.pos-team-name { min-height: 2.5em; }
+@media (max-width: 414px) {
+  .pos-team-name { min-height: 3.75em; }
+}

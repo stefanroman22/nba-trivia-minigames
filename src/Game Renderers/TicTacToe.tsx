@@ -165,6 +165,8 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   const [revealed, setRevealed] = useState<Record<number, string>>({});
   const [showPopup, setShowPopup] = useState(false);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
+  const [popKey, setPopKey] = useState(0);
+  const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [now, setNow] = useState(() => Date.now());
   // Solo end (Rule 7.3, in place): the final board stays; the input row swaps to
   // Play again / Close game and the status row shows the score line.
@@ -187,6 +189,8 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   const clearTimers = () => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
+    if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    popTimerRef.current = null;
   };
 
   // Fire-and-forget guess log (the data flywheel; solo only — the server
@@ -246,8 +250,11 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
 
   const flashPopup = (text: string, color: string) => {
     setPopUpInfo({ Text: text, Color: color });
+    setPopKey((k) => k + 1); // every answer enters again (Rule 6.1)
     setShowPopup(true);
-    later(() => setShowPopup(false), 1400);
+    // One hide timer: a newer answer restarts the 1.4 s window instead of being hidden by the older timer.
+    if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    popTimerRef.current = setTimeout(() => setShowPopup(false), 1400);
   };
 
   // ---------- SOLO ----------
@@ -511,7 +518,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
           </GameFrame.InputRow>
         </GameFrame.Action>
 
-        <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} />
+        <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} popKey={popKey} />
       </GameFrame>
     );
   }
@@ -605,7 +612,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
         />
       </GameFrame.Action>
 
-      <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} />
+      <SubmitGuessPopup show={showPopup} text={popUpInfo.Text} color={popUpInfo.Color} popKey={popKey} />
     </GameFrame>
   );
 }

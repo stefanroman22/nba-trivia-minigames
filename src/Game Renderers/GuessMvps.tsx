@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { Fragment, useState, useEffect, useRef, type ReactNode } from "react";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
@@ -16,6 +16,18 @@ interface GuessMvpsProps {
   pointsPerCorrect: number;
   onGameEnd: OnGameEnd;
 }
+
+// The reserved (hidden) twin carries the widest possible season: digits are proportional ("1971-72" is far
+// narrower than "2008-09"), so with the real season the reserve itself could wrap to a different number of
+// lines per round and the stage would follow it.
+const RESERVE_SEASON = "0000-00";
+/** A season ("1985-86") never wraps mid-token on a narrow phone, so the title keeps one line count in every
+ *  round (Rule 6.2); the text itself is unchanged. */
+const SEASON = /(\d{4}-\d{2})/;
+const noBreakSeason = (text: string): ReactNode =>
+  text.split(SEASON).map((part, i) =>
+    i % 2 ? <span key={i} style={{ whiteSpace: "nowrap" }}>{part}</span> : <Fragment key={i}>{part}</Fragment>
+  );
 
 function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -124,7 +136,7 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
       {/* The season and the row's question ("Who was the {award} in {season}?") swap between rounds. */}
       <GameFrame.Prompt
         eyebrow={<SwapText className="tnum">{currentSeason.season}</SwapText>}
-        title={<SwapText reserveWidth={[promptReserve(currentSeason)]}>{awardPrompt(currentSeason)}</SwapText>}
+        title={<SwapText swapKey={awardPrompt(currentSeason)} reserveWidth={[noBreakSeason(promptReserve(currentSeason).replace(currentSeason.season, RESERVE_SEASON))]}>{noBreakSeason(awardPrompt(currentSeason))}</SwapText>}
       />
       </GameFrame.Board>
 

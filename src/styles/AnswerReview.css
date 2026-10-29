@@ -97,12 +97,16 @@
 /* Lists that scroll inside their game cap their height; in the modal the body scrolls instead. */
 .ar .cx-list,
 .ar .waya-feed { max-height: none; overflow: visible; }
+.ar .cx-list { height: auto; }
 .ar .waya-feed { width: 100%; }
 
 /* Starting 5: five across at every width (the review has no inputs to make room for). */
 .ar .s5-cards { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
 .ar .s5-card:last-child:nth-child(odd) { grid-column: auto; justify-self: stretch; width: auto; }
 .ar .s5-card-name { font-size: 12px; padding-top: 4px; }
+/* Position labels wrap instead of ellipsising ("Shooting Guard" is wider than a phone column);
+   every card reserves the two-line height so the five cards stay level (Rule 4.4). */
+.ar .s5-card-pos { white-space: normal; overflow: visible; text-overflow: clip; text-wrap: balance; line-height: 1.2; min-height: 2.4em; display: flex; align-items: flex-end; justify-content: center; }
 @media (max-width: 560px) {
   .ar .s5-cards { gap: 5px; }
   .ar .s5-card-name { font-size: 10.5px; }
