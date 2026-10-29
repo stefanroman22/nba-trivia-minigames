@@ -89,11 +89,12 @@ export function pruneSeen(game: string, validIds: Iterable<string>): Set<string>
   return new Set(kept);
 }
 
-/** Start the set over; what it held goes on the ignore list for the account's (older) copy. */
-function resetSeen(game: string): void {
+/** Start the set over (only `ids` of it when given); what it drops goes on the ignore list for the account's (older) copy. */
+function resetSeen(game: string, ids?: ReadonlySet<string>): void {
   const old = readIds(seenKey(game));
-  writeIds(baseKey(game), [...new Set([...readIds(baseKey(game)), ...old])]);
-  writeIds(seenKey(game), []);
+  const dropped = ids ? old.filter((id) => ids.has(id)) : old;
+  writeIds(baseKey(game), [...new Set([...readIds(baseKey(game)), ...dropped])]);
+  writeIds(seenKey(game), ids ? old.filter((id) => !ids.has(id)) : []);
 }
 
 function shuffle<T>(arr: T[], rand: () => number): T[] {
@@ -151,12 +152,14 @@ export function dealUnseen<T>(
 /**
  * For a question game with its own picker (one question a game): the index items not seen yet, or,
  * once every one has been seen, the set reset and every item. The caller marks its pick seen.
+ * `items` may be one slice of the game's whole `pool` (a difficulty band): ids are pruned against the
+ * pool, and an exhausted slice resets only its own ids, so the other slices keep what they have seen.
  */
-export function unseenOrAll<T>(game: string, items: readonly T[], idOf: (item: T) => string): T[] {
-  const seen = pruneSeen(game, items.map(idOf));
+export function unseenOrAll<T>(game: string, items: readonly T[], idOf: (item: T) => string, pool: readonly T[] = items): T[] {
+  const seen = pruneSeen(game, pool.map(idOf));
   const unseen = items.filter((item) => !seen.has(idOf(item)));
   if (unseen.length) return unseen;
-  resetSeen(game);
+  resetSeen(game, pool === items ? undefined : new Set(items.map(idOf)));
   return [...items];
 }
 

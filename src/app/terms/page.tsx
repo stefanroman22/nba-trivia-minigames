@@ -5,7 +5,7 @@ import LegalPage, { LegalHeading, LegalList, LegalSummary, MailLink, OperatorBlo
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: `The rules for using ${LEGAL.service}: accounts, fair play, moderation, reporting content, and your rights.`,
+  description: `The rules for using ${LEGAL.service}: accounts, fair play, advertising, moderation, reporting content, and your rights.`,
   alternates: { canonical: "/terms" },
   // A child openGraph/twitter replaces the layout's wholesale (including the root share image), so the
   // shared fields are repeated.
@@ -18,16 +18,18 @@ export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service" path="/terms">
       <LegalSummary>
-        <strong>The short version.</strong> {LEGAL.service} is a free game. Play fair, be kind, keep your name and photo
-        appropriate, and don&apos;t cheat or attack the site. If we have to act against your account we tell you why and you
-        can ask us to look again. You can delete your account whenever you like. Our{" "}
-        <LegalLink href="/privacy">Privacy Policy</LegalLink> explains what we do with your data.
+        <strong>The short version.</strong> {LEGAL.service} is a free game. It may show ads to pay for running it, but you
+        never have to click or watch one to play. Play fair, be kind, keep your name and photo appropriate, and
+        don&apos;t cheat, attack the site or fake clicks on ads. If we have to act against your account we tell you why and
+        you can ask us to look again. You can delete your account whenever you like. Our{" "}
+        <LegalLink href="/privacy">Privacy Policy</LegalLink> explains what we do with your data, including for ads.
       </LegalSummary>
 
       <LegalHeading id="who">1. Who we are and what these terms are</LegalHeading>
       <p>
-        These terms are an agreement between you and the operator of {LEGAL.service}, a free
-        website of NBA trivia games with optional accounts, leaderboards, friends and online matches.
+        These terms are an agreement between you and the operator of {LEGAL.service}, a free website of NBA trivia games
+        with optional accounts, leaderboards, friends and online matches. It is run by one person, named below, who pays
+        for the service and may earn money from advertising shown on it (see section 10).
       </p>
       <OperatorBlock />
       <p>
@@ -53,10 +55,12 @@ export default function TermsPage() {
 
       <LegalHeading id="service">4. The service</LegalHeading>
       <p>
-        {LEGAL.service} is provided free of charge and &ldquo;as is&rdquo;. Questions, answers and statistics come from public
-        sources and may contain mistakes. Games, points, ranks and features can change, pause or end, and the service can be
-        unavailable from time to time. Points, ranks and leaderboard positions have no cash or other value and cannot be
-        transferred. We will not charge you for the service without agreeing it with you first.
+        {LEGAL.service} is provided free of charge and &ldquo;as is&rdquo;. To pay for running it, the site may show
+        advertising. Ads can appear, change or stop at any time, and you never have to click, watch or buy anything to
+        play. Questions, answers and statistics come from public sources and may contain mistakes. Games, points, ranks and
+        features can change, pause or end, and the service can be unavailable from time to time. Points, ranks and
+        leaderboard positions have no cash or other value and cannot be transferred. We will not charge you for the service
+        without agreeing it with you first.
       </p>
 
       <LegalHeading id="rules">5. Play fair</LegalHeading>
@@ -64,8 +68,10 @@ export default function TermsPage() {
         <li>Do not use a display name or photo that is hateful, sexual, violent, harassing, misleading, impersonates someone, or shows someone who has not agreed to it.</li>
         <li>Do not harass, threaten or abuse other players, in matches or elsewhere.</li>
         <li>Do not cheat: no bots, scripts or automation, no farming of points, no exploiting bugs, no sharing answers during a match. Report bugs to us instead.</li>
+        <li>Do not click, view or reload ads artificially: no clicking ads to help us or to hurt us, no asking others to, no bots, scripts or tools that load or click ads, and no hiding or disguising ads. We may suspend an account that does this (section 7).</li>
         <li>Do not attack, overload, scrape or try to break into the service or other people&apos;s accounts.</li>
         <li>Do not use the service for anything unlawful.</li>
+        <li>You may use an ad blocker; the games work the same with or without ads.</li>
       </LegalList>
 
       <LegalHeading id="content">6. What you add (name, photo)</LegalHeading>
@@ -114,20 +120,33 @@ export default function TermsPage() {
 
       <LegalHeading id="ip">9. Intellectual property and the NBA</LegalHeading>
       <p>
-        The site, its design, text and code belong to the operator or its licensors. {LEGAL.service} is an independent fan
-        project. It is <strong>not affiliated with, endorsed by or sponsored by the NBA, any NBA team, the players&apos;
-        association, or any player</strong>. NBA, team and player names, logos and images are the property of their owners and
-        appear here as part of the trivia games (for example team names and colours, and player photos in questions). If you own rights in anything shown and want it
-        changed or removed, email us and we will deal with it quickly.
+        The site, its design, text and code belong to the operator or its licensors. {LEGAL.service} is an independent
+        website made by a basketball fan and run by the operator named in section 1; it may carry advertising to pay for
+        itself. It is <strong>not affiliated with, endorsed by or sponsored by the NBA, any NBA team, the players&apos;
+        association, or any player</strong>, and an ad shown next to a question does not mean that any of them, or we,
+        endorse the advertiser. NBA, team and player names and images are the property of their owners and appear here as
+        part of the trivia games (for example team names and colours, and player photos in questions). If you own rights in
+        anything shown and want it changed or removed, email us and we will deal with it quickly.
       </p>
 
-      <LegalHeading id="thirdparty">10. Other people&apos;s services</LegalHeading>
+      <LegalHeading id="thirdparty">10. Other people&apos;s services and advertising</LegalHeading>
       <p>
-        Signing in with Google is governed by Google&apos;s own terms and privacy policy. Player photos are loaded from the
-        NBA&apos;s servers, or from Wikimedia Commons (see the photo credits page); see the Privacy Policy, section 5.
-        Ads (not live yet): when we switch ads on, they are served by Google; how that uses your data, and how to choose,
-        is in the Privacy Policy, sections 5 and 11.
-        We are not responsible for services we do not run.
+        Signing in with Google is governed by Google&apos;s own terms and privacy policy. Player photos are loaded from the NBA&apos;s
+        servers, or from Wikimedia Commons (see the photo credits page); see the{" "}
+        <LegalLink href="/privacy#shared">Privacy Policy, section 5</LegalLink>. We are not responsible for services we do
+        not run.
+      </p>
+      <p id="ads">
+        <strong>Ads.</strong> When the site shows ads, they are supplied by Google (Google AdSense) and the advertisers and ad
+        partners Google works with, and they are marked as ads. We choose where ads can appear and can block some kinds of
+        ads, but we do not pick each ad, and the advertiser is responsible for what its ad says. An ad that links somewhere
+        takes you to the advertiser&apos;s site, which has its own terms and privacy policy; anything you buy or sign up for
+        there is between you and the advertiser. Advertisers never get your account details, such as your email, display
+        name, player ID or scores. The ads are non-personalised (not based on your browsing) for every visitor. How ads
+        use cookies and your device&apos;s data, and the choices you have, are explained in the{" "}
+        <LegalLink href="/privacy#storage">Privacy Policy, section 11</LegalLink>. If you see an ad that is offensive,
+        misleading or illegal, tell us at <MailLink /> with the page and a screenshot if you can, and we will ask for it to
+        be blocked.
       </p>
 
       <LegalHeading id="ending">11. Ending your use</LegalHeading>
@@ -139,10 +158,11 @@ export default function TermsPage() {
 
       <LegalHeading id="changes">12. Changes to these terms</LegalHeading>
       <p>
-        We may update these terms, for example when we add a feature or the law changes. We will update the date and describe what
-        changed, and for a significant change we will say so on the site&apos;s home page for at least 14 days before it
-        applies. If you do not accept it you can delete your account before then, at no cost; using the service after the
-        date means you accept it.
+        We may update these terms, for example when we add a feature, start or stop showing ads, or the law changes. We will
+        update the date and describe what changed, and for a significant change we will say so on the site&apos;s home page
+        for at least 14 days before it applies. If you do not accept a change you can delete your account, at no cost,
+        before it applies or within 30 days after; using the service after the date means you accept it. Earlier versions
+        are available on request.
       </p>
       <p>
         This version was published on {LEGAL.updated}. Accounts created from that date accept it when they sign up. For
@@ -153,8 +173,9 @@ export default function TermsPage() {
       <LegalHeading id="liability">13. Our responsibility</LegalHeading>
       <p>
         We take care running the service, but it is free and provided as is. As far as the law allows, we are not liable for
-        indirect or consequential loss, lost data or lost points, or for problems caused by things outside our control. We do
-        not exclude or limit liability for death or personal injury caused by negligence, for fraud, for intentional or
+        indirect or consequential loss, lost data or lost points, or for problems caused by things outside our control,
+        including the content of ads and the products, offers and websites of advertisers, which we do not check one by one.
+        We do not exclude or limit liability for death or personal injury caused by negligence, for fraud, for intentional or
         grossly negligent harm, or for anything the law does not allow us to limit, and nothing in these terms removes
         consumer rights you have under the law of the country where you live.
       </p>
@@ -178,7 +199,8 @@ export default function TermsPage() {
 
       <LegalHeading id="contact">16. Contact</LegalHeading>
       <p>
-        Questions, appeals, reports, privacy requests and legal notices: <MailLink />. A person reads it, and we answer in English or Romanian.
+        Questions, appeals, reports (including about ads), privacy requests and legal notices, from players and from public
+        authorities: <MailLink />. A person reads it, and we answer in English or Romanian.
       </p>
     </LegalPage>
   );

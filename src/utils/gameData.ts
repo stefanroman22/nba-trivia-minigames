@@ -443,12 +443,16 @@ export const PICKERS: Record<string, (i: QuestionIndex, rand?: () => number, day
 /**
  * The qid a single-player game deals: its picker over the index, limited for the SEEN_GAMES to the
  * questions not seen yet (every one again once all have been seen: utils/seenCore.ts). The caller
- * marks the pick seen once its file has loaded.
+ * marks the pick seen once its file has loaded. `difficulty` (Tic-Tac-Toe: items [qid, difficulty])
+ * first narrows the items to that band, so no-repeats runs per band; an index with no item of that
+ * band (an older index of bare [qid] items, or a band not published) deals from every item.
  */
-export function pickQuestion(game: string, index: QuestionIndex, rand: () => number = Math.random, day?: string): string {
+export function pickQuestion(game: string, index: QuestionIndex, rand: () => number = Math.random, day?: string, difficulty?: string): string {
   const picker = PICKERS[game] ?? pickRandom;
-  if (!SEEN_GAMES.has(game)) return picker(index, rand, day);
-  return picker({ ...index, items: unseenOrAll(game, index.items, (it) => String(it[0])) }, rand, day);
+  const band = difficulty ? index.items.filter((it) => it[1] === difficulty) : [];
+  const items = band.length ? band : index.items;
+  if (!SEEN_GAMES.has(game)) return picker(band.length ? { ...index, items } : index, rand, day);
+  return picker({ ...index, items: unseenOrAll(game, items, (it) => String(it[0]), index.items) }, rand, day);
 }
 
 /** True when the manifest publishes this question game. */
@@ -472,11 +476,18 @@ export async function fetchQuestionIndex(game: string): Promise<QuestionIndex> {
 const isQuestion = (v: unknown): v is Question =>
   !!v && typeof v === "object" && !Array.isArray(v) && typeof (v as Question).qid === "string";
 
-async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number, qid?: string, day?: string): Promise<Question> {
+async function loadQuestionFrom(
+  m: ManifestV3,
+  game: string,
+  rand: () => number,
+  qid?: string,
+  day?: string,
+  difficulty?: string,
+): Promise<Question> {
   const index = await loadIndexFrom(m, game);
   if (!index.items.length) throw new GameDataUnavailable(`no ${game} questions`);
   const view: QuestionIndex = { schema: index.schema, game, version: m.version, dataset: index.dataset, items: index.items };
-  const pick = qid ?? pickQuestion(game, view, rand, day);
+  const pick = qid ?? pickQuestion(game, view, rand, day, difficulty);
   const sha = index.files[pick];
   if (!sha) throw new GameDataUnavailable(`${game}/${pick} is not in the index`);
   const question = await cachedJson(questionPath(game, pick, sha), isQuestion, "a question");
@@ -487,19 +498,25 @@ async function loadQuestionFrom(m: ManifestV3, game: string, rand: () => number,
 /**
  * One question for a game: manifest -> index -> the game's picker -> the question file, exactly
  * the payload the old questions store served. `qid` skips the picker; `day` is a daily game's day
- * (PICKERS). Throws GameDataUnavailable (or a fetch error) when the host or the game isn't available;
- * callers fall back.
+ * (PICKERS); `difficulty` deals from that band (pickQuestion). Throws GameDataUnavailable (or a fetch
+ * error) when the host or the game isn't available; callers fall back.
  */
-export async function fetchQuestion(game: string, rand: () => number = Math.random, qid?: string, day?: string): Promise<Question> {
+export async function fetchQuestion(
+  game: string,
+  rand: () => number = Math.random,
+  qid?: string,
+  day?: string,
+  difficulty?: string,
+): Promise<Question> {
   const m = await getManifest();
   try {
-    return await loadQuestionFrom(m, game, rand, qid, day);
+    return await loadQuestionFrom(m, game, rand, qid, day, difficulty);
   } catch (err) {
     // A manifest up to 60 s old can point at an index a publish just retired: retry once on a fresh one.
     manifestCache = null;
     const fresh = await getManifest().catch(() => m);
     if (fresh === m || JSON.stringify(fresh.games[game]) === JSON.stringify(m.games[game])) throw err;
-    return loadQuestionFrom(fresh, game, rand, qid, day);
+    return loadQuestionFrom(fresh, game, rand, qid, day, difficulty);
   }
 }
 
