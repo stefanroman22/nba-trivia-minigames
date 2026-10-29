@@ -106,6 +106,23 @@ category names, CMP test parameters, CSP domain list) stay unverified until chec
 - US states: <https://www.clym.io/blog/ccpa-applicability-guide>
 - Minors: <https://www.taylorwessing.com/en/insights-and-events/insights/2025/07/rd-european-commission-guidelines-on-protection-of-minors-under-the-digital-services-act> · <https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/childrens-information/childrens-code-guidance-and-resources/age-appropriate-design-a-code-of-practice-for-online-services/> · <https://ppc.land/google-begins-machine-learning-age-detection-for-ad-protections-in-us/> · <https://www.romania-insider.com/society/romania-gambling-ad-rules-july-2025>
 
+### Ads and the Terms (2026-10-29)
+
+Sources behind the ads wording in the Terms (summary, sections 1, 4, 5, 9, 10, 12, 13, 16), from the same research ticket.
+The Terms say the service "may show advertising" so they stay true while ads are off.
+
+- Not presenting a trader as a non-trader (why "fan project" went from section 9): UCPD Annex I point 22 <https://www.legislation.gov.uk/eudr/2005/29/annex/I>
+- AdSense rules the section 5 bullet and section 10 rest on (no clicking own ads, no artificial clicks or impressions, no encouraging clicks, ad labels): <https://support.google.com/adsense/answer/48182>
+- Blocking sensitive ad categories (why the Terms do not claim it yet): <https://support.google.com/adsense/answer/164131>. Whether "Gambling & Betting" is blocked by default is UNVERIFIED (sources disagree).
+- Trader status: CJEU C-105/17 Kamenova, 4 Oct 2018: <https://www.scl.org/10306-cjeu-judgment-on-the-meaning-of-trader/> · <https://www.stibbe.com/publications-and-insights/does-selling-a-phone-on-an-online-marketplace-make-you-a-trader-under-the>. Whether regular AdSense income needs a Romanian registration: forum sources only, UNVERIFIED, ask an accountant.
+- Identity and ad-labelling duties: e-Commerce Directive 2000/31 Art 5(1) and Art 6(a)-(b). Romanian Law 365/2002 (republished) <https://legislatie.just.ro/Public/DetaliiDocumentAfis/77218>: the exact article number after the 2006 renumbering, and whether an unregistered individual must show a number, are UNVERIFIED (the page did not load).
+- Changing terms (section 12: valid reasons, free exit, 30-day window, earlier versions on request): Unfair Terms Directive 93/13 Annex 1(j); Digital Content Directive 2019/770 Art 19 <https://www.legislation.gov.uk/eudr/2019/770/article/19/2020-01-31>. Whether the home-page notice or the PDF is a "durable medium" without email: UNVERIFIED, for counsel.
+- No re-acceptance needed for informing users of changes: DSA Art 14(2) <https://www.eu-digital-services-act.com/Digital_Services_Act_Article_14.html>.
+- Counter-risk for "continued use = acceptance": German BGH, 27 Apr 2021, XI ZR 26/20 (banks' silence-as-consent clauses); discussed in <https://dserver.bundestag.de/btd/20/048/2004888.pdf>. The judgment itself was not read: UNVERIFIED. Rome I Art 6 keeps a consumer's mandatory protections.
+- Minors and ads: DSA Art 28(2) (no profiling-based ads to known minors; micro/small platforms exempt under Art 19) <https://cm.twobirds.com/en/insights/2023/global/dsa-publicite-ciblee-destinee-aux-mineurs-une-interdiction-a-venir>; AdSense child-directed and under-age tags <https://support.google.com/adsense/answer/3248194>. The Terms promise only that no account details go to advertisers.
+- Digital Content Directive in Romania: OUG 141/2021 <https://www.euroavocatura.ro/legislatie/1828/OUG_nr__141_2021_privind_anumite_aspecte_referitoare_la_contractele_de_furnizare_de_continut_digital_si_de_servicii_digitale>; a 2024 law may have replaced it, UNVERIFIED.
+- Cookie consent is never collected through the Terms (GDPR Art 7(2) and (4)); it goes through the CMP (Privacy section 11).
+
 ## Other jurisdictions (summary)
 
 CCPA/CPRA and most US state laws: thresholds (about 100k consumers) probably not met yet; the policy is written to the

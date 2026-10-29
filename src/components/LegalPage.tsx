@@ -55,6 +55,8 @@ export const OperatorBlock = () => (
     <strong>{LEGAL.service}</strong>
     {LEGAL.operatorName && <><br />Operated by {LEGAL.operatorName}</>}
     {LEGAL.operatorAddress && <><br />{LEGAL.operatorAddress}</>}
+    {LEGAL.operatorRegistration && <><br />Registration: {LEGAL.operatorRegistration}</>}
+    {LEGAL.operatorTaxId && <><br />Tax ID (CUI): {LEGAL.operatorTaxId}</>}
     <br />Email: <MailLink />
   </address>
 );
