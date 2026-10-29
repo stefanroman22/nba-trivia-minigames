@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
-import { commonsUrl, placePhoto, usePhotoSource, type PhotoFrame, type PhotoSource } from "../../utils/playerPhotos";
+import { commonsUrl, nbaUrl, placePhoto, usePhotoSource, type PhotoFrame, type PhotoSource } from "../../utils/playerPhotos";
 import "../../styles/PlayerPhoto.css";
 
 /** The one "no photo" figure every game shows: an orange player silhouette. */
@@ -35,8 +35,8 @@ interface PlayerPhotoProps {
 }
 
 /**
- * A player's photo: Wikimedia Commons, else the silhouette — the same order and the same
- * fallback in every game (see utils/playerPhotos).
+ * A player's photo: the NBA headshot, else Wikimedia Commons, else the silhouette — the same
+ * order, framing and fallback in every game (see utils/playerPhotos).
  */
 export default function PlayerPhoto({
   personId,
@@ -55,16 +55,17 @@ export default function PlayerPhoto({
     return <PlayerSilhouette className={`${fallbackClassName ?? ""} player-photo-pending`} />;
   }
   if (!photo || failed) return <PlayerSilhouette className={fallbackClassName} />;
-  return <CommonsPhoto photo={photo} alt={alt} frame={frame} className={className} style={style} onFail={() => setFailed(true)} />;
+  return <FramedPhoto photo={photo} alt={alt} frame={frame} className={className} style={style} onFail={() => setFailed(true)} />;
 }
 
 /**
- * A Commons photo inside a frame <span> that takes the game's class: the span is measured, and the
- * photo is drawn at the size and offset placePhoto picks for that exact frame (zoomed onto the
- * face in avatars, head kept in view in cards). The file width follows the drawn size, so it stays
- * sharp without downloading more than needed. Measured in a layout effect, before paint: no jump.
+ * A photo inside a frame <span> that takes the game's class: the span is measured, and the photo
+ * is drawn in the headshot-shaped window, at the size and offset placePhoto picks for that exact
+ * frame (the face where an NBA headshot has it). The file width follows the drawn size, so it
+ * stays sharp without downloading more than needed. Measured in a layout effect, before paint: no
+ * jump.
  */
-function CommonsPhoto({
+function FramedPhoto({
   photo,
   alt,
   frame,
@@ -105,18 +106,20 @@ function CommonsPhoto({
     const dpr = typeof window === "undefined" ? 2 : window.devicePixelRatio || 1;
     needRef.current = Math.max(needRef.current, Math.ceil(p.w * dpr));
     img = (
-      <img
-        src={commonsUrl(photo.path, photo.width, needRef.current)}
-        alt={alt}
-        decoding="async"
-        draggable={false}
-        onError={onFail}
-        style={{ position: "absolute", left: p.x, top: p.y, width: p.w, height: p.h, maxWidth: "none", objectFit: "fill" }}
-      />
+      <span className="player-photo-window" style={{ left: p.win.x, width: p.win.w }}>
+        <img
+          src={photo.source === "nba" ? nbaUrl(photo.personId, needRef.current) : commonsUrl(photo.path, photo.width, needRef.current)}
+          alt={alt}
+          decoding="async"
+          draggable={false}
+          onError={onFail}
+          style={{ position: "absolute", left: p.x, top: p.y, width: p.w, height: p.h, maxWidth: "none", objectFit: "fill" }}
+        />
+      </span>
     );
   }
   return (
-    <span ref={boxRef} className={`player-photo-frame ${className ?? ""}`} data-source="commons" style={style}>
+    <span ref={boxRef} className={`player-photo-frame ${className ?? ""}`} data-source={photo.source} style={style}>
       {img}
     </span>
   );

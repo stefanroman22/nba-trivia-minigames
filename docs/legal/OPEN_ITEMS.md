@@ -13,12 +13,13 @@ Done: operator name, address and country are set; the Google consent screen is p
 | **Git history cleaned (done 2026-10-08).** Remaining: rotate the Google OAuth client secret (it was public) and ask GitHub Support to purge cached views and old PR refs | Audit finding C2; see HISTORY-CLEANUP-2026-10-08.md for the exact steps and the request text | Google Cloud Console, Vercel env `CLIENT_SECRET`, GitHub Support |
 | **NBA assets** (logos, headshots, the scraping workaround) | Audit finding C5; the most likely takedown | Section D.1 |
 | **Dedicated privacy mailbox** instead of the personal Gmail (kept for now by choice). Higher priority once ads are on: ad-related requests would land in a personal Gmail | Public and permanent | `contactEmail` in `legal.ts` |
+| **Terms/Privacy version 2026-10-29.1, promoted 2026-10-29 with an owner waiver.** It carries the ads text (ads still off) and the NBA headshots from cdn.nba.com. The dates are the promotion day (effective 12 November 2026, 14 days later; no home-page notice before launch, see the notice-mechanism row below). Because `main` deploys the backend with the frontend, the backend applies the new version from 2026-10-29, before `effective`. Waiver: the owner instructed the promotion on 2026-10-29 in the session ("push everything"). | Terms section 12 promises existing accounts the change applies from `effective` | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
 | **Terms/Privacy version 2026-10-20.1, promoted 2026-10-20 with an owner waiver.** The dates are the promotion day (effective 3 November 2026; the home-page notice was removed before launch, see the notice-mechanism row below). Because `main` deploys the backend with the frontend, the backend and relay changes apply from 2026-10-20, before `effective`. Waiver: the owner instructed the promotion on 2026-10-20 in the session ("promote to production"); production had 4 accounts. | Terms section 12 promises existing accounts the change applies from `effective` | `src/configurations/legal.ts`, `backend/users/consent.py TERMS_VERSION` |
 
 ## A2. Before ads go live
 
 Ads (Google AdSense) are built behind `NEXT_PUBLIC_ADS_ENABLED` (unset = off, the production default) and
-`NEXT_PUBLIC_ADSENSE_PUB_ID` (unset now); the Privacy Policy describes them as "not live yet" (legal version
+`NEXT_PUBLIC_ADSENSE_PUB_ID` (unset now); the Privacy Policy describes them as "not live yet" +
 2026-10-28.1). AdSense and Google's privacy message (CMP, Privacy & messaging) are free; no paid CMP. None of these
 rows is done.
 
@@ -60,7 +61,7 @@ rows is done.
 
 ## D. Needs a lawyer's judgement
 
-1. **NBA assets (largest exposure).** Player photos no longer come from `cdn.nba.com` (branch `feat/photos-commons-only`, 2026-10-26: every photo is a freely licensed Wikimedia Commons file credited on `/credits`, else a silhouette); no team logo is shown since 2026-10-27 (team-colour badges and names); the Name the NBA Club puzzle still uses scrambled derivatives of the 30 current logos (`public/logos/scrambled`, owner decision to keep); player data comes from the unofficial `nba_api`. NBA's Terms restrict stats to non-commercial/news use and bar reproducing or linking images and logos without permission. Names alone are low risk (nominative use); logos and headshots are the real risk (trademark, copyright, right of publicity). Options: licensed or Wikimedia/public-domain images, silhouettes, text-only. The NBA disclaimer is in the Terms (section 9).
+1. **NBA assets (largest exposure).** Player photos come from `cdn.nba.com` again: **owner decision 2026-10-28** (branch `feat/nba-headshots`), after playing Who Are Ya, to use the official NBA headshots for one uniform look, accepting the takedown / AdSense risk that the 2026-10-26 switch (`feat/photos-commons-only`) had removed; players without an NBA headshot get a freely licensed Wikimedia Commons file credited on `/credits`, else a silhouette; no team logo is shown since 2026-10-27 (team-colour badges and names); the Name the NBA Club puzzle still uses scrambled derivatives of the 30 current logos (`public/logos/scrambled`, owner decision to keep); player data comes from the unofficial `nba_api`. NBA's Terms restrict stats to non-commercial/news use and bar reproducing or linking images and logos without permission. Names alone are low risk (nominative use); logos and headshots are the real risk (trademark, copyright, right of publicity). Options: licensed or Wikimedia/public-domain images, silhouettes, text-only. The NBA disclaimer is in the Terms (section 9).
 2. Trademark clearance of the product name and logo (above).
 3. Whether leaderboards/public photos make the service a DSA "online platform" (micro/small-enterprise exemption likely applies) and a UK Online Safety Act user-to-user service (illegal-content risk assessment, reporting, terms). Write the Ofcom risk assessment (short) if UK users are expected.
 4. Legal basis for public profile data (contract vs legitimate interests), and the legitimate-interests assessment in `RECORD_OF_PROCESSING.md`.
@@ -81,7 +82,7 @@ rows is done.
 | In-product "Report" button for players, names, photos | DSA notice-and-action is email-only today |
 | Email sending (verification, password reset, notices) | No password reset, no email change, no email verification today; also enables inactive-account warnings |
 | "Log out everywhere" and change-password | Account security basics |
-| Content-Security-Policy, and moving tokens to HttpOnly cookies | localStorage tokens are readable by any XSS; needs a tested allow-list (Google sign-in, Wikimedia Commons, and Google's ad domains once ads are on: section A2) |
+| Content-Security-Policy, and moving tokens to HttpOnly cookies | localStorage tokens are readable by any XSS; needs a tested allow-list (Google sign-in, cdn.nba.com, Wikimedia Commons, and Google's ad domains once ads are on: section A2) |
 | Admin: audit log of reads of feedback and raw game data, 2FA or IP allow-list, drop raw `user_id` from source-row views | Art 32 access accountability |
 | Deploy and pin the photo-check service (`moderation_service`, set `IMAGE_MODERATION_URL`), then switch photo upload on and update the policy | Photo upload returns 503 in production today |
 | Block Russia and sanctioned regions at the edge (Vercel firewall) | Terms/Privacy say the service is not available there but nothing enforces it |

@@ -131,8 +131,8 @@ export default function TermsPage() {
 
       <LegalHeading id="thirdparty">10. Other people&apos;s services and advertising</LegalHeading>
       <p>
-        Signing in with Google is governed by Google&apos;s own terms and privacy policy. Player photos are loaded from Wikimedia
-        Commons (see the photo credits page); see the{" "}
+        Signing in with Google is governed by Google&apos;s own terms and privacy policy. Player photos are loaded from the NBA&apos;s
+        servers, or from Wikimedia Commons (see the photo credits page); see the{" "}
         <LegalLink href="/privacy#shared">Privacy Policy, section 5</LegalLink>. We are not responsible for services we do
         not run.
       </p>

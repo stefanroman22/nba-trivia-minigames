@@ -388,9 +388,10 @@ Player photos always go through `<PlayerPhoto personId=… />` (`src/components/
 hand-built `cdn.nba.com` URL: the CDN answers a missing photo with its own grey silhouette (a 200,
 so `onError` never fires). `PlayerPhoto` picks cdn.nba.com, else Wikimedia Commons, else the shared orange
 `PlayerSilhouette`, from the map `scripts/player-photos/build.mjs` generates. Give it the game's photo and
-fallback classes and declare the frame kind: `frame="avatar"` for circles and tiny boxes (≤ ~70px, it zooms
-onto the face), `"card"` (default) for reveal cards and tiles, `"strip"` for a wide band. Commons photos are
-placed on their detected face inside a frame `<span>` that takes the game's class, so size the frame with
+fallback classes and declare the frame kind: `frame="avatar"` for circles and tiny boxes (≤ ~70px, a Commons
+photo may zoom further), `"card"` (default) for reveal cards and tiles, `"strip"` for a wide band. Every
+photo is framed like an NBA headshot (same face size and position, in a centred window of the headshot's
+shape when the frame is wider) inside a frame `<span>` that takes the game's class, so size the frame with
 that class (width/height or aspect-ratio). A new game showing photos also gets an entry per viewport in
 `scripts/player-photos/frames.json`, and `python scripts/player-photos/check_fit.py` must exit 0.
 

@@ -1,20 +1,22 @@
 # Player photos
 
-Every player photo comes from Wikimedia Commons (public domain or Creative Commons, credited on `/credits`),
-or the player gets the silhouette. No photo comes from cdn.nba.com: its headshots are NBA property, which a
-site with ads may not use.
+Every player who has an official NBA headshot (cdn.nba.com) gets it: one studio template for every era, the
+uniform look the owner chose on 2026-10-28 (it reverses the 2026-10-26 Commons-only switch; the AdSense /
+takedown risk is in docs/legal/OPEN_ITEMS.md D.1). A player without one gets a Wikimedia Commons photo
+(public domain or Creative Commons, credited on `/credits`), or the silhouette.
 
-`node scripts/player-photos/build.mjs` (a few minutes, all reads) writes:
+`node scripts/player-photos/build.mjs` (a few minutes, all reads; it probes cdn.nba.com for every player) writes:
 
 | File | What | Used by |
 |---|---|---|
-| `public/photos/player-photos.json` | Every player: their Wikimedia Commons file (with size and face box), or `none` | `src/utils/playerPhotos.ts` → `<PlayerPhoto>` in every game and answer review |
+| `public/photos/player-photos.json` | Every player: in `nba` (has an NBA headshot), their Wikimedia Commons file (with size and face box), or `none` | `src/utils/playerPhotos.ts` → `<PlayerPhoto>` in every game and answer review |
 | `public/photos/player-ids.json` | Name and alias → `person_id` (latest player wins a shared name) | Starting Five, whose data has names only |
 | `src/data/photo-credits.json` | Author and license of every Commons photo used | `/credits` |
 
 Run it after a data sync adds players, and commit the three files. `npm run check:photos` (part of
 `npm run lint`) fails while a player is missing from the map, a Commons photo has no face box or credit, or
-`src/` loads a cdn.nba.com headshot; the app shows the silhouette for an id the map doesn't list.
+a file other than `src/utils/playerPhotos.ts` loads a cdn.nba.com headshot (every game must frame photos
+through `<PlayerPhoto>`); the app shows the silhouette for an id the map doesn't list.
 
 ## Adding or changing photos
 
@@ -38,7 +40,9 @@ Run it after a data sync adds players, and commit the three files. `npm run chec
 
 ## How it decides
 
-- **Wikimedia Commons**: the Wikidata image (P18) of the item with that NBA.com player id (P3647), only a
+- **NBA headshot**: cdn.nba.com never 404s; a missing id gets its generic grey silhouette, told apart by its
+  fixed ETag. Every player with a real headshot is in `nba`, whatever Commons has.
+- **Wikimedia Commons** (players without an NBA headshot): the Wikidata image (P18) of the item with that NBA.com player id (P3647), only a
   JPEG or PNG, only when the file name mentions the player and no other player uses the same file (team
   photos and game shots of someone else are skipped; a wrong face is worse than the silhouette).
 - **`commons-extra.json`** (hand-verified, wins over Wikidata):
@@ -54,16 +58,20 @@ Run it after a data sync adds players, and commit the three files. `npm run chec
 
 ## How a photo is fitted
 
+- Every photo is framed like an NBA headshot, so every player looks the same in every game. `<PlayerPhoto>`
+  measures the game's frame and `placePhoto` (utils/playerPhotos.ts) draws the photo in a window of the
+  headshot's shape (1040 x 760; the whole frame when the frame is narrower, full height and centred when it
+  is wider, as in Who Are Ya's strip), with the face box at the NBA template's place: 48% of the window's
+  height, centred across, its centre 37% down. An NBA headshot lands exactly on its own template.
 - Commons photos are arbitrary. `faces.json` holds each one's face box
-  (`{file, aspect, box: [x, y, w, h]}`, fractions of the image; `manual` = set by hand, never overwritten).
-  `<PlayerPhoto frame=…>` measures the game's frame and `placePhoto` (utils/playerPhotos.ts) draws the photo
-  on the face: `avatar` (circles, tiny squares) zooms until the face fills about 42% of the frame, `card`
-  keeps the whole head in view, `strip` (Who Are Ya) shows the whole photo unless that leaves bars over
-  45% of the frame. A close-up too tall for the frame gets side bars rather than a cut face. The file width
-  follows the drawn size (Commons' standard 120–1280px thumbnails), so it stays sharp.
-- **`check_fit.py`** reproduces it for every photo, game, answer review and ui-check viewport, using the
-  frame sizes measured once in the real app (`frames.json`; re-measure if a game's photo CSS changes), and
-  flags faces cut, off-centre, too small, upscaled or missing.
+  (`{file, aspect, box: [x, y, w, h]}`, fractions of the image; `manual` = set by hand, never overwritten),
+  and the photo is zoomed so that box lands where the template has it (`frame="avatar"` may zoom further
+  than `card` / `strip`). A close-up too tall for the window gets side bars rather than a cut face. The
+  file width follows the drawn size (NBA 260 or 1040px, Commons' standard 120–1280px thumbnails), so it
+  stays sharp.
+- **`check_fit.py`** reproduces it for every photo (NBA and Commons), game, answer review and ui-check
+  viewport, using the frame sizes measured once in the real app (`frames.json`; re-measure if a game's photo
+  CSS changes), and flags faces cut, off-centre, too small, upscaled or missing.
 
 Commons photos are public domain or CC. The CC licenses need the author, the license and a link,
 which `/credits` lists (`credit.mjs`): the author without Commons' hidden duplicates, the attribution line a licence
