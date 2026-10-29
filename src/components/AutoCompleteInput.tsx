@@ -1,4 +1,4 @@
-import { useEffect, useId, useState, type ChangeEvent, type CSSProperties } from "react";
+import { useEffect, useId, useMemo, useState, type ChangeEvent, type CSSProperties } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { inputStyle, suggestionBoxStyle, suggestionItemHoverStyle, suggestionItemStyle } from "../constants/styles";
 
@@ -44,6 +44,13 @@ export default function AutocompleteInput({
   };
   const close = () => setLocalSuggestions([]);
 
+  // Each suggestion's compact key, computed once per list instead of on every keystroke: with the ~5k player
+  // list the per-input normalisation alone was a > 100 ms long animation frame on phones.
+  const keyed = useMemo(
+    () => (suggestions || []).filter((s) => typeof s === "string").map((s) => ({ s, k: compact(s) })),
+    [suggestions]
+  );
+
   // Keep the highlighted option visible inside the scrollable list.
   useEffect(() => {
     if (highlight >= 0) document.getElementById(`${listId}-${highlight}`)?.scrollIntoView({ block: "nearest" });
@@ -57,20 +64,18 @@ export default function AutocompleteInput({
     // punctuation, so "jokic" finds "Nikola Jokić" and "karl anthony" finds "Karl-Anthony Towns".
     if (inputValue.trim().length >= 2) {
       const q = compact(inputValue);
-      const matches = q ? (suggestions || []).filter(
-        (s) => typeof s === "string" && compact(s).includes(q)
-      ) : [];
+      const matches = q ? keyed.filter((e) => e.k.includes(q)) : [];
       if (maxResults && maxResults > 0) {
         // Prefer prefix matches, then shorter (closer) names, then cap — keeps
         // the dropdown tight and relevant for large pools.
         matches.sort((a, b) => {
-          const ap = compact(a).startsWith(q) ? 0 : 1;
-          const bp = compact(b).startsWith(q) ? 0 : 1;
-          return ap !== bp ? ap - bp : a.length - b.length;
+          const ap = a.k.startsWith(q) ? 0 : 1;
+          const bp = b.k.startsWith(q) ? 0 : 1;
+          return ap !== bp ? ap - bp : a.s.length - b.s.length;
         });
-        setLocalSuggestions(matches.slice(0, maxResults));
+        setLocalSuggestions(matches.slice(0, maxResults).map((e) => e.s));
       } else {
-        setLocalSuggestions(matches);
+        setLocalSuggestions(matches.map((e) => e.s));
       }
     } else {
       setLocalSuggestions([]);

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
+import AutoHeight from "../components/motion/AutoHeight";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
 import ScorePanel from "../components/ScorePanel";
 import { Button, GameFrame, Spinner } from "../components/ui";
@@ -362,21 +363,23 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
           empty, so no space is reserved during play. */}
       <GameFrame.Action>
         {bottomPhase !== "input" && (
-          <EndSequence
-            phase={bottomPhase}
-            input={null}
-            score={
-              // No found-count label — the green/red player names already say who
-              // was got and who wasn't.
-              <ScorePanel
-                score={endState?.score ?? 0}
-                outOf={maxPoints}
-                won={endState?.won}
-                onPlayAgain={onPlayAgain}
-                onClose={onClose}
-              />
-            }
-          />
+          <AutoHeight style={{ width: "100%" }}>
+            <EndSequence
+              phase={bottomPhase}
+              input={null}
+              score={
+                // No found-count label — the green/red player names already say who
+                // was got and who wasn't.
+                <ScorePanel
+                  score={endState?.score ?? 0}
+                  outOf={maxPoints}
+                  won={endState?.won}
+                  onPlayAgain={onPlayAgain}
+                  onClose={onClose}
+                />
+              }
+            />
+          </AutoHeight>
         )}
       </GameFrame.Action>
 

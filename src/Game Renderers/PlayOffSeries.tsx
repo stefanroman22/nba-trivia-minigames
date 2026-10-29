@@ -6,6 +6,7 @@ import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import TeamBadge from "../components/ui/TeamBadge";
 import SwapText from "../components/motion/SwapText";
 import { GameFrame } from "../components/ui";
+import "../styles/PlayOffSeries.css";
 import { createGuessLogger } from "../utils/guessLog";
 import type { PlayoffSeries, OnGameEnd } from "../types/types";
 
@@ -155,7 +156,7 @@ function PlayOffSeries({
                   }}>
                     <TeamBadge name={t.name} abbr={t.abbr} size={54} shape="tile" surface="card" decorative />
                   </span>
-                  <span className="font-display" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>
+                  <span className="font-display pos-team-name" style={{ fontSize: 15, textAlign: "center", lineHeight: 1.25 }}>
                     <SwapText>{t.name}</SwapText>
                   </span>
                   {/* always rendered so the reveal cannot resize the card (Rule 6.2);

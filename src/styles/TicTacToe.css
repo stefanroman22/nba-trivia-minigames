@@ -63,7 +63,9 @@
   --ttt-crit-fs: clamp(10px, min(1.5dvh, 2.7vw), 11.5px);
   display: grid;
   grid-template-columns: clamp(76px, 22vw, 96px) repeat(3, minmax(0, 1fr));
-  grid-template-rows: auto repeat(3, clamp(48px, 9dvh, 88px));
+  /* Header row = the two-line criteria label height (Rule 4.4); cell tracks are minmax(0, …) so a
+     wrapped solved name can never add height (Rule 6.2). */
+  grid-template-rows: minmax(max(34px, calc(var(--ttt-crit-fs) * 2.3 + 10px)), auto) repeat(3, minmax(0, clamp(48px, 9dvh, 88px)));
   gap: clamp(5px, 1vw, 8px);
   width: 100%;
 }

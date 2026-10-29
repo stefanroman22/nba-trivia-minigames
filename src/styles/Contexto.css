@@ -29,16 +29,16 @@
 }
 
 /* Guess list — the ONLY scroll region */
-/* Sizes to its rows instead of claiming the leftover height — an empty list used
-   to hold open a large blank band under the prompt. Capped so a long guess trail
-   scrolls inside itself rather than pushing the page down. */
+/* Fixed play-time height (Rule 6.2): the empty prompt and every guess row live inside the
+   same box, so the stage never resizes as guesses are added; a long trail scrolls inside it. */
 .cx-list {
   /* Containing block for the empty prompt while AnimatePresence popLayout fades it out. */
   position: relative;
   min-height: 0;
   /* Old cap (clamp(180px, 42dvh, 420px)) minus the #1 secret card + its gap
      (~68px), so adding the card costs the 390x844 budget nothing (Rule 1.1). */
-  max-height: clamp(112px, calc(42dvh - 68px), 352px);
+  height: clamp(112px, calc(42dvh - 68px), 352px);
+  flex: none;
   width: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;

@@ -8,11 +8,11 @@
   align-items: start;
 }
 @media (min-width: 820px) {
-  .game-grid { grid-template-columns: 240px minmax(0, 1fr); }
+  .game-grid { grid-template-columns: 260px minmax(0, 1fr); }
   .game-aside { grid-column: 1 / -1; flex-direction: row; }
 }
 @media (min-width: 1200px) {
-  .game-grid { grid-template-columns: 240px minmax(0, 1fr) 290px; }
+  .game-grid { grid-template-columns: 260px minmax(0, 1fr) 290px; }
   .game-aside { grid-column: auto; flex-direction: column; position: sticky; top: 84px; }
 }
 
@@ -69,7 +69,7 @@
   }
 }
 .rail-head { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; font-size: 10px; letter-spacing: 1.5px; color: var(--muted); font-weight: 600; flex: none; }
-.rail-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding: 2px 2px 6px; flex: 1; min-height: 0; }
+.rail-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; scrollbar-width: thin; padding: 2px 2px 6px; flex: 1; min-height: 0; }
 .rail-item {
   display: flex;
   align-items: center;
@@ -88,7 +88,7 @@
 .rail-item:disabled { cursor: not-allowed; opacity: 0.55; }
 .rail-item:disabled:hover { border-color: var(--line); }
 .rail-thumb { width: 40px; height: 40px; border-radius: 9px; background-size: cover; background-position: center; flex: none; }
-.rail-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rail-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1 1 auto; }
 .rail-name { font-weight: 700; font-size: 13.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rail-sub { font-size: 11px; color: var(--muted); white-space: nowrap; line-height: 16px; }
 /* Played Wordle: same grey, desaturated photo as the landing tile. */
@@ -240,15 +240,24 @@
    game (the 12px gap) exactly like Series Winner; on filling games it rests at
    the bottom of the filled area. Same Exit→bottom distance everywhere. */
 .playing-wrap .exit-link { flex: none; margin-top: auto; height: 18px; line-height: 18px; }
+/* WCAG 2.5.8 while playing: a 24px-tall hit area through ::after (the 18px box, and so the Rule 4.2
+   distances measured during play, do not move). */
+.exit-link { position: relative; }
+.exit-link::after { content: ""; position: absolute; inset: -3px -6px; }
+/* Ended in place ("Report a problem" under the end buttons): the box itself is 24px tall (WCAG 2.5.8).
+   It grows into the stage padding below (padding-bottom) and margin-bottom gives the 6px back, so its
+   margin box, the text position and the stage height stay exactly as with the 18px box. */
+.playing-wrap .exit-link.is-report { height: 24px; padding-bottom: 6px; margin-bottom: -6px; }
 .exit-link { transition: opacity 0.2s ease; font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 .exit-link:hover { color: var(--text); }
 /* The label swaps through SwapText (an inline-block span), which a parent's underline does not reach. */
 .exit-link span { text-decoration: inherit; }
-/* "Report a problem" under GameResult's buttons: the same quiet text link as .exit-link. */
-.report-link { margin-top: 6px; height: 18px; line-height: 18px; font-size: 12px; color: var(--muted); background: none; border: none; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; transition: color 0.2s ease; }
+/* "Report a problem" under GameResult's buttons: the same quiet text link as .exit-link. A 24px box
+   (WCAG 2.5.8) that takes the old 6px top margin as padding, so the text sits exactly where it did. */
+.report-link { height: 24px; line-height: 18px; font-size: 12px; color: var(--muted); background: none; border: none; padding: 6px 0 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; transition: color 0.2s ease; }
 .report-link:hover { color: var(--text); }
 /* In-place game over: the ScorePanel owns the only Close game. With a reportable question the
-   link stays in its box as "Report a problem" (.is-report, no style change); otherwise
+   link stays in its place as "Report a problem" (.is-report, no visible change); otherwise
    visibility hides it and it leaves the tab order and accessibility tree. */
 /* Fades out on durations.base (0.2s); visibility flips only after the fade. */
 .exit-link.is-ended { opacity: 0; visibility: hidden; transition: opacity 0.2s ease, visibility 0s 0.2s; }
