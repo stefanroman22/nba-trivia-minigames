@@ -1,13 +1,11 @@
 {
  "2242": {
-  "file": "Terence Morris with Regal FC Barcelona in January 2008.jpg",
-  "face_x": 50,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
  },
  "200822": {
-  "file": "Pops Mensah-Bonsu.jpg",
-  "face_x": 33,
-  "face_y": 35
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sunglasses"
  },
  "203517": {
   "file": "Nemanja Nedovic Italy (cropped).jpg",
@@ -15,9 +13,8 @@
   "face_y": 17
  },
  "76452": {
-  "file": "Ray Corley.jpeg",
-  "face_x": 46,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, looking down"
  },
  "76715": {
   "file": "Greg Fillmore.jpg",
@@ -30,19 +27,16 @@
   "face_y": 25
  },
  "432": {
-  "file": "Pete Chilcutt.jpg",
-  "face_x": 68,
-  "face_y": 41
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: motion, looking up"
  },
  "968": {
-  "file": "Priest loderdale.JPG",
-  "face_x": 28,
-  "face_y": 39
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
  },
  "2573": {
-  "file": "20160813 Basketball ÖBV Vier-Nationen-Turnier 2357.jpg",
-  "face_x": 66,
-  "face_y": 47
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: face cut by arm"
  },
  "203540": {
   "file": "Luigi Datome 70 Fenerbahçe Basketball 20190923 (1).jpg",
@@ -55,14 +49,13 @@
   "face_y": 11
  },
  "77385": {
-  "file": "Bobby Lewis 1963.jpeg",
-  "face_x": 40,
-  "face_y": 17
+  "file": "Bob Lewis 1966 (2).jpeg",
+  "face_x": 52,
+  "face_y": 37
  },
  "78524": {
-  "file": "1971 - Ken Wilburn - Allentown Jets - Allentown PA.jpg",
-  "face_x": 40,
-  "face_y": 30
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: odd sticker/overlay"
  },
  "270": {
   "file": "Horace Grant (2014).jpg",
@@ -85,9 +78,8 @@
   "face_y": 24
  },
  "77500": {
-  "file": "1961 - Brendan McCann - Allentown Jets - Allentown PA (cropped).jpg",
-  "face_x": 45,
-  "face_y": 17
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: washed out pink, looking down"
  },
  "76539": {
   "file": "NBA Nation @ CityWalk 037 (cropped).JPG",
@@ -100,14 +92,12 @@
   "face_y": 13
  },
  "462": {
-  "file": "2019 Jr. NBA Basketball Sport Diplomacy (48118473101) (cropped).jpg",
-  "face_x": 45,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces"
  },
  "76863": {
-  "file": "Wyndol Gray BGSU.jpg",
-  "face_x": 40,
-  "face_y": 15
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile with ball"
  },
  "77485": {
   "file": "ArielStLouis.jpeg",
@@ -120,9 +110,8 @@
   "face_y": 38
  },
  "78393": {
-  "file": "Hal Uplinger 1951.jpg",
-  "face_x": 50,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
  },
  "76474": {
   "file": "Geoff Crompton 1976.jpeg",
@@ -135,14 +124,12 @@
   "face_y": 24
  },
  "77303": {
-  "file": "Andy Kostecka 1947.jpg",
-  "face_x": 50,
-  "face_y": 33
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone newsprint"
  },
  "76357": {
-  "file": "Georgecarterbona.jpg",
-  "face_x": 50,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sepia washed-out soft"
  },
  "78560": {
   "file": "1971 - Milt Williams - Allentown Jets - Allentown PA (cropped).jpg",
@@ -155,14 +142,12 @@
   "face_y": 30
  },
  "76558": {
-  "file": "Randy Denton 1970.jpeg",
-  "face_x": 50,
-  "face_y": 66
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms up, looking up"
  },
  "2398": {
-  "file": "Jay Williams ESPN.jpg",
-  "face_x": 55,
-  "face_y": 15
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another man beside"
  },
  "1630286": {
   "file": "Tre Scott (Uu4Tb0hqOPc).png",
@@ -209,28 +194,24 @@
   "face_y": 38
  },
  "2128": {
-  "file": "Celtics at Wizards 2024-12-039.jpg",
-  "face_x": 68,
-  "face_y": 30
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, people behind"
  },
  "2669": {
-  "file": "Bologna Event.jpg",
-  "face_x": 50,
-  "face_y": 52
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: microphone"
  },
  "2867": {
-  "file": "Kasib Powell (cropped).jpg",
-  "face_x": 55,
-  "face_y": 17
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
  },
  "76017": {
   "exclude": true,
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "76096": {
-  "file": "John Barber 1953.jpg",
-  "face_x": 58,
-  "face_y": 67
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: lying, motion"
  },
  "76174": {
   "file": "Norman Black 2025.jpg",
@@ -243,9 +224,8 @@
   "face_y": 37
  },
  "77109": {
-  "file": "Img1427 Elan Chalon.jpg",
-  "face_x": 53,
-  "face_y": 58
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms up, other body"
  },
  "77158": {
   "file": "Lee Johnson, basketball player in Maccabi Tel Aviv (FL45847511).jpg",
@@ -258,14 +238,12 @@
   "face_y": 40
  },
  "77442": {
-  "file": "NBLC Jan 29 2017 8.jpg",
-  "face_x": 45,
-  "face_y": 30
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: coach with blurred background face"
  },
  "77590": {
-  "file": "Ed Mikan.jpeg",
-  "face_x": 43,
-  "face_y": 18
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other arm"
  },
  "77605": {
   "file": "Bill Miller 1948.jpeg",
@@ -283,9 +261,8 @@
   "face_y": 25
  },
  "78596": {
-  "file": "1971 - Hawthorne Wingo - Allentown Jets - Allentown PA (cropped).jpg",
-  "face_x": 48,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: washed out"
  },
  "202686": {
   "file": "Jan Veselý 6 FC Barcelona (basketball) Euroleague 20251120 (2) (cropped).jpg",
@@ -298,14 +275,12 @@
   "face_y": 22
  },
  "2775": {
-  "file": "2010-프로농구-KCC-vs-SK.jpg",
-  "face_x": 38,
-  "face_y": 18
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person behind"
  },
  "1628249": {
-  "file": "Brooklyn Nets vs NY Knicks 2018-10-03 td 33 - Pregame (cropped).jpg",
-  "face_x": 44,
-  "face_y": 20
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another head at right"
  },
  "77369": {
   "file": "1971 - George Lehmann - Allentown Jets - Allentown PA (cropped).jpg",
@@ -313,9 +288,8 @@
   "face_y": 18
  },
  "77767": {
-  "file": "Mike O'Neill 1954.jpg",
-  "face_x": 45,
-  "face_y": 22
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
  },
  "76176": {
   "exclude": true,
@@ -415,8 +389,9 @@
   "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
  },
  "77058": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+  "file": "Ron Horn 1960 (4).jpg",
+  "face_x": 54,
+  "face_y": 21
  },
  "77097": {
   "exclude": true,
@@ -435,8 +410,9 @@
   "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
  },
  "77338": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+  "file": "Stu Lantz 1969 front.jpg",
+  "face_x": 49,
+  "face_y": 44
  },
  "77357": {
   "exclude": true,
@@ -475,12 +451,14 @@
   "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
  },
  "77786": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+  "file": "Tom Owens 1970.jpeg",
+  "face_x": 52,
+  "face_y": 44
  },
  "77954": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: no usable face (jersey/banner, back view or tiny figure)"
+  "file": "John Richter 1960.jpeg",
+  "face_x": 46,
+  "face_y": 31
  },
  "78012": {
   "exclude": true,
@@ -571,8 +549,9 @@
   "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
  },
  "203108": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+  "file": "Bernard James 2013.JPG",
+  "face_x": 45,
+  "face_y": 22
  },
  "203955": {
   "exclude": true,
@@ -647,24 +626,27 @@
   "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
  },
  "78000": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+  "file": "John Roche 1969 (2).jpeg",
+  "face_x": 45,
+  "face_y": 52
  },
  "78047": {
   "exclude": true,
   "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
  },
  "78326": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+  "file": "David Thompson NC State.jpg",
+  "face_x": 45,
+  "face_y": 19
  },
  "78602": {
   "exclude": true,
   "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
  },
  "78631": {
-  "exclude": true,
-  "reason": "photo review 2026-10-18: group shot: not clear which person is the player"
+  "file": "Charlie Yelverton 1971.jpg",
+  "face_x": 49,
+  "face_y": 15
  },
  "1754": {
   "exclude": true,
@@ -1483,8 +1465,9 @@
   "reason": "photo review 2026-10-28: blurry or pixelated"
  },
  "76631": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: blurry or pixelated"
+  "file": "Mark Eaton 2017-02-23, IMG 9623 (32260370413, cropped).jpg",
+  "face_x": 42,
+  "face_y": 33
  },
  "76874": {
   "exclude": true,
@@ -1519,8 +1502,9 @@
   "reason": "photo review 2026-10-28: blurry or pixelated"
  },
  "77844": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: blurry or pixelated"
+  "file": "Geoff Petrie 1971 Texaco front (cropped).jpg",
+  "face_x": 63,
+  "face_y": 23
  },
  "78025": {
   "exclude": true,
@@ -1539,8 +1523,9 @@
   "reason": "photo review 2026-10-28: blurry or pixelated"
  },
  "78153": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: blurry or pixelated"
+  "file": "Connie Simmons 1953.jpg",
+  "face_x": 62,
+  "face_y": 19
  },
  "78195": {
   "exclude": true,
@@ -1571,8 +1556,9 @@
   "reason": "photo review 2026-10-28: halftone or newspaper scan"
  },
  "77584": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: halftone or newspaper scan"
+  "file": "Tom Meschery 1965.jpg",
+  "face_x": 48,
+  "face_y": 26
  },
  "77596": {
   "exclude": true,
@@ -1587,8 +1573,9 @@
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "317": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+  "file": "John Starks in 2013.jpg",
+  "face_x": 48,
+  "face_y": 27
  },
  "356": {
   "exclude": true,
@@ -1619,8 +1606,9 @@
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "1847": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+  "file": "Thurl Bailey headshot (Duke Chronicle 1983-04-05).jpg",
+  "face_x": 48,
+  "face_y": 45
  },
  "2501": {
   "exclude": true,
@@ -1635,16 +1623,18 @@
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "76133": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+  "file": "Zelmo Beaty 1970.jpeg",
+  "face_x": 43,
+  "face_y": 17
  },
  "76206": {
   "exclude": true,
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "76243": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+  "file": "Carl Braun 1959.jpeg",
+  "face_x": 51,
+  "face_y": 18
  },
  "76348": {
   "exclude": true,
@@ -1691,8 +1681,9 @@
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "77626": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+  "file": "Sidney Moncrief Arkansas.jpg",
+  "face_x": 51,
+  "face_y": 18
  },
  "77662": {
   "exclude": true,
@@ -1739,8 +1730,9 @@
   "reason": "photo review 2026-10-28: face turned away, looking down or covered"
  },
  "200778": {
-  "exclude": true,
-  "reason": "photo review 2026-10-28: face turned away, looking down or covered"
+  "file": "James White (basketball) 20260826 (4).JPG",
+  "face_x": 44,
+  "face_y": 49
  },
  "201189": {
   "exclude": true,
@@ -1801,5 +1793,2089 @@
  "1902": {
   "exclude": true,
   "reason": "photo review 2026-10-28: wrong person (a different player of the same name)"
+ },
+ "2": {
+  "file": "Byron scott 91 camp cropped.png",
+  "face_x": 74,
+  "face_y": 14
+ },
+ "21": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: side profile"
+ },
+ "47": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person visible behind"
+ },
+ "61": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: heavy grain/halftone"
+ },
+ "82": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: eyes down"
+ },
+ "101": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "123": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand over face, others"
+ },
+ "166": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people/hand in crop"
+ },
+ "179": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: second face"
+ },
+ "192": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, turned"
+ },
+ "226": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces"
+ },
+ "243": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "278": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark, turned away"
+ },
+ "296": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: faces behind"
+ },
+ "349": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark, looking down"
+ },
+ "376": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile looking down"
+ },
+ "399": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: grainy low quality"
+ },
+ "417": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "442": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other face"
+ },
+ "456": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other persons"
+ },
+ "714": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person behind"
+ },
+ "717": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball over face"
+ },
+ "721": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: woman behind"
+ },
+ "733": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "738": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, others"
+ },
+ "777": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person"
+ },
+ "788": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: grainy B&W motion"
+ },
+ "892": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person"
+ },
+ "895": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "917": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "925": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: crowd, fists, small face"
+ },
+ "930": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "939": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: turned, blurry"
+ },
+ "958": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, blurry"
+ },
+ "960": {
+  "file": "20230519 Tony Delk at the NBA Draft Combine.jpg",
+  "face_x": 54,
+  "face_y": 9
+ },
+ "961": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sunglasses"
+ },
+ "964": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person"
+ },
+ "965": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms over face, looking down"
+ },
+ "971": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sunglasses"
+ },
+ "982": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "983": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person"
+ },
+ "998": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: eyes down, other person"
+ },
+ "1002": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other person"
+ },
+ "1024": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking away, low quality"
+ },
+ "1030": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: low quality, dark"
+ },
+ "1049": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: turned, headphones, crowd"
+ },
+ "1085": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other head"
+ },
+ "1088": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, crowd"
+ },
+ "1137": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, soft"
+ },
+ "1474": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "1499": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other face, yelling"
+ },
+ "1514": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sunglasses"
+ },
+ "1517": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: very low quality"
+ },
+ "1520": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile blurry"
+ },
+ "1559": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: back/profile"
+ },
+ "1594": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people"
+ },
+ "1709": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry motion"
+ },
+ "1726": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, other body"
+ },
+ "1728": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other man"
+ },
+ "1738": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: motion, looking up"
+ },
+ "1744": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "1757": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "1763": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: pixelated"
+ },
+ "1845": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person"
+ },
+ "1853": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "1892": {
+  "file": "Trajan Langdon at all-star PBL game 2011 (2).JPG",
+  "face_x": 51,
+  "face_y": 30
+ },
+ "1900": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "1907": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand on head, looking down"
+ },
+ "1919": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, looking down"
+ },
+ "1922": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile motion"
+ },
+ "1928": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: face down"
+ },
+ "1944": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sunglasses"
+ },
+ "1956": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "1960": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: others both sides"
+ },
+ "1983": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "2031": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "2036": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, others"
+ },
+ "2038": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces beside him"
+ },
+ "2040": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: man's face behind"
+ },
+ "2041": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another person beside"
+ },
+ "2053": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone/pixelated, motion"
+ },
+ "2054": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, blurry"
+ },
+ "2060": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, other person at edge"
+ },
+ "2063": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: grainy, head down"
+ },
+ "2069": {
+  "file": "Hanno Mottola in Helsinki.jpg",
+  "face_x": 48,
+  "face_y": 30
+ },
+ "2071": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, headset"
+ },
+ "2073": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other person behind"
+ },
+ "2078": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "2091": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: goggles, people behind"
+ },
+ "2109": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "2124": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: eyes down"
+ },
+ "2205": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces behind"
+ },
+ "2208": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "2238": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "2239": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces behind"
+ },
+ "2248": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, other person"
+ },
+ "2256": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down/side"
+ },
+ "2261": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, others"
+ },
+ "2294": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: referee beside"
+ },
+ "2351": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: grainy, looking up"
+ },
+ "2409": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "2416": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, blurry"
+ },
+ "2425": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "2435": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: face cut off"
+ },
+ "2436": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, head down"
+ },
+ "2442": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another person right"
+ },
+ "2447": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark, grainy"
+ },
+ "2450": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "2451": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: head turned, others behind"
+ },
+ "2453": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: eyes closed"
+ },
+ "2499": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "2545": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person behind"
+ },
+ "2554": {
+  "file": "Mickaël Piétrus Paris 2009.jpg",
+  "face_x": 67,
+  "face_y": 27
+ },
+ "2556": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "2558": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, head down"
+ },
+ "2599": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, dark"
+ },
+ "2624": {
+  "file": "LaQuinton Ross.jpg",
+  "face_x": 51,
+  "face_y": 35
+ },
+ "2668": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "2741": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person right"
+ },
+ "2742": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, side"
+ },
+ "2745": {
+  "file": "Kirk Snyder 2011-03-26 (2).JPG",
+  "face_x": 48,
+  "face_y": 24
+ },
+ "2751": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face right"
+ },
+ "2753": {
+  "file": "Delonte West.jpg",
+  "face_x": 48,
+  "face_y": 26
+ },
+ "2764": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "2768": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "2774": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, others"
+ },
+ "2788": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "2857": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "2866": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "76002": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry soft"
+ },
+ "76005": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person right"
+ },
+ "76041": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "76043": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark, odd"
+ },
+ "76055": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "76060": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76063": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other woman beside"
+ },
+ "76076": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball, dark"
+ },
+ "76102": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, ball"
+ },
+ "76126": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person right, grainy"
+ },
+ "76131": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "76148": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking aside, others"
+ },
+ "76155": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "76162": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person behind"
+ },
+ "76163": {
+  "file": "Eddie Biedenbach 1967.jpeg",
+  "face_x": 46,
+  "face_y": 32
+ },
+ "76171": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76173": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card-like image"
+ },
+ "76191": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: tilted, motion"
+ },
+ "76210": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, blurry"
+ },
+ "76227": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "76237": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: face covered, halftone"
+ },
+ "76245": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over, halftone"
+ },
+ "76257": {
+  "file": "Allan Bristow, 1972.png",
+  "face_x": 34,
+  "face_y": 14
+ },
+ "76264": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76268": {
+  "file": "Tony Brown Wizards.jpg",
+  "face_x": 53,
+  "face_y": 19
+ },
+ "76276": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "76289": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face, hat"
+ },
+ "76293": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "76298": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76305": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, motion"
+ },
+ "76306": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person, soft"
+ },
+ "76322": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76324": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: soft halftone"
+ },
+ "76328": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, arms over face"
+ },
+ "76335": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76340": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: washed out"
+ },
+ "76344": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card-like, looking aside"
+ },
+ "76362": {
+  "file": "NBA Champion Bill Cartwright Celebrates Launch of New Book at College of DuPage (54283377419).jpg",
+  "face_x": 50,
+  "face_y": 24
+ },
+ "76373": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "76374": {
+  "file": "Bill Chamberlain 1970.jpeg",
+  "face_x": 59,
+  "face_y": 38
+ },
+ "76382": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm raised, motion, halftone"
+ },
+ "76391": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "76392": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: side profile, cropped"
+ },
+ "76403": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "76404": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hands in front of face, grainy"
+ },
+ "76419": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: soft low-res"
+ },
+ "76432": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: baseball bat/cap, turned"
+ },
+ "76434": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone grain"
+ },
+ "76454": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76457": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76458": {
+  "file": "Mel Counts 1961.jpeg",
+  "face_x": 50,
+  "face_y": 46
+ },
+ "76464": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry halftone"
+ },
+ "76470": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: motion, halftone"
+ },
+ "76498": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76519": {
+  "file": "Charlie Davis 1970.jpeg",
+  "face_x": 51,
+  "face_y": 44
+ },
+ "76521": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: too dark"
+ },
+ "76536": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: second person at edge"
+ },
+ "76557": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another head below"
+ },
+ "76571": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone motion"
+ },
+ "76582": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card illustration"
+ },
+ "76603": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: head cut off, low quality"
+ },
+ "76624": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card illustration"
+ },
+ "76648": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76649": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76651": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark blurry"
+ },
+ "76697": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up shooting"
+ },
+ "76698": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76708": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: washed out faint"
+ },
+ "76746": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark, other person"
+ },
+ "76753": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people, looking away"
+ },
+ "76761": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: thresholded high-contrast"
+ },
+ "76780": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card illustration"
+ },
+ "76783": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms up, looking up"
+ },
+ "76786": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76806": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm up blurry"
+ },
+ "76817": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone dark"
+ },
+ "76818": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card painting"
+ },
+ "76828": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card-like tilted"
+ },
+ "76829": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark blurry looking away"
+ },
+ "76832": {
+  "file": "Gail Goodrich LA Lakers.jpeg",
+  "face_x": 35,
+  "face_y": 27
+ },
+ "76839": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: cap, looking down"
+ },
+ "76883": {
+  "file": "Gary Gregor 1971 Texaco front (cropped).jpg",
+  "face_x": 44,
+  "face_y": 26
+ },
+ "76894": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: cap/bat, face turned"
+ },
+ "76895": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hands up motion"
+ },
+ "76897": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: leaning, face turned"
+ },
+ "76905": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, hand/ball"
+ },
+ "76913": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark blurry"
+ },
+ "76918": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card painting profile"
+ },
+ "76920": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76922": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone dots"
+ },
+ "76927": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "76937": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other person"
+ },
+ "76942": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up shooting"
+ },
+ "76949": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "76951": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: thresholded harsh"
+ },
+ "76967": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: crouched looking down"
+ },
+ "76983": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, arm"
+ },
+ "77016": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77025": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry washed out"
+ },
+ "77034": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people behind"
+ },
+ "77044": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: motion, dark"
+ },
+ "77055": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone looking down"
+ },
+ "77069": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: sepia, looking up"
+ },
+ "77083": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone profile"
+ },
+ "77092": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "77098": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person at edge"
+ },
+ "77114": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone motion"
+ },
+ "77123": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "77125": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "77132": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card painting"
+ },
+ "77139": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, other person"
+ },
+ "77141": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, arm"
+ },
+ "77144": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry motion"
+ },
+ "77146": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77150": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "77171": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "77178": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up halftone"
+ },
+ "77215": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people adjacent"
+ },
+ "77228": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up halftone"
+ },
+ "77242": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77259": {
+  "file": "Toby Kimball 1969.jpg",
+  "face_x": 43,
+  "face_y": 30
+ },
+ "77263": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark blurry"
+ },
+ "77288": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another person above/behind"
+ },
+ "77291": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: face turned up, cut off"
+ },
+ "77296": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry soft"
+ },
+ "77307": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, others visible"
+ },
+ "77311": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: drawing"
+ },
+ "77319": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone newsprint"
+ },
+ "77320": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people visible"
+ },
+ "77326": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: solarized/poor quality"
+ },
+ "77328": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone grain"
+ },
+ "77329": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another person at edge, grainy"
+ },
+ "77331": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, halftone"
+ },
+ "77339": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: grainy, face tilted down"
+ },
+ "77350": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: high-contrast halftone"
+ },
+ "77351": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person at edge, grainy"
+ },
+ "77354": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: crowd faces behind, mouth open"
+ },
+ "77356": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking away, grainy"
+ },
+ "77360": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, halftone"
+ },
+ "77372": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, looking down"
+ },
+ "77375": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77394": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone oval"
+ },
+ "77415": {
+  "file": "Sidney Lowe headshot (Duke Chronicle 1983-04-05).jpg",
+  "face_x": 50,
+  "face_y": 43
+ },
+ "77423": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: small halftone"
+ },
+ "77435": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up"
+ },
+ "77438": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over, looking up"
+ },
+ "77454": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, other person"
+ },
+ "77466": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: heavy halftone"
+ },
+ "77475": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand/ball by face, profile"
+ },
+ "77490": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up"
+ },
+ "77496": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people beside"
+ },
+ "77505": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77523": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person visible"
+ },
+ "77531": {
+  "file": "Billy McGill Utah.jpg",
+  "face_x": 48,
+  "face_y": 13
+ },
+ "77541": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: turned, other people"
+ },
+ "77543": {
+  "file": "Stan McKenzie 1971.jpg",
+  "face_x": 53,
+  "face_y": 19
+ },
+ "77547": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: microphone over mouth"
+ },
+ "77555": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms over, looking up"
+ },
+ "77572": {
+  "file": "Dick Mehen Bennett ad.jpg",
+  "face_x": 64,
+  "face_y": 25
+ },
+ "77578": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up/side"
+ },
+ "77593": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other figure in frame"
+ },
+ "77610": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball and hands over face"
+ },
+ "77622": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77625": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: turned, grainy"
+ },
+ "77648": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry washed out"
+ },
+ "77674": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person visible"
+ },
+ "77687": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "77689": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: pixelated"
+ },
+ "77692": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand over mouth, blurry"
+ },
+ "77694": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand over mouth"
+ },
+ "77696": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77721": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other person behind"
+ },
+ "77727": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: signature over, looking up"
+ },
+ "77734": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms up, face cut off"
+ },
+ "77750": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77753": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone oval"
+ },
+ "77754": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand on face"
+ },
+ "77769": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "77770": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person behind"
+ },
+ "77771": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, crowd"
+ },
+ "77774": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, grainy"
+ },
+ "77800": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces behind"
+ },
+ "77812": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, mouth open"
+ },
+ "77820": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person at edge"
+ },
+ "77822": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: turned, blurry, others"
+ },
+ "77846": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person behind"
+ },
+ "77855": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up"
+ },
+ "77859": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over, profile"
+ },
+ "77864": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "77867": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: two photos, other person"
+ },
+ "77879": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: crowd faces behind"
+ },
+ "77891": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand/ball by face"
+ },
+ "77897": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person at edge, looking away"
+ },
+ "77912": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: drawing"
+ },
+ "77914": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, dark"
+ },
+ "77916": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "77917": {
+  "file": "Clifford Ray 2017 in Florida.jpg",
+  "face_x": 51,
+  "face_y": 40
+ },
+ "77918": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball, turned"
+ },
+ "77932": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over, grainy"
+ },
+ "77958": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm up, looking up"
+ },
+ "77960": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over face"
+ },
+ "77962": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: microphone"
+ },
+ "77973": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "77984": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people"
+ },
+ "77996": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "77999": {
+  "file": "Red Rocha Bennett's ad (cropped).jpg",
+  "face_x": 51,
+  "face_y": 45
+ },
+ "78001": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person at edge, grainy"
+ },
+ "78003": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "78011": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "78015": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other person visible"
+ },
+ "78017": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone"
+ },
+ "78031": {
+  "file": "Brian Rowsom 2012b.jpg",
+  "face_x": 61,
+  "face_y": 13
+ },
+ "78035": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people, profile"
+ },
+ "78067": {
+  "file": "Alan Sawyer 1945.jpg",
+  "face_x": 53,
+  "face_y": 38
+ },
+ "78071": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading-card art, looking aside"
+ },
+ "78085": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: drawing"
+ },
+ "78086": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78091": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: soft halftone"
+ },
+ "78092": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78109": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: soft, looking down"
+ },
+ "78112": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "78113": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking away"
+ },
+ "78115": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card art, looking up"
+ },
+ "78121": {
+  "file": "Lee Shaffer 1960 (2).jpeg",
+  "face_x": 45,
+  "face_y": 27
+ },
+ "78123": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card art, looking aside"
+ },
+ "78124": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over face"
+ },
+ "78128": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78131": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78160": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "78171": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, face turned"
+ },
+ "78177": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: trading card"
+ },
+ "78182": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, halftone"
+ },
+ "78197": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "78226": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card art"
+ },
+ "78240": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "78241": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm up, face partly hidden"
+ },
+ "78256": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "78259": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: second person at edge"
+ },
+ "78269": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78285": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball over face"
+ },
+ "78303": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces behind"
+ },
+ "78328": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: eyes closed, looking down"
+ },
+ "78349": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: crowd faces, motion"
+ },
+ "78357": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78360": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78361": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78382": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, turned"
+ },
+ "78387": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, motion"
+ },
+ "78390": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other faces behind"
+ },
+ "78397": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: second face at left"
+ },
+ "78401": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78402": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: card art"
+ },
+ "78413": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: second face at left"
+ },
+ "78415": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: microphone, profile"
+ },
+ "78421": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, mic and papers"
+ },
+ "78425": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78428": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78429": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone, arm over face"
+ },
+ "78443": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: statue"
+ },
+ "78459": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hands and other bodies, motion"
+ },
+ "78522": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up"
+ },
+ "78531": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: too dark"
+ },
+ "78541": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over head, other person"
+ },
+ "78561": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: too dark/blurry"
+ },
+ "78567": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: tongue out, motion"
+ },
+ "78574": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: overexposed"
+ },
+ "78585": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark and grainy"
+ },
+ "78592": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up, blurry"
+ },
+ "78597": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "78610": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78632": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking up"
+ },
+ "78634": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball over face"
+ },
+ "78640": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: soft, eyes closed"
+ },
+ "78650": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78651": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: halftone print"
+ },
+ "78653": {
+  "file": "Charley Shipp 1938.jpg",
+  "face_x": 51,
+  "face_y": 24
+ },
+ "101113": {
+  "file": "Ike Diogu.jpg",
+  "face_x": 60,
+  "face_y": 36
+ },
+ "101120": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: back of head"
+ },
+ "101121": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "101125": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "101134": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: child and others behind"
+ },
+ "101136": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: crowd faces behind"
+ },
+ "101153": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other player beside"
+ },
+ "101160": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: shouting, motion"
+ },
+ "101166": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "101185": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: pixelated, other face"
+ },
+ "101204": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other person"
+ },
+ "101207": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: pixelated"
+ },
+ "101215": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: microphone, looking down"
+ },
+ "101261": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "200748": {
+  "file": "Tyrus Thomas in 2008.jpg",
+  "face_x": 50,
+  "face_y": 21
+ },
+ "200753": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people close"
+ },
+ "200761": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "200767": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face visible left, profile"
+ },
+ "200769": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, person behind"
+ },
+ "200776": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over face, profile"
+ },
+ "200777": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm over face, looking up"
+ },
+ "200780": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, others behind"
+ },
+ "200786": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, looking down"
+ },
+ "200798": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, another person in crop"
+ },
+ "200806": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face behind left"
+ },
+ "200814": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: dark, looking down"
+ },
+ "200816": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: partial second person at right edge"
+ },
+ "200817": {
+  "file": "Pooh Jeter 1.JPG",
+  "face_x": 47,
+  "face_y": 19
+ },
+ "200835": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: side-on, arm raised"
+ },
+ "200978": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, grainy"
+ },
+ "201041": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face at left"
+ },
+ "201165": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry motion"
+ },
+ "201169": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "201173": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arms over, head cut off"
+ },
+ "201176": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile"
+ },
+ "201181": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "201182": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: too dark, blurry"
+ },
+ "201186": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, other legs in crop"
+ },
+ "201234": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people next to him"
+ },
+ "201570": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "201602": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: turned away"
+ },
+ "201612": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face top-left"
+ },
+ "201633": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down, blurry"
+ },
+ "201634": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: spectator faces behind"
+ },
+ "201802": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: microphone, profile"
+ },
+ "201805": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, dark"
+ },
+ "201814": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: other people in crop"
+ },
+ "201947": {
+  "file": "Earl Clark Cavs.jpg",
+  "face_x": 53,
+  "face_y": 17
+ },
+ "201991": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "202148": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: pixelated"
+ },
+ "202227": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: grainy, others in crop"
+ },
+ "202333": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "202412": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball/arm, profile"
+ },
+ "202706": {
+  "file": "Jordan Hamilton 1 Uşak Sportif 20171224 (2).jpg",
+  "face_x": 51,
+  "face_y": 37
+ },
+ "202707": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: hand over face"
+ },
+ "202715": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, partial face"
+ },
+ "202717": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "202727": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: ball over head"
+ },
+ "202731": {
+  "file": "Vernon Macklin.jpg",
+  "face_x": 61,
+  "face_y": 36
+ },
+ "202809": {
+  "file": "Cory Higgins 22 PBC CSKA Moscow EuroLeague 20180316 (3).jpg",
+  "face_x": 54,
+  "face_y": 27
+ },
+ "202962": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry, dim"
+ },
+ "202970": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face at left"
+ },
+ "203104": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: another face behind right"
+ },
+ "203119": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, hand at head"
+ },
+ "203126": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "203159": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: blurry"
+ },
+ "203197": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: looking down"
+ },
+ "203318": {
+  "file": "Glen Rice Jr Wizards.jpg",
+  "face_x": 37,
+  "face_y": 24
+ },
+ "203480": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: pixelated"
+ },
+ "203816": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: head cut off"
+ },
+ "204054": {
+  "file": "Zoran Dragic 30 Anadolu Efes 20171130 (4).jpg",
+  "face_x": 54,
+  "face_y": 27
+ },
+ "600009": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: profile, blurry"
+ },
+ "1628681": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: arm covering face"
+ },
+ "42": {
+  "file": "Monty Williams 2014 (cropped).jpg",
+  "face_x": 55,
+  "face_y": 20
+ },
+ "203": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: partial face behind left"
+ },
+ "384": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: small faces in bg"
+ },
+ "452": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: dark, looking away"
+ },
+ "1522": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: person behind top right"
+ },
+ "1905": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: ball above, looking up"
+ },
+ "2033": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: looking up"
+ },
+ "2306": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: crowd faces behind"
+ },
+ "2407": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: ball and arm near face"
+ },
+ "2602": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: looking up, arm"
+ },
+ "76398": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: cap, side look"
+ },
+ "76471": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: dark grainy"
+ },
+ "76819": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: crowd faces behind"
+ },
+ "77050": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: dark, turned"
+ },
+ "77231": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: dark, looking aside"
+ },
+ "77529": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: baseball cap/uniform, maybe wrong era role"
+ },
+ "77534": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: partial other jersey beside"
+ },
+ "77676": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: high-contrast halftone-ish"
+ },
+ "77688": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: partial other person at left"
+ },
+ "77736": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: arms raised, small face"
+ },
+ "77905": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: looking up, crowd behind"
+ },
+ "77910": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: video frame, looking down"
+ },
+ "78051": {
+  "file": "Ken Sailors Bennett's ad (crop).jpg",
+  "face_x": 48,
+  "face_y": 41
+ },
+ "78217": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: halftone, tilted"
+ },
+ "101144": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: dark and soft"
+ },
+ "200750": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: people behind"
+ },
+ "202622": {
+  "exclude": true,
+  "reason": "photo review 2026-10-29: not only him or not clearly him: unsure, owner-rule check: soft, looking up"
+ },
+ "203091": {
+  "file": "Royce White, 2023.jpg",
+  "face_x": 51,
+  "face_y": 34
+ },
+ "76090": {
+  "file": "Cedric Ball.jpg",
+  "face_x": 57,
+  "face_y": 9
+ },
+ "76647": {
+  "file": "John Egan portrait 1963.jpg",
+  "face_x": 46,
+  "face_y": 22
+ },
+ "77201": {
+  "file": "Wil Jones.jpg",
+  "face_x": 51,
+  "face_y": 40
+ },
+ "76142": {
+  "file": "Dennis Bell basketball.jpg",
+  "face_x": 52,
+  "face_y": 42
  }
 }
