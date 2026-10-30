@@ -100,7 +100,8 @@ validation passes, so the previous dataset stays.
 - **Supply publishes every game** (no `games=`, the same as the PC task did): the sync refreshed the
   DB tables behind the pool games (playoff series, MVPs, starting five, teams, players) as well as
   the data the question games are built from, so all of them are rebuilt. Publishing uploads only
-  what changed, and question games still go through maintenance and the Checker.
+  what changed, and question games still go through maintenance (re-materialize and retire; no
+  new questions are generated, and there is no Checker since 2026-10-30).
 - **Triggers:** the 1st of each month 01:00 UTC; Run workflow (inputs `limit`, `full` for a
   `--full` backfill); a push to any `refresh/**` branch, so a change can be tried before promotion.
   **Warning:** a push to a `refresh/**` branch that is not `refresh/test-*` is a **FULL** run: it
@@ -214,8 +215,10 @@ design's hosting table).
 `docs/superpowers/specs/2026-10-25-tictactoe-difficulty-design.md`) labels the active boards easy / medium / hard by
 the owner's rules (`--label-rules`; a `QuestionLabel` with `source = owner` is never touched, and only active boards
 are relabeled) and generates new boards per band (`--generate-easy|medium|hard N`), stored as `Question` rows with
-`created_by "<band>-rules"`, a rule label, and `--status pending` (the default) so the Checker reviews them before
-players see them. `--dry-run` writes nothing and prints what it would make.
+`created_by "<band>-rules"`, a rule label, and `--status pending` (the default; pass `--status active` for boards
+that should go live — the Checker that reviewed pending boards was removed on 2026-10-30, and new boards now come
+through the question writer, `.claude/skills/nba-question-writer`). `--dry-run` writes nothing and prints what it
+would make.
 
 **Production run (once, after the promotion that brings the command to `main`).** The boards made on 2026-10-26
 live only in the owner's local sqlite; production gets its own, made against the production database from
@@ -230,16 +233,15 @@ gh workflow run ops-manage.yml -f command=tictactoe_difficulty -f args="--genera
 gh workflow run ops-manage.yml -f command=tictactoe_difficulty -f args="--generate-easy 1200 --generate-medium 1200 --generate-hard 220 --status pending --seed 2026"
 # (b) label the existing active boards by the rules (owner labels kept)
 gh workflow run ops-manage.yml -f command=tictactoe_difficulty -f args="--label-rules"
-# (c) the Checker reviews the new pending boards: its next scheduled pending run, or now
-gh workflow run question-checker.yml -f mode=pending
 ```
+
+History: this production run was done on 2026-10-27; the Question Checker drained the pending boards on
+2026-10-29/30 and the owner put the last 278 live unchecked on 2026-10-30 (2,898 live boards, 0 pending).
 
 The counts come from the 2026-10-26 local run (1,200 easy, 1,200 medium, 600 hard, where 600 hard = the existing
 hard boards + 220 generated). Each run prints what it made (`generate-<band>: N <band> board(s) as pending · M
 skipped`, `label-rules: hard … · owner labels kept …`); read it with `gh run view <id> --log`. Run (a) once: a second
 run adds another N boards per band (it never duplicates an existing board, so it does not stop at the count).
-The Checker's export takes up to 150 pending questions per run while 150+ are pending, so 2,620 boards take several
-runs.
 
 ## Superseded command (do not use)
 

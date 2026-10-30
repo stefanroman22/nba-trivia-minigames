@@ -1,23 +1,14 @@
-# Name the NBA Club (name-logo)
+# Name the Logo (`name-logo`) — record-based, not written
 
-Shows a team logo, "Which franchise is this?". 5 rounds of 10 points.
+One round = one current franchise's scrambled logo (`public/logos/scrambled/<team_id>.webp`); the player
+types the team.
 
-## Where it lives
+## Can the writer add questions? No.
 
-- Pool `backend/trivia/data/name-logo.json`: the 30 current teams (`team_id`, `full_name`,
-  `abbreviation`, `logo`), from the `Team` table.
-- Renderer `src/Game Renderers/NameLogo.tsx`; matching is against `full_name` only, no aliases.
+The pool is the 30 current franchises, and it is full (30 of 30). Tell Stefan at step 0 and stop.
 
-## What "writing content" means here
+## Answers
 
-- The set is fixed at 30 teams; there is nothing to add.
-- Players type "Lakers" or "LA Clippers" and miss because there are no aliases. If asked to improve
-  this game, the fix is accepting nickname and city aliases in the matcher, not editing names.
-- Use official current names ("Los Angeles Clippers" is the legal name; "LA Clippers" is branding,
-  so accept both as answers).
-
-## Validate
-
-```
-DATABASE_URL="" python manage.py test trivia.tests.test_build_static
-```
+`matchAnswer` against the full name only, no aliases: "Lakers", "LA Clippers", "Sixers", "Trailblazers" and
+old names are wrong answers today (a code gap; the autocomplete is the hardcoded `src/constants/nbaTeams.tsx`
+list). Report it as a code fix when it comes up.

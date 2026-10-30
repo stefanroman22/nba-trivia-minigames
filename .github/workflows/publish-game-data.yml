@@ -10,11 +10,10 @@ name: Publish game data
 # DB write of the run (question maintenance, Fan Favorites re-rank) is rolled back, except the
 # factory journal (FactoryRun / FactoryEvent), which records the dry run itself.
 # Weekly schedule (question factory supply run, docs/superpowers/specs/2026-10-12-question-factory-design.md):
-# every Saturday 00:00 Paris time, the question games and the staged editorial games
-# (fan-favorites, who-would-win) only, for real. New and changed
-# questions are staged as pending and go live only after the Checker (question-checker.yml)
-# approves them, which then dispatches this workflow (with maintenance, so changed live
-# questions are staged, never shipped unchecked). Retired questions leave production in the
+# every Saturday 00:00 Paris time, the question games and the editorial games
+# (fan-favorites, who-would-win) only, for real. The maintenance generates no new question
+# (owner, 2026-10-30: questions come only from the prompt-driven question writer, and there is
+# no Checker); it re-materializes and retires, and retired questions leave production in the
 # run itself. Pool games still publish by hand after a data sync.
 on:
   schedule:

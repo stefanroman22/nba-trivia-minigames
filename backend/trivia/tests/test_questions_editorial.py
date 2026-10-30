@@ -438,25 +438,25 @@ class PublishMaintainsEditorialTests(TestCase):
                 return f.read()
         return buf.getvalue(), manifest, read
 
-    def test_a_changed_rule_board_is_staged_and_left_out(self):
+    def test_a_changed_rule_board_stays_live_with_its_new_answers(self):
+        # No Checker since 2026-10-30: a rule board whose answers moved with the data stays live.
         output, manifest, read = self.publish("fan-favorites")
         self.mvp.refresh_from_db()
         self.dpoy.refresh_from_db()
-        self.assertEqual(self.mvp.status, Question.STATUS_PENDING)
+        self.assertEqual(self.mvp.status, Question.STATUS_ACTIVE)
         self.assertEqual(self.dpoy.status, Question.STATUS_ACTIVE)
-        self.assertTrue(FactoryEvent.objects.filter(action="staged_for_recheck", game="fan-favorites",
-                                                    qid="ff-001").exists())
+        self.assertFalse(FactoryEvent.objects.filter(action="staged_for_recheck").exists())
         rows = publish_v3.decode_game(manifest["games"]["fan-favorites"], read)
-        self.assertEqual([r["qid"] for r in rows], ["ff-002"])
+        self.assertEqual([r["qid"] for r in rows], ["ff-001", "ff-002"])
         self.assertIn("fan-favorites", output)
 
     def test_below_minimum_is_held_back_not_aborted(self):
-        with patch("trivia.questions.games.fan_favorites.MINIMUM", 2):
+        with patch("trivia.questions.games.fan_favorites.MINIMUM", 3):
             output, manifest, _ = self.publish("fan-favorites,who-would-win")
         self.assertNotIn("fan-favorites", manifest["games"])
         self.assertIn("who-would-win", manifest["games"])
         self.mvp.refresh_from_db()
-        self.assertEqual(self.mvp.status, Question.STATUS_PENDING)  # staged work kept for the Checker
+        self.assertEqual(self.mvp.status, Question.STATUS_ACTIVE)
         self.assertIn("held back", output)
         with open(os.environ["GITHUB_OUTPUT"], encoding="utf-8") as f:
             self.assertIn("held_back=fan-favorites", f.read())
@@ -467,11 +467,11 @@ class PublishMaintainsEditorialTests(TestCase):
         self.assertFalse(FactoryEvent.objects.filter(game="who-would-win").exists())
         self.assertFalse(Question.objects.filter(game="who-would-win").exists())
 
-    def test_pool_rows_reports_the_boards_it_drops(self):
+    def test_pool_rows_keeps_a_board_whose_answers_changed(self):
         printed = []
         rows = runner.pool_rows("fan-favorites", self.after, out=printed.append)
-        self.assertEqual([r["qid"] for r in rows], ["ff-002"])
-        self.assertTrue(any("ff-001" in line for line in printed), printed)
+        self.assertEqual([r["qid"] for r in rows], ["ff-001", "ff-002"])
+        self.assertEqual(printed, [])
 
     def test_legacy_maintain_questions_default_skips_the_editorial_games(self):
         cmd = "trivia.management.commands.maintain_questions"
@@ -497,3 +497,41 @@ class DoctorVoteGameTests(TestCase):
         q.refresh_from_db()
         self.assertEqual(q.status, Question.STATUS_ACTIVE)
         self.assertEqual((summary["quarantined"], summary["flagged"]), (0, 0))
+
+
+class FanFavoritesSpellingTests(SimpleTestCase):
+    """Every spelling a fan types for a rule-board answer is accepted (owner, 2026-10-30)."""
+
+    def test_a_hyphenated_name_also_matches_with_a_space(self):
+        [a] = fan_favorites._player_answers([{"full_name": "Shai Gilgeous-Alexander", "aliases": []}])
+        self.assertIn("shai gilgeous alexander", a["aliases"])
+        self.assertIn("gilgeous alexander", a["aliases"])
+
+    def test_a_suffixed_name_also_matches_without_its_suffix_unless_shared(self):
+        alone, = fan_favorites._player_answers([{"full_name": "Glenn Robinson III", "aliases": []}])
+        self.assertIn("glenn robinson", alone["aliases"])
+        both = fan_favorites._player_answers([{"full_name": "Gary Payton II", "aliases": []},
+                                              {"full_name": "Gary Payton", "aliases": []}])
+        self.assertEqual(both[0]["aliases"], ["gary payton ii"])  # "gary payton" is the other answer
+
+    def test_extra_aliases_merge_into_the_named_answer(self):
+        answers = [{"answer": "Shaquille O'Neal", "count": 60, "aliases": ["shaquille o'neal"]},
+                   {"answer": "Kevin Durant", "count": 40, "aliases": ["kevin durant"]}]
+        out = fan_favorites._with_extra_aliases(answers, {"Shaquille O'Neal": ["Shaq", "Diesel"]})
+        self.assertEqual(out[0]["aliases"], ["shaquille o'neal", "shaq", "diesel"])
+        self.assertEqual(out[1]["aliases"], ["kevin durant"])
+
+    def test_extra_aliases_for_a_name_that_is_not_an_answer_are_invalid(self):
+        with self.assertRaises(Invalid):
+            fan_favorites._with_extra_aliases([{"answer": "Kevin Durant", "count": 1, "aliases": []}],
+                                              {"Kevin Garnett": ["KG"]})
+
+    def test_extra_aliases_belong_to_rule_boards_only(self):
+        board = {"prompt": "Name a coach", "category": "coach", "survey_date": "2026-10-30",
+                 "answers": [{"answer": "Phil Jackson", "count": 1, "aliases": []}],
+                 "aliases": {"Phil Jackson": ["Zen Master"]}}
+        with self.assertRaises(Invalid):
+            fan_favorites._check(board)
+        with self.assertRaises(Invalid):
+            fan_favorites._check({**mvp_board(), "aliases": ["not", "a", "map"]})
+        fan_favorites._check({**mvp_board(), "aliases": {"Derrick Rose": ["D Rose"]}})

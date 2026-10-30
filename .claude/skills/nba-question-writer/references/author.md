@@ -151,7 +151,7 @@ object naming exactly one predicate or one combinator.
 
 You may `WebFetch` the four `allowed_sites` only, to look up facts you are not sure of (an award's
 winners, a team's roster that season). You have no search engine and no other tools for the web.
-How to find a page on each site is in `references/checker.md` ("Sites and how to use them"). Fetch
+How to find a page on each site is in `references/fact-checking.md` ("Sites and how to use them"). Fetch
 only what a proposal needs, never crawl, never fetch the same page twice. Whatever you read, the
 question must still be written as a rule: a fact you found is never a substitute for one.
 

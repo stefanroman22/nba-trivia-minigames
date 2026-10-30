@@ -1,24 +1,47 @@
-# Who Are Ya? (who-are-ya)
+# Who Are Ya (`who-are-ya`)
 
-Mystery player with a blurred photo. Each guess reveals how close the guessed player is on
-attributes (team, position, height, age, country, draft, jersey). 8 guesses.
+The player guesses a mystery player; each guess shows clue chips comparing it with the mystery: team, position,
+age, jersey number, draft. An unknown name ("Not in our player pool") costs no guess.
 
-## Where it lives
+## At a glance
 
-- Generator: `backend/trivia/questions/games/who_are_ya.py`; renderer `src/Game Renderers/WhoAreYa.tsx`.
-- A question is `{"person_id": N}`. TARGET is every eligible player; MINIMUM 30.
-- Eligible: fame band KNOWN or better (`trivia/questions/fame.py`; fame_tier 1-2 always qualifies) and at least one team stint. About 500 players.
+| | |
+|---|---|
+| One question | one player: `{"person_id": N}` |
+| Written by | the question writer picks the player |
+| Categories | none |
+| Difficulty | not served (internal score only). Adding levels: `references/flow-difficulty.md` |
+| Capacity | eligible players (1,038 on the 2026-10 dataset: fame band DEEP or better, at least one team) minus used ones; `capacity` lists the best-known unused |
+| Minimum live | 30 (spec) |
+| Code | `backend/trivia/questions/games/who_are_ya.py`, spec `specs/who-are-ya.json`, renderer `src/Game Renderers/WhoAreYa.tsx` |
 
-## What "writing content" means here
+## Rules the code enforces
 
-The clues are the player's attributes, so every attribute shown must be right:
-- `draft.team_abbr` is the team that made the pick, not the team after a draft-night trade.
-- Jersey is his most associated number, and position matches his main role.
-- Only recognizable players belong here. A deep cut makes 8 guesses feel unfair; widen or narrow the pool by changing `MIN_FAME_BAND` or the fame weights, never by hand-picking players.
-- Fix wrong facts by regenerating player data, never by hand edits.
+- Fame band DEEP or better and at least one team.
+- Interest (`clues / 5`) at least 0.3: at least two clues that differ from the pool's most common value, so
+  the chips can narrow the search.
 
-## Validate
+## Patterns
 
-```
-DATABASE_URL="" python manage.py test trivia.tests.test_who_are_ya trivia.tests.test_questions_mystery trivia.tests.test_curated_players
-```
+- Players a fan can reach by narrowing: a distinctive jersey, a draft spot, a clear position and team.
+- The clues shown are position, age (birth year), jersey, draft and teams: check those facts (fact-checking
+  guide). Height and country are not shown.
+
+## Ask before writing
+
+1. How many players.
+2. Any era / team / fame preference: if it is not a plain filter, ask for example players.
+
+## Every valid answer accepted
+
+The game takes the **first** player of a shared name. If the mystery shares his full name with another
+player (the check flags "namesake"), typing his exact name is judged wrong: pick another player. Nicknames
+fans type go in `typed_forms`; a rejected one needs a player alias.
+
+## Duplicates
+
+One player is one question, ever.
+
+## Make it live
+
+Payload `add`: `{"definition": {"person_id": N}}`; publish `games=who-are-ya`.

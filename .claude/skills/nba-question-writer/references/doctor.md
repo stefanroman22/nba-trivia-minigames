@@ -80,13 +80,13 @@ correction, then every question on that player is rebuilt and checked again.
 
 Only `WebFetch` on the four approved sites: `www.basketball-reference.com`, `www.nba.com`,
 `en.wikipedia.org`, `www.espn.com`. You have no search engine and no other web tools. How to find a
-player's page on each is in `references/checker.md` ("Sites and how to use them"); the same rules
+player's page on each is in `references/fact-checking.md` ("Sites and how to use them"); the same rules
 apply: fetch only pages the case needs, never crawl, never fetch the same page twice, at most 20
 fetches a minute per site, copy no text from them into your output beyond short facts.
 
 The meaning of each field (franchise names by era, draft team = the team that made the pick,
-`country` mixes birthplace and nationality, and so on) is in `references/checker.md` ("What each
-view means") and `references/fact-checking.md` ("Traps"). A value that only differs by a
+`country` mixes birthplace and nationality, and so on) is in `references/fact-checking.md` ("What each
+field and criterion means", "Traps"). A value that only differs by a
 season-boundary year or a franchise's era name is **not** wrong: do not correct it.
 
 ## How to work a case

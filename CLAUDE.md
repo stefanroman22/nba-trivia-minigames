@@ -83,12 +83,12 @@ Beyond "wait for the owner's ask" the standing stops still apply: anything that 
 secret you don't have, and deleting data you didn't create. Merge only what actually works — a
 known error is a blocker.
 
-**Exception — game data from the question factory (owner, 2026-10-12).** The question factory may
-publish game data (questions, answer lists, data corrections) to production on its own schedule,
-**only** after the dedicated Checker agent has approved each item
-(`docs/superpowers/specs/2026-10-12-question-factory-design.md` §4.12). Until the Checker exists,
-game-data publishing stays manual. Code changes are never covered by this: they still need the
-owner's promote.
+**Game data (owner, 2026-10-30).** Questions are written only through the prompt-driven question
+writer (`.claude/skills/nba-question-writer`), in a session the owner starts; no automation
+generates, checks or publishes questions, and there is no Checker agent. A question the writer
+finishes (clarified with the owner, built to the game's rules, deduplicated, every valid answer
+accepted) goes live with the owner's go-ahead in that session. Code changes are never covered by
+this: they still need the owner's promote.
 
 **Exception — checker findings (owner, 2026-10-15).** Checker findings (ui-check, later
 logic-check) are the standing exception: `ui-fix` and pipeline cards with `Target = main` ship to

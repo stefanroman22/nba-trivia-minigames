@@ -5,7 +5,7 @@ name: Ops command
 # that branch's code). Anything outside the allow-list is refused. A push run reads the
 # command's arguments from `backend/ops/args/<command>.txt` on that branch when the file
 # exists (one line, whitespace-separated, no shell expansion). A manual dispatch takes arguments
-# only for tictactoe_difficulty, through the `args` input: same splitting, characters limited to
+# only for tictactoe_difficulty and question_writer, through the `args` input: same splitting, characters limited to
 # [A-Za-z0-9_=.,:-] and spaces, checked before Django starts; `args` on any other command is refused.
 on:
   workflow_dispatch:
@@ -24,8 +24,9 @@ on:
           - recount_progression
           - sync_leaderboard
           - tictactoe_difficulty
+          - question_writer
       args:
-        description: "arguments, tictactoe_difficulty only (e.g. --generate-easy 1200 --status pending --seed 2026); letters, digits, _=.,:- and spaces"
+        description: "arguments, tictactoe_difficulty / question_writer only (e.g. --generate-easy 1200 --seed 2026, or export --game tictactoe); letters, digits, _=.,:- and spaces"
         required: false
         default: ""
         type: string
@@ -70,12 +71,12 @@ jobs:
             cmd=$(printf '%s' "$REF_NAME" | sed -E 's#^ops/run-([a-z_]+)(-.*)?$#\1#')
           fi
           case "$cmd" in
-            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes|recount_progression|sync_leaderboard|tictactoe_difficulty) ;;
+            import_editorial_seeds|factory_health|showmigrations|factory_supply|apply_editorial_proposals|seed_who_would_win_votes|recount_progression|sync_leaderboard|tictactoe_difficulty|question_writer) ;;
             *) echo "::error::command '$cmd' is not allow-listed"; exit 1 ;;
           esac
           if [ -n "$INPUT_ARGS" ]; then
-            if [ "$cmd" != "tictactoe_difficulty" ]; then
-              echo "::error::args are accepted only for tictactoe_difficulty, not '$cmd'"; exit 1
+            if [ "$cmd" != "tictactoe_difficulty" ] && [ "$cmd" != "question_writer" ]; then
+              echo "::error::args are accepted only for tictactoe_difficulty and question_writer, not '$cmd'"; exit 1
             fi
             export LC_ALL=C
             allowed='^[A-Za-z0-9_=.,: -]*$'
@@ -104,3 +105,11 @@ jobs:
           fi
           echo "running: $CMD ${args[*]:-}"
           python manage.py "$CMD" "${args[@]}"
+      # question_writer export / apply write their JSON under backend/ops/out: keep it for the writer.
+      - name: Keep the command's output files
+        if: always() && hashFiles('backend/ops/out/**') != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: ops-out
+          path: backend/ops/out/
+          retention-days: 7

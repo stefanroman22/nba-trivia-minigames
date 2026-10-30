@@ -7,9 +7,8 @@ name: Doctor research
 #   research (NO DB secret)       Claude (Max-plan OAuth token) researches each case on the four approved
 #                                 sites only (Claude Code permissions) and writes one verdict
 #   apply    (has the DB secret)  re-validates every verdict in code (FactoryRun kind "doctor"): data
-#                                 corrections are only proposed, then confirmed by the Checker
-#                                 (question-checker.yml, mode corrections, dispatched here); released
-#                                 questions go back to pending, never straight to active
+#                                 corrections are only proposed (the Checker that confirmed them was
+#                                 removed 2026-10-30); released questions go back to pending
 # Instructions for the agent: .claude/skills/nba-question-writer/references/doctor.md.
 on:
   schedule:
@@ -149,16 +148,7 @@ jobs:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
         run: python manage.py apply_doctor_verdicts "$GITHUB_WORKSPACE/verdicts" --trigger "$TRIGGER"
-      # A proposed correction applies only after the Checker confirms the new value on two
-      # approved sites. Only from the default branch, as every dispatch below.
-      - name: Have the Checker confirm the proposed corrections
-        if: steps.apply.outputs.proposed != '0' && steps.apply.outputs.proposed != '' && github.ref_name == github.event.repository.default_branch
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run question-checker.yml --ref "${{ github.ref_name }}" -f mode=corrections
-          echo "Doctor proposed ${{ steps.apply.outputs.proposed }} data correction(s); Checker dispatched." >> "$GITHUB_STEP_SUMMARY"
-      # A retired live question must leave production.
+      # A retired live question must leave production. Only from the default branch.
       - name: Publish the doctor's changes
         if: steps.apply.outputs.changed != '0' && steps.apply.outputs.changed != '' && github.ref_name == github.event.repository.default_branch
         env:

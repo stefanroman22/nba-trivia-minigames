@@ -1,28 +1,49 @@
-# Career Path (career-path)
+# Career Path (`career-path`)
 
-The player sees a mystery player's team cards one at a time ("TRACE THE CAREER") and names him.
-Fewer cards used scores more.
+The player sees one mystery player's career as cards, one per team stint (franchise, years, games, points
+per game), the draft line on the last card, and types who it is.
 
-## Where it lives
+## At a glance
 
-- Generator: `backend/trivia/questions/games/career_path.py`; renderer `src/Game Renderers/CareerPath.tsx`.
-- A question is just `{"person_id": N}`; the cards come from that player's `teams` stints in
-  `players_curated.json`. There is no question text to write.
-- TARGET 500 active questions, MINIMUM 50 (publish aborts below it). 3-7 stints per player;
-  fame band DEEP or better (`trivia/questions/fame.py`); KNOWN/DEEP players weighted 3x so journeymen appear more than superstars.
+| | |
+|---|---|
+| One question | one player: `{"person_id": N}` |
+| Written by | the question writer picks the player; the cards come from the dataset |
+| Categories | none |
+| Difficulty | not served (internal score only). Adding levels: `references/flow-difficulty.md` |
+| Capacity | eligible players (685 on the 2026-10 dataset) minus any already used in any status: `capacity` lists the best-known unused ones |
+| Minimum live | 50 (spec) |
+| Code | `backend/trivia/questions/games/career_path.py`, spec `specs/career-path.json`, renderer `src/Game Renderers/CareerPath.tsx` |
 
-## What "writing content" means here
+## Rules the code enforces
 
-You improve the player rows and the selection rules, not prompts:
-- Stints must be in order, non-overlapping, and split same-season trades into separate stints.
-- Franchise names follow the season (a 2007 Seattle stint says Seattle SuperSonics).
-- The best rounds have a recognisable but non-obvious path: 4-6 stints with one memorable stop.
-  A 3-stint path of only small markets is too hard; a single-franchise legend is ineligible.
-- Never hand-edit facts in `players_curated.json`; regenerate per `docs/games/DATA_REQUIREMENTS.md`.
+- The player is playable, has 3 to 7 stints, and fame band DEEP or better.
+- Interest (`memorable` stints / 2) at least 0.3: at least one memorable stop (a ring, an All-Star-level
+  stint, or a marquee team).
 
-## Validate
+## Patterns
 
-```
-DATABASE_URL="" python manage.py test trivia.tests.test_career_path trivia.tests.test_questions_runner trivia.tests.test_curated_players
-python manage.py maintain_questions --games career-path --dry-run   # needs Supabase env vars
-```
+- A career that tells a story through its stops (Chris Webber, Vince Carter, Chauncey Billups). A one-team
+  star is not eligible; a journeyman with no memorable stop fails interest.
+- Check the cards: stints in order, years, GP and PPG per stint (fact-checking guide, "Career Path").
+
+## Ask before writing
+
+1. How many players.
+2. Any era, team, position or fame preference ("90s stars", "journeymen"): if it is not a plain filter on
+   the data, ask for example players he'd count.
+
+## Every valid answer accepted
+
+Career Path matches **exactly** after normalizing (no space removal, no suffix fallback): "Karl Anthony
+Towns", "Tim Hardaway" (for Jr.), "A C Green" fail unless they are aliases. `check` replays them: fix
+each with a player alias (payload `aliases`). Add nicknames (`typed_forms`) for famous players.
+
+## Duplicates
+
+One player is one question, ever (any status counts: `capacity` already leaves used players out).
+
+## Make it live
+
+Payload `add`: `{"definition": {"person_id": 1503}}` (+ `aliases` if the check asked for them); publish
+`games=career-path`.
