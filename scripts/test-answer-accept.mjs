@@ -15,7 +15,7 @@ register("data:text/javascript," + encodeURIComponent(`
 const { buildNameLookup, pickGuessId } = await import("../src/utils/questions.ts");
 const { matchAnswer, nameKey, sameName } = await import("../src/utils/answerMatch.ts");
 const { nbaTeams, teamAnswerAliases } = await import("../src/constants/nbaTeams.ts");
-const { lineupSlots, placeGuess } = await import("../src/utils/startingFive.ts");
+const { lineupSlots, placeGuess, starterMatcher } = await import("../src/utils/startingFive.ts");
 const { acceptedAnswers, idsHitWinner } = await import("../src/utils/awardSeasons.ts");
 
 const NAMES = [
@@ -147,11 +147,13 @@ test("Starting Five: a starter typed on another family's card goes to his own ca
 // Starting Five's autocomplete list (/trivia/all-players/), as the keys the game builds from it.
 const KNOWN = new Set([...NAMES.map((n) => n.full_name), "Marvin Bagley III", "Kyle Lowry", "Tyler Herro",
   "Jimmy Butler", "Bam Adebayo"].map(nameKey));
+// The matcher before the shared names list loads: sameName with the player list only.
+const BY_KEYS = starterMatcher(KNOWN);
 
 test("Starting Five: spaces and a one-sided suffix are forgiven; found starters and outsiders are not right", () => {
-  assert.deepEqual(placeGuess(LINEUP, "SF", "Tim Hardaway Jr", {}, KNOWN), { slot: "SF", name: "Tim Hardaway Jr." });
-  assert.equal(placeGuess(LINEUP, "PG", "Kyle Lowry", { SG: "Kyle Lowry" }, KNOWN), null);
-  assert.equal(placeGuess(LINEUP, "PG", "Dwyane Wade", {}, KNOWN), null);
+  assert.deepEqual(placeGuess(LINEUP, "SF", "Tim Hardaway Jr", {}, BY_KEYS), { slot: "SF", name: "Tim Hardaway Jr." });
+  assert.equal(placeGuess(LINEUP, "PG", "Kyle Lowry", { SG: "Kyle Lowry" }, BY_KEYS), null);
+  assert.equal(placeGuess(LINEUP, "PG", "Dwyane Wade", {}, BY_KEYS), null);
   assert.ok(sameName("Karl Anthony Towns", "Karl-Anthony Towns", KNOWN));
   assert.ok(sameName("A C Green", "A.C. Green", KNOWN));
   assert.ok(sameName("Karl Anthony Towns", "Karl-Anthony Towns"), "the same key needs no player list");
@@ -162,15 +164,71 @@ test("Starting Five: spaces and a one-sided suffix are forgiven; found starters 
 });
 
 test("Starting Five: a real player's name never fills another player's card", () => {
-  assert.equal(placeGuess(LINEUP, "SF", "Tim Hardaway", {}, KNOWN), null, "the father is a real player");
+  assert.equal(placeGuess(LINEUP, "SF", "Tim Hardaway", {}, BY_KEYS), null, "the father is a real player");
   assert.ok(!sameName("Gary Payton II", "Gary Payton", KNOWN), "the son never fills the father's card");
   assert.ok(!sameName("Gary Payton", "Gary Payton II", KNOWN), "the father never fills the son's card");
   assert.ok(!sameName("Tim Hardaway Jr.", "Tim Hardaway", KNOWN), "the son never fills a 1997 Tim Hardaway");
   assert.ok(!sameName("Marvin Bagley II", "Marvin Bagley III", KNOWN), "two different suffixes");
   assert.ok(!sameName("Bobby Portis", "Bobby Portis Jr."), "without the player list only the same key counts");
   const bagley = [{ name: "Marvin Bagley III", position: "F" }, { name: "Gary Payton", position: "G" }];
-  assert.equal(placeGuess(bagley, "PF", "Marvin Bagley II", {}, KNOWN), null);
-  assert.equal(placeGuess(bagley, "PG", "Gary Payton II", {}, KNOWN), null);
+  assert.equal(placeGuess(bagley, "PF", "Marvin Bagley II", {}, BY_KEYS), null);
+  assert.equal(placeGuess(bagley, "PG", "Gary Payton II", {}, BY_KEYS), null);
+});
+
+// The names list with nicknames, as the shared lookup carries them.
+const ALIAS_LOOKUP = buildNameLookup([
+  ...NAMES,
+  { id: 358, full_name: "Penny Hardaway", aliases: ["Anfernee Hardaway"] },
+  { id: 1897, full_name: "Metta World Peace", aliases: ["Ron Artest", "Metta Sandiford-Artest"] },
+  { id: 406, full_name: "Shaquille O'Neal", aliases: ["Shaq"] },
+  { id: 2546, full_name: "Carmelo Anthony", aliases: ["Melo"] },
+]);
+const WITH_NAMES = starterMatcher(KNOWN, ALIAS_LOOKUP);
+const MAGIC_96 = [
+  { name: "Anfernee Hardaway", position: "G" },
+  { name: "Gary Payton II", position: "G" },
+  { name: "Metta World Peace", position: "F" },
+  { name: "Tim Hardaway", position: "F" },
+  { name: "Shaquille O'Neal", position: "C" },
+];
+
+test("Starting Five: aliases and nicknames name a starter through the shared lookup", () => {
+  assert.deepEqual(placeGuess(MAGIC_96, "PG", "Penny Hardaway", {}, WITH_NAMES), { slot: "PG", name: "Anfernee Hardaway" });
+  assert.deepEqual(placeGuess(MAGIC_96, "SF", "Ron Artest", {}, WITH_NAMES), { slot: "SF", name: "Metta World Peace" });
+  assert.deepEqual(placeGuess(MAGIC_96, "C", "Shaq", {}, WITH_NAMES), { slot: "C", name: "Shaquille O'Neal" });
+  assert.deepEqual(placeGuess(MAGIC_96, "C", "Shaquille O Neal", {}, WITH_NAMES), { slot: "C", name: "Shaquille O'Neal" });
+  assert.deepEqual(placeGuess(MAGIC_96, "SG", "Shaq", {}, WITH_NAMES), { slot: "C", name: "Shaquille O'Neal" }, "own reveal card");
+  assert.equal(placeGuess(MAGIC_96, "C", "Shaq", {}, BY_KEYS), null, "before the names load, only the name itself counts");
+  assert.deepEqual(placeGuess(MAGIC_96, "C", "Shaquille O'Neal", {}, BY_KEYS), { slot: "C", name: "Shaquille O'Neal" });
+  const knicks = [{ name: "Carmelo Anthony", position: "F" }, { name: "Tim Hardaway Jr.", position: "F" }];
+  assert.deepEqual(placeGuess(knicks, "SF", "Melo", {}, WITH_NAMES), { slot: "SF", name: "Carmelo Anthony" });
+  assert.equal(placeGuess(knicks, "SF", "Melo", {}, BY_KEYS), null, "the nickname counts only through the lookup");
+  assert.equal(placeGuess(knicks, "SF", "Shaq", {}, WITH_NAMES), null, "a nickname of a player not in this lineup");
+});
+
+test("starterMatcher: a starter whose name is also another player's alias keeps only the player named so", () => {
+  const lookup2 = buildNameLookup([
+    { id: 1, full_name: "Mike James", aliases: [] },
+    { id: 2, full_name: "Michael James", aliases: ["Mike James"] },
+  ]);
+  const m = starterMatcher(null, lookup2);
+  assert.ok(m("Mike James", "Mike James"));
+  assert.ok(!m("Michael James", "Mike James"), "Michael James's full name never names the starter Mike James");
+  assert.ok(m("Michael James", "Michael James"));
+  const lineup = [{ name: "Mike James", position: "G" }];
+  assert.equal(placeGuess(lineup, "PG", "Michael James", {}, m), null);
+  assert.deepEqual(placeGuess(lineup, "PG", "Mike James", {}, m), { slot: "PG", name: "Mike James" });
+});
+
+test("Starting Five: the lookup never crosses father and son", () => {
+  assert.equal(placeGuess(MAGIC_96, "SG", "Gary Payton", {}, WITH_NAMES), null, "the father is not Gary Payton II");
+  assert.deepEqual(placeGuess(MAGIC_96, "SG", "Gary Payton II", {}, WITH_NAMES), { slot: "SG", name: "Gary Payton II" });
+  assert.equal(placeGuess(MAGIC_96, "PF", "Tim Hardaway Jr.", {}, WITH_NAMES), null, "the son is not the 1997 Tim Hardaway");
+  assert.equal(placeGuess(MAGIC_96, "PF", "Penny Hardaway", { PG: "Anfernee Hardaway" }, WITH_NAMES), null, "found already");
+  assert.deepEqual(placeGuess(LINEUP, "SF", "Tim Hardaway Jr", {}, WITH_NAMES), { slot: "SF", name: "Tim Hardaway Jr." });
+  assert.equal(placeGuess(LINEUP, "SF", "Tim Hardaway", {}, WITH_NAMES), null, "the father's exact name");
+  assert.deepEqual(placeGuess([{ name: "Bobby Portis Jr.", position: "F" }], "PF", "Bobby Portis", {}, WITH_NAMES),
+    { slot: "PF", name: "Bobby Portis Jr." });
 });
 
 const mvpRight = (guess, row) => idsHitWinner(row, lookup.resolveIds(guess)) || matchAnswer(guess, acceptedAnswers(row)) >= 0;

@@ -14,6 +14,8 @@ not writing: tell Stefan at step 0 and ask whether he wants it.
 ## Answers
 
 Any starter of the game not found yet is right on any card (`src/utils/startingFive.ts placeGuess`): on a
-card of his own position family he fills it, otherwise he goes to the card the reveal gives him. Names
-compare with `sameName` (spaces and a trailing Jr/Sr/II-V forgiven). Remaining gap: the autocomplete list
-(database names) can spell a name differently from the lineup's.
+card of his own position family he fills it, otherwise he goes to the card the reveal gives him. A typed
+name counts for a starter when the shared names list resolves it to him (`starterMatcher`: every alias and
+nickname, "Penny Hardaway", "Ron Artest", "Shaq"), else by `sameName` (spaces and a trailing Jr/Sr/II-V
+forgiven, never father for son). Remaining gap: the autocomplete list (database names) can spell a name
+differently from the lineup's.

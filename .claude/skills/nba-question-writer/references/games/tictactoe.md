@@ -133,10 +133,11 @@ and retired board in the export and within the proposals file.
 Payload `add` items: `{"definition": {"rows": [...], "cols": [...]}, "difficulty": "medium", "reason": "rules: medium"}`;
 the label is stored with source `rule`. Then publish `games=tictactoe` (`references/production.md`).
 
-Answers: a typed name resolves to every player of that name (`buildNameLookup` / the relay's `nameLookup`
-`toIds`), and the game keeps the one who fits the cell, so namesakes (the two Eddie Johnsons) are all reachable; a
-name typed without its Jr. / II suffix finds the suffixed player after any exact match ("Gary Payton" stays Gary
-Payton), and a typed suffix the name lacks falls back to the name ("Mike Conley Jr"). Names compare without spaces and
+Answers: a typed name resolves to every player of that exact name (`buildNameLookup` / the relay's `nameLookup`
+`resolveIds`), and the game keeps the one who fits the cell, so namesakes (the two Eddie Johnsons) are all reachable; a
+name typed without its Jr. / II suffix finds the suffixed player only when no player has that exact name ("Gary
+Payton" is only Gary Payton, never Gary Payton II), and a typed suffix the name lacks falls back to the name ("Mike
+Conley Jr"). Names compare without spaces and
 punctuation ("Shaquille O Neal", "Karl Anthony Towns", "A C Green" all work). A nickname or former name a fan types
 needs an alias, added as an `aliases` DataCorrection (migration 0019: "Shaq", "Ron Artest", "Enes Kanter", ...). The rules
 and the panel read the dataset with the active DataCorrections overlaid, exactly as the publisher does.

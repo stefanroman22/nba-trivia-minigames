@@ -73,22 +73,22 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   if (!playerName || typeof playerName !== "string" || playerName.trim() === "") {
     return; // don't run if no valid team
   }
+  // One answer per round: the input stays live during the reveal, and a second submit there would score
+  // again and queue a second advance (skipping a round).
+  if (picksRef.current[currentIndex]) return;
 
   // Any co-winner is right (Rookie of the Year 1971, 1995, 2000), by the shared names lookup (aliases such as
   // "Lew Alcindor", spaces, suffixes) or, before the names load or on an old row, by his exact name.
   const isCorrect =
     idsHitWinner(currentSeason, lookup?.resolveIds(playerName) ?? []) ||
     matchAnswer(playerName, acceptedAnswers(currentSeason)) >= 0;
-  // One entry per round: a second submit during the reveal is not a new answer.
-  if (!picksRef.current[currentIndex]) {
-    guessLog.add({
-      question_id: awardQuestionId(currentSeason),
-      answer: playerName.trim(),
-      correct: isCorrect,
-      elapsed_ms: Date.now() - roundStartRef.current,
-    });
-    if (currentIndex === seasonsList.length - 1) guessLog.flush();
-  }
+  guessLog.add({
+    question_id: awardQuestionId(currentSeason),
+    answer: playerName.trim(),
+    correct: isCorrect,
+    elapsed_ms: Date.now() - roundStartRef.current,
+  });
+  if (currentIndex === seasonsList.length - 1) guessLog.flush();
   picksRef.current[currentIndex] = { pick: playerName.trim(), correct: isCorrect };
 
   if (isCorrect) {

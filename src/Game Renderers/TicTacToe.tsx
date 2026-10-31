@@ -320,8 +320,9 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     setGuess("");
     const qid = `${question.qid}:${selectedCell}`;
     const elapsed = Date.now() - startRef.current;
-    // Namesakes (two Eddie Johnsons): the one who fits this cell and is not used yet wins.
-    const ids = lookup?.toIds(raw) ?? [];
+    // Namesakes (two Eddie Johnsons): the one who fits this cell and is not used yet wins. An exact name wins
+    // outright, so "Gary Payton" never fills a cell only Gary Payton II fits.
+    const ids = lookup?.resolveIds(raw) ?? [];
     const id = ids.find((x) => question.valid[selectedCell].includes(x) && !usedIdsRef.current.has(x)) ?? ids[0] ?? null;
     if (id === null) {
       guessLogRef.current.push({ question_id: qid, answer: normalizeAnswer(raw), correct: false, elapsed_ms: elapsed });

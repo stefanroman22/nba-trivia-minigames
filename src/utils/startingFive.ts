@@ -1,7 +1,7 @@
 // Starting Five's slot decisions (src/Game Renderers/StartingFive.tsx), pure so scripts/test-answer-accept.mjs
 // can test them: which card each starter fills at the reveal, and where a typed name goes.
 import type { StartingFivePlayer } from "../types/types";
-import { sameName } from "./answerMatch";
+import { nameKey, sameName } from "./answerMatch";
 
 // Which cards each position family may fill, in reveal order. The board only
 // renders a 2-guard/2-forward/1-center lineup, which is why the pool is
@@ -39,21 +39,56 @@ export function lineupSlots(
   return slots;
 }
 
+/** Does a typed name name this starter? */
+export type StarterMatch = (typed: string, starterName: string) => boolean;
+
+/**
+ * The typed-name test for a lineup. With the shared names lookup (buildNameLookup), a guess names a starter when
+ * its players (resolveIds: an exact name or alias wins outright, so "Gary Payton" is never Gary Payton II)
+ * include the starter's own, so aliases count ("Penny Hardaway", "Ron Artest", "Shaq"). A starter's ids are
+ * resolved once, keeping only the players whose full name is his when the name is also someone's alias.
+ * sameName is the fallback while the names load or for a starter the list lacks; `knownKeys` (nameKeys of every
+ * player name) lets it forgive a suffix only when the typed name is not another real player.
+ */
+export function starterMatcher(
+  knownKeys?: ReadonlySet<string> | null,
+  lookup?: { resolveIds: (name: string) => number[]; nameOf: (id: number) => string | null } | null,
+): StarterMatch {
+  const idsOf = new Map<string, number[]>();
+  const starterIds = (name: string): number[] => {
+    let ids = idsOf.get(name);
+    if (!ids) {
+      const all = lookup ? lookup.resolveIds(name) : [];
+      const own = all.filter((id) => nameKey(lookup?.nameOf(id) ?? "") === nameKey(name));
+      ids = own.length ? own : all;
+      idsOf.set(name, ids);
+    }
+    return ids;
+  };
+  return (typed, starterName) => {
+    if (lookup) {
+      const ids = starterIds(starterName);
+      if (ids.length && lookup.resolveIds(typed).some((id) => ids.includes(id))) return true;
+    }
+    return sameName(typed, starterName, knownKeys);
+  };
+}
+
 /**
  * Where a name typed on card `posKey` goes, or null when it names no starter still to find. A starter of the
  * card's own position family fills that card (as before); any other unfound starter is still right and fills
- * his own card at the reveal (lineupSlots), so the board shows what the reveal would. `knownKeys` (nameKeys of
- * every player name) lets sameName forgive a suffix only when the typed name is not another real player.
+ * his own card at the reveal (lineupSlots), so the board shows what the reveal would. `matches` is the lineup's
+ * starterMatcher (default: sameName on the same key only).
  */
 export function placeGuess(
   starting5: StartingFivePlayer[],
   posKey: string,
   typed: string,
   found: Record<string, string>,
-  knownKeys?: ReadonlySet<string> | null,
+  matches: StarterMatch = (t, s) => sameName(t, s),
 ): { slot: string; name: string } | null {
   const foundNames = Object.values(found);
-  const named = starting5.filter((p) => !foundNames.includes(p.name) && sameName(typed, p.name, knownKeys));
+  const named = starting5.filter((p) => !foundNames.includes(p.name) && matches(typed, p.name));
   if (!named.length) return null;
   const family = normalizePosition(posKey);
   const own = named.find((p) => normalizePosition(p.position) === family);

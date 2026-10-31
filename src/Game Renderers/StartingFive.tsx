@@ -10,8 +10,10 @@ import TeamBadge from "../components/ui/TeamBadge";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
-import { lineupSlots, placeGuess } from "../utils/startingFive";
+import { lineupSlots, placeGuess, starterMatcher } from "../utils/startingFive";
 import { nameKey } from "../utils/answerMatch";
+import { useNames } from "../hooks/useNames";
+import { buildNameLookup } from "../utils/questions";
 import { createGuessLogger } from "../utils/guessLog";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
@@ -73,6 +75,10 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   const [allPlayers, setAllPlayers] = useState<string[]>([]);
   // Every player name's key: a suffix is forgiven only when the typed name is not another real player.
   const knownKeys = useMemo(() => (allPlayers.length ? new Set(allPlayers.map(nameKey)) : null), [allPlayers]);
+  // The shared names list: aliases and nicknames ("Penny Hardaway", "Ron Artest") name a starter through it.
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
+  const matches = useMemo(() => starterMatcher(knownKeys, lookup), [knownKeys, lookup]);
   const [numberLifes, setNumberLifes] = useState(3);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const reduce = useReducedMotion();
@@ -132,7 +138,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
 
     // Any starter still to find is right: on his own family's card he fills it, on another card he goes
     // to his card at the reveal (the typed card's input is cleared below).
-    const match = placeGuess(currentGame.starting_5, posKey, playerName, correctGuesses, knownKeys);
+    const match = placeGuess(currentGame.starting_5, posKey, playerName, correctGuesses, matches);
 
     guessLog.add({
       question_id: currentGame.game_id,

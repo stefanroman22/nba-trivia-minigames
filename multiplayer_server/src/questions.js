@@ -151,7 +151,16 @@ function nameLookup(names) {
     const bare = !out.length && NAME_SUFFIX.test(typed) ? typed.replace(NAME_SUFFIX, "") : null;
     return bare ? [...(exact.get(nameKey(bare)) || [])] : out;
   };
-  return { toId: (g) => toIds(g)[0] ?? null, toIds, nameOf: (id) => nameOf.get(id) ?? null };
+  // Mirrors buildNameLookup's resolveIds: an exact full name or alias wins outright ("Gary Payton" is never Gary
+  // Payton II), else the suffix-less match ("Bobby Portis"), else the name without a suffix it lacks ("Mike Conley Jr").
+  const resolveIds = (g) => {
+    const key = nameKey(g);
+    const hit = exact.get(key) || loose.get(key);
+    if (hit && hit.length) return [...hit];
+    const typed = String(g).trim();
+    return NAME_SUFFIX.test(typed) ? [...(exact.get(nameKey(typed.replace(NAME_SUFFIX, ""))) || [])] : [];
+  };
+  return { toId: (g) => toIds(g)[0] ?? null, toIds, resolveIds, nameOf: (id) => nameOf.get(id) ?? null };
 }
 
 function _setForTest(fixture) { testFiles = fixture ? fixture.files : null; manifest = null; files.clear(); warned.clear(); }

@@ -48,13 +48,16 @@ const NAMES = [
   { id: 9, full_name: "Hakeem Olajuwon", aliases: [] },
   { id: 10, full_name: "Eddie Johnson", aliases: [] },
   { id: 11, full_name: "Eddie Johnson", aliases: [] },
+  { id: 12, full_name: "Gary Payton", aliases: [] },
+  { id: 13, full_name: "Gary Payton II", aliases: [] },
 ];
 
 // 3x3 board, row-major. cell4 also accepts id 3 (Shaquille O'Neal) besides
 // cell1, so the "same player on a second cell" rejection has somewhere legal
 // (name-wise) to land. Cells 7 and 8 each accept one of the two Eddie Johnsons.
+// Cell 2 also accepts Gary Payton II (13), never his father Gary Payton (12).
 const TTT_VALID = [
-  [1, 2], [3, 4], [5, 6],
+  [1, 2], [3, 4], [5, 6, 13],
   [7, 8], [3, 9], [2, 8],
   [4, 9], [5, 7, 10], [6, 8, 11],
 ];
@@ -212,6 +215,9 @@ async function simTicTacToe() {
 //      is rejected — "already on the board" (mirrors solo mode: a player fills
 //      at most one cell).
 //   3. A name with no id at all is rejected — "doesn't fit that square."
+//   4. Both Eddie Johnsons stay claimable, each on the cell that holds him.
+//   5. "Gary Payton" (the father, an exact name) never fills a cell only Gary
+//      Payton II fits; "Gary Payton II" does.
 async function simTTTValidation() {
   line("\n================ TIC-TAC-TOE (id-lookup validation) ================");
   const room = makeRoom(444444, ["Ivy", "Jon"], "tictactoe");
@@ -246,7 +252,17 @@ async function simTTTValidation() {
   const namesakes = st.board[7]?.playerId === 10 && st.board[8]?.playerId === 11;
   line(`both Eddie Johnsons on the board: ${namesakes ? "PASS" : "FAIL"}`);
 
-  return canonicalised && usedRejected && unknownRejected && namesakes;
+  // TTT_VALID[2] = [5,6,13]: the exact name "Gary Payton" is the father (12), not the son (13).
+  line(`${st.turnUid} claims cell 2 with "Gary Payton" (only Gary Payton II fits)`);
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 2, playerName: "Gary Payton" }, helpers);
+  const fatherRejected = st.board[2] === null;
+  line(`cell 2 stayed empty: ${fatherRejected ? "PASS" : "FAIL"}`);
+  line(`${st.turnUid} claims cell 2 with "Gary Payton II"`);
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 2, playerName: "Gary Payton II" }, helpers);
+  const sonClaimed = st.board[2]?.playerId === 13;
+  line(`cell 2 holds Gary Payton II: ${sonClaimed ? "PASS" : "FAIL"}`);
+
+  return canonicalised && usedRejected && unknownRejected && namesakes && fatherRejected && sonClaimed;
 }
 
 // ================================================================= IMPOSTER
@@ -310,7 +326,7 @@ async function simImposter() {
   const impDone = await simImposter();
   line("\n================ RESULT ================");
   line(`Tic-Tac-Toe reached a win        : ${tttWin ? "PASS" : "FAIL"}`);
-  line(`Id-lookup validation (all 3)     : ${validationOk ? "PASS" : "FAIL"}`);
+  line(`Id-lookup validation (all 5)     : ${validationOk ? "PASS" : "FAIL"}`);
   line(`Imposter reached reveal          : ${impDone ? "PASS" : "FAIL"}`);
   process.exit(tttWin && validationOk && impDone ? 0 : 1);
 })();

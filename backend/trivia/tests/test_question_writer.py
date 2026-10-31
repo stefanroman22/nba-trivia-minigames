@@ -46,6 +46,14 @@ class MatchingMirrorTests(SimpleTestCase):
         self.assertEqual(self.lookup.resolve_ids("Jaren Jackson"), [2])  # no father in this list
         self.assertEqual(self.lookup.resolve_ids("Patrick Ewing"), [5, 6])
 
+    def test_a_missing_middle_initial_is_not_guessed_at(self):
+        # Fans who type "Cliff Robinson" mostly mean Clifford Robinson, not Cliff T. Robinson: no generic
+        # rule can know, so the lookup does not guess; the writer's check flags it and an alias fixes it.
+        lookup = qw.NameLookup([{"person_id": 7, "full_name": "Cliff T. Robinson", "aliases": []},
+                                {"person_id": 361, "full_name": "Clifford Robinson", "aliases": []}])
+        self.assertEqual(lookup.resolve_ids("Cliff Robinson"), [])
+        self.assertEqual(qw.player_forms("Cliff T. Robinson")["Cliff Robinson"], "middle initial left out")
+
     def test_match_answer_is_exact_after_normalizing(self):
         answers = [{"answer": "Tim Hardaway Jr.", "aliases": []}]
         self.assertEqual(qw.match_answer("tim hardaway jr", answers), 0)

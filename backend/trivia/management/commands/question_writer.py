@@ -42,6 +42,8 @@ from trivia.questions.journal import Journal
 
 WRITER_GAMES = ("tictactoe", "career-path", "who-are-ya", "contexto", "fan-favorites", "who-would-win", "connections")
 LIVE = (Question.STATUS_ACTIVE, Question.STATUS_PENDING)
+# Shortened spellings that are rightly refused when they are another player's own name.
+SHORTENED = ("without its suffix", "middle initial left out")
 DIFFICULTIES = ("easy", "medium", "hard")
 
 # Spellings fans type for a team that the board's own aliases may not carry (checked on team boards).
@@ -381,7 +383,9 @@ class Command(BaseCommand):
                         continue
                     for form, why in player_forms(row["full_name"], row.get("aliases") or [],
                                                   typed.get(row["full_name"], [])).items():
-                        got = lookup.to_ids(form)
+                        got = lookup.resolve_ids(form)  # TicTacToe.tsx and the relay use resolveIds
+                        if why in SHORTENED and pid not in got and lookup.is_name(form):
+                            continue  # another player's own name (the father): rightly refused
                         if not set(got) & set(ids):
                             reject(row["full_name"], form, why, "no player in this cell" if got else "unknown name")
         elif slug in ("career-path", "who-are-ya", "contexto"):
@@ -399,7 +403,7 @@ class Command(BaseCommand):
                 got = lookup.resolve_ids(form)
                 exact = slug == "career-path" and match_answer(
                     form, [{"answer": row["full_name"], "aliases": row.get("aliases") or []}]) == 0
-                if why == "without its suffix" and row["person_id"] not in got and lookup.is_name(form):
+                if why in SHORTENED and row["person_id"] not in got and lookup.is_name(form):
                     res["info"].append(f"{form!r} is another player's name, so it rightly does not count")
                     continue
                 if row["person_id"] not in got and not exact:

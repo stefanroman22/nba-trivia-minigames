@@ -26,6 +26,9 @@ const NAMES = [
   { id: 920, full_name: "A.C. Green", aliases: [] },
   { id: 201144, full_name: "Mike Conley", aliases: [] },
   { id: 203077, full_name: "Nikola Jokić", aliases: ["Nikola Jokic"] },
+  // The real pair: fans' "Cliff Robinson" is Clifford Robinson (an alias), never the obscure Cliff T. Robinson.
+  { id: 361, full_name: "Clifford Robinson", aliases: ["Cliff Robinson"] },
+  { id: 77986, full_name: "Cliff T. Robinson", aliases: [] },
 ];
 
 for (const [label, lookup] of [["client buildNameLookup", buildNameLookup(NAMES)], ["relay nameLookup", nameLookup(NAMES)]]) {
@@ -49,9 +52,36 @@ for (const [label, lookup] of [["client buildNameLookup", buildNameLookup(NAMES)
     assert.deepEqual(lookup.toIds("Mike Conley Jr"), [201144]);
     assert.deepEqual(lookup.toIds("Mike Conley Jr."), [201144]);
   });
+  test(`${label}: resolveIds puts an exact name or alias first and alone`, () => {
+    assert.deepEqual(lookup.resolveIds("Gary Payton"), [56]);
+    assert.deepEqual(lookup.resolveIds("Gary Payton II"), [1627780]);
+    assert.deepEqual(lookup.resolveIds("eddie johnson"), [698, 77144]);
+    assert.deepEqual(lookup.resolveIds("Bobby Portis"), [1626171]);
+    assert.deepEqual(lookup.resolveIds("Mike Conley Jr"), [201144]);
+    assert.deepEqual(lookup.resolveIds("Mike Conley Jr."), [201144]);
+    assert.deepEqual(lookup.resolveIds("Shaq"), [1495]);
+    assert.deepEqual(lookup.resolveIds("Karl Anthony Towns"), [1626164]);
+    assert.deepEqual(lookup.resolveIds("Nobody Here"), []);
+  });
+  test(`${label}: no middle-initial guessing: an alias decides which Cliff Robinson fans mean`, () => {
+    assert.deepEqual(lookup.resolveIds("Cliff Robinson"), [361]);
+    assert.deepEqual(lookup.toIds("Cliff Robinson"), [361]);
+    assert.deepEqual(lookup.resolveIds("Clifford Robinson"), [361]);
+    assert.deepEqual(lookup.resolveIds("Cliff T. Robinson"), [77986]);
+    assert.deepEqual(lookup.resolveIds("Cliff T Robinson"), [77986]);
+  });
   test(`${label}: aliases and unknown names`, () => {
     assert.deepEqual(lookup.toIds("Steve Smith"), [3]);
     assert.deepEqual(lookup.toIds("Nobody Here"), []);
     assert.equal(lookup.toId("Nobody Here"), null);
   });
 }
+
+test("resolveIds: the client lookup and the relay mirror agree", () => {
+  const client = buildNameLookup(NAMES);
+  const relay = nameLookup(NAMES);
+  const typed = ["Gary Payton", "Gary Payton II", "Eddie Johnson", "Bobby Portis", "Bobby Portis Jr.", "Mike Conley Jr",
+    "Shaq", "Shaquille O Neal", "A C Green", "Steve Smith", "Nikola Jokic", "Nobody Here", "", "Cliff Robinson",
+    "Cliff T Robinson", "Clifford Robinson"];
+  for (const t of typed) assert.deepEqual(relay.resolveIds(t), client.resolveIds(t), t);
+});
