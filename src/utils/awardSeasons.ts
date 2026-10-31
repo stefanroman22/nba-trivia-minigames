@@ -28,6 +28,12 @@ export function acceptedAnswers(row: MvpSeason): { answer: string }[] {
   return names.length ? names.map((answer) => ({ answer })) : [{ answer: row.mvp || "" }];
 }
 
+/** True when a typed name's players (buildNameLookup's resolveIds: aliases, spaces, suffixes) include a co-winner.
+ *  Old rows carry no person_id: the game falls back to matchAnswer(acceptedAnswers). */
+export function idsHitWinner(row: MvpSeason, ids: number[]): boolean {
+  return (row.winners ?? []).some((w) => w?.person_id != null && ids.includes(w.person_id));
+}
+
 /** The id the game logs and the seen set keeps: "{season}:{award}", or the season on an old row. */
 export function awardQuestionId(row: MvpSeason): string {
   return row.award ? `${row.season}:${row.award}` : String(row.season);

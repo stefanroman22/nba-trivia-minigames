@@ -200,7 +200,7 @@ def _select_and_add(mod, slug, spec, dataset, rng, now, journal, staged, scored,
     return added, seq
 
 
-def _process_game(slug, dataset, rng, now, out, journal, stage=False):
+def _process_game(slug, dataset, rng, now, out, journal, stage=False, top_up=True):
     mod = GAME_MODULES[slug]
     spec = specs.load(slug) if hasattr(mod, "features") else None  # scored games (spec §4.3)
     today = now.date().isoformat()
@@ -245,10 +245,10 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
         journal.log("saturation", "pool_seen", game=slug, share=detail.get("saturation"), target=chosen)
     existing = set(Question.objects.filter(game=slug).values_list("content_hash", flat=True))
     added, seq = 0, _next_seq(slug)
-    if spec is not None:
+    if top_up and spec is not None:
         added, seq = _select_and_add(mod, slug, spec, dataset, rng, now, journal, staged, scored, existing, seq,
                                      supply, chosen, pending if staged else kept, detail)
-    while spec is None and supply() < target:
+    while top_up and spec is None and supply() < target:
         want = min(GENERATE_BATCH, target - supply()) if chosen is not None else GENERATE_BATCH
         defs = mod.generate(dataset, existing, rng, want)
         if not defs:
@@ -278,8 +278,11 @@ def _process_game(slug, dataset, rng, now, out, journal, stage=False):
     return kept, stats
 
 
-def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=None, stage=False):
+def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=None, stage=False, top_up=True):
     """Re-materialize, retire, top up and gate each game; no publishing.
+
+    top_up=False (publish_game_data_v3's default since 2026-10-30): no new question is
+    generated; only the prompt-driven question writer adds questions.
 
     Returns ({slug: [(qid, index_item, materialized), ...]}, {slug: stats}).
     Writes to the questions table, so call it inside transaction.atomic(): a
@@ -302,7 +305,7 @@ def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=No
     per_game, stats = {}, {}
     for slug in games:
         if not isolate:
-            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal, stage)
+            per_game[slug], stats[slug] = _process_game(slug, dataset, rng, now, out, journal, stage, top_up)
             if "below_minimum" in stats[slug]:
                 active = stats[slug]["active"]
                 raise BelowMinimum(slug, active, GAME_MODULES[slug].MINIMUM)
@@ -310,7 +313,7 @@ def maintain(games, dataset, rng, now=None, out=print, isolate=False, journal=No
         mark = len(journal.events)
         try:
             with transaction.atomic():
-                kept, game_stats = _process_game(slug, dataset, rng, now, out, journal, stage)
+                kept, game_stats = _process_game(slug, dataset, rng, now, out, journal, stage, top_up)
             if "below_minimum" in game_stats:  # staged: writes kept, publish held back
                 journal.log("held_back", "below_minimum", game=slug, active=game_stats["active"],
                             minimum=GAME_MODULES[slug].MINIMUM, pending=game_stats.get("pending", 0))
@@ -332,24 +335,16 @@ def materialize_active(games, dataset, now=None, out=None):
     without retiring, topping up or saving anything (no DB writes).
 
     A row that no longer materializes is left out (maintenance would retire it);
-    the minimum gate still applies and raises BelowMinimum. So is a Checker game's
-    row whose checker view no longer matches the payload_sha it was published with
-    (the dataset changed since): that content was never checked, so it waits for
-    the next maintenance run to stage it for the Checker instead of shipping.
+    the minimum gate still applies and raises BelowMinimum.
     """
     today = (now or timezone.now()).date().isoformat()
     per_game = {}
     for slug in games:
         mod = GAME_MODULES[slug]
-        view = getattr(mod, "checker_view", None) if slug in checker.STAGED_GAMES else None
         kept, skipped = [], 0
         for row in Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE).select_related("label").order_by("id"):
             m, problems = _materialize(mod, row.definition, dataset)
             if problems:
-                skipped += 1
-                continue
-            stored = (row.quality or {}).get("payload_sha")
-            if view is not None and stored is not None and checker.payload_sha(view(m, dataset)) != stored:
                 skipped += 1
                 continue
             kept.append(_kept(mod, row, m))
@@ -368,8 +363,7 @@ def pool_rows(slug, dataset=None, out=None):
     materialize_active (BelowMinimum still raises). None while the game has no active
     question yet (the seed import has not run): the caller falls back to its seed.
     The dataset is the committed curated one unless given. `out` gets one line per active
-    question left out (it no longer materializes, or its checker view changed since it
-    was checked: the next maintenance stages it for the Checker)."""
+    question left out (it no longer materializes)."""
     active = list(Question.objects.filter(game=slug, status=Question.STATUS_ACTIVE)
                   .order_by("id").values_list("qid", flat=True))
     if not active:
@@ -384,7 +378,7 @@ def pool_rows(slug, dataset=None, out=None):
         published = {qid for qid, _, _ in kept}
         for qid in active:
             if qid not in published:
-                out(f"  {slug}/{qid}: left out of the pool (no longer materializes or its view changed)")
+                out(f"  {slug}/{qid}: left out of the pool (no longer materializes)")
     return [mod.pool_row(m) for _, _, m in kept]
 
 

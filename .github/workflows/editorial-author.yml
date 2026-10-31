@@ -9,8 +9,9 @@ name: Editorial author
 #                               permissions) but must express every question as a rule
 #   apply  (has the DB secret)  re-runs every proposal through the module gates in code (FactoryRun
 #                               kind "editorial"): accepted ones become pending questions, never
-#                               active. The daily Checker run (question-checker.yml) picks them up;
-#                               nothing is dispatched from here.
+#                               active. The Checker that approved them was removed 2026-10-30, so
+#                               this workflow stays disabled; the prompt-driven question writer
+#                               (.claude/skills/nba-question-writer) replaces it.
 # Instructions for the agent: .claude/skills/nba-question-writer/references/author.md.
 on:
   schedule:
@@ -129,7 +130,7 @@ jobs:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
           TRIGGER: ${{ github.event_name == 'schedule' && 'schedule' || 'manual' }}
         run: python manage.py apply_editorial_proposals "$GITHUB_WORKSPACE/proposals" --trigger "$TRIGGER"
-      # Accepted proposals are pending questions; the daily Checker run checks them. Nothing to dispatch.
+      # Accepted proposals are pending questions. Nothing to dispatch.
       - name: Summary
         if: steps.apply.outputs.accepted != '0' && steps.apply.outputs.accepted != ''
-        run: echo "Author added ${{ steps.apply.outputs.accepted }} pending question(s) for the next daily Checker run." >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Author added ${{ steps.apply.outputs.accepted }} pending question(s)." >> "$GITHUB_STEP_SUMMARY"

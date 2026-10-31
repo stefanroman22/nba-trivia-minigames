@@ -291,9 +291,9 @@ class CommandTests(QuestionsTestCase):
 
     def _call(self, *args):
         buf = StringIO()
-        # --no-stage: these tests exercise publishing itself, so new questions go live
-        # at once; the Checker's staging has its own tests below.
-        call_command("publish_game_data_v3", "--out", self.out, "--rng-seed", "7", "--no-stage", *args, stdout=buf)
+        # --top-up: these tests start from an empty DB, so the maintenance must generate
+        # the questions it publishes; a publish without it generates nothing (tested below).
+        call_command("publish_game_data_v3", "--out", self.out, "--rng-seed", "7", "--top-up", *args, stdout=buf)
         return buf.getvalue()
 
     def test_maintains_then_publishes_every_question_game(self):
@@ -363,20 +363,25 @@ class CommandTests(QuestionsTestCase):
         self._call("--games", "career-path")
         self.assertIn("held_back=\n", self._gh_output())
 
-    def test_new_questions_wait_for_the_checker_by_default(self):
+    def test_a_publish_without_top_up_generates_nothing_and_stages_nothing(self):
         self._call("--games", "career-path")
+        before = Question.objects.filter(game="career-path").count()
         row = Question.objects.filter(game="career-path", status="active").first()
-        row.status = "retired"  # the staged run below must top up one question
+        row.status = "retired"  # a top-up would replace it; the default publish must not
         row.save()
+        changed = Question.objects.filter(game="career-path", status="active").first()
+        changed.quality = {**changed.quality, "payload_sha": "0" * 64}  # its view "changed"
+        changed.save()
         second = os.path.join(self.tmp, "second")
         call_command("publish_game_data_v3", "--out", second, "--rng-seed", "8", "--games", "career-path",
                      "--previous", os.path.join(self.out, "manifest.json"), stdout=StringIO())
-        new = Question.objects.get(game="career-path", status="pending")
+        self.assertEqual(Question.objects.filter(game="career-path").count(), before)
+        self.assertFalse(Question.objects.filter(game="career-path", status="pending").exists())
         entry = _load(second, "manifest.json")["games"]["career-path"]
-        self.assertEqual(entry["rows"], Question.objects.filter(game="career-path", status="active").count())
-        self.assertNotIn(new.qid, _load(second, entry["index"])["files"])
+        self.assertEqual(entry["rows"], before - 1)
+        self.assertIn(changed.qid, _load(second, entry["index"])["files"])
         run = FactoryRun.objects.order_by("-id").first()
-        self.assertEqual(run.events.get(action="generated").detail["status"], "pending")
+        self.assertFalse(run.events.filter(action="generated").exists())
 
     def test_an_unknown_trigger_is_rejected(self):
         with self.assertRaises(CommandError):

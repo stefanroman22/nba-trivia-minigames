@@ -174,15 +174,16 @@ class StagingTests(TestCase):
         row.refresh_from_db()
         self.assertNotIn("unsure_count", row.quality)
 
-    def test_a_skip_maintain_publish_leaves_out_live_questions_whose_view_changed(self):
+    def test_a_skip_maintain_publish_keeps_live_questions_whose_view_changed(self):
+        # No Checker since 2026-10-30: a live question stays live when the data under it moves.
         self._maintain(stage=False)
         row = Question.objects.filter(game="career-path").first()
         row.quality = {**row.quality, "payload_sha": "0" * 64}
         row.save()
         per_game = runner.materialize_active(["career-path"], self.ds)
         qids = [qid for qid, _, _ in per_game["career-path"]]
-        self.assertEqual(len(qids), 4)
-        self.assertNotIn(row.qid, qids)
+        self.assertEqual(len(qids), 5)
+        self.assertIn(row.qid, qids)
 
     def test_a_reused_qid_gets_a_suffix(self):
         Question.objects.create(game="career-path", qid="cp-000001", definition={"person_id": -5},

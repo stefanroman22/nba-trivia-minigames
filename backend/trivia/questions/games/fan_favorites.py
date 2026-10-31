@@ -17,7 +17,11 @@ board (pool_row) keeps today's shape; the pool builder swaps in the live standin
 (trivia.utils.fan_favorites.live_standings, >= 500 correct guesses) per qid.
 
 Aliases: the accent-folded lowercase name, the curated aliases, and the last name (teams:
-nickname, city, abbreviation) when no other answer on the board shares it.
+nickname, city, abbreviation) when no other answer on the board shares it. Players also get
+the name with hyphens as spaces (the frontend deletes a hyphen, so "gilgeous alexander" would
+not match otherwise) and the name without a Jr./Sr./II-IV suffix when no other answer on the
+board shares it. A rule board may add {"aliases": {"<answer>": ["<spelling>", ...]}}: extra
+spellings fans type (nicknames, former names), merged into that answer's aliases.
 
 Features (1 = harder / more interesting): answer_count (17 answers 0, 6 answers 1),
 answer_fame (mean fame hardness of the player answers found in the dataset; a team board 0,
@@ -37,7 +41,7 @@ TARGET = _SPEC["refill"]["target"]
 MINIMUM = _SPEC["refill"]["minimum"]
 MIN_ANSWERS, MAX_ANSWERS = _SPEC["eligibility"]["min_answers"], _SPEC["eligibility"]["max_answers"]
 CATEGORIES = ("player", "team", "coach")  # coach: answers override only
-KEYS = {"prompt", "category", "rule", "answers", "survey_date"}
+KEYS = {"prompt", "category", "rule", "answers", "survey_date", "aliases"}
 ANSWER_KEYS = {"answer", "count", "aliases"}
 SUFFIXES = {"jr", "sr", "ii", "iii", "iv"}
 
@@ -64,6 +68,14 @@ def _check(definition):
         raise Invalid("a board has a rule or an answers list, exactly one")
     if "rule" in definition and category not in rules.CATEGORIES:
         raise Invalid(f"a {category} board needs an answers list (rules cover {', '.join(rules.CATEGORIES)})")
+    if "aliases" in definition:
+        extra = definition["aliases"]
+        if "rule" not in definition:
+            raise Invalid("extra aliases go on a rule board; an answers list carries its own aliases")
+        if not isinstance(extra, dict) or not all(
+                isinstance(k, str) and isinstance(v, list) and all(isinstance(x, str) and x.strip() for x in v)
+                for k, v in extra.items()):
+            raise Invalid('aliases must be {"<answer>": ["<spelling>", ...]}')
 
 
 def _last_name(name):
@@ -81,15 +93,33 @@ def _dedupe(items):
     return list(dict.fromkeys(i for i in items if i))
 
 
+def _without_suffix(name):
+    words = rules.fold(name).replace(".", "").split()
+    return " ".join(words[:-1]) if len(words) > 2 and words[-1] in SUFFIXES else None
+
+
 def _player_answers(rows):
     lasts = [_last_name(r["full_name"]) for r in rows]
+    bares = [_without_suffix(r["full_name"]) for r in rows]
     out = []
-    for row, last in zip(rows, lasts):
-        aliases = [rules.fold(row["full_name"])] + [rules.fold(a) for a in row.get("aliases") or []]
+    for row, last, bare in zip(rows, lasts, bares):
+        folded = rules.fold(row["full_name"])
+        aliases = [folded, folded.replace("-", " ")] + [rules.fold(a) for a in row.get("aliases") or []]
         if last and lasts.count(last) == 1:
-            aliases.append(last)
+            aliases += [last, last.replace("-", " ")]
+        if bare and bares.count(bare) == 1 and bare not in {rules.fold(r["full_name"]) for r in rows}:
+            aliases.append(bare)
         out.append({"answer": row["full_name"], "aliases": _dedupe(aliases)})
     return out
+
+
+def _with_extra_aliases(answers, extra):
+    names = {a["answer"] for a in answers}
+    unknown = sorted(set(extra) - names)
+    if unknown:
+        raise Invalid(f"extra aliases for {', '.join(unknown)}: not an answer of this board")
+    return [{**a, "aliases": _dedupe(a["aliases"] + [rules.fold(x) for x in extra.get(a["answer"], [])])}
+            for a in answers]
 
 
 def _team_answers(rows):
@@ -172,6 +202,8 @@ def materialize(definition, dataset):
             answers = _ranked(_player_answers(rows), weights)
             by_name = {r["full_name"]: r["person_id"] for r in rows}
             person_ids = [by_name[a["answer"]] for a in answers]
+        if definition.get("aliases"):
+            answers = _with_extra_aliases(answers, definition["aliases"])
     return envelope(SLUG, None, {"prompt": definition["prompt"], "survey_date": definition["survey_date"],
                                  "category": category, "answers": answers, "estimated": True,
                                  "person_ids": person_ids})

@@ -25,7 +25,7 @@ import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useNames } from "../hooks/useNames";
 import { apiFetch } from "../utils/Api";
 import { normalizeAnswer } from "../utils/answerMatch";
-import { buildNameLookup } from "../utils/questions";
+import { buildNameLookup, pickGuessId } from "../utils/questions";
 import { CONTEXTO_MAX, contextoScore } from "../utils/gameScoring";
 import type { OnGameEnd, ContextoQuestion } from "../types/types";
 import { fadeIn } from "../motion/variants";
@@ -109,7 +109,8 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
   // game doesn't recognize.
   const resolveGuess = (raw: string): { pid: number; name: string; rank: number } | null => {
     if (!lookup) return null;
-    const pid = lookup.toId(raw);
+    // A shared name means the secret when he is one of them, else the first namesake with a rank.
+    const pid = pickGuessId(lookup.resolveIds(raw), secret?.person_id, (id) => rankById.has(id));
     if (pid == null) return null;
     const rank = rankById.get(pid);
     if (rank == null) return null;

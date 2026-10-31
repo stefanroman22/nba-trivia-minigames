@@ -1,27 +1,46 @@
-# LeContexto (contexto)
+# LeContexto (`contexto`)
 
-One secret player per day. Each guess shows how similar the guessed player is (a rank); rank 1
-is the secret ("HOME IN BY SIMILARITY").
+One secret player per day. Every guess shows how close it is (its rank in a similarity ranking of the
+whole playable pool); rank 1 wins. Solo plays today's day.
 
-## Where it lives
+## At a glance
 
-- Generator: `backend/trivia/questions/games/contexto.py`; similarity in `backend/trivia/questions/similarity.py`;
-  renderer `src/Game Renderers/Contexto.tsx`.
-- Definition `{"secret_person_id": N, "day": "YYYY-MM-DD"}`. 60 days scheduled ahead, MINIMUM 30,
-  no secret repeats within 365 days. Secrets are fame band KNOWN or better (`trivia/questions/fame.py`), about 500 candidates.
-- The ranking must start with the secret at rank 1, with no duplicates.
+| | |
+|---|---|
+| One question | one day: `{"secret_person_id": N, "day": "YYYY-MM-DD", "sim_version": 2}` |
+| Written by | the question writer picks the secret and the day; the ranking is computed |
+| Categories | none |
+| Difficulty | not served. Adding levels: `references/flow-difficulty.md` |
+| Capacity | **runs out**: one question per day. `capacity` shows the days scheduled from today, the unbroken run, the first free day, and how many secrets are usable |
+| Minimum live | 30 **future** days (counted from today); below it the game is held back at publish |
+| Code | `backend/trivia/questions/games/contexto.py`, spec `specs/contexto.json`, gate `specs/contexto-similarity.json` |
 
-## What "writing content" means here
+Since 2026-10-30 nothing schedules days automatically. Check the runway at the start of every Contexto
+session and tell Stefan when fewer than 45 days are left.
 
-- Pick secrets a casual fan can reach within a few dozen guesses: stars with distinctive résumés.
-- Similarity uses award counts and career facts, so a player with an empty awards record ranks
-  poorly against everyone. Avoid such players as secrets.
-- Rankings should feel right to a fan: teammates and players of the same era and role should sit
-  near each other. If a near-identical résumé ranks far away, report it as a similarity bug rather
-  than tweaking the secret list.
+## Rules the code enforces
 
-## Validate
+- The secret is playable and fame band KNOWN or better.
+- No secret repeats within 365 days (any status counts).
+- One live question per day.
+- The ranking gate (v2): ranks 2-11 must not all share one team-season, and ranks 2-21 must include at least
+  6 well-known players. A secret failing it does not hold.
 
-```
-DATABASE_URL="" python manage.py test trivia.tests.test_questions_contexto trivia.tests.test_contexto
-```
+## Ask before writing
+
+1. How many days, from which date (default: the first free day `capacity` reports, said back to him).
+2. Any preference for the secrets (eras, positions, stars only): if not a plain filter, ask for examples.
+
+## Every valid answer accepted
+
+When a typed name belongs to several players, the game takes the secret if he is one of them
+(`pickGuessId`). Add nicknames in `typed_forms`; a rejected spelling needs a player alias.
+
+## Duplicates
+
+`check` fails a day already taken and a secret used within 365 days of that day.
+
+## Make it live
+
+Payload `add`: one `{"definition": {"secret_person_id": N, "day": "2026-12-01", "sim_version": 2}}` per day;
+publish `games=contexto`.

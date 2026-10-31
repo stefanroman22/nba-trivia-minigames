@@ -11,7 +11,8 @@ Games: the pool games (playoff, name-logo, mvps, starting-five, fan-favorites,
 all-players) and the question games (career-path, who-are-ya, tictactoe,
 contexto, plus their names list question-names, added automatically with any of
 them). For the question games the run first does the question maintenance
-(trivia/questions/runner.maintain: re-materialize, retire, top up, minimum gate)
+(trivia/questions/runner.maintain: re-materialize, retire, minimum gate; a top-up
+only with --top-up, since new questions come from the prompt-driven question writer)
 against the committed curated dataset, in ONE transaction with every game's
 build: a build failure rolls the maintenance back and writes nothing. A game
 below its minimum is held back instead (its own writes rolled back, left out of
@@ -19,9 +20,9 @@ the publish so its live entry carries over) and reported as held_back=<games> in
 $GITHUB_OUTPUT.
 
 The editorial pool games (publish_v3.EDITORIAL_GAMES: fan-favorites and who-would-win here)
-get the same maintenance in the same transaction, so a board whose checker view changed
-with the data goes back to pending for the Checker and drops out of the pool their builders
-then read, and one below its minimum is held back instead of failing the publish. Rule:
+get the same maintenance in the same transaction, so a board that no longer holds with the
+data is retired and drops out of the pool their builders then read, and one below its
+minimum is held back instead of failing the publish. Rule:
 an editorial game is maintained only once it has at least one Question row; before the
 seed import (import_editorial_seeds) it is not maintained and its builder keeps serving
 the seed (Fan Favorites: the FanFavoritesQuestion boards), as before.
@@ -66,9 +67,10 @@ class Command(BaseCommand):
                             help="Write the folder but roll back every DB write of this run "
                                  "(question maintenance, Fan Favorites re-rank) except the factory "
                                  "journal, which records the dry run; for dry runs")
-        parser.add_argument("--no-stage", action="store_true",
-                            help="Owner emergency / tests only: new and changed questions go live at once "
-                                 "instead of waiting as pending for the Checker (spec §4.12)")
+        parser.add_argument("--top-up", action="store_true",
+                            help="Generate new questions up to each game's target during maintenance. Off by "
+                                 "default (owner, 2026-10-30): questions come only from the prompt-driven "
+                                 "question writer")
         parser.add_argument("--trigger", default="manual", choices=("manual", "schedule", "data-refresh"),
                             help="What started this run, recorded in the factory journal "
                                  "(manual | schedule | data-refresh); dry runs record dry-run")
@@ -123,7 +125,7 @@ class Command(BaseCommand):
                                       f"{dataset.version}: {len(dataset.playable)} playable players")
                     maintained, stats = runner.maintain(to_maintain, dataset, random.Random(opts["rng_seed"]),
                                                         out=self.stdout.write, isolate=True, journal=journal,
-                                                        stage=not opts["no_stage"])
+                                                        top_up=opts["top_up"])
                     # A game below its minimum is held back: left out of this publish so
                     # its live manifest entry carries over, while every other game ships.
                     held_back = sorted(slug for slug, s in stats.items() if "held_back" in s)

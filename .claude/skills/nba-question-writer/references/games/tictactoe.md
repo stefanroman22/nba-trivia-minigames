@@ -44,15 +44,35 @@ Each criterion must mean exactly what the matcher checks. "Lottery pick" matches
 lottery began in 1985); a hybrid G-F counts as Guard and as Forward. Flag a label a fan can dispute instead of
 shipping it.
 
-## Questions that exist (2026-10-25)
+## Questions that exist (production, 2026-10-30)
 
-- 380 published factory boards (ttt-0001 …): all 3 teams × 3 award/draft columns, all **hard** (the owner's review;
-  the rule labels the rest). Columns used: Rookie of the Year 205, All-NBA 189, NBA Champion 182, Lottery pick 177,
-  Sixth Man 145, Undrafted 116, MVP 50, Finals MVP 46, DPOY 30.
-- Easy boards from the easy rules (`created_by = "easy-rules"`): 1,200 generated locally, about 67,000 possible.
-- Medium boards (`created_by = "medium-rules"`): 1,200 generated locally; hard career-stat boards
-  (`created_by = "hard-rules"`): 220, so the hard total is about 600 (easy 40% / medium 40% / hard 20%, the spec's mix).
-- List them: `Question.objects.filter(game="tictactoe")`, labels via `.select_related("label")`; or the admin panel.
+- 2,898 live boards: 1,011 easy, 1,158 medium, 729 hard (0 pending). The original 380 factory boards (ttt-0001 …,
+  3 teams × 3 award/draft columns) are hard; the rest came from `tictactoe_difficulty --generate-*` with rule labels.
+  278 of them went live on the owner's say-so without a completed check (2026-10-30); they include cells the old
+  Checker doubted (Kyrie Irving under "International", Moses Malone under "Undrafted").
+- Count and list them: `question_writer export --game tictactoe` (production), then `capacity`.
+
+## At a glance
+
+| | |
+|---|---|
+| One question | one board (3 rows × 3 columns) |
+| Written by | the question writer (proposals checked by `question_writer check`), or the band generators |
+| Categories | none; the theme is the choice of rows and columns |
+| Difficulty | **served**: Easy / Medium / Hard switch in solo play; rules in `references/difficulty/tictactoe.md` (code) |
+| Capacity | effectively unbounded: combinations of 3 current teams × 3 columns whose 9 cells pass the band rule. A theme narrows it a lot and no command counts a theme: count it with a read-only scratchpad script that enumerates the allowed column sets containing the theme's columns and, per set, the teams whose cells pass the band rule (`tictactoe_difficulty.pair_library` / `classify`), minus the boards in the export |
+| Minimum live | 12 (spec `refill.minimum`) |
+| Multiplayer | random board, ignores difficulty |
+
+## Ask before writing
+
+1. How many boards, and which level (Easy / Medium / Hard).
+2. A theme? ("90s Bulls", "big men", "Kobe's teams"). A theme is not a criterion: it becomes a required row
+   and/or required columns. Tell Stefan what the board can and cannot express (rows are whole franchises, any
+   season; a decade column is "with that row's team"; "Played w/" counts any shared season on any team), then
+   ask for 2-3 example boards he'd count as that theme and how much of each board should carry it (every board
+   both columns? at least one?).
+3. Teams to avoid or to favour, if any.
 
 ## Difficulty patterns (the owner's, 2026-10-25)
 
@@ -84,11 +104,34 @@ rules carry at least one career-stat column; each cell needs only the publisher'
 ## Writing and generating
 
 - Labels sit in a tiny cell: 1-3 words, abbreviations allowed ("Defensive POY").
-- Boards by band: `python manage.py tictactoe_difficulty --generate-easy N --generate-medium N --generate-hard N
-  [--status pending|active] [--seed S] [--dry-run]` (pending by default: the Checker sees them before players). Rule
-  labels for unreviewed boards:
-  `python manage.py tictactoe_difficulty --label-rules [--dry-run]`. Never hand-write a board the rules reject.
+- Hand-written boards go through the write flow: a proposal per board with `"difficulty"`, then
+  `question_writer check` (it runs `classify` and fails a board whose rules give another level, prints every cell's
+  accepted players and replays every spelling). Never hand-write a board the rules reject.
+- Bulk boards by band (no theme): `tictactoe_difficulty --generate-easy N --generate-medium N --generate-hard N
+  --status active [--seed S] [--dry-run]` on production (ops-manage). `--status` defaults to pending, which nothing
+  approves any more: always pass `--status active`, and only after Stefan's go.
 - A cell with 3 valid answers in a 5,000-player pool is legal but nasty; easy boards need at least 8.
+
+## Every valid answer accepted
+
+- A cell accepts every playable player who meets both criteria (`valid`, computed from the whole dataset at
+  publish); `check` prints each cell's count and best-known names. Spot check the famous ones against a source and
+  make sure every player you know fits is in the list. A missing one is a data problem: fix the fact with a
+  correction or drop the cell.
+- Typed names go through `buildNameLookup` (below); `check` replays every accepted player's spellings. A nickname
+  fans type for a well-known answer goes in `typed_forms`; a rejected one needs a player alias (payload `aliases`).
+- Labels a fan can dispute (a named country, "International" for a US national-team player born abroad) need a
+  sourced decision before a board uses them.
+
+## Duplicates
+
+The same set of six criteria in any order is the same board (`dup_key`). `check` compares with every live, pending
+and retired board in the export and within the proposals file.
+
+## Make it live
+
+Payload `add` items: `{"definition": {"rows": [...], "cols": [...]}, "difficulty": "medium", "reason": "rules: medium"}`;
+the label is stored with source `rule`. Then publish `games=tictactoe` (`references/production.md`).
 
 Answers: a typed name resolves to every player of that name (`buildNameLookup` / the relay's `nameLookup`
 `toIds`), and the game keeps the one who fits the cell, so namesakes (the two Eddie Johnsons) are all reachable; a
