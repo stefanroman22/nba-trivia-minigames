@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
@@ -10,7 +10,8 @@ import TeamBadge from "../components/ui/TeamBadge";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { preloadPhotosByName, usePersonIdByName } from "../utils/playerPhotos";
-import { matchAnswer } from "../utils/answerMatch";
+import { lineupSlots, placeGuess } from "../utils/startingFive";
+import { nameKey } from "../utils/answerMatch";
 import { createGuessLogger } from "../utils/guessLog";
 import type { StartingFiveGame, StartingFivePlayer, OnGameEnd } from "../types/types";
 import type { AnswerReview } from "../types/review";
@@ -33,21 +34,6 @@ const SLOTS = [
   { key: "PF", label: "Power Forward" },
   { key: "C", label: "Center" },
 ];
-
-// Which cards each position family may fill, in reveal order. The board only
-// renders a 2-guard/2-forward/1-center lineup, which is why the pool is
-// filtered to that shape (backend/trivia/data_pipeline/starting_five.py).
-const SLOTS_BY_POSITION: Record<string, string[]> = {
-  G: ["PG", "SG"],
-  F: ["PF", "SF"],
-  C: ["C"],
-};
-
-const normalizePosition = (pos: string) => {
-  if (pos === "PF" || pos === "SF" || pos === "F") return "F";
-  if (pos === "PG" || pos === "SG" || pos === "G") return "G";
-  return pos; // "C"
-};
 
 /** Front of the card: a shaded, unknown player silhouette with a question mark. */
 function UnknownFigure() {
@@ -84,7 +70,9 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [showPointsAnimation, setShowPointsAnimation] = useState(false);
   const [score, setScore] = useState(0);
-  const [allPlayers, setAllPlayers] = useState([]);
+  const [allPlayers, setAllPlayers] = useState<string[]>([]);
+  // Every player name's key: a suffix is forgiven only when the typed name is not another real player.
+  const knownKeys = useMemo(() => (allPlayers.length ? new Set(allPlayers.map(nameKey)) : null), [allPlayers]);
   const [numberLifes, setNumberLifes] = useState(3);
   const [popUpInfo, setPopUpInfo] = useState({ Text: "", Color: "" });
   const reduce = useReducedMotion();
@@ -142,26 +130,9 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
     if (!playerName) return;
     if (correctGuesses[posKey] === playerName) return;
 
-    const normalizedStarting5 = currentGame.starting_5.map((p: StartingFivePlayer) => ({
-      ...p,
-      position: normalizePosition(p.position),
-    }));
-    const expectedPos = posKey === "C" ? "C" : normalizePosition(posKey);
-
-    let match;
-    if (posKey === "C") {
-      match = normalizedStarting5.find(
-        (p: StartingFivePlayer) =>
-          p.position === "C" && matchAnswer(playerName, [{ answer: p.name }]) === 0
-      );
-    } else {
-      match = normalizedStarting5.find(
-        (p: StartingFivePlayer) =>
-          p.position === expectedPos &&
-          !Object.values(correctGuesses).includes(p.name) &&
-          matchAnswer(playerName, [{ answer: p.name }]) === 0
-      );
-    }
+    // Any starter still to find is right: on his own family's card he fills it, on another card he goes
+    // to his card at the reveal (the typed card's input is cleared below).
+    const match = placeGuess(currentGame.starting_5, posKey, playerName, correctGuesses, knownKeys);
 
     guessLog.add({
       question_id: currentGame.game_id,
@@ -171,7 +142,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
     });
 
     if (match) {
-      setCorrectGuesses((prev) => ({ ...prev, [posKey]: match.name }));
+      setCorrectGuesses((prev) => ({ ...prev, [match.slot]: match.name }));
       setScore((prev) => prev + pointsPerCorrect);
       setPopUpInfo({ Text: `Correct! +${pointsPerCorrect}`, Color: "var(--good)" });
       setShowPointsAnimation(true);
@@ -182,7 +153,7 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
         // Win → in-place (Rule 7.3): the completed lineup stays in view while the
         // bottom slot runs loader → score.
         setBottomPhase("loader");
-        const found = { ...correctGuesses, [posKey]: match.name };
+        const found = { ...correctGuesses, [match.slot]: match.name };
         setTimeout(() => {
           onGameEnd?.(maxPoints, { inPlace: true, review: reviewOf(found, found) });
           setEndState({ score: maxPoints, won: true });
@@ -197,17 +168,13 @@ function StartingFive({ gameInfo, pointsPerCorrect, onGameEnd, onPlayAgain, onCl
 
       if (newLifes <= 0) {
         guessLog.flush();
-        // Build the full correct lineup, then reveal the still-unknown players
-        // one after another, left → right.
-        const revealAll: Record<string, string> = {};
-        currentGame.starting_5.forEach((p: StartingFivePlayer) => {
-          const slot = (SLOTS_BY_POSITION[normalizePosition(p.position)] ?? []).find((k) => !revealAll[k]);
-          // A lineup that doesn't fit the board's 2-2-1 shape (e.g. a third
-          // guard) is filtered out of the pool, but if one ever slips through
-          // the extra player is left out rather than clobbering another card.
-          if (slot) revealAll[slot] = p.name;
-          else console.warn(`StartingFive: no free ${p.position} card for ${p.name} — lineup is not 2-2-1`);
-        });
+        // Build the full correct lineup (the found players where they were found),
+        // then reveal the still-unknown players one after another, left → right.
+        // A lineup that doesn't fit the board's 2-2-1 shape (e.g. a third
+        // guard) is filtered out of the pool, but if one ever slips through
+        // the extra player is left out rather than clobbering another card.
+        const revealAll = lineupSlots(currentGame.starting_5, correctGuesses, (p: StartingFivePlayer) =>
+          console.warn(`StartingFive: no free ${p.position} card for ${p.name} — lineup is not 2-2-1`));
 
         const finalScore = score;
         // Only the players the user never found are staggered — the ones they got

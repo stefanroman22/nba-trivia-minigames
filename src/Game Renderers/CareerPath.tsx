@@ -162,7 +162,10 @@ function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathPro
     if (!raw) return;
 
     const stints = player.teams.length;
+    // The shared lookup forgives spaces for hyphens/dots and a missing suffix; the exact match covers
+    // the names list not being loaded yet.
     const correct =
+      (lookup?.resolveIds(raw).includes(player.person_id) ?? false) ||
       matchAnswer(raw, [{ answer: player.full_name, aliases: player.aliases }]) === 0;
     guessLogRef.current.push({
       question_id: String(player.person_id),

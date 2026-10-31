@@ -12,6 +12,6 @@ award year; then `sync_nba_data --datasets mvps` and a publish `games=mvps`.
 
 ## Answers
 
-`matchAnswer` against every co-winner's full name, **no aliases**: "Lew Alcindor", nicknames and suffix
-differences are wrong answers today (a code gap; the autocomplete comes from `/trivia/all-players/`, the
-database's player names). Report a complaint about it as a code fix, not content.
+Right when the shared-names lookup of the guess includes any co-winner's `person_id` (every alias, spaces
+and suffix forgiven: "Lew Alcindor", "Magic", "Shaq"), or the guess matches a co-winner's name exactly.
+A nickname still rejected needs a player alias (a data correction, see `references/answers.md`).

@@ -35,9 +35,11 @@ per game), the draft line on the last card, and types who it is.
 
 ## Every valid answer accepted
 
-Career Path matches **exactly** after normalizing (no space removal, no suffix fallback): "Karl Anthony
-Towns", "Tim Hardaway" (for Jr.), "A C Green" fail unless they are aliases. `check` replays them: fix
-each with a player alias (payload `aliases`). Add nicknames (`typed_forms`) for famous players.
+Career Path accepts a guess whose shared-names lookup resolves to the player (spaces for hyphens and
+dots and every alias forgiven; a missing Jr./II only when no other player has that exact name, so "Tim
+Hardaway" stays the father), or an exact match of his full name or an alias. `check`
+replays every spelling; a rejected nickname needs a player alias (payload `aliases`). Add nicknames
+(`typed_forms`) for famous players.
 
 ## Duplicates
 

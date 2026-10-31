@@ -32,6 +32,7 @@
     "test:ban": "node --experimental-strip-types scripts/test-ban.mjs",
     "test:award": "node --experimental-strip-types scripts/test-award.mjs",
     "test:name-lookup": "node --experimental-strip-types scripts/test-name-lookup.mjs",
+    "test:answer-accept": "node --experimental-strip-types scripts/test-answer-accept.mjs",
     "test:player-photos": "node --experimental-strip-types scripts/test-player-photos.mjs",
     "test:ranks": "node --experimental-strip-types scripts/test-ranks.mjs",
     "test:ladder": "node --experimental-strip-types scripts/test-ladder.mjs",

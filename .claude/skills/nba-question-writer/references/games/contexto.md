@@ -33,8 +33,8 @@ session and tell Stefan when fewer than 45 days are left.
 
 ## Every valid answer accepted
 
-The game takes the **first** player of a shared name: never pick a secret with a namesake (the check flags
-it). Add nicknames in `typed_forms`; a rejected spelling needs a player alias.
+When a typed name belongs to several players, the game takes the secret if he is one of them
+(`pickGuessId`). Add nicknames in `typed_forms`; a rejected spelling needs a player alias.
 
 ## Duplicates
 

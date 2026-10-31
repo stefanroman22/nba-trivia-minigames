@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect, useRef, type ReactNode } from "react";
+import { Fragment, useState, useEffect, useMemo, useRef, type ReactNode } from "react";
 import SwapText from "../components/motion/SwapText";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
@@ -6,7 +6,9 @@ import ProgressBar from "../components/ui/ProgressBar";
 import { Button, GameFrame } from "../components/ui";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { matchAnswer } from "../utils/answerMatch";
-import { acceptedAnswers, awardPrompt, awardQuestionId, promptReserve, winnersText } from "../utils/awardSeasons";
+import { acceptedAnswers, awardPrompt, awardQuestionId, idsHitWinner, promptReserve, winnersText } from "../utils/awardSeasons";
+import { useNames } from "../hooks/useNames";
+import { buildNameLookup } from "../utils/questions";
 import { createGuessLogger } from "../utils/guessLog";
 import type { MvpSeason, OnGameEnd } from "../types/types";
 import "../styles/NameLogo.css";
@@ -44,6 +46,9 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
   const roundStartRef = useRef(Date.now());
 
   const currentSeason = seasonsList[currentIndex];
+  // The shared names list: a typed name -> every player it can mean (aliases, namesakes).
+  const names = useNames();
+  const lookup = useMemo(() => (names ? buildNameLookup(names) : null), [names]);
 
   useEffect(() => { roundStartRef.current = Date.now(); }, [currentIndex]);
   useEffect(() => () => guessLog.flush(), [guessLog]);
@@ -69,8 +74,11 @@ function GuessMvps({ seasonsList, pointsPerCorrect, onGameEnd }: GuessMvpsProps)
     return; // don't run if no valid team
   }
 
-  // Any co-winner is right (Rookie of the Year 1971, 1995, 2000).
-  const isCorrect = matchAnswer(playerName, acceptedAnswers(currentSeason)) >= 0;
+  // Any co-winner is right (Rookie of the Year 1971, 1995, 2000), by the shared names lookup (aliases such as
+  // "Lew Alcindor", spaces, suffixes) or, before the names load or on an old row, by his exact name.
+  const isCorrect =
+    idsHitWinner(currentSeason, lookup?.resolveIds(playerName) ?? []) ||
+    matchAnswer(playerName, acceptedAnswers(currentSeason)) >= 0;
   // One entry per round: a second submit during the reveal is not a new answer.
   if (!picksRef.current[currentIndex]) {
     guessLog.add({

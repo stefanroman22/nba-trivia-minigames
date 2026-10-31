@@ -13,7 +13,7 @@ not writing: tell Stefan at step 0 and ask whether he wants it.
 
 ## Answers
 
-A guess counts when it matches a starter of the card's position family (PG/SG any guard, SF/PF any
-forward). Known gaps (code): the position is the box score's start slot, so a guard listed F that night is
-wrong on a guard card; the autocomplete list (database names) can spell a name differently from the
-lineup's.
+Any starter of the game not found yet is right on any card (`src/utils/startingFive.ts placeGuess`): on a
+card of his own position family he fills it, otherwise he goes to the card the reveal gives him. Names
+compare with `sameName` (spaces and a trailing Jr/Sr/II-V forgiven). Remaining gap: the autocomplete list
+(database names) can spell a name differently from the lineup's.

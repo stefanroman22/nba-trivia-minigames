@@ -8,6 +8,7 @@ import { Button, GameFrame, Spinner } from "../components/ui";
 import { BasketballCrest } from "../components/ui/TeamCrest";
 import TeamNameGradient from "../components/ui/TeamNameGradient";
 import { scrambledLogoUrl } from "../constants/teamLogos";
+import { teamAnswerAliases } from "../constants/nbaTeams";
 import { matchAnswer } from "../utils/answerMatch";
 import { createGuessLogger } from "../utils/guessLog";
 import type { NbaTeamLogo, OnGameEnd } from "../types/types";
@@ -109,8 +110,10 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
     }
     if (advanceTimer.current) return; // this round is already answered
 
+    // Nickname, unshared city, abbreviation and common short forms count too ("Lakers", "Sixers", "OKC").
+    const fullName = currentTeam?.full_name || "";
     const isCorrect =
-      matchAnswer(teamName, [{ answer: currentTeam?.full_name || "" }]) === 0;
+      matchAnswer(teamName, [{ answer: fullName, aliases: teamAnswerAliases(fullName) }]) === 0;
     picksRef.current[currentIndex] = { pick: teamName.trim(), correct: isCorrect };
     setAnswered({ name: currentTeam.full_name, id: currentTeam.team_id });
     guessLog.add({

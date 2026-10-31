@@ -12,7 +12,7 @@ import { BACKEND_ORIGIN } from "../configurations/backend";
 import { fadeIn } from "../motion/variants";
 import { apiFetch } from "../utils/Api";
 import { useNames } from "../hooks/useNames";
-import { buildNameLookup } from "../utils/questions";
+import { buildNameLookup, pickGuessId } from "../utils/questions";
 import { normalizeAnswer } from "../utils/answerMatch";
 import { WHO_ARE_YA_MAX, whoAreYaScore } from "../utils/gameScoring";
 import type { PlayerIndexEntry, PlayerTeamStint, OnGameEnd, WhoAreYaQuestion, NamesEntry } from "../types/types";
@@ -275,7 +275,8 @@ function WhoAreYa({ gameInfo, onGameEnd, onPlayAgain, onClose }: WhoAreYaProps) 
     if (!normalizeAnswer(raw)) return;
 
     // Resolve the typed name via the shared names lookup (built from players-names.json).
-    const id = lookup.toId(raw);
+    // A shared name (two Patrick Ewings) means the mystery when he is one of them.
+    const id = pickGuessId(lookup.resolveIds(raw), mystery.person_id);
     if (id === null) { flashPopup("Not in our player pool", "var(--muted)"); return; } // costs nothing
     const entry = lookup.getEntry(id);
     if (!entry) { flashPopup("Not in our player pool", "var(--muted)"); return; } // costs nothing

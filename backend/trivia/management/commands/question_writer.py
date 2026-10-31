@@ -117,6 +117,20 @@ class NameLookup:
         bare = None if out else _without_suffix(guess.strip())
         return list(self.exact.get(_name_key(bare), [])) if bare else out
 
+    def resolve_ids(self, guess):
+        """resolveIds: exact names/aliases first; the suffix-less match only when no player has that exact
+        name ("Gary Payton" is the father, never Gary Payton II); then a typed suffix the name lacks."""
+        key = _name_key(guess)
+        if self.exact.get(key):
+            return list(self.exact[key])
+        if self.loose.get(key):
+            return list(self.loose[key])
+        bare = _without_suffix(guess.strip())
+        return list(self.exact.get(_name_key(bare), [])) if bare else []
+
+    def is_name(self, guess):
+        return bool(self.exact.get(_name_key(guess)))
+
 
 def player_forms(name, aliases=(), extra=()):
     """{spelling: why} a fan may type for a player (each must be accepted)."""
@@ -375,17 +389,22 @@ class Command(BaseCommand):
             res["answers"].append({"answer": row["full_name"], "aliases": row.get("aliases") or []})
             namesakes = [pid for pid in lookup.to_ids(row["full_name"]) if pid != row["person_id"]]
             if namesakes:
-                res["info"].append(f"namesake(s) {namesakes} share the name {row['full_name']!r}")
+                res["info"].append(f"namesake(s) {namesakes} share the name {row['full_name']!r} (accepted either way)")
+            # Since 2026-10-30 all three games accept a guess whose resolved ids include the player
+            # (resolveIds + pickGuessId; Career Path also keeps its exact matchAnswer check), so a namesake
+            # is no miss. A suffix-less spelling that is another player's own name (the father) is
+            # rightly refused, so it is not a rejection.
             for form, why in player_forms(row["full_name"], row.get("aliases") or [],
                                           typed.get(row["full_name"], [])).items():
-                if slug == "career-path":
-                    if match_answer(form, [{"answer": row["full_name"], "aliases": row.get("aliases") or []}]) != 0:
-                        reject(row["full_name"], form, why, "no match")
-                else:
-                    got = lookup.to_ids(form)
-                    if not got or got[0] != row["person_id"]:
-                        reject(row["full_name"], form, why,
-                               f"resolves to {by_id.get(got[0], {}).get('full_name', got[0])}" if got else "unknown name")
+                got = lookup.resolve_ids(form)
+                exact = slug == "career-path" and match_answer(
+                    form, [{"answer": row["full_name"], "aliases": row.get("aliases") or []}]) == 0
+                if why == "without its suffix" and row["person_id"] not in got and lookup.is_name(form):
+                    res["info"].append(f"{form!r} is another player's name, so it rightly does not count")
+                    continue
+                if row["person_id"] not in got and not exact:
+                    reject(row["full_name"], form, why,
+                           f"resolves to {by_id.get(got[0], {}).get('full_name', got[0])}" if got else "unknown name")
         elif slug == "fan-favorites":
             answers = m["answers"]
             team = m["category"] == "team"

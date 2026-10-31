@@ -34,9 +34,9 @@ age, jersey number, draft. An unknown name ("Not in our player pool") costs no g
 
 ## Every valid answer accepted
 
-The game takes the **first** player of a shared name. If the mystery shares his full name with another
-player (the check flags "namesake"), typing his exact name is judged wrong: pick another player. Nicknames
-fans type go in `typed_forms`; a rejected one needs a player alias.
+When a typed name belongs to several players, the game takes the mystery if he is one of them
+(`pickGuessId`), so a namesake is no problem. Nicknames fans type go in `typed_forms`; a rejected one
+needs a player alias.
 
 ## Duplicates
 

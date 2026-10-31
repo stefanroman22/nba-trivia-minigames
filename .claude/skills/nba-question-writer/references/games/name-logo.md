@@ -9,6 +9,7 @@ The pool is the 30 current franchises, and it is full (30 of 30). Tell Stefan at
 
 ## Answers
 
-`matchAnswer` against the full name only, no aliases: "Lakers", "LA Clippers", "Sixers", "Trailblazers" and
-old names are wrong answers today (a code gap; the autocomplete is the hardcoded `src/constants/nbaTeams.tsx`
-list). Report it as a code fix when it comes up.
+`matchAnswer` against the full name plus `teamAnswerAliases` (`src/constants/nbaTeams.ts`): the nickname,
+the city unless two teams share it (not "Los Angeles"), the abbreviation and common short forms (Sixers,
+Cavs, Mavs, Wolves, Blazers, LA Clippers, OKC, ...). Former names (SuperSonics, Bobcats, New Jersey Nets)
+stay wrong: the logo shown is the current one.

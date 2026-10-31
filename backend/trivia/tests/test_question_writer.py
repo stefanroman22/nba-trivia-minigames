@@ -41,6 +41,11 @@ class MatchingMirrorTests(SimpleTestCase):
         self.assertEqual(self.lookup.to_ids("Gary Payton"), [3, 4])  # the exact name first
         self.assertEqual(self.lookup.to_ids("Patrick Ewing"), [5, 6])  # namesakes: toId keeps the first
 
+    def test_resolve_ids_never_turns_the_fathers_name_into_the_son(self):
+        self.assertEqual(self.lookup.resolve_ids("Gary Payton"), [3])
+        self.assertEqual(self.lookup.resolve_ids("Jaren Jackson"), [2])  # no father in this list
+        self.assertEqual(self.lookup.resolve_ids("Patrick Ewing"), [5, 6])
+
     def test_match_answer_is_exact_after_normalizing(self):
         answers = [{"answer": "Tim Hardaway Jr.", "aliases": []}]
         self.assertEqual(qw.match_answer("tim hardaway jr", answers), 0)

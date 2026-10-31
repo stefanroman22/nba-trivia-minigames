@@ -8,7 +8,7 @@
 import type {
   FetchResult, NamesEntry, Question, QuestionIndex, QuestionsManifest,
 } from "../types/types";
-import { normalizeAnswer } from "./answerMatch";
+import { nameKey } from "./answerMatch";
 import {
   QUESTION_GAMES, fetchQuestion as fetchV3Question, fetchQuestionNames, getManifest as getV3Manifest,
   hasQuestions, isConfigured as v3Configured, pickQuestion,
@@ -200,9 +200,6 @@ export async function fetchQuestion(game: string, day?: string, difficulty?: str
 const NAME_SUFFIX = /\s+(jr|sr|ii|iii|iv|v)\.?$/i;
 /** The name without a trailing generational suffix ("Bobby Portis Jr." → "Bobby Portis"), or null when it has none. */
 const withoutSuffix = (name: string) => (NAME_SUFFIX.test(name) ? name.replace(NAME_SUFFIX, "") : null);
-/** The lookup key: normalized, then without spaces, so a space typed for an apostrophe, hyphen or initials'
- * dot still matches ("Shaquille O Neal", "Karl Anthony Towns", "A C Green"). */
-const nameKey = (s: string) => normalizeAnswer(s).replace(/\s+/g, "");
 
 /**
  * Typed name → players. Several players can share a name (two Eddie Johnsons): `toIds` gives every one, so a game that
@@ -237,11 +234,31 @@ export function buildNameLookup(names: NamesEntry[]) {
     const bare = out.length ? null : withoutSuffix(guess.trim());
     return bare ? [...(exact.get(nameKey(bare)) ?? [])] : out;
   };
+  /** The players a typed name means, by precedence: an exact full name or alias wins outright, so "Gary Payton"
+   *  is only Gary Payton, never Gary Payton II; else the suffix-less match ("Bobby Portis"); else the name
+   *  without a suffix it does not carry ("Mike Conley Jr"). For games that judge one answer right or wrong. */
+  const resolveIds = (guess: string): number[] => {
+    const key = nameKey(guess);
+    const hit = exact.get(key) ?? loose.get(key);
+    if (hit?.length) return [...hit];
+    const bare = withoutSuffix(guess.trim());
+    return bare ? [...(exact.get(nameKey(bare)) ?? [])] : [];
+  };
   return {
     suggestions: names.map((n) => n.full_name),
     toId: (guess: string) => toIds(guess)[0] ?? null,
     toIds,
+    resolveIds,
     nameOf: (id: number) => byId.get(id)?.full_name ?? null,
     getEntry: (id: number) => byId.get(id) ?? null,
   };
+}
+
+/**
+ * Which of a typed name's players (`resolveIds`) a guess means: the target when he is one of them (the mystery is the
+ * second of two Eddie Johnsons), else the first one `accept` allows (every one by default), else null.
+ */
+export function pickGuessId(ids: number[], targetId: number | null | undefined, accept?: (id: number) => boolean): number | null {
+  if (targetId != null && ids.includes(targetId)) return targetId;
+  return ids.find((id) => !accept || accept(id)) ?? null;
 }
