@@ -80,6 +80,44 @@ export const fetchGameData = async (endpoint : string) => {
 
 export const games: Game[] = [
   {
+    id: "tictactoe",
+    name: "NBA Tic-Tac-Toe",
+    tag: "DUEL",
+    description: "A more complex tic-tac-toe game.",
+    roundsLabel: "1 board",
+    seoDescription: "NBA Tic-Tac-Toe: claim each square by naming a player who fits its row and column. Get three in a row to win. Free NBA grid trivia in your browser.",
+    intro: "The PvP flagship. Out-think your opponent cell by cell.",
+    rules: [
+      { n: "1", t: "On your turn, pick a square and name a player who fits its row + column." },
+      { n: "2", t: "One answer per turn, 30 seconds: a player who doesn't fit, or the clock running out, passes the turn." },
+      { n: "3", t: "Three in a row wins the duel; a full board is a draw." },
+    ],
+    instruction: `
+      <div class="space-y-2">
+        <p>Tic-tac-toe where every cell is an NBA riddle. Beat the clock and your opponent.</p>
+        <ul class="list-disc pl-5 text-sm text-left">
+          <li><strong>Goal:</strong> Claim three cells in a row by naming valid players.</li>
+          <li><strong>Turns:</strong> One answer per turn, 30s each. A player who doesn't fit, or a time-out, passes the turn.</li>
+          <li><strong>Where:</strong> Online, or on this device with a friend (Local multiplayer).</li>
+        </ul>
+        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
+      </div>
+    `,
+    loadingMessage: "Chalking the duel board...",
+    backgroundImage: `url('${thumb_tictactoe.src}')`,
+    urlPath: "/tictactoe",
+    pointsPerCorrect: 30,
+    maxPoints: 300,
+    difficulties: [
+      { key: "easy", label: "Easy" },
+      { key: "medium", label: "Medium" },
+      { key: "hard", label: "Hard" },
+    ],
+    fetchData: (opts) => fetchQuestion("tictactoe", undefined, opts?.difficulty),
+    handleError: handleErrorDefault,
+    localMultiplayer: true,
+  },
+  {
     id: "series-winner",
     name: "Guess the Series Winner",
     tag: "PREDICT",
@@ -431,44 +469,6 @@ export const games: Game[] = [
     maxPoints: 250,
     fetchData: () => fetchQuestion("who-are-ya"),
     handleError: handleErrorDefault,
-  },
-  {
-    id: "tictactoe",
-    name: "NBA Tic-Tac-Toe",
-    tag: "DUEL",
-    description: "A more complex tic-tac-toe game.",
-    roundsLabel: "1 board",
-    seoDescription: "NBA Tic-Tac-Toe: claim each square by naming a player who fits its row and column. Get three in a row to win. Free NBA grid trivia in your browser.",
-    intro: "The PvP flagship. Out-think your opponent cell by cell.",
-    rules: [
-      { n: "1", t: "On your turn, pick a square and name a player who fits its row + column." },
-      { n: "2", t: "One answer per turn, 30 seconds: a player who doesn't fit, or the clock running out, passes the turn." },
-      { n: "3", t: "Three in a row wins the duel; a full board is a draw." },
-    ],
-    instruction: `
-      <div class="space-y-2">
-        <p>Tic-tac-toe where every cell is an NBA riddle. Beat the clock and your opponent.</p>
-        <ul class="list-disc pl-5 text-sm text-left">
-          <li><strong>Goal:</strong> Claim three cells in a row by naming valid players.</li>
-          <li><strong>Turns:</strong> One answer per turn, 30s each. A player who doesn't fit, or a time-out, passes the turn.</li>
-          <li><strong>Where:</strong> Online, or on this device with a friend (Local multiplayer).</li>
-        </ul>
-        <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
-      </div>
-    `,
-    loadingMessage: "Chalking the duel board...",
-    backgroundImage: `url('${thumb_tictactoe.src}')`,
-    urlPath: "/tictactoe",
-    pointsPerCorrect: 30,
-    maxPoints: 300,
-    difficulties: [
-      { key: "easy", label: "Easy" },
-      { key: "medium", label: "Medium" },
-      { key: "hard", label: "Hard" },
-    ],
-    fetchData: (opts) => fetchQuestion("tictactoe", undefined, opts?.difficulty),
-    handleError: handleErrorDefault,
-    localMultiplayer: true,
   },
   {
     id: "bingo",

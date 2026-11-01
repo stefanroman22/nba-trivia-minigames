@@ -40,6 +40,19 @@ const epochOrder = (eligible: { id: string }[], epoch: number): string[] => {
   return order;
 };
 
+/** The order the daily shuffle runs over. Frozen on purpose (the order `games` had on 2026-11-01): the shuffle is
+ *  seeded by position, so following the display order would change every day's pick whenever a game is moved
+ *  (Tic-Tac-Toe went first on 2026-11-01). A game not listed here goes last, in the order given. */
+const DAILY_SCHEDULE_ORDER = [
+  "series-winner", "name-logo", "guess-mvps", "starting-five", "wordle", "fan-favorites", "heatmap", "connections",
+  "career-path", "nba-grid", "who-are-ya", "tictactoe", "bingo", "contexto", "pack-five", "superdraft", "imposter",
+  "who-would-win", "coming-soon",
+];
+const scheduleRank = (id: string): number => {
+  const i = DAILY_SCHEDULE_ORDER.indexOf(id);
+  return i === -1 ? DAILY_SCHEDULE_ORDER.length : i;
+};
+
 /**
  * Id of today's game (Paris date of `now`); never the same as yesterday's. "" if no game is eligible.
  * Each epoch of n days plays every eligible game once in a seeded order, so repeats are impossible by
@@ -47,7 +60,9 @@ const epochOrder = (eligible: { id: string }[], epoch: number): string[] => {
  * previous epoch's last game.
  */
 export const dailyGameId = (games: { id: string }[], now: Date): string => {
-  const eligible = games.filter((g) => !DAILY_EXCLUDED_IDS.includes(g.id));
+  const eligible = games
+    .filter((g) => !DAILY_EXCLUDED_IDS.includes(g.id))
+    .sort((a, b) => scheduleRank(a.id) - scheduleRank(b.id)); // stable: ties keep the given order
   const n = eligible.length;
   if (n === 0) return "";
   if (n === 1) return eligible[0].id;
