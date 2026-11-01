@@ -1,3 +1,4 @@
+from io import StringIO
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
@@ -5,6 +6,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from users import leaderboard
+from users.tests import login
 
 User = get_user_model()
 
@@ -215,3 +217,80 @@ class SignupSyncsLeaderboardTests(TestCase):
             self.assertIn(resp.status_code, (200, 201))
             self.assertEqual(leaderboard.total(), 1)
             self.assertEqual([r["username"] for r in leaderboard.top(10)], ["dave"])
+
+
+class AdminsAreOffEveryBoardTests(TestCase):
+    """Admin accounts (is_staff) are hidden from every board (owner, 2026-11-02) but stay reachable and counted in the ladder statistics."""
+
+    def setUp(self):
+        _make_users()
+        self.admin = User.objects.create_user(
+            username="boss", email="boss@example.com", password="x", points=9999, age_group="adult", is_staff=True
+        )
+
+    def test_the_admin_is_not_on_the_global_board_or_in_its_count(self):
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
+        self.assertEqual(leaderboard.total(), 3)
+
+    def test_the_admin_has_no_board_rank_but_players_are_ranked_without_him(self):
+        self.assertIsNone(leaderboard.rank_of(self.admin))
+        self.assertEqual(leaderboard.rank_of(User.objects.get(username="alice")), 1)  # not 2nd behind 9,999 points
+
+    def test_the_admin_is_not_on_the_weekly_board(self):
+        from trivia.models import GameSession
+
+        GameSession.objects.create(user=self.admin, game="wordle", score=10, awarded=500)
+        GameSession.objects.create(user=User.objects.get(username="bob"), game="wordle", score=10, awarded=20)
+        board, my_rank, count, _ = leaderboard.weekly_board(self.admin)
+        self.assertEqual([r["username"] for r in board], ["bob"])
+        self.assertEqual((my_rank, count), (None, 1))
+
+    def test_the_admin_is_not_on_a_friends_board(self):
+        board, _, count = leaderboard.friends_board(self.admin)
+        self.assertEqual((board, count), ([], 0))
+
+    def test_the_admin_still_counts_in_the_ladder_statistics(self):
+        self.assertEqual(leaderboard._ranked().count(), 4)
+        self.assertEqual(leaderboard._on_board().count(), 3)
+
+    def test_the_admin_is_still_reachable_by_search(self):
+        token = login(self.client, "alice@example.com", password="x").json()["access"]
+        res = self.client.get(reverse("search-users"), {"q": "boss"}, HTTP_AUTHORIZATION=f"Bearer {token}").json()["results"]
+        self.assertEqual([r["username"] for r in res], ["boss"])
+
+
+class AdminsAreOffTheRedisBoardTests(TestCase):
+    def setUp(self):
+        _make_users()
+        self.fake = FakeRedis()
+        patcher = patch("users.leaderboard._redis", return_value=self.fake)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.admin = User.objects.create_user(
+            username="boss", email="boss@example.com", password="x", points=9999, age_group="adult", is_staff=True
+        )
+        for u in User.objects.all():
+            leaderboard.record_score(u)
+
+    def test_an_admin_is_never_added_to_the_zset(self):
+        self.assertNotIn(self.admin.public_id, self.fake.z.get(leaderboard.ZKEY, {}))
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
+        self.assertIsNone(leaderboard.rank_of(self.admin))
+
+    def test_a_zset_that_still_holds_an_admin_counts_as_drifted_and_postgres_answers(self):
+        self.fake.zadd(leaderboard.ZKEY, {self.admin.public_id: 9999})
+        self.assertEqual([r["username"] for r in leaderboard.top(10)], ["alice", "carol", "bob"])
+
+    def test_sync_leaderboard_leaves_the_admin_out(self):
+        from django.core.management import call_command
+
+        call_command("sync_leaderboard", stdout=StringIO())
+        self.assertEqual(self.fake.zcard(leaderboard.ZKEY), 3)
+
+    def test_promoting_an_account_removes_it_from_the_zset_and_revoking_restores_it(self):
+        from django.core.management import call_command
+
+        call_command("promote_admin", "alice@example.com", stdout=StringIO())
+        self.assertEqual(self.fake.zcard(leaderboard.ZKEY), 2)
+        call_command("promote_admin", "alice@example.com", "--revoke", stdout=StringIO())
+        self.assertEqual(self.fake.zcard(leaderboard.ZKEY), 3)

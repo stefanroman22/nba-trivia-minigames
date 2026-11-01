@@ -9,6 +9,10 @@ Entries are keyed by the player's permanent PUBLIC ID (usernames are display
 names and may repeat), so renames never touch the board and two players with
 the same name can't collide.
 
+Admin accounts (is_staff) are kept off every board (owner decision 2026-11-02, production has one admin and
+should not show on the board for now). They stay reachable, searchable and counted in the rank-ladder
+statistics (`_ranked`); only the boards use `_on_board`.
+
 Banned accounts (users.strikes) are hidden, not deleted: every Postgres path filters them out,
 `remove()` drops them from the ZSET at ban time and `record_score` never re-adds them; an unban
 re-records the score, so the row comes back with its points.
@@ -33,6 +37,12 @@ def _ranked():
     (users.strikes). Age plays no part (no age rules at all since the owner decision of 2026-10-11,
     users.consent)."""
     return User.objects.filter(banned_at__isnull=True)
+
+
+def _on_board():
+    """The accounts that appear on a leaderboard: ranked ones minus admins (is_staff). The ladder statistics
+    keep using `_ranked`, so an admin still counts there."""
+    return _ranked().filter(is_staff=False)
 
 
 def _redis():
@@ -63,7 +73,7 @@ def _in_sync(r):
     missing players (never synced, or written while they were hidden) or still holds hidden or
     deleted ones has drifted: the callers then answer from Postgres, which is always right, until
     `sync_leaderboard` rebuilds it."""
-    members, ranked = r.zcard(ZKEY), _ranked().count()
+    members, ranked = r.zcard(ZKEY), _on_board().count()
     if members != ranked:
         _warn_drift(f"{members} members for {ranked} ranked accounts")
         return False
@@ -77,11 +87,11 @@ def _row(public_id, username, rank, points, photo_version):
 
 
 def _is_ranked(user):
-    return not getattr(user, "banned_at", None)
+    return not getattr(user, "banned_at", None) and not getattr(user, "is_staff", False)
 
 
 def _postgres_top(n):
-    rows = _ranked().order_by("-points")[:n].values("public_id", "username", "points", "rank", "profile_photo_version")
+    rows = _on_board().order_by("-points")[:n].values("public_id", "username", "points", "rank", "profile_photo_version")
     return [_row(u["public_id"], u["username"], u["rank"], u["points"], u["profile_photo_version"]) for u in rows]
 
 
@@ -95,7 +105,7 @@ def top(n=100):
     # One query resolves the display names for the whole page.
     info = {
         pid: (name, rank, photo)
-        for pid, name, rank, photo in _ranked().filter(public_id__in=ids).values_list("public_id", "username", "rank", "profile_photo_version")
+        for pid, name, rank, photo in _on_board().filter(public_id__in=ids).values_list("public_id", "username", "rank", "profile_photo_version")
     }
     if len(info) < len(ids):
         # A member that is not on the board (hidden or deleted since it was added) means the ZSET has
@@ -107,29 +117,29 @@ def top(n=100):
 
 def rank_of(user):
     """1-based rank of `user` (number of players with strictly more points, + 1), or None for an
-    account that is not on the board."""
+    account that is not on the board (banned or an admin)."""
     if not _is_ranked(user):
         return None
     r = _redis()
     if r is None or not _in_sync(r):
-        return _ranked().filter(points__gt=user.points).count() + 1
+        return _on_board().filter(points__gt=user.points).count() + 1
     rank = r.zrevrank(ZKEY, user.public_id)
     if rank is None:
         # Not in the ZSET yet (e.g. before the first sync) — fall back to a count.
-        return _ranked().filter(points__gt=user.points).count() + 1
+        return _on_board().filter(points__gt=user.points).count() + 1
     return rank + 1
 
 
 def total():
-    """Total number of ranked players, from Postgres: the ZSET can hold members that are no
+    """Total number of players on the board, from Postgres: the ZSET can hold members that are no
     longer on the board, or miss some that are (see `_in_sync`)."""
-    return _ranked().count()
+    return _on_board().count()
 
 
 def record_score(user):
-    """Upsert a user's score into the ZSET (no-op without Redis, and for a banned account)."""
+    """Upsert a user's score into the ZSET (no-op without Redis, and for a banned account or an admin)."""
     r = _redis()
-    if r is None or getattr(user, "banned_at", None):
+    if r is None or getattr(user, "banned_at", None) or getattr(user, "is_staff", False):
         return
     r.zadd(ZKEY, {user.public_id: user.points})
 
@@ -161,9 +171,9 @@ def friends_board(user):
     friend_ids = {hi if lo == user.pk else lo for lo, hi in pairs}
     ids = list(friend_ids) + [user.pk]
 
-    # Banned accounts are hidden, as on every board.
+    # Banned accounts and admins are hidden, as on every board.
     rows = list(
-        User.objects.filter(banned_at__isnull=True, pk__in=ids)
+        User.objects.filter(banned_at__isnull=True, is_staff=False, pk__in=ids)
         .order_by("-points")
         .values("pk", "public_id", "username", "points", "rank", "profile_photo_version")
     )
@@ -184,7 +194,7 @@ def weekly_board(user=None):
     from trivia.wordle_daily import cet_today
 
     rows = list(
-        GameSession.objects.filter(user__in=_ranked(), finished_at__gte=week_start_utc(cet_today()), awarded__gt=0)
+        GameSession.objects.filter(user__in=_on_board(), finished_at__gte=week_start_utc(cet_today()), awarded__gt=0)
         .values("user__public_id", "user__username", "user__rank", "user__profile_photo_version")
         .annotate(points=Sum("awarded"))
         .order_by("-points", "user__public_id")

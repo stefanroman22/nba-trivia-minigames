@@ -12,8 +12,8 @@ class Command(BaseCommand):
             raise CommandError("REDIS_URL is not set; nothing to sync.")
         mapping = {
             u.public_id: u.points
-            # Only accounts that may appear on the board (leaderboard._ranked: banned ones are hidden).
-            for u in leaderboard._ranked().only("public_id", "points")
+            # Only accounts that may appear on the board (leaderboard._on_board: banned ones and admins are hidden).
+            for u in leaderboard._on_board().only("public_id", "points")
         }
         r.delete(leaderboard.ZKEY)
         if mapping:

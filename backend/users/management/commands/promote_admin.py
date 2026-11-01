@@ -1,6 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
+from users import leaderboard
+
 User = get_user_model()
 
 
@@ -29,6 +31,11 @@ class Command(BaseCommand):
         user.is_staff = grant
         user.is_superuser = grant
         user.save(update_fields=["is_staff", "is_superuser"])
+        # Admins are kept off every leaderboard: drop (or restore) the Redis entry now, the Postgres boards follow is_staff.
+        if grant:
+            leaderboard.remove(user)
+        else:
+            leaderboard.record_score(user)
 
         verb = "promoted to admin" if grant else "demoted from admin"
         self.stdout.write(self.style.SUCCESS(f"{user} ({user.email}) {verb}."))
