@@ -30,7 +30,7 @@ import { AutoSize } from '../../components/motion/AutoHeight';
 import SegmentedTabs from '../../components/motion/SegmentedTabs';
 import { GAME_IN_PROGRESS } from '../../constants/messages';
 import { useDailyCardState } from '../../hooks/useDailyCardState';
-import { DAILY_COPY, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, type DailyStatus } from '../../utils/wordleDaily';
+import { DAILY_COPY, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, knownDailyStatus, type DailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import { FOCUSABLE } from '../../hooks/useFocusTrap';
@@ -45,6 +45,7 @@ import "../../styles/MiniGame.css";
 // several games with 100-230px of dead space above the Exit button.
 
 const RAIL_STRIP_KEY = "sq:rail-strip-x";
+const RAIL_LIST_KEY = "sq:rail-list-y";
 // Shortest time the loader stays up after Play (Rule 3.1), counted from the press while the data
 // loads: the idle fade-out plus the loader's fade-in take 500 ms (Stage), so it is fully on screen
 // for ~300 ms and never flashes.
@@ -139,6 +140,41 @@ function MiniGame() {
       // storage blocked: the position just isn't remembered
     }
   };
+
+  // Desktop rail: the same for its vertical list, so the picker stays where the player left it. The
+  // rail's height normally arrives from the stage's ResizeObserver (after this effect), so it is set
+  // here first, or the list isn't scrollable yet and the restore clamps to 0; the first observer
+  // callback re-applies the remembered offset in case the stage settled at another height.
+  const railListRef = useRef<HTMLDivElement | null>(null);
+  const railRestoreRef = useRef<number | null>(null);
+  useLayoutEffect(() => {
+    const list = railListRef.current;
+    if (!list || !list.offsetParent) return; // hidden below the desktop layout
+    let saved = 0;
+    try {
+      saved = Number(sessionStorage.getItem(RAIL_LIST_KEY)) || 0;
+    } catch {
+      // storage blocked: start at the top
+    }
+    const stageH = stageColRef.current?.getBoundingClientRect().height;
+    if (stageH) railRef.current?.style.setProperty("height", `min(${stageH}px, calc(100dvh - 104px))`);
+    list.scrollTop = saved;
+    railRestoreRef.current = saved;
+    // Fallback if no observer callback comes (the stage didn't resize): saving resumes after two frames.
+    let inner = 0;
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => { railRestoreRef.current = null; });
+    });
+    return () => { cancelAnimationFrame(outer); cancelAnimationFrame(inner); };
+  }, [gameId]);
+  const saveRailList = () => {
+    if (railRestoreRef.current !== null) return; // the restore's own scroll events, before it is final
+    try {
+      sessionStorage.setItem(RAIL_LIST_KEY, String(railListRef.current?.scrollTop ?? 0));
+    } catch {
+      // storage blocked: the position just isn't remembered
+    }
+  };
   // Daily games only (Wordle, Contexto): whether this account/browser already played today's puzzle.
   // Re-checked every time we land on idle for one, so it's fresh both on
   // first load and after finishing a run (Close game).
@@ -178,6 +214,10 @@ function MiniGame() {
     if (!el) return;
     const ro = new ResizeObserver(([entry]) => {
       railRef.current?.style.setProperty("height", `min(${entry.contentRect.height}px, calc(100dvh - 104px))`);
+      if (railRestoreRef.current !== null && railListRef.current) {
+        railListRef.current.scrollTop = railRestoreRef.current;
+        railRestoreRef.current = null;
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -342,7 +382,10 @@ function MiniGame() {
   }, [gameId, stage]);
 
   const dailyCards = useDailyCardState();
-  const dailyLocked = isDailyLockGame(gameId) && !!dailyStatus?.locked;
+  // Until this idle's own status call lands, what the tab already knows (a game switch, or Close game
+  // after today's play), so a used-up day never flashes Play first.
+  const dailyShown = dailyStatus ?? (stage === "idle" && isDailyLockGame(gameId) ? knownDailyStatus(gameId) ?? null : null);
+  const dailyLocked = isDailyLockGame(gameId) && !!dailyShown?.locked;
 
   // Tick the countdown copy once a minute while it's actually shown — the
   // deadline itself lives on the server response, this just forces a re-render.
@@ -396,7 +439,7 @@ function MiniGame() {
             <div className="idle-action">
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div
-                  key={inLobby ? "lobby" : dailyLocked && dailyStatus ? "locked" : "play"}
+                  key={inLobby ? "lobby" : dailyLocked && dailyShown ? "locked" : "play"}
                   variants={swapVariants}
                   initial="hidden"
                   animate="visible"
@@ -406,9 +449,9 @@ function MiniGame() {
                     <p className="idle-room-note">
                       You're in a private room.
                     </p>
-                  ) : dailyLocked && dailyStatus && isDailyLockGame(gameId) ? (
+                  ) : dailyLocked && dailyShown && isDailyLockGame(gameId) ? (
                     <p className="idle-room-note">
-                      Next {DAILY_COPY[gameId].puzzle} available in {formatDailyCountdown(dailyStatus.nextResetAt)}.
+                      Next {DAILY_COPY[gameId].puzzle} available in {formatDailyCountdown(dailyShown.nextResetAt)}.
                     </p>
                   ) : (
                     <Button size="lg" onClick={handleStart}>
@@ -458,6 +501,7 @@ function MiniGame() {
                 onClose: handleRestart,
                 // Local multiplayer: no onGameEnd (nothing scored or stored); the ended board still swaps the
                 // shell's Close game for "Report a problem" (its review names the board).
+                difficultyLabel: game?.difficulties?.find((d) => d.key === difficulty)?.label,
                 local: local?.names
                   ? {
                       names: local.names,
@@ -516,7 +560,7 @@ function MiniGame() {
           {/* Desktop rail */}
           <aside className="rail" aria-label="All games" ref={railRef}>
             <div className="rail-head"><span>ALL GAMES</span><span>{visibleGames.length}</span></div>
-            <div className="rail-list">
+            <div className="rail-list" ref={railListRef} onScroll={saveRailList}>
               {visibleGames.map((g) => (
                 <button
                   key={g.id}

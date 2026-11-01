@@ -61,6 +61,8 @@ export interface TicTacToeProps {
   turn?: unknown; // present in the duel: the server's TttTurnState
   onTurnAction?: (action: unknown) => void;
   multiplayer?: boolean;
+  /** Solo: the picked difficulty ("Easy"), shown as "EASY BOARD" on the status row. */
+  difficultyLabel?: string;
 }
 
 interface GuessEntry {
@@ -221,7 +223,7 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, selectedTo
   );
 }
 
-function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnAction, multiplayer }: TicTacToeProps) {
+function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnAction, multiplayer, difficultyLabel }: TicTacToeProps) {
   const isMultiplayer = multiplayer === true;
   const mpState = (turn ?? null) as TttTurnState | null;
 
@@ -589,7 +591,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
         left={
           <>
             <GameFrame.Label>
-              <SwapText>{endState ? "FINAL BOARD" : "CLAIM THREE IN A ROW"}</SwapText>
+              <SwapText>{endState ? "FINAL BOARD" : difficultyLabel ? `${difficultyLabel.toUpperCase()} BOARD` : "CLAIM THREE IN A ROW"}</SwapText>
             </GameFrame.Label>
             <span
               className="ttt-clock tnum"

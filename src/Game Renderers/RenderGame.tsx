@@ -60,6 +60,8 @@ interface RenderGameArgs {
   multiplayer?: boolean;
   /** Local multiplayer (Game.localMultiplayer games only, Tic-Tac-Toe): two players on this device. */
   local?: TttLocalPlay;
+  /** Games with difficulties: the picked level's label ("Easy"), shown on the solo board's status row. */
+  difficultyLabel?: string;
 }
 
 export const renderGame = ({
@@ -73,6 +75,7 @@ export const renderGame = ({
   onTurnAction,
   multiplayer,
   local,
+  difficultyLabel,
 }: RenderGameArgs) => {
   switch (gameId) {
     case "series-winner":
@@ -200,6 +203,7 @@ export const renderGame = ({
           turn={turn}
           onTurnAction={onTurnAction}
           multiplayer={multiplayer}
+          difficultyLabel={difficultyLabel}
         />
       ) : (
         <TicTacToeLocal
