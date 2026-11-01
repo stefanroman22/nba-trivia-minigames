@@ -14,6 +14,18 @@ export interface ReviewSeat {
   isSelf: boolean;
 }
 
+/** How long a decided Tic-Tac-Toe duel keeps its final board and its "You win!" / "Draw!" banner on screen
+ *  before the match moves on. One value for both holders: the renderer hands its score back after it, and
+ *  the store holds the relay's matchResult (sent in the same tick as the deciding move) until it has passed. */
+export const TTT_DECIDED_HOLD_MS = 1800;
+
+/** True when a Tic-Tac-Toe duel's turn state is decided (a winner or a draw). */
+export function tttDecided(gameId: string | undefined, state: unknown): boolean {
+  if (gameId !== "tictactoe" || !state) return false;
+  const s = state as Partial<TttTurnState>;
+  return s.winnerUid != null || s.draw === true;
+}
+
 /** Tic-Tac-Toe: the final duel board, your cells marked. */
 export function tttReview(s: TttTurnState, selfUid: string): AnswerReview {
   return {

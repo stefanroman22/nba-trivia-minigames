@@ -16,7 +16,7 @@ import { normalizeAnswer } from "../utils/answerMatch";
 import type { RootState } from "../store";
 import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../types/types";
 import type { AnswerReview } from "../types/review";
-import { tttReview } from "../utils/turnReview";
+import { TTT_DECIDED_HOLD_MS, tttReview } from "../utils/turnReview";
 import { popIn } from "../motion/variants";
 import { TTT_CELL_POINTS as CELL_POINTS, TTT_SOLO_MAX } from "../utils/gameScoring";
 import "../styles/TicTacToe.css";
@@ -366,13 +366,14 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     setGuess("");
   }, [isMultiplayer, mpState?.turnUid, mpState?.board]);
 
-  // Terminal state: hold the banner, then hand the score back exactly once.
+  // Terminal state: hold the banner, then hand the score back exactly once. The store holds the relay's
+  // matchResult for the same TTT_DECIDED_HOLD_MS, so the decided board shows on both screens first.
   useEffect(() => {
     if (!isMultiplayer || !terminal || endedRef.current) return;
     endedRef.current = true;
     // The final board is the duel's answer review (both players finish at once, so nothing leaks).
     const review = mpState ? tttReview(mpState, selfUid) : undefined;
-    later(() => onGameEnd?.(myCells * CELL_POINTS, { review }), 1800); // game-results: online-duel
+    later(() => onGameEnd?.(myCells * CELL_POINTS, { review }), TTT_DECIDED_HOLD_MS); // game-results: online-duel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiplayer, terminal]);
 
@@ -416,7 +417,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
           left={
             <>
               <GameFrame.Label>
-                <span className={`ttt-turn${myTurn ? " is-you" : ""}`}>
+                <span className={`ttt-turn ttt-label${myTurn ? " is-you" : ""}`}>
                   <SwapText>{terminal ? "FINAL" : myTurn ? "YOUR TURN" : "OPPONENT'S TURN"}</SwapText>
                 </span>
               </GameFrame.Label>
@@ -544,7 +545,9 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
         left={
           <>
             <GameFrame.Label>
-              <SwapText>{endState ? "FINAL BOARD" : "CLAIM THREE IN A ROW"}</SwapText>
+              <span className="ttt-label">
+                <SwapText>{endState ? "FINAL BOARD" : "CLAIM THREE IN A ROW"}</SwapText>
+              </span>
             </GameFrame.Label>
             <span
               className="ttt-clock tnum"

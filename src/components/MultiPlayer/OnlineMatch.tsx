@@ -243,7 +243,11 @@ export default function OnlineMatch() {
 
   return (
     <div className="om">
-      <NoticeBar notice={mp.notice?.kind === "points" ? null : mp.notice} onClose={clearNotice} />
+      <NoticeBar
+        notice={mp.notice?.kind === "points" ? null : mp.notice}
+        onClose={clearNotice}
+        placement={mp.phase === "playing" ? "play" : "top"}
+      />
       <AnimatePresence mode="wait">{body}</AnimatePresence>
     </div>
   );
@@ -477,15 +481,24 @@ function OpponentChip({ name, photo, state }: { name: string; photo?: string | n
   );
 }
 
-function NoticeBar({ notice, onClose }: { notice: { kind: string; text: string } | null; onClose: () => void }) {
+/** The match's passing notices. Over the top of the card on every screen but live play; while a game is
+ *  played (a refused move, a player who dropped) it sits under the game, over the presence row, so it never
+ *  hides the game's status row (turn label, clock, score). A notice that outlives play re-enters at the top. */
+function NoticeBar({ notice, onClose, placement }: {
+  notice: { kind: string; text: string } | null;
+  onClose: () => void;
+  placement: "top" | "play";
+}) {
+  const play = placement === "play";
   return (
     <AnimatePresence>
       {notice && (
         <motion.div
-          className={`om-notice is-${notice.kind}`}
-          initial={{ opacity: 0, y: -10 }}
+          key={placement}
+          className={`om-notice is-${notice.kind}${play ? " om-notice--play" : ""}`}
+          initial={{ opacity: 0, y: play ? 10 : -10 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
+          exit={{ opacity: 0, y: play ? 10 : -10 }}
           transition={{ duration: 0.3, ease: EASE }}
         >
           <span>{notice.text}</span>

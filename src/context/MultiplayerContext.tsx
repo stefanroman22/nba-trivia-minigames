@@ -30,7 +30,7 @@ import { BAN_CODE, reportBan } from "../utils/ban";
 import { isAccessTokenExpired } from "../utils/session";
 import type { Game, GameData, PlayerInfo } from "../types/types";
 import type { AnswerReview } from "../types/review";
-import { turnReview } from "../utils/turnReview";
+import { TTT_DECIDED_HOLD_MS, tttDecided, turnReview } from "../utils/turnReview";
 
 /** Who "you" are in a turn game's review (the matchResult handler reads it from the signed-in user). */
 type ReviewSelf = { uid: string; name: string; photo?: string | null };
@@ -475,6 +475,19 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const mpRef = useRef(mp);
   mpRef.current = mp;
 
+  // ---- A decided Tic-Tac-Toe board stays on screen before the results. The relay settles a duel in the
+  //      same tick as its deciding move, so its matchResult would replace the final board (and the
+  //      renderer's "You win!" / "Draw!" banner) at once: the mover never saw it. The result waits out
+  //      the rest of TTT_DECIDED_HOLD_MS from when the decided board arrived; leaving the round (leave,
+  //      opponent left, restart, any phase other than playing / waiting) drops it. ----
+  const decidedAt = useRef<number | null>(null);
+  const heldResult = useRef<{ timer: ReturnType<typeof setTimeout>; action: Action } | null>(null);
+  const dropHeldResult = useCallback(() => {
+    if (heldResult.current) clearTimeout(heldResult.current.timer);
+    heldResult.current = null;
+    decidedAt.current = null;
+  }, []);
+
   // ---- Identity: (re)announce ourselves on every connect so the server can
   //      resume an in-flight match. The relay trusts only the access token: it
   //      asks Django's /api/me/ who we are (multiplayer_server/src/identity.js),
@@ -556,19 +569,39 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
         }),
       roundData: (d: { gameData: GameData[]; game?: Game }) =>
         dispatch({ t: "ROUND_DATA", gameData: d.gameData, game: localGame(d.game) ?? undefined }),
-      turnState: (d: { code: number; game?: string; state: unknown }) =>
-        dispatch({ t: "TURN_STATE", state: d?.state ?? null }),
+      turnState: (d: { code: number; game?: string; state: unknown }) => {
+        const state = d?.state ?? null;
+        decidedAt.current = tttDecided(mpRef.current.game?.id, state) ? decidedAt.current ?? Date.now() : null;
+        dispatch({ t: "TURN_STATE", state });
+      },
       roundDataError: (d: { message: string }) => dispatch({ t: "ROUND_ERROR", message: d.message }),
       waitingForOpponent: () => {/* local SUBMITTED already moved us to waiting */},
-      matchResult: (d: { yourScore: number; opponentScore: number; outcome: Outcome; standings?: Standing[] }) =>
-        dispatch({
+      matchResult: (d: { yourScore: number; opponentScore: number; outcome: Outcome; standings?: Standing[] }) => {
+        const action: Action = {
           t: "MATCH_RESULT", yourScore: d.yourScore, opponentScore: d.opponentScore, outcome: d.outcome, standings: d.standings ?? null,
           self: userRef.current
             ? { uid: playerKey(userRef.current), name: userRef.current.username || "You", photo: userRef.current.profile_photo }
             : undefined,
-        }),
-      matchRestart: (d: { game?: Game; message?: string }) =>
-        dispatch({ t: "MATCH_RESTART", game: localGame(d.game) ?? undefined, message: typeof d?.message === "string" ? d.message : undefined }),
+        };
+        const since = decidedAt.current;
+        dropHeldResult();
+        const wait = since != null && mpRef.current.phase === "playing" ? TTT_DECIDED_HOLD_MS - (Date.now() - since) : 0;
+        if (wait <= 0) {
+          dispatch(action);
+          return;
+        }
+        heldResult.current = {
+          action,
+          timer: setTimeout(() => {
+            heldResult.current = null;
+            dispatch(action);
+          }, wait),
+        };
+      },
+      matchRestart: (d: { game?: Game; message?: string }) => {
+        dropHeldResult();
+        dispatch({ t: "MATCH_RESTART", game: localGame(d.game) ?? undefined, message: typeof d?.message === "string" ? d.message : undefined });
+      },
       friendRoomCreated: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
       friendRoomJoined: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
       friendLobbyUpdate: (d: LobbySnapshot) => dispatch({ t: "FRIEND_LOBBY", lobby: withLocalGame(d) }),
@@ -587,9 +620,14 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
       opponentFinished: (d: { id?: string | null; username?: string } = {}) => dispatch({ t: "OPP_FINISHED", id: d?.id, username: d?.username }),
       opponentDisconnected: (d: { id?: string | null; username?: string } = {}) => dispatch({ t: "OPP_DISCONNECTED", id: d?.id, username: d?.username }),
       opponentReconnected: (d: { id?: string | null; username?: string } = {}) => dispatch({ t: "OPP_RECONNECTED", id: d?.id, username: d?.username }),
-      opponentLeft: (d: { message: string }) => dispatch({ t: "OPP_LEFT", message: d?.message || "Your opponent left." }),
-      roomLeft: (d: { message?: string } = {}) =>
-        dispatch({ t: "ROOM_LEFT", message: d?.message || "You were away too long and left the room." }),
+      opponentLeft: (d: { message: string }) => {
+        dropHeldResult();
+        dispatch({ t: "OPP_LEFT", message: d?.message || "Your opponent left." });
+      },
+      roomLeft: (d: { message?: string } = {}) => {
+        dropHeldResult();
+        dispatch({ t: "ROOM_LEFT", message: d?.message || "You were away too long and left the room." });
+      },
       proposalPending: (d: { type: "again" | "switch"; gameId?: string; gameName?: string }) =>
         dispatch({ t: "PROPOSAL_PENDING", ptype: d.type, gameId: d.gameId, gameName: d.gameName }),
       proposalReceived: (d: { type: "again" | "switch"; gameId?: string; gameName?: string; fromName?: string }) =>
@@ -632,7 +670,14 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
     };
     (Object.entries(on)).forEach(([evt, fn]) => socket.on(evt, fn as (...args: unknown[]) => void));
     return () => { Object.entries(on).forEach(([evt, fn]) => socket.off(evt, fn as (...args: unknown[]) => void)); };
-  }, [reduxDispatch]);
+  }, [reduxDispatch, dropHeldResult]);
+
+  // ---- A held result belongs to the round on screen: any other phase (a new room, the lobby, idle after a
+  //      reset) drops it, and so does unmounting. ----
+  useEffect(() => {
+    if (mp.phase !== "playing" && mp.phase !== "waiting") dropHeldResult();
+  }, [mp.phase, dropHeldResult]);
+  useEffect(() => dropHeldResult, [dropHeldResult]);
 
   // ---- VS intro timer: hold the matchup card briefly, then start once data is in. ----
   useEffect(() => {
@@ -720,9 +765,17 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const cancelFind = useCallback(() => { actionSeq.current++; socket.emit("cancelFind"); dispatch({ t: "RESET" }); }, []);
   const submitScore = useCallback((score: number, elapsedMs?: number, review?: AnswerReview) => {
     if (codeRef.current == null) return; // no live room — stale end-call, drop it
+    // A turn game's end call while its result is held: the relay already settled the round (it takes no
+    // score from a turn game), so show that result now instead of a "waiting" screen in between.
+    const held = heldResult.current;
+    if (held) {
+      dropHeldResult();
+      dispatch(held.action);
+      return;
+    }
     dispatch({ t: "SUBMITTED", score, review });
     socket.emit("submitScore", { code: codeRef.current, score, elapsedMs });
-  }, []);
+  }, [dropHeldResult]);
   const sendTurnAction = useCallback((action: unknown) => {
     if (codeRef.current == null) return; // no live room — drop the action
     socket.emit("turnAction", { code: codeRef.current, action });
@@ -741,9 +794,10 @@ export function MultiplayerProvider({ children }: { children: ReactNode }) {
   const reportProgress = useCallback((round: number, total: number) => socket.emit("reportProgress", { code: codeRef.current, round, total }), []);
   const leaveMatch = useCallback(() => {
     actionSeq.current++;
+    dropHeldResult();
     socket.emit("leaveMatch", { code: codeRef.current });
     dispatch({ t: "RESET" });
-  }, []);
+  }, [dropHeldResult]);
   const clearNotice = useCallback(() => dispatch({ t: "CLEAR_NOTICE" }), []);
 
   const value = useMemo<MultiplayerContextValue>(() => ({

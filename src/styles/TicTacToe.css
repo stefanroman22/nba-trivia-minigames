@@ -25,6 +25,16 @@
   color: var(--bad);
   border-color: var(--bad);
 }
+/* The status label (solo "CLAIM THREE IN A ROW", the duel's turn). At 360px the status row is at its width
+   limit, and the label wraps to two lines while the score and clock digits count (Chakra Petch has no
+   tabular figures, so their width moves with every digit). A flex box (no inline strut around SwapText's
+   inline-block) at a 1.15 line height keeps two lines at 25px, under the clock pill's 28px, so a wrap
+   never changes the row's height and the stage stays put (Rule 6.2). */
+.ttt-label {
+  display: flex;
+  align-items: center;
+  line-height: 1.15;
+}
 /* Score group now comes from <GameFrame.Score>. The duel's turn state is the
    status label itself; only the "it's on you" emphasis is game-specific. */
 .ttt-turn.is-you {
