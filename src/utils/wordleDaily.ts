@@ -11,6 +11,13 @@ export type DailyLockGame = (typeof DAILY_LOCK_GAMES)[number];
 export const isDailyLockGame = (id: string | undefined): id is DailyLockGame =>
   (DAILY_LOCK_GAMES as readonly string[]).includes(id ?? "");
 
+/** Local development only (`npm run dev`: NODE_ENV is "development", inlined at build time, so a production
+ *  build or Vercel deploy is always false): the once-a-day lock never applies, so the games can be replayed
+ *  while their UI is being tested. Nothing is recorded server-side in this mode (no junk play rows in whatever
+ *  database the site is pointed at). Wordle deals a random surname (the online-round endpoint), Contexto the
+ *  day's puzzle as usual. */
+export const DAILY_LOCK_OFF = process.env.NODE_ENV === "development";
+
 /** Per-game copy: the short name on the home-card countdown, and what resets at Paris midnight. */
 export const DAILY_COPY: Record<DailyLockGame, { short: string; puzzle: string; full: string }> = {
   wordle: { short: "Wordle", puzzle: "word", full: "NBA Wordle" },
@@ -53,6 +60,15 @@ export interface DailyStatus {
   day?: string;
 }
 
+// The last status seen per game, for this tab. Every game switch mounts a fresh page, so without it
+// a played daily game's rail item / chip rendered "Play now" until the status call came back and then
+// turned grey. Pages seed their first render from it and still re-fetch. Written only by the calls
+// below, which run in the browser (effects and handlers), so a server render never reads a filled one.
+const knownStatus: Partial<Record<DailyLockGame, DailyStatus>> = {};
+
+/** The last daily status this tab saw for `game` (a status call, or today's play just recorded). */
+export const knownDailyStatus = (game: DailyLockGame): DailyStatus | undefined => knownStatus[game];
+
 export async function fetchDailyStatus(game: DailyLockGame): Promise<DailyStatus | null> {
   try {
     const deviceId = getDailyDeviceId();
@@ -61,7 +77,9 @@ export async function fetchDailyStatus(game: DailyLockGame): Promise<DailyStatus
     );
     if (!res.ok) return null;
     const data = await res.json();
-    return { locked: !!data.locked, nextResetAt: data.next_reset_at, day: typeof data.day === "string" ? data.day : undefined };
+    const status = { locked: DAILY_LOCK_OFF ? false : !!data.locked, nextResetAt: data.next_reset_at, day: typeof data.day === "string" ? data.day : undefined };
+    knownStatus[game] = status;
+    return status;
   } catch {
     return null;
   }
@@ -100,6 +118,10 @@ async function startDailyPlay(game: DailyLockGame): Promise<{ data: Record<strin
       body: JSON.stringify({ device_id: deviceId }),
     });
     const data = await res.json().catch(() => ({}));
+    // Today's play is used up either way (recorded now, or already): the next page grays it at once.
+    if ((res.ok || res.status === 423 || data.locked) && typeof data.next_reset_at === "string") {
+      knownStatus[game] = { locked: true, nextResetAt: data.next_reset_at, day: typeof data.day === "string" ? data.day : undefined };
+    }
     if (res.status === 423 || data.locked) return { failed: lockedError(game), locked: true };
     if (!res.ok) return { failed: startError(game) };
     return { data };
@@ -109,6 +131,15 @@ async function startDailyPlay(game: DailyLockGame): Promise<{ data: Record<strin
 }
 
 export async function playWordleDaily(): Promise<FetchResult> {
+  if (DAILY_LOCK_OFF) {
+    // Dev: a random surname from the online-round endpoint; nothing is claimed or recorded.
+    try {
+      const res = await apiFetch(`${BACKEND_ORIGIN}/trivia/wordle/`);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && Array.isArray(data.series)) return { success: true, data: data.series };
+    } catch { /* fall through */ }
+    return CONNECTION_ERROR;
+  }
   const play = await startDailyPlay("wordle");
   if ("failed" in play) return play.failed;
   if (!Array.isArray(play.data.series)) {
@@ -125,9 +156,11 @@ export async function playContextoDaily(): Promise<FetchResult> {
   // and for "unavailable" (the question load's failure; nothing was recorded, so Play can be retried).
   let failure: FetchResult = CONNECTION_ERROR;
   let loadFailure: FetchResult = startError("contexto");
+  let statusDay = "";
   const start = await startDailyQuestion<GameData>({
     status: async () => {
       const s = await fetchDailyStatus("contexto");
+      statusDay = s?.day ?? "";
       return s && { locked: s.locked, day: s.day };
     },
     load: async (day) => {
@@ -137,6 +170,7 @@ export async function playContextoDaily(): Promise<FetchResult> {
       return null;
     },
     record: async () => {
+      if (DAILY_LOCK_OFF) return { kind: "ok", day: statusDay }; // dev: today's puzzle again, nothing recorded
       const play = await startDailyPlay("contexto");
       if ("failed" in play) {
         failure = play.failed;

@@ -24,13 +24,14 @@ import { reviewRounds } from '../../utils/reviewRounds';
 import { apiFetch, getAccessToken } from '../../utils/Api';
 import { addGuestPoints } from '../../utils/guestPoints';
 import { flushSeenToServer, syncSeenFromServer } from '../../utils/seen';
+import { loadNames } from '../../utils/questions';
 import { BACKEND_ORIGIN } from '../../configurations/backend';
 import SwapText from '../../components/motion/SwapText';
 import { AutoSize } from '../../components/motion/AutoHeight';
 import SegmentedTabs from '../../components/motion/SegmentedTabs';
 import { GAME_IN_PROGRESS } from '../../constants/messages';
 import { useDailyCardState } from '../../hooks/useDailyCardState';
-import { DAILY_COPY, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, knownDailyStatus, type DailyStatus } from '../../utils/wordleDaily';
+import { DAILY_COPY, DAILY_LOCK_OFF, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, knownDailyStatus, type DailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
 import { FOCUSABLE } from '../../hooks/useFocusTrap';
@@ -239,10 +240,12 @@ function MiniGame() {
     awardedRef.current = false;
     runIdRef.current += 1;
     // The data loads during the hold: the account's seen set first (signed in, waited on for at most
-    // 1.5 s), then the game's data.
+    // 1.5 s), then the game's data. The shared player-name list loads alongside (cached after the first
+    // time), so the court loader is the only wait: no game opens on its own "Loading players…" spinner.
     const hold = new Promise((resolve) => setTimeout(resolve, LOADING_HOLD_MS));
     const data = syncSeenFromServer(game.id).then(() => (game.difficulties ? game.fetchData({ difficulty }) : game.fetchData()));
-    const [result] = await Promise.all([data, hold]);
+    const names = loadNames().catch(() => null); // a failure leaves it to the game (useNames)
+    const [result] = await Promise.all([data, hold, names]);
     if (result.success) {
       setGameData(result.data ?? []);
     } else {
@@ -531,7 +534,7 @@ function MiniGame() {
         );
       case "result":
         // Wordle and Contexto are once per day: Play again would only hit the daily lock, so their result offers Close game alone.
-        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={isDailyLockGame(gameId) ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} />;
+        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={isDailyLockGame(gameId) && !DAILY_LOCK_OFF ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} />;
     }
   };
 
