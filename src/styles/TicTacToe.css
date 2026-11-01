@@ -166,13 +166,23 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* The three cells the win line crosses: their names fade out as it draws, the marks stay (opacity only, so
-   nothing moves). Only marked cells: the online duel's cells show a name alone. */
+/* The three cells the win line crosses, as it draws: the name fades out while the mark grows and slides to the
+   cell's centre, in one motion (opacity + transform only, so no cell or board moves). TttClaim measures the shift
+   (half the name's height) and the scale (mark fills ~90% of the cell's short side) and sets the timing, from the
+   shared tokens, staggered along the line. The win line (z-index 1) stays above the marks. Only marked cells: the
+   online duel's cells show a name alone. */
 .ttt-cell.is-marked.is-crossed .ttt-cell-name {
   opacity: 0;
+  transition: opacity var(--ttt-win-dur, 0.3s) var(--ttt-win-ease, ease) var(--ttt-win-delay, 0s);
+}
+.ttt-cell.is-marked.is-crossed .ttt-mark {
+  transform: translateY(var(--ttt-shift, 0px)) scale(var(--ttt-scale, 1));
+  transition: transform var(--ttt-win-dur, 0.3s) var(--ttt-win-ease, ease) var(--ttt-win-delay, 0s);
 }
 @media (prefers-reduced-motion: reduce) {
-  .ttt-cell.is-marked .ttt-cell-name {
+  .ttt-cell.is-marked .ttt-cell-name,
+  .ttt-cell.is-marked.is-crossed .ttt-cell-name,
+  .ttt-cell.is-marked.is-crossed .ttt-mark {
     transition: none;
   }
 }

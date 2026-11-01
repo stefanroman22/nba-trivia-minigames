@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useSelector } from "react-redux";
 import AutocompleteInput from "../components/AutoCompleteInput";
@@ -19,6 +19,7 @@ import type { Criterion, GridConfig, OnGameEnd, TicTacToeQuestion } from "../typ
 import type { AnswerReview } from "../types/review";
 import { tttReview } from "../utils/turnReview";
 import { popIn } from "../motion/variants";
+import { durations, easing } from "../motion/tokens";
 import { TTT_CELL_POINTS as CELL_POINTS, TTT_SOLO_MAX } from "../utils/gameScoring";
 import { TTT_END_HOLD_MS } from "../utils/tttDuel";
 import "../styles/TicTacToe.css";
@@ -103,6 +104,58 @@ interface TttBoardProps {
   winTone?: "brand" | "text";
 }
 
+/** A claimed cell's mark above its name. In a cell the win line crosses (`crossOrder` >= 0, the cell's place along the
+ *  line) the name fades out while the mark grows and slides to the cell's centre, on the line's own timing: the
+ *  cells' offsets and the scale are measured here and handed to the CSS (`.is-crossed`) as variables, so only
+ *  transform + opacity move. */
+function TttClaim({ mark, name, crossOrder }: { mark: TttMarkKind; name: string; crossOrder: number }) {
+  const claimRef = useRef<HTMLSpanElement>(null);
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const crossed = crossOrder >= 0;
+
+  useLayoutEffect(() => {
+    const claim = claimRef.current;
+    const cell = claim?.closest<HTMLElement>('[role="gridcell"]');
+    const markEl = claim?.querySelector<SVGElement>(".ttt-mark");
+    const nameEl = nameRef.current;
+    if (!crossed || !claim || !cell || !markEl || !nameEl) return;
+    const measure = () => {
+      const gap = parseFloat(getComputedStyle(claim).rowGap) || 0;
+      // The mark sits above the name; half of (name + gap) is how far down the centre is.
+      claim.style.setProperty("--ttt-shift", `${(nameEl.offsetHeight + gap) / 2}px`);
+      // The mark's laid-out size (the computed width ignores the transform this very scale sets).
+      const size = parseFloat(getComputedStyle(markEl).width) || 1;
+      const room = Math.min(cell.clientWidth, cell.clientHeight) * 0.9;
+      claim.style.setProperty("--ttt-scale", String(Math.max(1, room / size)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(cell);
+    return () => ro.disconnect();
+  }, [crossed]);
+
+  return (
+    <span
+      ref={claimRef}
+      className="ttt-cell-claim"
+      style={
+        crossed
+          ? ({
+              "--ttt-win-delay": `${crossOrder * durations.fast}s`,
+              "--ttt-win-dur": `${durations.slow}s`,
+              "--ttt-win-ease": `cubic-bezier(${easing.out.join(",")})`,
+            } as CSSProperties)
+          : undefined
+      }
+    >
+      <TttMark mark={mark} />
+      <span ref={nameRef} className="ttt-cell-name">
+        {name}
+      </span>
+    </span>
+  );
+}
+
 /** The single 3x3 criteria grid shared by solo, the online duel and local multiplayer, so the modes cannot drift.
  *  Empty cells show an orange "?" (aria-hidden; the button's aria-label carries the meaning). */
 export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim, winLine, winTone }: TttBoardProps) {
@@ -147,10 +200,7 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
                   duration={revealed ? 0.35 : undefined}
                 >
                   {name && mark ? (
-                    <span className="ttt-cell-claim">
-                      <TttMark mark={mark} />
-                      <span className="ttt-cell-name">{name}</span>
-                    </span>
+                    <TttClaim mark={mark} name={name} crossOrder={crossed ? (winLine?.indexOf(index) ?? -1) : -1} />
                   ) : name ? (
                     <span className="ttt-cell-name">{name}</span>
                   ) : (
