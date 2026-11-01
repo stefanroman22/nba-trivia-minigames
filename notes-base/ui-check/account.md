@@ -3,8 +3,9 @@
 Specs: `specs/account/{auth,google,profile,surfaces,permissions,blocking}.spec.mjs`. Locators: `pagemap/account.json`
 (+ `guest.json` for the modal shell, `common.json` for nav and drawer). Helpers: `lib/account.mjs` (API calls as a
 minted user, throwaway names, in-page typing latency, nav flash sampler, `tabSlide`, `motionStep`, friendship cleanup).
-Harness additions: `lib/accounts.mjs` accepts throwaway names `uic<digits>` and has `forgetAge()`; `lib/mint_tokens.py`
-has the `forget_age` op; `fixtures/upload/avatar.png` (64x64).
+Harness additions: `lib/accounts.mjs` accepts throwaway names `uic<digits>` and has `forgetAge()` / `seedLegacyTeen()`;
+`lib/mint_tokens.py` has the `forget_age` / `legacy_teen` ops (legacy age columns only: nothing reads them since
+2026-10-26.2); `fixtures/upload/avatar.png` (64x64).
 
 ## How judges use this file
 
@@ -60,8 +61,10 @@ several times in one hour on one stack hits the limit and shows up as HTTP 429 i
 
 - `slow POST /api/(signup|login|account/delete)/`: password hashing takes 1-2 s here. Their budget is the explicit
   in-page timing (sign-up and log in: click to avatar <= 1500 ms); `account/delete` has no budget.
-- 401 console lines in AC-LOGIN-02, 409 in AC-SIGNUP-02, 428 in AC-PROFILE-02:
-  the status is the thing under test (bad token, duplicate email, `age_required` hand-off).
+- 401 console lines in AC-LOGIN-02, 409 in AC-SIGNUP-02:
+  the status is the thing under test (bad token, duplicate email). No 428 is allowed anywhere since the age rules
+  were dropped (2026-10-26.2): no tick-box, age prompt, Date of birth row or Google consent step; a 428
+  `age_required` or a tick-box is a regression of that owner decision, never the fix.
 - Delete account has no password field since 2026-10-19: the button unlocks once the username (exact) and the word
   delete (any case) are typed, so AC-PROFILE-03 asserts the unlock rules and AC-BLOCK-01's throwaway really deletes itself.
 - No "username taken" checks: names repeat by design. The checks assert an existing name passes the rules.
