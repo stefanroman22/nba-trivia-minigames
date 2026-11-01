@@ -217,12 +217,12 @@
   },
   "stage-resized|/tictactoe|.stage-shell": {
     "key": "1f93576360b3",
-    "card": "4042cfb1-c595-81ca-bccb-f099a0d01590",
+    "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
-    "decision": "create",
-    "run": "20261025-0128",
-    "at": "2026-10-25T05:35:10.206Z",
-    "id": "UIC-20261025-0128-012"
+    "decision": "regression",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-003"
   },
   "tap-target|/tictactoe|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
     "key": "b71ccf82f337",
@@ -271,11 +271,64 @@
   },
   "slow-action|/|log in success - > nav avatar usable": {
     "key": "1c7ef966a0de",
-    "card": "4042cfb1-c595-81a7-865c-d6942fd2dde9",
+    "card": "40b2cfb1-c595-8195-80a6-c0fee09c78a9",
+    "status": "To Do",
+    "decision": "regression",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-002"
+  },
+  "duel-banner|/tictactoe|.ttt-banner": {
+    "key": "c97e4ae4239a",
+    "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
+    "status": "To Do",
+    "decision": "regression",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-001"
+  },
+  "notice-covers|/tictactoe|.om-notice": {
+    "key": "0a9ca32af74c",
+    "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
+    "status": "To Do",
+    "decision": "regression",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-006"
+  },
+  "tap-target|/series-winner|div.stage-inner > div > div.om > div.om-stage.om-stage--results > button.om-exit": {
+    "key": "faa7eb801d7c",
+    "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
+    "status": "To Do",
+    "decision": "regression",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-007"
+  },
+  "clipped|/series-winner|div.fp > div.fp-body > div.fp-meta > strong.fp-meta-game > span.fp-meta-name": {
+    "key": "113fe2205828",
+    "card": "40b2cfb1-c595-81e0-9b27-fd889cb7f6ef",
     "status": "To Do",
     "decision": "create",
-    "run": "20261025-0128",
-    "at": "2026-10-25T05:35:10.206Z",
-    "id": "UIC-20261025-0128-009"
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-004"
+  },
+  "cls|/name-logo|div#root > footer.site-footer": {
+    "key": "92a769293f8c",
+    "card": "40b2cfb1-c595-811b-8202-c8cffdb076f4",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:15.109Z",
+    "id": "UIC-20261101-0226-005"
+  },
+  "check-bug|env|ttt-feedback-recorder-race": {
+    "key": "5159f119d7ce",
+    "card": "40b2cfb1-c595-81f4-839e-e59802751810",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261101-0226",
+    "at": "2026-11-01T04:17:25.046Z"
   }
 }
