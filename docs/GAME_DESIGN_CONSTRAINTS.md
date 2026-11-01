@@ -15,7 +15,7 @@ without a rendered screenshot. History and rationale for these rules live in `do
 |---|---|---|
 | 0 | Your root MUST be `<GameFrame>`; a game MUST NOT set its own root width, gap, margin or padding | `ui:audit` (`usesGameFrame`, root gap 20 px) |
 | 0.1 | Colours MUST come from `theme.css` tokens, with one accent; every number MUST carry `.tnum` | review |
-| 1.0 | Children MUST size against `--stage-avail`, never `--stage-max` | review (`grep stage-max src/styles`) |
+| 1.0 | Children MUST size against `--stage-avail`, never `--stage-max`; viewport heights in `svh`, never `dvh` | review (`grep stage-max src/styles`; `grep dvh` hits only the nav drawer, landing and desktop rail) |
 | 1.1 | The play area MUST fit 390×844 with no in-game scroll | `ui:audit` mobile (`playAreaFitsViewport`, reported) + QA |
 | 1.2 | A game that cannot fit MUST let the shell grow (content game, page scrolls) — never clip, never squash — and MUST have a deviations entry | `ui:audit` (`shellContainsGame`) + review |
 | 2.1 | The idle screen is shell-owned; a game MUST NOT build its own | review |
@@ -130,8 +130,10 @@ section.stage-col
 ```
 
 ### RULE 1.0 — Size children against `--stage-avail`, never `--stage-max`
-`.stage-inner` exposes `--stage-max` (its own border-box cap, `calc(100dvh - 188px)`, `216px` below
+`.stage-inner` exposes `--stage-max` (its own border-box cap, `calc(100svh - 188px)`, `216px` below
 820 px) and `--stage-avail` (`--stage-max` minus twice `--stage-pad` — what a child may occupy).
+Viewport-height sizing in the stage and in every game stylesheet uses `svh`, never `dvh`: `dvh` follows
+the mobile URL bar, so a small page scroll (bar collapses) grew the whole game mid-play.
 
 ```css
 ❌ .playing-wrap { height: min(var(--stage-max, 620px), 600px); }   /* eats the padding, sits on the border */

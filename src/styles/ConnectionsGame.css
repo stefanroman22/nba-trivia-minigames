@@ -13,7 +13,7 @@
 .cn-board {
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.4dvh, 14px);
+  gap: clamp(8px, 1.4svh, 14px);
   width: 100%;
 }
 
@@ -59,7 +59,7 @@
   padding: 4px 5px;
   min-width: 0;
   font-family: inherit;
-  font-size: clamp(9.5px, 1.35dvh, 12px);
+  font-size: clamp(9.5px, 1.35svh, 12px);
   font-weight: 700;
   line-height: 1.1;
   color: var(--text);
@@ -91,6 +91,6 @@
    longest single-word surnames (e.g. Antetokounmpo) never clip. */
 @media (max-width: 480px) {
   .cn-grid { gap: 5px; }
-  .cn-tile { min-height: 52px; padding: 3px 4px; font-size: clamp(9px, 1.25dvh, 11px); letter-spacing: -0.2px; }
+  .cn-tile { min-height: 52px; padding: 3px 4px; font-size: clamp(9px, 1.25svh, 11px); letter-spacing: -0.2px; }
   .cn-solved-bar { min-height: 38px; }
 }

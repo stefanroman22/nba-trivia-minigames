@@ -18,7 +18,7 @@
   height: 22px;
   display: inline-flex;
   align-items: center;
-  font-size: clamp(12px, 1.9dvh, 14px);
+  font-size: clamp(12px, 1.9svh, 14px);
   font-weight: 700;
   color: var(--brand);
 }
@@ -85,8 +85,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: clamp(4px, 0.9dvh, 8px);
-  padding: clamp(8px, 1.4dvh, 12px);
+  gap: clamp(4px, 0.9svh, 8px);
+  padding: clamp(8px, 1.4svh, 12px);
   border-radius: var(--radius);
   border: 1px solid var(--line);
   backface-visibility: hidden;
@@ -122,10 +122,10 @@
 
 /* Face-up front: the stint */
 .cp-face--front { background: var(--surface); transform: rotateY(180deg); }
-.cp-card-years { font-size: clamp(11px, 1.6dvh, 12.5px); font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
-.cp-card-logo { width: clamp(44px, 7dvh, 64px); height: clamp(44px, 7dvh, 64px); }
+.cp-card-years { font-size: clamp(11px, 1.6svh, 12.5px); font-weight: 700; color: var(--brand); letter-spacing: 0.3px; }
+.cp-card-logo { width: clamp(44px, 7svh, 64px); height: clamp(44px, 7svh, 64px); }
 .cp-card-team {
-  font-size: clamp(11px, 1.6dvh, 12.5px);
+  font-size: clamp(11px, 1.6svh, 12.5px);
   font-weight: 700;
   color: var(--text);
   text-align: center;
@@ -135,10 +135,10 @@
   align-items: center;
 }
 .cp-card-stats { display: flex; gap: 10px; }
-.cp-stat { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
+.cp-stat { font-size: clamp(10.5px, 1.5svh, 12px); color: var(--muted); }
 .cp-stat b { color: var(--text); font-weight: 700; }
 .cp-card-draft {
-  font-size: clamp(9.5px, 1.4dvh, 11px);
+  font-size: clamp(9.5px, 1.4svh, 11px);
   color: var(--muted);
   text-align: center;
   line-height: 1.25;
@@ -158,7 +158,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: clamp(6px, 1.2dvh, 10px);
+  gap: clamp(6px, 1.2svh, 10px);
 }
 .cp-answer-text { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; }
 .cp-reveal-photo,
@@ -174,7 +174,7 @@
   border: 1px solid var(--line2);
 }
 .cp-reveal-label { font-size: 11px; color: var(--muted); letter-spacing: 0.4px; }
-.cp-reveal-name { font-size: clamp(18px, 2.6dvh, 24px); color: var(--text); }
+.cp-reveal-name { font-size: clamp(18px, 2.6svh, 24px); color: var(--text); }
 
 /* Small phones (390x844): tighter cards so rail + input + reveal all fit */
 @media (max-width: 480px) {

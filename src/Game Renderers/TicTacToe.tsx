@@ -98,7 +98,8 @@ interface TttBoardProps {
   animateClaim: boolean;
   /** A decided duel: the three cells of the winning line, drawn over the board. */
   winLine?: readonly number[] | null;
-  /** The win line's colour: `text` over the online duel's orange cells, `brand` for local X. */
+  /** The win line's colour: `text` (near-white gradient) over the online duel's orange cells and for local O,
+   *  `brand` (orange gradient) for local X. */
   winTone?: "brand" | "text";
 }
 
@@ -122,6 +123,7 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
             const index = ri * 3 + ci;
             const { name, mine, theirs, mark, revealed, disabled } = cell(index);
             const selected = selectedCell === index;
+            const crossed = !!winLine && winLine.length === 3 && winLine.includes(index);
             return (
               <motion.button
                 key={index}
@@ -129,7 +131,9 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
                 role="gridcell"
                 className={`ttt-cell${mine ? " is-mine" : theirs ? " is-theirs" : ""}${
                   selected ? " is-selected" : ""
-                }${revealed ? " is-revealed" : ""}${mark ? " is-marked" : ""}`}
+                }${revealed ? " is-revealed" : ""}${mark ? ` is-marked is-mark-${mark.toLowerCase()}` : ""}${
+                  crossed ? " is-crossed" : ""
+                }`}
                 disabled={disabled}
                 aria-label={`${r.label} and ${cols[ci].label}${name ? `: ${name}${mark ? ` (${mark})` : ""}` : ""}`}
                 onClick={() => onSelect(selected ? null : index)}

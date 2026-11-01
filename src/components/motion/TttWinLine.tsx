@@ -1,13 +1,24 @@
 // Tic-Tac-Toe strokes: the win line drawn across three cells of `TttBoard`, and the X / O marks of local multiplayer.
 // Both draw themselves (pathLength 0 → 1) on the shared tokens, the way SuccessBadge draws its check; under reduced
 // motion they are shown at once (UI-20). Decorative: the cell's and the board's labels carry the meaning.
-import { useLayoutEffect, useRef, useState } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { durations, easing } from "../../motion/tokens";
 
-/** The draw transition every TTT stroke uses; `TTT_DRAW_MS` is how long the win line takes before what follows it. */
+/** The draw transition of the X / O marks. */
 const DRAW = { duration: durations.slow, ease: easing.out };
-export const TTT_DRAW_MS = durations.slow * 1000;
+/** The win line: two mark-lengths on the house ease-in-out, so it sets off softly, sweeps across and settles into
+ *  its end (a spring token front-loads it: the line was nearly whole after a quarter of a second). */
+const LINE_DRAW = { duration: durations.slow * 2, ease: easing.inOut };
+/** How long the win line takes before what follows it (the result, Play again). */
+export const TTT_DRAW_MS = LINE_DRAW.duration * 1000;
+
+/** The win line's gradient stops along its length, from the theme tokens (no new hue): orange for X (deep → brand →
+ *  light), near-white for the online duel and an O win (muted → text). */
+const LINE_STOPS: Record<"brand" | "text", string[]> = {
+  brand: ["var(--brand-deep)", "var(--brand)", "var(--brand2)"],
+  text: ["var(--muted)", "var(--text)", "var(--text)"],
+};
 
 export type TttMarkKind = "X" | "O";
 
@@ -62,6 +73,7 @@ export default function TttWinLine({ line, tone = "text" }: { line: readonly num
   const ref = useRef<SVGSVGElement>(null);
   const [seg, setSeg] = useState<Segment | null>(null);
   const reduce = useReducedMotion();
+  const gradientId = `ttt-winline-${useId().replace(/:/g, "")}`;
   const first = line[0];
   const last = line[line.length - 1];
 
@@ -100,15 +112,27 @@ export default function TttWinLine({ line, tone = "text" }: { line: readonly num
       aria-hidden="true"
     >
       {seg && (
-        <motion.line
-          x1={seg.x1}
-          y1={seg.y1}
-          x2={seg.x2}
-          y2={seg.y2}
-          initial={reduce ? false : { pathLength: 0 }}
-          animate={{ pathLength: 1 }}
-          transition={DRAW}
-        />
+        <>
+          {/* User-space gradient along the stroke: a bounding-box gradient breaks on a horizontal or vertical
+              line (its box has zero height or width). */}
+          <defs>
+            <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={seg.x1} y1={seg.y1} x2={seg.x2} y2={seg.y2}>
+              {LINE_STOPS[tone].map((color, i, all) => (
+                <stop key={i} offset={i / (all.length - 1)} style={{ stopColor: color }} />
+              ))}
+            </linearGradient>
+          </defs>
+          <motion.line
+            x1={seg.x1}
+            y1={seg.y1}
+            x2={seg.x2}
+            y2={seg.y2}
+            stroke={`url(#${gradientId})`}
+            initial={reduce ? false : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={LINE_DRAW}
+          />
+        </>
       )}
     </svg>
   );

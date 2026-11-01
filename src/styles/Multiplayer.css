@@ -12,7 +12,7 @@
 /* Every non-playing stage shares one min-height so swaps don't resize the box. */
 .om-stage {
   width: 100%;
-  min-height: clamp(264px, 42dvh, 380px);
+  min-height: clamp(264px, 42svh, 380px);
   display: flex;
   flex-direction: column;
   align-items: center;

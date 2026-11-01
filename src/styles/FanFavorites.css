@@ -2,7 +2,7 @@
 /* The root, status row, prompt and action row come from <GameFrame> (ui.css) —
    do not re-add a .ff-wrap/.ff-head here. The board stacks the lives row over
    the survey grid, so it owns the gap between them (.gf-board is gapless). */
-.gf-board:has(.ff-board) { gap: clamp(8px, 1.6dvh, 16px); }
+.gf-board:has(.ff-board) { gap: clamp(8px, 1.6svh, 16px); }
 
 /* Lives */
 .ff-lives { display: flex; gap: 8px; }
@@ -51,7 +51,7 @@
 .ff-answer {
   flex: 1;
   min-width: 0;
-  font-size: clamp(11px, 1.7dvh, 12.5px);
+  font-size: clamp(11px, 1.7svh, 12.5px);
   font-weight: 700;
   line-height: 1.15;
   color: var(--text);

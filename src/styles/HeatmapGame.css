@@ -1,5 +1,5 @@
 /* src/styles/HeatmapGame.css — The Heatmap (hex category board).
-   Tokens only (theme.css); all sizing via clamp()/dvh so the whole board + HUD +
+   Tokens only (theme.css); all sizing via clamp()/svh so the whole board + HUD +
    input fit a 390x844 viewport with no page scroll. Pointy-top hexagons in a
    row-offset honeycomb (odd rows indented half a hex, 25% vertical overlap) —
    this interlock matches the neighbour graph in heatmap_criteria.compute_neighbors. */
@@ -11,7 +11,7 @@
    Board: rows of hexes, honeycomb overlap. NOT flex:1 — the board is a fixed
    size and never scrolls, so growing it only strands it in dead space (Rule 4.1). */
 .hm-board {
-  --hex-w: clamp(40px, min(12.6vw, 6.9dvh), 58px);
+  --hex-w: clamp(40px, min(12.6vw, 6.9svh), 58px);
   --hex-h: calc(var(--hex-w) * 1.1547);   /* regular pointy-top hex height */
   --hex-gap: clamp(3px, 0.9vw, 6px);
   position: relative;
@@ -57,7 +57,7 @@
 /* criterion stays visible: a short label (a team: its nickname in its colours, TeamNameGradient) */
 .hm-hex-label {
   padding: 0 9%;
-  font-size: clamp(7px, 1.45dvh, 9.5px);
+  font-size: clamp(7px, 1.45svh, 9.5px);
   font-weight: 700;
   line-height: 1.03;
   text-align: center;
@@ -81,7 +81,7 @@
   border-radius: 10px;
   background: var(--surface2);
   border: 1px solid var(--line);
-  font-size: clamp(10.5px, 1.6dvh, 12px);
+  font-size: clamp(10.5px, 1.6svh, 12px);
   color: var(--muted);
   text-align: center;
 }

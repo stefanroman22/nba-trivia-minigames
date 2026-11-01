@@ -21,7 +21,7 @@ interface NameLogoProps {
   allTeams: string[];
 }
 
-const LOGO_SIZE = "clamp(92px, 18dvh, 140px)";
+const LOGO_SIZE = "clamp(92px, 18svh, 140px)";
 const LOGO_IMG: React.CSSProperties = { display: "block", width: "100%", height: "100%", objectFit: "contain" };
 // Reveal: a pure cross-fade, the puzzle out and the team name in. Opacity only: the name sits in the
 // same fixed slot (NameLogo.css .nl-name-layer), so nothing grows or shrinks.
@@ -69,9 +69,9 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
   useEffect(() => { revealedRef.current = revealed; }, [revealed]);
   const clearAnswered = () => { if (!revealedRef.current) setAnswered(null); };
   const answerName = answered?.name ?? "";
-  // The slot's height as rendered: the logo box is capped at 20dvh on short viewports.
+  // The slot's height as rendered: the logo box is capped at 20svh on short viewports.
   const nameStyle = useMemo(() => ({
-    "--nl-chars": longestLineChars(answerName), "--nl-slot": `min(${LOGO_SIZE}, 20dvh)`,
+    "--nl-chars": longestLineChars(answerName), "--nl-slot": `min(${LOGO_SIZE}, 20svh)`,
   } as React.CSSProperties), [answerName]);
 
   // Retry the scrambled file each round, once the last answer has faded out: on the fallback crest
@@ -222,7 +222,7 @@ function NameLogo({ seriesList, pointsPerCorrect, onGameEnd, allTeams }: NameLog
                     animate={{ opacity: imgLoaded ? 1 : 0 }}
                     exit={reduce ? undefined : { opacity: 0 }}
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    style={{ position: "relative", width: LOGO_SIZE, height: LOGO_SIZE, maxHeight: "20dvh" }}
+                    style={{ position: "relative", width: LOGO_SIZE, height: LOGO_SIZE, maxHeight: "20svh" }}
                   >
                     <motion.img
                       key={puzzleSrc}

@@ -34,7 +34,8 @@ export const nextPlayer = (seat: Seat): Seat => (seat === 0 ? 1 : 0);
 /** Who starts board number `index` (0-based) of a local session: Player 1, then Player 2, then Player 1, ... */
 export const starterFor = (index: number): Seat => (index % 2 === 0 ? 0 : 1);
 
-/** The win line's draw (TttWinLine, `durations.slow`), then the decided board and its banner held for a read. */
+/** The win line's draw (TttWinLine `TTT_DRAW_MS`, 0.6 s), then the decided board and its banner held for a read
+ *  (1.2 s; 1.8 s in all, the hold the multiplayer ui-check expects). */
 export const TTT_END_HOLD_MS = durations.slow * 1000 + 1500;
 /** Reduced motion: nothing draws, so the board is held just long enough to read who won. */
 export const TTT_END_HOLD_REDUCED_MS = 1000;

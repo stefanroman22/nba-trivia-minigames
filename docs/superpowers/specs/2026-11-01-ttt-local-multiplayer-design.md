@@ -44,15 +44,20 @@ online Tic-Tac-Toe to follow the same, standard rules: a turn is one answer, thr
    - Status row (the only left/right element, 4.7): Player X chip left, Player O chip right — initial circle
      (`Avatar` initials), name, mark; the active player's chip is lit (brand), the other muted; the 30-second
      countdown sits in the status row's centre / label (`tnum`, low state ≤5 s), via `SwapText` (UI-21).
-   - Prompt: "<Name>'s turn" + "Pick a square"; after a square is picked: "<row label> × <col label>" and the
-     `GameFrame.InputRow` with the shared autocomplete (same name list as solo) and Confirm.
+   - No prompt (owner, 2026-11-01, after the first build: the title pushed the board and the name dropdown out of
+     view): solo's layout, status row → board → `GameFrame.InputRow` (the shared autocomplete, same name list as
+     solo, and Confirm). The lit chip says whose turn it is.
+   - A solved cell rests in its owner's tint: X = the selected cell's look (brand-soft fill, brand border), O the
+     same in the text colour (light translucent fill and border).
    - Judging = solo's: `lookup.resolveIds(raw)` → the first id in `valid[cell]` not yet used on the board.
      Unknown name / already used → notice, nothing else changes. Doesn't fit → "Doesn't fit", turn passes.
      Right → the cell gets the mark (a stroke-drawn X or O, the answer's name small under it), turn passes.
    - Time-out → "Time's up", turn passes. Feedback via `SubmitGuessPopup` (6.0/6.1).
-3. **End**: three in a row → the **win line** draws across the three cells (SVG stroke, pathLength 0→1,
-   shared motion tokens, reduced motion = shown at once), then "<Name> wins!" with **Play again** and **Close
-   game**; full board → "Draw!". Play again deals a new board (same difficulty) and the other player starts.
+3. **End**: three in a row → the **win line** draws across the three cells (SVG stroke, pathLength 0→1 on
+   ease-in-out over 2 × `durations.slow`, a gradient along it: brand tones for X, muted → text for O, with a soft
+   glow; reduced motion = shown at once) while the names in those three cells fade out (marks stay); then the
+   status row's centre pill reads the winner's mark + "WINS" (the winner's chip stays lit) with **Play again**
+   and **Close game**; full board → the pill reads "DRAW". Play again deals a new board (same difficulty) and the other player starts.
    No `onGameEnd` score submission and no guess log (nothing stored).
 
 ## Online changes (relay `multiplayer_server/src/turnGames.js` + `src/Game Renderers/TicTacToe.tsx` duel)

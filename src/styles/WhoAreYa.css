@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  --waya-gap: clamp(8px, 1.4dvh, 14px);
+  --waya-gap: clamp(8px, 1.4svh, 14px);
   gap: var(--waya-gap);
 }
 
@@ -23,7 +23,7 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: clamp(8px, 1.2dvh, 12px);
+  padding: clamp(8px, 1.2svh, 12px);
   background: var(--surface2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -33,7 +33,7 @@
 .waya-silhouette {
   display: block;
   width: 100%;
-  height: clamp(120px, 22dvh, 190px); /* fixed height: img and silhouette swap without shift */
+  height: clamp(120px, 22svh, 190px); /* fixed height: img and silhouette swap without shift */
   /* contain, not cover: headshot framing varies by era (legend scans have the
      head much larger), so any cover-crop of this wide strip beheads someone.
      The PNGs are transparent on the same dark surface, so letterboxing is
@@ -52,8 +52,8 @@
    instead of claiming its own row under the image. */
 .waya-photo-meta {
   position: absolute;
-  top: clamp(12px, 1.8dvh, 16px);
-  right: clamp(12px, 1.8dvh, 16px);
+  top: clamp(12px, 1.8svh, 16px);
+  right: clamp(12px, 1.8svh, 16px);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -79,7 +79,7 @@
 .waya-trail {
   flex: none;
   width: 100%;
-  height: clamp(140px, 30dvh, 280px);
+  height: clamp(140px, 30svh, 280px);
   display: flex;
   flex-direction: column;
 }
@@ -102,8 +102,8 @@
   border-radius: var(--radius);
 }
 .waya-reveal.is-won { border-color: var(--good); }
-.waya-reveal-name { font-size: clamp(15px, 2.2dvh, 19px); color: var(--text); }
-.waya-reveal-sub { font-size: clamp(10.5px, 1.5dvh, 12px); color: var(--muted); }
+.waya-reveal-name { font-size: clamp(15px, 2.2svh, 19px); color: var(--text); }
+.waya-reveal-sub { font-size: clamp(10.5px, 1.5svh, 12px); color: var(--muted); }
 
 /* ===== Feedback list — the ONLY scrolling region ===== */
 /* In the game it fills .waya-trail (RULE 6.2): mounted from the start and never
@@ -142,7 +142,7 @@
   border-radius: var(--radius);
 }
 .waya-row.is-correct { border-color: var(--good); }
-.waya-row-name { font-size: clamp(11.5px, 1.7dvh, 13px); font-weight: 700; color: var(--text); }
+.waya-row-name { font-size: clamp(11.5px, 1.7svh, 13px); font-weight: 700; color: var(--text); }
 
 /* Chips: 7 per row on one wrapping line; states = green hit / ORANGE close / neutral miss */
 .waya-chips { display: flex; flex-wrap: wrap; gap: 4px; }

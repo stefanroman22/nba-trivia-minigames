@@ -8,7 +8,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.6dvh, 14px);
+  gap: clamp(8px, 1.6svh, 14px);
 }
 
 /* Clock — a status bit passed into <GameFrame.Status> beside the label */
@@ -17,7 +17,7 @@
   border-radius: 999px;
   background: var(--surface2);
   border: 1px solid var(--line2);
-  font-size: clamp(13px, 2dvh, 15px);
+  font-size: clamp(13px, 2svh, 15px);
   font-weight: 700;
   color: var(--text);
 }
@@ -33,17 +33,17 @@
 
 /* ===== Grid: row-label column + 3 equal cell columns =====
    NOT flex:1 — the 3x3 is a fixed-size, non-scrolling board, so this is a
-   content game (Rule 4.1) and the rows carry their own dvh-scaled height
+   content game (Rule 4.1) and the rows carry their own svh-scaled height
    instead of stretching into whatever is left of the stage.
    --ttt-crit-fs is the label font: 10px floor, and it also scales with width so
    a tall-but-narrow phone (320x844) does not get 11.5px labels in 50px columns. */
 .ttt-grid {
-  --ttt-crit-fs: clamp(10px, min(1.5dvh, 2.7vw), 11.5px);
+  --ttt-crit-fs: clamp(10px, min(1.5svh, 2.7vw), 11.5px);
   display: grid;
   grid-template-columns: clamp(76px, 22vw, 96px) repeat(3, minmax(0, 1fr));
   /* Header row = the two-line criteria label height (Rule 4.4); cell tracks are minmax(0, …) so a
      wrapped solved name can never add height (Rule 6.2). */
-  grid-template-rows: minmax(max(34px, calc(var(--ttt-crit-fs) * 2.3 + 10px)), auto) repeat(3, minmax(0, clamp(48px, 9dvh, 88px)));
+  grid-template-rows: minmax(max(34px, calc(var(--ttt-crit-fs) * 2.3 + 10px)), auto) repeat(3, minmax(0, clamp(48px, 9svh, 88px)));
   gap: clamp(5px, 1vw, 8px);
   width: 100%;
   position: relative; /* the win line's containing block (.ttt-winline) */
@@ -127,7 +127,16 @@
   color: var(--muted);
 }
 /* Local multiplayer: the claiming player's stroke-drawn mark above the answer's name (X brand, O text colour:
-   one accent, Rule 0.1). The cell keeps the board's surface; the mark carries who owns it. */
+   one accent, Rule 0.1). A solved cell rests in its owner's tint: X takes the selected cell's look (brand-soft
+   fill, brand border), O the same idea in the text colour (a light translucent fill and border). */
+.ttt-cell.is-mark-x {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.ttt-cell.is-mark-o {
+  border-color: color-mix(in srgb, var(--text) 55%, transparent);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
 .ttt-cell-claim {
   display: flex;
   flex-direction: column;
@@ -138,8 +147,8 @@
 .ttt-mark {
   display: block;
   flex: none;
-  width: clamp(16px, 3.4dvh, 28px);
-  height: clamp(16px, 3.4dvh, 28px);
+  width: clamp(16px, 3.4svh, 28px);
+  height: clamp(16px, 3.4svh, 28px);
 }
 .ttt-mark--x {
   color: var(--brand);
@@ -148,13 +157,24 @@
   color: var(--text);
 }
 .ttt-cell.is-marked .ttt-cell-name {
-  color: var(--muted);
-  font-size: clamp(9px, 1.3dvh, 10.5px);
-  /* Two lines at most, so the mark + name always fit the dvh-scaled cell. */
+  color: var(--text);
+  transition: opacity 0.3s ease;
+  font-size: clamp(9px, 1.3svh, 10.5px);
+  /* Two lines at most, so the mark + name always fit the svh-scaled cell. */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+/* The three cells the win line crosses: their names fade out as it draws, the marks stay (opacity only, so
+   nothing moves). Only marked cells: the online duel's cells show a name alone. */
+.ttt-cell.is-marked.is-crossed .ttt-cell-name {
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ttt-cell.is-marked .ttt-cell-name {
+    transition: none;
+  }
 }
 
 /* The win line: an SVG over the 3x3 cell area (columns 2-4, rows 2-4 of .ttt-grid; absolute, so it never takes
@@ -170,19 +190,22 @@
   pointer-events: none;
   z-index: 1;
   fill: none;
-  stroke-width: clamp(5px, 1dvh, 8px);
+  stroke-width: clamp(5px, 1svh, 8px);
   stroke-linecap: round;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
+/* The stroke is TttWinLine's gradient along the line; these give it a soft glow in its own tone over the dark
+   contact shadow that lifts it off the cells. */
 .ttt-winline--text {
   stroke: var(--text);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 6px color-mix(in srgb, var(--text) 40%, transparent));
 }
 .ttt-winline--brand {
   stroke: var(--brand);
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 7px color-mix(in srgb, var(--brand) 60%, transparent));
 }
 
 .ttt-cell-name {
-  font-size: clamp(9.5px, 1.5dvh, 11.5px);
+  font-size: clamp(9.5px, 1.5svh, 11.5px);
   font-weight: 700;
   line-height: 1.1;
   text-align: center;
@@ -197,7 +220,7 @@
 .ttt-cell-blank {
   display: block;
   color: var(--brand);
-  font-size: clamp(16px, 3.4dvh, 26px);
+  font-size: clamp(16px, 3.4svh, 26px);
   font-weight: 800;
   line-height: 1;
   user-select: none;
@@ -212,7 +235,7 @@
   border-radius: var(--radius);
   background: var(--surface2);
   border: 1px solid var(--line2);
-  font-size: clamp(15px, 2.4dvh, 19px);
+  font-size: clamp(15px, 2.4svh, 19px);
   color: var(--text);
 }
 .ttt-banner.is-win {
@@ -259,24 +282,33 @@
   height: 12px;
 }
 .gf-status-center .ttt-clock {
-  padding: 4px 9px;
-  transition: color 0.3s ease, border-color 0.3s ease;
-}
-/* The prompt title holds two lines in every state ("Pick a square", "Trail Blazers × Rookie of the Year",
-   "<Name> wins!"), so picking a square or ending the board never moves the board (Rule 6.2). */
-.tttl-title {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-height: 2.5em;
-  line-height: 1.25;
+  white-space: nowrap;
+  padding: 4px 9px;
+  transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
 }
-.tttl-title-text {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  overflow-wrap: anywhere;
+/* The decided board: the same pill reads the result in the winner's tone (X brand, O the text colour), like
+   the winner's solved cells. Its height is the clock's, so the status row never moves. */
+.ttt-clock[data-result="x"] {
+  color: var(--brand);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+.ttt-clock[data-result="o"] {
+  border-color: color-mix(in srgb, var(--text) 55%, transparent);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+.tttl-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  /* Top, not baseline: the mark (no baseline of its own) would lift the row and grow the pill. */
+  vertical-align: top;
+}
+.tttl-result-mark {
+  width: 1em;
+  height: 1em;
 }
 
 /* Input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */

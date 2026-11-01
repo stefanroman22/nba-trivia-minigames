@@ -92,7 +92,7 @@ function MiniGame() {
   // Pressing Play unmounts the focused button; hand focus to the first control of the playing board
   // (callback ref: runs once when .playing-wrap mounts, never on first page load, which renders idle).
   const focusFirstIn = useCallback((el: HTMLDivElement | null) => {
-    // Skip on touch devices: focusing an <input> there opens the soft keyboard and shrinks the 100dvh stage.
+    // Skip on touch devices: focusing an <input> there opens the soft keyboard and covers the viewport-capped stage.
     if (window.matchMedia("(pointer: coarse)").matches) return;
     el?.querySelector<HTMLElement>(FOCUSABLE)?.focus({ preventScroll: true });
   }, []);

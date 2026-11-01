@@ -10,7 +10,7 @@
 /* The board stacks banner → card arena → mystery row; .gf-board is gapless by
    default, so the board-local rhythm is declared here (same pattern as
    StartingFive's .gf-board:has(.s5-cards)). */
-.gf-board:has(.pf-arena) { gap: clamp(8px, 1.4dvh, 14px); }
+.gf-board:has(.pf-arena) { gap: clamp(8px, 1.4svh, 14px); }
 
 /* Lives — two dots in GameFrame.Status, beside the CARD n/10 label */
 .pf-lives { display: flex; gap: 5px; }
@@ -34,7 +34,7 @@
   justify-content: center;
   padding: 4px 12px;
   text-align: center;
-  font-size: clamp(10.5px, 1.6dvh, 12.5px);
+  font-size: clamp(10.5px, 1.6svh, 12.5px);
   font-weight: 600;
   border-radius: var(--radius);
   border: 1px solid var(--line);
@@ -48,14 +48,14 @@
 /* ===== Arena — holds the current (foil) card; cards overlap during slide =====
    .pf-card is position:absolute/inset:0 for the slide, so the arena has NO
    in-flow content and would collapse to zero the moment it stopped being
-   flex:1. It carries an explicit dvh-clamped height instead: ~371px at 844dvh,
+   flex:1. It carries an explicit svh-clamped height instead: ~371px at 844svh,
    i.e. the same size flex:1 used to resolve to on a 390x844 phone. Default
    flex-shrink still applies, so on a height-capped stage it gives ground
    gracefully instead of overflowing. */
 .pf-arena {
   position: relative;
   width: 100%;
-  height: clamp(200px, 44dvh, 400px);
+  height: clamp(200px, 44svh, 400px);
   min-height: 0;
   perspective: 1000px;
 }
@@ -66,8 +66,8 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.4dvh, 12px);
-  padding: clamp(8px, 1.4dvh, 12px);
+  gap: clamp(8px, 1.4svh, 12px);
+  padding: clamp(8px, 1.4svh, 12px);
   border: 2px solid transparent;
   border-radius: var(--radius);
   background:
@@ -119,14 +119,14 @@
   padding: 8px 12px;
 }
 .pf-name {
-  font-size: clamp(15px, 2.4dvh, 20px);
+  font-size: clamp(15px, 2.4svh, 20px);
   font-weight: 700;
   color: var(--text);
   line-height: 1.05;
   text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
 }
 .pf-team {
-  font-size: clamp(10px, 1.5dvh, 12px);
+  font-size: clamp(10px, 1.5svh, 12px);
   font-weight: 600;
   letter-spacing: 0.4px;
   color: var(--brand2);
@@ -165,7 +165,7 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.pf-stat-val { font-size: clamp(13px, 2dvh, 16px); font-weight: 700; line-height: 1; }
+.pf-stat-val { font-size: clamp(13px, 2svh, 16px); font-weight: 700; line-height: 1; }
 .pf-stat.is-picked { border-color: var(--brand); background: var(--brand-soft); }
 .pf-stat.is-hit { border-color: var(--good); background: var(--good-soft); }
 .pf-stat.is-hit .pf-stat-val { color: var(--good); }
@@ -191,7 +191,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: clamp(7px, 1.2dvh, 10px) clamp(10px, 3vw, 14px);
+  padding: clamp(7px, 1.2svh, 10px) clamp(10px, 3vw, 14px);
   border-radius: var(--radius);
   border: 1px dashed var(--line2);
   background: var(--surface);
@@ -206,7 +206,7 @@
   color: var(--muted);
 }
 .pf-next-name {
-  font-size: clamp(12.5px, 1.9dvh, 15px);
+  font-size: clamp(12.5px, 1.9svh, 15px);
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
@@ -273,7 +273,7 @@
      board:
        banner ............. 34px
        board gap .......... 8px
-       arena .............. 371px  (44dvh of 844, within the 200..400 clamp)
+       arena .............. 371px  (44svh of 844, within the 200..400 clamp)
          card padding 2x8 . photo-frame ~283px + stats row 52px fit inside
        board gap .......... 8px
        next card .......... ~63px  (7+7 padding + ~49 content, one line)

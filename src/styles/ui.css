@@ -160,9 +160,13 @@
 }
 /* RULE: every game must fit inside this shell without page scroll. The shell is
    capped to the viewport height (minus nav + title chrome); game renderers size
-   their content with dvh-aware units so they shrink to fit on short screens.
+   their content with svh-aware units so they shrink to fit on short screens.
    --stage-max is the height budget a game's root can consume (via max-height:100%
-   / 100% + min() sizing) so boards shrink to the viewport instead of scrolling. */
+   / 100% + min() sizing) so boards shrink to the viewport instead of scrolling.
+   svh, never dvh (stage AND every game stylesheet): dvh follows the mobile URL bar, so
+   scrolling the page a little (the bar collapses, ~56px more dvh) made the whole game
+   grow by ~15px mid-play. svh is the viewport with the bar shown: it only changes on a
+   real resize/rotation. On desktop svh = dvh = vh. */
 .stage-inner {
   position: relative;
   display: flex;
@@ -176,8 +180,8 @@
      30px on desktop; the clamp only relaxes it on narrow screens to fit 390x844. */
   --stage-pad: 30px;
   padding: var(--stage-pad);
-  min-height: clamp(280px, 44dvh, 430px);
-  --stage-max: calc(100dvh - 188px);
+  min-height: clamp(280px, 44svh, 430px);
+  --stage-max: calc(100svh - 188px);
   /* The height a CHILD may actually occupy. --stage-max is a border-box cap, so
      a child sized against it directly would consume this element's own padding
      and sit flush to the border. Always size children against --stage-avail. */
@@ -198,7 +202,7 @@
 .stage-inner:has(.om-stage:not(.om-stage--play)) { min-height: 0; max-height: none; }
 @media (max-width: 819px) {
   /* mobile adds the horizontal game-chip strip above the stage */
-  .stage-inner { --stage-max: calc(100dvh - 216px); --stage-pad: clamp(14px, 2.6vw, 30px); }
+  .stage-inner { --stage-max: calc(100svh - 216px); --stage-pad: clamp(14px, 2.6vw, 30px); }
 }
 /* The motion wrapper and playing container inherit the budget so a game's root
    can rely on height:100% / max-height:100% resolving to the viewport. */

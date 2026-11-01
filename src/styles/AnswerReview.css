@@ -127,10 +127,10 @@
 /* An answer the player didn't find, shown in a missed cell ("e.g. …"). */
 .ar-example { color: var(--muted); font-weight: 600; font-style: italic; }
 .ar .ng-cell.is-missed { opacity: 1; }
-.ar .ng-cell.is-missed .ar-example { font-size: clamp(8.5px, 1.35dvh, 10.5px); line-height: 1.15; text-align: center; padding: 0 3px; overflow-wrap: anywhere; }
+.ar .ng-cell.is-missed .ar-example { font-size: clamp(8.5px, 1.35svh, 10.5px); line-height: 1.15; text-align: center; padding: 0 3px; overflow-wrap: anywhere; }
 .ar .bng-cell:not(.is-claimed) { opacity: 1; }
 /* Bingo: rows grow to fit a full name (the card is read here, not played against a clock). */
-.ar .bng-grid { grid-template-rows: none; grid-auto-rows: minmax(clamp(52px, 9dvh, 76px), auto); }
+.ar .bng-grid { grid-template-rows: none; grid-auto-rows: minmax(clamp(52px, 9svh, 76px), auto); }
 .ar .bng-cell { padding: 6px 5px; }
 .ar .bng-cell-claimer { white-space: normal; overflow: visible; overflow-wrap: anywhere; line-height: 1.15; }
 

@@ -8,12 +8,12 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(8px, 1.6dvh, 16px);
+  gap: clamp(8px, 1.6svh, 16px);
 }
 
 /* Deals-left meter — a status bit passed into <GameFrame.Status> beside the label */
 .bng-meter-label {
-  font-size: clamp(10.5px, 1.5dvh, 12px);
+  font-size: clamp(10.5px, 1.5svh, 12px);
   letter-spacing: 0.4px;
   color: var(--muted);
 }
@@ -25,7 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: clamp(56px, 8dvh, 68px);
+  height: clamp(56px, 8svh, 68px);
   padding: 0 12px;
   background: var(--surface2);
   border: 1px solid var(--line);
@@ -47,23 +47,23 @@
 .bng-deal-card .bng-deal-photo { display: block; }
 .bng-deal-card > div { display: flex; flex-direction: column; min-width: 0; }
 .bng-deal-name {
-  font-size: clamp(13px, 2dvh, 16px);
+  font-size: clamp(13px, 2svh, 16px);
   font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.bng-deal-hint { font-size: clamp(10px, 1.4dvh, 11.5px); color: var(--muted); }
+.bng-deal-hint { font-size: clamp(10px, 1.4svh, 11.5px); color: var(--muted); }
 
 /* ===== The 4x4 card =====
    NOT flex:1 — a fixed 4x4 grid never scrolls, so this is a content game
-   (Rule 4.1) and the rows carry their own dvh-scaled height instead of
+   (Rule 4.1) and the rows carry their own svh-scaled height instead of
    stretching into whatever is left of the stage. */
 .bng-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(4, clamp(52px, 9dvh, 92px));
+  grid-template-rows: repeat(4, clamp(52px, 9svh, 92px));
   gap: clamp(5px, 1vw, 8px);
   width: 100%;
 }
@@ -92,7 +92,7 @@
   border-color: var(--brand);
 }
 .bng-cell-label {
-  font-size: clamp(9px, 1.35dvh, 11px);
+  font-size: clamp(9px, 1.35svh, 11px);
   font-weight: 700;
   line-height: 1.2;
   overflow: hidden;
@@ -102,7 +102,7 @@
 }
 .bng-cell.is-claimed .bng-cell-label { color: var(--brand); }
 .bng-cell-claimer {
-  font-size: clamp(8px, 1.2dvh, 9.5px);
+  font-size: clamp(8px, 1.2svh, 9.5px);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -116,11 +116,11 @@
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: clamp(16px, 4dvh, 32px) 16px;
+  padding: clamp(16px, 4svh, 32px) 16px;
   text-align: center;
 }
-.bng-state-title { font-size: clamp(15px, 2.2dvh, 18px); color: var(--text); }
-.bng-state-msg { font-size: clamp(11px, 1.6dvh, 13px); color: var(--muted); }
+.bng-state-title { font-size: clamp(15px, 2.2svh, 18px); color: var(--text); }
+.bng-state-msg { font-size: clamp(11px, 1.6svh, 13px); color: var(--muted); }
 
 /* Small phones (390x844): tighten so card + strip fit with zero page scroll */
 @media (max-width: 480px) {

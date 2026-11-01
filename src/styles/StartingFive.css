@@ -26,7 +26,7 @@
   transition: opacity 0.3s ease, filter 0.3s ease;
 }
 .s5-team.is-winner { opacity: 1; filter: none; }
-.s5-team-badge { width: clamp(34px, 8dvh, 48px); height: clamp(34px, 8dvh, 48px); }
+.s5-team-badge { width: clamp(34px, 8svh, 48px); height: clamp(34px, 8svh, 48px); }
 .s5-team-name { font-size: 11px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.2; }
 
 .s5-score { display: flex; flex-direction: column; align-items: center; gap: 5px; }
@@ -161,7 +161,7 @@
 
 /* Narrow screens: two cards per row so each is wide enough to show a full player
    name. That means three rows, so the vertical budget is tight — the photo stage
-   drops to a dvh-scaled height and the foot goes horizontal (input beside Confirm)
+   drops to a svh-scaled height and the foot goes horizontal (input beside Confirm)
    to keep the whole play area inside one 390x844 viewport (Rule 1.1). */
 @media (max-width: 620px) {
   /* NOTE: this game used to opt out of the stage height cap here. That is now the

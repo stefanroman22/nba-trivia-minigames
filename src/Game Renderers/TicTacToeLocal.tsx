@@ -10,6 +10,7 @@ import { ScoreActions } from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Avatar, Button, GameFrame, Spinner } from "../components/ui";
 import SwapText from "../components/motion/SwapText";
+import { AutoSize } from "../components/motion/AutoHeight";
 import { TTT_DRAW_MS, TttMark } from "../components/motion/TttWinLine";
 import { useNames } from "../hooks/useNames";
 import { buildNameLookup } from "../utils/questions";
@@ -38,36 +39,70 @@ interface TicTacToeLocalProps {
   onClose?: () => void;
 }
 
+/** The decided board as the status row's centre pill shows it: the winner's mark (null = draw) and name. */
+interface ClockResult {
+  winner: Seat | null;
+  name: string | null;
+}
+
 /**
- * The turn clock (status row centre): ticks on its own half-second interval, so the board and prompt re-render only
- * when the game changes, never twice a second; calls `onTimeUp` once when a running turn reaches 0:00.
+ * The turn clock (status row centre): ticks on its own half-second interval, so the board re-renders only when the
+ * game changes, never twice a second; calls `onTimeUp` once when a running turn reaches 0:00. It stops on the
+ * decided board (`ended`) and, once the win line has drawn (`result`), the same pill reads the result instead:
+ * the winner's mark + "WINS", or "DRAW" — the board needs no title above it. The pill's width glides (AutoSize).
  */
-function TurnClock({ deadline, ended, onTimeUp }: { deadline: number | null; ended: boolean; onTimeUp: () => void }) {
+function TurnClock({
+  deadline,
+  ended,
+  result,
+  onTimeUp,
+}: {
+  deadline: number | null;
+  ended: boolean;
+  result: ClockResult | null;
+  onTimeUp: () => void;
+}) {
   const [now, setNow] = useState(() => Date.now());
   const onTimeUpRef = useRef(onTimeUp);
   useEffect(() => {
     onTimeUpRef.current = onTimeUp;
   });
   useEffect(() => {
+    if (ended) return; // the decided board's clock holds while the win line draws
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
-  }, []);
+  }, [ended]);
   // A fresh deadline is read against a `now` up to 500 ms old: cap at the full turn.
   const secondsLeft = deadline === null ? TURN_SECONDS : Math.min(TURN_SECONDS, Math.max(0, Math.ceil((deadline - now) / 1000)));
   useEffect(() => {
     if (!ended && deadline !== null && secondsLeft <= 0) onTimeUpRef.current();
   }, [secondsLeft, ended, deadline]);
+  const tone = result ? (result.winner === null ? "draw" : result.winner === 0 ? "x" : "o") : undefined;
   return (
-    <span
-      className="ttt-clock tnum"
-      role="timer"
-      aria-label={ended ? "Final board" : `${secondsLeft} seconds left`}
-      data-low={(!ended && secondsLeft <= 5) || undefined}
-    >
-      <SwapText swapKey={ended ? "final" : "clock"} reserveWidth={["0:00", "FINAL"]}>
-        {ended ? "FINAL" : `0:${String(secondsLeft).padStart(2, "0")}`}
-      </SwapText>
-    </span>
+    <AutoSize axis="width">
+      <span
+        className="ttt-clock tnum"
+        role="timer"
+        aria-label={result ? (result.winner === null ? "Draw" : `${result.name} wins`) : `${secondsLeft} seconds left`}
+        data-low={(!ended && secondsLeft <= 5) || undefined}
+        data-result={tone}
+      >
+        <SwapText swapKey={tone ?? "clock"}>
+          {result ? (
+            result.winner === null ? (
+              "DRAW"
+            ) : (
+              <span className="tttl-result">
+                <TttMark mark={MARKS[result.winner]} draw={false} className="tttl-result-mark" />
+                WINS
+              </span>
+            )
+          ) : (
+            `0:${String(secondsLeft).padStart(2, "0")}`
+          )}
+        </SwapText>
+      </span>
+    </AutoSize>
   );
 }
 
@@ -81,16 +116,7 @@ export default function TicTacToeLocal({ gameInfo, local, onPlayAgain, onClose }
   const [owners, setOwners] = useState<(Seat | null)[]>(() => Array(9).fill(null));
   const [cellNames, setCellNames] = useState<(string | null)[]>(() => Array(9).fill(null));
   const [turn, setTurn] = useState<Seat>(starter);
-  const [selectedCell, setSelectedCellState] = useState<number | null>(null);
-  // Counts every turn and every pick: the prompt's SwapText keys use them so a key never comes back while its
-  // previous copy may still be leaving (a recurring key can freeze AnimatePresence on stale text when frames pause,
-  // e.g. a backgrounded tab while the clock passes turns).
-  const [swapNo, setSwapNo] = useState(0);
-  const [turnNo, setTurnNo] = useState(0);
-  const setSelectedCell = (cell: number | null) => {
-    setSelectedCellState(cell);
-    setSwapNo((n) => n + 1);
-  };
+  const [selectedCell, setSelectedCell] = useState<number | null>(null);
   const [guess, setGuess] = useState("");
   // The decided board: its winner (null = draw) and line; `endShown` flips once the line has drawn.
   const [end, setEnd] = useState<{ winner: Seat | null; line: number[] | null } | null>(null);
@@ -120,6 +146,27 @@ export default function TicTacToeLocal({ gameInfo, local, onPlayAgain, onClose }
     [],
   );
 
+  // Fresh state whenever a new board loads (Play again), as solo does, so a stalled stage swap can never
+  // leave the previous board's marks or result on top of the new board.
+  const qid = question?.qid;
+  useEffect(() => {
+    timersRef.current.forEach(clearTimeout);
+    timersRef.current = [];
+    if (popTimerRef.current) clearTimeout(popTimerRef.current);
+    popTimerRef.current = null;
+    usedIdsRef.current = new Set();
+    setOwners(Array(9).fill(null));
+    setCellNames(Array(9).fill(null));
+    setTurn(starter);
+    setSelectedCell(null);
+    setGuess("");
+    setEnd(null);
+    setEndShown(false);
+    setBottomPhase("input");
+    setShowPopup(false);
+    setDeadline(null);
+  }, [qid, starter]);
+
   // The first turn's clock starts once the names are in (TurnClock ticks it).
   useEffect(() => {
     if (lookup && deadline === null) setDeadline(Date.now() + TURN_SECONDS * 1000);
@@ -136,8 +183,6 @@ export default function TicTacToeLocal({ gameInfo, local, onPlayAgain, onClose }
   /** The other player's turn, on a fresh clock. */
   const passTurn = () => {
     setTurn((t) => nextPlayer(t));
-    setTurnNo((n) => n + 1);
-    setSwapNo((n) => n + 1);
     setDeadline(Date.now() + TURN_SECONDS * 1000);
     setSelectedCell(null);
     setGuess("");
@@ -229,35 +274,17 @@ export default function TicTacToeLocal({ gameInfo, local, onPlayAgain, onClose }
     </span>
   );
 
-  const decided = !!end && endShown;
-  const eyebrow = decided ? (end.winner === null ? "Full board" : "Three in a row") : `${players[turn]}'s turn`;
-  const eyebrowKey = decided ? "end" : `turn-${turnNo}`;
-  const title = decided
-    ? end.winner === null
-      ? "Draw!"
-      : `${players[end.winner]} wins!`
-    : selectedCell == null
-      ? "Pick a square"
-      : `${question.rows[Math.floor(selectedCell / 3)].label} × ${question.cols[selectedCell % 3].label}`;
-  const titleKey = decided ? "end" : `${selectedCell ?? "pick"}-${swapNo}`;
+  // No prompt (owner, 2026-11-01): the layout is solo's — status row, board, input row — so the board and the
+  // name dropdown stay in view on a phone. The lit chip says whose turn it is; the centre pill reads the result.
+  const result: ClockResult | null =
+    end && endShown ? { winner: end.winner, name: end.winner === null ? null : players[end.winner] } : null;
 
   return (
     <GameFrame>
       <GameFrame.Status
         left={chip(0)}
-        center={<TurnClock deadline={deadline} ended={!!end} onTimeUp={onTimeUp} />}
+        center={<TurnClock deadline={deadline} ended={!!end} result={result} onTimeUp={onTimeUp} />}
         right={chip(1)}
-      />
-
-      <GameFrame.Prompt
-        eyebrow={<SwapText swapKey={eyebrowKey}>{eyebrow}</SwapText>}
-        title={
-          <span className="tttl-title">
-            <SwapText swapKey={titleKey}>
-              <span className="tttl-title-text">{title}</span>
-            </SwapText>
-          </span>
-        }
       />
 
       <GameFrame.Board>

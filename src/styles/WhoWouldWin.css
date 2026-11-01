@@ -13,7 +13,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(4px, 0.8dvh, 8px);
+  gap: clamp(4px, 0.8svh, 8px);
   /* Room for the top card's hover lift (y:-2) inside the scroller's clip; the
      negative margin cancels it, so the board's layout is unchanged. */
   padding-block: 3px;
@@ -59,7 +59,7 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: clamp(8px, 1.6dvh, 16px) 14px;
+  padding: clamp(8px, 1.6svh, 16px) 14px;
   background: var(--surface2);
   border: 1px solid var(--line2);
   border-radius: var(--radius);
@@ -74,7 +74,7 @@
 .www-card.is-other { opacity: 0.6; }
 
 .www-card-label {
-  font-size: clamp(17px, 2.6dvh, 22px);
+  font-size: clamp(17px, 2.6svh, 22px);
   line-height: 1.2;
   text-align: center;
   overflow-wrap: anywhere;

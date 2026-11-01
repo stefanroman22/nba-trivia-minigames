@@ -35,9 +35,9 @@
   /* Containing block for the empty prompt while AnimatePresence popLayout fades it out. */
   position: relative;
   min-height: 0;
-  /* Old cap (clamp(180px, 42dvh, 420px)) minus the #1 secret card + its gap
+  /* Old cap (clamp(180px, 42svh, 420px)) minus the #1 secret card + its gap
      (~68px), so adding the card costs the 390x844 budget nothing (Rule 1.1). */
-  height: clamp(112px, calc(42dvh - 68px), 352px);
+  height: clamp(112px, calc(42svh - 68px), 352px);
   flex: none;
   width: 100%;
   overflow-y: auto;
@@ -102,7 +102,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: clamp(12px, 1.7dvh, 14px);
+  font-size: clamp(12px, 1.7svh, 14px);
   font-weight: 700;
   color: var(--text);
 }

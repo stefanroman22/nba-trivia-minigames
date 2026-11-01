@@ -21,7 +21,7 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: clamp(6px, 1dvh, 9px);
+  gap: clamp(6px, 1svh, 9px);
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
@@ -30,7 +30,7 @@
   display: flex;
   align-items: center;
   gap: clamp(8px, 2vw, 12px);
-  padding: clamp(7px, 1.1dvh, 10px) clamp(9px, 2.4vw, 13px);
+  padding: clamp(7px, 1.1svh, 10px) clamp(9px, 2.4vw, 13px);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   background: var(--surface);
@@ -47,7 +47,7 @@
   flex: none;
   width: clamp(20px, 6vw, 24px);
   text-align: center;
-  font-size: clamp(13px, 2dvh, 16px);
+  font-size: clamp(13px, 2svh, 16px);
   font-weight: 700;
   color: var(--muted);
 }
@@ -69,7 +69,7 @@
   min-width: 0;
 }
 .sd-slot-label {
-  font-size: clamp(12px, 1.9dvh, 14px);
+  font-size: clamp(12px, 1.9svh, 14px);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -77,7 +77,7 @@
 }
 .sd-slot-sub {
   flex: none;
-  font-size: clamp(9px, 1.3dvh, 10px);
+  font-size: clamp(9px, 1.3svh, 10px);
   letter-spacing: 0.03em;
   text-transform: uppercase;
   color: var(--muted);
@@ -90,7 +90,7 @@
   border-color: var(--brand);
 }
 .sd-slot-pick {
-  font-size: clamp(11px, 1.7dvh, 13px);
+  font-size: clamp(11px, 1.7svh, 13px);
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -136,7 +136,7 @@
 .sd-slot-metric {
   min-width: clamp(42px, 12vw, 56px);
   text-align: right;
-  font-size: clamp(13px, 2.1dvh, 16px);
+  font-size: clamp(13px, 2.1svh, 16px);
   font-weight: 700;
   color: var(--brand);
 }
@@ -168,8 +168,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: clamp(10px, 2dvh, 14px);
-  padding: clamp(12px, 2dvh, 16px) clamp(12px, 3vw, 16px);
+  gap: clamp(10px, 2svh, 14px);
+  padding: clamp(12px, 2svh, 16px) clamp(12px, 3vw, 16px);
   border: 1px solid var(--brand);
   border-radius: var(--radius);
   background: linear-gradient(135deg, var(--brand-soft), var(--surface2));
@@ -187,12 +187,12 @@
   gap: 2px;
 }
 .sd-result-pct {
-  font-size: clamp(30px, 6dvh, 44px);
+  font-size: clamp(30px, 6svh, 44px);
   line-height: 1;
   color: var(--brand);
 }
 .sd-result-pct-of {
-  font-size: clamp(12px, 1.9dvh, 15px);
+  font-size: clamp(12px, 1.9svh, 15px);
   color: var(--muted);
   font-weight: 600;
 }
@@ -204,20 +204,20 @@
   gap: 3px;
 }
 .sd-result-agg {
-  font-size: clamp(12px, 1.9dvh, 14px);
+  font-size: clamp(12px, 1.9svh, 14px);
   color: var(--muted);
 }
 .sd-result-agg strong {
   color: var(--text);
 }
 .sd-result-rank {
-  font-size: clamp(11px, 1.6dvh, 12px);
+  font-size: clamp(11px, 1.6svh, 12px);
   color: var(--good);
   font-weight: 600;
 }
 .sd-share {
   flex: none;
-  font-size: clamp(11px, 1.7dvh, 13px);
+  font-size: clamp(11px, 1.7svh, 13px);
   font-weight: 600;
   color: var(--bg);
   background: var(--brand);
@@ -251,16 +251,16 @@
   max-width: 320px;
 }
 .sd-state-title {
-  font-size: clamp(15px, 2.4dvh, 18px);
+  font-size: clamp(15px, 2.4svh, 18px);
   font-weight: 700;
   color: var(--text);
 }
 .sd-state-msg {
-  font-size: clamp(12px, 1.9dvh, 14px);
+  font-size: clamp(12px, 1.9svh, 14px);
   color: var(--muted);
 }
 .sd-note {
-  font-size: clamp(12px, 1.8dvh, 14px);
+  font-size: clamp(12px, 1.8svh, 14px);
   color: var(--muted);
   text-align: center;
 }

@@ -2,7 +2,7 @@
    do not re-add a .wordle-container here. The board holds the tile grid AND the
    on-screen keyboard (this game's only input), so it owns the gap between them;
    .gf-board itself is gapless. */
-.gf-board:has(.wk) { gap: clamp(8px, 1.3dvh, 16px); }
+.gf-board:has(.wk) { gap: clamp(8px, 1.3svh, 16px); }
 
 .wordle-board {
   display: flex;
@@ -16,8 +16,8 @@
 }
 
 .tile {
-  width: clamp(36px, 5.7dvh, 54px);
-  height: clamp(36px, 5.7dvh, 54px);
+  width: clamp(36px, 5.7svh, 54px);
+  height: clamp(36px, 5.7svh, 54px);
   border: 2px solid var(--line2);
   border-radius: 10px;
   display: flex;
@@ -91,7 +91,7 @@
 .wk {
   display: flex;
   flex-direction: column;
-  gap: clamp(5px, 0.9dvh, 7px);
+  gap: clamp(5px, 0.9svh, 7px);
   width: 100%;
   max-width: 460px;
 }
@@ -103,7 +103,7 @@
 .wk-key {
   flex: 1 1 0;
   min-width: 0;
-  height: clamp(36px, 4.9dvh, 50px);
+  height: clamp(36px, 4.9svh, 50px);
   border: 1px solid var(--line2);
   border-radius: 9px;
   background: var(--surface3);
