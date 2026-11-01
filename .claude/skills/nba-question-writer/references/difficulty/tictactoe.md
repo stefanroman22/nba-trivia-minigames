@@ -1,6 +1,6 @@
 # Tic-Tac-Toe difficulty (owner guideline, 2026-10-25)
 
-Served to players: the solo idle screen has an Easy / Medium / Hard switch (default Medium). The rules are
+Served to players: the solo idle screen has an Easy / Medium / Hard switch (default Easy since 2026-10-31). The rules are
 code: `backend/trivia/questions/games/tictactoe_difficulty.py` (`column_tier`, `classify`). A board is as
 hard as its hardest column, then every cell must pass that band's cell rule. `question_writer check`
 runs `classify` on every proposal and fails a board whose level differs from the one asked for. No label =

@@ -47,9 +47,9 @@ const RAIL_STRIP_KEY = "sq:rail-strip-x";
 // loads: the idle fade-out plus the loader's fade-in take 500 ms (Stage), so it is fully on screen
 // for ~300 ms and never flashes.
 const LOADING_HOLD_MS = 800;
-// A game that offers difficulties (Game.difficulties) starts on Medium; the player's last pick is
-// remembered per game under this key + the game id.
-const DEFAULT_DIFFICULTY: Difficulty = "medium";
+// A game that offers difficulties (Game.difficulties) starts on Easy (owner, 2026-10-31); the player's
+// last pick is remembered per game under this key + the game id, and wins over the default.
+const DEFAULT_DIFFICULTY: Difficulty = "easy";
 const DIFFICULTY_KEY = "sq:difficulty:";
 
 function MiniGame() {
@@ -361,7 +361,7 @@ function MiniGame() {
                     kind="radio"
                     className="idle-diff"
                     itemClassName="idle-diff-item"
-                    thumbRadius={8}
+                    thumbRadius={7}
                     options={game.difficulties}
                     value={difficulty}
                     onChange={pickDifficulty}
