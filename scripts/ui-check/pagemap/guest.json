@@ -42,6 +42,7 @@
   "mpFriendBtn": { "css": "aside.game-aside .mp-row button:has-text('Play with a friend')" },
   "mpPlay1v1Btn": { "css": "aside.game-aside .mp-row button:has-text('Play 1v1')" },
   "mpRow": { "css": "aside.game-aside .mp-row" },
+  "mpLocalBtn": { "css": "aside.game-aside .mp-choice button:text-is('Local multiplayer')" },
 
   "modalBackdrop": { "css": ".modal-backdrop" },
   "modalPanel": { "css": ".modal-backdrop .modal-panel" },

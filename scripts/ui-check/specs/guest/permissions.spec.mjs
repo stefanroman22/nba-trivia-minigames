@@ -103,6 +103,9 @@ test('[G-PERM-03] @live a guest gets the log-in prompt on /profile and "Log in t
     await expect(L(page, 'guest.mpRow')).toHaveCount(0);
     await expect(L(page, 'guest.mpPlay1v1Btn')).toHaveCount(0);
     await expect(L(page, 'guest.mpFriendBtn')).toHaveCount(0);
+    // Local multiplayer (two players on this device) needs no account: offered to guests exactly where the game supports it.
+    if (g.local) await expect(L(page, 'guest.mpLocalBtn'), `${g.name} offers Local multiplayer to a guest`).toBeVisible();
+    else await expect(L(page, 'guest.mpLocalBtn'), `${g.name} has no Local multiplayer`).toHaveCount(0);
   }
   await audit.shot('game-mp-guest');
   await L(page, 'guest.mpLoginBtn').click();

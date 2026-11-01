@@ -45,10 +45,9 @@ function lookupFor(names) {
 const { normalizeAnswer } = require("./answerMatch");
 
 // --- Tunables -------------------------------------------------------------
-const TTT_TURN_MS = 25000;       // per-turn clock; timeout = pass (contract #6)
+const TTT_TURN_MS = 30000;       // per-turn clock; timeout = pass (contract #6)
 const IMPOSTER_STEP_MS = 45000;  // per phase-step clock (clue / vote / guess)
 const REVEAL_MS = 6000;          // reveal screen before the results scoreboard
-const TTT_STEALS = 3;            // steals each player starts with
 const IMPOSTER_CLUE_ROUNDS = 2;  // 2 clue rounds, then the vote
 
 // TTT match scoring (fed into room.scores -> the shared rankRoom/settleMatch).
@@ -188,22 +187,39 @@ function onDisconnect(room, uid, helpers) {
 // =========================================================================
 //  NBA TIC-TAC-TOE
 // =========================================================================
-/** The three winning cell-lines of a 3x3 board. */
+// Standard rules (2026-11-01): one answer per turn. Right → the square is yours and the turn passes; a known player
+// who does not fit, or the clock, passes the turn; a name the game does not know or a player already on the board
+// costs nothing (a notice, the turn and the clock go on). No steals. The lines, winner and judging mirror the site's
+// src/utils/tttDuel.ts (local multiplayer); scripts/test-ttt-duel.mjs checks the two agree.
+
+/** The eight winning cell-lines of a 3x3 board. */
 const TTT_LINES = [
   [0, 1, 2], [3, 4, 5], [6, 7, 8],
   [0, 3, 6], [1, 4, 7], [2, 5, 8],
   [0, 4, 8], [2, 4, 6],
 ];
 
-/** ownerUid of a completed line, or null. */
-function tttWinner(board) {
+/** { winner, line } for a completed line of one owner (any value), or null. Mirrors tttDuel.ts winningLine. */
+function tttWinLine(owners) {
   for (const [a, b, c] of TTT_LINES) {
-    const o = board[a] && board[a].ownerUid;
-    if (o && board[b] && board[b].ownerUid === o && board[c] && board[c].ownerUid === o) {
-      return o;
-    }
+    const o = owners[a];
+    if (o != null && owners[b] === o && owners[c] === o) return { winner: o, line: [a, b, c] };
   }
   return null;
+}
+
+/**
+ * One typed answer for a square (mirrors tttDuel.ts judgeAnswer): the typed name's players, an exact name or alias
+ * first (so "Gary Payton" is never Gary Payton II); of those the first who fits and is not on the board, else the
+ * first one. → { kind: "unknown" } | { kind: "used" | "wrong" | "right", id }.
+ */
+function tttJudge(raw, cell, valid, used, lookup) {
+  const fits = valid[cell] || [];
+  const ids = lookup.resolveIds(raw);
+  const id = ids.find((x) => fits.includes(x) && !used.has(x)) ?? ids[0];
+  if (id === undefined) return { kind: "unknown" };
+  if (used.has(id)) return { kind: "used", id };
+  return fits.includes(id) ? { kind: "right", id } : { kind: "wrong", id };
 }
 
 async function initTTT(room, helpers, isCurrent) {
@@ -214,11 +230,20 @@ async function initTTT(room, helpers, isCurrent) {
     criteria: { rows: question.rows, cols: question.cols },
     turnUid: room.members[0],
     deadlineTs: Date.now() + TTT_TURN_MS,
-    stealsLeft: Object.fromEntries(room.members.map((m) => [m, TTT_STEALS])),
     winnerUid: null,
     draw: false,
+    winLine: null, // the winning line's three cell indices once someone has three in a row
   };
   room.turn = { game: "tictactoe", state, valid: question.valid, lookup: lookupFor(names), trustClient: false };
+  armTurnTimer(room, helpers);
+  broadcastTurnState(room, helpers);
+}
+
+/** The turn goes to the other player with a fresh clock (a time-out, or an answer that does not fit). */
+function passTTTTurn(room, helpers) {
+  const s = room.turn.state;
+  s.turnUid = nextMember(room, s.turnUid);
+  s.deadlineTs = Date.now() + TTT_TURN_MS;
   armTurnTimer(room, helpers);
   broadcastTurnState(room, helpers);
 }
@@ -226,10 +251,7 @@ async function initTTT(room, helpers, isCurrent) {
 function tttTimeout(room, helpers) {
   const s = room.turn.state;
   if (s.winnerUid || s.draw) return;
-  s.turnUid = nextMember(room, s.turnUid);
-  s.deadlineTs = Date.now() + TTT_TURN_MS;
-  armTurnTimer(room, helpers);
-  broadcastTurnState(room, helpers);
+  passTTTTurn(room, helpers);
 }
 
 function handleTTT(room, uid, action, helpers) {
@@ -237,6 +259,7 @@ function handleTTT(room, uid, action, helpers) {
   const s = t.state;
   if (s.winnerUid || s.draw) return; // game already over
   if (uid !== s.turnUid) return helpers.reject(uid, "It isn't your turn.");
+  if (action.type !== "claim") return helpers.reject(uid, "Unknown move.");
 
   const cell = Number(action.cell);
   if (!Number.isInteger(cell) || cell < 0 || cell > 8) {
@@ -244,52 +267,27 @@ function handleTTT(room, uid, action, helpers) {
   }
   const name = String(action.playerName || "").slice(0, 80).trim();
   if (!name) return helpers.reject(uid, "Type a player's name.");
-
-  const existing = s.board[cell];
-
-  // --- claim / steal legality (before we validate the name) ---
-  if (action.type === "claim") {
-    if (existing) {
-      return helpers.reject(
-        uid,
-        existing.ownerUid === uid ? "You already own that square." : "Taken — steal it instead.",
-      );
-    }
-  } else if (action.type === "steal") {
-    if (!existing) return helpers.reject(uid, "Nothing to steal there — claim it.");
-    if (existing.ownerUid === uid) return helpers.reject(uid, "You already own that square.");
-    if ((s.stealsLeft[uid] || 0) <= 0) return helpers.reject(uid, "No steals left.");
-  } else {
-    return helpers.reject(uid, "Unknown move.");
-  }
+  if (s.board[cell]) return helpers.reject(uid, "That square is taken.");
 
   // --- answer validation (id lookup against the pre-generated question's valid[cell]) ---
-  // Namesakes (two Eddie Johnsons): the one who fits this square counts. An exact name wins outright, so
-  // "Gary Payton" never fills a square only Gary Payton II fits.
-  const id = t.lookup.resolveIds(name).find((x) => t.valid[cell].includes(x)) ?? null;
-  if (id === null) {
-    return helpers.reject(uid, `${name} doesn't fit that square.`);
-  }
-  const displayName = t.lookup.nameOf(id); // canonicalise (handles aliases / casing)
-  if (action.type === "steal" && existing.playerId === id) {
-    return helpers.reject(uid, "Name a different player to steal it.");
-  }
-
-  // --- used-player check (mirrors solo mode: a real player fills at most one
-  // cell on the board, even across the two duelling players). By id, so the
-  // other Eddie Johnson is still free. ---
-  const usedElsewhere = s.board.some((occ, idx) => idx !== cell && occ && occ.playerId === id);
-  if (usedElsewhere) {
-    return helpers.reject(uid, `${displayName} is already on the board.`);
+  // By id, so the other Eddie Johnson is still free once one is on the board.
+  const used = new Set(s.board.filter(Boolean).map((occ) => occ.playerId));
+  const verdict = tttJudge(name, cell, t.valid, used, t.lookup);
+  if (verdict.kind === "unknown") return helpers.reject(uid, `${name} isn't in our player index.`);
+  const displayName = t.lookup.nameOf(verdict.id); // canonicalise (handles aliases / casing)
+  if (verdict.kind === "used") return helpers.reject(uid, `${displayName} is already on the board.`);
+  if (verdict.kind === "wrong") {
+    helpers.reject(uid, `${displayName} doesn't fit that square. Turn passes.`);
+    return passTTTTurn(room, helpers);
   }
 
   // --- apply the move ---
-  s.board[cell] = { ownerUid: uid, playerName: displayName, playerId: id };
-  if (action.type === "steal") s.stealsLeft[uid] -= 1;
+  s.board[cell] = { ownerUid: uid, playerName: displayName, playerId: verdict.id };
 
-  const winner = tttWinner(s.board);
-  if (winner) {
-    s.winnerUid = winner;
+  const won = tttWinLine(s.board.map((c) => (c ? c.ownerUid : null)));
+  if (won) {
+    s.winnerUid = won.winner;
+    s.winLine = won.line;
   } else if (s.board.every(Boolean)) {
     s.draw = true;
   } else {
@@ -545,5 +543,5 @@ module.exports = {
   clearTimers,
   // test seams (used by scripts/sim_turngames.js — no network in the sim)
   _setQuestionsForTest: questions._setForTest,
-  _test: { normalizeAnswer, matchesMystery, tttWinner },
+  _test: { normalizeAnswer, matchesMystery, tttWinLine, tttJudge },
 };

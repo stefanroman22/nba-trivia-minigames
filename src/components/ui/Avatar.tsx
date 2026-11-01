@@ -8,6 +8,8 @@ interface AvatarProps {
   color?: string;
   /** Photo URL. The initials show while it is null and again if it fails to load. */
   src?: string | null;
+  /** `circle` for a round avatar; rounded square by default. */
+  shape?: "rounded" | "circle";
 }
 
 export default function Avatar({
@@ -16,6 +18,7 @@ export default function Avatar({
   bg = "linear-gradient(140deg, var(--brand), var(--brand-deep))",
   color = "#fff",
   src = null,
+  shape = "rounded",
 }: AvatarProps) {
   // Remember which URL failed, not just "failed": a re-upload bumps the version in the URL,
   // and that new URL deserves a fresh attempt.
@@ -26,7 +29,7 @@ export default function Avatar({
       style={{
         width: size,
         height: size,
-        borderRadius: Math.round(size * 0.24),
+        borderRadius: shape === "circle" ? "50%" : Math.round(size * 0.24),
         background: bg,
         display: "flex",
         alignItems: "center",

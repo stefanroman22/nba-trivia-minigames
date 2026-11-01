@@ -68,13 +68,18 @@ function GameFrame({ fill = false, children }: GameFrameProps) {
  * `:only-child` rules in ui.css). Rendering an empty span instead would leave a
  * zero-width element plus the row's 14px gap, which pins the lone label to the
  * left edge and offsets any centring attempt by half the gap.
+ *
+ * `center` (optional) sits on the frame's centre line between the two sides, which
+ * then share the rest equally (a turn clock between two player chips: TicTacToe local).
  */
-function Status({ left, right }: { left?: ReactNode; right?: ReactNode }) {
+function Status({ left, center, right }: { left?: ReactNode; center?: ReactNode; right?: ReactNode }) {
   const hasLeft = !isEmpty(left);
+  const hasCenter = !isEmpty(center);
   const hasRight = !isEmpty(right);
   return (
-    <div className="gf-status">
+    <div className={`gf-status${hasCenter ? " gf-status--center" : ""}`}>
       {hasLeft && <span className="gf-status-left">{left}</span>}
+      {hasCenter && <span className="gf-status-center">{center}</span>}
       {hasRight && <span className="gf-status-right">{right}</span>}
     </div>
   );

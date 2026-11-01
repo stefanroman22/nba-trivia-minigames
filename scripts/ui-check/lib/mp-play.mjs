@@ -132,25 +132,34 @@ export async function playBoth(pair, adapter, { host = 'perfect', joiner = lossS
 
 /** The relay's Tic-Tac-Toe duel scores (multiplayer_server/src/turnGames.js TTT_WIN_SCORE / TTT_LOSS_SCORE / TTT_DRAW_SCORE). */
 export const TTT_SCORES = { win: 300, loss: 45, draw: 180 };
-export const TTT_TURN_MS = 25_000;
+/** The duel's turn clock (multiplayer_server/src/turnGames.js TTT_TURN_MS, standard rules since 2026-11-01). */
+export const TTT_TURN_MS = 30_000;
+/** A known player who does not fit passes the turn at once (the relay rebroadcasts in the same tick): the other side shows YOUR TURN within this. */
+export const MISS_PASS_MS = 5_000;
 
 /**
- * Duel scripts: the cells each side claims, in order ('miss' = a refused move whose turn passes on the 25 s clock).
- *   win  — the host claims the top row (0, 1, 2); the joiner only misses → host three in a row.
+ * Duel scripts (standard rules: one answer per turn, no steals), the moves each side makes on its turns, in order:
+ * a cell = claim it with a player who fits; 'miss' = a listed player who does not fit a free cell (refused, and the turn
+ * passes at once); 'timeout' = do nothing until the 30 s clock passes the turn.
+ *   win  — the host claims the top row (0, 1, 2); the joiner lets its first turn time out, then misses → host three in a
+ *          row (the win line draws over 0-1-2). One real 30 s wait: pair A only (MP-GAME-tictactoe).
  *   draw — both claim, filling the board without a line:   X O X / X O O / O X X   (host X = 0 2 3 7 8, joiner O = 1 4 5 6;
  *          no row, column or diagonal is one player's, so no subset of it is either) → a full board, equal scores (180),
- *          no play times on either side → the relay's rankRoom calls it a tie.
+ *          no play times on either side → the relay's rankRoom calls it a tie; no win line.
  */
 export const DUEL_SCRIPTS = {
-  win: { host: [0, 1, 2], joiner: ['miss', 'miss', 'miss'], banners: ['You win!', 'Opponent wins'] },
-  draw: { host: [0, 2, 3, 7, 8], joiner: [1, 4, 5, 6], banners: ['Draw!', 'Draw!'] },
+  win: { host: [0, 1, 2], joiner: ['timeout', 'miss'], banners: ['You win!', 'Opponent wins'], line: true },
+  draw: { host: [0, 2, 3, 7, 8], joiner: [1, 4, 5, 6], banners: ['Draw!', 'Draw!'], line: false },
 };
 
 /**
- * A turn-based duel (adapter.online.turnBased) played to a DUEL_SCRIPTS script. A claim must land on both boards; a joiner
- * miss is refused by the relay (warn notice, which must not cover the turn label / clock) and its turn passes to the host
- * only when its 25 s clock runs out (`win` waits that clock out twice: pair A only; that wait IS the check that a turn
- * passes on time). Records `turn-pass` / `turn-reject` / `notice-covers` / `duel`. → { moves, passes: [ms] }
+ * A turn-based duel (adapter.online.turnBased) played to a DUEL_SCRIPTS script. The playing screen has one answer control
+ * and no Steal (`duel-steal`); every turn starts on a 30 s clock (`turn-clock`, read when YOUR TURN shows). A claim must
+ * land on both boards; a joiner miss is refused by the relay (warn notice, which must not cover the turn label / clock)
+ * and passes the turn to the host at once (`turn-pass`, within MISS_PASS_MS); a joiner time-out passes the turn when its
+ * 30 s clock runs out, not before (`turn-pass`). The decided board: the win line on both pages for a win, none for a draw
+ * (`duel-winline`), the banner held at least 1 s (`duel-banner`). Records `turn-pass` / `turn-clock` / `turn-reject` /
+ * `notice-covers` / `duel-steal` / `duel-winline` / `duel-banner` / `duel`. → { moves, passes: [{ kind, ms }] }
  */
 export async function playDuel(pair, adapter, { script = 'win' } = {}) {
   const plan = DUEL_SCRIPTS[script];
@@ -160,6 +169,13 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
     await p.page.waitForTimeout(900);
     await p.audit.layout({ scope: 'section.stage-col' });
     await p.audit.shot('playing');
+    // Standard rules: no Steal control, one answer button beside the field.
+    const controls = await p.page.evaluate(() => ({
+      steal: document.querySelectorAll('.stage-inner .om-stage--play .ttt-steal').length
+        + [...document.querySelectorAll('.stage-inner .om-stage--play button')].filter((b) => /^\s*steal\b/i.test(b.textContent || '')).length,
+      actions: document.querySelectorAll('.stage-inner .om-stage--play .gf-inputrow-actions > *').length,
+    }));
+    if (controls.steal || controls.actions !== 1) p.audit.violation('duel-steal', { selector: '.gf-inputrow', measured: `${controls.steal} Steal control(s), ${controls.actions} action(s) beside the field`, expected: 'no Steal (standard rules): one answer button beside the field' });
   }
   const moves = [], passes = [], next = { host: 0, joiner: 0 };
   let banners = [null, null];
@@ -185,6 +201,22 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
       const step = plan[who][next[who]++];
       if (step === undefined) throw new Error(`tictactoe duel (${script}): the ${who} has no move left in the script`);
       const p = pair[who], { pg, ctx } = sides[who];
+      const other = who === 'host' ? pair.joiner : pair.host;
+      const turnSeen = Date.now();
+      // Every turn starts on the full 30 s clock (read as YOUR TURN shows: 0:30, or a second or two less).
+      const clock = ((await p.page.locator('.stage-inner .om-stage--play .ttt-clock').first().textContent({ timeout: 2000 }).catch(() => '')) || '').trim();
+      const cm = /^(\d+):(\d\d)$/.exec(clock);
+      const secs = cm ? +cm[1] * 60 + +cm[2] : null;
+      if (secs == null || secs > TTT_TURN_MS / 1000 || secs < TTT_TURN_MS / 1000 - 4) p.audit.violation('turn-clock', { selector: '.ttt-clock', measured: `the ${who}'s turn began at "${clock}"`, expected: `a ${TTT_TURN_MS / 1000} s turn clock (0:${TTT_TURN_MS / 1000} as the turn begins)` });
+      if (step === 'timeout') {
+        // Do nothing: the relay passes the turn when the clock runs out, not before.
+        moves.push({ who, cell: -1, name: null, kind: 'timeout' });
+        const passed = await other.page.waitForFunction(() => !!document.querySelector('.stage-inner .om-stage--play .ttt-turn.is-you'), null, { timeout: TTT_TURN_MS + 8000 }).then(() => true, () => false);
+        const ms = Date.now() - turnSeen;
+        passes.push({ kind: 'timeout', ms });
+        if (!passed || ms < TTT_TURN_MS - 2000) p.audit.violation('turn-pass', { selector: '.ttt-turn', measured: passed ? `the ${who}'s idle turn passed after ${Math.round(ms / 1000)} s` : `the ${other.label} still waits ${Math.round(ms / 1000)} s after the ${who}'s turn began`, expected: `an idle turn passes when its ${TTT_TURN_MS / 1000} s clock runs out, not before` });
+        continue;
+      }
       const before = await readBoard(p.page);
       const m = await adapter.online.move(pg, ctx, step === 'miss' ? { correct: false } : { correct: true, cell: step });
       moves.push({ who, ...m });
@@ -201,7 +233,7 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
         }
         if (moves.filter((x) => x.who === who && x.kind === 'claim').length === 1) await p.audit.shot('claimed');
       } else {
-        // The relay refuses the move (turnReject → warn notice); the turn stays until the clock passes it.
+        // The relay refuses the move (turnReject → warn notice) and passes the turn at once (standard rules).
         const t0 = Date.now();
         const rejected = await p.page.waitForFunction((name) => [...document.querySelectorAll('.stage-inner .om .om-notice')].some((n) => n.textContent.includes(`${name} doesn't fit`)), m.name, { timeout: 8000 }).then(() => true, () => false);
         if (!rejected) p.audit.violation('turn-reject', { selector: '.om-notice', measured: `no "${m.name} doesn't fit that square." notice after the miss`, expected: 'the refused move is explained (turnReject → warn notice)' });
@@ -218,11 +250,10 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
           if (cover.length) p.audit.violation('notice-covers', { selector: '.om-notice', measured: `the "${m.name} doesn't fit" notice covers ${cover.join(' and ')} while the turn clock runs`, expected: 'a notice never hides the turn label or the clock' });
           if (moves.filter((x) => x.kind === 'miss').length === 1) await p.audit.shot('rejected');
         }
-        const other = who === 'host' ? pair.joiner : pair.host;
-        const passed = await other.page.waitForFunction(() => !!document.querySelector('.stage-inner .om-stage--play .ttt-turn.is-you'), null, { timeout: TTT_TURN_MS + 8000 }).then(() => true, () => false);
+        const passed = await other.page.waitForFunction(() => !!document.querySelector('.stage-inner .om-stage--play .ttt-turn.is-you'), null, { timeout: MISS_PASS_MS }).then(() => true, () => false);
         const ms = Date.now() - t0;
-        passes.push(ms);
-        if (!passed) p.audit.violation('turn-pass', { selector: '.ttt-turn', measured: `the ${other.label} still waits ${Math.round(ms / 1000)} s after the ${who}'s turn began`, expected: `a turn passes when its ${TTT_TURN_MS / 1000} s clock runs out` });
+        passes.push({ kind: 'miss', ms });
+        if (!passed) p.audit.violation('turn-pass', { selector: '.ttt-turn', measured: `the ${other.label} still waits ${Math.round(ms / 1000)} s after the ${who}'s answer did not fit`, expected: `a known player who does not fit passes the turn at once (the ${other.label} shows YOUR TURN within ${MISS_PASS_MS / 1000} s)` });
       }
     }
     // The results follow the deciding move (the relay settles in the same tick); the banner was recorded per frame.
@@ -237,27 +268,32 @@ export async function playDuel(pair, adapter, { script = 'win' } = {}) {
     demoteMpLoaf(pair.joiner.audit, inner);
   }, { watch: STAGE_BOX, settleMs: 400 });
   demoteMpLoaf(pair.host.audit, outer);
-  const seen = await Promise.all([pair.host, pair.joiner].map((p) => p.page.evaluate(() => { const b = window.__mpBanner || {}; b.stop = true; return { texts: b.texts || [], ms: b.first == null ? 0 : Math.round(b.last - b.first) }; }).catch(() => ({ texts: [], ms: 0 }))));
+  const seen = await Promise.all([pair.host, pair.joiner].map((p) => p.page.evaluate(() => { const b = window.__mpBanner || {}; b.stop = true; return { texts: b.texts || [], ms: b.first == null ? 0 : Math.round(b.last - b.first), line: b.line || null }; }).catch(() => ({ texts: [], ms: 0, line: null }))));
   banners = seen.map((x) => x.texts[0] || null);
   [pair.host, pair.joiner].forEach((p, i) => {
     p.audit.metrics.push({ kind: 'timing', label: 'decided board (banner) on screen', value: seen[i].ms, unit: 'ms', budget: BANNER_HOLD_MS, route: p.audit.route });
-    if (!seen[i].texts.length) p.audit.violation('duel-banner', { selector: '.ttt-banner', measured: `"${plan.banners[i]}" was never on screen: the results replaced the board in the frame the duel was decided`, expected: `the decided board held about ${TTT_BANNER_MS / 1000} s (TicTacToe.tsx), at least ${BANNER_HOLD_MS} ms` });
+    if (!seen[i].texts.length) p.audit.violation('duel-banner', { selector: '.ttt-banner', measured: `"${plan.banners[i]}" was never on screen: the results replaced the board in the frame the duel was decided`, expected: `the decided board held about ${TTT_HOLD_MS / 1000} s (OnlineMatch hold, utils/tttDuel.ts TTT_END_HOLD_MS), at least ${BANNER_HOLD_MS} ms` });
     else if (!seen[i].texts.includes(plan.banners[i])) p.audit.violation('duel', { selector: '.ttt-banner', measured: `${p.label} banner ${JSON.stringify(seen[i].texts)}`, expected: `"${plan.banners[i]}" (${script})` });
-    // TicTacToe.tsx holds the banner and hands its score back after 1.8 s ("Terminal state: hold the banner"), but the
-    // relay settles the duel in the same tick and MultiplayerContext switches to the results at once.
-    else if (seen[i].ms < BANNER_HOLD_MS) p.audit.violation('duel-banner', { selector: '.ttt-banner', measured: `"${plan.banners[i]}" and the decided board were on screen ${seen[i].ms} ms before the results replaced them`, expected: `the decided board held about ${TTT_BANNER_MS / 1000} s (TicTacToe.tsx), at least ${BANNER_HOLD_MS} ms` });
+    // The relay settles the duel in the same tick as the deciding move; OnlineMatch keeps the decided board on screen
+    // (the win line draws, then the banner) for TTT_END_HOLD_MS before its results replace it.
+    else if (seen[i].ms < BANNER_HOLD_MS) p.audit.violation('duel-banner', { selector: '.ttt-banner', measured: `"${plan.banners[i]}" and the decided board were on screen ${seen[i].ms} ms before the results replaced them`, expected: `the decided board held about ${TTT_HOLD_MS / 1000} s (OnlineMatch hold, utils/tttDuel.ts TTT_END_HOLD_MS), at least ${BANNER_HOLD_MS} ms` });
+    // The win line: drawn over the winning cells on both boards for a win (the relay's final `winLine`), none on a draw.
+    if (plan.line && !seen[i].line) p.audit.violation('duel-winline', { selector: '.ttt-winline', measured: `no win line on the ${p.label}'s decided board`, expected: 'three in a row draws the win line over the three cells before the results' });
+    else if (!plan.line && seen[i].line) p.audit.violation('duel-winline', { selector: '.ttt-winline', measured: `a win line on the ${p.label}'s board of a ${script}`, expected: 'no win line without three in a row' });
+    if (seen[i].line) p.audit.metrics.push({ kind: 'note', label: 'win line', value: seen[i].line, unit: '', route: p.audit.route });
   });
   for (const s of Object.values(sides)) if (s.ctx.state.sources) s.ctx.audit.metrics.push({ kind: 'note', label: 'answer source', value: JSON.stringify(s.ctx.state.sources), unit: '', route: s.ctx.audit.route });
   return { moves, passes };
 }
 
-/** TicTacToe.tsx's intended hold of the decided board (the delay before it hands its score to the match), and the floor this suite asserts. */
-const TTT_BANNER_MS = 1800;
+/** OnlineMatch's hold of the decided board before the results (src/utils/tttDuel.ts TTT_END_HOLD_MS), and the floor this suite asserts. */
+const TTT_HOLD_MS = 1800;
 const BANNER_HOLD_MS = 1000;
 
-/** In-page: record `.ttt-banner` in the playing screen on every frame (texts seen, first / last visible time) until stopped. */
+/** In-page: record `.ttt-banner` in the playing screen on every frame (texts seen, first / last visible time) and whether a win
+ *  line was drawn (`line`: its box, "w×h px") until stopped. */
 function watchBanner() {
-  const b = (window.__mpBanner = { texts: [], first: null, last: null, stop: false });
+  const b = (window.__mpBanner = { texts: [], first: null, last: null, line: null, stop: false });
   const tick = () => {
     const el = document.querySelector('.stage-inner .om-stage--play .ttt-banner');
     if (el && el.getBoundingClientRect().height > 0) {
@@ -266,6 +302,11 @@ function watchBanner() {
       const now = performance.now();
       if (b.first == null) b.first = now;
       b.last = now;
+    }
+    const ln = document.querySelector('.stage-inner .om-stage--play .ttt-winline line');
+    if (ln && !b.line) {
+      const r = ln.getBoundingClientRect();
+      if (r.width > 1 || r.height > 1) b.line = `${Math.round(r.width)}×${Math.round(r.height)} px`;
     }
     if (!b.stop) requestAnimationFrame(tick);
   };

@@ -82,6 +82,16 @@ server state in `MpState` and never derives a room fact locally. The relay emits
 client's `turnReject` handler in `MultiplayerContext.tsx` dispatches a transient `warn` `NOTICE`,
 shown by `OnlineMatch.tsx`'s `NoticeBar` (Acceptance check 4).
 
+Tic-Tac-Toe plays standard rules (2026-11-01, `docs/superpowers/specs/2026-11-01-ttt-local-multiplayer-design.md`):
+one answer per turn on a 30 s clock (`TTT_TURN_MS`). Right → the square is the mover's and the turn passes; a known
+player who does not fit → `turnReject` ("<name> doesn't fit that square. Turn passes.") **and** the turn passes, as a
+time-out does; a name not in the index or a player already on the board → `turnReject`, the turn and clock are kept.
+No steals: a `steal` action is refused, and the `TttTurnState` (contract #6) no longer carries `stealsLeft`; it gains
+`winLine` (the winning line's three cell indices, `null` until someone has three in a row), which the duel draws over
+the board before its banner. Win / draw / loss still pay 300 / 180 / 45. The lines, winner and judging mirror the
+site's `src/utils/tttDuel.ts` (local multiplayer); `scripts/test-ttt-duel.mjs` checks the two agree. The relay is
+deployed by hand: ship it right after the frontend, or online Tic-Tac-Toe runs old rules against the new client.
+
 ```tsx
 ❌ hypothetical: a renderer mutating turn state locally as if final
 setBoard((b) => applyMove(b, move)); // no server round-trip, diverges from the other player
@@ -148,7 +158,10 @@ results | ended`) drives every screen (`MiniGame.tsx`'s `online`/`inLobby`, `Onl
 stage switch, `FriendPlay.tsx`'s `inMatch`/`lobby`, `MultiplayerPanel.tsx`). It changes only in
 `reducer()`, dispatched from socket handlers and the provider's own callbacks. Components may keep
 UI-only state (`FriendPlay`'s `mode`/`size`/`collapsed`; game switching is the `gamePicker` modal,
-not a `picking` state) but no parallel "am I in a match".
+not a `picking` state) but no parallel "am I in a match". Local multiplayer (`Game.localMultiplayer`, two players on
+one device) is not an online match: it never touches the socket, `phase` stays `idle`, and `MiniGame.tsx`'s own
+`local` state (setup names + boards dealt) drives it through the same loading/playing stages as Play;
+`MultiplayerPanel`'s "Local multiplayer" button is disabled while `phase` is not `idle`.
 
 ```tsx
 ❌ hypothetical: a component tracking its own room flag
@@ -445,8 +458,8 @@ Observed: all five exit 0.
 ```bash
 cd multiplayer_server && node scripts/sim_turngames.js && node scripts/sim_round_fanout.js
 ```
-Observed: `sim_turngames.js` ends with `Tic-Tac-Toe reached a win : PASS`, `Id-lookup validation (all 3) : PASS`,
-`Imposter reached reveal : PASS`; `sim_round_fanout.js` ends `All round fan-out checks passed.` (exit 0).
+Observed: `sim_turngames.js` ends with `Tic-Tac-Toe reached a win : PASS`, `Id-lookup validation (all 5) : PASS`,
+`Standard rules (all 5) : PASS`, `Imposter reached reveal : PASS`; `sim_round_fanout.js` ends `All round fan-out checks passed.` (exit 0).
 
 **3. Every server-emitted event has a client handler (MP-4).**
 ```bash

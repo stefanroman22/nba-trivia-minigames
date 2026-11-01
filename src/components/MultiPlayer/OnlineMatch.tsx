@@ -13,6 +13,9 @@ import AutoHeight from "../motion/AutoHeight";
 import PlayerCard from "./PlayerCard";
 import AnimatedNumber from "../motion/AnimatedNumber";
 import defaultAvatar from "../../assets/default.png";
+import { useReducedMotionSafe } from "../../hooks/useReducedMotionSafe";
+import { endHoldMs } from "../../utils/tttDuel";
+import type { TttTurnState } from "../../Game Renderers/TicTacToe";
 import type { RootState } from "../../store";
 import type { Game, GameData, PlayerInfo } from "../../types/types";
 
@@ -68,6 +71,29 @@ export default function OnlineMatch() {
     }
   }, [mp.phase]);
 
+  // The decided Tic-Tac-Toe board stays up a beat before the results: the relay settles the duel in the same tick
+  // as the deciding move, so the results would otherwise replace the board (and its win line) at once. Purely
+  // presentational (MP-5: `mp.phase` is already "results"): set while rendering the playing → results step, so the
+  // results never paint first, and it shows only while the phase is still "results" on that same final state, so a
+  // restart, a switch or leaving ends it at once.
+  const reduce = useReducedMotionSafe();
+  const [hold, setHold] = useState<{ state: unknown; ms: number } | null>(null);
+  const [seenPhase, setSeenPhase] = useState(mp.phase);
+  if (seenPhase !== mp.phase) {
+    setSeenPhase(mp.phase);
+    const ms = seenPhase === "playing" && mp.phase === "results" && mp.game?.id === "tictactoe"
+      ? endHoldMs(mp.turnState as TttTurnState | null, !!reduce)
+      : 0;
+    setHold(ms ? { state: mp.turnState, ms } : null);
+  }
+  useEffect(() => {
+    if (!hold) return;
+    const id = setTimeout(() => setHold(null), hold.ms);
+    return () => clearTimeout(id);
+  }, [hold]);
+  const holdingBoard = !!hold && mp.phase === "results" && mp.turnState === hold.state;
+  const shownPhase = holdingBoard ? "playing" : mp.phase;
+
   const stillPlaying = mp.opponents.filter((o) => !mp.oppStatus[playerKey(o)]?.done);
   const waitingLabel = stillPlaying.length
     ? `Waiting for ${stillPlaying.map((o) => o.username || "Opponent").join(" & ")}...`
@@ -107,7 +133,7 @@ export default function OnlineMatch() {
   // ---- Per-phase body ----
   let body: React.ReactNode = null;
 
-  if (mp.phase === "searching") {
+  if (shownPhase === "searching") {
     body = (
       <motion.div key="searching" {...swap} className="om-stage om-stage--compact">
         <CourtLoader label="Finding an opponent near your rank..." scale={0.8} />
@@ -117,7 +143,7 @@ export default function OnlineMatch() {
         <button className="om-btn om-btn--ghost" onClick={leaveMatch} style={{ marginTop: 6 }}>Cancel</button>
       </motion.div>
     );
-  } else if (mp.phase === "intro") {
+  } else if (shownPhase === "intro") {
     body = (
       <motion.div key="intro" {...swap} className="om-stage">
         <span className="om-eyebrow">{mp.roomType === "friend" ? "Private match" : "Match found"}</span>
@@ -140,7 +166,7 @@ export default function OnlineMatch() {
         </AutoHeight>
       </motion.div>
     );
-  } else if (mp.phase === "playing") {
+  } else if (shownPhase === "playing") {
     body = (
       <motion.div key="playing" {...swap} className="om-stage om-stage--play">
         {mp.gameData || mp.turnState ? (
@@ -167,7 +193,7 @@ export default function OnlineMatch() {
         {ExitLink}
       </motion.div>
     );
-  } else if (mp.phase === "waiting") {
+  } else if (shownPhase === "waiting") {
     body = (
       <motion.div key="waiting" {...swap} className="om-stage">
         <div className="om-playbar">
@@ -184,7 +210,7 @@ export default function OnlineMatch() {
         {ExitLink}
       </motion.div>
     );
-  } else if (mp.phase === "results") {
+  } else if (shownPhase === "results") {
     // A win/loss with the top two scores equal means the clock decided it.
     const timeBrokeTie = !!(
       mp.outcome && mp.outcome !== "tie" && mp.standings && mp.standings.length > 1 &&
@@ -222,7 +248,7 @@ export default function OnlineMatch() {
         {isHost ? <button className="om-exit" onClick={leaveMatch}>Close room</button> : ExitLink}
       </motion.div>
     );
-  } else if (mp.phase === "ended") {
+  } else if (shownPhase === "ended") {
     body = (
       <motion.div key="ended" {...swap} className="om-stage">
         <div className="om-ended-icon">

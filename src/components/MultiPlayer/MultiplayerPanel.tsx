@@ -26,10 +26,12 @@ const swap = {
  * card's content in place for FriendPlay's own flow (code, lobby, seats).
  * A live room always shows its own content regardless of the toggle, since
  * there's nothing left to choose once you're actually in one.
+ * A game that supports it (Game.localMultiplayer) also offers "Local multiplayer", logged in or out:
+ * two players on this device, opened in the stage by `onLocalPlay` (no socket, MpState stays idle).
  */
 export default function MultiplayerPanel({
-  game, gameStarted, showResult,
-}: { game?: Game; gameStarted: boolean; showResult: boolean }) {
+  game, gameStarted, showResult, onLocalPlay,
+}: { game?: Game; gameStarted: boolean; showResult: boolean; onLocalPlay?: () => void }) {
   const { isLoggedIn, user } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
   const { mp, findMatch, leaveMatch } = useMultiplayer();
@@ -75,6 +77,18 @@ export default function MultiplayerPanel({
   useEffect(() => () => { if (hintTimer.current) window.clearTimeout(hintTimer.current); }, []);
   const hint = hintShown && busy;
   const message = hint ? GAME_IN_PROGRESS : !online && mp.notice ? mp.notice.text : null;
+  // Local play is off while an online search, match or room is on; during a solo run it explains (blocked press).
+  const localButton = onLocalPlay ? (
+    <Button
+      variant="secondary"
+      size={isLoggedIn ? "sm" : "lg"}
+      disabled={mp.phase !== "idle"}
+      blocked={soloInProgress}
+      onClick={() => (soloInProgress ? showHint() : onLocalPlay())}
+    >
+      Local multiplayer
+    </Button>
+  ) : null;
 
   return (
     <div ref={cardRef} className={`aside-card mp-panel${inLobby ? " is-room" : ""}`}>
@@ -102,12 +116,15 @@ export default function MultiplayerPanel({
           </motion.div>
         ) : (
           <motion.div key="choice" {...swap} className="mp-choice">
+            {onLocalPlay && <p className="fp-sub">Play online or on this device with a friend.</p>}
             {!isLoggedIn ? (
               <>
-                <p className="fp-sub">Challenge a random opponent, or set up a private room with friends.</p>
+                {!onLocalPlay && <p className="fp-sub">Challenge a random opponent, or set up a private room with friends.</p>}
                 <Button variant="secondary" size="lg" onClick={() => open("login")}>Log in to play online</Button>
+                {localButton}
               </>
             ) : (
+              <>
               <div className="mp-row">
                 {/* One button across idle / searching / in a match: the label swaps inside a
                     reserved box, so pressing Play 1v1 never replaces or resizes the control. */}
@@ -129,6 +146,8 @@ export default function MultiplayerPanel({
                   Play with a friend
                 </Button>
               </div>
+              {localButton}
+              </>
             )}
 
           </motion.div>

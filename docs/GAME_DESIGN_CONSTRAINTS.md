@@ -331,7 +331,8 @@ Exception: the multiplayer `OnlineMatch` leave-match control.
 Every component in the frame sits on the frame's centre line, judged by its **visible content** (ink),
 not its box. A reserved width (a count-up, a text swap) is either symmetric or sized to the value it
 ends on, so the line is stable while it changes and dead centre when it lands. The status row (left
-label, right score, Rule 4.2a) is the only left/right element.
+label, right score, Rule 4.2a) is the only left/right element; its optional centre slot
+(`GameFrame.Status center`, TicTacToe local's turn clock) sits on the centre line, the two sides sharing the rest equally.
 
 ```tsx
 ❌ <span style={{ minWidth: "3ch", textAlign: "right" }}>0</span>/500 pts   {/* reserves 3 digits, shows 1: ink sits right of centre */}
@@ -349,8 +350,6 @@ line below the row (Contexto, Heatmap). Below a 460 px row width the button coll
 with the same accessible name (the label stays in the DOM). Always `GameFrame.InputRow`, never a
 hand-built row: it renders the first child as the field and the rest as actions, in a 3-column grid
 whose side columns are both as wide as the actions.
-Known exception: a row with more than one action (TicTacToe's online duel, Steal + Claim) keeps the
-field-then-actions flow, because mirroring both would crush the field.
 
 ```tsx
 ❌ <div className="xx-row"><AutoCompleteInput … /><Button>Guess</Button></div>   {/* field lands half a button left of centre */}
@@ -593,6 +592,8 @@ Deliberate and reviewed — do not "fix" these. A game may break a rule only wit
 | Who Would Win | fill game; `.www-arena` is the scroller; tightens under 700 px of viewport height; scrolls (with a bottom fade) only at 320×568 | 4.1, 1.1 | its stacked arena genuinely fills; converting it would be a redesign | 2026-10 |
 | Who Would Win | ends in place with the per-matchup list as the final board; `ScorePanel` has no label or count | 7.1 | the rows already carry the outcome | 2026-10 |
 | TicTacToe | solo `maxPoints` 300 = 9 cells × `pointsPerCorrect` 30 + a 30 board-clear bonus (`TTT_CLEAR_BONUS`); online pays the relay's fixed 300 / 180 / 45 | 9.1 | a cleared board earns a round 300; a partial board is 30 × cells | 2026-10-18 |
+| TicTacToe (local multiplayer) | correct copy is `Correct!` (no `+N`) | 6.0 | local play scores nothing, so `+N` would be false | 2026-11-01 |
+| TicTacToe (local multiplayer) | ends in place without `onGameEnd` and without a score line: the win line draws, the prompt names the winner, `ScoreActions` (Play again / Close game) take the action slot; the shell learns the end through `local.onEnd` (`TicTacToeLocal.tsx`) | 7.3, 7.0 | nothing is scored or stored (owner, 2026-11-01); the shell still swaps Close game for Report a problem | 2026-11-01 |
 | Contexto | `pointsPerCorrect` 10 is the cost per guess past the tenth, not a per-answer reward; `maxPoints` 350 (floor 100) | 9.1 | one open-ended solve; owner-set scale (`contextoScore` in `src/utils/gameScoring.ts`) | 2026-10-20 |
 | Starting Five, Who Are Ya, TicTacToe, Contexto | a perfect game above the 100–200 aim (300 / 250 / 300 / 350) | 9.1 | owner-set values, progression spec §1 "Amended 2026-10-18" | 2026-10-20 |
 | Career Path | no `loader` beat (`input → score`); result line in `Status`, career/answer toggle in `Prompt`, actions alone in `Action` | 7.3 | the reveal is player-driven, so nothing is calculated; the owner's bound is that no button waits more than 400 ms; every slot keeps its play-time height (Rule 6.2) | 2026-10 |

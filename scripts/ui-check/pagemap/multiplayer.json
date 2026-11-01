@@ -6,6 +6,7 @@
   "choice": { "css": "aside.game-aside .mp-choice" },
   "play1v1": { "css": "aside.game-aside .mp-row button:first-child" },
   "friendBtn": { "css": "aside.game-aside .mp-row button:has-text('Play with a friend')" },
+  "localBtn": { "css": "aside.game-aside .mp-choice button:text-is('Local multiplayer')" },
   "back": { "css": "aside.game-aside button.mp-back" },
 
   "menuStepper": { "css": "aside.game-aside .fp-body > .fp-size" },

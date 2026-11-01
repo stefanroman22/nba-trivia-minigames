@@ -254,6 +254,8 @@ export interface Game {
   handleError: (error: GameError) => void;
   /** Excluded from every user-facing listing (grid, rail, switch pickers) while still catalogued for admin use. */
   hidden?: boolean;
+  /** Two players can play it on one device (the Multiplayer card's "Local multiplayer"; no login, no points). */
+  localMultiplayer?: boolean;
 }
 
 /** Called by a renderer when a game finishes, with the final score.

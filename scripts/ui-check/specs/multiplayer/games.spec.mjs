@@ -10,8 +10,9 @@ import { test, expect } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { playableGames } from '../../lib/guest.mjs';
 import { adapterFor } from '../../games/index.mjs';
+import { L } from '../../lib/pagemap.mjs';
 import { checkResults, finishBoth, layoutBoth, openPair, releasePair, reviewRoundTrip, roomWithBoth, shotBoth, startRoom } from '../../lib/mp.mjs';
-import { TTT_SCORES, lossScenario, playBoth, playDuel } from '../../lib/mp-play.mjs';
+import { MISS_PASS_MS, TTT_SCORES, TTT_TURN_MS, lossScenario, playBoth, playDuel } from '../../lib/mp-play.mjs';
 
 test.use({ userAgent: realUserAgent });
 test.afterEach(async () => { await releasePair(); });
@@ -47,10 +48,18 @@ for (const g of ONLINE) {
   test.describe(() => {
     test.skip(!!reason, reason || '');
     // @catalog-family MP-GAME-<game>
-    test(`[MP-GAME-${g.id}] ${g.name}: one full online match in a friend room (host all right, joiner ${turnBased ? 'only misses' : joinerScenario === 'giveup' ? 'gives up' : 'all wrong'}), results on both`, async ({ mp }) => {
+    test(`[MP-GAME-${g.id}] ${g.name}: one full online match in a friend room (host all right, joiner ${turnBased ? 'times out once, then misses' : joinerScenario === 'giveup' ? 'gives up' : 'all wrong'}), results on both`, async ({ mp }) => {
       test.setTimeout(turnBased ? 300_000 : 420_000);
       const pair = await openPair(mp, g.path);
       const { host, joiner } = pair;
+      // Signed in, at idle: "Local multiplayer" (two players on this device) is offered exactly for the games that support it.
+      for (const p of [host, joiner]) {
+        const local = L(p.page, 'multiplayer.localBtn');
+        if (g.local) {
+          await expect(local, `${g.name} offers Local multiplayer`).toBeVisible();
+          await expect(local).toBeEnabled();
+        } else await expect(local, `${g.name} has no Local multiplayer`).toHaveCount(0);
+      }
       await roomWithBoth(pair);
       await shotBoth(pair, 'lobby');
       await startRoom(pair);
@@ -59,7 +68,7 @@ for (const g of ONLINE) {
       if (turnBased) {
         const duel = await playDuel(pair, adapter);
         host.audit.metrics.push({ kind: 'note', label: 'duel moves', value: duel.moves.map((m) => `${m.who}:${m.kind}@${m.cell + 1}`).join(' '), unit: '', route: host.audit.route });
-        duel.passes.forEach((ms, i) => joiner.audit.metrics.push({ kind: 'timing', label: `turn ${i + 1} passed after`, value: ms, unit: 'ms', budget: 25_000 + 8000, route: joiner.audit.route }));
+        duel.passes.forEach(({ kind, ms }, i) => joiner.audit.metrics.push({ kind: 'timing', label: `turn ${i + 1} (${kind}) passed after`, value: ms, unit: 'ms', budget: kind === 'timeout' ? TTT_TURN_MS + 8000 : MISS_PASS_MS, route: joiner.audit.route }));
         want = { host: { outcome: 'win', score: TTT_SCORES.win }, joiner: { outcome: 'loss', score: TTT_SCORES.loss }, times: false };
       } else {
         const { h, j } = await playBoth(pair, adapter, { host: 'perfect', joiner: joinerScenario });

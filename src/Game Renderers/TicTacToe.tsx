@@ -7,6 +7,7 @@ import { ScoreLine, ScoreActions } from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import SwapText from "../components/motion/SwapText";
+import TttWinLine, { TTT_DRAW_MS, TttMark, type TttMarkKind } from "../components/motion/TttWinLine";
 import { playerKey } from "../context/MultiplayerContext";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { apiFetch } from "../utils/Api";
@@ -19,6 +20,7 @@ import type { AnswerReview } from "../types/review";
 import { tttReview } from "../utils/turnReview";
 import { popIn } from "../motion/variants";
 import { TTT_CELL_POINTS as CELL_POINTS, TTT_SOLO_MAX } from "../utils/gameScoring";
+import { TTT_END_HOLD_MS } from "../utils/tttDuel";
 import "../styles/TicTacToe.css";
 
 const SOLO_SECONDS = 180; // 3-minute clock
@@ -29,21 +31,21 @@ export interface TttCell {
   playerName: string;
 }
 
-/** Full authoritative Tic-Tac-Toe turn state broadcast by the server (contract #6). */
+/** Full authoritative Tic-Tac-Toe turn state broadcast by the server (contract #6). Since 2026-11-01 (standard
+ *  rules, no steals) it carries no `stealsLeft`, and `winLine` holds the winning line's three cells once decided. */
 export interface TttTurnState {
   board: (TttCell | null)[]; // 9 entries
   criteria: { rows: Criterion[]; cols: Criterion[] };
   turnUid: string;
   deadlineTs: number; // epoch ms
-  stealsLeft: Record<string, number>;
   winnerUid: string | null;
   draw: boolean;
+  /** Absent from a relay older than 2026-11-01. */
+  winLine?: number[] | null;
 }
 
 /** A player's move (client emits, server validates and re-broadcasts). */
-export type TttAction =
-  | { type: "claim"; cell: number; playerName: string }
-  | { type: "steal"; cell: number; playerName: string };
+export type TttAction = { type: "claim"; cell: number; playerName: string };
 
 // Props stay compatible with the scaffolder's pre-staged RenderGame call site
 // (turn: unknown, onTurnAction: (a: unknown) => void, multiplayer: boolean).
@@ -78,7 +80,8 @@ interface TttBoardCell {
   name?: string | null;
   mine?: boolean;
   theirs?: boolean;
-  stealable?: boolean;
+  /** Local multiplayer: the claiming player's stroke-drawn mark, shown above the name. */
+  mark?: TttMarkKind;
   /** Solo time-up: the answer shown for a cell the player never solved. */
   revealed?: boolean;
   disabled: boolean;
@@ -93,11 +96,15 @@ interface TttBoardProps {
   onSelect: (cell: number | null) => void;
   /** Solo only: the small pulse when a cell is claimed (off under reduced motion). */
   animateClaim: boolean;
+  /** A decided duel: the three cells of the winning line, drawn over the board. */
+  winLine?: readonly number[] | null;
+  /** The win line's colour: `text` over the online duel's orange cells, `brand` for local X. */
+  winTone?: "brand" | "text";
 }
 
-/** The single 3x3 criteria grid shared by solo and duel, so the two modes cannot drift.
+/** The single 3x3 criteria grid shared by solo, the online duel and local multiplayer, so the modes cannot drift.
  *  Empty cells show an orange "?" (aria-hidden; the button's aria-label carries the meaning). */
-export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim }: TttBoardProps) {
+export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim, winLine, winTone }: TttBoardProps) {
   return (
     <div className="ttt-grid" role="grid" aria-label={ariaLabel}>
       <span className="ttt-corner" aria-hidden="true" />
@@ -113,7 +120,7 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
           </span>
           {[0, 1, 2].map((ci) => {
             const index = ri * 3 + ci;
-            const { name, mine, theirs, stealable, revealed, disabled } = cell(index);
+            const { name, mine, theirs, mark, revealed, disabled } = cell(index);
             const selected = selectedCell === index;
             return (
               <motion.button
@@ -122,9 +129,9 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
                 role="gridcell"
                 className={`ttt-cell${mine ? " is-mine" : theirs ? " is-theirs" : ""}${
                   selected ? " is-selected" : ""
-                }${stealable ? " is-stealable" : ""}${revealed ? " is-revealed" : ""}`}
+                }${revealed ? " is-revealed" : ""}${mark ? " is-marked" : ""}`}
                 disabled={disabled}
-                aria-label={`${r.label} and ${cols[ci].label}${name ? `: ${name}` : ""}`}
+                aria-label={`${r.label} and ${cols[ci].label}${name ? `: ${name}${mark ? ` (${mark})` : ""}` : ""}`}
                 onClick={() => onSelect(selected ? null : index)}
                 animate={animateClaim ? { scale: name ? [1, 1.06, 1] : 1 } : undefined}
                 transition={{ duration: 0.3 }}
@@ -135,7 +142,12 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
                   variants={revealed ? REVEAL_FADE : undefined}
                   duration={revealed ? 0.35 : undefined}
                 >
-                  {name ? (
+                  {name && mark ? (
+                    <span className="ttt-cell-claim">
+                      <TttMark mark={mark} />
+                      <span className="ttt-cell-name">{name}</span>
+                    </span>
+                  ) : name ? (
                     <span className="ttt-cell-name">{name}</span>
                   ) : (
                     <span className="ttt-cell-blank" aria-hidden="true">
@@ -148,6 +160,7 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
           })}
         </div>
       ))}
+      {winLine && winLine.length === 3 && <TttWinLine line={winLine} tone={winTone} />}
     </div>
   );
 }
@@ -158,7 +171,6 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
 
   const [solved, setSolved] = useState<Record<number, string>>({}); // cell -> player name
   const [selectedCell, setSelectedCell] = useState<number | null>(null);
-  const [stealMode, setStealMode] = useState(false);
   const [guess, setGuess] = useState("");
   const [finished, setFinished] = useState(false);
   // Solo time-up: answers for unsolved cells, filled in one by one (cell -> player name).
@@ -172,6 +184,8 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
   // Play again / Close game and the status row shows the score line.
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [endState, setEndState] = useState<{ score: number; secondsLeft: number } | null>(null);
+  // Duel: the decided board's banner, shown once the win line has drawn (at once for a draw).
+  const [bannerShown, setBannerShown] = useState(false);
   const usedIdsRef = useRef<Set<number>>(new Set());
   const guessLogRef = useRef<GuessEntry[]>([]);
   const endedRef = useRef(false);
@@ -213,12 +227,12 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     setSolved({});
     setRevealed({});
     setSelectedCell(null);
-    setStealMode(false);
     setGuess("");
     setFinished(false);
     setShowPopup(false);
     setBottomPhase("input");
     setEndState(null);
+    setBannerShown(false);
     usedIdsRef.current = new Set();
     guessLogRef.current = [];
     endedRef.current = false;
@@ -354,35 +368,33 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
     ? { qid: question?.qid ?? "mp", rows: mpState.criteria.rows, cols: mpState.criteria.cols }
     : null;
   const myTurn = !!mpState && mpState.turnUid === selfUid && mpState.winnerUid == null && !mpState.draw;
-  const myStealsLeft = mpState ? mpState.stealsLeft?.[selfUid] ?? 0 : 0;
   const mpSecondsLeft = mpState ? Math.max(0, Math.ceil((mpState.deadlineTs - now) / 1000)) : 0;
   const myCells = mpState ? mpState.board.filter((c) => c?.ownerUid === selfUid).length : 0;
   const terminal = !!mpState && (mpState.winnerUid !== null || mpState.draw);
+  const winLine = mpState?.winLine ?? null;
 
-  // New server snapshot => a move landed; clear local selection/steal intent.
+  // New server snapshot => a move landed (or the turn passed); clear the local selection.
   useEffect(() => {
     if (!isMultiplayer) return;
     setSelectedCell(null);
-    setStealMode(false);
     setGuess("");
   }, [isMultiplayer, mpState?.turnUid, mpState?.board]);
 
-  // Terminal state: hold the banner, then hand the score back exactly once.
+  // Terminal state: the win line draws, then the banner; hand the score back exactly once.
   useEffect(() => {
     if (!isMultiplayer || !terminal || endedRef.current) return;
     endedRef.current = true;
+    later(() => setBannerShown(true), winLine && !reduce ? TTT_DRAW_MS : 0);
     // The final board is the duel's answer review (both players finish at once, so nothing leaks).
     const review = mpState ? tttReview(mpState, selfUid) : undefined;
-    later(() => onGameEnd?.(myCells * CELL_POINTS, { review }), 1800); // game-results: online-duel
+    later(() => onGameEnd?.(myCells * CELL_POINTS, { review }), TTT_END_HOLD_MS); // game-results: online-duel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMultiplayer, terminal]);
 
   const handleMpSubmit = () => {
     if (!mpState || !mpBoard || !myTurn || selectedCell == null) return;
-    const occupant = mpState.board[selectedCell];
-    // claim: an empty cell; steal: an opponent cell with steals remaining.
-    if (!stealMode && occupant) return;
-    if (stealMode && (!occupant || occupant.ownerUid === selfUid || myStealsLeft <= 0)) return;
+    // One answer per turn, on an empty square (the relay judges it: a miss passes the turn).
+    if (mpState.board[selectedCell]) return;
     if (!lookup) {
       flashPopup("Still loading players — try again in a moment", "var(--muted)");
       return;
@@ -394,13 +406,9 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
       flashPopup("Not in our player index", "var(--muted)");
       return;
     }
-    if (stealMode && occupant && normalizeAnswer(occupant.playerName) === normalizeAnswer(p.full_name)) {
-      flashPopup("Name a different player to steal", "var(--muted)");
-      return;
-    }
     // Local fit pre-check is gone with the players-index pool — the server
-    // remains authoritative and re-validates every claim/steal.
-    const action: TttAction = { type: stealMode ? "steal" : "claim", cell: selectedCell, playerName: p.full_name };
+    // remains authoritative and re-validates every claim.
+    const action: TttAction = { type: "claim", cell: selectedCell, playerName: p.full_name };
     onTurnAction?.(action);
     flashPopup("Sent…", "var(--muted)");
   };
@@ -443,22 +451,22 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
               cell={(i) => {
                 const occ = mpState.board[i];
                 const mine = occ?.ownerUid === selfUid;
-                const selectable = myTurn && !terminal && (stealMode ? !!occ && !mine : !occ);
                 return {
                   name: occ?.playerName,
                   mine,
                   theirs: !!occ && !mine,
-                  stealable: stealMode && selectable,
-                  disabled: !selectable,
+                  disabled: !myTurn || terminal || !!occ,
                 };
               }}
               selectedCell={selectedCell}
               onSelect={setSelectedCell}
               animateClaim={false}
+              winLine={winLine}
+              winTone="text"
             />
 
             <AnimatePresence initial={false}>
-              {terminal && (
+              {terminal && bannerShown && (
                 <motion.div
                   key="banner"
                   className={`ttt-banner${mpState.draw ? "" : winnerIsMe ? " is-win" : " is-loss"}`}
@@ -480,15 +488,7 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
         <GameFrame.Action>
           <GameFrame.InputRow>
             <AutocompleteInput
-              placeholder={
-                !myTurn
-                  ? "Waiting…"
-                  : selectedCell == null
-                    ? stealMode
-                      ? "Pick a cell to steal…"
-                      : "Pick a square…"
-                    : "Name a player…"
-              }
+              placeholder={!myTurn ? "Waiting…" : selectedCell == null ? "Pick a square…" : "Name a player…"}
               value={guess}
               setValue={setGuess}
               suggestions={suggestions}
@@ -496,25 +496,13 @@ function TicTacToe({ gameInfo, onGameEnd, onPlayAgain, onClose, turn, onTurnActi
               customStyleInput={{ width: "100%", maxWidth: "none", height: "44px", padding: "0 12px", fontSize: "0.85rem" }}
               customStyleSuggestion={{ fontSize: "0.8rem", maxHeight: "150px", minWidth: "100%" }}
             />
-            <button
-              type="button"
-              className={`ttt-steal${stealMode ? " is-on" : ""}`}
-              disabled={!myTurn || myStealsLeft <= 0 || terminal}
-              aria-pressed={stealMode}
-              onClick={() => {
-                setStealMode((s) => !s);
-                setSelectedCell(null);
-              }}
-            >
-              Steal <span className="tnum"><SwapText swapKey={myStealsLeft}>x{myStealsLeft}</SwapText></span>
-            </button>
             <Button
               size="md"
               aria-label="Confirm move"
               onClick={handleMpSubmit}
               disabled={!myTurn || terminal || selectedCell == null || guess.trim() === ""}
             >
-              <SwapText reserveWidth={["Claim", "Steal"]}>{stealMode ? "Steal" : "Claim"}</SwapText>
+              Claim
             </Button>
           </GameFrame.InputRow>
         </GameFrame.Action>

@@ -30,28 +30,6 @@
 .ttt-turn.is-you {
   color: var(--brand);
 }
-.ttt-steal {
-  flex: none;
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: var(--surface2);
-  border: 1px solid var(--line2);
-  color: var(--text);
-  font-family: inherit;
-  font-size: clamp(11px, 1.7dvh, 12.5px);
-  font-weight: 700;
-  cursor: pointer;
-}
-.ttt-steal.is-on {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: #fff;
-}
-.ttt-steal:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
 
 /* ===== Grid: row-label column + 3 equal cell columns =====
    NOT flex:1 — the 3x3 is a fixed-size, non-scrolling board, so this is a
@@ -68,6 +46,7 @@
   grid-template-rows: minmax(max(34px, calc(var(--ttt-crit-fs) * 2.3 + 10px)), auto) repeat(3, minmax(0, clamp(48px, 9dvh, 88px)));
   gap: clamp(5px, 1vw, 8px);
   width: 100%;
+  position: relative; /* the win line's containing block (.ttt-winline) */
 }
 .ttt-rowgroup {
   display: contents;
@@ -114,8 +93,7 @@
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
 }
-.ttt-cell:focus-visible,
-.ttt-steal:focus-visible {
+.ttt-cell:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
@@ -148,9 +126,59 @@
 .ttt-cell.is-revealed .ttt-cell-name {
   color: var(--muted);
 }
-.ttt-cell.is-stealable {
-  border-style: dashed;
-  border-color: var(--brand);
+/* Local multiplayer: the claiming player's stroke-drawn mark above the answer's name (X brand, O text colour:
+   one accent, Rule 0.1). The cell keeps the board's surface; the mark carries who owns it. */
+.ttt-cell-claim {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.ttt-mark {
+  display: block;
+  flex: none;
+  width: clamp(16px, 3.4dvh, 28px);
+  height: clamp(16px, 3.4dvh, 28px);
+}
+.ttt-mark--x {
+  color: var(--brand);
+}
+.ttt-mark--o {
+  color: var(--text);
+}
+.ttt-cell.is-marked .ttt-cell-name {
+  color: var(--muted);
+  font-size: clamp(9px, 1.3dvh, 10.5px);
+  /* Two lines at most, so the mark + name always fit the dvh-scaled cell. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* The win line: an SVG over the 3x3 cell area (columns 2-4, rows 2-4 of .ttt-grid; absolute, so it never takes
+   part in the grid's placement), drawn across the three winning cells by TttWinLine. */
+.ttt-winline {
+  position: absolute;
+  grid-column: 2 / 5;
+  grid-row: 2 / 5;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+  fill: none;
+  stroke-width: clamp(5px, 1dvh, 8px);
+  stroke-linecap: round;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+.ttt-winline--text {
+  stroke: var(--text);
+}
+.ttt-winline--brand {
+  stroke: var(--brand);
 }
 
 .ttt-cell-name {
@@ -196,6 +224,61 @@
   color: var(--bad);
 }
 
+/* ===== Local multiplayer (TicTacToeLocal.tsx, prefix tttl-) ===== */
+/* Player chips: the status row's two sides (GameFrame.Status left / right), the turn clock in its centre slot.
+   The player to move (and the winner) is lit brand; the other is muted. Only colours change between turns,
+   with a transition (UI-23); a long name ellipsizes inside its column, so no turn ever moves the row. */
+.tttl-player {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 3px 8px 3px 3px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: border-color 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+.tttl-player.is-active {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  color: var(--text);
+}
+.tttl-player-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tttl-player-mark {
+  width: 12px;
+  height: 12px;
+}
+.gf-status-center .ttt-clock {
+  padding: 4px 9px;
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+/* The prompt title holds two lines in every state ("Pick a square", "Trail Blazers × Rookie of the Year",
+   "<Name> wins!"), so picking a square or ending the board never moves the board (Rule 6.2). */
+.tttl-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5em;
+  line-height: 1.25;
+}
+.tttl-title-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
 /* Input row now comes from GameFrame.InputRow (ui.css .gf-inputrow) */
 
 /* Pool fetch error state */
@@ -221,5 +304,17 @@
   }
   .ttt-crit {
     padding: 4px 2px;
+  }
+}
+/* Small phones (360 px and below): the player chips and the clock tighten so a name keeps more of its letters. */
+@media (max-width: 400px) {
+  .tttl-player {
+    gap: 4px;
+    padding-right: 6px;
+    font-size: 11.5px;
+  }
+  .gf-status-center .ttt-clock {
+    padding: 3px 7px;
+    font-size: 13px;
   }
 }

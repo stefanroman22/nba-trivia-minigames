@@ -269,6 +269,11 @@
   transition: opacity 0.2s ease, visibility 0s 0.2s, height 0.3s var(--ease-out), margin-top 0.3s var(--ease-out);
 }
 
+/* ===== Local multiplayer setup (LocalSetup.tsx, prefix ls-): two name fields, centred on the frame ===== */
+.ls-seats { display: flex; flex-direction: column; gap: 14px; width: min(300px, 100%); }
+.ls-seat { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.ls-seat-label { font-size: 11px; letter-spacing: 1px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+
 /* ===== Aside ===== */
 .game-aside { display: flex; flex-direction: column; gap: 14px; align-self: start; }
 .aside-card { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 11px; transition: border-color 0.3s ease, box-shadow 0.3s ease; }

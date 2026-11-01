@@ -441,17 +441,17 @@ export const games: Game[] = [
     seoDescription: "NBA Tic-Tac-Toe: claim each square by naming a player who fits its row and column. Get three in a row to win. Free NBA grid trivia in your browser.",
     intro: "The PvP flagship. Out-think your opponent cell by cell.",
     rules: [
-      { n: "1", t: "On your turn, claim a cell by naming a player who fits its row + column." },
-      { n: "2", t: "25 seconds per turn; 3 steals each to retake an occupied cell." },
-      { n: "3", t: "Three in a row wins the duel." },
+      { n: "1", t: "On your turn, pick a square and name a player who fits its row + column." },
+      { n: "2", t: "One answer per turn, 30 seconds: a player who doesn't fit, or the clock running out, passes the turn." },
+      { n: "3", t: "Three in a row wins the duel; a full board is a draw." },
     ],
     instruction: `
       <div class="space-y-2">
         <p>Tic-tac-toe where every cell is an NBA riddle. Beat the clock and your opponent.</p>
         <ul class="list-disc pl-5 text-sm text-left">
           <li><strong>Goal:</strong> Claim three cells in a row by naming valid players.</li>
-          <li><strong>Turns:</strong> 25s each; time out and the turn passes.</li>
-          <li><strong>Steals:</strong> 3 per player. Retake a cell with a different valid answer.</li>
+          <li><strong>Turns:</strong> One answer per turn, 30s each. A player who doesn't fit, or a time-out, passes the turn.</li>
+          <li><strong>Where:</strong> Online, or on this device with a friend (Local multiplayer).</li>
         </ul>
         <p class="text-xs italic mt-2">Press 'Play' to begin the challenge!</p>
       </div>
@@ -468,6 +468,7 @@ export const games: Game[] = [
     ],
     fetchData: (opts) => fetchQuestion("tictactoe", undefined, opts?.difficulty),
     handleError: handleErrorDefault,
+    localMultiplayer: true,
   },
   {
     id: "bingo",

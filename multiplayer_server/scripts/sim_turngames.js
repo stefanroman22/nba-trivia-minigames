@@ -6,11 +6,13 @@
 // imposter's questions.deal()/loadNames() calls resolve from an in-memory
 // fixture instead of touching Supabase Storage), then:
 //   1. drives a 2-player Tic-Tac-Toe to a win using the fixture's fixed
-//      rows/cols/valid board,
+//      rows/cols/valid board (the final state carries the winning line),
 //   2. exercises the id-lookup validation directly: a claim canonicalises via
-//      an alias, a used player is rejected on a second cell, and an unknown
-//      name is rejected as not fitting, and
-//   3. drives a 3-player Imposter to the reveal (imposter caught, guesses right).
+//      an alias, a used player or an unknown name is rejected and the turn is
+//      kept, a known player who doesn't fit passes the turn,
+//   3. checks the standard rules: 30 s turns, a time-out passes the turn, no
+//      steals (a steal is refused, the state has no steal counter), and
+//   4. drives a 3-player Imposter to the reveal (imposter caught, guesses right).
 //
 // Run:  node scripts/sim_turngames.js
 const turnGames = require("../src/turnGames");
@@ -202,9 +204,11 @@ async function simTicTacToe() {
   }
 
   line(`\nBoard owners: [${room.turn.state.board.map((c) => (c ? c.ownerUid[0] : "·")).join(" ")}]`);
-  line(`winnerUid: ${room.turn.state.winnerUid}   draw: ${room.turn.state.draw}`);
+  line(`winnerUid: ${room.turn.state.winnerUid}   draw: ${room.turn.state.draw}   winLine: ${JSON.stringify(room.turn.state.winLine)}`);
   line(`final scores: ${JSON.stringify(room.scores)}`);
-  return !!room.turn.state.winnerUid;
+  const lineOk = JSON.stringify(room.turn.state.winLine) === "[0,1,2]";
+  line(`final state carries the winning line [0,1,2]: ${lineOk ? "PASS" : "FAIL"}`);
+  return !!room.turn.state.winnerUid && lineOk;
 }
 
 // ===================================================== ID-LOOKUP VALIDATION
@@ -213,11 +217,12 @@ async function simTicTacToe() {
 //      to "Shaquille O'Neal" (alias resolved via questions.nameLookup).
 //   2. The same player claimed again on a DIFFERENT cell that also accepts id 3
 //      is rejected — "already on the board" (mirrors solo mode: a player fills
-//      at most one cell).
-//   3. A name with no id at all is rejected — "doesn't fit that square."
+//      at most one cell) — and the mover keeps the turn.
+//   3. A name with no id at all is rejected — "isn't in our player index" —
+//      and the mover keeps the turn.
 //   4. Both Eddie Johnsons stay claimable, each on the cell that holds him.
 //   5. "Gary Payton" (the father, an exact name) never fills a cell only Gary
-//      Payton II fits; "Gary Payton II" does.
+//      Payton II fits: he doesn't fit, so the turn passes; "Gary Payton II" does.
 async function simTTTValidation() {
   line("\n================ TIC-TAC-TOE (id-lookup validation) ================");
   const room = makeRoom(444444, ["Ivy", "Jon"], "tictactoe");
@@ -232,17 +237,18 @@ async function simTTTValidation() {
   line(`cell 1 canonicalised to "${st.board[1]?.playerName}": ${canonicalised ? "PASS" : "FAIL"}`);
 
   // TTT_VALID[4] = [3,9]: id 3 is a legal fit here too, but Shaquille O'Neal is
-  // already on the board (cell 1) -> rejected regardless of who claims it.
+  // already on the board (cell 1) -> rejected regardless of who claims it; the turn stays.
+  const usedMover = st.turnUid;
   line(`${st.turnUid} claims cell 4 with "Shaquille O'Neal" (already on the board)`);
   turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 4, playerName: "Shaquille O'Neal" }, helpers);
-  const usedRejected = st.board[4] === null;
-  line(`cell 4 stayed empty: ${usedRejected ? "PASS" : "FAIL"}`);
+  const usedRejected = st.board[4] === null && st.turnUid === usedMover;
+  line(`cell 4 stayed empty, ${usedMover} keeps the turn: ${usedRejected ? "PASS" : "FAIL"}`);
 
-  // TTT_VALID[6] = [4,9]: "Random Nobody" isn't in the names table at all.
+  // TTT_VALID[6] = [4,9]: "Random Nobody" isn't in the names table at all; the turn stays.
   line(`${st.turnUid} claims cell 6 with "Random Nobody" (not a real name)`);
   turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 6, playerName: "Random Nobody" }, helpers);
-  const unknownRejected = st.board[6] === null;
-  line(`cell 6 stayed empty: ${unknownRejected ? "PASS" : "FAIL"}`);
+  const unknownRejected = st.board[6] === null && st.turnUid === usedMover;
+  line(`cell 6 stayed empty, ${usedMover} keeps the turn: ${unknownRejected ? "PASS" : "FAIL"}`);
 
   // Namesakes: two different Eddie Johnsons (ids 10 and 11). The one on cell 7
   // does not use up the other, who fits cell 8 (mirrors solo mode, by id).
@@ -252,17 +258,77 @@ async function simTTTValidation() {
   const namesakes = st.board[7]?.playerId === 10 && st.board[8]?.playerId === 11;
   line(`both Eddie Johnsons on the board: ${namesakes ? "PASS" : "FAIL"}`);
 
-  // TTT_VALID[2] = [5,6,13]: the exact name "Gary Payton" is the father (12), not the son (13).
+  // TTT_VALID[2] = [5,6,13]: the exact name "Gary Payton" is the father (12), not the son (13): a known player
+  // who doesn't fit, so the square stays empty and the turn passes.
+  const wrongMover = st.turnUid;
   line(`${st.turnUid} claims cell 2 with "Gary Payton" (only Gary Payton II fits)`);
   turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 2, playerName: "Gary Payton" }, helpers);
-  const fatherRejected = st.board[2] === null;
-  line(`cell 2 stayed empty: ${fatherRejected ? "PASS" : "FAIL"}`);
+  const fatherRejected = st.board[2] === null && st.turnUid !== wrongMover;
+  line(`cell 2 stayed empty, the turn passed from ${wrongMover} to ${st.turnUid}: ${fatherRejected ? "PASS" : "FAIL"}`);
   line(`${st.turnUid} claims cell 2 with "Gary Payton II"`);
   turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 2, playerName: "Gary Payton II" }, helpers);
   const sonClaimed = st.board[2]?.playerId === 13;
   line(`cell 2 holds Gary Payton II: ${sonClaimed ? "PASS" : "FAIL"}`);
 
   return canonicalised && usedRejected && unknownRejected && namesakes && fatherRejected && sonClaimed;
+}
+
+// ============================================================ STANDARD RULES
+// 30 s turns; the clock running out passes the turn; a wrong answer is
+// explained to the mover ("<name> doesn't fit") and passes the turn; steals
+// are gone (refused, and the state carries no steal counter).
+async function simTTTRules() {
+  line("\n================ TIC-TAC-TOE (standard rules) ================");
+  const room = makeRoom(555555, ["Ann", "Ben"], "tictactoe");
+  const helpers = makeHelpers(room);
+  const rejects = [];
+  const reject = helpers.reject;
+  helpers.reject = (uid, message) => { rejects.push({ uid, message }); reject(uid, message); };
+  // Catch the turn timer's callback (armTurnTimer's setTimeout) so the time-out can be fired without waiting 30 s.
+  const realSetTimeout = global.setTimeout;
+  let fireTimeout = null;
+  let timerMs = null;
+  global.setTimeout = (fn, ms, ...rest) => {
+    timerMs = ms;
+    fireTimeout = fn;
+    return realSetTimeout(fn, ms, ...rest);
+  };
+  try {
+    await turnGames.init(room, helpers);
+  } finally {
+    global.setTimeout = realSetTimeout;
+  }
+  const st = room.turn.state;
+
+  const left = st.deadlineTs - Date.now();
+  const thirty = timerMs === 30000 && left > 29000 && left <= 30000;
+  line(`turn clock: timer ${timerMs} ms, deadline in ${left} ms: ${thirty ? "PASS" : "FAIL"}`);
+
+  const noSteals = !("stealsLeft" in st) && st.winLine === null;
+  line(`state has no stealsLeft and winLine is null: ${noSteals ? "PASS" : "FAIL"}`);
+
+  const first = st.turnUid;
+  fireTimeout();
+  const timeoutPasses = st.turnUid !== first && st.board.every((c) => c === null);
+  line(`time-out passes the turn from ${first} to ${st.turnUid}: ${timeoutPasses ? "PASS" : "FAIL"}`);
+  clearTimeout(room.turnTimer);
+
+  // Ben claims cell 0 (Kobe Bryant fits, TTT_VALID[0] = [1,2]); Ann then tries to steal it.
+  turnGames.handleAction(room, st.turnUid, { type: "claim", cell: 0, playerName: "Kobe Bryant" }, helpers);
+  const stealer = st.turnUid;
+  turnGames.handleAction(room, stealer, { type: "steal", cell: 0, playerName: "LeBron James" }, helpers);
+  const stealRefused = st.board[0]?.ownerUid !== stealer && st.turnUid === stealer;
+  line(`a steal is refused and changes nothing: ${stealRefused ? "PASS" : "FAIL"}`);
+
+  // Wrong answer: Magic Johnson (7) does not fit cell 1 (TTT_VALID[1] = [3,4]) -> explained, turn passes.
+  const before = rejects.length;
+  turnGames.handleAction(room, stealer, { type: "claim", cell: 1, playerName: "Magic Johnson" }, helpers);
+  const told = rejects.slice(before).some((r) => r.uid === stealer && r.message.includes("Magic Johnson doesn't fit"));
+  const wrongPasses = told && st.board[1] === null && st.turnUid !== stealer;
+  line(`a wrong answer is explained and passes the turn: ${wrongPasses ? "PASS" : "FAIL"}`);
+  clearTimeout(room.turnTimer);
+
+  return thirty && noSteals && timeoutPasses && stealRefused && wrongPasses;
 }
 
 // ================================================================= IMPOSTER
@@ -323,10 +389,12 @@ async function simImposter() {
 (async () => {
   const tttWin = await simTicTacToe();
   const validationOk = await simTTTValidation();
+  const rulesOk = await simTTTRules();
   const impDone = await simImposter();
   line("\n================ RESULT ================");
   line(`Tic-Tac-Toe reached a win        : ${tttWin ? "PASS" : "FAIL"}`);
   line(`Id-lookup validation (all 5)     : ${validationOk ? "PASS" : "FAIL"}`);
+  line(`Standard rules (all 5)           : ${rulesOk ? "PASS" : "FAIL"}`);
   line(`Imposter reached reveal          : ${impDone ? "PASS" : "FAIL"}`);
-  process.exit(tttWin && validationOk && impDone ? 0 : 1);
+  process.exit(tttWin && validationOk && rulesOk && impDone ? 0 : 1);
 })();

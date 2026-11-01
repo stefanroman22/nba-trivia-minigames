@@ -12,7 +12,9 @@ import { useRoomGuard } from '../../hooks/useRoomGuard';
 import GameResult from '../../components/GameResult';
 import OnlineMatch from '../../components/MultiPlayer/OnlineMatch';
 import MultiplayerPanel from '../../components/MultiPlayer/MultiplayerPanel';
+import LocalSetup from '../../components/MultiPlayer/LocalSetup';
 import { renderGame } from '../../Game Renderers/RenderGame';
+import { starterFor } from '../../utils/tttDuel';
 import type { AppDispatch } from '../../store';
 import { applyAward, type AwardReceipt } from '../../store/userSlice';
 import { showErrorAlert } from '../../utils/Alerts';
@@ -72,6 +74,10 @@ function MiniGame() {
   // The idle switch's pick, for games with difficulties; Play, Play again and the instructions' Play deal it.
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [showResult, setShowResult] = useState(false);
+  // Local multiplayer (Game.localMultiplayer): two players on this device. null = off; `names` null = the setup
+  // screen; else the boards of one session, `boards` dealt so far (who starts alternates). Not an online match
+  // (MpState.phase stays idle, MP-5) and never scored or stored: the deal reuses Play's loading and playing stages.
+  const [local, setLocal] = useState<{ names: [string, string] | null; boards: number } | null>(null);
   // An in-place game (answers stay on screen) has ended: its ScorePanel now owns
   // the only "Close game", so the shell's leave link becomes "Report a problem" or is hidden (one per screen).
   const [endedInPlace, setEndedInPlace] = useState(false);
@@ -213,6 +219,7 @@ function MiniGame() {
     setShowResult(false);
     setEndedInPlace(false);
     setReview(undefined);
+    setLocal(null);
     // On a phone the game ran below the fold: once it closes and the stage is idle again, glide back up
     // if the stage is not fully in view (after the layout settles, so the check sees the idle stage).
     requestAnimationFrame(() => {
@@ -231,6 +238,18 @@ function MiniGame() {
     setLoading(false);
     setEndedInPlace(false);
     setReview(undefined);
+    setLocal(null);
+  };
+
+  // Local multiplayer: the setup screen, then each board is dealt like Play (loader, then the board).
+  const openLocal = () => setLocal({ names: null, boards: 0 });
+  const startLocal = (names: [string, string]) => {
+    setLocal({ names, boards: 0 });
+    void handleStart();
+  };
+  const playLocalAgain = () => {
+    setLocal((l) => (l ? { ...l, boards: l.boards + 1 } : l));
+    void handleStart();
   };
 
   useEffect(() => {
@@ -241,6 +260,7 @@ function MiniGame() {
     setShowResult(false);
     setEndedInPlace(false);
     setReview(undefined);
+    setLocal(null);
     awardedRef.current = false;
     runIdRef.current += 1;
   }, [gameId]);
@@ -300,10 +320,11 @@ function MiniGame() {
   };
 
   // ---- Derive the single-player stage phase ----
-  let stage: "idle" | "loading" | "playing" | "result";
+  let stage: "idle" | "setup" | "loading" | "playing" | "result";
   if (showResult) stage = "result";
   else if (loading) stage = "loading";
   else if (gameStarted && gameData.length > 0) stage = "playing";
+  else if (local) stage = "setup";
   else stage = "idle";
 
   // Stamp the play start whenever the stage transitions into "playing".
@@ -399,6 +420,20 @@ function MiniGame() {
             </div>
           </div>
         );
+      case "setup":
+        // Local multiplayer's names screen: a GameFrame like a game, with the shell's one Close game under it.
+        return (
+          <div className="playing-wrap" ref={focusFirstIn}>
+            <LocalSetup
+              initial={local?.names}
+              difficultyLabel={game?.difficulties?.find((d) => d.key === difficulty)?.label}
+              onStart={startLocal}
+            />
+            <button className="exit-link" onClick={handleExit}>
+              <SwapText>Close game</SwapText>
+            </button>
+          </div>
+        );
       case "loading":
         return <CourtLoader label="Warming up the court…" />;
       case "playing":
@@ -419,8 +454,20 @@ function MiniGame() {
                   if (opts?.inPlace) setEndedInPlace(true);
                   else setShowResult(true);
                 },
-                onPlayAgain: handleStart,
+                onPlayAgain: local ? playLocalAgain : handleStart,
                 onClose: handleRestart,
+                // Local multiplayer: no onGameEnd (nothing scored or stored); the ended board still swaps the
+                // shell's Close game for "Report a problem" (its review names the board).
+                local: local?.names
+                  ? {
+                      names: local.names,
+                      starter: starterFor(local.boards),
+                      onEnd: (r) => {
+                        setReview(r);
+                        setEndedInPlace(true);
+                      },
+                    }
+                  : undefined,
               })}
             </FeedbackSlotContext.Provider>
             {/* Shell-owned feedback slot: game popups portal here so "Correct! +10"
@@ -517,7 +564,13 @@ function MiniGame() {
 
           {/* Aside: one merged Multiplayer card, same on mobile and desktop. */}
           <aside className="game-aside" aria-label="Multiplayer">
-            <MultiplayerPanel game={game} gameStarted={gameStarted} showResult={showResult} />
+            {/* A local match (or its setup) counts as a game in progress for the online buttons. */}
+            <MultiplayerPanel
+              game={game}
+              gameStarted={gameStarted || local !== null}
+              showResult={showResult}
+              onLocalPlay={game?.localMultiplayer ? openLocal : undefined}
+            />
           </aside>
         </div>
       </main>

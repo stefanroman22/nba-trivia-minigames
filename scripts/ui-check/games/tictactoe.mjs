@@ -231,16 +231,17 @@ export default {
 
   /**
    * Online duel (the multiplayer suite, lib/mp-play.mjs playDuel). Not the solo board: OnlineMatch renders TicTacToe with
-   * `multiplayer` and the relay owns the game (multiplayer_server/src/turnGames.js): turns alternate, host first, 25 s per
-   * turn (a turn that runs out passes to the other player), 3 steals each, three cells in a line win (300 vs 45; a full
-   * board without a line is a draw, 180 each). The board shows only the criteria labels; the cells' valid players come
+   * `multiplayer` and the relay owns the game (multiplayer_server/src/turnGames.js, standard rules since 2026-11-01):
+   * turns alternate, host first, one answer per turn on a 30 s clock (a turn that runs out passes to the other player),
+   * no steals, three cells in a line win (the win line draws over them; 300 vs 45; a full board without a line is a
+   * draw, 180 each). The board shows only the criteria labels; the cells' valid players come
    * from the published question with the same labels (ctx.pool('tictactoe'), lib/mp-pool.mjs), names resolve through
    * the page's own names list (capNames + lookupOf, as solo).
    *   move(page, ctx, { correct, cell? }) — ONE move, on this player's turn:
    *     correct → claim `cell` (default: the next free cell of the top row) with its player in a one-player-per-cell
    *               matching of the whole board (the same on both pages, so the two players never name the same person);
    *     wrong   → claim a free cell (the bottom-right first) with a listed player who does NOT fit it: the relay refuses
-   *               it ("<name> doesn't fit that square.", a warn notice) and the turn stays until its clock passes it.
+   *               it ("<name> doesn't fit that square. Turn passes.", a warn notice) and passes the turn at once.
    *   → { cell, name, kind: 'claim' | 'miss' }
    */
   online: {

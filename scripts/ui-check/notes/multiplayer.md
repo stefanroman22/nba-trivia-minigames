@@ -87,9 +87,12 @@ MultiplayerContext phase is not reachable from outside. `startStateLog` records 
 - Reload / drop: the remaining player gets `opponentDisconnected {graceMs: 30000}`; the reloaded page identifies →
   `resumeMatch` (snapshot: phase, gameData, opponents, standings, proposal) and the other `opponentReconnected`; no
   return within the grace → `opponentLeft "Your opponent left the match."`.
-- Tic-Tac-Toe: `turnState {code, game, state: {board[9], criteria{rows, cols}, turnUid, deadlineTs, stealsLeft, winnerUid,
-  draw}}` after every change; a refused move → `turnReject {message}` (warn notice); out `turnAction {code, action:
-  {type:'claim'|'steal', cell, playerName}}`.
+- Tic-Tac-Toe (standard rules since 2026-11-01): `turnState {code, game, state: {board[9], criteria{rows, cols}, turnUid,
+  deadlineTs, winnerUid, draw, winLine}}` after every change (`winLine`: the three winning cells, null until decided; no
+  `stealsLeft`); out `turnAction {code, action: {type:'claim', cell, playerName}}` (a `steal` is refused, "Unknown move.").
+  One answer per turn, 30 s clock: a known player who does not fit → `turnReject "<name> doesn't fit that square. Turn
+  passes."` (warn notice) AND the turn passes in the same tick; a name not in the index or a player already on the
+  board → `turnReject`, the turn and clock are kept; a time-out passes the turn.
 
 ## Matchmaking is deterministic here
 
@@ -128,18 +131,28 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   path is Give up). Sequential on purpose: deterministic, and it exercises waiting / "Finished" chips.
 - Tic-Tac-Toe online is the relay's duel, not the solo board: `adapter.online.move(page, ctx, {correct})` claims the
   next top-row cell with a valid unused player (host) or a listed player who does not fit a free cell (joiner: refused
-  with "<name> doesn't fit that square.", the turn stays). `playDuel` waits for whoever shows YOUR TURN; each joiner
-  turn passes to the host only when its 25 s clock runs out (waited for real twice per run, pair A only: `turn-pass`).
-  Host three in a row → banners "You win!" / "Opponent wins" (held 1.8 s, read inside the motion window) → results
-  300 / 45 (a draw 180) (no play times in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
+  with "<name> doesn't fit that square. Turn passes.", and the turn passes at once). `playDuel` waits for whoever shows
+  YOUR TURN and reads its clock (`turn-clock`: 0:30 as the turn begins, a few seconds of slack); the playing screen has
+  no Steal control and one answer button (`duel-steal`). `DUEL_SCRIPTS.win`: the joiner's first turn is a `timeout` (it
+  does nothing; the turn must pass when the 30 s clock runs out, not before: waited for real once per run, pair A only,
+  `turn-pass`), its second a `miss` (the host must show YOUR TURN within `MISS_PASS_MS` 5 s, `turn-pass`).
+  Host three in a row → the win line over the top row on both boards (`duel-winline`; a draw must show none) and the
+  banners "You win!" / "Opponent wins" (read inside the motion window) → results 300 / 45 (a draw 180) (no play times
+  in a duel: `times: false`). `move(page, ctx, { correct, cell })` claims a given cell with its
   player from a one-player-per-cell matching of the whole board (`assign`, the same on both pages), so the two players
   never name the same person. `playDuel(pair, adapter, { script })` plays `DUEL_SCRIPTS.win` (MP-GAME-tictactoe) or
   `DUEL_SCRIPTS.draw` (MP-RESULT-02: both claim, `X O X / X O O / O X X`, no line → 180 / 180; the duel submits no play
   times, so the relay's rankRoom calls it a tie: the only deterministic way to the draw headline, no clock waited out).
 - The decided duel board: the relay settles a duel in the same tick as its last move and MultiplayerContext switches to
-  the results at once, so TicTacToe.tsx's 1.8 s "hold the banner" never happens: the mover sees no banner at all, the
-  other player ~0.4 s (dev). `watchBanner` records the banner per frame on both pages; `duel-banner` (< 1 s or never) is
-  a REAL finding, not a timing flake. A claim after which the results are already up counts as landed.
+  the results at once; since 2026-11-01 OnlineMatch keeps the decided board on screen for `TTT_END_HOLD_MS` (1.8 s,
+  src/utils/tttDuel.ts; 1 s under reduced motion) before showing the results: the win line draws (0.3 s), then the
+  banner. A presentational hold only (`mp.phase` is already `results`; a restart or leave ends it). `watchBanner`
+  records the banner and the win line per frame on both pages; `duel-banner` (< 1 s or never) is a REAL finding, not a
+  timing flake. A claim after which the results (or the held board) are already up counts as landed.
+- Local multiplayer (Tic-Tac-Toe, `Game.localMultiplayer`): the Multiplayer card offers "Local multiplayer" at idle,
+  signed in (MP-GAME-tictactoe) and as a guest (G-PERM-03), and only on games whose catalogue entry has the flag
+  (lib/games-catalog.mjs `local`). It never touches the socket (MpState stays idle); the local match itself has no check
+  of its own yet.
 - MP-MATCH-01's intro is asserted from a snapshot the in-page state log takes on the first complete intro frame
   (`readIntro`): the 2.6 s intro is often over before the test can look at it (pair A matched in 3.8 s once).
 
@@ -155,7 +168,7 @@ on arrival, usually before its searching screen or the button's "Cancel" label p
   SwapText with `reserveWidth` keeps its other labels hidden in the DOM: read `innerText` (skips `visibility: hidden`),
   never `:has-text()` (the 1v1 button "has" Play 1v1, Cancel and In a match at once).
 - Real-time limits (relay process, cannot be fast-forwarded from the browser): matchmaking queue 30 s, proposal 30 s,
-  reconnect grace 30 s (MP-TIMEOUT-01, pair A, ~2 min), Tic-Tac-Toe turn 25 s (MP-GAME-tictactoe, ~50 s). Lobby grace
+  reconnect grace 30 s (MP-TIMEOUT-01, pair A, ~2 min), Tic-Tac-Toe turn 30 s (MP-GAME-tictactoe, one time-out, ~30 s). Lobby grace
   10 s and lobby TTL 15 min are not waited out (no check is about them).
 - A closed tab is noticed at once (socket close); a frozen one only after `pingInterval + pingTimeout` (20 s).
 

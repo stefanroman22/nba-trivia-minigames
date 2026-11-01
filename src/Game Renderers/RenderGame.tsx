@@ -11,6 +11,7 @@ import CareerPath from "../Game Renderers/CareerPath";
 import NbaGrid from "../Game Renderers/NbaGrid";
 import WhoAreYa from "../Game Renderers/WhoAreYa";
 import TicTacToe from "../Game Renderers/TicTacToe";
+import TicTacToeLocal, { type TttLocalPlay } from "../Game Renderers/TicTacToeLocal";
 import BingoGame from "../Game Renderers/BingoGame";
 import Contexto from "../Game Renderers/Contexto";
 import PackFive from "../Game Renderers/PackFive";
@@ -57,6 +58,8 @@ interface RenderGameArgs {
   turn?: unknown;
   onTurnAction?: (a: unknown) => void;
   multiplayer?: boolean;
+  /** Local multiplayer (Game.localMultiplayer games only, Tic-Tac-Toe): two players on this device. */
+  local?: TttLocalPlay;
 }
 
 export const renderGame = ({
@@ -69,6 +72,7 @@ export const renderGame = ({
   turn,
   onTurnAction,
   multiplayer,
+  local,
 }: RenderGameArgs) => {
   switch (gameId) {
     case "series-winner":
@@ -185,7 +189,9 @@ export const renderGame = ({
       );
 
     case "tictactoe":
-      return (
+      // TicTacToe stays the first tag in this case: scripts/check-game-results.mjs reads the case's first
+      // component as the game's renderer. Local play scores nothing, so it never calls onGameEnd.
+      return !local ? (
         <TicTacToe
           gameInfo={gameData as (GridConfig | TicTacToeQuestion)[]}
           onGameEnd={onGameEnd}
@@ -194,6 +200,13 @@ export const renderGame = ({
           turn={turn}
           onTurnAction={onTurnAction}
           multiplayer={multiplayer}
+        />
+      ) : (
+        <TicTacToeLocal
+          gameInfo={gameData as (GridConfig | TicTacToeQuestion)[]}
+          local={local}
+          onPlayAgain={onPlayAgain}
+          onClose={onClose}
         />
       );
 

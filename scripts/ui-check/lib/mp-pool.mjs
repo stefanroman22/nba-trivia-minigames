@@ -2,7 +2,7 @@
 // arrives over the socket)"). Single player reads a game's rows from captured HTTP JSON (games/helpers.mjs capPool);
 // online, the relay deals ONE round per room and sends it to every member as the socket.io event
 //   roundData { gameData: [...rows | one question payload], game }        (pool and question games)
-//   turnState { code, game, state: { board, criteria: { rows, cols }, turnUid, deadlineTs, stealsLeft, … } }  (turn games)
+//   turnState { code, game, state: { board, criteria: { rows, cols }, turnUid, deadlineTs, winnerUid, draw, winLine, … } }  (turn games)
 // which the `cap` fixture records per page (lib/capture.mjs frames()).
 //
 //   framePool(cap) → (key, ctx) => rows       pass as newCtx(fx, scenario, { online: true, pool: framePool(cap) })
