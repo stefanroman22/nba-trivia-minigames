@@ -94,6 +94,8 @@ interface TttBoardProps {
   cols: Criterion[];
   cell: (index: number) => TttBoardCell;
   selectedCell: number | null;
+  /** Local 2-player: the selected cell's tint follows the player whose turn it is (default "brand" = orange). */
+  selectedTone?: "brand" | "text";
   onSelect: (cell: number | null) => void;
   /** Solo only: the small pulse when a cell is claimed (off under reduced motion). */
   animateClaim: boolean;
@@ -158,7 +160,7 @@ function TttClaim({ mark, name, crossOrder }: { mark: TttMarkKind; name: string;
 
 /** The single 3x3 criteria grid shared by solo, the online duel and local multiplayer, so the modes cannot drift.
  *  Empty cells show an orange "?" (aria-hidden; the button's aria-label carries the meaning). */
-export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, animateClaim, winLine, winTone }: TttBoardProps) {
+export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, selectedTone = "brand", onSelect, animateClaim, winLine, winTone }: TttBoardProps) {
   return (
     <div className="ttt-grid" role="grid" aria-label={ariaLabel}>
       <span className="ttt-corner" aria-hidden="true" />
@@ -183,7 +185,7 @@ export function TttBoard({ ariaLabel, rows, cols, cell, selectedCell, onSelect, 
                 type="button"
                 role="gridcell"
                 className={`ttt-cell${mine ? " is-mine" : theirs ? " is-theirs" : ""}${
-                  selected ? " is-selected" : ""
+                  selected ? ` is-selected${selectedTone === "text" ? " is-selected-o" : ""}` : ""
                 }${revealed ? " is-revealed" : ""}${mark ? ` is-marked is-mark-${mark.toLowerCase()}` : ""}${
                   crossed ? " is-crossed" : ""
                 }`}

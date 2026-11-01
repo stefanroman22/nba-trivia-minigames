@@ -298,6 +298,7 @@ export default function TicTacToeLocal({ gameInfo, local, onPlayAgain, onClose }
               return { name: cellNames[i], mark: o === null ? undefined : MARKS[o], disabled: o !== null || !!end };
             }}
             selectedCell={selectedCell}
+            selectedTone={turn === 1 ? "text" : "brand"}
             onSelect={setSelectedCell}
             animateClaim={false}
             winLine={end?.line ?? null}

@@ -104,6 +104,11 @@
   border-color: var(--brand);
   background: var(--brand-soft);
 }
+/* Local 2-player, O's turn: the picked cell wears the same white tint a solved O cell rests in. */
+.ttt-cell.is-selected.is-selected-o {
+  border-color: color-mix(in srgb, var(--text) 55%, transparent);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
 
 /* YOUR cells: orange. Opponent cells: surface3 + outline (no new hue). */
 .ttt-cell.is-mine {
