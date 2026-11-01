@@ -1404,3 +1404,9 @@ Context: P2 fullstack card; owner answered every open question (2026-10-27), the
 Weighed: (a) standard / risk low / sonnet; (b) standard / risk high / opus because `consent.py` is sign-up (auth-adjacent) production code, as the 2026-10-27 badge card was rated (that card also touched `package.json`, a protected path).
 Decision: (a). The backend diff is one version string kept equal to `legal.ts` by `check:legal`, no logic branch, and sign-up behaviour is untouched (ConsentFields/consent.ts/check_consent/stamp_consent stay unchanged). Not a design round: a single-concern text change with numbered, file-named steps.
 Consequences: if the engine ends up touching anything beyond the constant in `consent.py`, escalate the risk to high on replan.
+
+## 2026-11-01 — Classify: ui-check regression cluster, online Tic-Tac-Toe (card ui-check-regression-online)
+Context: P1 frontend check card, Target main, 4 findings (duel banner cut by MATCH_RESULT, 1.4 px stage flicker at phone-360, notice covering turn label/clock, 18 px Exit link). Three are CSS/placement fixes; UIC-001 defers the MATCH_RESULT dispatch in `MultiplayerContext.tsx` by ~1800 ms with a timer cancelled on leave/opponentLeft/matchRestart, and must make the mover see the banner too.
+Weighed: (a) sonnet, the findings are the plan and every item has a file and acceptance check; (b) opus, because UIC-001 changes when a held banner plays versus when the state machine advances (timing/sequencing, stale-timer races) and UIC-003 needs a measured diagnosis of which box moves.
+Decision: (b) standard, risk low (client-side handler only, relay and protocol untouched; if the engine ends up editing `multiplayer_server/`, escalate to high), engine opus/high, no plan, no design round.
+Consequences: a fix round on sonnet is acceptable for the CSS-only findings (003, 006, 007) if QA fails only on them.
