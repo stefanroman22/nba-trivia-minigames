@@ -109,7 +109,10 @@ function installResizeWatch() {
 
 /**
  * Arm the feedback recorder for one turn: the last click / Enter before the feedback element shows is the
- * submitting input; the feedback is the first visible element matching `selector` in an animation frame.
+ * submitting input; the feedback is the first visible element matching `selector`. `sample()` runs from three
+ * places: every animation frame, a MutationObserver on the body (so a popup mounted in the same commit the adapter
+ * returns in is stamped at that commit, before the next frame ticks), and once more from readFeedback as a
+ * catch-up. `at` is only ever set from a real visible match after an input, so a never-shown popup leaves it null.
  */
 function armFeedback({ selector, turn }) {
   if (window.__gmFbStop) window.__gmFbStop();
@@ -118,30 +121,47 @@ function armFeedback({ selector, turn }) {
   const onInput = (e) => { if (e.type === 'keydown' && e.key !== 'Enter') return; if (st.at === null) st.input = performance.now(); };
   document.addEventListener('click', onInput, true);
   document.addEventListener('keydown', onInput, true);
-  let raf = 0;
-  const tick = () => {
+  // Time of the last DOM mutation seen: the catch-up sample stamps `at` here (when the popup can have appeared),
+  // never at read time, which would add the Playwright round trip to the latency.
+  let lastMut = null;
+  // `stampAt`: null = now (frame / mutation callback); a number = an earlier moment the match is credited to.
+  const sample = (stampAt = null) => {
     const el = [...document.querySelectorAll(selector)].find((e) => e.getBoundingClientRect().height > 0);
-    if (el) {
-      const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
-      if (st.at === null && st.input !== null) {
-        st.at = performance.now();
-        st.latency = Math.round(st.at - st.input);
-        st.text = text;
-        st.color = getComputedStyle(el).color;
-      }
-      if (text && !st.texts.includes(text) && st.texts.length < 5) st.texts.push(text);
+    if (!el) return;
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    if (st.at === null && st.input !== null) {
+      st.at = stampAt ?? performance.now();
+      st.latency = Math.round(st.at - st.input);
+      st.text = text;
+      st.color = getComputedStyle(el).color;
     }
-    raf = requestAnimationFrame(tick);
+    if (text && !st.texts.includes(text) && st.texts.length < 5) st.texts.push(text);
   };
+  let raf = 0;
+  const tick = () => { sample(); raf = requestAnimationFrame(tick); };
   raf = requestAnimationFrame(tick);
+  // Only samples while this turn's feedback is pending (input seen, nothing stamped): no forced layout otherwise.
+  const mo = new MutationObserver(() => { lastMut = performance.now(); if (st.at === null && st.input !== null) sample(); });
+  mo.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['class', 'style'] });
+  // Catch-up (readFeedback): only a mutation after the input can have shown this turn's popup; with none, a
+  // visible match is not credited (it was already there before the input).
+  window.__gmFbSample = () => { if (st.at === null && st.input !== null && lastMut !== null && lastMut >= st.input) sample(lastMut); };
   window.__gmFbStop = () => {
     cancelAnimationFrame(raf);
+    mo.disconnect();
     document.removeEventListener('click', onInput, true);
     document.removeEventListener('keydown', onInput, true);
+    window.__gmFbSample = null;
+    window.__gmFbStop = null;
   };
 }
 
-function readFeedback() {
+/** Stop the recorder after two more frames and one catch-up sample, so an answer that returns in the commit that
+ * mounts the popup is still recorded (async: page.evaluate awaits it). → window.__gmFb */
+async function readFeedback() {
+  // Two frames, capped at 250 ms so a throttled (backgrounded) page cannot hang the read.
+  await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); setTimeout(r, 250); });
+  if (window.__gmFbSample) window.__gmFbSample();
   if (window.__gmFbStop) window.__gmFbStop();
   return window.__gmFb || null;
 }

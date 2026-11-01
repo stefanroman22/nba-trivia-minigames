@@ -184,6 +184,8 @@ export default {
     if (correct) {
       st.used.add(id);
       st.solvedName[cell] = display;
+      // Returning as soon as the cell is .mine is fine: that is the commit that mounts the popup, and the driver's feedback
+      // recorder (MutationObserver + frame sample, armFeedback/readFeedback in lib/game-driver.mjs) stamps it. Do not add a sleep here.
       const until = Date.now() + 10_000;
       while (Date.now() < until) {
         if (await shellIsOver(page)) break;
