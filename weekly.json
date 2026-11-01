@@ -1,9 +1,5 @@
 {
-  "lease": {
-    "holder": "cloud-41264957770-1",
-    "since": "2026-11-01T02:24:21.471Z",
-    "until": "2026-11-01T09:24:21.471Z"
-  },
+  "lease": null,
   "runs": [
     {
       "holder": "windows-Stefan-14516",
@@ -45,7 +41,20 @@
       "where": "github-actions",
       "scheduled": true,
       "startedAt": "2026-11-01T02:24:21.471Z",
-      "status": "running"
+      "status": "ok",
+      "endedAt": "2026-11-01T04:17:30.350Z",
+      "summary": {
+        "runs": {
+          "logic": "20261101-0224-logic",
+          "ui": "20261101-0226",
+          "uiLive": "20261101-0410-live"
+        },
+        "exits": {
+          "logic": 0,
+          "ui": 1,
+          "uiLive": 0
+        }
+      }
     }
   ]
 }
