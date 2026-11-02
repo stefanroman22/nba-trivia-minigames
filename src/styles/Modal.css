@@ -22,6 +22,9 @@
    clicks (tap-to-skip). */
 .modal-backdrop--passthrough { pointer-events: none; }
 .modal-backdrop--passthrough .modal-panel { pointer-events: auto; }
+/* ...and once the takeover panel is leaving, it lets clicks through too: on a sheet it covers the
+   page, so its exit fade must not hold the page up. */
+.modal-backdrop--passthrough .modal-panel--leaving { pointer-events: none; }
 
 .modal-panel {
   width: min(440px, 94vw);
