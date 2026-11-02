@@ -1416,3 +1416,9 @@ Context: check card (Target main), 4 bundled findings: deferred MATCH_RESULT so 
 Weighed: engineModel sonnet (findings carry files, steps and acceptance) vs opus (the deferred-result timer with cancel on leave/opponentLeft/matchRestart is subtle multiplayer timing); risk low (client only) vs high (multiplayer).
 Decision: sonnet, risk low, frontend only. The change adds a timer in the client handler and does not touch the socket protocol or the relay.
 Consequences: if the fix loop shows stale-result races, escalate to opus on the next round.
+
+## 2026-11-02 — Classify: ui-check footer shifts (CLS) on phones when the room closes or the host exits (card ui-check-footer-shifts-cls-0)
+Context: check card (Target main), one finding (UIC-20261101-0226-005): the page gets hundreds of px shorter when the lobby/playing card collapses to idle on phones, so the footer moves (CLS 0.13-0.21, budget 0.1). Files: `MiniGame.tsx` (aside stacked under the stage), `MultiplayerPanel.tsx` (AutoHeight card). Fix options in the finding: a stable min-height on the page/grid, or aligning the stage and aside glides in one 0.3 s window.
+Weighed: engineModel sonnet (first option is a CSS min-height with a measured acceptance check, UI-23) vs opus (second option changes when/how two glides animate, which the motion override sends to opus).
+Decision: sonnet, standard, risk low, frontend only. The primary fix is layout (min-height), not authoring or retiming an animation; the timing option is only the fallback.
+Consequences: if the engine has to retime the AutoHeight glides, or a fix round still shows CLS above 0.1, escalate to opus on the next round.

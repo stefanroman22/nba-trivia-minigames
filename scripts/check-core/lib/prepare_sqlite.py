@@ -13,8 +13,11 @@ Runs inside `manage.py shell` against the LOCAL sqlite database (check-core/lib/
    (sync_nba_data, network). A fresh check database has none, so `GET /trivia/wordle/` answered 500 "no wordle words
    available" and every online Wordle round failed to load. Seeded from the repo's own
    backend/trivia/data_static/players_curated.json, only while the table is empty (a filled table is left alone).
+3. Team rows. The relay deals Name the Club from the data host and falls back to `GET /trivia/name-logo/` when that
+   host is unreachable (the cloud routine's network policy blocks it), which answered 500 "No team data available"
+   on an empty Team table (team pipeline, 2026-11-02). Seeded from backend/trivia/data/name-logo.json, same rule.
 
-Prints one line `PREPARE_SQLITE: journal=<mode> players=<count> (+<seeded>)`. Refuses anything but local sqlite.
+Prints one line `PREPARE_SQLITE: journal=<mode> players=<count> (+<seeded>) teams=<count> (+<seeded>)`. Refuses anything but local sqlite.
 """
 import json
 import os
@@ -23,7 +26,7 @@ from pathlib import Path
 from django.conf import settings
 from django.db import connection
 
-from trivia.models import Player
+from trivia.models import Player, Team
 
 SUFFIXES = {"Jr", "Sr", "II", "III", "IV", "V"}
 
@@ -66,8 +69,25 @@ def seed_players():
     return len(players)
 
 
+def seed_teams():
+    if Team.objects.exists():
+        return 0
+    src = Path(settings.BASE_DIR) / "trivia" / "data" / "name-logo.json"
+    if not src.exists():
+        return 0
+    teams = [
+        Team(team_id=int(r["team_id"]), full_name=str(r.get("full_name") or "")[:100],
+             abbreviation=str(r.get("abbreviation") or "")[:10], logo=str(r.get("logo") or "")[:300])
+        for r in json.loads(src.read_text(encoding="utf-8"))
+        if r.get("team_id") is not None and r.get("full_name")
+    ]
+    Team.objects.bulk_create(teams, batch_size=100, ignore_conflicts=True)
+    return len(teams)
+
+
 if __name__ in ("prepare", "__main__"):
     guard()
     mode = wal()
     seeded = seed_players()
-    print(f"PREPARE_SQLITE: journal={mode} players={Player.objects.count()} (+{seeded})", flush=True)
+    seeded_teams = seed_teams()
+    print(f"PREPARE_SQLITE: journal={mode} players={Player.objects.count()} (+{seeded}) teams={Team.objects.count()} (+{seeded_teams})", flush=True)
