@@ -7,6 +7,16 @@
   grid-template-columns: 1fr;
   align-items: start;
 }
+/* Stacked layout: useHoldHeightAfterRoom pins a min-height after a room/match ends and gives it back
+   on the next tap: the hook sets min-height to the content height so the whole glide is visible,
+   inside that tap's input window. align-content: start because a grid container with spare
+   min-height stretches its auto rows, which would push the stage and aside down. */
+@media (max-width: 819px) {
+  .game-grid { align-content: start; min-height: 0; transition: min-height 0.3s var(--ease-out); } /* 0.3s = durations.slow (motion/tokens.ts) */
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-grid { transition: none; }
+}
 @media (min-width: 820px) {
   .game-grid { grid-template-columns: 260px minmax(0, 1fr); }
   .game-aside { grid-column: 1 / -1; flex-direction: row; }

@@ -28,6 +28,7 @@ import { AutoSize } from '../../components/motion/AutoHeight';
 import SegmentedTabs from '../../components/motion/SegmentedTabs';
 import { GAME_IN_PROGRESS } from '../../constants/messages';
 import { useDailyCardState } from '../../hooks/useDailyCardState';
+import { useHoldHeightAfterRoom } from '../../hooks/useHoldHeightAfterRoom';
 import { DAILY_COPY, fetchDailyStatus, formatDailyCountdown, isDailyLockGame, type DailyStatus } from '../../utils/wordleDaily';
 import { Stage, CourtLoader, Button, Chip } from '../../components/ui';
 import { FeedbackSlotContext } from '../../context/FeedbackSlotContext';
@@ -181,6 +182,9 @@ function MiniGame() {
   // NOT — the stage stays idle (with Play disabled) while the room card waits.
   const inLobby = mp.phase === "lobby";
   const online = mp.phase !== "idle" && !inLobby;
+  // The stacked page keeps its height after a room/match ends (the footer would jump up otherwise).
+  const gridRef = useRef<HTMLDivElement | null>(null);
+  useHoldHeightAfterRoom(gridRef, inLobby || online);
 
   const handleStart = async () => {
     if (!game) return;
@@ -450,7 +454,7 @@ function MiniGame() {
 
       <main className="page game-page">
         {/* is-room: a private room is open (MiniGame.css) */}
-        <div className={`game-grid${inLobby ? " is-room" : ""}`}>
+        <div ref={gridRef} className={`game-grid${inLobby ? " is-room" : ""}`}>
           {/* Mobile game strip */}
           <div className="rail-strip" ref={railStripRef} onScroll={saveRailStrip}>
             {visibleGames.map((g) => (
