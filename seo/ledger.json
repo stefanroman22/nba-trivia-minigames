@@ -1,7 +1,7 @@
 {
   "dataAsOf": {
-    "audit": "2026-11-02T02:19:25.386Z",
-    "gsc": null,
+    "audit": "2026-11-02T12:00:37.293Z",
+    "gsc": "2026-11-02T12:02:40.550Z",
     "indexnow": null
   },
   "urls": {
@@ -9,7 +9,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -26,7 +26,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-11-02T04:42:46Z",
+        "googleCanonical": "https://swishquest.com/",
+        "userCanonical": "https://swishquest.com/",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:00:50.111Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=YQr8TcHtsE8g6q2T8QIpnQ&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -35,7 +52,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -52,7 +69,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-09T11:04:40Z",
+        "googleCanonical": "https://swishquest.com/series-winner",
+        "userCanonical": "https://swishquest.com/series-winner",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:02.135Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=mo8sTAMw8LsgLbINivrs1Q&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -61,7 +95,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -78,7 +112,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-09T11:06:21Z",
+        "googleCanonical": "https://swishquest.com/name-logo",
+        "userCanonical": "https://swishquest.com/name-logo",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:42.766Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=z1U-tWWTvX54e_H-jKTsmg&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -87,7 +138,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -104,7 +155,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-12T11:57:08Z",
+        "googleCanonical": "https://swishquest.com/guess-mvps",
+        "userCanonical": "https://swishquest.com/guess-mvps",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:36.090Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=uyUO9Yz30fVhF6IVuY75Ng&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -113,7 +181,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -130,7 +198,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-12T16:43:50Z",
+        "googleCanonical": "https://swishquest.com/starting-five",
+        "userCanonical": "https://swishquest.com/starting-five",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:08.491Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=-2tOBuGsFpJMUjoU2ZIa0A&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -139,7 +224,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -156,7 +241,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-13T07:34:54Z",
+        "googleCanonical": "https://swishquest.com/wordle",
+        "userCanonical": "https://swishquest.com/wordle",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:40.550Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=HEE-HOqEFd38LBYG1EdM-A&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -165,7 +267,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -182,7 +284,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-10T13:09:36Z",
+        "googleCanonical": "https://swishquest.com/fan-favorites",
+        "userCanonical": "https://swishquest.com/fan-favorites",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:29.584Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=hm6OsVgTqqY0yQ5n0-WZQw&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -191,7 +310,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -208,7 +327,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-10T21:36:58Z",
+        "googleCanonical": "https://swishquest.com/career-path",
+        "userCanonical": "https://swishquest.com/career-path",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:03.213Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=YrAlqyDCdtbfVsC4D608AQ&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -217,7 +353,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -234,7 +370,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-27T08:46:28Z",
+        "googleCanonical": "https://swishquest.com/who-are-ya",
+        "userCanonical": "https://swishquest.com/who-are-ya",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:27.993Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=mLhjvz1GG7rGwA-ta8rddQ&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -243,7 +396,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -260,7 +413,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-09T11:00:26Z",
+        "googleCanonical": "https://swishquest.com/tictactoe",
+        "userCanonical": "https://swishquest.com/tictactoe",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:21.690Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=A9qPs67GDKwsuJ-qLEmY1g&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -269,7 +439,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -286,7 +456,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-17T02:51:13Z",
+        "googleCanonical": "https://swishquest.com/contexto",
+        "userCanonical": "https://swishquest.com/contexto",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:16.656Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=N2ZCD5m2ce7uXrU9Dhoxrw&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -295,7 +482,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -312,7 +499,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "NEUTRAL",
+        "coverageState": "Discovered - currently not indexed",
+        "indexingState": "INDEXING_STATE_UNSPECIFIED",
+        "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
+        "robotsTxtState": "ROBOTS_TXT_STATE_UNSPECIFIED",
+        "lastCrawlTime": null,
+        "googleCanonical": null,
+        "userCanonical": null,
+        "crawledAs": "CRAWLING_USER_AGENT_UNSPECIFIED",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:34.165Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=uGtuzUTRHcUrLOXeVl8G6g&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -321,7 +525,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -338,7 +542,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-10T00:16:28Z",
+        "googleCanonical": "https://swishquest.com/privacy",
+        "userCanonical": "https://swishquest.com/privacy",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:48.925Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=YE0sOtgjyHQ7bCuhFi0bXQ&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -347,7 +568,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -364,7 +585,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "PASS",
+        "coverageState": "Submitted and indexed",
+        "indexingState": "INDEXING_ALLOWED",
+        "pageFetchState": "SUCCESSFUL",
+        "robotsTxtState": "ALLOWED",
+        "lastCrawlTime": "2026-10-09T20:31:39Z",
+        "googleCanonical": "https://swishquest.com/terms",
+        "userCanonical": "https://swishquest.com/terms",
+        "crawledAs": "MOBILE",
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:02:15.305Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=NGzkz_iqlncJbhBMnxSV9w&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -373,7 +611,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -390,7 +628,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "NEUTRAL",
+        "coverageState": "URL is unknown to Google",
+        "indexingState": "INDEXING_STATE_UNSPECIFIED",
+        "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
+        "robotsTxtState": "ROBOTS_TXT_STATE_UNSPECIFIED",
+        "lastCrawlTime": null,
+        "googleCanonical": null,
+        "userCanonical": null,
+        "crawledAs": null,
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:00:56.525Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=-yH3CexQnCV3iCELf4Nbtw&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -399,7 +654,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -416,7 +671,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "NEUTRAL",
+        "coverageState": "URL is unknown to Google",
+        "indexingState": "INDEXING_STATE_UNSPECIFIED",
+        "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
+        "robotsTxtState": "ROBOTS_TXT_STATE_UNSPECIFIED",
+        "lastCrawlTime": null,
+        "googleCanonical": null,
+        "userCanonical": null,
+        "crawledAs": null,
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:55.527Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=vpwi3vXXDvpUE8YRJefyPg&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -425,7 +697,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -442,7 +714,24 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "NEUTRAL",
+        "coverageState": "URL is unknown to Google",
+        "indexingState": "INDEXING_STATE_UNSPECIFIED",
+        "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
+        "robotsTxtState": "ROBOTS_TXT_STATE_UNSPECIFIED",
+        "lastCrawlTime": null,
+        "googleCanonical": null,
+        "userCanonical": null,
+        "crawledAs": null,
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:23.054Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=9pg00x88Krb-xEyUiUPQ8Q&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
@@ -451,7 +740,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261102-0219-seo",
+        "runId": "20261102-1200-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -468,11 +757,38 @@
         ],
         "fail": []
       },
-      "gsc": null,
+      "gsc": {
+        "verdict": "NEUTRAL",
+        "coverageState": "URL is unknown to Google",
+        "indexingState": "INDEXING_STATE_UNSPECIFIED",
+        "pageFetchState": "PAGE_FETCH_STATE_UNSPECIFIED",
+        "robotsTxtState": "ROBOTS_TXT_STATE_UNSPECIFIED",
+        "lastCrawlTime": null,
+        "googleCanonical": null,
+        "userCanonical": null,
+        "crawledAs": null,
+        "richResults": {
+          "verdict": null,
+          "items": 0,
+          "errors": 0
+        },
+        "inspectedAt": "2026-11-02T12:01:09.852Z",
+        "link": "https://search.google.com/search-console/inspect?resource_id=sc-domain:swishquest.com&id=bm6sV7icVqd_CLuuKxmyhg&utm_medium=link&utm_source=api"
+      },
       "requests": [],
       "indexnow": null,
       "decision": null
     }
   },
-  "history": []
+  "history": [
+    {
+      "runId": "20261102-1200-seo",
+      "at": "2026-11-02T12:00:37.293Z",
+      "status": "ok",
+      "indexed": 13,
+      "notIndexed": 1,
+      "failedChecks": 0,
+      "cards": 0
+    }
+  ]
 }
