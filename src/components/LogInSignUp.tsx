@@ -34,12 +34,15 @@ type AuthField = "identifier" | "email" | "username" | "password";
 interface AuthError { id: number; message: string; field?: AuthField }
 
 const NETWORK_ERROR = "Unable to contact the server. Please try again later.";
-/** How long the success pane holds before the modal leaves (after the form's fade-out). The sheet
- *  (mobile) and reduced-motion holds are shorter; a tap skips once SKIP_AFTER_MS has passed. The page
- *  behind stays usable meanwhile: the takeover backdrop lets clicks through (Modal.tsx). */
+/** How long the success pane holds before the modal leaves (after the form's fade-out); a tap skips
+ *  once SKIP_AFTER_MS has passed (about 100 ms after the pane appears). On a centred panel the page
+ *  behind stays usable meanwhile (the takeover backdrop lets clicks through, Modal.tsx). The
+ *  full-screen sheet covers the page, so its hold is short: the page is usable again within 400 ms of
+ *  the welcome message appearing (UI-22; 140 + 280 ms from the success itself). Its exit does not
+ *  count: the leaving panel lets clicks through and fades out fast. */
 const SUCCESS_HOLD_MS = 800;
-const SUCCESS_HOLD_SHORT_MS = 600;
-const SKIP_AFTER_MS = 300;
+const SUCCESS_HOLD_SHORT_MS = 280;
+const SKIP_AFTER_MS = durations.fast * 1000 + 100;
 /** The mode-switch height glide (the only animator of the stack's height). */
 const HEIGHT_GLIDE = { duration: durations.base, ease: easing.inOut };
 
@@ -226,14 +229,14 @@ function LogInSignUp({ mode, onModeChange, onClose, onPhaseChange }: LogInSignUp
 
   useEffect(() => {
     if (phase !== "success") return;
-    const short = !!reduce || window.matchMedia(SHEET_QUERY).matches;
+    const short = window.matchMedia(SHEET_QUERY).matches;
     const skip = setTimeout(() => setCanSkip(true), SKIP_AFTER_MS);
     const done = setTimeout(finish, durations.fast * 1000 + (short ? SUCCESS_HOLD_SHORT_MS : SUCCESS_HOLD_MS));
     return () => {
       clearTimeout(skip);
       clearTimeout(done);
     };
-  }, [phase, reduce, finish]);
+  }, [phase, finish]);
 
   // 403 `account_banned` from login / signup / Google login: the ban screen takes over (the
   // slice's `banned` state, not a form state), so close the form instead of alerting.

@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useIsPresent, useReducedMotion } from "framer-motion";
 import SwapText from "../motion/SwapText";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { durations, easing } from "../../motion/tokens";
@@ -18,7 +18,9 @@ interface ModalProps {
   wide?: boolean;
   /** Success takeover (auth): on a sheet viewport the panel expands to the full screen and then
    *  fades into the page; on desktop it scales/fades out. Off = the default enter/exit. While it is
-   *  on, the backdrop lets clicks through to the page, so the success hold never blocks it (UI-22). */
+   *  on, the backdrop lets clicks through to the page, so the success hold never blocks it, and the
+   *  leaving panel does too, so its exit never blocks the page either (UI-22). That exit eases out,
+   *  so the panel is mostly clear as soon as it stops taking taps. */
   takeover?: boolean;
   children: ReactNode;
 }
@@ -33,6 +35,7 @@ interface ModalProps {
 export default function Modal({ title, onClose, wide = false, takeover = false, children }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  const isPresent = useIsPresent();
 
   useFocusTrap(panelRef, onClose);
 
@@ -52,7 +55,7 @@ export default function Modal({ title, onClose, wide = false, takeover = false, 
     >
       <motion.div
         ref={panelRef}
-        className={`modal-panel${wide ? " modal-panel--wide" : ""}${expand ? " modal-panel--takeover" : ""}`}
+        className={`modal-panel${wide ? " modal-panel--wide" : ""}${expand ? " modal-panel--takeover" : ""}${takeover && !isPresent ? " modal-panel--leaving" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -68,9 +71,9 @@ export default function Modal({ title, onClose, wide = false, takeover = false, 
           !takeover
             ? { opacity: 0, y: 10, scale: 0.97 }
             : reduce
-              ? { opacity: 0, transition: { duration: durations.fast, ease: easing.in } }
+              ? { opacity: 0, transition: { duration: durations.fast, ease: easing.out } }
               : sheet
-                ? { opacity: 0, transition: { duration: durations.base, ease: easing.in } }
+                ? { opacity: 0, transition: { duration: durations.base, ease: easing.out } }
                 : { opacity: 0, scale: 0.92, transition: { duration: durations.base, ease: easing.in } }
         }
         transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1], height: TAKEOVER, borderTopLeftRadius: TAKEOVER, borderTopRightRadius: TAKEOVER }}
