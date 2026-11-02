@@ -1422,3 +1422,9 @@ Context: check card (Target main), one finding (UIC-20261101-0226-005): the page
 Weighed: engineModel sonnet (first option is a CSS min-height with a measured acceptance check, UI-23) vs opus (second option changes when/how two glides animate, which the motion override sends to opus).
 Decision: sonnet, standard, risk low, frontend only. The primary fix is layout (min-height), not authoring or retiming an animation; the timing option is only the fallback.
 Consequences: if the engine has to retime the AutoHeight glides, or a fix round still shows CLS above 0.1, escalate to opus on the next round.
+
+## 2026-11-02 — Classify: ui-check regression, log-in success hold (card ui-check-regression-after-a)
+Context: check card (Target main), one finding (UIC-20261101-0226-002): the page behind the auth modal is usable 480 ms after the Welcome back pane on phone-390 (budget 400 ms); the hold constants and the finish() timer in `LogInSignUp.tsx` delay onClose. It regressed once already after commit 5e0538a.
+Weighed: engineModel sonnet (one file, two constants, explicit acceptance check AC-BLOCK-03) vs opus (the motion/timing override: changing a hold, the exit and when the modal closes is sequencing judgment, and the earlier fix did not hold).
+Decision: opus/high, standard, risk low (UI timing only; login/session logic and the auth API are untouched), frontend + ui, no plan, no design round.
+Consequences: if the engine ends up changing the auth flow itself (not just timers/constants), escalate risk to high on replan.
