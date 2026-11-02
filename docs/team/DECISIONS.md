@@ -1410,3 +1410,9 @@ Context: P1 frontend check card, Target main, 4 findings (duel banner cut by MAT
 Weighed: (a) sonnet, the findings are the plan and every item has a file and acceptance check; (b) opus, because UIC-001 changes when a held banner plays versus when the state machine advances (timing/sequencing, stale-timer races) and UIC-003 needs a measured diagnosis of which box moves.
 Decision: (b) standard, risk low (client-side handler only, relay and protocol untouched; if the engine ends up editing `multiplayer_server/`, escalate to high), engine opus/high, no plan, no design round.
 Consequences: a fix round on sonnet is acceptable for the CSS-only findings (003, 006, 007) if QA fails only on them.
+
+## 2026-11-02 — Classify: ui-check regression, online Tic-Tac-Toe banner + 3 UI fixes (card ui-check-regression-online)
+Context: check card (Target main), 4 bundled findings: deferred MATCH_RESULT so the 1800 ms banner plays (client-side `MultiplayerContext.tsx` timer, no relay or protocol change), a 1.4 px stage flicker at phone-360, a notice placement, a tap-target CSS fix.
+Weighed: engineModel sonnet (findings carry files, steps and acceptance) vs opus (the deferred-result timer with cancel on leave/opponentLeft/matchRestart is subtle multiplayer timing); risk low (client only) vs high (multiplayer).
+Decision: sonnet, risk low, frontend only. The change adds a timer in the client handler and does not touch the socket protocol or the relay.
+Consequences: if the fix loop shows stale-result races, escalate to opus on the next round.
