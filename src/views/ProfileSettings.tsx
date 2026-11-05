@@ -33,7 +33,7 @@ export default function ProfileSettings() {
   const dispatch = useDispatch<AppDispatch>();
   const { user, authChecked } = useSelector((state: RootState) => state.user);
   const { open } = useModal();
-  const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto } = useProfilePhoto();
+  const { uploadingPhoto, handlePhotoUpload, handleRemovePhoto, warmPhotoCheck } = useProfilePhoto();
   const { loggingOut, requestLogOut } = useLogout();
 
   // ---- Username ----
@@ -259,7 +259,7 @@ export default function ProfileSettings() {
             </div>
             <div className="ps-row-actions">
               <label htmlFor="ps-photo" className="ps-link-btn">Change</label>
-              <input id="ps-photo" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+              <input id="ps-photo" type="file" accept="image/*" style={{ display: "none" }} onClick={warmPhotoCheck} onChange={handlePhotoUpload} />
               {user.profile_photo && <button className="ps-link-btn ps-link-btn--muted" onClick={handleRemovePhoto}>Remove</button>}
             </div>
           </div>
