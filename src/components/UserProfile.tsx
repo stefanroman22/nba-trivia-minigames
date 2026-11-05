@@ -42,7 +42,7 @@ function UserProfile() {
   const { user } = useSelector((state: RootState) => state.user);
   const navigate = useNavigate();
   const { open } = useModal();
-  const { uploadingPhoto, handlePhotoUpload } = useProfilePhoto();
+  const { uploadingPhoto, handlePhotoUpload, warmPhotoCheck } = useProfilePhoto();
 
   // Profile is the default view; a player who switches to Friends keeps it on later visits.
   // Read before the first paint (this card only renders in the browser, once a user is signed in),
@@ -114,7 +114,7 @@ function UserProfile() {
               <label htmlFor="photo-upload" className="pc-photo-btn" aria-label="Change photo" title="Change photo">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" /><circle cx="12" cy="13" r="4" /></svg>
               </label>
-              <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onChange={handlePhotoUpload} />
+              <input id="photo-upload" type="file" accept="image/*" style={{ display: "none" }} onClick={warmPhotoCheck} onChange={handlePhotoUpload} />
             </div>
 
             <div className="pc-meta">

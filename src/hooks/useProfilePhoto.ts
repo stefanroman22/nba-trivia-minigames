@@ -6,7 +6,17 @@ import { apiFetch } from "../utils/Api";
 import { isBanPayload } from "../utils/ban";
 import { showErrorAlert } from "../utils/Alerts";
 import { PhotoPrepError, prepareProfilePhoto } from "../utils/imagePrep";
-import { BACKEND_URL } from "../configurations/backend";
+import { BACKEND_URL, PHOTO_CHECK_URL } from "../configurations/backend";
+
+let lastPhotoCheckWarm = 0;
+
+/** Wake the photo-check service (its model loads on a cold start) while the user picks a file. */
+function warmPhotoCheck() {
+  if (!PHOTO_CHECK_URL || Date.now() - lastPhotoCheckWarm < 60_000) return;
+  lastPhotoCheckWarm = Date.now();
+  // A simple no-cors GET: the response is opaque and ignored, it only has to reach the function.
+  fetch(PHOTO_CHECK_URL, { mode: "no-cors", cache: "no-store" }).catch(() => {});
+}
 
 /** Change / remove the profile photo. Shared by the landing profile card and the Profile settings page. */
 export function useProfilePhoto() {
@@ -68,5 +78,5 @@ export function useProfilePhoto() {
     }
   };
 
-  return { uploadingPhoto, handlePhotoUpload, handleRemovePhoto };
+  return { uploadingPhoto, handlePhotoUpload, handleRemovePhoto, warmPhotoCheck };
 }
