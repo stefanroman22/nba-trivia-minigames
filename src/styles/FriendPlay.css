@@ -95,12 +95,12 @@
 .fp-seat-id { flex: none; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.4px; }
 
 /* Lobby meta: a 2x2 block — labels on the first row, values under them; the game takes what the
-   size control leaves and truncates, so nothing wraps in the 290px sidebar. */
+   size control leaves and wraps onto a second line when a long name doesn't fit, so it is never cut. */
 .fp-meta {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 12px;
+  column-gap: 8px;
   row-gap: 3px;
   font-size: 11.5px;
   color: var(--muted);
@@ -108,7 +108,7 @@
 .fp-meta-lbl { font-size: 11px; line-height: 1.3; color: var(--muted); }
 .fp-meta-lbl.is-end { justify-self: end; }
 .fp-meta-game { min-width: 0; display: flex; font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--text); }
-.fp-meta-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-meta-name { max-width: 100%; overflow-wrap: anywhere; }
 .fp-meta-size { justify-self: end; font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--text); }
 .fp-meta > .fp-size { justify-self: end; }
 
