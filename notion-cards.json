@@ -330,5 +330,13 @@
     "decision": "create",
     "run": "20261101-0226",
     "at": "2026-11-01T04:17:25.046Z"
+  },
+  "check-bug|env|rooms-join-throttle-window": {
+    "key": "996e1ff2696e",
+    "card": "4122cfb1-c595-8197-bcc1-f7060126d64f",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261108-0236-logic",
+    "at": "2026-11-08T02:40:56.720Z"
   }
 }
