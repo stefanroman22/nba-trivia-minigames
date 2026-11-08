@@ -1,5 +1,9 @@
 {
-  "lease": null,
+  "lease": {
+    "holder": "cloud-42439167550-1",
+    "since": "2026-11-08T02:36:30.534Z",
+    "until": "2026-11-08T09:36:30.534Z"
+  },
   "runs": [
     {
       "holder": "windows-Stefan-14516",
@@ -55,6 +59,13 @@
           "uiLive": 0
         }
       }
+    },
+    {
+      "holder": "cloud-42439167550-1",
+      "where": "github-actions",
+      "scheduled": true,
+      "startedAt": "2026-11-08T02:36:30.534Z",
+      "status": "running"
     }
   ]
 }
