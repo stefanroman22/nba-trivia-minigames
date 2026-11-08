@@ -219,10 +219,10 @@
     "key": "1f93576360b3",
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
-    "decision": "regression",
-    "run": "20261101-0226",
-    "at": "2026-11-01T04:17:15.109Z",
-    "id": "UIC-20261101-0226-003"
+    "decision": "skip:open",
+    "run": "20261108-0241",
+    "at": "2026-11-08T04:27:26.090Z",
+    "id": "UIC-20261108-0241-001"
   },
   "tap-target|/tictactoe|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
     "key": "b71ccf82f337",
@@ -282,19 +282,19 @@
     "key": "c97e4ae4239a",
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
-    "decision": "regression",
-    "run": "20261101-0226",
-    "at": "2026-11-01T04:17:15.109Z",
-    "id": "UIC-20261101-0226-001"
+    "decision": "skip:open",
+    "run": "20261108-0241",
+    "at": "2026-11-08T04:27:26.090Z",
+    "id": "UIC-20261108-0241-002"
   },
   "notice-covers|/tictactoe|.om-notice": {
     "key": "0a9ca32af74c",
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
-    "decision": "regression",
-    "run": "20261101-0226",
-    "at": "2026-11-01T04:17:15.109Z",
-    "id": "UIC-20261101-0226-006"
+    "decision": "skip:open",
+    "run": "20261108-0241",
+    "at": "2026-11-08T04:27:26.090Z",
+    "id": "UIC-20261108-0241-004"
   },
   "tap-target|/series-winner|div.stage-inner > div > div.om > div.om-stage.om-stage--results > button.om-exit": {
     "key": "faa7eb801d7c",
@@ -338,5 +338,31 @@
     "decision": "create",
     "run": "20261108-0236-logic",
     "at": "2026-11-08T02:40:56.720Z"
+  },
+  "match-flow|/series-winner|.om-stage--play": {
+    "key": "5f5a13f0ef8d",
+    "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
+    "status": "To Do",
+    "decision": "skip:open",
+    "run": "20261108-0241",
+    "at": "2026-11-08T04:27:26.090Z",
+    "id": "UIC-20261108-0241-003"
+  },
+  "tap-target|/name-logo|div.stage-inner > div > div.om > div.om-stage.om-stage--play > button.om-exit": {
+    "key": "829b010e0b60",
+    "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
+    "status": "To Do",
+    "decision": "skip:open",
+    "run": "20261108-0241",
+    "at": "2026-11-08T04:27:26.090Z",
+    "id": "UIC-20261108-0241-005"
+  },
+  "check-bug|spec|latency-rank-up-modal": {
+    "key": "44ed9d72df0b",
+    "card": "4122cfb1-c595-81fb-a9a5-fa4bc0fcf861",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261108-0241",
+    "at": "2026-11-08T04:27:27.235Z"
   }
 }
