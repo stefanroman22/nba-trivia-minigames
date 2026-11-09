@@ -702,7 +702,7 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
 /** A finished game that lifts the account a rank opens "Rank up!" over the end screen (an app feature: a fresh account
  *  ranks up on its first scored game). Close it as a player does, with Keep playing, before the end screen's controls:
  *  behind it every click waits for the test timeout (GM-wordle-perfect timed out on every @perf viewport). */
-async function closeRankUp(audit) {
+export async function closeRankUp(audit) {
   const keep = L(audit.page, 'common.rankUpKeepPlaying').first();
   if (!(await keep.waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false))) return;
   await audit.shot('rank-up');

@@ -3,13 +3,15 @@
 // in run.mjs's single-worker pass (in the 4-worker scenario pass the same numbers are recorded as notes only). Three turns
 // per game (right, wrong, right, or the adapter's latencyPlan), then Close game. Series Winner (full-screen GameResult),
 // Who Would Win, Career Path, Who Are Ya, Wordle and Contexto (in place) are played to the end so the end transitions are measured too.
+// A first scored game (the fresh Wordle / Contexto accounts) opens the Rank up! modal over the end screen: after the measured
+// window the spec closes it with Keep playing (the driver's closeRankUp) before Close game, whose click times out in 10 s.
 // Core viewports only.
 import { test } from '../../lib/fixtures.mjs';
 import { CORE } from '../../lib/viewports.mjs';
 import { playableGames } from '../../lib/guest.mjs';
 import { adapterFor } from '../../games/index.mjs';
 import { L } from '../../lib/pagemap.mjs';
-import { checkTurns, newCtx, playTurns, realUserAgent, startGame, useFreshAccount, waitOver } from '../../lib/game-driver.mjs';
+import { checkTurns, closeRankUp, newCtx, playTurns, realUserAgent, startGame, useFreshAccount, waitOver } from '../../lib/game-driver.mjs';
 import { deleteAccountApi } from '../../lib/account.mjs';
 
 test.use({ userAgent: realUserAgent });
@@ -44,7 +46,10 @@ for (const g of playableGames()) {
       await checkTurns(audit, adapter, turns, { enforceLatency: true, copyRules: false });
       if (finish) {
         if (!over) audit.violation('never-ended', { selector: g.id, measured: `still playing after ${turns.length} turns`, expected: 'the game ends' });
-        else await L(page, 'games.endCloseGame').first().click();
+        else {
+          await closeRankUp(audit); // after the window and checkTurns: the modal is never inside the measured latency / long frames
+          await L(page, 'games.endCloseGame').first().click({ timeout: 10_000 }); // an unexpected overlay fails fast, not at 180 s
+        }
       } else if (await L(page, 'games.exitLink').isVisible()) {
         await L(page, 'games.exitLink').click();
       }
