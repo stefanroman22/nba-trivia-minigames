@@ -4,7 +4,9 @@
 // Focus 3). Protocol truth: multiplayer_server/src/index.js of the checkout under test (event names, payloads and messages
 // quoted below come from it); games from the catalogue (online, visible, dealt from the data host:
 // gameData.js ROUND_GAMES). Every test closes its sockets in `finally` with leaveMatch + cancelFind first, so no room
-// or queue outlives it. The tests run in file order in the suite's single worker.
+// or queue outlives it. The tests run in file order in the suite's single worker. Every joinFriendRoom emit is paced by
+// joinSlot to the relay's per-account JOIN_MAX_TRIES per JOIN_WINDOW_MS (multiplayer_server/src/index.js), so a test
+// never depends on how fast the previous ones ran.
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { test } from '../../lib/fixtures.mjs';
@@ -30,6 +32,11 @@ const ROUND_GAMES = Object.fromEntries([...readApp('multiplayer_server/src/gameD
 // Online, visible games the relay deals as a shared round (no turn game): the room's game and the one it switches to.
 const ROUND = visibleGames().filter((g) => g.online && ROUND_GAMES[g.id]);
 const [GAME, OTHER] = ROUND;
+// The relay's join throttle (index.js joinThrottled → overLimit): JOIN_MAX_TRIES joinFriendRoom per account per fixed
+// JOIN_WINDOW_MS window, the window starting at the first join after the previous one expired.
+const appConst = (name, fallback) => Number(readApp('multiplayer_server/src/index.js').match(new RegExp(`const ${name}\\s*=\\s*(\\d+)\\s*;`))?.[1] ?? fallback);
+const JOIN_WINDOW_MS = appConst('JOIN_WINDOW_MS', 10000);
+const JOIN_MAX_TRIES = appConst('JOIN_MAX_TRIES', 8);
 const wire = (g) => ({ id: g.id, name: g.name, urlPath: g.path }); // MultiplayerContext serializeGame (functions stripped)
 // Messages the relay sends (index.js).
 const MSG = {
@@ -110,8 +117,29 @@ async function create(s, game = GAME, size = 2, host = HOST) {
   return s.expect(host, 'friendRoomCreated', { since: m, what: `create ${game.id}` });
 }
 
-/** `who` joins `code` (as the site does: the typed string) → the joiner's snapshot, or null. */
+/** Mirror of the relay's join window per account (keyed by role: HOST, PEER and THIRD are three accounts). */
+const joinWindows = {};
+const JOIN_MARGIN_MS = 500; // the relay stamps its window when the emit arrives, a little after our clock does
+/** Takes one of `who`'s join tries before a joinFriendRoom emit: when the window's tries are spent, or the join would
+ *  land within the margin of the window's end (where our clock and the relay's could disagree on which window counts
+ *  it), waits until the relay's window has surely expired (start + JOIN_WINDOW_MS + the margin) and opens a new one,
+ *  so every try lands in the window this mirror counts it in. Emits and asserts nothing. */
+async function joinSlot(who) {
+  let w = joinWindows[who];
+  const age = w ? Date.now() - w.start : 0;
+  if (w && age > JOIN_WINDOW_MS + JOIN_MARGIN_MS) w = null; // idle past the window: a fresh one, no wait
+  else if (w && (w.n >= JOIN_MAX_TRIES || age > JOIN_WINDOW_MS - JOIN_MARGIN_MS)) {
+    await wait(w.start + JOIN_WINDOW_MS + JOIN_MARGIN_MS - Date.now());
+    w = null;
+  }
+  if (!w) w = joinWindows[who] = { start: Date.now(), n: 0 };
+  w.n++;
+}
+
+/** `who` joins `code` (as the site does: the typed string) → the joiner's snapshot, or null. The try is paced by
+ *  joinSlot (taken before the marks, so a wait is not counted in the expect windows). */
 async function join(s, code, who = PEER) {
+  await joinSlot(who);
   const m = s.c[who].mark();
   const mh = s.c[HOST].mark();
   s.c[who].emit('joinFriendRoom', { code: String(code) });
@@ -253,12 +281,14 @@ test('[LC-ROOMS-04] a wrong code → friendJoinError "No room found for that cod
     if (snap) {
       const wrong = snap.code === 999999 ? 100000 : snap.code + 1;
       for (const code of [String(wrong), 'abcdef']) {
+        await joinSlot(PEER);
         const m = s.c[PEER].mark();
         s.c[PEER].emit('joinFriendRoom', { code });
         const e = await s.expect(PEER, 'friendJoinError', { since: m, what: `code ${code}` });
         if (e) s.check(e.message === MSG.noRoom, `friendJoinError.message (code ${code})`, e.message, MSG.noRoom);
         await s.absent(PEER, 'friendRoomJoined', { since: m, within: 300, what: `code ${code}` });
       }
+      await joinSlot(HOST);
       const m = s.c[HOST].mark();
       s.c[HOST].emit('joinFriendRoom', { code: String(snap.code) });
       const e = await s.expect(HOST, 'friendJoinError', { since: m, what: 'own room' });
@@ -409,7 +439,7 @@ test('[LC-ROOMS-09] leaving: guest leaves the lobby / mid-round / drops; the hos
       const m = s.c[HOST].mark();
       s.c[PEER].emit('leaveMatch', { code });
       await s.expect(HOST, 'friendLobbyUpdate', { since: m, filter: one, what: 'guest left the lobby' });
-      await join(s, code);
+      if (!await join(s, code)) return;
     });
     await test.step('guest leaveMatch mid-round (2 seated) → host matchStopped "<guest> left, so the match ended." + the lobby', async () => {
       const { rounds } = await start(s, code);
@@ -460,6 +490,7 @@ test('[LC-ROOMS-09] leaving: guest leaves the lobby / mid-round / drops; the hos
       s.c[HOST].emit('leaveMatch', { code });
       const d = await s.expect(PEER, 'opponentLeft', { since: m, what: 'host left mid-round' });
       if (d) s.check(d.message === MSG.hostClosed, 'opponentLeft.message', d.message, MSG.hostClosed);
+      await joinSlot(PEER);
       const m2 = s.c[PEER].mark();
       s.c[PEER].emit('joinFriendRoom', { code: String(code) });
       const e = await s.expect(PEER, 'friendJoinError', { since: m2, what: 'join the closed room' });
