@@ -497,8 +497,9 @@ export async function checkEnd(audit, adapter, ctx, { turns, over, sessionLog, l
   } else if (inPlace) {
     audit.violation('answer-hidden', { selector: adapter.id, measured: 'adapter has no endReveal', expected: 'an in-place game\'s adapter checks that the answers stay visible at the end (Rule 7.3)' });
   }
-  // Rule 6.2: the stage never resized while playing (end-of-game phase change excepted).
-  if (resize) {
+  // Rule 6.2: the stage never resized while playing (end-of-game phase change excepted; an adapter with an accepted
+  // growing board sets growsWhilePlaying).
+  if (resize && !adapter.growsWhilePlaying) {
     const resizes = await page.evaluate(() => (window.__gmRO ? window.__gmRO.log : null));
     const evidence = ctx.state.resizeEvidence || [];
     for (const [i, e] of (resizes || []).filter((x) => !x.ending).entries()) {

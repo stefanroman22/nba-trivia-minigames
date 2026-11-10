@@ -59,7 +59,12 @@ export function RevealHeadshot({ personId, name }: { personId: number; name: str
 }
 
 function CareerPath({ gameInfo, onGameEnd, onPlayAgain, onClose }: CareerPathProps) {
-  const [player, setPlayer] = useState<PlayerIndexEntry | null>(null);
+  // Seeded from the payload on the first render too (the effect below re-seeds on play-again), so the
+  // board opens straight after the court loader, without a frame of "Tracing the career path…".
+  const [player, setPlayer] = useState<PlayerIndexEntry | null>(() => {
+    const q = gameInfo?.[0];
+    return q ? (("player" in q ? q.player : q) as PlayerIndexEntry) : null;
+  });
   const [flipped, setFlipped] = useState(1); // cards face-up (card 1 starts revealed)
   const [wrong, setWrong] = useState(0);
   const [guess, setGuess] = useState("");

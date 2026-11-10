@@ -13,7 +13,7 @@
 // precomputed ranking. Names are resolved against the shared names list
 // (useNames / buildNameLookup). Spec:
 // docs/superpowers/specs/2026-09-10-questions-store-design.md §10.3.
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import AutocompleteInput from "../components/AutoCompleteInput";
 import EndSequence, { type EndSequencePhase } from "../components/EndSequence";
@@ -21,6 +21,8 @@ import ScorePanel from "../components/ScorePanel";
 import SubmitGuessPopup from "../components/SubmitGuessPopUp";
 import { Button, GameFrame, Spinner } from "../components/ui";
 import PlayerPhoto from "../components/ui/PlayerPhoto";
+import SwapText from "../components/motion/SwapText";
+import AutoHeight from "../components/motion/AutoHeight";
 import { BACKEND_ORIGIN } from "../configurations/backend";
 import { useNames } from "../hooks/useNames";
 import { apiFetch } from "../utils/Api";
@@ -77,6 +79,10 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
   const [popup, setPopup] = useState({ Text: "", Color: "" });
   const [bottomPhase, setBottomPhase] = useState<EndSequencePhase>("input");
   const [endState, setEndState] = useState<{ score: number; won: boolean } | null>(null);
+  // The newest guess: ringed, and scrolled into the (short, 4-row) list wherever its rank sorts it.
+  const [latestPid, setLatestPid] = useState<number | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const listBoxRef = useRef<HTMLDivElement | null>(null);
 
   const startRef = useRef(Date.now());
   const guessLogRef = useRef<GuessEntry[]>([]);
@@ -140,6 +146,7 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
     setShowPopup(false);
     setBottomPhase("input");
     setEndState(null);
+    setLatestPid(null);
     endedRef.current = false;
     startRef.current = Date.now();
     guessLogRef.current = [];
@@ -153,6 +160,60 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
       sendGuessLog();
     };
   }, []);
+
+  // Bring the newest guess into view inside the list only (never the page): offsetTop (the positioned
+  // .cx-list is its offsetParent) is the row's final layout slot, untouched by the layout animation's
+  // transforms, so the scroll lands right even while rows are still sliding.
+  useEffect(() => {
+    const list = listRef.current;
+    const row = latestPid == null ? null : list?.querySelector<HTMLElement>(`[data-pid="${latestPid}"]`);
+    if (!list || !row) return;
+    const top = row.offsetTop;
+    const bottom = top + row.offsetHeight;
+    let target: number | null = null;
+    if (top < list.scrollTop) target = top;
+    else if (bottom > list.scrollTop + list.clientHeight) target = bottom - list.clientHeight;
+    if (target !== null) list.scrollTo({ top: target, behavior: reduce ? "auto" : "smooth" });
+  }, [latestPid, rows, reduce]);
+
+  // The list opens as a one-line prompt and grows a row per guess (AutoHeight glides it) up to a cap
+  // that keeps the whole game in the viewport: the room left between the list's top and the screen's
+  // bottom once everything under the list (input, Give up, Close game, stage padding) is counted.
+  // Floor 3 rows (a tiny screen scrolls the page instead), ceiling 10. Written straight onto the list,
+  // re-fitted on window and wrap resizes; positions come from offsetTop, so the stage's enter
+  // transform never skews them.
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    const box = listBoxRef.current;
+    const wrap = box?.closest<HTMLElement>(".playing-wrap");
+    const inner = box?.closest<HTMLElement>(".stage-inner");
+    const col = box?.closest<HTMLElement>(".stage-col");
+    if (!list || !box || !wrap || !inner) return;
+    const docTop = (el: HTMLElement) => {
+      let y = 0;
+      for (let n: HTMLElement | null = el; n; n = n.offsetParent as HTMLElement | null) y += n.offsetTop;
+      return y;
+    };
+    const fit = () => {
+      const row = parseFloat(getComputedStyle(list).getPropertyValue("--cx-row-h")) || 44;
+      const rowsTall = (n: number) => n * row + (n - 1) * 6;
+      const below = docTop(wrap) + wrap.offsetHeight - (docTop(box) + box.offsetHeight);
+      const tail = below + parseFloat(getComputedStyle(inner).paddingBottom) + 16;
+      // Desktop shows the page from its top; on a phone the game strip and title scroll away, so the
+      // stage column's top is where the screen starts.
+      const from = window.innerWidth >= 820 || !col ? 0 : docTop(col);
+      const room = window.innerHeight - (docTop(box) - from) - tail;
+      list.style.setProperty("--cx-list-max", `${Math.round(Math.min(rowsTall(10), Math.max(rowsTall(3), room)))}px`);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, [ready]);
 
   const flash = (text: string, color: string) => {
     setPopup({ Text: text, Color: color });
@@ -207,6 +268,7 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
     });
     setGuessedIds((prev) => new Set(prev).add(pid));
     setRows((prev) => [...prev, { pid, name, rank }].sort((a, b) => a.rank - b.rank));
+    setLatestPid(pid);
     setGuess("");
 
     if (rank === 1) {
@@ -258,29 +320,37 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
       <GameFrame.Board>
       {/* The #1 secret card heads the ranking. Always mounted with a fixed-size
           photo box, so the end-of-game reveal swaps its content in place and the
-          board never resizes (Rule 6.2); the answer then stays on screen. */}
+          board never resizes (Rule 6.2); the answer then stays on screen. The
+          headshot is mounted (hidden, unnamed) from the start so it has loaded by
+          the reveal, which then cross-fades silhouette -> photo instead of popping. */}
       <div
-        className={`cx-reveal${revealed ? (won ? " is-good" : " is-brand") : ""}`}
+        className={`cx-reveal${revealed ? (won ? " is-good is-revealed" : " is-brand is-revealed") : ""}`}
         aria-live="polite"
       >
         <span className="cx-reveal-photo">
-          {revealed ? (
-            <PlayerPhoto personId={secret.person_id} alt={secret.full_name} frame="avatar" />
-          ) : (
-            <svg viewBox="0 0 64 72" aria-hidden="true">
-              <circle cx="32" cy="26" r="13" />
-              <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
-            </svg>
-          )}
+          <svg viewBox="0 0 64 72" aria-hidden="true">
+            <circle cx="32" cy="26" r="13" />
+            <path d="M8 72 C8 54 22 47 32 47 C42 47 56 54 56 72 Z" />
+          </svg>
+          <span className="cx-reveal-face" aria-hidden={!revealed}>
+            <PlayerPhoto personId={secret.person_id} alt={revealed ? secret.full_name : ""} frame="avatar" />
+          </span>
         </span>
         <span className="cx-reveal-text">
-          <span className="cx-reveal-label">{revealed ? "The secret player" : "Secret player"}</span>
-          <span className="cx-row-name font-display">{revealed ? secret.full_name : "? ? ?"}</span>
+          <span className="cx-reveal-label">
+            <SwapText>{revealed ? "The secret player" : "Secret player"}</SwapText>
+          </span>
+          <span className="cx-row-name font-display">
+            <SwapText className="cx-swap-clip">{revealed ? secret.full_name : "? ? ?"}</SwapText>
+          </span>
         </span>
         <span className="cx-row-rank tnum">#1</span>
       </div>
 
-      <div className="cx-list" role="log" aria-live="polite">
+      {/* The list hugs its rows (capped, then it scrolls); AutoHeight glides each new row's height in. */}
+      <div className="cx-list-box" ref={listBoxRef}>
+      <AutoHeight className="cx-list-glide">
+      <div className="cx-list" role="log" aria-live="polite" ref={listRef}>
         {/* One presence for both states, so the empty prompt fades out as the first row enters.
             popLayout pops the exiting prompt out of flow (over the positioned .cx-list), so the first
             row mounts in its final place; rows have no exit, so popLayout doesn't change them.
@@ -297,11 +367,12 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
               return (
                 <motion.div
                   key={r.pid}
+                  data-pid={r.pid}
                   layout={!reduce}
                   initial={reduce ? false : { opacity: 0, y: -6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.25 }}
-                  className={`cx-row is-${color}${r.rank === 1 ? " is-win" : ""}`}
+                  className={`cx-row is-${color}${r.rank === 1 ? " is-win" : ""}${r.pid === latestPid ? " is-latest" : ""}`}
                 >
                   <span className="cx-row-name font-display">{r.name}</span>
                   <span className="cx-bar-track">
@@ -312,6 +383,8 @@ export default function Contexto({ gameInfo, onGameEnd, onClose }: ContextoProps
               );
             })}
         </AnimatePresence>
+      </div>
+      </AutoHeight>
       </div>
       </GameFrame.Board>
 

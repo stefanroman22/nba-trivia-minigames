@@ -1,5 +1,5 @@
 
-import type { Game } from "../types/types";
+import type { FetchResult, Game, NbaTeamLogo } from "../types/types";
 import { fetchGamePool, fetchWholePool } from "./pool";
 import { playContextoDaily, playWordleDaily } from "./wordleDaily";
 import { fetchQuestion } from "./questions";
@@ -25,6 +25,22 @@ import thumb_pack_five from "../assets/Games Backrounds/thumb_pack_five.jpg";
 import thumb_superdraft from "../assets/Games Backrounds/thumb_superdraft.jpg";
 import thumb_imposter from "../assets/Games Backrounds/thumb_imposter.jpg";
 import thumb_who_would_win from "../assets/Games Backrounds/thumb_who_would_win.jpg";
+import { scrambledLogoUrl } from "../constants/teamLogos";
+
+// Name the NBA Club: the session's scrambled crests decode while the court loader is up (fetchData is
+// awaited under it), so round one never opens on the logo slot's own spinner. A failed file just
+// falls through to the game's badge fallback.
+async function preloadScrambledLogos(res: FetchResult): Promise<FetchResult> {
+  if (!res.success) return res;
+  await Promise.all(((res.data ?? []) as NbaTeamLogo[]).map((t) => {
+    const src = scrambledLogoUrl(t.team_id, t.full_name);
+    if (!src) return null;
+    const img = new Image();
+    img.src = src;
+    return img.decode().catch(() => {});
+  }));
+  return res;
+}
 
 export const handleErrorDefault = async (error: { title: string; message: string }) => {
   const Swal = (await import("sweetalert2")).default; // out of the startup bundle
@@ -178,7 +194,7 @@ export const games: Game[] = [
     urlPath: "/name-logo",
     pointsPerCorrect: 10,
     maxPoints: 50,
-    fetchData: () => fetchGamePool("name-logo", 5),
+    fetchData: () => fetchGamePool("name-logo", 5).then(preloadScrambledLogos),
     handleError: handleErrorDefault,
   },
   {

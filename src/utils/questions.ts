@@ -140,11 +140,18 @@ async function cached<T>(version: string, key: string, url: string): Promise<T> 
   return value;
 }
 
+// The name list once this tab has loaded it, readable synchronously: Play preloads it under the court
+// loader (MiniGame), so a game's first render already has it instead of showing "Loading players…".
+let namesLoaded: NamesEntry[] | null = null;
+
+/** The shared name list if this tab already loaded it, else null (then call loadNames). */
+export const namesNow = (): NamesEntry[] | null => namesLoaded;
+
 export async function loadNames(): Promise<NamesEntry[]> {
   const published = await v3Names();
-  if (published) return published;
+  if (published) return (namesLoaded = published);
   const m = await getManifest();
-  return cached<NamesEntry[]>(m.version, "names", m.names);
+  return (namesLoaded = await cached<NamesEntry[]>(m.version, "names", m.names));
 }
 
 export async function loadIndex(game: string): Promise<QuestionIndex> {

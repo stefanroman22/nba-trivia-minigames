@@ -586,6 +586,7 @@ Deliberate and reviewed — do not "fix" these. A game may break a rule only wit
 | Starting Five | root `max-width: 720px` (`.gf:has(.s5-cards)`) | 0 | the five-card lineup wraps below ~720 px | ≤ 2026-10 |
 | Starting Five | taller than 390×844; the page scrolls | 1.1 | five 1:1 cards cannot fit without squashing the photo (Rule 4.3); as a content game the shell grows (Rule 1.2) | ≤ 2026-10 |
 | Contexto | `.endseq` min-height 100 px (`.gf:has(.cx-list)`) | 6.2 | its Give up + input row is taller than the default end slot | ≤ 2026-10 |
+| Contexto | the guess list grows a row per guess (AutoHeight glide) from a one-row prompt up to `--cx-list-max`, the room that keeps the whole game in the viewport (floor 3 rows, ceiling 10), then scrolls; the ui-check adapter sets `growsWhilePlaying` | 6.2 | a fixed list opened on ~300 px of empty box; owner chose a board that starts compact and grows (2026-11-01) | 2026-11-01 |
 | Heatmap, Contexto, TicTacToe, Who Are Ya, Connections, Wordle, Starting Five, Fan Favorites | no progress bar | 5.0 | no linear progression, or the board, rows or lives already are the progress | ≤ 2026-10 |
 | Connections, Heatmap, Contexto, Wordle, Who Are Ya, Career Path, TicTacToe, Bingo, SuperDraft, Imposter | no `ROUND n/total` label | 0 | these games have no rounds | ≤ 2026-10 |
 | Fan Favorites, SuperDraft, Contexto | correct copy is not `Correct! +N` | 6.0 | no per-answer points exist, so `+N` would be false | ≤ 2026-10 |

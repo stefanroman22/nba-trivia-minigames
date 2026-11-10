@@ -6,6 +6,8 @@
    (Rule 4.1). The board stacks the #1 secret card above the scrolling list, so
    it needs a gap of its own (.gf-board is gapless by default). */
 .gf-board:has(.cx-list) { gap: 8px; }
+/* One row height drives both the rows and the list window (4 rows tall). */
+.cx-list, .cx-reveal { --cx-row-h: 44px; }
 
 /* End sequence (Rule 7.3): reserve the input phase's height (46px input row +
    10px gap + 44px Give up) so the swap to loader / ScorePanel never shrinks the
@@ -29,15 +31,16 @@
 }
 
 /* Guess list — the ONLY scroll region */
-/* Fixed play-time height (Rule 6.2): the empty prompt and every guess row live inside the
-   same box, so the stage never resizes as guesses are added; a long trail scrolls inside it. */
+/* Grows with the game (accepted deviation from Rule 6.2, owner 2026-11-01): the list opens as the
+   one-line prompt and hugs its rows, gliding taller per guess (AutoHeight), up to --cx-list-max,
+   which Contexto.tsx sets so the whole game stays in the viewport; past it the trail scrolls here.
+   The newest guess is ringed and scrolled into view wherever its rank sorts it. */
+.cx-list-box, .cx-list-glide { width: 100%; }
 .cx-list {
   /* Containing block for the empty prompt while AnimatePresence popLayout fades it out. */
   position: relative;
   min-height: 0;
-  /* Old cap (clamp(180px, 42svh, 420px)) minus the #1 secret card + its gap
-     (~68px), so adding the card costs the 390x844 budget nothing (Rule 1.1). */
-  height: clamp(112px, calc(42svh - 68px), 352px);
+  max-height: var(--cx-list-max, calc(6 * var(--cx-row-h) + 5 * 6px));
   flex: none;
   width: 100%;
   overflow-y: auto;
@@ -47,13 +50,20 @@
   gap: 6px;
   padding-right: 2px;
 }
+/* The prompt is one row tall, so the first guess replaces it without the list changing height. */
 .cx-empty {
   margin: auto;
+  min-height: var(--cx-row-h);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   text-align: center;
   color: var(--muted);
-  padding: 24px 12px;
+  padding: 2px 12px;
 }
-.cx-empty-title { font-size: 0.95rem; color: var(--text); margin-bottom: 4px; }
+/* While the prompt pops out of flow over the first row, it must not make the list scrollable. */
+.cx-list:has(> [data-motion-pop-id]) { overflow-y: hidden; }
+.cx-empty-title { font-size: 0.95rem; color: var(--text); margin-bottom: 2px; }
 .cx-empty-sub { font-size: 0.8rem; }
 
 /* Rows */
@@ -63,12 +73,18 @@
   grid-template-columns: minmax(0, 1fr) minmax(70px, 34%) auto;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
+  min-height: var(--cx-row-h);
   padding: 6px 10px;
   background: var(--surface2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
+/* The newest guess: an inset ring (never clipped by the scroller) that glides to the next guess. */
+.cx-row { transition: box-shadow 0.3s ease; }
+.cx-row.is-latest { box-shadow: inset 0 0 0 1px var(--text); }
+.cx-row.is-latest.is-good { box-shadow: inset 0 0 0 1px var(--good); }
+.cx-row.is-latest.is-brand { box-shadow: inset 0 0 0 1px var(--brand); }
+.cx-row.is-latest.is-bad { box-shadow: inset 0 0 0 1px var(--bad); }
 /* #1 secret card — always mounted; the end reveal only swaps its content. The
    photo box is fixed-size, so silhouette -> headshot never changes its height. */
 .cx-reveal {
@@ -95,6 +111,14 @@
   object-fit: contain; /* never behead an era-scan headshot */
 }
 .cx-reveal-photo svg { fill: var(--line2); }
+/* Live game: silhouette and (preloaded) headshot share the box; the reveal cross-fades them. */
+.cx-reveal-photo:has(> .cx-reveal-face) { position: relative; }
+.cx-reveal-photo > svg { transition: opacity 0.3s ease; }
+.cx-reveal-face { position: absolute; inset: 0; opacity: 0; transition: opacity 0.3s ease; }
+.cx-reveal.is-revealed .cx-reveal-photo > svg { opacity: 0; }
+.cx-reveal.is-revealed .cx-reveal-face { opacity: 1; }
+/* The name swaps through SwapText (an inline-block span): keep the ellipsis on long names. */
+.cx-swap-clip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: top; }
 .cx-reveal-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .cx-reveal-label { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.3px; }
 .cx-row-name {
@@ -156,6 +180,7 @@
 
 /* Small phones (390x844): tighter rows, still no page scroll */
 @media (max-width: 480px) {
-  .cx-row, .cx-reveal { min-height: 42px; padding: 5px 8px; gap: 6px; }
+  .cx-list, .cx-reveal { --cx-row-h: 42px; }
+  .cx-row, .cx-reveal { padding: 5px 8px; gap: 6px; }
   .cx-reveal { gap: 8px; }
 }

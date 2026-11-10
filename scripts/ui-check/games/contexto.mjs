@@ -64,6 +64,9 @@ export default {
   playAgain: false, // the locked result: Close game only
   idleAfterPlay: 'games.idleNote', // Close game lands on "Next secret player available in …", not on Play
   freshAccount: true, // every scenario is its own account + fresh device id (once-per-day gate)
+  // Accepted deviation (Rule 6.2, owner 2026-11-01): the guess list grows with each guess (gliding, AutoHeight) up to a
+  // cap that keeps the whole game on screen, so the stage height changes per turn by design. `snap` still guards the glide.
+  growsWhilePlaying: true,
   feedback: {
     selector: '.feedback-slot > *',
     // (turn, record, colours) → problems. `truth` of a miss is `#<rank>`, of the solve `Got it in N! +score`; `meta.bucket` its colour.
