@@ -195,6 +195,7 @@ jobs:
     permissions:
       contents: write
       statuses: write # the status of a promotion merge commit (below)
+      actions: write # delete the promotion PR's unapproved Security run (below)
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
     steps:
@@ -209,6 +210,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      # The promotion PR is opened with GITHUB_TOKEN, so security.yml's own pull_request run for it waits for an
+      # approval nobody gives and turns into a failure once the PR closes. The gate above already scanned this
+      # promotion (workflow_call), so the waiting run is deleted while it can still be told apart. Never blocking.
+      - name: Drop the promotion PR's unapproved Security run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/security.yml/runs?event=pull_request&branch=dev&status=action_required" \
+            --jq '.workflow_runs[].id' | while read -r id; do
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/runs/$id" && echo "deleted run $id" || echo "could not delete run $id"
+          done || true
       - name: Merge dev into main and push
         env:
           SCANNED: ${{ needs.security-gate.outputs.sha }}
