@@ -220,9 +220,9 @@
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
     "decision": "skip:open",
-    "run": "20261108-0241",
-    "at": "2026-11-08T04:27:26.090Z",
-    "id": "UIC-20261108-0241-001"
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:50.672Z",
+    "id": "UIC-20261115-0256-002"
   },
   "tap-target|/tictactoe|div > div.stage-inner > div > div.playing-wrap > button.exit-link.is-report": {
     "key": "b71ccf82f337",
@@ -283,18 +283,18 @@
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
     "decision": "skip:open",
-    "run": "20261108-0241",
-    "at": "2026-11-08T04:27:26.090Z",
-    "id": "UIC-20261108-0241-002"
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:50.672Z",
+    "id": "UIC-20261115-0256-003"
   },
   "notice-covers|/tictactoe|.om-notice": {
     "key": "0a9ca32af74c",
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
     "decision": "skip:open",
-    "run": "20261108-0241",
-    "at": "2026-11-08T04:27:26.090Z",
-    "id": "UIC-20261108-0241-004"
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:50.672Z",
+    "id": "UIC-20261115-0256-004"
   },
   "tap-target|/series-winner|div.stage-inner > div > div.om > div.om-stage.om-stage--results > button.om-exit": {
     "key": "faa7eb801d7c",
@@ -353,9 +353,9 @@
     "card": "40b2cfb1-c595-8122-ba4c-e73d3772ad8d",
     "status": "To Do",
     "decision": "skip:open",
-    "run": "20261108-0241",
-    "at": "2026-11-08T04:27:26.090Z",
-    "id": "UIC-20261108-0241-005"
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:50.672Z",
+    "id": "UIC-20261115-0256-005"
   },
   "check-bug|spec|latency-rank-up-modal": {
     "key": "44ed9d72df0b",
@@ -364,5 +364,30 @@
     "decision": "create",
     "run": "20261108-0241",
     "at": "2026-11-08T04:27:27.235Z"
+  },
+  "stage-resized|/fan-favorites|.stage-shell": {
+    "key": "d8200859dbc2",
+    "card": "4192cfb1-c595-814b-9aa6-e448be78483d",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:50.672Z",
+    "id": "UIC-20261115-0256-001"
+  },
+  "check-bug|env|waya-photo-cdn-blocked": {
+    "key": "6f635af7305e",
+    "card": "4192cfb1-c595-81df-a0ea-d632ec51cb2e",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:53.792Z"
+  },
+  "check-bug|spec|mp-rank-up-modal": {
+    "key": "0b82eab62797",
+    "card": "4192cfb1-c595-816a-b24d-ef0e70e811e3",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261115-0256",
+    "at": "2026-11-15T04:25:53.792Z"
   }
 }
