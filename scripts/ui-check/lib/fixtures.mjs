@@ -36,7 +36,11 @@ export const SOFT_RULES = new Set(['tap-target-touch', 'not-hydrated', 'skip-exp
  *  `console` violation. Kept strict: an HTTP error status (404, 5xx), a DNS or certificate error, and every other host
  *  (the app's own, its backend, relay, data host and questions store) stay violations. */
 const EXTERNAL_ASSET_HOSTS = [/(^|\.)cdn\.nba\.com$/, /(^|\.)wikimedia\.org$/, /(^|\.)wikipedia\.org$/];
-const RUNNER_NETWORK_ERRORS = /^Failed to load resource: net::ERR_(HTTP2_PROTOCOL_ERROR|CONNECTION_(RESET|CLOSED|TIMED_OUT|REFUSED|FAILED)|TIMED_OUT|TUNNEL_CONNECTION_FAILED|PROXY_CONNECTION_FAILED|EMPTY_RESPONSE)\b/;
+const RUNNER_NETWORK_CODES = String.raw`net::ERR_(HTTP2_PROTOCOL_ERROR|CONNECTION_(RESET|CLOSED|TIMED_OUT|REFUSED|FAILED)|TIMED_OUT|TUNNEL_CONNECTION_FAILED|PROXY_CONNECTION_FAILED|EMPTY_RESPONSE)\b`;
+const RUNNER_NETWORK_ERRORS = new RegExp(`^Failed to load resource: ${RUNNER_NETWORK_CODES}`);
+const RUNNER_NETWORK_FAILURE = new RegExp(`^${RUNNER_NETWORK_CODES}`);
+/** The same connection-level list for a `requestfailed` event's `req.failure().errorText` ("net::ERR_…"). */
+export const isRunnerNetworkFailure = (errorText) => RUNNER_NETWORK_FAILURE.test(String(errorText ?? ''));
 export const isExternalNetworkError = (text, resourceUrl, pageUrl) => {
   if (!RUNNER_NETWORK_ERRORS.test(String(text)) || !resourceUrl || ownHost(pageUrl, resourceUrl)) return false;
   try { const h = new URL(resourceUrl).hostname; return EXTERNAL_ASSET_HOSTS.some((re) => re.test(h)); } catch { return false; }

@@ -452,6 +452,14 @@ export function watchLogSession(page) {
   };
 }
 
+/** Collect a page's failed requests as a live array of `{ url, error }` (`error` = Chromium's net::ERR_… text; attach
+ *  before the first navigation). An HTTP error status is a response, not a failed request, so it never lands here. */
+export function watchFailedRequests(page) {
+  const failed = [];
+  page.on('requestfailed', (req) => failed.push({ url: req.url(), error: req.failure()?.errorText ?? null }));
+  return failed;
+}
+
 /** The end screen's buttons (Rule 7.0): Play again + Close game, or Close game alone for `playAgain: false` (Wordle). */
 export const endButtons = (adapter) => (adapter.playAgain === false ? ['Close game'] : ['Play again', 'Close game']);
 const missingEndButtons = (adapter, geo) => endButtons(adapter).filter((n) => !geo.buttons.some((b) => b.text === n));
@@ -643,6 +651,7 @@ export async function useFreshAccount(page, seed) {
 
 async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, { full, logSession, online, pool, fresh }) {
   const ctx = newCtx({ cap, fiber, vp, audit }, scenario, { online, pool });
+  ctx.failedRequests = watchFailedRequests(page); // before audit.goto: adapters tell a runner-blocked asset from a missing one
   if (fresh) {
     ctx.account = fresh;
     audit.metrics.push({ kind: 'note', label: 'fresh account', value: fresh, unit: '', route: adapter.path });

@@ -11,10 +11,45 @@
 // (utils/questions.ts buildNameLookup over the captured autocomplete list, first claim wins, canonical names and
 // aliases): the adapter rebuilds it, types the mystery's full name only when it resolves to the mystery, and a wrong
 // guess is a player whose name resolves to HIMSELF and not to the mystery, never repeated.
+// End reveal: the revealed name is always checked; the sharp photo too, unless the mystery's own headshot request
+// failed at the connection level on the runner (cdn.nba.com / Commons, ctx.failedRequests): then the silhouette
+// fallback is accepted, the blur is not checkable and a note metric says so (photoEndProblem).
+import { isRunnerNetworkFailure } from '../lib/fixtures.mjs';
 import { L } from '../lib/pagemap.mjs';
 import { answerFrom, capNames, capQuestions, fiberRound, nextTurn, normAnswer, shellIsOver, typeAndConfirm } from './helpers.mjs';
 
 const MAX_GUESSES = 8;
+const NBA_HEADSHOT = /^\/headshots\/nba\/latest\/\d+x\d+\/(\d+)\.png$/;
+
+/** A failed request (`{ url, error }`, game-driver watchFailedRequests) shows the runner's network blocked this
+ *  mystery's headshot: a connection-level error (lib/fixtures.mjs isRunnerNetworkFailure, the same list the console
+ *  audit downgrades) on cdn.nba.com for THIS person_id (the id parsed from the path, never a substring), or on a
+ *  *.wikimedia.org host (the Commons fallback: its file path carries no person_id, so any Commons failure counts).
+ *  An HTTP 404/5xx (a response, not a failed request), a DNS or certificate error, another id or host: not blocked. */
+export function isBlockedHeadshot(failed, personId) {
+  return (failed || []).some(({ url, error } = {}) => {
+    if (!isRunnerNetworkFailure(error)) return false;
+    let u;
+    try { u = new URL(url); } catch { return false; }
+    if (u.protocol !== 'https:') return false;
+    if (u.hostname === 'cdn.nba.com') {
+      const m = NBA_HEADSHOT.exec(u.pathname);
+      return !!m && personId != null && Number(m[1]) === Number(personId);
+    }
+    return /(^|\.)wikimedia\.org$/.test(u.hostname);
+  });
+}
+
+/** The photo half of endReveal (pure). `filter`: computed filter of .waya-photo, null when the frame is gone;
+ *  `silhouette`: the "no photo" silhouette (not the pending placeholder) is shown. null = fine, else the problem. */
+export function photoEndProblem({ filter, silhouette, failed, personId }) {
+  if (filter != null) return /^(none|blur\(0(px)?\))$/.test(filter) ? null : `the photo is still blurred at the end (${filter})`;
+  const blocked = isBlockedHeadshot(failed, personId);
+  if (silhouette && blocked) return null; // the runner's network blocked the headshot: blur not checkable, name checked
+  return blocked
+    ? 'no .waya-photo and no silhouette at the end, although the headshot request failed: the photo frame is gone'
+    : 'no .waya-photo at the end and no failed headshot request: the headshot is missing from the photo map or the silhouette replaced it, so the blur could not be checked';
+}
 
 /** utils/questions.ts buildNameLookup(names).toId over the captured list. */
 function lookupOf(names) {
@@ -108,7 +143,8 @@ export default {
 
   isOver: shellIsOver,
 
-  /** In place: the reveal card names the mystery, the photo is sharp, one feedback row per guess (the right one marked). */
+  /** In place: the reveal card names the mystery, the photo is sharp (or the silhouette, when the runner's network
+   *  blocked the mystery's headshot), one feedback row per guess (the right one marked). */
   async endReveal(page, ctx, turns) {
     const problems = [];
     const m = ctx.state.mystery;
@@ -119,6 +155,7 @@ export default {
       return {
         reveal: e ? { name: (e.querySelector('.waya-reveal-name')?.textContent || '').trim(), visible: e.getBoundingClientRect().height > 0, won: e.classList.contains('is-won') } : null,
         filter: img ? getComputedStyle(img).filter : null,
+        silhouette: !!document.querySelector('.playing-wrap .waya-silhouette--none:not(.player-photo-pending)'),
         rows: document.querySelectorAll('.playing-wrap .waya-row').length,
         correctRows: document.querySelectorAll('.playing-wrap .waya-row.is-correct').length,
       };
@@ -126,8 +163,9 @@ export default {
     if (!card.reveal || !card.reveal.visible) problems.push('no reveal card with the mystery player at the end');
     else if (normAnswer(card.reveal.name) !== normAnswer(m.full_name)) problems.push(`the reveal card names "${card.reveal.name}", the mystery was ${m.full_name}`);
     else if (card.reveal.won !== won) problems.push(`reveal card is-won=${card.reveal.won} after a ${won ? 'win' : 'loss'}`);
-    if (card.filter == null) problems.push('no .waya-photo at the end (the headshot is missing or replaced by the silhouette), so the blur could not be checked');
-    else if (!/^(none|blur\(0(px)?\))$/.test(card.filter)) problems.push(`the photo is still blurred at the end (${card.filter})`);
+    const photoProblem = photoEndProblem({ filter: card.filter, silhouette: card.silhouette, failed: ctx.failedRequests || [], personId: m.person_id });
+    if (photoProblem) problems.push(photoProblem);
+    else if (card.filter == null) ctx.audit.metrics.push({ kind: 'note', label: 'who-are-ya headshot blocked by the runner network (silhouette accepted, blur not checked)', value: m.person_id, unit: '', route: '/who-are-ya' });
     if (card.rows !== turns.length) problems.push(`${card.rows} feedback rows for ${turns.length} guesses`);
     if (card.correctRows !== (won ? 1 : 0)) problems.push(`${card.correctRows} rows marked correct after a ${won ? 'win' : 'loss'}`);
     return problems;
