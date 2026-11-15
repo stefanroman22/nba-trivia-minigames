@@ -18,7 +18,9 @@ const adapter = adapterFor('series-winner');
 const text = (loc) => loc.first().textContent({ timeout: 3000 }).then((t) => (t || '').replace(/\s+/g, ' ').trim(), () => null);
 const WATCH = ['.stage-shell', '.stage-inner .om-stage--results', '.stage-inner .om-stage--results .om-prompt, .stage-inner .om-stage--results .om-result-actions'];
 
-/** Both players on the results of a finished 1v1 (host all right, joiner all wrong). */
+/** Both players on the results of a finished 1v1 (host all right, joiner all wrong). checkResults also closes a
+ *  "Rank up!" modal a fresh account's first scored match opens over the results (closeRankUpBoth in lib/mp.mjs), so the
+ *  results controls below are not clicked behind its backdrop; they time out in 10 s if anything else covers them. */
 async function toResults(pair, tag = '') {
   await startMatch(pair);
   const { h, j } = await playBoth(pair, adapter, { tag });
@@ -41,7 +43,7 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
 
   // 1. Request → the host waits ("Rematch request sent"), the joiner is asked (Accept / Decline). The actions box glides.
   await motionBoth(pair, 'Play again → request', async () => {
-    await L(host.page, 'multiplayer.playAgain').click();
+    await L(host.page, 'multiplayer.playAgain').click({ timeout: 10_000 });
     await expect(L(host.page, 'multiplayer.cancelRequest')).toBeVisible({ timeout: 5000 });
     await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   }, WATCH);
@@ -56,7 +58,7 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
   // only the proposer: respondProposal(false) sends proposalDeclined to the others and nothing to the decliner, and the
   // client clears nothing locally, so the decliner's own prompt is checked separately.)
   await motionBoth(pair, 'Decline', async () => {
-    await L(joiner.page, 'multiplayer.decline').click();
+    await L(joiner.page, 'multiplayer.decline').click({ timeout: 10_000 });
     await actionsBack(host);
   }, WATCH);
   const declined = await waitNotice(host, /declined\.$/);
@@ -71,11 +73,11 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
 
   // 3. Request again, then the host cancels it: the joiner's request disappears with "The request was withdrawn."
   // (The joiner's Accept may still be the stale one from step 2: wait for a NEW proposalReceived frame.)
-  await L(host.page, 'multiplayer.playAgain').click();
+  await L(host.page, 'multiplayer.playAgain').click({ timeout: 10_000 });
   await newRequest(joiner, ++requests);
   await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   await motionBoth(pair, 'Cancel request', async () => {
-    await L(host.page, 'multiplayer.cancelRequest').click();
+    await L(host.page, 'multiplayer.cancelRequest').click({ timeout: 10_000 });
     await both(pair, actionsBack);
   }, WATCH);
   const withdrawn = await waitNotice(joiner, /withdrawn/);
@@ -85,11 +87,11 @@ test('[MP-PROP-01] rematch: request → decline (notice on the host) → request
 
   // 4. Request → Accept: a new match for both (VS intro, a fresh round), same game.
   const rounds = host.cap.frames('roundData', { dir: 'in' }).length;
-  await L(host.page, 'multiplayer.playAgain').click();
+  await L(host.page, 'multiplayer.playAgain').click({ timeout: 10_000 });
   await newRequest(joiner, ++requests);
   await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   await motionBoth(pair, 'Accept → new match', async () => {
-    await L(joiner.page, 'multiplayer.accept').click();
+    await L(joiner.page, 'multiplayer.accept').click({ timeout: 10_000 });
     await both(pair, (p) => waitState(p, ['intro', 'playing'], 15_000));
   }, STAGE_BOX);
   await both(pair, (p) => waitState(p, 'playing', 30_000));
@@ -112,7 +114,7 @@ test('[MP-PROP-02] change-game proposal from the results: the picker (1v1 notes 
   const target = gameById('name-logo');
   await toResults(pair);
 
-  await L(host.page, 'multiplayer.resultsChangeGame').click();
+  await L(host.page, 'multiplayer.resultsChangeGame').click({ timeout: 10_000 });
   await expect(L(host.page, 'multiplayer.pickerGrid')).toBeVisible();
   await host.page.waitForTimeout(400);
   const items = await host.page.evaluate(() => [...document.querySelectorAll('.modal-panel .gp-grid button.gp-item')].map((b) => ({ name: b.querySelector('.gp-name')?.textContent.trim(), note: b.querySelector('.gp-note')?.textContent.trim(), disabled: b.disabled })));
@@ -135,7 +137,7 @@ test('[MP-PROP-02] change-game proposal from the results: the picker (1v1 notes 
   await shotBoth(pair, 'switch-request');
 
   await motionBoth(pair, 'Accept the switch', async () => {
-    await L(joiner.page, 'multiplayer.accept').click();
+    await L(joiner.page, 'multiplayer.accept').click({ timeout: 10_000 });
     await both(pair, (p) => waitState(p, ['intro', 'playing'], 15_000));
   }, STAGE_BOX);
   await both(pair, (p) => waitState(p, 'playing', 30_000));

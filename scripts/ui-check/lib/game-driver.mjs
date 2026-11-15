@@ -701,11 +701,14 @@ async function playScenario({ page, audit, cap, fiber, vp }, adapter, scenario, 
 
 /** A finished game that lifts the account a rank opens "Rank up!" over the end screen (an app feature: a fresh account
  *  ranks up on its first scored game). Close it as a player does, with Keep playing, before the end screen's controls:
- *  behind it every click waits for the test timeout (GM-wordle-perfect timed out on every @perf viewport). */
-export async function closeRankUp(audit) {
+ *  behind it every click waits for the test timeout (GM-wordle-perfect timed out on every @perf viewport).
+ *  `timeout`: how long to wait for the modal to appear (a caller whose end screen settles before the modal's
+ *  1.2 s delay plus the score submit, such as the multiplayer results, waits longer); `shot`: the shot name (a caller
+ *  that may close it twice in one test passes distinct names: a shot name is claimed once per test). */
+export async function closeRankUp(audit, { timeout = 1500, shot = 'rank-up' } = {}) {
   const keep = L(audit.page, 'common.rankUpKeepPlaying').first();
-  if (!(await keep.waitFor({ state: 'visible', timeout: 1500 }).then(() => true, () => false))) return;
-  await audit.shot('rank-up');
+  if (!(await keep.waitFor({ state: 'visible', timeout }).then(() => true, () => false))) return;
+  await audit.shot(shot);
   await keep.click();
   await keep.waitFor({ state: 'detached', timeout: 5000 }).catch(() => {});
   audit.metrics.push({ kind: 'note', label: 'rank-up modal closed after the end', value: 1, unit: '', route: audit.route });

@@ -10,6 +10,7 @@
 import { expect, test } from '@playwright/test';
 import { L } from './pagemap.mjs';
 import { motionStep } from './account.mjs';
+import { closeRankUp } from './game-driver.mjs';
 import { readStack } from './stack.mjs';
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -446,6 +447,21 @@ export async function settledResults(p, timeout = 45_000) {
   return readResults(p.page);
 }
 
+/**
+ * A match that lifts an account a rank opens "Rank up!" over the results (an app feature: ModalHost opens it from
+ * `pendingRankUp` 1.2 s after the end, so after the results screen is already up; a fresh account ranks up on its first
+ * scored match). Close it on both screens with Keep playing (game-driver's closeRankUp): behind its `.modal-backdrop`
+ * every results click (Play again, Change game, See answers) waits for the test timeout. `timeout` covers the 1.2 s
+ * delay plus the score submit. A rematch can rank the account up again in the same test: the shots are numbered
+ * (rank-up, rank-up-2, ...) because a shot name is claimed once per test.
+ */
+const rankUpCalls = new WeakMap();
+export const closeRankUpBoth = (pair, timeout = 4000) => both(pair, (p) => {
+  const n = (rankUpCalls.get(p.audit) || 0) + 1;
+  rankUpCalls.set(p.audit, n);
+  return closeRankUp(p.audit, { timeout, shot: n === 1 ? 'rank-up' : `rank-up-${n}` });
+});
+
 const HEADLINE = { win: 'You win!', loss: 'You lost', tie: "It's a draw" };
 
 /**
@@ -456,6 +472,7 @@ const HEADLINE = { win: 'You win!', loss: 'You lost', tie: "It's a draw" };
  */
 export async function checkResults(pair, want) {
   const [h, j] = await both(pair, (p) => settledResults(p));
+  await closeRankUpBoth(pair); // before the caller's results clicks (reviewRoundTrip, Play again, Change game)
   const read = { host: h, joiner: j };
   for (const role of ['host', 'joiner']) {
     const p = pair[role], r = read[role], w = want[role], other = role === 'host' ? 'joiner' : 'host';

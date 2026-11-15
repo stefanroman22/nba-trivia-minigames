@@ -6,7 +6,7 @@ import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
 import { adapterFor } from '../../games/index.mjs';
-import { both, finishBoth, openPair, releasePair, shotBoth, shownName, startMatch, waitNotice, waitState } from '../../lib/mp.mjs';
+import { both, closeRankUpBoth, finishBoth, openPair, releasePair, shotBoth, shownName, startMatch, waitNotice, waitState } from '../../lib/mp.mjs';
 import { playBoth } from '../../lib/mp-play.mjs';
 
 test.use({ userAgent: realUserAgent });
@@ -43,7 +43,9 @@ test('[MP-TIMEOUT-01] @slow the relay\'s 30 s limits, for real: a lone search en
   await startMatch(pair);
   await playBoth(pair, adapter, { host: 'perfect', joiner: 'wrong' });
   await both(pair, (p) => waitState(p, 'results', 30_000));
-  await L(host.page, 'multiplayer.playAgain').click();
+  // The host's first scored match opens "Rank up!" over the results (ModalHost): closed before the results controls.
+  await closeRankUpBoth(pair);
+  await L(host.page, 'multiplayer.playAgain').click({ timeout: 10_000 });
   await expect(L(joiner.page, 'multiplayer.accept')).toBeVisible({ timeout: 5000 });
   t0 = Date.now();
   await both(pair, (p) => expect(L(p.page, 'multiplayer.prompt')).toHaveCount(0, { timeout: LIMIT_MS + SLACK_MS + 10_000 }));
@@ -52,7 +54,7 @@ test('[MP-TIMEOUT-01] @slow the relay\'s 30 s limits, for real: a lone search en
   res.forEach((n, i) => { if (n !== 'No response in time.') [host, joiner][i].audit.violation('notice', { selector: '.om-notice', measured: `"${n}"`, expected: '"No response in time."' }); });
   await both(pair, (p) => expect(L(p.page, 'multiplayer.playAgain')).toBeVisible());
   await shotBoth(pair, 'no-response');
-  await L(host.page, 'multiplayer.exitGameLink').click();
+  await L(host.page, 'multiplayer.exitGameLink').click({ timeout: 10_000 });
   await waitState(joiner, 'ended', 10_000);
   await L(joiner.page, 'multiplayer.endedExit').click();
   await both(pair, (p) => waitState(p, 'idle'));
