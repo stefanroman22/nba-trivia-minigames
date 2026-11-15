@@ -93,4 +93,24 @@
 @media (max-width: 480px) {
   .ff-board { gap: 6px; }
   .ff-slot { min-height: 42px; padding: 4px 8px; gap: 6px; }
+  /* Live board only (.gf-board): fixed height (not min-height) so a revealed long answer never
+     grows the row (Rule 6.2). The 2-line clamp is a cap that fits the 32px content box, not a
+     guarantee the whole name shows. The answer-review modal reuses .ff-slot/.ff-answer outside
+     .gf-board, is a static recap with no Rule 6.2 constraint, and keeps growing to show full names. */
+  .gf-board .ff-slot { height: 42px; min-height: 0; }
+  .gf-board .ff-answer {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Narrow phones: give the answer more of the ~150px column so 'Chamberlain' fits in two lines */
+@media (max-width: 400px) {
+  .ff-slot { padding: 4px 6px; }
+  .ff-rank { width: 18px; height: 18px; font-size: 9.5px; }
+  .ff-count { padding: 3px 6px; font-size: 10.5px; }
+  .ff-answer { font-size: 11px; }
 }
