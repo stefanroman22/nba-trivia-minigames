@@ -1,6 +1,6 @@
 {
   "dataAsOf": {
-    "audit": "2026-11-09T12:33:41.905Z",
+    "audit": "2026-11-15T09:25:03.519Z",
     "gsc": "2026-11-09T12:35:41.355Z",
     "indexnow": null
   },
@@ -9,7 +9,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -57,7 +57,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -105,7 +105,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -153,7 +153,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -201,7 +201,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -249,7 +249,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -297,7 +297,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -345,7 +345,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -393,7 +393,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -441,7 +441,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -489,7 +489,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -537,7 +537,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -590,7 +590,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -638,7 +638,7 @@
       "inSitemap": true,
       "expectNoindex": false,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -686,7 +686,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -739,7 +739,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -792,7 +792,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
@@ -845,7 +845,7 @@
       "inSitemap": false,
       "expectNoindex": true,
       "audit": {
-        "runId": "20261109-1233-seo",
+        "runId": "20261115-0925-seo",
         "pass": [
           "IX-01",
           "IX-02",
