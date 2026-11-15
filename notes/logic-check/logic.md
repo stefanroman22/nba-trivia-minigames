@@ -75,7 +75,10 @@ Facts the triage agent and the next implementer need. Keep bullets short and dat
   teens to prove it).
 - Relay throttles (multiplayer_server/src/index.js): `joinFriendRoom` 8 per 10 s per account (JOIN_MAX_TRIES), then
   "Too many attempts…"; `identify` 6 per 10 s per socket (IDENTIFY_MAX_TRIES, the rest are dropped silently); 30
-  events/s per socket (EVENT_MAX, the rest are dropped). LC-ROOMS-09, the busiest test, joins about 6 times in about 20 s.
+  events/s per socket (EVENT_MAX, the rest are dropped). The join budget is per account and spans tests: LC-ROOMS-03..08
+  join as logic.peer 7 times in about 9 s, so LC-ROOMS-09's joins once landed 8th/9th in the same window (run
+  20261108-0236-logic). Since then rooms.spec.mjs spends it through `joinSlot`, which mirrors the fixed window per role
+  (JOIN_WINDOW_MS / JOIN_MAX_TRIES parsed from index.js) and waits out the window rather than relying on timing.
 - Two checkers sharing one lane stack must run from the same checkout. If the minter is on one checkout's sqlite and
   the running Django on another's, every id differs. ui-check's `stack-setup` now refuses that state for every suite
   (see CHECKS.md "How runs work"), and stack.json records `repo: null, relayKey: null` for a reused Django.
