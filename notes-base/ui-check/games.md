@@ -173,6 +173,14 @@ scripts/ui-check/run.mjs --stop` resets them. The log-session assertion stays on
 - **Stage resize at the end**: `stage-resized` ignores a height change while the end phase is mounting (no
   `.playing-wrap`, or EndSequence spinner / ScorePanel / ended exit link present). A resize during the last answer's
   feedback, before the end phase starts, is still caught.
+- **Who Are Ya headshot blocked by the runner network** (`photoEndProblem` in `games/who-are-ya.mjs`, selftest
+  `ST-WAYA-PHOTO`): `PlayerPhoto` drops to the `.waya-silhouette--none` silhouette when the `<img>` fails, so on a
+  runner where cdn.nba.com resets HTTP/2 (or a proxy blocks Commons) `.waya-photo` is gone at the end. The silhouette
+  is accepted only when the driver's `ctx.failedRequests` holds a connection-level error (`isRunnerNetworkFailure`) on
+  that mystery's own `cdn.nba.com/headshots/…/<person_id>.png` or on a `*.wikimedia.org` file; the blur check is then
+  not performed (a `who-are-ya headshot blocked by the runner network` note metric says so) and the revealed name,
+  is-won and feedback rows are still checked. No failed request, another id or host, an HTTP/DNS/certificate error,
+  or a still-blurred photo stays `answer-hidden`.
 
 ## Measurement notes
 
