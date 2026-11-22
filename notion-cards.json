@@ -389,5 +389,13 @@
     "decision": "create",
     "run": "20261115-0256",
     "at": "2026-11-15T04:25:53.792Z"
+  },
+  "check-bug|spec|signup-numeric-row-similar-to-username": {
+    "key": "47fc12d5559c",
+    "card": "4202cfb1-c595-81ff-830e-c38ae5dd65a0",
+    "status": "To Do",
+    "decision": "create",
+    "run": "20261122-0320-logic",
+    "at": "2026-11-22T03:22:48.621Z"
   }
 }
