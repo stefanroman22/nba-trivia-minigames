@@ -327,6 +327,51 @@ export function layoutScan({ scope = null, ignore = [], rules = null, touch = fa
   return out;
 }
 
+/**
+ * Wait until every shown overflow:hidden/clip box (the boxes the `clipped` rule measures text against) has kept
+ * its size for `frames` unchanged animation frames, so a box still gliding (AutoHeight animates its height with
+ * framer-motion: no CSS animation, `getAnimations()` is empty) is not read half open. A box appearing or going
+ * away (AutoHeight clips only while it animates) counts as a change. Never waits past `maxMs`: a box that never
+ * rests resolves `{ settled: false, ms, moving }` (the last box seen changing) and the caller scans anyway.
+ */
+export function settleBoxes({ maxMs = 2500, frames = 3 } = {}) {
+  const t0 = performance.now();
+  const r1 = (n) => Math.round(n * 10) / 10;
+  const sample = () => {
+    const m = new Map();
+    for (const el of document.querySelectorAll('*')) {
+      const cs = getComputedStyle(el);
+      const ox = cs.overflowX, oy = cs.overflowY;
+      if (ox !== 'hidden' && ox !== 'clip' && oy !== 'hidden' && oy !== 'clip') continue;
+      if (!isShown(el)) continue;
+      const r = el.getBoundingClientRect();
+      m.set(el, `${r1(r.width)}x${r1(r.height)}`);
+    }
+    return m;
+  };
+  const changedIn = (a, b) => {
+    for (const [el, s] of b) if (a.get(el) !== s) return el;
+    for (const el of a.keys()) if (!b.has(el)) return el;
+    return null;
+  };
+  return new Promise((resolve) => {
+    let prev = sample(), still = 0, moving = null, done = false, cap = null;
+    const finish = (v) => { if (done) return; done = true; clearTimeout(cap); resolve(v); };
+    // The cap is a timer, not a frame count, so a page whose frames stall still returns on time.
+    cap = setTimeout(() => finish({ settled: false, ms: maxMs, moving: moving ? cssPath(moving) : null }), maxMs);
+    const tick = () => {
+      if (done) return;
+      const next = sample();
+      const el = changedIn(prev, next);
+      if (el) { still = 0; moving = el; } else still++;
+      prev = next;
+      if (still >= frames) { finish({ settled: true, ms: Math.round(performance.now() - t0) }); return; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // motion: snap sampler (rAF rect sampling) + layout-shift / long-animation-frame window
 

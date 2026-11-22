@@ -11,7 +11,7 @@ import path from 'node:path';
 import { test as base, expect } from '@playwright/test';
 import { VIEWPORTS, MP_PAIRS, contextOptions } from './viewports.mjs';
 import { REPO_ROOT } from './run-id.mjs';
-import { inPage, layoutScan, snapStart, snapCollect, windowStats, perfSnapshot } from './detect.mjs';
+import { inPage, layoutScan, settleBoxes, snapStart, snapCollect, windowStats, perfSnapshot } from './detect.mjs';
 import { PROBE_SCRIPT } from './probes.mjs';
 import { shotPath, viewportShot, rectShot, locatorShot } from './evidence.mjs';
 import { mintTokens, soloUsername } from './accounts.mjs';
@@ -257,9 +257,22 @@ export async function createAudit(page, testInfo, { project = testInfo.project.n
       noteRoute(route());
     },
 
-    /** overflow-x, offscreen, clipped, occluded, tap-target. Returns the violations it added. */
-    async layout({ scope = null, ignore = [], rules = null } = {}) {
+    /**
+     * overflow-x, offscreen, clipped, occluded, tap-target. Returns the violations it added.
+     * When `clipped` is scanned, first waits for the page's overflow:hidden/clip boxes to rest (settleBoxes: 3
+     * unchanged frames, 2.5 s cap) so a box still gliding open (AutoHeight) is not read half open; text still cut
+     * at rest is reported as before. A box that never rests is scanned at the cap and leaves a `layout settle cap
+     * hit` note. `settle: false` measures the frame as it is (a caller that wants the in-flight frame).
+     */
+    async layout({ scope = null, ignore = [], rules = null, settle = true } = {}) {
       const touch = vp ? !!vp.hasTouch : false;
+      if (settle && (!rules || !rules.length || rules.includes('clipped'))) {
+        const s = await page.evaluate(inPage(settleBoxes, {})).catch(() => null);
+        if (s && !s.settled) {
+          metrics.push({ kind: 'note', label: 'layout settle cap hit', value: s.ms, unit: 'ms', route: route(),
+            note: `an overflow:hidden box was still resizing after ${s.ms}ms${s.moving ? ` (${s.moving})` : ''}; clipped scanned anyway` });
+        }
+      }
       const found = await page.evaluate(inPage(layoutScan, { scope, ignore, rules, touch }));
       noteRoute(route());
       return recordAll(found);
