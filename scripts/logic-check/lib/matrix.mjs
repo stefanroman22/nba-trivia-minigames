@@ -42,7 +42,8 @@ export const MSG = {
   consentRequired: { text: 'Please agree to the Terms of Service and Privacy Policy.', src: 'consent' },
   pwShort: { text: /^This password is too short\. It must contain at least 8 characters\.$/, src: 'django' },
   pwCommon: { text: /^This password is too common\.$/, src: 'django' },
-  pwNumeric: { text: /^This password is entirely numeric\.$/, src: 'django' },
+  // the backend joins every failing validator with a space: the numeric text may follow "The password is too similar to the username." (the similarity validator also sees the lgc<digits> username)
+  pwNumeric: { text: /(?:^|\. )This password is entirely numeric\.$/, src: 'django' },
   pwSimilar: { text: /too similar to the (username|email)/i, src: 'django' },
   anyError: { text: /\S/, src: 'none' }, // a non-string password: any 400 message, as long as it is a 400
 };
