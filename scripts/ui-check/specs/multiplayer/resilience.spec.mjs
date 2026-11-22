@@ -5,7 +5,7 @@ import { test, expect, L } from '../../lib/fixtures.mjs';
 import { realUserAgent } from '../../lib/game-driver.mjs';
 import { gameById } from '../../lib/guest.mjs';
 import {
-  STAGE_BOX, both, finishBoth, layoutBoth, motionBoth, openPair, recordTexts, releasePair, roomWithBoth, shotBoth, shownName, startMatch, startRoom,
+  STAGE_BOX, both, finishBoth, layoutBoth, motionBoth, openPair, recordClasses, recordTexts, releasePair, resumedChip, roomWithBoth, shotBoth, shownName, startMatch, startRoom,
   waitNotice, waitState,
 } from '../../lib/mp.mjs';
 
@@ -14,6 +14,7 @@ test.afterEach(async () => { await releasePair(); });
 
 const SW = gameById('series-winner');
 const GRACE_MS = 30_000;
+const CHIP = '.stage-inner .om-stage .om-playbar .om-chip';
 const text = (loc) => loc.first().textContent({ timeout: 3000 }).then((t) => (t || '').replace(/\s+/g, ' ').trim(), () => null);
 
 test('[MP-RES-01] the host leaves a 1v1 mid-game → the joiner sees "Match ended" / "Your opponent left the match." with Find new match / Exit game; a reload mid-match resumes within the grace window; a friend-room host\'s Stop match takes both back to the lobby', async ({ mp }) => {
@@ -47,14 +48,22 @@ test('[MP-RES-01] the host leaves a 1v1 mid-game → the joiner sees "Match ende
   const jName = shownName(joiner, 'match');
   let resumeMs = null;
   const notices = await recordTexts(host.page, '.stage-inner .om .om-notice', async () => {
-    const chip = await recordTexts(host.page, '.stage-inner .om-stage .om-playbar .om-chip .om-chip-state', async () => {
+    // The chip's state is asserted on its class (`om-chip is-${state}`, set synchronously from oppStatus), not on its
+    // label: the label is a mode=wait SwapText, so a short offline window may never paint "Reconnecting".
+    const chip = await recordClasses(host.page, CHIP, async () => {
       const t0 = Date.now();
       await joiner.page.reload({ waitUntil: 'domcontentloaded' });
       await expect(L(joiner.page, 'multiplayer.gameRoot')).toBeVisible({ timeout: GRACE_MS });
       resumeMs = Date.now() - t0;
       await waitNotice(host, /reconnected\.$/, { timeout: 10_000 });
     }, { tail: 300 });
-    if (!chip.texts.includes('Reconnecting')) host.audit.violation('resume', { selector: '.om-chip-state', measured: `opponent chip ${chip.texts.join(' → ')}`, expected: 'Reconnecting while the joiner is away, then Playing' });
+    if (!resumedChip(chip.states)) host.audit.violation('resume', { selector: '.om-chip', measured: `opponent chip states ${chip.states.join(' → ') || '(none)'}`, expected: 'is-offline while the joiner is away, then is-playing again' });
+    // End state on the label: "Playing" once the SwapText has finished its swap.
+    const label = await host.page.waitForFunction((sel) => {
+      const el = document.querySelector(sel);
+      return el && el.innerText.replace(/\s+/g, ' ').trim() === 'Playing';
+    }, `${CHIP} .om-chip-state`, { timeout: 5000 }).then(() => 'Playing', () => text(host.page.locator(`${CHIP} .om-chip-state`)));
+    if (label !== 'Playing') host.audit.violation('resume', { selector: '.om-chip-state', measured: `"${label}"`, expected: 'Playing after the reconnect' });
   }, { tail: 300 });
   joiner.audit.metrics.push({ kind: 'timing', label: 'reload → back on the playing screen', value: resumeMs, unit: 'ms', budget: GRACE_MS, route: joiner.audit.route });
   if (!notices.texts.includes(`${jName} disconnected. Trying to reconnect...`)) host.audit.violation('resume', { selector: '.om-notice', measured: `notices ${JSON.stringify(notices.texts)}`, expected: `"${jName} disconnected. Trying to reconnect..."` });

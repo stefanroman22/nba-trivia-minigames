@@ -134,6 +134,67 @@ export async function recordTexts(page, selector, fn, { tail = 500 } = {}) {
 }
 
 /**
+ * The className history of the first `selector` match while `fn` ran (+ `tail` ms): { states, classes, remounts }.
+ * `classes` = the distinct className strings; `states` = the ordered, consecutive-distinct `is-*` tokens (e.g.
+ * ['is-playing', 'is-offline', 'is-playing']); `remounts` = times the element was replaced. Sampled on every animation
+ * frame AND by a MutationObserver (class attribute with its old value, plus childList for a remount), so a class
+ * that lives for less than one frame (set and unset inside one task) is still recorded. Use it to assert a state the
+ * app sets synchronously when its visible label is animated (a mode=wait SwapText may never paint a short state).
+ */
+let clsSeq = 0;
+export async function recordClasses(page, selector, fn, { tail = 500 } = {}) {
+  const id = ++clsSeq; // recorders may nest (one per selector)
+  await page.evaluate(({ sel, id }) => {
+    const rec = ((window.__mpCls ||= {})[id] = { states: [], classes: [], remounts: 0, el: null, stop: false, done: false, mo: null });
+    const push = (cls) => {
+      const c = (cls || '').replace(/\s+/g, ' ').trim();
+      if (!c) return;
+      if (!rec.classes.includes(c)) rec.classes.push(c);
+      const st = c.split(' ').filter((t) => t.startsWith('is-')).join(' ');
+      if (st && rec.states[rec.states.length - 1] !== st) rec.states.push(st);
+    };
+    const sample = () => {
+      const el = document.querySelector(sel);
+      if (!el) return;
+      if (rec.el && el !== rec.el) rec.remounts++;
+      rec.el = el;
+      push(el.getAttribute('class'));
+    };
+    rec.mo = new MutationObserver((records) => {
+      // Each attribute record carries the value before that change: its old values in order, then the current one,
+      // replay every class the element had, even one set and unset before any frame was painted.
+      for (const r of records) {
+        if (r.type === 'attributes' && r.target instanceof Element && r.target.matches(sel)) push(r.oldValue);
+      }
+      sample();
+    });
+    rec.mo.observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+    sample();
+    const tick = () => {
+      sample();
+      if (!rec.stop) requestAnimationFrame(tick); else { rec.mo.disconnect(); rec.done = true; }
+    };
+    requestAnimationFrame(tick);
+  }, { sel: selector, id });
+  await fn();
+  await page.waitForTimeout(tail);
+  await page.evaluate((id) => { window.__mpCls[id].stop = true; }, id);
+  await page.waitForFunction((id) => window.__mpCls[id].done, id, { timeout: 5000 }).catch(() => {});
+  return page.evaluate((id) => { const r = window.__mpCls[id]; r.mo.disconnect(); return { states: r.states, classes: r.classes, remounts: r.remounts }; }, id);
+}
+
+/**
+ * MP-RES-01's rule on recordClasses(...).states of the host's opponent chip: it went `is-offline` while the joiner was
+ * away and is `is-playing` again after that (never offline → false; stuck offline → false).
+ */
+export function resumedChip(states) {
+  const list = states || [];
+  const has = (s, tok) => String(s).split(' ').includes(tok);
+  const off = list.findIndex((s) => has(s, 'is-offline'));
+  return off >= 0 && list.slice(off + 1).some((s) => has(s, 'is-playing'));
+}
+
+/**
  * Long animation frames are not enforced while BOTH pages render the same event at once on one machine (motionBoth,
  * playOnline, playDuel): a frame's length is then not attributable to the page. A `loaf` from such a window becomes a
  * note metric with its step; snap and CLS stay enforced. A single-side motion() (one player acting, the other page
