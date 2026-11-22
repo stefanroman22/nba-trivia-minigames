@@ -107,8 +107,9 @@
   }
 }
 
-/* Narrow phones: give the answer more of the ~150px column so 'Chamberlain' fits in two lines */
-@media (max-width: 400px) {
+/* Phones (up to 480px, so 414 too): give the answer more of the ~150px column so 'Chamberlain'
+   and 'Antetokounmpo' fit in two lines inside the fixed 42px slot */
+@media (max-width: 480px) {
   .ff-slot { padding: 4px 6px; }
   .ff-rank { width: 18px; height: 18px; font-size: 9.5px; }
   .ff-count { padding: 3px 6px; font-size: 10.5px; }
