@@ -362,3 +362,46 @@ class ApiTests(TestCase):
             self.assertEqual(self.api.post(f"/api/admin/game-builder/{game.pk}/refine/", {"prompt": "x"}, format="json").status_code, 503)
         run.assert_not_called()
         self.assertEqual(len(self.api.get(f"/api/admin/game-builder/{game.pk}/play/").json()["rounds"]), 5)
+
+
+class SdkRequestTests(SimpleTestCase):
+    """The loop through the real Anthropic SDK against a canned HTTP transport: what goes on the wire, and that
+    the SDK's own response objects are read correctly. Still no network."""
+
+    def test_wire_request_and_parsed_response(self):
+        import json
+
+        import anthropic
+        import httpx2
+
+        seen = []
+
+        def handler(request):
+            seen.append((request, json.loads(request.content)))
+            return httpx2.Response(200, json={
+                "id": "msg_1", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
+                "stop_reason": "tool_use", "stop_sequence": None,
+                "content": [
+                    {"type": "thinking", "thinking": "", "signature": "sig"},
+                    {"type": "tool_use", "id": "toolu_1", "name": "submit_game",
+                     "input": {"spec": DRAFT_SPEC, "summary": "Who drafted each All-Star."}},
+                ],
+                "usage": {"input_tokens": 50, "output_tokens": 20, "cache_read_input_tokens": 1500, "cache_creation_input_tokens": 0},
+            })
+
+        client = anthropic.Anthropic(api_key="test-key", max_retries=0, http_client=httpx2.Client(transport=httpx2.MockTransport(handler)))
+        result = agent.run("who drafted the stars", client=client)
+
+        self.assertEqual(result.spec, validate(DRAFT_SPEC))
+        self.assertEqual(result.message, "Who drafted each All-Star.")
+        self.assertEqual(result.usage, {"input_tokens": 1550, "output_tokens": 20, "turns": 1})
+        request, body = seen[0]
+        self.assertEqual(request.url.path, "/v1/messages")
+        self.assertIn(agent.FALLBACK_BETA, request.headers["anthropic-beta"])
+        self.assertEqual(body["model"], "claude-opus-5-5")
+        self.assertEqual(body["fallbacks"], "default")
+        self.assertEqual(body["output_config"], {"effort": "medium"})
+        self.assertEqual([t["name"] for t in body["tools"]], ["describe_source", "preview_game", "submit_game"])
+        self.assertEqual(body["system"][0]["cache_control"], {"type": "ephemeral"})
+        for absent in ("thinking", "tool_choice", "temperature", "betas"):
+            self.assertNotIn(absent, body)

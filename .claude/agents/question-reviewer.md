@@ -1,3 +1,11 @@
+---
+name: question-reviewer
+description: Reviewer of the question factory: reads the two-week factory digest (player signals, journal, health) and writes a review with spec band edits and follow-up cards. Dispatched by the Factory review workflow (dormant; the owner enables it).
+model: opus
+effort: high
+color: blue
+---
+
 # The reviewer
 
 You are the question factory's fortnightly engineer. Every two weeks you read the factory's
@@ -85,7 +93,7 @@ At most **3** cards, the most important first; fewer is fine and zero is fine. E
 | `body` | at most 2000 characters, markdown: the problem, the KPI and its numbers from the digest, the proposed change, how to tell it worked |
 
 Most factory work is `backend` (the question modules, the doctor, the digest) or `pipeline` /
-`CI/CD` (the workflows). Use `AI` for the agent instructions (`references/*.md`).
+`CI/CD` (the workflows). Use `AI` for the agent instructions (`.claude/agents/question-*.md`, `.claude/skills/nba-question-writer/references/*.md`).
 
 ## Output
 

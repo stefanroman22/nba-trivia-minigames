@@ -101,7 +101,8 @@ validation passes, so the previous dataset stays.
   DB tables behind the pool games (playoff series, MVPs, starting five, teams, players) as well as
   the data the question games are built from, so all of them are rebuilt. Publishing uploads only
   what changed, and question games still go through maintenance (re-materialize and retire; no
-  new questions are generated, and there is no Checker since 2026-10-30).
+  new questions are generated; the Checker has been a manual, capped workflow since 2026-11-24,
+  `question-checker.yml`, and was absent from 2026-10-30 until then).
 - **Triggers:** the 1st of each month 01:00 UTC; Run workflow (inputs `limit`, `full` for a
   `--full` backfill); a push to any `refresh/**` branch, so a change can be tried before promotion.
   **Warning:** a push to a `refresh/**` branch that is not `refresh/test-*` is a **FULL** run: it
@@ -216,8 +217,8 @@ design's hosting table).
 the owner's rules (`--label-rules`; a `QuestionLabel` with `source = owner` is never touched, and only active boards
 are relabeled) and generates new boards per band (`--generate-easy|medium|hard N`), stored as `Question` rows with
 `created_by "<band>-rules"`, a rule label, and `--status pending` (the default; pass `--status active` for boards
-that should go live — the Checker that reviewed pending boards was removed on 2026-10-30, and new boards now come
-through the question writer, `.claude/skills/nba-question-writer`). `--dry-run` writes nothing and prints what it
+that should go live — the Checker that reviews pending boards is a manual, capped workflow, `question-checker.yml`,
+and new boards normally come through the question writer, `.claude/skills/nba-question-writer`). `--dry-run` writes nothing and prints what it
 would make.
 
 **Production run (once, after the promotion that brings the command to `main`).** The boards made on 2026-10-26

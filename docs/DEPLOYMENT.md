@@ -144,6 +144,10 @@ CLIENT_SECRET=...
 IMAGE_MODERATION_URL=https://<moderation-project>.vercel.app/api/classify   # photo moderation, see "Moderation service" below; unset in production = uploads answer 503
 MODERATION_SHARED_SECRET=<same random value as the moderation project>
 # optional: MODERATION_REQUIRED (default true when DATABASE_URL is set), PHOTO_BLOCK_THRESHOLD (0.85), PHOTO_REVIEW_THRESHOLD (0.50)
+# optional, BILLED: ANTHROPIC_API_KEY turns on the admin AI game builder (Admin -> Game Builder). Unset = the tab lists and plays
+#   existing drafts but cannot build. Tunables: GAME_BUILDER_MODEL (claude-opus-5-5), GAME_BUILDER_EFFORT (medium),
+#   GAME_BUILDER_MAX_TURNS (6), GAME_BUILDER_TIMEOUT (120 s). A build is several model calls in one request: give the
+#   function a max duration of 60 s or more, or use `manage.py game_builder build "<idea>"` from a shell.
 ```
 The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the old questions pipeline only (`maintain_questions`, `upload_dataset`: hidden games + the fallback snapshot) — not needed on Vercel, nor by `publish_game_data_v3`.
 `DATA_PUBLIC_BASE` (the static game-data host's public URL) is read only by `manage.py publish_game_data_v3`, which runs in the manual `publish-game-data.yml` workflow (repo variable `vars.DATA_PUBLIC_BASE`) — not needed on Vercel either.

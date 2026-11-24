@@ -54,7 +54,7 @@ jobs:
           jq -r .body intake/issue.json > intake/input.txt
           [[ -s intake/input.txt ]] || { echo "the issue has no body"; exit 1; }
       - name: Install Claude Code
-        run: npm i -g @anthropic-ai/claude-code@2.1.285
+        run: npm i -g @anthropic-ai/claude-code@2.1.331
       - name: Split into tickets
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

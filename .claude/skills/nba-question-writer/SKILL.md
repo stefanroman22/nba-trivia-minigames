@@ -129,5 +129,6 @@ put them live. On his go, follow `references/production.md`, then confirm they l
 Details and the production steps: `references/production.md`. Game guides: `references/games/<slug>.md`.
 Style: `references/writing-style.md`, `references/what-players-want.md`.
 
-The `author.md`, `doctor.md` and `reviewer.md` references belong to retired, disabled automations; the
-writer does not use them.
+The unattended question team (`.claude/agents/question-author.md`, `question-checker.md`, `question-doctor.md`,
+`question-reviewer.md` and their workflows) is dormant and separate: the writer does not use it, and it shares
+only the style and fact-checking references in this folder.

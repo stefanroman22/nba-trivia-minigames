@@ -9,10 +9,11 @@ name: Editorial author
 #                               permissions) but must express every question as a rule
 #   apply  (has the DB secret)  re-runs every proposal through the module gates in code (FactoryRun
 #                               kind "editorial"): accepted ones become pending questions, never
-#                               active. The Checker that approved them was removed 2026-10-30, so
-#                               this workflow stays disabled; the prompt-driven question writer
-#                               (.claude/skills/nba-question-writer) replaces it.
-# Instructions for the agent: .claude/skills/nba-question-writer/references/author.md.
+#                               active. A pending question goes live only after the Checker
+#                               (question-checker.yml, a manual run) approves it and the owner publishes.
+# Dormant: the owner keeps this workflow disabled in GitHub and enables it when wanted. In a session with
+# the owner, questions are written with the prompt-driven writer (.claude/skills/nba-question-writer).
+# The agent: .claude/agents/question-author.md.
 on:
   schedule:
     - cron: "0 3 * * 3"   # Wednesday 03:00 UTC
@@ -82,7 +83,7 @@ jobs:
           # it only writes a local file.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            You are the editorial author. Read .claude/skills/nba-question-writer/references/author.md and follow it exactly.
+            You are the question-author agent. Read .claude/agents/question-author.md and follow it exactly.
             Input brief: editorial/brief.json
             Write your proposals to editorial/proposals.json and write no other file.
           claude_args: >-

@@ -47,11 +47,18 @@ In PowerShell avoid double quotes inside a title argument (they get stripped); u
 
 ## 3. Triggers
 
-- **Windows scheduled task** `nba-team-pipeline` — runs every 2 hours, 08:00–24:00 daily
-  (registered via `scripts/register-team-cron.ps1`).
+A run is one `/team-run` session. Three things can start one; which of them fire on a schedule is set outside the
+repo (the routine's own settings, Windows Task Scheduler), so check there, not here.
+
+- **Cloud routine** (claude.ai/code/routines, prompt `/team-run`, `TEAM_CLOUD=1`): "Run now", or its cron when
+  the schedule is on. See §13.
 - **Manual**: `npm run team` from the repo root, any time.
-- **From your phone**: add or edit a card and set it to To Do — no run needed on your
-  end, it's picked up by the next scheduled run.
+- **Windows scheduled task** `nba-team-pipeline` (`scripts/register-team-cron.ps1` registers it,
+  `scripts/unregister-team-cron.ps1` removes it): the original local trigger, kept as a fallback.
+
+Since November 2026 the owner starts runs on demand; nothing about the pipeline's code depends on which trigger
+fired. Cards reach the queue by hand, from the checkers (§15), from the security and SEO agents (§16), or from
+ticket intake (§17). Cards from player feedback (§18) arrive in Backlog and wait for you.
 
 ## 4. Status meanings
 
@@ -83,15 +90,16 @@ you take with your own eyes on `dev` first.
 
 ## 7. Where things live
 
-- **Skills** — `.claude/skills/` (e.g. `team-run`, `ship`, `classify`, `qa-protocol`).
+- **The index of every agent, skill and automation** — `.claude/README.md`.
+- **Skills** — `.claude/skills/` (e.g. `team-run`, `ship`, `classify`, `qa-protocol`, `ticket-intake`).
 - **Agents** — `.claude/agents/` (`planner-architect`, `frontend-engine`, `backend-engine`,
-  `browser-qa`, `code-reviewer`, `motion-reviewer`). Verify is a script (`scripts/team/verify.mjs`), not an agent.
+  `browser-qa`, `code-reviewer`, `motion-reviewer`, `ticket-writer`). Verify is a script (`scripts/team/verify.mjs`), not an agent.
 - **Run state** — `.team/run/<slug>/`: `card.json` (spec + props), `classify.json`, `brief.md`
   (the context pack every agent reads), `build-report.json`, `verify.json`, `review-package.md`
   and `state.json` (stage, fix rounds per gate, engine agent ids, base sha). Deleted on ship or
   fail; a leftover dir means a run died and intake resumes it. (`.team/journal.json` was v1.)
-- **Scripts** — `scripts/team/{intake,brief,verify,qa,review-package}.mjs` with pure libs and
-  `node --test` tests under `scripts/team/lib/`. `.claude/team/qa-map.json` maps touched files to
+- **Scripts** — `scripts/team/{intake,brief,verify,qa,review-package,tickets}.mjs` with pure libs and
+  `node --test` tests under `scripts/team/lib/` (`npm run test:automation` runs every script suite). `.claude/team/qa-map.json` maps touched files to
   the games/routes QA exercises.
 - **Logs** — `.team/logs/` (one file per run). Written by PowerShell's
   `Tee-Object`, which defaults to **UTF-16LE** — open with a UTF-16-aware viewer, not a
@@ -222,9 +230,6 @@ fails, QA is skipped with a logged line rather than failing the task. Game tasks
 run `scripts/ui-audit.mjs`, which measures the GAME_DESIGN_CONSTRAINTS shell contract and
 returns named assertion failures — deterministic, no visual judgment required.
 
-The **CTO** review/merge gate (§10) is unaffected by any of this — it already runs in
-GitHub Actions and doesn't care where the worker ran.
-
 **Reports.** The nightly/daytime Slack summary is now the `Team Reports` GitHub Actions
 workflow (`.github/workflows/team-reports.yml`), on a cron at **05:30 and 15:30 UTC**
 (07:30 / 17:30 local in summer). It calls `node scripts/slack.mjs digest-window <start>
@@ -289,8 +294,7 @@ local times.
 Slack message id on its Notion card (`SlackTs`), so reactions are ingested by any run,
 cloud or local — no local state file is involved.
 
-**Go-live (one-time).** None of the above is live yet — until these steps are done, the
-pipeline keeps running exactly as before, on the local scheduled tasks:
+**Setting the routine up (done once; kept as the checklist for re-creating it):**
 1. `gh secret set SLACK_BOT_TOKEN` — the report workflow's own copy of the token.
 2. Create the routine at claude.ai/code/routines: prompt `/team-run`, this repo, cron
    02:00 & 10:00, env vars `TEAM_CLOUD=1` / `NOTION_TOKEN` / `SLACK_BOT_TOKEN`, network
@@ -300,40 +304,44 @@ pipeline keeps running exactly as before, on the local scheduled tasks:
 
 ## 14. Model policy
 
-**Opus is no longer banned.** The 2026-09-06 ban targeted Opus 5 specifically for token cost;
-Opus 5.5 (released 2026-09-22) and Sonnet 5.5 (released 2026-09-28) are meaningfully faster and,
-for Sonnet, cheaper than their 5.x predecessors, which changes that calculus. The rolling aliases
-`opus` and `sonnet` now resolve to the 5.5 versions. `planner-architect-opus` (pinned
-`claude-opus-4-8`, the workaround used to reach an Opus family model during the ban) is no longer
-referenced by this policy and is unused — left in place rather than deleted. The models in play:
+The registry is `.claude/models.json`: the four rolling aliases, the model each resolves to, every agent's default
+and the Claude Code version CI installs (an alias resolves to whatever that CLI maps it to, so the pin matters).
+`npm run check:ai` fails when an agent file, a workflow pin or this section disagrees with it.
 
-| Model | Id | Used for |
+| Alias | Model | Used for |
 |---|---|---|
-| Fable 5.1 | alias `fable` | Classify, code review, CTO gate, the orchestrator itself, and design rounds for hard/multi-area tasks. No longer used as an implementer. |
-| Opus 5.5 | alias `opus` | Implementation for tasks needing real judgment a plan can't fully pin down — whether or not a design round ran. Replaces Fable's old "complex but small" implementer role. |
-| Sonnet 5.5 | alias `sonnet` | The default implementer for clearly-defined steps (however many) or a fully detailed spec, plus verify and browser QA. |
-| Haiku 4.5 | alias `haiku` | Trivial implementation only (copy/config, zero logic). |
+| `fable` | Fable 5.2 | Where a wrong call is expensive: design rounds for hard or multi-area cards, review of P0 / high-risk / hard / protected-path diffs, the weekly security review, the SEO agent. Never an implementer. |
+| `opus` | Opus 5.5 | Judgment inside the work itself: implementation a plan cannot fully pin down, motion, the PR security review, ticket writing, the question author and doctor, the in-app game builder. |
+| `sonnet` | Sonnet 5.5 | The default worker: the orchestrator, classify, standard plans, clearly specified implementation, standard review, browser flows, the checker judges, feedback triage. |
+| `haiku` | Haiku 5.5 | Trivial implementation only (copy or config, zero logic). |
 
-The v2 rule (2026-10-03): **scripts do everything mechanical; Haiku assembles; Sonnet is the
-default worker everywhere; Opus only where feel or judgment lives inside code; Fable only where
-a wrong call is expensive — hard planning and risky review.** The single source of truth is
-`designs/2026-10-03-pipeline-v2-loop-architecture.md` §9; the orchestrator passes every model
-explicitly (never relying on agent frontmatter or the `npm run engine` profile):
+The rule (v2, 2026-10-03): **scripts do everything mechanical; Sonnet is the default worker everywhere; Opus only
+where feel or judgment lives inside the work; Fable only where a wrong call is expensive.** The orchestrator passes
+every model explicitly, so neither an agent file's frontmatter nor the `npm run engine` profile decides a
+pipeline spawn:
 
 | Role | Model |
 |---|---|
-| Orchestrator (`team-run` session) | **sonnet** — `scripts/team-run.ps1` passes `--model sonnet`; the cloud routine's model is set in its UI. |
-| `planner-architect` — classify | **sonnet**. |
-| `planner-architect` — short plan for a `standard` card whose spec has no numbered steps | **sonnet**. |
-| `planner-architect` — design round (`hard` only: security, protocol, data regeneration, new patterns, owner Difficulty=hard) + its replan | **fable**, one pass, 10-minute cap. |
+| Orchestrator (`team-run` session) | **sonnet**: `scripts/team-run.ps1` passes `--model sonnet`; the cloud routine's model is set in its UI. |
+| `planner-architect`: classify | **sonnet**. |
+| `planner-architect`: short plan and acceptance criteria for a `standard` card whose spec has none | **sonnet**. |
+| `planner-architect`: design round (`hard` only: security, protocol, data regeneration, new patterns, owner Difficulty=hard) and its replan | **fable**, one pass, 10-minute cap. |
 | Implementer (`frontend-engine`, `backend-engine`) | **haiku** trivial · **sonnet** default · **opus** for motion/animation, `risk: high`, non-trivial P0, and `[opus]`-tagged plan steps. Fix round 3 escalates one model up. |
-| verify, qa, review-package | scripts — no model. |
+| verify, qa, review-package | scripts, no model. |
 | `browser-qa` | **sonnet**, only for `"flow"` assertions a script cannot express. |
 | `code-reviewer` | **sonnet** for trivial/standard risk-low P1/P2; **fable** for P0, `risk: high`, `hard`, security, or protected paths (`review-package.mjs` prints the pick). |
 | `motion-reviewer` | **opus**, only when the diff touches `src/motion/**`, `components/motion/**`, a `framer-motion` import, or CSS transitions/animations. |
-| CTO review (GitHub Actions) | **fable**, pinned in `.github/workflows/claude.yml`. |
+| `ticket-writer` (§17) | **opus**: a badly scoped ticket costs a whole pipeline run. |
+| `feedback-triage` (§18) | **sonnet**: classification and short tickets, reviewed by you in Backlog. |
+| `@claude` responder (GitHub Actions) | the session model in `.claude/settings.json` (`fable`), read by `.github/workflows/claude.yml`. |
 
-History: `docs/team/DECISIONS.md` 2026-09-06 (Opus ban), 2026-09-29 (reversal), 2026-10-03 (v2).
+Haiku 5.5 and Sonnet 5.5 are cheap enough that the cost case for moving more judgment down a tier is worth an
+eval, but no role was moved on price alone: a tier change needs a measured pass rate, not a price list.
+
+History: `docs/team/DECISIONS.md` 2026-09-06 (Opus 5 banned for cost), 2026-09-29 (reversal: Opus 5.5 and
+Sonnet 5.5), 2026-10-03 (v2). 2026-11-24: Fable 5.2 and Haiku 5.5 replace Fable 5.1 and Haiku 4.5 behind the same
+aliases, the Opus 4.8-pinned `planner-architect-opus` (unused since the reversal) was deleted, and CI's Claude
+Code pin moved to the release that maps the aliases to those models.
 
 ## 15. Check cards
 
@@ -425,3 +433,47 @@ and runs `brief.mjs`; then `claude -p "/team-direct <slug>"` (skill `.claude/ski
 engine) → `verify.mjs` → fable review with the usual fix rounds, and ends with `DIRECT-DONE`/`DIRECT-FAIL`. It never
 commits, pushes or touches Notion/Slack: `scripts/security/run.mjs` commits, pushes and re-scans (2 rounds per PR at
 most). docs/security/README.md.
+
+## 17. Ticket intake and acceptance criteria
+
+**From a long text to cards.** `.claude/skills/ticket-intake`: the `ticket-writer` agent (read-only, returns JSON)
+splits one text into tickets and `scripts/team/tickets.mjs` validates and files them. A ticket is
+`{title, category, priority, difficulty?, context, scope[], acceptance[], out_of_scope?[], files?[], depends_on?[]}`.
+The validator refuses the whole document when any ticket lacks a checkable acceptance criterion ("it works" is
+rejected), so nothing reaches the board without them.
+
+```
+node scripts/team/tickets.mjs split notes.txt            # agent -> .team/tickets/<run>/tickets.json (one corrective retry)
+node scripts/team/tickets.mjs render <tickets.json>      # read what would be filed
+node scripts/team/tickets.mjs create <tickets.json>      # one card each, Status To Do; --status Backlog to park, --dry-run to look
+```
+
+Cards carry `Source` = `ticket-intake fp:<title fingerprint> run:<id>`; a ticket whose title already has an open
+card is skipped, so `create` is safe to repeat. From GitHub: `ticket-intake.yml` takes the number of an issue
+**written by the repository owner** and files its body the same way (Backlog by default).
+
+**How the criteria are used.** The card body has `## Acceptance criteria` with bullets `- AC1: …` (bullets on
+purpose: numbered lines are read as plan steps). `brief.mjs` copies them into the brief's
+`## Acceptance (what the reviewer checks)`; a card you wrote by hand gets the same treatment when it has that
+section, and when it has none the planner writes 2-5 there before any code. The engine reports each id in
+`build-report.json` (`acceptance: [{id, met, how}]`), `review-package.mjs` puts the list and the engine's claims in
+front of the reviewer, and the reviewer ends with `AC<n>: met | not met | cannot tell`. `not met` is a blocker and
+goes through the usual fix rounds. Check cards are unchanged: their acceptance is the findings attachment (§15).
+
+## 18. Feedback triage
+
+`.claude/skills/feedback-triage` turns the in-app feedback form's unread messages into verdicts and, where a builder
+could act, cards. Four steps with separate access (the jobs of `feedback-triage.yml`, manual-dispatch):
+
+1. `manage.py feedback_triage export` (database): new, un-triaged messages. Ban appeals and bare ratings are left
+   out; no email, name or account id is exported.
+2. `scripts/feedback/run.mjs triage` (model only): the `feedback-triage` agent, with Read/Grep/Glob and no
+   credentials, gives every item a verdict (`bug`, `content`, `idea`, `praise`, `complaint`, `other`) and writes
+   one ticket per actionable cluster, citing the feedback ids as evidence.
+3. `scripts/feedback/run.mjs file` (Notion): validates the answer against the batch, then files the tickets.
+4. `manage.py feedback_triage apply` (database): stores the verdict on the row (`Feedback.triage`), marks it read.
+
+**The rule that matters:** feedback is text from the public, so a card that comes from it is always filed in
+**Backlog**, with `Source` = `feedback fp:… run:…`. It becomes pipeline work only when you move it to To Do. A
+repeat report of an open card adds a "seen again" comment instead of a second card. The card body carries counts
+and feedback ids, never the players' words.

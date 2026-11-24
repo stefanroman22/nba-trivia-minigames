@@ -32,6 +32,8 @@ if it is an existing finding, use `ui-fix <id>` instead (it does both plus revie
 
 ## Commands that aren't guessable
 - Standalone typecheck: `npx next typegen && npx tsc --noEmit` (`npm run build` also type-checks).
+- AI layer: `npm run check:ai` (agents, skills, workflows and `.claude/models.json` agree; part of `npm run lint`)
+  and `npm run test:automation` (every script suite, Node 22).
 
 ## Structure gotcha
 - Page-level components live in `src/views/`, not `src/pages/` — Next.js owns the `pages` name.
@@ -41,6 +43,8 @@ if it is an existing finding, use `ui-fix <id>` instead (it does both plus revie
 - **Money is always a human decision.** Never take an action that implies the owner pays —
   paid services or plan upgrades, enabling billing, domains, add-ons, exceeding a free
   tier, payment details. Stop and ask (pipeline agents: park with a note naming the cost).
+  This covers model spend too: setting `ANTHROPIC_API_KEY` (the admin game builder bills that key per build),
+  scheduling a dormant workflow, or raising a cap such as the question checker's `MAX_LIMIT`.
 - Surgical changes only — match existing style; don't refactor unrelated code.
 - TypeScript strict; build must pass `next build`.
 - Next.js 16 differs from older releases (Turbopack, async `params`, no `next lint`) — check the bundled
@@ -83,12 +87,14 @@ Beyond "wait for the owner's ask" the standing stops still apply: anything that 
 secret you don't have, and deleting data you didn't create. Merge only what actually works — a
 known error is a blocker.
 
-**Game data (owner, 2026-10-30).** Questions are written only through the prompt-driven question
-writer (`.claude/skills/nba-question-writer`), in a session the owner starts; no automation
-generates, checks or publishes questions, and there is no Checker agent. A question the writer
-finishes (clarified with the owner, built to the game's rules, deduplicated, every valid answer
-accepted) goes live with the owner's go-ahead in that session. Code changes are never covered by
-this: they still need the owner's promote.
+**Game data (owner, 2026-10-30; question team restored dormant 2026-11-24).** In a session, questions are
+written only through the prompt-driven question writer (`.claude/skills/nba-question-writer`). A question the
+writer finishes (clarified with the owner, built to the game's rules, deduplicated, every valid answer
+accepted) goes live with the owner's go-ahead in that session. The unattended question team
+(`question-author`, `question-checker`, `question-doctor`, `question-reviewer` and their workflows) is in the
+repo but dormant: manual-dispatch or disabled in GitHub, the checker capped, and nothing it approves is
+published without the owner running the publish. Never enable, schedule or dispatch any of it unless the owner
+asks in the conversation. Code changes are never covered by this: they still need the owner's promote.
 
 **Exception — checker findings (owner, 2026-10-15).** Checker findings (ui-check, later
 logic-check) are the standing exception: `ui-fix` and pipeline cards with `Target = main` ship to
@@ -113,15 +119,23 @@ common way a new or edited game ends up inconsistent with the rest of the app.
 | `docs/DEPLOYMENT.md` | changing env vars, hosting config, or anything that affects production |
 | `docs/CREDENTIALS.md` | creating/rotating any token — expiry dates, blast radius, rotation steps (update it in the same commit) |
 | `docs/games/MASTER_PLAN.md` | adding a new game or checking what's already shipped/planned |
-| `.claude/README.md` | changing the coding-agent model/effort profile |
+| `.claude/README.md` | adding or changing an agent, a skill or an automation, or looking for which one does what; the model registry and session profiles |
 | `docs/team/PIPELINE.md` | operating or debugging the autonomous team pipeline |
 | `docs/ui-check/README.md` | running UI audits or fixing UI-check findings |
 | `docs/logic-check/README.md` | running Logic Check (API, socket, page status), fixing its findings, or the nightly `nba-checks` run and its block/catch-up channel |
 | `docs/CACHING_SCALING_PLAN.md` | deciding whether friends/leaderboard data needs Redis caching, or touching `users/leaderboard.py`/`users/friends.py`'s query shape |
 
-## Coding engines & profiles
-Subagent models/effort follow a named profile: `npm run engine <fast|balanced|deep|max>`. The per-task
-model policy (which work goes to fable/opus/sonnet/haiku) is `docs/team/PIPELINE.md` §14. See `.claude/README.md`.
+## Agents, models & profiles
+`.claude/README.md` indexes every agent, skill and automation. `.claude/models.json` is the model registry
+(Fable 5.2 / Opus 5.5 / Sonnet 5.5 / Haiku 5.5 behind the aliases, each agent's default, the Claude Code version
+CI installs); the per-task policy is `docs/team/PIPELINE.md` §14. Interactive sessions follow a named profile:
+`npm run engine <fast|balanced|deep|max>`. A new agent, skill or workflow goes into the index and the registry in
+the same change, or `npm run check:ai` fails.
+
+Agents that read text from outside the team (player feedback, pasted notes, a PR under review) return a document
+and nothing else: run them through `scripts/lib/claude-agent.mjs` (read-only tools, no credentials) and let a
+script validate the answer and do the writing. A card that comes from player feedback is filed in Backlog, never
+To Do.
 
 ## Autonomous team pipeline
 An unattended pipeline turns Notion task cards into commits on `dev` (check cards with
@@ -129,6 +143,8 @@ An unattended pipeline turns Notion task cards into commits on `dev` (check card
 [plan] → build → verify → QA → review → ship, run headlessly via the `team-run` skill (a scheduled
 cloud routine, plus `npm run team` on demand). The mechanical steps are scripts in `scripts/team/`;
 agents work from one generated brief per card (`.team/run/<slug>/brief.md`) and are resumed, not
-respawned, when a gate fails. Notion is the control surface — write cards and set `Status = To Do`.
+respawned, when a gate fails. Notion is the control surface — write cards and set `Status = To Do`, or hand a
+long text to the `ticket-intake` skill, which files one card per change with acceptance criteria (`AC1…`) that
+the reviewer checks one by one (`docs/team/PIPELINE.md` §17). The owner currently starts runs on demand.
 Task worktrees live under `C:\Users\stefa\.team-worktrees`, never in this checkout — never build
 pipeline tasks in the main checkout. See `docs/team/PIPELINE.md`.

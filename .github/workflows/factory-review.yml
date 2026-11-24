@@ -14,7 +14,8 @@ name: Factory review
 #                                proposal), creates the Notion cards (NOTION_TOKEN; skipped when unset),
 #                                opens a PR to dev with the review file and any spec change and merges
 #                                it. Production promotion stays the owner's call.
-# Instructions for the agent: .claude/skills/nba-question-writer/references/reviewer.md.
+# Dormant: the owner keeps this workflow disabled in GitHub and enables it when wanted.
+# The agent: .claude/agents/question-reviewer.md.
 on:
   schedule:
     - cron: "0 6 * * 0"   # Sunday 06:00 UTC; the gate keeps the even ISO weeks
@@ -118,7 +119,7 @@ jobs:
           # it only writes local files.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            You are the reviewer. Read .claude/skills/nba-question-writer/references/reviewer.md and follow it exactly.
+            You are the question-reviewer agent. Read .claude/agents/question-reviewer.md and follow it exactly.
             DATE: ${{ needs.gate.outputs.date }}
             Input digest: build/digest.md (the same numbers are in build/digest.json)
             Write docs/factory/reviews/${{ needs.gate.outputs.date }}.md and review/cards.json. Change a file under backend/trivia/questions/specs/ only to copy a calibration proposal printed in the digest into its difficulty.bands. Write no other file.

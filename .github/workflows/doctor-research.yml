@@ -7,9 +7,11 @@ name: Doctor research
 #   research (NO DB secret)       Claude (Max-plan OAuth token) researches each case on the four approved
 #                                 sites only (Claude Code permissions) and writes one verdict
 #   apply    (has the DB secret)  re-validates every verdict in code (FactoryRun kind "doctor"): data
-#                                 corrections are only proposed (the Checker that confirmed them was
-#                                 removed 2026-10-30); released questions go back to pending
-# Instructions for the agent: .claude/skills/nba-question-writer/references/doctor.md.
+#                                 corrections are only proposed (the Checker confirms them:
+#                                 question-checker.yml, mode corrections, a manual run); released
+#                                 questions go back to pending
+# Dormant: the owner keeps this workflow disabled in GitHub and enables it when wanted.
+# The agent: .claude/agents/question-doctor.md.
 on:
   schedule:
     - cron: "0 3 * * 2"   # Tuesday 03:00 UTC
@@ -100,7 +102,7 @@ jobs:
           # it only writes a local file.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: |
-            You are the doctor. Read .claude/skills/nba-question-writer/references/doctor.md and follow it exactly.
+            You are the question-doctor agent. Read .claude/agents/question-doctor.md and follow it exactly.
             Input case: doctor/case-${{ matrix.case }}.json
             Write your verdict to doctor/verdict-${{ matrix.case }}.json and write no other file.
           claude_args: >-

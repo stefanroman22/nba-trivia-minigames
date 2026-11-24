@@ -14,8 +14,9 @@ Regenerates: `docs/constraints/*.md`, `docs/team/CODE_MAP.md`, and flags stale a
    (they are the canonical audit briefs — reuse them verbatim, updating file lists
    to match the current tree first via `ls`/`glob`).
 2. Each audit REPLACES its doc wholesale (append-only history lives in git).
-3. Verify every doc: rule-count floors (UI≥10, BE≥10, MP≥8, AUTH≥6), all cited paths exist,
-   every rule has a ❌/✅ pair.
+3. Verify every doc: rule-count floors (UI≥10, BE≥10, MP≥8, AUTH≥6; `SEO_CONSTRAINTS.md` is maintained by the
+   SEO work and is not regenerated here), all cited paths exist, every rule has a ❌/✅ pair. `npm run check:ids`
+   must pass.
 4. Diff new docs vs old; if any rule that an agent .md file cites verbatim changed,
-   update that agent file in the same commit.
+   update that agent file in the same commit. `npm run check:ai` must pass.
 5. Commit as `docs(team): refresh knowledge base via bootstrap-audit`.

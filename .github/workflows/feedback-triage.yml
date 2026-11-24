@@ -77,7 +77,7 @@ jobs:
           name: feedback-batch
           path: feedback
       - name: Install Claude Code
-        run: npm i -g @anthropic-ai/claude-code@2.1.285
+        run: npm i -g @anthropic-ai/claude-code@2.1.331
       - name: Triage
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

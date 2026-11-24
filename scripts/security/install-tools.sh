@@ -5,7 +5,7 @@
 set -euo pipefail
 GITLEAKS_VERSION=8.21.2   # same version dev-ci.yml runs
 OSV_VERSION=2.6.0
-CLAUDE_VERSION=2.1.285
+CLAUDE_VERSION=2.1.331
 
 bin="${RUNNER_TEMP:-/tmp}/security-bin"
 mkdir -p "$bin"

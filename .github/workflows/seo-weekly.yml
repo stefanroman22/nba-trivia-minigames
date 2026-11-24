@@ -123,7 +123,7 @@ jobs:
           MODEL: ${{ steps.knobs.outputs.model }}
         run: |
           set -euo pipefail
-          npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.285
+          npm install -g --no-audit --no-fund @anthropic-ai/claude-code@2.1.331
           OUT="$(echo 'Reply with the single word OK and nothing else.' | claude -p --model "$MODEL" 2>&1 || true)"
           echo "preflight: $(echo "$OUT" | head -c 200)"
           echo "$OUT" | grep -q OK

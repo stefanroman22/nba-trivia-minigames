@@ -6,8 +6,9 @@ description: Headless browser QA for a task, via Playwright. Runs in BOTH local 
 # Browser QA Protocol
 
 Playwright-driven and headless, so this runs identically on a local machine and on a cloud
-routine VM. Ports come from `.claude/team/config.json` `qaPorts` (defaults: django 8100,
-vite 5273, socket 4100) so the user's own dev servers (8000/5173/4000) are never disturbed.
+routine VM. Ports are the card's lane in `.claude/team/config.json` (`qaPorts.lanes[lane-1]`; lane 1 is
+django 8100, vite 5273, socket 4100, used in the examples below) so the user's own dev servers
+(8000/5173/4000) and the other lane are never disturbed.
 
 ## 1. Bring-up
 1. Ensure a browser exists. Local machines have Edge/Chrome already; a cloud VM does not —
@@ -35,25 +36,21 @@ Write ONE short script at the repo root (e.g. `qa-run.mjs`) that imports the har
 writeVerdict`; its header has a worked example. Never hand-roll `chromium.launch()` with a
 `channel` — the harness's launcher is what makes this work on a cloud VM.
 
-Cover, in this order:
-1. **Game tasks** (diff touches `src/Game Renderers/`): run the deterministic audit instead of
-   improvising layout checks — `node scripts/ui-audit.mjs --url http://localhost:5273 --only <game-id> --label qa-<slug>`.
-   It measures the GAME_DESIGN_CONSTRAINTS shell contract and exits non-zero with named
-   assertion failures. Its failures are QA failures verbatim. Also check the end of the game
-   (Rule 7.3): finish a game (win and give up/lose) at 390x844 and 1280x800 and assert the
-   answer is still on screen, points are one small ScorePanel line above Play again / Close game,
-   no full-screen GameResult, and the container height is unchanged.
-2. **Constraint acceptance checks**: execute the `## Acceptance checks` section of every
-   constraint doc the classify JSON listed, as assertions in your script.
-3. **The card's own spec**: does the feature do what the card says? Happy path plus one edge
-   (empty state, wrong input, or refresh mid-flow — whichever applies).
-4. `shot(page, slug, '<state>')` at each key state — evidence or it didn't happen.
+`node scripts/team/qa.mjs` has already run the layout audit (`scripts/ui-audit.mjs`), the route smoke and every
+selector assertion, and wrote `.team/qa/<slug>/verdict.json`. Do not repeat any of that. Cover only what a script
+could not:
+1. **The brief's `"flow"` assertions**, each as a sequence of real interactions.
+2. **The card's acceptance criteria** (`## Acceptance (what the reviewer checks)` in the brief) that are about
+   behaviour in the browser: the happy path plus one edge (empty state, wrong input, or refresh mid-flow,
+   whichever applies).
+3. `shot(page, slug, '<state>')` at each key state: evidence, or it did not happen.
 
 Delete `qa-run.mjs` when done; it is scratch, not a deliverable.
 
 ## 3. Verdict
-- `writeVerdict(slug, pass, failures)` → writes `.team/qa/<slug>/verdict.json` as
+- Merge into the verdict `qa.mjs` wrote (`pass = existing.pass && yours`, failures appended), then
+  `writeVerdict(slug, pass, failures, notes)` → `.team/qa/<slug>/verdict.json` as
   `{"pass": true|false, "failures": [...], "notes": "...", "at": "..."}`.
 - ALWAYS kill the servers you started (find pids by port, stop them) — even on failure.
-- Failures go back to the build stage and count toward the 2-fix-cycle cap, so each failure
+- Failures go back to the build stage and count toward the fix-round cap, so each failure
   string must be specific enough to act on: what you did, what you expected, what happened.

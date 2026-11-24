@@ -1,15 +1,87 @@
-# Swish Quest (NBA trivia minigames)
+# Swish Quest
 
-Live at https://swishquest.com.
+**Play it live: [swishquest.com](https://swishquest.com)**
 
-A web app where people play short NBA trivia minigames, earn points, climb a leaderboard, and
-optionally play head-to-head against another person online. 18 games are live today — playoff
-series, logos, MVPs, starting fives, Wordle, Connections, a hex-grid heatmap, a 3×3 criteria grid,
-a party bluffing game, and more. See [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md) for
-the full roster and what's still planned.
+A web app of short NBA trivia minigames: guess the playoff series winner, name the MVP, fill in a starting five,
+solve the daily Wordle, trace a career path, play Tic-Tac-Toe on player criteria, earn points, climb a leaderboard, and
+play head-to-head against a friend or a stranger online. 11 games are playable today and 7 more are built and held
+back; the roster and what is planned are in [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md).
 
-Data comes from [`nba_api`](https://pypi.org/project/nba_api/). Frontend is TypeScript/React,
-backend is Django, multiplayer is a Node/Socket.IO server.
+Frontend: React 19, TypeScript, Next.js 16, Tailwind 4. Backend: Django and Django REST Framework on Postgres.
+Multiplayer: a Node Socket.IO server. Data: [`nba_api`](https://pypi.org/project/nba_api/).
+
+---
+
+## Built and operated with AI agents
+
+This repository is run as an AI-native project: most changes are specified by a person and planned, built, tested,
+reviewed and checked by Claude agents, with scripts doing everything mechanical and a person deciding what reaches
+production. The whole layer is indexed in **[`.claude/README.md`](.claude/README.md)**.
+
+| | Where | What is there |
+|---|---|---|
+| **Agents** | [`.claude/agents/`](.claude/agents/) | 18 roles, each with its model and instructions: planner, frontend and backend engines, browser QA, code and motion reviewers, ticket writer, feedback triage, the UI-check judges, logic-check triage, the SEO agent, and the question team. |
+| **Skills** | [`.claude/skills/`](.claude/skills/) | 17 procedures an agent or a session follows: the pipeline run, classify, design round, ship, UI check and fix, logic check, SEO, ticket intake, feedback triage, question writing, promotion. |
+| **Automations** | [`.github/workflows/`](.github/workflows/) and [`scripts/`](scripts/README.md) | 28 workflows and the scripts behind them: the team pipeline, weekly production checks, the security gate, SEO audits, data refresh and publishing. |
+| **Model policy** | [`.claude/models.json`](.claude/models.json) | Which Claude model does what, in one checked file: Fable 5.2 where a wrong call is expensive, Opus 5.5 for judgment, Sonnet 5.5 as the default worker, Haiku 5.5 for trivial edits. |
+| **AI in the product** | [`backend/trivia/game_builder/`](backend/trivia/game_builder/) | An admin describes a game in plain words and an agent builds a playable one from the datasets. |
+
+### What the agents do
+
+- **The team pipeline** turns a card on a Notion board into a commit on `dev`: intake, classify, one generated
+  brief per card, a plan (or a written design round for hard cards), build, a scripted verify gate, browser QA,
+  and a clean-context review that returns a verdict for every acceptance criterion. Up to two cards run at once.
+  Operator manual: [docs/team/PIPELINE.md](docs/team/PIPELINE.md).
+- **Ticket intake** splits a long brain-dump into separate cards, and refuses any ticket without acceptance
+  criteria someone can check.
+- **Feedback triage** reads what players wrote in the feedback form, groups repeat reports and files cards for
+  what is actionable. Those cards land in Backlog: text from the public never starts work by itself.
+- **Weekly production checks** play every game on seven viewports and exercise the API and the socket protocol;
+  judge agents turn failures into probe-confirmed findings, and findings become cards the pipeline fixes
+  ([UI check](docs/ui-check/README.md), [Logic Check](docs/logic-check/README.md)).
+- **The security agent** scans the full repository weekly and gates every pull request to `main`, fixing what it
+  can through the pipeline ([docs/security/README.md](docs/security/README.md)).
+- **The SEO agent** audits indexing weekly and after every deploy ([docs/seo/README.md](docs/seo/README.md)).
+- **The question team** (author, checker, doctor, reviewer) can propose, fact-check and repair trivia questions.
+  It is dormant by choice; questions are currently written with the owner in the session.
+- **The AI game builder** is the same idea inside the product: an admin describes a game, a Claude Opus tool loop
+  picks the dataset, writes a declarative spec, test-runs it with the real engine and hands in a playable game,
+  which follow-up prompts refine.
+
+```mermaid
+flowchart LR
+  N[Owner's notes] -->|ticket-writer| B[(Board)]
+  F[Player feedback] -->|feedback-triage, Backlog only| B
+  C[Weekly checks: UI, logic, SEO, security] -->|confirmed findings| B
+  B --> I[intake] --> K[classify] --> R[brief with acceptance criteria] --> P[plan or design round]
+  P --> G[build] --> V[verify] --> Q[browser QA] --> W[review per criterion] --> D[ship to dev]
+  D --> H{owner promotes} --> X[production]
+  X --> C
+```
+
+### How it stays safe
+
+- Scripts own every write (git, the board, Slack, the database). An agent is spawned only where a decision is
+  needed, and agents that read untrusted text get read-only tools and no credentials.
+- The pipeline stops at `dev`. Production is a person's decision, behind a required security status.
+- Automations that cost money or touch production data start manual-only. `npm run check:ai` fails the build when
+  an agent, a skill, a workflow or the model registry drift apart.
+
+---
+
+## Repository map
+
+| Path | What is in it |
+|---|---|
+| `.claude/` | The AI layer: [agents](.claude/agents/), [skills](.claude/skills/), the model registry and its [index](.claude/README.md) |
+| `.github/workflows/` | Every automation's trigger: CI, promotion, weekly checks, security, SEO, data, operations |
+| `scripts/` | The mechanics behind the agents ([index](scripts/README.md)): `team/` (pipeline), `ui-check/`, `logic-check/`, `check-core/`, `seo/`, `security/`, `feedback/`, plus repo checks and tests |
+| `src/` | The frontend: `app/` (routes), `views/` (pages), `Game Renderers/`, `components/`, `motion/`, `store/`, `hooks/` |
+| `backend/` | The Django project: `users/` (accounts, ranks, friends, moderation), `trivia/` (game data, questions, awarding, the admin API, the game builder) |
+| `multiplayer_server/` | The Socket.IO relay for online matches and friend rooms |
+| `moderation_service/` | The profile-photo moderation service |
+| `infra/` | Cloudflare Workers and the cloud routine's setup script |
+| `docs/` | Architecture, deployment, constraints, the pipeline manual, checker and SEO guides |
 
 ---
 
@@ -67,58 +139,23 @@ deployed production ones if not — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ---
 
-## Security scan
-
-`.github/workflows/security.yml` runs one security agent (gitleaks + osv-scanner + a Claude security review with
-`.security/scan-instructions.md`) in two modes:
-
-- **Weekly**, Fridays 12:00 Europe/Amsterdam: full-repo scan (gitleaks over the full git history). New findings with
-  confidence ≥ 8 become ONE grouped Notion card for the team pipeline; nothing new → no card.
-- **Every PR to `main`** (promotions and pipeline hotfixes included): diff-only scan behind the required status
-  `security/pr-scan`. High/critical blocks it, and for a trusted same-repo PR the team pipeline fixes the branch and the
-  scan re-runs (2 rounds at most, then a human). Medium/low → a PR comment and the next weekly card.
-
-State lives on the branch `security-state` (`findings.json`, one entry per finding fingerprint, details encrypted with
-the `SECURITY_STATE_KEY` secret). False positives: add the fingerprint and a reason to `.security/ignore.json`; tune the
-review in `.security/scan-instructions.md`, gitleaks rules in `.gitleaks.toml`. Details: [docs/security/README.md](docs/security/README.md).
-
 ---
 
 ## Documentation map
 
-| Doc | What's in it |
+| Doc | What is in it |
 |---|---|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the three services + database + data pipeline fit together, in plain language |
-| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Runbook for taking this from "works locally" to hosted at scale |
-| [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md) | How NBA data is gathered, stored, refreshed, and served |
-| [docs/GAME_DESIGN_CONSTRAINTS.md](docs/GAME_DESIGN_CONSTRAINTS.md) | The UI/UX rules every game (current and new) must follow |
-| [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md) | Every game the app has, is building, or should build — status tracker |
-| [docs/games/DATA_REQUIREMENTS.md](docs/games/DATA_REQUIREMENTS.md), [PLAYERS_DATA.md](docs/games/PLAYERS_DATA.md), [TEAMS_DATA.md](docs/games/TEAMS_DATA.md) | Data-field wishlists the games above draw on |
-| [docs/game-research/](docs/game-research/) | Reference screenshots from other trivia games (mechanics only — never copy visual style) |
+| [.claude/README.md](.claude/README.md) | Every agent, skill and automation, the model policy, and how to add one |
+| [docs/team/PIPELINE.md](docs/team/PIPELINE.md) | Operating the autonomous team pipeline: the board, triggers, gates, model policy, check cards, ticket intake |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the three services, the database and the data pipeline fit together, in plain language |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Hosting, environment variables and the activation runbook |
+| [docs/DATA_PIPELINE.md](docs/DATA_PIPELINE.md) | How NBA data is gathered, stored, refreshed and served |
+| [docs/GAME_DESIGN_CONSTRAINTS.md](docs/GAME_DESIGN_CONSTRAINTS.md) | The UI rules every game must follow |
+| [docs/games/MASTER_PLAN.md](docs/games/MASTER_PLAN.md) | Every game the app has, is building or should build |
+| [docs/ui-check/README.md](docs/ui-check/README.md), [docs/logic-check/README.md](docs/logic-check/README.md) | The automated UI audit and the API and socket checks |
 | [docs/security/README.md](docs/security/README.md) | The security agent: weekly scan, PR gate, state, tuning false positives |
-| [CLAUDE.md](CLAUDE.md) | Instructions for AI coding agents working in this repo |
-| [.claude/README.md](.claude/README.md) | How the coding-agent model/effort profile is configured and switched |
-
----
-
-## Project folder structure
-
-| Path | What's in it |
-|---|---|
-| `src/` | React + TypeScript frontend — `components/`, `views/` (page-level components — Next.js owns the `pages` name), `Game Renderers/`, `styles/`, `store/` (Redux Toolkit), `hooks/`, `context/`, `constants/` |
-| `backend/` | Django project. Apps: `users/` (auth, custom user, rank), `trivia/` (minigame data + pipeline) |
-| `multiplayer_server/` | Node Socket.IO server for "Play Online" and friend rooms |
-| `docs/` | All project documentation (see the map above) |
-| `.claude/` | Coding-agent configuration (subagent definitions, engine profiles, scheduled routines) |
-
-### Backend — `backend/`
-| File/Folder | Description |
-|---|---|
-| `backend/settings.py` | Django configuration (apps, database, middleware) |
-| `backend/urls.py` | Root URL routing |
-| `users/` | Accounts: models, login/signup/update-profile views, migrations |
-| `trivia/` | Minigame data: models, views, data pipeline, migrations |
-| `media/` | Uploaded files (e.g. profile photos) |
+| [docs/seo/README.md](docs/seo/README.md) | The SEO agent and its checks |
+| [CLAUDE.md](CLAUDE.md) | The standing instructions every coding agent reads first |
 
 ---
 
@@ -138,4 +175,4 @@ Full rationale and how the pieces talk to each other: [docs/ARCHITECTURE.md](doc
 
 ## Contact
 
-If you have questions or want to collaborate, feel free to open an issue or reach out via GitHub.
+Questions or ideas: open an issue on GitHub.

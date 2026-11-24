@@ -36,6 +36,26 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+  # The node:test suites of the automation scripts (team pipeline, checkers, SEO, security, feedback, the AI layer
+  # check). Node 22: `node --test` takes globs only from 21 on. Not a promotion prerequisite.
+  automation-tests:
+    name: Automation script tests
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # some suites build throwaway git repositories and commit in them
+      - run: git config --global user.name ci && git config --global user.email ci@example.invalid
+      - run: npm run test:automation
+
   security:
     name: Secret scan (gitleaks)
     runs-on: ubuntu-latest

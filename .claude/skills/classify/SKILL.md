@@ -53,7 +53,7 @@ A card that adds a page or a game, changes metadata, the sitemap or robots, or w
   API, or the `CACHES` / settings layer. Judge by the production code the change will modify,
   not the code its tests cover: a test-only fix is `low` even when the tests exercise one of
   these surfaces, unless the fix itself must change that surface's production code.
-  CTO gets a `Risk: high` PR label and extra scrutiny.
+  A `high` card is reviewed by fable (`review-package.mjs` picks the reviewer).
 - Multi-area at any difficulty → `needsDesignRound: true`. Count areas by what the change
   modifies **or must run to verify**, not by the card's Category or by which screen it sits on:
   `multiplayer` means the relay, its protocol or its sim scripts — a fix whose check drives the
@@ -64,13 +64,11 @@ A card that adds a page or a game, changes metadata, the sitemap or robots, or w
   how few files it touches. Fable plans it so the plan covers every case; opus implements.
 
 ## Model rubric
-As of 2026-09-29, Opus is unbanned (see `docs/team/DECISIONS.md` 2026-09-29) — the 2026-09-06 ban
-targeted Opus 5's cost specifically; Opus 5.5 and Sonnet 5.5 are meaningfully faster and cheaper.
-The models in play (v2, 2026-10-03): `fable` (Fable 5.1: design rounds for hard cards, review of
-P0/risk-high/hard/protected-path diffs, the CTO gate — never an implementer, no longer the
-classifier), `opus` (Opus 5.5: implementation requiring real judgment, motion), `sonnet` (Sonnet
-5.5: classify, standard plans, the default implementer, standard reviews, browser flows) and
-`haiku` (Haiku 4.5: trivial only). All four are rolling aliases. You run classify on `sonnet`.
+The models in play (registry: `.claude/models.json`; policy: `docs/team/PIPELINE.md` §14): `fable` (Fable 5.2:
+design rounds for hard cards, review of P0/risk-high/hard/protected-path diffs; never an implementer, not the
+classifier), `opus` (Opus 5.5: implementation requiring real judgment, motion), `sonnet` (Sonnet 5.5: classify,
+standard plans, the default implementer, standard reviews, browser flows) and `haiku` (Haiku 5.5: trivial only).
+All four are rolling aliases. You run classify on `sonnet`.
 
 ### `engineModel` — who implements
 | Model | When | Example |

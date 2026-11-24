@@ -12,7 +12,7 @@ Two services:
 - `backend/` — Django + DRF. Apps: `users/` (auth, login/signup, profile, custom user + rank) and
   `trivia/` (shared game-data models + per-game views/data pipeline). Entry: `manage.py`. DB:
   sqlite (`db.sqlite3`) in dev by default; `DATABASE_URL` (Postgres) overrides it when set.
-- `multiplayer_server/` — Node Socket.IO server (`src/index.js`, `turnGames.js`,
+- `multiplayer_server/` — Node Socket.IO server (`multiplayer_server/src/index.js`, `turnGames.js`,
   `gameEndpoints.js`), port 4000, for "Play Online" / "Play with a friend".
 
 ## Required reading (before any work)

@@ -1,0 +1,153 @@
+name: Question checker
+# The Checker (docs/superpowers/specs/2026-10-12-question-factory-design.md §4.12): a validity-only agent that
+# decides whether every fact in a pending question is true before it can be published.
+#   export  (has the DB secret)  pending questions -> small JSON batches of what players see
+#   check   (NO DB secret)       the question-checker agent judges each question; its web access is limited to the
+#                                four approved sites by Claude Code permissions
+#   apply   (has the DB secret)  re-validates every verdict in code, pending -> active/quarantined, journals the
+#                                evidence (FactoryRun kind "checker")
+# mode audit re-checks live questions the doctor's scan marked audit_due; mode corrections confirms the doctor's
+# proposed data corrections on two approved sites.
+#
+# Dormant: manual runs only, and capped. The scheduled version was removed on 2026-10-30 after one drain ran 376
+# agent jobs in five hours. What changed for this version:
+#   - no schedule; a run checks at most `limit` questions (default 20, never more than MAX_LIMIT)
+#   - one batch at a time (max-parallel 1), Sonnet by default
+#   - nothing is published from here: approved questions are active in the database and reach players only when
+#     the owner runs "Publish game data"
+# To schedule it again, add a `schedule:` block under `on:` and keep the cap.
+# The agent: .claude/agents/question-checker.md.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "pending: new and changed questions; audit: live questions due for the random audit; corrections: the doctor's proposed data corrections"
+        default: pending
+        type: choice
+        options: [pending, audit, corrections]
+      limit:
+        description: "most questions to check in this run (1-60)"
+        default: "20"
+      batch_size:
+        description: "questions per Checker session"
+        default: "10"
+      model:
+        description: "Checker model"
+        default: sonnet
+        type: choice
+        options: [sonnet, opus, fable]
+concurrency:
+  group: question-checker
+  cancel-in-progress: false
+permissions:
+  contents: read
+env:
+  MAX_LIMIT: 60
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      batches: ${{ steps.export.outputs.batches }}
+      count: ${{ steps.export.outputs.count }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Export questions
+        id: export
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          LIMIT: ${{ inputs.limit }}
+          BATCH_SIZE: ${{ inputs.batch_size }}
+          MODE: ${{ inputs.mode }}
+        run: |
+          [[ "$LIMIT" =~ ^[0-9]+$ && "$LIMIT" -ge 1 && "$LIMIT" -le "$MAX_LIMIT" ]] || { echo "limit must be 1-$MAX_LIMIT"; exit 1; }
+          [[ "$BATCH_SIZE" =~ ^[0-9]+$ && "$BATCH_SIZE" -ge 1 && "$BATCH_SIZE" -le 20 ]] || { echo "batch_size must be 1-20"; exit 1; }
+          python manage.py export_checker_batches --out "$GITHUB_WORKSPACE/checker" --limit "$LIMIT" --batch-size "$BATCH_SIZE" --mode "$MODE"
+      - name: Keep the batches for the Checker
+        if: steps.export.outputs.count != '0'
+        uses: actions/upload-artifact@v6
+        with:
+          name: checker-batches
+          path: checker/
+
+  check:
+    needs: export
+    if: needs.export.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # No database secret anywhere in this job (spec §3 principle 7).
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        batch: ${{ fromJSON(needs.export.outputs.batches) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v6
+        with:
+          name: checker-batches
+          path: checker
+      - name: Checker agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # The job's own read-only token: this step needs no GitHub write, it only writes a local file.
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: |
+            You are the question-checker agent. Read .claude/agents/question-checker.md and follow it exactly.
+            Input batch: checker/${{ inputs.mode == 'audit' && 'audit' || (inputs.mode == 'corrections' && 'correction' || 'batch') }}-${{ matrix.batch }}.json
+            Write your verdicts to checker/verdicts-${{ matrix.batch }}.json and write no other file.
+          claude_args: >-
+            --model ${{ inputs.model }}
+            --max-turns 250
+            --allowedTools "Read,Write,WebFetch(domain:www.basketball-reference.com),WebFetch(domain:www.nba.com),WebFetch(domain:en.wikipedia.org),WebFetch(domain:www.espn.com)"
+            --disallowedTools "Bash,Edit,MultiEdit,WebSearch,Agent,Task,NotebookEdit"
+      - name: Keep the verdicts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: checker-verdicts-${{ matrix.batch }}
+          path: checker/verdicts-${{ matrix.batch }}.json
+          if-no-files-found: warn
+
+  apply:
+    needs: [export, check]
+    if: always() && needs.export.result == 'success' && needs.export.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+      - name: Install
+        run: pip install -r backend/requirements-pipeline.txt
+      - name: Collect verdicts
+        uses: actions/download-artifact@v6
+        with:
+          pattern: checker-verdicts-*
+          path: verdicts
+          merge-multiple: true
+      - name: Apply verdicts
+        id: apply
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+        run: python manage.py apply_checker_verdicts "$GITHUB_WORKSPACE/verdicts" --trigger manual
+      - name: Summary
+        if: steps.apply.outputs.changed != '0' && steps.apply.outputs.changed != ''
+        run: echo "The Checker changed ${{ steps.apply.outputs.changed }} question(s) (approved ${{ steps.apply.outputs.approved }}). Nothing is published from this workflow - run 'Publish game data' to put approved questions in front of players." >> "$GITHUB_STEP_SUMMARY"

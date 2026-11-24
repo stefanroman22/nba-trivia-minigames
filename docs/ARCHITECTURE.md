@@ -123,6 +123,16 @@ It has two parts ("apps"):
 ### `users/` — accounts, login, points, leaderboard
 ### `trivia/` — serves the NBA game data
 
+### `trivia/game_builder/` — the AI game builder (admin only)
+An admin describes a game in plain words in **Admin → Game Builder**. A Claude agent (Opus, through the Anthropic
+API) does not write questions: it picks one of the published datasets, writes a small declarative recipe (a
+**GameSpec**: dataset, filters, a question template, a mode), test-runs it with the same engine players would get,
+and hands it in. The engine then renders every round from real rows, keeps wrong options from being accidentally
+correct, and accepts alternative spellings. Follow-up prompts change the same game. Drafts are admin-only, are not
+public routes and award no points. The feature is off until `ANTHROPIC_API_KEY` is set on the backend, because each
+build is a billed model call. Everything else in the app that uses a model runs in GitHub Actions or a coding
+session, never in a player's request: see [`.claude/README.md`](../.claude/README.md).
+
 ### Main things it can do (the API)
 **Account/leaderboard** (`/api/...`):
 - `signup`, `login`, `login/google` — create or sign in (returns login tokens)
