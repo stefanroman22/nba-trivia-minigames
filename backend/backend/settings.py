@@ -207,6 +207,8 @@ REST_FRAMEWORK = {
         "seen": "240/hour",
         "report": "10/hour",
         "activity": "120/hour",
+        # Each call is a billed model run; a person refining a game needs a few dozen at most.
+        "game-builder": "40/hour",
     },
 }
 
@@ -293,6 +295,15 @@ IMAGE_MODERATION_URL = os.environ.get("IMAGE_MODERATION_URL")
 MODERATION_SHARED_SECRET = os.environ.get("MODERATION_SHARED_SECRET")
 MODERATION_REQUIRED = env_bool("MODERATION_REQUIRED", bool(DATABASE_URL))
 PHOTO_BLOCK_THRESHOLD = float(os.environ.get("PHOTO_BLOCK_THRESHOLD", "0.85"))
+
+# AI game builder (Admin -> Game Builder, trivia/game_builder). Off until a key is set: every build or refine is
+# an API call billed to that key. The model is the `runtime.game-builder` entry of .claude/models.json.
+ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+GAME_BUILDER_ENABLED = env_bool("GAME_BUILDER_ENABLED", bool(ANTHROPIC_API_KEY)) and bool(ANTHROPIC_API_KEY)
+GAME_BUILDER_MODEL = os.environ.get("GAME_BUILDER_MODEL", "claude-opus-5-5")
+GAME_BUILDER_EFFORT = os.environ.get("GAME_BUILDER_EFFORT", "medium")
+GAME_BUILDER_MAX_TURNS = int(os.environ.get("GAME_BUILDER_MAX_TURNS", "6"))
+GAME_BUILDER_TIMEOUT = float(os.environ.get("GAME_BUILDER_TIMEOUT", "120"))
 
 # The multiplayer relay credits online matches through trivia.views.multiplayer_result, authenticated
 # by this value in its X-Relay-Key header (same value as the relay's env). Unset: online play awards nothing.

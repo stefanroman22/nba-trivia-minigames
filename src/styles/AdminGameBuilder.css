@@ -1,0 +1,225 @@
+/* Admin → Game Builder tab. Tokens from theme.css, primitives from ui.css; the shared admin shell (cards,
+   chips, section labels, empty / error states) from Admin.css, the detail grid from AdminFeedback.css and the
+   delete dialog from AdminUsers.css. Only what has no class there lives here. */
+
+/* Four tabs no longer fit one row at phone width: let the row wrap instead of scrolling the page sideways. */
+.admin-tabs { flex-wrap: wrap; }
+.admin-tab { white-space: nowrap; }
+
+.gb-notice {
+  border: 1px solid var(--brand);
+  background: var(--brand-soft);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+/* ---------- Describe a game ---------- */
+.gb-build { padding: 4px 18px 18px; margin-bottom: 8px; }
+.gb-build-desc { margin-top: 0; }
+
+.gb-form { margin-top: 12px; }
+.field.gb-textarea {
+  display: block;
+  height: auto;
+  min-height: 96px;
+  padding: 10px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+.field.gb-textarea:disabled { opacity: 0.6; cursor: not-allowed; }
+.gb-form-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.gb-busy { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 22px 0 6px; text-align: center; }
+.gb-busy p { margin: 0; }
+.gb-form .admin-error { margin-top: 10px; }
+
+/* Collapsible blocks (datasets, raw JSON) */
+.gb-disclosure { margin-top: 14px; }
+.gb-disclosure-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.gb-disclosure-head:hover { color: var(--brand); }
+.gb-disclosure-count { color: var(--muted); font-weight: 500; }
+.gb-disclosure-head .admin-chevron { margin-left: auto; }
+.gb-disclosure-body { padding-top: 6px; }
+
+.gb-dataset-desc { margin: 6px 0 0; }
+.gb-fields { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.gb-field { gap: 6px; }
+.gb-field-type { color: var(--muted); font-weight: 500; font-size: 0.9em; }
+
+/* ---------- One draft, opened ---------- */
+.gb-panel-msg { padding: 22px 0 8px; display: flex; justify-content: center; }
+.gb-body .admin-desc { margin-top: 12px; }
+
+.gb-warnings {
+  margin: 12px 0 0;
+  padding: 10px 14px 10px 32px;
+  border: 1px solid var(--brand);
+  background: var(--brand-soft);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gb-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+.admin-browse.gb-toggle { margin-left: 0; width: auto; }
+
+.gb-play-area { margin-top: 14px; }
+.gb-loading { padding: 28px 0; }
+
+.gb-detail-wide { grid-column: 1 / -1; }
+.gb-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  overflow-wrap: anywhere;
+}
+.gb-filter-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.gb-json {
+  margin: 0;
+  padding: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Conversation */
+.gb-chat { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.gb-msg {
+  max-width: 92%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface2);
+}
+.gb-msg--admin { align-self: flex-end; background: var(--brand-soft); border-color: var(--brand); }
+.gb-msg--agent { align-self: flex-start; border-left: 3px solid var(--line2); }
+.gb-msg-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+.gb-msg-who { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.gb-msg-head .admin-muted { font-size: 11.5px; }
+.gb-msg-text { margin: 0; font-size: 13.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.gb-meta { margin: 14px 0 0; }
+
+/* ---------- Player (admin preview) ---------- */
+.gb-play { padding: 14px 16px 18px; }
+.gb-play-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; margin-bottom: 10px; }
+.gb-play-count { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.gb-play-score { font-size: 14px; font-weight: 700; color: var(--brand); }
+.gb-play-head .admin-browse.gb-play-exit { margin-left: auto; }
+
+.gb-round { padding-top: 16px; }
+.gb-prompt { margin: 0 0 14px; font-size: clamp(17px, 2.4vw, 21px); line-height: 1.3; letter-spacing: 0.3px; overflow-wrap: anywhere; }
+
+/* Option buttons and higher / lower cards share one look */
+.gb-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.gb-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.gb-option,
+.gb-side {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 12px 34px;
+  border: 1px solid var(--line2);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+}
+.gb-option:hover:not([aria-disabled="true"]),
+.gb-side:hover:not([aria-disabled="true"]) { border-color: var(--brand); background: var(--brand-soft); }
+.gb-option[aria-disabled="true"],
+.gb-side[aria-disabled="true"] { cursor: default; }
+.gb-option.is-correct,
+.gb-side.is-correct { border-color: var(--good); background: var(--good-soft); }
+.gb-option.is-wrong,
+.gb-side.is-wrong { border-color: var(--bad); background: var(--bad-soft); }
+.gb-option.is-dim,
+.gb-side.is-dim { opacity: 0.55; }
+
+.gb-mark { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-weight: 800; }
+.gb-option.is-correct .gb-mark { color: var(--good); }
+.gb-option.is-wrong .gb-mark { color: var(--bad); }
+
+.gb-side { flex-direction: column; min-height: 132px; padding: 18px 14px; gap: 10px; border-radius: 14px; }
+.gb-side-label { font-size: 16px; font-weight: 700; }
+.gb-side-value { display: inline-flex; min-height: 1.3em; font-size: 22px; font-weight: 800; color: var(--muted); transition: color 0.3s ease; }
+.gb-side.is-correct .gb-side-value { color: var(--good); }
+.gb-side.is-wrong .gb-side-value { color: var(--bad); }
+
+/* Type the answer */
+.gb-type { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.gb-type .field { flex: 1 1 220px; width: auto; min-width: 0; }
+.gb-type-actions { display: flex; gap: 8px; flex: none; }
+.field.gb-input-good { border-color: var(--good); }
+.field.gb-input-bad { border-color: var(--bad); }
+
+/* Result line + Next */
+.gb-result-body { padding-top: 14px; }
+.gb-verdict { margin: 0; font-size: 14px; font-weight: 700; overflow-wrap: anywhere; }
+.gb-verdict.is-good { color: var(--good); }
+.gb-verdict.is-bad { color: var(--bad); }
+.gb-reveal { margin: 6px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--muted); overflow-wrap: anywhere; }
+.gb-next { margin-top: 12px; }
+
+/* End screen */
+.gb-end { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px 0 2px; }
+.gb-end p { margin: 0; }
+.gb-end-title { margin: 0; font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.gb-end-title:focus { outline: none; }
+.gb-end-score { font-size: clamp(34px, 8vw, 48px); line-height: 1.05; color: var(--brand); }
+.gb-end-max { font-size: 0.4em; letter-spacing: 0.5px; color: var(--muted); }
+.gb-end-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  .gb-build { padding: 4px 14px 14px; }
+  .gb-msg { max-width: 100%; }
+}
+@media (max-width: 560px) {
+  .gb-options,
+  .gb-compare { grid-template-columns: minmax(0, 1fr); }
+  .gb-side { min-height: 96px; }
+  .gb-play { padding: 12px 12px 16px; }
+  .gb-type-actions { width: 100%; }
+  .gb-type-actions .btn { flex: 1; }
+}

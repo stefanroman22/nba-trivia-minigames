@@ -103,3 +103,9 @@ class ReportRateThrottle(UserRateThrottle):
     """"Report a problem" on a question. Open to guests, so without a limit it is an open write path;
     a player with a real problem reports a few, not dozens."""
     scope = "report"
+
+
+class GameBuilderRateThrottle(UserRateThrottle):
+    """AI game-builder builds and refines (staff only). Each one is a billed model run, so the limit is a cost
+    guard for a leaked staff session or a stuck client, not a usability limit."""
+    scope = "game-builder"

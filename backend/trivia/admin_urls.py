@@ -2,6 +2,7 @@
 from django.urls import path
 
 from trivia import admin_api, admin_questions, feedback_api
+from trivia.game_builder import api as game_builder
 from users import admin_users_api
 
 urlpatterns = [
@@ -16,4 +17,8 @@ urlpatterns = [
     path("feedback/", feedback_api.admin_feedback_list, name="admin-feedback"),
     path("feedback/stats/", feedback_api.admin_feedback_stats, name="admin-feedback-stats"),
     path("feedback/<int:pk>/", feedback_api.admin_feedback_update, name="admin-feedback-update"),
+    path("game-builder/", game_builder.games, name="admin-game-builder"),
+    path("game-builder/<int:pk>/", game_builder.game, name="admin-game-builder-game"),
+    path("game-builder/<int:pk>/refine/", game_builder.refine, name="admin-game-builder-refine"),
+    path("game-builder/<int:pk>/play/", game_builder.play, name="admin-game-builder-play"),
 ]

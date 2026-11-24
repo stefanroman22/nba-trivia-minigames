@@ -408,6 +408,9 @@ class Feedback(models.Model):
     # badge counts.
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=NEW)
     admin_note = models.TextField(blank=True)
+    # Written by `manage.py feedback_triage apply` (the feedback-triage agent's verdict), empty until then:
+    # {"run", "at", "kind", "summary", "cluster", "ticket"}. The owner's own notes stay in admin_note.
+    triage = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -581,3 +584,34 @@ class RollupWatermark(models.Model):
 
     def __str__(self):
         return f"{self.name} <= {self.last_id}"
+
+
+class CustomGame(models.Model):
+    """A game built in Admin -> Game Builder: a GameSpec (trivia/game_builder/spec.py) written by the builder
+    agent from the admin's description, plus the conversation that shaped it. Rounds are not stored: the engine
+    renders them from the published datasets on every play. Drafts are admin-only; nothing here is a public
+    route and nothing awards points."""
+
+    DRAFT = "draft"
+
+    slug = models.SlugField(max_length=80, unique=True)
+    title = models.CharField(max_length=60)
+    description = models.CharField(max_length=200, blank=True)
+    spec = models.JSONField()
+    # [{"role": "admin" | "agent", "text", "at"}], oldest first.
+    transcript = models.JSONField(default=list, blank=True)
+    status = models.CharField(max_length=10, default=DRAFT)
+    model = models.CharField(max_length=64, blank=True)
+    # Token and model-call totals over every build and refine of this game.
+    usage = models.JSONField(default=dict, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="custom_games"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.status})"

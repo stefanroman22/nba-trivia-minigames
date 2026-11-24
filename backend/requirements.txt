@@ -20,3 +20,5 @@ redis
 PyJWT>=2.15.1  # simplejwt token signing/verification; advisories <2.15
 urllib3>=2.8.0  # requests/google-auth HTTP client; advisories <2.8
 certifi>=2026.10.19  # requests' CA bundle; GHSA-6q48-6c7w-9gw2 (emSign roots) <2026.10.19
+# AI game builder (trivia/game_builder/agent.py). Imported lazily and only when ANTHROPIC_API_KEY is set.
+anthropic>=2.13,<3

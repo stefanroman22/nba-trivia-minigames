@@ -14,12 +14,14 @@ import { games as gameCatalog } from "../utils/GameUtils";
 import FeedbackTab from "../components/admin/FeedbackTab";
 import UsersTab from "../components/admin/UsersTab";
 import QuestionLabeler from "../components/admin/QuestionLabeler";
+import GameBuilderTab from "../components/admin/GameBuilderTab";
 import type { QuestionCounts } from "../components/admin/questionsApi";
 import type { RootState } from "../store";
 import "../styles/LandPage.css";
 import "../styles/Admin.css";
 import "../styles/AdminFeedback.css";
 import "../styles/AdminUsers.css";
+import "../styles/AdminGameBuilder.css";
 
 /* ------------------------------------------------------------------ */
 /*  API payload types (see backend/trivia/admin_api.py)                */
@@ -461,12 +463,12 @@ function GamesTab() {
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
-const ADMIN_TABS = ["games", "feedback", "users"] as const;
+const ADMIN_TABS = ["games", "feedback", "users", "builder"] as const;
 
 function Admin() {
   const navigate = useNavigate();
   const { user, authChecked } = useSelector((state: RootState) => state.user);
-  const [tab, setTab] = useState<"games" | "feedback" | "users">("games");
+  const [tab, setTab] = useState<"games" | "feedback" | "users" | "builder">("games");
   const tabs = useRovingTabs(ADMIN_TABS, tab, setTab);
   // Standing count of feedback still to be triaged. Fetched here rather than in
   // the tab so the badge is visible before the tab is ever opened.
@@ -541,10 +543,21 @@ function Admin() {
           >
             Users
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "builder"}
+            tabIndex={tabs.tabIndexFor("builder")}
+            className={`admin-tab${tab === "builder" ? " is-active" : ""}`}
+            onClick={() => setTab("builder")}
+          >
+            Game Builder
+          </button>
         </div>
         {tab === "games" && <GamesTab />}
         {tab === "feedback" && <FeedbackTab onNewCount={setNewFeedback} />}
         {tab === "users" && <UsersTab />}
+        {tab === "builder" && <GameBuilderTab />}
       </>
     );
   }
