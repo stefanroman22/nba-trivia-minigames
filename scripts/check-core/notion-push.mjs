@@ -17,11 +17,11 @@
 //   - a Done card whose Commit is not on origin/main yet → skip (the fix has not reached prod code).
 //   - all hits Done and their Commit on origin/main → one Regression card linking them.
 // The ledger (<home>/notion-cards.json) is written after every card. --dry-run reads Notion but writes nothing.
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT, uicHome } from './lib/home.mjs';
+import { cliClient } from '../lib/notion-cli.mjs';
+import { uicHome } from './lib/home.mjs';
 import { readFindingsDoc, runPath, readJson } from './lib/findings.mjs';
 import { planClusters, selectOpen, listArg, DEFAULT_SEVERITIES } from './lib/clusters.mjs';
 import { cardMeta, renderBody, attachmentDoc, findingKeys, SOURCE_MAX } from './lib/card-body.mjs';
@@ -35,26 +35,8 @@ const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 export const sourceHasRun = (source, runId) => new RegExp(`(^|\\s)run:${esc(runId)}(\\s|$)`).test(String(source || ''));
 export const seenRe = (runId) => new RegExp(`${esc(seenText(runId))}(?![\\w-])`);
 
-/** Notion through scripts/notion.mjs (one process per call, like the pipeline's intake), shipped-ness through git. */
-export function cliClient({ root = ROOT } = {}) {
-  const notion = (...a) => {
-    const r = spawnSync(process.execPath, [path.join(root, 'scripts', 'notion.mjs'), ...a], { cwd: root, encoding: 'utf8', maxBuffer: 32 << 20 });
-    if (r.status !== 0) throw new Error(`notion.mjs ${a[0]} failed: ${(r.stderr || r.stdout || '').trim().split('\n').pop()}`);
-    return r.stdout.trim();
-  };
-  let fetched = false;
-  return {
-    findCards: (keys) => JSON.parse(notion('find-cards', ...keys.flatMap((k) => ['--source-fp', k])) || '[]'),
-    listComments: (id) => JSON.parse(notion('list-comments', id) || '[]'),
-    comment: (id, text) => notion('comment', id, text),
-    createCard: (m, bodyFile, attach) => notion('create-card', m.title, '--category', m.category, '--priority', m.priority, '--difficulty', m.difficulty,
-      '--source', m.source, '--target', m.target, '--body-file', bodyFile, ...attach.flatMap((f) => ['--attach', f])).split(/\r?\n/).pop(),
-    isShipped: (sha) => {
-      if (!fetched) { spawnSync('git', ['fetch', '--quiet', 'origin', 'main'], { cwd: root }); fetched = true; }
-      return spawnSync('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: root }).status === 0;
-    },
-  };
-}
+// Notion goes through the shared CLI client; re-exported for check-bugs.mjs and the SEO push.
+export { cliClient };
 
 /** { action: 'create' | 'skip' | 'regression', open, done, why } for one cluster's keys. */
 export function decide(keys, client) {

@@ -18,43 +18,23 @@
 //   error <key> <message>           (that finding only; the others still run → exit 1)
 // --dry-run reads Notion but writes nothing, and never prints a card body (it can hold Search Console query data and
 // the weekly log is public): --print-body adds it, for a local manual preview only (run.mjs never passes it).
-import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ROOT, uicHome } from '../check-core/lib/home.mjs';
-import { decide, seenText, sourceHasRun, notionUrl } from '../check-core/notion-push.mjs';
+import { uicHome } from '../check-core/lib/home.mjs';
+import { cliClient as sharedClient } from '../lib/notion-cli.mjs';
+import { decide, seenText, seenRe, sourceHasRun, notionUrl } from '../check-core/notion-push.mjs';
 import { readFindings, validateFindings } from './lib/findings.mjs';
 import { renderCard } from './lib/card-body.mjs';
 import { loadConfig } from './lib/config.mjs';
 import { RUNS_ROOT } from './audit.mjs';
 
 const PRIORITIES = ['P0', 'P1', 'P2'];
-const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-const seenRe = (runId) => new RegExp(`${esc(seenText(runId))}(?![\\w-])`);
 
-/**
- * Notion through scripts/notion.mjs (one process per call, as check-core's cliClient), shipped-ness through git.
- * createCard always passes --target dev and never --attach. `spawn` is injectable for tests.
- */
-export function cliClient({ root = ROOT, spawn = spawnSync } = {}) {
-  const notion = (...a) => {
-    const r = spawn(process.execPath, [path.join(root, 'scripts', 'notion.mjs'), ...a], { cwd: root, encoding: 'utf8', maxBuffer: 32 << 20 });
-    if (r.status !== 0) throw new Error(`notion.mjs ${a[0]} failed: ${(r.stderr || r.stdout || '').trim().split('\n').pop()}`);
-    return r.stdout.trim();
-  };
-  let fetched = false;
-  return {
-    findCards: (keys) => JSON.parse(notion('find-cards', ...keys.flatMap((k) => ['--source-fp', k])) || '[]'),
-    listComments: (id) => JSON.parse(notion('list-comments', id) || '[]'),
-    comment: (id, text) => notion('comment', id, text),
-    createCard: (m, bodyFile) => notion('create-card', m.title, '--category', m.category, '--priority', m.priority, '--difficulty', m.difficulty,
-      '--source', m.source, '--target', 'dev', '--body-file', bodyFile).split(/\r?\n/).pop(),
-    isShipped: (sha) => {
-      if (!fetched) { spawn('git', ['fetch', '--quiet', 'origin', 'main'], { cwd: root }); fetched = true; }
-      return spawn('git', ['merge-base', '--is-ancestor', sha, 'origin/main'], { cwd: root }).status === 0;
-    },
-  };
+/** The shared Notion CLI client, with the two SEO rules applied to createCard: always --target dev, never --attach. */
+export function cliClient(opts) {
+  const base = sharedClient(opts);
+  return { ...base, createCard: (m, bodyFile) => base.createCard({ ...m, target: 'dev' }, bodyFile) };
 }
 
 /**

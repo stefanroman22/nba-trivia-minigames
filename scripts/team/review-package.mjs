@@ -4,11 +4,12 @@
 // Prints { path, files, insertions, deletions, motion, protected, reviewModel, scoped }
 // Usage: node scripts/team/review-package.mjs <slug> --base <sha> [--repo <dir>] [--since <sha>]
 import { execFileSync } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { ROOT } from "../lib/team-config.mjs";
 import { classifyTouched, touchedFiles, diffText, untrackedDiff } from "./lib/touched.mjs";
 import { runDir, readJson, writeState } from "./lib/state.mjs";
+import { briefAcceptance } from "./lib/ticket.mjs";
 
 const argv = process.argv.slice(2);
 const slug = argv[0];
@@ -37,6 +38,14 @@ const commits = git("log", "--oneline", `${base}..HEAD`);
 const tier = classify.difficulty || card.tier || "standard";
 const risk = classify.risk || "low";
 const reviewModel = card.priority === "P0" || risk === "high" || tier === "hard" || cls.protected ? "fable" : "sonnet";
+// Acceptance criteria as the brief lists them (the card's, or the planner's), next to what the engine claims.
+const briefPath = resolve(dir, "brief.md");
+const acceptance = existsSync(briefPath) ? briefAcceptance(readFileSync(briefPath, "utf8")) : [];
+const claimed = new Map(((readJson(resolve(dir, "build-report.json"), {}) || {}).acceptance || []).map((a) => [a.id, a]));
+const acceptanceLines = acceptance.map((a) => {
+  const c = claimed.get(a.id);
+  return `- ${a.id}: ${a.text}\n  engine: ${c ? `${c.met ? "met" : "NOT met"}${c.how ? ` (${c.how})` : ""}` : "no claim in build-report.json"}`;
+});
 const m = stat.match(/(\d+) files? changed(?:, (\d+) insertions?)?(?:, (\d+) deletions?)?/);
 
 const md = [
@@ -47,6 +56,12 @@ const md = [
   ``,
   `Brief (spec + the rules that apply): \`.team/run/${slug}/brief.md\` — read it; do not open the full constraint docs unless a quoted rule points there.`,
   ``,
+  ...(acceptance.length ? [
+    `## Acceptance criteria`,
+    `Check each one against the diff yourself; the engine's claim is a pointer, not evidence. End your review with one line per id: \`AC<n>: met | not met | cannot tell — why\`. "not met" is a blocker; "cannot tell" is a major finding unless the QA section below covers it.`,
+    ...acceptanceLines,
+    ``,
+  ] : []),
   `## Verify (gate 1)`,
   verify ? `pass: ${verify.pass} · tests: ${verify.testCount ?? "n/a"} · ran: ${verify.ran.map((r) => `${r.label} (${Math.round(r.ms / 1000)}s, exit ${r.exit})`).join(", ") || "nothing (" + (verify.skipped || []).join(", ") + ")"}` : "_verify.json missing — that is a finding_",
   ``,
@@ -66,4 +81,4 @@ const md = [
 const path = resolve(dir, "review-package.md");
 writeFileSync(path, md);
 writeState(slug, { stage: "review" });
-console.log(JSON.stringify({ path: `.team/run/${slug}/review-package.md`, files: m ? Number(m[1]) : touched.length, insertions: m ? Number(m[2] || 0) : null, deletions: m ? Number(m[3] || 0) : null, motion: cls.motion, protected: cls.protected, reviewModel, scoped: Boolean(since), touched }, null, 2));
+console.log(JSON.stringify({ path: `.team/run/${slug}/review-package.md`, files: m ? Number(m[1]) : touched.length, insertions: m ? Number(m[2] || 0) : null, deletions: m ? Number(m[3] || 0) : null, motion: cls.motion, protected: cls.protected, reviewModel, scoped: Boolean(since), acceptance: acceptance.length, touched }, null, 2));

@@ -287,10 +287,14 @@ function targetProp(args) {
 // --body: a single paragraph (as before). --body-file: markdown-lite file (headings, bullets,
 // paragraphs, and ![caption](local-image-path) lines that are uploaded and embedded in place).
 // --source <text> / --target dev|main (checker cards); --attach <file> (repeatable) → Attachments property.
+// --status Backlog|"To Do" (default To Do).
 async function cmdCreateCard(title, args) {
   const priority = arg(args, "--priority") || "P1";
   if (!["P0", "P1", "P2"].includes(priority)) { console.error("--priority must be P0, P1 or P2"); process.exit(1); }
-  const props = { Name: { title: text(title) }, Status: { select: { name: STATUS.TODO } }, Priority: { select: { name: priority } } };
+  // --status Backlog parks a card for the owner to promote (feedback and ticket-intake cards); default: To Do.
+  const status = arg(args, "--status") || STATUS.TODO;
+  if (![STATUS.BACKLOG, STATUS.TODO].includes(status)) { console.error(`--status must be "${STATUS.BACKLOG}" or "${STATUS.TODO}"`); process.exit(1); }
+  const props = { Name: { title: text(title) }, Status: { select: { name: status } }, Priority: { select: { name: priority } } };
   const cat = arg(args, "--category"); if (cat) props.Category = { select: { name: cat } };
   // Difficulty override: classify honors it over its own guess (hard => design round).
   const difficulty = arg(args, "--difficulty");

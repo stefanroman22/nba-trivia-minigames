@@ -1,0 +1,103 @@
+name: Ticket intake
+# One long text -> separate board cards with acceptance criteria (.claude/skills/ticket-intake).
+# The text is the body of a GitHub issue written by the repository owner: open an issue, paste the notes, run
+# this workflow with its number. An issue by anyone else is refused, because its cards can start pipeline work.
+#   split (NO Notion)   the ticket-writer agent, read-only, writes tickets.json; a ticket without checkable
+#                       acceptance criteria fails validation and nothing is filed
+#   file  (Notion)      one card per ticket, then a comment on the issue with what was filed
+on:
+  workflow_dispatch:
+    inputs:
+      issue:
+        description: "number of the issue whose body holds the text"
+        required: true
+      status:
+        description: "Backlog = parked for you to promote · To Do = the next pipeline run builds them"
+        type: choice
+        options: [Backlog, To Do]
+        default: Backlog
+      model:
+        description: "agent model (empty = the agent file's own: opus)"
+        default: ""
+      notion:
+        type: choice
+        options: [dry, live]
+        default: dry
+concurrency:
+  group: ticket-intake
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Read the issue (owner's issues only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ inputs.issue }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          [[ "$ISSUE" =~ ^[0-9]+$ ]] || { echo "issue must be a number"; exit 1; }
+          mkdir -p intake
+          gh issue view "$ISSUE" --repo "$GITHUB_REPOSITORY" --json author,body > intake/issue.json
+          author="$(jq -r .author.login intake/issue.json)"
+          [[ "$author" == "$OWNER" ]] || { echo "issue #$ISSUE was written by $author, not the repository owner: refused"; exit 1; }
+          jq -r .body intake/issue.json > intake/input.txt
+          [[ -s intake/input.txt ]] || { echo "the issue has no body"; exit 1; }
+      - name: Install Claude Code
+        run: npm i -g @anthropic-ai/claude-code@2.1.285
+      - name: Split into tickets
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          MODEL: ${{ inputs.model }}
+          ISSUE: ${{ inputs.issue }}
+        run: |
+          [[ -z "$MODEL" || "$MODEL" =~ ^[a-z0-9.-]+$ ]] || { echo "model: letters, digits, . and - only"; exit 1; }
+          node scripts/team/tickets.mjs split intake/input.txt --out intake/tickets.json --run "issue-$ISSUE" ${MODEL:+--model "$MODEL"}
+          node scripts/team/tickets.mjs render intake/tickets.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: tickets
+          path: intake/tickets.json
+          retention-days: 7
+
+  file:
+    needs: split
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v6
+        with:
+          name: tickets
+          path: intake
+      - name: File the cards
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          STATUS: ${{ inputs.status }}
+          DRY: ${{ inputs.notion == 'live' && '' || '--dry-run' }}
+        run: node scripts/team/tickets.mjs create intake/tickets.json --status "$STATUS" $DRY | tee intake/results.json
+      - name: Report on the issue
+        if: inputs.notion == 'live'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ inputs.issue }}
+          STATUS: ${{ inputs.status }}
+        run: |
+          { echo "Ticket intake filed these cards (status: $STATUS):"; echo; jq -r '.[] | "- \(.action): \(.title)\(if .why then " (\(.why))" else "" end)"' intake/results.json; } > intake/comment.md
+          gh issue comment "$ISSUE" --repo "$GITHUB_REPOSITORY" --body-file intake/comment.md

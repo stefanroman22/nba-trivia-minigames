@@ -1,0 +1,125 @@
+name: Feedback triage
+# Player feedback -> verdicts and Backlog cards with acceptance criteria (.claude/skills/feedback-triage).
+#   export (has the DB secret)   new, un-triaged messages -> batch.json. No email, name or account id leaves.
+#   triage (NO DB, NO Notion)    the feedback-triage agent, read-only (Read/Grep/Glob), writes triage.json.
+#                                Feedback is text from the public: this job holds nothing it could misuse.
+#   file   (Notion + DB)         validates the answer against the batch, files cards in Backlog (never To Do),
+#                                then marks the rows read with their verdict.
+#
+# Manual only. To run it weekly, add under `on:`
+#   schedule:
+#     - cron: "0 5 * * 1"   # Mondays 05:00 UTC
+# and first update the privacy page and docs/legal/RECORD_OF_PROCESSING.md: sending feedback text to the model
+# is a new processing purpose (they name Anthropic for question reports only).
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "most messages to triage in this run"
+        default: "200"
+      model:
+        description: "agent model (empty = the agent file's own: sonnet)"
+        default: ""
+      notion:
+        description: "live = file the cards and mark the rows · dry = show what would happen, write nothing"
+        type: choice
+        options: [dry, live]
+        default: dry
+concurrency:
+  group: feedback-triage
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      count: ${{ steps.export.outputs.count }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - name: Export the batch
+        id: export
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          LIMIT: ${{ inputs.limit }}
+        run: |
+          [[ "$LIMIT" =~ ^[0-9]+$ ]] || { echo "limit must be a number"; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/feedback"
+          python manage.py feedback_triage export --limit "$LIMIT" --out "$GITHUB_WORKSPACE/feedback/batch.json"
+          echo "count=$(python -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["items"]))' "$GITHUB_WORKSPACE/feedback/batch.json")" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: feedback-batch
+          path: feedback/batch.json
+          retention-days: 1
+
+  triage:
+    needs: export
+    if: needs.export.outputs.count != '0'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v6
+        with:
+          name: feedback-batch
+          path: feedback
+      - name: Install Claude Code
+        run: npm i -g @anthropic-ai/claude-code@2.1.285
+      - name: Triage
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          MODEL: ${{ inputs.model }}
+        run: |
+          [[ -z "$MODEL" || "$MODEL" =~ ^[a-z0-9.-]+$ ]] || { echo "model: letters, digits, . and - only"; exit 1; }
+          node scripts/feedback/run.mjs triage --batch feedback/batch.json --out feedback/triage.json ${MODEL:+--model "$MODEL"}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: feedback-triage
+          path: feedback/triage.json
+          retention-days: 1
+
+  file:
+    needs: [export, triage]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r backend/requirements.txt
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: feedback-*
+          path: feedback
+          merge-multiple: true
+      - name: File the cards (Backlog)
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          DRY: ${{ inputs.notion == 'live' && '' || '--dry-run' }}
+        run: node scripts/feedback/run.mjs file --batch feedback/batch.json --triage feedback/triage.json --out feedback/applied.json $DRY
+      - name: Mark the rows
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DRY: ${{ inputs.notion == 'live' && '' || '--dry-run' }}
+        run: python manage.py feedback_triage apply --file "$GITHUB_WORKSPACE/feedback/applied.json" $DRY

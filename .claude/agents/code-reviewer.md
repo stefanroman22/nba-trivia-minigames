@@ -28,6 +28,10 @@ Check any new component/hook/util/backend-utility against `docs/team/CODE_MAP.md
 duplicates a catalogued one is a blocker; cite the existing path.
 
 Review focus, in priority order:
+0. Acceptance criteria. When the review package has a `## Acceptance criteria` section, check every
+   criterion against the diff yourself (the engine's "met" is a pointer to where to look, not evidence)
+   and end your review with one line per id: `AC<n>: met | not met | cannot tell — why`. "not met" is a
+   blocker. "cannot tell" is major unless the package's QA section covers that criterion.
 1. Correctness bugs and broken logic.
 2. TypeScript/type-safety issues; Django model/migration mistakes.
 3. Security: auth, input validation, leaked secrets, unsafe socket events.

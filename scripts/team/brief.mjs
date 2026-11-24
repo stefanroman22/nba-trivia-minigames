@@ -12,6 +12,7 @@ import { classifyTouched } from "./lib/touched.mjs";
 import { runDir, readJson, writeState } from "./lib/state.mjs";
 import { isCheckCard, findingsOf, rulesOfFindings, renderCheckFindings, withVerifyAssertion } from "./lib/check-card.mjs";
 import { touchesSeo } from "../seo/lib/seo-paths.mjs";
+import { acceptanceOf, briefAcceptance, BRIEF_ACCEPTANCE } from "./lib/ticket.mjs";
 import { writeFileSync } from "node:fs";
 
 const argv = process.argv.slice(2);
@@ -84,6 +85,15 @@ if (check) {
   qaJson = JSON.stringify(withVerifyAssertion(prev, findingsFile), null, 2);
 }
 
+// --- acceptance criteria: the card's own `## Acceptance criteria` (ticket-intake cards always have one), else
+// what a planner already wrote into an earlier brief (prevBrief is read further up). A check card's acceptance is its findings, not this list.
+let acceptance = check ? [] : acceptanceOf(card.spec);
+const acceptanceFrom = acceptance.length ? "card" : "brief";
+if (!check && !acceptance.length) acceptance = briefAcceptance(prevBrief);
+const acceptanceSection = acceptance.length
+  ? acceptance.map((a) => `- ${a.id}: ${a.text}`).join("\n") + `\n\n_From the ${acceptanceFrom}. The reviewer returns a verdict for each id; an unmet one is a blocker._`
+  : "_The card has none. Planner (or the engine, on a trivial card): replace this paragraph with 2-5 bullets `- AC1: <an outcome someone can check>` before any code is written._";
+
 // --- files named (first 40 lines each, max 6)
 const named = [];
 for (const f of [...new Set(planFiles)].slice(0, 6)) {
@@ -123,7 +133,7 @@ const lines = [
   `# Brief — ${card.title}`,
   ``,
   `Card: ${card.id} · ${card.priority} · tier **${tier}** · areas ${(classify.areas || card.areas || []).join(", ")} · risk ${classify.risk || "low"} · engine **${engine}** (${classify.engineEffort || "high"})`,
-  `Slug \`${slug}\` · run dir \`.team/run/${slug}/\` · write \`build-report.json\` there when done: \`{ "did": "…", "assumed": "…", "touched": ["path", …], "testsAdded": [] }\`.`,
+  `Slug \`${slug}\` · run dir \`.team/run/${slug}/\` · write \`build-report.json\` there when done: \`{ "did": "…", "assumed": "…", "touched": ["path", …], "testsAdded": []${check ? "" : `, "acceptance": [{ "id": "AC1", "met": true, "how": "where in the diff or which test shows it" }]`} }\`.`,
   ``,
   `## Spec`,
   card.spec.trim(),
@@ -133,6 +143,7 @@ const lines = [
     findings ? renderCheckFindings(findings, { file: findingsFile }) : `_The findings.json attachment is missing or unreadable (\`${findingsFile}\`) — QA will fail; the owner must re-attach it._`,
     ``,
   ] : []),
+  ...(check ? [] : [BRIEF_ACCEPTANCE, acceptanceSection, ``]),
   `## Attachments`,
   (card.attachments || []).length ? (card.attachments || []).map((a) => `- \`${a}\` — Read it before implementing; it is the visual source of truth.`).join("\n") : "_none_",
   ``,
@@ -176,4 +187,4 @@ if (count > MAX_LINES) {
 }
 writeFileSync(resolve(dir, "brief.md"), text + "\n");
 writeState(slug, { stage: needsPlan ? "plan" : "build", tier, hasPlan, needsPlan });
-console.log(JSON.stringify({ brief: `.team/run/${slug}/brief.md`, hasPlan, needsPlan, lines: count, rulesQuoted, planFiles, ...(check ? { checkCard: true, findingsFile, findings: findings ? findings.length : 0 } : {}) }, null, 2));
+console.log(JSON.stringify({ brief: `.team/run/${slug}/brief.md`, hasPlan, needsPlan, lines: count, rulesQuoted, planFiles, acceptance: acceptance.length, ...(check ? { checkCard: true, findingsFile, findings: findings ? findings.length : 0 } : {}) }, null, 2));

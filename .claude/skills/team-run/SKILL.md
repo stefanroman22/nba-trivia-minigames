@@ -82,8 +82,9 @@ time is then under 45 minutes, release it: `set-status <id> "To Do"` + a comment
   QA triples the planner wrote into the brief).
 - else `needsPlan`: `Agent(model: sonnet, planner-architect)`: "Read `<repo>/.team/run/<slug>/brief.md`.
   Replace the `## Plan` paragraph with 5–12 numbered steps, each naming its file(s) and a done-check, tag
-  each `[sonnet]` or `[opus]` (opus = judgment or motion), and fill `## QA assertions`. Edit the brief in
-  place; no code." Then re-read the brief's plan.
+  each `[sonnet]` or `[opus]` (opus = judgment or motion), and fill `## QA assertions`. If the brief's
+  `## Acceptance` section says the card has none, write 2-5 there (`- AC1: …`). Edit the brief in place; no code." Then
+  re-read the brief's plan.
 - If the plan's files hit a shared UI entry of `.claude/team/qa-map.json` (`games: "*"` — `components/ui`,
   `components/motion`, `src/motion`, `ScorePanel`, `EndSequence`, `GameResult`, `ui.css`, `MiniGame.css`,
   `theme.css`) and another frontend/game lane is active, park this card until that lane finishes (§11 of the design).
@@ -95,7 +96,8 @@ time is then under 45 minutes, release it: `set-status <id> "To Do"` + a comment
 the full constraint docs unless a quoted rule points you to a section. Read every attachment listed.
 Implement the `## Plan` steps <N–M>. Reuse-first: duplicating a CODE_MAP entry is a review-reject. Do
 not run lint/typecheck/build routinely. When done write `<repo>/.team/run/<slug>/build-report.json`
-`{did, assumed, touched[], testsAdded[]}` and reply with its contents." Two areas whose plan files are
+`{did, assumed, touched[], testsAdded[], acceptance[{id, met, how}]}` (one entry per `AC<n>` of the brief) and
+reply with its contents." Two areas whose plan files are
 disjoint → spawn both at once. **Keep every engine's agent id** in `state.engineAgentIds[area]`.
 
 **gate 1 — verify** → `node scripts/team/verify.mjs <slug> --base <baseSha> --repo <wt> --lane <n>`. Exit 1 → fix round (§3).
@@ -110,7 +112,8 @@ audit (run before the browser on an SEO diff) failed: that verdict is a fail and
 **review** → `node scripts/team/review-package.mjs <slug> --base <baseSha> --repo <wt>` → `{reviewModel, motion}`.
 Spawn `Agent(model: <reviewModel>, code-reviewer)` on `<repo>/.team/run/<slug>/review-package.md`; if `motion`,
 also `Agent(model: opus, motion-reviewer)` on the same file, in parallel. Any blocker/major → fix round;
-minor/nit/missing → noted in the commit body.
+minor/nit/missing → noted in the commit body. The reviewer ends with a verdict per acceptance criterion
+(`AC<n>: met | not met | cannot tell`): `not met` is a blocker like any other.
 
 **ship** → `ship` skill from the worktree. `SHIPPED <sha>` (or `SHIPPED-PR <url>`, a check card's relay change left as
 a PR to `main` for the owner: same bookkeeping, `commit` = the PR's head SHA, plus `pr` in the json) → `shipped.push({title, category})`, write

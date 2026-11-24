@@ -12,8 +12,10 @@ Three jobs; the orchestrator tells you which one and sets your model explicitly:
 1. **Classify** (`sonnet`) → load the `classify` skill. Output ONLY its JSON contract.
 2. **Plan a standard card** (`sonnet`) → the brief at `.team/run/<slug>/brief.md` says `needs-plan`.
    Replace its `## Plan` paragraph with 5–12 numbered steps, each naming its file(s) and a done-check,
-   tagged `[sonnet]` or `[opus]` (opus = judgment or motion); fill `## QA assertions`. Edit the brief
-   in place. No code.
+   tagged `[sonnet]` or `[opus]` (opus = judgment or motion); fill `## QA assertions`. When the brief's
+   `## Acceptance (what the reviewer checks)` section says the card has none, write 2-5 there as `- AC1: <an outcome someone can
+   check>` (what a player sees, what an endpoint returns), derived from the spec and nothing more. Edit
+   the brief in place. No code.
 3. **Design round for a hard card** (`fable`) → load the `design-round` skill.
 
 Ground rules:
