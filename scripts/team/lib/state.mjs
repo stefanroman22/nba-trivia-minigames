@@ -37,6 +37,32 @@ export function writeState(slug, patch) {
   return writeJson(resolve(runDir(slug), "state.json"), next);
 }
 
+/** The stages an agent is spawned at; the cost ledger (scripts/team/costs.mjs, docs/team/PIPELINE.md §19) groups by them. */
+export const SPAWN_STAGES = Object.freeze(["classify", "plan", "design", "build", "fix", "qa", "review"]);
+
+// A usage number is what the harness reported for that agent: a non-negative integer, or null. Never an estimate.
+const usageNumber = (v) => {
+  if (typeof v === "string" && /^\d+$/.test(v.trim())) v = Number(v.trim());
+  return Number.isSafeInteger(v) && v >= 0 ? v : null;
+};
+const word = (v) => (typeof v === "string" && v.trim() ? v.trim() : null);
+
+/**
+ * Pure: a copy of `state` with one spawn record appended to `state.spawns` —
+ * { stage, agent, model, tokens, toolUses, ms }. An unknown stage throws; a number the harness did not report
+ * (absent, negative, not an integer) is stored as null.
+ */
+export function appendSpawn(state, spawn = {}) {
+  const stage = word(spawn.stage);
+  if (!SPAWN_STAGES.includes(stage)) throw new Error(`spawn stage must be one of ${SPAWN_STAGES.join(", ")}; got ${JSON.stringify(spawn.stage ?? null)}`);
+  const record = {
+    stage, agent: word(spawn.agent), model: word(spawn.model)?.toLowerCase() ?? null,
+    tokens: usageNumber(spawn.tokens), toolUses: usageNumber(spawn.toolUses), ms: usageNumber(spawn.ms),
+  };
+  const prev = state && Array.isArray(state.spawns) ? state.spawns : [];
+  return { ...(state || {}), spawns: [...prev, record] };
+}
+
 /**
  * kebab-case title, ≤30 chars, unique against existing run dirs: a dir is reused only when its
  * card.json belongs to the same Notion card (a resume); any other occupant gets a -2/-3 suffix.

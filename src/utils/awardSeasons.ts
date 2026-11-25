@@ -35,7 +35,7 @@ export function idsHitWinner(row: MvpSeason, ids: number[]): boolean {
 }
 
 /** The id the game logs and the seen set keeps: "{season}:{award}", or the season on an old row. */
-export function awardQuestionId(row: MvpSeason): string {
+export function awardQuestionId(row: Pick<MvpSeason, "season" | "award">): string {
   return row.award ? `${row.season}:${row.award}` : String(row.season);
 }
 

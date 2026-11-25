@@ -15,9 +15,11 @@ interface GameResultProps {
   onClose: () => void,
   /** Opens "Report a problem" for the questions this game dealt. Omit when there are none. */
   onReport?: () => void,
+  /** Opens "See why" (the answer review with its "Why?" explanations). Only given behind EXPLANATIONS_ENABLED. */
+  onWhy?: () => void,
 }
 
-function GameResult({ score, maxPoints, onPlayAgain, onClose, onReport }: GameResultProps) {
+function GameResult({ score, maxPoints, onPlayAgain, onClose, onReport, onWhy }: GameResultProps) {
   const reduce = useReducedMotion();
   const [size, setSize] = useState({ w: 0, h: 0 });
 
@@ -79,6 +81,7 @@ function GameResult({ score, maxPoints, onPlayAgain, onClose, onReport }: GameRe
           {onPlayAgain && <Button block autoFocus onClick={onPlayAgain}>Play again</Button>}
           <Button block autoFocus={!onPlayAgain} variant="secondary" onClick={onClose}>Close game</Button>
         </div>
+        {onWhy && <button type="button" className="report-link" onClick={onWhy}>See why</button>}
         {onReport && <button type="button" className="report-link" onClick={onReport}>Report a problem</button>}
       </motion.div>
     </div>

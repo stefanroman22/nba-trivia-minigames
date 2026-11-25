@@ -1,6 +1,7 @@
 """AI game builder: spec validation, the round engine on the published datasets, the agent's tool loop against a
 scripted model, and the staff-only API. No test calls the real Anthropic API."""
 from types import SimpleNamespace
+from unittest import skipUnless
 from unittest import mock
 
 from django.contrib.auth import get_user_model
@@ -8,6 +9,7 @@ from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase, override_settings
 from rest_framework.test import APIClient
 
+from trivia import llm
 from trivia.game_builder import agent, engine
 from trivia.game_builder.sources import SOURCES, catalog, describe, get_value, load_rows
 from trivia.game_builder.spec import SpecError, validate
@@ -223,6 +225,7 @@ class ScriptedClient:
 
 
 @override_settings(GAME_BUILDER_MAX_TURNS=4)
+@skipUnless(llm.available(), "needs the Anthropic SDK (requirements-ai.txt)")
 class AgentTests(SimpleTestCase):
     def test_builds_after_inspecting_previewing_and_fixing_a_bad_spec(self):
         too_narrow = {**DRAFT_SPEC, "filters": [{"field": "mvp_count", "op": "gte", "value": 5}]}
@@ -335,6 +338,59 @@ class ApiTests(TestCase):
         self.assertEqual(self.api.delete(f"/api/admin/game-builder/{game['id']}/").status_code, 204)
         self.assertEqual(self.api.get(f"/api/admin/game-builder/{game['id']}/").status_code, 404)
 
+    def test_publish_makes_the_game_public_and_a_refine_takes_it_back(self):
+        game = self._build().json()["game"]
+        public = f"/trivia/custom-games/{game['slug']}/"
+        anon = APIClient()
+        self.assertEqual((game["status"], game["published_at"], game["public_path"]), ("draft", None, "/custom/draft-day"))
+        self.assertEqual(anon.get(public).status_code, 404)
+        self.assertEqual(anon.get(public + "play/").status_code, 404)
+
+        res = self.api.post(f"/api/admin/game-builder/{game['id']}/publish/", {"action": "publish"}, format="json")
+        published = res.json()["game"]
+        self.assertEqual(published["status"], "published")
+        self.assertTrue(published["published_at"])
+        self.assertEqual(CustomGame.objects.get().published_by, self.admin)
+
+        self.assertEqual(anon.get(public).json(), {"game": {
+            "slug": "draft-day", "title": "Draft Day", "description": "Name the team that drafted each All-Star.",
+            "mode": "multiple_choice", "rounds": 8, "points_per_correct": 10}})
+        played = anon.get(public + "play/").json()
+        self.assertEqual((len(played["rounds"]), played["max_points"]), (8, 80))
+
+        with mock.patch.object(agent, "run", return_value=self._result({**DRAFT_SPEC, "rounds": 5}, "Five rounds.")):
+            refined = self.api.post(f"/api/admin/game-builder/{game['id']}/refine/", {"prompt": "5 rounds"}, format="json").json()["game"]
+        self.assertEqual((refined["status"], refined["published_at"]), ("draft", None))
+        self.assertEqual(anon.get(public).status_code, 404)
+
+        self.api.post(f"/api/admin/game-builder/{game['id']}/publish/", {"action": "publish"}, format="json")
+        self.assertEqual(anon.get(public).status_code, 200)
+        self.api.post(f"/api/admin/game-builder/{game['id']}/publish/", {"action": "unpublish"}, format="json")
+        self.assertEqual(anon.get(public + "play/").status_code, 404)
+
+    def test_publish_is_staff_only_and_refuses_a_game_that_no_longer_runs(self):
+        game = self._build().json()["game"]
+        url = f"/api/admin/game-builder/{game['id']}/publish/"
+        player = APIClient()
+        player.force_authenticate(self.player)
+        self.assertEqual(player.post(url, {"action": "publish"}, format="json").status_code, 403)
+        self.assertEqual(self.api.post(url, {"action": "delete"}, format="json").status_code, 400)
+        CustomGame.objects.update(spec=validate({**DRAFT_SPEC, "filters": [{"field": "mvp_count", "op": "gte", "value": 5}]}))
+        res = self.api.post(url, {"action": "publish"}, format="json")
+        self.assertEqual((res.status_code, CustomGame.objects.get().status), (400, "draft"))
+
+    def test_a_published_game_whose_pool_shrank_is_gone_for_visitors(self):
+        game = CustomGame.objects.create(slug="thin", title="Thin", status=CustomGame.PUBLISHED,
+                                         spec=validate({**DRAFT_SPEC, "filters": [{"field": "mvp_count", "op": "gte", "value": 5}]}))
+        self.assertEqual(APIClient().get(f"/trivia/custom-games/{game.slug}/play/").status_code, 404)
+
+    def test_the_public_side_never_exposes_the_spec_or_the_conversation(self):
+        game = self._build().json()["game"]
+        self.api.post(f"/api/admin/game-builder/{game['id']}/publish/", {"action": "publish"}, format="json")
+        body = APIClient().get(f"/trivia/custom-games/{game['slug']}/").content.decode()
+        for private in ("transcript", "filters", "usage", "who drafted the stars", "allstar_count"):
+            self.assertNotIn(private, body)
+
     def test_a_refine_answered_in_words_keeps_the_game(self):
         game = self._build().json()["game"]
         with mock.patch.object(agent, "run", return_value=self._result(None, "No referee data.")):
@@ -364,6 +420,7 @@ class ApiTests(TestCase):
         self.assertEqual(len(self.api.get(f"/api/admin/game-builder/{game.pk}/play/").json()["rounds"]), 5)
 
 
+@skipUnless(llm.available(), "needs the Anthropic SDK (requirements-ai.txt)")
 class SdkRequestTests(SimpleTestCase):
     """The loop through the real Anthropic SDK against a canned HTTP transport: what goes on the wire, and that
     the SDK's own response objects are read correctly. Still no network."""
@@ -397,7 +454,7 @@ class SdkRequestTests(SimpleTestCase):
         self.assertEqual(result.usage, {"input_tokens": 1550, "output_tokens": 20, "turns": 1})
         request, body = seen[0]
         self.assertEqual(request.url.path, "/v1/messages")
-        self.assertIn(agent.FALLBACK_BETA, request.headers["anthropic-beta"])
+        self.assertIn(llm.FALLBACK_BETA, request.headers["anthropic-beta"])
         self.assertEqual(body["model"], "claude-opus-5-5")
         self.assertEqual(body["fallbacks"], "default")
         self.assertEqual(body["output_config"], {"effort": "medium"})

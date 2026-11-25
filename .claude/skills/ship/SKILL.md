@@ -24,6 +24,7 @@ Read `target` from `<repo>/.team/run/<slug>/card.json`. `"main"` (a check card, 
 
    Notion: <card url>
    Category: <card Category>
+   Cost: <key=value pairs, see below>
 
    ## Agent notes
    - agent: <frontend-engine|backend-engine>
@@ -31,6 +32,10 @@ Read `target` from `<repo>/.team/run/<slug>/card.json`. `"main"` (a check card, 
      assumed: <≤20 words, or "none">
 
    One `- agent:` bullet per engine that contributed (a fullstack task has two).
+   The `Cost:` line is the card's entry in the cost ledger (docs/team/PIPELINE.md §19): the one line that
+   `node <repo>/scripts/team/costs.mjs trailer <slug>` prints (the main checkout's copy, where the run state is),
+   pasted unchanged right after `Category:`. If the command fails or prints nothing, leave the line out: it never
+   blocks a ship.
    Use `git commit -F <file>` so the body is verbatim.
 2. `git -C <worktree> fetch origin dev`
 3. `git -C <worktree> rebase origin/dev`. Conflict → `git rebase --abort` → `SHIP-FAIL rebase conflict with dev: <files>`.

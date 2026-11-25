@@ -28,6 +28,7 @@ import {
   type FeedbackRow,
   type FeedbackStats,
   type FeedbackStatus,
+  type FeedbackTriage,
   type Granularity,
 } from "./feedbackApi";
 
@@ -118,6 +119,36 @@ function StatTile({
   );
 }
 
+/** Notion page ids are stored with dashes; the public page URL wants them without. */
+const ticketUrl = (id: string) => `https://www.notion.so/${id.replace(/-/g, "")}`;
+
+/** The feedback-triage agent's verdict, shown in the expanded row only when there is one. */
+function TriageBlock({ triage }: { triage: FeedbackTriage }) {
+  return (
+    <div className="fb-triage">
+      <span className="fb-detail-label">Agent triage</span>
+      <p className="fb-triage-line">
+        <span className={`fb-kind is-${triage.kind}`}>{triage.kind}</span>
+        {triage.summary && <span className="fb-triage-summary">{triage.summary}</span>}
+      </p>
+      {(triage.cluster || triage.ticket) && (
+        <p className="fb-triage-meta">
+          {triage.cluster && (
+            <span>
+              Cluster <code>{triage.cluster}</code>
+            </span>
+          )}
+          {triage.ticket && (
+            <a href={ticketUrl(triage.ticket)} target="_blank" rel="noopener noreferrer">
+              Open card
+            </a>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ */
 /*  One feedback entry                                                 */
 /* ------------------------------------------------------------------ */
@@ -147,6 +178,7 @@ function FeedbackCard({ row, onChange }: { row: FeedbackRow; onChange: (r: Feedb
       <button className="fb-row-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
         <Stars n={row.rating} />
         <span className="fb-row-msg">
+          {row.triage && <span className={`fb-kind is-${row.triage.kind}`}>{row.triage.kind}</span>}
           {row.message || <em className="admin-muted">Rating only.</em>}
         </span>
         <span className="fb-row-who">
@@ -171,6 +203,8 @@ function FeedbackCard({ row, onChange }: { row: FeedbackRow; onChange: (r: Feedb
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
         >
           {row.message && <p className="fb-row-full">{row.message}</p>}
+
+          {row.triage && <TriageBlock triage={row.triage} />}
 
           <div className="fb-detail-grid">
             <div>

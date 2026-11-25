@@ -84,6 +84,18 @@ export type FeedbackAccount = {
   rank: string;
 };
 
+export type TriageKind = "bug" | "idea" | "content" | "praise" | "complaint" | "other";
+
+/** The feedback-triage agent's verdict on a row; `ticket` is a Notion page id or "". */
+export type FeedbackTriage = {
+  kind: TriageKind;
+  summary: string;
+  cluster: string;
+  ticket: string;
+  at: string;
+  run: string;
+};
+
 export type FeedbackRow = {
   id: number;
   rating: number;
@@ -98,6 +110,8 @@ export type FeedbackRow = {
   snapshot: { email: string; display_name: string; public_id: string };
   account_deleted: boolean;
   is_guest: boolean;
+  /** null = not triaged yet */
+  triage: FeedbackTriage | null;
 };
 
 export type FeedbackPage = { total: number; offset: number; limit: number; rows: FeedbackRow[] };

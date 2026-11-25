@@ -5,14 +5,11 @@
  */
 import { apiFetch } from "../../utils/Api";
 import { BACKEND_URL } from "../../configurations/backend";
+import { MODE_LABEL, type BuilderMode, type CustomPlay, type Round, type RoundSide } from "../customGame/types";
 
-export type BuilderMode = "multiple_choice" | "type_answer" | "higher_lower";
-
-export const MODE_LABEL: Record<BuilderMode, string> = {
-  multiple_choice: "Multiple choice",
-  type_answer: "Type the answer",
-  higher_lower: "Higher or lower",
-};
+// The player and the public page share these with the admin code; re-exported so existing imports keep working.
+export { MODE_LABEL };
+export type { BuilderMode, Round, RoundSide };
 
 export interface BuilderField {
   name: string;
@@ -57,29 +54,6 @@ export interface GameSpec {
   reveal?: string;
 }
 
-export interface RoundSide {
-  label: string;
-  value: number;
-}
-
-export interface Round {
-  id: string;
-  kind: BuilderMode;
-  prompt: string;
-  /** multiple_choice */
-  options?: string[];
-  /** multiple_choice: the correct option text; type_answer: canonical answer; higher_lower: "left" | "right". */
-  answer: string;
-  /** type_answer: every accepted answer (canonical + aliases). */
-  accepted?: string[];
-  /** higher_lower */
-  left?: RoundSide;
-  /** higher_lower */
-  right?: RoundSide;
-  /** Already rendered text. */
-  reveal?: string;
-}
-
 export interface BuilderPreview {
   pool_size: number;
   answer_values: number;
@@ -101,7 +75,11 @@ export interface GameSummary {
   description: string;
   mode: BuilderMode;
   source: string;
-  status: "draft";
+  /** An approval covers one exact spec: a refine puts a published game back to draft. */
+  status: "draft" | "published";
+  published_at: string | null;
+  /** e.g. "/custom/draft-day"; always present, only reachable while published. */
+  public_path: string;
   updated_at: string;
 }
 
@@ -120,11 +98,7 @@ export interface BuilderOverview {
   games: GameSummary[];
 }
 
-export interface BuilderPlay {
-  rounds: Round[];
-  points_per_correct: number;
-  max_points: number;
-}
+export type BuilderPlay = CustomPlay;
 
 /** The list row of a game: what the overview returns for it. */
 export function toSummary(g: GameDetail): GameSummary {
@@ -136,6 +110,8 @@ export function toSummary(g: GameDetail): GameSummary {
     mode: g.mode,
     source: g.source,
     status: g.status,
+    published_at: g.published_at,
+    public_path: g.public_path,
     updated_at: g.updated_at,
   };
 }
@@ -183,4 +159,12 @@ export async function fetchPlay(id: number): Promise<BuilderPlay> {
 export async function deleteGame(id: number): Promise<void> {
   const res = await apiFetch(`${BASE}${id}/`, { method: "DELETE" });
   if (!res.ok) throw await failure(res, "Could not delete this game");
+}
+
+/** Approve a draft (it gets its public page) or take a published game down again. 400 `{error}` when it cannot be published. */
+export async function publishGame(id: number, action: "publish" | "unpublish"): Promise<GameDetail> {
+  const res = await apiFetch(`${BASE}${id}/publish/`, { method: "POST", body: JSON.stringify({ action }) });
+  if (!res.ok) throw await failure(res, action === "publish" ? "Could not publish this game" : "Could not unpublish this game");
+  const data = (await res.json()) as { game: GameDetail };
+  return data.game;
 }

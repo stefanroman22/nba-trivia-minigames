@@ -19,6 +19,7 @@ import { showErrorAlert } from '../../utils/Alerts';
 import type { Difficulty, Game, GameData } from '../../types/types';
 import type { AnswerReview } from '../../types/review';
 import { reviewRounds } from '../../utils/reviewRounds';
+import { canExplain } from '../../utils/explain';
 import { apiFetch, getAccessToken } from '../../utils/Api';
 import { addGuestPoints } from '../../utils/guestPoints';
 import { flushSeenToServer, syncSeenFromServer } from '../../utils/seen';
@@ -339,6 +340,8 @@ function MiniGame() {
   const reportRounds = reviewRounds(review);
   const reportable = !!game && reportRounds.length > 0;
   const openReport = () => { if (game) open("reportQuestion", { game: game.id, rounds: reportRounds }); };
+  // "See why" (VITE_EXPLANATIONS=1 only; canExplain is false otherwise): the answer review of a finished run with a miss.
+  const openWhy = () => { if (review) open("answerReview", { review, title: game?.name, score }); };
 
   const renderStage = () => {
     switch (stage) {
@@ -444,7 +447,7 @@ function MiniGame() {
         );
       case "result":
         // Wordle and Contexto are once per day: Play again would only hit the daily lock, so their result offers Close game alone.
-        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={isDailyLockGame(gameId) ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} />;
+        return <GameResult score={score} maxPoints={game?.maxPoints ?? 0} onPlayAgain={isDailyLockGame(gameId) ? undefined : handleStart} onClose={handleRestart} onReport={reportable ? openReport : undefined} onWhy={canExplain(review) ? openWhy : undefined} />;
     }
   };
 

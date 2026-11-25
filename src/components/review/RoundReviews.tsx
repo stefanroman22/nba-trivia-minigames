@@ -3,6 +3,8 @@ import TeamBadge from "../ui/TeamBadge";
 import TeamNameGradient from "../ui/TeamNameGradient";
 import { Headshot } from "../../Game Renderers/SuperDraft";
 import { ReviewPick, ReviewRound, ReviewSummary } from "./ReviewParts";
+import ExplainWhy from "./ExplainWhy";
+import { awardQuestionId } from "../../utils/awardSeasons";
 import type { AnswerReview } from "../../types/review";
 
 type Of<G extends AnswerReview["game"]> = Extract<AnswerReview, { game: G }>;
@@ -43,6 +45,7 @@ export function SeriesReview({ review }: { review: Of<"series-winner"> }) {
                 </div>
               }
               pick={<ReviewPick pick={r.pick} ok={ok} verb="You picked" />}
+              extra={!ok && r.matchId !== "" ? <ExplainWhy game="series-winner" qid={r.matchId} /> : undefined}
             />
           );
         })}
@@ -85,6 +88,7 @@ export function MvpReview({ review }: { review: Of<"guess-mvps"> }) {
             ok={r.correct}
             answer={<span>{r.mvp}</span>}
             pick={<ReviewPick pick={r.pick} ok={r.correct} />}
+            extra={!r.correct ? <ExplainWhy game="guess-mvps" qid={awardQuestionId(r)} /> : undefined}
           />
         ))}
       </ol>

@@ -96,9 +96,9 @@ you take with your own eyes on `dev` first.
   `browser-qa`, `code-reviewer`, `motion-reviewer`, `ticket-writer`). Verify is a script (`scripts/team/verify.mjs`), not an agent.
 - **Run state** — `.team/run/<slug>/`: `card.json` (spec + props), `classify.json`, `brief.md`
   (the context pack every agent reads), `build-report.json`, `verify.json`, `review-package.md`
-  and `state.json` (stage, fix rounds per gate, engine agent ids, base sha). Deleted on ship or
+  and `state.json` (stage, fix rounds per gate, engine agent ids, base sha, the usage of every agent spawned: §19). Deleted on ship or
   fail; a leftover dir means a run died and intake resumes it. (`.team/journal.json` was v1.)
-- **Scripts** — `scripts/team/{intake,brief,verify,qa,review-package,tickets}.mjs` with pure libs and
+- **Scripts** — `scripts/team/{intake,brief,verify,qa,review-package,tickets,costs}.mjs` with pure libs and
   `node --test` tests under `scripts/team/lib/` (`npm run test:automation` runs every script suite). `.claude/team/qa-map.json` maps touched files to
   the games/routes QA exercises.
 - **Logs** — `.team/logs/` (one file per run). Written by PowerShell's
@@ -336,7 +336,8 @@ pipeline spawn:
 | `@claude` responder (GitHub Actions) | the session model in `.claude/settings.json` (`fable`), read by `.github/workflows/claude.yml`. |
 
 Haiku 5.5 and Sonnet 5.5 are cheap enough that the cost case for moving more judgment down a tier is worth an
-eval, but no role was moved on price alone: a tier change needs a measured pass rate, not a price list.
+eval, but no role was moved on price alone: a tier change needs a measured pass rate, not a price list. For
+classify that measurement is one command (§20).
 
 History: `docs/team/DECISIONS.md` 2026-09-06 (Opus 5 banned for cost), 2026-09-29 (reversal: Opus 5.5 and
 Sonnet 5.5), 2026-10-03 (v2). 2026-11-24: Fable 5.2 and Haiku 5.5 replace Fable 5.1 and Haiku 4.5 behind the same
@@ -477,3 +478,101 @@ could act, cards. Four steps with separate access (the jobs of `feedback-triage.
 **Backlog**, with `Source` = `feedback fp:… run:…`. It becomes pipeline work only when you move it to To Do. A
 repeat report of an open card adds a "seen again" comment instead of a second card. The card body carries counts
 and feedback ids, never the players' words.
+
+## 19. Cost ledger
+
+What a card cost is written on the card's own commit. There is no ledger file: two lanes appending to one file would
+conflict on every rebase, and the commit is already the one record that survives the run dir.
+
+**What is recorded.** Each time an agent returns to the orchestrator, the harness reports that agent's usage (total
+tokens, tool uses, duration). The orchestrator stores it with one command per spawn (`team-run` skill §2):
+
+```
+node scripts/team/costs.mjs spawn <slug> --stage build --agent frontend-engine --model sonnet --tokens 123456 --tool-uses 40 --ms 310000
+```
+
+It appends `{stage, agent, model, tokens, toolUses, ms}` to `state.spawns` in `.team/run/<slug>/state.json`
+(stages: `classify`, `plan`, `design`, `build`, `fix`, `qa`, `review`). A number the harness did not report is stored
+as `null`: nothing is estimated. The orchestrator session's own tokens are not in it (a session is not told its own
+usage), so the tokens of a card are the tokens of the agents it spawned.
+
+**The trailer.** At ship, `node scripts/team/costs.mjs trailer <slug>` prints one line from `state.json` and
+`classify.json`, and the `ship` skill puts it in the commit body right after `Category:`:
+
+```
+Cost: tier=standard engine=sonnet effort=high plan=sonnet review=fable spawns=6 tokens=812345 models=sonnet:612345,fable:200000 fix=verify:1,qa:0,review:1 minutes=23
+```
+
+`key=value` pairs separated by single spaces, no space inside a value; a key with nothing known is left out.
+
+| Key | Meaning |
+|---|---|
+| `tier`, `engine`, `effort` | classify's difficulty, engine model and engine effort |
+| `plan` | the model of the last plan or design spawn recorded (absent: no plan writer ran) |
+| `review` | the model of the last `code-reviewer` spawn recorded |
+| `spawns` | how many agent spawns were recorded |
+| `tokens` | the sum over the spawns that reported a number (absent when none did) |
+| `models` | that sum per model, which is what the estimate is priced from |
+| `unmetered` | spawns that reported no token number, when there are any: `tokens` is then a lower bound |
+| `fix` | fix rounds per gate, from `state.fixRounds` (a replan resets its gate's counter) |
+| `minutes` | from the card's first intake (`startedAt`) to the ship; a card resumed in a later run includes the wait |
+
+A failing `trailer` never blocks a ship: the line is left out and the card shows no numbers. The formatter and the
+parser are one pure pair in `scripts/team/lib/cost.mjs`, round-trip tested.
+
+**The report.** `npm run team:costs` (= `node scripts/team/costs.mjs report`) reads `git log origin/dev` (`HEAD` when
+that ref is missing), keeps the commits with a `Notion:` line and prints one row per card, then totals per category,
+per engine model and per ISO week: cards, tokens, the estimate, the share of cards with any fix round, mean fix rounds.
+
+```
+node scripts/team/costs.mjs report --since "4 weeks ago"       # markdown on stdout
+node scripts/team/costs.mjs report --ref origin/main --json    # rows and totals as JSON
+node scripts/team/costs.mjs report --html costs.html           # one self-contained page: tiles, charts, a sortable table
+```
+
+**Old commits have no numbers, and none are invented.** A card shipped before the ledger has no `Cost:` line. Its row
+shows what its commit says (date, category, the engines of `## Agent notes`, the source kind from a `[ui-check]`,
+`[logic-check]`, `[check-bug]`, `[security]` or `[seo]` title, else from the card's name in the Notion URL, else
+`card`) and `n/a` everywhere else; totals count only the cards that have data, and say how many those are. A
+`cherry-pick -x` copy of a card that is also in the log (a hotfix on `main` and its copy on `dev`) is one ship: the
+copy is dropped, so a card's numbers are never counted twice.
+
+**The dollar figure is an estimate.** A row's dollars are its tokens per model times that model's list input price
+(`usdPerMTok.input` in `.claude/models.json`): an upper-bound estimate at list input price; the subscription is not
+billed per token. Agent traffic is overwhelmingly input and cache reads, and cache reads cost a fraction of the input
+price, which is why pricing every token as fresh input overstates. A row whose model has no price in the registry
+shows `n/a`. Use the figure to compare cards, tiers and models with each other, not as a bill.
+
+**Not in the ledger.** Direct mode (§16): its commits are the security gate's own (`security: auto-fix round …`,
+no `Notion:` line), so `team-direct` records nothing. Failed cards: they have no commit; their run dir, spawns
+included, is deleted by the fail procedure.
+
+## 20. Which model should classify: the tier comparison
+
+`classify` decides every card's route (model tier, design round or not), so its own model is worth measuring instead
+of guessing. The eval exists: 36 cases (19 real cards, 17 owner-written) with an owner-verified answer key, and a
+runner that replays the real `planner-architect` agent headless and read-only. It lives on the branch `eval/classify`
+and must never be merged into `dev`: classify greps the repository and would read the answer key while classifying
+real cards (`.gitignore` and `npm run check:ai` both refuse `.claude/hillclimb/` here).
+
+`scripts/team/eval-classify.mjs` borrows it for one comparison and leaves nothing behind in the checkout:
+
+```
+npm run team:eval-classify -- run --models sonnet,haiku --reps 2 --at <ref>   # one pass per model
+npm run team:eval-classify -- compare                                         # the last run's table again
+```
+
+It prints routing accuracy (the design-round call and the model tier both right) and the four component scores per
+model, each with a 95 % interval, the cost and time per run, and a verdict: the cheapest model whose routing is not
+measurably worse than the best. With a few dozen cases the intervals are about ten points wide, and the verdict says
+so; raise `--reps` before changing §14 on a small gap. Results stay in `.team/eval-classify/<stamp>/` (git-ignored).
+
+**`--at <ref>` is needed today.** Each case was recorded at the commit classify saw, and the 2026-10-08 history
+clean-up removed those commits from the remote. `--at` replays every case at one commit instead (the first commit of
+`dev` is the closest to what the cases saw). Models of one run then see the same repository and compare with each
+other, but not with the 88 % / 99 % recorded on the branch for Fable 5.1.
+
+**Cost.** Every run is a real model call on this machine's Claude login: cases × reps × models. One case on Sonnet
+5.5 and Haiku 5.5 measured $0.19 and $0.01 API-equivalent (2026-11-25), so a full two-rep pass of both is roughly
+$15. `--only r01,u04` keeps a trial small. Running a full pass is the owner's call (CLAUDE.md, money).
+

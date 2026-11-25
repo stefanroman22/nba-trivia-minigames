@@ -281,6 +281,8 @@ def _row(entry):
         "created_at": _iso(entry.created_at),
         "status": entry.status,
         "admin_note": entry.admin_note,
+        # The feedback-triage agent's verdict (trivia/feedback_triage.py), or None until a run has judged the row.
+        "triage": entry.triage or None,
         "page": entry.page,
         "game": entry.game,
         "sessions": entry.sessions,

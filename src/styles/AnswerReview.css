@@ -53,6 +53,32 @@
 .ar-pick.is-good b { color: var(--good); }
 .ar-pick.is-bad b { color: var(--bad); }
 
+/* "Why?" under a missed round (components/review/ExplainWhy.tsx; only rendered with VITE_EXPLANATIONS=1). */
+.ar-why { display: flex; flex-direction: column; min-width: 0; }
+.ar-why-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 2px 0;
+  background: none;
+  border: none;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand);
+  cursor: pointer;
+}
+.ar-why-btn:hover { text-decoration: underline; text-underline-offset: 3px; }
+.ar-why-chev { transition: transform 0.22s var(--ease-out); }
+.ar-why-btn[aria-expanded="true"] .ar-why-chev { transform: rotate(180deg); }
+.ar-why-region { width: 100%; }
+.ar-why-body { display: flex; flex-direction: column; gap: 4px; padding: 2px 0 4px; }
+.ar-why-text { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+.ar-why-text.is-quiet { color: var(--muted); }
+.ar-why-note { margin: 0; font-size: 11px; color: var(--muted); }
+
 /* Right / wrong mark: authored SVG on a soft disc. */
 .ar-mark {
   width: 24px;

@@ -3,6 +3,7 @@ import type { Game } from "../types/types";
 import type { LeaderboardScope } from "../hooks/useLeaderboard";
 import type { ReviewRound } from "../utils/reviewRounds";
 import type { PendingRankUp } from "../store/userSlice";
+import type { AnswerReview } from "../types/review";
 
 /** Which overlay is currently open. `null` = nothing open. */
 export type ModalKind = "login" | "feedback" | "leaderboard" | "instructions" | "multiplayerInfo" | "gamePicker" | "answerReview" | "reportQuestion" | "rankUp" | "ladder" | "confirmLogout";
@@ -49,6 +50,15 @@ export interface ReportQuestionPayload {
   rounds: ReviewRound[];
 }
 
+/** "See why" on a finished single-player game: the review to show, since there is no multiplayer round to read it from.
+ *  The online "See answers" opens the same modal without a payload and reads the match store instead. */
+export interface AnswerReviewPayload {
+  review: AnswerReview;
+  /** The game's name, shown above the answers. */
+  title?: string;
+  score?: number;
+}
+
 /** The promotion the rank-up modal celebrates (from user.pendingRankUp). */
 export type RankUpPayload = PendingRankUp;
 
@@ -58,7 +68,7 @@ export interface ConfirmLogoutPayload {
 }
 
 // Per-kind payloads.
-export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | RankUpPayload | ConfirmLogoutPayload | undefined;
+export type ModalPayload = InstructionsPayload | LeaderboardPayload | FeedbackPayload | GamePickerPayload | MultiplayerInfoPayload | ReportQuestionPayload | AnswerReviewPayload | RankUpPayload | ConfirmLogoutPayload | undefined;
 
 interface ModalContextValue {
   kind: ModalKind | null;

@@ -144,10 +144,15 @@ CLIENT_SECRET=...
 IMAGE_MODERATION_URL=https://<moderation-project>.vercel.app/api/classify   # photo moderation, see "Moderation service" below; unset in production = uploads answer 503
 MODERATION_SHARED_SECRET=<same random value as the moderation project>
 # optional: MODERATION_REQUIRED (default true when DATABASE_URL is set), PHOTO_BLOCK_THRESHOLD (0.85), PHOTO_REVIEW_THRESHOLD (0.50)
-# optional, BILLED: ANTHROPIC_API_KEY turns on the admin AI game builder (Admin -> Game Builder). Unset = the tab lists and plays
-#   existing drafts but cannot build. Tunables: GAME_BUILDER_MODEL (claude-opus-5-5), GAME_BUILDER_EFFORT (medium),
-#   GAME_BUILDER_MAX_TURNS (6), GAME_BUILDER_TIMEOUT (120 s). A build is several model calls in one request: give the
-#   function a max duration of 60 s or more, or use `manage.py game_builder build "<idea>"` from a shell.
+# optional, BILLED - the model-backed features. Production installs and runs none of this until BOTH are done:
+#   (1) uncomment `-r requirements-ai.txt` at the end of backend/requirements.txt (the Anthropic SDK), and
+#   (2) set ANTHROPIC_API_KEY. With either missing the features answer "not configured" and nothing is billed.
+#   - Admin -> Game Builder: on with (1)+(2). Tunables: GAME_BUILDER_MODEL (claude-opus-5-5), GAME_BUILDER_EFFORT (medium),
+#     GAME_BUILDER_MAX_TURNS (6), GAME_BUILDER_TIMEOUT (120 s). A build is several model calls in one request: give the
+#     function a max duration of 60 s or more, or use `manage.py game_builder build "<idea>"` from a shell.
+#   - "Why?" on a missed answer: needs (1)+(2) AND EXPLAIN_ENABLED=1 here AND VITE_EXPLANATIONS=1 on the frontend project
+#     (a build-time flag: redeploy the frontend). Tunables: EXPLAIN_MODEL (claude-opus-5-5; claude-haiku-5-5 is the cheap
+#     choice), EXPLAIN_EFFORT (low), EXPLAIN_DAILY_LIMIT (200 new explanations a day), EXPLAIN_TIMEOUT (30 s).
 ```
 The `SUPABASE_S3_*` / `SUPABASE_STORAGE_BUCKET` / `QUESTIONS_PUBLIC_BASE` set (see `backend/.env.example`) is for the old questions pipeline only (`maintain_questions`, `upload_dataset`: hidden games + the fallback snapshot) — not needed on Vercel, nor by `publish_game_data_v3`.
 `DATA_PUBLIC_BASE` (the static game-data host's public URL) is read only by `manage.py publish_game_data_v3`, which runs in the manual `publish-game-data.yml` workflow (repo variable `vars.DATA_PUBLIC_BASE`) — not needed on Vercel either.

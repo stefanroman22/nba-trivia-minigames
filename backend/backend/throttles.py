@@ -109,3 +109,15 @@ class GameBuilderRateThrottle(UserRateThrottle):
     """AI game-builder builds and refines (staff only). Each one is a billed model run, so the limit is a cost
     guard for a leaked staff session or a stuck client, not a usability limit."""
     scope = "game-builder"
+
+
+class CustomGameRateThrottle(UserRateThrottle):
+    """Public reads of an approved custom game. Rounds are rendered per request, so this bounds scraping."""
+    scope = "custom-game"
+
+
+class ExplainRateThrottle(UserRateThrottle):
+    """Answer explanations. Unauthenticated by design (guests miss answers too); a question's first request is a
+    billed model call, so the per-caller limit sits under the global daily cap in trivia/explanations.py."""
+    scope = "explain"
+

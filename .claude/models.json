@@ -1,12 +1,44 @@
 {
-  "about": "Single source of truth for which Claude model does what in this repo. `npm run check:ai` (scripts/check-ai-layer.mjs) fails when an agent file, the backend default or a pinned CLI version disagrees with this file. Policy and reasoning: docs/team/PIPELINE.md section 14.",
-  "updated": "2026-11-24",
+  "about": "Single source of truth for which Claude model does what in this repo. `npm run check:ai` (scripts/check-ai-layer.mjs) fails when an agent file, the backend default or a pinned CLI version disagrees with this file. Policy and reasoning: docs/team/PIPELINE.md section 14. `usdPerMTok` is the list API price per million tokens, read only by the cost report (scripts/team/costs.mjs, PIPELINE.md section 19) for its estimate; nothing is billed from it.",
+  "updated": "2026-11-25",
   "claudeCode": "2.1.331",
   "aliases": {
-    "fable": { "id": "claude-fable-5-2", "name": "Fable 5.2", "use": "Where a wrong call is expensive: design rounds for hard cards, review of P0 / high-risk / protected-path diffs, the weekly security review, the SEO agent. Never an implementer." },
-    "opus": { "id": "claude-opus-5-5", "name": "Opus 5.5", "use": "Judgment inside the work itself: implementation a plan cannot fully pin down, motion, ticket writing, the question author and doctor, the game builder." },
-    "sonnet": { "id": "claude-sonnet-5-5", "name": "Sonnet 5.5", "use": "The default worker: orchestration, classify, standard plans and implementation, standard review, the checker judges, feedback triage, the question checker." },
-    "haiku": { "id": "claude-haiku-5-5", "name": "Haiku 5.5", "use": "Trivial implementation only: copy or config with zero logic." }
+    "fable": {
+      "id": "claude-fable-5-2",
+      "name": "Fable 5.2",
+      "usdPerMTok": {
+        "input": 8,
+        "output": 40
+      },
+      "use": "Where a wrong call is expensive: design rounds for hard cards, review of P0 / high-risk / protected-path diffs, the weekly security review, the SEO agent. Never an implementer."
+    },
+    "opus": {
+      "id": "claude-opus-5-5",
+      "name": "Opus 5.5",
+      "usdPerMTok": {
+        "input": 4,
+        "output": 20
+      },
+      "use": "Judgment inside the work itself: implementation a plan cannot fully pin down, motion, ticket writing, the question author and doctor, the game builder."
+    },
+    "sonnet": {
+      "id": "claude-sonnet-5-5",
+      "name": "Sonnet 5.5",
+      "usdPerMTok": {
+        "input": 2,
+        "output": 10
+      },
+      "use": "The default worker: orchestration, classify, standard plans and implementation, standard review, the checker judges, feedback triage, the question checker."
+    },
+    "haiku": {
+      "id": "claude-haiku-5-5",
+      "name": "Haiku 5.5",
+      "usdPerMTok": {
+        "input": 0.1,
+        "output": 0.5
+      },
+      "use": "Trivial implementation only: copy or config with zero logic."
+    }
   },
   "agents": {
     "backend-engine": "sonnet",
@@ -29,6 +61,15 @@
     "ui-check-multiplayer": "sonnet"
   },
   "runtime": {
-    "game-builder": { "model": "opus", "setting": "GAME_BUILDER_MODEL", "file": "backend/backend/settings.py" }
+    "game-builder": {
+      "model": "opus",
+      "setting": "GAME_BUILDER_MODEL",
+      "file": "backend/backend/settings.py"
+    },
+    "explanations": {
+      "model": "opus",
+      "setting": "EXPLAIN_MODEL",
+      "file": "backend/backend/settings.py"
+    }
   }
 }

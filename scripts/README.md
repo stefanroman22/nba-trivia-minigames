@@ -8,8 +8,9 @@ triggers what is [`.claude/README.md`](../.claude/README.md).
 
 | Folder / file | What it is | Docs |
 |---|---|---|
-| `team/` | The team pipeline's nodes: `intake`, `brief`, `verify`, `qa`, `review-package`, `direct` (no-board mode), `tickets` (ticket intake), `relay-deploy`. Pure helpers with tests in `team/lib/`. | `docs/team/PIPELINE.md` |
+| `team/` | The team pipeline's nodes: `intake`, `brief`, `verify`, `qa`, `review-package`, `direct` (no-board mode), `tickets` (ticket intake), `relay-deploy`, `costs` (the per-card cost ledger: `spawn`, `trailer`, `report`; `npm run team:costs`). Pure helpers with tests in `team/lib/`. | `docs/team/PIPELINE.md` |
 | `team-run.ps1`, `register-team-cron.ps1`, `unregister-team-cron.ps1` | Start a pipeline run locally (`npm run team`) and manage its Windows scheduled task. | `docs/team/PIPELINE.md` §3 |
+| `team/eval-classify.mjs` | Runs the classify eval (kept on the `eval/classify` branch so its answer key never lands here) once per model and compares routing accuracy and cost. | `docs/team/PIPELINE.md` §20 |
 | `feedback/` | Feedback triage: validate the agent's verdicts against the exported batch and file Backlog cards. | `.claude/skills/feedback-triage` |
 | `ui-check/` | The UI audit: Playwright suites for guest, account, games and multiplayer on seven viewports, the check catalog, verify and report. | `docs/ui-check/README.md` |
 | `logic-check/` | API, socket-protocol and page-status checks, plus the live production probes. | `docs/logic-check/README.md` |

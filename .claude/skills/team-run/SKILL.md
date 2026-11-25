@@ -64,6 +64,12 @@ they work inside the worktree `<wt>`.
   All later node commands take `--repo <wt> --base <baseSha> --lane <n>`.
 
 ## 2. Card flow
+**Cost record (every spawn).** Each time an `Agent(...)` returns (classify, the plan writer / design round / replan, each
+build spawn, a fix round's reply or respawn, browser-qa, each reviewer), record it before the next step, one command at a time:
+`node scripts/team/costs.mjs spawn <slug> --stage <classify|plan|design|build|fix|qa|review> --agent <agent> --model <the model you passed> --tokens <total tokens> --tool-uses <n> --ms <duration ms>`
+with the usage the harness reported for that agent. A number the harness did not report is left out (drop its flag), never
+estimated. The command only appends to `state.spawns`; if it fails, log one line and go on (docs/team/PIPELINE.md §19).
+
 **classify** → `Agent(model: sonnet, planner-architect)`: "Run the `classify` skill for the card in
 `<repo>/.team/run/<slug>/card.json` (spec, attachments and props are inside). Return ONLY the JSON." Save it
 as `<repo>/.team/run/<slug>/classify.json`. `node scripts/notion.mjs claim <id> --model "<engineModel> · <effort>"`.

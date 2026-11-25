@@ -72,6 +72,8 @@ manual-dispatch only, or the owner keeps it disabled in GitHub and enables it wh
 |---|---|---|---|
 | **Team pipeline**: board cards become commits on `dev` | `team-run` skill (`scripts/team/*`) | `npm run team`, or a cloud routine running `/team-run` (the owner currently starts runs on demand) | planner, engines, QA, reviewers (table above) |
 | **Ticket intake**: a long text becomes cards with acceptance criteria | `scripts/team/tickets.mjs`, `ticket-intake.yml` | manual | `ticket-writer` |
+| **Classify tier comparison**: which model should classify, measured on the owner-verified eval | `scripts/team/eval-classify.mjs` (`npm run team:eval-classify`) | manual; a full pass costs real quota | `planner-architect`, once per model compared |
+| **Cost ledger**: every shipped card's commit carries what it cost; a report and an HTML dashboard read them back | `scripts/team/costs.mjs` (`npm run team:costs`) | each ship; the report on demand | none |
 | **Feedback triage**: player feedback becomes verdicts and Backlog cards | `scripts/feedback/run.mjs`, `feedback-triage.yml` | manual (dormant) | `feedback-triage` |
 | **@claude responder** on issues and PRs | `claude.yml` | a comment that mentions `@claude` | the session model in `settings.json` |
 | CI and promotion | `dev-ci.yml`, `main-sync.yml`, `relay-deploy.yml` | push / PR to `dev`, manual promote, push to `main` | none |
@@ -109,7 +111,13 @@ None of them uses a model.
 
 | Feature | Where | Model |
 |---|---|---|
-| **AI game builder**: an admin describes a game, an agent builds a playable spec from the datasets, follow-up prompts refine it | `backend/trivia/game_builder/`, Admin → Game Builder | `claude-opus-5-5` through the Anthropic API; off until `ANTHROPIC_API_KEY` is set |
+| **AI game builder**: an admin describes a game, an agent builds a playable spec from the datasets, follow-up prompts refine it; an admin can then publish it to a link-only public page (`/custom/<slug>`, no points) | `backend/trivia/game_builder/`, Admin → Game Builder | `claude-opus-5-5` through the Anthropic API |
+| **"Why?" on a missed answer**: a two-sentence explanation written once per question from the site's own data, checked against it, then served from the database | `backend/trivia/explanations.py`, the answer review | `claude-opus-5-5` by default (`EXPLAIN_MODEL`) |
+
+Both are off in production: the backend installs no model SDK until `requirements-ai.txt` is enabled in
+`backend/requirements.txt` and `ANTHROPIC_API_KEY` is set, and explanations also need `EXPLAIN_ENABLED=1` and the
+frontend build flag `VITE_EXPLANATIONS=1`. With the flags unset the public site renders exactly as it did before
+these features existed.
 
 ## How the pieces fit
 
@@ -120,6 +128,9 @@ None of them uses a model.
   rules that apply and the QA assertions into one file. Every agent on the card works from it.
 - **Acceptance criteria are checked, not assumed.** The engine reports each criterion in `build-report.json`; the
   reviewer returns `met`, `not met` or `cannot tell` per criterion, and `not met` blocks the ship.
+- **Every shipped card carries its cost line.** The orchestrator records the usage of each agent it spawns, and the
+  ship commit gets one `Cost:` line (tier, models, spawns, tokens, fix rounds, minutes). `npm run team:costs` reads
+  the commits back into a report (`docs/team/PIPELINE.md` §19).
 - **Untrusted text never drives a write.** Agents that read public or pasted text (`ticket-writer`,
   `feedback-triage`, the security review) run with Read, Grep and Glob only and no credentials
   (`scripts/lib/claude-agent.mjs`); a script validates their JSON and does the writing. Cards that come from player

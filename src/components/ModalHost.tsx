@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import { useDispatch, useSelector } from "react-redux";
 import Modal from "./ui/Modal";
-import { useModal, type ConfirmLogoutPayload, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload, type RankUpPayload, type ReportQuestionPayload } from "../context/ModalContext";
+import { useModal, type AnswerReviewPayload, type ConfirmLogoutPayload, type FeedbackPayload, type GamePickerPayload, type InstructionsPayload, type LeaderboardPayload, type MultiplayerInfoPayload, type RankUpPayload, type ReportQuestionPayload } from "../context/ModalContext";
 import type { RootState } from "../store";
 import { clearRankUp } from "../store/userSlice";
 import { useMultiplayer } from "../context/MultiplayerContext";
@@ -48,10 +48,12 @@ export default function ModalHost() {
   }, [kind, phase, close]);
 
   // The answer review belongs to the round you finished: once a new round starts (a restart, the
-  // host switching games, back to the lobby) the store drops it, and the modal closes with it.
+  // host switching games, back to the lobby) the store drops it, and the modal closes with it. A review
+  // handed in by the payload (single player's "See why") belongs to no match, so it stays open.
+  const ownReview = kind === "answerReview" && !!(payload as AnswerReviewPayload | undefined)?.review;
   useEffect(() => {
-    if (kind === "answerReview" && !mp.review) close();
-  }, [kind, mp.review, close]);
+    if (kind === "answerReview" && !ownReview && !mp.review) close();
+  }, [kind, ownReview, mp.review, close]);
 
   // A promotion waits in the store until nothing else is open, then shows once (a beat after the
   // game's own result so the score lands first).
@@ -117,7 +119,8 @@ export default function ModalHost() {
   } else if (kind === "answerReview") {
     title = "Answers";
     wide = true;
-    content = <Suspense fallback={null}><AnswerReviewModal /></Suspense>;
+    const p = payload as AnswerReviewPayload | undefined;
+    content = <Suspense fallback={null}><AnswerReviewModal review={p?.review} title={p?.title} score={p?.score} /></Suspense>;
   } else if (kind === "rankUp") {
     const p = payload as RankUpPayload | undefined;
     title = "Rank up!";

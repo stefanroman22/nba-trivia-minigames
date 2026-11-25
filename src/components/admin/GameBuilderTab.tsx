@@ -3,8 +3,10 @@
  *
  * An admin describes a trivia game in plain text; a backend AI agent picks one of the datasets and builds a
  * data-driven game spec (a draft). The draft can be refined with follow-up prompts and played right here
- * (CustomGamePlayer). Admin-only: drafts have no public route and award no points. Building and refining take
- * 10-60 s, so both show a loader and disable their inputs while they run, and keep the typed prompt if they fail.
+ * (CustomGamePlayer). A draft is admin-only; approving it ("Publish") gives it a public page at /custom/<slug>
+ * (views/CustomGame), and refining a published game puts it back to draft. No custom game awards points. Building
+ * and refining take 10-60 s, so both show a loader and disable their inputs while they run, and keep the typed
+ * prompt if they fail.
  */
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -13,9 +15,9 @@ import { Button, CourtLoader } from "../ui";
 import Modal from "../ui/Modal";
 import AutoHeight from "../motion/AutoHeight";
 import SwapText from "../motion/SwapText";
-import CustomGamePlayer from "./CustomGamePlayer";
+import CustomGamePlayer from "../customGame/CustomGamePlayer";
 import { durations, easing } from "../../motion/tokens";
-import { swap } from "../../motion/variants";
+import { fadeIn, swap } from "../../motion/variants";
 import {
   MODE_LABEL,
   buildGame,
@@ -23,6 +25,7 @@ import {
   fetchGame,
   fetchOverview,
   fetchPlay,
+  publishGame,
   refineGame,
   toSummary,
   type BuilderFilter,
@@ -280,12 +283,14 @@ function SpecDetails({ spec, sourceTitle }: { spec: GameSpec; sourceTitle: strin
 /* ------------------------------------------------------------------ */
 function DeleteModal({
   title,
+  published,
   busy,
   error,
   onConfirm,
   onClose,
 }: {
   title: string;
+  published: boolean;
   busy: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -295,8 +300,9 @@ function DeleteModal({
     <Modal title="Delete this game?" onClose={onClose}>
       <div className="au-confirm">
         <p>
-          “{title}” is removed for good, together with its conversation with the agent. It was never public, so no
-          player is affected. This cannot be undone.
+          “{title}” is removed for good, together with its conversation with the agent.{" "}
+          {published ? "It is published, so its public link stops working." : "It was never public, so no player is affected."}{" "}
+          This cannot be undone.
         </p>
         {error && <p className="admin-error">{error}</p>}
         <div className="au-compose-actions">
@@ -309,6 +315,81 @@ function DeleteModal({
         </div>
       </div>
     </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Publish confirmation (same dialog style as Delete)                 */
+/* ------------------------------------------------------------------ */
+function PublishModal({
+  busy,
+  error,
+  onConfirm,
+  onClose,
+}: {
+  busy: boolean;
+  error: string | null;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal title="Publish this game?" onClose={onClose}>
+      <div className="au-confirm">
+        <p>Anyone with the link can play it. It awards no points.</p>
+        {error && <p className="admin-error">{error}</p>}
+        <div className="au-compose-actions">
+          <Button size="sm" onClick={onConfirm} disabled={busy}>
+            <SwapText reserveWidth={["Working…", "Publish game"]}>{busy ? "Working…" : "Publish game"}</SwapText>
+          </Button>
+          <Button variant="ghost" size="sm" onClick={onClose} disabled={busy}>
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/** Draft / published, as one chip whose label swaps (UI-21). Sized by its widest state so a swap never moves the row. */
+function StatusChip({ status }: { status: GameSummary["status"] }) {
+  return (
+    <span className={`chip gb-status${status === "published" ? " chip-good" : ""}`}>
+      <SwapText reserveWidth={["draft", "published"]}>{status}</SwapText>
+    </span>
+  );
+}
+
+/** The public page's address, absolute against this origin, with a copy button (the Users tab's clipboard pattern). */
+function PublicLink({ path }: { path: string }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  const href = `${window.location.origin}${path}`;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(href);
+      setCopied(true);
+      window.clearTimeout(timer.current);
+      timer.current = window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard refused: the link is shown in full to copy by hand */
+    }
+  }
+
+  return (
+    <div className="gb-link">
+      <span className="fb-detail-label">Public link</span>
+      <div className="gb-link-row">
+        <a className="gb-link-url" href={href} target="_blank" rel="noopener noreferrer">
+          {href}
+        </a>
+        <button type="button" className="admin-browse gb-toggle" onClick={copyLink}>
+          <SwapText reserveWidth={["Copy link", "Copied!"]}>{copied ? "Copied!" : "Copy link"}</SwapText>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -336,6 +417,9 @@ function GameBody({ game, enabled, sourceTitle, onChange, onDeleted }: GameBodyP
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [publishOpen, setPublishOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   // Bumped by every play / close, so a slow /play/ response for a preview that was closed is dropped.
   const playToken = useRef(0);
 
@@ -388,13 +472,30 @@ function GameBody({ game, enabled, sourceTitle, onChange, onDeleted }: GameBodyP
     }
   }
 
+  // Publish and unpublish both hand back the whole game, so the open card and the list row update in place.
+  async function setPublished(action: "publish" | "unpublish") {
+    setPublishing(true);
+    setPublishError(null);
+    try {
+      const updated = await publishGame(game.id, action);
+      setPublishOpen(false);
+      onChange(updated);
+    } catch (e) {
+      setPublishError(errorText(e, action === "publish" ? "Could not publish this game" : "Could not unpublish this game"));
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   const { usage } = game;
+  const published = game.status === "published";
 
   return (
     <div className="gb-body">
       <p className="admin-desc">{game.description}</p>
 
       <div className="admin-chip-row">
+        <StatusChip status={game.status} />
         <span className="chip">{MODE_LABEL[game.mode]}</span>
         <span className="chip">{sourceTitle}</span>
         <span className="chip tnum">{plural(spec.rounds, "round")}</span>
@@ -414,6 +515,22 @@ function GameBody({ game, enabled, sourceTitle, onChange, onDeleted }: GameBodyP
         <Button type="button" size="sm" onClick={play ? closePlay : startPlay} disabled={refining}>
           <SwapText reserveWidth={["Play", "Close preview"]}>{play ? "Close preview" : "Play"}</SwapText>
         </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={refining || publishing}
+          onClick={() => {
+            if (published) {
+              void setPublished("unpublish");
+            } else {
+              setPublishError(null);
+              setPublishOpen(true);
+            }
+          }}
+        >
+          <SwapText reserveWidth={["Publish", "Unpublish"]}>{published ? "Unpublish" : "Publish"}</SwapText>
+        </Button>
         <button
           type="button"
           className="admin-browse gb-toggle au-ban is-danger"
@@ -425,6 +542,21 @@ function GameBody({ game, enabled, sourceTitle, onChange, onDeleted }: GameBodyP
           Delete
         </button>
       </div>
+
+      <AutoHeight>
+        <AnimatePresence initial={false}>
+          {published && (
+            <motion.div key="link" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+              <PublicLink path={game.public_path} />
+            </motion.div>
+          )}
+          {publishError && !publishOpen && (
+            <motion.div key="error" className="admin-error gb-publish-error" role="alert" variants={fadeIn} initial="hidden" animate="visible" exit="exit">
+              {publishError}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </AutoHeight>
 
       <AutoHeight>
         <AnimatePresence mode="wait" initial={false}>
@@ -448,6 +580,8 @@ function GameBody({ game, enabled, sourceTitle, onChange, onDeleted }: GameBodyP
                   rounds={play.data.rounds}
                   pointsPerCorrect={play.data.points_per_correct}
                   maxPoints={play.data.max_points}
+                  exitLabel="Back to builder"
+                  noPointsNote="This is an admin preview, so no points are awarded."
                   onExit={closePlay}
                   onReplay={startPlay}
                 />
@@ -519,10 +653,24 @@ function GameBody({ game, enabled, sourceTitle, onChange, onDeleted }: GameBodyP
               <DeleteModal
                 key="delete"
                 title={game.title}
+                published={published}
                 busy={deleting}
                 error={deleteError}
                 onConfirm={remove}
                 onClose={() => !deleting && setConfirmOpen(false)}
+              />
+            )}
+            {publishOpen && (
+              <PublishModal
+                key="publish"
+                busy={publishing}
+                error={publishError}
+                onConfirm={() => void setPublished("publish")}
+                onClose={() => {
+                  if (publishing) return;
+                  setPublishOpen(false);
+                  setPublishError(null);
+                }}
               />
             )}
           </AnimatePresence>,
@@ -703,7 +851,7 @@ export default function GameBuilderTab() {
       </section>
 
       <div className="admin-section-label">
-        <SwapText swapKey={games.length}>{`Draft games · ${games.length}`}</SwapText>
+        <SwapText swapKey={games.length}>{`Games · ${games.length}`}</SwapText>
       </div>
 
       <AutoHeight>
@@ -712,12 +860,14 @@ export default function GameBuilderTab() {
             const open = selectedId === g.id;
             return (
               <div key={g.id} id={`gb-game-${g.id}`} className={`admin-card surface${open ? " is-open" : ""}`}>
-                <button type="button" className="admin-card-head" onClick={() => toggle(g.id)} aria-expanded={open}>
+                <button type="button" className="admin-card-head gb-card-head" onClick={() => toggle(g.id)} aria-expanded={open}>
                   <span className="admin-card-name">{g.title}</span>
                   <span className="admin-card-source">
                     {MODE_LABEL[g.mode]} · {sourceTitle(g.source)}
                   </span>
-                  <span className="admin-card-count">{g.status}</span>
+                  <span className="admin-card-count">
+                    <StatusChip status={g.status} />
+                  </span>
                   <span className="admin-card-date">{fmtDate(g.updated_at)}</span>
                   <svg
                     className={`admin-chevron${open ? " is-open" : ""}`}
@@ -757,7 +907,7 @@ export default function GameBuilderTab() {
             );
           })}
           {games.length === 0 && (
-            <div className="admin-empty">No drafts yet. Describe a game above and the agent will build the first one.</div>
+            <div className="admin-empty">No games yet. Describe a game above and the agent will build the first draft.</div>
           )}
         </div>
       </AutoHeight>

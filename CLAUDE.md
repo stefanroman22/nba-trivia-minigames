@@ -43,8 +43,10 @@ if it is an existing finding, use `ui-fix <id>` instead (it does both plus revie
 - **Money is always a human decision.** Never take an action that implies the owner pays —
   paid services or plan upgrades, enabling billing, domains, add-ons, exceeding a free
   tier, payment details. Stop and ask (pipeline agents: park with a note naming the cost).
-  This covers model spend too: setting `ANTHROPIC_API_KEY` (the admin game builder bills that key per build),
-  scheduling a dormant workflow, or raising a cap such as the question checker's `MAX_LIMIT`.
+  This covers model spend too: setting `ANTHROPIC_API_KEY` or enabling `requirements-ai.txt` (the admin game
+  builder and answer explanations bill that key), `EXPLAIN_ENABLED` / `VITE_EXPLANATIONS`, scheduling a dormant
+  workflow, raising a cap such as the question checker's `MAX_LIMIT`, or a full pass of the classify eval
+  (`scripts/team/eval-classify.mjs run`).
 - Surgical changes only — match existing style; don't refactor unrelated code.
 - TypeScript strict; build must pass `next build`.
 - Next.js 16 differs from older releases (Turbopack, async `params`, no `next lint`) — check the bundled
@@ -136,6 +138,11 @@ Agents that read text from outside the team (player feedback, pasted notes, a PR
 and nothing else: run them through `scripts/lib/claude-agent.mjs` (read-only tools, no credentials) and let a
 script validate the answer and do the writing. A card that comes from player feedback is filed in Backlog, never
 To Do.
+
+Player-facing AI is opt-in and invisible until switched on: with `VITE_EXPLANATIONS` unset the site renders
+exactly as it did before the feature existed, a published builder game (`/custom/<slug>`) is reachable only by its
+link, and the backend installs no model SDK until `requirements-ai.txt` is enabled. Keep it that way: a new
+model-backed surface ships dark, behind a flag that defaults to off, and never changes an existing page by default.
 
 ## Autonomous team pipeline
 An unattended pipeline turns Notion task cards into commits on `dev` (check cards with

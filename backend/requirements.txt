@@ -20,5 +20,7 @@ redis
 PyJWT>=2.15.1  # simplejwt token signing/verification; advisories <2.15
 urllib3>=2.8.0  # requests/google-auth HTTP client; advisories <2.8
 certifi>=2026.10.19  # requests' CA bundle; GHSA-6q48-6c7w-9gw2 (emSign roots) <2026.10.19
-# AI game builder (trivia/game_builder/agent.py). Imported lazily and only when ANTHROPIC_API_KEY is set.
-anthropic>=2.13,<3
+# AI features (the admin game builder, answer explanations) are OFF in production until BOTH are done:
+# uncomment the next line, and set ANTHROPIC_API_KEY on the backend project. Until then this file installs exactly
+# what it did before those features existed, and they answer "not configured".
+# -r requirements-ai.txt

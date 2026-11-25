@@ -589,10 +589,12 @@ class RollupWatermark(models.Model):
 class CustomGame(models.Model):
     """A game built in Admin -> Game Builder: a GameSpec (trivia/game_builder/spec.py) written by the builder
     agent from the admin's description, plus the conversation that shaped it. Rounds are not stored: the engine
-    renders them from the published datasets on every play. Drafts are admin-only; nothing here is a public
-    route and nothing awards points."""
+    renders them from the published datasets on every play. A draft is admin-only. An admin can publish one: it
+    is then playable by anyone at /custom/<slug> until it is unpublished or refined (an approval covers one exact
+    spec, so a refine returns the game to draft). No custom game awards points."""
 
     DRAFT = "draft"
+    PUBLISHED = "published"
 
     slug = models.SlugField(max_length=80, unique=True)
     title = models.CharField(max_length=60)
@@ -607,6 +609,10 @@ class CustomGame(models.Model):
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="custom_games"
     )
+    published_at = models.DateTimeField(null=True, blank=True)
+    published_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -615,3 +621,23 @@ class CustomGame(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.status})"
+
+
+class AnswerExplanation(models.Model):
+    """The short "why" a player can open on a missed answer (trivia/explanations.py): written once per question by
+    a model from this app's own data rows, checked against them, and served from here ever after."""
+
+    game = models.CharField(max_length=32)
+    question_id = models.CharField(max_length=96)
+    text = models.TextField()
+    model = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["game", "question_id"], name="uniq_explanation_game_question"),
+        ]
+        indexes = [models.Index(fields=["created_at"])]
+
+    def __str__(self):
+        return f"{self.game} {self.question_id}"

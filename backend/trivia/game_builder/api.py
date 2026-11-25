@@ -4,11 +4,14 @@
     POST   /                  {prompt}  -> 201 {game}     the agent builds a new draft
     GET    /<id>/             {game}
     DELETE /<id>/             204
-    POST   /<id>/refine/      {prompt}  -> {game}         the agent changes the draft (or answers without changing it)
+    POST   /<id>/refine/      {prompt}  -> {game}         the agent changes the game (or answers without changing it);
+                                                          a changed game is a draft again
+    POST   /<id>/publish/     {action: publish | unpublish} -> {game}    the approval step for /custom/<slug>
     GET    /<id>/play/        {rounds, points_per_correct, max_points}   a fresh random set; ?seed=<int> to pin it
 
-Every view REQUIRES is_staff (IsAdminUser). Rounds include their answers: this is an admin preview, so the client
-judges them and nothing is awarded. Errors are {error}: 400 bad input, 502 the agent failed, 503 not configured.
+Every view REQUIRES is_staff (IsAdminUser). Rounds include their answers: the client judges them and nothing is
+awarded. Errors are {error}: 400 bad input, 502 the agent failed, 503 not configured. The public, read-only side of
+a published game is public.py.
 """
 from django.conf import settings
 from django.shortcuts import get_object_or_404
@@ -37,6 +40,8 @@ def _summary(game):
         "mode": game.spec.get("mode"),
         "source": game.spec.get("source"),
         "status": game.status,
+        "published_at": game.published_at.isoformat() if game.published_at else None,
+        "public_path": f"/custom/{game.slug}",
         "updated_at": game.updated_at.isoformat(),
     }
 
@@ -158,6 +163,8 @@ def refine(request, pk):
         obj.title = result.spec["title"]
         obj.description = result.spec["description"]
         obj.slug = _unique_slug(obj.title, exclude_pk=obj.pk)
+        # The approval covered the spec that was published, not this one.
+        obj.status, obj.published_at, obj.published_by = CustomGame.DRAFT, None, None
     obj.transcript = [*obj.transcript, _entry("admin", prompt), _entry("agent", result.message)]
     obj.model = result.model
     obj.usage = _add_usage(obj.usage, result.usage)
@@ -176,3 +183,23 @@ def play(request, pk):
         return Response({"error": f"This game no longer runs: {e}"}, status=400)
     points = obj.spec.get("points_per_correct", 10)
     return Response({"rounds": rounds, "points_per_correct": points, "max_points": points * len(rounds)})
+
+
+@api_view(["POST"])
+@permission_classes([IsAdminUser])
+def publish(request, pk):
+    obj = get_object_or_404(CustomGame, pk=pk)
+    action = request.data.get("action")
+    if action == "publish":
+        try:  # what a visitor's first request would do
+            engine.build_rounds(obj.spec, seed=0)
+        except (SpecError, KeyError, OSError):
+            return Response({"error": "This game does not fill its rounds any more. Refine it before publishing."}, status=400)
+        obj.status, obj.published_at, obj.published_by = CustomGame.PUBLISHED, timezone.now(), request.user
+    elif action == "unpublish":
+        obj.status, obj.published_at, obj.published_by = CustomGame.DRAFT, None, None
+    else:
+        return Response({"error": "action must be publish or unpublish."}, status=400)
+    obj.save()
+    return Response({"game": _detail(obj)})
+

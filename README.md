@@ -46,7 +46,12 @@ production. The whole layer is indexed in **[`.claude/README.md`](.claude/README
   It is dormant by choice; questions are currently written with the owner in the session.
 - **The AI game builder** is the same idea inside the product: an admin describes a game, a Claude Opus tool loop
   picks the dataset, writes a declarative spec, test-runs it with the real engine and hands in a playable game,
-  which follow-up prompts refine.
+  which follow-up prompts refine. An admin can approve a game onto a link-only public page.
+- **"Why?" explanations** tell a player why a missed answer was wrong: written once per question from the site's
+  own data, rejected in code if they state a number that data does not contain, then served from the database.
+- **The pipeline measures itself.** Every shipped card's commit carries what it cost (models, tokens, fix rounds),
+  read back by a report and an HTML dashboard, and the model that routes cards is chosen by an eval with an
+  owner-verified answer key, not by a price list.
 
 ```mermaid
 flowchart LR
@@ -64,8 +69,10 @@ flowchart LR
 - Scripts own every write (git, the board, Slack, the database). An agent is spawned only where a decision is
   needed, and agents that read untrusted text get read-only tools and no credentials.
 - The pipeline stops at `dev`. Production is a person's decision, behind a required security status.
-- Automations that cost money or touch production data start manual-only. `npm run check:ai` fails the build when
-  an agent, a skill, a workflow or the model registry drift apart.
+- Automations that cost money or touch production data start manual-only, and player-facing AI ships dark: the
+  model-backed features are off until the owner installs the SDK, sets a key and flips a flag, and until then the
+  public site renders exactly as before. `npm run check:ai` fails the build when an agent, a skill, a workflow or
+  the model registry drift apart.
 
 ---
 

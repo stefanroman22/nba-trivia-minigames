@@ -21,6 +21,8 @@ from .views import (
     get_pool,
 )
 from trivia.dynamic_data.players import get_all_players
+from trivia.explanations import explain
+from trivia.game_builder.public import custom_game, custom_game_play
 from trivia.games import urlpatterns as game_urls
 
 urlpatterns = [
@@ -44,6 +46,9 @@ urlpatterns = [
     path('feedback/', submit_feedback, name='submit-feedback'),
     path('manifest/', get_manifest, name='manifest'),
     path('pool/<str:game>/', get_pool, name='pool'),
+    path('custom-games/<slug:slug>/', custom_game, name='custom-game'),
+    path('custom-games/<slug:slug>/play/', custom_game_play, name='custom-game-play'),
+    path('explain/<str:game>/', explain, name='explain'),
 ]
 
 # Modular per-game endpoints (trivia/games/<module>.py), aggregated by the package.

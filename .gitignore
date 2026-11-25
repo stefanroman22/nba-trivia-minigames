@@ -97,3 +97,7 @@ backend/media/
 scripts/game-cards/out/
 scripts/game-cards/sources/candidates/
 scripts/game-cards/.env
+
+# The classify eval is borrowed from the eval/classify branch for a run (scripts/team/eval-classify.mjs) and must
+# never be committed here: classify greps the repo and would read the answer key.
+.claude/hillclimb/

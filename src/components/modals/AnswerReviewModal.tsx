@@ -7,6 +7,7 @@ import {
   ImposterReview, NbaGridReview, StartingFiveReview, TicTacToeReview, WhoAreYaReview, WordleReview,
 } from "../review/BoardReviews";
 import { LogoReview, MvpReview, PackFiveReview, SeriesReview, SuperDraftReview } from "../review/RoundReviews";
+import type { AnswerReviewPayload } from "../../context/ModalContext";
 import type { AnswerReview } from "../../types/review";
 import "../../styles/AnswerReview.css";
 
@@ -32,20 +33,25 @@ function ReviewBody({ review }: { review: AnswerReview }): ReactNode {
   }
 }
 
-/** Reads the round's review straight from the match store, so it can never outlive its round
- *  (ModalHost closes this modal as soon as the store drops it). */
-export default function AnswerReviewModal() {
+/** Online: reads the round's review straight from the match store, so it can never outlive its round
+ *  (ModalHost closes this modal as soon as the store drops it). Single player ("See why") passes its own
+ *  review, name and score instead, and the store is not read. */
+export default function AnswerReviewModal({ review: own, title, score }: Partial<AnswerReviewPayload>) {
   const { mp } = useMultiplayer();
-  if (!mp.review) return null;
+  const review = own ?? mp.review;
+  if (!review) return null;
+  const solo = own !== undefined;
+  const name = (solo ? title : mp.game?.name) ?? "This round";
+  const yourScore = solo ? score : mp.yourScore;
   return (
     <div className="ar">
       <div className="ar-meta">
-        <span className="ar-game font-display">{mp.game?.name ?? "This round"}</span>
-        {mp.yourScore != null && (
-          <span className="ar-score tnum"><span>Your score </span>{mp.yourScore.toLocaleString()}</span>
+        <span className="ar-game font-display">{name}</span>
+        {yourScore != null && (
+          <span className="ar-score tnum"><span>Your score </span>{yourScore.toLocaleString()}</span>
         )}
       </div>
-      <ReviewBody review={mp.review} />
+      <ReviewBody review={review} />
     </div>
   );
 }

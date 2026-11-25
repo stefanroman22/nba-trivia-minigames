@@ -23,11 +23,13 @@ export function ReviewPick({ pick, ok, verb = "Your answer" }: { pick: string | 
 }
 
 /** One numbered round: what was asked, the right answer, your pick, the verdict. */
-export function ReviewRound({ no, label, answer, pick, ok }: {
+export function ReviewRound({ no, label, answer, pick, extra, ok }: {
   no: number;
   label?: ReactNode;
   answer: ReactNode;
   pick?: ReactNode;
+  /** Optional line under the pick (the "Why?" disclosure on a missed round). */
+  extra?: ReactNode;
   ok: boolean;
 }) {
   return (
@@ -37,6 +39,7 @@ export function ReviewRound({ no, label, answer, pick, ok }: {
         {label && <span className="ar-round-label">{label}</span>}
         <div className="ar-round-answer">{answer}</div>
         {pick}
+        {extra}
       </div>
       <ReviewMark ok={ok} />
     </li>

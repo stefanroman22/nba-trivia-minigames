@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     VITE_DATA_BASE: process.env.VITE_DATA_BASE,
     VITE_QUESTIONS_BASE: process.env.VITE_QUESTIONS_BASE,
     VITE_PHOTO_CHECK_URL: process.env.VITE_PHOTO_CHECK_URL,
+    VITE_EXPLANATIONS: process.env.VITE_EXPLANATIONS,
   },
   // The Vite entry never wrapped the app in <StrictMode>; keeping it off keeps
   // dev-only double effects (socket identify, the /me/ session check) from

@@ -1,0 +1,4 @@
+# The Anthropic SDK, for the backend's two model-backed features (trivia/llm.py): the admin game builder and the
+# answer explanations. Not installed by Vercel unless requirements.txt includes this file (see its last lines).
+# Tests and local development get it through requirements-pipeline.txt.
+anthropic>=2.13,<3

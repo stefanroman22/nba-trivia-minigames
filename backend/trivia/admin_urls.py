@@ -20,5 +20,6 @@ urlpatterns = [
     path("game-builder/", game_builder.games, name="admin-game-builder"),
     path("game-builder/<int:pk>/", game_builder.game, name="admin-game-builder-game"),
     path("game-builder/<int:pk>/refine/", game_builder.refine, name="admin-game-builder-refine"),
+    path("game-builder/<int:pk>/publish/", game_builder.publish, name="admin-game-builder-publish"),
     path("game-builder/<int:pk>/play/", game_builder.play, name="admin-game-builder-play"),
 ]

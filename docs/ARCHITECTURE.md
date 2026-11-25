@@ -128,9 +128,18 @@ An admin describes a game in plain words in **Admin → Game Builder**. A Claude
 API) does not write questions: it picks one of the published datasets, writes a small declarative recipe (a
 **GameSpec**: dataset, filters, a question template, a mode), test-runs it with the same engine players would get,
 and hands it in. The engine then renders every round from real rows, keeps wrong options from being accidentally
-correct, and accepts alternative spellings. Follow-up prompts change the same game. Drafts are admin-only, are not
-public routes and award no points. The feature is off until `ANTHROPIC_API_KEY` is set on the backend, because each
-build is a billed model call. Everything else in the app that uses a model runs in GitHub Actions or a coding
+correct, and accepts alternative spellings. Follow-up prompts change the same game. A draft is admin-only. An admin
+can **publish** one: it is then playable by anyone who has its link (`/custom/<slug>`, not indexed and not linked from
+the site) until it is unpublished or refined. No custom game awards points. Building is off until the Anthropic SDK
+is enabled in `requirements.txt` and `ANTHROPIC_API_KEY` is set on the backend, because each build is a billed model
+call.
+
+### `trivia/explanations.py` — "Why?" on a missed answer (off by default)
+After a missed round of Guess the Series Winner or Guess the MVP, a player can open a two-sentence explanation. It is
+written once per question by a model that is given only this app's own data for that question, checked in code (any
+number that is not in that data rejects the text), stored, and served from the database from then on. The caller
+sends a game and a question id, never text. It needs four switches, all off today: the SDK, the key,
+`EXPLAIN_ENABLED=1` on the backend and `VITE_EXPLANATIONS=1` in the frontend build. Everything else in the app that uses a model runs in GitHub Actions or a coding
 session, never in a player's request: see [`.claude/README.md`](../.claude/README.md).
 
 ### Main things it can do (the API)

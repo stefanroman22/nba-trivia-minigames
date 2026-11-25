@@ -49,6 +49,19 @@ class FeedbackTriageTests(TestCase):
         self.assertEqual(feedback_triage.apply_verdicts(doc)["skipped"], 2)
         self.assertEqual(feedback_triage.export_batch()["items"], [])
 
+    def test_the_admin_list_shows_the_verdict(self):
+        from rest_framework.test import APIClient
+
+        feedback_triage.apply_verdicts({"run": "r1", "items": [
+            {"id": self.bug.pk, "kind": "bug", "summary": "Wordle freezes on mobile", "cluster": "wordle-freeze", "ticket": "page-1"}]})
+        api = APIClient()
+        api.force_authenticate(User.objects.create_user(username="admin", email="a@test.dev", password="x", is_staff=True))
+        rows = {r["id"]: r for r in api.get("/api/admin/feedback/?period=all").json()["rows"]}
+        self.assertEqual((rows[self.bug.pk]["triage"]["kind"], rows[self.bug.pk]["triage"]["summary"]), ("bug", "Wordle freezes on mobile"))
+        self.assertIsNone(rows[self.idea.pk]["triage"])
+        patched = api.patch(f"/api/admin/feedback/{self.bug.pk}/", {"status": "resolved"}, format="json").json()["row"]
+        self.assertEqual(patched["triage"]["ticket"], "page-1")
+
     def test_apply_rejects_unknown_kinds_and_bad_files(self):
         result = feedback_triage.apply_verdicts({"run": "r1", "items": [{"id": self.bug.pk, "kind": "urgent"}]})
         self.assertEqual((result["applied"], len(result["problems"])), (0, 1))

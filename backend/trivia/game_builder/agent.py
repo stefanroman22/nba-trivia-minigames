@@ -8,22 +8,23 @@ fails goes back to the model as a tool error with the reasons, so what reaches t
 The loop is hosted in-process (Messages API + tool use) because its tools read this app's own datasets and the
 admin waits on the HTTP request. It is bounded by GAME_BUILDER_MAX_TURNS model calls.
 
-`anthropic` is imported lazily: the request path must not pay for it at cold start (trivia/tests/test_startup.py).
+The API call itself (lazy SDK import, refusal fallback, error mapping) is trivia/llm.py.
 """
 import json
 from dataclasses import dataclass, field
 
 from django.conf import settings
 
+from trivia import llm
+
 from . import engine
 from .sources import SOURCES, catalog, describe
 from .spec import MODES, OPS, SpecError, validate
 
-FALLBACK_BETA = "server-side-fallback-2026-07-01"
 MAX_TOKENS = 16000
 
 
-class BuilderError(Exception):
+class BuilderError(llm.LLMError):
     """The agent could not produce a game. The message is safe to show to the admin."""
 
 
@@ -181,49 +182,25 @@ def _run_tool(name, args):
     return f"Unknown tool `{name}`.", True, None
 
 
-def _client():
-    import anthropic
-
-    return anthropic.Anthropic(
-        api_key=settings.ANTHROPIC_API_KEY, timeout=settings.GAME_BUILDER_TIMEOUT, max_retries=1
-    )
-
-
 def _create(client, messages):
-    """One model call, with API failures turned into a BuilderError the admin can read."""
-    import anthropic
-
+    """One model call. The request is identical between turns apart from `messages`, so the prefix caches."""
     try:
-        return client.beta.messages.create(
+        return llm.create(
+            client,
             model=settings.GAME_BUILDER_MODEL,
             max_tokens=MAX_TOKENS,
             system=[{"type": "text", "text": system_prompt(), "cache_control": {"type": "ephemeral"}}],
             tools=TOOLS,
             messages=messages,
             output_config={"effort": settings.GAME_BUILDER_EFFORT},
-            # A request the model's safety classifiers decline is re-run on a fallback model in the same call.
-            betas=[FALLBACK_BETA],
-            fallbacks="default",
         )
-    except anthropic.AuthenticationError:
-        raise BuilderError("The Anthropic API key was rejected.")
-    except anthropic.RateLimitError:
-        raise BuilderError("The AI service is rate limited right now. Try again in a minute.")
-    except anthropic.APITimeoutError:
-        raise BuilderError("The AI service took too long to answer. Try again, or ask for a simpler game.")
-    except anthropic.APIConnectionError:
-        raise BuilderError("Could not reach the AI service.")
-    except anthropic.APIStatusError as e:
-        raise BuilderError(f"The AI service returned an error ({e.status_code}).")
-
-
-def _text(response):
-    return "\n".join(b.text for b in response.content if b.type == "text" and b.text).strip()
+    except llm.LLMError as e:
+        raise BuilderError(str(e))
 
 
 def run(prompt, current_spec=None, client=None):
     """Build (or, with `current_spec`, refine) a game. Returns a BuildResult; raises BuilderError."""
-    client = client or _client()
+    client = client or llm.client(settings.GAME_BUILDER_TIMEOUT)
     result = BuildResult(model=settings.GAME_BUILDER_MODEL)
     messages = [{"role": "user", "content": _user_message(prompt, current_spec)}]
 
@@ -239,14 +216,9 @@ def run(prompt, current_spec=None, client=None):
         result.usage["output_tokens"] += usage.output_tokens or 0
         result.model = getattr(response, "model", None) or result.model
 
-        if response.stop_reason == "refusal":
-            raise BuilderError("The model declined this request.")
-        if response.stop_reason == "max_tokens":
-            raise BuilderError("The model's answer was cut off. Ask for a simpler game.")
-
         calls = [b for b in response.content if b.type == "tool_use"]
         if not calls:
-            result.message = _text(response) or "The agent stopped without building a game."
+            result.message = llm.text_of(response) or "The agent stopped without building a game."
             return result
 
         messages.append({"role": "assistant", "content": response.content})
@@ -255,7 +227,7 @@ def run(prompt, current_spec=None, client=None):
             text, is_error, accepted = _run_tool(call.name, call.input if isinstance(call.input, dict) else {})
             if accepted:
                 result.spec, result.preview, summary = accepted
-                result.message = summary or _text(response) or "Game built."
+                result.message = summary or llm.text_of(response) or "Game built."
                 return result
             outputs.append({"type": "tool_result", "tool_use_id": call.id, "content": text, "is_error": is_error})
         messages.append({"role": "user", "content": outputs})

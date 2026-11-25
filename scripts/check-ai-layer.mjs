@@ -7,7 +7,9 @@
 //   - the backend's default game-builder model is not the registry's
 //   - docs/team/PIPELINE.md does not name the current models
 //   - an agent, skill or workflow points at a repo file that does not exist
+//   - the classify eval (.claude/hillclimb/, borrowed from the eval/classify branch) is tracked here
 // Usage: node scripts/check-ai-layer.mjs   (part of `npm run lint`)
+import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -105,6 +107,10 @@ export function check({ root = ROOT } = {}) {
     if (!policy.includes(a.name)) problems.push(`docs/team/PIPELINE.md: does not name ${a.name} (the model policy is out of date)`);
     if (!index.includes(a.name)) problems.push(`.claude/README.md: does not name ${a.name}`);
   }
+
+  // --- the classify eval's answer key stays on its own branch: classify greps the repo and would read it
+  const tracked = spawnSync('git', ['-C', root, 'ls-files', '--', '.claude/hillclimb'], { encoding: 'utf8' });
+  if (tracked.status === 0 && tracked.stdout.trim()) problems.push('.claude/hillclimb/ is tracked: the classify eval must stay on the eval/classify branch (scripts/team/eval-classify.mjs borrows it for a run)');
 
   // --- nothing points at a file that is gone
   for (const [rel, text] of sources) {

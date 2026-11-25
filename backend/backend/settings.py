@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import importlib.util
 import os
 from django.core.exceptions import ImproperlyConfigured
 from corsheaders.defaults import default_headers
@@ -209,6 +210,10 @@ REST_FRAMEWORK = {
         "activity": "120/hour",
         # Each call is a billed model run; a person refining a game needs a few dozen at most.
         "game-builder": "40/hour",
+        # Public reads of an approved custom game: a play is one request; this only bounds scraping.
+        "custom-game": "240/hour",
+        # "Why?" on a missed answer: a handful per game. A cache hit costs nothing; a miss is one model call.
+        "explain": "60/hour",
     },
 }
 
@@ -296,14 +301,27 @@ MODERATION_SHARED_SECRET = os.environ.get("MODERATION_SHARED_SECRET")
 MODERATION_REQUIRED = env_bool("MODERATION_REQUIRED", bool(DATABASE_URL))
 PHOTO_BLOCK_THRESHOLD = float(os.environ.get("PHOTO_BLOCK_THRESHOLD", "0.85"))
 
-# AI game builder (Admin -> Game Builder, trivia/game_builder). Off until a key is set: every build or refine is
-# an API call billed to that key. The model is the `runtime.game-builder` entry of .claude/models.json.
+# Model-backed features (trivia/llm.py). Both need a key AND the SDK, which production does not install until the
+# owner uncomments it in requirements.txt (requirements-ai.txt): with either missing they answer "not configured".
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
-GAME_BUILDER_ENABLED = env_bool("GAME_BUILDER_ENABLED", bool(ANTHROPIC_API_KEY)) and bool(ANTHROPIC_API_KEY)
+_AI_READY = bool(ANTHROPIC_API_KEY) and importlib.util.find_spec("anthropic") is not None
+
+# AI game builder (Admin -> Game Builder, trivia/game_builder): every build or refine is an API call billed to the
+# key. The model is the `runtime.game-builder` entry of .claude/models.json.
+GAME_BUILDER_ENABLED = env_bool("GAME_BUILDER_ENABLED", _AI_READY) and _AI_READY
 GAME_BUILDER_MODEL = os.environ.get("GAME_BUILDER_MODEL", "claude-opus-5-5")
 GAME_BUILDER_EFFORT = os.environ.get("GAME_BUILDER_EFFORT", "medium")
 GAME_BUILDER_MAX_TURNS = int(os.environ.get("GAME_BUILDER_MAX_TURNS", "6"))
 GAME_BUILDER_TIMEOUT = float(os.environ.get("GAME_BUILDER_TIMEOUT", "120"))
+
+# "Why?" on a missed answer (trivia/explanations.py). Player-facing and billed, so it needs its own opt-in on top
+# of the key: EXPLAIN_ENABLED=1. Each question is written once and then served from the database; EXPLAIN_DAILY_LIMIT
+# caps how many new ones a day may cost. The model is the `runtime.explanations` entry of .claude/models.json.
+EXPLAIN_ENABLED = env_bool("EXPLAIN_ENABLED", False) and _AI_READY
+EXPLAIN_MODEL = os.environ.get("EXPLAIN_MODEL", "claude-opus-5-5")
+EXPLAIN_EFFORT = os.environ.get("EXPLAIN_EFFORT", "low")
+EXPLAIN_DAILY_LIMIT = int(os.environ.get("EXPLAIN_DAILY_LIMIT", "200"))
+EXPLAIN_TIMEOUT = float(os.environ.get("EXPLAIN_TIMEOUT", "30"))
 
 # The multiplayer relay credits online matches through trivia.views.multiplayer_result, authenticated
 # by this value in its X-Relay-Key header (same value as the relay's env). Unset: online play awards nothing.
